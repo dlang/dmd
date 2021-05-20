@@ -1612,7 +1612,25 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
 
             const(char)[] checkarg = arg[len .. $];
-            if (!(check(checkarg, "assert",    params.useAssert     ) ||
+            if (checkarg == "on")
+            {
+                params.useAssert        = CHECKENABLE.on;
+                params.useArrayBounds   = CHECKENABLE.on;
+                params.useIn            = CHECKENABLE.on;
+                params.useInvariants    = CHECKENABLE.on;
+                params.useOut           = CHECKENABLE.on;
+                params.useSwitchError   = CHECKENABLE.on;
+            }
+            else if (checkarg == "off")
+            {
+                params.useAssert        = CHECKENABLE.off;
+                params.useArrayBounds   = CHECKENABLE.off;
+                params.useIn            = CHECKENABLE.off;
+                params.useInvariants    = CHECKENABLE.off;
+                params.useOut           = CHECKENABLE.off;
+                params.useSwitchError   = CHECKENABLE.off;
+            }
+            else if (!(check(checkarg, "assert",    params.useAssert) ||
                   check(checkarg, "bounds",    params.useArrayBounds) ||
                   check(checkarg, "in",        params.useIn         ) ||
                   check(checkarg, "invariant", params.useInvariants ) ||
