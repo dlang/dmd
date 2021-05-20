@@ -288,15 +288,12 @@ jobs:
       # Create the new release using the downloaded artifacts
       #
       - name: Create the nightly release
-        # Currently disabled due to missing permissions
-        if: ${{ false }}
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: nightly
-          name: dmd-master
+          title: DMD nightly
           prerelease: true
-          draft: true
           files:  ~/artifacts/*
 
     runs-on: ubuntu-latest
