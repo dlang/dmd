@@ -364,20 +364,30 @@ extern (C++) final class StaticForeach : RootObject
         sfe.push(new ReturnStatement(aloc, res[0]));
         s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
         s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
-        auto ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
+        Type ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
         auto aty = ety.arrayOf();
         auto idres = Identifier.generateId("__res");
         auto vard = new VarDeclaration(aloc, aty, idres, null);
         auto s2 = new Statements();
-        s2.push(new ExpStatement(aloc, vard));
-        auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
-        s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
-        s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
+
+        // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
+        // an empty foreach to expose them.
+        uint olderrors = global.startGagging();
+        ety = ety.typeSemantic(aloc, sc);
+        if (global.endGagging(olderrors))
+            s2.push(createForeach(aloc, pparams[1], null));
+        else
+        {
+            s2.push(new ExpStatement(aloc, vard));
+            auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
+            s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
+            s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
+        }
 
         Expression aggr = void;
         Type indexty = void;
 
-        if (rangefe && (indexty = ety.typeSemantic(aloc, sc)).isintegral())
+        if (rangefe && (indexty = ety).isintegral())
         {
             rangefe.lwr.type = indexty;
             rangefe.upr.type = indexty;
