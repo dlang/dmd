@@ -34,10 +34,6 @@ final class CParser(AST) : Parser!AST
 {
     AST.Dsymbols* symbols;      // symbols declared in current scope
 
-    const ubyte longsize;         /// size of C long, 4 or 8
-    const ubyte long_doublesize;  /// size of C long double, 8 or D real.sizeof
-    const ubyte wchar_tsize;      /// size of C wchar_t, 2 or 4
-
     bool addFuncName;             /// add declaration of __func__ to function symbol table
 
     extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,

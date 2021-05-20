@@ -64,6 +64,41 @@ _Static_assert(sizeof(int[10][20]) == 20 * (10 * 4), "ok");
 
 /**********************************************/
 
+_Static_assert(07 == 7, "ok");
+_Static_assert(071 == 57, "ok");
+_Static_assert(0 == 0, "ok");
+
+_Static_assert(1u == 1l, "ok");
+_Static_assert(1U == 1L, "ok");
+_Static_assert(1Ul == 1L, "ok");
+
+_Static_assert(1ull == 1LL, "ok");
+_Static_assert(1llu == 1ull, "ok");
+
+_Static_assert(sizeof(1) == 4, "ok");
+_Static_assert(sizeof(0x1) == 4, "ok");
+_Static_assert(sizeof(1u) == 4, "ok");
+_Static_assert(sizeof(0x1u) == 4, "ok");
+_Static_assert(sizeof(1l) == 4  || sizeof(1l) == 8, "ok");
+_Static_assert(sizeof(1ul) == 4 || sizeof(1ul) == 8, "ok");
+_Static_assert(sizeof(0x1l) == 4  || sizeof(0x1L) == 8, "ok");
+_Static_assert(sizeof(0x1ul) == 4 || sizeof(0x1UL) == 8, "ok");
+_Static_assert(sizeof(1ll) == 8, "ok");
+_Static_assert(sizeof(1ull) == 8, "ok");
+_Static_assert(sizeof(0x1ull) == 8, "ok");
+
+_Static_assert(sizeof(0x8000000000000000LL) == 8, "ok");
+_Static_assert(sizeof(0x1LL) == 8, "ok");
+_Static_assert(sizeof(0x8000000000000000) == 8, "ok");
+_Static_assert(sizeof(0x7FFFFFFF00000000) == 8, "ok");
+_Static_assert(sizeof(9223372036854775808) == 8, "ok");
+_Static_assert(sizeof(9223372032559808512) == 8, "ok");
+_Static_assert(sizeof(0xFFFFFFFF00000000U) == 8, "ok");
+
+_Static_assert(sizeof(0x8000000000000000L) == 8, "ok");
+
+/**********************************************/
+
 int f1(i, j)
 int i;
 int j;
