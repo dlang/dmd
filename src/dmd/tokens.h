@@ -211,6 +211,8 @@ enum
         TOK__restrict,
         TOK__declspec,
         TOK__attribute__,
+        TOK__asm__,
+        TOK__asm,
 
         TOKMAX
 };
