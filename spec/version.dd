@@ -348,7 +348,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(THEAD Version Identifier, Description)
         $(TROW $(D darwin), The Darwin operating system; use $(D OSX) instead)
         $(TROW $(D Thumb), ARM in Thumb mode; use $(D ARM_Thumb) instead)
-        $(TROW $(D S390X), The System/390X architecture, 64-bit; use $(D SystemZ) instead)
+        $(TROW $(D S390X), The System/390X architecture$(COMMA) 64-bit; use $(D SystemZ) instead)
         )
 
         $(P Others will be added as they make sense and new implementations appear.
