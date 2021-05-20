@@ -1463,6 +1463,17 @@ final class CParser(AST) : Parser!AST
                     first = false;
                     if (token.value == TOK.asm_)
                         asmname = cparseSimpleAsmExpr();
+                    if (token.value == TOK.__attribute__)
+                    {
+                        cparseGnuAttributes();
+                        if (token.value == TOK.leftCurly)
+                        {
+                            error("attributes should be specified before the function definition");
+                            auto t = &token;
+                            if (skipBraces(t))
+                                return;
+                        }
+                    }
                     break;
 
                 default:
@@ -1905,6 +1916,16 @@ final class CParser(AST) : Parser!AST
                     }
                     check(TOK.rightParenthesis);
                     error("`_Alignas` not supported");  // TODO
+                    break;
+                }
+
+                case TOK.__attribute__:
+                {
+                    /* GNU Extensions
+                     * declaration-specifiers:
+                     *    gnu-attributes declaration-specifiers (opt)
+                     */
+                    cparseGnuAttributes();
                     break;
                 }
 
@@ -2504,7 +2525,20 @@ final class CParser(AST) : Parser!AST
      * gnu-attribute-list:
      *    gnu-attribute (opt)
      *    gnu-attribute-list , gnu-attribute
-     *
+     */
+    private void cparseGnuAttributes()
+    {
+        while (token.value == TOK.__attribute__)
+        {
+            nextToken();     // move past __attribute__
+            check(TOK.leftParenthesis);
+            cparseParens(); // TODO: implement
+            check(TOK.rightParenthesis);
+        }
+    }
+
+    /*************************
+     * Parse a single GNU attribute
      * gnu-attribute:
      *    gnu-attribute-name
      *    gnu-attribute-name ( identifier )
@@ -2519,7 +2553,7 @@ final class CParser(AST) : Parser!AST
      *    constant-expression
      *    expression-list , constant-expression
      */
-    private void cparseGnuAttributes()
+    private void cparseGnuAttribute()
     {
         /* Check for dllimport, dllexport, vector_size(bytes)
          * Ignore the rest
@@ -2579,7 +2613,7 @@ final class CParser(AST) : Parser!AST
     private void cparseParens()
     {
         check(TOK.leftParenthesis);
-        int parens = 0;
+        int parens = 1;
 
         while (1)
         {
@@ -2597,7 +2631,10 @@ final class CParser(AST) : Parser!AST
                         return;
                     }
                     if (parens == 0)
+                    {
+                        nextToken();
                         return;
+                    }
                     break;
 
                 case TOK.endOfFile:
@@ -2643,6 +2680,15 @@ final class CParser(AST) : Parser!AST
     {
         const loc = token.loc;
         nextToken();
+
+        /* GNU Extensions
+         * enum-specifier:
+         *    enum gnu-attributes (opt) identifier (opt) { enumerator-list } gnu-attributes (opt)
+         *    enum gnu-attributes (opt) identifier (opt) { enumerator-list , } gnu-attributes (opt)
+         *    enum gnu-attributes (opt) identifier
+         */
+        if (token.value == TOK.__attribute__)
+            cparseGnuAttributes();
 
         Identifier tag;
         if (token.value == TOK.identifier)
@@ -2705,6 +2751,12 @@ final class CParser(AST) : Parser!AST
                 break;
             }
             check(TOK.rightCurly);
+
+            /* GNU Extensions
+             * Parse the postfix gnu-attributes (opt)
+             */
+            if (token.value == TOK.__attribute__)
+                cparseGnuAttributes();
         }
         else if (!tag)
             error("missing `identifier` after `enum`");
@@ -2753,6 +2805,14 @@ final class CParser(AST) : Parser!AST
         const loc = token.loc;
         nextToken();
 
+        /* GNU Extensions
+         * struct-or-union-specifier:
+         *    struct-or-union gnu-attributes (opt) identifier (opt) { struct-declaration-list } gnu-attributes (opt)
+         *    struct-or-union gnu-attribute (opt) identifier
+         */
+        if (token.value == TOK.__attribute__)
+            cparseGnuAttributes();
+
         Identifier tag;
         if (token.value == TOK.identifier)
         {
@@ -2780,6 +2840,12 @@ final class CParser(AST) : Parser!AST
             stag.members = symbols;
             symbols = symbolsSave;
             check(TOK.rightCurly);
+
+            /* GNU Extensions
+             * Parse the postfix gnu-attributes (opt)
+             */
+            if (token.value == TOK.__attribute__)
+                cparseGnuAttributes();
 
             if (tag && (!stag.members || stag.members.length == 0)) // C11 6.7.2.1-2
                 error("no struct-declarator-list for `%s %s`", structOrUnion.toChars(), tag.toChars());
