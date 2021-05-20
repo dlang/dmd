@@ -1356,11 +1356,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             if (checkUnsafeAccess(sc, e1, true, true))
                 return ErrorExp.get();
         }
-        else if (e1.op == TOK.dot)
-        {
-            e1.error("expression has no value");
-            return ErrorExp.get();
-        }
         else if (e1.op == TOK.call)
         {
             CallExp ce = cast(CallExp)e1;
