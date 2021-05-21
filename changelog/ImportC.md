@@ -217,6 +217,21 @@ functions in imports just like it can for D.
 * Much of C code makes use of extensions provided by the host C compiler.
 None of these are implemented.
 
+* Alternative keywords are not implemented. You can define the alternate
+  keywords as macros to remove or replace them with standard keywords.
+
+```
+#define __attribute __attribute__
+#define __asm       asm
+#define __asm__     asm
+#define __const     const
+#define __const__   const
+#define __inline    inline
+#define __inline__  inline
+#define __extension__
+
+#include <stdlib.h>
+```
 
 ## Future Directions
 

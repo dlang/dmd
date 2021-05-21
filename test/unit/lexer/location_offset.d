@@ -538,8 +538,6 @@ enum ignoreTokens
     __restrict,
     __declspec,
     __attribute__,
-    __asm__,
-    __asm,
 
     max_,
 };

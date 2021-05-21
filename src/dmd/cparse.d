@@ -2448,7 +2448,7 @@ final class CParser(AST) : Parser!AST
     }
 
     /*************************
-     * Simple __asm__ parser
+     * Simple asm parser
      * https://gcc.gnu.org/onlinedocs/gcc/Asm-Labels.html
      * simple-asm-expr:
      *   asm ( asm-string-literal )
@@ -2458,7 +2458,7 @@ final class CParser(AST) : Parser!AST
      */
     private AST.Expression cparseSimpleAsmExpr()
     {
-        nextToken();     // move past __asm__
+        nextToken();     // move past asm
         check(TOK.leftParenthesis);
         if (token.value != TOK.string_)
             error("string literal expected");

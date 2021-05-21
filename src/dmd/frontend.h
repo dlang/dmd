@@ -504,8 +504,6 @@ enum class TOK : uint16_t
     __restrict = 257u,
     __declspec = 258u,
     __attribute__ = 259u,
-    __asm__ = 260u,
-    __asm = 261u,
 };
 
 class StringExp;
