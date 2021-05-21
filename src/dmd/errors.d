@@ -35,7 +35,7 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
-alias MessageFunc = void function(const ref Loc loc, const(char)* text);
+alias MessageFunc = extern (C++) void function(const ref Loc loc, const(char)* text);
 
 private struct FragmentInfo
 {
@@ -90,8 +90,8 @@ extern (C++) void verrorEx(const ref Loc loc, const(char)* format, va_list ap)
 {
     verrorFormatPrint(loc, format, ap, &_verrorExPrint, &_verrorExPrintSupplemental);
 }
-private void _verrorExPrint(const ref Loc loc, const(char)* text) { error(loc, "%s", text); }
-private void _verrorExPrintSupplemental(const ref Loc loc, const(char)* text){ errorSupplemental(loc, "%s", text); }
+extern (C++) private void _verrorExPrint(const ref Loc loc, const(char)* text) { error(loc, "%s", text); }
+extern (C++) private void _verrorExPrintSupplemental(const ref Loc loc, const(char)* text){ errorSupplemental(loc, "%s", text); }
 
 static if (__VERSION__ < 2092)
     private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
