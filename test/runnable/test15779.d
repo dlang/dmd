@@ -18,5 +18,5 @@ int main()
 
 void bar()
 {
-    new Fiber({ throw new Exception("fly"); }).call();
+    new Fiber(function() { throw new Exception("fly"); }).call();
 }

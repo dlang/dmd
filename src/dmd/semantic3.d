@@ -594,9 +594,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if (funcdecl.inferRetType)
                 {
-                    // If no return type inferred yet, then infer a void
+                    // If no return type was inferred yet, then infer as void if the
+                    // control flow can leave the function normally or noreturn if not.
                     if (!f.next)
-                        f.next = Type.tvoid;
+                    {
+                        const be = blockExit(funcdecl.fbody, funcdecl, false);
+                        const returns = be & (BE.fallthru | BE.return_);
+                        f.next = returns ? Type.tvoid : Type.tnoreturn;
+                    }
                     if (f.checkRetType(funcdecl.loc))
                         funcdecl.fbody = new ErrorStatement();
                     else if (funcdecl.isMain())
