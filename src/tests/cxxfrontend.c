@@ -101,7 +101,7 @@ void test_tokens()
     assert(strcmp(Token::toChars(TOKlparen), "(") == 0);
 
     // Last valid TOK value
-    assert(TOK__asm == TOKMAX - 1);
+    assert(TOK__attribute__ == TOKMAX - 1);
     assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
 }
 

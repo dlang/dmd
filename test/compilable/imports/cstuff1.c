@@ -267,21 +267,10 @@ typedef long_int my_int;
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21934
-typedef int type1 asm("realtype1");
-typedef int type2 __asm("realtype2");
-typedef int type3 __asm__("realtype3");
-
-int sym1 asm("realsym1") = 1;
-int sym2 __asm("realsym2") = 2;
-int sym3 __asm__("realsym3") = 3;
-
-int vsym1 asm("realvsym1");
-int vsym2 __asm("realvsym2");
-int vsym3 __asm__("realvsym3");
-
-int fun1() asm("realfun1");
-int fun2() __asm("realfun2");
-int fun3() __asm__("realfun3");
+typedef int type asm("realtype");
+int sym asm("realsym") = 1;
+int vsym asm("realvsym");
+int fun() asm("realfun");
 
 /********************************/
 

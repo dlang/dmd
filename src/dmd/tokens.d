@@ -316,8 +316,6 @@ enum TOK : ushort
     __restrict,
     __declspec,
     __attribute__,
-    __asm__,
-    __asm,
 }
 
 enum FirstCKeyword = TOK.inline;
@@ -476,8 +474,6 @@ private immutable TOK[] keywords =
     TOK.__restrict,
     TOK.__declspec,
     TOK.__attribute__,
-    TOK.__asm__,
-    TOK.__asm,
 ];
 
 // Initialize the identifier pool
@@ -509,10 +505,6 @@ static immutable TOK[TOK.max + 1] Ckeywords =
 
         foreach (kw; Ckwds)
             tab[kw] = cast(TOK) kw;
-
-        // Populate alternate keywords
-        tab[__asm] = asm_;
-        tab[__asm__] = asm_;
 
         return tab;
     }
@@ -823,8 +815,6 @@ extern (C++) struct Token
         TOK.__restrict     : "__restrict",
         TOK.__declspec     : "__declspec",
         TOK.__attribute__  : "__attribute__",
-        TOK.__asm          : "__asm",
-        TOK.__asm__        : "__asm__",
     ];
 
     static assert(() {
