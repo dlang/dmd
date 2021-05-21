@@ -498,6 +498,7 @@ immutable Msgtable[] msgtable =
     { "dllimport" },
     { "dllexport" },
     { "vector_size" },
+    { "__func__" },
 ];
 
 
