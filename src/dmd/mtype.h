@@ -893,6 +893,7 @@ public:
     const char *kind();
     TypeNoreturn *syntaxCopy();
     MATCH implicitConvTo(Type* to);
+    MATCH constConv(Type* to);
     bool isBoolean() /* const */;
     d_uns64 size(const Loc& loc) /* const */;
     unsigned alignsize();

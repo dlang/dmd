@@ -5508,6 +5508,7 @@ public:
     const char* kind() const;
     TypeNoreturn* syntaxCopy();
     MATCH implicitConvTo(Type* to);
+    MATCH constConv(Type* to);
     bool isBoolean() /* const */;
     d_uns64 size(const Loc& loc) /* const */;
     uint32_t alignsize();
