@@ -15,6 +15,21 @@ module dmd.console;
 import core.stdc.stdio;
 extern (C) int isatty(int) nothrow;
 
+version (Windows)
+{
+    import core.sys.windows.winbase;
+    import core.sys.windows.wincon;
+    import core.sys.windows.windef;
+}
+else version (Posix)
+{
+    import core.sys.posix.unistd;
+}
+else
+{
+    static assert(0);
+}
+
 
 enum Color : int
 {
@@ -37,16 +52,37 @@ enum Color : int
     white         = bright | lightGray,
 }
 
-struct Console
+interface Console
 {
   nothrow:
+    @property FILE* fp();
 
+    /**
+     * Turn on/off intensity.
+     * Params:
+     *      bright = turn it on
+     */
+    void setColorBright(bool bright);
+
+    /**
+     * Set color and intensity.
+     * Params:
+     *      color = the color
+     */
+    void setColor(Color color);
+
+    /**
+     * Reset console attributes to what they were
+     * when create() was called.
+     */
+    void resetColor();
+}
+
+private
+{
     version (Windows)
+    final class WindowsConsole : Console
     {
-        import core.sys.windows.winbase;
-        import core.sys.windows.wincon;
-        import core.sys.windows.windef;
-
       private:
         CONSOLE_SCREEN_BUFFER_INFO sbi;
         HANDLE handle;
@@ -56,31 +92,6 @@ struct Console
 
         @property FILE* fp() { return _fp; }
 
-        /**
-         Tries to detect whether DMD has been invoked from a terminal.
-         Returns: `true` if a terminal has been detected, `false` otherwise
-         */
-        static bool detectTerminal()
-        {
-            auto h = GetStdHandle(STD_OUTPUT_HANDLE);
-            CONSOLE_SCREEN_BUFFER_INFO sbi;
-            if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
-                return false; // no terminal detected
-
-            version (CRuntime_DigitalMars)
-            {
-                return isatty(stdout._file) != 0;
-            }
-            else version (CRuntime_Microsoft)
-            {
-                return isatty(fileno(stdout)) != 0;
-            }
-            else
-            {
-                static assert(0, "Unsupported Windows runtime.");
-            }
-        }
-
         /*********************************
          * Create an instance of Console connected to stream fp.
          * Params:
@@ -89,43 +100,24 @@ struct Console
          *      pointer to created Console
          *      null if failed
          */
-        static Console* create(FILE* fp)
+        this(FILE* fp)
         {
-            /* Determine if stream fp is a console
-             */
-            version (CRuntime_DigitalMars)
-            {
-                if (!isatty(fp._file))
-                    return null;
-            }
-            else version (CRuntime_Microsoft)
-            {
-                if (!isatty(fileno(fp)))
-                    return null;
-            }
-            else
-            {
-                return null;
-            }
-
             DWORD nStdHandle;
             if (fp == stdout)
                 nStdHandle = STD_OUTPUT_HANDLE;
             else if (fp == stderr)
                 nStdHandle = STD_ERROR_HANDLE;
             else
-                return null;
+                assert(false);
 
             auto h = GetStdHandle(nStdHandle);
             CONSOLE_SCREEN_BUFFER_INFO sbi;
             if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
-                return null;
+                assert(false);
 
-            auto c = new Console();
-            c._fp = fp;
-            c.handle = h;
-            c.sbi = sbi;
-            return c;
+            this._fp = fp;
+            this.handle = h;
+            this.sbi = sbi;
         }
 
         /*******************
@@ -164,7 +156,9 @@ struct Console
             SetConsoleTextAttribute(handle, sbi.wAttributes);
         }
     }
-    else version (Posix)
+
+    version (Posix)
+    final class ANSIConsole : Console
     {
         /* The ANSI escape codes are used.
          * https://en.wikipedia.org/wiki/ANSI_escape_code
@@ -182,31 +176,16 @@ struct Console
          *  8: hidden
          */
 
-        import core.sys.posix.unistd;
-
       private:
         FILE* _fp;
 
       public:
 
         @property FILE* fp() { return _fp; }
-        /**
-         Tries to detect whether DMD has been invoked from a terminal.
-         Returns: `true` if a terminal has been detect, `false` otherwise
-         */
-        static bool detectTerminal()
-        {
-            import core.stdc.stdlib : getenv;
-            const(char)* term = getenv("TERM");
-            import core.stdc.string : strcmp;
-            return isatty(STDERR_FILENO) && term && term[0] && strcmp(term, "dumb") != 0;
-        }
 
-        static Console* create(FILE* fp)
+        this(FILE* fp)
         {
-            auto c = new Console();
-            c._fp = fp;
-            return c;
+            this._fp = fp;
         }
 
         void setColorBright(bool bright)
@@ -224,29 +203,60 @@ struct Console
             fputs("\033[m", _fp);
         }
     }
-    else
+}
+
+
+/**
+ Tries to detect whether DMD has been invoked from a terminal.
+ Returns: `true` if a terminal has been detected, `false` otherwise
+ */
+bool detectTerminal() nothrow
+{
+    version (Windows)
     {
-        @property FILE* fp() { assert(0); }
+        auto h = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_SCREEN_BUFFER_INFO sbi;
+        if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
+            return false; // no terminal detected
 
-        static Console* create(FILE* fp)
+        version (CRuntime_DigitalMars)
         {
-            return null;
+            return isatty(stdout._file) != 0;
         }
-
-        void setColorBright(bool bright)
+        else version (CRuntime_Microsoft)
         {
-            assert(0);
+            return isatty(fileno(stdout)) != 0;
         }
-
-        void setColor(Color color)
+        else
         {
-            assert(0);
-        }
-
-        void resetColor()
-        {
-            assert(0);
+            static assert(0, "Unsupported Windows runtime.");
         }
     }
+    else
+    version (Posix)
+    {
+        import core.stdc.stdlib : getenv;
+        const(char)* term = getenv("TERM");
+        import core.stdc.string : strcmp;
+        return isatty(STDERR_FILENO) && term && term[0] && strcmp(term, "dumb") != 0;
+    }
+}
 
+/**
+ * Creates an instance of Console connected to stream fp.
+ * Params:
+ *      fp = io stream
+ * Returns:
+ *      reference to created Console
+ */
+Console createConsole(FILE* fp)
+{
+    if (detectTerminal())
+    {
+        version (Windows)
+            return new WindowsConsole(fp);
+        version (Posix)
+            return new ANSIConsole(fp);
+    }
+    return null;
 }
