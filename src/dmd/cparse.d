@@ -1466,7 +1466,7 @@ final class CParser(AST) : Parser!AST
                      */
                     first = false;
                     if (token.value == TOK.asm_)
-                        asmname = cparseAsmLabel();
+                        asmname = cparseSimpleAsmExpr();
                     break;
 
                 default:
@@ -2474,7 +2474,7 @@ final class CParser(AST) : Parser!AST
      * asm-string-literal:
      *   string-literal
      */
-    private AST.Expression cparseAsmLabel()
+    private AST.Expression cparseSimpleAsmExpr()
     {
         nextToken();     // move past __asm__
         check(TOK.leftParenthesis);
