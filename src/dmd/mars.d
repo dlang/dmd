@@ -1819,16 +1819,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             const triple = Triple(p + len);
             target.setTriple(triple);
         }
-        else if (startsWith(p + 1, "vformat-level"))
+        else if (startsWith(p + 1, "verror-format-level"))
         {
-            if (p[14] != '=')
+            if (p[20] != '=')
             {
-                errorInvalidSwitch(p, "Expected argument following `-vformat-level` , e.g. `-vformat-level=2`");
+                errorInvalidSwitch(p, "Expected argument following `-verror-format-level` , e.g. `-verror-format-level=2`");
                 return true;
             }
-            else if (!params.formatLevel.parseDigits(p.toDString()[15 .. $]))
+            else if (!params.formatLevel.parseDigits(p.toDString()[21 .. $]))
             {
-                errorInvalidSwitch(p, "Only numbers are allowed for `-vformat-level`");
+                errorInvalidSwitch(p, "Only numbers are allowed for `-verror-format-level`");
                 return true;
             }
         }
