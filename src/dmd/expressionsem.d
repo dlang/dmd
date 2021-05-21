@@ -2060,7 +2060,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 /* Argument value can be assigned to firstArg.
                  * Check arg to see if it matters.
                  */
-                if (global.params.vsafe)
+                if (global.params.useDIP1000 == FeatureState.enabled)
                     err |= checkParamArgumentReturn(sc, firstArg, arg, false);
             }
             else if (tf.parameterEscapes(tthis, p))
@@ -2068,7 +2068,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 /* Argument value can escape from the called function.
                  * Check arg to see if it matters.
                  */
-                if (global.params.vsafe)
+                if (global.params.useDIP1000 == FeatureState.enabled)
                     err |= checkParamArgumentEscape(sc, fd, p, arg, false, false);
             }
             else
@@ -3187,7 +3187,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         semanticTypeInfo(sc, e.type);
 
-        if (global.params.vsafe)
+        if (global.params.useDIP1000 == FeatureState.enabled)
         {
             if (checkAssocArrayLiteralEscape(sc, e, false))
                 return setError();
@@ -3827,7 +3827,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 /* Since a `new` allocation may escape, check each of the arguments for escaping
                  */
-                if (global.params.vsafe)
+                if (global.params.useDIP1000 == FeatureState.enabled)
                 {
                     foreach (arg; *exp.arguments)
                     {
@@ -4693,7 +4693,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tthis = ue.e1.type;
                 if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isScopeQual))
                 {
-                    if (global.params.vsafe && checkParamArgumentEscape(sc, exp.f, null, ethis, false, false))
+                    if (global.params.useDIP1000 == FeatureState.enabled && checkParamArgumentEscape(sc, exp.f, null, ethis, false, false))
                         return setError();
                 }
             }
@@ -6601,7 +6601,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* A delegate takes the address of e.e1 in order to set the .ptr field
          * https://issues.dlang.org/show_bug.cgi?id=18575
          */
-        if (global.params.vsafe && e.e1.type.toBasetype().ty == Tstruct)
+        if (global.params.useDIP1000 == FeatureState.enabled && e.e1.type.toBasetype().ty == Tstruct)
         {
             if (auto v = expToVariable(e.e1))
             {
@@ -6840,7 +6840,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (checkUnsafeAccess(sc, dve, !exp.type.isMutable(), true))
                 return setError();
 
-            if (global.params.vsafe)
+            if (global.params.useDIP1000 == FeatureState.enabled)
             {
                 if (VarDeclaration v = expToVariable(dve.e1))
                 {
@@ -6911,7 +6911,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
         }
-        else if ((exp.e1.op == TOK.this_ || exp.e1.op == TOK.super_) && global.params.vsafe)
+        else if ((exp.e1.op == TOK.this_ || exp.e1.op == TOK.super_) && global.params.useDIP1000 == FeatureState.enabled)
         {
             if (VarDeclaration v = expToVariable(exp.e1))
             {
@@ -6941,7 +6941,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (VarDeclaration v = expToVariable(exp.e1))
             {
-                if (global.params.vsafe && !checkAddressVar(sc, exp.e1, v))
+                if (global.params.useDIP1000 == FeatureState.enabled && !checkAddressVar(sc, exp.e1, v))
                     return setError();
 
                 exp.e1.checkPurity(sc, v);
@@ -7660,7 +7660,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (t1b.ty == Tsarray)
         {
-            if (!exp.arrayop && global.params.vsafe)
+            if (!exp.arrayop && global.params.useDIP1000 == FeatureState.enabled)
             {
                 /* Slicing a static array is like taking the address of it.
                  * Perform checks as if e[] was &e
@@ -9848,7 +9848,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.type = exp.e1.type;
         auto res = exp.reorderSettingAAElem(sc);
-        if ((exp.op == TOK.concatenateElemAssign || exp.op == TOK.concatenateDcharAssign) && global.params.vsafe)
+        if ((exp.op == TOK.concatenateElemAssign || exp.op == TOK.concatenateDcharAssign) &&
+            global.params.useDIP1000 == FeatureState.enabled)
             checkAssignEscape(sc, res, false);
         result = res;
     }
@@ -12489,7 +12490,7 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
         if (sc.func && !sc.intypeof && !v.isDataseg())
         {
             const(char)* p = v.isParameter() ? "parameter" : "local";
-            if (global.params.vsafe)
+            if (global.params.useDIP1000 == FeatureState.enabled)
             {
                 // Taking the address of v means it cannot be set to 'scope' later
                 v.storage_class &= ~STC.maybescope;

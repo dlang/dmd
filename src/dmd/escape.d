@@ -164,7 +164,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         if (!(eb.isMutable || eb2.isMutable))
             return;
 
-        if (!(global.params.vsafe && sc.func.setUnsafe()))
+        if (!(global.params.useDIP1000 == FeatureState.enabled && sc.func.setUnsafe()))
             return;
 
         if (!gag)
@@ -309,7 +309,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
     {
-        if (global.params.vsafe && sc.func.setUnsafe())
+        if (global.params.useDIP1000 == FeatureState.enabled && sc.func.setUnsafe())
         {
             if (!gag)
             {
@@ -754,7 +754,7 @@ ByRef:
         if (v.isDataseg())
             continue;
 
-        if (global.params.vsafe)
+        if (global.params.useDIP1000 == FeatureState.enabled)
         {
             if (va && va.isScope() && (v.storage_class & (STC.ref_ | STC.out_)) == 0)
             {
@@ -968,7 +968,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
             if (sc._module && sc._module.isRoot())
             {
                 // Only look for errors if in module listed on command line
-                if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
+                if (global.params.useDIP1000 == FeatureState.enabled) // https://issues.dlang.org/show_bug.cgi?id=17029
                 {
                     if (!gag)
                         error(e.loc, "scope variable `%s` may not be thrown", v.toChars());
@@ -1036,7 +1036,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                 !(p.parent == sc.func))
             {
                 // Only look for errors if in module listed on command line
-                if (global.params.vsafe         // https://issues.dlang.org/show_bug.cgi?id=17029
+                if (global.params.useDIP1000 == FeatureState.enabled   // https://issues.dlang.org/show_bug.cgi?id=17029
                     && sc.func.setUnsafe())     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
                     if (!gag)
@@ -1256,7 +1256,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                )
             {
                 // Only look for errors if in module listed on command line
-                if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
+                if (global.params.useDIP1000 == FeatureState.enabled) // https://issues.dlang.org/show_bug.cgi?id=17029
                 {
                     if (!gag)
                         error(e.loc, "scope variable `%s` may not be returned", v.toChars());
@@ -1339,7 +1339,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *   auto dg = () return { return &x; }
                  * Because dg.ptr points to x, this is returning dt.ptr+offset
                  */
-                if (global.params.vsafe)
+                if (global.params.useDIP1000 == FeatureState.enabled)
                 {
                     sc.func.storage_class |= STC.return_ | STC.returninferred;
                 }
@@ -1733,7 +1733,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 DotVarExp dve = cast(DotVarExp)e.e1;
                 FuncDeclaration fd = dve.var.isFuncDeclaration();
                 AggregateDeclaration ad;
-                if (global.params.vsafe && tf.isreturn && fd && (ad = fd.isThis()) !is null)
+                if (global.params.useDIP1000 == FeatureState.enabled && tf.isreturn && fd && (ad = fd.isThis()) !is null)
                 {
                     if (ad.isClassDeclaration() || tf.isScopeQual)       // this is 'return scope'
                         dve.e1.accept(this);

@@ -1575,7 +1575,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             /* If dsym is a local variable, who's type is a struct with a scope destructor,
              * then make dsym scope, too.
              */
-            if (global.params.vsafe &&
+            if (global.params.useDIP1000 == FeatureState.enabled &&
                 !(dsym.storage_class & (STC.parameter | STC.temp | STC.field | STC.in_ | STC.foreach_ | STC.result | STC.manifest)) &&
                 !dsym.isDataseg() &&
                 !dsym.doNotInferScope &&

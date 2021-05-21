@@ -115,6 +115,7 @@ struct Param
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
     FeatureState useDIP25;      // implement http://wiki.dlang.org/DIP25
+    FeatureState useDIP1000; // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
     bool useDIP1021;    // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
@@ -139,7 +140,6 @@ struct Param
                         // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;  // if the current scope has an alias this, check it before searching upper scopes
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
-    bool vsafe;         // use enhanced @safe checking
     bool ehnogc;        // use @nogc exception handling
     FeatureState dtorFields;  // destruct fields of partially constructed objects
                               // https://issues.dlang.org/show_bug.cgi?id=14246
