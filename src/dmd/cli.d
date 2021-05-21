@@ -659,12 +659,21 @@ dmd -cov -unittest myprog.d
         Option("revert=[h|help|?]",
             "list all revertable language changes"
         ),
-        Option("run <srcfile>",
+        Option("run <srcfile> args...",
             "compile, link, and run the program srcfile",
             `Compile, link, and run the program $(I srcfile) with the
             rest of the
             command line, $(I args...), as the arguments to the program.
             No .$(OBJEXT) or executable file is left behind.`
+        ),
+        Option("run - args...",
+            "compile, link, and run the program from standard input",
+            `Similar to $(I -run <srcfile>), but takes its input from
+            the standard input stream instead of a file from the file system.
+            Example:
+---
+echo "void main(){}" | dmd -run -
+---`
         ),
         Option("shared",
             "generate shared library (DLL)",
