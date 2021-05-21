@@ -1540,6 +1540,8 @@ final class CParser(AST) : Parser!AST
             }
             if (s !is null)
             {
+                // Saw `asm("name")` in the function, type, or variable definition.
+                // This maps directly to `pragma(mangle, "name")`
                 if (asmname)
                 {
                     auto args = new AST.Expressions(1);
