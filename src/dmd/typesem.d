@@ -4538,6 +4538,19 @@ Expression defaultInit(Type mt, const ref Loc loc)
         return new TupleExp(loc, exps);
     }
 
+    Expression visitNoreturn(TypeNoreturn mt)
+    {
+        static if (LOGDEFAULTINIT)
+        {
+            printf("TypeNoreturn::defaultInit() '%s'\n", mt.toChars());
+        }
+        auto cond = IntegerExp.createBool(false);
+        auto msg = new StringExp(loc, "Accessed variable of type `noreturn`!");
+        auto ae = new AssertExp(loc, cond, msg);
+        ae.type = mt;
+        return ae;
+    }
+
     switch (mt.ty)
     {
         case Tvector:   return visitVector  (cast(TypeVector)mt);
@@ -4557,6 +4570,7 @@ Expression defaultInit(Type mt, const ref Loc loc)
         case Treference:
         case Tdelegate:
         case Tclass:    return new NullExp(loc, mt);
+        case Tnoreturn: return visitNoreturn(cast(TypeNoreturn) mt);
 
         default:        return mt.isTypeBasic() ?
                                 visitBasic(cast(TypeBasic)mt) :
