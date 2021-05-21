@@ -7925,6 +7925,7 @@ struct Id
     static Identifier* dllimport;
     static Identifier* dllexport;
     static Identifier* vector_size;
+    static Identifier* __func__;
     static void initialize();
     Id()
     {

@@ -38,6 +38,8 @@ final class CParser(AST) : Parser!AST
     const ubyte long_doublesize;  /// size of C long double, 8 or D real.sizeof
     const ubyte wchar_tsize;      /// size of C wchar_t, 2 or 4
 
+    bool addFuncName;             /// add declaration of __func__ to function symbol table
+
     extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment,
         ubyte longsize, ubyte long_doublesize, ubyte wchar_tsize)
     {
@@ -597,6 +599,10 @@ final class CParser(AST) : Parser!AST
         switch (token.value)
         {
         case TOK.identifier:
+            if (token.ident is Id.__func__)
+            {
+                addFuncName = true;     // implicitly declare __func__
+            }
             e = new AST.IdentifierExp(loc, token.ident);
             nextToken();
             break;
@@ -1642,8 +1648,30 @@ final class CParser(AST) : Parser!AST
                     error("no declaration for identifier `%s`", p.ident.toChars());
             }
         }
+
+        addFuncName = false;    // gets set to true if somebody references __func__ in this function
+        const locFunc = token.loc;
+
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
         auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, SCWtoSTC(LVL.global, scw), ft);
+
+        if (addFuncName)
+        {
+            /* C11 6.4.2.2 Predefine
+             * `static const char __func__[] = " function-name ";`
+             * and add to symbol table at opening brace of start of function body
+             */
+            const fn = id.toString();  // function-name
+            auto efn = new AST.StringExp(locFunc, fn, fn.length, 1, 'c');
+            auto ifn = new AST.ExpInitializer(locFunc, efn);
+            auto lenfn = new AST.IntegerExp(locFunc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
+            auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
+            auto sfn = new AST.VarDeclaration(locFunc, tfn, Id.__func__, ifn, STC.gshared | STC.immutable_);
+            auto e = new AST.DeclarationExp(locFunc, sfn);
+            auto stmt = new AST.ExpStatement(locFunc, e);
+
+            body = new AST.CompoundStatement(locFunc, stmt, body);
+        }
         fd.fbody = body;
 
         // TODO add `symbols` to the function's local symbol table `sc2` in FuncDeclaration::semantic3()

@@ -285,6 +285,13 @@ int fun3() __asm__("realfun3");
 
 /********************************/
 
+void test__func__()
+{
+    _Static_assert((sizeof __func__) == 13, "ok");
+}
+
+/********************************/
+
 int printf(const char*, ...);
 
 int main()
