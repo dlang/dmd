@@ -710,6 +710,9 @@ extern (C++) abstract class Type : ASTNode
                 if (t2bn.ty == Tnull || t2bn.ty == Tpointer || t2bn.ty == Tclass)
                     goto Lcovariant;
             }
+            // bottom type is covariant to any type
+            else if (t1n.ty == Tnoreturn)
+                goto Lcovariant;
         }
         goto Lnotcovariant;
 
@@ -6732,8 +6735,21 @@ extern (C++) final class TypeNoreturn : Type
         //printf("TypeNoreturn::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
-        MATCH m = Type.implicitConvTo(to);
-        return (m == MATCH.exact) ? MATCH.exact : MATCH.convert;
+        if (this.equals(to))
+            return MATCH.exact;
+
+        // Different qualifiers?
+        if (to.ty == Tnoreturn)
+            return MATCH.constant;
+
+        // Implicitly convertible to any type
+        return MATCH.convert;
+    }
+
+    override MATCH constConv(Type to)
+    {
+        // Either another noreturn or conversion to any type
+        return this.implicitConvTo(to);
     }
 
     override bool isBoolean() const
