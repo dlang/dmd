@@ -279,10 +279,12 @@ jobs:
       # Debug: Check that all required artifacts are present
       #
       - name: Display all files included in the artifacts
+        id: list-artifacts
         shell: bash
         run: |
           set -euox pipefail
           ls -aul ~ ~/artifacts
+          echo "::set-output name=artifacts_directory::$PWD/artifacts"
 
       #################################################################
       # Create the new release using the downloaded artifacts
@@ -294,6 +296,6 @@ jobs:
           automatic_release_tag: nightly
           title: DMD nightly
           prerelease: true
-          files:  ~/artifacts/*
+          files:  ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
 
     runs-on: ubuntu-latest
