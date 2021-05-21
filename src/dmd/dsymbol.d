@@ -231,6 +231,7 @@ extern (C++) class Dsymbol : ASTNode
     Scope* _scope;          // !=null means context to use for semantic()
     const(char)* prettystring;  // cached value of toPrettyChars()
     bool errors;            // this symbol failed to pass semantic()
+    Violation violation;    /// Violation of attributes reported for this node
     PASS semanticRun = PASS.init;
     ushort localNum;        /// perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
 

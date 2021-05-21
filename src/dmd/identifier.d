@@ -141,6 +141,14 @@ nothrow:
         return DYNCAST.identifier;
     }
 
+    /// Returns `true` if this is not anonymous and starts with `prefix`
+    extern(D) final bool startsWith(scope const char[] prefix) const pure @nogc @safe
+    {
+        return !isAnonymous_
+            && name.length >= prefix.length
+            && name[0 .. prefix.length] == prefix;
+    }
+
     private extern (D) __gshared StringTable!Identifier stringtable;
 
     /**

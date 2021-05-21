@@ -3,9 +3,11 @@ TEST_OUTPUT:
 ---
 fail_compilation/diag9620.d(18): Error: `pure` function `diag9620.main.bar` cannot call impure function `diag9620.foo1`
 fail_compilation/diag9620.d(19): Error: `pure` function `diag9620.main.bar` cannot call impure function `diag9620.foo2!().foo2`
+fail_compilation/diag9620.d(12):          could not infer `pure` for `diag9620.foo2!().foo2` because:
+fail_compilation/diag9620.d(12):          - accessing `x` is not `pure`
 ---
 */
-
+#line 9
 int x;
 
 void foo1() { x = 3; }

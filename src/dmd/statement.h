@@ -108,6 +108,7 @@ class Statement : public ASTNode
 public:
     Loc loc;
     STMT stmt;
+    Violation violation; // Violation of attributes reported for this node
 
     virtual Statement *syntaxCopy();
 

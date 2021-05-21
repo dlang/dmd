@@ -2705,7 +2705,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
         if (eoff.op == TOK.int64 && eoff.toInteger() == 0)
         {
         }
-        else if (sc.func.setUnsafe())
+        else if (sc.func.setUnsafe(be))
         {
             be.error("pointer arithmetic not allowed in @safe functions");
             return ErrorExp.get();

@@ -58,12 +58,21 @@ enum
     OWNEDcache      // constant value cached for CTFE
 };
 
+enum class Violation : uint8_t
+{
+    safe     = 1u,
+    pure_    = 2u,
+    nogc     = 4u,
+    nothrow_ = 8u,
+};
+
 class Expression : public ASTNode
 {
 public:
     TOK op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
+    Violation violation;        // Violation of attributes reported for this node
     Type *type;                 // !=NULL means that semantic() has been run
     Loc loc;                    // file location
 

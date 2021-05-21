@@ -61,7 +61,8 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         const hasPointers = v.type.hasPointers();
         if (hasPointers)
         {
-            if (v.overlapped && sc.func.setUnsafe())
+
+            if (v.overlapped && sc.func.setUnsafe(e))
             {
                 if (printmsg)
                     e.error("field `%s.%s` cannot access pointers in `@safe` code that overlap other fields",
@@ -88,7 +89,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         {
             if ((ad.type.alignment() < target.ptrsize ||
                  (v.offset & (target.ptrsize - 1))) &&
-                sc.func.setUnsafe())
+                sc.func.setUnsafe(e))
             {
                 if (printmsg)
                     e.error("field `%s.%s` cannot modify misaligned pointers in `@safe` code",
@@ -97,7 +98,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
             }
         }
 
-        if (v.overlapUnsafe && sc.func.setUnsafe())
+        if (v.overlapUnsafe && sc.func.setUnsafe(e))
         {
              if (printmsg)
                  e.error("field `%s.%s` cannot modify fields in `@safe` code that overlap fields with other storage classes",
@@ -196,4 +197,3 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
     }
     return false;
 }
-
