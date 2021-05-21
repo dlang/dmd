@@ -2488,28 +2488,31 @@ final class CParser(AST) : Parser!AST
     /*************************
      * __attribute__ parser
      * https://gcc.gnu.org/onlinedocs/gcc/Attribute-Syntax.html
-     * attribute-specifier:
-     *    __attribute__ (( attribute-list ))
+     * gnu-attributes:
+     *   gnu-attributes gnu-attribute-specifier
      *
-     * attribute-list:
-     *    attribute (opt)
-     *    attribute-list , attribute
+     * gnu-attribute-specifier:
+     *    __attribute__ (( gnu-attribute-list ))
      *
-     * attribute:
-     *    attribute-name
-     *    attribute-name ( identifier )
-     *    attribute-name ( identifier , expression-list )
-     *    attribute-name ( expression-list (opt) )
+     * gnu-attribute-list:
+     *    gnu-attribute (opt)
+     *    gnu-attribute-list , gnu-attribute
      *
-     * attribute-name:
+     * gnu-attribute:
+     *    gnu-attribute-name
+     *    gnu-attribute-name ( identifier )
+     *    gnu-attribute-name ( identifier , expression-list )
+     *    gnu-attribute-name ( expression-list (opt) )
+     *
+     * gnu-attribute-name:
      *    keyword
      *    identifier
      *
      * expression-list:
      *    constant-expression
-     *    expression-list constant-expression
+     *    expression-list , constant-expression
      */
-    private void cparseAttribute()
+    private void cparseGnuAttributes()
     {
         /* Check for dllimport, dllexport, vector_size(bytes)
          * Ignore the rest
