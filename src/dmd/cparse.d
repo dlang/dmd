@@ -1451,8 +1451,8 @@ final class CParser(AST) : Parser!AST
 
             /* GNU Extensions
              * init-declarator:
-             *    declarator simple-asm-expr[opt] gnu-attributes[opt]
-             *    declarator simple-asm-expr[opt] gnu-attributes[opt] = initializer
+             *    declarator simple-asm-expr (opt) gnu-attributes (opt)
+             *    declarator simple-asm-expr (opt) gnu-attributes (opt) = initializer
              */
             switch (token.value)
             {
