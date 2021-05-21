@@ -736,7 +736,7 @@ dmd -cov -unittest myprog.d
             "compile in version code identified by ident",
             `Compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version identifier) $(I ident)`
         ),
-        Option("vformat-level=[0|1|2|3]",
+        Option("verror-format-level=[0|1|2|3]",
             "set the level of verbose formatting for compiler messages"
         ),
         Option("vgc",

@@ -35,184 +35,63 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
-// TEMP-PR-NOTE: I've put this all here because I have no idea where to actually put it, so yell at me in the Github comments pls.
-//               Also I'll add doc comments to everything once I know this design is ok.
-//               Also Also, I'll add .h definitions in the same case as above.
+alias MessageFunc = void function(const ref Loc loc, const(char)* text);
 
-// TEMP-PR-NOTE: TLDR: errorEx(loc, "abc $[indent:1] cde %s", "123"); -> error(loc, "abc \n     cde %s", "123");
-//               The format string is passed through message formatters before the format string has its normal %s, etc. arguments formatted.
-//                      That is done by PreMessageFormatters
-//               Perhaps we can do another pass by PostMessageFormatters, which is when the string has been pre formatted + normal formatted?
-//               I think with post-formatters, they'd look like: "^[name:params]{text}", since they'd likely only be used to format blocks of text,
-//               e.g. pretty printing a function signature.
-//                  Of course this is more complicated since we don't want to confuse user-code with this, even just the output of
-//                  something like `MyClass!"^[]"` would be confusing to the parsing code. So I've left this for another day/PR.
-
-// TEMP-PR-NOTE: I wanted this to be a base class, but the compiler wanted a virtual function, and idk what would've been there
-//               So this is a mixin for now.
-private mixin template MessageFormatterBase()
+private struct FragmentInfo
 {
-private:
-    const(char)* formatName;
-    uint minFormatLevel;
+    const(char)* start; /// points to the first character of the `FRAGMENT_PREFIX_START` prefix for this fragment.
 
-protected final nothrow:
-    this(const(char)* formatName, uint minFormatLevel)
-    {
-        this.formatName = formatName;
-        this.minFormatLevel = minFormatLevel;
-    }
+    const(char)* name;
+    size_t nameLen;
 
-    void makeNewLine(scope const(char)* locChars, OutBuffer* buf)
-    {
-        buf.writeByte('\n');
-        if (locChars)
-            buf.writestring(locChars);
-        buf.writestring(": ");
-    }
+    const(char)* params; /// can be null
+    size_t paramsLen;
 
-    void makeIndent(uint count, OutBuffer* buf)
-    {
-        foreach (i; 0..count)
-            buf.writestring("    ");
-    }
+    const(char)* innerText;
+    size_t innerTextLen;
 }
 
-extern (C++) class PreMessageFormatter
-{
-    mixin MessageFormatterBase;
+private immutable FRAGMENT_PREFIX = "\033¬\r!\033¬\t*"; // super random series of weird characters that no user code would ever really use. Change to e.g. "__PREFIX__" when debugging.
+private immutable FRAGMENT_PREFIX_START = FRAGMENT_PREFIX ~ "$[";
+private immutable FRAGMENT_PREFIX_BODY_END = FRAGMENT_PREFIX ~ '}';
 
-    void format(scope const(char)* locChars, OutBuffer* buf, scope const(char)* params) nothrow {}
-}
-
-// TEMP-PR-NOTE: My question is, is this fine? Or do we also need an `addMessageFormatter` function?
-private PreMessageFormatter[] _preMessageFormatters = 
-[
-    new NewLineAndIndentFormatter("indent", 1)
-];
-
-private PreMessageFormatter getPreFormatterByName(const(char)* name) @nogc nothrow
-{
-    foreach (formatter; _preMessageFormatters)
-        if (!strcmp(name, formatter.formatName))
-            return formatter;
-
-    return null;
-}
-
-private extern (C++) class NewLineAndIndentFormatter : PreMessageFormatter
-{
-    this(const(char)* formatName, uint minFormatLevel)
+/**
+ * Print an error message using the extended string format, increasing the global error count.
+ * Params:
+ *      loc    = location of error
+ *      format = extended format specification
+ *      ...    = printf-style variadic arguments
+ */
+static if (__VERSION__ < 2092)
+    extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...) 
     {
-        super(formatName, minFormatLevel);
+        va_list ap;
+        va_start(ap, format);
+        verrorEx(loc, format, ap);
+        va_end(ap);
+    }
+else
+    pragma(printf) extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...) 
+    {
+        va_list ap;
+        va_start(ap, format);
+        verrorEx(loc, format, ap);
+        va_end(ap);
     }
 
-    override void format(scope const(char)* locChars, OutBuffer* buf, scope const(char)* params) nothrow
-    {
-        uint indentLevel;
-        // TEMP-PR-NOTE: Should I even bother with error checking params?
-        if(params)
-            sscanf(params, "%u", &indentLevel);
-        makeNewLine(locChars, buf);
-        makeIndent(indentLevel, buf);
-    }
-}
-
-pragma(printf) extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...)
+/**
+ * Similar to `verror` except it uses the extended format string described by `verrorFormatPrint`.
+ * Params:
+ *      loc    = location of error
+ *      format = extended format specification
+ *      ap     = printf-style argument list
+ */
+extern (C++) void verrorEx(const ref Loc loc, const(char)* format, va_list ap)
 {
-    va_list ap;
-    va_start(ap, format);
-    global.errors++;
-    if (!global.gag)
-    {
-        verrorExPrint(loc, Classification.error, "Error: ", format, ap);
-        if (global.params.errorLimit && global.errors >= global.params.errorLimit)
-            fatal(); // moderate blizzard of cascading messages
-    }
-    else
-    {
-        if (global.params.showGaggedErrors)
-            verrorExPrint(loc, Classification.gagged, "Error: ", format, ap);
-        global.gaggedErrors++;
-    }
-    va_end(ap);
+    verrorFormatPrint(loc, format, ap, &_verrorExPrint, &_verrorExPrintSupplemental);
 }
-
-private void verrorExPrint(const ref Loc loc, Color headerColor, const(char)* header,
-        const(char)* format, va_list ap)
-{
-    if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, null, null))
-        return;
-
-    const locChars = loc.toChars();
-    scope(exit) mem.xfree(cast(void*)locChars);
-
-    OutBuffer preFormatBuf;
-
-    // Perform pre-formatting
-    auto start = format;
-    const(char)* delimStart = null;
-    while ((delimStart = strstr(start, "$[")) !is null)
-    {
-        preFormatBuf.write(start, (delimStart - start));
-
-        const(char)* paramStart = null;
-        const(char)* nameStart = delimStart + 2; // Skip "$["
-        const(char)* delimEnd = nameStart; 
-
-        // TEMP-PR-NOTE: Not using strstr again since it's a bit clunky when looking for two different characters.
-        while (*delimEnd != ']')
-        {
-            if (*delimEnd == ':')
-                paramStart = delimEnd + 1; // to skip the ':' itself.
-            else if (*delimEnd == '\0')
-            {
-                error(loc, "Internal compiler error: bad verrorExPrint format string: unterminated message format marker.");
-                return;
-            }
-            delimEnd++;
-        }
-
-        const nameLength = paramStart ? ((paramStart - 1) - nameStart) : (delimEnd - nameStart);
-        const paramLength = paramStart ? (delimEnd - paramStart) : 0;
-        char[100] nameBuffer;
-        char[100] paramBuffer; // We only need these values temporarily, and they should be small in pretty much all cases. So no need to bother allocating.
-
-        nameBuffer[] = '\0';
-        paramBuffer[] = '\0';
-
-        if (nameLength >= nameBuffer.length - 1)
-        {
-            error(loc, "Internal compiler error: bad verrorExPrint format string: formatter name too long");
-            return;
-        }
-        else if (paramLength >= paramBuffer.length - 1)
-        {
-            error(loc, "Internal compiler error: bad verrorExPrint format string: formatter name too long");
-            return;
-        }
-        if (nameLength)
-            strncpy(&nameBuffer[0], nameStart, nameLength);
-        if (paramLength)
-            strncpy(&paramBuffer[0], paramStart, paramLength);
-
-        auto formatter = getPreFormatterByName(&nameBuffer[0]);
-        if(!formatter)
-        {
-            error(loc, "Internal compiler error: bad verrorExPrint format string: no formatter called '%s'",
-                &nameBuffer[0]);
-            return;
-        }
-        if (global.params.formatLevel >= formatter.minFormatLevel)
-            formatter.format(locChars, &preFormatBuf, paramLength ? &paramBuffer[0] : null);
-        start = delimEnd + 1; // safe as the inner while loop ensures we're never sitting on \0 at this point
-    }
-
-    preFormatBuf.writestring(start); // so we don't miss trailing chars
-    verrorPrint(loc, headerColor, header, preFormatBuf.peekChars(), ap, null, null);
-}
-
-// TEMP-PR-NOTE: END OF CHANGES. I'll move vprintErrorEx and errorEx somewhere more appropriate in this file, but I don't know what to do with the other stuff.
+private void _verrorExPrint(const ref Loc loc, const(char)* text) { error(loc, "%s", text); }
+private void _verrorExPrintSupplemental(const ref Loc loc, const(char)* text){ errorSupplemental(loc, "%s", text); }
 
 static if (__VERSION__ < 2092)
     private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
@@ -1026,4 +905,218 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
         else
             fputc(c, con.fp);
     }
+}
+
+/**
+ * Similar to `verrorPrint` except this function uses an extended format string syntax, and
+ * outsources the actual printing to external functions.
+ *
+ * Notes:
+ *  When this comment mentions about inserting a new line, what really happens it that is makes
+ *  a call to `printSupplemental` instead of manually messing around with new lines.
+ *
+ * Format:
+ *  The given `format` string can be used as a normal printf-style string, but it has additional syntax
+ *  to perform additional formatting options, such as indenting text depending on the error format level set by the compiler caller.
+ *
+ *  To specify a 'format fragment' you must use the syntax `$[formatter_name:formatter_params]{text to format}`.
+ *
+ *  formatter_params (and the ':' before it) are optional, everything else is mandatory.
+ *
+ *  e.g. `$[indent:1]{This text is put onto a new line and indented by 1 'tab'}`
+ *
+ *  e.g. `There might be a new line $[indent:0]{} between these two pieces of text!`
+ *
+ * Formatters:
+ *  indent:indent_level = If the error formatting level is 1 or higher, then a new line is made and a tab (4 spaces) is inserted `indent_level`
+ *                        times, which is then followed up by the text to format. Technically there's no need to provide specific text to this formatter,
+ *                        but it makes it more clear on what you're attempting to do.
+ *
+ * Params:
+ *  loc                 = The location of the error.
+ *  format              = The extended format string to use.
+ *  ap                  = The argument list to use with the `format` string.
+ *  print               = The print function to use for the first line printed.
+ *  printSupplemental   = The print function to use for every line printed after the first line.
+ */
+extern (C++) void verrorFormatPrint(const ref Loc loc, const(char)* format, va_list ap, MessageFunc print, MessageFunc printSupplemental)
+{
+    const prefixedFormat = verrorFormatPrefixString(format, ap);
+    if (!prefixedFormat)
+    {
+        print(loc, "BAD FORMAT STRING - verrorFormatPrefixString returned null.");
+        return;
+    }
+    scope (exit) mem.xfree(cast(void*)prefixedFormat);
+
+    bool firstPrint = true;
+    void push(const(char)* text)
+    {
+        if (firstPrint)
+            print(loc, text);
+        else
+            printSupplemental(loc, text);
+        firstPrint = false;
+    }
+
+    OutBuffer buf;
+    const(char)* nextFormat = prefixedFormat;
+    while (*nextFormat != '\0')
+    {
+        const nextFragment = strstr(nextFormat, FRAGMENT_PREFIX_START.ptr);
+        if (nextFragment && nextFragment == nextFormat)
+        {
+            FragmentInfo info;
+            if (!verrorFormatNextFragment(nextFormat, info, nextFormat))
+                assert(0); // TODO
+            
+            // Also TODO: Make this better
+            if (!strncmp(info.name, "indent", info.nameLen))
+            {
+                if (global.params.formatLevel < 1)
+                {
+                    buf.write(info.innerText, info.innerTextLen);
+                    continue;
+                }
+                push(buf.peekChars());
+                buf.reset();
+                uint indentLevel;
+                if (info.params)
+                    sscanf(info.params, "%u", &indentLevel);
+                foreach (i; 0..indentLevel)
+                    buf.writestring("    ");
+                buf.write(info.innerText, info.innerTextLen);
+            }
+            else
+                assert(0); // Also Also TODO
+            continue;
+        }
+
+        const length = nextFragment ? (nextFragment - nextFormat) : strlen(nextFormat);
+        buf.write(nextFormat, length);
+        nextFormat += length;
+    }
+    if (buf.length)
+        push(buf.peekChars());
+}
+
+/**
+ * Provides a new string where all the formatting fragments inside of `format` are
+ * prefixed with an unusual string of characters in order to make it harder for code
+ * to confuse compiler-proivded fragments from things like `myclass!"$[blah]"`.
+ *
+ * After prefixing, the format string is fully resolved with the given argument list.
+ *
+ * Please note that the returned string must be freed manually.
+ *
+ * Params:
+ *      format = The format string to prefix and resolve.
+ *      ap     = The argument list to resolve the format string with.
+ *
+ * Returns:
+ *  A new string (that must be freed) containing the fully resolved and prefixed `format` string.
+ */
+private const(char)* verrorFormatPrefixString(const(char)* format, va_list ap)
+{
+    OutBuffer buf;
+    
+    // First, find any formatting fragments, and prefix them with a silly string of chars.
+    // This is to make it almost impossible for things like `myClass!"$[]"` from accidentally being
+    // detected as a format fragment.
+    //
+    // This is stupid, and silly, but I'm too dumb to think of anything else without making something even more clunky.
+    auto start = format;
+    auto delim = start;
+    while ((delim = strstr(start, "$[")) !is null)
+    {
+        const beforeLen = (delim - start);
+        buf.write(start, beforeLen);
+        buf.writestring(FRAGMENT_PREFIX);
+
+        // Full format is $[name:?params?]{text?} so there *should* be a '{' and '}'. We want to prefix the '}'.
+        const endParams = strchr(delim, ']');
+        if (!endParams)
+            return null;
+        const startBody = strchr(endParams, '{');
+        if (!startBody || (startBody - endParams) != 1)
+            return null;
+        const endBody = strchr(startBody, '}');
+        if (!endBody)
+            return null;
+
+        start = endBody + 1;
+        buf.write(delim, (endBody - delim));
+        buf.writestring(FRAGMENT_PREFIX);
+        buf.writeByte('}');
+    }
+    buf.writestring(start);
+
+    // Now that the developer-made fragments have their silly prefix, we'll now expand the string.
+    const prefixedFormat = buf.extractData();
+    scope (exit) mem.xfree(cast(void*)prefixedFormat);
+    buf.vprintf(prefixedFormat, ap);
+
+    // Now verrorFormatNextFragment can be used on the result.
+    return buf.extractData();
+}
+
+/**
+ * Retrieves the next fragment from within `prefixedFormat`.
+ *
+ * Params:
+ *      prefixedFormat      = The output of `verrorFormatPrefixString` or the result of `nextPrefixedFormat` from a previous call to this function.
+ *      info                = The `FragmentInfo` to populate.
+ *      nextPrefxiedFormat  = `prefixedFormat` but advanced to just after the fragment that was read in.
+ *                            This value is left unmodified if no fragment was read.
+ *
+ * Returns:
+ *      `false` on error or if there's no more fragments, `true` if a fragment was read in.
+ */
+private bool verrorFormatNextFragment(const(char)* prefixedFormat, out FragmentInfo info, ref const(char)* nextPrefixedFormat)
+{
+    auto start = prefixedFormat;
+    auto delim = strstr(start, FRAGMENT_PREFIX_START.ptr);
+    if (delim !is null)
+    {
+        info.start = delim;
+        delim += FRAGMENT_PREFIX_START.length;
+        info.name = delim;
+
+        // read name + params
+        while (true) // Loop is terminated by the null check if statement, and the ']' check.
+        {
+            if (*delim == '\0')
+                return false;
+            else if (*delim == ':')
+            {
+                info.params = delim + 1;
+                info.nameLen = (delim - info.name);
+            }
+            else if (*delim == ']')
+            {
+                if (!info.params)
+                    info.nameLen = (delim - info.name);
+                else
+                    info.paramsLen = (delim - info.params);
+                delim++;
+                break;
+            }
+            delim++;
+        }
+
+        // read inner text
+        if (*delim != '{')
+            return false;
+        delim++;
+
+        const innerTextEnd = strstr(delim, FRAGMENT_PREFIX_BODY_END.ptr);
+        if (!innerTextEnd)
+            return false;
+        info.innerText = delim;
+        info.innerTextLen = (innerTextEnd - delim);
+        nextPrefixedFormat = innerTextEnd + FRAGMENT_PREFIX_BODY_END.length;
+        return true;
+    }
+
+    return false;
 }
