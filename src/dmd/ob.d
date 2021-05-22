@@ -288,7 +288,7 @@ struct PtrVarState
         assert(vars.length == deps.length);
         OutBuffer buf;
         depsToBuf(buf, vars);
-        string t = buf[];
+        auto t = buf[];
         printf("%.*s]\n", cast(int)t.length, t.ptr);
     }
 
