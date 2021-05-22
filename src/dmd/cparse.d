@@ -200,7 +200,6 @@ final class CParser(AST) : Parser!AST
         case TOK.not:
         case TOK.plusPlus:
         case TOK.minusMinus:
-        case TOK.functionString:
         case TOK.sizeof_:
         Lexp:
             auto exp = cparseExpression();
@@ -654,11 +653,6 @@ final class CParser(AST) : Parser!AST
 
         case TOK.imaginary80Literal:
             e = new AST.RealExp(loc, token.floatvalue, AST.Type.timaginary80);
-            nextToken();
-            break;
-
-        case TOK.functionString:
-            e = new AST.FuncInitExp(loc);
             nextToken();
             break;
 
