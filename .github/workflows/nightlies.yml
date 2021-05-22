@@ -284,7 +284,7 @@ jobs:
         run: |
           set -euox pipefail
           ls -aul ~ ~/artifacts
-          echo "::set-output name=artifacts_directory::$PWD/artifacts"
+          echo "::set-output name=artifacts_directory::$HOME/artifacts"
 
       #################################################################
       # Create the new release using the downloaded artifacts
