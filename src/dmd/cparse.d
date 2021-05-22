@@ -2805,6 +2805,12 @@ final class CParser(AST) : Parser!AST
             }
             if (!isCDeclarator(t, false))
                 return false;
+            if (t.value == TOK.asm_)
+            {
+                t = peek(t);
+                if (t.value != TOK.leftParenthesis || !skipParens(t, &t))
+                    return false;
+            }
             if (t.value == TOK.assign)
             {
                 t = peek(t);

@@ -283,6 +283,21 @@ int fun1() asm("realfun1");
 int fun2() __asm("realfun2");
 int fun3() __asm__("realfun3");
 
+typedef int asmreg;
+void test_asm()
+{
+  register asmreg r1 asm("r1");
+
+  // asm ignored by C compiler, should be disallowed?
+  asmreg r2 asm("r2");
+
+  register asmreg r3 asm("r3") = 3;
+
+  // Uncomment when bug fixed https://issues.dlang.org/show_bug.cgi?id=21948
+  // asm ignored by C compiler, should be disallowed?
+  //asmreg r4 asm("r4") = 4;
+}
+
 /********************************/
 
 void test__func__()
