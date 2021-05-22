@@ -1419,10 +1419,9 @@ final class CParser(AST) : Parser!AST
         }
 
         auto symbolsSave = symbols;
-        SCW scw;
-        MOD mod;
+        Specifier specifier;
         Identifier idtypedef;
-        auto tspec = cparseDeclarationSpecifiers(level, scw, mod, idtypedef);
+        auto tspec = cparseDeclarationSpecifiers(level, specifier, idtypedef);
 
         bool first = true;
         while (1)
@@ -1436,7 +1435,7 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 break;          // error recovery
             }
-            if (mod & MOD.xconst)
+            if (specifier.mod & MOD.xconst)
                 dt = dt.addSTC(STC.const_);
 
             if (!id)    // no identifier
@@ -1489,7 +1488,7 @@ final class CParser(AST) : Parser!AST
                 level == LVL.global &&     // function definitions only at global scope
                 t.value == TOK.leftCurly)  // start of compound-statement
             {
-                auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), scw);
+                auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), specifier.scw);
                 symbols = symbolsSave;
                 symbols.push(s);
                 return;
@@ -1499,9 +1498,9 @@ final class CParser(AST) : Parser!AST
             if (!symbols)
                 symbols = new AST.Dsymbols;     // lazilly create it
 
-            if (level != LVL.global && !tspec && !scw && !mod)
+            if (level != LVL.global && !tspec && !specifier.scw && !specifier.mod)
                 error("declaration-specifier-seq required");
-            else if (scw == SCW.xtypedef)
+            else if (specifier.scw == SCW.xtypedef)
             {
                 if (token.value == TOK.assign)
                     error("no initializer for typedef declaration");
@@ -1531,11 +1530,11 @@ final class CParser(AST) : Parser!AST
                 {
                     if (hasInitializer)
                         error("no initializer for function declaration");
-                    s = new AST.FuncDeclaration(token.loc, Loc.initial, id, SCWtoSTC(level, scw), dt);
+                    s = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(level, specifier), dt);
                 }
                 else
                 {
-                    s = new AST.VarDeclaration(token.loc, dt, id, initializer, SCWtoSTC(level, scw));
+                    s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(level, specifier));
                 }
             }
             if (s !is null)
@@ -1655,7 +1654,9 @@ final class CParser(AST) : Parser!AST
         const locFunc = token.loc;
 
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
-        auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, SCWtoSTC(LVL.global, scw), ft);
+        Specifier specifier;
+        specifier.scw = scw;
+        auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(LVL.global, specifier), ft);
 
         if (addFuncName)
         {
@@ -1762,13 +1763,12 @@ final class CParser(AST) : Parser!AST
      *    alignment-specifier declaration-specifiers (opt)
      * Params:
      *  level = declaration context
-     *  pscw = storage class in and out
-     *  pmod = type modifiers out
+     *  specifiers = specifiers in and out
      *  pident = saw identifer, may be a typedef-name
      * Returns:
      *  resulting type, null if not specified
      */
-    private AST.Type cparseDeclarationSpecifiers(LVL level, ref SCW pscw, ref MOD pmod, ref Identifier pident)
+    private AST.Type cparseDeclarationSpecifiers(LVL level, ref Specifier specifier, ref Identifier pident)
     {
         enum TKW : uint
         {
@@ -1797,7 +1797,7 @@ final class CParser(AST) : Parser!AST
         //printf("parseDeclarationSpecifiers()\n");
 
         TKW tkw;
-        SCW scw = pscw & SCW.xtypedef;
+        SCW scw = specifier.scw & SCW.xtypedef;
         MOD mod;
         Identifier id;
         Identifier previd;
@@ -1970,8 +1970,8 @@ final class CParser(AST) : Parser!AST
             }
         }
 
-        pscw = scw;
-        pmod = mod;
+        specifier.scw = scw;
+        specifier.mod = mod;
 
         // Convert TKW bits to type t
         switch (tkw)
@@ -2300,11 +2300,10 @@ final class CParser(AST) : Parser!AST
      */
     AST.Type cparseSpecifierQualifierList()
     {
-        SCW scw;
-        MOD mod;
+        Specifier specifier;
         Identifier id;
-        auto t = cparseDeclarationSpecifiers(LVL.global, scw, mod, id);
-        if (scw)
+        auto t = cparseDeclarationSpecifiers(LVL.global, specifier, id);
+        if (specifier.scw)
             error("storage class not allowed in specifier-qualified-list");
         return t;
     }
@@ -2343,14 +2342,13 @@ final class CParser(AST) : Parser!AST
                 return AST.ParameterList(parameters, varargs, varargsStc);
             }
 
-            SCW scw;
-            MOD mod;
+            Specifier specifier;
             Identifier idtypedef;
-            auto tspec = cparseDeclarationSpecifiers(LVL.prototype, scw, mod, idtypedef);
+            auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier, idtypedef);
 
             Identifier id;
             auto t = cparseDeclarator(tspec, id);
-            if (mod & MOD.xconst)
+            if (specifier.mod & MOD.xconst)
                 t = t.addSTC(STC.const_);
             auto param = new AST.Parameter(STC.parameter, t, id, null, null);
             parameters.push(param);
@@ -3398,36 +3396,45 @@ final class CParser(AST) : Parser!AST
         x_Atomic  = 8,
     }
 
+    /**********************************
+     * Aggregate for all the various specifiers
+     */
+    struct Specifier
+    {
+        SCW scw;        /// storage-class specifiers
+        MOD mod;        /// type qualifiers
+    }
+
     /***********************
-     * Convert from C storage class to D storage class
+     * Convert from C specifiers to D storage class
      * Params:
      *  level = declaration context
-     *  scw = C storage class specifiers
+     *  specifier = specifiers, context, etc.
      * Returns:
      *  corresponding D storage class
      */
-    StorageClass SCWtoSTC(LVL level, SCW scw)
+    StorageClass specifiersToSTC(LVL level, const ref Specifier specifier)
     {
         StorageClass stc;
-        if (scw & SCW.x_Thread_local)
+        if (specifier.scw & SCW.x_Thread_local)
         {
             if (level == LVL.global)
             {
-                if (scw & SCW.xextern)
+                if (specifier.scw & SCW.xextern)
                    stc = AST.STC.extern_;
             }
             else if (level == LVL.local)
             {
-                if (scw & SCW.xextern)
+                if (specifier.scw & SCW.xextern)
                    stc = AST.STC.extern_;
-                else if (scw & SCW.xstatic)
+                else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.static_;
             }
             else if (level == LVL.member)
             {
-                if (scw & SCW.xextern)
+                if (specifier.scw & SCW.xextern)
                    stc = AST.STC.extern_;
-                else if (scw & SCW.xstatic)
+                else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.static_;
             }
         }
@@ -3435,21 +3442,21 @@ final class CParser(AST) : Parser!AST
         {
             if (level == LVL.global)
             {
-                if (scw & SCW.xextern)
+                if (specifier.scw & SCW.xextern)
                    stc = AST.STC.extern_ | AST.STC.gshared;
             }
             else if (level == LVL.local)
             {
-                if (scw & SCW.xextern)
+                if (specifier.scw & SCW.xextern)
                    stc = AST.STC.extern_ | AST.STC.gshared;
-                else if (scw & SCW.xstatic)
+                else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.gshared;
             }
             else if (level == LVL.member)
             {
-                if (scw & SCW.xextern)
+                if (specifier.scw & SCW.xextern)
                    stc = AST.STC.extern_ | AST.STC.gshared;
-                else if (scw & SCW.xstatic)
+                else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.gshared;
             }
         }
