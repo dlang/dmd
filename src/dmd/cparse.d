@@ -1654,20 +1654,8 @@ final class CParser(AST) : Parser!AST
 
         if (addFuncName)
         {
-            /* C11 6.4.2.2 Predefine
-             * `static const char __func__[] = " function-name ";`
-             * and add to symbol table at opening brace of start of function body
-             */
-            const fn = id.toString();  // function-name
-            auto efn = new AST.StringExp(locFunc, fn, fn.length, 1, 'c');
-            auto ifn = new AST.ExpInitializer(locFunc, efn);
-            auto lenfn = new AST.IntegerExp(locFunc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
-            auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
-            auto sfn = new AST.VarDeclaration(locFunc, tfn, Id.__func__, ifn, STC.gshared | STC.immutable_);
-            auto e = new AST.DeclarationExp(locFunc, sfn);
-            auto stmt = new AST.ExpStatement(locFunc, e);
-
-            body = new AST.CompoundStatement(locFunc, stmt, body);
+            auto s = createFuncName(locFunc, id);
+            body = new AST.CompoundStatement(locFunc, s, body);
         }
         fd.fbody = body;
 
@@ -3496,6 +3484,27 @@ final class CParser(AST) : Parser!AST
         realfloat,
         imaginary,
         complex,
+    }
+
+    /********************
+     * C11 6.4.2.2 Create declaration to predefine __func__
+     *    `static const char __func__[] = " function-name ";`
+     * Params:
+     *    loc = location for this declaration
+     *    id = identifier of function
+     * Returns:
+     *    statement representing the declaration of __func__
+     */
+    private AST.Statement createFuncName(Loc loc, Identifier id)
+    {
+        const fn = id.toString();  // function-name
+        auto efn = new AST.StringExp(loc, fn, fn.length, 1, 'c');
+        auto ifn = new AST.ExpInitializer(loc, efn);
+        auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
+        auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
+        auto sfn = new AST.VarDeclaration(loc, tfn, Id.__func__, ifn, STC.gshared | STC.immutable_);
+        auto e = new AST.DeclarationExp(loc, sfn);
+        return new AST.ExpStatement(loc, e);
     }
 
     /************************
