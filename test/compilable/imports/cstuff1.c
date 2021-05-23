@@ -266,6 +266,19 @@ typedef long int long_int;
 typedef long_int my_int;
 
 /********************************/
+
+int tags()
+{
+    struct S { int a; };
+    int S = 3;
+    enum E { b };
+    int E = 2;
+    return S + E;
+}
+
+_Static_assert(tags() == 5, "ok");
+
+/********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21934
 typedef int type1 asm("realtype1");
 typedef int type2 __asm("realtype2");
