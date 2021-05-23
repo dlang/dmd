@@ -18,18 +18,17 @@ import dmd.root.rmem;
 
 struct BitArray
 {
-nothrow:
 
     alias Chunk_t = size_t;
     enum ChunkSize = Chunk_t.sizeof;
     enum BitsPerChunk = ChunkSize * 8;
 
-    size_t length() const pure nothrow @nogc @safe
+    size_t length() const @nogc nothrow pure @safe
     {
         return len;
     }
 
-    void length(size_t nlen) pure nothrow
+    void length(size_t nlen) nothrow pure
     {
         immutable ochunks = chunks(len);
         immutable nchunks = chunks(nlen);
@@ -44,7 +43,7 @@ nothrow:
         len = nlen;
     }
 
-    void opAssign(const ref BitArray b)
+    void opAssign(const ref BitArray b) nothrow pure
     {
         if (!len)
             length(b.len);
@@ -52,7 +51,7 @@ nothrow:
         memcpy(ptr, b.ptr, bytes(len));
     }
 
-    bool opIndex(size_t idx) const pure nothrow @nogc
+    bool opIndex(size_t idx) const @nogc nothrow pure
     {
         import core.bitop : bt;
 
@@ -60,7 +59,7 @@ nothrow:
         return !!bt(ptr, idx);
     }
 
-    void opIndexAssign(bool val, size_t idx) pure nothrow @nogc
+    void opIndexAssign(bool val, size_t idx) @nogc nothrow pure
     {
         import core.bitop : btc, bts;
 
@@ -71,12 +70,12 @@ nothrow:
             btc(ptr, idx);
     }
 
-    bool opEquals(const ref BitArray b) const
+    bool opEquals(const ref BitArray b) const @nogc nothrow pure
     {
         return len == b.len && memcmp(ptr, b.ptr, bytes(len)) == 0;
     }
 
-    void zero()
+    void zero() @nogc nothrow pure
     {
         memset(ptr, 0, bytes(len));
     }
@@ -85,7 +84,7 @@ nothrow:
      * Returns:
      *  true if no bits are set
      */
-    bool isZero()
+    bool isZero() @nogc nothrow pure
     {
         const nchunks = chunks(len);
         foreach (i; 0 .. nchunks)
@@ -96,7 +95,7 @@ nothrow:
         return true;
     }
 
-    void or(const ref BitArray b)
+    void or(const ref BitArray b) @nogc nothrow pure
     {
         assert(len == b.len);
         const nchunks = chunks(len);
@@ -106,7 +105,7 @@ nothrow:
 
     /* Swap contents of `this` with `b`
      */
-    void swap(ref BitArray b)
+    void swap(ref BitArray b) @nogc nothrow pure
     {
         assert(len == b.len);
         const nchunks = chunks(len);
@@ -118,7 +117,7 @@ nothrow:
         }
     }
 
-    ~this() pure nothrow
+    ~this() nothrow pure
     {
         debug
         {
@@ -155,7 +154,7 @@ private:
     }
 }
 
-unittest
+nothrow pure unittest
 {
     BitArray array;
     array.length = 20;

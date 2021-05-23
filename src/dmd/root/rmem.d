@@ -96,7 +96,7 @@ extern (C++) struct Mem
         return check(pureRealloc(p, size));
     }
 
-    static void* error() pure nothrow @nogc
+    static void* error() pure nothrow @nogc @safe
     {
         onOutOfMemoryError();
         assert(0);

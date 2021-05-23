@@ -148,7 +148,7 @@ struct OutBuffer
         write(s);
     }
 
-    void writestringln(const(char)[] s)
+    void writestringln(const(char)[] s) pure nothrow
     {
         writestring(s);
         writenl();
@@ -454,17 +454,17 @@ struct OutBuffer
      * Returns:
      *   a non-owning const slice of the buffer contents
      */
-    extern (D) const(char)[] opSlice() const pure nothrow @nogc
+    extern (D) const(char)[] opSlice() const pure nothrow @nogc @safe
     {
         return cast(const(char)[])data[0 .. offset];
     }
 
-    extern (D) const(char)[] opSlice(size_t lwr, size_t upr) const pure nothrow @nogc
+    extern (D) const(char)[] opSlice(size_t lwr, size_t upr) const pure nothrow @nogc @safe
     {
         return cast(const(char)[])data[lwr .. upr];
     }
 
-    extern (D) char opIndex(size_t i) const pure nothrow @nogc
+    extern (D) char opIndex(size_t i) const pure nothrow @nogc @safe
     {
         return cast(char)data[i];
     }

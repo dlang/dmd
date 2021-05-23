@@ -155,7 +155,7 @@ unittest
  * Returns:
  *     true if another response argument was found
  */
-bool insertArgumentsFromResponse(char[] buffer, ref Strings args, ref size_t argIndex) nothrow
+bool insertArgumentsFromResponse(char[] buffer, ref Strings args, ref size_t argIndex) nothrow pure
 {
     bool recurse = false;
     bool comment = false;

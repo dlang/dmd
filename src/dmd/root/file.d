@@ -42,7 +42,7 @@ struct FileBuffer
         return result;
     }
 
-    extern (C++) static FileBuffer* create()
+    extern (C++) static FileBuffer* create() pure nothrow @safe
     {
         return new FileBuffer();
     }
