@@ -77,7 +77,7 @@ public:
      * Returns:
      *  an opaque struct to be passed to `release()`
      */
-    RegionPos savePos()
+    RegionPos savePos() pure @nogc @safe
     {
         return RegionPos(used, available);
     }
@@ -87,7 +87,7 @@ public:
      * Params:
      *  pos = position returned by `savePos()`
      */
-    void release(RegionPos pos)
+    void release(RegionPos pos) pure @nogc @safe
     {
         version (all)
         {
@@ -115,7 +115,7 @@ public:
      * Returns:
      *  true if it points into the region
      */
-    bool contains(void* p)
+    bool contains(void* p) pure @nogc
     {
         foreach (h; array[0 .. used])
         {
@@ -128,7 +128,7 @@ public:
     /*********************
      * Returns: size of Region
      */
-    size_t size()
+    size_t size() pure @nogc @safe
     {
         return used * MaxAllocSize - available.length;
     }
