@@ -3507,6 +3507,23 @@ final class CParser(AST) : Parser!AST
         return new AST.ExpStatement(loc, e);
     }
 
+    /******************************************
+     * Tag names are placed into a separate symbol table.
+     * Accomplish this by prefixing tag names with `__tag` so they
+     * do not conflict with other non-tag identifiers, and get away with only
+     * one symbol table.
+     * Params:
+     *   id = identifer to convert to tag identifier
+     * Returns:
+     *   tag identifier
+     */
+    private Identifier toTagIdentifier(Identifier id)
+    {
+        OutBuffer buf;
+        buf.printf("__tag%s", id.toChars());
+        return Identifier.idPool(buf[]);
+    }
+
     /************************
      * After encountering an error, scan forward until a right brace or ; is found
      * or the end of the file.
