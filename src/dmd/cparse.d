@@ -1494,7 +1494,29 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.value == TOK.assign)
                     error("no initializer for typedef declaration");
-                s = new AST.AliasDeclaration(token.loc, id, dt);
+
+                bool isalias = true;
+                if (auto ts = dt.isTypeStruct())
+                {
+                    if (ts.sym.isAnonymous())
+                    {
+                        // This is a typedef for an anonymous struct-or-union.
+                        // Directly set the ident for the struct-or-union.
+                        ts.sym.ident = id;
+                        isalias = false;
+                    }
+                }
+                else if (auto te = dt.isTypeEnum())
+                {
+                    if (te.sym.isAnonymous())
+                    {
+                        // This is a typedef for an anonymous enum.
+                        te.sym.ident = id;
+                        isalias = false;
+                    }
+                }
+                if (isalias)
+                    s = new AST.AliasDeclaration(token.loc, id, dt);
             }
             else if (id)
             {
