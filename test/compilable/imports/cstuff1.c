@@ -323,6 +323,19 @@ void test_asm()
 }
 
 /********************************/
+// https://issues.dlang.org/show_bug.cgi?id=21945
+typedef struct {
+    long var;
+} TypedefStruct;
+TypedefStruct typedef_var1;
+
+typedef enum {
+    typedef_enum_member,
+} TypedefEnum;
+TypedefEnum typedef_var2;
+
+
+/********************************/
 
 void test__func__()
 {
