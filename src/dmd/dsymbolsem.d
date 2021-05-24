@@ -1974,7 +1974,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else if (auto td = s.isTemplateDeclaration())
                 {
                     pd.error("cannot apply to a template declaration");
-                    errorSupplemental(pd.loc, "use `template Class(Args...){ pragma(mangle, \"other_name\") class Class {}`");
+                    errorSupplemental(pd.loc, "use `template Class(Args...){ pragma(mangle, \"other_name\") class Class {} }`");
                 }
                 else if (auto se = verifyMangleString((*pd.args)[0]))
                 {
