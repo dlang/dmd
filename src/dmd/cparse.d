@@ -2653,6 +2653,15 @@ final class CParser(AST) : Parser!AST
         {
             nextToken();
             Identifier lastId;
+
+            if (token.value == TOK.rightCurly)  // C11 6.7.2.2-1
+            {
+                if (tag)
+                    error("no members for `enum %s`", tag.toChars());
+                else
+                    error("no members for anonymous enum");
+            }
+
             while (token.value == TOK.identifier)
             {
                 auto id = token.ident;  // enumeration-constant
