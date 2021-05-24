@@ -335,6 +335,14 @@ typedef enum {
 TypedefEnum typedef_var2;
 
 /********************************/
+// https://issues.dlang.org/show_bug.cgi?id=21963
+union union_type
+{
+  int iv;
+  float fv;
+};
+
+/********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21967
 const int const_int_fn(void);
 const int *const_int_fn_ptr(void);
