@@ -242,7 +242,6 @@ final class CParser(AST) : Parser!AST
         case TOK.const_:
         case TOK.volatile:
         case TOK.restrict:
-        case TOK.__restrict:
 
         // alignment-specifier
         case TOK._Alignas:
@@ -1833,7 +1832,6 @@ final class CParser(AST) : Parser!AST
                 // Type qualifiers
                 case TOK.const_:     modx = MOD.xconst;     break;
                 case TOK.volatile:   modx = MOD.xvolatile;  break;
-                case TOK.__restrict:
                 case TOK.restrict:   modx = MOD.xrestrict;  break;
 
                 // Type specifiers
@@ -2277,7 +2275,6 @@ final class CParser(AST) : Parser!AST
             {
                 case TOK.const_:     mod |= MOD.xconst;     break;
                 case TOK.volatile:   mod |= MOD.xvolatile;  break;
-                case TOK.__restrict:
                 case TOK.restrict:   mod |= MOD.xrestrict;  break;
                 case TOK._Atomic:    mod |= MOD.x_Atomic;   break;
 
@@ -3019,7 +3016,6 @@ final class CParser(AST) : Parser!AST
                 case TOK.const_:
                 case TOK.volatile:
                 case TOK.restrict:
-                case TOK.__restrict:
                     t = peek(t);
                     any = true;
                     continue;
@@ -3265,7 +3261,6 @@ final class CParser(AST) : Parser!AST
             {
                 case TOK.const_:
                 case TOK.restrict:
-                case TOK.__restrict:
                 case TOK.volatile:
                 case TOK._Atomic:
                     t = peek(t);
@@ -3316,7 +3311,6 @@ final class CParser(AST) : Parser!AST
                 // Type Qualifiers
                 case TOK.const_:
                 case TOK.restrict:
-                case TOK.__restrict:
                 case TOK.volatile:
 
                 // Type Specifiers

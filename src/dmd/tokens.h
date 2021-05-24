@@ -208,7 +208,6 @@ enum
         TOK_Thread_local,
 
         TOK__cdecl,
-        TOK__restrict,
         TOK__declspec,
         TOK__attribute__,
 
