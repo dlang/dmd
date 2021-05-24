@@ -301,19 +301,6 @@ typedef long int long_int;
 typedef long_int my_int;
 
 /********************************/
-
-int tags()
-{
-    struct S { int a; };
-    int S = 3;
-    enum E { b };
-    int E = 2;
-    return S + E;
-}
-
-_Static_assert(tags() == 5, "ok");
-
-/********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21934
 typedef int type asm("realtype");
 int sym asm("realsym") = 1;

@@ -2622,7 +2622,7 @@ final class CParser(AST) : Parser!AST
             nextToken();
         }
 
-        auto etag = new AST.EnumDeclaration(loc, toTagIdentifier(tag), AST.Type.tint32);
+        auto etag = new AST.EnumDeclaration(loc, tag, AST.Type.tint32);
         if (!symbols)
             symbols = new AST.Dsymbols();
         symbols.push(etag);
@@ -2705,7 +2705,7 @@ final class CParser(AST) : Parser!AST
      *    declarator (opt) : constant-expression
      *
      * Params:
-     *  symbols = symbols to add struct declaration to
+     *  symbols = symbols to add enum declaration to
      * Returns:
      *  type of the struct
      */
@@ -2722,7 +2722,7 @@ final class CParser(AST) : Parser!AST
             nextToken();
         }
 
-        auto stag = new AST.StructDeclaration(loc, toTagIdentifier(tag), false);
+        auto stag = new AST.StructDeclaration(loc, tag, false);
         if (!symbols)
             symbols = new AST.Dsymbols();
         symbols.push(stag);
@@ -3504,44 +3504,6 @@ final class CParser(AST) : Parser!AST
         auto sfn = new AST.VarDeclaration(loc, tfn, Id.__func__, ifn, STC.gshared | STC.immutable_);
         auto e = new AST.DeclarationExp(loc, sfn);
         return new AST.ExpStatement(loc, e);
-    }
-
-    /******************************************
-     * Tag names are placed into a separate, parallel symbol table.
-     * Accomplish this by prefixing tag names with `__tag` so they
-     * do not conflict with other non-tag identifiers, and get away with only
-     * one symbol table.
-     * Params:
-     *   id = identifier to convert to tag identifier, can be null
-     * Returns:
-     *   tag identifier
-     */
-    private Identifier toTagIdentifier(Identifier id) @trusted
-    {
-        if (!id)
-            return null;
-
-        enum prefix = "__tag";
-        enum format = prefix ~ "%s";
-
-        debug enum len = 1;  // small size so we'll exceed it
-        else  enum len = 31; // don't exceed very often
-
-        char[len + 1] tmp = void;  // +1 for 0
-        const idlen = id.toString().length;
-        const taglen = prefix.length + idlen;
-        if (taglen <= len)
-        {
-            // use tmp[] instead of allocation
-            sprintf(tmp.ptr, format, id.toChars());
-            return Identifier.idPool(tmp[0 .. taglen]);
-        }
-        else
-        {
-            OutBuffer buf;
-            buf.printf(format, id.toChars());
-            return Identifier.idPool(buf[]);
-        }
     }
 
     /************************
