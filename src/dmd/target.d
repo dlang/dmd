@@ -25,29 +25,7 @@
 
 module dmd.target;
 
-import dmd.argtypes_x86;
-import dmd.argtypes_sysv_x64;
-import core.stdc.string : strlen;
-import dmd.cond;
-import dmd.cppmangle;
-import dmd.cppmanglewin;
-import dmd.dclass;
-import dmd.declaration;
-import dmd.dscope;
-import dmd.dstruct;
-import dmd.dsymbol;
-import dmd.expression;
-import dmd.func;
-import dmd.globals;
-import dmd.id;
-import dmd.identifier;
-import dmd.mtype;
-import dmd.statement;
-import dmd.typesem;
-import dmd.tokens : TOK;
-import dmd.root.ctfloat;
-import dmd.root.outbuffer;
-import dmd.root.string : toDString;
+import dmd.globals : Param;
 
 enum CPU
 {
@@ -99,6 +77,14 @@ Target.OS defaultTargetOS()
  */
 extern (C++) struct Target
 {
+    import dmd.dscope : Scope;
+    import dmd.expression : Expression;
+    import dmd.func : FuncDeclaration;
+    import dmd.globals : LINK, Loc, d_int64;
+    import dmd.mtype : TY = ENUMTY, Type, TypeFunction, TypeTuple;
+    import dmd.root.ctfloat : real_t;
+    import dmd.statement : Statement;
+
     /// Bit decoding of the Target.OS
     enum OS : ubyte
     {
@@ -319,6 +305,8 @@ extern (C++) struct Target
      */
     void addPredefinedGlobalIdentifiers() const
     {
+        import dmd.cond : VersionCondition;
+
         alias predef = VersionCondition.addPredefinedGlobalIdent;
         if (cpu >= CPU.sse2)
         {
@@ -402,19 +390,19 @@ extern (C++) struct Target
         assert(type.isTypeBasic());
         switch (type.ty)
         {
-        case Tfloat80:
-        case Timaginary80:
-        case Tcomplex80:
+        case TY.Tfloat80:
+        case TY.Timaginary80:
+        case TY.Tcomplex80:
             return target.realalignsize;
-        case Tcomplex32:
+        case TY.Tcomplex32:
             if (os & Target.OS.Posix)
                 return 4;
             break;
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
-        case Timaginary64:
-        case Tcomplex64:
+        case TY.Tint64:
+        case TY.Tuns64:
+        case TY.Tfloat64:
+        case TY.Timaginary64:
+        case TY.Tcomplex64:
             if (os & Target.OS.Posix)
                 return is64bit ? 8 : 4;
             break;
@@ -462,6 +450,9 @@ extern (C++) struct Target
         {
             if (is64bit)
             {
+                import dmd.identifier : Identifier;
+                import dmd.mtype : TypeIdentifier;
+                import dmd.typesem : typeSemantic;
                 tvalist = new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag")).pointerTo();
                 tvalist = typeSemantic(tvalist, loc, sc);
             }
@@ -496,17 +487,17 @@ extern (C++) struct Target
 
         switch (type.ty)
         {
-        case Tvoid:
-        case Tint8:
-        case Tuns8:
-        case Tint16:
-        case Tuns16:
-        case Tint32:
-        case Tuns32:
-        case Tfloat32:
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
+        case TY.Tvoid:
+        case TY.Tint8:
+        case TY.Tuns8:
+        case TY.Tint16:
+        case TY.Tuns16:
+        case TY.Tint32:
+        case TY.Tuns32:
+        case TY.Tfloat32:
+        case TY.Tint64:
+        case TY.Tuns64:
+        case TY.Tfloat64:
             break;
         default:
             return 2; // wrong base type
@@ -517,21 +508,21 @@ extern (C++) struct Target
         {
             final switch (type.ty)
             {
-            case Tint32:
-            case Tuns32:
-            case Tfloat32:
+            case TY.Tint32:
+            case TY.Tuns32:
+            case TY.Tfloat32:
                 if (cpu < CPU.sse)
                     return 3; // no SSE vector support
                 break;
 
-            case Tvoid:
-            case Tint8:
-            case Tuns8:
-            case Tint16:
-            case Tuns16:
-            case Tint64:
-            case Tuns64:
-            case Tfloat64:
+            case TY.Tvoid:
+            case TY.Tint8:
+            case TY.Tuns8:
+            case TY.Tint16:
+            case TY.Tuns16:
+            case TY.Tint64:
+            case TY.Tuns64:
+            case TY.Tfloat64:
                 if (cpu < CPU.sse2)
                     return 3; // no SSE2 vector support
                 break;
@@ -559,11 +550,11 @@ extern (C++) struct Target
      */
     extern (C++) bool isVectorOpSupported(Type type, uint op, Type t2 = null)
     {
-        import dmd.tokens;
+        import dmd.tokens : TOK, Token;
 
-        if (type.ty != Tvector)
+        auto tvec = type.isTypeVector();
+        if (tvec is null)
             return true; // not a vector op
-        auto tvec = cast(TypeVector) type;
         const vecsize = cast(int)tvec.basetype.size();
         const elemty = cast(int)tvec.elementType().ty;
 
@@ -583,10 +574,10 @@ extern (C++) struct Target
             if (vecsize == 16)
             {
                 // float[4] negate needs SSE support ({V}SUBPS)
-                if (elemty == Tfloat32 && cpu >= CPU.sse)
+                if (elemty == TY.Tfloat32 && cpu >= CPU.sse)
                     supported = true;
                 // double[2] negate needs SSE2 support ({V}SUBPD)
-                else if (elemty == Tfloat64 && cpu >= CPU.sse2)
+                else if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     supported = true;
                 // (u)byte[16]/short[8]/int[4]/long[2] negate needs SSE2 support ({V}PSUB[BWDQ])
                 else if (tvec.isintegral() && cpu >= CPU.sse2)
@@ -615,10 +606,10 @@ extern (C++) struct Target
             if (vecsize == 16)
             {
                 // float[4] add/sub needs SSE support ({V}ADDPS, {V}SUBPS)
-                if (elemty == Tfloat32 && cpu >= CPU.sse)
+                if (elemty == TY.Tfloat32 && cpu >= CPU.sse)
                     supported = true;
                 // double[2] add/sub needs SSE2 support ({V}ADDPD, {V}SUBPD)
-                else if (elemty == Tfloat64 && cpu >= CPU.sse2)
+                else if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     supported = true;
                 // (u)byte[16]/short[8]/int[4]/long[2] add/sub needs SSE2 support ({V}PADD[BWDQ], {V}PSUB[BWDQ])
                 else if (tvec.isintegral() && cpu >= CPU.sse2)
@@ -639,16 +630,16 @@ extern (C++) struct Target
             if (vecsize == 16)
             {
                 // float[4] multiply needs SSE support ({V}MULPS)
-                if (elemty == Tfloat32 && cpu >= CPU.sse)
+                if (elemty == TY.Tfloat32 && cpu >= CPU.sse)
                     supported = true;
                 // double[2] multiply needs SSE2 support ({V}MULPD)
-                else if (elemty == Tfloat64 && cpu >= CPU.sse2)
+                else if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     supported = true;
                 // (u)short[8] multiply needs SSE2 support ({V}PMULLW)
-                else if ((elemty == Tint16 || elemty == Tuns16) && cpu >= CPU.sse2)
+                else if ((elemty == TY.Tint16 || elemty == TY.Tuns16) && cpu >= CPU.sse2)
                     supported = true;
                 // (u)int[4] multiply needs SSE4.1 support ({V}PMULLD)
-                else if ((elemty == Tint32 || elemty == Tuns32) && cpu >= CPU.sse4_1)
+                else if ((elemty == TY.Tint32 || elemty == TY.Tuns32) && cpu >= CPU.sse4_1)
                     supported = true;
             }
             else if (vecsize == 32)
@@ -657,10 +648,10 @@ extern (C++) struct Target
                 if (tvec.isfloating() && cpu >= CPU.avx)
                     supported = true;
                 // (u)short[16] multiply needs AVX2 support (VPMULLW)
-                else if ((elemty == Tint16 || elemty == Tuns16) && cpu >= CPU.avx2)
+                else if ((elemty == TY.Tint16 || elemty == TY.Tuns16) && cpu >= CPU.avx2)
                     supported = true;
                 // (u)int[8] multiply needs AVX2 support (VPMULLD)
-                else if ((elemty == Tint32 || elemty == Tuns32) && cpu >= CPU.avx2)
+                else if ((elemty == TY.Tint32 || elemty == TY.Tuns32) && cpu >= CPU.avx2)
                     supported = true;
             }
             break;
@@ -669,10 +660,10 @@ extern (C++) struct Target
             if (vecsize == 16)
             {
                 // float[4] divide needs SSE support ({V}DIVPS)
-                if (elemty == Tfloat32 && cpu >= CPU.sse)
+                if (elemty == TY.Tfloat32 && cpu >= CPU.sse)
                     supported = true;
                 // double[2] divide needs SSE2 support ({V}DIVPD)
-                else if (elemty == Tfloat64 && cpu >= CPU.sse2)
+                else if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     supported = true;
             }
             else if (vecsize == 32)
@@ -742,6 +733,8 @@ extern (C++) struct Target
      */
     extern (C++) TypeTuple toArgTypes(Type t)
     {
+        import dmd.argtypes_x86 : toArgTypes_x86;
+        import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
         if (is64bit)
         {
             // no argTypes for Win64 yet
@@ -761,6 +754,9 @@ extern (C++) struct Target
      */
     extern (C++) bool isReturnOnStack(TypeFunction tf, bool needsThis)
     {
+        import dmd.id : Id;
+        import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
+
         if (tf.isref)
         {
             //printf("  ref false\n");
@@ -783,21 +779,21 @@ extern (C++) struct Target
         }
         tn = tn.toBasetype();
         //printf("tn = %s\n", tn.toChars());
-        d_uns64 sz = tn.size();
+        const sz = tn.size();
         Type tns = tn;
 
         if (os == Target.OS.Windows && is64bit)
         {
             // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
-            if (tns.ty == Tcomplex32)
+            if (tns.ty == TY.Tcomplex32)
                 return true;
             if (tns.isscalar())
                 return false;
 
             tns = tns.baseElemOf();
-            if (tns.ty == Tstruct)
+            if (auto ts = tns.isTypeStruct())
             {
-                StructDeclaration sd = (cast(TypeStruct)tns).sym;
+                auto sd = ts.sym;
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
                 if (!sd.isPOD() || sz > 8)
@@ -812,7 +808,7 @@ extern (C++) struct Target
         else if (os == Target.OS.Windows && mscoff)
         {
             Type tb = tns.baseElemOf();
-            if (tb.ty == Tstruct)
+            if (tb.ty == TY.Tstruct)
             {
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
@@ -820,7 +816,7 @@ extern (C++) struct Target
         }
         else if (is64bit && isPOSIX)
         {
-            TypeTuple tt = .toArgTypes_sysv_x64(tn);
+            TypeTuple tt = toArgTypes_sysv_x64(tn);
             if (!tt)
                 return false; // void
             else
@@ -828,10 +824,10 @@ extern (C++) struct Target
         }
 
     Lagain:
-        if (tns.ty == Tsarray)
+        if (tns.ty == TY.Tsarray)
         {
             tns = tns.baseElemOf();
-            if (tns.ty != Tstruct)
+            if (tns.ty != TY.Tstruct)
             {
     L2:
                 if (os == Target.OS.linux && tf.linkage != LINK.d && !is64bit)
@@ -858,9 +854,9 @@ extern (C++) struct Target
             }
         }
 
-        if (tns.ty == Tstruct)
+        if (auto ts = tns.isTypeStruct())
         {
-            StructDeclaration sd = (cast(TypeStruct)tns).sym;
+            auto sd = ts.sym;
             if (os == Target.OS.linux && tf.linkage != LINK.d && !is64bit)
             {
                 //printf("  2 true\n");
@@ -875,7 +871,7 @@ extern (C++) struct Target
             if (sd.numArgTypes() == 1)
             {
                 tns = sd.argType(0);
-                if (tns.ty != Tstruct)
+                if (tns.ty != TY.Tstruct)
                     goto L2;
                 goto Lagain;
             }
@@ -908,7 +904,7 @@ extern (C++) struct Target
                  (tf.linkage == LINK.c || tf.linkage == LINK.cpp) &&
                  tns.iscomplex())
         {
-            if (tns.ty == Tcomplex32)
+            if (tns.ty == TY.Tcomplex32)
                 return false;     // in EDX:EAX, not ST1:ST0
             else
                 return true;
@@ -950,9 +946,8 @@ extern (C++) struct Target
              * even while sizeof(struct) is 1.
              * It's an ABI incompatibility with gcc.
              */
-            if (t.ty == Tstruct)
+            if (auto ts = t.isTypeStruct())
             {
-                auto ts = cast(TypeStruct)t;
                 if (ts.sym.hasNoFields)
                     return 0;
             }
@@ -980,7 +975,7 @@ extern (C++) struct Target
                 // high number of usages in druntime/Phobos (compiled without
                 // -preview=in but supposed to link against -preview=in code)
                 const ty = t.toBasetype().ty;
-                if (ty == Tarray || ty == Tdelegate)
+                if (ty == TY.Tarray || ty == TY.Tdelegate)
                     return false;
 
                 // If size is larger than 8 or not a power-of-2, the Win64 ABI
@@ -1038,6 +1033,9 @@ extern (C++) struct Target
      */
     extern (C++) Expression getTargetInfo(const(char)* name, const ref Loc loc)
     {
+        import dmd.expression : IntegerExp, StringExp;
+        import dmd.root.string : toDString;
+
         StringExp stringExp(const(char)[] sval)
         {
             return new StringExp(loc, sval);
@@ -1219,6 +1217,8 @@ struct TargetC
 
     void addRuntimePredefinedGlobalIdent() const
     {
+        import dmd.cond : VersionCondition;
+
         alias predef = VersionCondition.addPredefinedGlobalIdent;
         with (Runtime) switch (runtime)
         {
@@ -1242,6 +1242,11 @@ struct TargetC
  */
 struct TargetCPP
 {
+    import dmd.dsymbol : Dsymbol;
+    import dmd.dclass : ClassDeclaration;
+    import dmd.func : FuncDeclaration;
+    import dmd.mtype : Parameter, Type;
+
     enum Runtime : ubyte
     {
         Unspecified,
@@ -1292,6 +1297,9 @@ struct TargetCPP
      */
     extern (C++) const(char)* toMangle(Dsymbol s)
     {
+        import dmd.cppmangle : toCppMangleItanium;
+        import dmd.cppmanglewin : toCppMangleMSVC;
+
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
@@ -1309,6 +1317,9 @@ struct TargetCPP
      */
     extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
     {
+        import dmd.cppmangle : cppTypeInfoMangleItanium;
+        import dmd.cppmanglewin : cppTypeInfoMangleMSVC;
+
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return cppTypeInfoMangleItanium(cd);
         if (target.os == Target.OS.Windows)
@@ -1354,6 +1365,11 @@ struct TargetCPP
      */
     extern (C++) Type parameterType(Parameter p)
     {
+        import dmd.declaration : STC;
+        import dmd.globals : LINK;
+        import dmd.mtype : ParameterList, TypeDelegate, TypeFunction;
+        import dmd.typesem : merge;
+
         Type t = p.type.merge2();
         if (p.isReference())
             t = t.referenceTo();
@@ -1399,6 +1415,8 @@ struct TargetCPP
 
     void addRuntimePredefinedGlobalIdent() const
     {
+        import dmd.cond : VersionCondition;
+
         alias predef = VersionCondition.addPredefinedGlobalIdent;
         with (Runtime) switch (runtime)
         {
