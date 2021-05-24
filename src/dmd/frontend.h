@@ -659,6 +659,58 @@ class WithStatement;
 class Tuple;
 struct TemplatePrevious;
 class TemplateTupleParameter;
+enum class TY : uint8_t
+{
+    Tarray = 0u,
+    Tsarray = 1u,
+    Taarray = 2u,
+    Tpointer = 3u,
+    Treference = 4u,
+    Tfunction = 5u,
+    Tident = 6u,
+    Tclass = 7u,
+    Tstruct = 8u,
+    Tenum = 9u,
+    Tdelegate = 10u,
+    Tnone = 11u,
+    Tvoid = 12u,
+    Tint8 = 13u,
+    Tuns8 = 14u,
+    Tint16 = 15u,
+    Tuns16 = 16u,
+    Tint32 = 17u,
+    Tuns32 = 18u,
+    Tint64 = 19u,
+    Tuns64 = 20u,
+    Tfloat32 = 21u,
+    Tfloat64 = 22u,
+    Tfloat80 = 23u,
+    Timaginary32 = 24u,
+    Timaginary64 = 25u,
+    Timaginary80 = 26u,
+    Tcomplex32 = 27u,
+    Tcomplex64 = 28u,
+    Tcomplex80 = 29u,
+    Tbool = 30u,
+    Tchar = 31u,
+    Twchar = 32u,
+    Tdchar = 33u,
+    Terror = 34u,
+    Tinstance = 35u,
+    Ttypeof = 36u,
+    Ttuple = 37u,
+    Tslice = 38u,
+    Treturn = 39u,
+    Tnull = 40u,
+    Tvector = 41u,
+    Tint128 = 42u,
+    Tuns128 = 43u,
+    Ttraits = 44u,
+    Tmixin = 45u,
+    Tnoreturn = 46u,
+    TMAX = 47u,
+};
+
 struct Mcache;
 struct TYPE;
 class TypeBasic;
@@ -1208,7 +1260,7 @@ public:
 class Type : public ASTNode
 {
 public:
-    uint8_t ty;
+    TY ty;
     uint8_t mod;
     char* deco;
     struct Mcache
@@ -4947,59 +4999,7 @@ extern void json_generate(OutBuffer* buf, Array<Module* >* modules);
 
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);
 
-enum class ENUMTY
-{
-    Tarray = 0,
-    Tsarray = 1,
-    Taarray = 2,
-    Tpointer = 3,
-    Treference = 4,
-    Tfunction = 5,
-    Tident = 6,
-    Tclass = 7,
-    Tstruct = 8,
-    Tenum = 9,
-    Tdelegate = 10,
-    Tnone = 11,
-    Tvoid = 12,
-    Tint8 = 13,
-    Tuns8 = 14,
-    Tint16 = 15,
-    Tuns16 = 16,
-    Tint32 = 17,
-    Tuns32 = 18,
-    Tint64 = 19,
-    Tuns64 = 20,
-    Tfloat32 = 21,
-    Tfloat64 = 22,
-    Tfloat80 = 23,
-    Timaginary32 = 24,
-    Timaginary64 = 25,
-    Timaginary80 = 26,
-    Tcomplex32 = 27,
-    Tcomplex64 = 28,
-    Tcomplex80 = 29,
-    Tbool = 30,
-    Tchar = 31,
-    Twchar = 32,
-    Tdchar = 33,
-    Terror = 34,
-    Tinstance = 35,
-    Ttypeof = 36,
-    Ttuple = 37,
-    Tslice = 38,
-    Treturn = 39,
-    Tnull = 40,
-    Tvector = 41,
-    Tint128 = 42,
-    Tuns128 = 43,
-    Ttraits = 44,
-    Tmixin = 45,
-    Tnoreturn = 46,
-    TMAX = 47,
-};
-
-typedef uint8_t TY;
+typedef TY ENUMTY;
 
 enum class MODFlags
 {

@@ -515,7 +515,7 @@ extern (C++) struct Target
         // Whether a vector is really supported depends on the CPU being targeted.
         if (sz == 16)
         {
-            final switch (type.ty)
+            switch (type.ty)
             {
             case Tint32:
             case Tuns32:
@@ -535,6 +535,9 @@ extern (C++) struct Target
                 if (cpu < CPU.sse2)
                     return 3; // no SSE2 vector support
                 break;
+
+            default:
+                assert(0);
             }
         }
         else if (sz == 32)

@@ -233,7 +233,7 @@ private enum TFlags
     complex      = 0x20,
 }
 
-enum ENUMTY : int
+enum TY : ubyte
 {
     Tarray,     // slice array, aka T[]
     Tsarray,    // static array, aka T[dimension]
@@ -338,7 +338,7 @@ alias Tmixin = ENUMTY.Tmixin;
 alias Tnoreturn = ENUMTY.Tnoreturn;
 alias TMAX = ENUMTY.TMAX;
 
-alias TY = ubyte;
+alias ENUMTY = TY;
 
 ///Returns true if ty is char, wchar, or dchar
 bool isSomeChar(TY ty) pure nothrow @nogc @safe
