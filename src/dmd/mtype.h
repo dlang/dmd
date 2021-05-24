@@ -44,7 +44,7 @@ void semanticTypeInfo(Scope *sc, Type *t);
 Type *typeSemantic(Type *t, const Loc &loc, Scope *sc);
 Type *merge(Type *type);
 
-enum ENUMTY
+enum class TY : uint8_t
 {
     Tarray,             // slice array, aka T[]
     Tsarray,            // static array, aka T[dimension]
@@ -99,7 +99,6 @@ enum ENUMTY
     Tnoreturn,
     TMAX
 };
-typedef unsigned char TY;       // ENUMTY
 
 #define SIZE_INVALID (~(d_uns64)0)   // error return from size() functions
 
@@ -208,7 +207,7 @@ public:
 
     static TemplateDeclaration *rtinfo;
 
-    static Type *basic[TMAX];
+    static Type *basic[(int)TY::TMAX];
 
     virtual const char *kind();
     Type *copy() const;
