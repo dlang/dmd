@@ -2186,33 +2186,53 @@ extern (C++) final class DsymbolTable : RootObject
 {
     AssocArray!(Identifier, Dsymbol) tab;
 
-    // Look up Identifier. Return Dsymbol if found, NULL if not.
+   /***************************
+    * Look up Identifier in symbol table
+    * Params:
+    *   ident = identifer to look up
+    * Returns:
+    *   Dsymbol if found, null if not
+    */
     Dsymbol lookup(const Identifier ident)
     {
         //printf("DsymbolTable::lookup(%s)\n", ident.toChars());
         return tab[ident];
     }
 
-    // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
-    Dsymbol update(Dsymbol s)
+    /**********
+     * Replace existing symbol in symbol table with `s`.
+     * If it's not there, add it.
+     * Params:
+     *   s = replacement symbol with same identifier
+     */
+    void update(Dsymbol s)
     {
-        const ident = s.ident;
-        Dsymbol* ps = tab.getLvalue(ident);
-        *ps = s;
-        return s;
+        *tab.getLvalue(s.ident) = s;
     }
 
-    // Insert Dsymbol in table. Return NULL if already there.
+    /**************************
+     * Insert Dsymbol in table.
+     * Params:
+     *   s = symbol to add
+     * Returns:
+     *   null if already in table, `s` if inserted
+     */
     Dsymbol insert(Dsymbol s)
     {
-        //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s.ident.toChars());
         return insert(s.ident, s);
     }
 
-    // when ident and s are not the same
+    /**************************
+     * Insert Dsymbol in table.
+     * Params:
+     *   ident = identifier to serve as index
+     *   s = symbol to add
+     * Returns:
+     *   null if already in table, `s` if inserted
+     */
     Dsymbol insert(const Identifier ident, Dsymbol s)
     {
-        //printf("DsymbolTable::insert()\n");
+        //printf("DsymbolTable.insert(this = %p, '%s')\n", this, s.ident.toChars());
         Dsymbol* ps = tab.getLvalue(ident);
         if (*ps)
             return null; // already in table
@@ -2220,7 +2240,7 @@ extern (C++) final class DsymbolTable : RootObject
         return s;
     }
 
-    /*****
+    /*****************
      * Returns:
      *  number of symbols in symbol table
      */

@@ -3115,7 +3115,7 @@ class DsymbolTable final : public RootObject
 public:
     AssocArray<Identifier*, Dsymbol* > tab;
     Dsymbol* lookup(const Identifier* const ident);
-    Dsymbol* update(Dsymbol* s);
+    void update(Dsymbol* s);
     Dsymbol* insert(Dsymbol* s);
     Dsymbol* insert(const Identifier* const ident, Dsymbol* s);
     size_t length() const;
