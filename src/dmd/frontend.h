@@ -501,9 +501,8 @@ enum class TOK : uint16_t
     _Static_assert = 254u,
     _Thread_local = 255u,
     __cdecl = 256u,
-    __restrict = 257u,
-    __declspec = 258u,
-    __attribute__ = 259u,
+    __declspec = 257u,
+    __attribute__ = 258u,
 };
 
 class StringExp;

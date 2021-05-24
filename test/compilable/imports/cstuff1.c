@@ -203,7 +203,6 @@ void test2()
     int (*xi);
     int (*fp)(void);
     int (* const volatile restrict fp2)(void);
-    int (* __restrict fp3)(void*);
     void* pv;
     char c, d;
     short sh;
@@ -222,13 +221,11 @@ void test2()
     const int ci;
     volatile int vi;
     restrict int ri;
-    __restrict int rri;
 
 //    _Atomic(int) ai;
 //    _Alignas(c) ac;
 
     void * const volatile restrict q;
-    void * __restrict r;
 
     inline int f();
     _Noreturn void g();

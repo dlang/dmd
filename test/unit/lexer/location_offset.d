@@ -535,7 +535,6 @@ enum ignoreTokens
     _Thread_local,
 
     __cdecl,
-    __restrict,
     __declspec,
     __attribute__,
 
