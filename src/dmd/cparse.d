@@ -2743,7 +2743,7 @@ final class CParser(AST) : Parser!AST
      *    declarator (opt) : constant-expression
      *
      * Params:
-     *  symbols = symbols to add enum declaration to
+     *  symbols = symbols to add struct-or-union declaration to
      * Returns:
      *  type of the struct
      */
@@ -2760,7 +2760,11 @@ final class CParser(AST) : Parser!AST
             nextToken();
         }
 
-        auto stag = new AST.StructDeclaration(loc, tag, false);
+        assert(structOrUnion.value == TOK.struct_ || structOrUnion.value == TOK.union_);
+        auto stag = (structOrUnion.value == TOK.struct_)
+            ? new AST.StructDeclaration(loc, tag, false)
+            : new AST.UnionDeclaration(loc, tag);
+
         if (!symbols)
             symbols = new AST.Dsymbols();
         symbols.push(stag);
