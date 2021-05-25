@@ -206,6 +206,7 @@ struct ASTBase
         Ttraits,
         Tmixin,
         Tnoreturn,
+        Ttag,
         TMAX
     }
 
@@ -256,6 +257,7 @@ struct ASTBase
     alias Ttraits = ENUMTY.Ttraits;
     alias Tmixin = ENUMTY.Tmixin;
     alias Tnoreturn = ENUMTY.Tnoreturn;
+    alias Ttag = ENUMTY.Ttag;
     alias TMAX = ENUMTY.TMAX;
 
     alias TY = ubyte;
@@ -2823,6 +2825,7 @@ struct ASTBase
                 sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
                 sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
                 sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
+                sizeTy[Ttag] = __traits(classInstanceSize, TypeTag);
                 return sizeTy;
             }();
 
@@ -3588,6 +3591,7 @@ struct ASTBase
             inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
             inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
             inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
+            inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
         }
 
         override void accept(Visitor v)
@@ -3924,6 +3928,36 @@ struct ASTBase
         }
 
         override TypeStruct syntaxCopy()
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeTag : Type
+    {
+        Loc loc;
+        TOK tok;
+        Identifier id;
+        Dsymbols* members;
+
+        Type resolved;
+
+        extern (D) this(const ref Loc loc, TOK tok, Identifier id, Dsymbols* members)
+        {
+            //printf("TypeTag %p\n", this);
+            super(Ttag);
+            this.loc = loc;
+            this.tok = tok;
+            this.id = id;
+            this.members = members;
+        }
+
+        override TypeTag syntaxCopy()
         {
             return this;
         }

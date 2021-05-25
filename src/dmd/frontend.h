@@ -707,7 +707,8 @@ enum class TY : uint8_t
     Ttraits = 44u,
     Tmixin = 45u,
     Tnoreturn = 46u,
-    TMAX = 47u,
+    Ttag = 47u,
+    TMAX = 48u,
 };
 
 struct Mcache;
@@ -733,6 +734,7 @@ class TypeNull;
 class TypeMixin;
 class TypeTraits;
 class TypeNoreturn;
+class TypeTag;
 class TemplateTypeParameter;
 class TemplateValueParameter;
 class TemplateAliasParameter;
@@ -1355,7 +1357,7 @@ public:
     static ClassDeclaration* typeinfoshared;
     static ClassDeclaration* typeinfowild;
     static TemplateDeclaration* rtinfo;
-    static Type* basic[47LLU];
+    static Type* basic[48LLU];
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
@@ -1475,6 +1477,7 @@ public:
     TypeMixin* isTypeMixin();
     TypeTraits* isTypeTraits();
     TypeNoreturn* isTypeNoreturn();
+    TypeTag* isTypeTag();
     void accept(Visitor* v);
     TypeFunction* toTypeFunction();
 };
@@ -5514,6 +5517,19 @@ public:
     void accept(Visitor* v);
 };
 
+class TypeTag final : public Type
+{
+public:
+    Loc loc;
+    TOK tok;
+    Identifier* id;
+    Array<Dsymbol* >* members;
+    Type* resolved;
+    const char* kind() const;
+    TypeTag* syntaxCopy();
+    void accept(Visitor* v);
+};
+
 class Parameter final : public ASTNode
 {
 public:
@@ -5771,6 +5787,7 @@ public:
     virtual void visit(typename AST::TypeError t);
     virtual void visit(typename AST::TypeNull t);
     virtual void visit(typename AST::TypeNoreturn t);
+    virtual void visit(typename AST::TypeTag t);
     virtual void visit(typename AST::TypeVector t);
     virtual void visit(typename AST::TypeEnum t);
     virtual void visit(typename AST::TypeTuple t);

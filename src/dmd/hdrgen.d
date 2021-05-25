@@ -3802,6 +3802,14 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
             buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
     }
 
+    void visitTag(TypeTag t)
+    {
+        buf.writestring(Token.toChars(t.tok));
+        buf.writeByte(' ');
+        if (t.id)
+            buf.writestring(t.id.toChars());
+    }
+
     void visitTuple(TypeTuple t)
     {
         parametersToBuffer(ParameterList(t.arguments, VarArg.none), buf, hgs);
@@ -3863,5 +3871,6 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tnull:      return visitNull(cast(TypeNull)t);
         case Tmixin:     return visitMixin(cast(TypeMixin)t);
         case Tnoreturn:  return visitNoreturn(cast(TypeNoreturn)t);
+        case Ttag:       return visitTag(cast(TypeTag)t);
     }
 }

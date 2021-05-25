@@ -184,6 +184,13 @@ void tokens()
 
 /********************************/
 
+void test__func__()
+{
+    _Static_assert((sizeof __func__) == 13, "ok");
+}
+
+/********************************/
+
 struct SA { int a, b, *const c, d[50]; };
 
 int test1(int i)
@@ -289,14 +296,38 @@ void test4(int i)
     long long ll = 12L;
     ll = 12UL;
     long double ld = 1.0L;
-    char* s = "hello" "betty";
+    const char* s = "hello" "betty";
 }
 
 /********************************/
 
-void test__func__()
+struct SS { int a; };
+
+int tests1()
 {
-    _Static_assert((sizeof __func__) == 13, "ok");
+    struct SS s;
+    return s.a;
+}
+
+int tests2()
+{
+    struct T { int a; };
+    struct T t;
+    return t.a;
+}
+
+void* tests3()
+{
+    struct T1 *p;
+    return p;
+}
+
+int tests4()
+{
+    struct S { int b; } a, *p;
+    a.b = 3;
+    p = &a;
+    return p->b;
 }
 
 /********************************/
