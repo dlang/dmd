@@ -1426,7 +1426,14 @@ final class CParser(AST) : Parser!AST
                 break;          // error recovery
             }
             if (specifier.mod & MOD.xconst)
-                dt = dt.addSTC(STC.const_);
+            {
+                // `const` is always applied to the return type, not the
+                // type function itself.
+                if (auto tf = dt.isTypeFunction())
+                    tf.next = tf.next.addSTC(STC.const_);
+                else
+                    dt = dt.addSTC(STC.const_);
+            }
 
             if (!id)    // no identifier
             {
