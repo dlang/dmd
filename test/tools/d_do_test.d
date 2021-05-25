@@ -698,7 +698,7 @@ string unifyDirSep(string str, string sep)
     }
     auto mStr = str.dup;
     auto remaining = mStr;
-    alias needles = AliasSeq!(".d", ".di", ".mixin");
+    alias needles = AliasSeq!(".d", ".di", ".mixin", ".c");
     enum needlesArray = [needles];
     // simple multi-delimiter word identification
     while (!remaining.empty)
@@ -763,6 +763,7 @@ unittest
     assert("fail_compilation\\foo.d\r\n".unifyDirSep("/") == "fail_compilation/foo.d\r\n");
     assert("\nfail_compilation\\foo.d".unifyDirSep("/") == "\nfail_compilation/foo.d");
     assert("\r\nfail_compilation\\foo.d".unifyDirSep("/") == "\r\nfail_compilation/foo.d");
+    assert("fail_compilation\\imports\\cfoo.c. A".unifyDirSep("/") == "fail_compilation/imports/cfoo.c. A");
     assert(("runnable\\xtest46_gc.d-mixin-37(220): Deprecation: `opDot` is deprecated. Use `alias this`\n"~
             "runnable\\xtest46_gc.d-mixin-37(222): Deprecation: `opDot` is deprecated. Use `alias this`").unifyDirSep("/") ==
            "runnable/xtest46_gc.d-mixin-37(220): Deprecation: `opDot` is deprecated. Use `alias this`\n"~
