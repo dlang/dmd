@@ -10137,12 +10137,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (f1 || f2)
             return setError();
 
-        /* BUG: Should handle things like:
-         *      char c;
-         *      c ~ ' '
-         *      ' ' ~ c;
-         */
-
         Type tb1next = tb1.nextOf();
         Type tb2next = tb2.nextOf();
 
