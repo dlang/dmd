@@ -346,6 +346,11 @@ const int test21967a(void);
 const int *test21967b(void);
 
 /********************************/
+// https://issues.dlang.org/show_bug.cgi?id=21970
+extern int test21970a;
+extern char *test21970b;
+
+/********************************/
 
 void test__func__()
 {

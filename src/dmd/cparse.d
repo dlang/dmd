@@ -1541,8 +1541,6 @@ final class CParser(AST) : Parser!AST
                     hasInitializer = true;
                     initializer = cparseInitializer();
                 }
-                else
-                    initializer = new AST.VoidInitializer(token.loc);
                 // declare the symbol
                 assert(id);
                 if (dt.isTypeFunction())
@@ -1553,6 +1551,10 @@ final class CParser(AST) : Parser!AST
                 }
                 else
                 {
+                    // Give non-extern variables an implicit void initializer
+                    // if one has not been explicitly set.
+                    if (!hasInitializer && !(specifier.scw & SCW.xextern))
+                        initializer = new AST.VoidInitializer(token.loc);
                     s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(level, specifier));
                 }
             }
