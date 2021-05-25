@@ -1545,38 +1545,26 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
 }
 
 /**
- * Generates a copy constructor for a specified `struct` sd if
- * the following conditions are met:
+ * Determine if a copy constructor is needed for struct sd,
+ * if the following conditions are met:
  *
  * 1. sd does not define a copy constructor
  * 2. at least one field of sd defines a copy constructor
  *
- * If the above conditions are met, the following copy constructor
- * is generated:
- *
- * this(ref return scope inout(S) rhs) inout
- * {
- *    this.field1 = rhs.field1;
- *    this.field2 = rhs.field2;
- *    ...
- * }
- *
  * Params:
  *  sd = the `struct` for which the copy constructor is generated
- *  sc = the scope where the copy constructor is generated
+ *  hasCpCtor = set to true if a copy constructor is already present
  *
  * Returns:
- *  `true` if `struct` sd defines a copy constructor (explicitly or generated),
- *  `false` otherwise.
+ *  `true` if one needs to be generated
+ *  `false` otherwise
  */
-bool buildCopyCtor(StructDeclaration sd, Scope* sc)
+private bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
 {
     if (global.errors)
         return false;
 
     auto ctor = sd.search(sd.loc, Id.ctor);
-    CtorDeclaration cpCtor;
-    CtorDeclaration rvalueCtor;
     if (ctor)
     {
         if (ctor.isOverloadSet())
@@ -1584,6 +1572,9 @@ bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         if (auto td = ctor.isTemplateDeclaration())
             ctor = td.funcroot;
     }
+
+    CtorDeclaration cpCtor;
+    CtorDeclaration rvalueCtor;
 
     if (!ctor)
         goto LcheckFields;
@@ -1621,10 +1612,9 @@ bool buildCopyCtor(StructDeclaration sd, Scope* sc)
             .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
             errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
             errorSupplemental(cpCtor.loc, "copy constructor defined here");
-            return true;
         }
-
-        return true;
+        hasCpCtor = true;
+        return false;
     }
 
 LcheckFields:
@@ -1656,6 +1646,32 @@ LcheckFields:
     }
     else if (!fieldWithCpCtor)
         return false;
+    return true;
+}
+
+/**
+ * Generates a copy constructor if needCopyCtor() returns true.
+ * The generated copy constructor will be of the form:
+ *   this(ref return scope inout(S) rhs) inout
+ *   {
+ *      this.field1 = rhs.field1;
+ *      this.field2 = rhs.field2;
+ *      ...
+ *   }
+ *
+ * Params:
+ *  sd = the `struct` for which the copy constructor is generated
+ *  sc = the scope where the copy constructor is generated
+ *
+ * Returns:
+ *  `true` if `struct` sd defines a copy constructor (explicitly or generated),
+ *  `false` otherwise.
+ */
+bool buildCopyCtor(StructDeclaration sd, Scope* sc)
+{
+    bool hasCpCtor;
+    if (!needCopyCtor(sd, hasCpCtor))
+        return hasCpCtor;
 
     //printf("generating copy constructor for %s\n", sd.toChars());
     const MOD paramMod = MODFlags.wild;
