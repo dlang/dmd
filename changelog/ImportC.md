@@ -83,7 +83,7 @@ In detail:
 the C preprocessor. To import stdio.h into a D program,
 the build script would be:
 
-     gcc -E stdio.h >stdio.c
+     gcc -E -P stdio.h >stdio.c
 
 and in the D source file:
 
