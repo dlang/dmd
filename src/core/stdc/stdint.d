@@ -31,17 +31,6 @@ else version (WatchOS)
 // Can't be `private` because of @@@BUG11173@@@.
 T _typify(T)(T val) @safe pure nothrow { return val; }
 
-static if (cpp_long.sizeof == long.sizeof) private
-{
-    alias cpp_64long = cpp_long;
-    alias cpp_64ulong = cpp_ulong;
-}
-else private
-{
-    alias cpp_64long = cpp_longlong;
-    alias cpp_64ulong = cpp_ulonglong;
-}
-
 extern (C):
 @trusted: // Types and constants only.
 nothrow:
@@ -79,8 +68,8 @@ version (Windows)
         alias int32_t  = int;  ///
         alias uint32_t = uint; ///
     }
-    alias int64_t  = cpp_longlong;   ///
-    alias uint64_t = cpp_ulonglong;  ///
+    alias int64_t  = long;   ///
+    alias uint64_t = ulong;  ///
 
     alias int_least8_t   = byte; ///
     alias uint_least8_t  = ubyte; ///
@@ -88,8 +77,8 @@ version (Windows)
     alias uint_least16_t = ushort; ///
     alias int_least32_t  = int32_t; ///
     alias uint_least32_t = uint32_t; ///
-    alias int_least64_t  = cpp_longlong; ///
-    alias uint_least64_t = cpp_ulonglong; ///
+    alias int_least64_t  = long; ///
+    alias uint_least64_t = ulong; ///
 
     alias int_fast8_t   = byte; ///
     alias uint_fast8_t  = ubyte; ///
@@ -97,13 +86,13 @@ version (Windows)
     alias uint_fast16_t = uint; ///
     alias int_fast32_t  = int32_t; ///
     alias uint_fast32_t = uint32_t; ///
-    alias int_fast64_t  = cpp_longlong; ///
-    alias uint_fast64_t = cpp_ulonglong; ///
+    alias int_fast64_t  = long; ///
+    alias uint_fast64_t = ulong; ///
 
     alias intptr_t  = ptrdiff_t; ///
     alias uintptr_t = size_t;    ///
-    alias intmax_t  = cpp_longlong;      ///
-    alias uintmax_t = cpp_ulonglong;     ///
+    alias intmax_t  = long;      ///
+    alias uintmax_t = ulong;     ///
 }
 else version (Darwin)
 {
@@ -139,8 +128,8 @@ else version (Posix)
 {
     alias int32_t  = int; ///
     alias uint32_t = uint; ///
-    alias int64_t  = cpp_64long; ///
-    alias uint64_t = cpp_64ulong; ///
+    alias int64_t  = long; ///
+    alias uint64_t = ulong; ///
 
     alias int_least8_t   = byte; ///
     alias uint_least8_t  = ubyte; ///
@@ -148,8 +137,8 @@ else version (Posix)
     alias uint_least16_t = ushort; ///
     alias int_least32_t  = int; ///
     alias uint_least32_t = uint; ///
-    alias int_least64_t  = cpp_64long; ///
-    alias uint_least64_t = cpp_64ulong;///
+    alias int_least64_t  = long; ///
+    alias uint_least64_t = ulong;///
 
     version (FreeBSD)
     {
@@ -178,13 +167,13 @@ else version (Posix)
         alias int_fast32_t  = ptrdiff_t; ///
         alias uint_fast32_t = size_t;    ///
     }
-    alias int_fast64_t  = cpp_64long; ///
-    alias uint_fast64_t = cpp_64ulong; ///
+    alias int_fast64_t  = long; ///
+    alias uint_fast64_t = ulong; ///
 
     alias intptr_t  = ptrdiff_t; ///
     alias uintptr_t = size_t; ///
-    alias intmax_t  = cpp_64long; ///
-    alias uintmax_t = cpp_64ulong; ///
+    alias intmax_t  = long; ///
+    alias uintmax_t = ulong; ///
 }
 else
 {
