@@ -5,15 +5,15 @@ $(SPEC_S Lexical,
 $(HEADERNAV_TOC)
 
 $(P The lexical analysis is independent of the syntax parsing and the semantic
-analysis. The lexical analyzer splits the source text up into tokens. The
+analysis. The lexical analyzer splits the source text into tokens. The
 lexical grammar describes the syntax of these tokens. The grammar is designed to
-be suitable for high speed scanning and to make it easy to write a correct
+be suitable for high-speed scanning and to facilitate the implementation of a correct
 scanner. It has a minimum of special case rules and there is only one
 phase of translation.)
 
 $(H2 $(LNAME2 source_text, Source Text))
 
-$(P Source text can be in any one of the following encodings:)
+$(P Source text can be encoded as any one of the following:)
 
         $(LIST
         ASCII (strictly, 7-bit ASCII),
@@ -37,7 +37,7 @@ $(TABLE2 UTF Byte Order Marks,
         $(TROW ASCII, no BOM)
 )
 
-$(P If the source file does not start with a BOM, then the first character must
+$(P If the source file does not begin with a BOM, then the first character must
 be less than or equal to U+0000007F.)
 
 $(P The source text is decoded from its source representation into Unicode
@@ -46,13 +46,13 @@ WhiteSpace), $(GLINK EndOfLine), $(GLINK Comment)s, $(GLINK
 SpecialTokenSequence)s, and $(GLINK Token)s, with the source terminated by an $(GLINK EndOfFile).)
 
 $(P The source text is split into tokens using the maximal munch algorithm,
-i.e., the lexical analyzer makes the longest possible token. For example
-$(D >>) is a right shift token, not two greater than tokens. There are two
+i.e., the lexical analyzer assumes the longest possible token. For example,
+$(D >>) is a right-shift token rather than two greater-than tokens. There are two
 exceptions to this rule:)
 
 $(UL
-        $(LI A $(D ..) embedded inside what looks like two floating point
-                literals, as in $(D 1..2), is interpreted as if the $(D ..) was
+        $(LI A $(D ..) embedded between what appear to be two floating point
+                literals, as in $(D 1..2), is interpreted as if the $(D ..) were
                 separated by a space from the first integer.)
         $(LI A `1.a` is interpreted as the three tokens `1`, `.`, and `a`,
                 whereas `1. a` is interpreted as the two tokens `1.` and `a`.)
