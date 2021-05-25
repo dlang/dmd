@@ -2298,12 +2298,10 @@ class Lexer
                  * First that fits: int, unsigned, long, unsigned long,
                  * long long, unsigned long long
                  */
-                if (longsize == 4)
+                if (long_longsize == 4)
                 {
-                    if (n & 0x8000000000000000L)
-                        result = TOK.uns64Literal;
-                    else if (n & 0xFFFFFFFF00000000L)
-                        result = TOK.int64Literal;
+                    if (n & 0xFFFFFFFF00000000L)
+                        overflow();
                     else if (n & 0x80000000)
                         result = TOK.uns32Literal;
                     else
@@ -2325,12 +2323,10 @@ class Lexer
             case FLAGS.decimal:
                 /* First that fits: int, long, long long
                  */
-                if (longsize == 4)
+                if (long_longsize == 4)
                 {
-                    if (n & 0x8000000000000000L)
-                        result = TOK.uns64Literal;
-                    else if (n & 0xFFFFFFFF80000000L)
-                        result = TOK.int64Literal;
+                    if (n & 0xFFFFFFFF00000000L)
+                        overflow();
                     else
                         result = TOK.int32Literal;
                 }
