@@ -2798,9 +2798,10 @@ final class CParser(AST) : Parser!AST
      * Returns:
      *  type of the struct
      */
-    private AST.TypeStruct cparseStruct(ref AST.Dsymbols* symbols)
+    private AST.Type cparseStruct(ref AST.Dsymbols* symbols)
     {
-        auto structOrUnion = token;
+        const structOrUnion = token.value;
+        assert(structOrUnion == TOK.struct_ || structOrUnion == TOK.union_);
         const loc = token.loc;
         nextToken();
 
@@ -2813,23 +2814,39 @@ final class CParser(AST) : Parser!AST
             cparseGnuAttributes();
 
         Identifier tag;
+
+        // declare `tag` as symbol
+        AST.Type declareTag()
+        {
+            auto stag = (structOrUnion == TOK.struct_)
+                ? new AST.StructDeclaration(loc, tag, false)
+                : new AST.UnionDeclaration(loc, tag);
+            if (!symbols)
+                symbols = new AST.Dsymbols();
+            symbols.push(stag);
+            return new AST.TypeStruct(stag);
+        }
+
         if (token.value == TOK.identifier)
         {
             tag = token.ident;
             nextToken();
+            if (token.value == TOK.semicolon)
+            {
+                /* `struct tag;` always results in a declaration
+                 * in the current scope
+                 */
+                return declareTag();
+            }
         }
 
-        assert(structOrUnion.value == TOK.struct_ || structOrUnion.value == TOK.union_);
-        auto stag = (structOrUnion.value == TOK.struct_)
-            ? new AST.StructDeclaration(loc, tag, false)
-            : new AST.UnionDeclaration(loc, tag);
-
-        if (!symbols)
-            symbols = new AST.Dsymbols();
-        symbols.push(stag);
-
+        AST.Dsymbols* members;
         if (token.value == TOK.leftCurly)
         {
+            // Give it a name if it doesn't have one
+            if (!tag)
+                tag = Identifier.generateId("__tag"[]);
+
             nextToken();
             auto symbolsSave = symbols;
             symbols = null;
@@ -2840,7 +2857,7 @@ final class CParser(AST) : Parser!AST
                 if (token.value == TOK.endOfFile)
                     break;
             }
-            stag.members = symbols;
+            members = symbols;
             symbols = symbolsSave;
             check(TOK.rightCurly);
 
@@ -2850,13 +2867,24 @@ final class CParser(AST) : Parser!AST
             if (token.value == TOK.__attribute__)
                 cparseGnuAttributes();
 
-            if (tag && (!stag.members || stag.members.length == 0)) // C11 6.7.2.1-2
-                error("no struct-declarator-list for `%s %s`", structOrUnion.toChars(), tag.toChars());
+            if (tag && (!members || (*members).length == 0)) // C11 6.7.2.1-2
+                error("no struct-declarator-list for `%s %s`", Token.toChars(structOrUnion), tag.toChars());
         }
         else if (!tag)
-            error("missing `identifier` after `%s`", structOrUnion.toChars());
+            error("missing `identifier` after `%s`", Token.toChars(structOrUnion));
 
-        return new AST.TypeStruct(stag);
+        if (token.value == TOK.semicolon)
+        {
+            /* `struct tag { ... };` always results in a declaration
+             * in the current scope
+             */
+            return declareTag();
+        }
+        /* Need semantic information to determine if this is a declaration,
+         * redeclaration, or reference to existing declaration.
+         * Defer to the semantic() pass with a TypeTag.
+         */
+        return new AST.TypeTag(loc, structOrUnion, tag, members);
     }
 
     //}

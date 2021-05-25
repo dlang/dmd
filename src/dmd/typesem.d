@@ -1991,6 +1991,147 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         return error();
     }
 
+    Type visitTag(TypeTag mtype)
+    {
+        //printf("TypeTag.semantic() %s\n", mtype.toChars());
+        if (mtype.resolved)
+        {
+            /* struct S s, *p;
+             */
+            //printf("already resolved\n");
+            return mtype.resolved;
+        }
+
+        // TODO: Refactor this function into dscope.d, as
+        // well as other uses of this logic in dmd
+        static Scope* inner(Scope* sc)
+        {
+            for (auto scx = sc; ; scx = scx.enclosing)
+            {
+                if (scx.scopesym)
+                    return scx;
+            }
+        }
+
+        /* Declare mtype as a struct/union/enum declaration
+         */
+        void declareTag()
+        {
+            if (mtype.tok == TOK.enum_)
+            {
+                .error(mtype.loc, "enum not implemented");
+                mtype.resolved = error();
+            }
+            else
+            {
+                auto sd = new StructDeclaration(mtype.loc, mtype.id, false);
+                sd.members = mtype.members;
+                auto scopesym = inner(sc).scopesym;
+                if (scopesym.members)
+                    scopesym.members.push(sd);
+                sd.parent = sc.parent;
+                sd.dsymbolSemantic(sc);
+                mtype.resolved = visitStruct(new TypeStruct(sd));
+            }
+        }
+
+        /* look for pre-existing declaration
+         * TODO: tag namespace not implemented yet
+         * TODO: semantics for enums are slightly different, not implemented yet
+         */
+        Dsymbol scopesym;
+        auto s = sc.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors);
+        if (!s)
+        {
+            // no pre-existing declaration, so declare it
+            declareTag();
+            return mtype.resolved;
+        }
+
+        /* A redeclaration only happens if both declarations are in
+         * the same scope
+         */
+        const bool redeclar = (scopesym == inner(sc).scopesym);
+
+        if (redeclar)
+        {
+            if (mtype.tok == TOK.enum_ && s.isEnumDeclaration())
+            {
+                auto ed = s.isEnumDeclaration();
+                if (mtype.members && ed.members)
+                    .error(mtype.loc, "`%s` already has members", mtype.id.toChars());
+                else
+                    ed.members = mtype.members;
+                mtype.resolved = ed.type;
+            }
+            else if (mtype.tok == TOK.union_ && s.isUnionDeclaration() ||
+                     mtype.tok == TOK.struct_ && s.isStructDeclaration())
+            {
+                // Add members to original declaration
+                auto sd = s.isStructDeclaration();
+                if (mtype.members && sd.members)
+                {
+                    /* struct S { int b; };
+                     * struct S { int a; } *s;
+                     */
+                    .error(mtype.loc, "`%s` already has members", mtype.id.toChars());
+                }
+                else if (!sd.members)
+                {
+                    /* struct S;
+                     * struct S { int a; } *s;
+                     */
+                    sd.members = mtype.members;
+                }
+                else
+                {
+                    /* struct S { int a; };
+                     * struct S *s;
+                     */
+                }
+                mtype.resolved = sd.type;
+            }
+            else
+            {
+                /* int S;
+                 * struct S { int a; } *s;
+                 */
+                .error(mtype.loc, "redeclaration of `%s`", mtype.id.toChars());
+                mtype.resolved = error();
+            }
+        }
+        else if (mtype.members)
+        {
+            /* struct S;
+             * { struct S { int a; } *s; }
+             */
+            declareTag();
+        }
+        else
+        {
+            if (mtype.tok == TOK.enum_ && s.isEnumDeclaration())
+            {
+                mtype.resolved = s.isEnumDeclaration().type;
+            }
+            else if (mtype.tok == TOK.union_ && s.isUnionDeclaration() ||
+                     mtype.tok == TOK.struct_ && s.isStructDeclaration())
+            {
+                /* struct S;
+                 * { struct S *s; }
+                 */
+                mtype.resolved = s.isStructDeclaration().type;
+            }
+            else
+            {
+                /* int S;
+                 * { struct S *s; }
+                 */
+                declareTag();
+            }
+        }
+        return mtype.resolved;
+    }
+
     switch (type.ty)
     {
         default:         return visitType(type);
@@ -2013,6 +2154,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         case Ttuple:     return visitTuple (cast(TypeTuple)type);
         case Tslice:     return visitSlice(cast(TypeSlice)type);
         case Tmixin:     return visitMixin(cast(TypeMixin)type);
+        case Ttag:       return visitTag(cast(TypeTag)type);
     }
 }
 

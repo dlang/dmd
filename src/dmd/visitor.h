@@ -84,6 +84,7 @@ class TypeNull;
 class TypeNoreturn;
 class TypeTraits;
 class TypeMixin;
+class TypeTag;
 
 class Dsymbol;
 
@@ -437,6 +438,7 @@ public:
     virtual void visit(TypeQualified *t) { visit((Type *)t); }
     virtual void visit(TypeTraits *t) { visit((Type *)t); }
     virtual void visit(TypeMixin *t) { visit((Type *)t); }
+    virtual void visit(TypeTag *t) { visit((Type *)t); }
 
     // TypeNext
     virtual void visit(TypeReference *t) { visit((TypeNext *)t); }

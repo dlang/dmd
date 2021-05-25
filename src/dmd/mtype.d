@@ -286,6 +286,7 @@ enum TY : ubyte
     Ttraits,
     Tmixin,
     Tnoreturn,
+    Ttag,
     TMAX,
 }
 
@@ -336,6 +337,7 @@ alias Tuns128 = ENUMTY.Tuns128;
 alias Ttraits = ENUMTY.Ttraits;
 alias Tmixin = ENUMTY.Tmixin;
 alias Tnoreturn = ENUMTY.Tnoreturn;
+alias Ttag = ENUMTY.Ttag;
 alias TMAX = ENUMTY.TMAX;
 
 alias ENUMTY = TY;
@@ -505,6 +507,7 @@ extern (C++) abstract class Type : ASTNode
             sizeTy[Ttraits] = __traits(classInstanceSize, TypeTraits);
             sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
             sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
+            sizeTy[Ttag] = __traits(classInstanceSize, TypeTag);
             return sizeTy;
         }();
 
@@ -2725,6 +2728,7 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
+        inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
     }
 
     override void accept(Visitor v)
@@ -6769,6 +6773,52 @@ extern (C++) final class TypeNoreturn : Type
     override uint alignsize()
     {
         return 0;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * Unlike D, C can declare/define struct/union/enum tag names
+ * inside Declarators, instead of separately as in D.
+ * The order these appear in the symbol table must be in lexical
+ * order. There isn't enough info at the parsing stage to determine if
+ * it's a declaration or a reference to an existing name, so this Type
+ * collects the necessary info and defers it to semantic().
+ */
+extern (C++) final class TypeTag : Type
+{
+    Loc loc;                /// location of declaration
+    TOK tok;                /// TOK.struct_, TOK.union_, TOK.enum_
+    Identifier id;          /// tag name identifier
+    Dsymbols* members;      /// members of struct, null if none
+
+    Type resolved;          /// type after semantic() in case there are more others
+                            /// pointing to this instance, which can happen with
+                            ///   struct S { int a; } s1, *s2;
+
+    extern (D) this(const ref Loc loc, TOK tok, Identifier id, Dsymbols* members)
+    {
+        //printf("TypeTag %p\n", this);
+        super(Ttag);
+        this.loc = loc;
+        this.tok = tok;
+        this.id = id;
+        this.members = members;
+    }
+
+    override const(char)* kind() const
+    {
+        return "tag";
+    }
+
+    override TypeTag syntaxCopy()
+    {
+        // No semantic analysis done, no need to copy
+        return this;
     }
 
     override void accept(Visitor v)

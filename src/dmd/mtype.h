@@ -335,6 +335,7 @@ public:
     TypeMixin *isTypeMixin();
     TypeTraits *isTypeTraits();
     TypeNoreturn *isTypeNoreturn();
+    TypeTag *isTypeTag();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -897,6 +898,14 @@ public:
     bool isBoolean() /* const */;
     d_uns64 size(const Loc& loc) /* const */;
     unsigned alignsize();
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeTag final : public Type
+{
+public:
+    TypeTag *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
