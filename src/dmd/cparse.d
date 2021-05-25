@@ -3802,6 +3802,8 @@ final class CParser(AST) : Parser!AST
             {
                 if (specifier.scw & SCW.xextern)
                    stc = AST.STC.extern_ | AST.STC.gshared;
+                else
+                    stc = AST.STC.gshared;
             }
             else if (level == LVL.local)
             {

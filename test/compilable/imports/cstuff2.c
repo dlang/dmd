@@ -149,6 +149,11 @@ struct S21973
 };
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21977
+int test21977a;
+_Thread_local int test21977b;
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=21982
 
 struct S21982 { int field; };
