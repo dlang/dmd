@@ -1174,7 +1174,6 @@ unittest
          {
              idx = 0;
              assert(parsePrintfFormatSpecifier(s, idx, widthStar, precisionStar) == Format.error);
-             import std.stdio;
              assert(idx == s.length);
          }
      }
