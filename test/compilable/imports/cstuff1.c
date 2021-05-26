@@ -315,9 +315,8 @@ void test21934()
     asmreg r2 asm("r2");
 
     register asmreg r3 asm("r3") = 3;
-    // Uncomment when bug fixed https://issues.dlang.org/show_bug.cgi?id=21948
     // asm ignored by C compiler, should be disallowed?
-    //asmreg r4 asm("r4") = 4;
+    asmreg r4 asm("r4") = 4;
 }
 
 /********************************/
@@ -331,6 +330,20 @@ typedef enum {
     E21945_member,
 } E21945;
 E21945 test21945b;
+
+/********************************/
+// https://issues.dlang.org/show_bug.cgi?id=21948
+void test21948()
+{
+    typedef int myint;
+    typedef struct { int f; } mystruct;
+
+    myint var1;
+    myint var2 = 12;
+    mystruct var3;
+    // Uncomment when bug fixed https://issues.dlang.org/show_bug.cgi?id=21979
+    //mystruct var4 = { 34 };
+}
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21963

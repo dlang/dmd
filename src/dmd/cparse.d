@@ -2871,14 +2871,14 @@ final class CParser(AST) : Parser!AST
         {
             if (!skipBraces(t))
                 return false;
-            t = peek(t);
+            pt = t;
             return true;
         }
 
         // skip over assignment-expression, ending before comma or semiColon or EOF
         if (!isAssignmentExpression(t))
             return false;
-        t = peek(t);
+        pt = t;
         return true;
     }
 
