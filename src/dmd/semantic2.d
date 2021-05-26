@@ -208,6 +208,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
             assert(sc);
             sc = sc.push(tmix.argsym);
             sc = sc.push(tmix);
+            sc.tinst = tmix;
+            sc.minst = tmix.minst;
             for (size_t i = 0; i < tmix.members.dim; i++)
             {
                 Dsymbol s = (*tmix.members)[i];
