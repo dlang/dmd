@@ -297,55 +297,53 @@ void test4(int i)
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21931
-typedef long int long_int;
-typedef long_int my_int;
+typedef long int T21931a;
+typedef T21931a T21931b;
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21934
-typedef int type asm("realtype");
-int sym asm("realsym") = 1;
-int vsym asm("realvsym");
-int fun() asm("realfun");
+typedef int T21934 asm("realtype");
+int init21934 asm("realsym") = 1;
+int var21934 asm("realvsym");
+int fun21934() asm("realfun");
 
-typedef int asmreg;
-void test_asm()
+void test21934()
 {
-  register asmreg r1 asm("r1");
+    typedef int asmreg;
+    register asmreg r1 asm("r1");
+    // asm ignored by C compiler, should be disallowed?
+    asmreg r2 asm("r2");
 
-  // asm ignored by C compiler, should be disallowed?
-  asmreg r2 asm("r2");
-
-  register asmreg r3 asm("r3") = 3;
-
-  // Uncomment when bug fixed https://issues.dlang.org/show_bug.cgi?id=21948
-  // asm ignored by C compiler, should be disallowed?
-  //asmreg r4 asm("r4") = 4;
+    register asmreg r3 asm("r3") = 3;
+    // Uncomment when bug fixed https://issues.dlang.org/show_bug.cgi?id=21948
+    // asm ignored by C compiler, should be disallowed?
+    //asmreg r4 asm("r4") = 4;
 }
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21945
 typedef struct {
     long var;
-} TypedefStruct;
-TypedefStruct typedef_var1;
+} S21945;
+S21945 test21945a;
 
 typedef enum {
-    typedef_enum_member,
-} TypedefEnum;
-TypedefEnum typedef_var2;
+    E21945_member,
+} E21945;
+E21945 test21945b;
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21963
-union union_type
+union U21963
 {
-  int iv;
-  float fv;
+    int iv;
+    float fv;
 };
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21967
-const int const_int_fn(void);
-const int *const_int_fn_ptr(void);
+const int test21967a(void);
+const int *test21967b(void);
 
 /********************************/
 
