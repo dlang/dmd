@@ -119,6 +119,7 @@ struct Target
     };
 
     OS os;
+    uint8_t osMajor;
     // D ABI
     uint8_t ptrsize;
     uint8_t realsize;           // size a real consumes in memory
@@ -176,6 +177,7 @@ private:
 public:
     void _init(const Param& params);
     // Type sizes and support.
+    void setTriple(const char* _triple);
     unsigned alignsize(Type *type);
     unsigned fieldalign(Type *type);
     Type *va_listType(const Loc &loc, Scope *sc);  // get type of va_list

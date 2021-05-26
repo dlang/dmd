@@ -1856,6 +1856,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
             }
         }
+        else if (startsWith(p + 1, "target"))
+        {
+            enum len = "-target=".length;
+            const triple = Triple(p + len);
+            target.setTriple(triple);
+        }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
             enum len = "-mcpu=".length;
