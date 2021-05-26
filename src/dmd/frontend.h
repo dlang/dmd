@@ -746,9 +746,6 @@ enum class JsonFieldFlags : uint32_t
 };
 
 struct ObNode;
-class StoppableVisitor;
-class PragmaStatement;
-class ScopeGuardStatement;
 class ExpStatement;
 class GotoDefaultStatement;
 class BreakStatement;
@@ -757,8 +754,10 @@ class ThrowStatement;
 class CompileStatement;
 class ConditionalStatement;
 class StaticForeachStatement;
+class PragmaStatement;
 class StaticAssert;
 class StaticAssertStatement;
+class ScopeGuardStatement;
 struct Token;
 class AsmStatement;
 struct code;
@@ -5907,37 +5906,6 @@ public:
     virtual void visit(typename AST::TemplateParameter );
     virtual void visit(typename AST::Condition );
     virtual void visit(typename AST::Initializer );
-};
-
-class PostorderStatementVisitor final : public StoppableVisitor
-{
-public:
-    using StoppableVisitor::visit;
-    StoppableVisitor* v;
-    bool doCond(Statement* s);
-    bool applyTo(Statement* s);
-    void visit(Statement* s);
-    void visit(PeelStatement* s);
-    void visit(CompoundStatement* s);
-    void visit(UnrolledLoopStatement* s);
-    void visit(ScopeStatement* s);
-    void visit(WhileStatement* s);
-    void visit(DoStatement* s);
-    void visit(ForStatement* s);
-    void visit(ForeachStatement* s);
-    void visit(ForeachRangeStatement* s);
-    void visit(IfStatement* s);
-    void visit(PragmaStatement* s);
-    void visit(SwitchStatement* s);
-    void visit(CaseStatement* s);
-    void visit(DefaultStatement* s);
-    void visit(SynchronizedStatement* s);
-    void visit(WithStatement* s);
-    void visit(TryCatchStatement* s);
-    void visit(TryFinallyStatement* s);
-    void visit(ScopeGuardStatement* s);
-    void visit(DebugStatement* s);
-    void visit(LabelStatement* s);
 };
 
 extern void semantic2(Dsymbol* dsym, Scope* sc);
