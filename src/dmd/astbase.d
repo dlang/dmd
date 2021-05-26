@@ -109,7 +109,7 @@ struct ASTBase
         nodtor              = (1L << 24),   // don't run destructor
         nothrow_            = (1L << 25),   // never throws exceptions
         pure_               = (1L << 26),   // pure function
-        tls                 = (1L << 27),   // thread local
+        //                    (1L << 27),
         alias_              = (1L << 28),   // alias parameter
         shared_             = (1L << 29),   // accessible from multiple threads
         gshared             = (1L << 30),   // accessible from multiple threads, but not typed as "shared"
@@ -149,7 +149,7 @@ struct ASTBase
         (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ |
          STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ |
          STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ |
-         STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls |
+         STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ |
          STC.gshared | STC.property | STC.live |
          STC.safeGroup | STC.disable);
 
@@ -6761,7 +6761,6 @@ struct ASTBase
             SCstring(STC.pure_, Token.toString(TOK.pure_)),
             SCstring(STC.ref_, Token.toString(TOK.ref_)),
             SCstring(STC.return_, Token.toString(TOK.return_)),
-            SCstring(STC.tls, "__thread"),
             SCstring(STC.gshared, Token.toString(TOK.gshared)),
             SCstring(STC.nogc, "@nogc"),
             SCstring(STC.live, "@live"),

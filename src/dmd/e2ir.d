@@ -5446,7 +5446,7 @@ elem *toElem(Expression e, IRState *irs)
                     return Dsymbol_toElem(s);
                 if (vd.storage_class & STC.manifest)
                     return null;
-                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
+                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.gshared))
                     toObjFile(vd, false);
                 else
                 {
