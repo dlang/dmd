@@ -106,6 +106,7 @@ extern (C++) struct Target
     }
 
     OS os = defaultTargetOS();
+    ubyte osMajor;
 
     // D ABI
     ubyte ptrsize;            /// size of a pointer in bytes
@@ -300,6 +301,17 @@ extern (C++) struct Target
                 break;
         }
     }
+
+    void setTriple(const ref Triple triple)
+    {
+        cpu     = triple.cpu;
+        is64bit = triple.is64bit;
+        isLP64  = triple.isLP64;
+        os      = triple.os;
+        osMajor = triple.osMajor;
+        c.runtime   = triple.cenv;
+        cpp.runtime = triple.cppenv;
+    }
     /**
      * Add predefined global identifiers that are determied by the target
      */
@@ -338,7 +350,13 @@ extern (C++) struct Target
             case OS.FreeBSD:
             {
                 predef("FreeBSD");
-                predef("FreeBSD_" ~ target.FreeBSDMajor);
+                switch (osMajor)
+                {
+                    case 10: predef("FreeBSD_10");  break;
+                    case 11: predef("FreeBSD_11"); break;
+                    case 12: predef("FreeBSD_12"); break;
+                    default: predef("FreeBSD_11"); break;
+                }
                 break;
             }
             default: assert(0);
@@ -366,6 +384,8 @@ extern (C++) struct Target
         }
         if (isLP64)
             VersionCondition.addPredefinedGlobalIdent("D_LP64");
+        else if (is64bit)
+            VersionCondition.addPredefinedGlobalIdent("X32");
     }
     /**
      * Deinitializes the global state of the compiler.
@@ -1127,25 +1147,6 @@ extern (C++) struct Target
     {
         return (os & Target.OS.Posix) != 0;
     }
-
-    /**
-     * Returns:
-     *  FreeBSD major version string being targeted.
-     */
-    extern (D) @property string FreeBSDMajor() scope const nothrow @nogc
-    in { assert(os == Target.OS.FreeBSD); }
-    do
-    {
-        // FIXME: Need better a way to statically set the major FreeBSD version?
-             version (TARGET_FREEBSD12) return "12";
-        else version (TARGET_FREEBSD11) return "11";
-        else version (TARGET_FREEBSD10) return "10";
-        else version (FreeBSD_12)       return "12";
-        else version (FreeBSD_11)       return "11";
-        else version (FreeBSD_10)       return "10";
-        // FIXME: Need a way to dynamically set the major FreeBSD version?
-        else /* default supported */    return "11";
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1203,11 +1204,8 @@ struct TargetC
             runtime = target.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
         else if (os == Target.OS.linux)
         {
-            // Note: This should be done with a target triplet, to support cross compilation.
-            // However DMD currently does not support it, so this is a simple
-            // fix to make DMD compile on Musl-based systems such as Alpine.
-            // See https://github.com/dlang/dmd/pull/8020
-            // And https://wiki.osdev.org/Target_Triplet
+            // Note: This is overridden later by `-target=<triple>` if supplied.
+            // For now, choose the sensible default.
             version (CRuntime_Musl)
                 runtime = Runtime.Musl;
             else
@@ -1443,6 +1441,205 @@ struct TargetObjC
     {
         if (target.os == Target.OS.OSX && target.is64bit)
             supported = true;
+    }
+}
+
+/**
+ Sets CPU Operating System, and optionally C/C++ runtime environment from the given triple
+ e.g.
+    x86_64+avx2-apple-darwin20.3.0
+    x86-unknown-linux-musl-clang
+    x64-windows-msvc
+    x64-pc-windows-msvc
+ */
+struct Triple
+{
+    private const(char)[] source;
+    CPU               cpu;
+    bool              is64bit;
+    bool              isLP64;
+    Target.OS         os;
+    ubyte             osMajor;
+    TargetC.Runtime   cenv;
+    TargetCPP.Runtime cppenv;
+
+    this(const(char)* _triple)
+    {
+        import dmd.root.string : toDString, toCStringThen;
+        const(char)[] triple = _triple.toDString();
+        const(char)[] next()
+        {
+            size_t i = 0;
+            const tmp = triple;
+            while (triple.length && triple[0] != '-')
+            {
+                triple = triple[1 .. $];
+                ++i;
+            }
+            if (triple.length && triple[0] == '-')
+            {
+                triple = triple[1 .. $];
+            }
+            return tmp[0 .. i];
+        }
+
+        parseArch(next);
+        const(char)[] vendorOrOS = next();
+        const(char)[] _os;
+        if (tryParseVendor(vendorOrOS))
+            _os = next();
+        else
+            _os = vendorOrOS;
+        os = parseOS(_os, osMajor);
+
+        const(char)[] _cenv = next();
+        if (_cenv.length)
+            cenv = parseCEnv(_cenv);
+        else if (this.os == Target.OS.Windows)
+            cenv = TargetC.Runtime.Microsoft;
+        const(char)[] _cppenv = next();
+        if (_cppenv.length)
+            cppenv = parseCPPEnv(_cppenv);
+        else if (this.os == Target.OS.Windows)
+            cppenv = TargetCPP.Runtime.Microsoft;
+    }
+    private extern(D):
+
+    void unknown(const(char)[] unk, const(char)* what)
+    {
+        import dmd.errors : error;
+        import dmd.root.string : toCStringThen;
+        import dmd.globals : Loc;
+        unk.toCStringThen!(p => error(Loc.initial,"unknown %s `%s` for `-target`", what, p.ptr));
+    }
+
+    void parseArch(const(char)[] arch)
+    {
+        bool matches(const(char)[] str)
+        {
+            import dmd.root.string : startsWith;
+            if (!arch.ptr.startsWith(str))
+                return false;
+            arch = arch[str.length-1 .. $-1];
+            return true;
+        }
+
+        if (matches("x86_64"))
+            is64bit = true;
+        else if (matches("x86"))
+            is64bit = false;
+        else if (matches("x64"))
+            is64bit = true;
+        else if (matches("x32"))
+        {
+            is64bit = true;
+            isLP64 = false;
+        }
+        else
+            return unknown(arch, "architecture");
+
+        if (!arch.length)
+            return;
+
+        switch (arch)
+        {
+            case "+sse2": cpu = CPU.sse2; break;
+            case "+avx":  cpu = CPU.avx;  break;
+            case "+avx2": cpu = CPU.avx2; break;
+            default:
+                unknown(arch, "architecture feature");
+        }
+    }
+
+    // try parsing vendor if present
+    bool tryParseVendor(const(char)[] vendor)
+    {
+        switch (vendor)
+        {
+            case "unknown": return true;
+            case "apple":   return true;
+            case "pc":      return true;
+            case "amd":     return true;
+            default:        return false;
+        }
+    }
+
+    Target.OS parseOS(const(char)[] _os, out ubyte _osMajor)
+    {
+        bool matches(const(char)[] str)
+        {
+            import dmd.root.string : startsWith;
+            if (!_os.ptr.startsWith(str))
+                return false;
+            _os = _os[str.length .. $];
+            return true;
+        }
+        if (_os == "freestanding")
+            return Target.OS.Freestanding;
+        Target.OS os;
+        _osMajor = 0;
+        if (matches("darwin"))
+            os = Target.OS.OSX;
+        else if (matches("dragonfly"))
+            os =  Target.OS.DragonFlyBSD;
+        else if (matches("freebsd"))
+            os =  Target.OS.FreeBSD;
+        else if (matches("openbsd"))
+            os =  Target.OS.OpenBSD;
+        else if (matches("linux"))
+            os =  Target.OS.linux;
+        else if (matches("windows"))
+            os =  Target.OS.Windows;
+        else
+        {
+            unknown(_os, "operating system");
+            return Target.OS.Freestanding;
+        }
+        while (_os.length)
+        {
+            if (!('0' < _os[0] && _os[0] < '9'))
+                break;
+            osMajor *= 10;
+            osMajor = cast(ubyte)((_os[0] - '0') + osMajor);
+            _os = _os[1 .. $];
+        }
+        return os;
+    }
+
+    TargetC.Runtime parseCEnv(const(char)[] cenv)
+    {
+        with (TargetC.Runtime) switch (cenv)
+        {
+            case "musl":         return Musl;
+            case "msvc":         return Microsoft;
+            case "bionic":       return Bionic;
+            case "digital_mars": return DigitalMars;
+            case "newlib":       return Newlib;
+            case "uclibc":       return UClibc;
+            case "glibc":        return Glibc;
+            default:
+            {
+                unknown(cenv, "C runtime environment");
+                return Unspecified;
+            }
+        }
+    }
+
+    TargetCPP.Runtime parseCPPEnv(const(char)[] cppenv)
+    {
+        with (TargetCPP.Runtime) switch (cppenv)
+        {
+            case "clang":        return Clang;
+            case "gcc":          return Gcc;
+            case "msvc":         return Microsoft;
+            case "sun":          return Sun;
+            case "digital_mars": return DigitalMars;
+            default:
+            {
+                unknown(cppenv, "C++ runtime environment");
+                return Unspecified;
+            }
+        }
     }
 }
 

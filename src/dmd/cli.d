@@ -671,6 +671,23 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
+        Option("target=<triple>",
+               "use <triple> as <arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",
+               "$(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`,
+               $(I vendor) is always ignored, but supported for easier interoperability,
+               $(I os) is the operating system, this may have a trailing version number:
+               `freestanding` for no operating system,
+               `darwin` or `osx` for MacOS, `dragonfly` or `dragonflybsd` for DragonflyBSD,
+               `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems.
+               $(I cenv) is the C runtime environment and is optional: `musl` for musl-libc,
+               `msvc` for the MSVC runtime (the default for windows with this option),
+               `bionic` for the Andriod libc, `digital_mars` for the Digital Mars runtime for Windows
+               `gnu` or `glibc` for the GCC C runtime, `newlib` or `uclibc` for their respective C runtimes.
+               ($ I cppenv) is the C++ runtime environment: `clang` for the LLVM C++ runtime
+               `gcc` for GCC's C++ runtime, `msvc` for microsoft's MSVC C++ runtime (the default for windows with this switch),
+               `sun` for Sun's C++ runtime and `digital_mars` for the Digital Mars C++ runtime for windows.
+               "
+        ),
         Option("transition=<name>",
             "help with language change identified by 'name'",
             `Show additional info about language change identified by $(I id)`,
