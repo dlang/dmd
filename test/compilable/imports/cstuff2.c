@@ -135,3 +135,15 @@ struct S21968
 
 extern int test21970a;
 extern char *test21970b;
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21973
+
+struct S21973
+{
+    int field;
+    struct
+    {
+        int nested;
+    };
+};
