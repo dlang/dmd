@@ -1,8 +1,6 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/funclit.d(417): Deprecation: `(args) => { ... }` is a lambda that returns a delegate, not a multi-line lambda.
-runnable/funclit.d(417):        Use `(args) { ... }` for a multi-statement function literal or use `(args) => () { }` if you intended for the lambda to return a delegate.
 int delegate() pure nothrow @nogc @safe delegate() pure nothrow @nogc @safe delegate() pure nothrow @safe
 int delegate() pure nothrow @nogc @safe delegate() pure nothrow @nogc @safe delegate() pure nothrow @safe
 int
@@ -414,7 +412,7 @@ void test7288()
     auto foo()
     {
         int x;
-        return () => { return x; };
+        return () { return () => x; };
     }
     pragma(msg, typeof(&foo));
     alias int delegate() pure nothrow @nogc @safe delegate() pure nothrow @nogc @safe delegate() pure nothrow @safe Dg;

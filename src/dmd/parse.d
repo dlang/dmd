@@ -5098,7 +5098,7 @@ class Parser(AST) : Lexer
             check(TOK.goesTo);
             if (token.value == TOK.leftCurly)
             {
-                deprecation("`(args) => { ... }` is a lambda that returns a delegate, not a multi-line lambda.");
+                deprecation("Using `(args) => { ... }` to create a delegate that returns a delegate is error-prone.");
                 deprecationSupplemental(token.loc, "Use `(args) { ... }` for a multi-statement function literal or use `(args) => () { }` if you intended for the lambda to return a delegate.");
             }
             const returnloc = token.loc;
