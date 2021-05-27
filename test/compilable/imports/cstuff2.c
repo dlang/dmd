@@ -7,6 +7,12 @@ typedef long int T21931a;
 typedef T21931a T21931b;
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21933
+
+struct S21933 { void *opaque; };
+int test21933(struct S21933 *);
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=21934
 
 typedef int T21934 asm("realtype");
