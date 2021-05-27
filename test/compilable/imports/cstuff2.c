@@ -123,6 +123,14 @@ const int test21967a(void);
 const int *test21967b(void);
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21968
+
+struct S21968
+{
+    struct inner *data[16];
+};
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=21970
 
 extern int test21970a;
