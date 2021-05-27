@@ -111,6 +111,12 @@ union U21963
 };
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21965
+
+struct { int var; };
+typedef struct { int var; };
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=21967
 
 const int test21967a(void);
