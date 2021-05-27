@@ -4113,7 +4113,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Type is a "delegate to" or "pointer to" the function literal
         if ((exp.fd.isNested() && exp.fd.tok == TOK.delegate_) || (exp.tok == TOK.reserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
         {
-            exp.type = new TypeDelegate(exp.fd.type);
+            exp.type = new TypeDelegate(exp.fd.type.isTypeFunction());
             exp.type = exp.type.typeSemantic(exp.loc, sc);
 
             exp.fd.tok = TOK.delegate_;
@@ -6588,7 +6588,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         e.e1 = e.e1.expressionSemantic(sc);
 
-        e.type = new TypeDelegate(e.func.type);
+        e.type = new TypeDelegate(e.func.type.isTypeFunction());
         e.type = e.type.typeSemantic(e.loc, sc);
 
         FuncDeclaration f = e.func.toAliasFunc();

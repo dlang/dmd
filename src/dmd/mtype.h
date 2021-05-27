@@ -636,7 +636,7 @@ class TypeDelegate : public TypeNext
 public:
     // .next is a TypeFunction
 
-    static TypeDelegate *create(Type *t);
+    static TypeDelegate *create(TypeFunction *t);
     const char *kind();
     TypeDelegate *syntaxCopy();
     Type *addStorageClass(StorageClass stc);
