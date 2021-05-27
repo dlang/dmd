@@ -2335,7 +2335,7 @@ extern (C++) abstract class Type : ASTNode
                 }
                 else if (ty == Tdelegate)
                 {
-                    t = new TypeDelegate(t);
+                    t = new TypeDelegate(t.isTypeFunction());
                 }
                 else
                     assert(0);
@@ -5278,13 +5278,13 @@ extern (C++) final class TypeDelegate : TypeNext
 {
     // .next is a TypeFunction
 
-    extern (D) this(Type t)
+    extern (D) this(TypeFunction t)
     {
         super(Tfunction, t);
         ty = Tdelegate;
     }
 
-    static TypeDelegate create(Type t)
+    static TypeDelegate create(TypeFunction t)
     {
         return new TypeDelegate(t);
     }
@@ -5296,11 +5296,11 @@ extern (C++) final class TypeDelegate : TypeNext
 
     override TypeDelegate syntaxCopy()
     {
-        Type t = next.syntaxCopy();
-        if (t == next)
+        auto tf = next.syntaxCopy().isTypeFunction();
+        if (tf == next)
             return this;
 
-        auto result = new TypeDelegate(t);
+        auto result = new TypeDelegate(tf);
         result.mod = mod;
         return result;
     }

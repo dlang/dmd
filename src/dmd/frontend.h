@@ -5272,7 +5272,7 @@ public:
 class TypeDelegate final : public TypeNext
 {
 public:
-    static TypeDelegate* create(Type* t);
+    static TypeDelegate* create(TypeFunction* t);
     const char* kind() const;
     TypeDelegate* syntaxCopy();
     Type* addStorageClass(StorageClass stc);
