@@ -301,14 +301,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // Establish function scope
             auto ss = new ScopeDsymbol(funcdecl.loc, null);
             // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
-            for (auto scx = sc; ; scx = scx.enclosing)
-            {
-                if (scx.scopesym)
-                {
-                    ss.parent = scx.scopesym;
-                    break;
-                }
-            }
+            ss.parent = sc.inner().scopesym;
             ss.endlinnum = funcdecl.endloc.linnum;
             Scope* sc2 = sc.push(ss);
             sc2.func = funcdecl;
