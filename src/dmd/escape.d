@@ -597,10 +597,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         (va.storage_class & (STC.ref_ | STC.out_) || va.type.toBasetype().ty == Tclass);
     if (log && vaIsRef) printf("va is ref `%s`\n", va.toChars());
 
-    /* Determine if va is the first parameter, through which other 'return' parameters
+    /* Determine if va is the first non-return parameter, through which other 'return' parameters
      * can be assigned.
      */
-    bool isFirstRef()
+    bool isReturnDest()
     {
         if (!vaIsRef)
             return false;
@@ -613,13 +613,20 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 return false;
             if (va == fd.vthis)
                 return true;
-            if (fd.parameters && fd.parameters.dim && (*fd.parameters)[0] == va)
-                return true;
+            if (fd.parameters)
+            {
+                foreach (i, v; *fd.parameters) {
+                    if (v == va)
+                        return true;
+                    if (!(v.storage_class & STC.return_))
+                        return false;
+                }
+            }
         }
         return false;
     }
-    const bool vaIsFirstRef = isFirstRef();
-    if (log && vaIsFirstRef) printf("va is first ref `%s`\n", va.toChars());
+    const bool vaIsReturnDest = isReturnDest();
+    if (log && vaIsReturnDest) printf("va is first ref `%s`\n", va.toChars());
 
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
@@ -643,7 +650,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             continue;
         }
 
-        if (vaIsFirstRef &&
+        if (vaIsReturnDest &&
             (v.isScope() || (v.storage_class & STC.maybescope)) &&
             !(v.storage_class & STC.return_) &&
             v.isParameter() &&
@@ -659,7 +666,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         if (v.isScope())
         {
-            if (vaIsFirstRef && v.isParameter() && v.storage_class & STC.return_)
+            if (vaIsReturnDest && v.isParameter() && v.storage_class & STC.return_)
             {
                 if (va.isScope())
                     continue;

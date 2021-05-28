@@ -1,7 +1,8 @@
 /* REQUIRED_ARGS: -dip1000
  * TEST_OUTPUT:
 ---
-fail_compilation/test19097.d(35): Error: scope variable `s` may not be returned
+fail_compilation/test19097.d(25): Error: scope variable `p` assigned to `r` with longer lifetime
+fail_compilation/test19097.d(46): Error: scope variable `s` may not be returned
 ---
  */
 
@@ -10,6 +11,16 @@ fail_compilation/test19097.d(35): Error: scope variable `s` may not be returned
 @safe:
 
 void betty(ref scope int* r, return scope int* p)
+{
+    r = p;
+}
+
+void tabby(return scope int* p, ref scope int* r)
+{
+    r = p;
+}
+
+void kitty(return scope int* p, int intermediate, ref scope int* r)
 {
     r = p;
 }
