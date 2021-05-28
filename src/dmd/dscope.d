@@ -599,6 +599,21 @@ struct Scope
         return Token.toChars(tok);
     }
 
+    /***************************
+     * Find the innermost scope with a symbol table.
+     * Returns:
+     *  innermost scope, null if none
+     */
+    extern (D) Scope* inner() return
+    {
+        for (Scope* sc = &this; sc; sc = sc.enclosing)
+        {
+            if (sc.scopesym)
+                return sc;
+        }
+        return null;
+    }
+
     extern (D) Dsymbol insert(Dsymbol s)
     {
         if (VarDeclaration vd = s.isVarDeclaration())
@@ -617,18 +632,12 @@ struct Scope
             }
             return null;
         }
-        for (Scope* sc = &this; sc; sc = sc.enclosing)
-        {
-            //printf("\tsc = %p\n", sc);
-            if (sc.scopesym)
-            {
-                //printf("\t\tsc.scopesym = %p\n", sc.scopesym);
-                if (!sc.scopesym.symtab)
-                    sc.scopesym.symtab = new DsymbolTable();
-                return sc.scopesym.symtabInsert(s);
-            }
-        }
-        assert(0);
+
+        auto scopesym = inner().scopesym;
+        //printf("\t\tscopesym = %p\n", scopesym);
+        if (!scopesym.symtab)
+            scopesym.symtab = new DsymbolTable();
+        return scopesym.symtabInsert(s);
     }
 
     /********************************************
@@ -640,8 +649,7 @@ struct Scope
         {
             if (!sc.scopesym)
                 continue;
-            ClassDeclaration cd = sc.scopesym.isClassDeclaration();
-            if (cd)
+            if (ClassDeclaration cd = sc.scopesym.isClassDeclaration())
                 return cd;
         }
         return null;
@@ -656,11 +664,9 @@ struct Scope
         {
             if (!sc.scopesym)
                 continue;
-            AggregateDeclaration ad = sc.scopesym.isClassDeclaration();
-            if (ad)
+            if (AggregateDeclaration ad = sc.scopesym.isClassDeclaration())
                 return ad;
-            ad = sc.scopesym.isStructDeclaration();
-            if (ad)
+            if (AggregateDeclaration ad = sc.scopesym.isStructDeclaration())
                 return ad;
         }
         return null;

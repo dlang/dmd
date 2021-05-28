@@ -2002,17 +2002,6 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             return mtype.resolved;
         }
 
-        // TODO: Refactor this function into dscope.d, as
-        // well as other uses of this logic in dmd
-        static Scope* inner(Scope* sc)
-        {
-            for (auto scx = sc; ; scx = scx.enclosing)
-            {
-                if (scx.scopesym)
-                    return scx;
-            }
-        }
-
         /* Declare mtype as a struct/union/enum declaration
          */
         void declareTag()
@@ -2026,7 +2015,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             {
                 auto sd = new StructDeclaration(mtype.loc, mtype.id, false);
                 sd.members = mtype.members;
-                auto scopesym = inner(sc).scopesym;
+                auto scopesym = sc.inner().scopesym;
                 if (scopesym.members)
                     scopesym.members.push(sd);
                 sd.parent = sc.parent;
@@ -2051,7 +2040,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         /* A redeclaration only happens if both declarations are in
          * the same scope
          */
-        const bool redeclar = (scopesym == inner(sc).scopesym);
+        const bool redeclar = (scopesym == sc.inner().scopesym);
 
         if (redeclar)
         {
