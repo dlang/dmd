@@ -3514,7 +3514,15 @@ private U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
     import core.lifetime: copyEmplace;
     U[] res = () @trusted {
         auto arr = cast(U*) _d_newarrayU(typeid(T[]), a.length);
-        foreach (i; 0..a.length)
+        size_t i;
+        scope (failure)
+        {
+            import core.internal.lifetime: emplaceInitializer;
+            // Initialize all remaining elements to not destruct garbage
+            foreach (j; i .. a.length)
+                emplaceInitializer(cast() arr[j]);
+        }
+        for (; i < a.length; i++)
         {
             copyEmplace(a.ptr[i], arr[i]);
         }
@@ -3930,6 +3938,71 @@ private void _doPostblit(T)(T[] arr)
     int p;
     scope S[1] arr = [S(&p)];
     auto a = arr.dup; // dup does escape
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=21983
+// dup/idup destroys partially constructed arrays on failure
+@safe unittest
+{
+    static struct SImpl(bool postblit)
+    {
+        int num;
+        long l = 0xDEADBEEF;
+
+        static if (postblit)
+        {
+            this(this)
+            {
+                if (this.num == 3)
+                    throw new Exception("");
+            }
+        }
+        else
+        {
+            this(scope ref const SImpl other)
+            {
+                if (other.num == 3)
+                    throw new Exception("");
+
+                this.num = other.num;
+                this.l = other.l;
+            }
+        }
+
+        ~this() @trusted
+        {
+            if (l != 0xDEADBEEF)
+            {
+                import core.stdc.stdio;
+                printf("Unexpected value: %lld\n", l);
+                fflush(stdout);
+                assert(false);
+            }
+        }
+    }
+
+    alias Postblit = SImpl!true;
+    alias Copy = SImpl!false;
+
+    static int test(S)()
+    {
+        S[4] arr = [ S(1), S(2), S(3), S(4) ];
+        try
+        {
+            arr.dup();
+            assert(false);
+        }
+        catch (Exception)
+        {
+            return 1;
+        }
+    }
+
+    static assert(test!Postblit());
+    assert(test!Postblit());
+
+    static assert(test!Copy());
+    assert(test!Copy());
 }
 
 /**
