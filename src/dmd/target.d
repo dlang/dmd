@@ -1381,7 +1381,7 @@ struct TargetCPP
             // Mangle as delegate
             auto tf = new TypeFunction(ParameterList(), t, LINK.d);
             auto td = new TypeDelegate(tf);
-            t = merge(t);
+            t = td.merge();
         }
         return t;
     }
