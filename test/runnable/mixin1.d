@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/mixin1.d(959): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/mixin1.d(948): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 
 RUN_OUTPUT:
@@ -41,8 +41,6 @@ int
 int
 foo 1
 foo 2
-opCall 1
-opCall 2
 0 0
 two
 one
@@ -804,11 +802,6 @@ template T33( int i )
         printf("foo %d\n", i );
         return i;
     }
-    int opCall()
-    {
-        printf("opCall %d\n", i );
-        return i;
-    }
 }
 
 
@@ -825,10 +818,6 @@ void test33()
     i = c1.t1.foo();
     assert(i == 1);
     i = c1.t2.foo();
-    assert(i == 2);
-    i = c1.t1();
-    assert(i == 1);
-    i = c1.t2();
     assert(i == 2);
 }
 

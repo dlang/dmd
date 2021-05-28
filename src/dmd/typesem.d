@@ -3776,9 +3776,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         TemplateMixin tm = s.isTemplateMixin();
         if (tm)
         {
-            Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
-            de.type = e.type;
-            return de;
+            return new DotExp(e.loc, e, new ScopeExp(e.loc, tm)).expressionSemantic(sc);
         }
 
         TemplateDeclaration td = s.isTemplateDeclaration();
@@ -4186,9 +4184,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         TemplateMixin tm = s.isTemplateMixin();
         if (tm)
         {
-            Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
-            de.type = e.type;
-            return de;
+            return new DotExp(e.loc, e, new ScopeExp(e.loc, tm)).expressionSemantic(sc);
         }
 
         TemplateDeclaration td = s.isTemplateDeclaration();

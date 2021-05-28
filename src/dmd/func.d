@@ -2502,7 +2502,8 @@ extern (C++) class FuncDeclaration : Declaration
         if (type)
         {
             TypeFunction fdtype = type.isTypeFunction();
-            return fdtype.parameterList;
+            if (fdtype) // Could also be TypeError
+                return fdtype.parameterList;
         }
 
         return ParameterList(null, VarArg.none);
