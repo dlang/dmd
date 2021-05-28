@@ -3435,11 +3435,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     static assert(is(T : Unconst!T), "Cannot implicitly convert type "~T.stringof~
                   " to "~Unconst!T.stringof~" in dup.");
 
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(T, Unconst!T)(a);
-    else
-        return _dup!(T, Unconst!T)(a);
+    return _dup!(T, Unconst!T)(a);
 }
 
 ///
@@ -3457,11 +3453,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 @property T[] dup(T)(const(T)[] a)
     if (is(const(T) : T))
 {
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(const(T), T)(a);
-    else
-        return _dup!(const(T), T)(a);
+    return _dup!(const(T), T)(a);
 }
 
 
@@ -3470,12 +3462,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 {
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
                   " to immutable in idup.");
-
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(T, immutable(T))(a);
-    else
-        return _dup!(T, immutable(T))(a);
+    return _dup!(T, immutable(T))(a);
 }
 
 /// ditto
@@ -3493,34 +3480,47 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     assert(s == "abc");
 }
 
-private U[] _trustedDup(T, U)(T[] a) @trusted
-{
-    return _dup!(T, U)(a);
-}
-
-private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
+private U[] _dup(T, U)(scope T[] a) pure nothrow @trusted if (__traits(isPOD, T))
 {
     if (__ctfe)
-    {
-        static if (is(T : void))
-            assert(0, "Cannot dup a void[] array at compile time.");
-        else
-        {
-            U[] res;
-            foreach (ref e; a)
-                res ~= e;
-            return res;
-        }
-    }
+        return _dupCtfe!(T, U)(a);
 
     import core.stdc.string : memcpy;
+    auto arr = _d_newarrayU(typeid(T[]), a.length);
+    memcpy(arr.ptr, cast(const(void)*) a.ptr, T.sizeof * a.length);
+    return *cast(U[]*) &arr;
+}
 
-    void[] arr = _d_newarrayU(typeid(T[]), a.length);
-    memcpy(arr.ptr, cast(const(void)*)a.ptr, T.sizeof * a.length);
-    auto res = *cast(U[]*)&arr;
+private U[] _dupCtfe(T, U)(T[] a)
+{
+    static if (is(T : void))
+        assert(0, "Cannot dup a void[] array at compile time.");
+    else
+    {
+        U[] res;
+        foreach (ref e; a)
+            res ~= e;
+        return res;
+    }
+}
 
-    static if (__traits(hasPostblit, T))
-        _doPostblit(res);
+private U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
+{
+    // note: copyEmplace is `@system` inside a `@trusted` block, so the __ctfe branch
+    // has the extra duty to infer _dup `@system` when the copy-constructor is `@system`.
+    if (__ctfe)
+        return _dupCtfe!(T, U)(a);
+
+    import core.lifetime: copyEmplace;
+    U[] res = () @trusted {
+        auto arr = cast(U*) _d_newarrayU(typeid(T[]), a.length);
+        foreach (i; 0..a.length)
+        {
+            copyEmplace(a.ptr[i], arr[i]);
+        }
+        return cast(U[])(arr[0..a.length]);
+    } ();
+
     return res;
 }
 
@@ -3794,20 +3794,77 @@ private void _doPostblit(T)(T[] arr)
     static struct Sunpure { this(this) @safe nothrow {} }
     static struct Sthrow { this(this) @safe pure {} }
     static struct Sunsafe { this(this) @system pure nothrow {} }
+    static struct Snocopy { @disable this(this); }
 
-    static assert( __traits(compiles, ()         { [].dup!Sunpure; }));
+    [].dup!Sunpure;
+    [].dup!Sthrow;
+    [].dup!Sunsafe;
     static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
-    static assert( __traits(compiles, ()         { [].dup!Sthrow; }));
     static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
-    static assert( __traits(compiles, ()         { [].dup!Sunsafe; }));
+    static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
+    static assert(!__traits(compiles, ()         { [].dup!Snocopy; }));
+
+    [].idup!Sunpure;
+    [].idup!Sthrow;
+    [].idup!Sunsafe;
+    static assert(!__traits(compiles, () pure    { [].idup!Sunpure; }));
+    static assert(!__traits(compiles, () nothrow { [].idup!Sthrow; }));
+    static assert(!__traits(compiles, () @safe   { [].idup!Sunsafe; }));
+    static assert(!__traits(compiles, ()         { [].idup!Snocopy; }));
+}
+
+@safe unittest
+{
+    // test that the copy-constructor is called with .dup
+    static struct ArrElem
+    {
+        int a;
+        this(int a)
+        {
+            this.a = a;
+        }
+        this(ref const ArrElem)
+        {
+            a = 2;
+        }
+        this(ref ArrElem) immutable
+        {
+            a = 3;
+        }
+    }
+
+    auto arr = [ArrElem(1), ArrElem(1)];
+
+    ArrElem[] b = arr.dup;
+    assert(b[0].a == 2 && b[1].a == 2);
+
+    immutable ArrElem[] c = arr.idup;
+    assert(c[0].a == 3 && c[1].a == 3);
+}
+
+@system unittest
+{
+    static struct Sunpure { this(ref const typeof(this)) @safe nothrow {} }
+    static struct Sthrow { this(ref const typeof(this)) @safe pure {} }
+    static struct Sunsafe { this(ref const typeof(this)) @system pure nothrow {} }
+    [].dup!Sunpure;
+    [].dup!Sthrow;
+    [].dup!Sunsafe;
+    static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
+    static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
     static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
 
-    static assert( __traits(compiles, ()         { [].idup!Sunpure; }));
-    static assert(!__traits(compiles, () pure    { [].idup!Sunpure; }));
-    static assert( __traits(compiles, ()         { [].idup!Sthrow; }));
-    static assert(!__traits(compiles, () nothrow { [].idup!Sthrow; }));
-    static assert( __traits(compiles, ()         { [].idup!Sunsafe; }));
-    static assert(!__traits(compiles, () @safe   { [].idup!Sunsafe; }));
+    // for idup to work on structs that have copy constructors, it is necessary
+    // that the struct defines a copy constructor that creates immutable objects
+    static struct ISunpure { this(ref const typeof(this)) immutable @safe nothrow {} }
+    static struct ISthrow { this(ref const typeof(this)) immutable @safe pure {} }
+    static struct ISunsafe { this(ref const typeof(this)) immutable @system pure nothrow {} }
+    [].idup!ISunpure;
+    [].idup!ISthrow;
+    [].idup!ISunsafe;
+    static assert(!__traits(compiles, () pure    { [].idup!ISunpure; }));
+    static assert(!__traits(compiles, () nothrow { [].idup!ISthrow; }));
+    static assert(!__traits(compiles, () @safe   { [].idup!ISunsafe; }));
 }
 
 @safe unittest
