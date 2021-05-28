@@ -1229,12 +1229,12 @@ void __delete(T)(ref T x) @system
               is(T == class) ||
               is(T == U2*, U2))
     {
-        GC.free(cast(void*) x);
+        GC.free(GC.addrOf(cast(void*) x));
         x = null;
     }
     else static if (is(T : E2[], E2))
     {
-        GC.free(cast(void*) x.ptr);
+        GC.free(GC.addrOf(cast(void*) x.ptr));
         x = null;
     }
 }
