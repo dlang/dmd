@@ -94,9 +94,12 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
 {
     import core.internal.traits : hasElaborateAssign;
 
-    // Avoid stack allocation by hacking to get to the init symbol.
-    pragma(mangle, "_D" ~ T.mangleof[1..$] ~ "6__initZ")
-    __gshared extern immutable typeof(T.init) initializer;
+    // Avoid stack allocation by hacking to get to the struct/union init symbol.
+    static if (is(T == struct) || is(T == union))
+    {
+        pragma(mangle, "_D" ~ T.mangleof[1..$] ~ "6__initZ")
+        __gshared extern immutable T initializer;
+    }
 
     void emplaceInitializer(scope ref T chunk) nothrow pure @trusted
     {
@@ -162,10 +165,16 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
         this(this) {}
     }
 
+    static union LargeNonZeroUnion
+    {
+        byte[128] a = 1;
+    }
+
     testInitializer!int();
     testInitializer!double();
     testInitializer!ElaborateAndZero();
     testInitializer!ElaborateAndNonZero();
+    testInitializer!LargeNonZeroUnion();
 }
 
 /*
