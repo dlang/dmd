@@ -67,17 +67,19 @@ static void frontend_init()
     gc_disable();
 
     global._init();
-    target.os = Target::OS_linux;
     global.vendor = "Front-End Tester";
     global.params.objname = NULL;
+
+    target.os = Target::OS_linux;
+    target.is64bit = true;
     target.cpu = CPU::native;
+    target._init(global.params);
 
     Type::_init();
     Id::initialize();
     Module::_init();
     Expression::_init();
     Objc::_init();
-    target._init(global.params);
     CTFloat::initialize();
 }
 
@@ -525,12 +527,12 @@ void test_cppmangle()
     fd = (*cd->members)[0]->isFuncDeclaration();
     assert(fd);
     mangle = cppThunkMangleItanium(fd, b->offset);
-    assert(strcmp(mangle, "_ZThn4_N7Derived9MethodCPPEv") == 0);
+    assert(strcmp(mangle, "_ZThn8_N7Derived9MethodCPPEv") == 0);
 
     fd = (*cd->members)[1]->isFuncDeclaration();
     assert(fd);
     mangle = cppThunkMangleItanium(fd, b->offset);
-    assert(strcmp(mangle, "_ZThn4_N7Derived7MethodDEv") == 0);
+    assert(strcmp(mangle, "_ZThn8_N7Derived7MethodDEv") == 0);
 
     assert(!global.endGagging(errors));
 }
