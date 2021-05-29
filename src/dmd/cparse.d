@@ -2815,11 +2815,12 @@ final class CParser(AST) : Parser!AST
         Identifier tag;
 
         // declare `tag` as symbol
-        AST.Type declareTag()
+        AST.Type declareTag(AST.Dsymbols* members)
         {
             auto stag = (structOrUnion == TOK.struct_)
                 ? new AST.StructDeclaration(loc, tag, false)
                 : new AST.UnionDeclaration(loc, tag);
+            stag.members = members;
             if (!symbols)
                 symbols = new AST.Dsymbols();
             symbols.push(stag);
@@ -2835,7 +2836,7 @@ final class CParser(AST) : Parser!AST
                 /* `struct tag;` always results in a declaration
                  * in the current scope
                  */
-                return declareTag();
+                return declareTag(null);
             }
         }
 
@@ -2877,7 +2878,7 @@ final class CParser(AST) : Parser!AST
             /* `struct tag { ... };` always results in a declaration
              * in the current scope
              */
-            return declareTag();
+            return declareTag(members);
         }
         /* Need semantic information to determine if this is a declaration,
          * redeclaration, or reference to existing declaration.

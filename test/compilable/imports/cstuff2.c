@@ -147,3 +147,9 @@ struct S21973
         int nested;
     };
 };
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21982
+
+struct S21982 { int field; };
+struct S21982 test21982;
