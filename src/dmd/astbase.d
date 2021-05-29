@@ -228,6 +228,16 @@ struct ASTBase
             return null;
         }
 
+        inout(BitfieldDeclaration) isBitfieldDeclaration() inout
+        {
+            return null;
+        }
+
+        inout(AnonBitfieldDeclaration) isAnonBitfieldDeclaration() inout
+        {
+            return null;
+        }
+
         inout(ClassDeclaration) isClassDeclaration() inout
         {
             return null;
@@ -497,6 +507,50 @@ struct ASTBase
         }
 
         override final inout(VarDeclaration) isVarDeclaration() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) class BitfieldDeclaration : VarDeclaration
+    {
+        Expression width;
+        VarDeclaration unitfield;
+        dinteger_t bitoffset;
+
+        final extern (D) this(const ref Loc loc, Type type, Expression width, Identifier ident, StorageClass st = STC.undefined_)
+        {
+            super(loc, type, ident, null, st);
+            this.loc = loc;
+            this.storage_class = st | STC.field;
+            this.type = type;
+            this.width = width;
+        }
+
+        override inout(BitfieldDeclaration) isBitfieldDeclaration() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class AnonBitfieldDeclaration : BitfieldDeclaration
+    {
+        final extern (D) this(const ref Loc loc, Type type, Expression width, StorageClass st = STC.undefined_)
+        {
+            super(loc, type, width, Identifier.generateId("__anon_bitfield"), st);
+        }
+
+        override inout(AnonBitfieldDeclaration) isAnonBitfieldDeclaration() inout
         {
             return this;
         }
@@ -2524,6 +2578,7 @@ struct ASTBase
                 sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
                 sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
                 sizeTy[Ttag] = __traits(classInstanceSize, TypeTag);
+                sizeTy[Tbitfield] = __traits(classInstanceSize, TypeBitfield);
                 return sizeTy;
             }();
 
@@ -3656,6 +3711,28 @@ struct ASTBase
         }
 
         override TypeTag syntaxCopy()
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeBitfield : Type
+    {
+        Type basetype;
+        uint bitsize;
+
+        extern (D) this(uint bitsize)
+        {
+            super(Tbitfield);
+            this.bitsize = bitsize;
+        }
+
+        override TypeBitfield syntaxCopy()
         {
             return this;
         }

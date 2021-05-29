@@ -3046,15 +3046,10 @@ final class CParser(AST) : Parser!AST
         while (1)
         {
             Identifier id;
+            AST.Expression width;   // of a bit-field
             AST.Type dt;
             if (token.value == TOK.colon)
-            {
-                // C11 6.7.2.1-12 unnamed bit-field
-                nextToken();
-                cparseConstantExp();
-                error("unnamed bit fields are not supported"); // TODO
-                dt = AST.Type.tuns32;
-            }
+                dt = tspec;
             else
                 dt = cparseDeclarator(DTR.xdirect, tspec, id);
             if (!dt)
@@ -3063,12 +3058,12 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 break;          // error recovery
             }
-            if (id && token.value == TOK.colon)
+            if (token.value == TOK.colon)
             {
                 // C11 6.7.2.1-10 bit-field
+                // C11 6.7.2.1-12 unnamed bit-field
                 nextToken();
-                cparseConstantExp();
-                error("bit fields are not supported"); // TODO
+                width = cparseConstantExp();
             }
 
             if (specifier.mod & MOD.xconst)
@@ -3089,6 +3084,15 @@ final class CParser(AST) : Parser!AST
 
             if (!tspec && !specifier.scw && !specifier.mod)
                 error("specifier-qualifier-list required");
+            else if (width)
+            {
+                // This is a bit-field declaration.
+                StorageClass stc = specifiersToSTC(LVL.member, specifier);
+                if (id)
+                    s = new AST.BitfieldDeclaration(token.loc, dt, width, id, stc);
+                else
+                    s = new AST.AnonBitfieldDeclaration(token.loc, dt, width, stc);
+            }
             else if (id)
             {
                 if (dt.ty == AST.Tvoid)

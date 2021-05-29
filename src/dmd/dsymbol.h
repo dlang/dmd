@@ -22,6 +22,7 @@ struct Scope;
 class DsymbolTable;
 class Declaration;
 class ThisDeclaration;
+class BitfieldDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
 class AliasDeclaration;
@@ -240,6 +241,8 @@ public:
     virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
     virtual AliasAssign *isAliasAssign() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
+    virtual BitfieldDeclaration *isBitfieldDeclaration() { return NULL; }
+    virtual BitfieldDeclaration *isAnonBitfieldDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }

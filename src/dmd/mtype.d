@@ -365,6 +365,7 @@ extern (C++) abstract class Type : ASTNode
             sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
             sizeTy[Tnoreturn] = __traits(classInstanceSize, TypeNoreturn);
             sizeTy[Ttag] = __traits(classInstanceSize, TypeTag);
+            sizeTy[Tbitfield] = __traits(classInstanceSize, TypeBitfield);
             return sizeTy;
         }();
 
@@ -2618,6 +2619,7 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
         inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
+        inout(TypeBitfield)   isTypeBitfield()   { return ty == Tbitfield  ? cast(typeof(return))this : null; }
     }
 
     override void accept(Visitor v)
@@ -6681,6 +6683,43 @@ extern (C++) final class TypeTag : Type
     {
         // No semantic analysis done, no need to copy
         return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class TypeBitfield : Type
+{
+    Type basetype;      /// underlying storage type
+    uint bitsize;       /// size of all adjacent bit-fields
+
+    extern (D) this(uint bitsize)
+    {
+        //printf("TypeBitfield %p\n", this);
+        super(Tbitfield);
+        this.bitsize = bitsize;
+    }
+
+    override const(char)* kind() const
+    {
+        return "bit-field";
+    }
+
+    override TypeBitfield syntaxCopy()
+    {
+        // No semantic analysis done, no need to copy
+        return this;
+    }
+
+    override d_uns64 size(const ref Loc loc) const
+    {
+        // Round up the bitsize to the next byte boundary
+        return ((bitsize + 7) & ~7) / 8;
     }
 
     override void accept(Visitor v)

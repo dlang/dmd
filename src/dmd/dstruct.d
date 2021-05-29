@@ -28,6 +28,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.init;
 import dmd.mtype;
 import dmd.opover;
 import dmd.target;
@@ -313,6 +314,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         else
             structsize = (structsize + alignment - 1) & ~(alignment - 1);
 
+        // Generate all types for bit-field represenatative fields.
+        finalizeBitfields();
+
         sizeok = Sizeok.done;
 
         //printf("-StructDeclaration::finalizeSize() %s, fields.dim = %d, structsize = %d\n", toChars(), fields.dim, structsize);
@@ -359,6 +363,55 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
 
         argTypes = target.toArgTypes(type);
+    }
+
+    /***************************************
+     * Finalize and set the underlying fields to be used for bit-field access.
+     */
+    final void finalizeBitfields()
+    {
+        assert(sizeok == Sizeok.inProcess);
+
+        for (size_t i = 0; i < fields.dim; i++)
+        {
+            auto field = fields[i].isBitfieldDeclaration();
+            if (field is null)
+                continue;
+            assert(field.unittype !is null);
+            if (field.unittype.basetype !is null)
+                continue;
+
+            // Zero-size bit-fields do not have a storage themselves
+            const size = field.unittype.size(loc);
+            if (size == 0)
+            {
+                fields.remove(i);
+                return;
+            }
+
+            // Adjust the final type size for any alignment holes.
+            // This aids in finding the smallest integer type to use for
+            // the storage unit type. Consider the member field `a` in
+            //      struct { int a : 24; int b; }
+            // We want to generate the storage type `int` instead of `char[3]`
+            uint maxsize;
+            if (i + 1 < fields.dim)
+                maxsize = fields[i + 1].offset - field.offset;
+            else
+                maxsize = structsize - field.offset;
+
+            // Find the smallest integer type to use
+            if (size <= 1 && 1 <= maxsize)
+                field.unittype.basetype = Type.tuns8;
+            else if (size <= 2 && 2 <= maxsize)
+                field.unittype.basetype = Type.tuns16;
+            else if (size <= 4 && 4 <= maxsize)
+                field.unittype.basetype = Type.tuns32;
+            else if (size <= 8 && 8 <= maxsize)
+                field.unittype.basetype = Type.tuns64;
+            else
+                field.unittype.basetype = Type.tuns8.sarrayOf(size);
+        }
     }
 
     /***************************************

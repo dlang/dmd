@@ -216,6 +216,7 @@ private immutable char[TMAX] mangleChar =
     Ttraits      : '@',
     Tmixin       : '@',
     Ttag         : '@',
+    Tbitfield    : '@',
     Tnoreturn    : '@',         // becomes 'Nn'
 ];
 

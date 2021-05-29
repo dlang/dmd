@@ -1119,7 +1119,7 @@ extern (C++) class VarDeclaration : Declaration
         return v;
     }
 
-    override final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
 
@@ -2161,6 +2161,149 @@ extern (C++) final class ThisDeclaration : VarDeclaration
     }
 
     override inout(ThisDeclaration) isThisDeclaration() inout
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * For the "bit-field" members
+ */
+extern (C++) class BitfieldDeclaration : VarDeclaration
+{
+    Expression width;           /// width of bit-field
+    TypeBitfield unittype;      /// storage representative type
+    uint bitoffset;             /// offset in bits to var field 'offset'
+
+    final extern (D) this(const ref Loc loc, Type type, Expression width, Identifier ident, StorageClass storage_class = STC.undefined_)
+    {
+        super(loc, type, ident, null, storage_class);
+        this.storage_class = storage_class | STC.field;
+        this.type = type;
+        this.width = width;
+    }
+
+    override BitfieldDeclaration syntaxCopy(Dsymbol s)
+    {
+        assert(0); // should never be produced by syntax
+    }
+
+    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    {
+        //printf("BitfieldDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
+        assert(!(storage_class & (STC.static_ | STC.extern_ | STC.parameter | STC.tls)));
+        const fieldbitsize = cast(uint)width.toUInteger();
+        bool isanon = isAnonBitfieldDeclaration() !is null;
+
+        void startUnitField()
+        {
+            // Start new storage unit
+            unittype = new TypeBitfield(fieldbitsize);
+
+            // When the bit-field is zero-sized, it affects the alignment of the
+            // next field. The storage unit type is otherwise implicitly align(1)
+            if (!isanon || fieldbitsize != 0)
+                alignment = 1;
+            else
+                alignment = type.alignsize();
+
+            offset = AggregateDeclaration.placeField(
+                poffset,
+                cast(uint)unittype.size(loc), 1, alignment,
+                &ad.structsize, &ad.alignsize,
+                isunion);
+
+            // Named bit-fields affect the struct alignment.
+            if (!isanon)
+            {
+                const fieldalign = type.alignsize();
+                if (fieldalign > ad.alignsize)
+                    ad.alignsize = fieldalign;
+            }
+            ad.fields.push(this);
+        }
+
+        // Bit-field member with a width of zero indicates no further bit-field
+        // is to be packed into the unit
+        if (isanon && fieldbitsize == 0)
+            return startUnitField();
+
+        // First field in the struct
+        if (!ad.fields.dim)
+            return startUnitField();
+
+        auto prev = ad.fields[$ - 1].isBitfieldDeclaration();
+        // Previous field is not an adjacent bit-field
+        if (!prev)
+            return startUnitField();
+
+        import core.checkedint : addu;
+        bool overflow;
+
+        // This bit-field points to the current in-flight unitfield
+        this.unittype = prev.unittype;
+        this.offset = prev.offset;
+        this.alignment = prev.alignment;
+        // Set the bit offset within the representative storage type
+        this.bitoffset = unittype.bitsize;
+        // Advance the bitsize
+        const oldsize = (!isunion) ? unittype.size(loc) : 0;
+        unittype.bitsize = addu(unittype.bitsize, fieldbitsize, overflow);
+
+        // ... and update the struct size/next offset
+        const newsize = unittype.size(loc);
+        assert(newsize != SIZE_INVALID && newsize < uint.max);
+        if (!isunion)
+        {
+            uint offset = *poffset;
+            assert(offset);
+            if (newsize > oldsize)
+                offset = addu(offset, cast(uint)(newsize - oldsize), overflow);
+            if (offset > ad.structsize)
+                ad.structsize = offset;
+            *poffset = offset;
+        }
+        else
+        {
+            if (newsize > ad.structsize)
+                ad.structsize = cast(uint)newsize;
+        }
+        // Ensure no overflow
+        if (overflow) assert(0);
+
+        if (!isanon)
+        {
+            if (prev.isAnonBitfieldDeclaration())
+                ad.fields[$ - 1] = this;
+            else
+                ad.fields.push(this);
+        }
+    }
+
+    override inout(BitfieldDeclaration) isBitfieldDeclaration() inout
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+extern (C++) final class AnonBitfieldDeclaration : BitfieldDeclaration
+{
+    final extern (D) this(const ref Loc loc, Type type, Expression width, StorageClass storage_class = STC.undefined_)
+    {
+        super(loc, type, width, Identifier.generateId("__anon_bitfield"), storage_class);
+    }
+
+    override inout(AnonBitfieldDeclaration) isAnonBitfieldDeclaration() inout
     {
         return this;
     }

@@ -85,6 +85,7 @@ class TypeNoreturn;
 class TypeTraits;
 class TypeMixin;
 class TypeTag;
+class TypeBitfield;
 
 class Dsymbol;
 
@@ -139,6 +140,8 @@ class OverDeclaration;
 class VarDeclaration;
 class SymbolDeclaration;
 class ThisDeclaration;
+class BitfieldDeclaration;
+class AnonBitfieldDeclaration;
 
 class TypeInfoDeclaration;
 class TypeInfoStructDeclaration;
@@ -382,6 +385,8 @@ public:
     virtual void visit(ClassDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(InterfaceDeclaration *s) { visit((ClassDeclaration *)s); }
     virtual void visit(TemplateMixin *s) { visit((TemplateInstance *)s); }
+    virtual void visit(BitfieldDeclaration *s) { visit((VarDeclaration *)s); }
+    virtual void visit(AnonBitfieldDeclaration *s) { visit((Declaration *)s); }
 
     // Statements
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
@@ -441,6 +446,7 @@ public:
     virtual void visit(TypeTraits *t) { visit((Type *)t); }
     virtual void visit(TypeMixin *t) { visit((Type *)t); }
     virtual void visit(TypeTag *t) { visit((Type *)t); }
+    virtual void visit(TypeBitfield *t) { visit((Type *)t); }
 
     // TypeNext
     virtual void visit(TypeReference *t) { visit((TypeNext *)t); }

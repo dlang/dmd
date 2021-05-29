@@ -90,6 +90,8 @@ public:
     void visit(AST.ClassDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
     void visit(AST.InterfaceDeclaration s) { visit(cast(AST.ClassDeclaration)s); }
     void visit(AST.TemplateMixin s) { visit(cast(AST.TemplateInstance)s); }
+    void visit(AST.BitfieldDeclaration s) { visit(cast(AST.VarDeclaration)s); }
+    void visit(AST.AnonBitfieldDeclaration s) { visit(cast(AST.Declaration)s); }
 
     //============================================================================================
     // Statements
@@ -151,6 +153,7 @@ public:
     void visit(AST.TypeTraits t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeMixin t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTag t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeBitfield t) { visit(cast(AST.Type)t); }
 
     // TypeNext
     void visit(AST.TypeReference t) { visit(cast(AST.TypeNext)t); }

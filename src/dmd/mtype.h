@@ -97,6 +97,8 @@ enum class TY : uint8_t
     Ttraits,
     Tmixin,
     Tnoreturn,
+    Ttag,
+    Tbitfield,
     TMAX
 };
 
@@ -338,6 +340,7 @@ public:
     TypeTraits *isTypeTraits();
     TypeNoreturn *isTypeNoreturn();
     TypeTag *isTypeTag();
+    TypeBitfield *isTypeBitfield();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -907,7 +910,21 @@ public:
 class TypeTag final : public Type
 {
 public:
+    const char *kind();
     TypeTag *syntaxCopy();
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeBitfield : public Type
+{
+public:
+    Type *basetype;
+    unsigned bitsize;
+
+    const char *kind();
+    TypeBitfield *syntaxCopy();
+    d_uns64 size(const Loc& loc) /* const */;
 
     void accept(Visitor *v) { v->visit(this); }
 };

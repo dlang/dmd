@@ -62,6 +62,8 @@ class StorageClassDeclaration;
 class ExpressionDsymbol;
 class AliasAssign;
 class ThisDeclaration;
+class BitfieldDeclaration;
+class AnonBitfieldDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
 class AliasDeclaration;
@@ -252,6 +254,7 @@ class TypeMixin;
 class TypeTraits;
 class TypeNoreturn;
 class TypeTag;
+class TypeBitfield;
 class TemplateTypeParameter;
 class TemplateValueParameter;
 class TemplateAliasParameter;
@@ -1049,6 +1052,8 @@ public:
     virtual ExpressionDsymbol* isExpressionDsymbol();
     virtual AliasAssign* isAliasAssign();
     virtual ThisDeclaration* isThisDeclaration();
+    virtual BitfieldDeclaration* isBitfieldDeclaration();
+    virtual AnonBitfieldDeclaration* isAnonBitfieldDeclaration();
     virtual TypeInfoDeclaration* isTypeInfoDeclaration();
     virtual TupleDeclaration* isTupleDeclaration();
     virtual AliasDeclaration* isAliasDeclaration();
@@ -1840,7 +1845,8 @@ enum class TY : uint8_t
     Tmixin = 45u,
     Tnoreturn = 46u,
     Ttag = 47u,
-    TMAX = 48u,
+    Tbitfield = 48u,
+    TMAX = 49u,
 };
 
 class Type : public ASTNode
@@ -1943,7 +1949,7 @@ public:
     static ClassDeclaration* typeinfoshared;
     static ClassDeclaration* typeinfowild;
     static TemplateDeclaration* rtinfo;
-    static Type* basic[48LLU];
+    static Type* basic[49LLU];
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
@@ -2066,6 +2072,7 @@ public:
     TypeTraits* isTypeTraits();
     TypeNoreturn* isTypeNoreturn();
     TypeTag* isTypeTag();
+    TypeBitfield* isTypeBitfield();
     void accept(Visitor* v);
     TypeFunction* toTypeFunction();
 };
@@ -2147,6 +2154,8 @@ public:
     virtual void visit(typename AST::ClassDeclaration s);
     virtual void visit(typename AST::InterfaceDeclaration s);
     virtual void visit(typename AST::TemplateMixin s);
+    virtual void visit(typename AST::BitfieldDeclaration s);
+    virtual void visit(typename AST::AnonBitfieldDeclaration s);
     virtual void visit(typename AST::ImportStatement s);
     virtual void visit(typename AST::ScopeStatement s);
     virtual void visit(typename AST::ReturnStatement s);
@@ -2198,6 +2207,7 @@ public:
     virtual void visit(typename AST::TypeTraits t);
     virtual void visit(typename AST::TypeMixin t);
     virtual void visit(typename AST::TypeTag t);
+    virtual void visit(typename AST::TypeBitfield t);
     virtual void visit(typename AST::TypeReference t);
     virtual void visit(typename AST::TypeSlice t);
     virtual void visit(typename AST::TypeDelegate t);
@@ -3240,6 +3250,16 @@ public:
     MATCH implicitConvTo(Type* to);
     bool isZeroInit(const Loc& loc) /* const */;
     TypeBasic* isTypeBasic();
+    void accept(Visitor* v);
+};
+
+class TypeBitfield final : public Type
+{
+public:
+    dinteger_t bitsize;
+    const char* kind() const;
+    TypeBitfield* syntaxCopy();
+    d_uns64 size(const Loc& loc) /* const */;
     void accept(Visitor* v);
 };
 
@@ -4377,6 +4397,8 @@ struct ASTCodegen final
     using ClassFlags = ::ClassFlags;
     using InterfaceDeclaration = ::InterfaceDeclaration;
     using AliasDeclaration = ::AliasDeclaration;
+    using AnonBitfieldDeclaration = ::AnonBitfieldDeclaration;
+    using BitfieldDeclaration = ::BitfieldDeclaration;
     using Declaration = ::Declaration;
     using MatchAccumulator = ::MatchAccumulator;
     using OverDeclaration = ::OverDeclaration;
@@ -4597,6 +4619,7 @@ struct ASTCodegen final
     using TypeAArray = ::TypeAArray;
     using TypeArray = ::TypeArray;
     using TypeBasic = ::TypeBasic;
+    using TypeBitfield = ::TypeBitfield;
     using TypeClass = ::TypeClass;
     using TypeDArray = ::TypeDArray;
     using TypeDelegate = ::TypeDelegate;
@@ -5743,6 +5766,31 @@ public:
     ~ThisDeclaration();
 };
 
+class BitfieldDeclaration final : public VarDeclaration
+{
+public:
+    Expression* width;
+    VarDeclaration* unitfield;
+    dinteger_t bitoffset;
+    BitfieldDeclaration* syntaxCopy(Dsymbol* s);
+    void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
+    BitfieldDeclaration* isBitfieldDeclaration();
+    void accept(Visitor* v);
+    ~BitfieldDeclaration();
+};
+
+class AnonBitfieldDeclaration final : public Declaration
+{
+public:
+    Expression* width;
+    VarDeclaration* unitfield;
+    dinteger_t bitoffset;
+    AnonBitfieldDeclaration* syntaxCopy(Dsymbol* s);
+    void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
+    AnonBitfieldDeclaration* isAnonBitfieldDeclaration();
+    void accept(Visitor* v);
+};
+
 class EnumDeclaration final : public ScopeDsymbol
 {
 public:
@@ -5993,6 +6041,7 @@ public:
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     const char* kind() const;
     void finalizeSize();
+    void finalizeBitfields();
     bool isPOD();
     StructDeclaration* isStructDeclaration();
     void accept(Visitor* v);

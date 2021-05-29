@@ -1145,6 +1145,97 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         assert(dsym.linkage == LINK.c);
     }
 
+    override void visit(BitfieldDeclaration dsym)
+    {
+        if (dsym.semanticRun >= PASS.semanticdone)
+            return;
+
+        auto width = dsym.width.expressionSemantic(sc);
+        if (!width.type.isintegral())
+        {
+            width.error("bit-field width `%s` is not an integer constant", dsym.width.toChars());
+            width = IntegerExp.literal!1;
+        }
+        else
+        {
+            width = width.optimize(WANTvalue);
+            if (!width.isIntegerExp())
+            {
+                width.error("bit-field width `%s` is not an integer constant", dsym.width.toChars());
+                width = IntegerExp.literal!1;
+            }
+            if (cast(sinteger_t)width.toInteger() < 0)
+            {
+                width.error("bit-field `%s` has negative width", dsym.ident.toChars());
+                width = IntegerExp.literal!1;
+            }
+            else if (width.toInteger() == 0)
+            {
+                width.error("bit-field `%s` has zero width", dsym.ident.toChars());
+                width = IntegerExp.literal!1;
+            }
+        }
+
+        if (!dsym.type.isintegral())
+        {
+            dsym.error("bit-field `%s` has non-integral type `%s`", dsym.ident.toChars(), dsym.type.toChars());
+            dsym.type = Type.tuns32;
+        }
+
+        const max_width = dsym.type.size() * 8;
+        if (width.toInteger() > max_width)
+        {
+            width.error("width of bit-field `%s` exceeds its type `%s`", dsym.ident.toChars(), dsym.type.toChars());
+            width = new IntegerExp(width.loc, max_width, width.type);
+        }
+
+        dsym.width = width;
+        visit(cast(VarDeclaration)dsym);
+    }
+
+    override void visit(AnonBitfieldDeclaration dsym)
+    {
+        if (dsym.semanticRun >= PASS.semanticdone)
+            return;
+
+        auto width = dsym.width.expressionSemantic(sc);
+        if (!width.type.isintegral())
+        {
+            width.error("bit-field width `%s` is not an integer constant", dsym.width.toChars());
+            width = IntegerExp.literal!1;
+        }
+        else
+        {
+            width = width.optimize(WANTvalue);
+            if (!width.isIntegerExp())
+            {
+                width.error("bit-field width `%s` is not an integer constant", dsym.width.toChars());
+                width = IntegerExp.literal!1;
+            }
+            if (cast(sinteger_t)width.toInteger() < 0)
+            {
+                width.error("anonymous bit-field has negative width");
+                width = IntegerExp.literal!1;
+            }
+        }
+
+        if (!dsym.type.isintegral())
+        {
+            dsym.error("anonymous bit-field has non-integral type `%s`", dsym.type.toChars());
+            dsym.type = Type.tuns32;
+        }
+
+        const max_width = dsym.type.size() * 8;
+        if (width.toInteger() > max_width)
+        {
+            width.error("width of anonymous bit-field exceeds its type `%s`", dsym.type.toChars());
+            width = new IntegerExp(width.loc, max_width, width.type);
+        }
+
+        dsym.width = width;
+        visit(cast(VarDeclaration)dsym);
+    }
+
     override void visit(Import imp)
     {
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());

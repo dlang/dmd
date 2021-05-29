@@ -1770,6 +1770,28 @@ public:
         bodyToBuffer(d);
     }
 
+    override void visit(BitfieldDeclaration d)
+    {
+        if (stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
+        typeToBuffer(d.type, d.ident, buf, hgs);
+        buf.writestring(" : ");
+        d.width.expressionToBuffer(buf, hgs);
+        buf.writeByte(';');
+        buf.writenl();
+    }
+
+    override void visit(AnonBitfieldDeclaration d)
+    {
+        if (stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
+        typeToBuffer(d.type, null, buf, hgs);
+        buf.writestring(" : ");
+        d.width.expressionToBuffer(buf, hgs);
+        buf.writeByte(';');
+        buf.writenl();
+    }
+
     override void visit(Module m)
     {
         moduleToBuffer2(m, buf, hgs);
@@ -3850,6 +3872,11 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
             buf.writestring(t.id.toChars());
     }
 
+    void visitBitfield(TypeBitfield t)
+    {
+        buf.printf("bit[%u]", cast(uint)t.bitsize);
+    }
+
     void visitTuple(TypeTuple t)
     {
         parametersToBuffer(ParameterList(t.arguments, VarArg.none), buf, hgs);
@@ -3912,5 +3939,6 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tmixin:     return visitMixin(cast(TypeMixin)t);
         case Tnoreturn:  return visitNoreturn(cast(TypeNoreturn)t);
         case Ttag:       return visitTag(cast(TypeTag)t);
+        case Tbitfield:  return visitBitfield(cast(TypeBitfield)t);
     }
 }
