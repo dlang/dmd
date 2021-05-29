@@ -1192,7 +1192,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
                     if (!label.statement && (!label.deleted || label.iasm))
                     {
-                        funcdecl.error("label `%s` is undefined", label.toChars());
+                        funcdecl.error(label.loc, "label `%s` is undefined", label.toChars());
                     }
                 }
 

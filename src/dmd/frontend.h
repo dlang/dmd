@@ -4692,7 +4692,7 @@ public:
     bool overloadInsert(Dsymbol* s);
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration* g);
-    LabelDsymbol* searchLabel(Identifier* ident);
+    LabelDsymbol* searchLabel(Identifier* ident, const Loc& loc = Loc::initial);
     int32_t getLevel(FuncDeclaration* fd, int32_t intypeof);
     int32_t getLevelAndCheck(const Loc& loc, Scope* sc, FuncDeclaration* fd, Declaration* decl);
     enum : int32_t { LevelError = -2 };

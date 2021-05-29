@@ -4160,7 +4160,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         FuncDeclaration fd = sc.func;
 
         gs.ident = fixupLabelName(sc, gs.ident);
-        gs.label = fd.searchLabel(gs.ident);
+        gs.label = fd.searchLabel(gs.ident, gs.loc);
         gs.tryBody = sc.tryBody;
         gs.tf = sc.tf;
         gs.os = sc.os;
@@ -4205,7 +4205,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         ls.os = sc.os;
         ls.lastVar = sc.lastVar;
 
-        LabelDsymbol ls2 = fd.searchLabel(ls.ident);
+        LabelDsymbol ls2 = fd.searchLabel(ls.ident, ls.loc);
         if (ls2.statement)
         {
             ls.error("label `%s` already defined", ls2.toChars());
@@ -4253,7 +4253,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 if (auto ls = s.isLabelStatement())
                 {
-                    sc.func.searchLabel(ls.ident);
+                    sc.func.searchLabel(ls.ident, ls.loc);
                 }
             }
         }
