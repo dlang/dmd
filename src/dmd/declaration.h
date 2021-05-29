@@ -599,7 +599,7 @@ public:
     bool overloadInsert(Dsymbol *s);
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g);
-    LabelDsymbol *searchLabel(Identifier *ident);
+    LabelDsymbol *searchLabel(Identifier *ident, const Loc &loc);
     int getLevel(FuncDeclaration *fd, int intypeof); // lexical nesting level difference
     int getLevelAndCheck(const Loc &loc, Scope *sc, FuncDeclaration *fd);
     const char *toPrettyChars(bool QualifyTypes = false);

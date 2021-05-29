@@ -3508,7 +3508,7 @@ code *asm_da_parse(OP *pop)
     {
         if (asmstate.tokValue == TOK.identifier)
         {
-            LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident);
+            LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident, asmstate.loc);
             if (!label)
             {
                 asmerr("label `%s` not found", asmstate.tok.ident.toChars());
@@ -4421,7 +4421,7 @@ void asm_primary_exp(out OPND o1)
                 if (!s)
                 {
                     // Assume it is a label, and define that label
-                    s = asmstate.sc.func.searchLabel(asmstate.tok.ident);
+                    s = asmstate.sc.func.searchLabel(asmstate.tok.ident, asmstate.loc);
                 }
                 if (auto label = s.isLabel())
                 {

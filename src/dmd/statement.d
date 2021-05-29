@@ -2441,9 +2441,9 @@ extern (C++) final class LabelDsymbol : Dsymbol
     bool deleted;           // set if rewritten to return in foreach delegate
     bool iasm;              // set if used by inline assembler
 
-    extern (D) this(Identifier ident)
+    extern (D) this(Identifier ident, const ref Loc loc = Loc.initial)
     {
-        super(ident);
+        super(loc, ident);
     }
 
     static LabelDsymbol create(Identifier ident)
