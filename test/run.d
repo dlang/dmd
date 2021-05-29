@@ -348,7 +348,7 @@ auto predefinedTargets(string[] targets)
 {
     static findFiles(string dir)
     {
-        return testPath(dir).dirEntries("*{.d,.sh}", SpanMode.shallow).map!(e => e.name);
+        return testPath(dir).dirEntries("*{.d,.c,.sh}", SpanMode.shallow).map!(e => e.name);
     }
 
     static Target createUnitTestTarget()
