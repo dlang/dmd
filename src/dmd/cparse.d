@@ -1416,13 +1416,31 @@ final class CParser(AST) : Parser!AST
         {
             Identifier id;
             AST.Expression asmname;
-            auto dt = cparseDeclarator(tspec, id);
+            AST.Type dt;
+            if (level == LVL.member && token.value == TOK.colon)
+            {
+                // C11 6.7.2.1-12 unnamed bit-field
+                nextToken();
+                cparseConstantExp();
+                error("unnamed bit fields are not supported"); // TODO
+                dt = AST.Type.tuns32;
+            }
+            else
+                dt = cparseDeclarator(tspec, id);
             if (!dt)
             {
                 panic();
                 nextToken();
                 break;          // error recovery
             }
+            if (id && level == LVL.member && token.value == TOK.colon)
+            {
+                // C11 6.7.2.1 bit-field
+                nextToken();
+                cparseConstantExp();
+                error("bit fields are not supported"); // TODO
+            }
+
             if (specifier.mod & MOD.xconst)
             {
                 // `const` is always applied to the return type, not the
@@ -2137,15 +2155,6 @@ final class CParser(AST) : Parser!AST
     {
         //printf("cparseDeclarator()\n");
 
-        if (token.value == TOK.colon)
-        {
-            // C11 6.7.2.1-12 unnamed bit-field
-            nextToken();
-            cparseConstantExp();
-            error("unnamed bit fields are not supported"); // TODO
-            return AST.Type.tuns32;
-        }
-
         AST.Type ts;
         while (1)
         {
@@ -2279,13 +2288,6 @@ final class CParser(AST) : Parser!AST
                     break;
             }
             break;
-        }
-        if (token.value == TOK.colon)
-        {
-            // C11 6.7.2.1 bit-field
-            nextToken();
-            cparseConstantExp();
-            error("bit fields are not supported"); // TODO
         }
         return ts;
     }
