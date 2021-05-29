@@ -3,6 +3,7 @@
 dependency "dmd" path="../.."
 +/
 import std.stdio;
+import std.string : replace;
 
 // test frontend
 void main()
@@ -49,7 +50,7 @@ void main()
 import object;
 double average(int[] array)
 {
-    immutable immutable(uint) initialLength = array.length;
+    immutable immutable(SIZE_T) initialLength = array.length;
     double accumulator = 0.0;
     for (; array.length;)
     {
@@ -60,7 +61,7 @@ double average(int[] array)
     }
     return accumulator / cast(double)initialLength;
 }
-};
+}.replace("SIZE_T", size_t.sizeof == 8 ? "ulong" : "uint");
 
     assert(generated.canFind(expected));
 }
@@ -73,6 +74,5 @@ This is required because this file is stored with Unix line endings but the
 */
 string toUnixLineEndings(string str)
 {
-    import std.string : replace;
     return str.replace("\r\n", "\n");
 }
