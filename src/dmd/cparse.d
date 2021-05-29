@@ -1864,9 +1864,23 @@ final class CParser(AST) : Parser!AST
 
                 case TOK.struct_:
                 case TOK.union_:
-                    t = cparseStruct(symbols);
+                {
+                    const structOrUnion = token.value;
+                    const sloc = token.loc;
+                    nextToken();
+
+                    /* GNU Extensions
+                     * struct-or-union-specifier:
+                     *    struct-or-union gnu-attributes (opt) identifier (opt) { struct-declaration-list } gnu-attributes (opt)
+                     *    struct-or-union gnu-attribute (opt) identifier
+                     */
+                    if (token.value == TOK.__attribute__)
+                        cparseGnuAttributes();
+
+                    t = cparseStruct(sloc, structOrUnion, symbols);
                     tkwx = TKW.xtag;
                     break;
+                }
 
                 case TOK.enum_:
                     t = cparseEnum(symbols);
@@ -2760,6 +2774,7 @@ final class CParser(AST) : Parser!AST
     /*************************************
      * C11 6.7.2.1
      * Parse struct and union specifiers.
+     * Parser is advanced to the tag identifier or brace.
      * struct-or-union-specifier:
      *    struct-or-union identifier (opt) { struct-declaration-list }
      *    struct-or-union identifier
@@ -2789,25 +2804,14 @@ final class CParser(AST) : Parser!AST
      *    declarator (opt) : constant-expression
      *
      * Params:
+     *  loc = location of `struct` or `union`
+     *  structOrUnion = TOK.struct_ or TOK.union_
      *  symbols = symbols to add struct-or-union declaration to
      * Returns:
      *  type of the struct
      */
-    private AST.Type cparseStruct(ref AST.Dsymbols* symbols)
+    private AST.Type cparseStruct(Loc loc, TOK structOrUnion, ref AST.Dsymbols* symbols)
     {
-        const structOrUnion = token.value;
-        assert(structOrUnion == TOK.struct_ || structOrUnion == TOK.union_);
-        const loc = token.loc;
-        nextToken();
-
-        /* GNU Extensions
-         * struct-or-union-specifier:
-         *    struct-or-union gnu-attributes (opt) identifier (opt) { struct-declaration-list } gnu-attributes (opt)
-         *    struct-or-union gnu-attribute (opt) identifier
-         */
-        if (token.value == TOK.__attribute__)
-            cparseGnuAttributes();
-
         Identifier tag;
 
         // declare `tag` as symbol
