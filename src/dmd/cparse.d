@@ -1409,8 +1409,7 @@ final class CParser(AST) : Parser!AST
 
         auto symbolsSave = symbols;
         Specifier specifier;
-        Identifier idtypedef;
-        auto tspec = cparseDeclarationSpecifiers(level, specifier, idtypedef);
+        auto tspec = cparseDeclarationSpecifiers(level, specifier);
 
         bool first = true;
         while (1)
@@ -1783,11 +1782,10 @@ final class CParser(AST) : Parser!AST
      * Params:
      *  level = declaration context
      *  specifiers = specifiers in and out
-     *  pident = saw identifer, may be a typedef-name
      * Returns:
      *  resulting type, null if not specified
      */
-    private AST.Type cparseDeclarationSpecifiers(LVL level, ref Specifier specifier, ref Identifier pident)
+    private AST.Type cparseDeclarationSpecifiers(LVL level, ref Specifier specifier)
     {
         enum TKW : uint
         {
@@ -2068,7 +2066,6 @@ final class CParser(AST) : Parser!AST
                 break;
         }
 
-        pident = id;
         return t;
     }
 
@@ -2328,8 +2325,7 @@ final class CParser(AST) : Parser!AST
     AST.Type cparseSpecifierQualifierList()
     {
         Specifier specifier;
-        Identifier id;
-        auto t = cparseDeclarationSpecifiers(LVL.global, specifier, id);
+        auto t = cparseDeclarationSpecifiers(LVL.global, specifier);
         if (specifier.scw)
             error("storage class not allowed in specifier-qualified-list");
         return t;
@@ -2370,8 +2366,7 @@ final class CParser(AST) : Parser!AST
             }
 
             Specifier specifier;
-            Identifier idtypedef;
-            auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier, idtypedef);
+            auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier);
 
             Identifier id;
             auto t = cparseDeclarator(tspec, id);
