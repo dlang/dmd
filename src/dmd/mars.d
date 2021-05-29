@@ -292,8 +292,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     setDefaultLibrary();
 
+    const isLP64 = target.is64bit; // pre-initialized in parseCommandLine()
+
     // Initialization
-    Type._init();
+    Type._init(isLP64);
     Id.initialize();
     Module._init();
     target._init(params);
@@ -301,6 +303,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Objc._init();
     import dmd.filecache : FileCache;
     FileCache._init();
+
+    assert(target.isLP64 == isLP64);
 
     reconcileLinkRunLib(params, files.dim);
     version(CRuntime_Microsoft)
@@ -2540,10 +2544,6 @@ private void reconcileCommands(ref Param params)
         if (params.mscrtlib)
             error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }
-
-    // Target uses 64bit pointers.
-    // FIXME: X32 is 64bit but uses 32 bit pointers
-    target.isLP64 = target.is64bit;
 
     if (params.boundscheck != CHECKENABLE._default)
     {

@@ -1292,7 +1292,7 @@ public:
     int32_t covariant(Type* t, uint64_t* pstc = nullptr);
     const char* toChars() const;
     char* toPrettyChars(bool QualifyTypes = false);
-    static void _init();
+    static void _init(bool isLP64);
     static void deinitialize();
     d_uns64 size();
     virtual d_uns64 size(const Loc& loc);
@@ -6662,7 +6662,7 @@ public:
         architectureName(),
         cpu((CPU)11),
         is64bit(true),
-        isLP64(),
+        isLP64(true),
         obj_ext(),
         lib_ext(),
         dll_ext(),

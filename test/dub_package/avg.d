@@ -55,7 +55,7 @@ void main()
     target.os = Target.OS.linux;
     target.is64bit = (size_t.sizeof == 8);
     global.params.useUnitTests = true;
-    ASTBase.Type._init();
+    ASTBase.Type._init(target.is64bit);
 
     auto id = Identifier.idPool(fname);
     auto m = new ASTBase.Module(&(fname.dup)[0], id, false, false);

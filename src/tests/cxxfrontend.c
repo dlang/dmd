@@ -72,7 +72,7 @@ static void frontend_init()
     global.params.objname = NULL;
     target.cpu = CPU::native;
 
-    Type::_init();
+    Type::_init(sizeof(size_t) == 8);
     Id::initialize();
     Module::_init();
     Expression::_init();

@@ -142,7 +142,7 @@ extern (C++) struct Target
     const(char)[] architectureName;
     CPU cpu = CPU.baseline; // CPU instruction set to target
     bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code for x86_64; true by default for 64 bit dmd
-    bool isLP64;            // pointers are 64 bits
+    bool isLP64 = (size_t.sizeof == 8);   // pointers are 64 bits
 
     // Environmental
     const(char)[] obj_ext;    /// extension for object files
@@ -191,11 +191,15 @@ extern (C++) struct Target
      */
     extern (C++) void _init(ref const Param params)
     {
+        // is64bit, mscoff and cpu are initialized in parseCommandLine
+
         this.params = &params;
 
         FloatProperties.initialize();
         DoubleProperties.initialize();
         RealProperties.initialize();
+
+        isLP64 = is64bit;
 
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.

@@ -140,9 +140,10 @@ void initDMD(
     }
 
     versionIdentifiers.each!(VersionCondition.addGlobalIdent);
-    addDefaultVersionIdentifiers(global.params, target);
 
-    Type._init();
+    const isLP64 = target.is64bit;
+
+    Type._init(isLP64);
     Id.initialize();
     Module._init();
     target._init(global.params);
@@ -151,7 +152,9 @@ void initDMD(
     Objc._init();
     FileCache._init();
 
-    addDefaultVersionIdentifiers(global.params,target);
+    assert(target.isLP64 == isLP64);
+
+    addDefaultVersionIdentifiers(global.params, target);
 
     version (CRuntime_Microsoft)
         initFPU();

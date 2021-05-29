@@ -41,7 +41,7 @@ unittest
 
     global._init();
 
-    Type._init();
+    Type._init(size_t.sizeof == 8);
     Type.deinitialize();
 
     global.deinitialize();

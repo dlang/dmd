@@ -220,7 +220,7 @@ public:
     int covariant(Type *t, StorageClass *pstc = NULL);
     const char *toChars() const;
     char *toPrettyChars(bool QualifyTypes = false);
-    static void _init();
+    static void _init(bool isLP64);
 
     d_uns64 size();
     virtual d_uns64 size(const Loc &loc);
