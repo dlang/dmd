@@ -46,8 +46,12 @@ final class CParser(AST) : Parser!AST
         linkage = LINK.c;
         Ccompile = true;
 
-        // Configure sizes for C `long`, `long double`, `wchar_t`
+        // Configure sizes for C `long`, `long double`, `wchar_t`, ...
+        this.boolsize = target.boolsize;
+        this.shortsize = target.shortsize;
+        this.intsize = target.intsize;
         this.longsize = target.longsize;
+        this.long_longsize = target.long_longsize;
         this.long_doublesize = target.long_doublesize;
         this.wchar_tsize = target.wchar_tsize;
 
@@ -2025,36 +2029,36 @@ final class CParser(AST) : Parser!AST
             case TKW.xshort:
             case TKW.xsigned | TKW.xshort:
             case TKW.xsigned | TKW.xshort | TKW.xint:
-            case TKW.xshort | TKW.xint:         t = AST.Type.tint16; break;
+            case TKW.xshort | TKW.xint:         t = integerTypeForSize(shortsize); break;
 
             case TKW.xunsigned | TKW.xshort | TKW.xint:
-            case TKW.xunsigned | TKW.xshort:    t = AST.Type.tint16; break;
+            case TKW.xunsigned | TKW.xshort:    t = unsignedTypeForSize(shortsize); break;
 
             case TKW.xint:
             case TKW.xsigned:
-            case TKW.xsigned | TKW.xint:        t = AST.Type.tint32; break;
+            case TKW.xsigned | TKW.xint:        t = integerTypeForSize(intsize); break;
 
             case TKW.xunsigned:
-            case TKW.xunsigned | TKW.xint:      t = AST.Type.tuns32; break;
+            case TKW.xunsigned | TKW.xint:      t = unsignedTypeForSize(intsize); break;
 
             case TKW.xlong:
             case TKW.xsigned | TKW.xlong:
             case TKW.xsigned | TKW.xlong | TKW.xint:
-            case TKW.xlong | TKW.xint:          t = longsize == 4 ? AST.Type.tint32 : AST.Type.tint64; break;
+            case TKW.xlong | TKW.xint:          t = integerTypeForSize(longsize); break;
 
             case TKW.xunsigned | TKW.xlong | TKW.xint:
-            case TKW.xunsigned | TKW.xlong:     t = longsize == 4 ? AST.Type.tuns32 : AST.Type.tuns64; break;
+            case TKW.xunsigned | TKW.xlong:     t = unsignedTypeForSize(longsize); break;
 
             case TKW.xllong:
             case TKW.xsigned | TKW.xllong:
             case TKW.xsigned | TKW.xllong | TKW.xint:
-            case TKW.xllong | TKW.xint:          t = AST.Type.tint64; break;
+            case TKW.xllong | TKW.xint:          t = integerTypeForSize(long_longsize); break;
 
             case TKW.xunsigned | TKW.xllong | TKW.xint:
-            case TKW.xunsigned | TKW.xllong:     t = AST.Type.tuns64; break;
+            case TKW.xunsigned | TKW.xllong:     t = unsignedTypeForSize(long_longsize); break;
 
             case TKW.xvoid:                     t = AST.Type.tvoid; break;
-            case TKW.xbool:                     t = AST.Type.tbool; break;
+            case TKW.xbool:                     t = boolsize == 1 ? AST.Type.tbool : integerTypeForSize(boolsize); break;
 
             case TKW.xfloat:                    t = AST.Type.tfloat32; break;
             case TKW.xdouble:                   t = AST.Type.tfloat64; break;
@@ -3573,6 +3577,42 @@ final class CParser(AST) : Parser!AST
             }
         }
         return stc;
+    }
+
+    /***********************
+     * Return suitable signed integer type for the given size
+     * Params:
+     *  size = size of type
+     * Returns:
+     *  corresponding signed D integer type
+     */
+    private AST.Type integerTypeForSize(ubyte size)
+    {
+        final switch (size)
+        {
+            case 1: return AST.Type.tint8;
+            case 2: return AST.Type.tint16;
+            case 4: return AST.Type.tint32;
+            case 8: return AST.Type.tint64;
+        }
+    }
+
+    /***********************
+     * Return suitable unsigned integer type for the given size
+     * Params:
+     *  size = size of type
+     * Returns:
+     *  corresponding unsigned D integer type
+     */
+    private AST.Type unsignedTypeForSize(ubyte size)
+    {
+        final switch (size)
+        {
+            case 1: return AST.Type.tuns8;
+            case 2: return AST.Type.tuns16;
+            case 4: return AST.Type.tuns32;
+            case 8: return AST.Type.tuns64;
+        }
     }
 
     /***********************
