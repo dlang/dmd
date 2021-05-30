@@ -610,11 +610,11 @@ string[] combinations(string argstr)
     return results;
 }
 
-/// Removes the file identified by `filename` if it exists
-void removeIfExists(in char[] filename)
+/// Tries to remove the file identified by `filename` and prints warning on failure
+void tryRemove(in char[] filename)
 {
-    if (std.file.exists(filename))
-        std.file.remove(filename);
+    if (auto ex = std.file.remove(filename).collectException())
+        debug writeln("WARNING: Failed to remove ", filename);
 }
 
 /**
@@ -1175,7 +1175,7 @@ string generateDiff(const string expected, string expectedFile,
 {
     string actualFile = tempDir.buildPath("actual_" ~ name);
     File(actualFile, "w").writeln(actual); // Append \n
-    scope (exit) remove(actualFile);
+    scope (exit) tryRemove(actualFile);
 
     const needTmp = !expectedFile;
     if (needTmp) // Create a temporary file
@@ -1185,7 +1185,7 @@ string generateDiff(const string expected, string expectedFile,
     }
     // Remove temporary file
     scope (exit) if (needTmp)
-        remove(expectedFile);
+        tryRemove(expectedFile);
 
     const cmd = ["diff", "-pu", "--strip-trailing-cr", expectedFile, actualFile];
     try
@@ -1380,7 +1380,7 @@ int tryMain(string[] args)
                 fThisRun.close();
                 f.write(readText(thisRunName));
                 f.writeln();
-                std.file.remove(thisRunName); // Never reached unless file is present
+                tryRemove(thisRunName); // Never reached unless file is present
             }
 
             string compile_output;
@@ -1545,7 +1545,7 @@ int tryMain(string[] args)
                 execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true);
             }
 
-            foreach (file; toCleanup) collectException(std.file.remove(file));
+            foreach (file; toCleanup) tryRemove(file);
             return Result.continue_;
         }
         catch(Exception e)
@@ -1828,7 +1828,7 @@ string printTestFailure(string testLogName, scope ref File outfile, string extra
     if (extra)
         writefln("Test '%s' failed: %s\n", testLogName, extra);
 
-    remove(output_file_temp);
+    tryRemove(output_file_temp);
     return output;
 }
 
