@@ -92,11 +92,14 @@ constructors etc.
 template emplaceInitializer(T)
 if (!is(T == const) && !is(T == immutable) && !is(T == inout))
 {
-    import core.internal.traits : hasElaborateAssign;
+    import core.internal.traits : hasElaborateAssign, Unqual;
 
-    // Avoid stack allocation by hacking to get to the init symbol.
-    pragma(mangle, "_D" ~ T.mangleof[1..$] ~ "6__initZ")
-    __gshared extern immutable typeof(T.init) initializer;
+    // Avoid stack allocation by hacking to get to the struct/union init symbol.
+    static if (is(T == struct) || is(T == union))
+    {
+        pragma(mangle, "_D" ~ Unqual!T.mangleof[1..$] ~ "6__initZ")
+        __gshared extern immutable T initializer;
+    }
 
     void emplaceInitializer(scope ref T chunk) nothrow pure @trusted
     {
@@ -105,7 +108,8 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
             import core.stdc.string : memset;
             memset(cast(void*) &chunk, 0, T.sizeof);
         }
-        else static if (T.sizeof <= 16 && !hasElaborateAssign!T && __traits(compiles, (){ T chunk; chunk = T.init; }))
+        else static if (is(T == __vector) ||
+                        T.sizeof <= 16 && !hasElaborateAssign!T && __traits(compiles, (){ T chunk; chunk = T.init; }))
         {
             chunk = T.init;
         }
@@ -162,10 +166,19 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
         this(this) {}
     }
 
+    static union LargeNonZeroUnion
+    {
+        byte[128] a = 1;
+    }
+
     testInitializer!int();
     testInitializer!double();
     testInitializer!ElaborateAndZero();
     testInitializer!ElaborateAndNonZero();
+    testInitializer!LargeNonZeroUnion();
+
+    static if (is(__vector(double[4])))
+        testInitializer!(__vector(double[4]))();
 }
 
 /*
