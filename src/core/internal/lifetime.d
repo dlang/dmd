@@ -92,12 +92,12 @@ constructors etc.
 template emplaceInitializer(T)
 if (!is(T == const) && !is(T == immutable) && !is(T == inout))
 {
-    import core.internal.traits : hasElaborateAssign;
+    import core.internal.traits : hasElaborateAssign, Unqual;
 
     // Avoid stack allocation by hacking to get to the struct/union init symbol.
     static if (is(T == struct) || is(T == union))
     {
-        pragma(mangle, "_D" ~ T.mangleof[1..$] ~ "6__initZ")
+        pragma(mangle, "_D" ~ Unqual!T.mangleof[1..$] ~ "6__initZ")
         __gshared extern immutable T initializer;
     }
 
