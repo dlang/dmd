@@ -108,7 +108,8 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
             import core.stdc.string : memset;
             memset(cast(void*) &chunk, 0, T.sizeof);
         }
-        else static if (T.sizeof <= 16 && !hasElaborateAssign!T && __traits(compiles, (){ T chunk; chunk = T.init; }))
+        else static if (is(T == __vector) ||
+                        T.sizeof <= 16 && !hasElaborateAssign!T && __traits(compiles, (){ T chunk; chunk = T.init; }))
         {
             chunk = T.init;
         }
@@ -175,6 +176,9 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
     testInitializer!ElaborateAndZero();
     testInitializer!ElaborateAndNonZero();
     testInitializer!LargeNonZeroUnion();
+
+    static if (is(__vector(double[4])))
+        testInitializer!(__vector(double[4]))();
 }
 
 /*
