@@ -635,13 +635,72 @@ void tryRemove(in char[] filename)
  */
 string execute(ref File f, string command, bool expectpass)
 {
+    // Generous timeout because test permutations include -O
+    enum TIMEOUT = 3.minutes;
+
     f.writeln(command);
-    const result = std.process.executeShell(command);
+    typeof(std.process.executeShell(command)) result;
+
+    version (Windows)
+    {
+        // Spawn shell and await it's termination
+        auto pipes = pipeShell(command, Redirect.stdin | Redirect.stdout | Redirect.stderrToStdout);
+
+        // waitTimeout is available since 2.097
+        static if (is(typeof(waitTimeout)))
+        {
+            const waitRes = pipes.pid.waitTimeout(TIMEOUT);
+        }
+        else
+        {
+            import core.sys.windows.winbase : WaitForSingleObject;
+            import core.sys.windows.windef : DWORD;
+
+            // Wait using the native Win32 API
+            enum MSECS = TIMEOUT.total!"msecs";
+            static assert(MSECS < DWORD.max);
+            WaitForSingleObject(pipes.pid.osHandle, cast(DWORD) MSECS);
+
+            // Fetch status + exit code
+            const waitRes = pipes.pid.tryWait();
+        }
+
+        result.status = waitRes.terminated ? waitRes.status : 124;
+
+        // Read output from the pipe
+        if (const size = pipes.stdout.size())
+        {
+            auto buffer = new byte[cast(size_t) size];
+            result.output = cast(string) pipes.stdout.rawRead(buffer);
+        }
+
+        // Try to kill the spawned shell if it's still running
+        if (!waitRes.terminated)
+        {
+            pipes.stdin.close();
+            pipes.stdout.close();
+
+            if (auto ex = kill(pipes.pid).collectException())
+                writeln("Failed to kill process: ", ex.msg);
+            else
+                // Let the process release file locks, ...
+                pipes.pid.waitTimeout(5.seconds);
+        }
+    }
+    else
+    {
+        result = std.process.executeShell(command);
+    }
+
     f.write(result.output);
 
     if (result.status < 0)
     {
         enforce(false, "caught signal: " ~ to!string(result.status));
+    }
+    else if (result.status == 124)
+    {
+        enforce(false, format("Exceeded wait timeout of " ~ TIMEOUT.toString()));
     }
     else
     {
