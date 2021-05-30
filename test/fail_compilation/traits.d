@@ -81,3 +81,16 @@ extern(C++, __traits(getCppNamespaces, foobar1.func2)) void func1 () {}
 extern(C++, foobar1)
 extern(C++, __traits(getCppNamespaces, bar1.func)) void func2 () {}
 
+/********************************************
+https://issues.dlang.org/show_bug.cgi?id=21918
+
+TEST_OUTPUT:
+---
+fail_compilation/traits.d(501): Error: undefined identifier `T`
+fail_compilation/traits.d(502):        while evaluating `pragma(msg, __traits(getParameterStorageClasses, yip, 0))`
+---
+*/
+#line 500
+
+auto yip(int f) {return T[];}
+pragma(msg, __traits(getParameterStorageClasses, yip, 0));

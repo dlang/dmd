@@ -1356,11 +1356,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             if (checkUnsafeAccess(sc, e1, true, true))
                 return ErrorExp.get();
         }
-        else if (e1.op == TOK.dot)
-        {
-            e1.error("expression has no value");
-            return ErrorExp.get();
-        }
         else if (e1.op == TOK.call)
         {
             CallExp ce = cast(CallExp)e1;
@@ -7935,7 +7930,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e.expressionSemantic(sc);
             return;
         }
-        if (!exp.type || exp.e1.op == TOK.this_)
+        if (!exp.type)
             exp.type = exp.e2.type;
         result = exp;
     }
