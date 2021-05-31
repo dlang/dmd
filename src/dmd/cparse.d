@@ -1411,6 +1411,30 @@ final class CParser(AST) : Parser!AST
         Specifier specifier;
         auto tspec = cparseDeclarationSpecifiers(level, specifier);
 
+	/* If a declarator does not follow, it is unnamed
+	 */
+	if (token.value == TOK.semicolon &&
+	    tspec.isTypeTag())
+	{
+	    /* If anonymous struct declaration
+	     *   struct { ... members ... };
+	     * C11 6.7.2.1-13
+	     */
+	    auto tt = tspec.isTypeTag();
+	    if (!tt.id && tt.members && level == LVL.members)  // otherwise ignore
+	    {
+		/* members of anonymous struct are considered members of
+		 * the containing struct
+		 */
+		// TODO: merge in specifier
+		auto ad = new AST.AnonDeclaration(loc, tt.tok == TOK.union_, tt.members);
+		if (!symbols)
+		    symbols = new AST.Dsymbols();
+		symbols.push(ad);
+		return;
+	    }
+	}
+
         bool first = true;
         while (1)
         {
