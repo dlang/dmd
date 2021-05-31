@@ -216,7 +216,7 @@ public:
                 t.ctype.Tcount++;
                 return;
             }
-            else if (symMemtype.toBasetype().isintegral())
+            else if (symMemtype.toBasetype().ty == Tint32)
             {
                 t.ctype = type_enum(sym.toPrettyChars(true), Type_toCtype(symMemtype));
             }
