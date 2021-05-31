@@ -1227,10 +1227,31 @@ class CompareException : Exception
     }
 }
 
+/// Return code indicating that the test should be restarted.
+/// Issued when an OUTPUT section was changed due to AUTO_UPDATE=1.
+enum RERUN_TEST = 2;
+
 version(unittest) void main(){} else
 int main(string[] args)
 {
-    try { return tryMain(args); }
+    try
+    {
+        // Test may be run multiple times with AUTO_UPDATE=1 because updates
+        // to output sections may change line numbers.
+        // Set a hard limit to avoid infinite loops in fringe cases
+        foreach (_; 0 .. 10)
+        {
+            const res = tryMain(args);
+            if (res == RERUN_TEST)
+                writeln("==> Restarting test to verify new output section(s)...\n");
+            else
+                return res;
+        }
+
+        // Should never happen, but just to be sure
+        writeln("Output sections changed too many times, please update manually.");
+        return RERUN_TEST;
+    }
     catch(SilentQuit) { return 1; }
 }
 
@@ -1362,7 +1383,7 @@ int tryMain(string[] args)
         return 1;
     }
 
-    enum Result { continue_, return0, return1 }
+    enum Result { continue_, return0, return1, returnRerun }
 
     // Runs the test with a specific combination of arguments
     Result testCombination(bool autoCompileImports, string argSet, size_t permuteIndex, string permutedArgs)
@@ -1577,7 +1598,7 @@ int tryMain(string[] args)
                 {
                     std.file.write(testArgs.compileOutputFile, ce.actual);
                     writefln("\n==> `TEST_OUTPUT_FILE` `%s` has been updated", testArgs.compileOutputFile);
-                    return Result.return0;
+                    return Result.returnRerun;
                 }
 
                 auto existingText = input_file.readText;
@@ -1586,12 +1607,13 @@ int tryMain(string[] args)
                 {
                     std.file.write(input_file, updatedText);
                     writefln("\n==> `TEST_OUTPUT` of %s has been updated", input_file);
+                    return Result.returnRerun;
                 }
                 else
                 {
                     writefln("\nWARNING: %s has multiple `TEST_OUTPUT` blocks and can't be auto-updated", input_file);
+                    return Result.return0;
                 }
-                return Result.return0;
             }
 
             const outputText = printTestFailure(input_file, f, e.msg);
@@ -1633,6 +1655,7 @@ int tryMain(string[] args)
                     case Result.continue_: break;
                     case Result.return0: return 0;
                     case Result.return1: return 1;
+                    case Result.returnRerun: return RERUN_TEST;
                 }
                 index++;
             }
