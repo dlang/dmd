@@ -6051,7 +6051,7 @@ extern (C++) final class TypeStruct : Type
                         }
                         else
                         {
-                            if (m <= MATCH.nomatch)
+                            if (m == MATCH.nomatch)
                                 return m;
                         }
 
@@ -6065,7 +6065,7 @@ extern (C++) final class TypeStruct : Type
                         MATCH mf = tvf.implicitConvTo(tv);
                         //printf("\t%s => %s, match = %d\n", v.type.toChars(), tv.toChars(), mf);
 
-                        if (mf <= MATCH.nomatch)
+                        if (mf == MATCH.nomatch)
                             return mf;
                         if (mf < m) // if field match is worse
                             m = mf;

@@ -5724,7 +5724,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             MATCH m = deduceType(e.targ, sc, e.tspec, e.parameters, &dedtypes, null, 0, e.tok == TOK.equal);
             //printf("targ: %s\n", targ.toChars());
             //printf("tspec: %s\n", tspec.toChars());
-            if (m <= MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
+            if (m == MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
             {
                 return no();
             }
@@ -5744,7 +5744,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Declaration s = null;
 
                     m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, &dedtypes, &s);
-                    if (m <= MATCH.nomatch)
+                    if (m == MATCH.nomatch)
                         return no();
                     s.dsymbolSemantic(sc);
                     if (!sc.insert(s))

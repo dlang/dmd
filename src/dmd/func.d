@@ -2955,7 +2955,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last <= MATCH.nomatch)
+    if (m.last == MATCH.nomatch)
     {
         // error was caused on matched function, not on the matching itself,
         // so return the function to produce a better diagnostic
