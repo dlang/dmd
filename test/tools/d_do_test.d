@@ -1603,15 +1603,16 @@ int tryMain(string[] args)
 
                 auto existingText = input_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
+                const type = ce.fromRun ? `RUN`:  `TEST`;
                 if (existingText != updatedText)
                 {
                     std.file.write(input_file, updatedText);
-                    writefln("\n==> `TEST_OUTPUT` of %s has been updated", input_file);
+                    writefln("\n==> `%s_OUTPUT` of %s has been updated", type, input_file);
                     return Result.returnRerun;
                 }
                 else
                 {
-                    writefln("\nWARNING: %s has multiple `TEST_OUTPUT` blocks and can't be auto-updated", input_file);
+                    writefln("\nWARNING: %s has multiple `%s_OUTPUT` blocks and can't be auto-updated", input_file, type);
                     return Result.return0;
                 }
             }
