@@ -2024,6 +2024,17 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             }
         }
 
+        /* If it doesn't have a tag by now, supply one.
+         * It'll be unique, and therefore introducing.
+         * Declare it, and done.
+         */
+        if (!mtype.id)
+        {
+            mtype.id = Identifier.generateId("__tag"[]);
+            declareTag();
+            return mtype.resolved;
+        }
+
         /* look for pre-existing declaration
          * TODO: tag namespace not implemented yet
          * TODO: semantics for enums are slightly different, not implemented yet
