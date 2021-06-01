@@ -5,20 +5,20 @@ First off, thanks for your interest in contributing!
 ## Reporting bugs
 
 We exclusively use [bugzilla](https://issues.dlang.org/) for issue tracking, which is why Github issues are disabled on this repository.
-If you found a bug, please [check bugzilla](https://issues.dlang.org/query.cgi) to see if it's already reported.
-If it isn't, you can [create a new issue](https://issues.dlang.org/enter_bug.cgi).
+Before reporting a bug, please [check bugzilla](https://issues.dlang.org/query.cgi) to see if it's already reported.
+If it isn't, [create a new issue](https://issues.dlang.org/enter_bug.cgi).
 
-If you have a question about a specific behavior, the [D.Learn](http://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
+For questions about a specific behavior, the [D.Learn](http://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
 
 ### Content
 
-When creating a new issue, make sure to include:
-- which version of DMD you are using (which can be found by running `dmd` with no argument).
+When creating a new issue, include:
+- the version of DMD being used (which can be found by running `dmd` with no argument).
 - A test case:
   - Make it a [short, self-contained, and compilable example](http://sscce.org/).
   - Avoid dependencies on foreign code (e.g. dub packages).
   - Avoid any imports from phobos / druntime if possible.
-You can try minimizing your test case using the [DustMite tool](https://github.com/CyberShadow/DustMite/wiki).
+Minimize the test case using the [DustMite tool](https://github.com/CyberShadow/DustMite/wiki).
 DustMite is also available from our [tools](https://github.com/dlang/tools) repository and is distributed with DMD.
 
 ### Regressions
@@ -27,8 +27,8 @@ When finding a [regression](https://en.wikipedia.org/wiki/Software_regression), 
 - Set the field 'Severity' to 'Regression' (highest level of priority)
 - Prefix the issue title with `[REG 2.XXX.Y]` where `2.XXX.Y` is the first broken version whenever possible.
 
-To help track down the point where regressions were introduced down, you can use the excellent [Digger](https://github.com/CyberShadow/digger) tool.
-Digger will automatically bisect the history for you.
+To help track down the point where regressions were introduced, use the excellent [Digger](https://github.com/CyberShadow/digger) tool.
+Digger will automatically bisect the history and identify the Pull Request that introduced the problem.
 
 ### Changelog
 
@@ -42,9 +42,9 @@ Note that after a version has entered the release window (there is a beta / the 
 
 ## Solving bugs / Submitting pull requests
 
-Before submitting a PR there are some things you can check which will hopefully make the pulling process run smoothly.
+Before submitting a PR, checks to make the pulling process run smoothly are:
 
-- Make sure to target the right branch.  Regressions go to stable, and everything else to master, as outlined in [our release process](http://wiki.dlang.org/DIP75).
+- Make sure to target the right branch. Regressions go to stable, and everything else to master, as outlined in [our release process](http://wiki.dlang.org/DIP75).
 
 - When fixing a Bugzilla issue, use the title: 'Fix issue XXXXX - Issue title'.  This is recognized by both Bugzilla and our GitHub bot (dlang-bot),
   and will automatically link the issue and the pull request together (by providing a link to the issue in Github, and automatically closing bugs when pull requests are merged).
@@ -60,20 +60,21 @@ Before submitting a PR there are some things you can check which will hopefully 
 - If submitting a bug fix PR that does not have a Bugzilla entry, add a Bugzilla entry for it and then submit the PR
 that fixes it.
 
-- If your pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature, or adding a new one),
+- If the pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature, or adding a new one),
   a pull request to [the website](https://github.com/dlang/dlang.org) should be submitted in parallel.
 
 - Follow the usual git good practice:
   - [Provide descriptive commit messages](https://chris.beams.io/posts/git-commit/)
   - Avoid changes not relevant to the issue (i.e. style issues)
   - Separate commit for separate concerns
-  - Keep pull requests focused on one single topic or bug.  For example, if your fix requires a refactoring, then the refactoring should be submitted as a separate pull request.
+  - Keep pull requests focused on one single topic or bug.  For example, if the fix requires a refactoring, then submit the refactoring as a separate pull request.
 
 ### Find bugs to work on
 
-For first-time contributors, we suggest looking for issues categorized as [trivial](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=trivial&product=D). You may continue with issues categorized [bootcamp](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=bootcamp&product=D).
+For first-time contributors, look for issues categorized as [trivial](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=trivial&product=D).
+Continue with issues categorized [bootcamp](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=bootcamp&product=D).
 
-If you want a hassle-free contribution look for issues categorized as [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
+For a hassle-free contribution look for issues categorized as [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
 
 ## Refactoring
 
