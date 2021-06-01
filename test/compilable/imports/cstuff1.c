@@ -330,6 +330,17 @@ int tests4()
     return p->b;
 }
 
+int test5()
+{
+    struct { };
+    struct S
+    {
+        int a;
+        struct { int b, c; };
+    } s;
+    return s.a + s.b + s.c;
+}
+
 /********************************/
 
 int printf(const char*, ...);
