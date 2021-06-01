@@ -82,12 +82,12 @@ program, add enhancements, or fix bugs.
 
 - Refactorings must come with a rationale as to why it makes the code better.
 
-- Break up larger refactorings into a series of self-contained PRs rather than one gigantic one.
+- Large refactorings should be done in incremental steps that are easy to review.
 
-- Significant refactorings that include bug fixes and/or enhancements will be rejected with a
-request to submit bug fixes and enhancements as separate PRs. Putting them as separate commits
-is not sufficient. Refactorings will be reviewed on their own merits, not conflated with
-other changes.
+- When a refactoring is broken down into multiple PRs, it is acceptable to provide a rationale in the first PR and link to it in subsequent PR.
+
+- Pull requests that do non-trivial refactorings should not include other changes, such as new feature or bug fix.
+   While submitting multiple dependent pull requests can be done to help the reviewers judge of the need for a refactoring, any refactoring will be assessed on its own merit.
 
 
 ## DMD Best Practices
