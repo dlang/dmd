@@ -77,7 +77,7 @@ If you want a hassle-free contribution look for issues categorized as [preapprov
 
 ## Refactoring
 
-The purpose of refactoring is to make the code easier to understand. It is not to change the behavior of the
+The purpose of refactoring is to make the code easier to understand and extend. It is not to change the behavior of the
 program, add enhancements, or fix bugs.
 
 - Refactorings must come with a rationale as to why it makes the code better.
