@@ -53,7 +53,12 @@ Before submitting a PR there are some things you can check which will hopefully 
 
 - Ensure newly introduced symbols are documented and that updates to existing symbols are reflected in the documentation.
 
-- Add a link to the PR to the Bugzilla entry.
+- Add a link to the PR to the Bugzilla entry (if the dlang-bot failed to do it).
+
+- Confine a PR to addressing one Bugzilla entry, unless multiple entries are different aspects of the same bug.
+
+- If submitting a bug fix PR that does not have a Bugzilla entry, add a Bugzilla entry for it and then submit the PR
+that fixes it.
 
 - If your pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature, or adding a new one),
   a pull request to [the website](https://github.com/dlang/dlang.org) should be submitted in parallel.
@@ -69,6 +74,21 @@ Before submitting a PR there are some things you can check which will hopefully 
 For first-time contributors, we suggest looking for issues categorized as [trivial](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=trivial&product=D). You may continue with issues categorized [bootcamp](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=bootcamp&product=D).
 
 If you want a hassle-free contribution look for issues categorized as [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
+
+## Refactoring
+
+The purpose of refactoring is to make the code easier to understand. It is not to change the behavior of the
+program, add enhancements, or fix bugs.
+
+- Refactorings must come with a rationale as to why it makes the code better.
+
+- Break up larger refactorings into a series of self-contained PRs rather than one gigantic one.
+
+- Significant refactorings that include bug fixes and/or enhancements will be rejected with a
+request to submit bug fixes and enhancements as separate PRs. Putting them as separate commits
+is not sufficient. Refactorings will be reviewed on their own merits, not conflated with
+other changes.
+
 
 ## DMD Best Practices
 
@@ -155,6 +175,8 @@ Such functions should not be mutating the data nor issuing error messages.
 
 21. The more constrained the scope of a name is, the shorter it should be.
 
+22. Public declarations in modules should be "above the fold", i.e. first in the file, thus making the API of the module
+easily visible when opening the file. Private declarations should follow afterwards.
 
 ## The following will not be viewed with favor:
 
