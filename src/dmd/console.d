@@ -80,59 +80,33 @@ interface Console
 version (Windows)
 private final class WindowsConsole : Console
 {
-  nothrow:
-
   private:
     CONSOLE_SCREEN_BUFFER_INFO sbi;
     HANDLE handle;
     FILE* _fp;
 
-    static HANDLE getStdHandle(FILE *fp)
-    {
-        /* Determine if stream fp is a console
-         */
-        version (CRuntime_DigitalMars)
-        {
-            if (!isatty(fp._file))
-                return null;
-        }
-        else version (CRuntime_Microsoft)
-        {
-            if (!isatty(fileno(fp)))
-                return null;
-        }
-        else
-        {
-            static assert(0, "Unsupported Windows runtime.");
-        }
-
-        if (fp == stdout)
-            return GetStdHandle(STD_OUTPUT_HANDLE);
-        else if (fp == stderr)
-            return GetStdHandle(STD_ERROR_HANDLE);
-        else
-            return null;
-    }
-
   public:
 
     @property FILE* fp() { return _fp; }
 
-    static WindowsConsole create(FILE* fp)
+    this(FILE* fp)
     {
-        auto h = getStdHandle(fp);
-        if (h is null)
-            return null;
+        DWORD nStdHandle;
+        if (fp == stdout)
+            nStdHandle = STD_OUTPUT_HANDLE;
+        else if (fp == stderr)
+            nStdHandle = STD_ERROR_HANDLE;
+        else
+            assert(false);
 
+        auto h = GetStdHandle(nStdHandle);
         CONSOLE_SCREEN_BUFFER_INFO sbi;
         if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
-            return null;
+            assert(false);
 
-        auto c = new WindowsConsole();
-        c._fp = fp;
-        c.handle = h;
-        c.sbi = sbi;
-        return c;
+        this._fp = fp;
+        this.handle = h;
+        this.sbi = sbi;
     }
 
     void setColorBright(bool bright)
@@ -173,18 +147,21 @@ private final class WindowsConsole : Console
  *  7: reverse video
  *  8: hidden
  */
+version (Posix)
 private final class ANSIConsole : Console
 {
-  nothrow:
 
   private:
     FILE* _fp;
 
   public:
 
-    this(FILE* fp) { _fp = fp; }
-
     @property FILE* fp() { return _fp; }
+
+    this(FILE* fp)
+    {
+        this._fp = fp;
+    }
 
     void setColorBright(bool bright)
     {
@@ -208,21 +185,33 @@ private final class ANSIConsole : Console
  */
 bool detectTerminal() nothrow
 {
+    version (Windows)
+    {
+        auto h = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_SCREEN_BUFFER_INFO sbi;
+        if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
+            return false; // no terminal detected
+
+        version (CRuntime_DigitalMars)
+        {
+            return isatty(stdout._file) != 0;
+        }
+        else version (CRuntime_Microsoft)
+        {
+            return isatty(fileno(stdout)) != 0;
+        }
+        else
+        {
+            static assert(0, "Unsupported Windows runtime.");
+        }
+    }
+    else
     version (Posix)
     {
         import core.stdc.stdlib : getenv;
         const(char)* term = getenv("TERM");
         import core.stdc.string : strcmp;
         return isatty(STDERR_FILENO) && term && term[0] && strcmp(term, "dumb") != 0;
-    }
-    else version (Windows)
-    {
-        auto h = WindowsConsole.getStdHandle(stderr);
-        if (h is null)
-            return false;
-
-        CONSOLE_SCREEN_BUFFER_INFO sbi;
-        return GetConsoleScreenBufferInfo(h, &sbi) != 0;
     }
 }
 
@@ -233,13 +222,14 @@ bool detectTerminal() nothrow
  * Returns:
  *      reference to created Console
  */
-Console createConsole(FILE* fp) nothrow
+Console createConsole(FILE* fp)
 {
-    version (Windows)
+    if (detectTerminal())
     {
-        if (auto c = WindowsConsole.create(fp))
-            return c;
+        version (Windows)
+            return new WindowsConsole(fp);
+        version (Posix)
+            return new ANSIConsole(fp);
     }
-
-    return new ANSIConsole(fp);
+    return null;
 }
