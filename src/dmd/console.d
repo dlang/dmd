@@ -30,6 +30,7 @@ else
     static assert(0);
 }
 
+
 enum Color : int
 {
     black         = 0,
@@ -89,6 +90,14 @@ private final class WindowsConsole : Console
 
     @property FILE* fp() { return _fp; }
 
+    /*********************************
+     * Create an instance of Console connected to stream fp.
+     * Params:
+     *      fp = io stream
+     * Returns:
+     *      pointer to created Console
+     *      null if failed
+     */
     this(FILE* fp)
     {
         DWORD nStdHandle;
@@ -109,47 +118,61 @@ private final class WindowsConsole : Console
         this.sbi = sbi;
     }
 
+    /*******************
+     * Turn on/off intensity.
+     * Params:
+     *      bright = turn it on
+     */
     void setColorBright(bool bright)
     {
         SetConsoleTextAttribute(handle, sbi.wAttributes | (bright ? FOREGROUND_INTENSITY : 0));
     }
 
+    /***************************
+     * Set color and intensity.
+     * Params:
+     *      color = the color
+     */
     void setColor(Color color)
     {
         enum FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
         WORD attr = sbi.wAttributes;
         attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
-                ((color & Color.red)    ? FOREGROUND_RED   : 0) |
-                ((color & Color.green)  ? FOREGROUND_GREEN : 0) |
-                ((color & Color.blue)   ? FOREGROUND_BLUE  : 0) |
-                ((color & Color.bright) ? FOREGROUND_INTENSITY : 0);
+               ((color & Color.red)    ? FOREGROUND_RED   : 0) |
+               ((color & Color.green)  ? FOREGROUND_GREEN : 0) |
+               ((color & Color.blue)   ? FOREGROUND_BLUE  : 0) |
+               ((color & Color.bright) ? FOREGROUND_INTENSITY : 0);
         SetConsoleTextAttribute(handle, attr);
     }
 
+    /******************
+     * Reset console attributes to what they were
+     * when create() was called.
+     */
     void resetColor()
     {
         SetConsoleTextAttribute(handle, sbi.wAttributes);
     }
 }
 
-/* Uses the ANSI escape codes.
- * https://en.wikipedia.org/wiki/ANSI_escape_code
- * Foreground colors: 30..37
- * Background colors: 40..47
- * Attributes:
- *  0: reset all attributes
- *  1: high intensity
- *  2: low intensity
- *  3: italic
- *  4: single line underscore
- *  5: slow blink
- *  6: fast blink
- *  7: reverse video
- *  8: hidden
- */
 version (Posix)
 private final class ANSIConsole : Console
 {
+    /* The ANSI escape codes are used.
+     * https://en.wikipedia.org/wiki/ANSI_escape_code
+     * Foreground colors: 30..37
+     * Background colors: 40..47
+     * Attributes:
+     *  0: reset all attributes
+     *  1: high intensity
+     *  2: low intensity
+     *  3: italic
+     *  4: single line underscore
+     *  5: slow blink
+     *  6: fast blink
+     *  7: reverse video
+     *  8: hidden
+     */
 
   private:
     FILE* _fp;
