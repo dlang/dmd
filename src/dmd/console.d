@@ -78,129 +78,133 @@ interface Console
     void resetColor();
 }
 
-version (Windows)
-private final class WindowsConsole : Console
+private
 {
-  private:
-    CONSOLE_SCREEN_BUFFER_INFO sbi;
-    HANDLE handle;
-    FILE* _fp;
-
-  public:
-
-    @property FILE* fp() { return _fp; }
-
-    /*********************************
-     * Create an instance of Console connected to stream fp.
-     * Params:
-     *      fp = io stream
-     * Returns:
-     *      pointer to created Console
-     *      null if failed
-     */
-    this(FILE* fp)
+    version (Windows)
+    final class WindowsConsole : Console
     {
-        DWORD nStdHandle;
-        if (fp == stdout)
-            nStdHandle = STD_OUTPUT_HANDLE;
-        else if (fp == stderr)
-            nStdHandle = STD_ERROR_HANDLE;
-        else
-            assert(false);
-
-        auto h = GetStdHandle(nStdHandle);
+      private:
         CONSOLE_SCREEN_BUFFER_INFO sbi;
-        if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
-            assert(false);
+        HANDLE handle;
+        FILE* _fp;
 
-        this._fp = fp;
-        this.handle = h;
-        this.sbi = sbi;
+      public:
+
+        @property FILE* fp() { return _fp; }
+
+        /*********************************
+         * Create an instance of Console connected to stream fp.
+         * Params:
+         *      fp = io stream
+         * Returns:
+         *      pointer to created Console
+         *      null if failed
+         */
+        this(FILE* fp)
+        {
+            DWORD nStdHandle;
+            if (fp == stdout)
+                nStdHandle = STD_OUTPUT_HANDLE;
+            else if (fp == stderr)
+                nStdHandle = STD_ERROR_HANDLE;
+            else
+                assert(false);
+
+            auto h = GetStdHandle(nStdHandle);
+            CONSOLE_SCREEN_BUFFER_INFO sbi;
+            if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
+                assert(false);
+
+            this._fp = fp;
+            this.handle = h;
+            this.sbi = sbi;
+        }
+
+        /*******************
+         * Turn on/off intensity.
+         * Params:
+         *      bright = turn it on
+         */
+        void setColorBright(bool bright)
+        {
+            SetConsoleTextAttribute(handle, sbi.wAttributes | (bright ? FOREGROUND_INTENSITY : 0));
+        }
+
+        /***************************
+         * Set color and intensity.
+         * Params:
+         *      color = the color
+         */
+        void setColor(Color color)
+        {
+            enum FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+            WORD attr = sbi.wAttributes;
+            attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
+                   ((color & Color.red)    ? FOREGROUND_RED   : 0) |
+                   ((color & Color.green)  ? FOREGROUND_GREEN : 0) |
+                   ((color & Color.blue)   ? FOREGROUND_BLUE  : 0) |
+                   ((color & Color.bright) ? FOREGROUND_INTENSITY : 0);
+            SetConsoleTextAttribute(handle, attr);
+        }
+
+        /******************
+         * Reset console attributes to what they were
+         * when create() was called.
+         */
+        void resetColor()
+        {
+            SetConsoleTextAttribute(handle, sbi.wAttributes);
+        }
     }
 
-    /*******************
-     * Turn on/off intensity.
-     * Params:
-     *      bright = turn it on
-     */
-    void setColorBright(bool bright)
+    version (Posix)
+    final class ANSIConsole : Console
     {
-        SetConsoleTextAttribute(handle, sbi.wAttributes | (bright ? FOREGROUND_INTENSITY : 0));
-    }
+        /* The ANSI escape codes are used.
+         * https://en.wikipedia.org/wiki/ANSI_escape_code
+         * Foreground colors: 30..37
+         * Background colors: 40..47
+         * Attributes:
+         *  0: reset all attributes
+         *  1: high intensity
+         *  2: low intensity
+         *  3: italic
+         *  4: single line underscore
+         *  5: slow blink
+         *  6: fast blink
+         *  7: reverse video
+         *  8: hidden
+         */
 
-    /***************************
-     * Set color and intensity.
-     * Params:
-     *      color = the color
-     */
-    void setColor(Color color)
-    {
-        enum FOREGROUND_WHITE = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
-        WORD attr = sbi.wAttributes;
-        attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
-               ((color & Color.red)    ? FOREGROUND_RED   : 0) |
-               ((color & Color.green)  ? FOREGROUND_GREEN : 0) |
-               ((color & Color.blue)   ? FOREGROUND_BLUE  : 0) |
-               ((color & Color.bright) ? FOREGROUND_INTENSITY : 0);
-        SetConsoleTextAttribute(handle, attr);
-    }
+      private:
+        FILE* _fp;
 
-    /******************
-     * Reset console attributes to what they were
-     * when create() was called.
-     */
-    void resetColor()
-    {
-        SetConsoleTextAttribute(handle, sbi.wAttributes);
+      public:
+
+        @property FILE* fp() { return _fp; }
+
+        this(FILE* fp)
+        {
+            this._fp = fp;
+        }
+
+        void setColorBright(bool bright)
+        {
+            fprintf(_fp, "\033[%dm", bright);
+        }
+
+        void setColor(Color color)
+        {
+            fprintf(_fp, "\033[%d;%dm", color & Color.bright ? 1 : 0, 30 + (color & ~Color.bright));
+        }
+
+        void resetColor()
+        {
+            fputs("\033[m", _fp);
+        }
     }
 }
 
-version (Posix)
-private final class ANSIConsole : Console
-{
-    /* The ANSI escape codes are used.
-     * https://en.wikipedia.org/wiki/ANSI_escape_code
-     * Foreground colors: 30..37
-     * Background colors: 40..47
-     * Attributes:
-     *  0: reset all attributes
-     *  1: high intensity
-     *  2: low intensity
-     *  3: italic
-     *  4: single line underscore
-     *  5: slow blink
-     *  6: fast blink
-     *  7: reverse video
-     *  8: hidden
-     */
-
-  private:
-    FILE* _fp;
-
-  public:
-
-    @property FILE* fp() { return _fp; }
-
-    this(FILE* fp)
-    {
-        this._fp = fp;
-    }
-
-    void setColorBright(bool bright)
-    {
-        fprintf(_fp, "\033[%dm", bright);
-    }
-
-    void setColor(Color color)
-    {
-        fprintf(_fp, "\033[%d;%dm", color & Color.bright ? 1 : 0, 30 + (color & ~Color.bright));
-    }
-
-    void resetColor()
-    {
-        fputs("\033[m", _fp);
-    }
-}
 
 /**
  Tries to detect whether DMD has been invoked from a terminal.
