@@ -1460,9 +1460,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                  */
                 auto id = Identifier.generateId("__r");
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
+                const valueIsRef = cast(bool) ((*fs.parameters)[dim - 1].storageClass & STC.ref_);
                 VarDeclaration tmp;
-                if (fs.aggr.op == TOK.arrayLiteral &&
-                    !((*fs.parameters)[dim - 1].storageClass & STC.ref_))
+                if (fs.aggr.op == TOK.arrayLiteral && !valueIsRef)
                 {
                     auto ale = cast(ArrayLiteralExp)fs.aggr;
                     size_t edim = ale.elements ? ale.elements.dim : 0;
@@ -1479,7 +1479,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     tmp = new VarDeclaration(loc, fs.aggr.type, id, ie);
                 }
                 else
+                {
                     tmp = new VarDeclaration(loc, tab.nextOf().arrayOf(), id, ie);
+                    if (!valueIsRef)
+                        tmp.storage_class |= STC.scope_;
+                }
                 tmp.storage_class |= STC.temp;
 
                 Expression tmp_length = new DotIdExp(loc, new VarExp(loc, tmp), Id.length);

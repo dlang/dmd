@@ -224,3 +224,32 @@ int*[4] testArray() @safe
 {
     return typeof(return).init;
 }
+
+/************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=21209
+void testForeach(T)(const(T)[] ts)
+{
+    static int g;
+    g++; // force impure for https://issues.dlang.org/show_bug.cgi?id=20150
+    foreach (c; ts)
+    {
+
+    }
+    foreach_reverse(c0; ts)
+    {
+        foreach(c1; ts)
+        {
+
+        }
+    }
+}
+
+@safe
+void main21209()
+{
+    char[10] cs;
+    float[10] fs;
+    testForeach(cs);
+    testForeach(fs);
+}
