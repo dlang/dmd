@@ -42,7 +42,7 @@ Note that after a version has entered the release window (there is a beta / the 
 
 ## Solving bugs / Submitting pull requests
 
-Before submitting a PR, checks to make the pulling process run smoothly are:
+Before submitting a PR, check the following to make the pulling process run smoothly are:
 
 - Make sure to target the right branch. Regressions go to stable, and everything else to master, as outlined in [our release process](http://wiki.dlang.org/DIP75).
 
