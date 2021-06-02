@@ -1982,6 +1982,8 @@ class Lexer
             case 'F':
                 goto Lreal;
             case '_':
+                if (Ccompile)
+                    error("embedded `_` not allowed");
                 ++p;
                 base = 8;
                 break;
@@ -2521,6 +2523,8 @@ class Lexer
                 }
                 if (c == '_')
                 {
+                    if (Ccompile)
+                        error("embedded `_` in numeric literals not allowed");
                     c = *p++;
                     continue;
                 }
@@ -2564,14 +2568,17 @@ class Lexer
             result = TOK.float64Literal;
             break;
         case 'l':
-            error("use 'L' suffix instead of 'l'");
+            if (!Ccompile)
+                error("use 'L' suffix instead of 'l'");
             goto case 'L';
         case 'L':
+            ++p;
+            if (Ccompile && long_doublesize == 8)
+                goto default;
             result = TOK.float80Literal;
-            p++;
             break;
         }
-        if (*p == 'i' || *p == 'I')
+        if ((*p == 'i' || *p == 'I') && !Ccompile)
         {
             if (*p == 'I')
                 error("use 'i' suffix instead of 'I'");

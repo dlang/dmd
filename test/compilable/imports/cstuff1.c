@@ -16,6 +16,10 @@ _Static_assert(-(3 ^ 1) == -+2, "ok");
 _Static_assert(~1 == 0xFFFFFFFE, "ok");
 _Static_assert(!3 == 0, "ok");
 _Static_assert(!0 == 1, "ok");
+_Static_assert(6.0f == 6.0, "in");
+_Static_assert(6.0F == 6.0, "in");
+_Static_assert(6.0l == 6.0, "in");
+_Static_assert(6.0L == 6.0, "in");
 
 _Static_assert(sizeof(char) == 1, "ok");
 _Static_assert(sizeof(char signed) == 1, "ok");
