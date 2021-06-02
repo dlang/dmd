@@ -49,14 +49,6 @@ import dmd.target;
 import dmd.utils;
 import dmd.visitor;
 
-version(Windows) {
-    extern (C) char* getcwd(char* buffer, size_t maxlen);
-} else {
-    import core.sys.posix.unistd : getcwd;
-}
-
-/* ===========================  ===================== */
-
 enum package_d  = "package." ~ mars_ext;
 enum package_di = "package." ~ hdr_ext;
 
