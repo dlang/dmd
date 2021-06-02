@@ -2886,8 +2886,15 @@ final class CParser(AST) : Parser!AST
             symbols = symbolsSave;
             check(TOK.rightCurly);
 
-            if (tag && (*members).length == 0) // C11 6.7.2.1-2
-                error("empty struct-declarator-list for `%s %s`", Token.toChars(structOrUnion), tag.toChars());
+            if ((*members).length == 0) // C11 6.7.2.1-8
+                /* TODO: not strict enough, should really be contains "no named members",
+                 * not just "no members".
+                 * I.e. an unnamed bit field, _Static_assert, etc, are not named members,
+                 * but will pass this check.
+                 * Be careful to detect named members that come anonymous structs.
+                 * Correctly doing this will likely mean moving it to typesem.d.
+                 */
+                error("empty struct-declaration-list for `%s %s`", Token.toChars(structOrUnion), tag ? tag.toChars() : "Anonymous".ptr);
         }
         else if (!tag)
             error("missing tag `identifier` after `%s`", Token.toChars(structOrUnion));
