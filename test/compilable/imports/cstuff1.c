@@ -332,7 +332,7 @@ int tests4()
 
 int test5()
 {
-    struct { };
+    struct { int a; };
     struct S
     {
         int a;
