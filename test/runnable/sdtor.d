@@ -1,5 +1,19 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
-// REQUIRED_ARGS: -transition=dtorfields
+// REQUIRED_ARGS: -preview=dtorfields
+/*
+TEST_OUTPUT:
+---
+runnable/sdtor.d(36): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(59): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(117): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(143): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(177): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(203): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(276): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+S7353
+---
+*/
 
 import core.vararg;
 
@@ -21,23 +35,6 @@ void test1()
     S1* s = new S1();
     delete s;
     assert(sdtor == 1);
-}
-
-/**********************************/
-
-int sdtor2;
-
-struct S2
-{
-    ~this() { printf("~S2()\n"); sdtor2++; }
-    delete(void* p) { assert(sdtor2 == 1); printf("S2.delete()\n"); sdtor2++; }
-}
-
-void test2()
-{
-    S2* s = new S2();
-    delete s;
-    assert(sdtor2 == 2);
 }
 
 /**********************************/
@@ -883,7 +880,7 @@ void test34()
     for (int j = 0; j < xs.length; j++) {
         j++,j--;
         auto x = xs[j];
-        //foreach(x; xs) {
+        //foreach(x; xs)
         //printf("foreach x.i = %d\n", x[0].i);
         //assert(x[0].i == 1);
         printf("foreach x.i = %d\n", x.i);
@@ -1338,7 +1335,7 @@ void test52()
     A52 b = a.copy();
     printf("a: %p, b: %p\n", &a, &b);
   }
-    printf("s = '%.*s'\n", s52.length, s52.ptr);
+    printf("s = '%.*s'\n", cast(int)s52.length, s52.ptr);
     assert(s52 == "cabb");
 }
 
@@ -1839,18 +1836,18 @@ struct S6499
     this(string s)
     {
         m = s;
-        printf("Constructor - %.*s\n", m.length, m.ptr);
+        printf("Constructor - %.*s\n", cast(int)m.length, m.ptr);
         if (m == "foo") { ++sdtor; assert(sdtor == 1); }
         if (m == "bar") { ++sdtor; assert(sdtor == 2); }
     }
     this(this)
     {
-        printf("Postblit    - %.*s\n", m.length, m.ptr);
+        printf("Postblit    - %.*s\n", cast(int)m.length, m.ptr);
         assert(0);
     }
     ~this()
     {
-        printf("Destructor  - %.*s\n", m.length, m.ptr);
+        printf("Destructor  - %.*s\n", cast(int)m.length, m.ptr);
         if (m == "bar") { assert(sdtor == 2); --sdtor; }
         if (m == "foo") { assert(sdtor == 1); --sdtor; }
     }
@@ -2535,21 +2532,21 @@ struct Test9386
     this(string name)
     {
         this.name = name;
-        printf("Created %.*s...\n", name.length, name.ptr);
+        printf("Created %.*s...\n", cast(int)name.length, name.ptr);
         assert(i + 1 < op.length);
         op[i++] = 'a';
     }
 
     this(this)
     {
-        printf("Copied %.*s...\n", name.length, name.ptr);
+        printf("Copied %.*s...\n", cast(int)name.length, name.ptr);
         assert(i + 1 < op.length);
         op[i++] = 'b';
     }
 
     ~this()
     {
-        printf("Deleted %.*s\n", name.length, name.ptr);
+        printf("Deleted %.*s\n", cast(int)name.length, name.ptr);
         assert(i + 1 < op.length);
         op[i++] = 'c';
     }
@@ -2579,7 +2576,7 @@ void test9386()
         printf("----\n");
         foreach (Test9386 test; tests)
         {
-            printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
+            printf("\tForeach %.*s\n", cast(int)test.name.length, test.name.ptr);
             Test9386.op[Test9386.i++] = 'x';
         }
 
@@ -2590,7 +2587,7 @@ void test9386()
         printf("----\n");
         foreach (ref Test9386 test; tests)
         {
-            printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
+            printf("\tForeach %.*s\n", cast(int)test.name.length, test.name.ptr);
             Test9386.op[Test9386.i++] = 'x';
         }
         assert(Test9386.sop == "xxxx");
@@ -2612,8 +2609,8 @@ void test9386()
         printf("----\n");
         foreach (Test9386 k, Test9386 v; tests)
         {
-            printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
-                                              v.name.length, v.name.ptr);
+            printf("\tForeach %.*s : %.*s\n", cast(int)k.name.length, k.name.ptr,
+                                              cast(int)v.name.length, v.name.ptr);
             Test9386.op[Test9386.i++] = 'x';
         }
 
@@ -2624,8 +2621,8 @@ void test9386()
         printf("----\n");
         foreach (Test9386 k, ref Test9386 v; tests)
         {
-            printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
-                                              v.name.length, v.name.ptr);
+            printf("\tForeach %.*s : %.*s\n", cast(int)k.name.length, k.name.ptr,
+                                              cast(int)v.name.length, v.name.ptr);
             Test9386.op[Test9386.i++] = 'x';
         }
         assert(Test9386.sop == "bxcbxcbxcbxc");
@@ -2684,7 +2681,7 @@ struct Data
 
     ~this()
     {
-        printf("%d\n", _store._count);
+        printf("%zd\n", _store._count);
         --_store._count;
     }
 }
@@ -2733,13 +2730,13 @@ void test9907()
 
         void opAssign(SX rhs)
         {
-            printf("%08X(%d) from Rvalue %08X(%d)\n", &this.i, this.i, &rhs.i, rhs.i);
+            printf("%08zX(%d) from Rvalue %08zX(%d)\n", cast(size_t)&this.i, this.i, cast(size_t)&rhs.i, rhs.i);
             ++assign;
         }
 
         void opAssign(ref SX rhs)
         {
-            printf("%08X(%d) from Lvalue %08X(%d)\n", &this.i, this.i, &rhs.i, rhs.i);
+            printf("%08zX(%d) from Lvalue %08zX(%d)\n", cast(size_t)&this.i, this.i, cast(size_t)&rhs.i, rhs.i);
             assert(0);
         }
 
@@ -2747,7 +2744,7 @@ void test9907()
         {
             ~this()
             {
-                printf("destroying %08X(%d)\n", &this.i, this.i);
+                printf("destroying %08zX(%d)\n", cast(size_t)&this.i, this.i);
                 ++dtor;
             }
         }
@@ -2834,6 +2831,7 @@ struct S17457 {
     this(int seconds) {
         dg17457 = &mfunc;
     }
+    @disable this(this);
     void mfunc() {}
 }
 
@@ -4372,6 +4370,8 @@ void test14696(int len = 2)
     check({ foo(len == 2 ? makeS(1).get(len != 2 ? makeS(2).get() : null) : null); }, "makeS(1).get(1).foo.dtor(1).");
     check({ foo(len != 2 ? makeS(1).get(len == 2 ? makeS(2).get() : null) : null); }, "foo.");
     check({ foo(len != 2 ? makeS(1).get(len != 2 ? makeS(2).get() : null) : null); }, "foo.");
+    check({ foo(len == 2 ? makeS(makeS(2).n - 1).get() : null); }, "makeS(2).makeS(1).get(1).foo.dtor(1).dtor(2).");
+    check({ foo(len != 2 ? makeS(makeS(2).n - 1).get() : null); }, "foo.");
 }
 
 /**********************************/
@@ -4426,6 +4426,21 @@ int test14838() pure nothrow @safe
     return 1;
 }
 static assert(test14838());
+
+/**********************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=14639
+
+struct Biggy {
+    ulong[50000] a;
+    @disable this(this);
+}
+
+__gshared Biggy biggy;
+
+void test14639() {
+    biggy = Biggy.init;
+}
 
 /**********************************/
 
@@ -4614,11 +4629,202 @@ class C66
 }
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=16652
+
+struct Vector
+{
+    this(ubyte a)
+    {
+        pragma(inline, false);
+        buf = a;
+    }
+
+    ~this()
+    {
+        pragma(inline, false);
+        buf = 0;
+    }
+
+    ubyte buf;
+}
+
+int bar16652(ubyte* v)
+{
+    pragma(inline, true);
+    assert(*v == 1);
+    return 0;
+}
+
+void test16652()
+{
+    bar16652(&Vector(1).buf);
+}
+
+
+/**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=19676
+
+void test19676()
+{
+    static struct S
+    {
+        __gshared int count;
+        ~this() { ++count; }
+    }
+
+    static S foo() { return S(); }
+
+    static void test1()
+    {
+        cast(void)foo();
+    }
+
+    static void test2()
+    {
+        foo();
+    }
+
+    test1();
+    assert(S.count == 1);
+    test2();
+    assert(S.count == 2);
+}
+
+/**********************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=14708
+
+__gshared bool dtor14078 = false;
+
+struct S14078
+{
+    int n;
+
+    void* get(void* p = null)
+    {
+        return null;
+    }
+
+    ~this()
+    {
+        //printf("dtor\n");
+        dtor14078 = true;
+    }
+}
+
+S14078 makeS14078(int n)
+{
+    return S14078(n);
+}
+
+void foo14078(void* x)
+{
+    throw new Exception("fail!");
+}
+
+void test(int len = 2)
+{
+    foo14078(makeS14078(1).get());
+    // A temporary is allocated on stack for the
+    // return value from makeS14078(1).
+    // When foo14078 throws exception, it's dtor should be called
+    // during unwinding stack, but it does not happen in Win64.
+}
+
+void test14078()
+{
+    try
+    {
+        test();
+    } catch (Exception e) {}
+    assert(dtor14078);   // fails!
+}
+
+/**********************************/
+
+void test67()
+{
+    char[] deleted;
+
+    struct S
+    {
+        char* p;
+
+        ~this() { deleted ~= *p; }
+
+        void opAssign(S rhs)
+        {
+            // swap
+            char* tmp = p;
+            this.p = rhs.p;
+            rhs.p = tmp;
+        }
+    }
+
+    char a = 'a', b = 'b';
+    {
+        S s = S(&a);
+        s = S(&b);
+    }
+    assert(deleted == "ab", deleted);
+}
+
+/**********************************/
+
+void test68()
+{
+    static struct S
+    {
+        int i;
+        bool opEquals(S) { return false; }
+        ~this() {}
+    }
+
+    assert(S(0) != S(1));
+}
+
+/**********************************/
+
+// https://github.com/dlang/dmd/pull/12012
+
+extern (C++)
+{
+struct S12012
+{
+    int* ctr;
+    ~this() { }
+}
+
+void bar12012(int value, S12012 s)
+{
+}
+
+S12012 abc12012(ref S12012 s)
+{
+    s.ctr = null;
+    return s;
+}
+
+int def12012(ref S12012 s)
+{
+    return *s.ctr; // seg fault is here
+}
+
+void testPR12012()
+{
+    int i;
+    S12012 s = S12012(&i);
+    // def must be executed before abc else seg fault
+    bar12012(def12012(s), abc12012(s));
+}
+}
+
+/**********************************/
 
 int main()
 {
     test1();
-    test2();
+
     test3();
     test4();
     test5();
@@ -4742,11 +4948,18 @@ int main()
     test14246();
     test14696();
     test14838();
+    test14639();
     test63();
     test64();
     test65();
     test15661();
     test18045();
+    test16652();
+    test19676();
+    test14078();
+    test67();
+    test68();
+    testPR12012();
 
     printf("Success\n");
     return 0;

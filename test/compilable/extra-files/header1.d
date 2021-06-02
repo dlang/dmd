@@ -2,7 +2,9 @@
 module foo.bar;
 
 import core.vararg;
-import std.stdio;
+
+// Only compilable, declare inline
+void writeln(T...)(T) {}
 
 pragma(lib, "test");
 pragma(msg, "Hello World");
@@ -45,7 +47,7 @@ out (result)
 {
     assert(result == 0);
 }
-body
+do
 {
     float f = float.infinity;
     int i = cast(int) f;
@@ -271,9 +273,6 @@ class Test
     pure nothrow @safe @nogc unittest {}
     pure nothrow @safe @nogc invariant {}
     pure nothrow @safe @nogc invariant (true);
-
-    pure nothrow @safe @nogc new (size_t sz) { return null; }
-    pure nothrow @safe @nogc delete (void* p) { }
 }
 
 template templ( T )
@@ -413,11 +412,11 @@ struct T12
 
 
 // https://issues.dlang.org/show_bug.cgi?id=6591
-import std.stdio : writeln, F = File;
+import core.stdc.stdio : printf, F = FILE;
 
 void foo6591()()
 {
-    import std.stdio : writeln, F = File;
+    import core.stdc.stdio : printf, F = FILE;
 }
 
 

@@ -1,8 +1,0 @@
-Add `-checkaction=D|C|halt` compiler switch.
-
-It covers action taken when an assert fails, a bounds check fails,
-or a final switch error happens. D means the usual D behavior of
-throwing an `Error`, C means call the C runtime library assert failure
-function, and halt means halt the program execution.
-
-The halt is the main addition here, it enables very lightweight assert's.

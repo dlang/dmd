@@ -1,12 +1,13 @@
-/* Copyright (c) 1999-2017 by Digital Mars
+/**
+ * 80-bit floating point value implementation if the C/D compiler does not support them natively.
+ *
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
  * https://github.com/dlang/dmd/blob/master/src/root/longdouble.d
  */
-
-// 80-bit floating point value implementation if the C/D compiler does not support them natively
 
 module dmd.root.longdouble;
 
@@ -65,6 +66,12 @@ bool initFPU()
     return true;
 }
 
+version(unittest) version(CRuntime_Microsoft)
+extern(D) shared static this()
+{
+    initFPU(); // otherwise not guaranteed to be run before pure unittest below
+}
+
 void ld_clearfpu()
 {
     version(AsmX86)
@@ -83,7 +90,7 @@ struct longdouble_soft
 {
 nothrow @nogc pure:
     // DMD's x87 `real` on Windows is packed (alignof = 2 -> sizeof = 10).
-    align(2) ulong mantissa = 0xC000000000000001UL; // default to snan
+    align(2) ulong mantissa = 0xC000000000000000UL; // default to qnan
     ushort exp_sign = 0x7fff; // sign is highest bit
 
     this(ulong m, ushort es) { mantissa = m; exp_sign = es; }
@@ -117,22 +124,36 @@ nothrow @nogc pure:
 
     extern(D)
     {
-        ref longdouble_soft opAssign(longdouble_soft ld) { mantissa = ld.mantissa; exp_sign = ld.exp_sign; return this; }
+        ref longdouble_soft opAssign(longdouble_soft ld) return { mantissa = ld.mantissa; exp_sign = ld.exp_sign; return this; }
         ref longdouble_soft opAssign(T)(T rhs) { this = longdouble_soft(rhs); return this; }
 
-        longdouble_soft opNeg() const { return longdouble_soft(mantissa, exp_sign ^ 0x8000); }
+        longdouble_soft opUnary(string op)() const
+        {
+            static if (op == "-") return longdouble_soft(mantissa, exp_sign ^ 0x8000);
+            else static assert(false, "Operator `"~op~"` is not implemented");
+        }
 
         bool opEquals(T)(T rhs) const { return this.ld_cmpe(longdouble_soft(rhs)); }
         int  opCmp(T)(T rhs) const { return this.ld_cmp(longdouble_soft(rhs)); }
-        longdouble_soft opAdd(T)(T rhs) const { return this.ld_add(longdouble_soft(rhs)); }
-        longdouble_soft opSub(T)(T rhs) const { return this.ld_sub(longdouble_soft(rhs)); }
-        longdouble_soft opMul(T)(T rhs) const { return this.ld_mul(longdouble_soft(rhs)); }
-        longdouble_soft opDiv(T)(T rhs) const { return this.ld_div(longdouble_soft(rhs)); }
-        longdouble_soft opMod(T)(T rhs) const { return this.ld_mod(longdouble_soft(rhs)); }
-        longdouble_soft opAdd_r(T)(T rhs) const { return longdouble_soft(rhs).ld_add(this); }
-        longdouble_soft opSub_r(T)(T rhs) const { return longdouble_soft(rhs).ld_sub(this); }
-        longdouble_soft opMul_r(T)(T rhs) const { return longdouble_soft(rhs).ld_mul(this); }
-        longdouble_soft opMod_r(T)(T rhs) const { return longdouble_soft(rhs).ld_mod(this); }
+
+        longdouble_soft opBinary(string op, T)(T rhs) const
+        {
+            static if      (op == "+") return this.ld_add(longdouble_soft(rhs));
+            else static if (op == "-") return this.ld_sub(longdouble_soft(rhs));
+            else static if (op == "*") return this.ld_mul(longdouble_soft(rhs));
+            else static if (op == "/") return this.ld_div(longdouble_soft(rhs));
+            else static if (op == "%") return this.ld_mod(longdouble_soft(rhs));
+            else static assert(false, "Operator `"~op~"` is not implemented");
+        }
+
+        longdouble_soft opBinaryRight(string op, T)(T rhs) const
+        {
+            static if      (op == "+") return longdouble_soft(rhs).ld_add(this);
+            else static if (op == "-") return longdouble_soft(rhs).ld_sub(this);
+            else static if (op == "*") return longdouble_soft(rhs).ld_mul(this);
+            else static if (op == "%") return longdouble_soft(rhs).ld_mod(this);
+            else static assert(false, "Operator `"~op~"` is not implemented");
+        }
 
         ref longdouble_soft opOpAssign(string op)(longdouble_soft rhs)
         {
@@ -165,6 +186,7 @@ nothrow @nogc pure:
         }
     }
 
+    // a qnan
     static longdouble_soft nan() { return longdouble_soft(0xC000000000000000UL, 0x7fff); }
     static longdouble_soft infinity() { return longdouble_soft(0x8000000000000000UL, 0x7fff); }
     static longdouble_soft zero() { return longdouble_soft(0, 0); }
@@ -174,8 +196,8 @@ nothrow @nogc pure:
 
     static uint dig() { return 18; }
     static uint mant_dig() { return 64; }
-    static uint max_exp() { return 16384; }
-    static uint min_exp() { return -16381; }
+    static uint max_exp() { return 16_384; }
+    static uint min_exp() { return -16_381; }
     static uint max_10_exp() { return 4932; }
     static uint min_10_exp() { return -4932; }
 }
@@ -661,7 +683,6 @@ longdouble_soft ld_mod(longdouble_soft x, longdouble_soft y)
 __gshared const
 {
     longdouble_soft ld_qnan = longdouble_soft(0xC000000000000000UL, 0x7fff);
-    longdouble_soft ld_snan = longdouble_soft(0xC000000000000001UL, 0x7fff);
     longdouble_soft ld_inf  = longdouble_soft(0x8000000000000000UL, 0x7fff);
 
     longdouble_soft ld_zero  = longdouble_soft(0, 0);
@@ -689,15 +710,20 @@ enum LD_TYPE_QNAN     = 4;
 
 int ld_type(longdouble_soft x)
 {
+    // see https://en.wikipedia.org/wiki/Extended_precision
     if(x.exponent == 0)
         return x.mantissa == 0 ? LD_TYPE_ZERO : LD_TYPE_OTHER; // dnormal if not zero
     if(x.exponent != 0x7fff)
-        return LD_TYPE_OTHER;
-    if(x.mantissa == 0)
-        return LD_TYPE_INFINITE;
-    if(x.mantissa & (1L << 63))
-        return LD_TYPE_QNAN;
-    return LD_TYPE_SNAN;
+        return LD_TYPE_OTHER;    // normal or denormal
+    uint  upper2  = x.mantissa >> 62;
+    ulong lower62 = x.mantissa & ((1L << 62) - 1);
+    if(upper2 == 0 && lower62 == 0)
+        return LD_TYPE_INFINITE; // pseudo-infinity
+    if(upper2 == 2 && lower62 == 0)
+        return LD_TYPE_INFINITE; // infinity
+    if(upper2 == 2 && lower62 != 0)
+        return LD_TYPE_SNAN;
+    return LD_TYPE_QNAN;         // qnan, indefinite, pseudo-nan
 }
 
 // consider sprintf pure
@@ -720,13 +746,6 @@ size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
     // fmt is 'a','A','f' or 'g'
     if(fmt != 'a' && fmt != 'A')
     {
-        if (longdouble_soft(ld_readull(&x)) == x)
-        {   // ((1.5 -> 1 -> 1.0) == 1.5) is false
-            // ((1.0 -> 1 -> 1.0) == 1.0) is true
-            // see http://en.cppreference.com/w/cpp/io/c/fprintf
-            char[5] format = ['%', '#', 'L', cast(char)fmt, 0];
-            return sprintf(str, format.ptr, ld_read(&x));
-        }
         char[3] format = ['%', cast(char)fmt, 0];
         return sprintf(str, format.ptr, ld_read(&x));
     }
@@ -785,11 +804,17 @@ size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
     ld_sprint(buffer.ptr, 'a', ld_pi);
     assert(strcmp(buffer.ptr, "0x1.921fb54442d1846ap+1") == 0);
 
-    ld_sprint(buffer.ptr, 'g', longdouble_soft(2.0));
-    assert(strcmp(buffer.ptr, "2.00000") == 0);
+    auto len = ld_sprint(buffer.ptr, 'g', longdouble_soft(2.0));
+    assert(buffer[0 .. len] == "2.00000" || buffer[0 .. len] == "2"); // Win10 - 64bit
 
-    ld_sprint(buffer.ptr, 'g', longdouble_soft(1234567.89));
+    ld_sprint(buffer.ptr, 'g', longdouble_soft(1_234_567.89));
     assert(strcmp(buffer.ptr, "1.23457e+06") == 0);
+
+    ld_sprint(buffer.ptr, 'g', ld_inf);
+    assert(strcmp(buffer.ptr, "inf") == 0);
+
+    ld_sprint(buffer.ptr, 'g', ld_qnan);
+    assert(strcmp(buffer.ptr, "nan") == 0);
 
     longdouble_soft ldb = longdouble_soft(0.4);
     long b = cast(long)ldb;

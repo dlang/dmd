@@ -1,6 +1,6 @@
 
-/* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Rainer Schuetze
+/* Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
@@ -237,7 +237,6 @@ inline longdouble_soft sqrt (longdouble_soft ld) { return sqrtl(ld); }
 #define LDBL_MIN_10_EXP (-4932)
 
 extern const longdouble_soft ld_qnan;
-extern const longdouble_soft ld_snan;
 extern const longdouble_soft ld_inf;
 
 extern const longdouble_soft ld_zero;

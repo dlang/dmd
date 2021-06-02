@@ -1,14 +1,15 @@
 DMD
 ===
 
-[![GitHub tag](https://img.shields.io/github/tag/dlang/dmd.svg?maxAge=86400)](https://github.com/dlang/dmd/releases)
-[![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](https://codecov.io/gh/dlang/dmd)
-[![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg)](https://issues.dlang.org/buglist.cgi?component=dmd&list_id=220151&product=D&resolution=---)
-[![license](https://img.shields.io/github/license/dlang/dmd.svg)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
+[![GitHub tag](https://img.shields.io/github/tag-date/dlang/dmd.svg?maxAge=86400&style=flat)](https://github.com/dlang/dmd/releases)
+[![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400&style=flat)](https://codecov.io/gh/dlang/dmd)
+[![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg?style=flat)](https://issues.dlang.org/buglist.cgi?component=dmd&list_id=220151&product=D&resolution=---)
+[![license](https://img.shields.io/github/license/dlang/dmd.svg?style=flat)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
 
-[![CircleCI](https://circleci.com/gh/dlang/dmd/tree/master.svg?style=svg)](https://circleci.com/gh/dlang/dmd/tree/master)
-[![SemaphoreCI](https://semaphoreci.com/api/v1/dlang/dmd-2/branches/master/badge.svg)](https://semaphoreci.com/dlang/dmd-2)
-[![AppVeyor](https://ci.appveyor.com/api/projects/status/mv0y9lqyk7jh0x8d?svg=true)](https://ci.appveyor.com/project/greenify/dmd)
+[![Build status](https://img.shields.io/cirrus/github/dlang/dmd/master?label=Cirrus%20CI&logo=Cirrus%20CI)](https://cirrus-ci.com/github/dlang/dmd/master)
+[![CircleCI](https://img.shields.io/circleci/project/github/dlang/dmd/master.svg?style=flat&label=circleci&logo=circleci)](https://circleci.com/gh/dlang/dmd/tree/master)
+[![Build Status](https://dev.azure.com/dlanguage/dmd/_apis/build/status/Azure%20pipelines?branchName=master)](https://dev.azure.com/dlanguage/dmd/_build/latest?definitionId=1&branchName=master)
+[![Buildkite](https://img.shields.io/buildkite/01239dde8424d69809d08769015bbdb9b90d05082e534d2f82/master.svg?style=flat&logo=dependabot&label=buildkite)](https://buildkite.com/dlang/dmd)
 
 DMD is the reference compiler for the D programming language.
 
@@ -19,7 +20,7 @@ For more information, including instructions for compiling, installing, and
 hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
 visit the [D Wiki](http://wiki.dlang.org/DMD).
 
-All significant contributors to DMD source code, via github, bugzilla, email,
+All significant contributors to DMD source code, via GitHub, Bugzilla, email,
 wiki, the D forums, etc., please assign copyright to those
 DMD source code changes to the D Language Foundation. Please send
 an email to walter@digitalmars.com with the statement:

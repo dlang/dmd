@@ -1,4 +1,8 @@
 /**
+ * Defines a visitor for the AST.
+ *
+ * Other visitors derive from this class.
+ *
  * Documentation:  https://dlang.org/phobos/dmd_parsetimevisitor.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/parsetimevisitor.d
  */
@@ -31,6 +35,7 @@ public:
     void visit(AST.StaticAssert s) { visit(cast(AST.Dsymbol)s); }
     void visit(AST.DebugSymbol s) { visit(cast(AST.Dsymbol)s); }
     void visit(AST.VersionSymbol s) { visit(cast(AST.Dsymbol)s); }
+    void visit(AST.AliasAssign s) { visit(cast(AST.Dsymbol)s); }
 
     // ScopeDsymbols
     void visit(AST.Package s) { visit(cast(AST.ScopeDsymbol)s); }
@@ -55,7 +60,6 @@ public:
     void visit(AST.InvariantDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.UnitTestDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.NewDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
-    void visit(AST.DeleteDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.StaticCtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.StaticDtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.SharedStaticCtorDeclaration s) { visit(cast(AST.StaticCtorDeclaration)s); }
@@ -68,7 +72,8 @@ public:
     void visit(AST.AnonDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.AlignDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.CPPMangleDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
-    void visit(AST.ProtDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
+    void visit(AST.CPPNamespaceDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
+    void visit(AST.VisibilityDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.PragmaDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.StorageClassDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.ConditionalDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
@@ -100,7 +105,7 @@ public:
     void visit(AST.ForeachRangeStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ForeachStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.IfStatement s) { visit(cast(AST.Statement)s); }
-    void visit(AST.OnScopeStatement s) { visit(cast(AST.Statement)s); }
+    void visit(AST.ScopeGuardStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ConditionalStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.StaticForeachStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.PragmaStatement s) { visit(cast(AST.Statement)s); }
@@ -135,6 +140,8 @@ public:
     void visit(AST.TypeBasic t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeError t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeNull t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeNoreturn t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeTag t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeVector t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeEnum t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTuple t) { visit(cast(AST.Type)t); }
@@ -143,6 +150,7 @@ public:
     void visit(AST.TypeNext t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeQualified t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTraits t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeMixin t) { visit(cast(AST.Type)t); }
 
     // TypeNext
     void visit(AST.TypeReference t) { visit(cast(AST.TypeNext)t); }
@@ -177,7 +185,7 @@ public:
     void visit(AST.NewExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.AssocArrayLiteralExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ArrayLiteralExp e) { visit(cast(AST.Expression)e); }
-    void visit(AST.CompileExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.MixinExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.FuncExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.IntervalExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.TypeExp e) { visit(cast(AST.Expression)e); }

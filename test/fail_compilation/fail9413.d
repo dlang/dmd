@@ -40,7 +40,7 @@ in
         s = 10; // err
         a = 1;  // OK
     }
-    body
+    do
     {
         x = 10; // err
         y = 1;  // OK
@@ -68,7 +68,7 @@ out(r)
         s = 10; // err
         a = 1;  // OK
     }
-    body
+    do
     {
         x = 10; // err
         r = 10; // err
@@ -79,7 +79,7 @@ out(r)
     x = 10; // err
     r = 10; // err
 }
-body
+do
 {
     return 1;
 }

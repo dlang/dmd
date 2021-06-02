@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
@@ -13,16 +13,19 @@ module dmd.backend.cc;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cc.html
 
+import dmd.backend.barray;
 import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;
+import dmd.backend.symtab;
 import dmd.backend.type;
 
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 enum GENOBJ = 1;       // generating .obj file
 
@@ -58,7 +61,7 @@ enum WM
     WM_ccast        = 25,
     WM_obsolete     = 26,
 
-    // if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
+    // Posix
     WM_skip_attribute   = 27, // skip GNUC attribute specification
     WM_warning_message  = 28, // preprocessor warning message
     WM_bad_vastart      = 29, // args for builtin va_start bad
@@ -75,28 +78,6 @@ else
     bool LARGEDATA() { return (config.memmodel & 6) != 0; }
     bool LARGECODE() { return (config.memmodel & 5) != 0; }
 }
-
-// Language for error messages
-enum LANG
-{
-    LANGenglish,
-    LANGgerman,
-    LANGfrench,
-    LANGjapanese,
-}
-
-
-//#if SPP || SCPP
-//#include        "msgs2.h"
-//#endif
-//#include        "ty.h"
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
-//#include        "../tk/mem.h"
-//#else
-//#include        "mem.h"
-//#endif
-//#include        "list.h"
-//#include        "vec.h"
 
 version (SPP)
 {
@@ -145,8 +126,8 @@ else version (SCPP)
 
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
-enum STRMAX = 65000;           // max length of string (determined by
-                               // max ph size)
+enum STRMAX = 65_000;           // max length of string (determined by
+                                // max ph size)
 
 //enum SC;
 struct Thunk
@@ -187,6 +168,7 @@ alias enum_TK = ubyte;
 
 __gshared Config config;
 
+@trusted
 uint CPP() { return config.flags3 & CFG3cpp; }
 
 
@@ -194,6 +176,7 @@ uint CPP() { return config.flags3 & CFG3cpp; }
 
 struct Srcpos
 {
+nothrow:
     uint Slinnum;           // 0 means no info available
     uint Scharnum;
     version (SCPP)
@@ -216,7 +199,7 @@ struct Srcpos
     {
         const(char)* Sfilename;
 
-        const(char*) name() { return Sfilename; }
+        const(char*) name() const { return Sfilename; }
 
         static Srcpos create(const(char)* filename, uint linnum, int charnum)
         {
@@ -227,9 +210,23 @@ struct Srcpos
             sp.Scharnum = charnum;
             return sp;
         }
+
+        /*******
+         * Set fields of Srcpos
+         * Params:
+         *      filename = file name
+         *      linnum = line number
+         *      charnum = character number
+         */
+        void set(const(char)* filename, uint linnum, int charnum) pure
+        {
+            Sfilename = filename;
+            Slinnum = linnum;
+            Scharnum = charnum;
+        }
     }
 
-    void print(const(char)* func) { Srcpos_print(this, func); }
+    void print(const(char)* func) const { Srcpos_print(this, func); }
 }
 
 version (SCPP)
@@ -248,7 +245,7 @@ version (HTOD)
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
 }
 
-void Srcpos_print(ref Srcpos srcpos, const(char)* func);
+void Srcpos_print(ref const Srcpos srcpos, const(char)* func);
 
 //#include "token.h"
 
@@ -367,10 +364,16 @@ struct Pstate
                                 // than STmaxsequence
 }
 
+@trusted
 void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
+
+@trusted
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
 
+@trusted
 stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
+
+@trusted
 stflags_t inline_asm()   { return pstate.STflags & (PFLmasm | PFLbasm); }
 
 extern __gshared Pstate pstate;
@@ -469,6 +472,7 @@ enum
 
 struct block
 {
+nothrow:
     union
     {
         elem *Belem;            // pointer to elem tree
@@ -611,14 +615,24 @@ struct block
         }
     }
 
+    @trusted
     void appendSucc(block* b)        { list_append(&this.Bsucc, b); }
+
+    @trusted
     void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
+
+    @trusted
     int numSucc()                    { return list_nitems(this.Bsucc); }
+
+    @trusted
     block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
+
+    @trusted
     void setNthSucc(int n, block *b) { list_nth(Bsucc, n).ptr = b; }
 }
 
-block* list_block(list_t lst) { return cast(block*)list_ptr(lst); }
+@trusted
+inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
 
@@ -675,7 +689,7 @@ struct BlockRange
 
     block* front() return  { return b; }
     void popFront() { b = b.Bnext; }
-    bool empty()    { return !b; }
+    bool empty() const { return !b; }
 
   private:
     block* b;
@@ -684,13 +698,6 @@ struct BlockRange
 /**********************************
  * Functions
  */
-
-struct symtab_t
-{
-    SYMIDX top;                 // 1 past end
-    SYMIDX symmax;              // max # of entries in tab[] possible
-    Symbol **tab;               // local Symbol table
-}
 
 alias func_flags_t = uint;
 enum
@@ -748,6 +755,7 @@ enum
     Ffakeeh          = 0x8000,  // allocate space for NT EH context sym anyway
     Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
     Feh_none         = 0x20000, // ehmethod==EH_NONE for this function only
+    F3hiddenPtr      = 0x40000, // function has hidden pointer to return value
 }
 
 struct func_t
@@ -803,10 +811,12 @@ struct func_t
 
     char *Fredirect;            // redirect function name to this name in object
 
-    // Array of catch types for EH_DWARF Types Table generation
-    Symbol **typesTable;
-    size_t typesTableDim;       // number used in typesTable[]
-    size_t typesTableCapacity;  // allocated capacity of typesTable[]
+version (SPP) { } else
+{
+    version (MARS)
+        // Array of catch types for EH_DWARF Types Table generation
+        Barray!(Symbol*) typesTable;
+}
 
     union
     {
@@ -895,7 +905,8 @@ struct mptr_t
     mptr_flags_t   MPflags;
 }
 
-mptr_t* list_mptr(list_t lst) { return cast(mptr_t*) list_ptr(lst); }
+@trusted
+inout(mptr_t)* list_mptr(inout(list_t) lst) { return cast(inout(mptr_t)*) list_ptr(lst); }
 
 
 /***********************************
@@ -1152,16 +1163,18 @@ struct struct_t
                                 // identical to Sarglist).
 }
 
-//struct_t* struct_calloc() { return cast(struct_t*) mem_fcalloc(struct_t.sizeof); }
-//void struct_free(struct_t* st) { }
-
 /**********************************
  * Symbol Table
  */
 
-Symbol* list_symbol(list_t lst) { return cast(Symbol*) list_ptr(lst); }
+@trusted
+inout(Symbol)* list_symbol(inout list_t lst) { return cast(inout(Symbol)*) list_ptr(lst); }
+
+@trusted
 void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
-Classsym* list_Classsym(list_t lst) { return cast(Classsym*) list_ptr(lst); }
+
+@trusted
+inout(Classsym)* list_Classsym(inout list_t lst) { return cast(inout(Classsym)*) list_ptr(lst); }
 
 enum
 {
@@ -1193,12 +1206,12 @@ enum
     SFLtmp          = 0x400000,    // symbol is a generated temporary
     SFLthunk        = 0x40000,     // symbol is temporary for thunk
 
-    // Possible values for protection bits
+    // Possible values for visibility bits
     SFLprivate      = 0x60,
     SFLprotected    = 0x40,
     SFLpublic       = 0x20,
     SFLnone         = 0x00,
-    SFLpmask        = 0x60,        // mask for the protection bits
+    SFLpmask        = 0x60,        // mask for the visibility bits
 
     SFLvtbl         = 0x2000,      // VEC_VTBL_LIST: Symbol is a vtable or vbtable
 
@@ -1237,6 +1250,8 @@ struct Symbol
 //#define class_debug(s)
 //#endif
 
+    nothrow:
+
     Symbol* Sl, Sr;             // left, right child
     Symbol* Snext;              // next in threaded list
     dt_t* Sdt;                  // variables: initializer
@@ -1246,7 +1261,7 @@ struct Symbol
     { return Symbol_Salignsize(&this); }
 
     type* Stype;                // type of Symbol
-    tym_t ty() { return Stype.Tty; }
+    tym_t ty() const { return Stype.Tty; }
 
     union                       // variants for different Symbol types
     {
@@ -1397,7 +1412,7 @@ struct Symbol
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
 
     // CPP || OPTIMIZER
-    SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
+    SYMIDX Ssymnum;             // Symbol number (index into globsym[])
                                 // SCauto,SCparameter,SCtmp,SCregpar,SCregister
     // CODGEN
     int Sseg;                   // segment index
@@ -1419,13 +1434,17 @@ struct Symbol
     }
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
-    version (MARS)
-    {
-        uint lnoscopestart;     // life time of var
-        uint lnoscopeend;       // the line after the scope
-    }
+    uint lnoscopestart;         // life time of var
+    uint lnoscopeend;           // the line after the scope
 
-    char[1] Sident;             // identifier string (dynamic array)
+    /**
+     * Identifier for this symbol
+     *
+     * Note that this is used as a flexible array member.
+     * When allocating a Symbol, the allocation is for
+     * `sizeof(Symbol - 1 + strlen(identifier) + "\0".length)`.
+     */
+    char[1] Sident;
 
     int needThis()              // !=0 if symbol needs a 'this' pointer
     { return Symbol_needThis(&this); }
@@ -1434,16 +1453,17 @@ struct Symbol
     { return Symbol_Sisdead(&this, anyiasm); }
 }
 
-void symbol_debug(Symbol* s)
+void symbol_debug(const Symbol* s)
 {
     debug assert(s.id == s.IDsymbol);
 }
 
 int Symbol_Salignsize(Symbol* s);
-bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
-int Symbol_needThis(Symbol* s);
+bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(const Symbol* s);
+bool Symbol_isAffected(const ref Symbol s);
 
-bool isclassmember(Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
+bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
 // Class, struct or union
 
@@ -1472,24 +1492,24 @@ alias Aliassym = Symbol;
 /* Format the identifier for presentation to the user   */
 version (SCPP)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
 }
 
 version (SPP)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 }
 
 version (HTOD)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 }
 
 version (MARS)
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 
 
 /**********************************
@@ -1526,6 +1546,7 @@ enum
  * Returns:
  *      exception method for f
  */
+@trusted
 EHmethod ehmethod(Symbol *f)
 {
     return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
@@ -1534,6 +1555,7 @@ EHmethod ehmethod(Symbol *f)
 
 struct param_t
 {
+nothrow:
     debug ushort      id;
     enum IDparam = 0x7050;
 
@@ -1566,7 +1588,7 @@ struct param_t
     { param_t_print_list(&this); }
 }
 
-void param_t_print(param_t* p);
+void param_t_print(const param_t* p);
 void param_t_print_list(param_t* p);
 uint param_t_length(param_t* p);
 param_t *param_t_createTal(param_t* p, param_t *ptali);
@@ -1574,7 +1596,7 @@ param_t *param_t_search(param_t* p, char *id);
 int param_t_searchn(param_t* p, char *id);
 
 
-void param_debug(param_t *p)
+void param_debug(const param_t *p)
 {
     debug assert(p.id == p.IDparam);
 }
@@ -1677,7 +1699,7 @@ struct Sfile
     uint SFhashval;             // hash of file name
 }
 
-void sfile_debug(Sfile* sf)
+void sfile_debug(const Sfile* sf)
 {
     debug assert(sf.id == Sfile.IDsfile);
 }
@@ -1790,6 +1812,7 @@ struct dt_t
     char dt;                            // type (DTxxxx)
     ubyte Dty;                          // pointer type
     ubyte DTn;                          // DTibytes: number of bytes
+    ubyte DTalign;                      // DTabytes: alignment (as power of 2) of pointed-to data
     union
     {
         struct                          // DTibytes
@@ -1862,4 +1885,3 @@ enum
 //        for (size_t i = 0; i < sz / sizeof(size_t); ++i)        \
 //            ((size_t *)(p))[i] = 0;                             \
 //    }
-

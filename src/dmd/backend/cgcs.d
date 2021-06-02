@@ -2,8 +2,10 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Compute common subexpressions for non-optimized builds.
+ *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -30,462 +32,552 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-extern (C++):
 
-/*********************************
- * Struct for each elem:
- *      Helem   pointer to elem
- *      Hhash   hash value for the elem
- */
-
-struct HCS
-{
-    elem    *Helem;
-    uint Hhash;
-}
-
-private __gshared
-{
-    HCS *hcstab = null;              /* array of hcs's               */
-    uint hcsmax = 0;             /* max index into hcstab[]      */
-}
-
-struct HCSArray
-{
-    uint top;                  // # of entries in hcstab[]
-    uint touchstari;
-    uint[2] touchfunci;
-}
-
-private __gshared HCSArray hcsarray;
-
-// Use a bit vector for quick check if expression is possibly in hcstab[].
-// This results in much faster compiles when hcstab[] gets big.
-private __gshared vec_t csvec;                     // vector of used entries
-enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
+nothrow:
+@safe:
 
 /*******************************
- * Eliminate common subexpressions across extended basic blocks.
- * String together as many blocks as we can.
+ * Do common subexpression elimination for non-optimized builds.
  */
 
-void comsubs()
+@trusted
+public extern (C++) void comsubs()
 {
-  block* bl,blc,bln;
-  int n;                       /* # of blocks to treat as one  */
+    debug if (debugx) printf("comsubs(%p)\n",startblock);
 
-//static int xx;
-//printf("comsubs() %d\n", ++xx);
-//debugx = (xx == 37);
+    version (SCPP)
+    {
+        if (errcnt)
+            return;
+    }
 
-  debug if (debugx) printf("comsubs(%p)\n",startblock);
+    comsubs2(startblock, cgcsdata);
 
-  // No longer do we just compute Bcount. We now eliminate unreachable
-  // blocks.
-  block_compbcount();                   // eliminate unreachable blocks
-version (SCPP)
-{
-  if (errcnt)
-        return;
-}
-
-  if (!csvec)
-  {
-        csvec = vec_calloc(CSVECDIM);
-  }
-
-  for (bl = startblock; bl; bl = bln)
-  {
-        bln = bl.Bnext;
-        if (!bl.Belem)
-                continue;       /* if no expression or no parents       */
-
-        // Count up n, the number of blocks in this extended basic block (EBB)
-        n = 1;                          // always at least one block in EBB
-        blc = bl;
-        while (bln && list_nitems(bln.Bpred) == 1 &&
-                ((blc.BC == BCiftrue &&
-                  blc.nthSucc(1) == bln) ||
-                 (blc.BC == BCgoto && blc.nthSucc(0) == bln)
-                ) &&
-               bln.BC != BCasm         // no CSE's extending across ASM blocks
-              )
-        {
-                n++;                    // add block to EBB
-                blc = bln;
-                bln = blc.Bnext;
-        }
-        vec_clear(csvec);
-        hcsarray.top = 0;
-        hcsarray.touchstari = 0;
-        hcsarray.touchfunci[0] = 0;
-        hcsarray.touchfunci[1] = 0;
-        bln = bl;
-        while (n--)                     // while more blocks in EBB
-        {
-                debug if (debugx)
-                        printf("cses for block %p\n",bln);
-
-                if (bln.Belem)
-                    ecom(&bln.Belem);  // do the tree
-                bln = bln.Bnext;
-        }
-  }
-
-  debug if (debugx)
+    debug if (debugx)
         printf("done with comsubs()\n");
 }
 
 /*******************************
  */
 
-void cgcs_term()
+@trusted
+public extern (C++) void cgcs_term()
 {
-    vec_free(csvec);
-    csvec = null;
-    debug debugw && printf("freeing hcstab\n");
-    //util_free(hcstab);
-    free(hcstab);
-    hcstab = null;
-    hcsmax = 0;
+    cgcsdata.term();
+    debug debugw && printf("cgcs_term()\n");
 }
+
+
+/***********************************************************************/
+
+private:
+
+alias hash_t = uint;    // for hash values
+
+/*******************************
+ * Eliminate common subexpressions across extended basic blocks.
+ * String together as many blocks as we can.
+ */
+@trusted
+void comsubs2(block* startblock, ref CGCS cgcs)
+{
+    // No longer just compute Bcount - eliminate unreachable blocks too
+    block_compbcount();                   // eliminate unreachable blocks
+
+    cgcs.start();
+
+    block* bln;
+    for (block* bl = startblock; bl; bl = bln)
+    {
+        bln = bl.Bnext;
+        if (!bl.Belem)
+            continue;                   /* if no expression or no parents       */
+
+        // Count up n, the number of blocks in this extended basic block (EBB)
+        int n = 1;                      // always at least one block in EBB
+        auto blc = bl;
+        while (bln && list_nitems(bln.Bpred) == 1 &&
+               ((blc.BC == BCiftrue &&
+                 blc.nthSucc(1) == bln) ||
+                (blc.BC == BCgoto && blc.nthSucc(0) == bln)
+               ) &&
+               bln.BC != BCasm         // no CSE's extending across ASM blocks
+              )
+        {
+            n++;                    // add block to EBB
+            blc = bln;
+            bln = blc.Bnext;
+        }
+
+        cgcs.reset();
+
+        bln = bl;
+        while (n--)                     // while more blocks in EBB
+        {
+            debug if (debugx)
+                printf("cses for block %p\n",bln);
+
+            if (bln.Belem)
+                ecom(cgcs, bln.Belem);  // do the tree
+            bln = bln.Bnext;
+        }
+    }
+}
+
+
+/*********************************
+ * Struct for each potential CSE
+ */
+
+struct HCS
+{
+    elem* Helem;        /// pointer to elem
+    hash_t Hhash;       /// hash value for the elem
+}
+
+struct HCSArray
+{
+    size_t touchstari;
+    size_t[2] touchfunci;
+}
+
+/**************************************
+ * All the global data for this module
+ */
+struct CGCS
+{
+    Barray!HCS hcstab;           // array of hcs's
+    HCSArray hcsarray;
+
+    // Use a bit vector for quick check if expression is possibly in hcstab[].
+    // This results in much faster compiles when hcstab[] gets big.
+    vec_t csvec;                 // vector of used entries
+    enum CSVECDIM = 16_001; //8009 //3001     // dimension of csvec (should be prime)
+
+  nothrow:
+
+    /*********************************
+     * Initialize for this iteration.
+     */
+    void start()
+    {
+        if (!csvec)
+        {
+            csvec = vec_calloc(CGCS.CSVECDIM);
+        }
+    }
+
+    /*******************************
+     * Reset for next time.
+     * hcstab[]'s storage is kept instead of reallocated.
+     */
+    void reset()
+    {
+        vec_clear(csvec);       // don't free it, recycle storage
+        hcstab.reset();
+        hcsarray = HCSArray.init;
+    }
+
+    /*********************************
+     * All done for this compiler instance.
+     */
+    void term()
+    {
+        vec_free(csvec);
+        csvec = null;
+        //hcstab.dtor();  // cache allocation for next iteration
+    }
+
+    /****************************
+     * Add an elem to the common subexpression table.
+     */
+
+    void push(elem *e, hash_t hash)
+    {
+        hcstab.push(HCS(e, hash));
+    }
+
+    /*******************************
+     * Eliminate all common subexpressions.
+     */
+
+    void touchall()
+    {
+        foreach (ref hcs; hcstab[])
+        {
+            hcs.Helem = null;
+        }
+        const len = hcstab.length;
+        hcsarray.touchstari    = len;
+        hcsarray.touchfunci[0] = len;
+        hcsarray.touchfunci[1] = len;
+    }
+}
+
+__gshared CGCS cgcsdata;
 
 /*************************
  * Eliminate common subexpressions for an element.
+ * Params:
+ *      cgcs = cgcsdata
+ *      pe = elem that is changed to previous elem if it's a CSE
  */
-
-private void ecom(elem **pe)
-{ int i,op;
-  HCSArray hcsarraySave;
-  uint hash;
-  elem *e;
-  elem *ehash;
-  tym_t tym;
-
-  e = *pe;
-  assert(e);
-  elem_debug(e);
-  debug assert(e.Ecount == 0);
-  //assert(e.Ecomsub == 0);
-  tym = tybasic(e.Ety);
-  op = e.Eoper;
-  switch (op)
-  {
-    case OPconst:
-    case OPvar:
-    case OPrelconst:
-        break;
-    case OPstreq:
-    case OPpostinc:
-    case OPpostdec:
-    case OPeq:
-    case OPaddass:
-    case OPminass:
-    case OPmulass:
-    case OPdivass:
-    case OPmodass:
-    case OPshrass:
-    case OPashrass:
-    case OPshlass:
-    case OPandass:
-    case OPxorass:
-    case OPorass:
-    case OPvecsto:
-        /* Reverse order of evaluation for double op=. This is so that  */
-        /* the pushing of the address of the second operand is easier.  */
-        /* However, with the 8087 we don't need the kludge.             */
-        if (op != OPeq && tym == TYdouble && !config.inline8087)
-        {       if (!OTleaf(e.EV.E1.Eoper))
-                        ecom(&e.EV.E1.EV.E1);
-                ecom(&e.EV.E2);
-        }
-        else
-        {
-            /* Don't mark the increment of an i++ or i-- as a CSE, if it */
-            /* can be done with an INC or DEC instruction.               */
-            if (!(OTpost(op) && elemisone(e.EV.E2)))
-                ecom(&e.EV.E2);           /* evaluate 2nd operand first   */
-    case OPnegass:
-            if (!OTleaf(e.EV.E1.Eoper))             /* if lvalue is an operator     */
-            {
-                if (e.EV.E1.Eoper != OPind)
-                    elem_print(e);
-                assert(e.EV.E1.Eoper == OPind);
-                ecom(&(e.EV.E1.EV.E1));
-            }
-        }
-        touchlvalue(e.EV.E1);
-        if (!OTpost(op))                /* lvalue of i++ or i-- is not a cse*/
-        {
-            hash = cs_comphash(e.EV.E1);
-            vec_setbit(hash % CSVECDIM,csvec);
-            addhcstab(e.EV.E1,hash);              // add lvalue to hcstab[]
-        }
-        return;
-
-    case OPbtc:
-    case OPbts:
-    case OPbtr:
-    case OPcmpxchg:
-        ecom(&e.EV.E1);
-        ecom(&e.EV.E2);
-        touchfunc(0);                   // indirect assignment
-        return;
-
-    case OPandand:
-    case OPoror:
-        ecom(&e.EV.E1);
-        hcsarraySave = hcsarray;
-        ecom(&e.EV.E2);
-        hcsarray = hcsarraySave;        // no common subs by E2
-        return;                         /* if comsub then logexp() will */
-                                        /* break                        */
-    case OPcond:
-        ecom(&e.EV.E1);
-        hcsarraySave = hcsarray;
-        ecom(&e.EV.E2.EV.E1);               // left condition
-        hcsarray = hcsarraySave;        // no common subs by E2
-        ecom(&e.EV.E2.EV.E2);               // right condition
-        hcsarray = hcsarraySave;        // no common subs by E2
-        return;                         // can't be a common sub
-
-    case OPcall:
-    case OPcallns:
-        ecom(&e.EV.E2);                   /* eval right first             */
-        goto case OPucall;
-
-    case OPucall:
-    case OPucallns:
-        ecom(&e.EV.E1);
-        touchfunc(1);
-        return;
-    case OPstrpar:                      /* so we don't break logexp()   */
-    case OPinp:                 /* never CSE the I/O instruction itself */
-    case OPprefetch:            // don't CSE E2 or the instruction
-        ecom(&e.EV.E1);
-        goto case OPasm;
-
-    case OPasm:
-    case OPstrthis:             // don't CSE these
-    case OPframeptr:
-    case OPgot:
-    case OPctor:
-    case OPdtor:
-    case OPdctor:
-    case OPmark:
-        return;
-
-    case OPddtor:
-        touchall();
-        ecom(&e.EV.E1);
-        touchall();
-        return;
-
-    case OPparam:
-    case OPoutp:
-        ecom(&e.EV.E1);
-        goto case OPinfo;
-
-    case OPinfo:
-        ecom(&e.EV.E2);
-        return;
-    case OPcomma:
-        ecom(&e.EV.E1);
-        ecom(&e.EV.E2);
-        return;
-
-    case OPremquo:
-        ecom(&e.EV.E1);
-        ecom(&e.EV.E2);
-        break;
-
-    case OPvp_fp:
-    case OPcvp_fp:
-        ecom(&e.EV.E1);
-        touchaccess(e);
-        break;
-
-    case OPind:
-        ecom(&e.EV.E1);
-        /* Generally, CSEing a *(double *) results in worse code        */
-        if (tyfloating(tym))
-            return;
-        break;
-    case OPstrcpy:
-    case OPstrcat:
-    case OPmemcpy:
-    case OPmemset:
-        ecom(&e.EV.E2);
-        goto case OPsetjmp;
-
-    case OPsetjmp:
-        ecom(&e.EV.E1);
-        touchfunc(0);
-        return;
-    default:                            /* other operators */
-        if (!OTbinary(e.Eoper))
-           WROP(e.Eoper);
-        assert(OTbinary(e.Eoper));
-        goto case OPadd;
-    case OPadd:
-    case OPmin:
-    case OPmul:
-    case OPdiv:
-    case OPor:
-    case OPxor:
-    case OPand:
-    case OPeqeq:
-    case OPne:
-    case OPscale:
-    case OPyl2x:
-    case OPyl2xp1:
-        ecom(&e.EV.E1);
-        ecom(&e.EV.E2);
-        break;
-    case OPstring:
-    case OPaddr:
-    case OPbit:
-        WROP(e.Eoper);
-        elem_print(e);
-        assert(0);              /* optelem() should have removed these  */
-        /* NOTREACHED */
-
-    // Explicitly list all the unary ops for speed
-    case OPnot: case OPcom: case OPneg: case OPuadd:
-    case OPabs: case OPrndtol: case OPrint:
-    case OPpreinc: case OPpredec:
-    case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
-    case OPd_s32: case OPd_u32:
-    case OPs32_d: case OPu32_d: case OPd_s16: case OPs16_d: case OP32_16:
-    case OPd_f: case OPf_d:
-    case OPd_ld: case OPld_d:
-    case OPc_r: case OPc_i:
-    case OPu8_16: case OPs8_16: case OP16_8:
-    case OPu32_64: case OPs32_64: case OP64_32: case OPmsw:
-    case OPu64_128: case OPs64_128: case OP128_64:
-    case OPd_s64: case OPs64_d: case OPd_u64: case OPu64_d:
-    case OPstrctor: case OPu16_d: case OPd_u16:
-    case OParrow:
-    case OPvoid:
-    case OPbsf: case OPbsr: case OPbswap: case OPpopcnt: case OPvector:
-    case OPld_u64:
-    case OPsqrt: case OPsin: case OPcos:
-    case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
-    case OPvecfill:
-        ecom(&e.EV.E1);
-        break;
-    case OPhalt:
-        return;
-  }
-
-  /* don't CSE structures or unions or volatile stuff   */
-  if (tym == TYstruct ||
-      tym == TYvoid ||
-      e.Ety & mTYvolatile
-      || tyxmmreg(tym)
-      // don't CSE doubles if inline 8087 code (code generator can't handle it)
-      || (tyfloating(tym) && config.inline8087)
-     )
-        return;
-
-  hash = cs_comphash(e);                /* must be AFTER leaves are done */
-
-  /* Search for a match in hcstab[].
-   * Search backwards, as most likely matches will be towards the end
-   * of the list.
-   */
-
-  debug if (debugx) printf("elem: %p hash: %6d\n",e,hash);
-  int csveci = hash % CSVECDIM;
-  if (vec_testbit(csveci,csvec))
-  {
-    for (i = hcsarray.top; i--;)
+@trusted
+void ecom(ref CGCS cgcs, ref elem* pe)
+{
+    auto e = pe;
+    assert(e);
+    elem_debug(e);
+    debug assert(e.Ecount == 0);
+    //assert(e.Ecomsub == 0);
+    const tym = tybasic(e.Ety);
+    const op = e.Eoper;
+    switch (op)
     {
-        debug if (debugx)
-            printf("i: %2d Hhash: %6d Helem: %p\n",
-                i,hcstab[i].Hhash,hcstab[i].Helem);
+        case OPconst:
+        case OPrelconst:
+            break;
 
-        if (hash == hcstab[i].Hhash && (ehash = hcstab[i].Helem) != null)
-        {
-            /* if elems are the same and we still have room for more    */
-            if (el_match(e,ehash) && ehash.Ecount < 0xFF)
+        case OPvar:
+            if (e.EV.Vsym.ty() & mTYshared)
+                return;         // don't cache shared variables
+            break;
+
+        case OPstreq:
+        case OPpostinc:
+        case OPpostdec:
+        case OPeq:
+        case OPaddass:
+        case OPminass:
+        case OPmulass:
+        case OPdivass:
+        case OPmodass:
+        case OPshrass:
+        case OPashrass:
+        case OPshlass:
+        case OPandass:
+        case OPxorass:
+        case OPorass:
+        case OPvecsto:
+            /* Reverse order of evaluation for double op=. This is so that  */
+            /* the pushing of the address of the second operand is easier.  */
+            /* However, with the 8087 we don't need the kludge.             */
+            if (op != OPeq && tym == TYdouble && !config.inline8087)
             {
-                /* Make sure leaves are also common subexpressions
-                 * to avoid false matches.
-                 */
-                if (!OTleaf(op))
+                if (!OTleaf(e.EV.E1.Eoper))
+                    ecom(cgcs, e.EV.E1.EV.E1);
+                ecom(cgcs, e.EV.E2);
+            }
+            else
+            {
+                /* Don't mark the increment of an i++ or i-- as a CSE, if it */
+                /* can be done with an INC or DEC instruction.               */
+                if (!(OTpost(op) && elemisone(e.EV.E2)))
+                    ecom(cgcs, e.EV.E2);           /* evaluate 2nd operand first   */
+        case OPnegass:
+                if (!OTleaf(e.EV.E1.Eoper))             /* if lvalue is an operator     */
                 {
-                    if (!e.EV.E1.Ecount)
-                        continue;
-                    if (OTbinary(op) && !e.EV.E2.Ecount)
-                        continue;
+                    if (e.EV.E1.Eoper != OPind)
+                        elem_print(e);
+                    assert(e.EV.E1.Eoper == OPind);
+                    ecom(cgcs, e.EV.E1.EV.E1);
                 }
-                ehash.Ecount++;
-                *pe = ehash;
+            }
+            touchlvalue(cgcs, e.EV.E1);
+            if (!OTpost(op))                /* lvalue of i++ or i-- is not a cse*/
+            {
+                const hash = cs_comphash(e.EV.E1);
+                vec_setbit(hash % CGCS.CSVECDIM,cgcs.csvec);
+                cgcs.push(e.EV.E1,hash);              // add lvalue to cgcs.hcstab[]
+            }
+            return;
 
-                debug if (debugx)
-                        printf("**MATCH** %p with %p\n",e,*pe);
+        case OPbtc:
+        case OPbts:
+        case OPbtr:
+        case OPcmpxchg:
+            ecom(cgcs, e.EV.E1);
+            ecom(cgcs, e.EV.E2);
+            touchfunc(cgcs, 0);                   // indirect assignment
+            return;
 
-                el_free(e);
+        case OPandand:
+        case OPoror:
+        {
+            ecom(cgcs, e.EV.E1);
+            const lengthSave = cgcs.hcstab.length;
+            auto hcsarraySave = cgcs.hcsarray;
+            ecom(cgcs, e.EV.E2);
+            cgcs.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcs.hcstab.setLength(lengthSave);
+            return;                         /* if comsub then logexp() will */
+        }
+
+        case OPcond:
+        {
+            ecom(cgcs, e.EV.E1);
+            const lengthSave = cgcs.hcstab.length;
+            auto hcsarraySave = cgcs.hcsarray;
+            ecom(cgcs, e.EV.E2.EV.E1);               // left condition
+            cgcs.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcs.hcstab.setLength(lengthSave);
+            ecom(cgcs, e.EV.E2.EV.E2);               // right condition
+            cgcs.hcsarray = hcsarraySave;        // no common subs by E2
+            cgcs.hcstab.setLength(lengthSave);
+            return;                         // can't be a common sub
+        }
+
+        case OPcall:
+        case OPcallns:
+            ecom(cgcs, e.EV.E2);                   /* eval right first             */
+            goto case OPucall;
+
+        case OPucall:
+        case OPucallns:
+            ecom(cgcs, e.EV.E1);
+            touchfunc(cgcs, 1);
+            return;
+
+        case OPstrpar:                      /* so we don't break logexp()   */
+        case OPinp:                 /* never CSE the I/O instruction itself */
+        case OPprefetch:            // don't CSE E2 or the instruction
+            ecom(cgcs, e.EV.E1);
+            goto case OPasm;
+
+        case OPasm:
+        case OPstrthis:             // don't CSE these
+        case OPframeptr:
+        case OPgot:
+        case OPctor:
+        case OPdtor:
+        case OPdctor:
+        case OPmark:
+            return;
+
+        case OPddtor:
+            cgcs.touchall();
+            ecom(cgcs, e.EV.E1);
+            cgcs.touchall();
+            return;
+
+        case OPparam:
+        case OPoutp:
+            ecom(cgcs, e.EV.E1);
+            goto case OPinfo;
+
+        case OPinfo:
+            ecom(cgcs, e.EV.E2);
+            return;
+
+        case OPcomma:
+            ecom(cgcs, e.EV.E1);
+            ecom(cgcs, e.EV.E2);
+            return;
+
+        case OPremquo:
+            ecom(cgcs, e.EV.E1);
+            ecom(cgcs, e.EV.E2);
+            break;
+
+        case OPvp_fp:
+        case OPcvp_fp:
+            ecom(cgcs, e.EV.E1);
+            touchaccess(cgcs.hcstab, e);
+            break;
+
+        case OPind:
+            ecom(cgcs, e.EV.E1);
+            /* Generally, CSEing a *(double *) results in worse code        */
+            if (tyfloating(tym))
                 return;
+            if (tybasic(e.EV.E1.Ety) == TYsharePtr)
+                return;
+            break;
+
+        case OPstrcpy:
+        case OPstrcat:
+        case OPmemcpy:
+        case OPmemset:
+            ecom(cgcs, e.EV.E2);
+            goto case OPsetjmp;
+
+        case OPsetjmp:
+            ecom(cgcs, e.EV.E1);
+            touchfunc(cgcs, 0);
+            return;
+
+        default:                            /* other operators */
+            if (!OTbinary(e.Eoper))
+               WROP(e.Eoper);
+            assert(OTbinary(e.Eoper));
+            goto case OPadd;
+
+        case OPadd:
+        case OPmin:
+        case OPmul:
+        case OPdiv:
+        case OPor:
+        case OPxor:
+        case OPand:
+        case OPeqeq:
+        case OPne:
+        case OPscale:
+        case OPyl2x:
+        case OPyl2xp1:
+            ecom(cgcs, e.EV.E1);
+            ecom(cgcs, e.EV.E2);
+            break;
+
+        case OPstring:
+        case OPaddr:
+        case OPbit:
+            WROP(e.Eoper);
+            elem_print(e);
+            assert(0);              /* optelem() should have removed these  */
+
+        // Explicitly list all the unary ops for speed
+        case OPnot: case OPcom: case OPneg: case OPuadd:
+        case OPabs: case OPrndtol: case OPrint:
+        case OPpreinc: case OPpredec:
+        case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
+        case OPs32_d: case OPu32_d: case OPd_s16: case OPs16_d: case OP32_16:
+        case OPf_d:
+        case OPld_d:
+        case OPc_r: case OPc_i:
+        case OPu8_16: case OPs8_16: case OP16_8:
+        case OPu32_64: case OPs32_64: case OP64_32: case OPmsw:
+        case OPu64_128: case OPs64_128: case OP128_64:
+        case OPs64_d: case OPd_u64: case OPu64_d:
+        case OPstrctor: case OPu16_d: case OPd_u16:
+        case OParrow:
+        case OPvoid:
+        case OPbsf: case OPbsr: case OPbswap: case OPpopcnt: case OPvector:
+        case OPld_u64:
+        case OPsqrt: case OPsin: case OPcos:
+        case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
+        case OPvecfill: case OPtoprec:
+            ecom(cgcs, e.EV.E1);
+            break;
+
+        case OPd_ld:
+            return;
+
+        case OPd_f:
+        {
+            const op1 = e.EV.E1.Eoper;
+            if (config.fpxmmregs &&
+                (op1 == OPs32_d ||
+                 I64 && (op1 == OPs64_d || op1 == OPu32_d))
+               )
+                ecom(cgcs, e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt())
+            else
+                ecom(cgcs, e.EV.E1);
+            break;
+        }
+
+        case OPd_s32:
+        case OPd_u32:
+        case OPd_s64:
+            if (e.EV.E1.Eoper == OPf_d && config.fpxmmregs)
+                ecom(cgcs, e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt());
+            else
+                ecom(cgcs, e.EV.E1);
+            break;
+
+        case OPhalt:
+            return;
+    }
+
+    /* don't CSE structures or unions or volatile stuff   */
+    if (tym == TYstruct ||
+        tym == TYvoid ||
+        e.Ety & mTYvolatile)
+        return;
+    if (tyfloating(tym) && config.inline8087)
+    {
+        /* can CSE XMM code, but not x87
+         */
+        if (!(config.fpxmmregs && tyxmmreg(tym)))
+            return;
+    }
+
+    const hash = cs_comphash(e);                /* must be AFTER leaves are done */
+
+    /* Search for a match in hcstab[].
+     * Search backwards, as most likely matches will be towards the end
+     * of the list.
+     */
+
+    debug if (debugx) printf("elem: %p hash: %6d\n",e,hash);
+    int csveci = hash % CGCS.CSVECDIM;
+    if (vec_testbit(csveci,cgcs.csvec))
+    {
+        foreach_reverse (i, ref hcs; cgcs.hcstab[])
+        {
+            debug if (debugx)
+                printf("i: %2d Hhash: %6d Helem: %p\n",
+                       cast(int) i,hcs.Hhash,hcs.Helem);
+
+            elem* ehash;
+            if (hash == hcs.Hhash && (ehash = hcs.Helem) != null)
+            {
+                /* if elems are the same and we still have room for more    */
+                if (el_match(e,ehash) && ehash.Ecount < 0xFF)
+                {
+                    /* Make sure leaves are also common subexpressions
+                     * to avoid false matches.
+                     */
+                    if (!OTleaf(op))
+                    {
+                        if (!e.EV.E1.Ecount)
+                            continue;
+                        if (OTbinary(op) && !e.EV.E2.Ecount)
+                            continue;
+                    }
+                    ehash.Ecount++;
+                    pe = ehash;
+
+                    debug if (debugx)
+                        printf("**MATCH** %p with %p\n",e,pe);
+
+                    el_free(e);
+                    return;
+                }
             }
         }
     }
-  }
-  else
-    vec_setbit(csveci,csvec);
-  addhcstab(e,hash);                    // add this elem to hcstab[]
+    else
+        vec_setbit(csveci,cgcs.csvec);
+    cgcs.push(e,hash);                    // add this elem to hcstab[]
 }
 
 /**************************
  * Compute hash function for elem e.
  */
 
-private uint cs_comphash(elem *e)
-{   int hash;
-    uint op;
-
+@trusted
+hash_t cs_comphash(const elem *e)
+{
     elem_debug(e);
-    op = e.Eoper;
-    hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
+    const op = e.Eoper;
+    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
     if (!OTleaf(op))
-    {   hash += cast(size_t) e.EV.E1;
+    {
+        hash += cast(hash_t) e.EV.E1;
         if (OTbinary(op))
-                hash += cast(size_t) e.EV.E2;
+            hash += cast(hash_t) e.EV.E2;
     }
     else
-    {   hash += e.EV.Vint;
+    {
+        hash += e.EV.Vint;
         if (op == OPvar || op == OPrelconst)
-                hash += cast(size_t) e.EV.Vsym;
+            hash += cast(hash_t) e.EV.Vsym;
     }
     return hash;
-}
-
-/****************************
- * Add an elem to the common subexpression table.
- * Recompute hash if it is 0.
- */
-
-private void addhcstab(elem *e,int hash)
-{ uint h = hcsarray.top;
-
-  if (h >= hcsmax)                      /* need to reallocate table     */
-  {
-        assert(h == hcsmax);
-        // With 32 bit compiles, we've got memory to burn
-        hcsmax += hcsmax + 128;
-        assert(h < hcsmax);
-        //hcstab = cast(HCS *) util_realloc(hcstab,hcsmax,HCS.sizeof);
-        hcstab = cast(HCS *) realloc(hcstab,hcsmax * HCS.sizeof);
-        assert(!hcsmax || hcstab);
-        //printf("hcstab = %p; hcsarray.top = %d, hcsmax = %d\n",hcstab,hcsarray.top,hcsmax);
-  }
-  hcstab[h].Helem = e;
-  hcstab[h].Hhash = hash;
-  hcsarray.top++;
 }
 
 /***************************
@@ -495,34 +587,39 @@ private void addhcstab(elem *e,int hash)
  * Eliminate common subs that are indirect loads.
  */
 
-private void touchlvalue(elem *e)
+@trusted
+void touchlvalue(ref CGCS cgcs, const elem* e)
 {
-  if (e.Eoper == OPind)                /* if indirect store            */
-  {
+    if (e.Eoper == OPind)                /* if indirect store            */
+    {
         /* NOTE: Some types of array assignments do not need
          * to touch all variables. (Like a[5], where a is an
          * array instead of a pointer.)
          */
 
-        touchfunc(0);
+        touchfunc(cgcs, 0);
         return;
-  }
+    }
 
-    for (int i = hcsarray.top; --i >= 0;)
-    {   if (hcstab[i].Helem &&
-            hcstab[i].Helem.EV.Vsym == e.EV.Vsym)
-                hcstab[i].Helem = null;
+    foreach_reverse (ref hcs; cgcs.hcstab[])
+    {
+        if (hcs.Helem &&
+            hcs.Helem.EV.Vsym == e.EV.Vsym)
+            hcs.Helem = null;
     }
 
     if (!(e.Eoper == OPvar || e.Eoper == OPrelconst))
+    {
         elem_print(e);
-    assert(e.Eoper == OPvar || e.Eoper == OPrelconst);
+        assert(0);
+    }
     switch (e.EV.Vsym.Sclass)
     {
         case SCregpar:
         case SCregister:
         case SCpseudo:
             break;
+
         case SCauto:
         case SCparameter:
         case SCfastpar:
@@ -541,8 +638,9 @@ private void touchlvalue(elem *e)
         case SCsinline:
         case SCeinline:
         case SCcomdef:
-            touchstar();
+            touchstar(cgcs);
             break;
+
         default:
             elem_print(e);
             symbol_print(e.EV.Vsym);
@@ -555,69 +653,50 @@ private void touchlvalue(elem *e)
  * an indirect assignment.
  * Eliminate any subexpressions that are "starred" (they need to
  * be recomputed).
- * Input:
- *      flag    If !=0, then this is a function call.
+ * Params:
+ *      flag =  If 1, then this is a function call.
  *              If 0, then this is an indirect assignment.
  */
 
-private void touchfunc(int flag)
+@trusted
+void touchfunc(ref CGCS cgcs, int flag)
 {
 
     //printf("touchfunc(%d)\n", flag);
-    HCS *petop = &hcstab[hcsarray.top];
-    //pe = &hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
-    assert(hcsarray.touchfunci[flag] <= hcsarray.top);
-    for (HCS *pe = &hcstab[hcsarray.touchfunci[flag]]; pe < petop; pe++)
+    //pe = &cgcs.hcstab[0]; printf("pe = %p, petop = %p\n",pe,petop);
+    assert(cgcs.hcsarray.touchfunci[flag] <= cgcs.hcstab.length);
+
+    foreach (ref pe; cgcs.hcstab[cgcs.hcsarray.touchfunci[flag] .. cgcs.hcstab.length])
     {
-        elem *he = pe.Helem;
+        const he = pe.Helem;
         if (!he)
-                continue;
+            continue;
         switch (he.Eoper)
         {
             case OPvar:
-                switch (he.EV.Vsym.Sclass)
+                if (Symbol_isAffected(*he.EV.Vsym))
                 {
-                    case SCregpar:
-                    case SCregister:
-                        break;
-                    case SCauto:
-                    case SCparameter:
-                    case SCfastpar:
-                    case SCshadowreg:
-                    case SCbprel:
-                        //printf("he = '%s'\n", he.EV.Vsym.Sident);
-                        if (he.EV.Vsym.Sflags & SFLunambig)
-                            break;
-                        goto case SCstatic;
-                    case SCstatic:
-                    case SCextern:
-                    case SCcomdef:
-                    case SCglobal:
-                    case SClocstat:
-                    case SCcomdat:
-                    case SCpseudo:
-                    case SCinline:
-                    case SCsinline:
-                    case SCeinline:
-                        if (!(he.EV.Vsym.ty() & mTYconst))
-                            goto L1;
-                        break;
-                    default:
-                        //debug WRclass(cast(enum_SC)he.EV.Vsym.Sclass);
-                        assert(0);
+                    pe.Helem = null;
+                    continue;
                 }
                 break;
+
             case OPind:
+                if (tybasic(he.EV.E1.Ety) == TYimmutPtr)
+                    break;
+                goto Ltouch;
+
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:
             case OPbt:
-                goto L1;
+                goto Ltouch;
+
             case OPvp_fp:
             case OPcvp_fp:
                 if (flag == 0)          /* function calls destroy vptrfptr's, */
                     break;              /* not indirect assignments     */
-            L1:
+            Ltouch:
                 pe.Helem = null;
                 break;
 
@@ -625,7 +704,7 @@ private void touchfunc(int flag)
                 break;
         }
     }
-    hcsarray.touchfunci[flag] = hcsarray.top;
+    cgcs.hcsarray.touchfunci[flag] = cgcs.hcstab.length;
 }
 
 
@@ -634,31 +713,18 @@ private void touchfunc(int flag)
  * do any indirection ("starred" elems).
  */
 
-private void touchstar()
-{ int i;
-  elem *e;
-
-  for (i = hcsarray.touchstari; i < hcsarray.top; i++)
-  {     e = hcstab[i].Helem;
-        if (e && (e.Eoper == OPind || e.Eoper == OPbt) )
-                hcstab[i].Helem = null;
-  }
-  hcsarray.touchstari = hcsarray.top;
-}
-
-/*******************************
- * Eliminate all common subexpressions.
- */
-
-private void touchall()
+@trusted
+void touchstar(ref CGCS cgcs)
 {
-    for (uint i = 0; i < hcsarray.top; i++)
+    foreach (ref hcs; cgcs.hcstab[cgcs.hcsarray.touchstari .. $])
     {
-        hcstab[i].Helem = null;
+        const e = hcs.Helem;
+        if (e &&
+               (e.Eoper == OPind && tybasic(e.EV.E1.Ety) != TYimmutPtr ||
+                e.Eoper == OPbt) )
+            hcs.Helem = null;
     }
-    hcsarray.touchstari = hcsarray.top;
-    hcsarray.touchfunci[0] = hcsarray.top;
-    hcsarray.touchfunci[1] = hcsarray.top;
+    cgcs.hcsarray.touchstari = cgcs.hcstab.length;
 }
 
 /*****************************************
@@ -666,18 +732,18 @@ private void touchall()
  * if a handle pointer access occurs.
  */
 
-private void touchaccess(elem *ev)
-{ int i;
-  elem *e;
-
-  ev = ev.EV.E1;
-  for (i = 0; i < hcsarray.top; i++)
-  {     e = hcstab[i].Helem;
+@trusted
+void touchaccess(ref Barray!HCS hcstab, const elem *ev) pure nothrow
+{
+    const ev1 = ev.EV.E1;
+    foreach (ref hcs; hcstab[])
+    {
+        const e = hcs.Helem;
         /* Invalidate any previous handle pointer accesses that */
         /* are not accesses of ev.                              */
-        if (e && (e.Eoper == OPvp_fp || e.Eoper == OPcvp_fp) && e.EV.E1 != ev)
-            hcstab[i].Helem = null;
-  }
+        if (e && (e.Eoper == OPvp_fp || e.Eoper == OPcvp_fp) && e.EV.E1 != ev1)
+            hcs.Helem = null;
+    }
 }
 
 }

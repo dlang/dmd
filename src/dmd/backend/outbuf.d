@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/outbuf.d, backend/outbuf.d)
@@ -26,31 +26,25 @@ private nothrow void err_nomem();
 
 struct Outbuffer
 {
-    ubyte *buf;         // the buffer itself
-    ubyte *pend;        // pointer past the end of the buffer
-    ubyte *p;           // current position in buffer
-    ubyte *origbuf;     // external buffer
+  @safe:
+
+    ubyte *buf;           // the buffer itself
+    private ubyte *pend;  // pointer past the end of the buffer
+    private ubyte *p;     // current position in buffer
 
   nothrow:
     this(size_t initialSize)
     {
-        enlarge(cast(uint)initialSize);
-    }
-
-    this(ubyte *bufx, size_t bufxlen, uint incx)
-    {
-        buf = bufx; pend = bufx + bufxlen; p = bufx; origbuf = bufx;
+        reserve(initialSize);
     }
 
     //~this() { dtor(); }
 
+    @trusted
     void dtor()
     {
-        if (buf != origbuf)
-        {
-            if (buf)
-                free(buf);
-        }
+        free(buf);
+        buf = p = pend = null;
     }
 
     void reset()
@@ -58,60 +52,93 @@ struct Outbuffer
         p = buf;
     }
 
-    // Reserve nbytes in buffer
-    void reserve(uint nbytes)
+    private extern(D) inout(ubyte)[] opSlice(size_t from, size_t to) inout
+        @trusted pure nothrow @nogc
     {
-        if (pend - p < nbytes)
-            enlarge(nbytes);
+        assert(this.buf, "Attempt to dereference a null pointer");
+        assert(from < to, "First index must be smaller than the second one");
+        assert(this.length() <= (to - from), "Out of bound access");
+        return this.buf[from .. to];
     }
 
-    // Reserve nbytes in buffer
-    void enlarge(uint nbytes)
+    // Returns: A slice to the data written so far
+    extern(D) inout(ubyte)[] opSlice() inout @trusted pure nothrow @nogc
     {
-        const size_t oldlen = pend - buf;
-        const size_t used = p - buf;
+        return this.buf[0 .. length];
+    }
 
-        size_t len = used + nbytes;
-        if (len <= oldlen)
-            return;
+    extern(D) ubyte[] extractSlice() @safe pure nothrow @nogc
+    {
+        auto ret = this[];
+        this.buf = this.p = this.pend = null;
+        return ret;
+    }
 
-        const size_t newlen = oldlen + (oldlen >> 1);   // oldlen * 1.5
-        if (len < newlen)
-            len = newlen;
-        len = (len + 15) & ~15;
-
-        if (buf == origbuf && origbuf)
+    /********************
+     * Make sure we have at least `nbytes` available for writing,
+     * allocate more if necessary.
+     * This is the inlinable fast path. Prefer `enlarge` if allocation
+     * will always happen.
+     */
+    void reserve(size_t nbytes)
+    {
+        // non-inline function for the heavy/infrequent reallocation case
+        @trusted static void enlarge(ref Outbuffer b, size_t nbytes)
         {
-            buf = cast(ubyte*) malloc(len);
-            if (buf)
-                memcpy(buf, origbuf, used);
+            pragma(inline, false);  // do not inline slow path
+
+            if (b.buf is null)
+            {
+                // Special-case the overwhelmingly most frequent situation
+                if (nbytes < 64)
+                    nbytes = 64;
+                b.p = b.buf = cast(ubyte*) malloc(nbytes);
+                b.pend = b.buf + nbytes;
+            }
+            else
+            {
+                const size_t used = b.p - b.buf;
+                const size_t oldlen = b.pend - b.buf;
+                // Ensure exponential growth, oldlen * 2 for small sizes, oldlen * 1.5 for big sizes
+                const size_t minlen = oldlen + (oldlen >> (oldlen > 1024 * 64));
+
+                size_t len = used + nbytes;
+                if (len < minlen)
+                    len = minlen;
+                // Round up to cache line size
+                len = (len + 63) & ~63;
+
+                b.buf = cast(ubyte*) realloc(b.buf, len);
+
+                b.pend = b.buf + len;
+                b.p = b.buf + used;
+            }
+            if (!b.buf)
+                err_nomem();
         }
-        else
-            buf = cast(ubyte*) realloc(buf,len);
-        if (!buf)
-            err_nomem();
 
-        pend = buf + len;
-        p = buf + used;
+        // Keep small so it is inlined
+        if (pend - p < nbytes)
+            enlarge(this, nbytes);
     }
-
 
     // Write n zeros; return pointer to start of zeros
-    void *writezeros(uint n)
+    @trusted
+    void *writezeros(size_t n)
     {
-        if (pend - p < n)
-            reserve(n);
+        reserve(n);
         void *pstart = memset(p,0,n);
         p += n;
         return pstart;
     }
 
     // Position buffer to accept the specified number of bytes at offset
+    @trusted
     void position(size_t offset, size_t nbytes)
     {
         if (offset + nbytes > pend - buf)
         {
-            enlarge(cast(uint)(offset + nbytes - (p - buf)));
+            reserve(offset + nbytes - (p - buf));
         }
         p = buf + offset;
 
@@ -121,110 +148,74 @@ struct Outbuffer
     }
 
     // Write an array to the buffer, no reserve check
+    @trusted
     void writen(const void *b, size_t len)
     {
         memcpy(p,b,len);
         p += len;
     }
 
-    // Clear bytes, no reserve check
-    void clearn(size_t len)
-    {
-        for (size_t i = 0; i < len; i++)
-            *p++ = 0;
-    }
-
     // Write an array to the buffer.
-    void write(const(void)* b, uint len)
+    @trusted
+    extern (D)
+    void write(const(void)[] b)
     {
-        if (pend - p < len)
-            reserve(len);
-        memcpy(p,b,len);
-        p += len;
+        reserve(b.length);
+        memcpy(p, b.ptr, b.length);
+        p += b.length;
     }
 
-    void write(Outbuffer *b) { write(b.buf,cast(uint)(b.p - b.buf)); }
-
-    /**
-     * Flushes the stream. This will write any buffered
-     * output bytes.
-     */
-    void flush() { }
+    @trusted
+    void write(const(void)* b, size_t len)
+    {
+        write(b[0 .. len]);
+    }
 
     /**
      * Writes an 8 bit byte, no reserve check.
      */
-    void writeByten(ubyte v)
+    @trusted
+    void writeByten(int v)
     {
-        *p++ = v;
+        *p++ = cast(ubyte)v;
     }
 
     /**
      * Writes an 8 bit byte.
      */
+    @trusted
     void writeByte(int v)
     {
-        if (pend == p)
-            reserve(1);
-        *p++ = cast(ubyte)v;
+        reserve(1);
+        writeByten(v);
     }
 
     /**
-     * Writes a 16 bit little-end short, no reserve check.
+     * Writes a 16 bit value, no reserve check.
      */
-    void writeWordn(int v)
+    @trusted
+    void write16n(int v)
     {
-        version (LittleEndian)
-        {
-            *cast(ushort *)p = cast(ushort)v;
-        }
-        else
-        {
-            p[0] = v;
-            p[1] = v >> 8;
-        }
+        *(cast(ushort *) p) = cast(ushort)v;
         p += 2;
     }
 
 
     /**
-     * Writes a 16 bit little-end short.
+     * Writes a 16 bit value.
      */
-    void writeWord(int v)
+    void write16(int v)
     {
         reserve(2);
-        writeWordn(v);
-    }
-
-
-    /**
-     * Writes a 16 bit big-end short.
-     */
-    void writeShort(int v)
-    {
-        if (pend - p < 2)
-            reserve(2);
-        ubyte *q = p;
-        q[0] = cast(ubyte)(v >> 8);
-        q[1] = cast(ubyte)v;
-        p += 2;
-    }
-
-    /**
-     * Writes a 16 bit char.
-     */
-    void writeChar(int v)
-    {
-        writeShort(v);
+        write16n(v);
     }
 
     /**
      * Writes a 32 bit int.
      */
-    void write32(int v)
+    @trusted void write32(int v)
     {
-        if (pend - p < 4)
-            reserve(4);
+        reserve(4);
         *cast(int *)p = v;
         p += 4;
     }
@@ -232,75 +223,60 @@ struct Outbuffer
     /**
      * Writes a 64 bit long.
      */
-    void write64(long v)
+    @trusted void write64(long v)
     {
-        if (pend - p < 8)
-            reserve(8);
+        reserve(8);
         *cast(long *)p = v;
         p += 8;
     }
 
-
-    /**
-     * Writes a 32 bit float.
-     */
-    void writeFloat(float v)
-    {
-        if (pend - p < float.sizeof)
-            reserve(float.sizeof);
-        *cast(float *)p = v;
-        p += float.sizeof;
-    }
-
-    /**
-     * Writes a 64 bit double.
-     */
-    void writeDouble(double v)
-    {
-        if (pend - p < double.sizeof)
-            reserve(double.sizeof);
-        *cast(double *)p = v;
-        p += double.sizeof;
-    }
-
     /**
      * Writes a String as a sequence of bytes.
      */
+    @trusted
     void write(const(char)* s)
     {
-        write(s,cast(uint)strlen(s));
-    }
-
-    /**
-     * Writes a String as a sequence of bytes.
-     */
-    void write(const(ubyte)* s)
-    {
-        write(s,cast(uint)strlen(cast(const(char)*)s));
+        write(s[0 .. strlen(s)]);
     }
 
     /**
      * Writes a 0 terminated String
      */
+    @trusted
     void writeString(const(char)* s)
     {
-        write(s,cast(uint)strlen(s)+1);
+        write(s[0 .. strlen(s)+1]);
+    }
+
+    /// Ditto
+    extern(D) void writeString(const(char)[] s)
+    {
+        write(s);
+        writeByte(0);
+    }
+
+    /// Disembiguation for `string`
+    extern(D) void writeString(string s)
+    {
+        writeString(cast(const(char)[])(s));
     }
 
     /**
      * Inserts string at beginning of buffer.
      */
+    @trusted
     void prependBytes(const(char)* s)
     {
-        prepend(s, cast(uint)strlen(s));
+        prepend(s, strlen(s));
     }
 
     /**
      * Inserts bytes at beginning of buffer.
      */
+    @trusted
     void prepend(const(void)* b, size_t len)
     {
-        reserve(cast(uint)len);
+        reserve(len);
         memmove(buf + len,buf,p - buf);
         memcpy(buf,b,len);
         p += len;
@@ -309,6 +285,7 @@ struct Outbuffer
     /**
      * Bracket buffer contents with c1 and c2.
      */
+    @trusted
     void bracket(char c1,char c2)
     {
         reserve(2);
@@ -321,28 +298,16 @@ struct Outbuffer
     /**
      * Returns the number of bytes written.
      */
-    size_t size()
+    size_t length() const @safe pure nothrow @nogc
     {
         return p - buf;
     }
 
     /**
-     * Convert to a string.
-     */
-
-    char *toString()
-    {
-        if (pend == p)
-            reserve(1);
-        *p = 0;                     // terminate string
-        return cast(char*)buf;
-    }
-
-    /**
      * Set current size of buffer.
      */
-
-    void setsize(uint size)
+    @trusted
+    void setsize(size_t size)
     {
         p = buf + size;
         //debug assert(buf <= p);

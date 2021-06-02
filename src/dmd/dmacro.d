@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Text macro processor for Ddoc.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmacro.d, _dmacro.d)
@@ -20,84 +19,61 @@ import dmd.globals;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 
-struct Macro
+extern (C++) struct MacroTable
 {
-private:
-    Macro* next;            // next in list
-    const(char)[] name;     // macro name
-    const(char)[] text;     // macro replacement text
-    int inuse;              // macro is in use (don't expand)
-
-    this(const(char)[] name, const(char)[] text)
+    /**********************************
+     * Define name=text macro.
+     * If macro `name` already exists, replace the text for it.
+     * Params:
+     *  name = name of macro
+     *  text = text of macro
+     */
+    extern (D) void define(const(char)[] name, const(char)[] text)
     {
-        this.name = name;
-        this.text = text;
-    }
-
-    Macro* search(const(char)[] name)
-    {
+        //printf("MacroTable::define('%.*s' = '%.*s')\n", cast(int)name.length, name.ptr, text.length, text.ptr);
         Macro* table;
-        //printf("Macro::search(%.*s)\n", name.length, name.ptr);
-        for (table = &this; table; table = table.next)
-        {
-            if (table.name == name)
-            {
-                //printf("\tfound %d\n", table.textlen);
-                break;
-            }
-        }
-        return table;
-    }
-
-public:
-    static Macro* define(Macro** ptable, const(char)[] name, const(char)[] text)
-    {
-        //printf("Macro::define('%.*s' = '%.*s')\n", name.length, name.ptr, text.length, text.ptr);
-        Macro* table;
-        //assert(ptable);
-        for (table = *ptable; table; table = table.next)
+        for (table = mactab; table; table = table.next)
         {
             if (table.name == name)
             {
                 table.text = text;
-                return table;
+                return;
             }
         }
         table = new Macro(name, text);
-        table.next = *ptable;
-        *ptable = table;
-        return table;
+        table.next = mactab;
+        mactab = table;
     }
 
     /*****************************************************
-     * Expand macro in place in buf.
-     * Only look at the text in buf from start to end.
+     * Look for macros in buf and expand them in place.
+     * Only look at the text in buf from start to pend.
      */
-    void expand(OutBuffer* buf, size_t start, size_t* pend, const(char)[] arg)
+    extern (D) void expand(ref OutBuffer buf, size_t start, ref size_t pend, const(char)[] arg)
     {
         version (none)
         {
-            printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, *pend, cast(int)arg.length, arg.ptr);
-            printf("Buf is: '%.*s'\n", *pend - start, buf.data + start);
+            printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, pend, cast(int)arg.length, arg.ptr);
+            printf("Buf is: '%.*s'\n", cast(int)(pend - start), buf.data + start);
         }
         // limit recursive expansion
         __gshared int nest;
-        __gshared const(int) nestLimit = 1000;
-        if (nest > nestLimit)
+        if (nest > global.recursionLimit)
         {
-            error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", nestLimit);
+            error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.",
+                  global.recursionLimit);
             return;
         }
         nest++;
-        size_t end = *pend;
+        size_t end = pend;
         assert(start <= end);
-        assert(end <= buf.offset);
+        assert(end <= buf.length);
         /* First pass - replace $0
          */
         arg = memdup(arg);
         for (size_t u = start; u + 1 < end;)
         {
-            char* p = cast(char*)buf.data; // buf.data is not loop invariant
+            char* p = cast(char*)buf[].ptr; // buf.data is not loop invariant
             /* Look for $0, but not $$0, and replace it with arg.
              */
             if (p[u] == '$' && (isdigit(p[u + 1]) || p[u + 1] == '+'))
@@ -135,7 +111,7 @@ public:
                     end += marg.length - 2;
                     // Scan replaced text for further expansion
                     size_t mend = u + marg.length;
-                    expand(buf, u, &mend, null);
+                    expand(buf, u, mend, null);
                     end += mend - (u + marg.length);
                     u = mend;
                 }
@@ -143,19 +119,20 @@ public:
                 {
                     // Replace '$1' with '\xFF{arg\xFF}'
                     //printf("Replacing '$%c' with '\xFF{%.*s\xFF}'\n", p[u + 1], cast(int)marg.length, marg.ptr);
-                    buf.data[u] = 0xFF;
-                    buf.data[u + 1] = '{';
+                    ubyte[] slice = cast(ubyte[])buf[];
+                    slice[u] = 0xFF;
+                    slice[u + 1] = '{';
                     buf.insert(u + 2, marg);
                     buf.insert(u + 2 + marg.length, "\xFF}");
                     end += -2 + 2 + marg.length + 2;
                     // Scan replaced text for further expansion
                     size_t mend = u + 2 + marg.length;
-                    expand(buf, u + 2, &mend, null);
+                    expand(buf, u + 2, mend, null);
                     end += mend - (u + 2 + marg.length);
                     u = mend;
                 }
                 //printf("u = %d, end = %d\n", u, end);
-                //printf("#%.*s#\n", end, &buf.data[0]);
+                //printf("#%.*s#\n", cast(int)end, &buf.data[0]);
                 continue;
             }
             u++;
@@ -164,7 +141,7 @@ public:
          */
         for (size_t u = start; u + 4 < end;)
         {
-            char* p = cast(char*)buf.data; // buf.data is not loop invariant
+            char* p = cast(char*)buf[].ptr; // buf.data is not loop invariant
             /* A valid start of macro expansion is $(c, where c is
              * an id start character, and not $$(c.
              */
@@ -247,16 +224,17 @@ public:
                             marg = memdup(marg);
                             // Insert replacement text
                             buf.spread(v + 1, 2 + m.text.length + 2);
-                            buf.data[v + 1] = 0xFF;
-                            buf.data[v + 2] = '{';
-                            buf.data[v + 3 .. v + 3 + m.text.length] = cast(ubyte[])m.text[];
-                            buf.data[v + 3 + m.text.length] = 0xFF;
-                            buf.data[v + 3 + m.text.length + 1] = '}';
+                            ubyte[] slice = cast(ubyte[])buf[];
+                            slice[v + 1] = 0xFF;
+                            slice[v + 2] = '{';
+                            slice[v + 3 .. v + 3 + m.text.length] = cast(ubyte[])m.text[];
+                            slice[v + 3 + m.text.length] = 0xFF;
+                            slice[v + 3 + m.text.length + 1] = '}';
                             end += 2 + m.text.length + 2;
                             // Scan replaced text for further expansion
                             m.inuse++;
                             size_t mend = v + 1 + 2 + m.text.length + 2;
-                            expand(buf, v + 1, &mend, marg);
+                            expand(buf, v + 1, mend, marg);
                             end += mend - (v + 1 + 2 + m.text.length + 2);
                             m.inuse--;
                             buf.remove(u, v + 1 - u);
@@ -264,7 +242,7 @@ public:
                             u += mend - (v + 1);
                             mem.xfree(cast(char*)marg.ptr);
                             //printf("u = %d, end = %d\n", u, end);
-                            //printf("#%.*s#\n", end - u, &buf.data[u]);
+                            //printf("#%.*s#\n", cast(int)(end - u), &buf.data[u]);
                             continue;
                         }
                     }
@@ -280,8 +258,45 @@ public:
             u++;
         }
         mem.xfree(cast(char*)arg);
-        *pend = end;
+        pend = end;
         nest--;
+    }
+
+  private:
+
+    extern (D) Macro* search(const(char)[] name)
+    {
+        Macro* table;
+        //printf("Macro::search(%.*s)\n", cast(int)name.length, name.ptr);
+        for (table = mactab; table; table = table.next)
+        {
+            if (table.name == name)
+            {
+                //printf("\tfound %d\n", table.textlen);
+                break;
+            }
+        }
+        return table;
+    }
+
+    Macro* mactab;
+}
+
+/* ************************************************************************ */
+
+private:
+
+struct Macro
+{
+    Macro* next;            // next in list
+    const(char)[] name;     // macro name
+    const(char)[] text;     // macro replacement text
+    int inuse;              // macro is in use (don't expand)
+
+    this(const(char)[] name, const(char)[] text)
+    {
+        this.name = name;
+        this.text = text;
     }
 }
 
@@ -293,7 +308,7 @@ public:
  *      copy allocated with mem.xmalloc()
  */
 
-private char[] memdup(const(char)[] p)
+char[] memdup(const(char)[] p)
 {
     size_t len = p.length;
     return (cast(char*)memcpy(mem.xmalloc(len), p.ptr, len))[0 .. len];
@@ -308,7 +323,7 @@ private char[] memdup(const(char)[] p)
  *              1..9:   get nth argument
  *              -1:     get 2nd through end
  */
-private size_t extractArgN(const(char)[] buf, out const(char)[] marg, int n)
+size_t extractArgN(const(char)[] buf, out const(char)[] marg, int n)
 {
     /* Scan forward for matching right parenthesis.
      * Nest parentheses.

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
@@ -14,12 +14,17 @@
 module dmd.backend.cv8;
 
 version (MARS)
+    version = COMPILE;
+version (SCPP)
+    version = COMPILE;
+
+version (COMPILE)
 {
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-extern (C) char* getcwd(char*, size_t);
+extern (C) nothrow char* getcwd(char*, size_t);
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -27,7 +32,7 @@ import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.cv4;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.global;
@@ -37,18 +42,22 @@ import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.varstats;
+import dmd.backend.dvarstats;
 import dmd.backend.xmm;
 
 extern (C++):
 
-static if (TARGET_WINDOS)
+nothrow:
+@safe:
+
+static if (1)
 {
 
 int REGSIZE();
 
 // Determine if this Symbol is stored in a COMDAT
-bool symbol_iscomdat(Symbol* s)
+@trusted
+private bool symbol_iscomdat4(Symbol* s)
 {
     version (MARS)
     {
@@ -101,8 +110,9 @@ struct FuncData
     uint section_length;
     const(char)* srcfilename;
     uint srcfileoff;
-    uint linepairstart;     // starting index of offset/line pairs in linebuf[]
-    uint linepairnum;       // number of offset/line pairs
+    uint linepairstart;     // starting byte index of offset/line pairs in linebuf[]
+    uint linepairbytes;     // number of bytes for offset/line pairs
+    uint linepairsegment;   // starting byte index of filename segment for offset/line pairs
     Outbuffer *f1buf;
     Outbuffer *f1fixup;
 }
@@ -113,6 +123,7 @@ private __gshared Outbuffer *funcdata;     // array of FuncData's
 
 private __gshared Outbuffer *linepair;     // array of offset/line pairs
 
+@trusted
 void cv8_writename(Outbuffer *buf, const(char)* name, size_t len)
 {
     if(config.flags2 & CFG2gms)
@@ -146,6 +157,7 @@ void cv8_writename(Outbuffer *buf, const(char)* name, size_t len)
  * Input:
  *      filename        source file name
  */
+@trusted
 void cv8_initfile(const(char)* filename)
 {
     //printf("cv8_initfile()\n");
@@ -155,59 +167,59 @@ void cv8_initfile(const(char)* filename)
     if (!F1_buf)
     {
         __gshared Outbuffer f1buf;
-        f1buf.enlarge(1024);
+        f1buf.reserve(1024);
         F1_buf = &f1buf;
     }
-    F1_buf.setsize(0);
+    F1_buf.reset();
 
     if (!F1fixup)
     {
         __gshared Outbuffer f1fixupbuf;
-        f1fixupbuf.enlarge(1024);
+        f1fixupbuf.reserve(1024);
         F1fixup = &f1fixupbuf;
     }
-    F1fixup.setsize(0);
+    F1fixup.reset();
 
     if (!F2_buf)
     {
         __gshared Outbuffer f2buf;
-        f2buf.enlarge(1024);
+        f2buf.reserve(1024);
         F2_buf = &f2buf;
     }
-    F2_buf.setsize(0);
+    F2_buf.reset();
 
     if (!F3_buf)
     {
         __gshared Outbuffer f3buf;
-        f3buf.enlarge(1024);
+        f3buf.reserve(1024);
         F3_buf = &f3buf;
     }
-    F3_buf.setsize(0);
+    F3_buf.reset();
     F3_buf.writeByte(0);       // first "filename"
 
     if (!F4_buf)
     {
         __gshared Outbuffer f4buf;
-        f4buf.enlarge(1024);
+        f4buf.reserve(1024);
         F4_buf = &f4buf;
     }
-    F4_buf.setsize(0);
+    F4_buf.reset();
 
     if (!funcdata)
     {
         __gshared Outbuffer funcdatabuf;
-        funcdatabuf.enlarge(1024);
+        funcdatabuf.reserve(1024);
         funcdata = &funcdatabuf;
     }
-    funcdata.setsize(0);
+    funcdata.reset();
 
     if (!linepair)
     {
         __gshared Outbuffer linepairbuf;
-        linepairbuf.enlarge(1024);
+        linepairbuf.reserve(1024);
         linepair = &linepairbuf;
     }
-    linepair.setsize(0);
+    linepair.reset();
 
     memset(&currentfuncdata, 0, currentfuncdata.sizeof);
     currentfuncdata.f1buf = F1_buf;
@@ -216,6 +228,7 @@ void cv8_initfile(const(char)* filename)
     cv_init();
 }
 
+@trusted
 void cv8_termfile(const(char)* objfilename)
 {
     //printf("cv8_termfile()\n");
@@ -230,20 +243,19 @@ void cv8_termfile(const(char)* objfilename)
 
     /* Start with starting symbol in separate "F1" section
      */
-    Outbuffer buf;
-    buf.enlarge(1024);
+    Outbuffer buf = Outbuffer(1024);
     size_t len = strlen(objfilename);
-    buf.writeWord(cast(int)(2 + 4 + len + 1));
-    buf.writeWord(S_COMPILAND_V3);
+    buf.write16(cast(int)(2 + 4 + len + 1));
+    buf.write16(S_COMPILAND_V3);
     buf.write32(0);
     buf.write(objfilename, cast(uint)(len + 1));
 
     // write S_COMPILE record
-    buf.writeWord(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
-    buf.writeWord(S_COMPILE);
+    buf.write16(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
+    buf.write16(S_COMPILE);
     buf.writeByte(I64 ? 0xD0 : 6); // target machine AMD64 or x86 (Pentium II)
     buf.writeByte(config.flags2 & CFG2gms ? (CPP != 0) : 'D'); // language index (C/C++/D)
-    buf.writeWord(0x800 | (config.inline8087 ? 0 : (1<<3)));   // 32-bit, float package
+    buf.write16(0x800 | (config.inline8087 ? 0 : (1<<3)));   // 32-bit, float package
     buf.writeByte(VERSION.length + 1);
     buf.writeByte('Z');
     buf.write(VERSION.ptr, VERSION.length);
@@ -251,40 +263,37 @@ void cv8_termfile(const(char)* objfilename)
     cv8_writesection(seg, 0xF1, &buf);
 
     // Write out "F2" sections
-    uint length = cast(uint)funcdata.size();
+    uint length = cast(uint)funcdata.length();
     ubyte *p = funcdata.buf;
     for (uint u = 0; u < length; u += FuncData.sizeof)
     {   FuncData *fd = cast(FuncData *)(p + u);
 
-        F2_buf.setsize(0);
+        F2_buf.reset();
 
         F2_buf.write32(cast(uint)fd.sfunc.Soffset);
         F2_buf.write32(0);
         F2_buf.write32(fd.section_length);
-        F2_buf.write32(fd.srcfileoff);
-        F2_buf.write32(fd.linepairnum);
-        F2_buf.write32(fd.linepairnum * 8 + 12);
-        F2_buf.write(linepair.buf + fd.linepairstart * 8, fd.linepairnum * 8);
+        F2_buf.write(linepair.buf + fd.linepairstart, fd.linepairbytes);
 
         int f2seg = seg;
-        if (symbol_iscomdat(fd.sfunc))
+        if (symbol_iscomdat4(fd.sfunc))
         {
             f2seg = MsCoffObj_seg_debugS_comdat(fd.sfunc);
-            objmod.bytes(f2seg,0,4,&value);
+            objmod.bytes(f2seg, 0, 4, &value);
         }
 
         uint offset = cast(uint)SegData[f2seg].SDoffset + 8;
         cv8_writesection(f2seg, 0xF2, F2_buf);
         objmod.reftoident(f2seg, offset, fd.sfunc, 0, CFseg | CFoff);
 
-        if (f2seg != seg && fd.f1buf.size())
+        if (f2seg != seg && fd.f1buf.length())
         {
             // Write out "F1" section
             const uint f1offset = cast(uint)SegData[f2seg].SDoffset;
             cv8_writesection(f2seg, 0xF1, fd.f1buf);
 
             // Fixups for "F1" section
-            const uint fixupLength = cast(uint)fd.f1fixup.size();
+            const uint fixupLength = cast(uint)fd.f1fixup.length();
             ubyte *pfixup = fd.f1fixup.buf;
             for (uint v = 0; v < fixupLength; v += F1_Fixups.sizeof)
             {   F1_Fixups *f = cast(F1_Fixups *)(pfixup + v);
@@ -295,19 +304,21 @@ void cv8_termfile(const(char)* objfilename)
     }
 
     // Write out "F3" section
-    cv8_writesection(seg, 0xF3, F3_buf);
+    if (F3_buf.length() > 1)
+        cv8_writesection(seg, 0xF3, F3_buf);
 
     // Write out "F4" section
-    cv8_writesection(seg, 0xF4, F4_buf);
+    if (F4_buf.length() > 0)
+        cv8_writesection(seg, 0xF4, F4_buf);
 
-    if (F1_buf.size())
+    if (F1_buf.length())
     {
         // Write out "F1" section
         uint f1offset = cast(uint)SegData[seg].SDoffset;
         cv8_writesection(seg, 0xF1, F1_buf);
 
         // Fixups for "F1" section
-        length = cast(uint)F1fixup.size();
+        length = cast(uint)F1fixup.length();
         p = F1fixup.buf;
         for (uint u = 0; u < length; u += F1_Fixups.sizeof)
         {   F1_Fixups *f = cast(F1_Fixups *)(p + u);
@@ -328,13 +339,9 @@ void cv8_termfile(const(char)* objfilename)
 void cv8_initmodule(const(char)* filename, const(char)* modulename)
 {
     //printf("cv8_initmodule(filename = %s, modulename = %s)\n", filename, modulename);
-
-    /* Experiments show that filename doesn't have to be qualified if
-     * it is relative to the directory the .exe file is in.
-     */
-    currentfuncdata.srcfileoff = cv8_addfile(filename);
 }
 
+@trusted
 void cv8_termmodule()
 {
     //printf("cv8_termmodule()\n");
@@ -344,34 +351,36 @@ void cv8_termmodule()
 /******************************************
  * Called at the start of a function.
  */
+@trusted
 void cv8_func_start(Symbol *sfunc)
 {
     //printf("cv8_func_start(%s)\n", sfunc.Sident);
     currentfuncdata.sfunc = sfunc;
     currentfuncdata.section_length = 0;
     currentfuncdata.srcfilename = null;
-    currentfuncdata.srcfileoff = 0;
-    currentfuncdata.linepairstart += currentfuncdata.linepairnum;
-    currentfuncdata.linepairnum = 0;
+    currentfuncdata.linepairstart += currentfuncdata.linepairbytes;
+    currentfuncdata.linepairbytes = 0;
     currentfuncdata.f1buf = F1_buf;
     currentfuncdata.f1fixup = F1fixup;
-    if (symbol_iscomdat(sfunc))
+    if (symbol_iscomdat4(sfunc))
     {
         // This leaks memory
         currentfuncdata.f1buf = cast(Outbuffer*)mem_calloc(Outbuffer.sizeof);
-        currentfuncdata.f1buf.enlarge(128);
+        currentfuncdata.f1buf.reserve(128);
         currentfuncdata.f1fixup = cast(Outbuffer*)mem_calloc(Outbuffer.sizeof);
-        currentfuncdata.f1fixup.enlarge(128);
+        currentfuncdata.f1fixup.reserve(128);
     }
+
     varStats_startFunction();
 }
 
+@trusted
 void cv8_func_term(Symbol *sfunc)
 {
     //printf("cv8_func_term(%s)\n", sfunc.Sident);
 
     assert(currentfuncdata.sfunc == sfunc);
-    currentfuncdata.section_length = cast(uint)(retoffset + retsize);
+    currentfuncdata.section_length = cast(uint)sfunc.Ssize;
 
     funcdata.write(&currentfuncdata, currentfuncdata.sizeof);
 
@@ -407,7 +416,10 @@ void cv8_func_term(Symbol *sfunc)
     else
         typidx = cv_typidx(sfunc.Stype);
 
-    const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
+    version (MARS)
+        const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
+    else
+        const(char)* id = prettyident(sfunc);
     size_t len = strlen(id);
     if(len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
@@ -427,8 +439,8 @@ void cv8_func_term(Symbol *sfunc)
      */
     Outbuffer *buf = currentfuncdata.f1buf;
     buf.reserve(cast(uint)(2 + 2 + 4 * 7 + 6 + 1 + len + 1));
-    buf.writeWordn(cast(int)(2 + 4 * 7 + 6 + 1 + len + 1));
-    buf.writeWordn(sfunc.Sclass == SCstatic ? S_LPROC_V3 : S_GPROC_V3);
+    buf.write16n(cast(int)(2 + 4 * 7 + 6 + 1 + len + 1));
+    buf.write16n(sfunc.Sclass == SCstatic ? S_LPROC_V3 : S_GPROC_V3);
     buf.write32(0);            // parent
     buf.write32(0);            // pend
     buf.write32(0);            // pnext
@@ -439,11 +451,11 @@ void cv8_func_term(Symbol *sfunc)
 
     F1_Fixups f1f;
     f1f.s = sfunc;
-    f1f.offset = cast(uint)buf.size();
+    f1f.offset = cast(uint)buf.length();
     f1f.value = 0;
     currentfuncdata.f1fixup.write(&f1f, f1f.sizeof);
     buf.write32(0);
-    buf.writeWordn(0);
+    buf.write16n(0);
 
     buf.writeByte(0);
     buf.writen(id, len);
@@ -451,6 +463,7 @@ void cv8_func_term(Symbol *sfunc)
 
     struct cv8
     {
+    nothrow:
         // record for CV record S_BLOCK_V3
         struct block_v3_data
         {
@@ -467,13 +480,13 @@ void cv8_func_term(Symbol *sfunc)
         extern (C++) static void endArgs()
         {
             Outbuffer *buf = currentfuncdata.f1buf;
-            buf.writeWord(2);
-            buf.writeWord(S_ENDARG);
+            buf.write16(2);
+            buf.write16(S_ENDARG);
         }
         extern (C++) static void beginBlock(int offset, int length)
         {
             Outbuffer *buf = currentfuncdata.f1buf;
-            uint soffset = cast(uint)buf.size();
+            uint soffset = cast(uint)buf.length();
             // parent and end to be filled by linker
             block_v3_data block32 = { block_v3_data.sizeof - 2, S_BLOCK_V3, 0, 0, length, offset, 0, [ 0 ] };
             buf.write(&block32, block32.sizeof);
@@ -488,19 +501,19 @@ void cv8_func_term(Symbol *sfunc)
         extern (C++) static void endBlock()
         {
             Outbuffer *buf = currentfuncdata.f1buf;
-            buf.writeWord(2);
-            buf.writeWord(S_END);
+            buf.write16(2);
+            buf.write16(S_END);
         }
     }
-    varStats_writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
+    varStats_writeSymbolTable(globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
 
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)
      */
 
     // Write function end symbol
-    buf.writeWord(2);
-    buf.writeWord(S_END);
+    buf.write16(2);
+    buf.write16(S_END);
 
     currentfuncdata.f1buf = F1_buf;
     currentfuncdata.f1fixup = F1fixup;
@@ -509,40 +522,52 @@ void cv8_func_term(Symbol *sfunc)
 /**********************************************
  */
 
+@trusted
 void cv8_linnum(Srcpos srcpos, uint offset)
 {
-    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", srcpos.Sfilename, (int)srcpos.Slinnum, (uint)offset);
-    if (currentfuncdata.srcfilename)
-    {
-        /* Ignore line numbers from different files in the same function.
-         * This can happen with inlined functions.
-         * To make this work would require a separate F2 section for each different file.
-         */
-        if (currentfuncdata.srcfilename != srcpos.Sfilename &&
-            strcmp(currentfuncdata.srcfilename, srcpos.Sfilename))
-            return;
-    }
+    version (MARS)
+        const sfilename = srcpos.Sfilename;
     else
-    {
-        currentfuncdata.srcfilename = srcpos.Sfilename;
-        currentfuncdata.srcfileoff  = cv8_addfile(srcpos.Sfilename);
-    }
+        const sfilename = srcpos_name(srcpos);
+    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", sfilename, (int)srcpos.Slinnum, (uint)offset);
+
+    if (!sfilename)
+        return;
 
     varStats_recordLineOffset(srcpos, offset);
 
     __gshared uint lastoffset;
     __gshared uint lastlinnum;
-    if (currentfuncdata.linepairnum)
+
+    if (!currentfuncdata.srcfilename ||
+        (currentfuncdata.srcfilename != sfilename && strcmp(currentfuncdata.srcfilename, sfilename)))
     {
-        if (offset <= lastoffset || srcpos.Slinnum <= lastlinnum)
-            return;
+        currentfuncdata.srcfilename = sfilename;
+        uint srcfileoff = cv8_addfile(sfilename);
+
+        // new file segment
+        currentfuncdata.linepairsegment = currentfuncdata.linepairstart + currentfuncdata.linepairbytes;
+
+        linepair.write32(srcfileoff);
+        linepair.write32(0); // reserve space for length information
+        linepair.write32(12);
+        currentfuncdata.linepairbytes += 12;
     }
+    else if (offset <= lastoffset || srcpos.Slinnum == lastlinnum)
+        return; // avoid multiple entries for the same offset
+
     lastoffset = offset;
     lastlinnum = srcpos.Slinnum;
+    linepair.write32(offset);
+    linepair.write32(srcpos.Slinnum | 0x80000000); // mark as statement, not expression
 
-    linepair.write32(cast(uint)offset);
-    linepair.write32(cast(uint)srcpos.Slinnum | 0x80000000);
-    ++currentfuncdata.linepairnum;
+    currentfuncdata.linepairbytes += 8;
+
+    // update segment length
+    auto segmentbytes = currentfuncdata.linepairstart + currentfuncdata.linepairbytes - currentfuncdata.linepairsegment;
+    auto segmentheader = cast(uint*)(linepair.buf + currentfuncdata.linepairsegment);
+    segmentheader[1] = (segmentbytes - 12) / 8;
+    segmentheader[2] = segmentbytes;
 }
 
 /**********************************************
@@ -550,6 +575,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
  * Return offset into F4.
  */
 
+@trusted
 uint cv8_addfile(const(char)* filename)
 {
     //printf("cv8_addfile('%s')\n", filename);
@@ -559,7 +585,7 @@ uint cv8_addfile(const(char)* filename)
      * Unlike C, there won't be lots of .h source files to be accounted for.
      */
 
-    uint length = cast(uint)F3_buf.size();
+    uint length = cast(uint)F3_buf.length();
     ubyte *p = F3_buf.buf;
     size_t len = strlen(filename);
 
@@ -606,7 +632,7 @@ L1:
     // off is the offset of the filename in F3.
     // Find it in F4.
 
-    length = cast(uint)F4_buf.size();
+    length = cast(uint)F4_buf.length();
     p = F4_buf.buf;
 
     uint u = 0;
@@ -633,15 +659,16 @@ L1:
      *   or
      * 00 00
      */
-    F4_buf.writeShort(0);
+    F4_buf.write16(0);
 
     // 2 bytes of pad
-    F4_buf.writeShort(0);
+    F4_buf.write16(0);
 
     //printf("\tadded %x\n", length);
     return length;
 }
 
+@trusted
 void cv8_writesection(int seg, uint type, Outbuffer *buf)
 {
     /* Write out as:
@@ -654,7 +681,7 @@ void cv8_writesection(int seg, uint type, Outbuffer *buf)
      */
     uint off = cast(uint)SegData[seg].SDoffset;
     objmod.bytes(seg,off,4,&type);
-    uint length = cast(uint)buf.size();
+    uint length = cast(uint)buf.length();
     objmod.bytes(seg,off+4,4,&length);
     objmod.bytes(seg,off+8,length,buf.buf);
     // Align to 4
@@ -662,6 +689,7 @@ void cv8_writesection(int seg, uint type, Outbuffer *buf)
     objmod.lidata(seg,off+8+length,pad);
 }
 
+@trusted
 void cv8_outsym(Symbol *s)
 {
     //printf("cv8_outsym(s = '%s')\n", s.Sident);
@@ -672,7 +700,10 @@ void cv8_outsym(Symbol *s)
 
     idx_t typidx = cv_typidx(s.Stype);
     //printf("typidx = %x\n", typidx);
-    const(char)* id = s.prettyIdent ? s.prettyIdent : prettyident(s);
+    version (MARS)
+        const(char)* id = s.prettyIdent ? s.prettyIdent : prettyident(s);
+    else
+        const(char)* id = prettyident(s);
     size_t len = strlen(id);
 
     if(len > CV8_MAX_SYMBOL_LENGTH)
@@ -711,11 +742,11 @@ static if (1)
 {
             // Register relative addressing
             buf.reserve(cast(uint)(2 + 2 + 4 + 4 + 2 + len + 1));
-            buf.writeWordn(cast(uint)(2 + 4 + 4 + 2 + len + 1));
-            buf.writeWordn(0x1111);
+            buf.write16n(cast(uint)(2 + 4 + 4 + 2 + len + 1));
+            buf.write16n(0x1111);
             buf.write32(cast(uint)(s.Soffset + base + BPoff));
             buf.write32(typidx);
-            buf.writeWordn(I64 ? 334 : 22);       // relative to RBP/EBP
+            buf.write16n(I64 ? 334 : 22);       // relative to RBP/EBP
             cv8_writename(buf, id, len);
             buf.writeByte(0);
 }
@@ -723,8 +754,8 @@ else
 {
             // This is supposed to work, implicit BP relative addressing, but it does not
             buf.reserve(2 + 2 + 4 + 4 + len + 1);
-            buf.writeWordn( 2 + 4 + 4 + len + 1);
-            buf.writeWordn(S_BPREL_V3);
+            buf.write16n( 2 + 4 + 4 + len + 1);
+            buf.write16n(S_BPREL_V3);
             buf.write32(s.Soffset + base + BPoff);
             buf.write32(typidx);
             cv8_writename(buf, id, len);
@@ -752,10 +783,10 @@ else
         case_register:
         L2:
             buf.reserve(cast(uint)(2 + 2 + 4 + 2 + len + 1));
-            buf.writeWordn(cast(uint)(2 + 4 + 2 + len + 1));
-            buf.writeWordn(S_REGISTER_V3);
+            buf.write16n(cast(uint)(2 + 4 + 2 + len + 1));
+            buf.write16n(S_REGISTER_V3);
             buf.write32(typidx);
-            buf.writeWordn(cv8_regnum(s));
+            buf.write16n(cv8_regnum(s));
             cv8_writename(buf, id, len);
             buf.writeByte(0);
             break;
@@ -784,15 +815,15 @@ else
                 sr = (sr == S_GDATA_V3) ? 0x1113 : 0x1112;
 
             buf.reserve(cast(uint)(2 + 2 + 4 + 6 + len + 1));
-            buf.writeWordn(cast(uint)(2 + 4 + 6 + len + 1));
-            buf.writeWordn(sr);
+            buf.write16n(cast(uint)(2 + 4 + 6 + len + 1));
+            buf.write16n(sr);
             buf.write32(typidx);
 
             f1f.s = s;
-            f1f.offset = cast(uint)buf.size();
+            f1f.offset = cast(uint)buf.length();
             F1fixup.write(&f1f, f1f.sizeof);
             buf.write32(0);
-            buf.writeWordn(0);
+            buf.write16n(0);
 
             cv8_writename(buf, id, len);
             buf.writeByte(0);
@@ -810,6 +841,7 @@ else
  *      id      the name
  *      typidx  and its type
  */
+@trusted
 void cv8_udt(const(char)* id, idx_t typidx)
 {
     //printf("cv8_udt('%s', %x)\n", id, typidx);
@@ -819,8 +851,8 @@ void cv8_udt(const(char)* id, idx_t typidx)
     if (len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
     buf.reserve(cast(uint)(2 + 2 + 4 + len + 1));
-    buf.writeWordn(cast(uint)(2 + 4 + len + 1));
-    buf.writeWordn(S_UDT_V3);
+    buf.write16n(cast(uint)(2 + 4 + len + 1));
+    buf.write16n(S_UDT_V3);
     buf.write32(typidx);
     cv8_writename(buf, id, len);
     buf.writeByte(0);
@@ -875,6 +907,7 @@ int cv8_regnum(Symbol *s)
  * Put out a forward ref for structs, unions, and classes.
  * Only put out the real definitions with toDebug().
  */
+@trusted
 idx_t cv8_fwdref(Symbol *s)
 {
     assert(config.fulltypes == CV8);
@@ -929,6 +962,7 @@ idx_t cv8_fwdref(Symbol *s)
  *      t       darray type
  *      etypidx type index for E
  */
+@trusted
 idx_t cv8_darray(type *t, idx_t etypidx)
 {
     //printf("cv8_darray(etypidx = %x)\n", etypidx);
@@ -1029,6 +1063,7 @@ static if (0)
  *      t          delegate type
  *      functypidx type index for pointer to function
  */
+@trusted
 idx_t cv8_ddelegate(type *t, idx_t functypidx)
 {
     //printf("cv8_ddelegate(functypidx = %x)\n", functypidx);
@@ -1110,6 +1145,7 @@ else
  *      keyidx     key type
  *      validx     value type
  */
+@trusted
 idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
 {
     //printf("cv8_daarray(keyidx = %x, validx = %x)\n", keyidx, validx);

@@ -1,5 +1,0 @@
-Added `__c_wchar_t` as a correct mangling type for C's `wchar_t`
-
-This allows code interfacing with C++ that uses `wchar_t` to link correctly.
-It replaces `wchar` (Windows) and `dchar` (Posix) as the memory type for the
-DRuntime alias `wchar_t`.

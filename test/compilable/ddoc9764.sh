@@ -2,7 +2,7 @@
 
 output_html=${OUTPUT_BASE}.html
 
-rm -f ${output_html}
+rm_retry ${output_html}
 
 $DMD -m${MODEL} -D -o- ${EXTRA_FILES}/ddoc9764.dd -Df${output_html}
 

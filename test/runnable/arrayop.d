@@ -366,9 +366,9 @@ template Integral(T)
         abc = null;
         A()[] = ~B()[];
         assert(abc == "AB");
-        assert(a[0] == ~cast(T)1);
-        assert(a[1] == ~cast(T)2);
-        assert(a[2] == ~cast(T)3);
+        assert(a[0] == cast(T) ~1);
+        assert(a[1] == cast(T) ~2);
+        assert(a[2] == cast(T) ~3);
 
         abc = null;
         A()[] = B()[] & 2;
@@ -907,8 +907,20 @@ void test14851()
 
 int main()
 {
-    test1();
-    test2();
+    version(X86)
+    {
+        test1();
+        test2();
+    }
+    else version(X86_64)
+    {
+        test1();
+        test2();
+    }
+    else
+    {
+        //pragma(msg, "Test skipped because arrayop evaluation order is ill-defined.");
+    }
     test3();
     test4();
     test5();

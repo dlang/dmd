@@ -1,7 +1,8 @@
 module object;
 
-private alias extern(C) int function(char[][] args) MainFunc;
-private extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
+extern(C) void _Dmain();
+
+extern(C) void main()
 {
-    return mainFunc(null);
+    _Dmain();
 }

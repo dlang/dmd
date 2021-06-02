@@ -1,6 +1,7 @@
 /**
- * Part of the Compiler implementation of the D programming language
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Development utility for printing AST nodes by their internal name, instead of as D source code.
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     Stefan Koch
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/asttypename.d, _asttypename.d)
@@ -10,6 +11,7 @@
 
 module dmd.asttypename;
 
+import dmd.ast_node;
 import dmd.attrib;
 import dmd.aliasthis;
 import dmd.aggregate;
@@ -51,8 +53,8 @@ string astTypeName(RootObject node)
             return "RootObject";
         case DYNCAST.identifier:
             return "Identifier";
-        case DYNCAST.templateparameter:
-            return "TemplateParameter";
+        case DYNCAST.tuple:
+            return "Tuple";
 
         case DYNCAST.expression:
             return astTypeName(cast(Expression) node);
@@ -60,18 +62,18 @@ string astTypeName(RootObject node)
             return astTypeName(cast(Dsymbol) node);
         case DYNCAST.type:
             return astTypeName(cast(Type) node);
-        case DYNCAST.tuple:
-            return astTypeName(cast(Tuple) node);
         case DYNCAST.parameter:
             return astTypeName(cast(Parameter) node);
         case DYNCAST.statement:
             return astTypeName(cast(Statement) node);
         case DYNCAST.condition:
             return astTypeName(cast(Condition) node);
+        case DYNCAST.templateparameter:
+            return astTypeName(cast(TemplateParameter) node);
     }
 }
 
-mixin
+extern(D) enum mixin_string =
 ({
     string astTypeNameFunctions;
     string visitOverloads;
@@ -80,7 +82,7 @@ mixin
     {
         static if (is(typeof(ov) P == function))
         {
-            static if (is(P[0] S == super) && is(S[0] == RootObject))
+            static if (is(P[0] S == super) && is(S[0] == ASTNode))
             {
                 astTypeNameFunctions ~= `
 string astTypeName(` ~ P[0].stringof ~ ` node)
@@ -110,10 +112,16 @@ public :
 ` ~ visitOverloads ~ "}";
 }());
 
+// pragma(msg, mixin_string);
+mixin(mixin_string);
 ///
 unittest
 {
     import dmd.globals : Loc;
     Expression e = new TypeidExp(Loc.initial, null);
+    Tuple t = new Tuple();
+    TemplateTypeParameter tp = new TemplateTypeParameter(Loc.initial, null, null, null);
     assert(e.astTypeName == "TypeidExp");
+    assert(t.astTypeName == "Tuple");
+    assert(tp.astTypeName == "TemplateTypeParameter");
 }

@@ -1,4 +1,14 @@
-// PERMUTE_ARGS:
+/*
+PERMUTE_ARGS:
+RUN_OUTPUT:
+---
+foo()
+foo() 2
+foo() 3
+foo() 4
+Success
+---
+*/
 
 extern(C) int printf(const char*, ...);
 
@@ -50,10 +60,9 @@ void foo2()
     value = c.values;
     assert(value.length == 2);
 
-    for (i = 0; i < key.length; i++)
-    {
-        printf("c[\"%.*s\"] = %d\n", key[i].length, key[i].ptr, value[i]);
-    }
+    const fooIndex = key[1] == "foo";
+    assert(key[fooIndex] == "foo" && value[fooIndex] == 3);
+    assert(key[1 - fooIndex] == "bar" && value[1 - fooIndex] == 4);
 
     assert("foo" in c);
     c.remove("foo");
@@ -69,7 +78,6 @@ void foo2()
 void testaa()
 {
     size_t i = foo("abc");
-    printf("i = %d\n", i);
     assert(i == 0);
 
     foo2();

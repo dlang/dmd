@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Semantic analysis of initializers.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/initsem.d, _initsem.d)
@@ -33,6 +32,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.opover;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
@@ -74,7 +74,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
     return e;
 Lno:
     error(ai.loc, "not an associative array initializer");
-    return new ErrorExp();
+    return ErrorExp.get();
 }
 
 /******************************************
@@ -104,14 +104,16 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
 
     Initializer visitStruct(StructInitializer i)
     {
-        //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
+        //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), i.toChars());
         t = t.toBasetype();
         if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
             t = t.nextOf().toBasetype();
         if (t.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)t).sym;
-            if (sd.ctor)
+            // check if the sd has a regular ctor (user defined non-copy ctor)
+            // that is not disabled.
+            if (sd.hasRegularCtor(true))
             {
                 error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
                 return new ErrorInitializer();
@@ -121,7 +123,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             {
                 return new ErrorInitializer();
             }
-            size_t nfields = sd.fields.dim - sd.isNested();
+            const nfields = sd.nonHiddenFields();
             //expandTuples for non-identity arguments?
             auto elements = new Expressions(nfields);
             for (size_t j = 0; j < elements.dim; j++)
@@ -144,6 +146,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                             error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                         return new ErrorInitializer();
                     }
+                    s.checkDeprecated(i.loc, sc);
+
                     s = s.toAlias();
                     // Find out which field index it is
                     for (fieldi = 0; 1; fieldi++)
@@ -171,8 +175,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 }
                 if (vd.type.hasPointers)
                 {
-                    if ((t.alignment() < Target.ptrsize ||
-                         (vd.offset & (Target.ptrsize - 1))) &&
+                    if ((t.alignment() < target.ptrsize ||
+                         (vd.offset & (target.ptrsize - 1))) &&
                         sc.func && sc.func.setUnsafe())
                     {
                         error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
@@ -221,8 +225,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             TOK tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
             /* Rewrite as empty delegate literal { }
              */
-            auto parameters = new Parameters();
-            Type tf = new TypeFunction(parameters, null, 0, LINK.d);
+            Type tf = new TypeFunction(ParameterList(), null, LINK.d);
             auto fd = new FuncLiteralDeclaration(i.loc, Loc.initial, tf, tok, null);
             fd.fbody = new CompoundStatement(i.loc, new Statements());
             fd.endloc = i.loc;
@@ -230,7 +233,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             auto ie = new ExpInitializer(i.loc, e);
             return ie.initializerSemantic(sc, t, needInterpret);
         }
-        error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
+        if (t.ty != Terror)
+            error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
         return new ErrorInitializer();
     }
 
@@ -295,7 +299,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 const uinteger_t idxvalue = idx.toInteger();
                 if (idxvalue >= amax)
                 {
-                    error(i.loc, "array index %llu overflow", ulong(idxvalue));
+                    error(i.loc, "array index %llu overflow", idxvalue);
                     errors = true;
                 }
                 length = cast(uint)idxvalue;
@@ -378,6 +382,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             return new ErrorInitializer();
         }
         uint olderrors = global.errors;
+        /* Save the expression before ctfe
+         * Otherwise the error message would contain for example "&[0][0]" instead of "new int"
+         * Regression: https://issues.dlang.org/show_bug.cgi?id=21687
+         */
+        Expression currExp = i.exp;
         if (needInterpret)
         {
             // If the result will be implicitly cast, move the cast into CTFE
@@ -392,6 +401,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 return i;
             }
             i.exp = i.exp.ctfeInterpret();
+            if (i.exp.op == TOK.voidExpression)
+                error(i.loc, "variables cannot be initialized with an expression of type `void`. Use `void` initialization instead.");
         }
         else
         {
@@ -415,7 +426,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i.exp))
         {
-            i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", i.exp.toChars());
+            i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", currExp.toChars());
             return new ErrorInitializer();
         }
         Type tb = t.toBasetype();
@@ -436,8 +447,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                (typeb.ty == Tarray || typeb.ty == Tsarray) &&
-                (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                (typeb.ty == Tarray || typeb.ty == Tsarray) && tynto.isSomeChar &&
                 se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
             {
                 i.exp = se.castTo(sc, t);
@@ -456,6 +466,25 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 e = new DotIdExp(i.loc, e, Id.ctor);
                 e = new CallExp(i.loc, e, i.exp);
                 e = e.expressionSemantic(sc);
+                if (needInterpret)
+                    i.exp = e.ctfeInterpret();
+                else
+                    i.exp = e.optimize(WANTvalue);
+            }
+            else if (search_function(sd, Id.call))
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=1547
+                 *
+                 * Look for static opCall
+                 *
+                 * Rewrite as:
+                 *  i.exp = typeof(sd).opCall(arguments)
+                 */
+
+                Expression e = typeDotIdExp(i.loc, sd.type, Id.call);
+                e = new CallExp(i.loc, e, i.exp);
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
                 if (needInterpret)
                     i.exp = e.ctfeInterpret();
                 else
@@ -497,7 +526,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 if (dim1 != dim2)
                 {
                     i.exp.error("mismatched array lengths, %d and %d", cast(int)dim1, cast(int)dim2);
-                    i.exp = new ErrorExp();
+                    i.exp = ErrorExp.get();
                 }
             }
             i.exp = i.exp.implicitCastTo(sc, t);
@@ -620,7 +649,7 @@ Initializer inferType(Initializer init, Scope* sc)
 
     Initializer visitExp(ExpInitializer init)
     {
-        //printf("ExpInitializer::inferType() %s\n", toChars());
+        //printf("ExpInitializer::inferType() %s\n", init.toChars());
         init.exp = init.exp.expressionSemantic(sc);
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
@@ -700,7 +729,7 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
 
     Expression visitError(ErrorInitializer)
     {
-        return new ErrorExp();
+        return ErrorExp.get();
     }
 
     /***************************************
@@ -730,7 +759,7 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
         {
             if (init.type == Type.terror)
             {
-                return new ErrorExp();
+                return ErrorExp.get();
             }
             t = init.type.toBasetype();
             switch (t.ty)

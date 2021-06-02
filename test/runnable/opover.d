@@ -1,5 +1,29 @@
+/*
+RUN_OUTPUT:
+---
+i = 1
+Writer.opShl(char[])
+BinaryWriter.opShl(int)
+a + 1 = 2
+1 + a = 2
+a + b = 3
+b + a = 3
+i = 64
+12
+534
+A::opShl(int 4)
+4A::opShl(char[])
+ A::opShl(int 12)
+12A::opShl(char[])
+
+B::opShl_r(A)
+Success
+---
+*/
 
 // Test operator overloading
+// Ignore deprecation warnings for D1 style operator overloading
+// TRANSFORM_OUTPUT: remove_lines("Deprecation: `op")
 
 import core.stdc.stdio;
 
@@ -776,7 +800,7 @@ class A13
  A13 opShl(string x)
  {
     printf("A::opShl(char[])\n");
-    printf("%.*s", x.length, x.ptr);
+    printf("%.*s", cast(int)x.length, x.ptr);
     return this;
  }
 }
@@ -1080,7 +1104,41 @@ class C14344
 }
 
 /**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=1547
+struct A
+{
+    int b;
+    static A opCall(int k)
+    {
+        assert(0);
+    }
+    this(int) {}
+}
 
+void fun(A k = 2) {}
+
+void test1547()
+{
+    fun();
+}
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20475
+struct S20475
+{
+    string[2] x;
+}
+
+void test20475()
+{
+    auto s = S20475(["abc", "bcd"]);
+    auto t = S20475(["abc", ""]);
+    string u = "abcd";
+    t.x[1] = u[1..$];
+    assert(s == t);
+}
+
+/**************************************/
 int main()
 {
     test1();
@@ -1098,6 +1156,7 @@ int main()
     test13();
     test14();
     test15();
+    test1547();
     test4953a();
     test4953b();
     test4953c();
@@ -1105,6 +1164,7 @@ int main()
     test4993();
     test8133();
     test8522();
+    test20475();
 
     printf("Success\n");
     return 0;

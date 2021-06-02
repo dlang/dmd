@@ -11,4 +11,4 @@ $DMD -m${MODEL} -I${EXTRA_FILES} -inline -debug -of${exename} ${EXTRA_FILES}${SE
 
 ${exename}
 
-rm ${OUTPUT_BASE}{${LIBEXT},${EXE},${OBJ}}
+rm_retry ${OUTPUT_BASE}{${LIBEXT},${EXE},${OBJ}}

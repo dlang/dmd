@@ -1,8 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines lexical tokens.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Specification: $(LINK2 https://dlang.org/spec/lex.html#tokens, Tokens)
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/tokens.d, _tokens.d)
@@ -22,13 +23,13 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.utf;
 
-enum TOK : int
+enum TOK : ushort
 {
     reserved,
 
     // Other
-    leftParentheses,
-    rightParentheses,
+    leftParenthesis,
+    rightParenthesis,
     leftBracket,
     rightBracket,
     leftCurly,
@@ -127,7 +128,6 @@ enum TOK : int
     construct,
     blit,
     dot,
-    arrow,
     comma,
     question,
     andAnd,
@@ -136,7 +136,7 @@ enum TOK : int
     preMinusMinus,
 
     // Numeric literals
-    int32Literal = 105,
+    int32Literal = 104,
     uns32Literal,
     int64Literal,
     uns64Literal,
@@ -150,12 +150,12 @@ enum TOK : int
     imaginary80Literal,
 
     // Char constants
-    charLiteral = 117,
+    charLiteral = 116,
     wcharLiteral,
     dcharLiteral,
 
     // Leaf operators
-    identifier = 120,
+    identifier = 119,
     string_,
     hexadecimalString,
     this_,
@@ -165,7 +165,7 @@ enum TOK : int
     error,
 
     // Basic types
-    void_ = 128,
+    void_ = 127,
     int8,
     uns8,
     int16,
@@ -191,7 +191,7 @@ enum TOK : int
     bool_,
 
     // Aggregates
-    struct_ = 152,
+    struct_ = 151,
     class_,
     interface_,
     union_,
@@ -220,11 +220,10 @@ enum TOK : int
     lazy_,
     auto_,
     package_,
-    manifest,
     immutable_,
 
     // Statements
-    if_ = 183,
+    if_ = 181,
     else_,
     while_,
     for_,
@@ -250,7 +249,7 @@ enum TOK : int
     onScopeSuccess,
 
     // Contracts
-    invariant_ = 207,
+    invariant_ = 205,
 
     // Testing
     unittest_,
@@ -260,7 +259,7 @@ enum TOK : int
     ref_,
     macro_,
 
-    parameters = 212,
+    parameters = 210,
     traits,
     overloadSet,
     pure_,
@@ -269,9 +268,9 @@ enum TOK : int
     line,
     file,
     fileFullPath,
-    moduleString,
-    functionString,
-    prettyFunction,
+    moduleString,   // __MODULE__
+    functionString, // __FUNCTION__
+    prettyFunction, // __PRETTY_FUNCTION__
     shared_,
     at,
     pow,
@@ -280,15 +279,45 @@ enum TOK : int
     vector,
     pound,
 
-    interval = 231,
+    interval = 229,
     voidExpression,
     cantExpression,
     showCtfeContext,
 
     objcClassReference,
+    vectorArray,
 
-    max_,
+    arrow,      // ->
+    colonColon, // ::
+    wchar_tLiteral,
+
+    // C only keywords
+    inline,
+    register,
+    restrict,
+    signed,
+    sizeof_,
+    typedef_,
+    unsigned,
+    volatile,
+    _Alignas,
+    _Alignof,
+    _Atomic,
+    _Bool,
+    _Complex,
+    _Generic,
+    _Imaginary,
+    _Noreturn,
+    _Static_assert,
+    _Thread_local,
+
+    // C only extended keywords
+    __cdecl,
+    __declspec,
+    __attribute__,
 }
+
+enum FirstCKeyword = TOK.inline;
 
 // Assert that all token enum members have consecutive values and
 // that none of them overlap
@@ -301,7 +330,6 @@ static assert(() {
     }
     return true;
 }());
-
 
 /****************************************
  */
@@ -419,7 +447,67 @@ private immutable TOK[] keywords =
     TOK.prettyFunction,
     TOK.shared_,
     TOK.immutable_,
+
+    // C only keywords
+    TOK.inline,
+    TOK.register,
+    TOK.restrict,
+    TOK.signed,
+    TOK.sizeof_,
+    TOK.typedef_,
+    TOK.unsigned,
+    TOK.volatile,
+    TOK._Alignas,
+    TOK._Alignof,
+    TOK._Atomic,
+    TOK._Bool,
+    TOK._Complex,
+    TOK._Generic,
+    TOK._Imaginary,
+    TOK._Noreturn,
+    TOK._Static_assert,
+    TOK._Thread_local,
+
+    // C only extended keywords
+    TOK.__cdecl,
+    TOK.__declspec,
+    TOK.__attribute__,
 ];
+
+// Initialize the identifier pool
+shared static this() nothrow
+{
+    Identifier.initTable();
+    foreach (kw; keywords)
+    {
+        //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
+        Identifier.idPool(Token.tochars[kw].ptr, Token.tochars[kw].length, cast(uint)kw);
+    }
+}
+
+/************************************
+ * This is used to pick the C keywords out of the tokens.
+ * If it's not a C keyword, then it's an identifier.
+ */
+static immutable TOK[TOK.max + 1] Ckeywords =
+() {
+    with (TOK)
+    {
+        TOK[TOK.max + 1] tab = identifier;  // default to identifier
+        enum Ckwds = [ auto_, break_, case_, char_, const_, continue_, default_, do_, float64, else_,
+                       enum_, extern_, float32, for_, goto_, if_, inline, int32, int64, register,
+                       restrict, return_, int16, signed, sizeof_, static_, struct_, switch_, typedef_,
+                       union_, unsigned, void_, volatile, while_, asm_,
+                       _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn,
+                       _Static_assert, _Thread_local, __cdecl, __declspec, __attribute__ ];
+
+        foreach (kw; Ckwds)
+            tab[kw] = cast(TOK) kw;
+
+        return tab;
+    }
+} ();
+
 
 /***********************************************************
  */
@@ -429,8 +517,8 @@ extern (C++) struct Token
     Loc loc;
     const(char)* ptr; // pointer to first character of this token within buffer
     TOK value;
-    const(char)* blockComment; // doc comment string prior to this token
-    const(char)* lineComment; // doc comment for previous token
+    const(char)[] blockComment; // doc comment string prior to this token
+    const(char)[] lineComment; // doc comment for previous token
 
     union
     {
@@ -450,7 +538,7 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    extern (D) private __gshared immutable string[TOK.max_] tochars =
+    extern (D) private static immutable string[TOK.max + 1] tochars =
     [
         // Keywords
         TOK.this_: "this",
@@ -568,8 +656,8 @@ extern (C++) struct Token
         TOK.endOfFile: "End of File",
         TOK.leftCurly: "{",
         TOK.rightCurly: "}",
-        TOK.leftParentheses: "(",
-        TOK.rightParentheses: ")",
+        TOK.leftParenthesis: "(",
+        TOK.rightParenthesis: ")",
         TOK.leftBracket: "[",
         TOK.rightBracket: "]",
         TOK.semicolon: ";",
@@ -640,6 +728,8 @@ extern (C++) struct Token
         TOK.powAssign: "^^=",
         TOK.goesTo: "=>",
         TOK.pound: "#",
+        TOK.arrow: "->",
+        TOK.colonColon: "::",
 
         // For debugging
         TOK.error: "error",
@@ -670,7 +760,6 @@ extern (C++) struct Token
         TOK.classReference: "classreference",
         TOK.thrownException: "thrownexception",
         TOK.delegateFunctionPointer: "delegatefuncptr",
-        TOK.arrow: "arrow",
         TOK.int32Literal: "int32v",
         TOK.uns32Literal: "uns32v",
         TOK.int64Literal: "int64v",
@@ -686,10 +775,10 @@ extern (C++) struct Token
         TOK.charLiteral: "charv",
         TOK.wcharLiteral: "wcharv",
         TOK.dcharLiteral: "dcharv",
+        TOK.wchar_tLiteral: "wchar_tv",
 
         TOK.halt: "halt",
         TOK.hexadecimalString: "xstring",
-        TOK.manifest: "manifest",
 
         TOK.interval: "interval",
         TOK.voidExpression: "voidexp",
@@ -697,6 +786,32 @@ extern (C++) struct Token
         TOK.showCtfeContext : "showCtfeContext",
 
         TOK.objcClassReference: "class",
+        TOK.vectorArray: "vectorarray",
+
+        // C only keywords
+        TOK.inline    : "inline",
+        TOK.register  : "register",
+        TOK.restrict  : "restrict",
+        TOK.signed    : "signed",
+        TOK.sizeof_   : "sizeof",
+        TOK.typedef_  : "typedef",
+        TOK.unsigned  : "unsigned",
+        TOK.volatile  : "volatile",
+        TOK._Alignas  : "_Alignas",
+        TOK._Alignof  : "_Alignof",
+        TOK._Atomic   : "_Atomic",
+        TOK._Bool     : "_Bool",
+        TOK._Complex  : "_Complex",
+        TOK._Generic  : "_Generic",
+        TOK._Imaginary: "_Imaginary",
+        TOK._Noreturn : "_Noreturn",
+        TOK._Static_assert : "_Static_assert",
+        TOK._Thread_local  : "_Thread_local",
+
+        // C only extended keywords
+        TOK.__cdecl        : "__cdecl",
+        TOK.__declspec     : "__declspec",
+        TOK.__attribute__  : "__attribute__",
     ];
 
     static assert(() {
@@ -705,35 +820,7 @@ extern (C++) struct Token
         return true;
     }());
 
-    shared static this()
-    {
-        Identifier.initTable();
-        foreach (kw; keywords)
-        {
-            //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
-            Identifier.idPool(tochars[kw].ptr, tochars[kw].length, cast(uint)kw);
-        }
-    }
-
-    extern (D) private __gshared Token* freelist = null;
-
-    extern (D) static Token* alloc()
-    {
-        if (Token.freelist)
-        {
-            Token* t = freelist;
-            freelist = t.next;
-            t.next = null;
-            return t;
-        }
-        return new Token();
-    }
-
-    void free()
-    {
-        next = freelist;
-        freelist = &this;
-    }
+nothrow:
 
     int isKeyword() const
     {
@@ -753,7 +840,7 @@ extern (C++) struct Token
      */
     void setString(const(char)* ptr, size_t length)
     {
-        auto s = cast(char*)mem.xmalloc(length + 1);
+        auto s = cast(char*)mem.xmalloc_noscan(length + 1);
         memcpy(s, ptr, length);
         s[length] = 0;
         ustring = s;
@@ -768,7 +855,7 @@ extern (C++) struct Token
      */
     void setString(const ref OutBuffer buf)
     {
-        setString(cast(const(char)*)buf.data, buf.offset);
+        setString(cast(const(char)*)buf[].ptr, buf.length);
     }
 
     /****
@@ -794,6 +881,7 @@ extern (C++) struct Token
         case TOK.charLiteral:
         case TOK.wcharLiteral:
         case TOK.dcharLiteral:
+        case TOK.wchar_tLiteral:
             sprintf(&buffer[0], "%uU", cast(d_uns32)unsvalue);
             break;
         case TOK.int64Literal:
@@ -832,7 +920,7 @@ extern (C++) struct Token
                 for (size_t i = 0; i < len;)
                 {
                     dchar c;
-                    utf_decodeChar(ustring, len, i, c);
+                    utf_decodeChar(ustring[0 .. len], i, c);
                     switch (c)
                     {
                     case 0:
@@ -860,7 +948,8 @@ extern (C++) struct Token
                 buf.writeByte('"');
                 if (postfix)
                     buf.writeByte(postfix);
-                p = buf.extractString();
+                buf.writeByte(0);
+                p = buf.extractSlice().ptr;
             }
             break;
         case TOK.hexadecimalString:
@@ -878,7 +967,7 @@ extern (C++) struct Token
                 if (postfix)
                     buf.writeByte(postfix);
                 buf.writeByte(0);
-                p = buf.extractData();
+                p = buf.extractSlice().ptr;
                 break;
             }
         case TOK.identifier:
@@ -918,13 +1007,14 @@ extern (C++) struct Token
         return p;
     }
 
-    extern (D) static const(char)* toChars(TOK value)
+    static const(char)* toChars(uint value)
     {
         return toString(value).ptr;
     }
 
-    extern (D) static string toString(TOK value) pure nothrow @nogc @safe
+    extern (D) static string toString(uint value) pure nothrow @nogc @safe
     {
         return tochars[value];
     }
 }
+

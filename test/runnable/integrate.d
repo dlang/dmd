@@ -7,7 +7,7 @@
 //
 // contributed by Sebastien Loisel
 
-import std.math, std.stdio, std.string, std.conv;
+import core.stdc.math;
 
 alias fl F;
 struct fl
@@ -24,22 +24,22 @@ struct fl
     }
     static fl opCall(int x) { fl f; f.set(x); return f; }
     static fl opCall(double x) { fl f; f.set(x); return f; }
-    fl opAdd(fl y) { return fl(a+y.a); }
-    fl opAddAssign(fl y) { this=(this)+y; return this; }
-    fl opSub(fl y) { return fl(a-y.a); }
-    fl opSubAssign(fl y) { this=(this)-y; return this; }
-    fl opMul(fl y) { return fl(a*y.a); }
-    fl opDiv(fl y) { return fl(a/y.a); }
+    fl opBinary(string op : "+")(fl y) { return fl(a+y.a); }
+    fl opOpAssign(string op : "+")(fl y) { this=(this)+y; return this; }
+    fl opBinary(string op : "-")(fl y) { return fl(a-y.a); }
+    fl opOpAssign(string op : "+")(fl y) { this=(this)-y; return this; }
+    fl opBinary(string op : "*")(fl y) { return fl(a*y.a); }
+    fl opBinary(string op : "/")(fl y) { return fl(a/y.a); }
 
-    fl opAdd(int y) { return fl(a+y); }
-    fl opSub(int y) { return fl(a-y); }
-    fl opMul(int y) { return fl(a*y); }
-    fl opDiv(int y) { return fl(a/y); }
+    fl opBinary(string op : "+")(int y) { return fl(a+y); }
+    fl opBinary(string op : "-")(int y) { return fl(a-y); }
+    fl opBinary(string op : "*")(int y) { return fl(a*y); }
+    fl opBinary(string op : "/")(int y) { return fl(a/y); }
 
-    fl opAdd(double y) { return fl(a+y); }
-    fl opSub(double y) { return fl(a-y); }
-    fl opMul(double y) { return fl(a*y); }
-    fl opDiv(double y) { return fl(a/y); }
+    fl opBinary(string op : "+")(double y) { return fl(a+y); }
+    fl opBinary(string op : "-")(double y) { return fl(a-y); }
+    fl opBinary(string op : "*")(double y) { return fl(a*y); }
+    fl opBinary(string op : "/")(double y) { return fl(a/y); }
 }
 
 struct ad
@@ -49,12 +49,12 @@ struct ad
     static ad opCall(int y) { ad t; t.x = F(y); t.dx = F(0); return t; }
     static ad opCall(F y) { ad t; t.x = y; t.dx = F(0); return t; }
     static ad opCall(F X, F DX) { ad t; t.x = X; t.dx = DX; return t; }
-    ad opAdd(ad y) { return ad(x+y.x,dx+y.dx); }
-    ad opSub(ad y) { return ad(x-y.x,dx-y.dx); }
-    ad opMul(ad y) { return ad(x*y.x,dx*y.x+x*y.dx); }
-    ad opDiv(ad y) { return ad(x/y.x,(dx*y.x-x*y.dx)/(y.x*y.x)); }
-    ad opMul(F v) { return ad(x*v,dx*v); }
-    ad opAdd(F v) { return ad(x+v,dx); }
+    ad opBinary(string op : "+")(ad y) { return ad(x+y.x,dx+y.dx); }
+    ad opBinary(string op : "-")(ad y) { return ad(x-y.x,dx-y.dx); }
+    ad opBinary(string op : "*")(ad y) { return ad(x*y.x,dx*y.x+x*y.dx); }
+    ad opBinary(string op : "/")(ad y) { return ad(x/y.x,(dx*y.x-x*y.dx)/(y.x*y.x)); }
+    ad opBinary(string op : "*")(F v) { return ad(x*v,dx*v); }
+    ad opBinary(string op : "+")(F v) { return ad(x+v,dx); }
 }
 
 F sqr(F x) { return x * x; }
@@ -147,18 +147,20 @@ struct ratintegrand
     ad opCall(ad t, ad y) { return rat(y) - t; }
 }
 
-void integrate_functions(F x0, int n)
+auto integrate_functions(F x0, int n)
 {
     sqrintegrand   i1;
-    writeln("i1 ",pr(trapezoid_method(F(1), F(1)/F(n), x0, i1 ,n)));
+    return trapezoid_method(F(1), F(1) / F(n), x0, i1 ,n).a;
 }
-
-char[] pr(fl x) { char[] s = new char[100]; int len = sprintf(s.ptr,"%.2e",x.a); return s[0..len]; }
 
 int main(string[] args)
 {
-  int N = args.length > 1 ? to!int(args[1]) : 50;
+  int N = 50;
 
-  integrate_functions(F(0.02),N);
+  const res = integrate_functions(F(0.02),N);
+
+  assert(0.01999 < res);
+  assert(res < 0.02);
+
   return 0;
 }

@@ -1,4 +1,37 @@
-// PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
+// REQUIRED_ARGS: -preview=rvaluerefparam
+//
+/* TEST_OUTPUT:
+---
+Boo!double
+Boo!int
+true
+int
+!! immutable(int)[]
+int(int i, long j = 7L)
+long
+C10390(C10390(C10390(<recursion>)))
+tuple(height)
+tuple(get, get)
+tuple(clear)
+tuple(draw, draw)
+runnable/xtest46.d(149): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(151): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(152): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(154): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(181): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(183): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(184): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(186): Deprecation: `opDot` is deprecated. Use `alias this`
+const(int)
+string[]
+double[]
+double[]
+{}
+tuple("m")
+true
+TFunction1: extern (C) void function()
+---
+*/
 
 //import std.stdio;
 import core.stdc.stdio;
@@ -7,7 +40,7 @@ import core.stdc.stdio;
 
 struct S
 {
-    int opStar() { return 7; }
+    int opUnary(string op)() if (op == "*") { return 7; }
 }
 
 void test1()
@@ -41,29 +74,6 @@ void foo2(T...)(T args)
 void bar2(D)(const(void)* arg)
 {
     D obj = *cast(D*) arg;
-}
-
-/***************************************************/
-
-void test3()
-{
-    version (unittest)
-    {
-        printf("unittest!\n");
-    }
-    else
-    {
-        printf("no unittest!\n");
-    }
-
-    version (assert)
-    {
-        printf("assert!\n");
-    }
-    else
-    {
-        printf("no assert!\n");
-    }
 }
 
 
@@ -127,7 +137,7 @@ struct T6
     S6 s;
     int b = 7;
 
-    S6* opDot()
+    S6* opDot() return
     {
         return &s;
     }
@@ -184,7 +194,7 @@ void test7()
 void foo8(int n1 = __LINE__ + 0, int n2 = __LINE__, string s = __FILE__)
 {
     assert(n1 < n2);
-    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, s.length, s.ptr);
+    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, cast(int)s.length, s.ptr);
 }
 
 void test8()
@@ -197,7 +207,7 @@ void test8()
 void foo9(int n1 = __LINE__ + 0, int n2 = __LINE__, string s = __FILE__)()
 {
     assert(n1 < n2);
-    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, s.length, s.ptr);
+    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, cast(int)s.length, s.ptr);
 }
 
 void test9()
@@ -531,7 +541,7 @@ void test27()
 
 /***************************************************/
 
-ref int foo28(ref int x) { return x; }
+ref int foo28(return ref int x) { return x; }
 
 void test28()
 {
@@ -654,13 +664,13 @@ void test34()
 
 /***************************************************/
 
-ref int foo35(bool condition, ref int lhs, ref int rhs)
+ref int foo35(bool condition, return ref int lhs, return ref int rhs)
 {
         if ( condition ) return lhs;
         return rhs;
 }
 
-ref int bar35()(bool condition, ref int lhs, ref int rhs)
+ref int bar35()(bool condition, return ref int lhs, return ref int rhs)
 {
         if ( condition ) return lhs;
         return rhs;
@@ -995,7 +1005,7 @@ struct S49
 
     this( string name )
     {
-        printf( "(ctor) &%.*s.x = %p\n", name.length, name.ptr, &x );
+        printf( "(ctor) &%.*s.x = %p\n", cast(int)name.length, name.ptr, &x );
         p = cast(void*)&x;
     }
 
@@ -1315,7 +1325,7 @@ void test67()
 
 void test68()
 {
-    digestToString(cast(ubyte[16])x"c3fcd3d76192e4007dfb496cca67e13b");
+    digestToString(cast(ubyte[16])"\xc3\xfc\xd3\xd7\x61\x92\xe4\x00\x7d\xfb\x49\x6c\xca\x67\xe1\x3b");
 }
 
 void digestToString(const ubyte[16] digest)
@@ -1328,7 +1338,7 @@ void digestToString(const ubyte[16] digest)
 
 void test69()
 {
-    digestToString69(cast(ubyte[16])x"c3fcd3d76192e4007dfb496cca67e13b");
+    digestToString69(cast(ubyte[16])"\xc3\xfc\xd3\xd7\x61\x92\xe4\x00\x7d\xfb\x49\x6c\xca\x67\xe1\x3b");
 }
 
 void digestToString69(ref const ubyte[16] digest)
@@ -1800,7 +1810,7 @@ struct S88
 {
     void opDispatch(string s, T)(T i)
     {
-        printf("S.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
+        printf("S.opDispatch('%.*s', %d)\n", cast(int)s.length, s.ptr, i);
     }
 }
 
@@ -1808,7 +1818,7 @@ class C88
 {
     void opDispatch(string s)(int i)
     {
-        printf("C.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
+        printf("C.opDispatch('%.*s', %d)\n", cast(int)s.length, s.ptr, i);
     }
 }
 
@@ -1842,7 +1852,7 @@ void test89() {
         int bar() { return x; }
     }
     X s;
-    printf("%d\n", s.sizeof);
+    printf("%zd\n", s.sizeof);
     assert(s.sizeof == 4);
 }
 
@@ -2190,7 +2200,7 @@ void test104()
 
 /***************************************************/
 
-ref int bump105(ref int x) { return ++x; }
+ref int bump105(return ref int x) { return ++x; }
 
 void test105()
 {
@@ -2549,21 +2559,6 @@ void test124() {
     Bar124 q;
     stuff2["dog"] = q;
     assert(stuff2["dog"].z == 17);
-}
-
-/***************************************************/
-
-void test3022()
-{
-    static class Foo3022
-    {
-        new(size_t)
-        {
-            assert(0);
-        }
-    }
-
-    scope x = new Foo3022;
 }
 
 /***************************************************/
@@ -3645,18 +3640,18 @@ class A2540
 class B2540 : A2540
 {
     int b;
-    override super.X foo() { return 1; }
+    override typeof(super).X foo() { return 1; }
 
-    alias this athis;
-    alias this.b thisb;
-    alias super.a supera;
-    alias super.foo superfoo;
-    alias this.foo thisfoo;
+    alias typeof(this) athis;
+    alias typeof(this).b thisb;
+    alias typeof(super).a supera;
+    alias typeof(super).foo superfoo;
+    alias typeof(this).foo thisfoo;
 }
 
 struct X2540
 {
-    alias this athis;
+    alias typeof(this) athis;
 }
 
 void test2540()
@@ -3700,7 +3695,7 @@ B14348 test14348()
 struct S7295
 {
     int member;
-    @property ref int refCountedPayload() { return member; }
+    @property ref int refCountedPayload() return { return member; }
     alias refCountedPayload this;
 }
 
@@ -3718,15 +3713,11 @@ void bar7295() pure
 
 void test149()
 {
-    import std.traits;
-
     char a;
     immutable(char) b;
 
     static assert(is(typeof(true ? a : b) == const(char)));
     static assert(is(typeof([a, b][0]) == const(char)));
-
-    static assert(is(CommonType!(typeof(a), typeof(b)) == const(char)));
 }
 
 
@@ -3901,7 +3892,7 @@ void test2486()
 
     int[] arr = [1,2,3];
     foo(arr);   //OK
-    static assert(!__traits(compiles, foo(arr[1..2]))); // should be NG
+    static assert(__traits(compiles, foo(arr[1..2])));
 
     struct S
     {
@@ -3912,7 +3903,7 @@ void test2486()
     s[];
     // opSlice should return rvalue
     static assert(is(typeof(&S.opSlice) == int[] function() pure nothrow @nogc @safe));
-    static assert(!__traits(compiles, foo(s[])));       // should be NG
+    static assert(__traits(compiles, foo(s[])));
 }
 
 /***************************************************/
@@ -4087,13 +4078,13 @@ void test4539()
         assert(s[4] == 0x61);
     }
 
-    static assert(!__traits(compiles, foo1("hello")));
+    static assert(__traits(compiles, foo1("hello")));
     static assert(!__traits(compiles, foo2("hello")));
     static assert(!__traits(compiles, foo3("hello")));
 
     // same as test68, 69, 70
     foo4("hello");
-    foo5(cast(ubyte[5])x"c3fcd3d761");
+    foo5(cast(ubyte[5])"\xc3\xfc\xd3\xd7\x61");
 
     //import std.conv;
     //static assert(!__traits(compiles, parse!int("10") == 10));
@@ -4113,14 +4104,6 @@ void test1471()
 
 deprecated @disable int bug6389;
 static assert(!is(typeof(bug6389 = bug6389)));
-
-/***************************************************/
-
-void test10927()
-{
-    static assert( (1+2i) ^^ 3 == -11 - 2i );
-    auto a = (1+2i) ^^ 3;
-}
 
 /***************************************************/
 
@@ -4184,10 +4167,10 @@ void test1962()
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6228
 
-
 void test6228()
 {
-    const(int)* ptr;
+    int val;
+    const(int)* ptr = &val;
     const(int)  temp;
     auto x = (*ptr) ^^ temp;
 }
@@ -4663,7 +4646,7 @@ template Hoge6691()
     immutable static int[int] dict;
     immutable static int value;
 
-    static this()
+    shared static this()
     {
         dict = [1:1, 2:2];
         value = 10;
@@ -4964,7 +4947,7 @@ void test6763()
 
     f6763(0);   //With D2: Error: function main.f ((ref const const(int) _param_0)) is not callable using argument types (int)
     c6763(0);
-    r6763(n);   static assert(!__traits(compiles, r6763(0)));
+    r6763(n);   static assert(__traits(compiles, r6763(0)));
     i6763(0);
     o6763(n);   static assert(!__traits(compiles, o6763(0)));
 
@@ -4972,7 +4955,7 @@ void test6763()
     static assert(typeof(f6763).stringof == "void(int _param_0)");
     static assert(typeof(c6763).stringof == "void(const(int) _param_0)");
     static assert(typeof(r6763).stringof == "void(ref int _param_0)");
-    static assert(typeof(i6763).stringof == "void(const(int) _param_0)");
+    static assert(typeof(i6763).stringof == "void(in int _param_0)");
     static assert(typeof(o6763).stringof == "void(out int _param_0)");
 }
 
@@ -5269,7 +5252,7 @@ public:
     {
         assert(isHage);
     }
-    body { }
+    do { }
 }
 
 class Child6859 : Parent6859
@@ -6087,27 +6070,6 @@ class B1175 : A1175
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=7983
-
-class A7983 {
-        void f() {
-                g7983(this);
-        }
-        unittest {
-        }
-}
-
-void g7983(T)(T a)
-{
-        foreach (name; __traits(allMembers, T)) {
-                pragma(msg, name);
-                static if (__traits(compiles, &__traits(getMember, a, name)))
-                {
-                }
-        }
-}
-
-/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=8004
 
 void test8004()
@@ -6780,7 +6742,7 @@ void test9477()
     foreach (b1; Tuple9477!(false, true))
         foreach (b2; Tuple9477!(false, true))
         {
-            version (D_PIC) {} else // Work around http://d.puremagic.com/issues/show_bug.cgi?id=9754
+            version (D_PIC) {} else version (D_PIE) {}  else // Work around http://d.puremagic.com/issues/show_bug.cgi?id=9754
             {
                 assert( isEq (cast(Select9477!(b1, string, char[0]))"" , cast(Select9477!(b2, string, char[0]))""  ));
                 assert(!isNeq(cast(Select9477!(b1, string, char[0]))"" , cast(Select9477!(b2, string, char[0]))""  ));
@@ -7050,7 +7012,7 @@ struct Function
 @property void meta(alias m)()
 {
     static Function md;
-    printf("length = %d\n", md.ai.length);
+    printf("length = %zd\n", md.ai.length);
     printf("ptr = %p\n", md.ai.ptr);
     md.ai[0] = 0;
 }
@@ -7189,7 +7151,7 @@ void test11317()
     }
 
     void test(ref uint x) {}
-    static assert(!__traits(compiles, test(fun())));
+    static assert(__traits(compiles, test(fun())));
 
     assert(fun() == 0);
 }
@@ -7406,7 +7368,7 @@ void test13476()
 // https://issues.dlang.org/show_bug.cgi?id=14038
 
 static immutable ubyte[string] wordsAA14038;
-static this()
+shared static this()
 {
     wordsAA14038["zero"] = 0;
 }
@@ -7918,7 +7880,7 @@ void test16466()
         real r;
     }
     real r;
-    printf("S.alignof: %x, r.alignof: %x\n", S.alignof, r.alignof);
+    printf("S.alignof: %zx, r.alignof: %zx\n", S.alignof, r.alignof);
     assert(S.alignof == r.alignof);
 }
 
@@ -8015,7 +7977,6 @@ int main()
 {
     test1();
     test2();
-    test3();
     test4();
     test5();
     test6();
@@ -8232,7 +8193,7 @@ int main()
     test6733();
     test6813();
     test6859();
-    test3022();
+
     test6910();
     test6902();
     test6330();

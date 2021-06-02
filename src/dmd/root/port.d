@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Portable routines for functions that have different implementations on different platforms.
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/port.d, root/_port.d)
@@ -128,9 +127,9 @@ extern (C++) struct Port
     }
 
     // Little endian
-    static uint readlongLE(scope void* buffer) pure
+    static uint readlongLE(scope const void* buffer) pure
     {
-        auto p = cast(ubyte*)buffer;
+        auto p = cast(const ubyte*)buffer;
         return (((((p[3] << 8) | p[2]) << 8) | p[1]) << 8) | p[0];
     }
 
@@ -145,23 +144,23 @@ extern (C++) struct Port
     }
 
     // Big endian
-    static uint readlongBE(scope void* buffer) pure
+    static uint readlongBE(scope const void* buffer) pure
     {
-        auto p = cast(ubyte*)buffer;
+        auto p = cast(const ubyte*)buffer;
         return (((((p[0] << 8) | p[1]) << 8) | p[2]) << 8) | p[3];
     }
 
     // Little endian
-    static uint readwordLE(scope void* buffer) pure
+    static uint readwordLE(scope const void* buffer) pure
     {
-        auto p = cast(ubyte*)buffer;
+        auto p = cast(const ubyte*)buffer;
         return (p[1] << 8) | p[0];
     }
 
     // Big endian
-    static uint readwordBE(scope void* buffer) pure
+    static uint readwordBE(scope const void* buffer) pure
     {
-        auto p = cast(ubyte*)buffer;
+        auto p = cast(const ubyte*)buffer;
         return (p[0] << 8) | p[1];
     }
 

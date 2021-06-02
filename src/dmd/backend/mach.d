@@ -7,6 +7,8 @@ module dmd.backend.mach;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_mach.html
 
+@safe:
+
 alias cpu_type_t = int;
 alias cpu_subtype_t = int;
 alias vm_prot_t = int;
@@ -373,6 +375,7 @@ struct relocation_info
      *      r_type     :4;
      */
     uint xxx;
+    nothrow:
     void r_symbolnum(uint r) { assert(!(r & ~0x00FF_FFFF)); xxx = (xxx & ~0x00FF_FFFF) | r; }
     void r_pcrel    (uint r) { assert(!(r & ~1));           xxx = (xxx & ~0x0100_0000) | (r << 24); }
     void r_length   (uint r) { assert(!(r & ~3));           xxx = (xxx & ~0x0600_0000) | (r << (24 + 1)); }
@@ -392,6 +395,7 @@ struct scattered_relocation_info
      *      r_scattered:1;
      */
     uint xxx;
+    nothrow:
     void r_address  (uint r) { assert(!(r & ~0x00FF_FFFF)); xxx = (xxx & ~0x00FF_FFFF) | r; }
     void r_type     (uint r) { assert(!(r & ~0xF));         xxx = (xxx & ~0x0F00_0000) | (r << 24); }
     void r_length   (uint r) { assert(!(r & ~3));           xxx = (xxx & ~0x3000_0000) | (r << (24 + 4)); }

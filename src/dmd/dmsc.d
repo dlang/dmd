@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Configures and initializes the backend.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmsc.d, _dmsc.d)
@@ -21,7 +20,9 @@ extern (C++):
 import dmd.globals;
 import dmd.dclass;
 import dmd.dmodule;
+import dmd.mars;
 import dmd.mtype;
+import dmd.target;
 
 import dmd.root.filename;
 
@@ -31,21 +32,7 @@ import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-/+
-#include        "mars.h"
-
-#include        "cc.h"
-#include        "global.h"
-#include        "oper.h"
-#include        "code.h"
-#include        "type.h"
-#include        "dt.h"
-#include        "cgcv.h"
-
-extern Global global;
-+/
-
-void out_config_init(
+extern (C) void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
                         // Windows: bit 0 set to generate MS-COFF instead of OMF
@@ -61,9 +48,13 @@ void out_config_init(
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
         ubyte avx,              // use AVX instruction set (0, 1, 2)
+        PIC pic,                // kind of position independent code
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
-        bool useExceptions      // implement exception handling
+        bool useExceptions,     // implement exception handling
+        ubyte dwarf,            // DWARF version used
+        string _version,        // Compiler version
+        exefmt_t exefmt         // Executable file format
         );
 
 void out_config_debug(
@@ -84,60 +75,62 @@ void backend_init()
 {
     //printf("out_config_init()\n");
     Param *params = &global.params;
+    exefmt_t exfmt;
+    switch (target.os)
+    {
+        case Target.OS.Windows: exfmt = target.is64bit ? EX_WIN64 : EX_WIN32;       break;
+        case Target.OS.linux:   exfmt = target.is64bit ? EX_LINUX64 : EX_LINUX;     break;
+        case Target.OS.OSX:     exfmt = target.is64bit ? EX_OSX64 : EX_OSX;         break;
+        case Target.OS.FreeBSD: exfmt = target.is64bit ? EX_FREEBSD64 : EX_FREEBSD; break;
+        case Target.OS.OpenBSD: exfmt = target.is64bit ? EX_OPENBSD64 : EX_OPENBSD; break;
+        case Target.OS.Solaris: exfmt = target.is64bit ? EX_SOLARIS64 : EX_SOLARIS; break;
+        case Target.OS.DragonFlyBSD: exfmt = EX_DRAGONFLYBSD64; break;
+        default: assert(0);
+    }
 
     bool exe;
-    if (global.params.isWindows)
+    if (params.dll || params.pic != PIC.fixed)
     {
-        exe = false;
-        if (params.dll)
-        {
-        }
-        else if (params.run)
-            exe = true;         // EXE file only optimizations
-        else if (params.link && !global.params.deffile)
-            exe = true;         // EXE file only optimizations
-        else if (params.exefile)           // if writing out EXE file
-        {   size_t len = strlen(params.exefile);
-            if (len >= 4 && FileName.equals(params.exefile + len - 3, "exe"))
-                exe = true;
-        }
     }
-    else if (global.params.isLinux   ||
-             global.params.isOSX     ||
-             global.params.isFreeBSD ||
-             global.params.isOpenBSD ||
-             global.params.isDragonFlyBSD ||
-             global.params.isSolaris)
-    {
-        exe = params.pic == 0;
-    }
+    else if (params.run)
+        exe = true;         // EXE file only optimizations
+    else if (params.link && !params.deffile)
+        exe = true;         // EXE file only optimizations
+    else if (params.exefile.length &&
+             params.exefile.length >= 4 &&
+             FileName.equals(FileName.ext(params.exefile), "exe"))
+        exe = true;         // if writing out EXE file
 
     out_config_init(
-        (params.is64bit ? 64 : 32) | (params.mscoff ? 1 : 0),
+        (target.is64bit ? 64 : 32) | (target.mscoff ? 1 : 0),
         exe,
         false, //params.trace,
         params.nofloat,
         params.verbose,
         params.optimize,
         params.symdebug,
-        params.alwaysframe,
+        dmdParams.alwaysframe,
         params.stackstomp,
-        params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
+        target.cpu >= CPU.avx2 ? 2 : target.cpu >= CPU.avx ? 1 : 0,
+        params.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
-        params.useExceptions && ClassDeclaration.throwable
+        params.useExceptions && ClassDeclaration.throwable,
+        dmdParams.dwarf,
+        global.versionString(),
+        exfmt
     );
 
     debug
     {
         out_config_debug(
-            params.debugb,
-            params.debugc,
-            params.debugf,
-            params.debugr,
+            dmdParams.debugb,
+            dmdParams.debugc,
+            dmdParams.debugf,
+            dmdParams.debugr,
             false,
-            params.debugx,
-            params.debugy
+            dmdParams.debugx,
+            dmdParams.debugy
         );
     }
 }
@@ -147,7 +140,7 @@ void backend_init()
  * Return aligned 'offset' if it is of size 'size'.
  */
 
-extern (C) targ_size_t _align(targ_size_t size, targ_size_t offset)
+targ_size_t _align(targ_size_t size, targ_size_t offset)
 {
     switch (size)
     {
@@ -156,6 +149,9 @@ extern (C) targ_size_t _align(targ_size_t size, targ_size_t offset)
         case 2:
         case 4:
         case 8:
+        case 16:
+        case 32:
+        case 64:
             offset = (offset + size - 1) & ~(size - 1);
             break;
         default:
@@ -189,7 +185,7 @@ targ_size_t size(tym_t ty)
  * Generate symbol of type ty at DATA:offset
  */
 
-extern (C) Symbol *symboldata(targ_size_t offset,tym_t ty)
+Symbol *symboldata(targ_size_t offset,tym_t ty)
 {
     Symbol *s = symbol_generate(SClocstat, type_fake(ty));
     s.Sfl = FLdata;

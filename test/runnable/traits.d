@@ -1,7 +1,22 @@
-// PERMUTE_ARGS:
+/*
+PERMUTE_ARGS:
+EXTRA_FILES: imports/a9546.d
+
+Windows linker may write something like:
+---
+Creating library {{RESULTS_DIR}}/runnable/traits_0.lib and object {{RESULTS_DIR}}/runnable/traits_0.exp
+---
+
+TRANSFORM_OUTPUT: remove_lines("Creating library")
+TEST_OUTPUT:
+---
+__lambda1
+---
+*/
+
 module traits;
 
-import std.stdio;
+import core.stdc.stdio;
 
 alias int myint;
 struct S { void bar() { } int x = 4; static int z = 5; }
@@ -18,7 +33,6 @@ struct D1 { @disable void true_(); void false_(){} }
 void test1()
 {
     auto t = __traits(isArithmetic, int);
-    writeln(t);
     assert(t == true);
 
     assert(__traits(isArithmetic) == false);
@@ -45,12 +59,6 @@ void test1()
     assert(__traits(isArithmetic, float) == true);
     assert(__traits(isArithmetic, double) == true);
     assert(__traits(isArithmetic, real) == true);
-    assert(__traits(isArithmetic, ifloat) == true);
-    assert(__traits(isArithmetic, idouble) == true);
-    assert(__traits(isArithmetic, ireal) == true);
-    assert(__traits(isArithmetic, cfloat) == true);
-    assert(__traits(isArithmetic, cdouble) == true);
-    assert(__traits(isArithmetic, creal) == true);
     assert(__traits(isArithmetic, char) == true);
     assert(__traits(isArithmetic, wchar) == true);
     assert(__traits(isArithmetic, dchar) == true);
@@ -65,7 +73,6 @@ void test1()
 void test2()
 {
     auto t = __traits(isScalar, int);
-    writeln(t);
     assert(t == true);
 
     assert(__traits(isScalar) == false);
@@ -92,12 +99,6 @@ void test2()
     assert(__traits(isScalar, float) == true);
     assert(__traits(isScalar, double) == true);
     assert(__traits(isScalar, real) == true);
-    assert(__traits(isScalar, ifloat) == true);
-    assert(__traits(isScalar, idouble) == true);
-    assert(__traits(isScalar, ireal) == true);
-    assert(__traits(isScalar, cfloat) == true);
-    assert(__traits(isScalar, cdouble) == true);
-    assert(__traits(isScalar, creal) == true);
     assert(__traits(isScalar, char) == true);
     assert(__traits(isScalar, wchar) == true);
     assert(__traits(isScalar, dchar) == true);
@@ -131,12 +132,6 @@ void test3()
     assert(__traits(isIntegral, float) == false);
     assert(__traits(isIntegral, double) == false);
     assert(__traits(isIntegral, real) == false);
-    assert(__traits(isIntegral, ifloat) == false);
-    assert(__traits(isIntegral, idouble) == false);
-    assert(__traits(isIntegral, ireal) == false);
-    assert(__traits(isIntegral, cfloat) == false);
-    assert(__traits(isIntegral, cdouble) == false);
-    assert(__traits(isIntegral, creal) == false);
     assert(__traits(isIntegral, char) == true);
     assert(__traits(isIntegral, wchar) == true);
     assert(__traits(isIntegral, dchar) == true);
@@ -169,12 +164,6 @@ void test4()
     assert(__traits(isFloating, float) == true);
     assert(__traits(isFloating, double) == true);
     assert(__traits(isFloating, real) == true);
-    assert(__traits(isFloating, ifloat) == true);
-    assert(__traits(isFloating, idouble) == true);
-    assert(__traits(isFloating, ireal) == true);
-    assert(__traits(isFloating, cfloat) == true);
-    assert(__traits(isFloating, cdouble) == true);
-    assert(__traits(isFloating, creal) == true);
     assert(__traits(isFloating, char) == false);
     assert(__traits(isFloating, wchar) == false);
     assert(__traits(isFloating, dchar) == false);
@@ -207,12 +196,6 @@ void test5()
     assert(__traits(isUnsigned, float) == false);
     assert(__traits(isUnsigned, double) == false);
     assert(__traits(isUnsigned, real) == false);
-    assert(__traits(isUnsigned, ifloat) == false);
-    assert(__traits(isUnsigned, idouble) == false);
-    assert(__traits(isUnsigned, ireal) == false);
-    assert(__traits(isUnsigned, cfloat) == false);
-    assert(__traits(isUnsigned, cdouble) == false);
-    assert(__traits(isUnsigned, creal) == false);
     assert(__traits(isUnsigned, char) == true);
     assert(__traits(isUnsigned, wchar) == true);
     assert(__traits(isUnsigned, dchar) == true);
@@ -245,12 +228,6 @@ void test6()
     assert(__traits(isAssociativeArray, float) == false);
     assert(__traits(isAssociativeArray, double) == false);
     assert(__traits(isAssociativeArray, real) == false);
-    assert(__traits(isAssociativeArray, ifloat) == false);
-    assert(__traits(isAssociativeArray, idouble) == false);
-    assert(__traits(isAssociativeArray, ireal) == false);
-    assert(__traits(isAssociativeArray, cfloat) == false);
-    assert(__traits(isAssociativeArray, cdouble) == false);
-    assert(__traits(isAssociativeArray, creal) == false);
     assert(__traits(isAssociativeArray, char) == false);
     assert(__traits(isAssociativeArray, wchar) == false);
     assert(__traits(isAssociativeArray, dchar) == false);
@@ -283,12 +260,6 @@ void test7()
     assert(__traits(isStaticArray, float) == false);
     assert(__traits(isStaticArray, double) == false);
     assert(__traits(isStaticArray, real) == false);
-    assert(__traits(isStaticArray, ifloat) == false);
-    assert(__traits(isStaticArray, idouble) == false);
-    assert(__traits(isStaticArray, ireal) == false);
-    assert(__traits(isStaticArray, cfloat) == false);
-    assert(__traits(isStaticArray, cdouble) == false);
-    assert(__traits(isStaticArray, creal) == false);
     assert(__traits(isStaticArray, char) == false);
     assert(__traits(isStaticArray, wchar) == false);
     assert(__traits(isStaticArray, dchar) == false);
@@ -322,12 +293,6 @@ void test8()
     assert(__traits(isAbstractClass, float) == false);
     assert(__traits(isAbstractClass, double) == false);
     assert(__traits(isAbstractClass, real) == false);
-    assert(__traits(isAbstractClass, ifloat) == false);
-    assert(__traits(isAbstractClass, idouble) == false);
-    assert(__traits(isAbstractClass, ireal) == false);
-    assert(__traits(isAbstractClass, cfloat) == false);
-    assert(__traits(isAbstractClass, cdouble) == false);
-    assert(__traits(isAbstractClass, creal) == false);
     assert(__traits(isAbstractClass, char) == false);
     assert(__traits(isAbstractClass, wchar) == false);
     assert(__traits(isAbstractClass, dchar) == false);
@@ -384,13 +349,11 @@ void test13()
     auto j = __traits(getMember, S, "z");
     assert(j == 5);
 
-    writeln(__traits(hasMember, s, "x"));
     assert(__traits(hasMember, s, "x") == true);
     assert(__traits(hasMember, S, "z") == true);
     assert(__traits(hasMember, S, "aaa") == false);
 
     auto k = __traits(classInstanceSize, C);
-    writeln(k);
     assert(k == C.classinfo.initializer.length);
 }
 
@@ -427,7 +390,6 @@ class D14
 void test14()
 {
     auto a = [__traits(derivedMembers, D14)];
-    writeln(a);
     assert(a == ["__ctor","__dtor","foo", "__xdtor"]);
 }
 
@@ -445,12 +407,15 @@ void test15()
 {
     D15 d = new D15();
 
-    foreach (t; __traits(getVirtualFunctions, D15, "foo"))
-        writeln(typeid(typeof(t)));
+    assert(__traits(getVirtualFunctions, D15, "foo").length == 2);
+    assert(typeid(typeof(__traits(getVirtualFunctions, D15, "foo")[0])).toString()
+           == "void function()");
+    assert(typeid(typeof(__traits(getVirtualFunctions, D15, "foo")[1])).toString()
+           == "int function(int)");
 
     alias typeof(__traits(getVirtualFunctions, D15, "foo")) b;
-    foreach (t; b)
-        writeln(typeid(t));
+    assert(typeid(b[0]).toString() == "void function()");
+    assert(typeid(b[1]).toString() == "int function(int)");
 
     auto i = __traits(getVirtualFunctions, d, "foo")[1](1);
     assert(i == 2);
@@ -469,8 +434,8 @@ void test16()
     assert(__traits(isSame, foo16, bar16) == false);
     assert(__traits(isSame, foo16, S16) == false);
     assert(__traits(isSame, S16, S16) == true);
-    assert(__traits(isSame, std, S16) == false);
-    assert(__traits(isSame, std, std) == true);
+    assert(__traits(isSame, core, S16) == false);
+    assert(__traits(isSame, core, core) == true);
 }
 
 /********************************************************/
@@ -492,7 +457,7 @@ void test17()
     assert(__traits(compiles, typeof(1)) == true);
     assert(__traits(compiles, S17.s1) == true);
     assert(__traits(compiles, S17.s3) == false);
-    assert(__traits(compiles, 1,2,3,int,long,std) == true);
+    assert(__traits(compiles, 1,2,3,int,long,core) == true);
     assert(__traits(compiles, 3[1]) == false);
     assert(__traits(compiles, 1,2,3,int,long,3[1]) == false);
 }
@@ -509,7 +474,6 @@ interface D18
 void test18()
 {
     auto a = __traits(allMembers, D18);
-    writeln(a);
     assert(a.length == 1);
 }
 
@@ -530,11 +494,10 @@ class C19
 void test19()
 {
     auto a = __traits(allMembers, C19);
-    writeln(a);
     assert(a.length == 9);
 
     foreach( m; __traits(allMembers, C19) )
-        writeln(m);
+        printf("%.*s\n", cast(int)m.length, m.ptr);
 }
 
 
@@ -587,12 +550,14 @@ void test22()
 {
     D22 d = new D22();
 
-    foreach (t; __traits(getOverloads, D22, "foo"))
-        writeln(typeid(typeof(t)));
+    assert(typeid(typeof(__traits(getOverloads, D22, "foo")[0])).toString()
+           == "void function()");
+    assert(typeid(typeof(__traits(getOverloads, D22, "foo")[1])).toString()
+           == "int function(int)");
 
     alias typeof(__traits(getOverloads, D22, "foo")) b;
-    foreach (t; b)
-        writeln(typeid(t));
+    assert(typeid(b[0]).toString() == "void function()");
+    assert(typeid(b[1]).toString() == "int function(int)");
 
     auto i = __traits(getOverloads, d, "foo")[1](1);
     assert(i == 2);
@@ -623,7 +588,7 @@ struct Test24
     private void test24(int, int){}
 }
 
-static assert(__traits(getProtection, __traits(getOverloads, Test24, "test24")[1]) == "private");
+static assert(__traits(getVisibility, __traits(getOverloads, Test24, "test24")[1]) == "private");
 
 /********************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=1369
@@ -878,7 +843,7 @@ protected struct TestProt3 {}
 public    struct TestProt4 {}
 export    struct TestProt5 {}
 
-void getProtection()
+void getVisibility()
 {
     class Test
     {
@@ -891,52 +856,52 @@ void getProtection()
     Test t;
 
     // TOKvar and VarDeclaration
-    static assert(__traits(getProtection, Test.va) == "private");
-    static assert(__traits(getProtection, Test.vb) == "package");
-    static assert(__traits(getProtection, Test.vc) == "protected");
-    static assert(__traits(getProtection, Test.vd) == "public");
-    static assert(__traits(getProtection, Test.ve) == "export");
+    static assert(__traits(getVisibility, Test.va) == "private");
+    static assert(__traits(getVisibility, Test.vb) == "package");
+    static assert(__traits(getVisibility, Test.vc) == "protected");
+    static assert(__traits(getVisibility, Test.vd) == "public");
+    static assert(__traits(getVisibility, Test.ve) == "export");
 
     // TOKdotvar and VarDeclaration
-    static assert(__traits(getProtection, t.va) == "private");
-    static assert(__traits(getProtection, t.vb) == "package");
-    static assert(__traits(getProtection, t.vc) == "protected");
-    static assert(__traits(getProtection, t.vd) == "public");
-    static assert(__traits(getProtection, t.ve) == "export");
+    static assert(__traits(getVisibility, t.va) == "private");
+    static assert(__traits(getVisibility, t.vb) == "package");
+    static assert(__traits(getVisibility, t.vc) == "protected");
+    static assert(__traits(getVisibility, t.vd) == "public");
+    static assert(__traits(getVisibility, t.ve) == "export");
 
     // TOKvar and FuncDeclaration
-    static assert(__traits(getProtection, Test.fa) == "private");
-    static assert(__traits(getProtection, Test.fb) == "package");
-    static assert(__traits(getProtection, Test.fc) == "protected");
-    static assert(__traits(getProtection, Test.fd) == "public");
-    static assert(__traits(getProtection, Test.fe) == "export");
+    static assert(__traits(getVisibility, Test.fa) == "private");
+    static assert(__traits(getVisibility, Test.fb) == "package");
+    static assert(__traits(getVisibility, Test.fc) == "protected");
+    static assert(__traits(getVisibility, Test.fd) == "public");
+    static assert(__traits(getVisibility, Test.fe) == "export");
 
     // TOKdotvar and FuncDeclaration
-    static assert(__traits(getProtection, t.fa) == "private");
-    static assert(__traits(getProtection, t.fb) == "package");
-    static assert(__traits(getProtection, t.fc) == "protected");
-    static assert(__traits(getProtection, t.fd) == "public");
-    static assert(__traits(getProtection, t.fe) == "export");
+    static assert(__traits(getVisibility, t.fa) == "private");
+    static assert(__traits(getVisibility, t.fb) == "package");
+    static assert(__traits(getVisibility, t.fc) == "protected");
+    static assert(__traits(getVisibility, t.fd) == "public");
+    static assert(__traits(getVisibility, t.fe) == "export");
 
     // TOKtype
-    static assert(__traits(getProtection, TestProt1) == "private");
-    static assert(__traits(getProtection, TestProt2) == "package");
-    static assert(__traits(getProtection, TestProt3) == "protected");
-    static assert(__traits(getProtection, TestProt4) == "public");
-    static assert(__traits(getProtection, TestProt5) == "export");
+    static assert(__traits(getVisibility, TestProt1) == "private");
+    static assert(__traits(getVisibility, TestProt2) == "package");
+    static assert(__traits(getVisibility, TestProt3) == "protected");
+    static assert(__traits(getVisibility, TestProt4) == "public");
+    static assert(__traits(getVisibility, TestProt5) == "export");
 
     // This specific pattern is important to ensure it always works
     // through reflection, however that becomes implemented
-    static assert(__traits(getProtection, __traits(getMember, t, "va")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, t, "vb")) == "package");
-    static assert(__traits(getProtection, __traits(getMember, t, "vc")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, t, "vd")) == "public");
-    static assert(__traits(getProtection, __traits(getMember, t, "ve")) == "export");
-    static assert(__traits(getProtection, __traits(getMember, t, "fa")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, t, "fb")) == "package");
-    static assert(__traits(getProtection, __traits(getMember, t, "fc")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, t, "fd")) == "public");
-    static assert(__traits(getProtection, __traits(getMember, t, "fe")) == "export");
+    static assert(__traits(getVisibility, __traits(getMember, t, "va")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, t, "vb")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, t, "vc")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, t, "vd")) == "public");
+    static assert(__traits(getVisibility, __traits(getMember, t, "ve")) == "export");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fa")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fb")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fc")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fd")) == "public");
+    static assert(__traits(getVisibility, __traits(getMember, t, "fe")) == "export");
 }
 
 /********************************************************/
@@ -947,47 +912,47 @@ void test9546()
     import imports.a9546 : S;
 
     S s;
-    static assert(__traits(getProtection, s.privA) == "private");
-    static assert(__traits(getProtection, s.protA) == "protected");
-    static assert(__traits(getProtection, s.packA) == "package");
-    static assert(__traits(getProtection, S.privA) == "private");
-    static assert(__traits(getProtection, S.protA) == "protected");
-    static assert(__traits(getProtection, S.packA) == "package");
+    static assert(__traits(getVisibility, s.privA) == "private");
+    static assert(__traits(getVisibility, s.protA) == "protected");
+    static assert(__traits(getVisibility, s.packA) == "package");
+    static assert(__traits(getVisibility, S.privA) == "private");
+    static assert(__traits(getVisibility, S.protA) == "protected");
+    static assert(__traits(getVisibility, S.packA) == "package");
 
-    static assert(__traits(getProtection, mixin("s.privA")) == "private");
-    static assert(__traits(getProtection, mixin("s.protA")) == "protected");
-    static assert(__traits(getProtection, mixin("s.packA")) == "package");
-    static assert(__traits(getProtection, mixin("S.privA")) == "private");
-    static assert(__traits(getProtection, mixin("S.protA")) == "protected");
-    static assert(__traits(getProtection, mixin("S.packA")) == "package");
+    static assert(__traits(getVisibility, mixin("s.privA")) == "private");
+    static assert(__traits(getVisibility, mixin("s.protA")) == "protected");
+    static assert(__traits(getVisibility, mixin("s.packA")) == "package");
+    static assert(__traits(getVisibility, mixin("S.privA")) == "private");
+    static assert(__traits(getVisibility, mixin("S.protA")) == "protected");
+    static assert(__traits(getVisibility, mixin("S.packA")) == "package");
 
-    static assert(__traits(getProtection, __traits(getMember, s, "privA")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, s, "protA")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, s, "packA")) == "package");
-    static assert(__traits(getProtection, __traits(getMember, S, "privA")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, S, "protA")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, S, "packA")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, s, "privA")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, s, "protA")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, s, "packA")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, S, "privA")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, S, "protA")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, S, "packA")) == "package");
 
-    static assert(__traits(getProtection, s.privF) == "private");
-    static assert(__traits(getProtection, s.protF) == "protected");
-    static assert(__traits(getProtection, s.packF) == "package");
-    static assert(__traits(getProtection, S.privF) == "private");
-    static assert(__traits(getProtection, S.protF) == "protected");
-    static assert(__traits(getProtection, S.packF) == "package");
+    static assert(__traits(getVisibility, s.privF) == "private");
+    static assert(__traits(getVisibility, s.protF) == "protected");
+    static assert(__traits(getVisibility, s.packF) == "package");
+    static assert(__traits(getVisibility, S.privF) == "private");
+    static assert(__traits(getVisibility, S.protF) == "protected");
+    static assert(__traits(getVisibility, S.packF) == "package");
 
-    static assert(__traits(getProtection, mixin("s.privF")) == "private");
-    static assert(__traits(getProtection, mixin("s.protF")) == "protected");
-    static assert(__traits(getProtection, mixin("s.packF")) == "package");
-    static assert(__traits(getProtection, mixin("S.privF")) == "private");
-    static assert(__traits(getProtection, mixin("S.protF")) == "protected");
-    static assert(__traits(getProtection, mixin("S.packF")) == "package");
+    static assert(__traits(getVisibility, mixin("s.privF")) == "private");
+    static assert(__traits(getVisibility, mixin("s.protF")) == "protected");
+    static assert(__traits(getVisibility, mixin("s.packF")) == "package");
+    static assert(__traits(getVisibility, mixin("S.privF")) == "private");
+    static assert(__traits(getVisibility, mixin("S.protF")) == "protected");
+    static assert(__traits(getVisibility, mixin("S.packF")) == "package");
 
-    static assert(__traits(getProtection, __traits(getMember, s, "privF")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, s, "protF")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, s, "packF")) == "package");
-    static assert(__traits(getProtection, __traits(getMember, S, "privF")) == "private");
-    static assert(__traits(getProtection, __traits(getMember, S, "protF")) == "protected");
-    static assert(__traits(getProtection, __traits(getMember, S, "packF")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, s, "privF")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, s, "protF")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, s, "packF")) == "package");
+    static assert(__traits(getVisibility, __traits(getMember, S, "privF")) == "private");
+    static assert(__traits(getVisibility, __traits(getMember, S, "protF")) == "protected");
+    static assert(__traits(getVisibility, __traits(getMember, S, "packF")) == "package");
 }
 
 /********************************************************/
@@ -1248,14 +1213,35 @@ struct S10096X
     invariant() {}
     invariant() {}
     unittest {}
+    unittest {}
 
     this(int) {}
     this(this) {}
     ~this() {}
+
+    string getStr() in(str) out(r; r == str) { return str; }
 }
 static assert(
     [__traits(allMembers, S10096X)] ==
-    ["str", "__ctor", "__postblit", "__dtor", "__xdtor", "__xpostblit", "opAssign"]);
+    ["str", "__ctor", "__postblit", "__dtor", "getStr", "__xdtor", "__xpostblit", "opAssign"]);
+
+class C10096X
+{
+    string str;
+
+    invariant() {}
+    invariant() {}
+    unittest {}
+    unittest {}
+
+    this(int) {}
+    ~this() {}
+
+    string getStr() in(str) out(r; r == str) { return str; }
+}
+static assert(
+    [__traits(allMembers, C10096X)] ==
+    ["str", "__ctor", "__dtor", "getStr", "__xdtor", "toString", "toHash", "opCmp", "opEquals", "Monitor", "factory"]);
 
 // --------
 
@@ -1304,117 +1290,6 @@ void test_getUnitTests ()
 
 /********************************************************/
 
-void test_getFunctionAttributes()
-{
-    alias tuple(T...) = T;
-
-    struct S
-    {
-        int noF() { return 0; }
-        int constF() const { return 0; }
-        int immutableF() immutable { return 0; }
-        int inoutF() inout { return 0; }
-        int sharedF() shared { return 0; }
-
-        int x;
-        ref int refF() { return x; }
-        int propertyF() @property { return 0; }
-        int nothrowF() nothrow { return 0; }
-        int nogcF() @nogc { return 0; }
-
-        int systemF() @system { return 0; }
-        int trustedF() @trusted { return 0; }
-        int safeF() @safe { return 0; }
-
-        int pureF() pure { return 0; }
-    }
-
-    static assert(__traits(getFunctionAttributes, S.noF) == tuple!("@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.noF)) == tuple!("@system"));
-
-    static assert(__traits(getFunctionAttributes, S.constF) == tuple!("const", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.constF)) == tuple!("const", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S.immutableF) == tuple!("immutable", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.immutableF)) == tuple!("immutable", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S.inoutF) == tuple!("inout", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.inoutF)) == tuple!("inout", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S.sharedF) == tuple!("shared", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.sharedF)) == tuple!("shared", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S.refF) == tuple!("ref", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.refF)) == tuple!("ref", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S.propertyF) == tuple!("@property", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(&S.propertyF)) == tuple!("@property", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S.nothrowF) == tuple!("nothrow", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.nothrowF)) == tuple!("nothrow", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S.nogcF) == tuple!("@nogc", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.nogcF)) == tuple!("@nogc", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S.systemF) == tuple!("@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.systemF)) == tuple!("@system"));
-
-    static assert(__traits(getFunctionAttributes, S.trustedF) == tuple!("@trusted"));
-    static assert(__traits(getFunctionAttributes, typeof(S.trustedF)) == tuple!("@trusted"));
-
-    static assert(__traits(getFunctionAttributes, S.safeF) == tuple!("@safe"));
-    static assert(__traits(getFunctionAttributes, typeof(S.safeF)) == tuple!("@safe"));
-
-    static assert(__traits(getFunctionAttributes, S.pureF) == tuple!("pure", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S.pureF)) == tuple!("pure", "@system"));
-
-    int pure_nothrow() nothrow pure { return 0; }
-    static ref int static_ref_property() @property { return *(new int); }
-    ref int ref_property() @property { return *(new int); }
-    void safe_nothrow() @safe nothrow { }
-
-    static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow", "@nogc", "@safe"));
-    static assert(__traits(getFunctionAttributes, typeof(pure_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
-
-    static assert(__traits(getFunctionAttributes, static_ref_property) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
-    static assert(__traits(getFunctionAttributes, typeof(&static_ref_property)) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
-
-    static assert(__traits(getFunctionAttributes, ref_property) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
-    static assert(__traits(getFunctionAttributes, typeof(&ref_property)) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
-
-    static assert(__traits(getFunctionAttributes, safe_nothrow) == tuple!("pure", "nothrow", "@nogc", "@safe"));
-    static assert(__traits(getFunctionAttributes, typeof(safe_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
-
-    struct S2
-    {
-        int pure_const() const pure { return 0; }
-        int pure_sharedconst() const shared pure { return 0; }
-    }
-
-    static assert(__traits(getFunctionAttributes, S2.pure_const) == tuple!("const", "pure", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S2.pure_const)) == tuple!("const", "pure", "@system"));
-
-    static assert(__traits(getFunctionAttributes, S2.pure_sharedconst) == tuple!("const", "shared", "pure", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(S2.pure_sharedconst)) == tuple!("const", "shared", "pure", "@system"));
-
-    static assert(__traits(getFunctionAttributes, (int a) { }) == tuple!("pure", "nothrow", "@nogc", "@safe"));
-    static assert(__traits(getFunctionAttributes, typeof((int a) { })) == tuple!("pure", "nothrow", "@nogc", "@safe"));
-
-    auto safeDel = delegate() @safe { };
-    static assert(__traits(getFunctionAttributes, safeDel) == tuple!("pure", "nothrow", "@nogc", "@safe"));
-    static assert(__traits(getFunctionAttributes, typeof(safeDel)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
-
-    auto trustedDel = delegate() @trusted { };
-    static assert(__traits(getFunctionAttributes, trustedDel) == tuple!("pure", "nothrow", "@nogc", "@trusted"));
-    static assert(__traits(getFunctionAttributes, typeof(trustedDel)) == tuple!("pure", "nothrow", "@nogc", "@trusted"));
-
-    auto systemDel = delegate() @system { };
-    static assert(__traits(getFunctionAttributes, systemDel) == tuple!("pure", "nothrow", "@nogc", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(systemDel)) == tuple!("pure", "nothrow", "@nogc", "@system"));
-}
-
-/********************************************************/
-
 class TestIsOverrideFunctionBase
 {
     void bar () {}
@@ -1456,6 +1331,10 @@ void test11711()
     static assert(__traits(getAliasThis, S2) == TypeTuple!("var"));
     static assert(is(typeof(__traits(getMember, S2.init, __traits(getAliasThis, S2)[0]))
                 == TypeTuple!(int, string)));
+
+    // https://issues.dlang.org/show_bug.cgi?id=19439
+    // Return empty tuple for non-aggregate types.
+    static assert(__traits(getAliasThis, int).length == 0);
 }
 
 
@@ -1550,6 +1429,21 @@ void testIsDisabled()
 }
 
 /********************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=10100
+
+enum E10100
+{
+    value,
+    _value,
+    __value,
+    ___value,
+    ____value,
+}
+static assert(
+    [__traits(allMembers, E10100)] ==
+    ["value", "_value", "__value", "___value", "____value"]);
+
+/********************************************************/
 
 int main()
 {
@@ -1587,11 +1481,10 @@ int main()
     test9136();
     test10096();
     test_getUnitTests();
-    test_getFunctionAttributes();
     test_isOverrideFunction();
     test12237();
     test15094();
 
-    writeln("Success");
+    printf("Success\n");
     return 0;
 }

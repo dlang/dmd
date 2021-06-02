@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/type.d, backend/_type.d)
@@ -23,6 +23,7 @@ import dmd.backend.ty;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 // type.h
 
@@ -65,7 +66,7 @@ void type_setIdent(type* t, char* ident);
 void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
 
 // Return true if type is a struct, class or union
-bool type_struct(type* t) { return tybasic(t.Tty) == TYstruct; }
+bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }
 
 struct TYPE
 {
@@ -107,16 +108,16 @@ struct typetemp_t
     Symbol *Tsym;               // primary class template symbol
 }
 
-void type_debug(type* t)
+void type_debug(const type* t)
 {
     debug assert(t.id == t.IDtype);
 }
 
 // Return name mangling of type
-mangle_t type_mangle(type *t) { return t.Tmangle; }
+mangle_t type_mangle(const type *t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
-bool variadic(type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
@@ -135,7 +136,7 @@ extern __gshared
 }
 
 /* Functions    */
-void type_print(type *t);
+void type_print(const type* t);
 void type_free(type *);
 void type_init();
 void type_term();
@@ -147,7 +148,12 @@ int type_isdependent(type *t);
 void type_hydrate(type **);
 void type_dehydrate(type **);
 
-targ_size_t type_size(type *);
+version (SCPP)
+    targ_size_t type_size(type *);
+version (HTOD)
+    targ_size_t type_size(type *);
+
+targ_size_t type_size(const type *);
 uint type_alignsize(type *);
 bool type_zeroSize(type *t, tym_t tyf);
 uint type_parameterSize(type *t, tym_t tyf);
@@ -178,8 +184,7 @@ type *type_dyn_array(type *tnext);
 extern (C) type *type_static_array(targ_size_t dim, type *tnext);
 type *type_assoc_array(type *tkey, type *tvalue);
 type *type_delegate(type *tnext);
-extern (C) type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
+extern (C) type *type_function(tym_t tyf, type*[] ptypes, bool variadic, type *tret);
 type *type_enum(const(char) *name, type *tbase);
 type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
         type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size);
-

@@ -1,5 +1,24 @@
+/*
+TEST_OUTPUT:
+---
+true
+g
+&Test109S(&Test109S(<recursion>))
+runnable/interpret.d(3197): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3199): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3202): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3205): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3206): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3212): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3213): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3216): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+tfoo
+tfoo
+Crash!
+---
+*/
 
-import std.stdio;
+import core.stdc.stdio;
 
 template Tuple(A...)
 {
@@ -795,7 +814,7 @@ void test36()
 
 string someCompileTimeFunction()
 {
-    return "writefln(\"Wowza!\");";
+    return "printf(\"Wowza!\n\");";
 }
 
 void test37()
@@ -853,7 +872,6 @@ string UpToSpace(string x)
 void test40()
 {
     const y = UpToSpace("first space was after first");
-    writeln(y);
     assert(y == "first");
 }
 
@@ -875,7 +893,6 @@ int foo41(int i)
 void test41()
 {
     const y = foo41(3);
-    writeln(y);
     assert(y == 6);
 }
 
@@ -897,7 +914,6 @@ int foo42(int i)
 void test42()
 {
     const y = foo42(3);
-    writeln(y);
     assert(y == 6);
 }
 
@@ -919,7 +935,6 @@ int bar(string a)
 void test43()
 {
     const int foo = bar("a b c d");
-    writeln(foo);
     assert(foo == 28);
 }
 
@@ -949,7 +964,7 @@ const int[5] foo46 = [0,1,2,3,4];
 
 void test46()
 {
-    writeln(eval!(foo46[3]));
+    printf("%d\n", eval!(foo46[3]));
 }
 
 /************************************************/
@@ -999,7 +1014,6 @@ dstring testd49(dstring input)
 void test49()
 {
     static x = testd49("hello");
-    writeln(x);
     assert(x == "el");
 }
 
@@ -1113,8 +1127,10 @@ string retsth55(int i) { return foo55[i]; }
 
 void test55()
 {
-    writeln(eval!(foo55[0]));
-    writeln(eval!(retsth55(0)));
+    enum res1 = eval!(foo55[0]);
+    printf("%.*s\n", cast(int)res1.length, res1.ptr);
+    enum res2 = eval!(retsth55(0));
+    printf("%.*s\n", cast(int)res2.length, res2.ptr);
 }
 
 /************************************************/
@@ -1127,7 +1143,8 @@ string retsth56(int i)
 
 void test56()
 {
-    writeln(eval!(retsth56(0)));
+    enum result = eval!(retsth56(0));
+    printf("%.*s\n", cast(int)result.length, result.ptr);
 }
 
 /************************************************/
@@ -1160,7 +1177,6 @@ void test58()
     assert(b.length == 2);
     assert(b[0] == 2);
     assert(b[1] == 3);
-    writeln(b);
 }
 
 /************************************************/
@@ -1604,7 +1620,6 @@ const string s83 = mixItemList83();
 
 void test83()
 {
-    writeln(s83);
     assert(s83 == "item");
 }
 
@@ -1795,7 +1810,7 @@ string foo90(string a, string b)
 void test90()
 {
     static const string xxx = foo90("A", "xxx");
-    printf("%.*s\n", xxx.length, xxx.ptr);
+    printf("%.*s\n", cast(int)xxx.length, xxx.ptr);
     assert(xxx == "A");
 }
 
@@ -2181,12 +2196,12 @@ struct Q
 {
     int x;
     char y;
-    int opAddAssign(int w)
+    int opOpAssign(string op)(int w) if (op == "+")
     {
         x += w;
         return x + w;
     }
-    Q opSubAssign(int w)
+    Q opOpAssign(string op)(int w) if (op == "-")
     {
         x -= w;
         version(D_Version2) { mixin("return this;"); } else { mixin("return *this;"); }
@@ -2839,7 +2854,7 @@ int test5117b()
     assert(s.value == 1);     // fails, value == 0
     return 0;
 }
-ref S5117b getRef5117b(ref S5117b s) { return s; }
+ref S5117b getRef5117b(return ref S5117b s) { return s; }
 
 struct S5117b
 {
@@ -3349,7 +3364,6 @@ void test113()
 
     static void compare(real a, real b)
     {
-        writefln("compare(%30.30f, %30.30f);", a, b);
         assert(fabs(a - b) < 128 * real.epsilon);
     }
 
@@ -3485,6 +3499,112 @@ void test15681()
 }
 
 /************************************************/
+// toPrec
+
+void testToPrec()
+{
+    import core.math;
+
+    enum real ctpir = 0xc.90fdaa22168c235p-2;
+    enum double ctpid = 0x1.921fb54442d18p+1;
+    enum float ctpif = 0x1.921fb6p+1;
+    static assert(toPrec!float(ctpir) == ctpif);
+    static assert(toPrec!double(ctpir) == ctpid);
+    static assert(toPrec!real(ctpir) == ctpir);
+    static assert(toPrec!float(ctpid) == ctpif);
+    static assert(toPrec!double(ctpid) == ctpid);
+    static assert(toPrec!real(ctpid) == ctpid);
+    static assert(toPrec!float(ctpif) == ctpif);
+    static assert(toPrec!double(ctpif) == ctpif);
+    static assert(toPrec!real(ctpif) == ctpif);
+
+    assert(toPrec!float(ctpir) == ctpif);
+    assert(toPrec!double(ctpir) == ctpid);
+    assert(toPrec!real(ctpir) == ctpir);
+    assert(toPrec!float(ctpid) == ctpif);
+    assert(toPrec!double(ctpid) == ctpid);
+    assert(toPrec!real(ctpid) == ctpid);
+    assert(toPrec!float(ctpif) == ctpif);
+    assert(toPrec!double(ctpif) == ctpif);
+    assert(toPrec!real(ctpif) == ctpif);
+
+    static real rtpir = 0xc.90fdaa22168c235p-2;
+    static double rtpid = 0x1.921fb54442d18p+1;
+    static float rtpif = 0x1.921fb6p+1;
+    assert(toPrec!float(rtpir) == rtpif);
+    assert(toPrec!double(rtpir) == rtpid);
+    assert(toPrec!real(rtpir) == rtpir);
+    assert(toPrec!float(rtpid) == rtpif);
+    assert(toPrec!double(rtpid) == rtpid);
+    assert(toPrec!real(rtpid) == rtpid);
+    assert(toPrec!float(rtpif) == rtpif);
+    assert(toPrec!double(rtpif) == rtpif);
+    assert(toPrec!real(rtpif) == rtpif);
+}
+
+/************************************************/
+
+auto test20366()
+{
+    const(char)[] s = ['h', 'e', 'l', '\xef', '\xbd', '\x8c', 'o'];
+
+    foreach_reverse (dchar c; s)
+    {
+    }
+
+    return true;
+}
+static assert(test20366());
+
+/************************************************/
+
+bool test20400()
+{
+    char[] s = cast(char[])"1234";
+    char[] ret = s[2 .. $];
+    ret.length += 1;
+    ret[$-1] = '5';
+    assert(ret == "345");
+
+    return true;
+}
+static assert(test20400());
+
+/************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21878
+
+struct A21878
+{
+    int i;
+    ref inout(int) opIndex(size_t idx) inout return { return i; }
+}
+
+struct B21878
+{
+    A21878[1] a;
+    ref inout(int) opIndex(size_t idx) inout return { return a[0][idx]; }
+}
+
+bool ctfeFunc21878()
+{
+    A21878 a;
+    a[0] = 42;
+    assert(a[0] == 42); // OK
+
+    B21878 b;
+    b[0] = 42;
+    assert(b[0] == 42); // OK <- fails
+
+    return true;
+}
+
+void test21878()
+{
+    enum eval = ctfeFunc21878();
+    ctfeFunc21878(); // succeeds at runtime
+}
+
+/************************************************/
 
 int main()
 {
@@ -3609,6 +3729,9 @@ int main()
     test14140();
     test14862();
     test15681();
+    test20366();
+    test20400();
+    test21878();
 
     printf("Success\n");
     return 0;

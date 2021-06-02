@@ -1,8 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines a `class` declaration.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Specification: $(LINK2 https://dlang.org/spec/class.html, Classes)
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dclass.d, _dclass.d)
@@ -16,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.aggregate;
+import dmd.apply;
 import dmd.arraytypes;
 import dmd.gluelayer;
 import dmd.declaration;
@@ -32,7 +34,7 @@ import dmd.root.rmem;
 import dmd.target;
 import dmd.visitor;
 
-enum Abstract : int
+enum Abstract : ubyte
 {
     fwdref = 0,      // whether an abstract class is not yet computed
     yes,             // is abstract class
@@ -41,7 +43,7 @@ enum Abstract : int
 
 /***********************************************************
  */
-struct BaseClass
+extern (C++) struct BaseClass
 {
     Type type;          // (before semantic processing)
 
@@ -83,47 +85,27 @@ struct BaseClass
         for (size_t j = sym.vtblOffset(); j < sym.vtbl.dim; j++)
         {
             FuncDeclaration ifd = sym.vtbl[j].isFuncDeclaration();
-            FuncDeclaration fd;
-            TypeFunction tf;
 
             //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd.toChars() : "null");
             assert(ifd);
 
             // Find corresponding function in this class
-            tf = ifd.type.toTypeFunction();
-            fd = cd.findFunc(ifd.ident, tf);
+            auto tf = ifd.type.toTypeFunction();
+            auto fd = cd.findFunc(ifd.ident, tf);
             if (fd && !fd.isAbstract())
             {
-                //printf("            found\n");
-                // Check that calling conventions match
-                if (fd.linkage != ifd.linkage)
-                    fd.error("linkage doesn't match interface function");
-
-                // Check that it is current
-                //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
-                    //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
-                if (newinstance && fd.toParent() != cd && ifd.toParent() == sym)
-                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
-
                 if (fd.toParent() == cd)
                     result = true;
             }
             else
-            {
-                //printf("            not found %p\n", fd);
-                // BUG: should mark this class as abstract?
-                if (!cd.isAbstract())
-                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
-
                 fd = null;
-            }
             if (vtbl)
                 (*vtbl)[j] = fd;
         }
         return result;
     }
 
-    extern (C++) void copyBaseInterfaces(BaseClasses* vtblInterfaces)
+    extern (D) void copyBaseInterfaces(BaseClasses* vtblInterfaces)
     {
         //printf("+copyBaseInterfaces(), %s\n", sym.toChars());
         //    if (baseInterfaces.length)
@@ -147,7 +129,7 @@ struct BaseClass
     }
 }
 
-enum ClassFlags : int
+enum ClassFlags : uint
 {
     none          = 0x0,
     isCOMclass    = 0x1,
@@ -206,10 +188,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /// to prevent recursive attempts
     private bool inuse;
 
-    /// true if this class has an identifier, but was originally declared anonymous
-    /// used in support of https://issues.dlang.org/show_bug.cgi?id=17371
-    private bool isActuallyAnonymous;
-
     Abstract isabstract;
 
     /// set the progress of base classes resolving
@@ -225,12 +203,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     final extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
+        objc = ObjcClassDeclaration(this);
+
         if (!id)
-        {
-            id = Identifier.generateId("__anonclass");
-            isActuallyAnonymous = true;
-        }
-        assert(id);
+            id = Identifier.generateAnonymousId("class");
 
         super(loc, id);
 
@@ -246,7 +222,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         this.members = members;
 
-        //printf("ClassDeclaration(%s), dim = %d\n", id.toChars(), this.baseclasses.dim);
+        //printf("ClassDeclaration(%s), dim = %d\n", ident.toChars(), this.baseclasses.dim);
 
         // For forward references
         type = new TypeClass(this);
@@ -404,7 +380,15 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return new ClassDeclaration(loc, id, baseclasses, members, inObject);
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override const(char)* toPrettyChars(bool qualifyTypes = false)
+    {
+        if (objc.isMeta)
+            return .objc.toPrettyChars(this, qualifyTypes);
+
+        return super.toPrettyChars(qualifyTypes);
+    }
+
+    override ClassDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration.syntaxCopy('%s')\n", toChars());
         ClassDeclaration cd =
@@ -421,7 +405,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             (*cd.baseclasses)[i] = b2;
         }
 
-        return ScopeDsymbol.syntaxCopy(cd);
+        ScopeDsymbol.syntaxCopy(cd);
+        return cd;
     }
 
     override Scope* newScope(Scope* sc)
@@ -432,7 +417,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             /* This enables us to use COM objects under Linux and
              * work with things like XPCOM
              */
-            sc2.linkage = Target.systemLinkage();
+            sc2.linkage = target.systemLinkage();
         }
         return sc2;
     }
@@ -511,7 +496,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         if (!members || !symtab) // opaque or addMember is not yet done
         {
-            error("is forward referenced when looking for `%s`", ident.toChars());
+            // .stringof is always defined (but may be hidden by some other symbol)
+            if (ident != Id.stringof)
+                error("is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
             return null;
         }
@@ -541,7 +528,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                             continue;
                         else if (s == this) // happens if s is nested in this and derives from this
                             s = null;
-                        else if (!(flags & IgnoreSymbolVisibility) && !(s.prot().kind == Prot.Kind.protected_) && !symbolIsVisible(this, s))
+                        else if (!(flags & IgnoreSymbolVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(this, s))
                             s = null;
                         else
                             break;
@@ -587,24 +574,27 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             assert(baseClass.sizeok == Sizeok.done);
 
             alignsize = baseClass.alignsize;
-            structsize = baseClass.structsize;
-            if (classKind == ClassKind.cpp && global.params.isWindows)
-                structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+            if (classKind == ClassKind.cpp)
+                structsize = target.cpp.derivedClassOffset(baseClass);
+            else
+                structsize = baseClass.structsize;
         }
+        else if (classKind == ClassKind.objc)
+            structsize = 0; // no hidden member for an Objective-C class
         else if (isInterfaceDeclaration())
         {
             if (interfaces.length == 0)
             {
-                alignsize = Target.ptrsize;
-                structsize = Target.ptrsize;      // allow room for __vptr
+                alignsize = target.ptrsize;
+                structsize = target.ptrsize;      // allow room for __vptr
             }
         }
         else
         {
-            alignsize = Target.ptrsize;
-            structsize = Target.ptrsize;      // allow room for __vptr
-            if (classKind != ClassKind.cpp)
-                structsize += Target.ptrsize; // allow room for __monitor
+            alignsize = target.ptrsize;
+            structsize = target.ptrsize;      // allow room for __vptr
+            if (hasMonitor())
+                structsize += target.ptrsize; // allow room for __monitor
         }
 
         //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
@@ -632,7 +622,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 assert(b.sym.sizeok == Sizeok.done);
 
                 if (!b.sym.alignsize)
-                    b.sym.alignsize = Target.ptrsize;
+                    b.sym.alignsize = target.ptrsize;
                 alignmember(b.sym.alignsize, b.sym.alignsize, &offset);
                 assert(bi < vtblInterfaces.dim);
 
@@ -683,9 +673,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         checkOverlappedFields();
     }
 
-    override bool isAnonymous()
+    /**************
+     * Returns: true if there's a __monitor field
+     */
+    final bool hasMonitor()
     {
-        return isActuallyAnonymous;
+        return classKind == ClassKind.d;
     }
 
     final bool isFuncHidden(FuncDeclaration fd)
@@ -738,6 +731,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         FuncDeclaration fdmatch = null;
         FuncDeclaration fdambig = null;
 
+        void updateBestMatch(FuncDeclaration fd)
+        {
+            fdmatch = fd;
+            fdambig = null;
+            //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch.toChars(), fdmatch.type.toChars(), fdmatch.loc.toChars());
+        }
+
         void searchVtbl(ref Dsymbols vtbl)
         {
             foreach (s; vtbl)
@@ -752,49 +752,51 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 {
                     //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
                     if (!fdmatch)
-                        goto Lfd;
+                    {
+                        updateBestMatch(fd);
+                        continue;
+                    }
                     if (fd == fdmatch)
-                        goto Lfdmatch;
+                        continue;
 
                     {
                     // Function type matching: exact > covariant
                     MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
                     MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
                     if (m1 > m2)
-                        goto Lfd;
+                    {
+                        updateBestMatch(fd);
+                        continue;
+                    }
                     else if (m1 < m2)
-                        goto Lfdmatch;
+                        continue;
                     }
                     {
                     MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
                     MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
                     if (m1 > m2)
-                        goto Lfd;
+                    {
+                        updateBestMatch(fd);
+                        continue;
+                    }
                     else if (m1 < m2)
-                        goto Lfdmatch;
+                        continue;
                     }
                     {
                     // The way of definition: non-mixin > mixin
                     MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
                     MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
                     if (m1 > m2)
-                        goto Lfd;
+                    {
+                        updateBestMatch(fd);
+                        continue;
+                    }
                     else if (m1 < m2)
-                        goto Lfdmatch;
+                        continue;
                     }
 
                     fdambig = fd;
                     //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
-                    continue;
-
-                Lfd:
-                    fdmatch = fd;
-                    fdambig = null;
-                    //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch.toChars(), fdmatch.type.toChars(), fdmatch.loc.toChars());
-                    continue;
-
-                Lfdmatch:
-                    continue;
                 }
                 //else printf("\t\t%d\n", fd.type.covariant(tf));
             }
@@ -857,7 +859,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
          * Resolve forward references to all class member functions,
          * and determine whether this class is abstract.
          */
-        extern (C++) static int func(Dsymbol s, void* param)
+        static int func(Dsymbol s)
         {
             auto fd = s.isFuncDeclaration();
             if (!fd)
@@ -873,7 +875,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         for (size_t i = 0; i < members.dim; i++)
         {
             auto s = (*members)[i];
-            if (s.apply(&func, cast(void*)this))
+            if (s.apply(&func))
             {
                 return yes();
             }
@@ -900,7 +902,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
              * each of the virtual functions,
              * which will fill in the vtbl[] overrides.
              */
-            extern (C++) static int virtualSemantic(Dsymbol s, void* param)
+            static int virtualSemantic(Dsymbol s)
             {
                 auto fd = s.isFuncDeclaration();
                 if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration())
@@ -911,7 +913,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             for (size_t i = 0; i < members.dim; i++)
             {
                 auto s = (*members)[i];
-                s.apply(&virtualSemantic, cast(void*)this);
+                s.apply(&virtualSemantic);
             }
         }
 
@@ -955,7 +957,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     override final void addLocalClass(ClassDeclarations* aclasses)
     {
-        aclasses.push(this);
+        if (classKind != ClassKind.objc)
+            aclasses.push(this);
+    }
+
+    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
+    {
+        .objc.addSymbols(this, classes, categories);
     }
 
     // Back end
@@ -1001,12 +1009,13 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         }
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override InterfaceDeclaration syntaxCopy(Dsymbol s)
     {
         InterfaceDeclaration id =
             s ? cast(InterfaceDeclaration)s
               : new InterfaceDeclaration(loc, ident, null);
-        return ClassDeclaration.syntaxCopy(id);
+        ClassDeclaration.syntaxCopy(id);
+        return id;
     }
 
 

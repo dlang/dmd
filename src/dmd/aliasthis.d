@@ -1,8 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Implements the `alias this` symbol.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Specification: $(LINK2 https://dlang.org/spec/class.html#alias-this, Alias This)
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aliasthis.d, _aliasthis.d)
@@ -31,18 +32,23 @@ import dmd.visitor;
 extern (C++) final class AliasThis : Dsymbol
 {
     Identifier ident;
+    /// The symbol this `alias this` resolves to
+    Dsymbol sym;
+    /// Whether this `alias this` is deprecated or not
+    bool isDeprecated_;
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
-        super(null);    // it's anonymous (no identifier)
-        this.loc = loc;
+        super(loc, null);    // it's anonymous (no identifier)
         this.ident = ident;
     }
 
-    override Dsymbol syntaxCopy(Dsymbol s)
+    override AliasThis syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new AliasThis(loc, ident);
+        auto at = new AliasThis(loc, ident);
+        at.comment = comment;
+        return at;
     }
 
     override const(char)* kind() const
@@ -59,6 +65,11 @@ extern (C++) final class AliasThis : Dsymbol
     {
         v.visit(this);
     }
+
+    override bool isDeprecated() const
+    {
+        return this.isDeprecated_;
+    }
 }
 
 Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
@@ -72,7 +83,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
             Type tthis = (e.op == TOK.type ? e.type : null);
             e = new DotIdExp(loc, e, ad.aliasthis.ident);
             e = e.expressionSemantic(sc);
-            if (tthis && ad.aliasthis.needThis())
+            if (tthis && ad.aliasthis.sym.needThis())
             {
                 if (e.op == TOK.variable)
                 {
@@ -106,7 +117,9 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
                 e = e.expressionSemantic(sc);
             }
             e = resolveProperties(sc, e);
-            if (gag && global.endGagging(olderrors))
+            if (!gag)
+                ad.aliasthis.checkDeprecatedAliasThis(loc, sc);
+            else if (global.endGagging(olderrors))
                 e = null;
         }
 
@@ -120,4 +133,70 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
         break;
     }
     return e;
+}
+
+/**
+ * Check if an `alias this` is deprecated
+ *
+ * Usually one would use `expression.checkDeprecated(scope, aliasthis)` to
+ * check if `expression` uses a deprecated `aliasthis`, but this calls
+ * `toPrettyChars` which lead to the following message:
+ * "Deprecation: alias this `fullyqualified.aggregate.__anonymous` is deprecated"
+ *
+ * Params:
+ *   at  = The `AliasThis` object to check
+ *   loc = `Loc` of the expression triggering the access to `at`
+ *   sc  = `Scope` of the expression
+ *         (deprecations do not trigger in deprecated scopes)
+ *
+ * Returns:
+ *   Whether the alias this was reported as deprecated.
+ */
+bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
+{
+    import dmd.errors : deprecation, Classification;
+    import dmd.dsymbolsem : getMessage;
+
+    if (global.params.useDeprecated != DiagnosticReporting.off
+        && at.isDeprecated() && !sc.isDeprecated())
+    {
+        const(char)* message = null;
+        for (Dsymbol p = at; p; p = p.parent)
+        {
+            message = p.depdecl ? p.depdecl.getMessage() : null;
+            if (message)
+                break;
+        }
+        if (message)
+            deprecation(loc, "`alias %s this` is deprecated - %s",
+                        at.sym.toChars(), message);
+        else
+            deprecation(loc, "`alias %s this` is deprecated",
+                        at.sym.toChars());
+
+        if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
+            ti.printInstantiationTrace(Classification.deprecation);
+
+        return true;
+    }
+    return false;
+}
+
+/**************************************
+ * Check and set 'att' if 't' is a recursive 'alias this' type
+ * Params:
+ *   att = type reference used to detect recursion
+ *   t   = 'alias this' type
+ *
+ * Returns:
+ *   Whether the 'alias this' is recursive or not
+ */
+bool isRecursiveAliasThis(ref Type att, Type t)
+{
+    auto tb = t.toBasetype();
+    if (att && tb.equivalent(att))
+        return true;
+    else if (!att && tb.checkAliasThisRec())
+        att = tb;
+    return false;
 }

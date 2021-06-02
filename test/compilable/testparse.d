@@ -4,7 +4,7 @@
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6719
 
-pragma(msg, __traits(compiles, mixin("(const(A))[0..0]")));
+static assert(__traits(compiles, mixin("(const(A))[0..0]")) == false);
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=9232
@@ -166,3 +166,16 @@ void test11957()
 enum mangle13049(T) = T.mangleof;
 alias FP13049 = void function(scope int);                                       // OK
 static assert(mangle13049!FP13049 == mangle13049!(void function(scope int)));   // OK <- NG
+
+/***************************************************/
+// was not covered until the **12th of March 2019**
+void testIfConditionWithSTCandType()
+{
+    auto call(){return 0;}
+    if (const size_t i = call()) {}
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20791
+extern(C++, "foo", )
+struct S {}

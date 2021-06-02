@@ -22,7 +22,7 @@
         |{
        2|    this(this) { int x = 1; }
        3|    ~this() { int x = 1; }
-00000000|    ref S2 opAssign(S2) { return this; }
+00000000|    ref S2 opAssign(S2) return { return this; }
        1|    bool opEquals(ref const S2) const { return true; }
         |}
         |struct T2

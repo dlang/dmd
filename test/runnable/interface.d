@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+runnable/interface.d(41): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interface.d(55): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 import core.stdc.stdio;
 

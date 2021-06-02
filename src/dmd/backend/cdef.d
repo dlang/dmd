@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
@@ -22,6 +22,7 @@ import dmd.backend.dlist;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 enum VERSION = "9.00.0";        // for banner and imbedding in .OBJ file
 enum VERSIONHEX = "0x900";      // for __DMC__ macro
@@ -118,6 +119,7 @@ else
     enum TARGET_SEGMENTED = TARGET_WINDOS;
 
 
+@trusted
 bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
 
 
@@ -284,28 +286,10 @@ enum
 enum REGMASK = 0xFFFF;
 
 // targ_llong is also used to store host pointers, so it should have at least their size
-version (SCPP)
-{
-    // No 64 bit support yet
-    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_uns;     // size_t for the target machine
-}
-else version (SPP)
-{
-    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_uns;     // size_t for the target machine
-}
-else version (HTOD)
-{
-    alias targ_ptrdiff_t = targ_int;  // ptrdiff_t for target machine
-    alias targ_size_t = targ_uns;     // size_t for the target machine
-}
-else
-{
-    // Support 64 bit targets
-    alias targ_ptrdiff_t = int64_t;  // ptrdiff_t for target machine
-    alias targ_size_t = uint64_t;    // size_t for the target machine
-}
+
+// 64 bit support
+alias targ_ptrdiff_t = int64_t;   // ptrdiff_t for target machine
+alias targ_size_t = uint64_t;     // size_t for the target machine
 
 /* Enable/disable various features
    (Some features may no longer work the old way when compiled out,
@@ -316,19 +300,6 @@ else
 bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
 enum CV3 = 0;          // 1 means support CV3 debug format
 
-/* Object module format
- */
-//#ifndef OMFOBJ
-//#define OMFOBJ          TARGET_WINDOS
-//#endif
-enum ELFOBJ = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS;
-enum MACHOBJ = TARGET_OSX;
-
-version (XVERSION)
-{
-    enum SYMDEB_CODEVIEW = TARGET_WINDOS;
-    enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX;
-}
 
 //#define TOOLKIT_H
 
@@ -361,7 +332,6 @@ enum
 enum REGMAX = 29;      // registers are numbered 0..10
 
 alias tym_t = uint;    // data type big enough for type masks
-alias SYMIDX = int;    // symbol table index
 
 
 version (MARS)
@@ -383,7 +353,7 @@ else
 {
     debug
     {
-        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright
 *****BETA TEST VERSION*****";
     }
@@ -391,12 +361,12 @@ Written by Walter Bright
     {
         version (linux)
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright, Linux version by Pat Nelson";
         }
         else
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright";
         }
     }
@@ -505,14 +475,10 @@ enum
     EX_RATIONAL     = 4,       // RATIONAL 286 program
     EX_PHARLAP      = 8,       // PHARLAP 386 program
     EX_COM          = 0x10,    // MSDOS .COM program
-//  EX_WIN16        = 0x20,    // Windows 3.x 16 bit program (no longer supported)
     EX_OS2          = 0x40,    // OS/2 2.0 32 bit program
     EX_OS1          = 0x80,    // OS/2 1.x 16 bit program
     EX_WIN32        = 0x100,
     EX_MZ           = 0x200,   // MSDOS real mode program
-    EX_XENIX        = 0x400,
-    EX_SCOUNIX      = 0x800,
-    EX_UNIXSVR4     = 0x1000,
     EX_LINUX        = 0x2000,
     EX_WIN64        = 0x4000,  // AMD64 and Windows (64 bit mode)
     EX_LINUX64      = 0x8000,  // AMD64 and Linux (64 bit mode)
@@ -527,17 +493,78 @@ enum
     EX_DRAGONFLYBSD64 = 0x1000000,
 }
 
+// All of them
+enum exefmt_t EX_all =
+    EX_DOSX      |
+    EX_ZPM       |
+    EX_RATIONAL  |
+    EX_PHARLAP   |
+    EX_COM       |
+    EX_OS2       |
+    EX_OS1       |
+    EX_WIN32     |
+    EX_MZ        |
+    EX_LINUX     |
+    EX_WIN64     |
+    EX_LINUX64   |
+    EX_OSX       |
+    EX_OSX64     |
+    EX_FREEBSD   |
+    EX_FREEBSD64 |
+    EX_SOLARIS   |
+    EX_SOLARIS64 |
+    EX_OPENBSD   |
+    EX_OPENBSD64 |
+    EX_DRAGONFLYBSD64;
+
+// All segmented memory models
+enum exefmt_t EX_segmented = EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
+                        EX_COM | EX_OS1 | EX_MZ;
 
 // All flat memory models (no segment registers)
-enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 |
-                         EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 |
-                         EX_OPENBSD | EX_OPENBSD64 |
-                         EX_DRAGONFLYBSD64 |
-                         EX_SOLARIS | EX_SOLARIS64;
+enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_WIN64 | EX_posix;
 
 // All DOS executable types
 enum exefmt_t EX_dos =  EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
-                         EX_COM | EX_MZ /*| EX_WIN16*/;
+                         EX_COM | EX_MZ;
+
+// Windows and DOS executable types
+enum exefmt_t EX_windos = EX_dos | EX_OS1 | EX_OS2 | EX_WIN32 | EX_WIN64;
+
+// All POSIX systems
+enum exefmt_t EX_posix = EX_LINUX   | EX_LINUX64   |
+                         EX_OSX     | EX_OSX64     |
+                         EX_FREEBSD | EX_FREEBSD64 |
+                         EX_SOLARIS | EX_SOLARIS64 |
+                         EX_OPENBSD | EX_OPENBSD64 |
+                         EX_DRAGONFLYBSD64;
+
+// All 16 bit targets
+enum exefmt_t EX_16 = EX_ZPM | EX_RATIONAL | EX_COM | EX_OS1 | EX_MZ;
+
+// All 32 bit targets
+enum exefmt_t EX_32 = EX_DOSX | EX_OS2 | EX_PHARLAP |
+                EX_WIN32   |
+                EX_LINUX   |
+                EX_OSX     |
+                EX_FREEBSD |
+                EX_SOLARIS |
+                EX_OPENBSD;
+
+// All 64 bit targets
+enum exefmt_t EX_64 =
+                EX_WIN64     |
+                EX_LINUX64   |
+                EX_OSX64     |
+                EX_FREEBSD64 |
+                EX_SOLARIS64 |
+                EX_OPENBSD64 |
+                EX_DRAGONFLYBSD64;
+
+// Constraints
+static assert(EX_all == (EX_segmented ^ EX_flat));
+static assert(EX_all == (EX_16 ^ EX_32 ^ EX_64));
+static assert(EX_all == (EX_windos ^ EX_posix));
 
 alias config_flags_t = uint;
 enum
@@ -601,6 +628,7 @@ enum
     CFG3digraphs    = 0x20000, // support ANSI C++ digraphs
     CFG3semirelax   = 0x40000, // moderate relaxed type checking (non-Windows targets)
     CFG3pic         = 0x80000, // position independent code
+    CFG3pie         = 0x10_0000, // position independent executable (CFG3pic also set)
 }
 
 alias config_flags4_t = uint;
@@ -679,7 +707,7 @@ enum
 struct Config
 {
     char language;              // 'C' = C, 'D' = C++
-    char[8] _version;           // = VERSION
+    string _version;            /// Compiler version
     char[3] exetype;            // distinguish exe types so PH
                                 // files are distinct (= SUFFIX)
 
@@ -723,16 +751,18 @@ struct Config
     bool useModuleInfo;         // implement ModuleInfo
     bool useTypeInfo;           // implement TypeInfo
     bool useExceptions;         // implement exception handling
+    ubyte dwarf;                // DWARF version
 }
 
 enum THRESHMAX = 0xFFFF;
 
 // Language for error messages
 enum LANG
-{       LANGenglish,
-        LANGgerman,
-        LANGfrench,
-        LANGjapanese,
+{
+    english,
+    german,
+    french,
+    japanese,
 }
 
 // Configuration that is not saved in precompiled header
@@ -868,7 +898,7 @@ union eve
         {
             targ_size_t Voffset3;// offset from string
             char* Vstring;      // pointer to string (OPstring or OPasm)
-            targ_size_t Vstrlen;// length of string
+            size_t Vstrlen;     // length of string
         }
         struct
         {

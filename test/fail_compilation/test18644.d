@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip1000
+/* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
 fail_compilation/test18644.d(15): Error: storing reference to stack allocated value returned by `foo()` into allocated memory causes it to escape

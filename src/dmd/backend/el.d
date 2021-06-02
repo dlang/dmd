@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/el.d, backend/el.d)
@@ -16,6 +16,7 @@ module dmd.backend.el;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.global;
+import dmd.backend.oper;
 import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
@@ -25,6 +26,7 @@ import dmd.backend.dlist;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 /* Routines to handle elems.                            */
 
@@ -52,7 +54,6 @@ enum
     NFLli     = 1,     // loop invariant
     NFLnogoal = 2,     // evaluate elem for side effects only
     NFLassign = 8,     // unambiguous assignment elem
-    NFLaecp   = 0x10,  // AE or CP or VBE expression
     NFLdelcse = 0x40,  // this is not the generating CSE
     NFLtouns  = 0x80,  // relational operator was changed from signed to unsigned
 }
@@ -122,23 +123,29 @@ struct elem
     Srcpos Esrcpos;      // source file position
 }
 
-void elem_debug(elem* e)
+void elem_debug(const elem* e)
 {
     debug assert(e.id == e.IDelem);
 }
 
-version (MARS)
-    tym_t typemask(elem* e) { return e.Ety; }
-else
-    tym_t typemask(elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
+@trusted tym_t typemask(const elem* e)
+{
+    version (MARS)
+        return e.Ety;
+    else
+        return PARSER ? e.ET.Tty : e.Ety;
+}
 
-FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
+@trusted
+FL el_fl(const elem* e) { return cast(FL)e.EV.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
 
-elem* list_elem(list_t list) { return cast(elem*)list_ptr(list); }
+@trusted
+inout(elem)* list_elem(inout list_t list) { return cast(inout(elem)*)list_ptr(list); }
 
+@trusted
 void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem *)ptr; }
 
 //#define cnst(e) ((e)->Eoper == OPconst) /* Determine if elem is a constant */
@@ -156,54 +163,50 @@ elem *el_param(elem *,elem *);
 elem *el_params(elem *, ...);
 elem *el_params(void **args, int length);
 elem *el_combines(void **args, int length);
-int el_nparams(elem *e);
+int el_nparams(const elem *e);
 void el_paramArray(elem ***parray, elem *e);
 elem *el_pair(tym_t, elem *, elem *);
-void el_copy(elem *,elem *);
+void el_copy(elem *, const elem *);
 elem *el_alloctmp(tym_t);
 elem *el_selecte1(elem *);
 elem *el_selecte2(elem *);
 elem *el_copytree(elem *);
-void  el_replace_sym(elem *e,Symbol *s1,Symbol *s2);
+void  el_replace_sym(elem *e,const Symbol *s1,Symbol *s2);
 elem *el_scancommas(elem *);
-int el_countCommas(elem *);
-int el_sideeffect(elem *);
-int el_depends(elem *ea,elem *eb);
+int el_countCommas(const(elem)*);
+bool el_sideeffect(const elem *);
+int el_depends(const(elem)* ea, const elem *eb);
 targ_llong el_tolongt(elem *);
 targ_llong el_tolong(elem *);
-int el_allbits(elem *,int);
-int el_signx32(elem *);
+bool el_allbits(const elem*, int);
+bool el_signx32(const elem *);
 targ_ldouble el_toldouble(elem *);
 void el_toconst(elem *);
 elem *el_same(elem **);
 elem *el_copytotmp(elem **);
-int el_match(elem *,elem *);
-int el_match2(elem *,elem *);
-int el_match3(elem *,elem *);
-int el_match4(elem *,elem *);
-int el_match5(elem *,elem *);
-
-int el_appears(elem *e,Symbol *s);
+bool el_match(const elem *, const elem *);
+bool el_match2(const elem *, const elem *);
+bool el_match3(const elem *, const elem *);
+bool el_match4(const elem *, const elem *);
+bool el_match5(const elem *, const elem *);
+int el_appears(const(elem)* e, const Symbol *s);
 Symbol *el_basesym(elem *e);
-int el_anydef(elem *ed, elem *e);
-elem *el_bint(uint,type *,elem *,elem *);
-elem *el_unat(uint,type *,elem *);
-elem *el_bin(uint,tym_t,elem *,elem *);
-elem *el_una(uint,tym_t,elem *);
+bool el_anydef(const elem *ed, const(elem)* e);
+elem* el_bint(OPER, type*,elem*, elem*);
+elem* el_unat(OPER, type*, elem*);
+elem* el_bin(OPER, tym_t, elem*, elem*);
+elem* el_una(OPER, tym_t, elem*);
 extern(C) elem *el_longt(type *,targ_llong);
-Symbol *el_alloc_localgot();
-elem *el_var(Symbol *);
 elem *el_settype(elem *,type *);
 elem *el_typesize(type *);
-elem *el_ptr(Symbol *);
 elem *el_ptr_offset(Symbol *s,targ_size_t offset);
-void el_replacesym(elem *,Symbol *,Symbol *);
+void el_replacesym(elem *,const Symbol *,Symbol *);
 elem *el_nelems(type *);
 
 extern (C) elem *el_long(tym_t,targ_llong);
 
-int ERTOL(elem *);
-bool el_returns(elem *);
+bool ERTOL(const elem *);
+bool el_returns(const(elem) *);
 //elem *el_dctor(elem *e,void *decl);
 //elem *el_ddtor(elem *e,void *decl);
 elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor);
@@ -215,7 +218,7 @@ elem *el_test(tym_t, eve *);
 elem ** el_parent(elem *,elem **);
 
 //#ifdef DEBUG
-//void el_check(elem *);
+//void el_check(const(elem)*);
 //#else
 //#define el_check(e)     ((void)0)
 //#endif
@@ -223,17 +226,20 @@ elem ** el_parent(elem *,elem **);
 elem *el_convfloat(elem *);
 elem *el_convstring(elem *);
 elem *el_convert(elem *e);
-int el_isdependent(elem *);
+bool el_isdependent(elem *);
 uint el_alignsize(elem *);
 
-size_t el_opN(elem *e, uint op);
-void el_opArray(elem ***parray, elem *e, uint op);
-void el_opFree(elem *e, uint op);
-extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
+size_t el_opN(const elem *e, OPER op);
+void el_opArray(elem ***parray, elem *e, OPER op);
+void el_opFree(elem *e, OPER op);
+extern (C) elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty);
 
-void elem_print(elem *);
-void elem_print_const(elem *);
+void elem_print(const elem *, int nestlevel = 0);
+void elem_print_const(const elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);
 
+// elpicpie.d
+elem *el_var(Symbol *);
+elem *el_ptr(Symbol *);
 

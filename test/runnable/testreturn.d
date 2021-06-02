@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+Success
+---
+*/
 extern(C) int printf(const char*, ...);
 
 alias TypeTuple(T...) = T;
@@ -96,7 +102,7 @@ out(r)
     assert(r == (f ? sx : sy));
     result13336 = r;
 }
-body
+do
 {
     mixin(fbody13336);
 }
@@ -109,7 +115,7 @@ out(r)
     assert(r == (f ? sx : sy));
     result13336 = r;
 }
-body
+do
 {
     mixin(fbody13336);
 }

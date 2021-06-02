@@ -14,12 +14,14 @@ src/dmd/access.d @MartinNowak
 src/dmd/astbase* @RazvanN7
 src/dmd/astcodegen.d @RazvanN7
 src/dmd/asttypename.d @UplinkCoder
+src/dmd/attrib.d @Geod24
 src/dmd/builtin.d @klickvebot @WalterBright
 src/dmd/cond.d @Geod24
 src/dmd/console.d @CyberShadow
-src/dmd/cppmangle.d @ibuclaw
+src/dmd/cppmangle.d @ibuclaw @Geod24
 src/dmd/ctfeexpr.d @UplinkCoder
 src/dmd/doc.d @andralex @jacob-carlborg
+src/dmd/dscope.d @Geod24
 src/dmd/hdrgen.d @UplinkCoder @WalterBright
 src/dmd/mars.d @MartinNowak @Geod24 @rainers @UplinkCoder @WalterBright
 src/dmd/objc* @jacob-carlborg
@@ -35,4 +37,3 @@ src/dmd/vcbuild @rainers
 posix.mak @MartinNowak @wilzbach
 src/posix.mak @MartinNowak @wilzbach
 circle.sh @MartinNowak @wilzbach
-travis.sh @MartinNowak @wilzbach

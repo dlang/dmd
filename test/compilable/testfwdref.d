@@ -1,4 +1,5 @@
 // PERMUTE_ARGS:
+// EXTRA_FILES: imports/fwdref9514.d imports/fwdref12201a.d
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6766

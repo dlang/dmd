@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcv.c, backend/cgcv.c)
@@ -22,6 +22,7 @@ import dmd.backend.type;
 extern (C++):
 @nogc:
 nothrow:
+@safe:
 
 alias symlist_t = LIST*;
 
@@ -32,6 +33,9 @@ uint cv_typidx(type* t);
 void cv_outsym(Symbol* s);
 void cv_func(Symbol* s);
 void cv_term();
+
+void dwarf_outsym(Symbol* s);
+
 uint cv4_struct(Classsym*, int);
 
 
@@ -75,16 +79,19 @@ idx_t cv4_arglist(type* t, uint* pnparam);
 ubyte cv4_callconv(type* t);
 idx_t cv_numdebtypes();
 
+@trusted
 void TOWORD(ubyte* a, uint b)
 {
     *cast(ushort*)a = cast(ushort)b;
 }
 
+@trusted
 void TOLONG(ubyte* a, uint b)
 {
     *cast(uint*)a = b;
 }
 
+@trusted
 void TOIDX(ubyte* a, uint b)
 {
     if (cgcv.sz_idx == 4)

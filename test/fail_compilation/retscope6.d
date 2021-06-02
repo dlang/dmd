@@ -1,6 +1,5 @@
 /*
-REQUIRED_ARGS: -dip1000
-PERMUTE_ARGS:
+REQUIRED_ARGS: -preview=dip1000
 */
 
 /*
@@ -24,11 +23,11 @@ int* test() @safe
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/retscope6.d(7034): Error: reference to local variable `i` assigned to non-scope parameter `_param_1` calling retscope6.S.emplace!(int*).emplace
-fail_compilation/retscope6.d(7035): Error: reference to local variable `i` assigned to non-scope parameter `_param_0` calling retscope6.S.emplace2!(int*).emplace2
-fail_compilation/retscope6.d(7024): Error: scope variable `_param_2` assigned to `s` with longer lifetime
+fail_compilation/retscope6.d(7034): Error: address of variable `i` assigned to `s` with longer lifetime
+fail_compilation/retscope6.d(7035): Error: address of variable `i` assigned to `s` with longer lifetime
 fail_compilation/retscope6.d(7025): Error: scope variable `_param_2` assigned to `t` with longer lifetime
 fail_compilation/retscope6.d(7037): Error: template instance `retscope6.S.emplace4!(int*)` error instantiating
+fail_compilation/retscope6.d(7037): Error: address of variable `i` assigned to `s` with longer lifetime
 ---
 */
 
@@ -76,7 +75,7 @@ void foo() @safe
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/retscope6.d(8016): Error: reference to local variable `i` assigned to non-scope parameter `s` calling retscope6.frank!().frank
+fail_compilation/retscope6.d(8016): Error: address of variable `i` assigned to `p` with longer lifetime
 fail_compilation/retscope6.d(8031): Error: reference to local variable `i` assigned to non-scope parameter `p` calling retscope6.betty!().betty
 fail_compilation/retscope6.d(8031): Error: reference to local variable `j` assigned to non-scope parameter `q` calling retscope6.betty!().betty
 fail_compilation/retscope6.d(8048): Error: reference to local variable `j` assigned to non-scope parameter `q` calling retscope6.archie!().archie
@@ -137,4 +136,65 @@ void testarchie()
     archie(&i, &j, &k); // should error on j
 }
 
+}
+
+/* TEST_OUTPUT:
+---
+fail_compilation/retscope6.d(9022): Error: returning `fred(& i)` escapes a reference to local variable `i`
+---
+*/
+
+#line 9000
+
+@safe:
+
+alias T9 = S9!(); struct S9()
+{
+     this(int* q)
+     {
+        this.p = q;
+     }
+
+     int* p;
+}
+
+auto fred(int* r)
+{
+    return T9(r);
+}
+
+T9 testfred()
+{
+    int i;
+    auto j = fred(&i); // ok
+    return fred(&i);   // error
+}
+
+/* TEST_OUTPUT:
+---
+fail_compilation/retscope6.d(10003): Error: scope variable `values` assigned to non-scope parameter `values` calling retscope6.escape
+---
+*/
+
+#line 10000
+
+void variadicCaller(int[] values...)
+{
+    escape(values);
+}
+
+void escape(int[] values) {}
+
+/* TEST_OUTPUT:
+---
+fail_compilation/retscope6.d(11004): Error: address of variable `buffer` assigned to `secret` with longer lifetime
+---
+*/
+
+#line 11000
+
+void hmac(scope ubyte[] secret)
+{
+    ubyte[10] buffer;
+    secret = buffer[];
 }

@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+Success
+---
+*/
 
 extern(C) int printf(const char*, ...);
 
@@ -225,6 +231,16 @@ void test13907()
     assert(aa13999[key13999] == "bar");
 }
 
+ulong op12950(ulong v){return v + 12950;}
+
+void test12950()
+{
+    assert(0x00_00_00_01.op12950() == 12951);
+    assert(0x00_00_00_01UL.op12950() == 12951);
+    assert(0b00_00_00_01.op12950() == 12951);
+    assert(0b00_00_00_01UL.op12950() == 12951);
+}
+
 /***************************************************/
 
 int main()
@@ -232,6 +248,7 @@ int main()
     test1();
     test2();
     test13907();
+    test12950();
 
     printf("Success\n");
     return 0;

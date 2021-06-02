@@ -9,4 +9,4 @@ $DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${OBJ} -c ${EXTRA_FILES}${SEP}
 # error out if there is an advance by 0 for a non.zero address
 ! objdump -Wl ${OUTPUT_BASE}${OBJ} | grep "advance Address by 0 to 0x[1-9]"
 
-rm ${OUTPUT_BASE}${OBJ}
+rm_retry ${OUTPUT_BASE}${OBJ}

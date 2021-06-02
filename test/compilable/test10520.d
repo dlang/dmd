@@ -7,6 +7,6 @@ void f() { }
 
 void g()()
 in { f(); } // OK <- Error: 'main.f' is not nothrow
-body { }
+do { }
 
 alias gi = g!();

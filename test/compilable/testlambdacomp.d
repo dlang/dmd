@@ -1,3 +1,4 @@
+// EXTRA_FILES: imports/testlambda1.d imports/testlambda2.d
 module testlambdacomp;
 
 void test1()

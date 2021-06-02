@@ -1,9 +1,8 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Parses compiler settings from a .ini file.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dinifile.d, _dinifile.d)
@@ -16,17 +15,19 @@ module dmd.dinifile;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.sys.posix.stdlib;
-import core.sys.windows.windows;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
 
+import dmd.env;
 import dmd.errors;
 import dmd.globals;
+import dmd.root.rmem;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
+import dmd.root.string;
 import dmd.root.stringtable;
-import dmd.utils;
 
-version (Windows) extern (C) int putenv(const char*);
 private enum LOG = false;
 
 /*****************************
@@ -43,7 +44,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
     static if (LOG)
     {
         printf("findinifile(argv0 = '%.*s', inifile = '%.*s')\n",
-               argv0.length, argv0.ptr, inifile.length, inifile.ptr);
+               cast(int)argv0.length, argv0.ptr, cast(int)inifile.length, inifile.ptr);
     }
     if (FileName.absolute(inifile))
         return inifile;
@@ -82,8 +83,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
         {
             printf("\tPATH='%s'\n", p);
         }
-        auto paths = FileName.splitPath(p);
-        auto abspath = FileName.searchPath(paths, argv0, false);
+        auto abspath = FileName.searchPath(p, argv0, false);
         if (abspath)
         {
             auto absname = FileName.replaceName(abspath, inifile);
@@ -112,25 +112,25 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
  * Returns:
  *      environment value corresponding to name
  */
-const(char)* readFromEnv(StringTable* environment, const(char)* name)
+const(char)* readFromEnv(const ref StringTable!(char*) environment, const(char)* name)
 {
     const len = strlen(name);
-    auto sv = environment.lookup(name, len);
-    if (sv && sv.ptrvalue)
-        return cast(const(char)*)sv.ptrvalue; // get cached value
+    const sv = environment.lookup(name, len);
+    if (sv && sv.value)
+        return sv.value; // get cached value
     return getenv(name);
 }
 
 /*********************************
  * Write to our copy of the environment, not the real environment
  */
-private bool writeToEnv(StringTable* environment, char* nameEqValue)
+private bool writeToEnv(ref StringTable!(char*) environment, char* nameEqValue)
 {
     auto p = strchr(nameEqValue, '=');
     if (!p)
         return false;
     auto sv = environment.update(nameEqValue, p - nameEqValue);
-    sv.ptrvalue = cast(void*)(p + 1);
+    sv.value = p + 1;
     return true;
 }
 
@@ -139,28 +139,17 @@ private bool writeToEnv(StringTable* environment, char* nameEqValue)
  * Params:
  *      environment = our copy of the environment
  */
-void updateRealEnvironment(StringTable* environment)
+void updateRealEnvironment(ref StringTable!(char*) environment)
 {
-    static int envput(const(StringValue)* sv)
+    foreach (sv; environment)
     {
         const name = sv.toDchars();
-        const namelen = strlen(name);
-        const value = cast(const(char)*)sv.ptrvalue;
+        const value = sv.value;
         if (!value) // deleted?
-            return 0;
-        const valuelen = strlen(value);
-        auto s = cast(char*)malloc(namelen + 1 + valuelen + 1);
-        assert(s);
-        memcpy(s, name, namelen);
-        s[namelen] = '=';
-        memcpy(s + namelen + 1, value, valuelen);
-        s[namelen + 1 + valuelen] = 0;
-        //printf("envput('%s')\n", s);
-        putenv(s);
-        return 0; // do all of them
+            continue;
+        if (putenvRestorable(name.toDString, value.toDString))
+            assert(0);
     }
-
-    environment.apply(&envput);
 }
 
 /*****************************
@@ -172,11 +161,10 @@ void updateRealEnvironment(StringTable* environment)
  *      environment = our own cache of the program environment
  *      filename = name of the file being parsed
  *      path = what @P will expand to
- *      length = length of the configuration file buffer
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
+void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.
@@ -193,11 +181,11 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
     OutBuffer buf;
     bool eof = false;
     int lineNum = 0;
-    for (size_t i = 0; i < length && !eof; i++)
+    for (size_t i = 0; i < buffer.length && !eof; i++)
     {
     Lstart:
-        size_t linestart = i;
-        for (; i < length; i++)
+        const linestart = i;
+        for (; i < buffer.length; i++)
         {
             switch (buffer[i])
             {
@@ -221,14 +209,14 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
             break;
         }
         ++lineNum;
-        buf.reset();
+        buf.setsize(0);
         // First, expand the macros.
         // Macros are bracketed by % characters.
     Kloop:
         for (size_t k = 0; k < i - linestart; ++k)
         {
             // The line is buffer[linestart..i]
-            char* line = cast(char*)&buffer[linestart];
+            const line = cast(const char*)&buffer[linestart];
             if (line[k] == '%')
             {
                 foreach (size_t j; k + 1 .. i - linestart)
@@ -239,14 +227,14 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
                     {
                         // %@P% is special meaning the path to the .ini file
                         auto p = path;
-                        if (!*p)
+                        if (!p.length)
                             p = ".";
                         buf.writestring(p);
                     }
                     else
                     {
                         auto len2 = j - k;
-                        auto p = cast(char*)malloc(len2);
+                        auto p = cast(char*)Mem.check(malloc(len2));
                         len2--;
                         memcpy(p, &line[k + 1], len2);
                         p[len2] = 0;
@@ -264,13 +252,13 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         }
 
         // Remove trailing spaces
-        const slice = buf.peekSlice();
+        const slice = buf[];
         auto slicelen = slice.length;
         while (slicelen && isspace(slice[slicelen - 1]))
             --slicelen;
         buf.setsize(slicelen);
 
-        auto p = buf.peekString();
+        auto p = buf.peekChars();
         // The expanded line is in p.
         // Now parse it for meaning.
         p = skipspace(p);
@@ -352,9 +340,11 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
                 }
                 if (pn)
                 {
-                    if (!writeToEnv(environment, strdup(pn)))
+                    auto pns = cast(char*)Mem.check(strdup(pn));
+                    if (!writeToEnv(environment, pns))
                     {
-                        error(Loc(filename, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
+                        const loc = Loc(filename.xarraydup.ptr, lineNum, 0); // TODO: use r-value when `error` supports it
+                        error(loc, "Use `NAME=value` syntax, not `%s`", pn);
                         fatal();
                     }
                     static if (LOG)

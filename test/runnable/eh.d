@@ -104,7 +104,7 @@ printf("catch, i = %d\n", i);
         }
     }
 
-    printf("iterations %d totals: %ld, %ld\n", cIterations, total_x, total_nox);
+    printf("iterations %d totals: %lld, %lld\n", cIterations, total_x, total_nox);
 }
 
 int fn2_nox()
@@ -170,7 +170,7 @@ void test4()
     catch(Exception e)
     {
         auto es = e.toString();
-                printf("%.*s\n", es.length, es.ptr);
+                printf("%.*s\n", cast(int)es.length, es.ptr);
         b++;
     }
     finally
@@ -213,7 +213,7 @@ void test4()
     {
         d++;
         string es = e.toString;
-        printf("%.*s\n", es.length, es.ptr);
+        printf("%.*s\n", cast(int)es.length, es.ptr);
     }
 
     assert(a == 2);
@@ -255,7 +255,7 @@ void test4()
     {
         q3++;
                 string es = e.toString;
-        printf("%.*s\n", es.length, es.ptr);
+        printf("%.*s\n", cast(int)es.length, es.ptr);
     }
 
     assert(q0 == 1);
@@ -287,7 +287,7 @@ void test5()
             result ~= cast(char)('a' + i);
         }
     }
-    printf("--- %.*s", result.length, result.ptr);
+    printf("--- %.*s", cast(int)result.length, result.ptr);
     if (result != "tctbta")
         assert(0);
 }
@@ -939,6 +939,75 @@ L10:
 
 /****************************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=10966
+
+void bug10966a(void* p)
+{
+    void* pstart = p;
+
+    try
+    {
+        p = null;
+        throw new Exception("dummy");
+    }
+    catch (Throwable o)
+    {
+        assert(p != pstart);
+    }
+}
+
+void bug10966b()
+{
+    int x = 0;
+    int i = 0;
+    try
+    {
+        i = 1;
+        throw new Exception("dummy");
+    }
+    catch (Throwable o)
+    {
+        x = i;
+    }
+    assert(x == 1);
+}
+
+void test10966()
+{
+    int s;
+    bug10966a(&s);
+    bug10966b();
+}
+
+/****************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=11049
+
+void test11049()
+{
+    int[] arr = [1,2,3];
+
+#line 4100 "foo"
+    try { auto n = arr[3]; }
+    catch (Error e)
+    {
+        //printf("e.file = %s\n", e.file.ptr);
+        assert(e.file == "foo");  // fails
+        assert(e.line == 4100);
+    }
+
+#line 4200 "bar"
+    try { auto a = arr[3..9]; }
+    catch (Error e)
+    {
+        //printf("e.file = %s\n", e.file.ptr);
+        assert(e.file == "bar");  // fails
+        assert(e.line == 4200);
+    }
+}
+
+/****************************************************/
+
 int main()
 {
     printf("start\n");
@@ -965,6 +1034,8 @@ int main()
     test17481();
     test12();
     test13();
+    test10966();
+    test11049();
 
     printf("finish\n");
     return 0;

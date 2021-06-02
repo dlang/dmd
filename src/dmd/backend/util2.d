@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/util2.d, backend/util2.d)
@@ -23,9 +23,12 @@ import core.stdc.stdint : uint64_t;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 extern (C++):
+
+nothrow:
+@safe:
 
 void *ph_malloc(size_t nbytes);
 void *ph_calloc(size_t nbytes);
@@ -35,8 +38,6 @@ void *ph_realloc(void *p , size_t nbytes);
 extern (C) void printInternalFailure(FILE* stream); // from dmd/mars.d
 
 
-void util_exit(int exitcode);
-
 void file_progress()
 {
 }
@@ -44,7 +45,7 @@ void file_progress()
 /*******************************
  * Alternative assert failure.
  */
-
+@trusted
 void util_assert(const(char)* file, int line)
 {
     fflush(stdout);
@@ -78,7 +79,7 @@ void err_break()
 /****************************
  * Clean up and exit program.
  */
-
+@trusted
 void util_exit(int exitcode)
 {
     exit(exitcode);                     /* terminate abnormally         */
@@ -92,7 +93,7 @@ extern (C) extern __gshared int controlc_saw;
 /********************************
  * Control C interrupts go here.
  */
-
+@trusted
 private extern (C) void controlc_handler()
 {
     //printf("saw controlc\n");
@@ -171,12 +172,13 @@ void util_progress(int linnum)
 version (X86) version (CRuntime_DigitalMars)
     version = X86asm;
 
+@trusted
 int binary(const(char)* p, const(char)*  *table,int high)
 {
 version (X86asm)
 {
     alias len = high;        // reuse parameter storage
-    asm
+    asm nothrow
     {
 
 // First find the length of the identifier.
@@ -250,6 +252,7 @@ else
 
 
 // search table[0 .. high] for p[0 .. len] (where p.length not necessairily equal to len)
+@trusted
 int binary(const(char)* p, size_t len, const(char)** table, int high)
 {
     int low = 0;
@@ -390,7 +393,7 @@ else
 
 version (Windows)
 {
-void *util_realloc(void *oldp,uint n,uint size)
+void *util_realloc(void *oldp,size_t n,size_t size)
 {
 static if (MEM_DEBUG)
 {
@@ -403,7 +406,7 @@ else static if (UTIL_PH)
 }
 else
 {
-    size_t nbytes = cast(size_t) n * cast(size_t) size;
+    const nbytes = n * size;
     void *p = realloc(oldp,nbytes);
     if (!p && nbytes)
         err_nomem();

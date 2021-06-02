@@ -1,0 +1,318 @@
+# Github action to test for C++ interoperability
+#
+# Most tests in the test-suite run on the CI when it comes to cross-platform testing.
+# However, the dlang auto-tester uses somewhat old host C/C++ compiler.
+# This is good for testing compatibility with e.g. LTS distributions,
+# but becomes problematic when we want to test more cutting-edge features,
+# such as newer C++ standards (C++17, C++20, etc...).
+#
+# This is the reason why we have this action: we have full control over the toolchain,
+# and it's cross platform.
+#
+# Notes:
+# - Some patterns used here have been developed through a lot of trial and error
+#   In particular, the build matrix approach, with two rows, and a large list of
+#   excludes, ended up being the most useful approach.
+# - Additionally, the check for the compiler version will save you a lot of trouble.
+#   Having the wrong path added to the $PATH and ending up with the wrong compiler
+#   being used can make debugging very painful.
+# - Try to use the native Github action syntax (${{ expression }}) when possible,
+#   as they are substituted with their value in the logs, unlike env variable.
+#   For example use `${{ github.workspace }}` over `${GITHUB_WORKSPACE}`
+#
+# TODO:
+# - Implement Windows + MSVC support
+# - Implement Windows + clang support
+# - Implement Linux + Clang 32 bits support (if possible)
+name: C++ interop tests
+
+# Only triggers on pushes to master & stable, as well as PR to master and stable
+# Sometimes reverts appear in the upstream repository (e.g. when the revert button
+# is clicked by a contributor with commit access), this should be tested as PR).
+#
+# Also note that Github actions does not retrigger on target branch changes,
+# hence the check on push.
+on:
+  pull_request:
+    branches:
+      - master
+      - stable
+  push:
+    branches:
+      - master
+      - stable
+      # Use this branch name in your fork to test changes
+      - github-actions
+
+jobs:
+  main:
+    name: Run
+    strategy:
+      # Since those tests takes very little time, don't use `fail-fast`.
+      # If runtime expand, we might want to comment this out,
+      # as most failing PRs do so because they don't compile / something is broken,
+      # very few PRs actually benefit from this.
+      fail-fast: false
+      matrix:
+        # Latest OSX, Ubuntu 18.04 in order to support older LLVM / GCC
+        os: [ macOS-10.15, ubuntu-18.04, windows-2019 ]
+
+        target: [
+          # Versions of clang earlier than 8 are not available on 18.04
+          clang-9.0.0, clang-8.0.0,
+          # For g++, we test all major's latest minor releases since the
+          # introduction of ABI the dual ABI (v5.1, 2015-04-15)
+          g++-9, g++-8, g++-7, g++-6, g++-5,
+          # Finally, we test MSVC 2013 - 2019
+          msvc-2019, msvc-2017, msvc-2015, msvc-2013
+        ]
+
+        # Exclude target compilers not supported by the host
+        # Note: Pattern matching is not supported so this list is quite long,
+        # and brittle, as changing an msvc entry would break on OSX, for example.
+        exclude:
+          # Ubuntu supports clang and g++
+          - { os: ubuntu-18.04, target: msvc-2019 }
+          - { os: ubuntu-18.04, target: msvc-2017 }
+          - { os: ubuntu-18.04, target: msvc-2015 }
+          - { os: ubuntu-18.04, target: msvc-2013 }
+          # OSX only supports clang
+          - { os: macOS-10.15, target: g++-9 }
+          - { os: macOS-10.15, target: g++-8 }
+          - { os: macOS-10.15, target: g++-7 }
+          - { os: macOS-10.15, target: g++-6 }
+          - { os: macOS-10.15, target: g++-5 }
+          - { os: macOS-10.15, target: msvc-2019 }
+          - { os: macOS-10.15, target: msvc-2017 }
+          - { os: macOS-10.15, target: msvc-2015 }
+          - { os: macOS-10.15, target: msvc-2013 }
+          # We don't test g++ on Windows as DMD only mangles for MSVC
+          - { os: windows-2019, target: g++-9 }
+          - { os: windows-2019, target: g++-8 }
+          - { os: windows-2019, target: g++-7 }
+          - { os: windows-2019, target: g++-6 }
+          - { os: windows-2019, target: g++-5 }
+
+          # TODO: Implement support for clang and MSVC on Windows
+          # Currently those are still being run by the auto-tester
+          - os: windows-2019
+
+        # This sets the configuration for each jobs
+        # There's a bit of duplication involved (e.g. breaking down g++-9.3 into 2 strings),
+        # but some items are unique (e.g. clang-9.0.0 and 4.0.1 have differences in their naming).
+        include:
+          # Clang boilerplate
+          - { target: clang-9.0.0, compiler: clang, cxx-version: 9.0.0 }
+          - { target: clang-8.0.0, compiler: clang, cxx-version: 8.0.0 }
+          # g++ boilerplace
+          - { target: g++-9, compiler: g++, cxx-version: 9.3.0, major: 9 }
+          - { target: g++-8, compiler: g++, cxx-version: 8.4.0, major: 8 }
+          - { target: g++-7, compiler: g++, cxx-version: 7.5.0, major: 7 }
+          - { target: g++-6, compiler: g++, cxx-version: 6.5.0, major: 6 }
+          - { target: g++-5, compiler: g++, cxx-version: 5.5.0, major: 5 }
+          # Platform boilerplate
+          - { os: ubuntu-18.04, arch: x86_64-linux-gnu-ubuntu-18.04 }
+          - { os: macOS-10.15,  arch: x86_64-apple-darwin }
+          # Clang 9.0.0 have a different arch for OSX
+          - { os: macOS-10.15, target: clang-9.0.0, arch: x86_64-darwin-apple }
+          # Those targets will generate artifacts that can be used by other testers
+          - { storeArtifacts: false }
+          - { os: ubuntu-18.04, target: g++-9,       storeArtifacts: true }
+          - { os: macOS-10.15,  target: clang-9.0.0, storeArtifacts: true }
+          #- { os: windows-2019, target: msvc-2019,   storeArtifacts: true }
+
+    # We're using the latest available images at the time of this commit.
+    # Using a specific version for reproductibility.
+    # Feel free to update when a new release has matured.
+    runs-on: ${{ matrix.os }}
+    steps:
+
+    ########################################
+    #    Setting up the host D compiler    #
+    ########################################
+    - name: Prepare compiler
+      uses: dlang-community/setup-dlang@v1
+
+    ##############################################
+    # Find out which branch we need to check out #
+    ##############################################
+    - name: Determine base branch
+      id: base_branch
+      shell: bash
+      run: |
+        # For pull requests, base_ref will not be empty
+        if [ ! -z ${{ github.base_ref }} ]; then
+            echo "::set-output name=branch::${{ github.base_ref }}"
+        # Otherwise, use whatever ref we have:
+        # For branches this in the format 'refs/heads/<branch_name>',
+        # and for tags it is refs/tags/<tag_name>.
+        else
+            echo "::set-output name=branch::${{ github.ref }}"
+        fi
+
+    #########################################
+    # Checking out up DMD, druntime, Phobos #
+    #########################################
+    - name: Checkout DMD
+      uses: actions/checkout@v2
+      with:
+        path: dmd
+        persist-credentials: false
+    - name: Checkout druntime
+      uses: actions/checkout@v2
+      with:
+        path: druntime
+        repository: dlang/druntime
+        ref: ${{ steps.base_branch.outputs.branch }}
+        persist-credentials: false
+    - name: Checkout Phobos
+      uses: actions/checkout@v2
+      with:
+        path: phobos
+        repository: dlang/phobos
+        ref: ${{ steps.base_branch.outputs.branch }}
+        persist-credentials: false
+
+
+    ########################################
+    #   Setting up the host C++ compiler   #
+    ########################################
+    - name: '[Posix] Load cached clang'
+      id: cache-clang
+      if: matrix.compiler == 'clang' && runner.os != 'Windows'
+      uses: actions/cache@v1
+      with:
+        path: ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/
+        key: ${{ matrix.cxx-version }}-${{ matrix.arch }}-1
+
+    - name: '[Posix] Setting up clang ${{ matrix.cxx-version }}'
+      if: matrix.compiler == 'clang' && runner.os != 'Windows' && steps.cache-clang.outputs.cache-hit != 'true'
+      run: |
+        wget --quiet --directory-prefix=${{ github.workspace }} https://releases.llvm.org/${{ matrix.cxx-version }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
+        tar -x -C ${{ github.workspace }} -f ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
+        TMP_CC='${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/bin/clang'
+        # On OSX, the system header are installed via `xcode-select` and not distributed with clang
+        # Since some part of the testsuite rely on CC being only a binary (not a command),
+        # and config files where only introduced from 6.0.0, use a wrapper script.
+        if [ "${{ matrix.os }}" == "macOS-10.15" ]; then
+          # Note: heredoc shouldn't be indented
+          cat << 'EOF' > ${TMP_CC}-wrapper
+        #!/bin/bash
+        # Note: We need to use this because github.workspace is not stable
+        SCRIPT_FULL_PATH=$(dirname "$0")
+        ${SCRIPT_FULL_PATH}/clang -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ $@
+        EOF
+          # Invoking clang with `clang++` will link the C++ standard library
+          # Make sure we got two separate wrapper for this
+          cat << 'EOF' > ${TMP_CC}++-wrapper
+        #!/bin/bash
+        SCRIPT_FULL_PATH=$(dirname "$0")
+        ${SCRIPT_FULL_PATH}/clang++ -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ $@
+        EOF
+          chmod +x ${TMP_CC}-wrapper ${TMP_CC}++-wrapper
+        fi
+
+    - name: '[Posix] Setup environment variables'
+      if: matrix.compiler == 'clang' && runner.os != 'Windows'
+      run: |
+        TMP_CC='${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/bin/clang'
+        if [ "${{ matrix.os }}" == "macOS-10.15" ]; then
+          echo "CC=${TMP_CC}-wrapper" >> $GITHUB_ENV
+          echo "CXX=${TMP_CC}++-wrapper" >> $GITHUB_ENV
+        else
+          echo "CC=${TMP_CC}" >> $GITHUB_ENV
+          echo "CXX=${TMP_CC}++" >> $GITHUB_ENV
+        fi
+
+    # On OSX and Linux, clang is installed by default and in the path,
+    # so make sure ${CC} works
+    - name: '[Posix] Verifying installed clang version'
+      if: matrix.compiler == 'clang' && runner.os != 'Windows'
+      run: |
+        set -e
+        if ${CXX} --version | grep -q 'version ${{ matrix.cxx-version }}'; then
+          ${CXX} --version
+        else
+            echo "Expected version ${{ matrix.cxx-version }}, from '${CXX}', got:"
+            ${CXX} --version
+            exit 1
+        fi
+
+    # G++ is only supported on Linux
+    - name: '[Linux] Setting up g++ ${{ matrix.cxx-version }}'
+      if: matrix.compiler == 'g++'
+      run: |
+        # Workaround bug in Github actions
+        curl https://cli-assets.heroku.com/apt/release.key | sudo apt-key add -
+        # Make sure we have the essentials
+        sudo apt-get update
+        sudo apt-get install build-essential software-properties-common -y
+        # This ppa provides multiple versions of g++
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        sudo apt-get update
+        sudo apt-get install -y ${{ matrix.target }} ${{ matrix.target }}-multilib
+        echo "CC=${{ matrix.target }}" >> $GITHUB_ENV
+        echo "CXX=${{ matrix.target }}" >> $GITHUB_ENV
+
+    # Make sure ${CC} works and we don't use the $PATH one
+    - name: '[Linux] Verifying installed g++ version'
+      if: matrix.compiler == 'g++'
+      run: |
+        set -e
+        if ${CXX} --version | grep -q '${{ matrix.target }} (Ubuntu '; then
+          ${CXX} --version
+        else
+            echo "Expected version ${{ matrix.target }}, from '${CXX}', got:"
+            ${CXX} --version
+            exit 1
+        fi
+
+    ########################################
+    #    Building DMD, druntime, Phobos    #
+    ########################################
+    - name: '[Posix] Build compiler & standard library'
+      # By default, VMs have 2 processors available, hence the `-j2`:
+      # https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners#supported-runners-and-hardware-resources
+      run: |
+        # All hosts are 64 bits but let's be explicit
+        ./dmd/src/build.d -j2 MODEL=64
+        make -C druntime -f posix.mak -j2 MODEL=64
+        make -C phobos   -f posix.mak -j2 MODEL=64
+        # Both version can live side by side (they end up in a different directory)
+        # However, since clang does not provide a multilib package, only test 32 bits with g++
+        #if [ ${{ matrix.compiler }} == "g++" ]; then
+        #  ./dmd/src/build.d install -j2 MODEL=32
+        #  make -C druntime -f posix.mak install -j2 MODEL=32
+        #  make -C phobos   -f posix.mak install -j2 MODEL=32
+        #fi
+
+    ########################################
+    #        Running the test suite        #
+    ########################################
+    - name: Run C++ test suite
+      run: |
+        ./dmd/test/run.d --environment runnable_cxx MODEL=64
+        #if [ ${{ matrix.compiler }} == "g++" ]; then
+        #  ./dmd/test/run.d clean
+        #  ./dmd/test/run.d runnable_cxx MODEL=32
+        #fi
+
+    ########################################
+    #      Run C++ frontend unittests      #
+    ########################################
+    - name: Run C++ frontend unittests
+      run: |
+        ./dmd/src/build.d cxx-unittest MODEL=64
+        #if [ ${{ matrix.compiler }} == "g++" ]; then
+        #  ./dmd/src/build.d cxx-unittest MODEL=32
+        #fi
+
+    ########################################
+    #      Store generated artifacts       #
+    ########################################
+    - name: Store artifacts
+      if: ${{ matrix.storeArtifacts }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: dmd-${{ matrix.os }}
+        path: install

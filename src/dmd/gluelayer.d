@@ -1,8 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Declarations for back-end functions that the front-end invokes.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * This 'glues' either the DMC or GCC back-end to the front-end.
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/gluelayer.d, _gluelayer.d)
@@ -21,8 +22,6 @@ import dmd.root.file;
 
 version (NoBackend)
 {
-    import dmd.lib : Library;
-
     struct Symbol;
     struct code;
     struct block;
@@ -33,18 +32,27 @@ version (NoBackend)
 
     extern (C++)
     {
-        // glue
-        void obj_write_deferred(Library library)        {}
-        void obj_start(const(char)* srcfile)            {}
-        void obj_end(Library library, File* objfile)    {}
-        void genObjFile(Module m, bool multiobj)        {}
+        version (NoMain) {} else
+        {
+            import dmd.lib : Library;
 
-        // msc
-        void backend_init() {}
-        void backend_term() {}
+            // glue
+            void obj_write_deferred(Library library)        {}
+            void obj_start(const(char)* srcfile)            {}
+            void obj_end(Library library, const(char)* objfilename) {}
+            void genObjFile(Module m, bool multiobj)        {}
+
+            // msc
+            void backend_init() {}
+            void backend_term() {}
+        }
 
         // iasm
-        Statement asmSemantic(AsmStatement s, Scope* sc) { assert(0); }
+        Statement asmSemantic(AsmStatement s, Scope* sc)
+        {
+            sc.func.hasReturnExp = 8;
+            return null;
+        }
 
         // toir
         void toObjFile(Dsymbol ds, bool multiobj)   {}
@@ -68,7 +76,7 @@ else version (MARS)
     {
         void obj_write_deferred(Library library);
         void obj_start(const(char)* srcfile);
-        void obj_end(Library library, File* objfile);
+        void obj_end(Library library, const(char)* objfilename);
         void genObjFile(Module m, bool multiobj);
 
         void backend_init();
@@ -86,7 +94,7 @@ else version (MARS)
 }
 else version (IN_GCC)
 {
-    union tree_node;
+    extern (C++) union tree_node;
 
     alias Symbol = tree_node;
     alias code = tree_node;

@@ -1,11 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
- * This module contains the `Id` struct with a list of predefined symbols the
- * compiler knows about.
- *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -23,7 +19,7 @@ import dmd.tokens;
  *
  * All static fields in this struct represents a specific predefined symbol.
  */
-struct Id
+extern (C++) struct Id
 {
     static __gshared:
 
@@ -38,6 +34,17 @@ struct Id
     extern(C++) void initialize()
     {
         mixin(msgtable.generate(&initializer));
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `initialize` to its original
+     * state.
+     */
+    extern (D) void deinitialize()
+    {
+        mixin(msgtable.generate(&deinitializer));
     }
 }
 
@@ -77,6 +84,7 @@ immutable Msgtable[] msgtable =
     { "require", "__require" },
     { "ensure", "__ensure" },
     { "capture", "__capture" },
+    { "this2", "__this" },
     { "_init", "init" },
     { "__sizeof", "sizeof" },
     { "__xalignof", "alignof" },
@@ -117,10 +125,15 @@ immutable Msgtable[] msgtable =
     { "__c_ulonglong" },
     { "__c_long_double" },
     { "__c_wchar_t" },
+    { "__c_complex_float" },
+    { "__c_complex_double" },
+    { "__c_complex_real" },
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
     { "_assert", "assert" },
     { "_unittest", "unittest" },
     { "_body", "body" },
+    { "printf" },
+    { "scanf" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -147,8 +160,6 @@ immutable Msgtable[] msgtable =
     { "xopEquals", "__xopEquals" },
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
-
-    { "Class" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -178,7 +189,6 @@ immutable Msgtable[] msgtable =
     { "C" },
     { "D" },
     { "Windows" },
-    { "Pascal" },
     { "System" },
     { "Objective" },
 
@@ -193,6 +203,7 @@ immutable Msgtable[] msgtable =
     { "future", "__future" },
     { "property" },
     { "nogc" },
+    { "live" },
     { "safe" },
     { "trusted" },
     { "system" },
@@ -295,13 +306,15 @@ immutable Msgtable[] msgtable =
     { "aaRehash", "_aaRehash" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
-    { "criticalenter", "_d_criticalenter" },
+    { "criticalenter", "_d_criticalenter2" },
     { "criticalexit", "_d_criticalexit" },
-    { "__ArrayEq" },
     { "__ArrayPostblit" },
     { "__ArrayDtor" },
     { "_d_delThrowable" },
+    { "_d_assert_fail" },
     { "dup" },
+    { "_aaApply" },
+    { "_aaApply2" },
 
     // For pragma's
     { "Pinline", "inline" },
@@ -323,15 +336,21 @@ immutable Msgtable[] msgtable =
     { "main" },
     { "WinMain" },
     { "DllMain" },
-    { "tls_get_addr", "___tls_get_addr" },
-    { "entrypoint", "__entrypoint" },
+    { "CMain", "_d_cmain" },
     { "rt_init" },
     { "__cmp" },
     { "__equals"},
     { "__switch"},
     { "__switch_error"},
+    { "__ArrayCast"},
+    { "_d_HookTraceImpl" },
+    { "_d_arraysetlengthTImpl"},
+    { "_d_arraysetlengthT"},
+    { "_d_arraysetlengthTTrace"},
 
     // varargs implementation
+    { "stdc" },
+    { "stdarg" },
     { "va_start" },
 
     // Builtin functions
@@ -346,16 +365,52 @@ immutable Msgtable[] msgtable =
     { "_sqrt", "sqrt" },
     { "_pow", "pow" },
     { "atan2" },
+    { "rint" },
+    { "ldexp" },
     { "rndtol" },
+    { "exp" },
     { "expm1" },
     { "exp2" },
     { "yl2x" },
     { "yl2xp1" },
+    { "log" },
+    { "log2" },
+    { "log10" },
+    { "round" },
+    { "floor" },
+    { "trunc" },
+    { "fmax" },
+    { "fmin" },
+    { "fma" },
+    { "isnan" },
+    { "isInfinity" },
+    { "isfinite" },
+    { "ceil" },
+    { "copysign" },
     { "fabs" },
+    { "toPrec" },
+    { "simd" },
+    { "__prefetch"},
+    { "__simd_sto"},
+    { "__simd"},
+    { "__simd_ib"},
     { "bitop" },
     { "bsf" },
     { "bsr" },
+    { "btc" },
+    { "btr" },
+    { "bts" },
     { "bswap" },
+    { "volatile"},
+    { "volatileLoad"},
+    { "volatileStore"},
+    { "_popcnt"},
+    { "inp"},
+    { "inpl"},
+    { "inpw"},
+    { "outp"},
+    { "outpl"},
+    { "outpw"},
 
     // Traits
     { "isAbstractClass" },
@@ -379,13 +434,17 @@ immutable Msgtable[] msgtable =
     { "isFinalFunction" },
     { "isOverrideFunction" },
     { "isStaticFunction" },
+    { "isModule" },
+    { "isPackage" },
     { "isRef" },
     { "isOut" },
     { "isLazy" },
     { "hasMember" },
     { "identifier" },
     { "getProtection" },
+    { "getVisibility" },
     { "parent" },
+    { "child" },
     { "getMember" },
     { "getOverloads" },
     { "getVirtualFunctions" },
@@ -395,7 +454,6 @@ immutable Msgtable[] msgtable =
     { "derivedMembers" },
     { "isSame" },
     { "compiles" },
-    { "parameters" },
     { "getAliasThis" },
     { "getAttributes" },
     { "getFunctionAttributes" },
@@ -405,9 +463,15 @@ immutable Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "getCppNamespaces" },
     { "isReturnOnStack" },
     { "isZeroInit" },
     { "getTargetInfo" },
+    { "getLocation" },
+    { "hasPostblit" },
+    { "hasCopyConstructor" },
+    { "isCopyable" },
+    { "toType" },
 
     // For C++ mangling
     { "allocator" },
@@ -418,7 +482,9 @@ immutable Msgtable[] msgtable =
     { "char_traits" },
 
     // Compiler recognized UDA's
+    { "udaGNUAbiTag", "gnuAbiTag" },
     { "udaSelector", "selector" },
+    { "udaOptional", "optional"},
 
     // C names, for undefined identifier error messages
     { "NULL" },
@@ -426,6 +492,13 @@ immutable Msgtable[] msgtable =
     { "FALSE" },
     { "unsigned" },
     { "wchar_t" },
+
+    // for C compiler
+    { "__tag" },
+    { "dllimport" },
+    { "dllexport" },
+    { "vector_size" },
+    { "__func__" },
 ];
 
 
@@ -485,4 +558,10 @@ string identifier(Msgtable m)
 string initializer(Msgtable m)
 {
     return m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
+}
+
+// Used to generate the code for each deinitializer.
+string deinitializer(Msgtable m)
+{
+    return m.ident ~ " = Identifier.init;";
 }

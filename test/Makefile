@@ -1,22 +1,24 @@
+$(warning ===== DEPRECATION: test/Makefile is deprecated. Please use test/run.d instead.)
+
 ifeq (Windows_NT,$(OS))
     ifeq ($(findstring WOW64, $(shell uname)),WOW64)
-        OS:=win64
+        OS:=windows
         MODEL:=64
     else
-        OS:=win32
+        OS:=windows
         MODEL:=32
     endif
 endif
 ifeq (Win_32,$(OS))
-    OS:=win32
+    OS:=windows
     MODEL:=32
 endif
 ifeq (Win_32_64,$(OS))
-    OS:=win64
+    OS:=windows
     MODEL:=64
 endif
 ifeq (Win_64,$(OS))
-    OS:=win64
+    OS:=windows
     MODEL:=64
 endif
 
@@ -37,14 +39,9 @@ endif
 QUIET=@
 export RESULTS_DIR=test_results
 export MODEL
-export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
-    export ARGS=-inline -release -g -O
     export EXE=.exe
-    export OBJ=.obj
-    export DSEP=\\
-    export SEP=$(subst /,\,/)
 
     PIC?=0
 
@@ -64,11 +61,7 @@ ifeq ($(findstring win,$(OS)),win)
     export DMD=../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
 
 else
-    export ARGS=-inline -release -g -O -fPIC
     export EXE=
-    export OBJ=.o
-    export DSEP=/
-    export SEP=/
 
     # auto-tester might run the testsuite with a different $(MODEL) than DMD
     # has been compiled with. Hence we manually check which binary exists.
@@ -104,81 +97,145 @@ else
     endif
     export DFLAGS
 endif
-REQUIRED_ARGS+=$(PIC_FLAG)
 
-ifeq ($(OS),osx)
-    ifeq ($(MODEL),64)
-        export D_OBJC=1
+# Try to find a suitable dmd if HOST_DMD is missing
+ifeq ($(HOST_DMD),)
+    # Legacy support, some CI's use HOST_DC instead of HOST_DMD
+    ifneq ($(HOST_DC),)
+        $(warning Please use HOST_DMD instead of HOST_DC!)
+        HOST_DMD = $(HOST_DC)
+    else
+        HOST_DMD = dmd
     endif
 endif
 
-DEBUG_FLAGS=$(PIC_FLAG) -g
+# Required version for -lowmem
+LOW_MEM_MIN_VERSION = v2.086.0
+VERSION = $(filter v2.%, $(shell $(HOST_DMD) --version 2>/dev/null))
+RUN_FLAGS = -g -i -Itools -version=NoMain
 
-export DMD_TEST_COVERAGE=
+ifeq ($(VERSION),)
+	# dmd was not found in $PATH
+	USE_GENERATED=1
+endif
 
-runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
-runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
+# Detect whether the host dmd satisfies MIN_VERSION
+ifeq ($(LOW_MEM_MIN_VERSION), $(firstword $(sort $(LOW_MEM_MIN_VERSION) $(VERSION))))
+	# dmd found in $PATH is too old
+	RUN_FLAGS := $(RUN_FLAGS) -lowmem
+endif
 
-compilable_tests=$(wildcard compilable/*.d) $(wildcard compilable/*.sh)
-compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilable_tests)))
+ifneq ($(USE_GENERATED),)
+    # Use the generated dmd instead of the host compiler
+    HOST_DMD=$(DMD)
+    RUN_HOST_DMD=$(HOST_DMD) -conf=
+else
+    RUN_HOST_DMD = $(HOST_DMD)
+endif
 
-fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilation/*.html)
-fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
+# Ensure valid paths on windows
+export HOST_DMD:=$(subst \,/,$(HOST_DMD))
 
+RUNNER:=$(RESULTS_DIR)/run$(EXE)
+EXECUTE_RUNNER:=$(RUNNER) --environment
+
+# N determines the amount of parallel jobs, see ci.sh
+ifneq ($(N),)
+    EXECUTE_RUNNER:=$(EXECUTE_RUNNER) --jobs=$N
+endif
+
+ifeq (windows,$(OS))
+all:
+	echo "Windows builds have been disabled"
+else
 all: run_tests
+endif
 
-test_tools=$(RESULTS_DIR)/d_do_test$(EXE) $(RESULTS_DIR)/sanitize_json$(EXE)
-
-$(RESULTS_DIR)/%.out: % $(RESULTS_DIR)/.created $(test_tools) $(DMD)
-	$(QUIET) $(RESULTS_DIR)/d_do_test $<
-
-quick:
-	$(MAKE) ARGS="" run_tests
+quick: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
 
 clean:
 	@echo "Removing output directory: $(RESULTS_DIR)"
 	$(QUIET)if [ -e $(RESULTS_DIR) ]; then rm -rf $(RESULTS_DIR); fi
+	@echo "Remove coverage listing files: *.lst"
+	$(QUIET)rm -rf *.lst
+	@echo "Remove trace files: trace.def, trace.log"
+	$(QUIET)rm -rf trace.log trace.def
 
 $(RESULTS_DIR)/.created:
 	@echo Creating output directory: $(RESULTS_DIR)
 	$(QUIET)if [ ! -d $(RESULTS_DIR) ]; then mkdir $(RESULTS_DIR); fi
-	$(QUIET)if [ ! -d $(RESULTS_DIR)/runnable ]; then mkdir $(RESULTS_DIR)/runnable; fi
-	$(QUIET)if [ ! -d $(RESULTS_DIR)/compilable ]; then mkdir $(RESULTS_DIR)/compilable; fi
-	$(QUIET)if [ ! -d $(RESULTS_DIR)/fail_compilation ]; then mkdir $(RESULTS_DIR)/fail_compilation; fi
 	$(QUIET)touch $(RESULTS_DIR)/.created
 
-run_tests: start_runnable_tests start_compilable_tests start_fail_compilation_tests
+run_tests: run_all_tests
 
-run_runnable_tests: $(runnable_test_results)
+unit_tests: $(RUNNER)
+	@echo "Running unit tests"
+	$(EXECUTE_RUNNER) $@
 
-start_runnable_tests: $(RESULTS_DIR)/.created $(test_tools)
+run_runnable_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
+
+start_runnable_tests: $(RUNNER)
 	@echo "Running runnable tests"
-	$(QUIET)$(MAKE) --no-print-directory run_runnable_tests
+	$(EXECUTE_RUNNER) run_runnable_tests
 
-run_compilable_tests: $(compilable_test_results)
+run_runnable_cxx_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
 
-start_compilable_tests: $(RESULTS_DIR)/.created $(test_tools)
+start_runnable_cxx_tests:
+	@echo "Running runnable_cxx tests"
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_runnable_cxx_tests
+
+run_compilable_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
+
+start_compilable_tests: $(RUNNER)
 	@echo "Running compilable tests"
-	$(QUIET)$(MAKE) --no-print-directory run_compilable_tests
+	$(EXECUTE_RUNNER) run_compilable_tests
 
-run_fail_compilation_tests: $(fail_compilation_test_results)
+run_fail_compilation_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
 
-start_fail_compilation_tests: $(RESULTS_DIR)/.created $(test_tools)
+start_fail_compilation_tests: $(RUNNER)
 	@echo "Running fail compilation tests"
-	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_tests
+	$(EXECUTE_RUNNER) run_fail_compilation_tests
 
-$(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
+run_dshell_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
+
+start_dshell_tests: $(RUNNER)
+	@echo "Running dshell tests"
+	$(EXECUTE_RUNNER) run_dshell_tests
+
+run_all_tests: $(RUNNER)
+	$(EXECUTE_RUNNER)
+
+start_all_tests: $(RUNNER)
+	@echo "Running all tests"
+	$(EXECUTE_RUNNER) all
+
+# The auto-tester cannot run runnable_cxx as its compiler is too old
+ifeq (windows,$(OS))
+auto-tester-test:
+	echo "Windows builds have been disabled"
+else
+auto-tester-test: $(RUNNER)
+	$(EXECUTE_RUNNER) runnable compilable fail_compilation dshell
+endif
+
+$(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: '$(OS)'"
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
-	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -unittest -run $<
-	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
+	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) $(RUN_FLAGS) -unittest -run $<
+	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) $(RUN_FLAGS) -od$(RESULTS_DIR) -of$@ $<
 
-$(RESULTS_DIR)/sanitize_json$(EXE): tools/sanitize_json.d $(RESULTS_DIR)/.created
-	@echo "Building sanitize_json tool"
-	@echo "OS: '$(OS)'"
-	@echo "MODEL: '$(MODEL)'"
-	@echo "PIC: '$(PIC_FLAG)'"
-	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)sanitize_json$(EXE) -i $<
+# Build d_do_test here to run it's unittests
+# TODO: Migrate this to run.d
+$(RUNNER): run.d $(RESULTS_DIR)/d_do_test$(EXE)
+	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -od$(RESULTS_DIR) -of$(RUNNER) -i -release $<
 
+# run.d is not reentrant because each invocation might attempt to build the required tools
+.NOTPARALLEL:

@@ -1,14 +1,14 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Other data flow analysis based optimizations.
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
- * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.c
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.c
+ * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.d
+ * Documentation: https://dlang.org/phobos/dmd_backend_gother.html
  */
 
 module dmd.backend.gother;
@@ -33,83 +33,94 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
 import dmd.backend.outbuf;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
+nothrow:
+@safe:
+
+@trusted
+char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
 version (SCPP)
     import parser;
+
 version (MARS)
     import dmd.backend.errors;
 
-
 /**********************************************************************/
+
+alias Elemdatas = Rarray!(Elemdata);
 
 // Lists to help identify ranges of variables
 struct Elemdata
 {
-    Elemdata *next;         // linked list
+nothrow:
     elem *pelem;            // the elem in question
     block *pblock;          // which block it's in
-    list_t  rdlist;         // list of definition elems for *pelem
+    Barray!(elem*) rdlist;  // list of definition elems for *pelem
 
-    static Elemdata *ctor(elem *e,block *b,list_t rd)
-    {
-        Elemdata* ed = cast(Elemdata *) calloc(1, Elemdata.sizeof);
-        assert(ed);
-        ed.pelem = e;
-        ed.pblock = b;
-        ed.rdlist = rd;
-        return ed;
-    }
-
-    /********************************
-     * Find `e` in Elemdata list.
-     * Params:
-     *      e = elem to find
-     * Returns:
-     *      Elemdata entry if found,
-     *      null if not
+    /***************************
+     * Reset memory so this allocation can be re-used.
      */
-    Elemdata* find(elem *e)
+    @trusted
+    void reset()
     {
-        Elemdata* edl = &this;
-        for (; edl; edl = edl.next)
-        {
-            if (edl.pelem == e)
-                break;
-        }
-        return edl;
+        rdlist.reset();
     }
+
+    /******************
+     * Initialize instance at ed.
+     */
+    void emplace(elem *e,block *b)
+    {
+        this.pelem = e;
+        this.pblock = b;
+    }
+}
+
+/********************************
+ * Find `e` in Elemdata list.
+ * Params:
+ *      e = elem to find
+ * Returns:
+ *      Elemdata entry if found,
+ *      null if not
+ */
+@trusted
+Elemdata* find(ref Elemdatas eds, elem *e)
+{
+    foreach (ref edl; eds)
+    {
+        if (edl.pelem == e)
+            return &edl;
+    }
+    return null;
 }
 
 /*****************
  * Free list of Elemdata's.
  */
 
-private void elemdatafree(Elemdata **plist)
+private void elemdatafree(ref Elemdatas eds)
 {
-    Elemdata *eln;
-
-    for (Elemdata *el = *plist; el; el = eln)
-    {   eln = el.next;
-        list_free(&el.rdlist);
-        free(el);
-    }
-    *plist = null;
+    foreach (ref ed; eds)
+        ed.reset();
+    eds.reset();
 }
 
 private __gshared
 {
-    Elemdata *eqeqlist = null;       // list of Elemdata's of OPeqeq & OPne elems
-    Elemdata *rellist = null;        // list of Elemdata's of relop elems
-    Elemdata *inclist = null;        // list of Elemdata's of increment elems
+    Elemdatas eqeqlist;       // array of Elemdata's of OPeqeq & OPne elems
+    Elemdatas rellist;        // array of Elemdata's of relop elems
+    Elemdatas inclist;        // array of Elemdata's of increment elems
 }
 
 /*************************** Constant Propagation ***************************/
@@ -120,14 +131,15 @@ private __gshared
  * Also detects use of variable before any possible def.
  */
 
+@trusted
 void constprop()
 {
     rd_compute();
-    intranges();                // compute integer ranges
-    eqeqranges();               // see if we can eliminate some relationals
-    elemdatafree(&eqeqlist);
-    elemdatafree(&rellist);
-    elemdatafree(&inclist);
+    intranges(rellist, inclist); // compute integer ranges
+    eqeqranges(eqeqlist);        // see if we can eliminate some relationals
+    elemdatafree(eqeqlist);
+    elemdatafree(rellist);
+    elemdatafree(inclist);
 }
 
 /************************************
@@ -137,19 +149,18 @@ void constprop()
 
 private __gshared block *thisblock;
 
+@trusted
 private void rd_compute()
 {
     if (debugc) printf("constprop()\n");
     assert(dfo);
     flowrd();               /* compute reaching definitions (rd)    */
-    if (go.deftop == 0)     /* if no reaching defs                  */
+    if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
-    assert(rellist == null && inclist == null && eqeqlist == null);
+    assert(rellist.length == 0 && inclist.length == 0 && eqeqlist.length == 0);
     block_clearvisit();
-    for (uint i = 0; i < dfotop; i++)    // for each block
+    foreach (b; dfo[])    // for each block
     {
-        block *b = dfo[i];
-
         switch (b.BC)
         {
             case BCjcatch:
@@ -165,11 +176,8 @@ private void rd_compute()
         }
     }
 
-    for (uint i = 0; i < dfotop; i++)    // for each block
+    foreach (i, b; dfo[])    // for each block
     {
-        block *b;
-
-        b = dfo[i];
         thisblock = b;
 
         //printf("block %d Bin ",i); vec_println(b.Binrd);
@@ -186,7 +194,7 @@ private void rd_compute()
             {
                 int j;
 
-                printf("block %d Binrd ",i); vec_println(b.Binrd);
+                printf("block %d Binrd ", cast(int) i); vec_println(b.Binrd);
                 printf("       Boutrd "); vec_println(b.Boutrd);
                 WReqn(b.Belem);
                 printf("\n");
@@ -214,18 +222,15 @@ private void rd_compute()
  *              If elem is an assignment or function call or OPasm
  *                      Modify vector of reaching defs.
  */
-
+@trusted
 private void conpropwalk(elem *n,vec_t IN)
 {
-    uint op;
-    Elemdata *pdata;
     vec_t L,R;
     elem *t;
 
     assert(n && IN);
-    /*chkvecdim(go.deftop,0);*/
     //printf("conpropwalk()\n"),elem_print(n);
-    op = n.Eoper;
+    const op = n.Eoper;
     if (op == OPcolon || op == OPcolon2)
     {
         L = vec_clone(IN);
@@ -281,14 +286,11 @@ private void conpropwalk(elem *n,vec_t IN)
                 // Note that the following ignores OPnegass
                 if (OTopeq(op) && sytab[t.EV.Vsym.Sclass] & SCRD)
                 {
-                    elem *e;
-                    list_t rdl;
-
-                    rdl = listrds(IN,t,null);
+                    Barray!(elem*) rdl;
+                    listrds(IN,t,null,&rdl);
                     if (!(config.flags & CFGnowarning)) // if warnings are enabled
                         chkrd(t,rdl);
-                    e = chkprop(t,rdl);
-                    if (e)
+                    if (auto e = chkprop(t,rdl))
                     {   // Replace (t op= exp) with (t = e op exp)
 
                         e = el_copytree(e);
@@ -296,7 +298,7 @@ private void conpropwalk(elem *n,vec_t IN)
                         n.EV.E2 = el_bin(opeqtoop(op),n.Ety,e,n.EV.E2);
                         n.Eoper = OPeq;
                     }
-                    list_free(&rdl);
+                    rdl.dtor();
                 }
             }
             else
@@ -333,9 +335,9 @@ private void conpropwalk(elem *n,vec_t IN)
                 {
                     //printf("appending to rellist\n"); elem_print(n);
                     //printf("\trellist IN: "); vec_print(IN); printf("\n");
-                    pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
-                    pdata.next = rellist;
-                    rellist = pdata;
+                    auto pdata = rellist.push();
+                    pdata.emplace(n,thisblock);
+                    listrds(IN, n.EV.E1, null, &pdata.rdlist);
                 }
                 break;
 
@@ -348,9 +350,9 @@ private void conpropwalk(elem *n,vec_t IN)
                 {
                     //printf("appending to inclist\n"); elem_print(n);
                     //printf("\tinclist IN: "); vec_print(IN); printf("\n");
-                    pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
-                    pdata.next = inclist;
-                    inclist = pdata;
+                    auto pdata = inclist.push();
+                    pdata.emplace(n,thisblock);
+                    listrds(IN, n.EV.E1, null, &pdata.rdlist);
                 }
                 break;
 
@@ -359,9 +361,9 @@ private void conpropwalk(elem *n,vec_t IN)
                 // Collect compare elems and their rd's in the rellist list
                 if (tyintegral(n.EV.E1.Ety))
                 {   //printf("appending to eqeqlist\n"); elem_print(n);
-                    pdata = Elemdata.ctor(n,thisblock,listrds(IN,n.EV.E1,null));
-                    pdata.next = eqeqlist;
-                    eqeqlist = pdata;
+                    auto pdata = eqeqlist.push();
+                    pdata.emplace(n,thisblock);
+                    listrds(IN, n.EV.E1, null, &pdata.rdlist);
                 }
                 break;
 
@@ -378,10 +380,9 @@ private void conpropwalk(elem *n,vec_t IN)
     /* propagate a constant.                                */
     if (op == OPvar && sytab[n.EV.Vsym.Sclass] & SCRD)
     {
-        list_t rdl;
-
         //printf("const prop: %s\n", n.EV.Vsym.Sident);
-        rdl = listrds(IN,n,null);
+        Barray!(elem*) rdl;
+        listrds(IN,n,null,&rdl);
 
         if (!(config.flags & CFGnowarning))     // if warnings are enabled
             chkrd(n,rdl);
@@ -393,7 +394,7 @@ private void conpropwalk(elem *n,vec_t IN)
             el_copy(n,e);
             n.Ety = nty;                       // retain original type
         }
-        list_free(&rdl);
+        rdl.dtor();
     }
 }
 
@@ -401,7 +402,8 @@ private void conpropwalk(elem *n,vec_t IN)
  * Give error if there are no reaching defs for variable v.
  */
 
-private void chkrd(elem *n,list_t rdlist)
+@trusted
+private void chkrd(elem *n, Barray!(elem*) rdlist)
 {
     Symbol *sv;
     int unambig;
@@ -410,12 +412,11 @@ private void chkrd(elem *n,list_t rdlist)
     assert(sytab[sv.Sclass] & SCRD);
     if (sv.Sflags & SFLnord)           // if already printed a warning
         return;
-    if (sv.ty() & mTYvolatile)
+    if (sv.ty() & (mTYvolatile | mTYshared))
         return;
     unambig = sv.Sflags & SFLunambig;
-    for (list_t l = rdlist; l; l = list_next(l))
-    {   elem *d = cast(elem *) list_ptr(l);
-
+    foreach (d; rdlist)
+    {
         elem_debug(d);
         if (d.Eoper == OPasm)          /* OPasm elems ruin everything  */
             return;
@@ -437,8 +438,8 @@ private void chkrd(elem *n,list_t rdlist)
     }
 
     // If there are any asm blocks, don't print the message
-    for (uint i = 0; i < dfotop; i++)
-        if (dfo[i].BC == BCasm)
+    foreach (b; dfo[])
+        if (b.BC == BCasm)
             return;
 
     // If variable contains bit fields, don't print message (because if
@@ -511,7 +512,8 @@ private void chkrd(elem *n,list_t rdlist)
  *      e       constant elem that we should replace n with
  */
 
-private elem * chkprop(elem *n,list_t rdlist)
+@trusted
+private elem * chkprop(elem *n, Barray!(elem*) rdlist)
 {
     elem *foundelem = null;
     int unambig;
@@ -531,10 +533,8 @@ private elem * chkprop(elem *n,list_t rdlist)
     nsize = cast(uint)size(nty);
     noff = n.EV.Voffset;
     unambig = sv.Sflags & SFLunambig;
-    for (list_t l = rdlist; l; l = list_next(l))
+    foreach (d; rdlist)
     {
-        elem *d = cast(elem *) list_ptr(l);
-
         elem_debug(d);
 
         //printf("\trd: "); WReqn(d); printf("\n");
@@ -617,11 +617,15 @@ noprop:
 
 /***********************************
  * Find all the reaching defs of OPvar e.
- * Put into a linked list, or just set the RD bits in a vector.
- *
+ * Params:
+ *      IN = vector of definition nodes
+ *      e = OPvar
+ *      f = if not null, set RD bits in it
+ *      rdlist = if not null, append reaching defs to it
  */
 
-extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
+@trusted
+void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
 {
     uint i;
     uint unambig;
@@ -632,7 +636,6 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
 
     //printf("listrds: "); WReqn(e); printf("\n");
     assert(IN);
-    list_t rdlist = null;
     assert(e.Eoper == OPvar);
     s = e.EV.Vsym;
     ty = e.Ety;
@@ -642,11 +645,11 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
     unambig = s.Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.deftop; ++i)
+    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.defnod.length; ++i)
     {
         elem *d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
-        uint op = d.Eoper;
+        const op = d.Eoper;
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
@@ -674,18 +677,20 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
         if (f)
             vec_setbit(i,f);
         else
-            list_prepend(&rdlist,d);     // add the definition node
+            (*rdlist).push(d);     // add the definition node
     }
-    return rdlist;
 }
 
 /********************************************
  * Look at reaching defs for expressions of the form (v == c) and (v != c).
  * If all definitions of v are c or are not c, then we can replace the
  * expression with 1 or 0.
+ * Params:
+ *      eqeqlist = array of == and != expressions
  */
 
-private void eqeqranges()
+@trusted
+private void eqeqranges(ref Elemdatas eqeqlist)
 {
     Symbol *v;
     int sz;
@@ -693,7 +698,7 @@ private void eqeqranges()
     targ_llong c;
     int result;
 
-    for (Elemdata *rel = eqeqlist; rel; rel = rel.next)
+    foreach (ref rel; eqeqlist)
     {
         e = rel.pelem;
         v = e.EV.E1.EV.Vsym;
@@ -703,9 +708,8 @@ private void eqeqranges()
         c = el_tolong(e.EV.E2);
 
         result = -1;                    // result not known yet
-        for (list_t rdl = rel.rdlist; rdl; rdl = list_next(rdl))
+        foreach (erd; rel.rdlist)
         {
-            elem *erd = cast(elem *) list_ptr(rdl);
             elem *erd1;
             int szrd;
             int tmp;
@@ -744,11 +748,13 @@ private void eqeqranges()
 /******************************
  * Examine rellist and inclist to determine if any of the signed compare
  * elems in rellist can be replace by unsigned compares.
- * rellist is list of relationals in function.
- * inclist is list of increment elems in function.
+ * Params:
+ *      rellist = array of relationals in function
+ *      inclist = array of increment elems in function
  */
 
-private void intranges()
+@trusted
+private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
 {
     block *rb;
     block *ib;
@@ -759,7 +765,15 @@ private void intranges()
     targ_llong initial,increment,final_;
 
     if (debugc) printf("intranges()\n");
-    for (Elemdata *rel = rellist; rel; rel = rel.next)
+    static if (0)
+    {
+        foreach (int i, ref rel; rellist)
+        {
+            printf("[%d] rel.pelem: ", i); WReqn(rel.pelem); printf("\n");
+        }
+    }
+
+    foreach (ref rel; rellist)
     {
         rb = rel.pblock;
         //printf("rel.pelem: "); WReqn(rel.pelem); printf("\n");
@@ -771,17 +785,17 @@ private void intranges()
             continue;
 
         /* Look for two rd's: an = and an increment     */
-        if (list_nitems(rel.rdlist) != 2)
+        if (rel.rdlist.length != 2)
             continue;
-        rdeq = list_elem(list_next(rel.rdlist));
+        rdeq = rel.rdlist[1];
         if (rdeq.Eoper != OPeq)
         {   rdinc = rdeq;
-            rdeq = list_elem(rel.rdlist);
+            rdeq = rel.rdlist[0];
             if (rdeq.Eoper != OPeq)
                 continue;
         }
         else
-            rdinc = list_elem(rel.rdlist);
+            rdinc = rel.rdlist[0];
 
         static if (0)
         {
@@ -803,29 +817,29 @@ private void intranges()
 
         /* Ensure that the only defs reaching the increment elem (rdinc) */
         /* are rdeq and rdinc.                                          */
-        for (Elemdata *iel = inclist; true; iel = iel.next)
+        foreach (ref iel; inclist)
         {
             elem *rd1;
             elem *rd2;
 
-            if (!iel)
-                goto nextrel;
             ib = iel.pblock;
             if (iel.pelem != rdinc)
                 continue;               /* not our increment elem       */
-            if (list_nitems(iel.rdlist) != 2)
+            if (iel.rdlist.length != 2)
             {
                 //printf("!= 2\n");
-                goto nextrel;
+                break;
             }
-            rd1 = list_elem(iel.rdlist);
-            rd2 = list_elem(list_next(iel.rdlist));
+            rd1 = iel.rdlist[0];
+            rd2 = iel.rdlist[1];
             /* The rd's for the relational elem (rdeq,rdinc) must be    */
             /* the same as the rd's for tne increment elem (rd1,rd2).   */
             if (rd1 == rdeq && rd2 == rdinc || rd1 == rdinc && rd2 == rdeq)
-                break;
+                goto found;
         }
+        goto nextrel;
 
+    found:
         // Check that all paths from rdinc to rdinc must pass through rdrel
         {
             int i;
@@ -850,7 +864,13 @@ private void intranges()
         /* Determine if we can make the relational an unsigned  */
         if (initial >= 0)
         {
-            if (final_ >= initial)
+            if (final_ == 0 && relatop == OPge)
+            {
+                /* if the relation is (i >= 0) there is likely some dependency
+                 * on switching sign, so do not make it unsigned
+                 */
+            }
+            else if (final_ >= initial)
             {
                 if (increment > 0 && ((final_ - initial) % increment) == 0)
                     goto makeuns;
@@ -926,14 +946,16 @@ private void intranges()
  *   false if cannot find rdeq or rdinc
  */
 
+@trusted
 private bool returnResult(bool result)
 {
-    elemdatafree(&eqeqlist);
-    elemdatafree(&rellist);
-    elemdatafree(&inclist);
+    elemdatafree(eqeqlist);
+    elemdatafree(rellist);
+    elemdatafree(inclist);
     return result;
 }
 
+@trusted
 bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
 {
     if (debugc) printf("findloopparameters()\n");
@@ -962,13 +984,13 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
 
 
     // Look for one reaching definition: an increment
-    if (list_nitems(rel.rdlist) != 1)
+    if (rel.rdlist.length != 1)
     {
-        if (log) printf("\tnitems = %d\n", list_nitems(rel.rdlist));
+        if (log) printf("\tnitems = %d\n", cast(int)rel.rdlist.length);
         return returnResult(false);
     }
 
-    rdinc = list_elem(rel.rdlist);
+    rdinc = rel.rdlist[0];
 
     static if (0)
     {
@@ -996,13 +1018,13 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
      *   the increment itself
      * We already have the increment (as rdinc), but need the initialization (rdeq)
      */
-    if (list_nitems(iel.rdlist) != 2)
+    if (iel.rdlist.length != 2)
     {
         if (log) printf("nitems != 2\n");
         return returnResult(false);
     }
-    elem *rd1 = list_elem(iel.rdlist);
-    elem *rd2 = list_elem(list_next(iel.rdlist));
+    elem *rd1 = iel.rdlist[0];
+    elem *rd2 = iel.rdlist[1];
     if (rd1 == rdinc)
         rdeq = rd2;
     else if (rd2 == rdinc)
@@ -1047,11 +1069,12 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
  * passing through rel.
  */
 
+@trusted
 private int loopcheck(block *start,block *inc,block *rel)
 {
     if (!(start.Bflags & BFLvisited))
     {   start.Bflags |= BFLvisited;    /* guarantee eventual termination */
-        for (list_t list = start.Bsucc; list; list = list_next(list))
+        foreach (list; ListRange(start.Bsucc))
         {
             block *b = cast(block *) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
@@ -1068,6 +1091,7 @@ private int loopcheck(block *start,block *inc,block *rel)
  */
 
 
+@trusted
 void copyprop()
 {
     out_regcand(&globsym);
@@ -1089,7 +1113,7 @@ Louter:
                 printf(");\n");
             }
         }
-        foreach (i, b; dfo[0 .. dfotop])    // for each block
+        foreach (i, b; dfo[])    // for each block
         {
             if (b.Belem)
             {
@@ -1136,6 +1160,7 @@ Louter:
  *      true if need to recalculate data flow equations and try again
  */
 
+@trusted
 private bool copyPropWalk(elem *n,vec_t IN)
 {
     bool recalc = false;
@@ -1265,7 +1290,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
         {
             Symbol *v = n.EV.Vsym;
 
-            //printf("Checking copyprop for '%s', ty=x%x\n",v.Sident,n.Ety);
+            //printf("Checking copyprop for '%s', ty=x%x\n", v.Sident.ptr,n.Ety);
             symbol_debug(v);
             const ty = n.Ety;
             uint sz = tysize(n.Ety);
@@ -1284,7 +1309,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                     csz = cast(uint)type_size(c.ET);
                 assert(cast(int)csz >= 0);
 
-                //printf("looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
+                //printf("  looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
                 /* Not only must symbol numbers match, but      */
                 /* offsets too (in case of arrays) and sizes    */
                 /* (in case of unions).                         */
@@ -1308,9 +1333,9 @@ private bool copyPropWalk(elem *n,vec_t IN)
             {
                 debug if (debugc)
                 {
-                    printf("Copyprop, from '%s'(%d) to '%s'(%d)\n",
-                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, v.Ssymnum,
-                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, f.Ssymnum);
+                    printf("Copyprop, '%s'(%d) replaced with '%s'(%d)\n",
+                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, cast(int) v.Ssymnum,
+                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, cast(int) f.Ssymnum);
                 }
 
                 type *nt = n.ET;
@@ -1356,48 +1381,39 @@ private bool copyPropWalk(elem *n,vec_t IN)
 
 private __gshared
 {
-    uint asstop,                /* # of assignment elems in assnod[]    */
-         assmax = 0,            /* size of assnod[]                     */
-         assnum;                /* current position in assnod[]         */
-    elem **assnod = null;       /* array of pointers to asg elems       */
+    Barray!(elem*) assnod;      /* array of pointers to asg elems       */
     vec_t ambigref;             /* vector of assignment elems that      */
                                 /* are referenced when an ambiguous     */
                                 /* reference is done (as in *p or call) */
 }
 
+@trusted
 void rmdeadass()
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv();                       /* compute live variables       */
-    for (uint i = 0; i < dfotop; i++)    // for each block b
+    foreach (b; dfo[])         // for each block b
     {
-        block *b = dfo[i];
-
         if (!b.Belem)          /* if no elems at all           */
             continue;
         if (b.Btry)            // if in try-block guarded body
             continue;
-        asstop = numasg(b.Belem);      /* # of assignment elems */
-        if (asstop == 0)        /* if no assignment elems       */
+        const assnum = numasg(b.Belem);   // # of assignment elems
+        if (assnum == 0)                  // if no assignment elems
             continue;
-        if (asstop > assmax)    /* if we need to reallocate     */
-        {
-            assnod = cast(elem **)
-            realloc(assnod,(elem *).sizeof * asstop);
-            assert(assnod);
-            assmax = asstop;
-        }
-        /*setvecdim(asstop);*/
-        vec_t DEAD = vec_calloc(asstop);
-        vec_t POSS = vec_calloc(asstop);
-        ambigref = vec_calloc(asstop);
-        assnum = 0;
-        accumda(b.Belem,DEAD,POSS);    /* compute DEAD and POSS */
-        assert(assnum == asstop);
+
+        assnod.setLength(assnum);         // pre-allocate sufficient room
+        vec_t DEAD = vec_calloc(assnum);
+        vec_t POSS = vec_calloc(assnum);
+
+        ambigref = vec_calloc(assnum);
+        assnod.setLength(0);
+        accumda(b.Belem,DEAD,POSS);    // fill assnod[], compute DEAD and POSS
+        assert(assnum == assnod.length);
         vec_free(ambigref);
+
         vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
-        uint j;
-        for (j = 0; (j = cast(uint) vec_index(j, POSS)) < asstop; ++j) // for each possible dead asg.
+        for (uint j = 0; (j = cast(uint) vec_index(j, POSS)) < assnum; ++j) // for each possible dead asg.
         {
             Symbol *v;      /* v = target of assignment     */
             elem *n;
@@ -1415,9 +1431,23 @@ void rmdeadass()
             //printf("\tDEAD=%d, live=%d\n",vec_testbit(j,DEAD),vec_testbit(v.Ssymnum,b.Boutlv));
             if (!vec_testbit(j,DEAD) && vec_testbit(v.Ssymnum,b.Boutlv))
                 continue;
-            /* volatile variables are not dead              */
-            if ((v.ty() | nv.Ety) & mTYvolatile)
+            /* volatile/shared variables are not dead              */
+            if ((v.ty() | nv.Ety) & (mTYvolatile | mTYshared))
                 continue;
+
+            /* Do not mix up floating and integer variables
+             * https://issues.dlang.org/show_bug.cgi?id=20363
+             */
+            if (OTbinary(n.Eoper))
+            {
+                elem* e2 = n.EV.E2;
+                if (e2.Eoper == OPvar &&
+                    config.fpxmmregs &&
+                    !tyfloating(v.Stype.Tty) != !tyfloating(e2.EV.Vsym.Stype.Tty)
+                   )
+                    continue;
+            }
+
             debug if (debugc)
             {
                 printf("dead assignment (");
@@ -1433,15 +1463,13 @@ void rmdeadass()
         vec_free(DEAD);
         vec_free(POSS);
     } /* for */
-    free(assnod);
-    assnod = null;
-    assmax = 0;
 }
 
 /***************************
  * Remove side effect of assignment elem.
  */
 
+@trusted
 void elimass(elem *n)
 {   elem *e1;
 
@@ -1512,6 +1540,7 @@ void elimass(elem *n)
  * Some compilers generate better code for ?: than if-then-else.
  */
 
+@trusted
 private uint numasg(elem *e)
 {
     assert(e);
@@ -1538,29 +1567,28 @@ private uint numasg(elem *e)
  *              clear all bits in POSS that are refs of v
  */
 
+@trusted
 private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {
-    vec_t Pl,Pr,Dl,Dr;
-    uint op,vecdim;
-
-    /*chkvecdim(asstop,0);*/
+  LtailRecurse:
     assert(n && DEAD && POSS);
-    op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPcolon:
         case OPcolon2:
-            Pl = vec_clone(POSS);
-            Pr = vec_clone(POSS);
-            Dl = vec_calloc(asstop);
-            Dr = vec_calloc(asstop);
+        {
+            vec_t Pl = vec_clone(POSS);
+            vec_t Pr = vec_clone(POSS);
+            vec_t Dl = vec_calloc(vec_numbits(POSS));
+            vec_t Dr = vec_calloc(vec_numbits(POSS));
             accumda(n.EV.E1,Dl,Pl);
             accumda(n.EV.E2,Dr,Pr);
 
             /* D |= P & (Dl & Dr) | ~P & (Dl | Dr)  */
             /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
             /*   = Pl & Pr | ~P & (Pl | Pr)         */
-            vecdim = cast(uint)vec_dim(DEAD);
+            const vecdim = cast(uint)vec_dim(DEAD);
             for (uint i = 0; i < vecdim; i++)
             {
                 DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
@@ -1569,21 +1597,24 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             }
             vec_free(Pl); vec_free(Pr); vec_free(Dl); vec_free(Dr);
             break;
+        }
 
         case OPandand:
         case OPoror:
+        {
             accumda(n.EV.E1,DEAD,POSS);
             // Substituting into the above equations Pl=P and Dl=0:
             // D |= Dr - P
             // P = Pr
-            Pr = vec_clone(POSS);
-            Dr = vec_calloc(asstop);
+            vec_t Pr = vec_clone(POSS);
+            vec_t Dr = vec_calloc(vec_numbits(POSS));
             accumda(n.EV.E2,Dr,Pr);
             vec_subass(Dr,POSS);
             vec_orass(DEAD,Dr);
             vec_copy(POSS,Pr);
             vec_free(Pr); vec_free(Dr);
             break;
+        }
 
         case OPvar:
         {
@@ -1594,7 +1625,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             // We have a reference. Clear all bits in POSS that
             // could be referenced.
 
-            for (uint i = 0; i < assnum; i++)
+            foreach (const i; 0 .. cast(uint)assnod.length)
             {
                 elem *ti = assnod[i].EV.E1;
                 if (v == ti.EV.Vsym &&
@@ -1612,7 +1643,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         }
 
         case OPasm:         // reference everything
-            for (uint i = 0; i < assnum; i++)
+            foreach (const i; 0 .. cast(uint)assnod.length)
                 vec_clearbit(i,POSS);
             break;
 
@@ -1688,7 +1719,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     uint tsz = tysize(t.Ety);
                     if (n.Eoper == OPstreq)
                         tsz = cast(uint)type_size(n.ET);
-                    for (uint i = 0; i < assnum; i++)
+                    foreach (const i; 0 .. cast(uint)assnod.length)
                     {
                         elem *ti = assnod[i].EV.E1;
 
@@ -1701,7 +1732,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         if (ti.EV.Vsym == t.EV.Vsym &&
                             ti.EV.Voffset == t.EV.Voffset &&
                             tisz == tsz &&
-                            !(t.Ety & mTYvolatile) &&
+                            !(t.Ety & (mTYvolatile | mTYshared)) &&
                             //t.EV.Vsym.Sflags & SFLunambig &&
                             vec_testbit(i,POSS))
                         {
@@ -1713,15 +1744,15 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 // if assignment operator, post this def to POSS
                 if (n.Nflags & NFLassign)
                 {
-                    assnod[assnum] = n;
-                    vec_setbit(assnum,POSS);
+                    const i = cast(uint)assnod.length;
+                    vec_setbit(i,POSS);
 
                     // if variable could be referenced by a pointer
                     // or a function call, mark the assignment in
                     // ambigref
                     if (!(t.EV.Vsym.Sflags & SFLunambig))
                     {
-                        vec_setbit(assnum,ambigref);
+                        vec_setbit(i,ambigref);
 
                         debug if (debugc)
                         {
@@ -1731,21 +1762,26 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         }
                     }
 
-                    assnum++;
+                    assnod.push(n);
                 }
             }
             else if (OTrtol(op))
             {
                 accumda(n.EV.E2,DEAD,POSS);
-                accumda(n.EV.E1,DEAD,POSS);
+                n = n.EV.E1;
+                goto LtailRecurse;              //  accumda(n.EV.E1,DEAD,POSS);
             }
             else if (OTbinary(op))
             {
                 accumda(n.EV.E1,DEAD,POSS);
-                accumda(n.EV.E2,DEAD,POSS);
+                n = n.EV.E2;
+                goto LtailRecurse;              //  accumda(n.EV.E2,DEAD,POSS);
             }
             else if (OTunary(op))
-                accumda(n.EV.E1,DEAD,POSS);
+            {
+                n = n.EV.E1;
+                goto LtailRecurse;              //  accumda(n.EV.E1,DEAD,POSS);
+            }
             break;
     }
 }
@@ -1756,49 +1792,49 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
  * Compute live ranges for register candidates.
  * Be careful not to compute live ranges for members of structures (CLMOS).
  */
+@trusted
 void deadvar()
 {
         assert(dfo);
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
-        /*setvecdim(dfotop);*/
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             if (s.Sflags & SFLunambig)
             {
                 s.Sflags |= SFLdead;
                 if (s.Sflags & GTregcand)
                 {
-                    s.Srange = vec_realloc(s.Srange, maxblks);
+                    s.Srange = vec_realloc(s.Srange, dfo.length);
                     vec_clear(s.Srange);
                 }
             }
         }
 
         /* Go through trees and "liven" each one we see.        */
-        for (uint i = 0; i < dfotop; i++)
-            if (dfo[i].Belem)
-                dvwalk(dfo[i].Belem,i);
+        foreach (i, b; dfo[])
+            if (b.Belem)
+                dvwalk(b.Belem,cast(uint)i);
 
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
         flowlv();                       /* compute live variables       */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
-            if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
-                for (uint j = 0; j < dfotop; j++)
-                    if (vec_testbit(i,dfo[j].Binlv))
-                        vec_setbit(j,globsym.tab[i].Srange);
+            if (globsym[i].Srange /*&& globsym[i].Sclass != CLMOS*/)
+                foreach (j, b; dfo[])
+                    if (vec_testbit(i,b.Binlv))
+                        vec_setbit(cast(uint)j,globsym[i].Srange);
         }
 
         /* Print results        */
-        for (SYMIDX i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.length; i++)
         {
             char *p;
-            Symbol *s = globsym.tab[i];
+            Symbol *s = globsym[i];
 
             if (s.Sflags & SFLdead && s.Sclass != SCparameter && s.Sclass != SCregpar)
                 s.Sflags &= ~GTregcand;    // do not put dead variables in registers
@@ -1806,10 +1842,10 @@ void deadvar()
             {
                 p = cast(char *) s.Sident.ptr ;
                 if (s.Sflags & SFLdead)
-                    if (debugc) printf("Symbol %d '%s' is dead\n",i,p);
+                    if (debugc) printf("Symbol %d '%s' is dead\n",cast(int) i,p);
                 if (debugc && s.Srange /*&& s.Sclass != CLMOS*/)
                 {
-                    printf("Live range for %d '%s': ",i,p);
+                    printf("Live range for %d '%s': ",cast(int) i,p);
                     vec_println(s.Srange);
                 }
             }
@@ -1823,6 +1859,7 @@ void deadvar()
  *      n = elem to look at
  *      i = block index
  */
+@trusted
 private void dvwalk(elem *n,uint i)
 {
     for (; true; n = n.EV.E1)
@@ -1852,6 +1889,7 @@ private void dvwalk(elem *n,uint i)
 
 private __gshared vec_t blockseen; /* which blocks we have visited         */
 
+@trusted
 void verybusyexp()
 {
     elem **pn;
@@ -1860,7 +1898,7 @@ void verybusyexp()
     if (debugc) printf("verybusyexp()\n");
     flowvbe();                      /* compute VBEs                 */
     if (go.exptop <= 1) return;        /* if no VBEs                   */
-    assert(go.expblk);
+    assert(go.expblk.length);
     if (blockinit())
         return;                     // can't handle ASM blocks
     compdom();                      /* compute dominators           */
@@ -1868,13 +1906,12 @@ void verybusyexp()
     genkillae();                    /* compute Bgen and Bkill for   */
                                     /* AEs                          */
     /*chkvecdim(go.exptop,0);*/
-    blockseen = vec_calloc(dfotop);
+    blockseen = vec_calloc(dfo.length);
 
     /* Go backwards through dfo so that VBEs are evaluated as       */
     /* close as possible to where they are used.                    */
-    for (int i = dfotop; --i >= 0;)     // for each block
+    foreach_reverse (i, b; dfo[])     // for each block
     {
-        block *b = dfo[i];
         int done;
 
         /* Do not hoist things to blocks that do not            */
@@ -1941,7 +1978,7 @@ void verybusyexp()
         for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(go.expblk[j].Bpred))
             {
                 if (killed(j,list_block(bl),b))
                 {
@@ -1964,7 +2001,7 @@ void verybusyexp()
         for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(go.expblk[j].Bpred))
             {
                 if (ispath(j,list_block(bl),b))
                     goto L2;
@@ -1996,7 +2033,7 @@ void verybusyexp()
             debug
             {
                 if (debugc)
-                {   printf("VBE %d,%d, block %d (",j,k,i);
+                {   printf("VBE %d,%d, block %d (",j,k, cast(int) i);
                     WReqn(go.expnod[j]);
                     printf(");\n");
                 }
@@ -2033,6 +2070,7 @@ void verybusyexp()
  * between b and bp.
  */
 
+@trusted
 private int killed(uint j,block *bp,block *b)
 {
     if (bp == b || vec_testbit(bp.Bdfoidx,blockseen))
@@ -2040,7 +2078,7 @@ private int killed(uint j,block *bp,block *b)
     if (vec_testbit(j,bp.Bkill))
         return true;
     vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
-    for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(bp.Bpred))
         if (killed(j,list_block(bl),b))
             return true;
     return false;
@@ -2055,6 +2093,7 @@ private int killed(uint j,block *bp,block *b)
  *      j =     VBE expression elem candidate (index into go.expnod[])
  */
 
+@trusted
 private int ispath(uint j,block *bp,block *b)
 {
     /*chkvecdim(go.exptop,0);*/
@@ -2074,7 +2113,7 @@ private int ispath(uint j,block *bp,block *b)
 
     /* Not used in bp, see if there is a path through a predecessor */
     /* of bp                                                        */
-    for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(bp.Bpred))
         if (ispath(j,list_block(bl),b))
             return true;
 

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Dave Fladebo
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -11,18 +11,11 @@
 #pragma once
 
 #include "globals.h"
-#include "dsymbol.h"
 #include "mtype.h"
 
 class Module;
 
 void genhdrfile(Module *m);
+void genCppHdrFiles(Modules &ms);
 void moduleToBuffer(OutBuffer *buf, Module *m);
-
-const char *parametersTypeToChars(Parameters *parameters, int varargs);
-const char *stcToChars(StorageClass& stc);
-void trustToBuffer(OutBuffer *buf, TRUST trust);
-const char *trustToChars(TRUST trust);
-const char *linkageToChars(LINK linkage);
-void protectionToBuffer(OutBuffer *buf, Prot prot);
-const char *protectionToChars(Prot::Kind kind);
+const char *parametersTypeToChars(ParameterList pl);

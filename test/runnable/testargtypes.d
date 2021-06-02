@@ -1,10 +1,13 @@
+/*
+DISABLED: win32 win64 osx32 linux32 freebsd32
+*/
 
 void chkArgTypes(S, V...)()
 {
-    pragma(msg, S);
+    //pragma(msg, S);
     static if (is(S U == __argTypes))
     {
-        foreach (T; U) { pragma(msg, T); }
+        //foreach (T; U) { pragma(msg, T); }
         static assert(U.length == V.length);
         foreach (i, T; U)
             static assert(is(V[i] == T));
@@ -30,93 +33,100 @@ void chkPair(T,U,V)()
     chkArgTypes!(S, V)();
 }
 
-version (X86_64)
+int main()
 {
-    int main()
-    {
-        chkIdentity!byte();
-        chkIdentity!ubyte();
-        chkIdentity!short();
-        chkIdentity!ushort();
-        chkIdentity!int();
-        chkIdentity!uint();
-        chkIdentity!long();
-        chkIdentity!ulong();
-        chkSingle!(char,ubyte)();
-        chkSingle!(wchar,ushort)();
-        chkSingle!(dchar,uint)();
+    chkIdentity!byte();
+    chkIdentity!short();
+    chkIdentity!int();
+    chkIdentity!long();
 
-        chkIdentity!float();
-        chkIdentity!double();
-        chkIdentity!real();
+    chkSingle!(ubyte,  byte)();
+    chkSingle!(ushort, short)();
+    chkSingle!(uint,   int)();
+    chkSingle!(ulong,  long)();
 
-        chkIdentity!(void*)();
+    chkSingle!(char,  byte)();
+    chkSingle!(wchar, short)();
+    chkSingle!(dchar, int)();
 
-        chkIdentity!(__vector(byte[16]))();
-        chkIdentity!(__vector(ubyte[16]))();
-        chkIdentity!(__vector(short[8]))();
-        chkIdentity!(__vector(ushort[8]))();
-        chkIdentity!(__vector(int[4]))();
-        chkIdentity!(__vector(uint[4]))();
-        chkIdentity!(__vector(long[2]))();
-        chkIdentity!(__vector(ulong[2]))();
+    chkIdentity!float();
+    chkIdentity!double();
+    chkIdentity!real();
 
-        chkIdentity!(__vector(float[4]))();
-        chkIdentity!(__vector(double[2]))();
+    chkSingle!(void*, ptrdiff_t)();
 
-        chkPair!(byte,byte,short);
-        chkPair!(ubyte,ubyte,short);
-        chkPair!(short,short,int);
-        chkPair!(int,int,long);
+    chkSingle!(__vector(byte[16]),  __vector(double[2]))();
+    chkSingle!(__vector(ubyte[16]), __vector(double[2]))();
+    chkSingle!(__vector(short[8]),  __vector(double[2]))();
+    chkSingle!(__vector(ushort[8]), __vector(double[2]))();
+    chkSingle!(__vector(int[4]),    __vector(double[2]))();
+    chkSingle!(__vector(uint[4]),   __vector(double[2]))();
+    chkSingle!(__vector(long[2]),   __vector(double[2]))();
+    chkSingle!(__vector(ulong[2]),  __vector(double[2]))();
 
-        chkPair!(byte,short,int);
-        chkPair!(short,byte,int);
+    chkSingle!(__vector(float[4]),  __vector(double[2]))();
+    chkSingle!(__vector(double[2]), __vector(double[2]))();
 
-        chkPair!(int,float,long);
-        chkPair!(float,int,long);
-        chkPair!(byte,float,long);
-        chkPair!(float,short,long);
+    version (D_AVX)
+        chkSingle!(__vector(int[8]), __vector(double[4]))();
 
-        struct S1 { long a; long b; }
-        chkArgTypes!(S1, long, long)();
+    chkPair!(byte,  byte,  short);
+    chkPair!(ubyte, ubyte, short);
+    chkPair!(short, short, int);
+    chkPair!(int,   int,   long);
 
-        struct S2 { union { long a; double d; }}
-        chkArgTypes!(S2, long)();
+    chkPair!(byte,  short, int);
+    chkPair!(short, byte,  int);
 
-        struct S3 { union { double d; long a; }}
-        chkArgTypes!(S3, long)();
+    chkPair!(int,   float, long);
+    chkPair!(float, int,   long);
+    chkPair!(byte,  float, long);
+    chkPair!(float, short, long);
 
-        struct S4 { int a,b,c,d,e; }
-        chkArgTypes!(S4)();
+    struct S1 { long a; long b; }
+    chkArgTypes!(S1, long, long)();
 
-        struct S5 { align(1): char a; int b; }
-        chkArgTypes!(S5)();
+    struct S2 { union { long a; double d; }}
+    chkArgTypes!(S2, long)();
 
-        struct S6 { align(1): int a; void* b; }
-        chkArgTypes!(S6)();
+    struct S3 { union { double d; long a; }}
+    chkArgTypes!(S3, long)();
 
-        struct S7 { union { void* p; real r; }}
-        chkArgTypes!(S7)();
+    struct S4 { int a,b,c,d,e; }
+    chkArgTypes!(S4)();
 
-        struct S8 { union { real r; void* p; }}
-        chkArgTypes!(S8)();
+    struct S5 { align(1): char a; int b; }
+    chkArgTypes!(S5)();
 
-        struct S9 { int a,b,c; }
-        chkArgTypes!(S9, long, int)();
-        chkArgTypes!(S9[1], long, int)();
+    struct S6 { align(1): int a; void* b; }
+    chkArgTypes!(S6)();
 
-        struct S10 { int[3] a; }
-        chkArgTypes!(S10, long, int)();
+    struct S7 { union { void* p; real r; }}
+    chkArgTypes!(S7)();
 
-        chkArgTypes!(int[3], long, int)();
+    struct S8 { union { real r; void* p; }}
+    chkArgTypes!(S8)();
 
-        return 0;
-    }
-}
-else
-{
-    int main()
-    {
-        return 0;
-    }
+    struct S9 { int a,b,c; }
+    chkArgTypes!(S9, long, int)();
+    chkArgTypes!(S9[1], long, int)();
+
+    struct S10 { int[3] a; }
+    chkArgTypes!(S10, long, int)();
+
+    struct S11 { float a; struct { float b; float c; } }
+    chkArgTypes!(S11, double, float)();
+
+    struct RGB { ubyte r, g, b; }
+    chkArgTypes!(RGB, int)();
+
+    chkArgTypes!(int[3], long, int)();
+
+    struct S12 { align(16) int a; }
+    chkArgTypes!(S12, long)();
+
+    struct S13957 { double a; ulong b; }
+    chkArgTypes!(S13957, double, long)();
+
+    return 0;
 }

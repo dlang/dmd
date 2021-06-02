@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/compress.d, backend/compress.d)
@@ -12,12 +12,16 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+nothrow:
+@safe:
+
 /****************************************
  * Find longest match of pattern[0..plen] in dict[0..dlen].
  * Returns:
  *      true if match found
  */
 
+@trusted
 private bool longest_match(char *dict, int dlen, char *pattern, int plen,
         int *pmatchoff, int *pmatchlen)
 {
@@ -67,7 +71,7 @@ private bool longest_match(char *dict, int dlen, char *pattern, int plen,
  * Returns:
  *      malloc'd compressed 0-terminated identifier
  */
-
+@trusted
 extern(C) char *id_compress(char *id, int idlen, size_t *plen)
 {
     int count = 0;

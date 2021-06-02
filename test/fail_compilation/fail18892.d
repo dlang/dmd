@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18892.d(20): Error: no property `foo` for type `MT`
-fail_compilation/fail18892.d(21): Error: no property `foo` for type `MT`
+fail_compilation/fail18892.d(20): Error: no property `foo` for type `fail18892.MT`
+fail_compilation/fail18892.d(21): Error: no property `foo` for type `fail18892.MT`
 ---
 */
 

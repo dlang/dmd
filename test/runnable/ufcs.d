@@ -129,7 +129,6 @@ void test3()
     assert([1]  .init == null);
     assert([1:1].init == null);
     assert(1.0  .init is double.nan);
-    assert(10i  .init is idouble.nan);
     assert('c'  .init == 0xFF);
     assert("s"  .init == null);
 
@@ -138,7 +137,6 @@ void test3()
     assert([1]  .init() == 1);
     assert([1:1].init() == 1);
     assert(1.0  .init() == 1);
-    assert(10i  .init() == 1);
     assert('c'  .init() == 1);
     assert("s"  .init() == 1);
 
@@ -147,7 +145,6 @@ void test3()
     assert([1]  .init!(int[])()    == 1);
     assert([1:1].init!(int[int])() == 1);
     assert(1.0  .init!double()     == 1);
-    assert(10i  .init!idouble()    == 1);
     assert('c'  .init!char()       == 1);
     assert("s"  .init!string()     == 1);
 
@@ -424,7 +421,7 @@ class C5 : B5
 /*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=662
 
-import std.stdio,std.string, std.conv;
+import std.string, std.conv;
 
 enum Etest
 {
@@ -470,7 +467,6 @@ void test682()
 import std.range, std.algorithm;
 
 @property T twice(T)(T x){ return x * x; }
-real toreal(ireal x){ return x.im; }
 char toupper(char c){ return ('a'<=c && c<='z') ? cast(char)(c - 'a' + 'A') : c; }
 
 @property ref T setter(T)(ref T x, T v){ x = v; return x; }
@@ -483,7 +479,6 @@ void test3382()
 
     assert(10.twice == 100);
     assert(0.5.twice == 0.25);
-    assert(1.4i.toreal() == 1.4);
     assert('c'.toupper() == 'C');
 }
 
@@ -516,7 +511,7 @@ struct A7670
 {
     double x;
 }
-@property ref double y7670(ref A7670 a)
+@property ref double y7670(return ref A7670 a)
 {
     return a.x;
 }
@@ -543,7 +538,7 @@ void test7703()
 /*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=7773
 
-//import std.stdio;
+//import core.stdc.stdio;
 void writeln7773(int n){}
 void test7773()
 {

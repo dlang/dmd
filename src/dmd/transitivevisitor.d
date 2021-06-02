@@ -272,9 +272,9 @@ package mixin template ParseVisitMethods(AST)
         s.finalbody.accept(this);
     }
 
-    override void visit(AST.OnScopeStatement s)
+    override void visit(AST.ScopeGuardStatement s)
     {
-        //printf("Visiting OnScopeStatement\n");
+        //printf("Visiting ScopeGuardStatement\n");
         s.statement.accept(this);
     }
 
@@ -333,7 +333,7 @@ package mixin template ParseVisitMethods(AST)
             foreach (p; *td.origParameters)
                 p.accept(this);
         }
-        visitParameters(t.parameters);
+        visitParameters(t.parameterList.parameters);
     }
 
     void visitParameters(AST.Parameters* parameters)
@@ -464,6 +464,11 @@ package mixin template ParseVisitMethods(AST)
         t.exp.accept(this);
     }
 
+    override void visit(AST.TypeMixin t)
+    {
+        visitArgs(t.exps);
+    }
+
 //      Miscellaneous
 //========================================================
 
@@ -524,9 +529,9 @@ package mixin template ParseVisitMethods(AST)
         visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(AST.ProtDeclaration d)
+    override void visit(AST.VisibilityDeclaration d)
     {
-        //printf("Visiting ProtDeclaration\n");
+        //printf("Visiting VisibilityDeclaration\n");
         visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
@@ -776,6 +781,15 @@ package mixin template ParseVisitMethods(AST)
             visitType(d.type);
     }
 
+    override void visit(AST.AliasAssign d)
+    {
+        //printf("Visting AliasAssign\n");
+        if (d.aliassym)
+            d.aliassym.accept(this);
+        else
+            visitType(d.type);
+    }
+
     override void visit(AST.VarDeclaration d)
     {
         //printf("Visiting VarDeclaration\n");
@@ -798,7 +812,7 @@ package mixin template ParseVisitMethods(AST)
         AST.TypeFunction tf = cast(AST.TypeFunction)f.type;
         if (!f.inferRetType && tf.next)
             visitType(tf.next);
-        visitParameters(tf.parameters);
+        visitParameters(tf.parameterList.parameters);
         AST.CompoundStatement cs = f.fbody.isCompoundStatement();
         AST.Statement s = !cs ? f.fbody : null;
         AST.ReturnStatement rs = s ? s.isReturnStatement() : null;
@@ -847,14 +861,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.NewDeclaration d)
     {
         //printf("Visiting NewDeclaration\n");
-        visitParameters(d.parameters);
-        visitFuncBody(d);
-    }
-
-    override void visit(AST.DeleteDeclaration d)
-    {
-        //printf("Visiting DeleteDeclaration\n");
-        visitParameters(d.parameters);
+        visitParameters(d.parameterList.parameters);
         visitFuncBody(d);
     }
 
@@ -1004,9 +1011,9 @@ package mixin template ParseVisitMethods(AST)
         e.e2.accept(this);
     }
 
-    override void visit(AST.CompileExp e)
+    override void visit(AST.MixinExp e)
     {
-        //printf("Visiting CompileExp\n");
+        //printf("Visiting MixinExp\n");
         visitArgs(e.exps);
     }
 

@@ -1,4 +1,19 @@
-// REQUIRED_ARGS:
+/*
+REQUIRED_ARGS:
+RUN_OUTPUT:
+---
+47 47
+47 47
+48 48
+48 48
+i = 1
+6
+here 3
+here 3
+here 3
+Success
+---
+*/
 
 import core.stdc.stdio;
 
@@ -291,6 +306,23 @@ void test13()
 }
 
 /********************************************************/
+
+enum dg14 = delegate { ++a14; b14 += 2; };
+
+int a14, b14;
+
+void test14()
+{
+    a14 = b14 = 10;
+
+    auto var = dg14;
+    var();
+
+    assert(a14 == 11);
+    assert(b14 == 12);
+}
+
+/********************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=2472
 
 class A2472
@@ -348,6 +380,7 @@ int main()
     test10();
     test12();
     test13();
+    test14();
     test2472();
     test8257();
     testAssign();

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -29,9 +29,11 @@ import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
@@ -43,10 +45,12 @@ version (OSX)
     enum clock_t CLOCKS_PER_SEC = 1_000_000; // was 100 until OSX 10.4/10.5
 }
 
-extern (C++) int os_clock();
-
 extern (C++):
 
+nothrow:
+@safe:
+
+int os_clock();
 
 /* gdag.c */
 void builddags();
@@ -59,7 +63,6 @@ void flowlv();
 void flowae();
 void flowvbe();
 void flowcp();
-void flowae();
 void genkillae();
 void flowarraybounds();
 int ae_field_affect(elem *lvalue,elem *e);
@@ -83,32 +86,24 @@ void rmdeadass();
 void elimass(elem *);
 void deadvar();
 void verybusyexp();
-list_t listrds(vec_t, elem *, vec_t);
+void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
 
 /* gslice.c */
-void sliceStructs();
+void sliceStructs(ref symtab_t, block*);
 
 /***************************************************************************/
 
 extern (C) void mem_free(void* p);
 
+@trusted
 void go_term()
 {
     vec_free(go.defkill);
     vec_free(go.starkill);
     vec_free(go.vptrkill);
-version (Posix)
-{
-    mem_free(go.expnod);
-    mem_free(go.expblk);
-    mem_free(go.defnod);
-}
-else
-{
-    util_free(go.expnod);
-    util_free(go.expblk);
-    util_free(go.defnod);
-}
+    go.defnod.dtor();
+    go.expnod.dtor();
+    go.expblk.dtor();
 }
 
 debug
@@ -119,6 +114,7 @@ debug
 debug (DEBUG_TREES)
     void dbg_optprint(const(char) *);
 else
+    @trusted
     void dbg_optprint(const(char) *c)
     {
         // to print progress message, undo comment
@@ -138,7 +134,7 @@ else
  *      0       not recognized
  *      !=0     recognized
  */
-
+@trusted
 int go_flag(char *cp)
 {
     enum GL     // indices of various flags in flagtab[]
@@ -154,8 +150,6 @@ int go_flag(char *cp)
     [   0,MFall,MFcnp,MFcp,MFcse,MFda,MFdc,MFdv,MFli,MFliv,MFlocal,MFloop,
         0,0,MFreg,0,MFtime,MFtime,MFtree,MFvbe
     ];
-
-    uint i = GL.MAX;
 
     //printf("go_flag('%s')\n", cp);
     uint flag = binary(cp + 1,cast(const(char)**)flagtab.ptr,GL.MAX);
@@ -265,6 +259,7 @@ void dbg_optprint(char *title)
  * Optimize function.
  */
 
+@trusted
 void optfunc()
 {
 version (HTOD)
@@ -293,12 +288,13 @@ else
     // Each pass through the loop can reduce only one level of comma expression.
     // The infinite loop check needs to take this into account.
     // Add 100 just to give optimizer more rope to try to converge.
-    int iterationLimit = 0;
+    int iterationLimit = 100;
     for (block* b = startblock; b; b = b.Bnext)
     {
         if (!b.Belem)
             continue;
-        int d = el_countCommas(b.Belem) + 100;
+        ++iterationLimit;
+        int d = el_countCommas(b.Belem);
         if (d > iterationLimit)
             iterationLimit = d;
     }
@@ -321,7 +317,7 @@ else
 
         //printf("optelem\n");
         /* canonicalize the trees        */
-        for (block* b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
             if (b.Belem)
             {
                 debug if (debuge)
@@ -344,7 +340,7 @@ else
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
-        sliceStructs();
+        sliceStructs(globsym, startblock);
         if (go.mfoptim & MFcnp)
             constprop();                /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
@@ -352,7 +348,7 @@ else
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
-            for (block* b = startblock; b; b = b.Bnext)
+            foreach (b; BlockRange(startblock))
                 b.Bweight = 1;
         dbg_optprint("boolopt\n");
 

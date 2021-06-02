@@ -681,7 +681,7 @@ void test35()
  try {
   alias Foo35!( Bar35 ) filter;
  } catch (Exception e) {
-  printf( "Exception %.*s", e.msg.length, e.msg.ptr );
+  printf( "Exception %.*s", cast(int)e.msg.length, e.msg.ptr );
  } finally {
   printf( "Done0." );
  }
@@ -885,7 +885,7 @@ void test45()
     char[5] foo;
 
     foo[] = "hello";
-    printf("'%.*s'\n", foo.length, foo.ptr);
+    printf("'%.*s'\n", cast(int)foo.length, foo.ptr);
     func45(cast(string)foo);
 }
 
@@ -1189,7 +1189,7 @@ void test63()
 {
      A63 f = new A63();
      auto s = f.getcwd();
-     printf("%.*s\n", s.length, s.ptr);
+     printf("%.*s\n", cast(int)s.length, s.ptr);
 }
 
 

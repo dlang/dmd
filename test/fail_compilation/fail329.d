@@ -27,7 +27,7 @@ class A
         assert(x == 7);
         result++;
     }
-    body
+    do
     {
         return i;
     }
@@ -49,7 +49,7 @@ class B : A
         assert(result < 8);
         assert(x == 7);
     }
-    body
+    do
     {
         return i - 1;
     }

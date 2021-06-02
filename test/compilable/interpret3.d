@@ -1,4 +1,11 @@
 // PERMUTE_ARGS: -inline
+/*
+TEST_OUTPUT:
+---
+compilable/interpret3.d(2914): Deprecation: `case` variables have to be `const` or `immutable`
+compilable/interpret3.d(6351): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+---
+*/
 
 template compiles(int T)
 {
@@ -78,24 +85,24 @@ struct RetRefStruct
 
 // Return value reference tests, for D2 only.
 
-ref RetRefStruct reffunc1(ref RetRefStruct a)
+ref RetRefStruct reffunc1(return ref RetRefStruct a)
 {
     int y = a.x;
     return a;
 }
 
-ref RetRefStruct reffunc2(ref RetRefStruct a)
+ref RetRefStruct reffunc2(return ref RetRefStruct a)
 {
     RetRefStruct z = a;
     return reffunc1(a);
 }
 
-ref int reffunc7(ref RetRefStruct aa)
+ref int reffunc7(return ref RetRefStruct aa)
 {
     return reffunc1(aa).x;
 }
 
-ref int reffunc3(ref int a)
+ref int reffunc3(return ref int a)
 {
     return a;
 }
@@ -104,18 +111,18 @@ struct RefTestStruct
 {
     RetRefStruct r;
 
-    ref RefTestStruct reffunc4(ref RetRefStruct[3] a)
+    ref RefTestStruct reffunc4(ref RetRefStruct[3] a) return
     {
         return this;
     }
 
-    ref int reffunc6()
+    ref int reffunc6() return
     {
         return this.r.x;
     }
 }
 
-ref RetRefStruct reffunc5(ref RetRefStruct[3] a)
+ref RetRefStruct reffunc5(return ref RetRefStruct[3] a)
 {
     int t = 1;
     for (int i = 0; i < 10; ++i)
@@ -1320,7 +1327,7 @@ struct Zadok
 {
     int[3] z;
     char[4] s = void;
-    ref int[] fog(ref int[] q) { return q; }
+    ref int[] fog(return ref int[] q) { return q; }
     int bfg()
     {
         z[0] = 56;
@@ -2454,7 +2461,7 @@ const(char)[] passthrough(const(char)[] x)
     return x;
 }
 
-sizediff_t checkPass(Char1)(const(Char1)[] s)
+ptrdiff_t checkPass(Char1)(const(Char1)[] s)
 {
     const(Char1)[] balance = s[1 .. $];
     return passthrough(balance).ptr - s.ptr;
@@ -3219,6 +3226,44 @@ int ctfeSort6250()
 static assert(ctfeSort6250() == 57);
 
 /**************************************************/
+
+long[]* simple6250b(long[]* x) { return x; }
+
+void swap6250b(long[]* lhs, long[]* rhs)
+{
+    long[] kk = *lhs;
+    assert(simple6250b(lhs) == lhs);
+    lhs = simple6250b(lhs);
+    assert(kk[0] == 18);
+    assert((*lhs)[0] == 18);
+    assert((*rhs)[0] == 19);
+    *lhs = *rhs;
+    assert((*lhs)[0] == 19);
+    *rhs = kk;
+    assert(*rhs == kk);
+    assert(kk[0] == 18);
+    assert((*rhs)[0] == 18);
+}
+
+long ctfeSort6250b()
+{
+     long[][2] x;
+     long[3] a = [17, 18, 19];
+     x[0] = a[1 .. 2];
+     x[1] = a[2 .. $];
+     assert(x[0][0] == 18);
+     assert(x[0][1] == 19);
+     swap6250b(&x[0], &x[1]);
+     assert(x[0][0] == 19);
+     assert(x[1][0] == 18);
+     a[1] = 57;
+     assert(x[0][0] == 19);
+     return x[1][0];
+}
+
+static assert(ctfeSort6250b() == 57);
+
+/**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6672
 // circular references in array
 
@@ -3380,13 +3425,13 @@ bool test3512()
     assert(q == 6);
 
     // _aApplycw2
-    foreach (int i, wchar c; s)
+    foreach (ptrdiff_t i, wchar c; s)
     {
         assert(i >= 0 && i < s.length);
     }
 
     // _aApplycd2
-    foreach (int i, dchar c; s)
+    foreach (ptrdiff_t i, dchar c; s)
     {
         assert(i >= 0 && i < s.length);
     }
@@ -3408,13 +3453,13 @@ bool test3512()
     assert(q == 13);
 
     // _aApplywc2
-    foreach (int i, char c; w)
+    foreach (ptrdiff_t i, char c; w)
     {
         assert(i >= 0 && i < w.length);
     }
 
     // _aApplywd2
-    foreach (int i, dchar c; w)
+    foreach (ptrdiff_t i, dchar c; w)
     {
         assert(i >= 0 && i < w.length);
     }
@@ -3438,19 +3483,19 @@ bool test3512()
     assert(q == 3);
 
     // _aApplydc2
-    foreach (int i, char c; d)
+    foreach (ptrdiff_t i, char c; d)
     {
         assert(i >= 0 && i < d.length);
     }
     // _aApplydw2
-    foreach (int i, wchar c; d)
+    foreach (ptrdiff_t i, wchar c; d)
     {
         assert(i >= 0 && i < d.length);
     }
 
     dchar[] dr = "squop"d.dup;
 
-    foreach (int n, char c; dr)
+    foreach (ptrdiff_t n, char c; dr)
     {
         if (n == 2)
             break;
@@ -3466,7 +3511,7 @@ bool test3512()
     {}
 
     // _aApplyRdc2
-    foreach_reverse (int n, char c; dr)
+    foreach_reverse (ptrdiff_t n, char c; dr)
     {
         if (n == 4)
             break;
@@ -3474,14 +3519,14 @@ bool test3512()
     }
 
     // _aApplyRdw2
-    foreach_reverse (int i, wchar c; dr)
+    foreach_reverse (ptrdiff_t i, wchar c; dr)
     {
         assert(i >= 0 && i < dr.length);
     }
 
     q = 0;
     wstring w2 = ['x', 'ü', 'm']; // foreach over array literals
-    foreach_reverse (int n, char c; w2)
+    foreach_reverse (ptrdiff_t n, char c; w2)
     {
         ++q;
         if (c == 'm') assert(n == 2 && q == 1);
@@ -5773,7 +5818,7 @@ class C10452
     bool func() { return true; }
 }
 
-bool delegate() ref10452(ref S10452 s)
+bool delegate() ref10452(return ref S10452 s)
 {
     return &s.func;
 }
@@ -6433,7 +6478,7 @@ label:
             break label;        // doesn't work.
     }
 }
-body
+do
 {
     int x = 0;
 label:
@@ -6766,27 +6811,6 @@ static assert(md5_digest11535(`TEST`) == [84, 69, 83, 84, 0, 0]);
 
 static assert(()
 {
-    // enter to TryCatchStatement.body
-    {
-        bool c = false;
-        try
-        {
-            if (c)  // need to bypass front-end optimization
-                throw new Exception("");
-            else
-            {
-                goto Lx;
-              L1:
-                c = true;
-            }
-        }
-        catch (Exception e) {}
-
-      Lx:
-        if (!c)
-            goto L1;
-    }
-
     // jump inside TryCatchStatement.body
     {
         bool c = false;
@@ -6878,37 +6902,6 @@ static assert(()
 
 static assert(()
 {
-    // enter forward to TryFinallyStatement.body
-    {
-        bool c = false;
-        goto L0;
-        c = true;
-        try
-        {
-          L0:
-            ;
-        }
-        finally {}
-        assert(!c);
-    }
-
-    // enter back to TryFinallyStatement.body
-    {
-        bool c = false;
-        try
-        {
-            goto Lx;
-          L1:
-            c = true;
-        }
-        finally {
-        }
-
-      Lx:
-        if (!c)
-            goto L1;
-    }
-
     // jump inside TryFinallyStatement.body
     {
         try
@@ -7646,7 +7639,7 @@ int test15251()
 {
     for (ubyte lwr = 19;
         lwr != 20;
-        cast(void)++lwr)    // have to to be evaluated with ctfeNeedNothing
+        cast(void)++lwr)    // have to to be evaluated with CTFEGoal.Nothing
     {}
     return 1;
 }
@@ -7738,3 +7731,81 @@ void test19074()
 {
     auto var = S19074b.data;
 }
+
+/************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19447
+
+bool f19447()
+{
+    int[3] c=1;
+    assert(c[0]==1);
+    g19447(c[0..2]);
+    assert(c[0]!=1); //fails
+    assert(c[0]==2);
+    return true;
+}
+void g19447(ref int[2] a)
+{
+    int[2] b=2;
+    a=b;
+    //a[]=b;            // works
+    //a[] = b[];                // works
+    assert(a[0]==2);
+}
+static assert(f19447());
+
+/***/
+
+char[] mangle19447(char[] dst)
+{
+   dst.length = 10;
+   size_t i = "_D".length;
+   dst[0 .. i] = "_D";
+   return dst;
+}
+
+static char[] x19447 = mangle19447(null);
+
+/***/
+enum KindEnum
+{
+    integer,
+    arrayOf
+}
+
+struct FullKind
+{
+    KindEnum[] contents;
+
+    this(KindEnum ) { opAssign; }
+
+    this(KindEnum , FullKind contentKind)
+    {
+         contents = contentKind.contents;
+    }
+
+    void opAssign()
+    {
+        contents = [];
+    }
+}
+
+enum fk = FullKind(KindEnum.integer);
+enum fk2 = FullKind(KindEnum.arrayOf, fk);
+
+/************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=9937
+
+int test9937()
+{
+    import core.math;
+
+    float x = float.max;
+    x *= 2;
+    x = toPrec!float(x);
+    x /= 2;
+    assert(x == float.infinity);
+    return 1;
+}
+
+static assert(test9937());

@@ -1,5 +1,11 @@
-// REQUIRED_ARGS:
-// PERMUTE_ARGS: -w -d -de -dw
+/*
+REQUIRED_ARGS: -w -de
+PERMUTE_ARGS:
+RUN_OUTPUT:
+---
+Success
+---
+*/
 
 extern(C) int printf(const char*, ...);
 
@@ -404,19 +410,6 @@ class C15258
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=15665
-
-scope class C15665 (V)
-{
-    this () {}
-}
-
-void test15665()
-{
-    scope foo = new C15665!int;
-}
-
-/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15869
 
 struct Set {
@@ -447,6 +440,33 @@ void test15869()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19389
+
+struct Foo19389 {
+    int x;
+
+    this(int dummy) { x = dummy; }
+}
+
+struct Bar19389 {
+    Foo19389 a;
+    Foo19389 b;
+
+    this(int dummy) {
+        a = (b = Foo19389(dummy));
+    }
+}
+
+
+void test19389()
+{
+    Bar19389 bar = Bar19389(7);
+    assert(bar.a.x == 7);
+    assert(bar.b.x == 7); // fails
+}
+
+
+/***************************************************/
 
 int main()
 {
@@ -456,8 +476,8 @@ int main()
     test13515();
     test14450();
     test14944();
-    test15665();
     test15869();
+    test19389();
 
     printf("Success\n");
     return 0;

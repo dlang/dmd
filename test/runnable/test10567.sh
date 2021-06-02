@@ -6,4 +6,4 @@ $DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} ${EXTRA_FILES}${SEP}tes
 
 ${OUTPUT_BASE}${EXE}
 
-rm ${OUTPUT_BASE}{a${OBJ},${EXE}}
+rm_retry ${OUTPUT_BASE}{a${OBJ},${EXE}}

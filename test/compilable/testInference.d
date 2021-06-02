@@ -267,7 +267,7 @@ void foo8504()()
 {
     static assert(typeof(foo8504!()).stringof == "void()");
     static assert(typeof(foo8504!()).mangleof == "FZv");
-    static assert(demangle(foo8504!().mangleof) == "void testInference.foo8504!().foo8504()");
+//    static assert(demangle(foo8504!().mangleof) == "void testInference.foo8504!().foo8504()");
 }
 
 auto toDelegate8504a(F)(auto ref F fp) { return fp; }
@@ -655,7 +655,7 @@ void foo10296()()
 
     void bar()() { a[1] = 2; }
     bar();
-    pragma(msg, typeof(bar!()));    // nothrow @safe void()
+    static assert(typeof(bar!()).stringof == "pure nothrow @nogc @safe void()");    // nothrow @safe void()
 }
 pure void test10296()
 {

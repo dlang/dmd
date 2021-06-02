@@ -3,7 +3,7 @@ REQUIRED_ARGS: -g
 PERMUTE_ARGS:
 GDB_SCRIPT:
 ---
-b 15
+b gdb1.d:15
 r ARG1 ARG2
 echo RESULT=
 p args

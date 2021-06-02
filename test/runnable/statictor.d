@@ -1,7 +1,19 @@
-// PERMUTE_ARGS:
-// POST_SCRIPT: runnable/extra-files/statictor-postscript.sh
+/*
+PERMUTE_ARGS:
+RUN_OUTPUT:
+---
+shared static this()
+Foo static ctor
+static ctor
+Bar static ctor
+Bar static dtor
+static dtor
+Foo static dtor
+shared static this()
+---
+*/
 
-private import std.stdio;
+private import core.stdc.stdio;
 
 class Foo
 {
@@ -64,4 +76,3 @@ int main()
 {
     return 0;
 }
-

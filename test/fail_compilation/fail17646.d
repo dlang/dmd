@@ -1,6 +1,6 @@
 /*
 REQUIRED_ARGS: -o-
-PERMUTE_ARGS:
+EXTRA_FILES: imports/fail17646.d
 TEST_OUTPUT:
 ---
 fail_compilation/imports/fail17646.d(10): Error: found `}` instead of statement

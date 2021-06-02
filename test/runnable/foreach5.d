@@ -1,3 +1,17 @@
+/*
+EXTRA_FILES: imports/test15777a.d imports/test15777b.d
+TEST_OUTPUT:
+---
+int
+double
+foobar7406(T)
+test7406()
+int
+foobar7406(T)
+int
+test7406()
+---
+*/
 
 extern(C) int printf(const char* fmt, ...);
 
@@ -244,7 +258,7 @@ struct MyRange
         return true;
     }
 
-    @property ref int front()
+    @property ref int front() return
     {
         return theOnlyOne;
     }

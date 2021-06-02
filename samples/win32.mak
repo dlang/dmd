@@ -3,7 +3,10 @@ DMD=..\..\windows\bin\dmd
 DFLAGS=-m$(MODEL)
 
 EXAMPLES = hello d2html dhry pi sieve wc wc2 \
-	winsamp dserver$(MODEL) mydll htmlget listener
+	winsamp dserver$(MODEL) mydll$(MODEL) htmlget listener
+
+auto-tester-test:
+	echo "Windows builds have been disabled"
 
 all: $(EXAMPLES)
 	echo done
@@ -55,14 +58,19 @@ dserver32:
 	$(DMD) dclient $(DFLAGS) ole32.lib uuid.lib
 	.\dclient.exe
 
-dserver64:
+dserver64 dserver32mscoff:
 	$(DMD) dserver.d chello.d $(DFLAGS) -L/DLL dserver64.def advapi32.lib ole32.lib user32.lib
 	$(DMD) dclient $(DFLAGS) ole32.lib uuid.lib
 	.\dclient.exe
 
-mydll:
+mydll32:
 	$(DMD) $(DFLAGS) -ofmydll.dll -L/IMPLIB mydll\mydll.d mydll\dll.d mydll\mydll.def
-	$(DMD) $(DFLAGS) -ofdlltest.exe -Imydll mydll\test.d mydll.lib
+	$(DMD) $(DFLAGS) -ofdlltest.exe mydll\test.d mydll\mydll.di mydll.lib
+	.\dlltest.exe
+
+mydll64 mydll32mscoff:
+	$(DMD) $(DFLAGS) -ofmydll.dll mydll\mydll.d mydll\dll.d -L/DLL
+	$(DMD) $(DFLAGS) -ofdlltest.exe mydll\test.d mydll\mydll.di mydll.lib
 	.\dlltest.exe
 
 clean:

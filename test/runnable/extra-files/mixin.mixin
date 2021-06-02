@@ -1,7 +1,0 @@
-// expansion at runnable/extra-files/mixin.d(16)
-int x;
-        int y;
-        
-        
-        
-        int z = x + y;

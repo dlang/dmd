@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -dip1008
+// REQUIRED_ARGS: -preview=dip1008
 
 int bar()
 {

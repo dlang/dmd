@@ -1,5 +1,21 @@
-// PERMUTE_ARGS: -inline -g -O
-
+/* PERMUTE_ARGS: -inline -g -O
+TEST_OUTPUT:
+---
+runnable/testcontracts.d(323): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(324): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(325): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(326): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(328): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(329): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(330): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(331): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(502): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(503): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(504): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(505): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+runnable/testcontracts.d(505): Deprecation: Usage of the `body` keyword is deprecated. Use `do` instead.
+---
+*/
 extern(C) int printf(const char*, ...);
 
 /*******************************************/
@@ -318,13 +334,13 @@ void test9()
 
 /*******************************************/
 
-auto test10() body { return 3; }
-auto test11()() body { return 3; }
+auto test10() do { return 3; }
+auto test11()() do { return 3; }
 
 auto test12()
 {
-    auto test10() body { return 3; }
-    auto test11()() body { return 3; }
+    auto test10() do { return 3; }
+    auto test11()() do { return 3; }
     return 3;
 }
 
@@ -488,6 +504,54 @@ void test7218()
     size_t gob()/*in{}*/out{}  body{ return 0; } // NG1
     size_t gaz()/*in{}  out{}*/body{ return 0; } // NG2
   }
+}
+
+/*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=7335
+
+class A7335
+{
+    int mValue = 10;
+
+    void setValue(int newValue)
+    in { }
+    out { assert(mValue == 3); }
+    do
+    {
+        mValue = newValue;
+    }
+}
+
+class B7335 : A7335
+{
+    override void setValue(int newValue)
+    in { assert(false); }
+    out { assert(mValue == 3); }
+    do
+    {
+        mValue = newValue;
+    }
+}
+
+class C7335 : A7335
+{
+    override void setValue(int newValue)
+    in { int a = newValue; }
+    out { assert(mValue == 3); }
+    do
+    {
+        mValue = newValue;
+    }
+}
+
+void test7335()
+{
+    A7335 aObject = new B7335();
+    aObject.setValue(3);
+
+    A7335 bObject = new C7335();
+    bObject.setValue(3);    // <<<<<  will crash because undefined mValue in the
+                            // A7335.setValue().out-block.
 }
 
 /*******************************************/
@@ -1080,6 +1144,79 @@ void test14779()
 }
 
 /*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15984
+
+I15984 i15984;
+C15984 c15984;
+
+void check15984(T)(const char* s, T this_, int i)
+{
+    printf("%s this = %p, i = %d\n", s, this_, i);
+    static if (is(T == I15984)) assert(this_ is i15984);
+    else static if (is(T == C15984)) assert(this_ is c15984);
+    else static assert(0);
+    assert(i == 5);
+}
+
+interface I15984
+{
+    void f1(int i)
+    in  { check15984("I.f1.i", this, i); assert(0); }
+    out { check15984("I.f1.o", this, i); }
+
+    int[3] f2(int i)
+    in  { check15984("I.f2.i", this, i); assert(0); }
+    out { check15984("I.f2.o", this, i); }
+
+    void f3(int i)
+    in  { void nested() { check15984("I.f3.i", this, i); } nested(); assert(0); }
+    out { void nested() { check15984("I.f3.o", this, i); } nested(); }
+
+    void f4(out int i, lazy int j)
+    in  { }
+    out { }
+}
+
+class C15984 : I15984
+{
+    void f1(int i)
+    in  { check15984("C.f1.i", this, i); }
+    out { check15984("C.f1.o", this, i); }
+    do  { check15984("C.f1  ", this, i); }
+
+    int[3] f2(int i)
+    in  { check15984("C.f2.i", this, i); }
+    out { check15984("C.f2.o", this, i); }
+    do  { check15984("C.f2  ", this, i); return [0,0,0]; }
+
+    void f3(int i)
+    in  { void nested() { check15984("C.f3.i", this, i); } nested(); }
+    out { void nested() { check15984("C.f3.o", this, i); } nested(); }
+    do  { check15984("C.f3  ", this, i); }
+
+    void f4(out int i, lazy int j)
+    in  { assert(0); }
+    do  { i = 10; }
+}
+
+void test15984()
+{
+    c15984 = new C15984;
+    i15984 = c15984;
+    printf("i = %p\n", i15984);
+    printf("c = %p\n", c15984);
+    printf("====\n");
+    i15984.f1(5);
+    printf("====\n");
+    i15984.f2(5);
+    printf("====\n");
+    i15984.f3(5);
+    int i;
+    i15984.f4(i, 1);
+    assert(i == 10);
+}
+
+/*******************************************/
 
 //******************************************/
 // DIP 1009
@@ -1171,6 +1308,7 @@ int main()
     test6417();
     test6549();
     test7218();
+    test7335();
     test7517();
     test8073();
     test8093();
@@ -1178,6 +1316,7 @@ int main()
     test15524();
     test15524a();
     test14779();
+    test15984();
     dip1009_1(1);
     dip1009_2(1);
     dip1009_3(1);

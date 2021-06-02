@@ -10,7 +10,7 @@
  *         different lists to 'share' a common tail.
  *
  * Copyright:   Copyright (C) 1986-1990 by Northwest Software
- *              Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dlist.d, backend/dlist.d)
@@ -25,7 +25,9 @@ import core.stdc.string;
 
 extern (C++):
 
-nothrow @nogc
+nothrow:
+@safe:
+@nogc
 {
 
 /* **************** TYPEDEFS AND DEFINES ****************** */
@@ -90,7 +92,8 @@ list_t list_next(list_t list) { return list.next; }
  *    ptr from list entry.
  */
 
-void* list_ptr(list_t list) { return list.ptr; }
+@trusted
+inout(void)* list_ptr(inout list_t list) { return list.ptr; }
 
 /********************************
  * Returns:
@@ -123,6 +126,7 @@ void list_prependdata(list_t *plist,int d)
  *      list_inited = 1
  */
 
+@trusted
 void list_init()
 {
     if (list_inited == 0)
@@ -138,6 +142,7 @@ void list_init()
  *      list_inited = 0
  */
 
+@trusted
 void list_term()
 {
     if (list_inited)
@@ -158,6 +163,7 @@ void list_term()
 }
 
 
+@trusted
 list_t list_alloc()
 {
     list_t list;
@@ -182,7 +188,10 @@ list_t list_alloc(const(char)* file, int line)
 }
 
 
+@trusted
 list_t list_new() { return cast(list_t)malloc(LIST.sizeof); }
+
+@trusted
 void list_delete(list_t list) { free(list); }
 
 /********************
@@ -195,6 +204,7 @@ void list_delete(list_t list) { free(list); }
  *      *plist is null
  */
 
+@trusted
 void list_free(list_t* plist, list_free_fp freeptr)
 {
     list_t list = *plist;
@@ -225,6 +235,7 @@ void list_free(list_t *l)
  *      otherwise ptr
  */
 
+@trusted
 void* list_subtract(list_t* plist, void* ptr)
 {
     list_t list;
@@ -265,6 +276,7 @@ void* list_pop(list_t* plist)
  *      null if out of memory
  */
 
+@trusted
 list_t list_append(list_t* plist, void* ptr)
 {
     while (*plist)
@@ -293,6 +305,7 @@ list_t list_append_debug(list_t* plist, void* ptr, const(char)* file, int line)
  *      null if out of memory
  */
 
+@trusted
 list_t list_prepend(list_t *plist, void *ptr)
 {
     list_t list = list_alloc();
@@ -375,6 +388,7 @@ list_t list_prev(list_t start, list_t list)
  * Copy a list and return it.
  */
 
+@trusted
 list_t list_copy(list_t list)
 {
     list_t c = null;
@@ -408,6 +422,7 @@ int list_equal(list_t list1, list_t list2)
  *    If they compare equal, return 0 else value returned by fp.
  */
 
+@trusted
 int list_cmp(list_t list1, list_t list2, int function(void*, void*) @nogc nothrow fp)
 {
     int result = 0;
@@ -438,6 +453,7 @@ int list_cmp(list_t list1, list_t list2, int function(void*, void*) @nogc nothro
  *    If found, return list entry that it is, else null.
  */
 
+@trusted
 list_t list_inlist(list_t list, void* ptr)
 {
     foreach (l; ListRange(list))
@@ -467,6 +483,7 @@ list_t list_cat(list_t *pl1, list_t l2)
  * Apply a function fp to each member of a list.
  */
 
+@trusted
 void list_apply(list_t* plist, void function(void*) @nogc nothrow fp)
 {
     if (fp)
@@ -498,6 +515,7 @@ list_t list_reverse(list_t l)
  * Copy list of pointers into an array of pointers.
  */
 
+@trusted
 void list_copyinto(list_t l, void *pa)
 {
     void **ppa = cast(void **)pa;
@@ -512,6 +530,7 @@ void list_copyinto(list_t l, void *pa)
  * Insert item into list at nth position.
  */
 
+@trusted
 list_t list_insert(list_t *pl,void *ptr,int n)
 {
     list_t list;
@@ -546,7 +565,7 @@ struct ListRange
 
     list_t front() return  { return li; }
     void popFront() { li = li.next; }
-    bool empty()    { return !li; }
+    bool empty() const { return !li; }
 
   private:
     list_t li;
@@ -564,6 +583,7 @@ struct ListRange
  *      generated list
  */
 
+@trusted
 list_t list_build(void *p,...)
 {
     va_list ap;

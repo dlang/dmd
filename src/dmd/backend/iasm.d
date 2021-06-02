@@ -1,12 +1,13 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Declarations for ptrntab.d, the instruction tables for the inline assembler.
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     Mike Cote, John Micco, $(LINK2 http://www.digitalmars.com, Walter Bright),
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/iasm.d, backend/iasm.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_iasm.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/iasm.d
  */
 
 module dmd.backend.iasm;
@@ -14,6 +15,7 @@ module dmd.backend.iasm;
 // Online documentation: https://dlang.org/phobos/dmd_backend_iasm.html
 
 import dmd.backend.cc : block;
+import dmd.backend.code_x86 : opcode_t;
 
 extern (C++):
 @nogc:
@@ -89,30 +91,30 @@ enum
 }
 
 // translates opcode into equivalent vex encoding
-uint VEX_128_W0(uint op)            { return _VEX(op)|_VEX_NOO; }
-uint VEX_128_W1(uint op)            { return _VEX(op)|_VEX_NOO|_VEX_W; }
-uint VEX_128_WIG(uint op)           { return  VEX_128_W0(op); }
-uint VEX_256_W0(uint op)            { return _VEX(op)|_VEX_NOO|_VEX_L; }
-uint VEX_256_W1(uint op)            { return _VEX(op)|_VEX_NOO|_VEX_W|_VEX_L; }
-uint VEX_256_WIG(uint op)           { return  VEX_256_W0(op); }
-uint VEX_NDS_128_W0(uint op)        { return _VEX(op)|_VEX_NDS; }
-uint VEX_NDS_128_W1(uint op)        { return _VEX(op)|_VEX_NDS|_VEX_W; }
-uint VEX_NDS_128_WIG(uint op)       { return  VEX_NDS_128_W0(op); }
-uint VEX_NDS_256_W0(uint op)        { return _VEX(op)|_VEX_NDS|_VEX_L; }
-uint VEX_NDS_256_W1(uint op)        { return _VEX(op)|_VEX_NDS|_VEX_W|_VEX_L; }
-uint VEX_NDS_256_WIG(uint op)       { return  VEX_NDS_256_W0(op); }
-uint VEX_NDD_128_W0(uint op)        { return _VEX(op)|_VEX_NDD; }
-uint VEX_NDD_128_W1(uint op)        { return _VEX(op)|_VEX_NDD|_VEX_W; }
-uint VEX_NDD_128_WIG(uint op)       { return  VEX_NDD_128_W0(op); }
-uint VEX_NDD_256_W0(uint op)        { return _VEX(op)|_VEX_NDD|_VEX_L; }
-uint VEX_NDD_256_W1(uint op)        { return _VEX(op)|_VEX_NDD|_VEX_W|_VEX_L; }
-uint VEX_NDD_256_WIG(uint op)       { return  VEX_NDD_256_W0(op); }
-uint VEX_DDS_128_W0(uint op)        { return _VEX(op)|_VEX_DDS; }
-uint VEX_DDS_128_W1(uint op)        { return _VEX(op)|_VEX_DDS|_VEX_W; }
-uint VEX_DDS_128_WIG(uint op)       { return  VEX_DDS_128_W0(op); }
-uint VEX_DDS_256_W0(uint op)        { return _VEX(op)|_VEX_DDS|_VEX_L; }
-uint VEX_DDS_256_W1(uint op)        { return _VEX(op)|_VEX_DDS|_VEX_W|_VEX_L; }
-uint VEX_DDS_256_WIG(uint op)       { return  VEX_DDS_256_W0(op); }
+uint VEX_128_W0(opcode_t op)            { return _VEX(op)|_VEX_NOO; }
+uint VEX_128_W1(opcode_t op)            { return _VEX(op)|_VEX_NOO|_VEX_W; }
+uint VEX_128_WIG(opcode_t op)           { return  VEX_128_W0(op); }
+uint VEX_256_W0(opcode_t op)            { return _VEX(op)|_VEX_NOO|_VEX_L; }
+uint VEX_256_W1(opcode_t op)            { return _VEX(op)|_VEX_NOO|_VEX_W|_VEX_L; }
+uint VEX_256_WIG(opcode_t op)           { return  VEX_256_W0(op); }
+uint VEX_NDS_128_W0(opcode_t op)        { return _VEX(op)|_VEX_NDS; }
+uint VEX_NDS_128_W1(opcode_t op)        { return _VEX(op)|_VEX_NDS|_VEX_W; }
+uint VEX_NDS_128_WIG(opcode_t op)       { return  VEX_NDS_128_W0(op); }
+uint VEX_NDS_256_W0(opcode_t op)        { return _VEX(op)|_VEX_NDS|_VEX_L; }
+uint VEX_NDS_256_W1(opcode_t op)        { return _VEX(op)|_VEX_NDS|_VEX_W|_VEX_L; }
+uint VEX_NDS_256_WIG(opcode_t op)       { return  VEX_NDS_256_W0(op); }
+uint VEX_NDD_128_W0(opcode_t op)        { return _VEX(op)|_VEX_NDD; }
+uint VEX_NDD_128_W1(opcode_t op)        { return _VEX(op)|_VEX_NDD|_VEX_W; }
+uint VEX_NDD_128_WIG(opcode_t op)       { return  VEX_NDD_128_W0(op); }
+uint VEX_NDD_256_W0(opcode_t op)        { return _VEX(op)|_VEX_NDD|_VEX_L; }
+uint VEX_NDD_256_W1(opcode_t op)        { return _VEX(op)|_VEX_NDD|_VEX_W|_VEX_L; }
+uint VEX_NDD_256_WIG(opcode_t op)       { return  VEX_NDD_256_W0(op); }
+uint VEX_DDS_128_W0(opcode_t op)        { return _VEX(op)|_VEX_DDS; }
+uint VEX_DDS_128_W1(opcode_t op)        { return _VEX(op)|_VEX_DDS|_VEX_W; }
+uint VEX_DDS_128_WIG(opcode_t op)       { return  VEX_DDS_128_W0(op); }
+uint VEX_DDS_256_W0(opcode_t op)        { return _VEX(op)|_VEX_DDS|_VEX_L; }
+uint VEX_DDS_256_W1(opcode_t op)        { return _VEX(op)|_VEX_DDS|_VEX_W|_VEX_L; }
+uint VEX_DDS_256_WIG(opcode_t op)       { return  VEX_DDS_256_W0(op); }
 
 enum _VEX_W   = 0x8000;
 /* Don't encode LIG/LZ use 128 for these.
@@ -133,9 +135,9 @@ enum
     _VEX_DDS  = VEX_DDS << 11,
 }
 
-uint _VEX(uint op) { return (0xC4 << 24) | _VEX_MM(op >> 8) | (op & 0xFF); }
+uint _VEX(opcode_t op) { return (0xC4 << 24) | _VEX_MM(op >> 8) | (op & 0xFF); }
 
-uint _VEX_MM(uint op)
+uint _VEX_MM(opcode_t op)
 {
     return
         (op & 0x00FF) == 0x000F ? (0x1 << 16 | _VEX_PP(op >>  8)) :
@@ -144,7 +146,7 @@ uint _VEX_MM(uint op)
         _VEX_ASSERT0;
 }
 
-uint _VEX_PP(uint op)
+uint _VEX_PP(opcode_t op)
 {
     return
         op == 0x00 ? 0x00 << 8 :
@@ -174,35 +176,37 @@ alias opflag_t = uint;
 // Operand flags for normal opcodes
 enum
 {
-    _r8     = CONSTRUCT_FLAGS( _8, _reg, _normal, 0 ),
-    _r16    = CONSTRUCT_FLAGS(_16, _reg, _normal, 0 ),
-    _r32    = CONSTRUCT_FLAGS(_32, _reg, _normal, 0 ),
-    _r64    = CONSTRUCT_FLAGS(_64, _reg, _normal, 0 ),
-    _m8     = CONSTRUCT_FLAGS(_8, _m, _normal, 0 ),
-    _m16    = CONSTRUCT_FLAGS(_16, _m, _normal, 0 ),
-    _m32    = CONSTRUCT_FLAGS(_32, _m, _normal, 0 ),
-    _m48    = CONSTRUCT_FLAGS( _48, _m, _normal, 0 ),
-    _m64    = CONSTRUCT_FLAGS( _64, _m, _normal, 0 ),
-    _m128   = CONSTRUCT_FLAGS( _anysize, _m, _normal, 0 ),
-    _m256   = CONSTRUCT_FLAGS( _anysize, _m, _normal, 0 ),
-    _rm8    = CONSTRUCT_FLAGS(_8, _rm, _normal, 0 ),
-    _rm16   = CONSTRUCT_FLAGS(_16, _rm, _normal, 0 ),
-    _rm32   = CONSTRUCT_FLAGS(_32, _rm, _normal, 0),
-    _rm64   = CONSTRUCT_FLAGS(_64, _rm, _normal, 0),
-    _r32m8  = CONSTRUCT_FLAGS(_32|_8, _rm, _normal, 0),
-    _r32m16 = CONSTRUCT_FLAGS(_32|_16, _rm, _normal, 0),
-    _regm8  = CONSTRUCT_FLAGS(_64|_32|_8, _rm, _normal, 0),
-    _imm8   = CONSTRUCT_FLAGS(_8, _imm, _normal, 0 ),
-    _imm16  = CONSTRUCT_FLAGS(_16, _imm, _normal, 0),
-    _imm32  = CONSTRUCT_FLAGS(_32, _imm, _normal, 0),
-    _imm64  = CONSTRUCT_FLAGS(_64, _imm, _normal, 0),
-    _rel8   = CONSTRUCT_FLAGS(_8, _rel, _normal, 0),
-    _rel16  = CONSTRUCT_FLAGS(_16, _rel, _normal, 0),
-    _rel32  = CONSTRUCT_FLAGS(_32, _rel, _normal, 0),
-    _p1616  = CONSTRUCT_FLAGS(_32, _p, _normal, 0),
-    _m1616  = CONSTRUCT_FLAGS(_32, _mnoi, _normal, 0),
-    _p1632  = CONSTRUCT_FLAGS(_48, _p, _normal, 0 ),
-    _m1632  = CONSTRUCT_FLAGS(_48, _mnoi, _normal, 0),
+    _r8     = CONSTRUCT_FLAGS(OpndSize._8, _reg, _normal, 0 ),
+    _r16    = CONSTRUCT_FLAGS(OpndSize._16, _reg, _normal, 0 ),
+    _r32    = CONSTRUCT_FLAGS(OpndSize._32, _reg, _normal, 0 ),
+    _r64    = CONSTRUCT_FLAGS(OpndSize._64, _reg, _normal, 0 ),
+    _m8     = CONSTRUCT_FLAGS(OpndSize._8, _m, _normal, 0 ),
+    _m16    = CONSTRUCT_FLAGS(OpndSize._16, _m, _normal, 0 ),
+    _m32    = CONSTRUCT_FLAGS(OpndSize._32, _m, _normal, 0 ),
+    _m48    = CONSTRUCT_FLAGS(OpndSize._48, _m, _normal, 0 ),
+    _m64    = CONSTRUCT_FLAGS(OpndSize._64, _m, _normal, 0 ),
+    _m128   = CONSTRUCT_FLAGS(OpndSize._128, _m, _normal, 0 ),
+    _m256   = CONSTRUCT_FLAGS(OpndSize._anysize, _m, _normal, 0 ),
+    _m48_32_16_8    = CONSTRUCT_FLAGS(OpndSize._48_32_16_8, _m, _normal, 0 ),
+    _m64_48_32_16_8 = CONSTRUCT_FLAGS(OpndSize._64_48_32_16_8, _m, _normal, 0 ),
+    _rm8    = CONSTRUCT_FLAGS(OpndSize._8, _rm, _normal, 0 ),
+    _rm16   = CONSTRUCT_FLAGS(OpndSize._16, _rm, _normal, 0 ),
+    _rm32   = CONSTRUCT_FLAGS(OpndSize._32, _rm, _normal, 0),
+    _rm64   = CONSTRUCT_FLAGS(OpndSize._64, _rm, _normal, 0),
+    _r32m8  = CONSTRUCT_FLAGS(OpndSize._32_8, _rm, _normal, 0),
+    _r32m16 = CONSTRUCT_FLAGS(OpndSize._32_16, _rm, _normal, 0),
+    _regm8  = CONSTRUCT_FLAGS(OpndSize._64_32_8, _rm, _normal, 0),
+    _imm8   = CONSTRUCT_FLAGS(OpndSize._8, _imm, _normal, 0 ),
+    _imm16  = CONSTRUCT_FLAGS(OpndSize._16, _imm, _normal, 0),
+    _imm32  = CONSTRUCT_FLAGS(OpndSize._32, _imm, _normal, 0),
+    _imm64  = CONSTRUCT_FLAGS(OpndSize._64, _imm, _normal, 0),
+    _rel8   = CONSTRUCT_FLAGS(OpndSize._8, _rel, _normal, 0),
+    _rel16  = CONSTRUCT_FLAGS(OpndSize._16, _rel, _normal, 0),
+    _rel32  = CONSTRUCT_FLAGS(OpndSize._32, _rel, _normal, 0),
+    _p1616  = CONSTRUCT_FLAGS(OpndSize._32, _p, _normal, 0),
+    _m1616  = CONSTRUCT_FLAGS(OpndSize._32, _mnoi, _normal, 0),
+    _p1632  = CONSTRUCT_FLAGS(OpndSize._48, _p, _normal, 0 ),
+    _m1632  = CONSTRUCT_FLAGS(OpndSize._48, _mnoi, _normal, 0),
     _special  = CONSTRUCT_FLAGS( 0, 0, _rspecial, 0 ),
     _seg    = CONSTRUCT_FLAGS( 0, 0, _rseg, 0 ),
     _a16    = CONSTRUCT_FLAGS( 0, 0, _addr16, 0 ),
@@ -214,15 +218,15 @@ enum
     _lbl    = CONSTRUCT_FLAGS( 0, 0, _flbl, 0 ),
                                                 // Label (in current function)
 
-    _mmm32  = CONSTRUCT_FLAGS( 0, _m, 0, _32),
-    _mmm64  = CONSTRUCT_FLAGS( _64, _m, 0, _f64),
+    _mmm32  = CONSTRUCT_FLAGS( 0, _m, 0, OpndSize._32),
+    _mmm64  = CONSTRUCT_FLAGS( OpndSize._64, _m, 0, _f64),
     _mmm128 = CONSTRUCT_FLAGS( 0, _m, 0, _f128),
 
-    _xmm_m16  = CONSTRUCT_FLAGS( _16,      _m, _rspecial, ASM_GET_uRegmask(_xmm)),
-    _xmm_m32  = CONSTRUCT_FLAGS( _32,      _m, _rspecial, ASM_GET_uRegmask(_xmm)),
-    _xmm_m64  = CONSTRUCT_FLAGS( _anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm)),
-    _xmm_m128 = CONSTRUCT_FLAGS( _anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm)),
-    _ymm_m256 = CONSTRUCT_FLAGS( _anysize, _m, _rspecial, ASM_GET_uRegmask(_ymm)),
+    _xmm_m16  = CONSTRUCT_FLAGS( OpndSize._16,      _m, _rspecial, ASM_GET_uRegmask(_xmm)),
+    _xmm_m32  = CONSTRUCT_FLAGS( OpndSize._32,      _m, _rspecial, ASM_GET_uRegmask(_xmm)),
+    _xmm_m64  = CONSTRUCT_FLAGS( OpndSize._anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm)),
+    _xmm_m128 = CONSTRUCT_FLAGS( OpndSize._128,     _m, _rspecial, ASM_GET_uRegmask(_xmm)),
+    _ymm_m256 = CONSTRUCT_FLAGS( OpndSize._anysize, _m, _rspecial, ASM_GET_uRegmask(_ymm)),
 
     _moffs8  = _rel8,
     _moffs16 = _rel16,
@@ -241,7 +245,7 @@ enum
     _fm128  = CONSTRUCT_FLAGS( 0, _m, 0, _f128 ),
     _fanysize = (_f64 | _f80 | _f112 ),
 
-    _float_m = CONSTRUCT_FLAGS( _anysize, _float, 0, _fanysize),
+    _float_m = CONSTRUCT_FLAGS( OpndSize._anysize, _float, 0, _fanysize),
 
     _st     = CONSTRUCT_FLAGS( 0, _float, 0, _rst ),   // stack register 0
     _m112   = CONSTRUCT_FLAGS( 0, _m, 0, _f112 ),
@@ -253,26 +257,46 @@ enum
 ////////////////// FLAGS /////////////////////////////////////
 
 // bit size                      5            3          3              7
-uint CONSTRUCT_FLAGS(uint uSizemask, uint aopty, uint amod, uint uRegmask)
+opflag_t CONSTRUCT_FLAGS(uint uSizemask, uint aopty, uint amod, uint uRegmask)
 {
     return uSizemask | (aopty << 5) | (amod << 8) | (uRegmask << 11);
 }
 
-uint ASM_GET_uSizemask(uint us) { return us & 0x1F; }
 uint ASM_GET_aopty(uint us)     { return cast(ASM_OPERAND_TYPE)((us >> 5) & 7); }
 uint ASM_GET_amod(uint us)      { return cast(ASM_MODIFIERS)((us >> 8) & 7); }
 uint ASM_GET_uRegmask(uint us)  { return (us >> 11) & 0x7F; }
 
 // For uSizemask (5 bits)
-enum
+enum OpndSize : ubyte
 {
-    _8  = 0x1,
-    _16 = 0x2,
-    _32 = 0x4,
-    _48 = 0x8,
-    _64 = 0x10,
-    _anysize = (_8 | _16 | _32 | _48 | _64 ),
+    none = 0,
+
+    _8,  // 0x1,
+    _16, // 0x2,
+    _32, // 0x4,
+    _48, // 0x8,
+    _64, // 0x10,
+    _128, // 0x20,
+
+    _16_8,       // _16 | _8,
+    _32_8,       // _32 | _8,
+    _32_16,      // _32 | _16,
+    _32_16_8,    // _32 | _16 | _8,
+    _48_32,      // _48 | _32,
+    _48_32_16_8, // _48 | _32 | _16 | _8,
+    _64_32,      // _64 | _32,
+    _64_32_8,    // _64 | _32 | _8,
+    _64_32_16,   // _64 | _32 | _16,
+    _64_32_16_8, // _64 | _32 | _16 | _8,
+    _64_48_32_16_8, // _64 | _48 | _32 | _16 | _8,
+
+    _anysize,
 }
+
+/*************************************
+ * Extract OpndSize from opflag_t.
+ */
+OpndSize getOpndSize(opflag_t us) { return cast(OpndSize) (us & 0x1F); }
 
 // For aopty (3 bits)
 alias ASM_OPERAND_TYPE = uint;
@@ -428,7 +452,7 @@ void asm_process_fixup( block **ppblockLabels );
 
 struct PTRNTAB4
 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
@@ -437,7 +461,7 @@ struct PTRNTAB4
 }
 
 struct PTRNTAB3 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
@@ -445,14 +469,14 @@ struct PTRNTAB3 {
 }
 
 struct PTRNTAB2 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
 }
 
 struct PTRNTAB1 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
         opflag_t usOp1;
 }
@@ -460,7 +484,7 @@ struct PTRNTAB1 {
 enum ASM_END = 0xffff;      // special opcode meaning end of PTRNTABx table
 
 struct PTRNTAB0 {
-        int opcode;
+        opcode_t opcode;
         uint usFlags;
 }
 

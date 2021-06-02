@@ -13,10 +13,30 @@ import std.stdio;
 bool keepDeco = false;
 enum rootDir = __FILE_FULL_PATH__.dirName.dirName;
 
+// JSONType has been introduced in 2.082
+static if (__VERSION__ <= 2081) {
+    alias JSONType = JSON_TYPE;
+    alias JSON_TYPE_NULL = JSON_TYPE.NULL;
+    alias JSON_TYPE_OBJECT = JSON_TYPE.OBJECT;
+    alias JSON_TYPE_STRING = JSON_TYPE.STRING;
+    alias JSON_TYPE_ARRAY = JSON_TYPE.ARRAY;
+    alias JSON_TYPE_INTEGER = JSON_TYPE.INTEGER;
+    alias JSON_TYPE_UINTEGER = JSON_TYPE.UINTEGER;
+} else {
+    alias JSON_TYPE_NULL = JSONType.null_;
+    alias JSON_TYPE_OBJECT = JSONType.object;
+    alias JSON_TYPE_STRING = JSONType.string;
+    alias JSON_TYPE_ARRAY = JSONType.array;
+    alias JSON_TYPE_INTEGER = JSONType.integer;
+    alias JSON_TYPE_UINTEGER = JSONType.uinteger;
+}
+
 void usage()
 {
     writeln("Usage: santize_json [--keep-deco] <input-json> [<output-json>]");
 }
+// This module may be imported from d_do_test
+version (NoMain) {} else
 int main(string[] args)
 {
     getopt(args,
@@ -43,10 +63,10 @@ int main(string[] args)
         return 1;
     }
 
-    auto json = parseJSON(readText(inFilename));
+    auto json = readText(inFilename);
     sanitize(json);
 
-    outFile.writeln(json.toJSON(true, JSONOptions.doNotEscapeSlashes));
+    outFile.writeln(json);
     return 0;
 }
 
@@ -55,27 +75,34 @@ string capitalize(string s)
     return text(s.take(1).asCapitalized.chain(s.drop(1)));
 }
 
+void sanitize(ref string text)
+{
+    auto json = parseJSON(text);
+    sanitize(json);
+    text = json.toJSON(true, JSONOptions.doNotEscapeSlashes);
+}
+
 void sanitize(JSONValue root)
 {
-    if (root.type == JSON_TYPE.ARRAY)
+    if (root.type == JSON_TYPE_ARRAY)
     {
         sanitizeSyntaxNode(root);
     }
     else
     {
-        assert(root.type == JSON_TYPE.OBJECT);
+        assert(root.type == JSON_TYPE_OBJECT);
         auto rootObject = root.object;
         static foreach (name; ["compilerInfo", "buildInfo", "semantics"])
         {{
             auto node = rootObject.get(name, JSONValue.init);
-            if (node.type != JSON_TYPE.NULL)
+            if (node.type != JSON_TYPE_NULL)
             {
                 mixin("sanitize" ~ name.capitalize ~ "(node.object);");
             }
         }}
         {
             auto modules = rootObject.get("modules", JSONValue.init);
-            if (modules.type != JSON_TYPE.NULL)
+            if (modules.type != JSON_TYPE_NULL)
             {
                 sanitizeSyntaxNode(modules);
             }
@@ -85,12 +112,12 @@ void sanitize(JSONValue root)
 
 void removeString(JSONValue* value)
 {
-    assert(value.type == JSON_TYPE.STRING || value.type == JSON_TYPE.NULL);
+    assert(value.type == JSON_TYPE_STRING|| value.type == JSON_TYPE_NULL);
     *value = JSONValue("VALUE_REMOVED_FOR_TEST");
 }
 void removeNumber(JSONValue* value)
 {
-    assert(value.type == JSON_TYPE.INTEGER || value.type == JSON_TYPE.UINTEGER);
+    assert(value.type == JSON_TYPE_INTEGER || value.type == JSON_TYPE_UINTEGER);
     *value = JSONValue(0);
 }
 void removeStringIfExists(JSONValue* value)
@@ -100,7 +127,7 @@ void removeStringIfExists(JSONValue* value)
 }
 void removeArray(JSONValue* value)
 {
-    assert(value.type == JSON_TYPE.ARRAY);
+    assert(value.type == JSON_TYPE_ARRAY);
     *value = JSONValue([JSONValue("VALUES_REMOVED_FOR_TEST")]);
 }
 
@@ -133,14 +160,14 @@ void sanitizeBuildInfo(ref JSONValue[string] buildInfo)
 }
 void sanitizeSyntaxNode(ref JSONValue value)
 {
-    if (value.type == JSON_TYPE.ARRAY)
+    if (value.type == JSON_TYPE_ARRAY)
     {
         foreach (ref element; value.array)
         {
             sanitizeSyntaxNode(element);
         }
     }
-    else if(value.type == JSON_TYPE.OBJECT)
+    else if(value.type == JSON_TYPE_OBJECT)
     {
         foreach (name; value.object.byKey)
         {
@@ -159,9 +186,9 @@ void sanitizeSyntaxNode(ref JSONValue value)
 string getOptionalString(ref JSONValue[string] obj, string name)
 {
     auto node = obj.get(name, JSONValue.init);
-    if (node.type == JSON_TYPE.NULL)
+    if (node.type == JSON_TYPE_NULL)
         return null;
-    assert(node.type == JSON_TYPE.STRING, format("got %s where STRING was expected", node.type));
+    assert(node.type == JSON_TYPE_STRING, format("got %s where STRING was expected", node.type));
     return node.str;
 }
 
@@ -175,7 +202,7 @@ void sanitizeSemantics(ref JSONValue[string] semantics)
     {
         auto semanticModule = semanticModuleNode.object();
         auto moduleName = semanticModule.getOptionalString("name");
-        if(moduleName.startsWith("std.", "core.", "etc.") || moduleName == "object")
+        if(moduleName.startsWith("std.", "core.", "etc.", "rt.") || moduleName == "object")
         {
            // remove druntime/phobos modules since they can change for each
            // platform

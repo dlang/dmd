@@ -1,8 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Enforce visibility contrains such as `public` and `private`.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Specification: $(LINK2 https://dlang.org/spec/attribute.html#visibility_attributes, Visibility Attributes)
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/access.d, _access.d)
@@ -28,102 +29,6 @@ import dmd.tokens;
 
 private enum LOG = false;
 
-/****************************************
- * Return Prot access for Dsymbol smember in this declaration.
- */
-private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
-{
-    Prot access_ret = Prot(Prot.Kind.none);
-    static if (LOG)
-    {
-        printf("+AggregateDeclaration::getAccess(this = '%s', smember = '%s')\n", ad.toChars(), smember.toChars());
-    }
-    assert(ad.isStructDeclaration() || ad.isClassDeclaration());
-    if (smember.toParent() == ad)
-    {
-        access_ret = smember.prot();
-    }
-    else if (smember.isDeclaration().isStatic())
-    {
-        access_ret = smember.prot();
-    }
-    if (ClassDeclaration cd = ad.isClassDeclaration())
-    {
-        foreach (b; *cd.baseclasses)
-        {
-            Prot access = getAccess(b.sym, smember);
-            final switch (access.kind)
-            {
-            case Prot.Kind.none:
-            case Prot.Kind.undefined:
-                break;
-            case Prot.Kind.private_:
-                access_ret = Prot(Prot.Kind.none); // private members of base class not accessible
-                break;
-            case Prot.Kind.package_:
-            case Prot.Kind.protected_:
-            case Prot.Kind.public_:
-            case Prot.Kind.export_:
-                // If access is to be tightened
-                if (Prot.Kind.public_ < access.kind)
-                    access = Prot(Prot.Kind.public_);
-                // Pick path with loosest access
-                if (access_ret.isMoreRestrictiveThan(access))
-                    access_ret = access;
-                break;
-            }
-        }
-    }
-    static if (LOG)
-    {
-        printf("-AggregateDeclaration::getAccess(this = '%s', smember = '%s') = %d\n", ad.toChars(), smember.toChars(), access_ret);
-    }
-    return access_ret;
-}
-
-/********************************************************
- * Helper function for checkAccess()
- * Returns:
- *      false   is not accessible
- *      true    is accessible
- */
-private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration dthis, AggregateDeclaration cdscope)
-{
-    assert(dthis);
-    version (none)
-    {
-        printf("isAccessible for %s.%s in function %s() in scope %s\n", dthis.toChars(), smember.toChars(), sfunc ? sfunc.toChars() : "NULL", cdscope ? cdscope.toChars() : "NULL");
-    }
-    if (hasPrivateAccess(dthis, sfunc) || isFriendOf(dthis, cdscope))
-    {
-        if (smember.toParent() == dthis)
-            return true;
-        if (ClassDeclaration cdthis = dthis.isClassDeclaration())
-        {
-            foreach (b; *cdthis.baseclasses)
-            {
-                const Prot access = getAccess(b.sym, smember);
-                if (access.kind >= Prot.Kind.protected_ || isAccessible(smember, sfunc, b.sym, cdscope))
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    else
-    {
-        if (smember.toParent() != dthis)
-        {
-            if (ClassDeclaration cdthis = dthis.isClassDeclaration())
-            {
-                foreach (b; *cdthis.baseclasses)
-                    if (isAccessible(smember, sfunc, b.sym, cdscope))
-                        return true;
-            }
-        }
-    }
-    return false;
-}
 
 /*******************************
  * Do access check for member of this class, this class being the
@@ -132,92 +37,31 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
  */
 bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 {
-    FuncDeclaration f = sc.func;
-    AggregateDeclaration cdscope = sc.getStructClassScope();
     static if (LOG)
     {
         printf("AggregateDeclaration::checkAccess() for %s.%s in function %s() in scope %s\n", ad.toChars(), smember.toChars(), f ? f.toChars() : null, cdscope ? cdscope.toChars() : null);
     }
-    Dsymbol smemberparent = smember.toParent();
-    if (!smemberparent || !smemberparent.isAggregateDeclaration())
-    {
-        static if (LOG)
-        {
-            printf("not an aggregate member\n");
-        }
-        return false; // then it is accessible
-    }
-    // BUG: should enable this check
-    //assert(smember.parent.isBaseOf(this, NULL));
-    bool result;
-    Prot access;
-    if (smemberparent == ad)
-    {
-        access = smember.prot();
-        result = access.kind >= Prot.Kind.public_ || hasPrivateAccess(ad, f) || isFriendOf(ad, cdscope) || (access.kind == Prot.Kind.package_ && hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc._module;
-        static if (LOG)
-        {
-            printf("result1 = %d\n", result);
-        }
-    }
-    else if ((access = getAccess(ad, smember)).kind >= Prot.Kind.public_)
-    {
-        result = true;
-        static if (LOG)
-        {
-            printf("result2 = %d\n", result);
-        }
-    }
-    else if (access.kind == Prot.Kind.package_ && hasPackageAccess(sc, ad))
-    {
-        result = true;
-        static if (LOG)
-        {
-            printf("result3 = %d\n", result);
-        }
-    }
-    else
-    {
-        result = isAccessible(smember, f, ad, cdscope);
-        static if (LOG)
-        {
-            printf("result4 = %d\n", result);
-        }
-    }
-    if (!result && (!(sc.flags & SCOPE.onlysafeaccess) || sc.func.setUnsafe()))
-    {
-        ad.error(loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
-        //printf("smember = %s %s, prot = %d, semanticRun = %d\n",
-        //        smember.kind(), smember.toPrettyChars(), smember.prot(), smember.semanticRun);
-        return true;
-    }
-    return false;
-}
 
-/****************************************
- * Determine if this is the same or friend of cd.
- */
-private bool isFriendOf(AggregateDeclaration ad, AggregateDeclaration cd)
-{
-    static if (LOG)
+    const p = smember.toParent();
+    if (p && p.isTemplateInstance())
     {
-        printf("AggregateDeclaration::isFriendOf(this = '%s', cd = '%s')\n", ad.toChars(), cd ? cd.toChars() : "null");
+        return false; // for backward compatibility
     }
-    if (ad == cd)
-        return true;
-    // Friends if both are in the same module
-    //if (toParent() == cd.toParent())
-    if (cd && ad.getAccessModule() == cd.getAccessModule())
+
+    if (!symbolIsVisible(sc, smember))
     {
-        static if (LOG)
+        // when in @safe code or with -preview=dip1000
+        if (sc.flags & SCOPE.onlysafeaccess)
         {
-            printf("\tin same module\n");
+            // if there is a func. ask for it's opinion of safety, and if it considers the access @safe accept it.
+            if (sc.func && !sc.func.setUnsafe())
+                return false;
         }
+
+        ad.error(loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
+        //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
+        //        smember.kind(), smember.toPrettyChars(), smember.visible() smember.semanticRun);
         return true;
-    }
-    static if (LOG)
-    {
-        printf("\tnot friend\n");
     }
     return false;
 }
@@ -234,17 +78,17 @@ private bool hasPackageAccess(Module mod, Dsymbol s)
 {
     static if (LOG)
     {
-        printf("hasPackageAccess(s = '%s', mod = '%s', s.protection.pkg = '%s')\n", s.toChars(), mod.toChars(), s.prot().pkg ? s.prot().pkg.toChars() : "NULL");
+        printf("hasPackageAccess(s = '%s', mod = '%s', s.visibility.pkg = '%s')\n", s.toChars(), mod.toChars(), s.visible().pkg ? s.visible().pkg.toChars() : "NULL");
     }
     Package pkg = null;
-    if (s.prot().pkg)
-        pkg = s.prot().pkg;
+    if (s.visible().pkg)
+        pkg = s.visible().pkg;
     else
     {
-        // no explicit package for protection, inferring most qualified one
+        // no explicit package for visibility, inferring most qualified one
         for (; s; s = s.parent)
         {
-            if (Module m = s.isModule())
+            if (auto m = s.isModule())
             {
                 DsymbolTable dst = Package.resolve(m.md ? m.md.packages : null, null, null);
                 assert(dst);
@@ -323,67 +167,11 @@ private bool hasProtectedAccess(Scope *sc, Dsymbol s)
     return sc._module == s.getAccessModule();
 }
 
-/**********************************
- * Determine if smember has access to private members of this declaration.
- */
-private bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
-{
-    if (smember)
-    {
-        AggregateDeclaration cd = null;
-        Dsymbol smemberparent = smember.toParent();
-        if (smemberparent)
-            cd = smemberparent.isAggregateDeclaration();
-        static if (LOG)
-        {
-            printf("AggregateDeclaration::hasPrivateAccess(class %s, member %s)\n", ad.toChars(), smember.toChars());
-        }
-        if (ad == cd) // smember is a member of this class
-        {
-            static if (LOG)
-            {
-                printf("\tyes 1\n");
-            }
-            return true; // so we get private access
-        }
-        // If both are members of the same module, grant access
-        while (1)
-        {
-            Dsymbol sp = smember.toParent();
-            if (sp.isFuncDeclaration() && smember.isFuncDeclaration())
-                smember = sp;
-            else
-                break;
-        }
-        if (!cd && ad.toParent() == smember.toParent())
-        {
-            static if (LOG)
-            {
-                printf("\tyes 2\n");
-            }
-            return true;
-        }
-        if (!cd && ad.getAccessModule() == smember.getAccessModule())
-        {
-            static if (LOG)
-            {
-                printf("\tyes 3\n");
-            }
-            return true;
-        }
-    }
-    static if (LOG)
-    {
-        printf("\tno\n");
-    }
-    return false;
-}
-
 /****************************************
  * Check access to d for expression e.d
  * Returns true if the declaration is not accessible.
  */
-bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
+bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
 {
     if (sc.flags & SCOPE.noaccesscheck)
         return false;
@@ -404,15 +192,11 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
         // Unittests are always accessible.
         return false;
     }
+
     if (!e)
-    {
-        if (d.prot().kind == Prot.Kind.private_ && d.getAccessModule() != sc._module || d.prot().kind == Prot.Kind.package_ && !hasPackageAccess(sc, d))
-        {
-            error(loc, "%s `%s` is not accessible from module `%s`", d.kind(), d.toPrettyChars(), sc._module.toChars());
-            return true;
-        }
-    }
-    else if (e.type.ty == Tclass)
+        return false;
+
+    if (e.type.ty == Tclass)
     {
         // Do access check
         ClassDeclaration cd = (cast(TypeClass)e.type).sym;
@@ -436,7 +220,6 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
  * Check access to package/module `p` from scope `sc`.
  *
  * Params:
- *   loc = source location for issued error message
  *   sc = scope from which to access to a fully qualified package name
  *   p = the package/module to check access for
  * Returns: true if the package is not accessible.
@@ -446,20 +229,16 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
  * (see https://issues.dlang.org/show_bug.cgi?id=313).
  *
  */
-bool checkAccess(Loc loc, Scope* sc, Package p)
+bool checkAccess(Scope* sc, Package p)
 {
     if (sc._module == p)
         return false;
     for (; sc; sc = sc.enclosing)
     {
-        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(Prot.Kind.private_)))
+        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Visibility(Visibility.Kind.private_)))
             return false;
     }
-    auto name = p.toPrettyChars();
-    if (p.isPkgMod == PKG.module_ || p.isModule())
-        error(loc, "%s `%s` is not accessible here, perhaps add `static import %s;`", p.kind(), name, name);
-    else
-        error(loc, "%s `%s` is not accessible here", p.kind(), name);
+
     return true;
 }
 
@@ -473,16 +252,16 @@ bool checkAccess(Loc loc, Scope* sc, Package p)
  */
 bool symbolIsVisible(Module mod, Dsymbol s)
 {
-    // should sort overloads by ascending protection instead of iterating here
+    // should sort overloads by ascending visibility instead of iterating here
     s = mostVisibleOverload(s);
-    final switch (s.prot().kind)
+    final switch (s.visible().kind)
     {
-    case Prot.Kind.undefined: return true;
-    case Prot.Kind.none: return false; // no access
-    case Prot.Kind.private_: return s.getAccessModule() == mod;
-    case Prot.Kind.package_: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
-    case Prot.Kind.protected_: return s.getAccessModule() == mod;
-    case Prot.Kind.public_, Prot.Kind.export_: return true;
+    case Visibility.Kind.undefined: return true;
+    case Visibility.Kind.none: return false; // no access
+    case Visibility.Kind.private_: return s.getAccessModule() == mod;
+    case Visibility.Kind.package_: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
+    case Visibility.Kind.protected_: return s.getAccessModule() == mod;
+    case Visibility.Kind.public_, Visibility.Kind.export_: return true;
     }
 }
 
@@ -520,21 +299,21 @@ bool symbolIsVisible(Scope *sc, Dsymbol s)
  */
 bool checkSymbolAccess(Scope *sc, Dsymbol s)
 {
-    final switch (s.prot().kind)
+    final switch (s.visible().kind)
     {
-    case Prot.Kind.undefined: return true;
-    case Prot.Kind.none: return false; // no access
-    case Prot.Kind.private_: return sc._module == s.getAccessModule();
-    case Prot.Kind.package_: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
-    case Prot.Kind.protected_: return hasProtectedAccess(sc, s);
-    case Prot.Kind.public_, Prot.Kind.export_: return true;
+    case Visibility.Kind.undefined: return true;
+    case Visibility.Kind.none: return false; // no access
+    case Visibility.Kind.private_: return sc._module == s.getAccessModule();
+    case Visibility.Kind.package_: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
+    case Visibility.Kind.protected_: return hasProtectedAccess(sc, s);
+    case Visibility.Kind.public_, Visibility.Kind.export_: return true;
     }
 }
 
 /**
  * Use the most visible overload to check visibility. Later perform an access
  * check on the resolved overload.  This function is similar to overloadApply,
- * but doesn't recurse nor resolve aliases because protection/visibility is an
+ * but doesn't recurse nor resolve aliases because visibility is an
  * attribute of the alias not the aliasee.
  */
 public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
@@ -584,7 +363,7 @@ public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
                  * Usually aliases should not be resolved for visibility checking
                  * b/c public aliases to private symbols are public. But for the
                  * overloadable alias situation, the Alias (_ad_) has been moved
-                 * into it's own Aliasee, leaving a shell that we peel away here.
+                 * into its own Aliasee, leaving a shell that we peel away here.
                  */
                 auto aliasee = ad.toAlias();
                 if (aliasee.isFuncAliasDeclaration || aliasee.isOverDeclaration)
@@ -607,23 +386,23 @@ public Dsymbol mostVisibleOverload(Dsymbol s, Module mod = null)
             break;
 
         /**
-        * Return the "effective" protection attribute of a symbol when accessed in a module.
-        * The effective protection attribute is the same as the regular protection attribute,
+        * Return the "effective" visibility attribute of a symbol when accessed in a module.
+        * The effective visibility attribute is the same as the regular visibility attribute,
         * except package() is "private" if the module is outside the package;
         * otherwise, "public".
         */
-        static Prot protectionSeenFromModule(Dsymbol d, Module mod = null)
+        static Visibility visibilitySeenFromModule(Dsymbol d, Module mod = null)
         {
-            Prot prot = d.prot();
-            if (mod && prot.kind == Prot.Kind.package_)
+            Visibility vis = d.visible();
+            if (mod && vis.kind == Visibility.Kind.package_)
             {
-                return hasPackageAccess(mod, d) ? Prot(Prot.Kind.public_) : Prot(Prot.Kind.private_);
+                return hasPackageAccess(mod, d) ? Visibility(Visibility.Kind.public_) : Visibility(Visibility.Kind.private_);
             }
-            return prot;
+            return vis;
         }
 
         if (next &&
-            protectionSeenFromModule(mostVisible, mod).isMoreRestrictiveThan(protectionSeenFromModule(next, mod)))
+            visibilitySeenFromModule(mostVisible, mod) < visibilitySeenFromModule(next, mod))
             mostVisible = next;
     }
     return mostVisible;

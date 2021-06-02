@@ -1,6 +1,8 @@
 // EXTRA_OBJC_SOURCES: objc_objc_msgSend.m
 // REQUIRED_ARGS: -L-framework -LFoundation
 
+import core.attribute : selector;
+
 extern (C) Class objc_lookUpClass(in char* name);
 
 struct Struct
@@ -9,7 +11,7 @@ struct Struct
 }
 
 extern (Objective-C)
-interface Class
+extern class Class
 {
     stret alloc_stret() @selector("alloc");
     fp2ret alloc_fp2ret() @selector("alloc");
@@ -19,7 +21,7 @@ interface Class
 }
 
 extern (Objective-C)
-interface stret
+extern class stret
 {
     stret init() @selector("init");
     Struct getValue() @selector("getValue");
@@ -27,7 +29,7 @@ interface stret
 }
 
 extern (Objective-C)
-interface fp2ret
+extern class fp2ret
 {
     fp2ret init() @selector("init");
     creal getValue() @selector("getValue");
@@ -35,7 +37,7 @@ interface fp2ret
 }
 
 extern (Objective-C)
-interface fpret
+extern class fpret
 {
     fpret init() @selector("init");
     real getValue() @selector("getValue");
@@ -43,7 +45,7 @@ interface fpret
 }
 
 extern (Objective-C)
-interface float32
+extern class float32
 {
     float32 init() @selector("init");
     float getValue() @selector("getValue");
@@ -51,7 +53,7 @@ interface float32
 }
 
 extern (Objective-C)
-interface double64
+extern class double64
 {
     double64 init() @selector("init");
     double getValue() @selector("getValue");

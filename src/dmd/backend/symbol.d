@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
@@ -42,8 +42,9 @@ import dmd.backend.dt;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -61,6 +62,9 @@ version (SCPP_HTOD)
 
 
 extern (C++):
+
+nothrow:
+@safe:
 
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;
@@ -81,74 +85,17 @@ else
 
 void struct_free(struct_t *st) { }
 
+@trusted
 func_t* func_calloc() { return cast(func_t *) calloc(1, func_t.sizeof); }
+
+@trusted
 void func_free(func_t* f) { free(f); }
-
-/*********************************
- * Allocate/free symbol table.
- */
-
-extern (C) Symbol **symtab_realloc(Symbol **tab, size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_REALLOC(tab, symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) realloc(tab, symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-Symbol **symtab_malloc(size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_MALLOC(symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) malloc(symmax * (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-Symbol **symtab_calloc(size_t symmax)
-{   Symbol **newtab;
-
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-    {
-        newtab = cast(Symbol **) MEM_PH_CALLOC(symmax * (Symbol *).sizeof);
-    }
-    else
-    {
-        newtab = cast(Symbol **) calloc(symmax, (Symbol *).sizeof);
-        if (!newtab)
-            err_nomem();
-    }
-    return newtab;
-}
-
-void symtab_free(Symbol **tab)
-{
-    if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-        MEM_PH_FREE(tab);
-    else if (tab)
-        free(tab);
-}
 
 /*******************************
  * Type out symbol information.
  */
-
-void symbol_print(Symbol *s)
+@trusted
+void symbol_print(const Symbol *s)
 {
 debug
 {
@@ -157,7 +104,7 @@ version (COMPILE)
     if (!s) return;
     printf("symbol %p '%s'\n ",s,s.Sident.ptr);
     printf(" Sclass = "); WRclass(cast(SC) s.Sclass);
-    printf(" Ssymnum = %d",s.Ssymnum);
+    printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = "); WRFL(cast(FL) s.Sfl);
     printf(" Sseg = %d\n",s.Sseg);
 //  printf(" Ssize   = x%02x\n",s.Ssize);
@@ -201,6 +148,7 @@ version (SCPP_HTOD)
 
 private __gshared Symbol *keep;
 
+@trusted
 void symbol_term()
 {
     symbol_free(keep);
@@ -225,6 +173,7 @@ void symbol_keep(Symbol *s)
 /****************************************
  * Return alignment of symbol.
  */
+@trusted
 int Symbol_Salignsize(Symbol* s)
 {
     if (s.Salignment > 0)
@@ -252,7 +201,8 @@ int Symbol_Salignsize(Symbol* s)
  *      true if symbol is dead.
  */
 
-bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm)
+@trusted
+bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
 {
     version (MARS)
         enum vol = false;
@@ -278,7 +228,8 @@ bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm)
  * Determine if symbol needs a 'this' pointer.
  */
 
-int Symbol_needThis(Symbol* s)
+@trusted
+int Symbol_needThis(const Symbol* s)
 {
     //printf("needThis() '%s'\n", Sident.ptr);
 
@@ -291,12 +242,50 @@ int Symbol_needThis(Symbol* s)
     return 0;
 }
 
+/************************************
+ * Determine if `s` may be affected if an assignment is done through
+ * a pointer.
+ * Params:
+ *      s = symbol to check
+ * Returns:
+ *      true if it may be modified by assignment through a pointer
+ */
+
+bool Symbol_isAffected(const ref Symbol s)
+{
+    //printf("s: %s %d\n", s.Sident.ptr, !(s.Sflags & SFLunambig) && !(s.ty() & (mTYconst | mTYimmutable)));
+    //symbol_print(s);
+
+    /* If nobody took its address and it's not statically allocated,
+     * then it is not accessible via pointer and so is not affected.
+     */
+    if (s.Sflags & SFLunambig)
+        return false;
+
+    /* If it's immutable, it can't be affected.
+     *
+     * Disable this check because:
+     * 1. Symbol_isAffected is not used by copyprop() and should be.
+     * 2. Non-@safe functions can temporarilly cast away immutable.
+     * 3. Need to add an @safe flag to funcsym_p to enable this.
+     * 4. Const can be mutated by a separate view.
+     * Address this in a separate PR.
+     */
+    if (0 &&
+        s.ty() & (mTYconst | mTYimmutable))
+    {
+        return false;
+    }
+    return true;
+}
+
 
 /***********************************
  * Get user name of symbol.
  */
 
-char *symbol_ident(Symbol *s)
+@trusted
+const(char)* symbol_ident(const Symbol *s)
 {
 version (SCPP_HTOD)
 {
@@ -304,14 +293,14 @@ version (SCPP_HTOD)
     switch (s.Sclass)
     {   case SCstruct:
             if (s.Sstruct.Salias)
-                s = s.Sstruct.Salias;
+                return s.Sstruct.Salias.Sident.ptr;
             else if (s.Sstruct.Sflags & STRnotagname)
                 return noname;
             break;
         case SCenum:
             if (CPP)
             {   if (s.Senum.SEalias)
-                    s = s.Senum.SEalias;
+                    return s.Senum.SEalias.Sident.ptr;
                 else if (s.Senum.SEflags & SENnotagname)
                     return noname;
             }
@@ -333,11 +322,13 @@ version (SCPP_HTOD)
  * Create a new symbol.
  */
 
+@trusted
 Symbol * symbol_calloc(const(char)* id)
 {
     return symbol_calloc(id, cast(uint)strlen(id));
 }
 
+@trusted
 Symbol * symbol_calloc(const(char)* id, uint len)
 {   Symbol *s;
 
@@ -357,7 +348,7 @@ debug
     s.id = Symbol.IDsymbol;
 }
     memcpy(s.Sident.ptr,id,len + 1);
-    s.Ssymnum = -1;
+    s.Ssymnum = SYMIDX.max;
     return s;
 }
 
@@ -365,6 +356,7 @@ debug
  * Create a symbol, given a name and type.
  */
 
+@trusted
 Symbol * symbol_name(const(char)* name,int sclass,type *t)
 {
     return symbol_name(name, cast(uint)strlen(name), sclass, t);
@@ -387,6 +379,7 @@ Symbol * symbol_name(const(char)* name, uint len, int sclass, type *t)
  * Create a symbol that is an alias to another function symbol.
  */
 
+@trusted
 Funcsym *symbol_funcalias(Funcsym *sf)
 {
     Funcsym *s;
@@ -408,6 +401,7 @@ version (SCPP_HTOD)
  * Create a symbol, give it a name, storage class and type.
  */
 
+@trusted
 Symbol * symbol_generate(int sclass,type *t)
 {
     __gshared int tmpnum;
@@ -437,13 +431,13 @@ version (SCPP_HTOD)
     //printf("symbol_genauto(t) '%s'\n", s.Sident.ptr);
     if (pstate.STdefertemps)
     {   symbol_keep(s);
-        s.Ssymnum = -1;
+        s.Ssymnum = SYMIDX.max;
     }
     else
     {   s.Sflags |= SFLfree;
         if (init_staticctor)
         {   // variable goes into _STI_xxxx
-            s.Ssymnum = -1;            // deferred allocation
+            s.Ssymnum = SYMIDX.max;            // deferred allocation
 //printf("test2\n");
 //if (s.Sident[4] == '2') *(char*)0=0;
         }
@@ -483,6 +477,7 @@ Symbol *symbol_genauto(tym_t ty)
  * Add in the variants for a function symbol.
  */
 
+@trusted
 void symbol_func(Symbol *s)
 {
     //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
@@ -506,6 +501,7 @@ void symbol_func(Symbol *s)
  *      offset  offset of the field
  */
 
+@trusted
 void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
 {
     Symbol *s2 = symbol_name(name, SCmember, t);
@@ -536,7 +532,7 @@ Symbol * defsy(const(char)* p,Symbol **parent)
 debug
 {
 
-void symbol_check(Symbol *s)
+void symbol_check(const Symbol *s)
 {
     //printf("symbol_check('%s',%p)\n",s.Sident.ptr,s);
     symbol_debug(s);
@@ -551,7 +547,7 @@ version (SCPP_HTOD)
 }
 }
 
-void symbol_tree_check(Symbol *s)
+void symbol_tree_check(const(Symbol)* s)
 {
     while (s)
     {   symbol_check(s);
@@ -654,9 +650,7 @@ debug
    }
    /* not in table, so insert into table        */
    *parent = s;                         /* link new symbol into tree    */
-L1:
 }
-
 }
 
 /*************************************
@@ -851,12 +845,14 @@ void deletesymtab()
  *      pointer to a symbol
  */
 
+@trusted
 void meminit_free(meminit_t *m)         /* helper for symbol_free()     */
 {
     list_free(&m.MIelemlist,cast(list_free_fp)&el_free);
     MEM_PARF_FREE(m);
 }
 
+@trusted
 void symbol_free(Symbol *s)
 {
     while (s)                           /* if symbol exists             */
@@ -879,9 +875,9 @@ debug
 
                 debug assert(f);
                 blocklist_free(&f.Fstartblock);
-                freesymtab(f.Flocsym.tab,0,f.Flocsym.top);
+                freesymtab(f.Flocsym[].ptr,0,f.Flocsym.length);
 
-                symtab_free(f.Flocsym.tab);
+                f.Flocsym.dtor();
               if (CPP)
               {
                 if (f.Fflags & Fnotparent)
@@ -889,7 +885,7 @@ debug
                     return;
                 }
 
-                /* We could be freeing the symbol before it's class is  */
+                /* We could be freeing the symbol before its class is   */
                 /* freed, so remove it from the class's field list      */
                 if (f.Fclass)
                 {   list_t tl;
@@ -931,7 +927,8 @@ version (SCPP_HTOD)
                 list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
               }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
-                free(f.typesTable);
+                version (MARS)
+                    f.typesTable.dtor();
                 func_free(f);
             }
             switch (s.Sclass)
@@ -1088,7 +1085,7 @@ static if (0)
 private void symbol_undef(Symbol *s)
 {
   s.Sclass = SCunde;
-  s.Ssymnum = -1;
+  s.Ssymnum = SYMIDX.max;
   type_free(s.Stype);                  /* free type data               */
   s.Stype = null;
 }
@@ -1098,76 +1095,91 @@ private void symbol_undef(Symbol *s)
  * Add symbol to current symbol array.
  */
 
+@trusted
 SYMIDX symbol_add(Symbol *s)
-{   SYMIDX sitop;
-
-    //printf("symbol_add('%s')\n", s.Sident.ptr);
-debug
 {
-    if (!s || !s.Sident[0])
-    {   printf("bad symbol\n");
-        assert(0);
-    }
+    return symbol_add(*cstate.CSpsymtab, s);
 }
+
+@trusted
+SYMIDX symbol_add(ref symtab_t symtab, Symbol* s)
+{
+    //printf("symbol_add('%s')\n", s.Sident.ptr);
+    debug
+    {
+        if (!s || !s.Sident[0])
+        {   printf("bad symbol\n");
+            assert(0);
+        }
+    }
     symbol_debug(s);
     if (pstate.STinsizeof)
     {   symbol_keep(s);
-        return -1;
+        return SYMIDX.max;
     }
-    debug assert(cstate.CSpsymtab);
-    sitop = cstate.CSpsymtab.top;
-    assert(sitop <= cstate.CSpsymtab.symmax);
-    if (sitop == cstate.CSpsymtab.symmax)
-    {
-debug
-    enum SYMINC = 1;                       /* flush out reallocation bugs  */
-else
-    enum SYMINC = 99;
-
-        cstate.CSpsymtab.symmax += (cstate.CSpsymtab == &globsym) ? SYMINC : 1;
-        //assert(cstate.CSpsymtab.symmax * (Symbol *).sizeof < 4096 * 4);
-        cstate.CSpsymtab.tab = symtab_realloc(cstate.CSpsymtab.tab, cstate.CSpsymtab.symmax);
-    }
-    cstate.CSpsymtab.tab[sitop] = s;
+    const sitop = symtab.length;
+    symtab.setLength(sitop + 1);
+    symtab[sitop] = s;
 
     debug if (debugy)
-        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,cstate.CSpsymtab.top);
+        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr, cast(int) symtab.length);
 
-    assert(s.Ssymnum == -1);
-    return s.Ssymnum = cstate.CSpsymtab.top++;
+    debug if (s.Ssymnum != SYMIDX.max)
+        printf("symbol %s already added\n", s.Sident.ptr);
+    assert(s.Ssymnum == SYMIDX.max);
+    s.Ssymnum = sitop;
+
+    return sitop;
+}
+
+/********************************************
+ * Insert s into symtab at position n.
+ * Returns:
+ *      position in table
+ */
+@trusted
+SYMIDX symbol_insert(ref symtab_t symtab, Symbol* s, SYMIDX n)
+{
+    const sinew = symbol_add(s);        // added at end, have to move it
+    for (SYMIDX i = sinew; i > n; --i)
+    {
+        symtab[i] = symtab[i - 1];
+        symtab[i].Ssymnum += 1;
+    }
+    globsym[n] = s;
+    s.Ssymnum = n;
+    return n;
 }
 
 /****************************
- * Free up the symbol table, from symbols n1 through n2, not
- * including n2.
+ * Free up the symbols stab[n1 .. n2]
  */
 
+@trusted
 void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
-{   SYMIDX si;
-
+{
     if (!stab)
         return;
 
     debug if (debugy)
-        printf("freesymtab(from %d to %d)\n",n1,n2);
+        printf("freesymtab(from %d to %d)\n", cast(int) n1, cast(int) n2);
 
-    assert(stab != globsym.tab || (n1 <= n2 && n2 <= globsym.top));
-    for (si = n1; si < n2; si++)
-    {   Symbol *s;
-
-        s = stab[si];
+    assert(stab != globsym[].ptr || (n1 <= n2 && n2 <= globsym.length));
+    foreach (ref s; stab[n1 .. n2])
+    {
         if (s && s.Sflags & SFLfree)
-        {   stab[si] = null;
+        {
 
-debug
-{
-            if (debugy)
-                printf("Freeing %p '%s' (%d)\n",s,s.Sident.ptr,si);
-            symbol_debug(s);
-}
+            debug
+            {
+                if (debugy)
+                    printf("Freeing %p '%s'\n",s,s.Sident.ptr);
+                symbol_debug(s);
+            }
             s.Sl = s.Sr = null;
-            s.Ssymnum = -1;
+            s.Ssymnum = SYMIDX.max;
             symbol_free(s);
+            s = null;
         }
     }
 }
@@ -1176,6 +1188,7 @@ debug
  * Create a copy of a symbol.
  */
 
+@trusted
 Symbol * symbol_copy(Symbol *s)
 {   Symbol *scopy;
     type *t;
@@ -1185,7 +1198,7 @@ Symbol * symbol_copy(Symbol *s)
     scopy = symbol_calloc(s.Sident.ptr);
     memcpy(scopy,s,Symbol.sizeof - s.Sident.sizeof);
     scopy.Sl = scopy.Sr = scopy.Snext = null;
-    scopy.Ssymnum = -1;
+    scopy.Ssymnum = SYMIDX.max;
     if (scopy.Sdt)
     {
         auto dtb = DtBuilder(0);
@@ -1213,14 +1226,14 @@ version (SCPP_HTOD)
 {
 
 Symbol * symbol_searchlist(symlist_t sl,const(char)* vident)
-{   Symbol *s;
-
+{
     debug
     int count = 0;
 
     //printf("searchlist(%s)\n",vident);
-    for (; sl; sl = list_next(sl))
-    {   s = list_symbol(sl);
+    foreach (sln; ListRange(sl))
+    {
+        Symbol* s = list_symbol(sln);
         symbol_debug(s);
         /*printf("\tcomparing with %s\n",s.Sident.ptr);*/
         if (strcmp(vident,s.Sident.ptr) == 0)
@@ -1260,6 +1273,7 @@ Symbol *symbol_search(const(char)* id)
 
 static if (HYDRATE)
 {
+@trusted
 void symbol_tree_hydrate(Symbol **ps)
 {   Symbol *s;
 
@@ -1282,6 +1296,7 @@ void symbol_tree_hydrate(Symbol **ps)
 
 static if (DEHYDRATE)
 {
+@trusted
 void symbol_tree_dehydrate(Symbol **ps)
 {   Symbol *s;
 
@@ -1307,6 +1322,7 @@ version (DEBUG_XSYMGEN)
 
 static if (HYDRATE)
 {
+@trusted
 Symbol *symbol_hydrate(Symbol **ps)
 {   Symbol *s;
 
@@ -1341,8 +1357,8 @@ Symbol *symbol_hydrate(Symbol **ps)
             blocklist_hydrate(&f.Fstartblock);
 
             ph_hydrate(cast(void**)&f.Flocsym.tab);
-            for (si = 0; si < f.Flocsym.top; si++)
-                symbol_hydrate(&f.Flocsym.tab[si]);
+            for (si = 0; si < f.Flocsym.length; si++)
+                symbol_hydrate(&f.Flocsym[].ptr[si]);
 
             srcpos_hydrate(&f.Fstartline);
             srcpos_hydrate(&f.Fendline);
@@ -1508,6 +1524,7 @@ Symbol *symbol_hydrate(Symbol **ps)
 
 static if (DEHYDRATE)
 {
+@trusted
 void symbol_dehydrate(Symbol **ps)
 {
     Symbol *s;
@@ -1546,13 +1563,13 @@ version (DEBUG_XSYMGEN)
 
 version (DEBUG_XSYMGEN)
 {
-            if (!xsym_gen || !ph_in_head(f.Flocsym.tab))
-                for (si = 0; si < f.Flocsym.top; si++)
+            if (!xsym_gen || !ph_in_head(f.Flocsym[].ptr))
+                for (si = 0; si < f.Flocsym.length; si++)
                     symbol_dehydrate(&f.Flocsym.tab[si]);
 }
 else
 {
-            for (si = 0; si < f.Flocsym.top; si++)
+            for (si = 0; si < f.Flocsym.length; si++)
                 symbol_dehydrate(&f.Flocsym.tab[si]);
 }
             ph_dehydrate(&f.Flocsym.tab);
@@ -1739,6 +1756,7 @@ else
 
 static if (DEHYDRATE)
 {
+@trusted
 void symbol_symdefs_dehydrate(Symbol **ps)
 {
     Symbol *s;
@@ -1766,6 +1784,7 @@ void symbol_symdefs_dehydrate(Symbol **ps)
 version (SCPP_HTOD)
 {
 
+@trusted
 void symbol_symdefs_hydrate(Symbol **psx,Symbol **parent,int flag)
 {   Symbol *s;
 
@@ -1993,6 +2012,7 @@ void symboltable_hydrate(Symbol *s,Symbol **parent)
 
 static if (HYDRATE)
 {
+@trusted
 private void mptr_hydrate(mptr_t **pm)
 {   mptr_t *m;
 
@@ -2004,6 +2024,7 @@ private void mptr_hydrate(mptr_t **pm)
 
 static if (DEHYDRATE)
 {
+@trusted
 private void mptr_dehydrate(mptr_t **pm)
 {   mptr_t *m;
 
@@ -2032,6 +2053,7 @@ else
 
 static if (HYDRATE)
 {
+@trusted
 private void baseclass_hydrate(baseclass_t **pb)
 {   baseclass_t *b;
 
@@ -2058,6 +2080,7 @@ private void baseclass_hydrate(baseclass_t **pb)
 
 static if (DEHYDRATE)
 {
+@trusted
 private void baseclass_dehydrate(baseclass_t **pb)
 {   baseclass_t *b;
 
@@ -2099,6 +2122,7 @@ baseclass_t *baseclass_find(baseclass_t *bm,Classsym *sbase)
     return bm;
 }
 
+@trusted
 baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase)
 {
     symbol_debug(sbase);
@@ -2132,6 +2156,7 @@ int baseclass_nitems(baseclass_t *b)
 version (SCPP_HTOD)
 {
 
+@trusted
 void symboltable_clean(Symbol *s)
 {
     while (s)
@@ -2178,8 +2203,8 @@ void symboltable_clean(Symbol *s)
                     debug assert(f);
 
                     list_apply(&f.Fsymtree,cast(list_free_fp)&symboltable_clean);
-                    for (si = 0; si < f.Flocsym.top; si++)
-                        symboltable_clean(f.Flocsym.tab[si]);
+                    for (si = 0; si < f.Flocsym.length; si++)
+                        symboltable_clean(f.Flocsym[si]);
                     if (f.Foversym)
                         symboltable_clean(f.Foversym);
                     if (f.Fexplicitspec)
@@ -2338,16 +2363,17 @@ struct Paramblock       // to minimize stack usage in helper function
 }
 
 private void membersearchx(Paramblock *p,Symbol *s)
-{   Symbol *sm;
-    list_t sl;
-
+{
     while (s)
-    {   symbol_debug(s);
+    {
+        symbol_debug(s);
 
         switch (s.Sclass)
-        {   case SCstruct:
-                for (sl = s.Sstruct.Sfldlst; sl; sl = list_next(sl))
-                {   sm = list_symbol(sl);
+        {
+            case SCstruct:
+                foreach (sl; ListRange(s.Sstruct.Sfldlst))
+                {
+                    Symbol* sm = list_symbol(sl);
                     symbol_debug(sm);
                     if ((sm.Sclass == SCmember || sm.Sclass == SCfield) &&
                         strcmp(p.id,sm.Sident.ptr) == 0)
@@ -2448,6 +2474,20 @@ void symbol_reset(Symbol *s)
     {   s.Sclass = SCextern;
         s.Sfl = FLextern;
     }
+}
+
+/****************************************
+ * Determine pointer type needed to access a Symbol,
+ * essentially what type an OPrelconst should get
+ * for that Symbol.
+ * Params:
+ *      s = pointer to Symbol
+ * Returns:
+ *      pointer type to access it
+ */
+tym_t symbol_pointerType(const Symbol* s)
+{
+    return s.Stype.Tty & mTYimmutable ? TYimmutPtr : TYnptr;
 }
 
 }

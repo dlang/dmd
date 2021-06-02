@@ -1,3 +1,7 @@
 <!--
 PERMUTE_ARGS: -d -dw
+TEST_OUTPUT:
+---
+Error: unrecognized file extension html
+---
 --><html>	<head><title>dstress: html_line_ending_mac</title></head>	<body><pre><CODE>// __DSTRESS_TORTURE_BLOCK__ -release int main(){	try{		assert(0);	}catch(Throwable e){		checkLineNumber(e);		return 0;	}	assert(-1, "b");	return 1;}/* * @WARNING@ this code depends on the phobos implementation. * char[]s returned by wrong assertions have to look like: *	 "blah blah (linenumber) blah blah" */void checkLineNumber(Object o){	string x=o.toString();	int start;	for(start=0; start&lt;x.length; start++){if(x[start]=='('){break;}}	int end;	for(end=start+1; end&lt;x.length; end++){if(x[end]==')'){break;}}	assert(end-start==3);	assert(x[start+1 .. end]=="10", x[start+1 .. end]);}	</CODE></pre></body></html>

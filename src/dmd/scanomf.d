@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Extract symbols from an OMF object file.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanomf.d, _scanomf.d)
@@ -12,128 +11,16 @@
 
 module dmd.scanomf;
 
-version(Windows):
-
 import core.stdc.string;
 import core.stdc.stdlib;
 import dmd.globals;
+import dmd.root.rmem;
 import dmd.root.outbuffer;
+import dmd.root.string;
 import dmd.arraytypes;
 import dmd.errors;
 
-enum LOG = false;
-
-/**************************
- * Record types:
- */
-enum RHEADR = 0x6E;
-enum REGINT = 0x70;
-enum REDATA = 0x72;
-enum RIDATA = 0x74;
-enum OVLDEF = 0x76;
-enum ENDREC = 0x78;
-enum BLKDEF = 0x7A;
-enum BLKEND = 0x7C;
-enum DEBSYM = 0x7E;
-enum THEADR = 0x80;
-enum LHEADR = 0x82;
-enum PEDATA = 0x84;
-enum PIDATA = 0x86;
-enum COMENT = 0x88;
-enum MODEND = 0x8A;
-enum M386END = 0x8B; /* 32 bit module end record */
-enum EXTDEF = 0x8C;
-enum TYPDEF = 0x8E;
-enum PUBDEF = 0x90;
-enum PUB386 = 0x91;
-enum LOCSYM = 0x92;
-enum LINNUM = 0x94;
-enum LNAMES = 0x96;
-enum SEGDEF = 0x98;
-enum GRPDEF = 0x9A;
-enum FIXUPP = 0x9C;
-/*#define (none)        0x9E    */
-enum LEDATA = 0xA0;
-enum LIDATA = 0xA2;
-enum LIBHED = 0xA4;
-enum LIBNAM = 0xA6;
-enum LIBLOC = 0xA8;
-enum LIBDIC = 0xAA;
-enum COMDEF = 0xB0;
-enum LEXTDEF = 0xB4;
-enum LPUBDEF = 0xB6;
-enum LCOMDEF = 0xB8;
-enum CEXTDEF = 0xBC;
-enum COMDAT = 0xC2;
-enum LINSYM = 0xC4;
-enum ALIAS = 0xC6;
-enum LLNAMES = 0xCA;
-enum LIBIDMAX = (512 - 0x25 - 3 - 4);
-
-// max size that will fit in dictionary
-extern (C++) void parseName(const(ubyte)** pp, char* name)
-{
-    auto p = *pp;
-    uint len = *p++;
-    if (len == 0xFF && *p == 0) // if long name
-    {
-        len = p[1] & 0xFF;
-        len |= cast(uint)p[2] << 8;
-        p += 3;
-        assert(len <= LIBIDMAX);
-    }
-    memcpy(name, p, len);
-    name[len] = 0;
-    *pp = p + len;
-}
-
-private ushort parseIdx(const(ubyte)** pp)
-{
-    auto p = *pp;
-    const c = *p++;
-    ushort idx = (0x80 & c) ? ((0x7F & c) << 8) + *p++ : c;
-    *pp = p;
-    return idx;
-}
-
-// skip numeric field of a data type of a COMDEF record
-private void skipNumericField(const(ubyte)** pp)
-{
-    const(ubyte)* p = *pp;
-    const c = *p++;
-    if (c == 0x81)
-        p += 2;
-    else if (c == 0x84)
-        p += 3;
-    else if (c == 0x88)
-        p += 4;
-    else
-        assert(c <= 0x80);
-    *pp = p;
-}
-
-// skip data type of a COMDEF record
-private void skipDataType(const(ubyte)** pp)
-{
-    auto p = *pp;
-    const c = *p++;
-    if (c == 0x61)
-    {
-        // FAR data
-        skipNumericField(&p);
-        skipNumericField(&p);
-    }
-    else if (c == 0x62)
-    {
-        // NEAR data
-        skipNumericField(&p);
-    }
-    else
-    {
-        assert(1 <= c && c <= 0x5f); // Borland segment indices
-    }
-    *pp = p;
-}
+private enum LOG = false;
 
 /*****************************************
  * Reads an object module from base[] and passes the names
@@ -151,15 +38,15 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
     {
         printf("scanOmfObjModule(%s)\n", module_name);
     }
-    const buf = base.ptr;
-    const buflen = base.length;
     int easyomf;
-    ubyte result = 0;
     char[LIBIDMAX + 1] name;
     Strings names;
+    scope(exit)
+        for (size_t u = 1; u < names.dim; u++)
+            free(cast(void*)names[u]);
     names.push(null); // don't use index 0
     easyomf = 0; // assume not EASY-OMF
-    auto pend = cast(const(ubyte)*)base.ptr + buflen;
+    auto pend = cast(const(ubyte)*)base.ptr + base.length;
     const(ubyte)* pnext;
     for (auto p = cast(const(ubyte)*)base.ptr; 1; p = pnext)
     {
@@ -176,7 +63,8 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             while (p + 1 < pnext)
             {
                 parseName(&p, name.ptr);
-                names.push(strdup(name.ptr));
+                char* copy = cast(char*)Mem.check(strdup(name.ptr));
+                names.push(copy);
             }
             break;
         case PUBDEF:
@@ -225,7 +113,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                 }
                 //printf("[s] name='%s'\n",name);
                 const(char)* n = names[idx];
-                pAddSymbol(n[0 .. strlen(name.ptr)], pickAny);
+                pAddSymbol(n.toDString(), pickAny);
                 break;
             }
         case COMDEF:
@@ -249,8 +137,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             break;
         case MODEND:
         case M386END:
-            result = 1;
-            goto Ret;
+            return;
         case COMENT:
             // Recognize Phar Lap EASY-OMF format
             {
@@ -286,9 +173,6 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             // ignore
         }
     }
-Ret:
-    for (size_t u = 1; u < names.dim; u++)
-        free(cast(void*)names[u]);
 }
 
 /*************************************************
@@ -302,7 +186,6 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.
      */
-    bool first_module = true;
     const(ubyte)* base = null;
     char[LIBIDMAX + 1] name;
     auto p = cast(const(ubyte)*)buf;
@@ -388,7 +271,121 @@ void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* na
             p++;
         }
         *p = checksum;
-        buf.write(header.ptr, len + 5);
+        buf.write(header.ptr[0 .. len + 5]);
     }
-    buf.write(base, length);
+    buf.write(base[0 .. length]);
+}
+
+private: // for the remainder of this module
+
+/**************************
+ * Record types:
+ */
+enum RHEADR = 0x6E;
+enum REGINT = 0x70;
+enum REDATA = 0x72;
+enum RIDATA = 0x74;
+enum OVLDEF = 0x76;
+enum ENDREC = 0x78;
+enum BLKDEF = 0x7A;
+enum BLKEND = 0x7C;
+enum DEBSYM = 0x7E;
+enum THEADR = 0x80;
+enum LHEADR = 0x82;
+enum PEDATA = 0x84;
+enum PIDATA = 0x86;
+enum COMENT = 0x88;
+enum MODEND = 0x8A;
+enum M386END = 0x8B; /* 32 bit module end record */
+enum EXTDEF = 0x8C;
+enum TYPDEF = 0x8E;
+enum PUBDEF = 0x90;
+enum PUB386 = 0x91;
+enum LOCSYM = 0x92;
+enum LINNUM = 0x94;
+enum LNAMES = 0x96;
+enum SEGDEF = 0x98;
+enum GRPDEF = 0x9A;
+enum FIXUPP = 0x9C;
+/*#define (none)        0x9E    */
+enum LEDATA = 0xA0;
+enum LIDATA = 0xA2;
+enum LIBHED = 0xA4;
+enum LIBNAM = 0xA6;
+enum LIBLOC = 0xA8;
+enum LIBDIC = 0xAA;
+enum COMDEF = 0xB0;
+enum LEXTDEF = 0xB4;
+enum LPUBDEF = 0xB6;
+enum LCOMDEF = 0xB8;
+enum CEXTDEF = 0xBC;
+enum COMDAT = 0xC2;
+enum LINSYM = 0xC4;
+enum ALIAS = 0xC6;
+enum LLNAMES = 0xCA;
+enum LIBIDMAX = (512 - 0x25 - 3 - 4);
+
+// max size that will fit in dictionary
+extern (C++) void parseName(const(ubyte)** pp, char* name)
+{
+    auto p = *pp;
+    uint len = *p++;
+    if (len == 0xFF && *p == 0) // if long name
+    {
+        len = p[1] & 0xFF;
+        len |= cast(uint)p[2] << 8;
+        p += 3;
+        assert(len <= LIBIDMAX);
+    }
+    memcpy(name, p, len);
+    name[len] = 0;
+    *pp = p + len;
+}
+
+ushort parseIdx(const(ubyte)** pp)
+{
+    auto p = *pp;
+    const c = *p++;
+    ushort idx = (0x80 & c) ? ((0x7F & c) << 8) + *p++ : c;
+    *pp = p;
+    return idx;
+}
+
+// skip numeric field of a data type of a COMDEF record
+void skipNumericField(const(ubyte)** pp)
+{
+    const(ubyte)* p = *pp;
+    const c = *p++;
+    if (c == 0x81)
+        p += 2;
+    else if (c == 0x84)
+        p += 3;
+    else if (c == 0x88)
+        p += 4;
+    else
+        assert(c <= 0x80);
+    *pp = p;
+}
+
+// skip data type of a COMDEF record
+void skipDataType(const(ubyte)** pp)
+{
+    auto p = *pp;
+    const c = *p++;
+    if (c == 0x61)
+    {
+        // FAR data
+        skipNumericField(&p);
+        skipNumericField(&p);
+    }
+    else if (c == 0x62)
+    {
+        // NEAR data
+        skipNumericField(&p);
+    }
+    else
+    {
+        assert(1 <= c && c <= 0x5f); // Borland segment indices
+    }
+    *pp = p;
 }

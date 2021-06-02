@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -gf
+// REQUIRED_ARGS: -gf -mixin=${RESULTS_DIR}/runnable/testpdb.mixin
 // PERMUTE_ARGS:
 
 import core.time;
@@ -37,12 +37,22 @@ void main(string[] args)
         testSymbolHasChildren(ctsym, "core.time.ClockType");
         ctsym.Release();
 
-        testLineNumbers(session, globals);
+        testLineNumbers15432(session, globals);
+        testLineNumbers19747(session, globals);
+        testLineNumbers19719(session, globals);
 
         S18984 s = test18984(session, globals);
 
         test19307(session, globals);
-        
+
+        test19318(session, globals);
+
+        testE982(session, globals);
+
+        test20253(session, globals);
+
+        test18147(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -60,6 +70,15 @@ int test15432() // line 8
 }
 enum lineAfterTest15432 = __LINE__;
 
+// https://issues.dlang.org/show_bug.cgi?id=19747
+enum lineScopeExitTest19747 = __LINE__ + 3;
+int test19747()
+{
+    scope(exit) call15432(null);
+    int x = 0;
+    return x;
+}
+
 version(CRuntime_Microsoft):
 
 void testSymbolHasChildren(IDiaSymbol sym, string name)
@@ -76,7 +95,7 @@ void testSymbolHasChildren(IDiaSymbol sym, string name)
     enumSymbols.Release();
 }
 
-void testLineNumbers(IDiaSession session, IDiaSymbol globals)
+void testLineNumbers15432(IDiaSession session, IDiaSymbol globals)
 {
     IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test15432.mangleof);
     assert(funcsym, "symbol test15432 not found");
@@ -90,6 +109,47 @@ void testLineNumbers(IDiaSession session, IDiaSymbol globals)
     ubyte codeByte = lines[$-1].addr[0];
     assert(codeByte == 0x48 || codeByte == 0x5d || codeByte == 0xc3); // should be one of "mov rsp,rbp", "pop rbp" or "ret"
 }
+
+void testLineNumbers19747(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test19747.mangleof);
+    assert(funcsym, "symbol test19747 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test19747");
+
+    //dumpLineNumbers(lines, funcRange);
+    bool found = false;
+    foreach(ln; lines)
+        found = found || ln.line == lineScopeExitTest19747;
+    assert(found);
+}
+
+int test19719()
+{
+    enum code = "int a = 5;";
+    mixin(code);
+    return a;
+}
+
+void testLineNumbers19719(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test19719.mangleof);
+    assert(funcsym, "symbol test19719 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test19747");
+
+    test19719();
+
+    //dumpLineNumbers(lines, funcRange);
+    wstring mixinfile = "testpdb.mixin";
+    bool found = false;
+    foreach(ln; lines)
+        found = found || (ln.srcfile.length >= mixinfile.length && ln.srcfile[$-mixinfile.length .. $] == mixinfile);
+    assert(found);
+}
+
 
 ///////////////////////////////////////////////
 // https://issues.dlang.org/show_bug.cgi?id=18984
@@ -168,7 +228,7 @@ int foo19307()
     return nested()();
 }
 
-string toUTF8(wstring ws)
+string toUTF8(const(wchar)[] ws)
 {
     string s;
     foreach(dchar c; ws)
@@ -219,16 +279,47 @@ void test19307(IDiaSession session, IDiaSymbol globals)
 // variables captured from outer functions not visible in debugger
 int foo19318(int z) @nogc
 {
-	int x = 7;
-	auto nested() scope
-	{
-		int nested2()
-		{
-			return x + z;
-		}
-		return nested2();
-	}
-	return nested();
+    int x = 7;
+    auto nested() scope
+    {
+        int nested2()
+        {
+            return x + z;
+        }
+        return nested2();
+    }
+    return nested();
+}
+
+__gshared void* C19318_capture;
+__gshared void* C19318_px;
+
+class C19318
+{
+    void foo()
+    {
+        int x = 0;
+        auto bar()
+        {
+            int y = 0;
+            x++;
+            C19318_px = &x;
+            y++;
+            version(D_InlineAsm_X86_64)
+                asm
+                {
+                    mov RAX,__capture;
+                    mov C19318_capture, RAX;
+                }
+            else version(D_InlineAsm_X86)
+                asm
+                {
+                    mov EAX,__capture;
+                    mov C19318_capture, EAX;
+                }
+        }
+        bar();
+    }
 }
 
 void test19318(IDiaSession session, IDiaSymbol globals)
@@ -240,13 +331,168 @@ void test19318(IDiaSession session, IDiaSymbol globals)
     testClosureVar(globals, "testpdb.foo19318.nested", "__capture", "z");
     testClosureVar(globals, "testpdb.foo19318.nested.nested2", "__capture", "x");
     testClosureVar(globals, "testpdb.foo19318.nested.nested2", "__capture", "z");
+
+    (new C19318).foo();
+    auto sym = testClosureVar(globals, "testpdb.C19318.foo.bar", "__capture", "x");
+    int off;
+    sym.get_offset(&off);
+    assert(off == C19318_px - C19318_capture);
+}
+
+///////////////////////////////////////////////
+enum E982
+{
+    E1, E2, E3
+}
+
+void testE982(IDiaSession session, IDiaSymbol globals)
+{
+    E982 ee = E982.E1;
+
+    IDiaSymbol funcSym = searchSymbol(globals, "testpdb.testE982");
+    funcSym || assert(false, "testpdb.testE982 not found");
+
+    string varName = "testpdb.testE982.ee";
+    IDiaSymbol varSym = searchSymbol(funcSym, "ee");
+    varSym || assert(false, varName ~ " not found");
+
+    IDiaSymbol varType;
+    varSym.get_type(&varType) == S_OK || assert(false, varName ~ ": no type");
+    BSTR typename;
+    varType.get_name(&typename) == S_OK || assert(false, varName ~ ": no type name");
+    scope(exit) SysFreeString(typename);
+    wchar[] wtypename = typename[0..wcslen(typename)];
+    wcscmp(typename, "testpdb.E982") == 0 || assert(false, varName ~ ": unexpected type name " ~ toUTF8(wtypename));
+}
+
+///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=20253
+string func20253(string s1, string s2)
+{
+    throw new Exception("x");
+}
+string check20253()
+{
+    return "";
+}
+
+void test20253(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcSym = searchSymbol(globals, "testpdb.func20253");
+    funcSym || assert(false, "testpdb.func20253 not found");
+
+    IDiaSymbol checkSym = searchSymbol(globals, "testpdb.check20253");
+    checkSym || assert(false, "testpdb.check20253 not found");
+
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcSym, &funcRange);
+    lines || assert(false, "no line number info for func20253");
+
+    ubyte[] checkRange;
+    Line[] checkLines = findSymbolLineNumbers(session, checkSym, &checkRange);
+    checkLines || assert(false, "no line number info for check20253");
+
+    foreach(ln; lines)
+        (ln.addr >= funcRange.ptr && ln.addr < funcRange.ptr + funcRange.length) ||
+               assert(false, "line number code offset out of function range");
+
+    (checkRange.ptr >= funcRange.ptr + funcRange.length) ||
+        assert(false, "code range of check20253 overlaps with func20253");
+}
+
+///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=18147
+string genMembers18147()
+{
+    string s;
+    char[12] es = "member0000,\n";
+    foreach(char i; '0'..'9'+1)
+    {
+        es[6] = i;
+        string s1;
+        foreach(char j; '0'..'9'+1)
+        {
+            es[7] = j;
+            string s2;
+            foreach(char k; '0'..'9'+1)
+            {
+                es[8] = k;
+                string s3;
+                foreach(char l; '0'..'9'+1)
+                {
+                    es[9] = l;
+                    s3 ~= es;
+                }
+                s2 ~= s3;
+            }
+            s1 ~= s2;
+        }
+        s ~= s1;
+    }
+    return s;
+}
+
+enum members18147 = genMembers18147();
+
+mixin("enum Enumerator18147 {" ~ members18147 ~ "}");
+mixin("struct Struct18147 { int " ~ members18147 ~ "member10000;}");
+mixin("struct Class18147 { int " ~ members18147 ~ "member10000;}");
+
+void test18147(IDiaSession session, IDiaSymbol globals)
+{
+    Enumerator18147 anE;
+    Struct18147 aS;
+    Class18147 aC;
+
+    // enum
+    IDiaSymbol enumSym = searchSymbol(globals, "testpdb.Enumerator18147");
+    enumSym || assert(false, "testpdb.Enumerator18147 not found");
+
+    IDiaSymbol enumValue1 = searchSymbol(enumSym, "member0001");
+    enumValue1 || assert(false, "testpdb.Enumerator18147.member0001 not found");
+
+    IDiaSymbol enumValue9999 = searchSymbol(enumSym, "member9999");
+    enumValue9999 || assert(false, "testpdb.Enumerator18147.member9999 not found");
+
+    // struct
+    IDiaSymbol structSym = searchSymbol(globals, "testpdb.Struct18147");
+    structSym || assert(false, "testpdb.Struct18147 not found");
+
+    int off;
+    IDiaSymbol structMember1 = searchSymbol(structSym, "member0001");
+    structMember1 || assert(false, "testpdb.Struct18147.member0001 not found");
+    structMember1.get_offset(&off);
+    off == Struct18147.member0001.offsetof || assert(false, "testpdb.Struct18147.member1 bad offset");
+
+    IDiaSymbol structMember9999 = searchSymbol(structSym, "member9999");
+    structMember9999 || assert(false, "testpdb.Struct18147.member9999 not found");
+    structMember9999.get_offset(&off);
+    off == Struct18147.member9999.offsetof || assert(false, "testpdb.Struct18147.member9999 bad offset");
+
+    // class
+    IDiaSymbol classSym = searchSymbol(globals, "testpdb.Class18147");
+    classSym || assert(false, "testpdb.Class18147 not found");
+
+    IDiaSymbol classMember1 = searchSymbol(classSym, "member0001");
+    classMember1 || assert(false, "testpdb.Class18147.member0001 not found");
+    classMember1.get_offset(&off);
+    off == Class18147.member0001.offsetof || assert(false, "testpdb.Class18147.member1 bad offset");
+
+    IDiaSymbol classMember9999 = searchSymbol(classSym, "member9999");
+    classMember9999 || assert(false, "testpdb.Class18147.member9999 not found");
+    classMember9999.get_offset(&off);
+    off == Class18147.member9999.offsetof || assert(false, "testpdb.Class18147.member9999 bad offset");
+
 }
 
 ///////////////////////////////////////////////
 import core.stdc.stdio;
 import core.stdc.wchar_;
 
-import core.sys.windows.windows;
+import core.sys.windows.basetyps;
+import core.sys.windows.ole2;
+import core.sys.windows.winbase;
+import core.sys.windows.winnt;
 import core.sys.windows.wtypes;
 import core.sys.windows.objbase;
 import core.sys.windows.unknwn;
@@ -255,8 +501,8 @@ pragma(lib, "ole32.lib");
 pragma(lib, "oleaut32.lib");
 
 // defintions translated from the DIA SDK header dia2.h
-GUID uuid_DiaSource_V120 = { 0xe6756135, 0x1e65, 0x4d17, [0x85, 0x76, 0x61, 0x07, 0x61, 0x39, 0x8c, 0x3c] };
-GUID uuid_DiaSource_V140 = { 0x3bfcea48, 0x620f, 0x4b6b, [0x81, 0xf7, 0xb9, 0xaf, 0x75, 0x45, 0x4c, 0x7d] };
+GUID uuid_DiaSource_V120 = { 0x3bfcea48, 0x620f, 0x4b6b, [0x81, 0xf7, 0xb9, 0xaf, 0x75, 0x45, 0x4c, 0x7d] };
+GUID uuid_DiaSource_V140 = { 0xe6756135, 0x1e65, 0x4d17, [0x85, 0x76, 0x61, 0x07, 0x61, 0x39, 0x8c, 0x3c] };
 
 interface IDiaDataSource : IUnknown
 {
@@ -668,6 +914,11 @@ interface IDiaEnumLineNumbers : IUnknown
 
 interface IDiaSourceFile : IUnknown
 {
+    HRESULT get_uniqueId(DWORD *pRetVal);
+    HRESULT get_fileName(BSTR *pRetVal);
+    HRESULT get_checksumType(DWORD *pRetVal);
+    HRESULT get_compilands(IDiaEnumSymbols **pRetVal);
+    HRESULT get_checksum(DWORD cbData, DWORD *pcbData, BYTE *pbData) = 0;
 }
 
 interface IDiaLineNumber : IUnknown
@@ -846,6 +1097,9 @@ bool openDebugInfo(IDiaDataSource* source, IDiaSession* session, IDiaSymbol* glo
         hr = CoCreateInstance(&uuid_DiaSource_V140, null, CLSCTX.CLSCTX_INPROC_SERVER,
                               &IDiaDataSource.iid, cast(void**)source);
     if (hr != S_OK)
+        hr = CreateRegFreeCOMInstance("msdia140.dll", &uuid_DiaSource_V140,
+                                      &IDiaDataSource.iid, cast(void**)source);
+    if (hr != S_OK)
         return false;
 
     hr = source.loadDataForExe(exepath.ptr, null, null);
@@ -862,6 +1116,24 @@ bool openDebugInfo(IDiaDataSource* source, IDiaSession* session, IDiaSymbol* glo
     return true;
 }
 
+HRESULT CreateRegFreeCOMInstance(const(char*)dll, REFCLSID classID, REFIID iid, PVOID* pObj)
+{
+    HANDLE hmod = LoadLibraryA(dll);
+    if (!hmod)
+        return E_FAIL;
+    auto fnDllGetClassObject = cast(typeof(&DllGetClassObject))GetProcAddress(hmod, "DllGetClassObject");
+    if (!fnDllGetClassObject)
+        return E_FAIL;
+
+    static const GUID IClassFactory_iid = { 0x00000001,0x0000,0x0000,[ 0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x46 ] };
+    IClassFactory factory;
+    HRESULT hr = fnDllGetClassObject(classID, &IClassFactory_iid, cast(void**)&factory);
+    if (hr != S_OK)
+        return hr;
+
+    return factory.CreateInstance(null, iid, pObj);
+}
+
 void printSymbol(IDiaSymbol sym, int indent)
 {
     BSTR name;
@@ -871,7 +1143,7 @@ void printSymbol(IDiaSymbol sym, int indent)
     hr = sym.get_name(&name);
     if (hr != S_OK)
         name = cast(BSTR) "no-name"w.ptr;
-    printf("%*s%02x %S\n", indent, "".ptr, tag, name);
+    printf("%*s%02x %ls\n", indent, "".ptr, tag, name);
     if (hr == S_OK)
         SysFreeString(name);
 }
@@ -925,6 +1197,7 @@ struct Line
 {
     DWORD line;
     ubyte* addr;
+    wstring srcfile;
 }
 
 // linker generated symbol
@@ -958,7 +1231,21 @@ Line[] findSymbolLineNumbers(IDiaSession session, IDiaSymbol sym, ubyte[]* funcR
     {
         DWORD lno, lrva;
         if (line.get_lineNumber(&lno) == S_OK && line.get_relativeVirtualAddress(&lrva) == S_OK)
-            lines ~= Line(lno, rvabase + lrva);
+        {
+            wstring srcfile;
+            IDiaSourceFile diaSource;
+            if (line.get_sourceFile(&diaSource) == S_OK)
+            {
+                BSTR bsrcfile;
+                if (diaSource.get_fileName(&bsrcfile) == S_OK)
+                {
+                    srcfile = bsrcfile[0..wcslen(bsrcfile)].dup;
+                    SysFreeString(bsrcfile);
+                }
+                diaSource.Release();
+            }
+            lines ~= Line(lno, rvabase + lrva, srcfile);
+        }
         line.Release();
     }
     return lines;

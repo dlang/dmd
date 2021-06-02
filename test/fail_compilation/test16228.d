@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip25
+/* REQUIRED_ARGS:
    TEST_OUTPUT:
 ---
 fail_compilation/test16228.d(23): Error: function `test16228.S.bar` `static` member has no `this` to which `return` can apply
@@ -33,4 +33,3 @@ void bar(int i, void* p)
     Identity(p);
     Identity(i);
 }
-

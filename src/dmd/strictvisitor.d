@@ -26,6 +26,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.VarDeclaration) { assert(0); }
     override void visit(AST.FuncDeclaration) { assert(0); }
     override void visit(AST.AliasDeclaration) { assert(0); }
+    override void visit(AST.AliasAssign) { assert(0); }
     override void visit(AST.TupleDeclaration) { assert(0); }
     override void visit(AST.FuncLiteralDeclaration) { assert(0); }
     override void visit(AST.PostBlitDeclaration) { assert(0); }
@@ -34,7 +35,6 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.InvariantDeclaration) { assert(0); }
     override void visit(AST.UnitTestDeclaration) { assert(0); }
     override void visit(AST.NewDeclaration) { assert(0); }
-    override void visit(AST.DeleteDeclaration) { assert(0); }
     override void visit(AST.StaticCtorDeclaration) { assert(0); }
     override void visit(AST.StaticDtorDeclaration) { assert(0); }
     override void visit(AST.SharedStaticCtorDeclaration) { assert(0); }
@@ -51,7 +51,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.AnonDeclaration) { assert(0); }
     override void visit(AST.AlignDeclaration) { assert(0); }
     override void visit(AST.CPPMangleDeclaration) { assert(0); }
-    override void visit(AST.ProtDeclaration) { assert(0); }
+    override void visit(AST.VisibilityDeclaration) { assert(0); }
     override void visit(AST.PragmaDeclaration) { assert(0); }
     override void visit(AST.StorageClassDeclaration) { assert(0); }
     override void visit(AST.ConditionalDeclaration) { assert(0); }
@@ -78,7 +78,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.ForeachRangeStatement) { assert(0); }
     override void visit(AST.ForeachStatement) { assert(0); }
     override void visit(AST.IfStatement) { assert(0); }
-    override void visit(AST.OnScopeStatement) { assert(0); }
+    override void visit(AST.ScopeGuardStatement) { assert(0); }
     override void visit(AST.ConditionalStatement) { assert(0); }
     override void visit(AST.PragmaStatement) { assert(0); }
     override void visit(AST.SwitchStatement) { assert(0); }
@@ -105,6 +105,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.TypeBasic) { assert(0); }
     override void visit(AST.TypeError) { assert(0); }
     override void visit(AST.TypeNull) { assert(0); }
+    override void visit(AST.TypeNoreturn) { assert(0); }
     override void visit(AST.TypeVector) { assert(0); }
     override void visit(AST.TypeEnum) { assert(0); }
     override void visit(AST.TypeTuple) { assert(0); }
@@ -122,6 +123,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.TypeSArray) { assert(0); }
     override void visit(AST.TypeQualified) { assert(0); }
     override void visit(AST.TypeTraits) { assert(0); }
+    override void visit(AST.TypeMixin) { assert(0); }
     override void visit(AST.TypeIdentifier) { assert(0); }
     override void visit(AST.TypeReturn) { assert(0); }
     override void visit(AST.TypeTypeof) { assert(0); }
@@ -167,7 +169,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.CallExp) { assert(0); }
     override void visit(AST.DotIdExp) { assert(0); }
     override void visit(AST.AssertExp) { assert(0); }
-    override void visit(AST.CompileExp) { assert(0); }
+    override void visit(AST.MixinExp) { assert(0); }
     override void visit(AST.ImportExp) { assert(0); }
     override void visit(AST.DotTemplateInstanceExp) { assert(0); }
     override void visit(AST.ArrayExp) { assert(0); }

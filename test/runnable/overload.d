@@ -1,5 +1,13 @@
-// EXTRA_SOURCES: imports/ovs1528a.d imports/ovs1528b.d
-// EXTRA_SOURCES: imports/template_ovs1.d imports/template_ovs2.d imports/template_ovs3.d
+/*
+REQUIRED_ARGS: -preview=rvaluerefparam
+EXTRA_SOURCES: imports/ovs1528a.d imports/ovs1528b.d
+EXTRA_SOURCES: imports/template_ovs1.d imports/template_ovs2.d imports/template_ovs3.d
+EXTRA_FILES: imports/m8668a.d imports/m8668b.d imports/m8668c.d
+RUN_OUTPUT:
+---
+Success
+---
+*/
 
 import imports.template_ovs1;
 import imports.template_ovs2;
@@ -470,7 +478,13 @@ void test9410()
 {
     S s;
     assert(foo(1, s  ) == 1); // works fine. Print: ref
-    assert(foo(1, S()) == 2); // Fails with: Error: S() is not an lvalue
+
+    /* With the rvalue to ref param change, this calls the 'ref' version
+     * because both are the same match level, but the 'ref' version is
+     * considered "more specialized", as the non-ref version undergoes
+     * a "conversion" to call the ref version.
+     */
+    assert(foo(1, S()) == 1);
 }
 
 /***************************************************/
@@ -1060,7 +1074,7 @@ void test11916()
 enum E13783 { a = 5 }
 
     inout(int) f(    inout(int) t) { return t * 2; }
-ref inout(int) f(ref inout(int) t) { return t; }
+ref inout(int) f(return ref inout(int) t) { return t; }
 
 void test13783()
 {
@@ -1213,6 +1227,40 @@ void test14965()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21481
+
+struct S21481
+{
+    void funB2(char a) {}
+    alias funB = funB2;
+    // template as first symbol in overload set and overloading an alias
+    void funB()(float t) {}
+    void funB(int b) {}     // function was lost -> OK now
+}
+
+void test21481()
+{
+    static assert(__traits(getOverloads, S21481, "funB", true).length == 3);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21522
+
+struct S21522
+{
+    // alias to template as first symbol in overload set
+    void funA2()(int a) {}
+    void funA2(char a) {}   // function was lost -> OK now
+    alias funA = funA2;
+    void funA(float b) {}
+}
+
+void test21522()
+{
+    static assert(__traits(getOverloads, S21522, "funA", true).length == 3);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1248,6 +1296,8 @@ int main()
     test13783();
     test14858();
     test14965();
+    test21481();
+    test21522();
 
     printf("Success\n");
     return 0;

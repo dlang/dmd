@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Functions related to UTF encoding.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/utf.d, _utf.d)
@@ -400,21 +399,20 @@ void utf_encode(int sz, void* s, dchar c)
  * Decode a UTF-8 sequence as a single UTF-32 code point.
  * Params:
  *      s = UTF-8 sequence
- *      len = number of code units in s[]
  *      ridx = starting index in s[], updated to reflect number of code units decoded
  *      rresult = set to character decoded
  * Returns:
  *      null on success, otherwise error message string
  */
-immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out dchar rresult)
+string utf_decodeChar(const(char)[] s, ref size_t ridx, out dchar rresult)
 {
     // UTF-8 decoding errors
-    static immutable char* UTF8_DECODE_OK = null; // no error
-    static immutable char* UTF8_DECODE_OUTSIDE_CODE_SPACE = "Outside Unicode code space";
-    static immutable char* UTF8_DECODE_TRUNCATED_SEQUENCE = "Truncated UTF-8 sequence";
-    static immutable char* UTF8_DECODE_OVERLONG = "Overlong UTF-8 sequence";
-    static immutable char* UTF8_DECODE_INVALID_TRAILER = "Invalid trailing code unit";
-    static immutable char* UTF8_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
+    static immutable string UTF8_DECODE_OK = null; // no error
+    static immutable string UTF8_DECODE_OUTSIDE_CODE_SPACE = "Outside Unicode code space";
+    static immutable string UTF8_DECODE_TRUNCATED_SEQUENCE = "Truncated UTF-8 sequence";
+    static immutable string UTF8_DECODE_OVERLONG = "Overlong UTF-8 sequence";
+    static immutable string UTF8_DECODE_INVALID_TRAILER = "Invalid trailing code unit";
+    static immutable string UTF8_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
 
     /* The following encodings are valid, except for the 5 and 6 byte
      * combinations:
@@ -425,275 +423,56 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
      *      111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
      *      1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
      */
-    static immutable uint[] UTF8_STRIDE =
+    static immutable ubyte[256] UTF8_STRIDE =
     [
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        0xFF,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        3,
-        4,
-        4,
-        4,
-        4,
-        4,
-        4,
-        4,
-        4,
-        5,
-        5,
-        5,
-        5,
-        6,
-        6,
-        0xFF,
-        0xFF
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+        1,1,1,1, 1,1,1,1,
+
+        0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF,
+
+        2,2,2,2, 2,2,2,2,
+        2,2,2,2, 2,2,2,2,
+        2,2,2,2, 2,2,2,2,
+        2,2,2,2, 2,2,2,2,
+
+        3,3,3,3, 3,3,3,3,
+        3,3,3,3, 3,3,3,3,
+
+        4,4,4,4, 4,4,4,4,
+        5,5,5,5, 6,6,0xFF,0xFF
     ];
 
     assert(s !is null);
     size_t i = ridx++;
-    assert(i < len);
-    char u = s[i];
+
+    const char u = s[i];
     // Pre-stage results for ASCII and error cases
     rresult = u;
     //printf("utf_decodeChar(s = %02x, %02x, %02x len = %d)\n", u, s[1], s[2], len);
     // Get expected sequence length
-    size_t n = UTF8_STRIDE[u];
+    const size_t n = UTF8_STRIDE[u];
     switch (n)
     {
     case 1:
@@ -708,7 +487,7 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
         // 5- or 6-byte sequence
         return UTF8_DECODE_OUTSIDE_CODE_SPACE;
     }
-    if (len < i + n) // source too short
+    if (s.length < i + n) // source too short
         return UTF8_DECODE_TRUNCATED_SEQUENCE;
     // Pick off 7 - n low bits from first code unit
     dchar c = u & ((1 << (7 - n)) - 1);
@@ -719,17 +498,17 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
      *      11111000 10000xxx (10xxxxxx 10xxxxxx 10xxxxxx)
      *      11111100 100000xx (10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx)
      */
-    char u2 = s[++i];
+    const char u2 = s[++i];
     // overlong combination
     if ((u & 0xFE) == 0xC0 || (u == 0xE0 && (u2 & 0xE0) == 0x80) || (u == 0xF0 && (u2 & 0xF0) == 0x80) || (u == 0xF8 && (u2 & 0xF8) == 0x80) || (u == 0xFC && (u2 & 0xFC) == 0x80))
         return UTF8_DECODE_OVERLONG;
     // Decode remaining bits
-    for (n += i - 1; i != n; ++i)
+    for (const m = n + i - 1; i != m; ++i)
     {
-        u = s[i];
-        if ((u & 0xC0) != 0x80) // trailing bytes are 10xxxxxx
+        const u3 = s[i];
+        if ((u3 & 0xC0) != 0x80) // trailing bytes are 10xxxxxx
             return UTF8_DECODE_INVALID_TRAILER;
-        c = (c << 6) | (u & 0x3F);
+        c = (c << 6) | (u3 & 0x3F);
     }
     if (!utf_isValidDchar(c))
         return UTF8_DECODE_INVALID_CODE_POINT;
@@ -742,31 +521,30 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
  * Decode a UTF-16 sequence as a single UTF-32 code point.
  * Params:
  *      s = UTF-16 sequence
- *      len = number of code units in s[]
  *      ridx = starting index in s[], updated to reflect number of code units decoded
  *      rresult = set to character decoded
  * Returns:
  *      null on success, otherwise error message string
  */
-immutable(char*) utf_decodeWchar(const(wchar)* s, size_t len, ref size_t ridx, out dchar rresult)
+string utf_decodeWchar(const(wchar)[] s, ref size_t ridx, out dchar rresult)
 {
     // UTF-16 decoding errors
-    static immutable char* UTF16_DECODE_OK = null; // no error
-    static immutable char* UTF16_DECODE_TRUNCATED_SEQUENCE = "Truncated UTF-16 sequence";
-    static immutable char* UTF16_DECODE_INVALID_SURROGATE = "Invalid low surrogate";
-    static immutable char* UTF16_DECODE_UNPAIRED_SURROGATE = "Unpaired surrogate";
-    static immutable char* UTF16_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
+    static immutable string UTF16_DECODE_OK = null; // no error
+    static immutable string UTF16_DECODE_TRUNCATED_SEQUENCE = "Truncated UTF-16 sequence";
+    static immutable string UTF16_DECODE_INVALID_SURROGATE = "Invalid low surrogate";
+    static immutable string UTF16_DECODE_UNPAIRED_SURROGATE = "Unpaired surrogate";
+    static immutable string UTF16_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
 
     assert(s !is null);
     size_t i = ridx++;
-    assert(i < len);
+
     // Pre-stage results for single wchar and error cases
     dchar u = rresult = s[i];
     if (u < 0xD800) // Single wchar codepoint
         return UTF16_DECODE_OK;
     if (0xD800 <= u && u <= 0xDBFF) // Surrogate pair
     {
-        if (len <= i + 1)
+        if (s.length <= i + 1)
             return UTF16_DECODE_TRUNCATED_SEQUENCE;
         wchar u2 = s[i + 1];
         if (u2 < 0xDC00 || 0xDFFF < u)

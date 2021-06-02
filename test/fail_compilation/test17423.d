@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip1000
+/* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
 fail_compilation/test17423.d(26): Error: reference to local `this` assigned to non-scope parameter `dlg` calling test17423.Bar.opApply

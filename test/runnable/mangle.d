@@ -1,5 +1,15 @@
 // PERMUTE_ARGS:
 // EXTRA_SOURCES: imports/mangle10077.d
+// EXTRA_FILES: imports/testmangle.d
+/*
+TEST_OUTPUT:
+---
+_D7imports10testmangle12detectMangleFPSQBlQBg6DetectZQq
+_D7imports10testmangle__T10DetectTmplTiZQpFNaNbNiNfZv
+true
+false
+---
+*/
 
 import imports.testmangle;
 
@@ -595,6 +605,25 @@ static assert(typeof(fooA).mangleof != typeof(fooB).mangleof);
 
 /***************************************************/
 
+@live int testLive() { return 42; }
+
+static assert(testLive.mangleof == "_D6mangle8testLiveFNmZi");
+
+/***************************************************/
+
+alias noreturn = typeof(*null);
+alias fpd = noreturn function();
+int funcd(fpd);
+static assert(funcd.mangleof == "_D6mangle5funcdFPFZNnZi");
+
+/***************************************************/
+
+struct S21753 { void function() f1; }
+void fun21753(S21753 v)() {}
+alias fl21753 = (){};
+static assert((fun21753!(S21753(fl21753))).mangleof == "_D6mangle__T8fun21753VSQv6S21753S1f_DQBj10" ~ fl21753.stringof ~ "MFNaNbNiNfZvZQCbQp");
+
+/***************************************************/
 void main()
 {
     test10077h();

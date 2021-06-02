@@ -3,14 +3,19 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod5.d, backend/cod5.d)
  */
 module dmd.backend.cod5;
 
-version (SPP) {} else
+version (SCPP)
+    version = COMPILE;
+version (MARS)
+    version = COMPILE;
+
+version (COMPILE)
 {
 
 import core.stdc.stdio;
@@ -29,14 +34,16 @@ import dmd.backend.ty;
 
 extern(C++):
 
-private void pe_add(block *b);
-private int need_prolog(block *b);
+nothrow:
+@safe:
+
 
 /********************************************************
  * Determine which blocks get the function prolog and epilog
  * attached to them.
  */
 
+@trusted
 void cod5_prol_epi()
 {
 static if(1)
@@ -49,7 +56,6 @@ else
     tym_t tyf;
     block *b;
     block *bp;
-    list_t bl;
     int nepis;
 
     tyf = funcsym_p.ty();
@@ -95,7 +101,7 @@ else
         // If all predecessors are marked
         mark = 0;
         assert(b.Bpred);
-        for (bl = b.Bpred; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bpred))
         {
             if (list_block(bl).Bflags & BFLoutsideprolog)
             {
@@ -119,7 +125,7 @@ else
 
         // See if b is an epilog
         mark = 0;
-        for (bl = b.Bsucc; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bsucc))
         {
             if (list_block(bl).Bflags & BFLoutsideprolog)
             {
@@ -152,6 +158,7 @@ else
  * No prolog/epilog optimization.
  */
 
+@trusted
 void cod5_noprol()
 {
     block *b;
@@ -178,14 +185,13 @@ void cod5_noprol()
  */
 
 private void pe_add(block *b)
-{   list_t bl;
-
+{
     if (b.Bflags & BFLoutsideprolog ||
         need_prolog(b))
         return;
 
     b.Bflags |= BFLoutsideprolog;
-    for (bl = b.Bsucc; bl; bl = list_next(bl))
+    foreach (bl; ListRange(b.Bsucc))
         pe_add(list_block(bl));
 }
 
@@ -193,6 +199,7 @@ private void pe_add(block *b)
  * Determine if block needs the function prolog to be set up.
  */
 
+@trusted
 private int need_prolog(block *b)
 {
     if (b.Bregcon.used & fregsaved)

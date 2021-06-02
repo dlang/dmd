@@ -1,6 +1,6 @@
 
-/* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
- * All Rights Reserved, written by Walter Bright
+/* Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
@@ -12,8 +12,7 @@
 // Portable wrapper around compiler/system specific things.
 // The idea is to minimize #ifdef's in the app code.
 
-#include <stddef.h>
-#include <stdint.h>
+#include "dsystem.h"
 
 typedef unsigned char utf8_t;
 
@@ -26,10 +25,10 @@ struct Port
     static bool isFloat64LiteralOutOfRange(const char *s);
 
     static void writelongLE(unsigned value, void *buffer);
-    static unsigned readlongLE(void *buffer);
+    static unsigned readlongLE(const void *buffer);
     static void writelongBE(unsigned value, void *buffer);
-    static unsigned readlongBE(void *buffer);
-    static unsigned readwordLE(void *buffer);
-    static unsigned readwordBE(void *buffer);
+    static unsigned readlongBE(const void *buffer);
+    static unsigned readwordLE(const void *buffer);
+    static unsigned readwordBE(const void *buffer);
     static void valcpy(void *dst, uint64_t val, size_t size);
 };

@@ -15,7 +15,7 @@ struct T6
 {
     S6 s;
 
-    S6* opDot()
+    S6* opDot() return
     {
         return &s;
     }

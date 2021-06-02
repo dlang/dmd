@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines initializers of variables, e.g. the array literal in `int[3] x = [0, 1, 2]`.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/init.d, _init.d)
@@ -16,6 +15,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.arraytypes;
+import dmd.ast_node;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
@@ -50,7 +50,7 @@ enum InitKind : ubyte
 
 /***********************************************************
  */
-extern (C++) class Initializer : RootObject
+extern (C++) class Initializer : ASTNode
 {
     Loc loc;
     InitKind kind;
@@ -62,12 +62,12 @@ extern (C++) class Initializer : RootObject
         this.kind = kind;
     }
 
-    override final const(char)* toChars()
+    override final const(char)* toChars() const
     {
         OutBuffer buf;
         HdrGenState hgs;
         .toCBuffer(this, &buf, &hgs);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     final inout(ErrorInitializer) isErrorInitializer() inout pure
@@ -96,7 +96,7 @@ extern (C++) class Initializer : RootObject
         return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -146,7 +146,7 @@ extern (C++) final class StructInitializer : Initializer
         super(loc, InitKind.struct_);
     }
 
-    void addInit(Identifier field, Initializer value)
+    extern (D) void addInit(Identifier field, Initializer value)
     {
         //printf("StructInitializer::addInit(field = %p, value = %p)\n", field, value);
         this.field.push(field);
@@ -174,7 +174,7 @@ extern (C++) final class ArrayInitializer : Initializer
         super(loc, InitKind.array);
     }
 
-    void addInit(Expression index, Initializer value)
+    extern (D) void addInit(Expression index, Initializer value)
     {
         this.index.push(index);
         this.value.push(value);
@@ -182,11 +182,11 @@ extern (C++) final class ArrayInitializer : Initializer
         type = null;
     }
 
-    bool isAssociativeArray()
+    bool isAssociativeArray() const pure
     {
-        for (size_t i = 0; i < value.dim; i++)
+        foreach (idx; index)
         {
-            if (index[i])
+            if (idx)
                 return true;
         }
         return false;
@@ -235,36 +235,31 @@ version (all)
             return false;
         if (e.op == TOK.null_)
             return false;
-        if (e.op == TOK.structLiteral)
+        if (auto se = e.isStructLiteralExp())
         {
-            StructLiteralExp se = cast(StructLiteralExp)e;
             return checkArray(se.elements);
         }
-        if (e.op == TOK.arrayLiteral)
+        if (auto ae = e.isArrayLiteralExp())
         {
-            if (!e.type.nextOf().hasPointers())
+            if (!ae.type.nextOf().hasPointers())
                 return false;
-            ArrayLiteralExp ae = cast(ArrayLiteralExp)e;
             return checkArray(ae.elements);
         }
-        if (e.op == TOK.assocArrayLiteral)
+        if (auto ae = e.isAssocArrayLiteralExp())
         {
-            AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
             if (ae.type.nextOf().hasPointers() && checkArray(ae.values))
                 return true;
             if ((cast(TypeAArray)ae.type).index.hasPointers())
                 return checkArray(ae.keys);
             return false;
         }
-        if (e.op == TOK.address)
+        if (auto ae = e.isAddrExp())
         {
-            AddrExp ae = cast(AddrExp)e;
-            if (ae.e1.op == TOK.structLiteral)
+            if (auto se = ae.e1.isStructLiteralExp())
             {
-                StructLiteralExp se = cast(StructLiteralExp)ae.e1;
                 if (!(se.stageflags & stageSearchPointers))
                 {
-                    int old = se.stageflags;
+                    const old = se.stageflags;
                     se.stageflags |= stageSearchPointers;
                     bool ret = checkArray(se.elements);
                     se.stageflags = old;

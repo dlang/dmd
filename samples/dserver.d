@@ -18,8 +18,10 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import std.string;
-import core.sys.windows.windows;
 import core.sys.windows.com;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
+import core.sys.windows.winreg;
 
 import chello;
 

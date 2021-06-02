@@ -22,7 +22,8 @@ version (update)
     import std.regex : ctRegex, matchFirst, replaceFirstInto;
     import std.stdio : File, stdout, writeln;
     import std.string : strip;
-    import std.typecons : tuple, EnumMembers;
+    import std.traits : EnumMembers;
+    import std.typecons : tuple;
 
     enum Arch
     {
@@ -123,7 +124,7 @@ alias baselineCases = AliasSeq!(
         /* push   rbp                     */ 0x55,
         /* mov    rbp,rsp                 */ 0x48, 0x8b, 0xec,
         /* call   9 <testee_ubyte_4+0x9>  */ 0xe8, 0x00, 0x00, 0x00, 0x00,
-        /* mov    rdi,rax                 */ 0x48, 0x89, 0xc7,
+        /* mov    edi,eax                 */ 0x89, 0xc7,
         /* call   11 <testee_ubyte_4+0x11> */ 0xe8, 0x00, 0x00, 0x00, 0x00,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,

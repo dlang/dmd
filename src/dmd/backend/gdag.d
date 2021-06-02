@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gdag.d, backend/gdag.d)
@@ -38,24 +38,31 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
+@safe:
 
 enum Aetype { cse, arraybounds }
 
 private __gshared Aetype aetype;
 
+@trusted
 bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
 
 /*************************************
  * Determine if floating point should be cse'd.
+ * Returns:
+ *      true if should be cse'd
  */
 
-int cse_float(elem *e)
+@trusted
+private bool cse_float(elem *e)
 {
     // Don't CSE floating stuff if generating
     // inline 8087 code, the code generator
     // can't handle it yet
     return !(tyfloating(e.Ety) && config.inline8087 &&
-           e.Eoper != OPvar && e.Eoper != OPconst);
+             e.Eoper != OPvar && e.Eoper != OPconst) ||
+           (tyxmmreg(e.Ety) && config.fpxmmregs);
 }
 
 /************************************
@@ -70,7 +77,7 @@ int cse_float(elem *e)
  *              unstick unprofitable common subexpressions
  *              (this is generally target-dependent)
  */
-
+@trusted
 void builddags()
 {
     vec_t aevec;
@@ -83,7 +90,7 @@ void builddags()
     aetype = Aetype.cse;
 
     debug
-        foreach (i, e; go.expnod[0 .. go.exptop])
+        foreach (i, e; go.expnod[])
         {
             //printf("go.expnod[%d] = %p\n",i,e);
             if (e)
@@ -101,7 +108,7 @@ void builddags()
     {
         /* This is the 'correct' algorithm for CSEs. We can't use it    */
         /* till we fix the code generator.                              */
-        foreach (i, b; dfo[0 .. dfotop])
+        foreach (i, b; dfo[])
         {
             if (b.Belem)
             {
@@ -131,7 +138,7 @@ void builddags()
         /* the code generator can only track register contents          */
         /* properly across extended basic blocks.                       */
         aevec = vec_calloc(go.exptop);
-        foreach (i, b; dfo[0 .. dfotop])
+        foreach (i, b; dfo[])
         {
             /* if not first block and (there are more than one      */
             /* predecessor or the only predecessor is not the       */
@@ -155,7 +162,7 @@ void builddags()
 
     // Need 2 passes to converge on solution
     foreach (j; 0 .. 2)
-        foreach (b; dfo[0 .. dfotop])
+        foreach (b; dfo[])
         {
             if (b.Belem)
             {
@@ -172,7 +179,7 @@ void builddags()
  *      pn = pointer to expression tree to convert to DAG
  *      ae = vector of available expressions
  */
-
+@trusted
 private void aewalk(elem **pn,vec_t ae)
 {
     elem* n = *pn;
@@ -384,6 +391,7 @@ private void aewalk(elem **pn,vec_t ae)
  * Returns:
  *      *pe
  */
+@trusted
 private elem * delcse(elem **pe)
 {
     elem *e;
@@ -445,6 +453,7 @@ private elem * delcse(elem **pe)
  * things like addressing modes, and are usually target-dependent.
  */
 
+@trusted
 private void removecses(elem **pe)
 {
 L1:
@@ -462,12 +471,13 @@ L1:
     {
         if (op == OPind)
         {
+            bool scaledIndex = I32 || I64;      // if scaled index addressing mode support
             elem *e1 = e.EV.E1;
             if (e1.Eoper == OPadd &&
-                e1.Ecount // == 1
+                e1.Ecount
                )
             {
-                if (I32)
+                if (scaledIndex)
                 {
                     e1 = delcse(&e.EV.E1);
                     if (e1.EV.E1.Ecount) // == 1)
@@ -475,8 +485,10 @@ L1:
                     if (e1.EV.E2.Ecount && e1.EV.E2.Eoper != OPind)
                         delcse(&e1.EV.E2);
                 }
-                // Look for *(var + const). The + and the const
-                // shouldn't be CSEs.
+                /* *(v +. c)
+                 * *(*pc +. c)
+                 * The + and the const shouldn't be CSEs.
+                 */
                 else if (e1.EV.E2.Eoper == OPconst &&
                     (e1.EV.E1.Eoper == OPvar || (e1.EV.E1.Eoper == OPind && e1.EV.E1.Ety & (mTYconst | mTYimmutable)))
                    )
@@ -485,7 +497,9 @@ L1:
                 }
             }
 
-            if (I32 && e1.Eoper == OPadd &&
+            /* *(((e <<. 3) + e) + e)
+             */
+            if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Eoper == OPadd &&
                 e1.EV.E1.EV.E1.Ecount &&
                 e1.EV.E1.EV.E1.Eoper == OPshl &&
@@ -493,10 +507,12 @@ L1:
                 e1.EV.E1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1.EV.E1);
+                delcse(&e1.EV.E1.EV.E1);        // the <<. operator
             }
 
-            if (I32 && e1.Eoper == OPadd &&
+            /* *(((e << 3) +. e) + e)
+            */
+            if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Eoper == OPadd &&
                 e1.EV.E1.Ecount &&
                 e1.EV.E1.EV.E1.Eoper == OPshl &&
@@ -504,17 +520,19 @@ L1:
                 e1.EV.E1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1);
+                delcse(&e1.EV.E1);              // the +. operator
             }
 
-            else if (I32 && e1.Eoper == OPadd &&
+            /* *((e <<. 3) + e)
+             */
+            else if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Ecount &&
                 e1.EV.E1.Eoper == OPshl &&
                 e1.EV.E1.EV.E2.Eoper == OPconst &&
                 e1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1);
+                delcse(&e1.EV.E1);              // the <<. operator
             }
 
             // Remove *e1 where it's a double
@@ -522,8 +540,11 @@ L1:
                 e = delcse(pe);
         }
         // This CSE is too easy to regenerate
-        else if (op == OPu16_32 && !I32 && e.Ecount)
+        else if (op == OPu16_32 && I16 && e.Ecount)
             e = delcse(pe);
+
+        else if (op == OPd_ld && e.EV.E1.Ecount > 0)
+            delcse(&e.EV.E1);
 
         // OPremquo is only worthwhile if its result is used more than once
         else if (e.EV.E1.Eoper == OPremquo &&
@@ -577,13 +598,14 @@ L1:
  * 0 or !=0, even though we don't know anything else.
  */
 
+@trusted
 void boolopt()
 {
     vec_t aevec;
     vec_t aevecval;
 
     debug if (debugc) printf("boolopt()\n");
-    if (!dfo)
+    if (!dfo.length)
         compdfo();
     flowae();                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
@@ -618,9 +640,8 @@ void boolopt()
         }
     }
 
-    for (uint i = 0; i < dfotop; i++)
+    foreach (i, b; dfo[])
     {
-        block *b = dfo[i];
         /* if not first block and (there are more than one      */
         /* predecessor or the only predecessor is not the       */
         /* previous block), then zero out the available         */
@@ -650,6 +671,7 @@ void boolopt()
  *      n = elem tree to look at
  */
 
+@trusted
 private void abewalk(elem *n,vec_t ae,vec_t aeval)
 {
     elem *t;
@@ -658,7 +680,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
     elem_debug(n);
     /*printf("visiting: ("); WReqn(*pn); printf("), Eexp = %d\n",n.Eexp);*/
     /*chkvecdim(go.exptop);*/
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPcond:
@@ -845,6 +867,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
  * See if we already know its value.
  */
 
+@trusted
 private void abeboolres(elem *n,vec_t ae,vec_t aeval)
 {
     //printf("abeboolres()[%d %p] ", n.Eexp, go.expnod[n.Eexp]); WReqn(n); printf("\n");
@@ -883,6 +906,7 @@ private void abeboolres(elem *n,vec_t ae,vec_t aeval)
  * Remove e from available expressions, and its children.
  */
 
+@trusted
 private void abefree(elem *e,vec_t ae)
 {
     //printf("abefree [%d %p]: ", e.Eexp, e); WReqn(e); printf("\n");
@@ -908,6 +932,7 @@ private void abefree(elem *e,vec_t ae)
  * Set its result according to flag.
  */
 
+@trusted
 private void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
 {
     while (1)

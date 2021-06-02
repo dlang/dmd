@@ -1,12 +1,23 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -deps=${RESULTS_DIR}/compilable/depsOutput9948.deps
-// POST_SCRIPT: compilable/extra-files/depsOutput.sh 
-// EXTRA_SOURCES: /extra-files/depsOutput9948a.d
+/*
+PERMUTE_ARGS:
+REQUIRED_ARGS: -deps
+EXTRA_SOURCES: imports/depsOutput9948a.d imports/depsOutput9948b.d
+TRANSFORM_OUTPUT: remove_lines("druntime")
+TEST_OUTPUT:
+---
+depsImport depsOutput9948 (compilable$?:windows=\\|/$depsOutput9948.d) : private : imports.depsOutput9948a (compilable$?:windows=\\|/$imports$?:windows=\\|/$depsOutput9948a.d)
+depsImport depsOutput9948 (compilable$?:windows=\\|/$depsOutput9948.d) : private : imports.depsOutput9948b (compilable$?:windows=\\|/$imports$?:windows=\\|/$depsOutput9948b.d)
+---
+*/
 
 module depsOutput9948;
-import depsOutput9948a;
+
+import imports.depsOutput9948a;
 
 void main()
 {
-   templateFunc!("import std.string;")();
+   templateFunc!(q{
+      import imports.depsOutput9948b;
+      foo();
+   })();
 }

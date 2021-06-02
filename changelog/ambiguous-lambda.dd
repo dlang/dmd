@@ -1,0 +1,11 @@
+Using the syntax `(args) => {}` now triggers a deprecation message
+
+Newcomers from languages with built-in delegates (such as JavaScript and C#)
+would often use `(args) => { /* body */ }` for delegate/function literals.
+
+However, in D, this syntax results in a `delegate` that returns a `delegate`,
+without any other side effects. This may trigger hard-to-debug bugs,
+therefore it is now deprecated.
+
+If a delegate returning a delegate is indeed the intended usage,
+use either `(args) { return () => /* body */; }` or `(args) => () { /* body */ }`.

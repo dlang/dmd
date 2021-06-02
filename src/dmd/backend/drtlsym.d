@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1996-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/drtlsym.d, backend/drtlsym.d)
@@ -31,11 +31,13 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.global;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
 
 version (HTOD)
     __gshared uint ALLREGS;
@@ -126,9 +128,6 @@ Symbol *getRtlsym(int i)
         case RTLSYM_MONITOREXIT:            symbolz(ps,FLfunc,FREGSAVED,"_d_monitorexit",0, t); break;
         case RTLSYM_CRITICALENTER:          symbolz(ps,FLfunc,FREGSAVED,"_d_criticalenter",0, t); break;
         case RTLSYM_CRITICALEXIT:           symbolz(ps,FLfunc,FREGSAVED,"_d_criticalexit",0, t); break;
-        case RTLSYM_SWITCH_STRING:          symbolz(ps,FLfunc,FREGSAVED,"_d_switch_string", 0, t); break;
-        case RTLSYM_SWITCH_USTRING:         symbolz(ps,FLfunc,FREGSAVED,"_d_switch_ustring", 0, t); break;
-        case RTLSYM_SWITCH_DSTRING:         symbolz(ps,FLfunc,FREGSAVED,"_d_switch_dstring", 0, t); break;
         case RTLSYM_DSWITCHERR:             symbolz(ps,FLfunc,FREGSAVED,"_d_switch_error", SFLexit, t); break;
         case RTLSYM_DHIDDENFUNC:            symbolz(ps,FLfunc,FREGSAVED,"_d_hidden_func", 0, t); break;
         case RTLSYM_NEWCLASS:               symbolz(ps,FLfunc,FREGSAVED,"_d_newclass", 0, t); break;
@@ -137,13 +136,9 @@ Symbol *getRtlsym(int i)
         case RTLSYM_NEWARRAYIT:             symbolz(ps,FLfunc,FREGSAVED,"_d_newarrayiT", 0, t); break;
         case RTLSYM_NEWITEMT:               symbolz(ps,FLfunc,FREGSAVED,"_d_newitemT", 0, t); break;
         case RTLSYM_NEWITEMIT:              symbolz(ps,FLfunc,FREGSAVED,"_d_newitemiT", 0, t); break;
-        case RTLSYM_NEWARRAYMT:             symbolz(ps,FLfunc,FREGSAVED,"_d_newarraymT", 0, tv); break;
-        case RTLSYM_NEWARRAYMIT:            symbolz(ps,FLfunc,FREGSAVED,"_d_newarraymiT", 0, tv); break;
         case RTLSYM_NEWARRAYMTX:            symbolz(ps,FLfunc,FREGSAVED,"_d_newarraymTX", 0, t); break;
         case RTLSYM_NEWARRAYMITX:           symbolz(ps,FLfunc,FREGSAVED,"_d_newarraymiTX", 0, t); break;
-        case RTLSYM_ARRAYLITERALT:          symbolz(ps,FLfunc,FREGSAVED,"_d_arrayliteralT", 0, tv); break;
         case RTLSYM_ARRAYLITERALTX:         symbolz(ps,FLfunc,FREGSAVED,"_d_arrayliteralTX", 0, t); break;
-        case RTLSYM_ASSOCARRAYLITERALT:     symbolz(ps,FLfunc,FREGSAVED,"_d_assocarrayliteralT", 0, tv); break;
         case RTLSYM_ASSOCARRAYLITERALTX:    symbolz(ps,FLfunc,FREGSAVED,"_d_assocarrayliteralTX", 0, t); break;
         case RTLSYM_CALLFINALIZER:          symbolz(ps,FLfunc,FREGSAVED,"_d_callfinalizer", 0, t); break;
         case RTLSYM_CALLINTERFACEFINALIZER: symbolz(ps,FLfunc,FREGSAVED,"_d_callinterfacefinalizer", 0, t); break;
@@ -151,7 +146,6 @@ Symbol *getRtlsym(int i)
         case RTLSYM_DELINTERFACE:           symbolz(ps,FLfunc,FREGSAVED,"_d_delinterface", 0, t); break;
         case RTLSYM_DELSTRUCT:              symbolz(ps,FLfunc,FREGSAVED,"_d_delstruct", 0, t); break;
         case RTLSYM_ALLOCMEMORY:            symbolz(ps,FLfunc,FREGSAVED,"_d_allocmemory", 0, t); break;
-        case RTLSYM_DELARRAY:               symbolz(ps,FLfunc,FREGSAVED,"_d_delarray", 0, t); break;
         case RTLSYM_DELARRAYT:              symbolz(ps,FLfunc,FREGSAVED,"_d_delarray_t", 0, t); break;
         case RTLSYM_DELMEMORY:              symbolz(ps,FLfunc,FREGSAVED,"_d_delmemory", 0, t); break;
         case RTLSYM_INTERFACE:              symbolz(ps,FLfunc,FREGSAVED,"_d_interface_vtbl", 0, t); break;
@@ -159,10 +153,8 @@ Symbol *getRtlsym(int i)
         case RTLSYM_INTERFACE_CAST:         symbolz(ps,FLfunc,FREGSAVED,"_d_interface_cast", 0, t); break;
         case RTLSYM_FATEXIT:                symbolz(ps,FLfunc,FREGSAVED,"_fatexit", 0, t); break;
         case RTLSYM_ARRAYCATT:              symbolz(ps,FLfunc,FREGSAVED,"_d_arraycatT", 0, t); break;
-        case RTLSYM_ARRAYCATNT:             symbolz(ps,FLfunc,FREGSAVED,"_d_arraycatnT", 0, tv); break;
         case RTLSYM_ARRAYCATNTX:            symbolz(ps,FLfunc,FREGSAVED,"_d_arraycatnTX", 0, t); break;
         case RTLSYM_ARRAYAPPENDT:           symbolz(ps,FLfunc,FREGSAVED,"_d_arrayappendT", 0, t); break;
-        case RTLSYM_ARRAYAPPENDCT:          symbolz(ps,FLfunc,FREGSAVED,"_d_arrayappendcT", 0, tv); break;
         case RTLSYM_ARRAYAPPENDCTX:         symbolz(ps,FLfunc,FREGSAVED,"_d_arrayappendcTX", 0, t); break;
         case RTLSYM_ARRAYAPPENDCD:          symbolz(ps,FLfunc,FREGSAVED,"_d_arrayappendcd", 0, t); break;
         case RTLSYM_ARRAYAPPENDWD:          symbolz(ps,FLfunc,FREGSAVED,"_d_arrayappendwd", 0, t); break;
@@ -175,14 +167,8 @@ Symbol *getRtlsym(int i)
         case RTLSYM_ARRAYCTOR:              symbolz(ps,FLfunc,FREGSAVED,"_d_arrayctor", 0, t); break;
         case RTLSYM_ARRAYSETASSIGN:         symbolz(ps,FLfunc,FREGSAVED,"_d_arraysetassign", 0, t); break;
         case RTLSYM_ARRAYSETCTOR:           symbolz(ps,FLfunc,FREGSAVED,"_d_arraysetctor", 0, t); break;
-        case RTLSYM_ARRAYCAST:              symbolz(ps,FLfunc,FREGSAVED,"_d_arraycast", 0, t); break;
-        case RTLSYM_ARRAYEQ:                symbolz(ps,FLfunc,FREGSAVED,"_adEq", 0, t); break;
         case RTLSYM_ARRAYEQ2:               symbolz(ps,FLfunc,FREGSAVED,"_adEq2", 0, t); break;
-        case RTLSYM_ARRAYCMP:               symbolz(ps,FLfunc,FREGSAVED,"_adCmp", 0, t); break;
-        case RTLSYM_ARRAYCMP2:              symbolz(ps,FLfunc,FREGSAVED,"_adCmp2", 0, t); break;
         case RTLSYM_ARRAYCMPCHAR:           symbolz(ps,FLfunc,FREGSAVED,"_adCmpChar", 0, t); break;
-        case RTLSYM_OBJ_EQ:                 symbolz(ps,FLfunc,FREGSAVED,"_d_obj_eq", 0, t); break;
-        case RTLSYM_OBJ_CMP:                symbolz(ps,FLfunc,FREGSAVED,"_d_obj_cmp", 0, t); break;
 
         case RTLSYM_EXCEPT_HANDLER2:        symbolz(ps,FLfunc,fregsaved,"_except_handler2", 0, tsclib); break;
         case RTLSYM_EXCEPT_HANDLER3:        symbolz(ps,FLfunc,fregsaved,"_except_handler3", 0, tsclib); break;
@@ -245,6 +231,7 @@ Symbol *getRtlsym(int i)
         case RTLSYM_TRACEALLOCMEMORY:       symbolz(ps,FLfunc,FREGSAVED,"_d_allocmemoryTrace", 0, t); break;
         case RTLSYM_C_ASSERT:               symbolz(ps,FLfunc,FREGSAVED,"_assert", SFLexit, t); break;
         case RTLSYM_C__ASSERT:              symbolz(ps,FLfunc,FREGSAVED,"__assert", SFLexit, t); break;
+        case RTLSYM_C__ASSERT_FAIL:         symbolz(ps,FLfunc,FREGSAVED,"__assert_fail", SFLexit, t); break;
         case RTLSYM_C__ASSERT_RTN:          symbolz(ps,FLfunc,FREGSAVED,"__assert_rtn", SFLexit, t); break;
 
         default:
@@ -268,7 +255,7 @@ private void symbolz(Symbol** ps, int fl, regm_t regsaved, const(char)* name, SY
 {
     Symbol *s = symbol_calloc(name);
     s.Stype = t;
-    s.Ssymnum = -1;
+    s.Ssymnum = SYMIDX.max;
     s.Sclass = SCextern;
     s.Sfl = cast(char)fl;
     s.Sregsaved = regsaved;

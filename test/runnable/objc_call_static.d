@@ -1,8 +1,10 @@
 // EXTRA_OBJC_SOURCES
 // REQUIRED_ARGS: -L-framework -LFoundation
 
+import core.attribute : selector;
+
 extern (Objective-C)
-interface NSObject
+extern class NSObject
 {
     static NSObject alloc() @selector("alloc");
     static NSObject allocWithZone(void* zone) @selector("allocWithZone:");
@@ -16,7 +18,7 @@ void main()
     auto obj2 = NSObject.allocWithZone(null);
     auto obj3 = NSObject.alloc().init();
 
-    assert(obj1);
-    assert(obj2);
-    assert(obj3);
+    assert(obj1 !is null);
+    assert(obj2 !is null);
+    assert(obj3 !is null);
 }

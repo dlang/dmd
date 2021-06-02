@@ -5,6 +5,7 @@ dependency "dmd" path="../.."
 void main()
 {
     import dmd.astbase;
+    import dmd.globals;
     import dmd.parse;
 
     scope parser = new Parser!ASTBase(null, null, false);

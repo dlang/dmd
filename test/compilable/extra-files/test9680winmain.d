@@ -1,4 +1,4 @@
-import core.sys.windows.windows;
+import core.sys.windows.windef;
 extern(Windows)
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int iCmdShow)
 {

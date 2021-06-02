@@ -1,3 +1,4 @@
+module imports.a11447;
 struct A { }
 
 void map(alias dg)(A r) { }

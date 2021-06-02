@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+Success
+---
+*/
 // REQUIRED_ARGS:
 
 // Test array bounds checking

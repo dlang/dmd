@@ -308,7 +308,7 @@ void bar14(A...)(int i)
         {
             goto case;
         case A[j]:
-            printf("a = %d, A[%d] = %d\n", a, j, A[j]);
+            printf("a = %d, A[%zd] = %d\n", a, j, A[j]);
         }
         break;
     default:
@@ -356,8 +356,12 @@ int foo15(int i)
 static this()
 {
     X15 = 4;
-    Y15 = 4;
     Z15 = 5;
+}
+
+shared static this()
+{
+    Y15 = 4;
 }
 
 void test15()

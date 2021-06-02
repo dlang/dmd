@@ -9,7 +9,7 @@ void test2350()
 in
 {
 }
-body
+do
 {
 	asm { naked; }
 }

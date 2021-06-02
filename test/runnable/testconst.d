@@ -1,3 +1,45 @@
+/*
+TEST_OUTPUT:
+---
+const(immutable(char)*)
+inout(immutable(char)*)
+inout(const(char)*)
+inout(const(char))
+shared(inout(char))
+shared(inout(char))
+immutable(char)
+immutable(char)
+inout(const(char))
+inout(const(char))
+shared(const(char))
+shared(const(char))
+inout(char*****)
+inout(char****)*
+const(char*****)
+const(char****)*
+immutable(char*****)
+immutable(char****)*
+shared(char*****)
+shared(char****)*
+const(shared(char****)*)
+shared(const(char*****))
+shared(char*****)
+immutable(char*****)
+inout(shared(char****)*)
+inout(shared(char**)***)
+shared(inout(char**))
+immutable(string)
+const(char[])
+char[]
+shared(foo85)
+const(char[26])
+const(char[26])
+immutable(char[26])
+immutable(char[26])
+string
+int[3]
+---
+*/
 
 import core.stdc.stdio;
 
@@ -11,7 +53,7 @@ template TypeTuple(T...) { alias T TypeTuple; }
 
 void showf(string f)
 {
-    printf("%.*s\n", f.length, f.ptr);
+    printf("%.*s\n", cast(int)f.length, f.ptr);
 }
 
 /************************************/
@@ -584,7 +626,7 @@ class C42
 
 void test42()
 {
-    printf("%d\n", C42.classinfo.initializer.length);
+    printf("%zd\n", C42.classinfo.initializer.length);
     assert(C42.classinfo.initializer.length == 12 + (void*).sizeof +
         (void*).sizeof);
     C42 c = new C42;
@@ -921,7 +963,7 @@ void test56()
 {
     S56 s;
     S56 t;
-    printf("S56.sizeof = %d\n", S56.sizeof);
+    printf("S56.sizeof = %zd\n", S56.sizeof);
     //t = s;
 }
 
@@ -2872,7 +2914,7 @@ void test7105()
 
 void test7202()
 {
-    void writeln(string s) @system { printf("%.*s\n", s.length, s.ptr); }
+    void writeln(string s) @system { printf("%.*s\n", cast(int)s.length, s.ptr); }
     void delegate() @system x = { writeln("I am @system"); };
     void delegate() @safe y = {  };
     auto px = &x;
@@ -3074,7 +3116,7 @@ class C8366a : B8366
 class C8366b : B8366
 {
     bool foo(in Object o)              { return false; }
-    alias super.foo foo;
+    alias typeof(super).foo foo;
     bool foo(in Object o) immutable    { return false; }
     bool foo(in Object o) shared       { return false; }
     bool foo(in Object o) shared const { return false; }
@@ -3212,7 +3254,7 @@ alias immutable(char[vlen10946]) i4; // NG -> OK
 void test9046()
 {
     foreach (T; TypeTuple!(byte, ubyte, short, ushort, int, uint, long, ulong, char, wchar, dchar,
-                           float, double, real, ifloat, idouble, ireal, cfloat, cdouble, creal))
+                           float, double, real))
     foreach (U; TypeTuple!(T, const T, immutable T, shared T, shared const T, inout T, shared inout T))
     {
         static assert(is(typeof(U.init) == U));
@@ -3295,9 +3337,9 @@ struct X10758
 {
 static:
         inout(int)   screwUpVal(ref inout(int) wx) { return wx; }
-    ref inout(int)   screwUpRef(ref inout(int) wx) { return wx; }
-        inout(int)*  screwUpPtr(ref inout(int) wx) { return &wx; }
-        inout(int)[] screwUpArr(ref inout(int) wx) { return (&wx)[0 .. 1]; }
+    ref inout(int)   screwUpRef(return ref inout(int) wx) { return wx; }
+        inout(int)*  screwUpPtr(return ref inout(int) wx) { return &wx; }
+        inout(int)[] screwUpArr(return ref inout(int) wx) { return (&wx)[0 .. 1]; }
 }
 
 struct S10758

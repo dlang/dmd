@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 
-import std.stdio;
+import core.stdc.stdio;
 interface IUnknown{
         extern(Windows):
         void func();
@@ -9,7 +9,7 @@ class ComObject :IUnknown
 {
 extern (Windows):
         void func()
-        {writefln(`comobject`);
+        {printf(`comobject\n`);
         }
 }
 interface IDataObject: IUnknown
@@ -21,7 +21,7 @@ package class invarianttest:ComObject, IDataObject
 {
         invariant()
         {
-                writefln(`hello invariant`);
+                printf(`hello invariant\n`);
         }
 
 extern (Windows):
@@ -36,7 +36,7 @@ extern (Windows):
         }
         void method()
         {
-                writefln(`method`);
+                printf(`method\n`);
         }
 }
 int main()
@@ -48,11 +48,11 @@ int main()
         }
         inst.func();
         inst.method();
-        writefln("\n%d",esp);
+        printf("\n%d\n",esp);
         asm{
                 mov esp,ESP;
         }
-        writefln("\n%d",esp);
+        printf("\n%d\n",esp);
         return 0;
 }
 

@@ -1,3 +1,29 @@
+/*
+TEST_OUTPUT:
+---
+false
+[] = int
+[] = string
+[0] = int
+[1] = string
+[] = string
+[] = int
+[1] = string
+[0] = int
+---
+
+RUN_OUTPUT:
+---
+1 1.1
+ctor
+cpctor
+dtor
+cpctor
+dtor
+dtor
+Success
+---
+*/
 
 extern (C) int printf(const(char*) fmt, ...);
 import core.vararg;
@@ -106,7 +132,7 @@ struct Iter
     bool empty() { return true; }
     void popFront() { }
     ref Tup!(int, int) front() { return *new Tup!(int, int); }
-    ref Iter opSlice() { return this; }
+    ref Iter opSlice() return { return this; }
 }
 
 void test4()
@@ -1917,12 +1943,12 @@ struct Foo14806(T)
 void test14806()
 {
     Foo14806!int a, b;
-    assert(a != b);
+    assert(a == b);
     // ==> a.tupleof != b.tupleof
     // ==> a.bar != b.bar || a.baz.get() != b.baz.get()
 
     Foo14806!string c, d;
-    assert(c != d);
+    assert(c == d);
     // ==> c.tupleof != d.tupleof
     // ==> c.bar != d.bar || c.baz.get() != d.baz.get()
 }

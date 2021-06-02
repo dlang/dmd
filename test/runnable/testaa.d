@@ -271,9 +271,9 @@ struct S12
 void test12()
 {
     S12[] x;
-    printf("size %d\n",S12.sizeof);
-    printf("align %d\n",S12.alignof);
-    printf("offset %d\n",S12.description.offsetof);
+    printf("size %zd\n",S12.sizeof);
+    printf("align %zd\n",S12.alignof);
+    printf("offset %zd\n",S12.description.offsetof);
 
     for (int i=0;i<3;i++) {
         S12 s;
@@ -293,8 +293,8 @@ void test12()
     x ~= s;
 */
     GC.collect();
-    printf("%.*s\n",x[0].font_face.length,x[0].font_face.ptr);
-    printf("%.*s\n",x[1].font_face.length,x[1].font_face.ptr);
+    printf("%.*s\n", cast(int)x[0].font_face.length, x[0].font_face.ptr);
+    printf("%.*s\n", cast(int)x[1].font_face.length, x[1].font_face.ptr);
 }
 
 
@@ -557,14 +557,14 @@ void test19()
     printf("%d\n", keys[1]);
 
     auto vs = aa.values;
-    printf("%.*s\n", vs[0].length, vs[0].ptr);
-    printf("%.*s\n", vs[1].length, vs[1].ptr);
+    printf("%.*s\n", cast(int)vs[0].length, vs[0].ptr);
+    printf("%.*s\n", cast(int)vs[1].length, vs[1].ptr);
 
     string aavalue_typeid = typeid(typeof(aa.values)).toString();
-    printf("%.*s\n", aavalue_typeid.length, aavalue_typeid.ptr);
+    printf("%.*s\n", cast(int)aavalue_typeid.length, aavalue_typeid.ptr);
 
-    printf("%.*s\n", aa[3].length, aa[3].ptr);
-    printf("%.*s\n", aa[4].length, aa[4].ptr);
+    printf("%.*s\n", cast(int)aa[3].length, aa[3].ptr);
+    printf("%.*s\n", cast(int)aa[4].length, aa[4].ptr);
 }
 
 /************************************************/
@@ -581,14 +581,14 @@ void test20()
     printf("%d\n", keys[1]);
 
     auto values = aa.values;
-    printf("%.*s\n", values[0].length, values[0].ptr);
-    printf("%.*s\n", values[1].length, values[1].ptr);
+    printf("%.*s\n", cast(int)values[0].length, values[0].ptr);
+    printf("%.*s\n", cast(int)values[1].length, values[1].ptr);
 
     string aavalue_typeid = typeid(typeof(aa.values)).toString();
-    printf("%.*s\n", aavalue_typeid.length, aavalue_typeid.ptr);
+    printf("%.*s\n", cast(int)aavalue_typeid.length, aavalue_typeid.ptr);
 
-    printf("%.*s\n", aa[3].length, aa[3].ptr);
-    printf("%.*s\n", aa[4].length, aa[4].ptr);
+    printf("%.*s\n", cast(int)aa[3].length, aa[3].ptr);
+    printf("%.*s\n", cast(int)aa[4].length, aa[4].ptr);
 }
 
 /************************************************/
@@ -1072,7 +1072,6 @@ void test10595()
         Wrap10595[int] wrap;
 
         wrap[0] = Wrap10595();
-        wrap[0] = 0;  // note: using 'alias this' to assign
 
         assert(wrap[0].s.test());  // failure
     }

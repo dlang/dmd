@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/codebuilder.d, backend/_codebuilder.d)
@@ -19,10 +19,12 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+@safe:
 
 extern (C++) struct CodeBuilder
 {
@@ -31,15 +33,18 @@ extern (C++) struct CodeBuilder
     code *head;
     code **pTail;
 
+  nothrow:
   public:
     //this() { pTail = &head; }
     //this(code *c);
 
+    @trusted
     void ctor()
     {
         pTail = &head;
     }
 
+    @trusted
     void ctor(code* c)
     {
         head = c;
@@ -53,6 +58,7 @@ extern (C++) struct CodeBuilder
 
     code *peek() { return head; }       // non-destructively look at the list
 
+    @trusted
     void reset() { head = null; pTail = &head; }
 
     void append(ref CodeBuilder cdb)
@@ -94,6 +100,7 @@ extern (C++) struct CodeBuilder
         append(cdb5);
     }
 
+    @trusted
     void append(code *c)
     {
         if (c)
@@ -104,6 +111,7 @@ extern (C++) struct CodeBuilder
         }
     }
 
+    @trusted
     void gen(code *cs)
     {
         /* this is a high usage routine */
@@ -121,7 +129,8 @@ extern (C++) struct CodeBuilder
         pTail = &ce.next;
     }
 
-    void gen1(uint op)
+    @trusted
+    void gen1(opcode_t op)
     {
         code *ce = code_calloc();
         ce.Iop = op;
@@ -132,7 +141,8 @@ extern (C++) struct CodeBuilder
         pTail = &ce.next;
     }
 
-    void gen2(uint op, uint rm)
+    @trusted
+    void gen2(opcode_t op, uint rm)
     {
         code *ce = code_calloc();
         ce.Iop = op;
@@ -146,13 +156,15 @@ extern (C++) struct CodeBuilder
     /***************************************
      * Generate floating point instruction.
      */
-    void genf2(uint op, uint rm)
+    @trusted
+    void genf2(opcode_t op, uint rm)
     {
         genfwait(this);
         gen2(op, rm);
     }
 
-    void gen2sib(uint op, uint rm, uint sib)
+    @trusted
+    void gen2sib(opcode_t op, uint rm, uint sib)
     {
         code *ce = code_calloc();
         ce.Iop = op;
@@ -170,6 +182,7 @@ extern (C++) struct CodeBuilder
     /********************************
      * Generate an ASM sequence.
      */
+    @trusted
     void genasm(char *s, uint slen)
     {
         code *ce = code_calloc();
@@ -185,6 +198,7 @@ extern (C++) struct CodeBuilder
 
 version (MARS)
 {
+    @trusted
     void genasm(_LabelDsymbol *label)
     {
         code *ce = code_calloc();
@@ -198,6 +212,7 @@ version (MARS)
     }
 }
 
+    @trusted
     void genasm(block *label)
     {
         code *ce = code_calloc();
@@ -211,7 +226,8 @@ version (MARS)
         pTail = &ce.next;
     }
 
-    void gencs(uint op, uint ea, uint FL2, Symbol *s)
+    @trusted
+    void gencs(opcode_t op, uint ea, uint FL2, Symbol *s)
     {
         code cs;
         cs.Iop = op;
@@ -225,7 +241,8 @@ version (MARS)
         gen(&cs);
     }
 
-    void genc2(uint op, uint ea, targ_size_t EV2)
+    @trusted
+    void genc2(opcode_t op, uint ea, targ_size_t EV2)
     {
         code cs;
         cs.Iop = op;
@@ -239,7 +256,8 @@ version (MARS)
         gen(&cs);
     }
 
-    void genc1(uint op, uint ea, uint FL1, targ_size_t EV1)
+    @trusted
+    void genc1(opcode_t op, uint ea, uint FL1, targ_size_t EV1)
     {
         code cs;
         assert(FL1 < FLMAX);
@@ -253,7 +271,8 @@ version (MARS)
         gen(&cs);
     }
 
-    void genc(uint op, uint ea, uint FL1, targ_size_t EV1, uint FL2, targ_size_t EV2)
+    @trusted
+    void genc(opcode_t op, uint ea, uint FL1, targ_size_t EV1, uint FL2, targ_size_t EV2)
     {
         code cs;
         assert(FL1 < FLMAX);
@@ -273,6 +292,7 @@ version (MARS)
     /********************************
      * Generate 'instruction' which is actually a line number.
      */
+    @trusted
     void genlinnum(Srcpos srcpos)
     {
         code cs;
@@ -288,6 +308,7 @@ version (MARS)
      * Generate 'instruction' which tells the address resolver that the stack has
      * changed.
      */
+    @trusted
     void genadjesp(int offset)
     {
         if (!I16 && offset)
@@ -305,6 +326,7 @@ version (MARS)
      * Generate 'instruction' which tells the scheduler that the fpu stack has
      * changed.
      */
+    @trusted
     void genadjfpu(int offset)
     {
         if (!I16 && offset)
@@ -326,7 +348,8 @@ version (MARS)
     /**************************
      * Generate code to deal with floatreg.
      */
-    void genfltreg(uint opcode,uint reg,targ_size_t offset)
+    @trusted
+    void genfltreg(opcode_t opcode,uint reg,targ_size_t offset)
     {
         floatreg = true;
         reflocal = true;
@@ -335,9 +358,10 @@ version (MARS)
         genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
     }
 
-    void genxmmreg(uint opcode,uint xreg,targ_size_t offset, tym_t tym)
+    @trusted
+    void genxmmreg(opcode_t opcode,reg_t xreg,targ_size_t offset, tym_t tym)
     {
-        assert(xreg >= XMM0);
+        assert(isXMMreg(xreg));
         floatreg = true;
         reflocal = true;
         genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
@@ -348,6 +372,7 @@ version (MARS)
      * Returns:
      *  code that pTail points to
      */
+    @trusted
     code *last()
     {
         // g++ and clang++ complain about offsetof() because of the code::code() constructor.
@@ -367,5 +392,3 @@ version (MARS)
     //    if (cs.Iop == LEA && cs.Irm == 0xCB) *(char*)0=0;
     }
 }
-
-

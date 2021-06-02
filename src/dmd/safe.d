@@ -1,8 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Checks whether member access or array casting is allowed in `@safe` code.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Specification: $(LINK2 https://dlang.org/spec/function.html#function-safety, Function Safety)
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/safe.d, _safe.d)
@@ -49,21 +50,32 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     {
         if (sc.intypeof || !sc.func || !sc.func.isSafeBypassingInference())
             return false;
-
         auto ad = v.toParent2().isAggregateDeclaration();
         if (!ad)
             return false;
 
+        // needed to set v.overlapped and v.overlapUnsafe
+        if (ad.sizeok != Sizeok.done)
+            ad.determineSize(ad.loc);
+
         const hasPointers = v.type.hasPointers();
         if (hasPointers)
         {
-            if (ad.sizeok != Sizeok.done)
-                ad.determineSize(ad.loc);       // needed to set v.overlapped
-
             if (v.overlapped && sc.func.setUnsafe())
             {
                 if (printmsg)
                     e.error("field `%s.%s` cannot access pointers in `@safe` code that overlap other fields",
+                        ad.toChars(), v.toChars());
+                return true;
+            }
+        }
+
+        if (v.type.hasInvariant())
+        {
+            if (v.overlapped && sc.func.setUnsafe())
+            {
+                if (printmsg)
+                    e.error("field `%s.%s` cannot access structs with invariants in `@safe` code that overlap other fields",
                         ad.toChars(), v.toChars());
                 return true;
             }
@@ -74,8 +86,8 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
 
         if (hasPointers && v.type.toBasetype().ty != Tstruct)
         {
-            if ((ad.type.alignment() < Target.ptrsize ||
-                 (v.offset & (Target.ptrsize - 1))) &&
+            if ((ad.type.alignment() < target.ptrsize ||
+                 (v.offset & (target.ptrsize - 1))) &&
                 sc.func.setUnsafe())
             {
                 if (printmsg)
@@ -124,7 +136,9 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
         ClassDeclaration cdto = ttob.isClassHandle();
 
         int offset;
-        if (!cdfrom.isBaseOf(cdto, &offset))
+        if (!cdfrom.isBaseOf(cdto, &offset) &&
+            !((cdfrom.isInterfaceDeclaration() || cdto.isInterfaceDeclaration())
+                && cdfrom.classKind == ClassKind.d && cdto.classKind == ClassKind.d))
             return false;
 
         if (cdfrom.isCPPinterface() || cdto.isCPPinterface())

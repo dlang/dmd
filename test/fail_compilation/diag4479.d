@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: fail_compilation/imports/fail4479.d
+// EXTRA_SOURCES: imports/fail4479.d
 /*
 TEST_OUTPUT:
 ---

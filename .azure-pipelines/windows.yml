@@ -1,0 +1,14 @@
+steps:
+  - script: |
+      :: Use Windows CRLF line endings for checked-out text files
+      git config --global core.autocrlf true
+      set
+    displayName: Print environment variables
+  - checkout: self
+    fetchDepth: 1
+  - script: |
+      @echo on
+      call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
+      bash --version
+      sh --login .azure-pipelines/windows.sh
+    displayName: Build and test

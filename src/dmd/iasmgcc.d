@@ -1,16 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Inline assembler for the GCC D compiler.
  *
- *              Copyright (C) 2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2018-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmgcc.d, _iasmgcc.d)
  * Documentation:  https://dlang.org/phobos/dmd_iasmgcc.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/iasmgcc.d
- */
-
-/* Inline assembler for the GCC D compiler.
  */
 
 module dmd.iasmgcc;
@@ -20,6 +16,7 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.dscope;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
@@ -35,8 +32,8 @@ private:
  * Parse list of extended asm input or output operands.
  * Grammar:
  *      | Operands:
- *      |     SymbolicName(opt) StringLiteral AssignExpression
- *      |     SymbolicName(opt) StringLiteral AssignExpression , Operands
+ *      |     SymbolicName(opt) StringLiteral ( AssignExpression )
+ *      |     SymbolicName(opt) StringLiteral ( AssignExpression ), Operands
  *      |
  *      | SymbolicName:
  *      |     [ Identifier ]
@@ -66,7 +63,9 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
             case TOK.leftBracket:
                 if (p.peekNext() == TOK.identifier)
                 {
+                    // Skip over opening `[`
                     p.nextToken();
+                    // Store the symbolic name
                     name = p.token.ident;
                     p.nextToken();
                 }
@@ -75,12 +74,33 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
                     p.error(s.loc, "expected identifier after `[`");
                     goto Lerror;
                 }
+                // Look for closing `]`
                 p.check(TOK.rightBracket);
-                goto case;
+                // Look for the string literal and fall through
+                if (p.token.value == TOK.string_)
+                    goto case;
+                else
+                    goto default;
 
             case TOK.string_:
                 constraint = p.parsePrimaryExp();
-                arg = p.parseAssignExp();
+                // @@@DEPRECATED@@@
+                // Old parser allowed omitting parentheses around the expression.
+                // Deprecated in 2.091. Can be made permanent error after 2.100
+                if (p.token.value != TOK.leftParenthesis)
+                {
+                    arg = p.parseAssignExp();
+                    deprecation(arg.loc, "`%s` must be surrounded by parentheses", arg.toChars());
+                }
+                else
+                {
+                    // Look for the opening `(`
+                    p.check(TOK.leftParenthesis);
+                    // Parse the assign expression
+                    arg = p.parseAssignExp();
+                    // Look for the closing `)`
+                    p.check(TOK.rightParenthesis);
+                }
 
                 if (!s.args)
                 {
@@ -236,7 +256,7 @@ Lerror:
 GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
 {
     s.insn = p.parseExpression();
-    if (p.token.value == TOK.semicolon)
+    if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
         goto Ldone;
 
     // No semicolon followed after instruction template, treat as extended asm.
@@ -263,7 +283,7 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
                 break;
         }
 
-        if (p.token.value == TOK.semicolon)
+        if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
             goto Ldone;
     }
 Ldone:
@@ -291,16 +311,18 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
     for (Token *token = s.tokens; token; token = token.next)
     {
-        *ptoklist = Token.alloc();
+        *ptoklist = p.allocateToken();
         memcpy(*ptoklist, token, Token.sizeof);
         ptoklist = &(*ptoklist).next;
         *ptoklist = null;
     }
     p.token = *toklist;
+    p.scanloc = s.loc;
 
     // Parse the gcc asm statement.
+    const errors = global.errors;
     s = p.parseGccAsm(s);
-    if (p.errors)
+    if (errors != global.errors)
         return null;
     s.stc = sc.stc;
 
@@ -321,7 +343,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
             if (i < s.outputargs)
                 e = e.modifiableLvalue(sc, null);
             else if (e.checkValue())
-                e = new ErrorExp();
+                e = ErrorExp.get();
             (*s.args)[i] = e;
 
             e = (*s.constraints)[i];
@@ -362,19 +384,37 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
 unittest
 {
-    uint errors = global.startGagging();
+    import dmd.mtype : TypeBasic;
 
-    // Immitates asmSemantic if version = IN_GCC.
+    uint errors = global.startGagging();
+    scope(exit) global.endGagging(errors);
+
+    // If this check fails, then Type._init() was called before reaching here,
+    // and the entire chunk of code that follows can be removed.
+    assert(ASTCodegen.Type.tint32 is null);
+    // Minimally initialize the cached types in ASTCodegen.Type, as they are
+    // dependencies for some fail asm tests to succeed.
+    ASTCodegen.Type.stringtable._init();
+    scope(exit)
+    {
+        ASTCodegen.Type.deinitialize();
+        ASTCodegen.Type.tint32 = null;
+    }
+    scope tint32 = new TypeBasic(ASTCodegen.Tint32);
+    ASTCodegen.Type.tint32 = tint32;
+
+    // Imitates asmSemantic if version = IN_GCC.
     static int semanticAsm(Token* tokens)
     {
+        const errors = global.errors;
         scope gas = new GccAsmStatement(Loc.initial, tokens);
         scope p = new Parser!ASTCodegen(null, ";", false);
         p.token = *tokens;
         p.parseGccAsm(gas);
-        return p.errors;
+        return global.errors - errors;
     }
 
-    // Immitates parseStatement for asm statements.
+    // Imitates parseStatement for asm statements.
     static void parseAsm(string input, bool expectError)
     {
         // Generate tokens from input test.
@@ -389,16 +429,32 @@ unittest
         {
             if (p.token.value == TOK.rightCurly || p.token.value == TOK.endOfFile)
                 break;
-            *ptoklist = Token.alloc();
-            memcpy(*ptoklist, &p.token, Token.sizeof);
-            ptoklist = &(*ptoklist).next;
+            if (p.token.value == TOK.colonColon)
+            {
+                *ptoklist = p.allocateToken();
+                memcpy(*ptoklist, &p.token, Token.sizeof);
+                (*ptoklist).value = TOK.colon;
+                ptoklist = &(*ptoklist).next;
+
+                *ptoklist = p.allocateToken();
+                memcpy(*ptoklist, &p.token, Token.sizeof);
+                (*ptoklist).value = TOK.colon;
+                ptoklist = &(*ptoklist).next;
+            }
+            else
+            {
+                *ptoklist = p.allocateToken();
+                memcpy(*ptoklist, &p.token, Token.sizeof);
+                ptoklist = &(*ptoklist).next;
+            }
             *ptoklist = null;
             p.nextToken();
         }
         p.check(TOK.rightCurly);
 
         auto res = semanticAsm(toklist);
-        assert(res == 0 || expectError);
+        // Checks for both unexpected passes and failures.
+        assert((res == 0) != expectError);
     }
 
     /// Assembly Tests, all should pass.
@@ -411,19 +467,19 @@ unittest
         // Extended asm statement
         q{ asm { "cpuid"
                : "=a" (a), "=b" (b), "=c" (c), "=d" (d)
-               : "a" input;
+               : "a" (input);
         } },
 
         // Assembly with symbolic names
         q{ asm { "bts %[base], %[offset]"
-               : [base] "+rm" *ptr,
-               : [offset] "Ir" bitnum;
+               : [base] "+rm" (*ptr),
+               : [offset] "Ir" (bitnum);
         } },
 
         // Assembly with clobbers
         q{ asm { "cpuid"
-               : "=a" a
-               : "a" input
+               : "=a" (a)
+               : "a" (input)
                : "ebx", "ecx", "edx";
         } },
 
@@ -442,10 +498,36 @@ unittest
         // Likewise mixins, permissible so long as the result is a string.
         q{ asm { mixin(`"repne"`, `~ "scasb"`);
         } },
+
+        // :: token tests
+        q{ asm { "" : : : "memory"; } },
+        q{ asm { "" :: : "memory"; } },
+        q{ asm { "" : :: "memory"; } },
+        q{ asm { "" ::: "memory"; } },
+    ];
+
+    immutable string[] failAsmTests = [
+        // Found 'h' when expecting ';'
+        q{ asm { ""h;
+        } },
+
+        // https://issues.dlang.org/show_bug.cgi?id=20592
+        q{ asm { "nop" : [name] string (expr); } },
+
+        // Expression expected, not ';'
+        q{ asm { ""[;
+        } },
+
+        // Expression expected, not ':'
+        q{ asm { ""
+               :
+               : "g" (a ? b : : c);
+        } },
     ];
 
     foreach (test; passAsmTests)
         parseAsm(test, false);
 
-    global.endGagging(errors);
+    foreach (test; failAsmTests)
+        parseAsm(test, true);
 }

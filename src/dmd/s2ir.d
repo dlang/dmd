@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
@@ -38,9 +37,9 @@ import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.init;
-import dmd.irstate;
 import dmd.mtype;
 import dmd.statement;
+import dmd.stmtstate;
 import dmd.target;
 import dmd.toctype;
 import dmd.tocsym;
@@ -61,6 +60,7 @@ import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -68,6 +68,8 @@ extern (C++):
 
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;
+
+alias StmtState = dmd.stmtstate.StmtState!block;
 
 
 void elem_setLoc(elem *e, const ref Loc loc) pure nothrow
@@ -82,11 +84,24 @@ private void block_setLoc(block *b, const ref Loc loc) pure nothrow
 
 private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
 {
-    s.Sfilename = cast(char *)loc.filename;
-    s.Slinnum = loc.linnum;
-    s.Scharnum = loc.charnum;
+    s.set(loc.filename, loc.linnum, loc.charnum);
 }
 
+private bool isAssertFalse(const Expression e) nothrow
+{
+    return e ? e.type == Type.tnoreturn && (e.op == TOK.halt || e.op == TOK.assert_) : false;
+}
+
+private bool isAssertFalse(const Statement s) nothrow
+{
+    if (!s)
+        return false;
+    if (auto es = s.isExpStatement())
+        return isAssertFalse(es.exp);
+    else if (auto ss = s.isScopeStatement())
+        return isAssertFalse(ss.statement);
+    return false;
+}
 
 /***********************************************
  * Generate code to set index into scope table.
@@ -109,46 +124,6 @@ private block *block_calloc(Blockx *blx)
     return b;
 }
 
-/****************************************
- * Get or create a label declaration.
- */
-
-private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
-{
-    Label **slot = irs.lookupLabel(s);
-
-    if (slot == null)
-    {
-        Label *label = new Label();
-        label.lblock = blx ? block_calloc(blx) : dmd.backend.global.block_calloc();
-        label.fwdrefs = null;
-        irs.insertLabel(s, label);
-        return label;
-    }
-    return *slot;
-}
-
-/**************************************
- * Convert label to block.
- */
-
-private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label, int flag = 0)
-{
-    if (!label.statement)
-    {
-        error(loc, "undefined label `%s`", label.toChars());
-        return null;
-    }
-    Label *l = getLabel(irs, null, label.statement);
-    if (flag)
-    {
-        // Keep track of the forward reference to this block, so we can check it later
-        if (!l.fwdrefs)
-            l.fwdrefs = blx.curblock;
-    }
-    return l.lblock;
-}
-
 /**************************************
  * Add in code to increment usage count for linnum.
  */
@@ -165,11 +140,13 @@ private void incUsage(IRState *irs, const ref Loc loc)
 
 private extern (C++) class S2irVisitor : Visitor
 {
-    IRState *irs;
+    IRState* irs;
+    StmtState* stmtstate;
 
-    this(IRState *irs)
+    this(IRState *irs, StmtState* stmtstate)
     {
         this.irs = irs;
+        this.stmtstate = stmtstate;
     }
 
     alias visit = Visitor.visit;
@@ -186,7 +163,7 @@ private extern (C++) class S2irVisitor : Visitor
     /*************************************
      */
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
     }
 
@@ -200,27 +177,27 @@ private extern (C++) class S2irVisitor : Visitor
 
         //printf("IfStatement.toIR('%s')\n", s.condition.toChars());
 
-        IRState mystate = IRState(irs, s);
+        StmtState mystate = StmtState(stmtstate, s);
 
         // bexit is the block that gets control after this IfStatement is done
         block *bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc();
 
         incUsage(irs, s.loc);
-        e = toElemDtor(s.condition, &mystate);
+        e = toElemDtor(s.condition, irs);
         block_appendexp(blx.curblock, e);
         block *bcond = blx.curblock;
         block_next(blx, BCiftrue, null);
 
         bcond.appendSucc(blx.curblock);
         if (s.ifbody)
-            Statement_toIR(s.ifbody, &mystate);
+            Statement_toIR(s.ifbody, irs, &mystate);
         blx.curblock.appendSucc(bexit);
 
         if (s.elsebody)
         {
             block_next(blx, BCgoto, null);
             bcond.appendSucc(blx.curblock);
-            Statement_toIR(s.elsebody, &mystate);
+            Statement_toIR(s.elsebody, irs, &mystate);
             blx.curblock.appendSucc(bexit);
         }
         else
@@ -244,8 +221,6 @@ private extern (C++) class S2irVisitor : Visitor
             FuncDeclaration f = sa.isFuncDeclaration();
             assert(f);
             Symbol *sym = toSymbol(f);
-            while (irs.prev)
-                irs = irs.prev;
             irs.startaddress = sym;
         }
     }
@@ -265,7 +240,7 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
 
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
         mystate.contBlock = block_calloc(blx);
 
@@ -277,12 +252,12 @@ private extern (C++) class S2irVisitor : Visitor
         mystate.contBlock.appendSucc(mystate.breakBlock);
 
         if (s._body)
-            Statement_toIR(s._body, &mystate);
+            Statement_toIR(s._body, irs, &mystate);
         blx.curblock.appendSucc(mystate.contBlock);
 
         block_next(blx, BCgoto, mystate.contBlock);
         incUsage(irs, s.condition.loc);
-        block_appendexp(mystate.contBlock, toElemDtor(s.condition, &mystate));
+        block_appendexp(mystate.contBlock, toElemDtor(s.condition, irs));
         block_next(blx, BCiftrue, mystate.breakBlock);
 
     }
@@ -295,12 +270,12 @@ private extern (C++) class S2irVisitor : Visitor
         //printf("visit(ForStatement)) %u..%u\n", s.loc.linnum, s.endloc.linnum);
         Blockx *blx = irs.blx;
 
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
         mystate.contBlock = block_calloc(blx);
 
         if (s._init)
-            Statement_toIR(s._init, &mystate);
+            Statement_toIR(s._init, irs, &mystate);
         block *bpre = blx.curblock;
         block_next(blx,BCgoto,null);
         block *bcond = blx.curblock;
@@ -309,7 +284,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (s.condition)
         {
             incUsage(irs, s.condition.loc);
-            block_appendexp(bcond, toElemDtor(s.condition, &mystate));
+            block_appendexp(bcond, toElemDtor(s.condition, irs));
             block_next(blx,BCiftrue,null);
             bcond.appendSucc(blx.curblock);
             bcond.appendSucc(mystate.breakBlock);
@@ -322,7 +297,7 @@ private extern (C++) class S2irVisitor : Visitor
         }
 
         if (s._body)
-            Statement_toIR(s._body, &mystate);
+            Statement_toIR(s._body, irs, &mystate);
         /* End of the body goes to the continue block
          */
         blx.curblock.appendSucc(mystate.contBlock);
@@ -332,7 +307,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (s.increment)
         {
             incUsage(irs, s.increment.loc);
-            block_appendexp(mystate.contBlock, toElemDtor(s.increment, &mystate));
+            block_appendexp(mystate.contBlock, toElemDtor(s.increment, irs));
         }
 
         /* The 'break' block follows the for statement.
@@ -369,7 +344,7 @@ private extern (C++) class S2irVisitor : Visitor
         block *b;
         Blockx *blx = irs.blx;
 
-        bbreak = irs.getBreakBlock(s.ident);
+        bbreak = stmtstate.getBreakBlock(s.ident);
         assert(bbreak);
         b = blx.curblock;
         incUsage(irs, s.loc);
@@ -397,7 +372,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("ContinueStatement.toIR() %p\n", this);
-        bcont = irs.getContBlock(s.ident);
+        bcont = stmtstate.getContBlock(s.ident);
         assert(bcont);
         b = blx.curblock;
         incUsage(irs, s.loc);
@@ -426,76 +401,42 @@ private extern (C++) class S2irVisitor : Visitor
         assert(s.label.statement);
         assert(s.tf == s.label.statement.tf);
 
-        block *bdest = labelToBlock(irs, s.loc, blx, s.label, 1);
-        if (!bdest)
-            return;
+        block* bdest = cast(block*)s.label.statement.extra;
         block *b = blx.curblock;
         incUsage(irs, s.loc);
         b.appendSucc(bdest);
         block_setLoc(b, s.loc);
-
-        // Check that bdest is in an enclosing try block
-        for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-        {
-            if (!bt)
-            {
-                //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                s.error("cannot `goto` into `try` block");
-                break;
-            }
-        }
 
         block_next(blx,BCgoto,null);
     }
 
     override void visit(LabelStatement s)
     {
-        //printf("LabelStatement.toIR() %p, statement = %p\n", this, statement);
+        //printf("LabelStatement.toIR() %p, statement: `%s`\n", this, s.statement.toChars());
         Blockx *blx = irs.blx;
         block *bc = blx.curblock;
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
         mystate.ident = s.ident;
 
-        Label *label = getLabel(irs, blx, s);
+        block* bdest = cast(block*)s.extra;
         // At last, we know which try block this label is inside
-        label.lblock.Btry = blx.tryblock;
+        bdest.Btry = blx.tryblock;
 
-        // Go through the forward references and check.
-        if (label.fwdrefs)
-        {
-            block *b = label.fwdrefs;
-
-            if (b.Btry != label.lblock.Btry)
-            {
-                // Check that lblock is in an enclosing try block
-                for (block *bt = b.Btry; bt != label.lblock.Btry; bt = bt.Btry)
-                {
-                    if (!bt)
-                    {
-                        //printf("b.Btry = %p, label.lblock.Btry = %p\n", b.Btry, label.lblock.Btry);
-                        s.error("cannot `goto` into `try` block");
-                        break;
-                    }
-
-                }
-            }
-        }
-        block_next(blx, BCgoto, label.lblock);
+        block_next(blx, BCgoto, bdest);
         bc.appendSucc(blx.curblock);
         if (s.statement)
-            Statement_toIR(s.statement, &mystate);
+            Statement_toIR(s.statement, irs, &mystate);
     }
 
     /**************************************
      */
 
     override void visit(SwitchStatement s)
-//    { .visit(irs, s); }
     {
         Blockx *blx = irs.blx;
 
         //printf("SwitchStatement.toIR()\n");
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
 
         mystate.switchBlock = blx.curblock;
 
@@ -511,12 +452,18 @@ private extern (C++) class S2irVisitor : Visitor
          */
         mystate.defaultBlock = s.sdefault ? block_calloc(blx) : mystate.breakBlock;
 
-        size_t numcases = 0;
-        if (s.cases)
-            numcases = s.cases.dim;
+        const numcases = s.cases ? s.cases.dim : 0;
+
+        /* allocate a block for each case
+         */
+        if (numcases)
+            foreach (cs; *s.cases)
+            {
+                cs.extra = cast(void*)block_calloc(blx);
+            }
 
         incUsage(irs, s.loc);
-        elem *econd = toElemDtor(s.condition, &mystate);
+        elem *econd = toElemDtor(s.condition, irs);
         if (s.hasVars)
         {   /* Generate a sequence of if-then-else blocks for the cases.
              */
@@ -527,18 +474,18 @@ private extern (C++) class S2irVisitor : Visitor
                 econd = e.EV.E2;
             }
 
-            for (size_t i = 0; i < numcases; i++)
-            {   CaseStatement cs = (*s.cases)[i];
-
-                elem *ecase = toElemDtor(cs.exp, &mystate);
-                elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
-                block *b = blx.curblock;
-                block_appendexp(b, e);
-                Label *clabel = getLabel(irs, blx, cs);
-                block_next(blx, BCiftrue, null);
-                b.appendSucc(clabel.lblock);
-                b.appendSucc(blx.curblock);
-            }
+            if (numcases)
+                foreach (cs; *s.cases)
+                {
+                    elem *ecase = toElemDtor(cs.exp, irs);
+                    elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
+                    block *b = blx.curblock;
+                    block_appendexp(b, e);
+                    block* cb = cast(block*)cs.extra;
+                    block_next(blx, BCiftrue, null);
+                    b.appendSucc(cb);
+                    b.appendSucc(blx.curblock);
+                }
 
             /* The final 'else' clause goes to the default
              */
@@ -546,7 +493,7 @@ private extern (C++) class S2irVisitor : Visitor
             block_next(blx, BCgoto, null);
             b.appendSucc(mystate.defaultBlock);
 
-            Statement_toIR(s._body, &mystate);
+            Statement_toIR(s._body, irs, &mystate);
 
             /* Have the end of the switch body fall through to the block
              * following the switch statement.
@@ -566,24 +513,23 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCswitch,null);
 
         // Corresponding free is in block_free
-        targ_llong *pu = cast(targ_llong *)(.malloc(targ_llong.sizeof * (numcases + 1)));
+        alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
+        auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * (numcases + 1)));
         mystate.switchBlock.Bswitch = pu;
         /* First pair is the number of cases, and the default block
          */
         *pu++ = numcases;
         mystate.switchBlock.appendSucc(mystate.defaultBlock);
 
-        /* Fill in the first entry in each pair, which is the case value.
+        /* Fill in the first entry for each pair, which is the case value.
          * CaseStatement.toIR() will fill in
          * the second entry for each pair with the block.
          */
-        for (size_t i = 0; i < numcases; i++)
-        {
-            CaseStatement cs = (*s.cases)[i];
-            pu[i] = cs.exp.toInteger();
-        }
+        if (numcases)
+            foreach (cs; *s.cases)
+                *pu++ = cs.exp.toInteger();
 
-        Statement_toIR(s._body, &mystate);
+        Statement_toIR(s._body, irs, &mystate);
 
         /* Have the end of the switch body fall through to the block
          * following the switch statement.
@@ -595,59 +541,40 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
-        Label *clabel = getLabel(irs, blx, s);
-        block_next(blx, BCgoto, clabel.lblock);
-        block *bsw = irs.getSwitchBlock();
+        block* cb = cast(block*)s.extra;
+        block_next(blx, BCgoto, cb);
+        block *bsw = stmtstate.getSwitchBlock();
         if (bsw.BC == BCswitch)
-            bsw.appendSucc(clabel.lblock);   // second entry in pair
-        bcase.appendSucc(clabel.lblock);
-        if (blx.tryblock != bsw.Btry)
-            s.error("case cannot be in different `try` block level from `switch`");
-        incUsage(irs, s.loc);
+            bsw.appendSucc(cb);   // second entry in pair
+        bcase.appendSucc(cb);
+        if (!isAssertFalse(s.statement))
+            incUsage(irs, s.loc);
         if (s.statement)
-            Statement_toIR(s.statement, irs);
+            Statement_toIR(s.statement, irs, stmtstate);
     }
 
     override void visit(DefaultStatement s)
     {
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
-        block *bdefault = irs.getDefaultBlock();
+        block *bdefault = stmtstate.getDefaultBlock();
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
-        if (blx.tryblock != irs.getSwitchBlock().Btry)
-            s.error("default cannot be in different `try` block level from `switch`");
-        incUsage(irs, s.loc);
+        if (!isAssertFalse(s.statement))
+            incUsage(irs, s.loc);
         if (s.statement)
-            Statement_toIR(s.statement, irs);
+            Statement_toIR(s.statement, irs, stmtstate);
     }
 
     override void visit(GotoDefaultStatement s)
     {
         block *b;
         Blockx *blx = irs.blx;
-        block *bdest = irs.getDefaultBlock();
+        block *bdest = stmtstate.getDefaultBlock();
 
         b = blx.curblock;
 
         // The rest is equivalent to GotoStatement
-
-        // Adjust exception handler scope index if in different try blocks
-        if (b.Btry != bdest.Btry)
-        {
-            // Check that bdest is in an enclosing try block
-            for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-            {
-                if (!bt)
-                {
-                    //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot `goto` into `try` block");
-                    break;
-                }
-            }
-
-            //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
-        }
 
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
@@ -657,28 +584,10 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(GotoCaseStatement s)
     {
         Blockx *blx = irs.blx;
-        Label *clabel = getLabel(irs, blx, s.cs);
-        block *bdest = clabel.lblock;
+        block *bdest = cast(block*)s.cs.extra;
         block *b = blx.curblock;
 
         // The rest is equivalent to GotoStatement
-
-        // Adjust exception handler scope index if in different try blocks
-        if (b.Btry != bdest.Btry)
-        {
-            // Check that bdest is in an enclosing try block
-            for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-            {
-                if (!bt)
-                {
-                    //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot `goto` into `try` block");
-                    break;
-                }
-            }
-
-            //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
-        }
 
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
@@ -714,8 +623,8 @@ private extern (C++) class S2irVisitor : Visitor
 
             FuncDeclaration func = irs.getFunc();
             assert(func);
-            assert(func.type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)(func.type);
+            auto tf = func.type.isTypeFunction();
+            assert(tf);
 
             RET retmethod = retStyle(tf, func.needThis());
             if (retmethod == RET.stack)
@@ -726,18 +635,16 @@ private extern (C++) class S2irVisitor : Visitor
                 /* If returning struct literal, write result
                  * directly into return value
                  */
-                if (s.exp.op == TOK.structLiteral)
+                if (auto sle = s.exp.isStructLiteralExp())
                 {
-                    StructLiteralExp sle = cast(StructLiteralExp)s.exp;
                     sle.sym = irs.shidden;
                     writetohp = true;
                 }
                 /* Detect function call that returns the same struct
                  * and construct directly into *shidden
                  */
-                else if (s.exp.op == TOK.call)
+                else if (auto ce = s.exp.isCallExp())
                 {
-                    auto ce = cast(CallExp)s.exp;
                     if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
                     {
                         Type t = ce.e1.type.toBasetype();
@@ -751,15 +658,13 @@ private extern (C++) class S2irVisitor : Visitor
                             goto L1;
                         }
                     }
-                    else if (ce.e1.op == TOK.dotVariable)
+                    else if (auto dve = ce.e1.isDotVarExp())
                     {
-                        auto dve = cast(DotVarExp)ce.e1;
                         auto fd = dve.var.isFuncDeclaration();
                         if (fd && fd.isCtorDeclaration())
                         {
-                            if (dve.e1.op == TOK.structLiteral)
+                            if (auto sle = dve.e1.isStructLiteralExp())
                             {
-                                auto sle = cast(StructLiteralExp)dve.e1;
                                 sle.sym = irs.shidden;
                                 writetohp = true;
                             }
@@ -800,7 +705,22 @@ private extern (C++) class S2irVisitor : Visitor
             {
                 // Reference return, so convert to a pointer
                 e = toElemDtor(s.exp, irs);
+
+                /* already taken care of for vresult in buildResultVar() and semantic3.d
+                 * https://issues.dlang.org/show_bug.cgi?id=19384
+                 */
+                if (func.vresult)
+                    if (BlitExp be = s.exp.isBlitExp())
+                    {
+                         if (VarExp ve = be.e1.isVarExp())
+                         {
+                            if (ve.var == func.vresult)
+                                goto Lskip;
+                         }
+                    }
+
                 e = addressElem(e, s.exp.type.pointerTo());
+             Lskip:
             }
             else
             {
@@ -820,7 +740,7 @@ private extern (C++) class S2irVisitor : Visitor
         block *finallyBlock;
         if (config.ehmethod != EHmethod.EH_DWARF &&
             !irs.isNothrow() &&
-            (finallyBlock = irs.getFinallyBlock()) != null)
+            (finallyBlock = stmtstate.getFinallyBlock()) != null)
         {
             assert(finallyBlock.BC == BC_finally);
             blx.curblock.appendSucc(finallyBlock);
@@ -836,10 +756,20 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
 
-        //printf("ExpStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
-        incUsage(irs, s.loc);
+        //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
         if (s.exp)
+        {
+            if (s.exp.hasCode &&
+                !(isAssertFalse(s.exp))) // `assert(0)` not meant to be covered
+                incUsage(irs, s.loc);
+
             block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
+
+            // goto the next block
+            block* b = blx.curblock;
+            block_next(blx, BCgoto, null);
+            b.appendSucc(blx.curblock);
+        }
     }
 
     /**************************************
@@ -849,14 +779,10 @@ private extern (C++) class S2irVisitor : Visitor
     {
         if (s.statements)
         {
-            size_t dim = s.statements.dim;
-            for (size_t i = 0 ; i < dim ; i++)
+            foreach (s2; *s.statements)
             {
-                Statement s2 = (*s.statements)[i];
-                if (s2 !is null)
-                {
-                    Statement_toIR(s2, irs);
-                }
+                if (s2)
+                    Statement_toIR(s2, irs, stmtstate);
             }
         }
     }
@@ -869,7 +795,7 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
 
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
 
         block *bpre = blx.curblock;
@@ -880,15 +806,13 @@ private extern (C++) class S2irVisitor : Visitor
 
         block *bdox;
 
-        size_t dim = s.statements.dim;
-        for (size_t i = 0 ; i < dim ; i++)
+        foreach (s2; *s.statements)
         {
-            Statement s2 = (*s.statements)[i];
-            if (s2 !is null)
+            if (s2)
             {
                 mystate.contBlock = block_calloc(blx);
 
-                Statement_toIR(s2, &mystate);
+                Statement_toIR(s2, irs, &mystate);
 
                 bdox = blx.curblock;
                 block_next(blx, BCgoto, mystate.contBlock);
@@ -910,12 +834,12 @@ private extern (C++) class S2irVisitor : Visitor
         if (s.statement)
         {
             Blockx *blx = irs.blx;
-            IRState mystate = IRState(irs,s);
+            StmtState mystate = StmtState(stmtstate, s);
 
             if (mystate.prev.ident)
                 mystate.ident = mystate.prev.ident;
 
-            Statement_toIR(s.statement, &mystate);
+            Statement_toIR(s.statement, irs, &mystate);
 
             if (mystate.breakBlock)
                 block_goto(blx,BCgoto,mystate.breakBlock);
@@ -927,12 +851,6 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(WithStatement s)
     {
-        Symbol *sp;
-        elem *e;
-        elem *ei;
-        ExpInitializer ie;
-        Blockx *blx = irs.blx;
-
         //printf("WithStatement.toIR()\n");
         if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
         {
@@ -940,22 +858,22 @@ private extern (C++) class S2irVisitor : Visitor
         else
         {
             // Declare with handle
-            sp = toSymbol(s.wthis);
+            auto sp = toSymbol(s.wthis);
             symbol_add(sp);
 
             // Perform initialization of with handle
-            ie = s.wthis._init.isExpInitializer();
+            auto ie = s.wthis._init.isExpInitializer();
             assert(ie);
-            ei = toElemDtor(ie.exp, irs);
-            e = el_var(sp);
+            auto ei = toElemDtor(ie.exp, irs);
+            auto e = el_var(sp);
             e = el_bin(OPeq,e.Ety, e, ei);
             elem_setLoc(e, s.loc);
             incUsage(irs, s.loc);
-            block_appendexp(blx.curblock,e);
+            block_appendexp(irs.blx.curblock,e);
         }
         // Execute with block
         if (s._body)
-            Statement_toIR(s._body, irs);
+            Statement_toIR(s._body, irs, stmtstate);
     }
 
 
@@ -995,7 +913,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (config.ehmethod == EHmethod.EH_WIN32)
             nteh_declarvars(blx);
 
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
 
         block *tryblock = block_goto(blx,BCgoto,null);
 
@@ -1014,7 +932,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_goto(blx,BC_try,null);
         if (s._body)
         {
-            Statement_toIR(s._body, &mystate);
+            Statement_toIR(s._body, irs, &mystate);
         }
         blx.tryblock = tryblock.Btry;
 
@@ -1037,7 +955,7 @@ private extern (C++) class S2irVisitor : Visitor
              * BCjcatch:
              *  __hander = __RDX;
              *  __exception_object = __RAX;
-             *  jcatchvar = *(__exception_object - Target.ptrsize); // old way
+             *  jcatchvar = *(__exception_object - target.ptrsize); // old way
              *  jcatchvar = __dmd_catch_begin(__exception_object);   // new way
              *  switch (__handler)
              *      case 1:     // first catch handler
@@ -1065,8 +983,8 @@ private extern (C++) class S2irVisitor : Visitor
 
             version (none)
             {
-                // jcatchvar = *(__exception_object - Target.ptrsize)
-                elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_long(TYsize_t, Target.ptrsize));
+                // jcatchvar = *(__exception_object - target.ptrsize)
+                elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_long(TYsize_t, target.ptrsize));
                 elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock.jcatchvar), el_una(OPind, TYnptr, e));
             }
             else
@@ -1087,18 +1005,16 @@ private extern (C++) class S2irVisitor : Visitor
             bswitch.Belem = el_combine(el_combine(e1, e2),
                                         el_combine(e3, el_var(shandler)));
 
-            size_t numcases = s.catches.dim;
-            bswitch.Bswitch = cast(targ_llong *) .malloc((targ_llong).sizeof * (numcases + 1));
-            assert(bswitch.Bswitch);
+            const numcases = s.catches.dim;
+            bswitch.Bswitch = cast(targ_llong *) Mem.check(.malloc((targ_llong).sizeof * (numcases + 1)));
             bswitch.Bswitch[0] = numcases;
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
 
-            for (size_t i = 0; i < numcases; ++i)
+            foreach (i, cs; *s.catches)
             {
                 bswitch.Bswitch[1 + i] = 1 + i;
 
-                Catch cs = (*s.catches)[i];
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
 
@@ -1130,34 +1046,24 @@ private extern (C++) class S2irVisitor : Visitor
                  * log index in Action Table (i.e. switch case table)
                  */
                 func_t *f = blx.funcsym.Sfunc;
-                for (size_t j = 0; 1; ++j)
-                {
-                    if (j < f.typesTableDim)
-                    {
-                        if (catchtype != f.typesTable[j])
-                            continue;
-                    }
-                    else
-                    {
-                        if (j == f.typesTableCapacity)
-                        {   // enlarge typesTable[]
-                            f.typesTableCapacity = f.typesTableCapacity * 2 + 4;
-                            f.typesTable = cast(Symbol **).realloc(f.typesTable, f.typesTableCapacity * (Symbol *).sizeof);
-                            assert(f.typesTable);
-                        }
-                        f.typesTableDim = j + 1;
-                        f.typesTable[j] = catchtype;
-                    }
-                    bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
-                    break;
-                }
 
+                foreach (j, ct; f.typesTable[])
+                {
+                    if (ct == catchtype)
+                    {
+                        bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                        goto L1;
+                    }
+                }
+                f.typesTable.push(catchtype);
+                bswitch.Bswitch[1 + i] = f.typesTable.length;  // index starts at 1
+           L1:
                 block *bcase = blx.curblock;
                 bswitch.appendSucc(bcase);
 
                 if (cs.handler !is null)
                 {
-                    IRState catchState = IRState(irs, s);
+                    StmtState catchState = StmtState(stmtstate, s);
 
                     /* Append to block:
                      *   *(sclosure + cs.var.offset) = cs.var;
@@ -1169,7 +1075,7 @@ private extern (C++) class S2irVisitor : Visitor
                         ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs.var.offset));
                         ex = el_una(OPind, tym, ex);
                         ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs.var)));
-                        block_appendexp(catchState.blx.curblock, ex);
+                        block_appendexp(irs.blx.curblock, ex);
                     }
                     if (isCPPclass)
                     {
@@ -1185,10 +1091,10 @@ private extern (C++) class S2irVisitor : Visitor
                         ecc.type = Type.tvoid;
                         Statement sf = ExpStatement.create(Loc.initial, ecc);
                         Statement stf = TryFinallyStatement.create(Loc.initial, cs.handler, sf);
-                        Statement_toIR(stf, &catchState);
+                        Statement_toIR(stf, irs, &catchState);
                     }
                     else
-                        Statement_toIR(cs.handler, &catchState);
+                        Statement_toIR(cs.handler, irs, &catchState);
                 }
                 blx.curblock.appendSucc(breakblock2);
                 if (i + 1 == numcases)
@@ -1206,17 +1112,16 @@ private extern (C++) class S2irVisitor : Visitor
             /* Make a copy of the switch case table, which will later become the Action Table.
              * Need a copy since the bswitch may get rewritten by the optimizer.
              */
-            bcatch.actionTable = cast(uint*).malloc(uint.sizeof * (numcases + 1));
-            assert(bcatch.actionTable);
-            for (size_t i = 0; i < numcases + 1; ++i)
-                bcatch.actionTable[i] = cast(uint)bswitch.Bswitch[i];
+            alias TAction = typeof(bcatch.actionTable[0]);
+            bcatch.actionTable = cast(TAction*)Mem.check(.malloc(TAction.sizeof * (numcases + 1)));
+            foreach (i; 0 .. numcases + 1)
+                bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
 
         }
         else
         {
-            for (size_t i = 0 ; i < s.catches.dim; i++)
+            foreach (cs; *s.catches)
             {
-                Catch cs = (*s.catches)[i];
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
                 block *bcatch = blx.curblock;
@@ -1224,9 +1129,27 @@ private extern (C++) class S2irVisitor : Visitor
                     bcatch.Bcatchtype = toSymbol(cs.type.toBasetype());
                 tryblock.appendSucc(bcatch);
                 block_goto(blx, BCjcatch, null);
+
+                if (cs.type && irs.target.os == Target.OS.Windows && irs.target.is64bit) // Win64
+                {
+                    /* The linker will attempt to merge together identical functions,
+                     * even if the catch types differ. So add a reference to the
+                     * catch type here.
+                     * https://issues.dlang.org/show_bug.cgi?id=10664
+                     */
+                    auto tc = cs.type.toBasetype().isTypeClass();
+                    if (!tc.sym.vclassinfo)
+                        tc.sym.vclassinfo = TypeInfoClassDeclaration.create(tc);
+                    auto sinfo = toSymbol(tc.sym.vclassinfo);
+                    elem* ex = el_var(sinfo);
+                    ex.Ety = mTYvolatile | TYnptr;
+                    ex = el_una(OPind, TYint, ex);
+                    block_appendexp(irs.blx.curblock, ex);
+                }
+
                 if (cs.handler !is null)
                 {
-                    IRState catchState = IRState(irs, s);
+                    StmtState catchState = StmtState(stmtstate, s);
 
                     /* Append to block:
                      *   *(sclosure + cs.var.offset) = cs.var;
@@ -1238,9 +1161,9 @@ private extern (C++) class S2irVisitor : Visitor
                         ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs.var.offset));
                         ex = el_una(OPind, tym, ex);
                         ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs.var)));
-                        block_appendexp(catchState.blx.curblock, ex);
+                        block_appendexp(irs.blx.curblock, ex);
                     }
-                    Statement_toIR(cs.handler, &catchState);
+                    Statement_toIR(cs.handler, irs, &catchState);
                 }
                 blx.curblock.appendSucc(breakblock2);
                 block_next(blx, BCgoto, null);
@@ -1286,7 +1209,7 @@ private extern (C++) class S2irVisitor : Visitor
         blx.tryblock = tryblock;
         block_goto(blx,BC_try,null);
 
-        IRState bodyirs = IRState(irs, s);
+        StmtState bodyirs = StmtState(stmtstate, s);
 
         block *finallyblock = block_calloc(blx);
 
@@ -1295,7 +1218,7 @@ private extern (C++) class S2irVisitor : Visitor
         bodyirs.finallyBlock = finallyblock;
 
         if (s._body)
-            Statement_toIR(s._body, &bodyirs);
+            Statement_toIR(s._body, irs, &bodyirs);
         blx.tryblock = tryblock.Btry;     // back to previous tryblock
 
         setScopeIndex(blx,blx.curblock,previndex);
@@ -1356,11 +1279,11 @@ private extern (C++) class S2irVisitor : Visitor
             assert(!retblock.Belem);
             retblock.Belem = eu;
 
-            IRState finallyState = IRState(irs, s);
+            StmtState finallyState = StmtState(stmtstate, s);
 
             setScopeIndex(blx, blx.curblock, previndex);
             if (s.finalbody)
-                Statement_toIR(s.finalbody, &finallyState);
+                Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BCgoto, retblock);
 
             block_next(blx,BC_ret,breakblock);
@@ -1420,11 +1343,11 @@ private extern (C++) class S2irVisitor : Visitor
 
             landingPad.Belem = el_bin(OPeq, TYvoid, el_var(sflag), el_long(TYint, 0)); // __flag = 0;
 
-            IRState finallyState = IRState(irs, s);
+            StmtState finallyState = StmtState(stmtstate, s);
 
             setScopeIndex(blx, blx.curblock, previndex);
             if (s.finalbody)
-                Statement_toIR(s.finalbody, &finallyState);
+                Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BCgoto, retblock);
 
             block_next(blx,BC_ret,breakblock);
@@ -1440,11 +1363,11 @@ private extern (C++) class S2irVisitor : Visitor
              */
             block_goto(blx,BC_finally,null);
 
-            IRState finallyState = IRState(irs, s);
+            StmtState finallyState = StmtState(stmtstate, s);
 
             setScopeIndex(blx, blx.curblock, previndex);
             if (s.finalbody)
-                Statement_toIR(s.finalbody, &finallyState);
+                Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BCgoto, retblock);
 
             block_next(blx,BC_ret,null);
@@ -1537,7 +1460,7 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV1.Vlsym;
-                    block *b = labelToBlock(irs, s.loc, blx, label);
+                    block *b = cast(block*)label.statement.extra;
                     basm.appendSucc(b);
                     c.IEV1.Vblock = b;
                     break;
@@ -1546,7 +1469,7 @@ private extern (C++) class S2irVisitor : Visitor
                 case FLdsymbol:
                 case FLfunc:
                     sym = toSymbol(cast(Dsymbol)c.IEV1.Vdsym);
-                    if (sym.Sclass == SCauto && sym.Ssymnum == -1)
+                    if (sym.Sclass == SCauto && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV1.Vsym = sym;
                     c.IFL1 = sym.Sfl ? sym.Sfl : FLauto;
@@ -1563,7 +1486,7 @@ private extern (C++) class S2irVisitor : Visitor
                 case FLblock:
                 {
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV2.Vlsym;
-                    block *b = labelToBlock(irs, s.loc, blx, label);
+                    block *b = cast(block*)label.statement.extra;
                     basm.appendSucc(b);
                     c.IEV2.Vblock = b;
                     break;
@@ -1574,7 +1497,7 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     Declaration d = cast(Declaration)c.IEV2.Vdsym;
                     sym = toSymbol(cast(Dsymbol)d);
-                    if (sym.Sclass == SCauto && sym.Ssymnum == -1)
+                    if (sym.Sclass == SCauto && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV2.Vsym = sym;
                     c.IFL2 = sym.Sfl ? sym.Sfl : FLauto;
@@ -1606,11 +1529,30 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(ImportStatement s)
     {
     }
+
+    static void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
+    {
+        scope v = new S2irVisitor(irs, stmtstate);
+        s.accept(v);
+    }
 }
 
 void Statement_toIR(Statement s, IRState *irs)
 {
-    scope v = new S2irVisitor(irs);
+    /* Generate a block for each label
+     */
+    FuncDeclaration fd = irs.getFunc();
+    if (auto labtab = fd.labtab)
+        foreach (keyValue; labtab.tab.asRange)
+        {
+            //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
+            LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
+            if (label.statement)
+                label.statement.extra = dmd.backend.global.block_calloc();
+        }
+
+    StmtState stmtstate;
+    scope v = new S2irVisitor(irs, &stmtstate);
     s.accept(v);
 }
 

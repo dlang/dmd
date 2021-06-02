@@ -38,7 +38,7 @@ void foo()
         }
     }
 }
-};
+}.toUnixLineEndings();
     assert(expected == generated, generated);
 }
 

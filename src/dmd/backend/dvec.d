@@ -4,7 +4,7 @@
  *
  * Simple bit vector implementation.
  *
- * Copyright:   Copyright (c) 2013-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvec.d, backend/dvec.d)
@@ -22,6 +22,7 @@ extern (C):
 
 nothrow:
 @nogc:
+@safe:
 
 alias vec_base_t = size_t;                     // base type of vector
 alias vec_t = vec_base_t*;
@@ -49,6 +50,7 @@ struct VecGlobal
             count = 0;
     }
 
+    @trusted
     void terminate()
     {
         if (--initcount == 0)
@@ -78,6 +80,7 @@ struct VecGlobal
         }
     }
 
+    @trusted
     vec_t allocate(size_t numbits)
     {
         if (numbits == 0)
@@ -119,6 +122,7 @@ struct VecGlobal
         return v;
     }
 
+    @trusted
     vec_t dup(const vec_t v)
     {
         if (!v)
@@ -150,6 +154,7 @@ struct VecGlobal
         return result;
     }
 
+    @trusted
     void free(vec_t v)
     {
         /*printf("vec_free(%p)\n",v);*/
@@ -174,13 +179,16 @@ __gshared VecGlobal vecGlobal;
 
 private pure vec_base_t MASK(uint b) { return cast(vec_base_t)1 << (b & VECMASK); }
 
+@trusted
 pure ref inout(vec_base_t) vec_numbits(inout vec_t v) { return v[-1]; }
+@trusted
 pure ref inout(vec_base_t) vec_dim(inout vec_t v) { return v[-2]; }
 
 /**************************
  * Initialize package.
  */
 
+@trusted
 void vec_init()
 {
     vecGlobal.initialize();
@@ -191,6 +199,7 @@ void vec_init()
  * Terminate package.
  */
 
+@trusted
 void vec_term()
 {
     vecGlobal.terminate();
@@ -201,6 +210,7 @@ void vec_term()
  * Clear the vector.
  */
 
+@trusted
 vec_t vec_calloc(size_t numbits)
 {
     return vecGlobal.allocate(numbits);
@@ -210,6 +220,7 @@ vec_t vec_calloc(size_t numbits)
  * Allocate copy of existing vector.
  */
 
+@trusted
 vec_t vec_clone(const vec_t v)
 {
     return vecGlobal.dup(v);
@@ -219,6 +230,7 @@ vec_t vec_clone(const vec_t v)
  * Free a vector.
  */
 
+@trusted
 void vec_free(vec_t v)
 {
     /*printf("vec_free(%p)\n",v);*/
@@ -230,6 +242,7 @@ void vec_free(vec_t v)
  * Extra bits are set to 0.
  */
 
+@trusted
 vec_t vec_realloc(vec_t v, size_t numbits)
 {
     /*printf("vec_realloc(%p,%d)\n",v,numbits);*/
@@ -253,10 +266,22 @@ vec_t vec_realloc(vec_t v, size_t numbits)
     return newv;
 }
 
+/********************************
+ * Recycle a vector `v` to a new size `numbits`, clear all bits.
+ * Re-uses original if possible.
+ */
+void vec_recycle(ref vec_t v, size_t numbits)
+{
+    vec_free(v);
+    v = vec_calloc(numbits);
+}
+
+
 /**************************
  * Set bit b in vector v.
  */
 
+@trusted
 pure
 void vec_setbit(size_t b, vec_t v)
 {
@@ -264,7 +289,7 @@ void vec_setbit(size_t b, vec_t v)
     {
         if (!(v && b < vec_numbits(v)))
             printf("vec_setbit(v = %p,b = %d): numbits = %d dim = %d\n",
-                v,b,v ? vec_numbits(v) : 0, v ? vec_dim(v) : 0);
+                v, cast(int) b, cast(int) (v ? vec_numbits(v) : 0), cast(int) (v ? vec_dim(v) : 0));
     }
     assert(v && b < vec_numbits(v));
     core.bitop.bts(v, b);
@@ -274,6 +299,7 @@ void vec_setbit(size_t b, vec_t v)
  * Clear bit b in vector v.
  */
 
+@trusted
 pure
 void vec_clearbit(size_t b, vec_t v)
 {
@@ -285,6 +311,7 @@ void vec_clearbit(size_t b, vec_t v)
  * Test bit b in vector v.
  */
 
+@trusted
 pure
 size_t vec_testbit(size_t b, const vec_t v)
 {
@@ -294,7 +321,7 @@ size_t vec_testbit(size_t b, const vec_t v)
     {
         if (!(v && b < vec_numbits(v)))
             printf("vec_setbit(v = %p,b = %d): numbits = %d dim = %d\n",
-                v,b,v ? vec_numbits(v) : 0, v ? vec_dim(v) : 0);
+                v, cast(int) b, cast(int) (v ? vec_numbits(v) : 0), cast(int) (v ? vec_dim(v) : 0));
     }
     assert(v && b < vec_numbits(v));
     return core.bitop.bt(v, b);
@@ -305,6 +332,7 @@ size_t vec_testbit(size_t b, const vec_t v)
  * If no bit is found, return vec_numbits(v).
  */
 
+@trusted
 pure
 size_t vec_index(size_t b, const vec_t vec)
 {
@@ -340,6 +368,7 @@ size_t vec_index(size_t b, const vec_t vec)
  * Compute v1 &= v2.
  */
 
+@trusted
 pure
 void vec_andass(vec_t v1, const(vec_base_t)* v2)
 {
@@ -359,6 +388,7 @@ void vec_andass(vec_t v1, const(vec_base_t)* v2)
  * Compute v1 = v2 & v3.
  */
 
+@trusted
 pure
 void vec_and(vec_t v1, const(vec_base_t)* v2, const(vec_base_t)* v3)
 {
@@ -378,6 +408,7 @@ void vec_and(vec_t v1, const(vec_base_t)* v2, const(vec_base_t)* v3)
  * Compute v1 ^= v2.
  */
 
+@trusted
 pure
 void vec_xorass(vec_t v1, const(vec_base_t)* v2)
 {
@@ -397,6 +428,7 @@ void vec_xorass(vec_t v1, const(vec_base_t)* v2)
  * Compute v1 = v2 ^ v3.
  */
 
+@trusted
 pure
 void vec_xor(vec_t v1, const(vec_base_t)* v2, const(vec_base_t)* v3)
 {
@@ -416,6 +448,7 @@ void vec_xor(vec_t v1, const(vec_base_t)* v2, const(vec_base_t)* v3)
  * Compute v1 |= v2.
  */
 
+@trusted
 pure
 void vec_orass(vec_t v1, const(vec_base_t)* v2)
 {
@@ -435,6 +468,7 @@ void vec_orass(vec_t v1, const(vec_base_t)* v2)
  * Compute v1 = v2 | v3.
  */
 
+@trusted
 pure
 void vec_or(vec_t v1, const(vec_base_t)* v2, const(vec_base_t)* v3)
 {
@@ -454,6 +488,7 @@ void vec_or(vec_t v1, const(vec_base_t)* v2, const(vec_base_t)* v3)
  * Compute v1 -= v2.
  */
 
+@trusted
 pure
 void vec_subass(vec_t v1, const(vec_base_t)* v2)
 {
@@ -473,6 +508,7 @@ void vec_subass(vec_t v1, const(vec_base_t)* v2)
  * Compute v1 = v2 - v3.
  */
 
+@trusted
 pure
 void vec_sub(vec_t v1, const(vec_base_t)* v2, const(vec_base_t)* v3)
 {
@@ -492,6 +528,7 @@ void vec_sub(vec_t v1, const(vec_base_t)* v2, const(vec_base_t)* v3)
  * Clear vector.
  */
 
+@trusted
 pure
 void vec_clear(vec_t v)
 {
@@ -503,6 +540,7 @@ void vec_clear(vec_t v)
  * Set vector.
  */
 
+@trusted
 pure
 void vec_set(vec_t v)
 {
@@ -517,6 +555,7 @@ void vec_set(vec_t v)
  * Copy vector.
  */
 
+@trusted
 pure
 void vec_copy(vec_t to, const vec_t from)
 {
@@ -525,8 +564,9 @@ void vec_copy(vec_t to, const vec_t from)
         debug
         {
             if (!(to && from && vec_numbits(to) == vec_numbits(from)))
-                printf("to = x%lx, from = x%lx, numbits(to) = %d, numbits(from) = %d\n",
-                    cast(int)to,cast(int)from,to ? vec_numbits(to) : 0, from ? vec_numbits(from): 0);
+                printf("to = x%p, from = x%p, numbits(to) = %d, numbits(from) = %d\n",
+                    to, from, cast(int) (to ? vec_numbits(to) : 0),
+                    cast(int) (from ? vec_numbits(from): 0));
         }
         assert(to && from && vec_numbits(to) == vec_numbits(from));
         memcpy(to, from, to[0].sizeof * vec_dim(to));
@@ -537,6 +577,7 @@ void vec_copy(vec_t to, const vec_t from)
  * Return 1 if vectors are equal.
  */
 
+@trusted
 pure
 int vec_equal(const vec_t v1, const vec_t v2)
 {
@@ -550,6 +591,7 @@ int vec_equal(const vec_t v1, const vec_t v2)
  * Return 1 if (v1 & v2) == 0
  */
 
+@trusted
 pure
 int vec_disjoint(const(vec_base_t)* v1, const(vec_base_t)* v2)
 {
@@ -566,6 +608,7 @@ int vec_disjoint(const(vec_base_t)* v1, const(vec_base_t)* v2)
  * Clear any extra bits in vector.
  */
 
+@trusted
 pure
 void vec_clearextrabits(vec_t v)
 {
@@ -589,12 +632,13 @@ void vec_println(const vec_t v)
     }
 }
 
+@trusted
 pure
 void vec_print(const vec_t v)
 {
     debug
     {
-        printf(" Vec %p, numbits %d dim %d",v,vec_numbits(v),vec_dim(v));
+        printf(" Vec %p, numbits %d dim %d", v, cast(int) vec_numbits(v), cast(int) vec_dim(v));
         if (v)
         {
             fputc('\t',stdout);

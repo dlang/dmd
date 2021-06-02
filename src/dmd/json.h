@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -11,7 +11,9 @@
 #pragma once
 
 #include "arraytypes.h"
+#include "globals.h"
 
 struct OutBuffer;
 
 void json_generate(OutBuffer *, Modules *);
+JsonFieldFlags tryParseJsonField(const char *fieldName);

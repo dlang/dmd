@@ -4,7 +4,6 @@ root = true
 
 # Default settings for all file types:
 # + save files in UTF-8 encoding
-# + use Unix line-endings and a final newline
 # + remove whitespace at the end of lines
 [*]
 charset = utf-8

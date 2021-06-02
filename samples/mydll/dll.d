@@ -1,7 +1,7 @@
 
 // Public Domain
 
-import core.sys.windows.windows;
+import core.sys.windows.windef;
 import core.sys.windows.dll;
 
 __gshared HINSTANCE g_hInst;

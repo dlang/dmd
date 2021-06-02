@@ -1,3 +1,4 @@
+=== ${RESULTS_DIR}/compilable/json2.out
 {
     "buildInfo": {
         "argv0": "VALUE_REMOVED_FOR_TEST",
@@ -47,7 +48,7 @@
                 {
                     "char": 8,
                     "kind": "import",
-                    "line": 6,
+                    "line": 9,
                     "name": "json",
                     "protection": "private"
                 }

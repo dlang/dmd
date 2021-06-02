@@ -24,6 +24,7 @@ nothrow:
 
 struct Complex_f
 {
+nothrow:
     float re, im;
 
     static Complex_f div(ref Complex_f x, ref Complex_f y)
@@ -107,6 +108,7 @@ struct Complex_f
 
 struct Complex_d
 {
+nothrow:
     double re, im;
 
     static Complex_d div(ref Complex_d x, ref Complex_d y)
@@ -191,6 +193,7 @@ struct Complex_d
 
 struct Complex_ld
 {
+nothrow:
     targ_ldouble re, im;
 
     static Complex_ld div(ref Complex_ld x, ref Complex_ld y)

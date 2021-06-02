@@ -4,14 +4,15 @@ dependency "dmd" path="../.."
 +/
 void main()
 {
+    import dmd.globals;
     import dmd.lexer;
     import dmd.tokens;
 
     immutable expected = [
         TOK.void_,
         TOK.identifier,
-        TOK.leftParentheses,
-        TOK.rightParentheses,
+        TOK.leftParenthesis,
+        TOK.rightParenthesis,
         TOK.leftCurly,
         TOK.rightCurly
     ];

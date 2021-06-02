@@ -1,4 +1,11 @@
 // PERMUTE_ARGS:
+/*
+TEST_OUTPUT:
+---
+runnable/interface2.d(47): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interface2.d(98): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 extern(C) int printf(const char*, ...);
 
@@ -27,7 +34,7 @@ void test1()
     printf("f = %p\n", f);
     assert(cast(void*)b !is cast(void*)f);
 
-    printf("f.class = '%.*s'\n", f.classinfo.name.length, f.classinfo.name.ptr);
+    printf("f.class = '%.*s'\n", cast(int)f.classinfo.name.length, f.classinfo.name.ptr);
     assert(f.classinfo.name == "interface2.Foo");
 
     f.bar();
@@ -341,7 +348,7 @@ class B12 : A12
     {
         printf("B12.clone()\n");
     }
-    body
+    do
     {
         return ia;
     }
@@ -395,7 +402,7 @@ class B13 : A13
     {
         printf("B13.clone()\n");
     }
-    body { return ia; }
+    do { return ia; }
 }
 
 void test13()
@@ -662,11 +669,11 @@ void test19()
     assert(cast(void*)c + (3*(void*).sizeof) == cast(void*)ifoo);
 
     string s = ifoo.classinfo.name;
-    printf("%.*s\n", s.length, s.ptr);
+    printf("%.*s\n", cast(int)s.length, s.ptr);
     assert(s == "interface2.IFoo19");
 
     s = (cast(Object)ifoo).toString;
-    printf("%.*s\n", s.length, s.ptr);
+    printf("%.*s\n", cast(int)s.length, s.ptr);
     assert(s == "interface2.Child19");
 }
 

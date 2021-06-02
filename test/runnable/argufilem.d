@@ -1,4 +1,11 @@
-// EXTRA_SOURCES: imports/argufile.d
+/*
+EXTRA_SOURCES: imports/argufile.d
+RUN_OUTPUT:
+---
+bob is 7 years old
+why is 8 scared of 7? because789
+---
+*/
 
 // NOTE: The bug only works when main.d and argufile.d are put in
 //                      separate files and compiled like 'dmd main.d argufile.d'
@@ -19,4 +26,3 @@ int main(string[] args)
 
         return 0;
 }
-

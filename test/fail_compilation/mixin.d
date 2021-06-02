@@ -1,9 +1,8 @@
-// REQUIRED_ARGS: -mixin=test.mixin
-// POST_SCRIPT: fail_compilation/extra-files/mixin-postscript.sh 
+// REQUIRED_ARGS: -mixin=${RESULTS_DIR}/fail_compilation/mixin_test.mixin
 /*
 TEST_OUTPUT:
 ---
-test.mixin(7): Error: undefined identifier `b`
+{{RESULTS_DIR}}/fail_compilation/mixin_test.mixin(7): Error: undefined identifier `b`
 ---
 */
 
@@ -14,9 +13,9 @@ string get()
     return
     q{int x;
         int y;
-        
-        
-        
+
+
+
         int z = x + b;};
 }
 

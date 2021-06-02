@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgsched.c, backend/cgsched.d)
@@ -29,10 +29,14 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.ty;
+import dmd.backend.barray;
 
 extern (C++):
+
+nothrow:
+@safe:
 
 int REGSIZE();
 code *gen1(code *c, uint op);
@@ -46,25 +50,26 @@ private uint mask(uint m) { return 1 << m; }
 //
 // Note: even for linux targets, CFaddrsize can be set by the inline
 // assembler.
-static bool is32bitaddr(bool x, uint Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) != 0)); }
+private bool is32bitaddr(bool x, uint Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) != 0)); }
 
 // If we use Pentium Pro scheduler
+@trusted
 private bool PRO() { return config.target_cpu >= TARGET_PentiumPro; }
 
-enum
+private enum FP : ubyte
 {
-    FPfstp = 1,       /// FSTP mem
-    FPfld  = 2,       /// FLD mem
-    FPfop  = 3,       /// Fop ST0,mem or Fop ST0
+    fstp = 1,       /// FSTP mem
+    fld  = 2,       /// FLD mem
+    fop  = 3,       /// Fop ST0,mem or Fop ST0
 }
 
-enum
+private enum CIFL : ubyte
 {
-    CIFLarraybounds = 1,     /// this instruction is a jmp to array bounds
-    CIFLea          = 2,     /// this instruction has a memory-referencing
+    arraybounds = 1,     /// this instruction is a jmp to array bounds
+    ea          = 2,     /// this instruction has a memory-referencing
                              /// modregrm EA byte
-    CIFLnostage     = 4,     /// don't stage these instructions
-    CIFLpush        = 8,     /// it's a push we can swap around
+    nostage     = 4,     /// don't stage these instructions
+    push        = 8,     /// it's a push we can swap around
 }
 
 // Struct where we gather information about an instruction
@@ -78,9 +83,9 @@ struct Cinfo
     // For floating point scheduling
     ubyte fxch_pre;
     ubyte fxch_post;
-    ubyte fp_op;        /// FPxxxx
+    FP fp_op;           /// FPxxxx
 
-    ubyte flags;        /// CIFLxxx
+    ubyte flags;         /// CIFLxxx
 
     uint r;             // read mask
     uint w;             // write mask
@@ -93,7 +98,8 @@ struct Cinfo
     int fpuadjust;      // if !=0, then amount FPU stack changes as a result
                         // of this instruction being executed
 
-    void print()        // pretty-printer
+    @trusted
+    nothrow void print()        // pretty-printer
     {
         Cinfo *ci = &this;
 
@@ -105,17 +111,17 @@ struct Cinfo
 
         printf("Cinfo %p:  c %p, pair %x, sz %d, isz %d, flags - ",
                ci,c,pair,sz,isz);
-        if (ci.flags & CIFLarraybounds)
+        if (ci.flags & CIFL.arraybounds)
             printf("arraybounds,");
-        if (ci.flags & CIFLea)
+        if (ci.flags & CIFL.ea)
             printf("ea,");
-        if (ci.flags & CIFLnostage)
+        if (ci.flags & CIFL.nostage)
             printf("nostage,");
-        if (ci.flags & CIFLpush)
+        if (ci.flags & CIFL.push)
             printf("push,");
-        if (ci.flags & ~(CIFLarraybounds|CIFLnostage|CIFLpush|CIFLea))
+        if (ci.flags & ~(CIFL.arraybounds|CIFL.nostage|CIFL.push|CIFL.ea))
             printf("bad flag,");
-        printf("\n\tr %lx w %lx a %lx reg %x uops %x sibmodrm %x spadjust %ld\n",
+        printf("\n\tr %x w %x a %x reg %x uops %x sibmodrm %x spadjust %d\n",
                 cast(int)r,cast(int)w,cast(int)a,reg,uops,sibmodrm,cast(int)spadjust);
         if (ci.fp_op)
         {
@@ -135,6 +141,7 @@ struct Cinfo
  *      scratch         scratch registers we can use
  */
 
+@trusted
 private void cgsched_pentium(code **pc,regm_t scratch)
 {
     //printf("scratch = x%02x\n",scratch);
@@ -155,7 +162,8 @@ private void cgsched_pentium(code **pc,regm_t scratch)
 /************************************
  * Entry point
  */
-void cgsched_block(block* b)
+@trusted
+public void cgsched_block(block* b)
 {
     if (config.flags4 & CFG4speed &&
         config.target_cpu >= TARGET_Pentium &&
@@ -1274,6 +1282,7 @@ private int pair_class(code *c)
  * Determine operand size if EA (larger is ok).
  */
 
+@trusted
 private void getinfo(Cinfo *ci,code *c)
 {
     memset(ci,0,Cinfo.sizeof);
@@ -1327,7 +1336,7 @@ private void getinfo(Cinfo *ci,code *c)
         case 0x55:
         case 0x56:
         case 0x57:                              // PUSH reg
-            ci.flags |= CIFLpush;
+            ci.flags |= CIFL.push;
             goto Lpush;
 
         case 0x54:                              // PUSH ESP
@@ -1395,7 +1404,7 @@ private void getinfo(Cinfo *ci,code *c)
         case 0xA2:
         case 0xA3:
             // Fake having an EA to simplify code in conflict()
-            ci.flags |= CIFLea;
+            ci.flags |= CIFL.ea;
             ci.reg = 0;
             ci.sibmodrm = a32 ? modregrm(0,0,5) : modregrm(0,0,6);
             c.IFL1 = c.IFL2;
@@ -1497,17 +1506,17 @@ else
                         if (reg == 3)           // if FCOMP
                             ci.fpuadjust = -1;
                         else
-                            ci.fp_op = FPfop;
+                            ci.fp_op = FP.fop;
                         break;
 
                     case 0xD9:
                         if (reg == 0)           // if FLD float
                         {   ci.fpuadjust = 1;
-                            ci.fp_op = FPfld;
+                            ci.fp_op = FP.fld;
                         }
                         else if (reg == 3)      // if FSTP float
                         {   ci.fpuadjust = -1;
-                            ci.fp_op = FPfstp;
+                            ci.fp_op = FP.fstp;
                         }
                         else if (reg == 5 || reg == 7)
                             sz = 2;
@@ -1521,12 +1530,12 @@ else
                     case 0xDB:
                         if (reg == 0 || reg == 5)
                         {   ci.fpuadjust = 1;
-                            ci.fp_op = FPfld;  // FILD / FLD long double
+                            ci.fp_op = FP.fld;  // FILD / FLD long double
                         }
                         if (reg == 3 || reg == 7)
                             ci.fpuadjust = -1;
                         if (reg == 7)
-                            ci.fp_op = FPfstp; // FSTP long double
+                            ci.fp_op = FP.fstp; // FSTP long double
                         if (reg == 5 || reg == 7)
                             sz = 10;
                         break;
@@ -1535,16 +1544,16 @@ else
                         if (reg == 3)           // if FCOMP
                             ci.fpuadjust = -1;
                         else
-                            ci.fp_op = FPfop;
+                            ci.fp_op = FP.fop;
                         break;
                     case 0xDD:
                         if (reg == 0)           // if FLD double
                         {   ci.fpuadjust = 1;
-                            ci.fp_op = FPfld;
+                            ci.fp_op = FP.fld;
                         }
                         if (reg == 3)           // if FSTP double
                         {   ci.fpuadjust = -1;
-                            ci.fp_op = FPfstp;
+                            ci.fp_op = FP.fstp;
                         }
                         if (reg == 7)
                             sz = 2;
@@ -1584,11 +1593,11 @@ else
             // Most floating point opcodes aren't staged, but are
             // sent right through, in order to make use of the large
             // latencies with floating point instructions.
-            if (ci.fp_op == FPfld ||
+            if (ci.fp_op == FP.fld ||
                 (op == 0xD9 && (irm & 0xF8) == 0xC0))
             { }                                // FLD ST(i)
             else
-                ci.flags |= CIFLnostage;
+                ci.flags |= CIFL.nostage;
 
             switch (op)
             {
@@ -1601,7 +1610,7 @@ else
                 case 0xD9:
                     // FCHS or FABS or FSQRT
                     if (irm == 0xE0 || irm == 0xE1 || irm == 0xFA)
-                        ci.fp_op = FPfop;
+                        ci.fp_op = FP.fop;
                     r = S;
                     w = S|C;
                     break;
@@ -1676,7 +1685,8 @@ else
                 if (a32)
                 {
                     if (rm == 4)
-                    {   sib = c.Isib;
+                    {
+                        sib = c.Isib;
                         if ((sib & modregrm(0,7,0)) != modregrm(0,4,0))
                             ci.a |= mask((sib >> 3) & 7);      // index register
                         if ((sib & 7) != 5)
@@ -1686,7 +1696,8 @@ else
                         ci.a |= mask(rm);
                 }
                 else
-                {   immutable ubyte[8] ea16 = [mBX|mSI,mBX|mDI,mBP|mSI,mBP|mDI,mSI,mDI,0,mBX];
+                {
+                    immutable ubyte[8] ea16 = [mBX|mSI,mBX|mDI,mBP|mSI,mBP|mDI,mSI,mDI,0,mBX];
                     ci.a |= ea16[rm];
                 }
                 goto Lmem;
@@ -1696,7 +1707,8 @@ else
                 if (a32)
                 {
                     if (rm == 4)
-                    {   sib = c.Isib;
+                    {
+                        sib = c.Isib;
                         if ((sib & modregrm(0,7,0)) != modregrm(0,4,0))
                             ci.a |= mask((sib >> 3) & 7);      // index register
                         ci.a |= mask(sib & 7);                 // base register
@@ -1705,7 +1717,8 @@ else
                         ci.a |= mask(rm);
                 }
                 else
-                {   immutable ubyte[8] ea16 = [mBX|mSI,mBX|mDI,mBP|mSI,mBP|mDI,mSI,mDI,mBP,mBX];
+                {
+                    immutable ubyte[8] ea16 = [mBX|mSI,mBX|mDI,mBP|mSI,mBP|mDI,mSI,mDI,mBP,mBX];
                     ci.a |= ea16[rm];
                 }
 
@@ -1714,7 +1727,7 @@ else
                     ci.r |= mMEM;
                 if (w & EA)
                     ci.w |= mMEM;
-                ci.flags |= CIFLea;
+                ci.flags |= CIFL.ea;
                 break;
 
             case 3:
@@ -1734,20 +1747,22 @@ else
             if (irm != modregrm(0,0,5))
             {
                 switch (mod)
-                {   case 0:
-                        if ((sib & 7) != 5)     // if not disp32[index]
-                        {   c.IFL1 = FLconst;
-                            c.IEV1.Vpointer = 0;
-                            irm |= 0x80;
-                        }
-                        break;
-                    case 1:
-                        c.IEV1.Vpointer = cast(byte) c.IEV1.Vpointer;
-                        irm = modregrm(2,0,rm);
-                        break;
+                {
+                case 0:
+                    if ((sib & 7) != 5)     // if not disp32[index]
+                    {
+                        c.IFL1 = FLconst;
+                        c.IEV1.Vpointer = 0;
+                        irm |= 0x80;
+                    }
+                    break;
+                case 1:
+                    c.IEV1.Vpointer = cast(byte) c.IEV1.Vpointer;
+                    irm = modregrm(2, 0, rm);
+                    break;
 
-                    default:
-                        break;
+                default:
+                    break;
                 }
             }
         }
@@ -1756,14 +1771,15 @@ else
             if (irm != modregrm(0,0,6))
             {
                 switch (mod)
-                {   case 0:
+                {
+                    case 0:
                         c.IFL1 = FLconst;
                         c.IEV1.Vpointer = 0;
                         irm |= 0x80;
                         break;
                     case 1:
                         c.IEV1.Vpointer = cast(byte) c.IEV1.Vpointer;
-                        irm = modregrm(2,0,rm);
+                        irm = modregrm(2, 0, rm);
                         break;
 
                     default:
@@ -1779,7 +1795,7 @@ else
 Lret:
     if (ci.w & mSP)                    // if stack pointer is modified
         ci.w |= mMEM;                  // then we are implicitly writing to memory
-    if (op == 0x8D)                     // if LEA
+    if (op == LEA)                     // if LEA
         ci.r &= ~mMEM;                 // memory is not actually read
     ci.sz = cast(ubyte)sz;
 
@@ -1798,7 +1814,8 @@ Lret:
  */
 
 private int pair_test(Cinfo *cu,Cinfo *cv)
-{   uint pcu;
+{
+    uint pcu;
     uint pcv;
     uint r1,w1;
     uint r2,w2;
@@ -1844,10 +1861,9 @@ Lnopair:
  *      !=0 if they have an AGI
  */
 
-private int pair_agi(Cinfo *c1,Cinfo *c2)
-{   uint x;
-
-    x = c1.w & c2.a;
+private int pair_agi(Cinfo *c1, Cinfo *c2)
+{
+    uint x = c1.w & c2.a;
     return x && !(x == mSP && c1.pair & c2.pair & PE);
 }
 
@@ -1861,27 +1877,22 @@ private int pair_agi(Cinfo *c1,Cinfo *c2)
  *      !=0 if they can decode simultaneously
  */
 
-private int triple_test(Cinfo *c0,Cinfo *c1,Cinfo *c2)
-{   int c2isz;
-
+private int triple_test(Cinfo *c0, Cinfo *c1, Cinfo *c2)
+{
     assert(c0);
     if (!c1)
-        goto Lnopair;
-    c2isz = c2 ? c2.isz : 0;
+        return 0;
+    int c2isz = c2 ? c2.isz : 0;
     if (c0.isz > 7 || c1.isz > 7 || c2isz > 7 ||
         c0.isz + c1.isz + c2isz > 16)
-        goto Lnopair;
+        return 0;
 
     // 4-1-1 decode
     if (c1.uops > 1 ||
         (c2 && c2.uops > 1))
-        goto Lnopair;
+        return 0;
 
-Lpair:
     return 1;
-
-Lnopair:
-    return 0;
 }
 
 /********************************************
@@ -1927,6 +1938,7 @@ private code * cnext(code *c)
 //                      then return 0
 //                      if 2, then adjust ci1 as well as ci2
 
+@trusted
 private int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
 {
     code *c1;
@@ -2030,7 +2042,7 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
              c1.Iop == 0x68 ||                 // PUSH imm16/imm32
              (c1.Iop == 0xFF && ci1.reg == 6) // PUSH EA
             ) &&
-            ci2.flags & CIFLea && !(a2 & mSP) &&
+            ci2.flags & CIFL.ea && !(a2 & mSP) &&
             !(a2 & mBP && cast(int)c2.IEV1.Vpointer < 0)
            )
         {
@@ -2050,7 +2062,7 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
              c2.Iop == 0x68 ||                 // PUSH imm16/imm32
              (c2.Iop == 0xFF && ci2.reg == 6) // PUSH EA
             ) &&
-            ci1.flags & CIFLea && !(a1 & mSP) &&
+            ci1.flags & CIFL.ea && !(a1 & mSP) &&
             !(a2 & mBP && cast(int)c2.IEV1.Vpointer < 0)
            )
         {
@@ -2064,7 +2076,7 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
         }
 
         // If not both an EA addressing mode, conflict
-        if (!(ci1.flags & ci2.flags & CIFLea))
+        if (!(ci1.flags & ci2.flags & CIFL.ea))
         {   if (i) printf("\t2\n");
             goto Lconflict;
         }
@@ -2124,7 +2136,7 @@ Lswap:
         static uint X(uint a, uint b) { return (a << 8) | b; }
         switch (X(ci1.fp_op,ci2.fp_op))
         {
-            case X(FPfstp,FPfld):
+            case X(FP.fstp, FP.fld):
                 if (x1 || y1)
                     goto Lconflict;
                 if (x2)
@@ -2142,14 +2154,14 @@ Lswap:
                 }
                 break;
 
-            case X(FPfstp,FPfop):
+            case X(FP.fstp, FP.fop):
                 if (x1 || y1)
                     goto Lconflict;
                 ci2.fxch_pre++;
                 ci2.fxch_post++;
                 break;
 
-            case X(FPfop,FPfop):
+            case X(FP.fop, FP.fop):
                 if (x1 == 0 && y1 == 1 && x2 == 0 && y2 == 0)
                 {   ci2.fxch_pre = 1;
                     ci2.fxch_post = 1;
@@ -2159,7 +2171,7 @@ Lswap:
                     break;
                 goto Lconflict;
 
-            case X(FPfop,FPfld):
+            case X(FP.fop, FP.fld):
                 if (x1 || y1)
                     goto Lconflict;
                 if (x2)
@@ -2192,11 +2204,11 @@ Lconflict:
 
     // Special delays for floating point
     if (fpsched)
-    {   if (ci1.fp_op == FPfld && ci2.fp_op == FPfstp)
+    {   if (ci1.fp_op == FP.fld && ci2.fp_op == FP.fstp)
             delay_clocks = 1;
-        else if (ci1.fp_op == FPfop && ci2.fp_op == FPfstp)
+        else if (ci1.fp_op == FP.fop && ci2.fp_op == FP.fstp)
             delay_clocks = 3;
-        else if (ci1.fp_op == FPfop && ci2.fp_op == FPfop)
+        else if (ci1.fp_op == FP.fop && ci2.fp_op == FP.fop)
             delay_clocks = 2;
     }
     else if (PRO)
@@ -2206,12 +2218,10 @@ Lconflict:
             delay_clocks = 7;
     }
     else if ((w1 | r1) & (w2 | r2) & (C | S))
-    {   int reg;
-        int op;
-
-        op = c1.Iop;
-        reg = c1.Irm & modregrm(0,7,0);
-        if (ci1.fp_op == FPfld ||
+    {
+        int op = c1.Iop;
+        int reg = c1.Irm & modregrm(0,7,0);
+        if (ci1.fp_op == FP.fld ||
             (op == 0xD9 && (c1.Irm & 0xF8) == 0xC0)
            )
         { }                             // FLD
@@ -2233,23 +2243,32 @@ enum TBLMAX = 2*3*20;        // must be divisible by both 2 and 3
 
 struct Schedule
 {
+nothrow:
     Cinfo*[TBLMAX] tbl;         // even numbers are U pipe, odd numbers are V
     int tblmax;                 // max number of slots used
 
     Cinfo[TBLMAX] cinfo;
     int cinfomax;
 
-    list_t stagelist;           // list of instructions in staging area
+    Barray!(Cinfo*) stagelist;  // list of instructions in staging area
 
     int fpustackused;           // number of slots in FPU stack that are used
 
-void initialize(int fpustackinit)          // initialize scheduler
-{
-    //printf("Schedule::initialize(fpustackinit = %d)\n", fpustackinit);
-    memset(&this,0,Schedule.sizeof);
-    fpustackused = fpustackinit;
-}
+    @trusted
+    void initialize(int fpustackinit)          // initialize scheduler
+    {
+        //printf("Schedule::initialize(fpustackinit = %d)\n", fpustackinit);
+        memset(&this, 0, Schedule.sizeof);
+        fpustackused = fpustackinit;
+    }
 
+    @trusted
+    void dtor()
+    {
+        stagelist.dtor();
+    }
+
+@trusted
 code **assemble(code **pc)  // reassemble scheduled instructions
 {
     code *c;
@@ -2260,10 +2279,12 @@ code **assemble(code **pc)  // reassemble scheduled instructions
     assert(!*pc);
 
     // Try to insert the rest of the staged instructions
-    list_t l;
-    for (l = stagelist; l; l = list_next(l))
+    size_t sli;
+    for (sli = 0; sli < stagelist.length; ++sli)
     {
-        Cinfo* ci = cast(Cinfo *)list_ptr(l);
+        Cinfo* ci = stagelist[sli];
+        if (!ci)
+            continue;
         if (!insert(ci))
             break;
     }
@@ -2344,8 +2365,10 @@ code **assemble(code **pc)  // reassemble scheduled instructions
     }
 
     // Just append any instructions left in the staging area
-    for (; l; l = list_next(l))
-    {   Cinfo *ci = cast(Cinfo *)list_ptr(l);
+    foreach (ci; stagelist[sli .. stagelist.length])
+    {
+        if (!ci)
+            continue;
 
         debug
         if (debugs) { printf("appending: "); ci.c.print(); }
@@ -2359,7 +2382,7 @@ code **assemble(code **pc)  // reassemble scheduled instructions
         fpustackused += ci.fpuadjust;
         //printf("stage()2: fpustackused = %d\n", fpustackused);
     }
-    list_free(&stagelist);
+    stagelist.setLength(0);
 
     return pc;
 }
@@ -2668,94 +2691,93 @@ Linsert:
 
 /******************************
  * Insert c into staging area.
+ * Params:
+ *      c = instruction to stage
  * Returns:
- *      0       could not be scheduled; have to start a new one
+ *      false if could not be scheduled; have to start a new one
  */
 
-int stage(code *c)
-{   Cinfo *ci;
-    list_t ln;
-    int agi;
-
+@trusted
+bool stage(code *c)
+{
     //printf("stage: "); c.print();
     if (cinfomax == TBLMAX)             // if out of space
-        goto Lnostage;
-    ci = &cinfo[cinfomax++];
+        return false;
+    auto ci = &cinfo[cinfomax++];
     getinfo(ci,c);
 
     if (c.Iflags & (CFtarg | CFtarg2 | CFvolatile | CFvex))
     {
         // Insert anything in stagelist
-        for (list_t l = stagelist; l; l = ln)
+        foreach (ref cs;  stagelist[])
         {
-            ln = list_next(l);
-            Cinfo* cs = cast(Cinfo *)list_ptr(l);
-            if (!insert(cs))
-                return 0;
-            list_subtract(&stagelist,cs);
+            if (cs)
+            {
+                if (!insert(cs))
+                    return false;
+                cs = null;
+            }
         }
-        return insert(ci);
+        return insert(ci) != 0;
     }
 
     // Look through stagelist, and insert any AGI conflicting instructions
-    agi = 0;
-    for (list_t l = stagelist; l; l = ln)
+    bool agi = false;
+    foreach (ref cs; stagelist[])
     {
-        ln = list_next(l);
-        Cinfo* cs = cast(Cinfo *)list_ptr(l);
-        if (pair_agi(cs,ci))
+        if (cs)
         {
-            if (!insert(cs))
-                goto Lnostage;
-            list_subtract(&stagelist,cs);
-            agi = 1;                    // we put out an AGI
+            if (pair_agi(cs,ci))
+            {
+                if (!insert(cs))
+                    goto Lnostage;
+                cs = null;
+                agi = true;                    // we put out an AGI
+            }
         }
     }
 
     // Look through stagelist, and insert any other conflicting instructions
-    for (list_t l = stagelist; l; l = ln)
+    foreach (i, ref cs; stagelist[])
     {
-        ln = list_next(l);
-        Cinfo* cs = cast(Cinfo *)list_ptr(l);
+        if (!cs)
+            continue;
         if (conflict(cs,ci,0) &&                // if conflict
-            !(cs.flags & ci.flags & CIFLpush))
+            !(cs.flags & ci.flags & CIFL.push))
         {
             if (cs.spadjust)
             {
                 // We need to insert all previous adjustments to ESP
-                list_t lan;
-
-                for (list_t la = stagelist; la != l; la = lan)
+                foreach (ref ca; stagelist[0 .. i])
                 {
-                    lan = list_next(la);
-                    Cinfo* ca = cast(Cinfo *)list_ptr(la);
-                    if (ca.spadjust)
-                    {   if (!insert(ca))
+                    if (ca && ca.spadjust)
+                    {
+                        if (!insert(ca))
                             goto Lnostage;
-                        list_subtract(&stagelist,ca);
+                        ca = null;
                     }
                 }
             }
 
             if (!insert(cs))
                 goto Lnostage;
-            list_subtract(&stagelist,cs);
+            cs = null;
         }
     }
 
     // If floating point opcode, don't stage it, send it right out
-    if (!agi && ci.flags & CIFLnostage)
+    if (!agi && ci.flags & CIFL.nostage)
     {
         if (!insert(ci))
             goto Lnostage;
-        return 1;
+        return true;
     }
 
-    list_append(&stagelist,ci);         // append to staging list
-    return 1;
+    stagelist.push(ci);         // append to staging list
+    return true;
 
 Lnostage:
-    return 0;
+    return false;
 }
 
 }
@@ -2799,11 +2821,12 @@ private code * csnip(code *c)
  * based on Steve Russell's algorithm.
  */
 
+@trusted
 private code *schedule(code *c,regm_t scratch)
 {
     code *cresult = null;
     code **pctail = &cresult;
-    Schedule sch;
+    Schedule sch = void;
 
     sch.initialize(0);                  // initialize scheduling table
     while (c)
@@ -2837,6 +2860,7 @@ private code *schedule(code *c,regm_t scratch)
         //printf("assem %d\n",sch.tblmax);
         pctail = sch.assemble(pctail);  // reassemble instruction stream
     }
+    sch.dtor();
 
     return cresult;
 }
@@ -2944,7 +2968,7 @@ private void code_swap(code *c1,code *c2)
     c2.next = cs.next;
 }
 
-code *peephole(code *cstart,regm_t scratch)
+private code *peephole(code *cstart,regm_t scratch)
 {
     // Look for cases of:
     //  MOV r1,r2
@@ -3176,7 +3200,6 @@ Lnop:
         c1 = cnext(c1);
         goto Ln;
     }
-L1:
     return cstart;
 }
 
@@ -3187,6 +3210,7 @@ L1:
  * to scheduling.
  */
 
+@trusted
 code *simpleops(code *c,regm_t scratch)
 {   code *cstart;
     uint reg;

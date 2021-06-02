@@ -22,16 +22,34 @@ subPackage {
     "src/dmd/console.d" \
     "src/dmd/entity.d" \
     "src/dmd/errors.d" \
+    "src/dmd/filecache.d" \
     "src/dmd/globals.d" \
     "src/dmd/id.d" \
     "src/dmd/identifier.d" \
     "src/dmd/lexer.d" \
     "src/dmd/tokens.d" \
-    "src/dmd/utf.d"
+    "src/dmd/utf.d" \
+    "src/dmd/utils.d"
 
-  preGenerateCommands `"$${DC}" -run "$${DUB_PACKAGE_DIR}/config.d" "$${DUB_PACKAGE_DIR}/generated/dub" "$${DUB_PACKAGE_DIR}/VERSION" /etc` platform="posix"
-  preGenerateCommands `"%DC%" -run "%DUB_PACKAGE_DIR%/config.d" "%DUB_PACKAGE_DIR%/generated/dub" "%DUB_PACKAGE_DIR%/VERSION"` platform="windows"
-  stringImportPaths "generated/dub"
+  versions \
+    "CallbackAPI" \
+    "DMDLIB"
+
+  preGenerateCommands `
+    "$${DUB_EXE}" \
+    --arch=$${DUB_ARCH} \
+    --compiler=$${DC} \
+    --single "$${DUB_PACKAGE_DIR}config.d" \
+    -- "$${DUB_PACKAGE_DIR}generated/dub" \
+    "$${DUB_PACKAGE_DIR}VERSION" \
+    /etc
+   ` platform="posix"
+
+  preGenerateCommands `"%DUB_EXE%" --arch=%DUB_ARCH% --compiler="%DC%" --single "%DUB_PACKAGE_DIR%config.d" -- "%DUB_PACKAGE_DIR%generated/dub" "%DUB_PACKAGE_DIR%VERSION"` platform="windows"
+
+  stringImportPaths \
+    "src/dmd/res" \
+    "generated/dub"
 
   dependency "dmd:root" version="*"
 }
@@ -48,21 +66,72 @@ subPackage {
     "src/dmd/permissivevisitor.d" \
     "src/dmd/strictvisitor.d"
 
+  versions "CallbackAPI"
+
   dependency "dmd:lexer" version="*"
 }
 
 subPackage {
   name "frontend"
   targetType "library"
-  preGenerateCommands `"$${DC}" -run "$${DUB_PACKAGE_DIR}/config.d" "$${DUB_PACKAGE_DIR}/generated/dub" "$${DUB_PACKAGE_DIR}/VERSION" /etc` platform="posix"
-  preGenerateCommands `"%DC%" -run "%DUB_PACKAGE_DIR%/config.d" "%DUB_PACKAGE_DIR%/generated/dub" "%DUB_PACKAGE_DIR%/VERSION"` platform="windows"
-  stringImportPaths "generated/dub"
-  stringImportPaths "res"
-  versions "NoBackend"
-  versions "GC"
-  versions "NoMain"
-  versions "MARS"
   sourcePaths "src/dmd"
+  stringImportPaths "src/dmd/res"
+
+  versions \
+    "NoBackend" \
+    "GC" \
+    "NoMain" \
+    "MARS" \
+    "CallbackAPI"
+
   excludedSourceFiles "src/dmd/backend/*"
-  excludedSourceFiles "src/dmd/{dmsc,e2ir,eh,glue,iasm,iasmdmd,iasmgcc,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
+  excludedSourceFiles "src/dmd/root/*"
+  excludedSourceFiles "src/dmd/{\
+    astbase,\
+    console,\
+    entity,\
+    errors,\
+    filecache,\
+    globals,\
+    id,\
+    identifier,\
+    lexer,\
+    parse,\
+    permissivevisitor,\
+    strictvisitor,\
+    tokens,\
+    transitivevisitor,\
+    utf,\
+    utils\
+  }.d"
+  excludedSourceFiles "src/dmd/{\
+    dmsc,\
+    e2ir,\
+    eh,\
+    glue,\
+    iasm,\
+    iasmdmd,\
+    iasmgcc,\
+    irstate,\
+    lib,\
+    libelf,\
+    libmach,\
+    libmscoff,\
+    libomf,\
+    link,\
+    objc_glue,\
+    s2ir,\
+    scanelf,\
+    scanmach,\
+    scanmscoff,\
+    scanomf,\
+    tocsym,\
+    toctype,\
+    tocvdebug,\
+    toobj,\
+    todt,\
+    toir\
+  }.d"
+
+  dependency "dmd:parser" version="*"
 }

@@ -1,5 +1,6 @@
 *.[oa]
 *.deps
+.B*
 test/test_results
 test/trace.def
 test/trace.log
@@ -17,6 +18,7 @@ generated/
 *.pdb
 src/vcbuild/Win32
 src/vcbuild/x64
+src/vcbuild/.vs
 *.ncb
 *.suo
 *.sdf
@@ -42,3 +44,7 @@ src/optabgen.dSYM/
 # GCov
 *.gcno
 *.gcda
+
+# IntelliJ IDEA / CLion
+.idea/
+dmd.iml

@@ -1,12 +1,13 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Constants and data structures specific to the x86 platform.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.c, backend/code_x86.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.d, backend/code_x86.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_code_x86.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/code_x86.d
  */
 
 module dmd.backend.code_x86;
@@ -19,6 +20,13 @@ import dmd.backend.code;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
+import dmd.backend.barray;
+
+nothrow:
+@safe:
+
+alias opcode_t = uint;          // CPU opcode
+enum opcode_t NoOpcode = 0xFFFF;              // not a valid opcode_t
 
 /* Register definitions */
 
@@ -56,6 +64,8 @@ enum
     XMM15   = 31,
 }
 
+bool isXMMreg(reg_t reg) pure { return reg >= XMM0 && reg <= XMM15; }
+
 enum PICREG = BX;
 
 enum ES     = 24;
@@ -71,7 +81,7 @@ enum STACK   = 26;      // top of stack
 enum ST0     = 27;      // 8087 top of stack register
 enum ST01    = 28;      // top two 8087 registers; for complex types
 
-enum NOREG   = 29;     // no register
+enum reg_t NOREG   = 29;     // no register
 
 enum
 {
@@ -131,21 +141,12 @@ enum RMstore = (1 << 31);
 extern (C++) extern __gshared regm_t ALLREGS;
 extern (C++) extern __gshared regm_t BYTEREGS;
 
-static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
     // To support positional independent code,
     // must be able to remove BX from available registers
     enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);
     enum ALLREGS_INIT_PIC      = (mAX|mCX|mDX|mSI|mDI);
     enum BYTEREGS_INIT         = (mAX|mBX|mCX|mDX);
     enum BYTEREGS_INIT_PIC     = (mAX|mCX|mDX);
-}
-else
-{
-    enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);
-    enum BYTEREGS_INIT         = (mAX|mBX|mCX|mDX);
-}
-
 
 /* We use the same IDXREGS for the 386 as the 8088, because if
    we used ALLREGS, it would interfere with mMSW
@@ -313,9 +314,10 @@ struct code
 
     union
     {
-        uint Iop;
+        opcode_t Iop;
         struct Svex
         {
+          nothrow:
           align(1):
             ubyte  op;
 
@@ -375,6 +377,7 @@ struct code
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
+  nothrow:
     void orReg(uint reg)
     {   if (reg & 8)
             Irex |= REX_R;
@@ -411,6 +414,7 @@ enum
     SEGFS   = 0x64,
     SEGGS   = 0x65,
 
+    CMP     = 0x3B,
     CALL    = 0xE8,
     JMP     = 0xE9,    // Intra-Segment Direct
     JMPS    = 0xEB,    // JMP SHORT
@@ -421,6 +425,15 @@ enum
     LOCK    = 0xF0,
     INT3    = 0xCC,
     HLT     = 0xF4,
+    ENTER   = 0xC8,
+    LEAVE   = 0xC9,
+    MOVSXb  = 0x0FBE,
+    MOVSXw  = 0x0FBF,
+    MOVZXb  = 0x0FB6,
+    MOVZXw  = 0x0FB7,
+
+    STOSB   = 0xAA,
+    STOS    = 0xAB,
 
     STO     = 0x89,
     LOD     = 0x8B,
@@ -445,6 +458,7 @@ enum
     JG      = 0x7F,
 
     UD2     = 0x0F0B,
+    PAUSE   = 0xF390,  // aka REP NOP
 
     // NOP is used as a placeholder in the linked list of instructions, no
     // actual code will be generated for it.
@@ -535,6 +549,7 @@ uint VEX3_B2(code.Svex ivex)
         ivex.pp;
 }
 
+@trusted
 bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
 
 /************************************
@@ -546,13 +561,17 @@ struct NDP
 {
     elem *e;                    // which elem is stored here (NULL if none)
     uint offset;            // offset from e (used for complex numbers)
-
-    __gshared NDP *save;
-    __gshared int savemax;         // # of entries in save[]
-    __gshared int savetop;         // # of entries used in save[]
 }
 
-extern __gshared NDP[8] _8087elems;
+struct Globals87
+{
+    NDP[8] stack;              // 8087 stack
+    int stackused = 0;         // number of items on the 8087 stack
+
+    Barray!NDP save;           // 8087 values spilled to memory
+}
+
+extern (C++) extern __gshared Globals87 global87;
 
 void getlvalue_msw(code *);
 void getlvalue_lsw(code *);

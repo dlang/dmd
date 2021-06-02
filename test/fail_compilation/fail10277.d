@@ -1,5 +1,5 @@
+// EXTRA_FILES: imports/fail10277.d
 module fail10227;
-
 /*
 TEST_OUTPUT:
 ---

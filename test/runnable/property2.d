@@ -1,3 +1,23 @@
+/*
+TEST_OUTPUT:
+---
+decl: test
+stmt: test
+---
+
+RUN_OUTPUT:
+---
+0: getter
+1: setter
+2: getter
+3: setter
+4: setter
+5: compile error
+6: compile error
+7: setter
+Success
+---
+*/
 extern (C) int printf(const char* fmt, ...);
 
 /*******************************************/

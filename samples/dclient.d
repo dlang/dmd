@@ -15,8 +15,9 @@
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import core.sys.windows.windows;
 import core.sys.windows.com;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
 
 GUID CLSID_Hello = { 0x30421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
 GUID IID_IHello  = { 0x00421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
@@ -106,7 +107,7 @@ int dll_regserver(const (char) *dllname, int flag)
     if (SUCCEEDED(CoInitialize(null)))
     {
         hMod=LoadLibraryA(dllname);
-        printf("hMod = %d\n", hMod);
+        printf("hMod = %p\n", hMod);
 
         if (hMod)
         {

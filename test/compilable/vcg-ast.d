@@ -42,3 +42,19 @@ class C
         return 2;
     }
 }
+
+enum __c_wchar_t : dchar;
+alias wchar_t = __c_wchar_t;
+
+T[] values(T)()
+{
+    T[] values;
+    values ~= T();
+    return values;
+}
+
+void main()
+{
+    values!wchar_t;
+}
+

@@ -1,9 +1,11 @@
-module dmd.astcodegen;
-
 /**
+ * Defines AST nodes for the code generation stage.
+ *
  * Documentation:  https://dlang.org/phobos/dmd_astcodegen.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astcodegen.d
  */
+module dmd.astcodegen;
+
 
 struct ASTCodegen
 {
@@ -42,6 +44,7 @@ struct ASTCodegen
     alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;
     alias Parameter                 = dmd.mtype.Parameter;
+    alias Tarray                    = dmd.mtype.Tarray;
     alias Taarray                   = dmd.mtype.Taarray;
     alias Tbool                     = dmd.mtype.Tbool;
     alias Tchar                     = dmd.mtype.Tchar;
@@ -53,6 +56,7 @@ struct ASTCodegen
     alias Tfloat64                  = dmd.mtype.Tfloat64;
     alias Tfloat80                  = dmd.mtype.Tfloat80;
     alias Tfunction                 = dmd.mtype.Tfunction;
+    alias Tpointer                  = dmd.mtype.Tpointer;
     alias Tident                    = dmd.mtype.Tident;
     alias Tint8                     = dmd.mtype.Tint8;
     alias Tint16                    = dmd.mtype.Tint16;
@@ -67,14 +71,16 @@ struct ASTCodegen
     alias Tvoid                     = dmd.mtype.Tvoid;
     alias Twchar                    = dmd.mtype.Twchar;
 
+    alias ParameterList             = dmd.mtype.ParameterList;
+    alias VarArg                    = dmd.mtype.VarArg;
     alias STC                       = dmd.declaration.STC;
     alias Dsymbol                   = dmd.dsymbol.Dsymbol;
     alias Dsymbols                  = dmd.dsymbol.Dsymbols;
-    alias Prot                      = dmd.dsymbol.Prot;
+    alias Visibility                = dmd.dsymbol.Visibility;
 
     alias stcToBuffer               = dmd.hdrgen.stcToBuffer;
     alias linkageToChars            = dmd.hdrgen.linkageToChars;
-    alias protectionToChars         = dmd.hdrgen.protectionToChars;
+    alias visibilityToChars         = dmd.hdrgen.visibilityToChars;
 
     alias isType                    = dmd.dtemplate.isType;
     alias isExpression              = dmd.dtemplate.isExpression;

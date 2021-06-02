@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2000-2018 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright), Dave Fladebo
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -16,6 +16,12 @@ import core.stdc.stdlib;
 import core.stdc.string;
 
 alias hash_t = size_t;
+
+version (MARS)
+    import dmd.root.hash;
+
+nothrow:
+@safe:
 
 /*********************
  * This is the "bucket" used by the AArray.
@@ -37,6 +43,7 @@ private struct aaA
 
 struct AArray(TKey, Value)
 {
+nothrow:
     alias Key = TKey.Key;       // key type
 
     ~this()
@@ -47,6 +54,7 @@ struct AArray(TKey, Value)
     /****
      * Frees all the data used by AArray
      */
+    @trusted
     void destroy()
     {
         if (buckets)
@@ -83,7 +91,7 @@ struct AArray(TKey, Value)
      * Returns:
      *  pointer to Value
      */
-
+    @trusted
     Value* get(Key* pkey)
     {
         //printf("AArray::get()\n");
@@ -144,6 +152,7 @@ struct AArray(TKey, Value)
      *  !=null  in aa, return pointer to value
      */
 
+    @trusted
     Value* isIn(Key* pkey)
     {
         //printf("AArray.isIn(), .length = %d, .ptr = %p\n", nodes, buckets.ptr);
@@ -177,6 +186,7 @@ struct AArray(TKey, Value)
      *  pKey = pointer to key
      */
 
+    @trusted
     void del(Key *pkey)
     {
         if (!nodes)
@@ -208,6 +218,7 @@ struct AArray(TKey, Value)
      *  malloc'd array of keys
      */
 
+    @trusted
     Key[] keys()
     {
         if (!nodes)
@@ -234,6 +245,7 @@ struct AArray(TKey, Value)
      *  malloc'd array of values
      */
 
+    @trusted
     Value[] values()
     {
         if (!nodes)
@@ -259,6 +271,7 @@ struct AArray(TKey, Value)
      * Rehash an array.
      */
 
+    @trusted
     void rehash()
     {
         //printf("Rehash\n");
@@ -295,7 +308,7 @@ struct AArray(TKey, Value)
         buckets = newbuckets[0 .. newbuckets_length];
     }
 
-
+    alias applyDg = nothrow int delegate(Key*, Value*);
     /*********************************************
      * For each element in the AArray,
      * call dg(Key* pkey, Value* pvalue)
@@ -307,7 +320,8 @@ struct AArray(TKey, Value)
      *  0   : no entries in aa, or all dg() calls returned 0
      */
 
-    int apply(int delegate(Key*, Value*) dg)
+    @trusted
+    int apply(applyDg dg)
     {
         if (!nodes)
             return 0;
@@ -320,7 +334,7 @@ struct AArray(TKey, Value)
         {
             while (e)
             {
-                auto result = dg(cast(Key*)(e + 1), cast(Value*)(e + 1) + aligned_keysize);
+                auto result = dg(cast(Key*)(e + 1), cast(Value*)(cast(void*)(e + 1) + aligned_keysize));
                 if (result)
                     return result;
                 e = e.next;
@@ -356,13 +370,13 @@ size_t aligntsize(size_t tsize)
 
 immutable uint[14] prime_list =
 [
-    97U,         389U,
-    1543U,       6151U,
-    24593U,      98317U,
-    393241U,     1572869U,
-    6291469U,    25165843U,
-    100663319U,  402653189U,
-    1610612741U, 4294967291U
+               97,           389,
+             1543,          6151,
+           24_593,        98_317,
+          393_241,     1_572_869,
+        6_291_469,    25_165_843,
+      100_663_319,   402_653_189,
+    1_610_612_741, 4_294_967_291U,
 ];
 
 /***************************************************************/
@@ -374,6 +388,7 @@ immutable uint[14] prime_list =
  */
 public struct Tinfo(K)
 {
+nothrow:
     alias Key = K;
 
     static hash_t getHash(Key* pk)
@@ -394,17 +409,27 @@ public struct Tinfo(K)
  */
 public struct TinfoChars
 {
+nothrow:
     alias Key = const(char)[];
 
     static hash_t getHash(Key* pk)
     {
-        auto buf = *pk;
-        hash_t hash = 0;
-        foreach (v; buf)
-            hash = hash * 11 + v;
-        return hash;
+        version (MARS)
+        {
+            auto buf = *pk;
+            return calcHash(cast(const(ubyte[]))buf);
+        }
+        else
+        {
+            auto buf = *pk;
+            hash_t hash = 0;
+            foreach (v; buf)
+                hash = hash * 11 + v;
+            return hash;
+        }
     }
 
+    @trusted
     static bool equals(Key* pk1, Key* pk2)
     {
         auto buf1 = *pk1;
@@ -417,9 +442,11 @@ public struct TinfoChars
 // Interface for C++ code
 public extern (C++) struct AAchars
 {
+nothrow:
     alias AA = AArray!(TinfoChars, uint);
     AA aa;
 
+    @trusted
     static AAchars* create()
     {
         auto a = cast(AAchars*)calloc(1, AAchars.sizeof);
@@ -427,15 +454,16 @@ public extern (C++) struct AAchars
         return a;
     }
 
+    @trusted
     static void destroy(AAchars* aac)
     {
         aac.aa.destroy();
         free(aac);
     }
 
-    uint* get(const(char)* s, uint len)
+    @trusted
+    extern(D) uint* get(const(char)[] buf)
     {
-        auto buf = s[0 .. len];
         return aa.get(&buf);
     }
 
@@ -449,23 +477,34 @@ public extern (C++) struct AAchars
 
 // Key is the slice specified by (*TinfoPair.pbase)[Pair.start .. Pair.end]
 
-struct Pair { uint start, end; }
+public struct Pair { uint start, end; }
 
 public struct TinfoPair
 {
+nothrow:
     alias Key = Pair;
 
     ubyte** pbase;
 
+    @trusted
     hash_t getHash(Key* pk)
     {
-        auto buf = (*pbase)[pk.start .. pk.end];
-        hash_t hash = 0;
-        foreach (v; buf)
-            hash = hash * 11 + v;
-        return hash;
+        version (MARS)
+        {
+            auto buf = (*pbase)[pk.start .. pk.end];
+            return calcHash(buf);
+        }
+        else
+        {
+            auto buf = (*pbase)[pk.start .. pk.end];
+            hash_t hash = 0;
+            foreach (v; buf)
+                hash = hash * 11 + v;
+            return hash;
+        }
     }
 
+    @trusted
     bool equals(Key* pk1, Key* pk2)
     {
         const len1 = pk1.end - pk1.start;
@@ -481,9 +520,11 @@ public struct TinfoPair
 // Interface for C++ code
 public extern (C++) struct AApair
 {
+nothrow:
     alias AA = AArray!(TinfoPair, uint);
     AA aa;
 
+    @trusted
     static AApair* create(ubyte** pbase)
     {
         auto a = cast(AApair*)calloc(1, AApair.sizeof);
@@ -492,13 +533,51 @@ public extern (C++) struct AApair
         return a;
     }
 
+    @trusted
     static void destroy(AApair* aap)
     {
         aap.aa.destroy();
         free(aap);
     }
 
+    @trusted
     uint* get(uint start, uint end)
+    {
+        auto p = Pair(start, end);
+        return aa.get(&p);
+    }
+
+    uint length()
+    {
+        return cast(uint)aa.length();
+    }
+}
+
+// Interface for C++ code
+public extern (C++) struct AApair2
+{
+nothrow:
+    alias AA = AArray!(TinfoPair, Pair);
+    AA aa;
+
+    @trusted
+    static AApair2* create(ubyte** pbase)
+    {
+        auto a = cast(AApair2*)calloc(1, AApair2.sizeof);
+        assert(a);
+        a.aa.tkey.pbase = pbase;
+        return a;
+    }
+
+    @trusted
+    static void destroy(AApair2* aap)
+    {
+        aap.aa.destroy();
+        free(aap);
+    }
+
+    @trusted
+    Pair* get(uint start, uint end)
     {
         auto p = Pair(start, end);
         return aa.get(&p);
@@ -512,23 +591,7 @@ public extern (C++) struct AApair
 
 /*************************************************************/
 
-version (none)
-{
-
-/* Since -betterC doesn't support unittests, do it this way
- * for the time being.
- * This is a stand-alone file anyway.
- */
-
-int main()
-{
-    testAArray();
-    testAApair();
-
-    return 0;
-}
-
-void testAArray()
+@system unittest
 {
     int dg(int* pk, bool* pv) { return 3; }
     int dgz(int* pk, bool* pv) { return 0; }
@@ -570,9 +633,17 @@ void testAArray()
     auto values = aa.values();
     assert(values.length == 1);
     assert(values[0] == false);
+
+    AArray!(Tinfo!int, bool) aa2;
+    int key = 10;
+    bool* getpv = aa2.get(&key);
+    aa2.apply(delegate(int* pk, bool* pv) @trusted {
+        assert(pv is getpv);
+        return 0;
+    });
 }
 
-void testAApair()
+@system unittest
 {
     const(char)* buf = "abcb";
     auto aap = AApair.create(cast(ubyte**)&buf);
@@ -582,6 +653,4 @@ void testAApair()
     pu = aap.get(3,4);
     assert(*pu == 10);
     AApair.destroy(aap);
-}
-
 }

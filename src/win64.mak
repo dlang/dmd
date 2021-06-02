@@ -1,3 +1,4 @@
+# DEPRECATED - use src\build.d
 #_ win64.mak
 #
 # Supports same targets as win32.mak.
@@ -13,15 +14,14 @@ OS=windows
 ################################### Rules ####################################
 
 .d.exe:
-	$(HOST_DC) -of$@ $<
+	$(HOST_DC) -g -of$@ $<
 
 D=dmd
 GEN = ..\generated
 G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
-OBJ_MSVC=$G/strtold.obj $G/longdouble.obj
-DEPENDENCIES=vcbuild\msvc-dmc.exe vcbuild\msvc-lib.exe $G
+DEPENDENCIES=vcbuild\msvc-lib.exe $G
 
-MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" BUILD=$(BUILD) MODEL=$(MODEL) HOST_DC=$(HOST_DC) GEN="$(GEN)" G="$G" OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
+MAKE_WIN32=$(MAKE) -f win32.mak "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "MAKE=$(MAKE)" "VERBOSE=$(VERBOSE)" "ENABLE_RELEASE=$(ENABLE_RELEASE)" "ENABLE_DEBUG=$(ENABLE_DEBUG)" "ENABLE_ASSERTS=$(ENABLE_ASSERTS)" "ENABLE_UNITTEST=$(ENABLE_UNITTEST)" "ENABLE_PROFILE=$(ENABLE_PROFILE)" "ENABLE_COVERAGE=$(ENABLE_COVERAGE)" "DFLAGS=$(DFLAGS)" "GEN=$(GEN)" "G=$G" "LIB=vcbuild\msvc-lib"
 
 ################################## Targets ###################################
 
@@ -32,7 +32,7 @@ release : $(DEPENDENCIES)
 trace : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 clean :
-	del $(DEPENDENCIES) dmd.pdb
+	del /s /q $(DEPENDENCIES) dmd.pdb
 	$(MAKE_WIN32) $@
 install : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
@@ -40,13 +40,15 @@ install-clean : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 zip : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
-scp : $(DEPENDENCIES)
-	$(MAKE_WIN32) $@
 dmd : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 debdmd : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 reldmd : $(DEPENDENCIES)
+	$(MAKE_WIN32) $@
+reldmd-asserts : $(DEPENDENCIES)
+	$(MAKE_WIN32) $@
+unittest : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 detab : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@

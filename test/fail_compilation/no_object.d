@@ -1,6 +1,5 @@
 /*
 DFLAGS:
-REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
 Error: cannot find source code for runtime library file 'object.d'

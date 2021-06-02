@@ -1,5 +1,11 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS:
+/*
+TEST_OUTPUT:
+---
+runnable/test4.d(717): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 import core.exception;
 import core.stdc.math;
@@ -543,25 +549,6 @@ void test16()
 
 /* ================================ */
 
-void test17()
-{
-    creal z = 1. + 2.0i;
-
-    real r = z.re;
-    assert(r == 1.0);
-
-    real i = z.im;
-    assert(i == 2.0);
-
-    assert(r.im == 0.0);
-    assert(r.re == 1.0);
-
-    assert(i.re == 2.0);
-    assert(i.im == 0.0i);
-}
-
-/* ================================ */
-
 private const uint[256] crc_table = [
     0x00000000u, 0x77073096u, 0xee0e612cu, 0x990951bau, 0x076dc419u,
     0x2d02ef8du
@@ -605,11 +592,6 @@ extern (C) int cfc(int x, int y)
     return x * 10 + y;
 }
 
-extern (Pascal) int cfp(int x, int y)
-{
-    return x * 10 + y;
-}
-
 int cfd(int x, int y)
 {
     return x * 10 + y;
@@ -618,7 +600,6 @@ int cfd(int x, int y)
 
 extern (Windows) int function (int, int) fpw;
 extern (C) int function (int, int) fpc;
-extern (Pascal) int function (int, int) fpp;
 int function (int, int) fpd;
 
 void test20()
@@ -628,7 +609,6 @@ void test20()
 
     fpw = &cfw;
     fpc = &cfc;
-    fpp = &cfp;
     fpd = &cfd;
 
 //printf("test w\n");
@@ -639,31 +619,9 @@ void test20()
     i = (*fpc)(3, 4);
     assert(i == 34);
 
-//printf("test p\n");
-    i = (*fpp)(5, 6);
-    assert(i == 56);
-
 //printf("test d\n");
     i = (*fpd)(7, 8);
     assert(i == 78);
-}
-
-
-/* ================================ */
-
-void test21()
-{
-    ireal imag = 2.5i;
-    printf ("test of imag*imag = %Lf\n",imag*imag);
-    assert(imag * imag == -6.25);
-}
-
-/* ================================ */
-
-void test22()
-{
-    creal z1 = 1. - 2.0i;
-    ireal imag_part = z1.im/1i;
 }
 
 
@@ -989,11 +947,11 @@ void test43()
 {
     string s;
 
-    s = __FILE__; printf("file = '%.*s'\n", s.length, s.ptr);
+    s = __FILE__; printf("file = '%.*s'\n", cast(int)s.length, s.ptr);
     printf("line = %d\n", __LINE__);
-    s = __DATE__; printf("date = '%.*s'\n", s.length, s.ptr);
-    s = __TIME__; printf("time = '%.*s'\n", s.length, s.ptr);
-    s = __TIMESTAMP__; printf("timestamp = '%.*s'\n", s.length, s.ptr);
+    s = __DATE__; printf("date = '%.*s'\n", cast(int)s.length, s.ptr);
+    s = __TIME__; printf("time = '%.*s'\n", cast(int)s.length, s.ptr);
+    s = __TIMESTAMP__; printf("timestamp = '%.*s'\n", cast(int)s.length, s.ptr);
 }
 
 /* ================================ */
@@ -1154,7 +1112,10 @@ class Cout{
         Cout set(int x){
                 return this;
         }
-        alias set opShl;
+        Cout opBinary(string op)(int x) if (op == "<<")
+        {
+            return set(x);
+        }
 }
 
 void test49()
@@ -1261,7 +1222,7 @@ void test54()
         }
         catch(Exception e)
         {
-                printf("catch %.*s\n", e.msg.length, e.msg.ptr);
+                printf("catch %.*s\n", cast(int)e.msg.length, e.msg.ptr);
                 assert(e.msg == "first");
                 assert(e.next.msg == "second");
         }
@@ -1281,7 +1242,7 @@ void foo55()
     catch (Exception e)
     {
         printf("inner catch %p\n", e);
-        printf("e.msg == %.*s\n", e.msg.length, e.msg.ptr);
+        printf("e.msg == %.*s\n", cast(int)e.msg.length, e.msg.ptr);
         assert(e.msg == "second");
         //assert(e.msg == "first");
         //assert(e.next.msg == "second");
@@ -1415,6 +1376,46 @@ void test59()
 
 
 /* ================================ */
+// https://issues.dlang.org/show_bug.cgi?id=10664
+
+Exception collectExceptionE(int delegate () expression, ref int result)
+{
+    try
+    {
+        result = expression();
+    }
+    catch (Exception e)
+    {
+        return e;
+    }
+    return null;
+}
+
+RangeError collectExceptionR(int delegate () expression, ref int result)
+{
+    try
+    {
+        result = expression();
+    }
+    catch (RangeError e)
+    {
+        return e;
+    }
+    return null;
+}
+
+void test10664()
+{
+    int b;
+    int foo() { throw new Exception("blah"); }
+    assert(collectExceptionE(&foo, b));
+
+    int[] a = new int[3];
+    int goo() { return a[4]; }
+    collectExceptionR(&goo, b);
+}
+
+/* ================================ */
 
 
 int main()
@@ -1435,12 +1436,9 @@ int main()
     test14();
     //test15();
     test16();
-    test17();
     test18();
     test19();
     test20();
-    test21();
-    test22();
     test23();
     test24();
 //    test26();
@@ -1476,8 +1474,8 @@ int main()
     test57();
     test58();
     test59();
+    test10664();
 
     printf("Success\n");
     return 0;
 }
-

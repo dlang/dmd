@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1993-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/glocal.d, backend/glocal.d)
@@ -35,17 +35,21 @@ import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 extern (C++):
+
+nothrow:
+@safe:
 
 int REGSIZE();
 
 
 enum
 {
-    LFvolatile     = 1,       // contains volatile refs or defs
+    LFvolatile     = 1,       // contains volatile or shared refs or defs
     LFambigref     = 2,       // references ambiguous data
     LFambigdef     = 4,       // defines ambiguous data
     LFsymref       = 8,       // reference to symbol s
@@ -64,13 +68,6 @@ struct loc_t
     int flags;  // LFxxxxx
 }
 
-struct Loctab
-{
-    loc_t *data;
-    uint allocdim;
-    uint dim;
-}
-
 
 ///////////////////////////////
 // This optimization attempts to replace sequences like:
@@ -84,25 +81,19 @@ struct Loctab
 // as near as we can to where they are used. This should minimize
 // temporary generation and register usage.
 
+@trusted
 void localize()
 {
     if (debugc) printf("localize()\n");
 
-    __gshared Loctab loctab;       // cache the array so it usually won't need reallocating
-
-    Loctab* lt = &loctab;
+    __gshared Barray!(loc_t) loctab;       // cache the array so it usually won't need reallocating
 
     // Table should not get any larger than the symbol table
-    if (lt.allocdim < globsym.symmax)
-    {
-        lt.allocdim = globsym.symmax;
-        lt.data = cast(loc_t *) realloc(lt.data, lt.allocdim * loc_t.sizeof);
-        assert(lt.data);
-    }
+    loctab.setLength(globsym.symmax);
 
     foreach (b; BlockRange(startblock))       // for each block
     {
-        lt.dim = 0;                     // start over for each block
+        loctab.setLength(0);                     // start over for each block
         if (b.Belem &&
             /* Overly broad way to account for the case:
              * try
@@ -113,7 +104,7 @@ void localize()
              */
             !b.Btry)
         {
-            local_exp(*lt,b.Belem,0);
+            local_exp(loctab,b.Belem,0);
         }
     }
 }
@@ -123,11 +114,11 @@ void localize()
 //      goal    !=0 if we want the result of the expression
 //
 
-private void local_exp(ref Loctab lt, elem *e, int goal)
+@trusted
+private void local_exp(ref Barray!loc_t lt, elem *e, int goal)
 {
-    Symbol *s;
     elem *e1;
-    int op1;
+    OPER op1;
 
 Loop:
     elem_debug(e);
@@ -142,17 +133,17 @@ Loop:
         case OPandand:
         case OPoror:
             local_exp(lt,e.EV.E1,1);
-            lt.dim = 0;         // we can do better than this, fix later
+            lt.setLength(0);         // we can do better than this, fix later
             break;
 
         case OPcolon:
         case OPcolon2:
-            lt.dim = 0;         // we can do better than this, fix later
+            lt.setLength(0);         // we can do better than this, fix later
             break;
 
         case OPinfo:
             if (e.EV.E1.Eoper == OPmark)
-            {   lt.dim = 0;
+            {   lt.setLength(0);
                 e = e.EV.E2;
                 goto Loop;
             }
@@ -161,22 +152,24 @@ Loop:
         case OPdtor:
         case OPctor:
         case OPdctor:
-            lt.dim = 0;         // don't move expressions across ctor/dtor
+            lt.setLength(0);         // don't move expressions across ctor/dtor
             break;              // boundaries, it would goof up EH cleanup
 
         case OPddtor:
-            lt.dim = 0;         // don't move expressions across ctor/dtor
+            lt.setLength(0);         // don't move expressions across ctor/dtor
                                 // boundaries, it would goof up EH cleanup
             local_exp(lt,e.EV.E1,0);
-            lt.dim = 0;
+            lt.setLength(0);
             break;
 
         case OPeq:
         case OPstreq:
+        case OPvecsto:
             e1 = e.EV.E1;
             local_exp(lt,e.EV.E2,1);
             if (e1.Eoper == OPvar)
-            {   s = e1.EV.Vsym;
+            {
+                const s = e1.EV.Vsym;
                 if (s.Sflags & SFLunambig)
                 {   local_symdef(lt, s);
                     if (!goal)
@@ -220,13 +213,12 @@ Loop:
                     if (OTbinary(op1))
                         local_exp(lt,e1.EV.E2,1);
                 }
-                else if (lt.dim && (op == OPaddass || op == OPxorass))
+                else if (lt.length && (op == OPaddass || op == OPxorass))
                 {
-                    s = e1.EV.Vsym;
-                    for (uint u = 0; u < lt.dim; u++)
-                    {   elem *em;
-
-                        em = lt.data[u].e;
+                    const s = e1.EV.Vsym;
+                    for (uint u = 0; u < lt.length; u++)
+                    {
+                        auto em = lt[u].e;
                         if (em.Eoper == op &&
                             em.EV.E1.EV.Vsym == s &&
                             tysize(em.Ety) == tysize(e1.Ety) &&
@@ -264,8 +256,10 @@ Loop:
                     if (OTbinary(op1))
                         local_exp(lt,e1.EV.E2,1);
                 }
-                if (lt.dim)
-                {   if (op1 == OPvar &&
+                if (lt.length)
+                {
+                    Symbol* s;
+                    if (op1 == OPvar &&
                         ((s = e1.EV.Vsym).Sflags & SFLunambig))
                         local_symref(lt, s);
                     else
@@ -273,6 +267,8 @@ Loop:
                 }
                 local_exp(lt,e.EV.E2,1);
             }
+
+            Symbol* s;
             if (op1 == OPvar &&
                 ((s = e1.EV.Vsym).Sflags & SFLunambig))
             {   local_symref(lt, s);
@@ -280,7 +276,7 @@ Loop:
                 if (op == OPaddass || op == OPxorass)
                     local_ins(lt, e);
             }
-            else if (lt.dim)
+            else if (lt.length)
             {
                 local_remove(lt, LFambigdef | LFambigref);
             }
@@ -334,7 +330,7 @@ Loop:
                 /* Don't want to rearrange (p = get(); p memset 0;)
                  * as elemxxx() will rearrange it back.
                  */
-                s = e.EV.E1.EV.Vsym;
+                const s = e.EV.E1.EV.Vsym;
                 if (s.Sflags & SFLunambig)
                     local_symref(lt, s);
                 else
@@ -346,15 +342,15 @@ Loop:
             break;
 
         case OPvar:
-            s = e.EV.Vsym;
-            if (lt.dim)
+            const s = e.EV.Vsym;
+            if (lt.length)
             {
                 // If potential candidate for replacement
                 if (s.Sflags & SFLunambig)
                 {
-                    foreach (const u; 0 .. lt.dim)
+                    foreach (const u; 0 .. lt.length)
                     {
-                        auto em = lt.data[u].e;
+                        auto em = lt[u].e;
                         if (em.EV.E1.EV.Vsym == s &&
                             (em.Eoper == OPeq || em.Eoper == OPstreq))
                         {
@@ -400,8 +396,8 @@ Loop:
         case OPremquo:
             if (e.EV.E1.Eoper != OPvar)
                 goto case_bin;
-            s = e.EV.E1.EV.Vsym;
-            if (lt.dim)
+            const s = e.EV.E1.EV.Vsym;
+            if (lt.length)
             {
                 if (s.Sflags & SFLunambig)
                     local_symref(lt, s);
@@ -417,11 +413,11 @@ Loop:
             {   // Since commutative operators may get their leaves
                 // swapped, we eliminate any that may be affected by that.
 
-                for (uint u = 0; u < lt.dim;)
+                for (uint u = 0; u < lt.length;)
                 {
-                    const f = lt.data[u].flags;
-                    elem* eu = lt.data[u].e;
-                    s = eu.EV.E1.EV.Vsym;
+                    const f = lt[u].flags;
+                    elem* eu = lt[u].e;
+                    const s = eu.EV.E1.EV.Vsym;
                     const f1 = local_getflags(e.EV.E1,s);
                     const f2 = local_getflags(e.EV.E2,s);
                     if (f1 & f2 & LFsymref ||   // if both reference or
@@ -459,7 +455,8 @@ Loop:
 // Returns:
 //      true if it does
 
-private bool local_chkrem(elem *e,elem *eu)
+@trusted
+private bool local_chkrem(const elem* e, const(elem)* eu)
 {
     while (1)
     {
@@ -467,7 +464,7 @@ private bool local_chkrem(elem *e,elem *eu)
         const op = eu.Eoper;
         if (OTassign(op) && eu.EV.E1.Eoper == OPvar)
         {
-            auto s = eu.EV.E1.EV.Vsym;
+            const s = eu.EV.E1.EV.Vsym;
             const f1 = local_getflags(e.EV.E1,s);
             const f2 = local_getflags(e.EV.E2,s);
             if ((f1 | f2) & (LFsymref | LFsymdef))      // if either reference or define
@@ -486,52 +483,45 @@ private bool local_chkrem(elem *e,elem *eu)
 }
 
 //////////////////////////////////////
-// Add entry e to lt.data[]
+// Add entry e to lt[]
 
-private void local_ins(ref Loctab lt, elem *e)
+@trusted
+private void local_ins(ref Barray!loc_t lt, elem *e)
 {
     elem_debug(e);
     if (e.EV.E1.Eoper == OPvar)
     {
-        auto s = e.EV.E1.EV.Vsym;
+        const s = e.EV.E1.EV.Vsym;
         symbol_debug(s);
         if (s.Sflags & SFLunambig)     // if can only be referenced directly
         {
             const flags = local_getflags(e.EV.E2,null);
             if (!(flags & (LFvolatile | LFinp | LFoutp)) &&
-                !(e.EV.E1.Ety & mTYvolatile))
+                !(e.EV.E1.Ety & (mTYvolatile | mTYshared)))
             {
                 // Add e to the candidate array
-                //printf("local_ins('%s'), loctop = %d, locmax = %d\n",s.Sident,lt.dim,lt.allocdim);
-                assert(lt.dim < lt.allocdim);
-                lt.data[lt.dim].e = e;
-                lt.data[lt.dim].flags = flags;
-                lt.dim++;
+                //printf("local_ins('%s'), loctop = %d\n",s.Sident.ptr,lt.length);
+                lt.push(loc_t(e, flags));
             }
         }
     }
 }
 
 //////////////////////////////////////
-// Remove entry i from lt.data[], and then compress the table.
+// Remove entry i from lt[], and then compress the table.
 //
-
-private void local_rem(ref Loctab lt, uint u)
+@trusted
+private void local_rem(ref Barray!loc_t lt, size_t u)
 {
     //printf("local_rem(%u)\n",u);
-    assert(u < lt.dim);
-    if (u + 1 != lt.dim)
-    {
-        assert(u < lt.dim);
-        lt.data[u] = lt.data[lt.dim - 1];
-    }
-    --lt.dim;
+    lt.remove(u);
 }
 
 //////////////////////////////////////
 // Analyze and gather LFxxxx flags about expression e and symbol s.
 
-private int local_getflags(elem *e,Symbol *s)
+@trusted
+private int local_getflags(const(elem)* e, const Symbol* s)
 {
     elem_debug(e);
     if (s)
@@ -539,7 +529,7 @@ private int local_getflags(elem *e,Symbol *s)
     int flags = 0;
     while (1)
     {
-        if (e.Ety & mTYvolatile)
+        if (e.Ety & (mTYvolatile | mTYshared))
             flags |= LFvolatile;
         switch (e.Eoper)
         {
@@ -547,7 +537,7 @@ private int local_getflags(elem *e,Symbol *s)
             case OPstreq:
                 if (e.EV.E1.Eoper == OPvar)
                 {
-                    auto s1 = e.EV.E1.EV.Vsym;
+                    const s1 = e.EV.E1.EV.Vsym;
                     if (s1.Sflags & SFLunambig)
                         flags |= (s1 == s) ? LFsymdef : LFunambigdef;
                     else
@@ -573,7 +563,7 @@ private int local_getflags(elem *e,Symbol *s)
             case OPcmpxchg:
                 if (e.EV.E1.Eoper == OPvar)
                 {
-                    auto s1 = e.EV.E1.EV.Vsym;
+                    const s1 = e.EV.E1.EV.Vsym;
                     if (s1.Sflags & SFLunambig)
                         flags |= (s1 == s) ? LFsymdef | LFsymref
                                            : LFunambigdef | LFunambigref;
@@ -654,11 +644,11 @@ private int local_getflags(elem *e,Symbol *s)
 // Remove all entries with flags set.
 //
 
-private void local_remove(ref Loctab lt, int flags)
+private void local_remove(ref Barray!loc_t lt, int flags)
 {
-    for (uint u = 0; u < lt.dim;)
+    for (uint u = 0; u < lt.length;)
     {
-        if (lt.data[u].flags & flags)
+        if (lt[u].flags & flags)
             local_rem(lt, u);
         else
             ++u;
@@ -669,42 +659,30 @@ private void local_remove(ref Loctab lt, int flags)
 // Ambiguous reference. Remove all with ambiguous defs
 //
 
-private void local_ambigref(ref Loctab lt)
+private void local_ambigref(ref Barray!loc_t lt)
 {
-    for (uint u = 0; u < lt.dim;)
-    {
-        if (lt.data[u].flags & LFambigdef)
-            local_rem(lt, u);
-        else
-            ++u;
-    }
+    local_remove(lt, LFambigdef);
 }
 
 //////////////////////////////////////
 // Ambiguous definition. Remove all with ambiguous refs.
 //
 
-private void local_ambigdef(ref Loctab lt)
+private void local_ambigdef(ref Barray!loc_t lt)
 {
-    for (uint u = 0; u < lt.dim;)
-    {
-        if (lt.data[u].flags & (LFambigref | LFambigdef))
-            local_rem(lt, u);
-        else
-            ++u;
-    }
+    local_remove(lt, LFambigref | LFambigdef);
 }
 
 //////////////////////////////////////
 // Reference to symbol.
 // Remove any that define that symbol.
 
-private void local_symref(ref Loctab lt, Symbol *s)
+private void local_symref(ref Barray!loc_t lt, const Symbol* s)
 {
     symbol_debug(s);
-    for (uint u = 0; u < lt.dim;)
+    for (uint u = 0; u < lt.length;)
     {
-        if (local_getflags(lt.data[u].e,s) & LFsymdef)
+        if (local_getflags(lt[u].e,s) & LFsymdef)
             local_rem(lt, u);
         else
             ++u;
@@ -715,12 +693,12 @@ private void local_symref(ref Loctab lt, Symbol *s)
 // Definition of symbol.
 // Remove any that reference that symbol.
 
-private void local_symdef(ref Loctab lt, Symbol *s)
+private void local_symdef(ref Barray!loc_t lt, const Symbol* s)
 {
     symbol_debug(s);
-    for (uint u = 0; u < lt.dim;)
+    for (uint u = 0; u < lt.length;)
     {
-        if (local_getflags(lt.data[u].e,s) & (LFsymref | LFsymdef))
+        if (local_getflags(lt[u].e,s) & (LFsymref | LFsymdef))
             local_rem(lt, u);
         else
             ++u;
@@ -734,13 +712,19 @@ private void local_symdef(ref Loctab lt, Symbol *s)
  * References:
  *      https://issues.dlang.org/show_bug.cgi?id=13474
  */
+@trusted
 private bool local_preserveAssignmentTo(tym_t ty)
 {
     /* Need to preserve assignment if generating code using
      * the x87, as that is the only way to get the x87 to
      * convert to float/double precision.
      */
-    if (config.inline8087 && !config.fpxmmregs)
+    /* Don't do this for 64 bit compiles because returns are in
+     * the XMM registers so it doesn't evaluate floats/doubles in the x87.
+     * 32 bit returns are in ST0, so it evaluates in the x87.
+     * https://issues.dlang.org/show_bug.cgi?id=21526
+     */
+    if (config.inline8087 && !I64)
     {
         switch (tybasic(ty))
         {

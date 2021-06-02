@@ -1,5 +1,5 @@
 // PERMUTE_ARGS: -inline -O
-// REQUIRED_ARGS: -dip25
+// REQUIRED_ARGS: -preview=fieldwise
 
 // Test operator overloading
 
@@ -21,7 +21,7 @@ class A
 {
     string opUnary(string s)()
     {
-        printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
+        printf("A.opUnary!(%.*s)\n", cast(int)s.length, s.ptr);
         return s;
     }
 }
@@ -50,7 +50,7 @@ class A2
     T opCast(T)()
     {
         auto s = T.stringof;
-        printf("A.opCast!(%.*s)\n", s.length, s.ptr);
+        printf("A.opCast!(%.*s)\n", cast(int)s.length, s.ptr);
         return T.init;
     }
 }
@@ -73,20 +73,20 @@ struct A3
 {
     int opBinary(string s)(int i)
     {
-        printf("A.opBinary!(%.*s)\n", s.length, s.ptr);
+        printf("A.opBinary!(%.*s)\n", cast(int)s.length, s.ptr);
         return 0;
     }
 
     int opBinaryRight(string s)(int i) if (s == "/" || s == "*")
     {
-        printf("A.opBinaryRight!(%.*s)\n", s.length, s.ptr);
+        printf("A.opBinaryRight!(%.*s)\n", cast(int)s.length, s.ptr);
         return 0;
     }
 
     T opCast(T)()
     {
         auto s = T.stringof;
-        printf("A.opCast!(%.*s)\n", s.length, s.ptr);
+        printf("A.opCast!(%.*s)\n", cast(int)s.length, s.ptr);
         return T.init;
     }
 }
@@ -108,14 +108,14 @@ struct A4
 {
     int opUnary(string s)()
     {
-        printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
+        printf("A.opUnary!(%.*s)\n", cast(int)s.length, s.ptr);
         return 0;
     }
 
     T opCast(T)()
     {
         auto s = T.stringof;
-        printf("A.opCast!(%.*s)\n", s.length, s.ptr);
+        printf("A.opCast!(%.*s)\n", cast(int)s.length, s.ptr);
         return T.init;
     }
 }
@@ -145,14 +145,14 @@ class A5
 
     int opUnary(string s)()
     {
-        printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
+        printf("A.opUnary!(%.*s)\n", cast(int)s.length, s.ptr);
         return 0;
     }
 
     T opCast(T)()
     {
         auto s = T.stringof;
-        printf("A.opCast!(%.*s)\n", s.length, s.ptr);
+        printf("A.opCast!(%.*s)\n", cast(int)s.length, s.ptr);
         return T.init;
     }
 }
@@ -296,31 +296,31 @@ struct A8
 {
     int opUnary(string s)()
     {
-        printf("A.opUnary!(%.*s)\n", s.length, s.ptr);
+        printf("A.opUnary!(%.*s)\n", cast(int)s.length, s.ptr);
         return 0;
     }
 
     int opIndexUnary(string s, T)(T i)
     {
-        printf("A.opIndexUnary!(%.*s)(%d)\n", s.length, s.ptr, i);
+        printf("A.opIndexUnary!(%.*s)(%d)\n", cast(int)s.length, s.ptr, i);
         return 0;
     }
 
     int opIndexUnary(string s, T)(T i, T j)
     {
-        printf("A.opIndexUnary!(%.*s)(%d, %d)\n", s.length, s.ptr, i, j);
+        printf("A.opIndexUnary!(%.*s)(%d, %d)\n", cast(int)s.length, s.ptr, i, j);
         return 0;
     }
 
     int opSliceUnary(string s)()
     {
-        printf("A.opSliceUnary!(%.*s)()\n", s.length, s.ptr);
+        printf("A.opSliceUnary!(%.*s)()\n", cast(int)s.length, s.ptr);
         return 0;
     }
 
     int opSliceUnary(string s, T)(T i, T j)
     {
-        printf("A.opSliceUnary!(%.*s)(%d, %d)\n", s.length, s.ptr, i, j);
+        printf("A.opSliceUnary!(%.*s)(%d, %d)\n", cast(int)s.length, s.ptr, i, j);
         return 0;
     }
 }
@@ -344,31 +344,31 @@ struct A9
 {
     int opOpAssign(string s)(int i)
     {
-        printf("A.opOpAssign!(%.*s)\n", s.length, s.ptr);
+        printf("A.opOpAssign!(%.*s)\n", cast(int)s.length, s.ptr);
         return 0;
     }
 
     int opIndexOpAssign(string s, T)(int v, T i)
     {
-        printf("A.opIndexOpAssign!(%.*s)(%d, %d)\n", s.length, s.ptr, v, i);
+        printf("A.opIndexOpAssign!(%.*s)(%d, %d)\n", cast(int)s.length, s.ptr, v, i);
         return 0;
     }
 
     int opIndexOpAssign(string s, T)(int v, T i, T j)
     {
-        printf("A.opIndexOpAssign!(%.*s)(%d, %d, %d)\n", s.length, s.ptr, v, i, j);
+        printf("A.opIndexOpAssign!(%.*s)(%d, %d, %d)\n", cast(int)s.length, s.ptr, v, i, j);
         return 0;
     }
 
     int opSliceOpAssign(string s)(int v)
     {
-        printf("A.opSliceOpAssign!(%.*s)(%d)\n", s.length, s.ptr, v);
+        printf("A.opSliceOpAssign!(%.*s)(%d)\n", cast(int)s.length, s.ptr, v);
         return 0;
     }
 
     int opSliceOpAssign(string s, T)(int v, T i, T j)
     {
-        printf("A.opSliceOpAssign!(%.*s)(%d, %d, %d)\n", s.length, s.ptr, v, i, j);
+        printf("A.opSliceOpAssign!(%.*s)(%d, %d, %d)\n", cast(int)s.length, s.ptr, v, i, j);
         return 0;
     }
 }
@@ -728,7 +728,7 @@ bool test3789()
         auto ua2 = UnionA([1,2,3]);
         assert(ua1.u.x is ua2.u.x);
         assert(ua1.u.x != ua2.u.x);
-        assert(ua1 == ua2);
+        assert(ua1 != ua2);
         ua1.u.x = 1.0;
         ua2.u.x = 1.0;
         assert(ua1.u.x is ua2.u.x);
@@ -755,7 +755,7 @@ bool test3789()
         ub2.u.a = [1,2,3].dup;
         assert(ub1.u.a !is ub2.u.a);
         assert(ub1.u.a  == ub2.u.a);
-        assert(ub1 != ub2);
+        assert(ub1 == ub2);
         ub2.u.a = ub1.u.a;
         assert(ub1.u.a is ub2.u.a);
         assert(ub1.u.a == ub2.u.a);
@@ -789,40 +789,23 @@ bool test3789()
 }
 static assert(test3789());
 
-/**************************************/
-// https://issues.dlang.org/show_bug.cgi?id=10037
-
-struct S10037
+struct S
 {
-    bool opEquals(ref const S10037) { assert(0); }
+    bool opEquals(ref const S) { return false; }
 }
 
-struct T10037
+struct T
 {
-    S10037 s;
-    // Compiler should not generate 'opEquals' here implicitly:
-}
-
-struct Sub10037(TL...)
-{
-    TL data;
+    S s;
     int value;
     alias value this;
 }
 
-void test10037()
+void test11161()
 {
-    S10037 s;
-    T10037 t;
-    static assert( __traits(hasMember, S10037, "opEquals"));
-    static assert(!__traits(hasMember, T10037, "opEquals"));
-    assert(thrown!Error(s == s));
-    assert(thrown!Error(t == t));
-
-    Sub10037!(S10037) lhs;
-    Sub10037!(S10037) rhs;
-    static assert(!__traits(hasMember, Sub10037!(S10037), "opEquals"));
-    assert(lhs == rhs);     // lowered to: lhs.value == rhs.value
+    T t1, t2;
+    assert(t1.tupleof != t2.tupleof);
+    assert(t1 != t2); // fails
 }
 
 /**************************************/
@@ -1662,13 +1645,6 @@ void test10567()
         S sy = S(2);
         assert(!(sx < sy) && !(sx > sy));
         assert(sx.opCmp(sy) == 0);
-
-        try
-        {
-            auto x = typeid(S).compare(&sx, &sy);
-            assert(0);
-        }
-        catch (Error e) { assert(e.msg[$-15 .. $] == "not implemented"); }
     }
 /+
     foreach (S; Seq!(S10567d1, S10567d2))
@@ -2033,7 +2009,7 @@ int main()
     test16();
     test17();
     test3789();
-    test10037();
+    test11161();
     test6798();
     test12904();
     test7641();
@@ -2061,4 +2037,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-

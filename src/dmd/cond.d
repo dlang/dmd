@@ -1,8 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Evaluate compile-time conditionals, such as `static if` `version` and `debug`.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Specification: $(LINK2 https://dlang.org/spec/version.html, Conditional Compilation)
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cond.d, _cond.d)
@@ -14,6 +15,8 @@ module dmd.cond;
 
 import core.stdc.string;
 import dmd.arraytypes;
+import dmd.ast_node;
+import dmd.dcast;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -23,8 +26,10 @@ import dmd.expressionsem;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.tokens;
 import dmd.utils;
 import dmd.visitor;
@@ -36,13 +41,19 @@ import dmd.func;
 
 /***********************************************************
  */
-extern (C++) abstract class Condition : RootObject
+
+enum Include : ubyte
+{
+    notComputed,        /// not computed yet
+    yes,                /// include the conditional code
+    no,                 /// do not include the conditional code
+}
+
+extern (C++) abstract class Condition : ASTNode
 {
     Loc loc;
-    // 0: not computed yet
-    // 1: include
-    // 2: do not include
-    int inc;
+
+    Include inc;
 
     override final DYNCAST dyncast() const
     {
@@ -58,12 +69,17 @@ extern (C++) abstract class Condition : RootObject
 
     abstract int include(Scope* sc);
 
-    DebugCondition isDebugCondition()
+    inout(DebugCondition) isDebugCondition() inout
     {
         return null;
     }
 
-    void accept(Visitor v)
+    inout(VersionCondition) isVersionCondition() inout
+    {
+        return null;
+    }
+
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -114,8 +130,8 @@ extern (C++) final class StaticForeach : RootObject
     {
         return new StaticForeach(
             loc,
-            aggrfe ? cast(ForeachStatement)aggrfe.syntaxCopy() : null,
-            rangefe ? cast(ForeachRangeStatement)rangefe.syntaxCopy() : null
+            aggrfe ? aggrfe.syntaxCopy() : null,
+            rangefe ? rangefe.syntaxCopy() : null
         );
     }
 
@@ -137,13 +153,22 @@ extern (C++) final class StaticForeach : RootObject
         el = el.ctfeInterpret();
         if (el.op == TOK.int64)
         {
-            dinteger_t length = el.toInteger();
-            auto es = new Expressions();
-            foreach (i; 0 .. length)
+            Expressions *es = void;
+            if (auto ale = aggr.isArrayLiteralExp())
             {
-                auto index = new IntegerExp(loc, i, Type.tsize_t);
-                auto value = new IndexExp(aggr.loc, aggr, index);
-                es.push(value);
+                // Directly use the elements of the array for the TupleExp creation
+                es = ale.elements;
+            }
+            else
+            {
+                const length = cast(size_t)el.toInteger();
+                es = new Expressions(length);
+                foreach (i; 0 .. length)
+                {
+                    auto index = new IntegerExp(loc, i, Type.tsize_t);
+                    auto value = new IndexExp(aggr.loc, aggr, index);
+                    (*es)[i] = value;
+                }
             }
             aggrfe.aggr = new TupleExp(aggr.loc, es);
             aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
@@ -151,7 +176,7 @@ extern (C++) final class StaticForeach : RootObject
         }
         else
         {
-            aggrfe.aggr = new ErrorExp();
+            aggrfe.aggr = ErrorExp.get();
         }
     }
 
@@ -166,7 +191,7 @@ extern (C++) final class StaticForeach : RootObject
      */
     private extern(D) Expression wrapAndCall(const ref Loc loc, Statement s)
     {
-        auto tf = new TypeFunction(new Parameters(), null, 0, LINK.default_, 0);
+        auto tf = new TypeFunction(ParameterList(), null, LINK.default_, 0);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
         fd.fbody = s;
         auto fe = new FuncExp(loc, fd);
@@ -304,11 +329,11 @@ extern (C++) final class StaticForeach : RootObject
         {
             foreach (i; 0 .. 2)
             {
-                auto e = new Expressions();
-                foreach (j; 0 .. pparams[0].dim)
+                auto e = new Expressions(pparams[0].dim);
+                foreach (j, ref elem; *e)
                 {
                     auto p = (*pparams[i])[j];
-                    e.push(new IdentifierExp(aloc, p.ident));
+                    elem = new IdentifierExp(aloc, p.ident);
                 }
                 if (!tplty)
                 {
@@ -338,23 +363,69 @@ extern (C++) final class StaticForeach : RootObject
         if (tplty) sfe.push(new ExpStatement(loc, tplty.sym));
         sfe.push(new ReturnStatement(aloc, res[0]));
         s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
-        s1.push(new ExpStatement(aloc, new AssertExp(aloc, new IntegerExp(aloc, 0, Type.tint32))));
-        auto ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
+        s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
+        Type ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
         auto aty = ety.arrayOf();
         auto idres = Identifier.generateId("__res");
         auto vard = new VarDeclaration(aloc, aty, idres, null);
         auto s2 = new Statements();
-        s2.push(new ExpStatement(aloc, vard));
-        auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
-        s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
-        s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
-        auto aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
-        sc = sc.startCTFE();
-        aggr = aggr.expressionSemantic(sc);
-        aggr = resolveProperties(sc, aggr);
-        sc = sc.endCTFE();
-        aggr = aggr.optimize(WANTvalue);
-        aggr = aggr.ctfeInterpret();
+
+        // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
+        // an empty foreach to expose them.
+        uint olderrors = global.startGagging();
+        ety = ety.typeSemantic(aloc, sc);
+        if (global.endGagging(olderrors))
+            s2.push(createForeach(aloc, pparams[1], null));
+        else
+        {
+            s2.push(new ExpStatement(aloc, vard));
+            auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
+            s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
+            s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
+        }
+
+        Expression aggr = void;
+        Type indexty = void;
+
+        if (rangefe && (indexty = ety).isintegral())
+        {
+            rangefe.lwr.type = indexty;
+            rangefe.upr.type = indexty;
+            auto lwrRange = getIntRange(rangefe.lwr);
+            auto uprRange = getIntRange(rangefe.upr);
+
+            const lwr = rangefe.lwr.toInteger();
+            auto  upr = rangefe.upr.toInteger();
+            size_t length = 0;
+
+            if (lwrRange.imin <= uprRange.imax)
+                    length = cast(size_t) (upr - lwr);
+
+            auto exps = new Expressions(length);
+
+            if (rangefe.op == TOK.foreach_)
+            {
+                foreach (i; 0 .. length)
+                    (*exps)[i] = new IntegerExp(aloc, lwr + i, indexty);
+            }
+            else
+            {
+                --upr;
+                foreach (i; 0 .. length)
+                    (*exps)[i] = new IntegerExp(aloc, upr - i, indexty);
+            }
+            aggr = new ArrayLiteralExp(aloc, indexty.arrayOf(), exps);
+        }
+        else
+        {
+            aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
+            sc = sc.startCTFE();
+            aggr = aggr.expressionSemantic(sc);
+            aggr = resolveProperties(sc, aggr);
+            sc = sc.endCTFE();
+            aggr = aggr.optimize(WANTvalue);
+            aggr = aggr.ctfeInterpret();
+        }
 
         assert(!!aggrfe ^ !!rangefe);
         aggrfe = new ForeachStatement(loc, TOK.foreach_, pparams[2], aggr,
@@ -422,15 +493,15 @@ extern (C++) class DVCondition : Condition
     Identifier ident;
     Module mod;
 
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(Loc.initial);
+        super(loc);
         this.mod = mod;
         this.level = level;
         this.ident = ident;
     }
 
-    override final Condition syntaxCopy()
+    override final DVCondition syntaxCopy()
     {
         return this; // don't need to copy
     }
@@ -487,28 +558,29 @@ extern (C++) final class DebugCondition : DVCondition
      *           Only used if `ident` is `null`.
      *   ident = Identifier required for this condition to pass.
      *           If `null`, this conditiion will use an integer level.
+     *  loc = Location in the source file
      */
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(mod, level, ident);
+        super(loc, mod, level, ident);
     }
 
     override int include(Scope* sc)
     {
         //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
-        if (inc == 0)
+        if (inc == Include.notComputed)
         {
-            inc = 2;
+            inc = Include.no;
             bool definedInModule = false;
             if (ident)
             {
                 if (findCondition(mod.debugids, ident))
                 {
-                    inc = 1;
+                    inc = Include.yes;
                     definedInModule = true;
                 }
                 else if (findCondition(global.debugids, ident))
-                    inc = 1;
+                    inc = Include.yes;
                 else
                 {
                     if (!mod.debugidsNot)
@@ -517,14 +589,14 @@ extern (C++) final class DebugCondition : DVCondition
                 }
             }
             else if (level <= global.params.debuglevel || level <= mod.debuglevel)
-                inc = 1;
+                inc = Include.yes;
             if (!definedInModule)
                 printDepsConditional(sc, this, "depsDebug ");
         }
-        return (inc == 1);
+        return (inc == Include.yes);
     }
 
-    override DebugCondition isDebugCondition()
+    override inout(DebugCondition) isDebugCondition() inout
     {
         return this;
     }
@@ -534,7 +606,7 @@ extern (C++) final class DebugCondition : DVCondition
         v.visit(this);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "debug".ptr;
     }
@@ -567,101 +639,105 @@ extern (C++) final class VersionCondition : DVCondition
         // This list doesn't include "D_*" versions, see the last return
         switch (ident)
         {
-            case "DigitalMars":
-            case "GNU":
-            case "LDC":
-            case "SDC":
-            case "Windows":
-            case "Win32":
-            case "Win64":
-            case "linux":
-            case "OSX":
-            case "iOS":
-            case "TVOS":
-            case "WatchOS":
-            case "FreeBSD":
-            case "OpenBSD":
-            case "NetBSD":
-            case "DragonFlyBSD":
-            case "BSD":
-            case "Solaris":
-            case "Posix":
+            case "AArch64":
             case "AIX":
-            case "Haiku":
-            case "SkyOS":
-            case "SysV3":
-            case "SysV4":
-            case "Hurd":
+            case "all":
+            case "Alpha":
+            case "Alpha_HardFloat":
+            case "Alpha_SoftFloat":
             case "Android":
-            case "Emscripten":
-            case "PlayStation":
-            case "PlayStation4":
-            case "Cygwin":
-            case "MinGW":
-            case "FreeStanding":
-            case "X86":
-            case "X86_64":
             case "ARM":
-            case "ARM_Thumb":
+            case "ARM_HardFloat":
             case "ARM_SoftFloat":
             case "ARM_SoftFP":
-            case "ARM_HardFloat":
-            case "AArch64":
+            case "ARM_Thumb":
             case "AsmJS":
-            case "Epiphany":
-            case "PPC":
-            case "PPC_SoftFloat":
-            case "PPC_HardFloat":
-            case "PPC64":
-            case "IA64":
-            case "MIPS32":
-            case "MIPS64":
-            case "MIPS_O32":
-            case "MIPS_N32":
-            case "MIPS_O64":
-            case "MIPS_N64":
-            case "MIPS_EABI":
-            case "MIPS_SoftFloat":
-            case "MIPS_HardFloat":
-            case "MSP430":
-            case "NVPTX":
-            case "NVPTX64":
-            case "RISCV32":
-            case "RISCV64":
-            case "SPARC":
-            case "SPARC_V8Plus":
-            case "SPARC_SoftFloat":
-            case "SPARC_HardFloat":
-            case "SPARC64":
-            case "S390":
-            case "S390X":
-            case "SystemZ":
-            case "HPPA":
-            case "HPPA64":
-            case "SH":
-            case "WebAssembly":
-            case "Alpha":
-            case "Alpha_SoftFloat":
-            case "Alpha_HardFloat":
-            case "LittleEndian":
+            case "assert":
+            case "AVR":
             case "BigEndian":
-            case "ELFv1":
-            case "ELFv2":
-            case "CRuntime_Bionic":
-            case "CRuntime_DigitalMars":
-            case "CRuntime_Glibc":
-            case "CRuntime_Microsoft":
-            case "CRuntime_Musl":
-            case "CRuntime_UClibc":
+            case "BSD":
             case "CppRuntime_Clang":
             case "CppRuntime_DigitalMars":
             case "CppRuntime_Gcc":
             case "CppRuntime_Microsoft":
             case "CppRuntime_Sun":
-            case "unittest":
-            case "assert":
-            case "all":
+            case "CRuntime_Bionic":
+            case "CRuntime_DigitalMars":
+            case "CRuntime_Glibc":
+            case "CRuntime_Microsoft":
+            case "CRuntime_Musl":
+            case "CRuntime_Newlib":
+            case "CRuntime_UClibc":
+            case "CRuntime_WASI":
+            case "Cygwin":
+            case "DigitalMars":
+            case "DragonFlyBSD":
+            case "Emscripten":
+            case "ELFv1":
+            case "ELFv2":
+            case "Epiphany":
+            case "FreeBSD":
+            case "FreeStanding":
+            case "GNU":
+            case "Haiku":
+            case "HPPA":
+            case "HPPA64":
+            case "Hurd":
+            case "IA64":
+            case "iOS":
+            case "LDC":
+            case "linux":
+            case "LittleEndian":
+            case "MinGW":
+            case "MIPS32":
+            case "MIPS64":
+            case "MIPS_EABI":
+            case "MIPS_HardFloat":
+            case "MIPS_N32":
+            case "MIPS_N64":
+            case "MIPS_O32":
+            case "MIPS_O64":
+            case "MIPS_SoftFloat":
+            case "MSP430":
+            case "NetBSD":
             case "none":
+            case "NVPTX":
+            case "NVPTX64":
+            case "OpenBSD":
+            case "OSX":
+            case "PlayStation":
+            case "PlayStation4":
+            case "Posix":
+            case "PPC":
+            case "PPC64":
+            case "PPC_HardFloat":
+            case "PPC_SoftFloat":
+            case "RISCV32":
+            case "RISCV64":
+            case "S390":
+            case "S390X":
+            case "SDC":
+            case "SH":
+            case "SkyOS":
+            case "Solaris":
+            case "SPARC":
+            case "SPARC64":
+            case "SPARC_HardFloat":
+            case "SPARC_SoftFloat":
+            case "SPARC_V8Plus":
+            case "SystemZ":
+            case "SysV3":
+            case "SysV4":
+            case "TVOS":
+            case "unittest":
+            case "WASI":
+            case "WatchOS":
+            case "WebAssembly":
+            case "Win32":
+            case "Win64":
+            case "Windows":
+            case "X86":
+            case "X86_64":
                 return true;
 
             default:
@@ -730,7 +806,7 @@ extern (C++) final class VersionCondition : DVCondition
     deprecated("Kept for C++ compat - Use the string overload instead")
     static void addPredefinedGlobalIdent(const(char)* ident)
     {
-        addPredefinedGlobalIdent(ident[0 .. ident.strlen]);
+        addPredefinedGlobalIdent(ident.toDString());
     }
 
     /// Ditto
@@ -758,29 +834,30 @@ extern (C++) final class VersionCondition : DVCondition
      *           Only used if `ident` is `null`.
      *   ident = Identifier required for this condition to pass.
      *           If `null`, this conditiion will use an integer level.
+     *  loc = Location in the source file
      */
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
     {
-        super(mod, level, ident);
+        super(loc, mod, level, ident);
     }
 
     override int include(Scope* sc)
     {
         //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
         //if (ident) printf("\tident = '%s'\n", ident.toChars());
-        if (inc == 0)
+        if (inc == Include.notComputed)
         {
-            inc = 2;
+            inc = Include.no;
             bool definedInModule = false;
             if (ident)
             {
                 if (findCondition(mod.versionids, ident))
                 {
-                    inc = 1;
+                    inc = Include.yes;
                     definedInModule = true;
                 }
                 else if (findCondition(global.versionids, ident))
-                    inc = 1;
+                    inc = Include.yes;
                 else
                 {
                     if (!mod.versionidsNot)
@@ -789,14 +866,19 @@ extern (C++) final class VersionCondition : DVCondition
                 }
             }
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
-                inc = 1;
+                inc = Include.yes;
             if (!definedInModule &&
                 (!ident || (!isReserved(ident.toString()) && ident != Id._unittest && ident != Id._assert)))
             {
                 printDepsConditional(sc, this, "depsVersion ");
             }
         }
-        return (inc == 1);
+        return (inc == Include.yes);
+    }
+
+    override inout(VersionCondition) isVersionCondition() inout
+    {
+        return this;
     }
 
     override void accept(Visitor v)
@@ -804,7 +886,7 @@ extern (C++) final class VersionCondition : DVCondition
         v.visit(this);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "version".ptr;
     }
@@ -822,7 +904,7 @@ extern (C++) final class StaticIfCondition : Condition
         this.exp = exp;
     }
 
-    override Condition syntaxCopy()
+    override StaticIfCondition syntaxCopy()
     {
         return new StaticIfCondition(loc, exp.syntaxCopy());
     }
@@ -834,37 +916,39 @@ extern (C++) final class StaticIfCondition : Condition
         int errorReturn()
         {
             if (!global.gag)
-                inc = 2; // so we don't see the error message again
+                inc = Include.no; // so we don't see the error message again
             return 0;
         }
 
-        if (inc == 0)
+        if (inc == Include.notComputed)
         {
             if (!sc)
             {
                 error(loc, "`static if` conditional cannot be at global scope");
-                inc = 2;
+                inc = Include.no;
                 return 0;
             }
 
-            sc = sc.push(sc.scopesym);
-
             import dmd.staticcond;
             bool errors;
+
+            if (!exp)
+                return errorReturn();
+
             bool result = evalStaticCondition(sc, exp, exp, errors);
-            sc.pop();
+
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d
-            if (inc != 0)
-                return (inc == 1);
+            if (inc != Include.notComputed)
+                return (inc == Include.yes);
             if (errors)
                 return errorReturn();
             if (result)
-                inc = 1;
+                inc = Include.yes;
             else
-                inc = 2;
+                inc = Include.no;
         }
-        return (inc == 1);
+        return (inc == Include.yes);
     }
 
     override void accept(Visitor v)
@@ -872,7 +956,7 @@ extern (C++) final class StaticIfCondition : Condition
         v.visit(this);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return exp ? exp.toChars() : "static if".ptr;
     }
@@ -887,7 +971,7 @@ extern (C++) final class StaticIfCondition : Condition
  * Returns:
  *      true if found
  */
-extern (C++) bool findCondition(Identifiers* ids, Identifier ident)
+bool findCondition(Identifiers* ids, Identifier ident) @safe nothrow pure
 {
     if (ids)
     {

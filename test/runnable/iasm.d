@@ -5,9 +5,14 @@
 // written by Walter Bright
 // http://www.digitalmars.com
 
-import std.stdio;
+import core.stdc.stdio;
+import core.stdc.config;
 
 version (D_PIC)
+{
+    int main() { return 0; }
+}
+else version (D_PIE)
 {
     int main() { return 0; }
 }
@@ -508,6 +513,7 @@ void test12()
         0xD4,0x0A,                      // aam
         0x3F,                           // aas
         0x67,0x63,0x3C,                 // arpl [SI],DI
+        0xF3,0x90,                      // pause
         0x14,0x05,                      // adc  AL,5
         0x83,0xD0,0x14,                 // adc  EAX,014h
         0x80,0x55,0xF8,0x17,            // adc  byte ptr -8[EBP],017h
@@ -601,6 +607,7 @@ void test12()
         aam                             ;
         aas                             ;
         arpl    [SI],DI                 ;
+        pause                           ;
 
         adc     AL,5                    ;
         adc     EAX,20                  ;
@@ -796,7 +803,7 @@ void test13()
         0x0F,0x2C,0xDC,         // cvttps2pi    MM3,XMM4
         0x0F,0x2C,0x7D,0xE0,    // cvttps2pi    MM7,-020h[EBP]
         0xF2,0x0F,0x2C,0xC4,    // cvttsd2si    EAX,XMM4
-        0xF2,0x0F,0x2C,0x4D,0xE8,       // cvttsd2si    ECX,-018h[EBP]
+        0xF2,0x0F,0x2C,0x4D,0xE0,       // cvttsd2si    ECX,-020h[EBP]
         0xF3,0x0F,0x2C,0xC4,    // cvttss2si    EAX,XMM4
         0xF3,0x0F,0x2C,0x4D,0xD8,       // cvttss2si    ECX,-028h[EBP]
 0x66,   0x0F,0x5E,0xE8,         // divpd        XMM5,XMM0
@@ -999,7 +1006,7 @@ void test13()
         cvttps2pi MM7,m64[EBP]          ;
 
         cvttsd2si EAX,XMM4              ;
-        cvttsd2si ECX,m128[EBP]         ;
+        cvttsd2si ECX,m64[EBP]          ;
 
         cvttss2si EAX,XMM4              ;
         cvttss2si ECX,m32[EBP]          ;
@@ -2284,6 +2291,8 @@ void test23()
         0xF3, 0x0F, 0x16, 0x4D, 0xE8,   // movshdup     XMM1,-010h[EBP]
         0xF3, 0x0F, 0x12, 0xCA,         // movsldup     XMM1,XMM2
         0xF3, 0x0F, 0x12, 0x4D, 0xE8,   // movsldup     XMM1,-010h[EBP]
+
+        0xC4, 0xE3, 0x7D, 0x04, 0xC7, 0xAA, // vpermilps YMM0,YMM7,0AAh ;
     ];
     int i;
 
@@ -2333,6 +2342,8 @@ void test23()
 
         movsldup        XMM1,XMM2       ;
         movsldup        XMM1,m128[EBP]  ;
+
+        vpermilps       YMM0,YMM7,0xAA  ;
 
 L1:                                     ;
         pop     EBX                     ;
@@ -2594,7 +2605,7 @@ void test28()
 {
     version (Windows)
     {
-        cfloat[4] z;
+        c_complex_float[4] z;
         static const ubyte[8] A = [3, 4, 9, 0, 1, 3, 7, 2];
         ubyte[8] b;
 
@@ -2771,7 +2782,7 @@ L1:
     /*
     for (;;)
     {
-        writef("");
+        printf("");
         asm { hlt; }
     }
     //*/
@@ -2780,7 +2791,7 @@ L1:
     for (;;)
     {
         asm { hlt; }
-        writef("");
+        printf("");
     }
     //*/
     /* The same loop that doesn't compile above
@@ -2789,7 +2800,7 @@ L1:
     //*
     for (;;)
     {
-        writef("");
+        printf("");
         asm { hlt; }
     }
     //*/
@@ -3882,7 +3893,7 @@ void test52()
 //      neg     i       ;
 //      neg     l       ;
         neg     x       ;
-        neg     [EBX]   ;
+        neg     byte ptr [EBX]   ;
 
 L1:     pop     EAX     ;
         mov     p[EBP],EAX ;
@@ -4738,6 +4749,10 @@ void test9866()
         0x66, 0x0f, 0xb7, 0x00, // movzx AX, word ptr [EAX];
               0x0f, 0xb7, 0xc0, // movzx EAX, AX;
               0x0f, 0xb7, 0x00, // movzx EAX, word ptr [EAX];
+
+        0xEB, 0x00,                   //jmp   $;
+        0xE9, 0xCD, 0xAB, 0x00, 0x00, // jmp  $+0xABCD;
+        0xE8, 0x05, 0x00, 0x00, 0x00, // call $+5;
     ];
 
     asm
@@ -4761,6 +4776,10 @@ void test9866()
         movzx AX, word ptr [EAX];
         movzx EAX, AX;
         movzx EAX, word ptr [EAX];
+
+        jmp $;
+        jmp $+0xABCD;
+        call $+5;
 
 L1:     pop     EAX;
         mov     p[EBP],EAX;
@@ -4824,6 +4843,75 @@ L1:     pop     EAX;
 }
 
 /****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16400
+
+extern(C) void f16400(int, ...)
+{
+        asm {naked; ret;}
+}
+
+void test16400()
+{
+        assert(*(cast(ubyte*) &f16400) == 0xc3); // fails
+        f16400(0); // corrupts the stack
+}
+
+/****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16963
+
+void bar16963() { assert(0); }
+
+void test16963()
+{
+  asm
+  {
+    jmp bar16963; // forward reference to label
+    hlt;
+  bar16963:
+    ret;
+  }
+}
+
+/****************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=5922
+
+void test5922()
+{
+    immutable size_t x = 10;
+    size_t y;
+    asm
+    {
+        mov EDI, x;
+        mov y, EDI;
+    }
+    assert(y == 10);
+}
+
+/****************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=21914
+
+extern (C++) int insidx(int a, int b)
+{
+    asm
+    {
+        naked             ;
+        mov ECX,a-4+[ESP] ;
+        mov EAX,b-4+[ESP] ;
+        shl EAX,CL        ;
+        ret               ;
+    }
+}
+
+void test21914()
+{
+    int x = insidx(5, 7);
+    assert(x == (7 << 5));
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm.d\n");
@@ -4833,6 +4921,10 @@ int main()
     test4();
   version (OSX)
   {
+  }
+  else version (linux)
+  {
+    // stack alignment throws the tests off
   }
   else
   {
@@ -4894,6 +4986,10 @@ int main()
     test60();
     test9866();
     test17027();
+    test16400();
+    test16963();
+    test5922();
+    test21914();
   }
     printf("Success\n");
     return 0;

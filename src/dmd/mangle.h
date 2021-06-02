@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -20,6 +20,7 @@ struct OutBuffer;
 // In cppmangle.d
 const char *toCppMangleItanium(Dsymbol *s);
 const char *cppTypeInfoMangleItanium(Dsymbol *s);
+const char *cppThunkMangleItanium(FuncDeclaration *fd, int offset);
 
 // In cppmanglewin.d
 const char *toCppMangleMSVC(Dsymbol *s);

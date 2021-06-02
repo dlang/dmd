@@ -1,4 +1,0 @@
-Templates are now mangled correctly on POSIX
-
-Before this version, anything including `extern(C++)` templates
-was not correctly mangled on OSX, Linux, and FreeBSD, leading to linker errors.

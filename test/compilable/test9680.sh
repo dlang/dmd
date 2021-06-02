@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ "${OS}" == "win32" -o "${OS}" == "Windows_NT" ]; then
+if [ "${OS}" == "windows" ]; then
     kinds=( main winmain dllmain )
 else
     kinds=( main )
@@ -13,7 +13,7 @@ do
 	expect_file=${EXTRA_FILES}/${file_name}.out
 	output_file=${RESULTS_TEST_DIR}/${file_name}.log
 
-	rm -f ${output_file}{,.2}
+	rm_retry ${output_file}{,.2}
 
 	$DMD -m${MODEL} -v -o- ${src_file} > ${output_file}
 	grep "^entry     ${kind}" ${output_file} > ${output_file}.2
@@ -22,5 +22,5 @@ do
 		exit 1;
 	fi
 
-	rm ${output_file}{,.2}
+	rm_retry ${output_file}{,.2}
 done

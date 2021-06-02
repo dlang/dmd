@@ -1,4 +1,10 @@
 // REQUIRED_ARGS:
+/*
+TEST_OUTPUT:
+---
+null
+---
+*/
 
 import core.stdc.stdio;
 
@@ -790,18 +796,9 @@ void test33()
         return 3;
     }
 
-    extern (Pascal) int Foo4(int a, int b, int c)
-    {
-        assert(a == 1);
-        assert(b == 2);
-        assert(c == 3);
-        return 4;
-    }
-
     assert(Foo1(1, 2, 3) == 1);
     assert(Foo2(1, 2, 3) == 2);
     assert(Foo3(1, 2, 3) == 3);
-    assert(Foo4(1, 2, 3) == 4);
 
     printf("test33 success\n");
 }
@@ -1485,6 +1482,19 @@ void test55()
     foreach (entry; &inner)
     {
     }
+}
+
+/*******************************************/
+
+enum dg56 = delegate { return 5; };
+
+void test56()
+{
+    auto inner() {
+        return dg56();
+    }
+
+    assert(inner() == 5);
 }
 
 /*******************************************/
@@ -2357,6 +2367,12 @@ enum foo11297 = function (int x)
         xmap!(y => x)(7);
    };
 
+enum goo11297 = delegate (int x)
+   {
+        //int bar(int y) { return x; } xmap!bar(7);
+        xmap!(y => x)(7);
+   };
+
 void xreduce(alias f)()
 {
     f(4);
@@ -2365,6 +2381,7 @@ void xreduce(alias f)()
 void test11297()
 {
     xreduce!foo11297();
+    xreduce!goo11297();
 }
 
 /*******************************************/
@@ -2519,7 +2536,7 @@ class App15422(T)
     this() {}
 
     auto test1(T val)
-    in {} body      // necessary to reproduce the crash
+    in {} do      // necessary to reproduce the crash
     {
         struct Foo
         {
@@ -2547,7 +2564,7 @@ class App15422(T)
     }
 
     auto test2(T val)
-    //in {} body
+    //in {} do
     {
         int closVar;
         struct Foo
@@ -2706,6 +2723,45 @@ void test15757() @safe
 
 /***************************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=19384
+
+struct Vec
+{
+    uint item;
+
+    ref uint august() return
+    {
+        return item;
+        // commenting next line removes bug
+        foreach(ref val; range()) return val;
+        assert(false);
+    }
+
+    uint* august2() return
+    {
+        return &item;
+        foreach(ref val; range()) return &val;
+        assert(false);
+    }
+}
+
+struct range
+{
+    int opApply(scope int delegate(ref uint) dg) { return 0; }
+}
+
+void test19384()
+{
+    Vec preds = Vec(0xDEAD);
+    void* ptr2 = &preds.august();
+    void* ptr3 = preds.august2();
+    assert(&preds == ptr2);
+    assert(&preds == ptr3);
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -2763,6 +2819,7 @@ int main()
     test53();
     test54();
     test55();
+    test56();
     test4401();
     test7428();
     test4612();
@@ -2800,6 +2857,7 @@ int main()
     test15422a();
     test15422b();
     test15757();
+    test19384();
 
     printf("Success\n");
     return 0;

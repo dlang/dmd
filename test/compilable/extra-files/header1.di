@@ -1,6 +1,8 @@
 module foo.bar;
 import core.vararg;
-import std.stdio;
+void writeln(T...)(T)
+{
+}
 pragma (lib, "test");
 pragma (msg, "Hello World");
 pragma (linkerDirective, "/DEFAULTLIB:test2");
@@ -250,8 +252,6 @@ class Test
 	alias getHUShort = A!ushort;
 	alias getHReal = A!real;
 	alias void F();
-	nothrow pure @nogc @safe new(size_t sz);
-	nothrow pure @nogc @safe delete(void* p);
 }
 void templ(T)(T val)
 {
@@ -364,10 +364,10 @@ struct T12
 	{
 	}
 }
-import std.stdio : writeln, F = File;
+import core.stdc.stdio : printf, F = FILE;
 void foo6591()()
 {
-	import std.stdio : writeln, F = File;
+	import core.stdc.stdio : printf, F = FILE;
 }
 version (unittest)
 {

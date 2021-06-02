@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Compute the cost of inlining a function call by counting expressions.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inlinecost.d, _inlinecost.d)
@@ -19,6 +18,7 @@ import dmd.aggregate;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
@@ -88,6 +88,54 @@ int inlineCostFunction(FuncDeclaration fd, bool hasthis, bool hdrscan)
     return icv.cost;
 }
 
+/**
+ * Indicates if a nested aggregate prevents or not a function to be inlined.
+ * It's used to compute the cost but also to avoid a copy of the aggregate
+ * while the inliner processes.
+ *
+ * Params:
+ *      e = the declaration expression that may represent an aggregate.
+ *
+ * Returns: `null` if `e` is not an aggregate or if it is an aggregate that
+ *      doesn't permit inlining, and the aggregate otherwise.
+ */
+AggregateDeclaration isInlinableNestedAggregate(DeclarationExp e)
+{
+    AggregateDeclaration result;
+    if (e.declaration.isAnonymous() && e.declaration.isAttribDeclaration)
+    {
+        AttribDeclaration ad = e.declaration.isAttribDeclaration;
+        if (ad.decl.dim == 1)
+        {
+            if ((result = (*ad.decl)[0].isAggregateDeclaration) !is null)
+            {
+                // classes would have to be destroyed
+                if (auto cdecl = result.isClassDeclaration)
+                    return null;
+                // if it's a struct: must not have dtor
+                StructDeclaration sdecl = result.isStructDeclaration;
+                if (sdecl && (sdecl.fieldDtor || sdecl.dtor))
+                    return null;
+                // the aggregate must be static
+                UnionDeclaration udecl = result.isUnionDeclaration;
+                if ((sdecl || udecl) && !(result.storage_class & STC.static_))
+                    return null;
+
+                return result;
+            }
+        }
+    }
+    else if ((result = e.declaration.isStructDeclaration) !is null)
+    {
+        return result;
+    }
+    else if ((result = e.declaration.isUnionDeclaration) !is null)
+    {
+        return result;
+    }
+    return null;
+}
+
 private:
 
 /***********************************************************
@@ -146,8 +194,7 @@ public:
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
         foreach (i; 0 .. s.statements.dim)
         {
-            Statement s2 = (*s.statements)[i];
-            if (s2)
+            if (Statement s2 = (*s.statements)[i])
             {
                 /* Specifically allow:
                  *  if (condition)
@@ -158,11 +205,11 @@ public:
                 Statement s3;
                 if ((ifs = s2.isIfStatement()) !is null &&
                     ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
+                    ifs.ifbody.endsWithReturnStatement() &&
                     !ifs.elsebody &&
                     i + 1 < s.statements.dim &&
                     (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
+                    s3.endsWithReturnStatement()
                    )
                 {
                     if (ifs.prm)       // if variables are declared
@@ -223,7 +270,7 @@ public:
          *      return exp2;
          * Otherwise, we can't handle return statements nested in if's.
          */
-        if (s.elsebody && s.ifbody && s.ifbody.isReturnStatement() && s.elsebody.isReturnStatement())
+        if (s.elsebody && s.ifbody && s.ifbody.endsWithReturnStatement() && s.elsebody.endsWithReturnStatement())
         {
             s.ifbody.accept(this);
             s.elsebody.accept(this);
@@ -319,9 +366,9 @@ public:
     {
         //printf("VarExp.inlineCost3() %s\n", toChars());
         Type tb = e.type.toBasetype();
-        if (tb.ty == Tstruct)
+        if (auto ts = tb.isTypeStruct())
         {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            StructDeclaration sd = ts.sym;
             if (sd.isNested())
             {
                 /* An inner struct will be nested inside another function hierarchy than where
@@ -397,11 +444,9 @@ public:
     override void visit(DeclarationExp e)
     {
         //printf("DeclarationExp.inlineCost3()\n");
-        VarDeclaration vd = e.declaration.isVarDeclaration();
-        if (vd)
+        if (auto vd = e.declaration.isVarDeclaration())
         {
-            TupleDeclaration td = vd.toAlias().isTupleDeclaration();
-            if (td)
+            if (auto td = vd.toAlias().isTupleDeclaration())
             {
                 cost = COST_MAX; // finish DeclarationExp.doInlineAs
                 return;
@@ -421,16 +466,27 @@ public:
             // Scan initializer (vd.init)
             if (vd._init)
             {
-                ExpInitializer ie = vd._init.isExpInitializer();
-                if (ie)
+                if (auto ie = vd._init.isExpInitializer())
                 {
                     expressionInlineCost(ie.exp);
                 }
             }
-            cost += 1;
+            ++cost;
         }
+
+        // aggregates are accepted under certain circumstances
+        if (isInlinableNestedAggregate(e))
+        {
+            cost++;
+            return;
+        }
+
         // These can contain functions, which when copied, get output twice.
-        if (e.declaration.isStructDeclaration() || e.declaration.isClassDeclaration() || e.declaration.isFuncDeclaration() || e.declaration.isAttribDeclaration() || e.declaration.isTemplateMixin())
+        if (e.declaration.isStructDeclaration() ||
+            e.declaration.isClassDeclaration()  ||
+            e.declaration.isFuncDeclaration()   ||
+            e.declaration.isAttribDeclaration() ||
+            e.declaration.isTemplateMixin())
         {
             cost = COST_MAX;
             return;

@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+Success
+---
+*/
 extern(C) int printf(const char*, ...);
 
 /******************************************/
@@ -71,8 +77,48 @@ template IMix(T){ mixin("static " ~ T.stringof ~ " x;"); }
 
 /***************************************************/
 
+// https://issues.dlang.org/show_bug.zip?id=20716
+
+extern(C++):
+
+struct S20716
+{
+    void* s;
+    ~this() {}
+    // or this(this) {}
+}
+
+interface I20716
+{
+    S20716 x();
+}
+
+final class C20716 : I20716
+{
+    int l = 3;
+
+    S20716 x()
+    {
+	//printf("this = %p, %p\n", this, &this.l);
+        assert(l == 3); //fails
+        return S20716.init;
+    }
+}
+
+extern(D):
+
+void test20716()
+{
+    auto s = new C20716().x;
+    auto t = new C20716().I20716.x;
+}
+
+/***************************************************/
+
 int main()
 {
+    test20716();
+
     printf("Success\n");
     return 0;
 }

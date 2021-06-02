@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/debug.c, backend/debugprint.d)
@@ -34,6 +34,7 @@ import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.goh;
 import dmd.backend.oper;
+import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -42,14 +43,17 @@ import dmd.backend.dvec;
 
 extern (C++):
 
-mixin(import("debtab.d"));
+nothrow:
+@safe:
 
+@trusted
 void ferr(const(char)* p) { printf("%s", p); }
 
 /*******************************
  * Write out storage class.
  */
 
+@trusted
 const(char)* str_class(SC c)
 {
     __gshared const char[10][SCMAX] sc =
@@ -108,6 +112,7 @@ const(char)* str_class(SC c)
   return buffer.ptr;
 }
 
+@trusted
 void WRclass(SC c)
 {
     printf("%11s ",str_class(c));
@@ -117,6 +122,7 @@ void WRclass(SC c)
  * Write out oper numbers.
  */
 
+@trusted
 void WROP(uint oper)
 {
   if (oper >= OPMAX)
@@ -131,6 +137,7 @@ void WROP(uint oper)
  * Write TYxxxx
  */
 
+@trusted
 void WRTYxx(tym_t t)
 {
     if (t & mTYnear)
@@ -143,6 +150,8 @@ void WRTYxx(tym_t t)
         printf("mTYconst|");
     if (t & mTYvolatile)
         printf("mTYvolatile|");
+    if (t & mTYshared)
+        printf("mTYshared|");
 //#if !MARS && (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 //    if (t & mTYtransu)
 //        printf("mTYtransu|");
@@ -155,6 +164,7 @@ void WRTYxx(tym_t t)
     printf("TY%s ",tystring[tybasic(t)]);
 }
 
+@trusted
 void WRBC(uint bc)
 {
     __gshared const char[7][BCMAX] bcs =
@@ -173,6 +183,7 @@ void WRBC(uint bc)
  * Write arglst
  */
 
+@trusted
 void WRarglst(list_t a)
 { int n = 1;
 
@@ -189,6 +200,7 @@ void WRarglst(list_t a)
  * Write out equation elem.
  */
 
+@trusted
 void WReqn(elem *e)
 { __gshared int nest;
 
@@ -250,14 +262,14 @@ void WReqn(elem *e)
 
             case OPvar:
                 printf("%s",e.EV.Vsym.Sident.ptr);
-                if (e.EV.Vsym.Ssymnum != -1)
-                    printf("(%d)",e.EV.Vsym.Ssymnum);
+                if (e.EV.Vsym.Ssymnum != SYMIDX.max)
+                    printf("(%d)", cast(int) e.EV.Vsym.Ssymnum);
                 if (e.EV.Voffset != 0)
                 {
                     if (e.EV.Voffset.sizeof == 8)
                         printf(".x%llx", cast(ulong)e.EV.Voffset);
                     else
-                        printf(".%ld",cast(int)e.EV.Voffset);
+                        printf(".%d",cast(int)e.EV.Voffset);
                 }
                 break;
             case OPasm:
@@ -283,29 +295,33 @@ void WReqn(elem *e)
   }
 }
 
+@trusted
 void WRblocklist(list_t bl)
 {
-        for (; bl; bl = list_next(bl))
-        {       block *b = list_block(bl);
+    foreach (bl2; ListRange(bl))
+    {
+        block *b = list_block(bl2);
 
-                if (b && b.Bweight)
-                        printf("B%d (%p) ",b.Bdfoidx,b);
-                else
-                        printf("%p ",b);
-        }
-        ferr("\n");
+        if (b && b.Bweight)
+            printf("B%d (%p) ",b.Bdfoidx,b);
+        else
+            printf("%p ",b);
+    }
+    ferr("\n");
 }
 
+@trusted
 void WRdefnod()
 { int i;
 
-  for (i = 0; i < go.deftop; i++)
+  for (i = 0; i < go.defnod.length; i++)
   {     printf("defnod[%d] in B%d = (", go.defnod[i].DNblock.Bdfoidx, i);
         WReqn(go.defnod[i].DNelem);
         printf(");\n");
   }
 }
 
+@trusted
 void WRFL(FL fl)
 {
     __gshared const(char)[7][FLMAX] fls =
@@ -335,6 +351,7 @@ void WRFL(FL fl)
  * Write out block.
  */
 
+@trusted
 void WRblock(block *b)
 {
     if (OPTIMIZER)
@@ -411,7 +428,7 @@ version (MARS)
         if (b.Bpred)
         {
             printf("\tBpred:");
-            for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(b.Bpred))
                 printf(" B%d",list_block(bl).Bnumber);
             printf("\n");
         }
@@ -442,7 +459,6 @@ version (MARS)
             case BC_ret:
             case BC_except:
 
-            Lsucc:
                 if (bl)
                 {
                     printf("\tBsucc:");
@@ -473,6 +489,7 @@ void numberBlocks(block *startblock)
         b.Bnumber = ++number;
 }
 
+@trusted
 void WRfunc()
 {
         printf("func: '%s'\n",funcsym_p.Sident.ptr);

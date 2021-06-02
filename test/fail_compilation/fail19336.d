@@ -2,8 +2,8 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail19336.d(14): Error: template instance `Template!()` template `Template` is not defined
-fail_compilation/fail19336.d(14): Error: recursive type
-fail_compilation/fail19336.d(17): Error: recursive type
+fail_compilation/fail19336.d(14): Error: circular reference to `fail19336.Foo.a`
+fail_compilation/fail19336.d(17): Error: circular reference to `fail19336.b`
 ---
 */
 

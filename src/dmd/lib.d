@@ -1,8 +1,8 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * A module defining an abstract library.
+ * Implementations for various formats are in separate `libXXX.d` modules.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lib.d, _lib.d)
@@ -17,55 +17,41 @@ import core.stdc.stdarg;
 
 import dmd.globals;
 import dmd.errors;
+import dmd.target;
 import dmd.utils;
 
 import dmd.root.outbuffer;
 import dmd.root.file;
 import dmd.root.filename;
+import dmd.root.string;
 
-static if (TARGET.Windows)
-{
-    import dmd.libomf;
-    import dmd.libmscoff;
-}
-else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-{
-    import dmd.libelf;
-}
-else static if (TARGET.OSX)
-{
-    import dmd.libmach;
-}
-else
-{
-    static assert(0, "unsupported system");
-}
+import dmd.libomf;
+import dmd.libmscoff;
+import dmd.libelf;
+import dmd.libmach;
 
-enum LOG = false;
+private enum LOG = false;
 
 class Library
 {
     static Library factory()
     {
-        static if (TARGET.Windows)
+        if (target.os == Target.OS.Windows)
         {
-            return (global.params.mscoff || global.params.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
+            return (target.mscoff || target.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
         }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
             return LibElf_factory();
         }
-        else static if (TARGET.OSX)
+        else if (target.os == Target.OS.OSX)
         {
             return LibMach_factory();
         }
-        else
-        {
-            assert(0); // unsupported system
-        }
+        assert(0);
     }
 
-    abstract void addObject(const(char)* module_name, const ubyte[] buf);
+    abstract void addObject(const(char)[] module_name, const ubyte[] buf);
 
     protected abstract void WriteLibToBuffer(OutBuffer* libbuf);
 
@@ -78,26 +64,30 @@ class Library
      *  dir = path to file
      *  filename = name of file relative to `dir`
      */
-    final void setFilename(const(char)* dir, const(char)* filename)
+    final void setFilename(const(char)[] dir, const(char)[] filename)
     {
         static if (LOG)
         {
-            printf("LibElf::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
+            printf("LibElf::setFilename(dir = '%.*s', filename = '%.*s')\n",
+                   cast(int)dir.length, dir.ptr, cast(int)filename.length, filename.ptr);
         }
-        const(char)* arg = filename;
-        if (!arg || !*arg)
+        const(char)[] arg = filename;
+        if (!arg.length)
         {
             // Generate lib file name from first obj name
-            const(char)* n = global.params.objfiles[0];
+            const(char)[] n = global.params.objfiles[0].toDString;
             n = FileName.name(n);
-            arg = FileName.forceExt(n, global.lib_ext);
+            arg = FileName.forceExt(n, target.lib_ext);
         }
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
 
-        loc.filename = FileName.defaultExt(arg, global.lib_ext);
-        loc.linnum = 0;
-        loc.charnum = 0;
+        loc = Loc(FileName.defaultExt(arg, target.lib_ext).ptr, 0, 0);
+    }
+
+    final const(char)* getFilename() const
+    {
+        return loc.filename;
     }
 
     final void write()
@@ -108,12 +98,7 @@ class Library
         OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);
 
-        // Transfer image to file
-        File* libfile = File.create(loc.filename);
-        libfile.setbuffer(libbuf.data, libbuf.offset);
-        libbuf.extractData();
-        ensurePathToNameExists(Loc.initial, libfile.name.toChars());
-        writeFile(Loc.initial, libfile);
+        writeFile(Loc.initial, loc.filename.toDString, libbuf[]);
     }
 
     final void error(const(char)* format, ...)
@@ -126,19 +111,4 @@ class Library
 
   protected:
     Loc loc;                  // the filename of the library
-}
-
-version (D_LP64)
-    alias cpp_size_t = size_t;
-else version (OSX)
-{
-    import core.stdc.config : cpp_ulong;
-    alias cpp_size_t = cpp_ulong;
-}
-else
-    alias cpp_size_t = size_t;
-
-extern (C++) void addObjectToLibrary(Library lib, const(char)* module_name, const(ubyte)* buf, cpp_size_t buflen)
-{
-    lib.addObject(module_name, buf[0 .. buflen]);
 }

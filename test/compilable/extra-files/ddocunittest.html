@@ -19,6 +19,44 @@
         vertical-align: baseline;
       }
 
+      h1 { font-size: 200%; }
+      h2 { font-size: 160%; }
+      h3 { font-size: 120%; }
+      h4 { font-size: 100%; }
+      h5 { font-size: 80%; }
+      h6 { font-size: 80%; font-weight: normal; }
+
+      ul, ol {
+        margin: 1.4em 0;
+      }
+      ul ul, ol ol, ul ol, ol ul {
+        margin-top: 0;
+        margin-bottom: 0;
+      }
+      ul, ol {
+        margin-left: 2.8em;
+      }
+
+      ol {
+        list-style: decimal;
+      }
+      ol ol {
+        list-style: lower-alpha;
+      }
+      ol ol ol {
+        list-style: lower-roman;
+      }
+      ol ol ol ol {
+        list-style: decimal;
+      }
+
+      blockquote {
+        margin: 0.1em;
+        margin-left: 1em;
+        border-left: 2px solid #cccccc;
+        padding-left: 0.7em;
+      }
+
       .color_red { color: #dc322f; }
       .color_blue { color: #268bd2; }
       .color_green { color: #859901; }
@@ -106,7 +144,7 @@
         border-radius: 5px;
       }
 
-      #ddoc_main .ddoc_decl .section h4, #ddoc_main .section.ddoc_sections h4 {
+      #ddoc_main .ddoc_decl .section h4:first-of-type, #ddoc_main .section.ddoc_sections h4:first-of-type {
         font-size: 13px;
         line-height: 1.5;
         margin-top: 21px;
@@ -411,11 +449,18 @@
         min-width: 50px;
       }
 
+      .ddoc th {
+        margin: 0;
+        max-width: 260px;
+        padding: 5px 10px 5px 10px;
+        vertical-align: bottom;
+      }
+
       .ddoc td {
         border: 1px solid rgba(233, 233, 233, 1);
         margin: 0;
         max-width: 260px;
-        padding: 5px 25px 5px 10px;
+        padding: 5px 10px 5px 10px;
         vertical-align: middle;
       }
 
@@ -1104,50 +1149,6 @@
 </li><li class="ddoc_member">
   <div class="ddoc_member_header">
   <div class="ddoc_header_anchor">
-  <a href="#fooPublicImport" id="fooPublicImport"><code class="code">fooPublicImport</code></a>
-</div>
-</div><div class="ddoc_decl">
-  <section class="section">
-    <div class="declaration">
-      <h4>Declaration</h4>
-      <div class="dlang">
-        <p class="para">
-          <code class="code">
-            <span class="ddoc_anchor" id="fooPublicImport"></span>void <code class="code">fooPublicImport</code>();
-
-          </code>
-        </p>
-      </div>
-    </div>
-  </section>
-</div>
-<div class="ddoc_decl">
-  <section class="section ddoc_sections">
-  <div class="ddoc_examples">
-  <h4>Examples</h4>
-  <p class="para">
-    test
-
-<section class="code_listing">
-  <div class="code_sample">
-    <div class="dlang">
-      <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fooPublicImport</span>();
-</code></li>
-      </ol>
-    </div>
-  </div>
-</section>
-
-  </p>
-</div>
-</section>
-
-</div>
-
-</li><li class="ddoc_member">
-  <div class="ddoc_member_header">
-  <div class="ddoc_header_anchor">
   <a href="#fooSelectiveImport" id="fooSelectiveImport"><code class="code">fooSelectiveImport</code></a>
 </div>
 </div><div class="ddoc_decl">
@@ -1229,6 +1230,266 @@
 
   </p>
 </div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#core.stdc.string" id="core.stdc.string"><code class="code">core.stdc.string</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="core.stdc.string"></span>public import <code class="code">core.stdc.string</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    This is a public import
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#core.stdc.stdarg" id="core.stdc.stdarg"><code class="code">core.stdc.stdarg</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="core.stdc.stdarg"></span>public import <code class="code">core.stdc.stdarg</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    This is a mutiple public import
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#core.stdc.stdlib" id="core.stdc.stdlib"><code class="code">core.stdc.stdlib</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="core.stdc.stdlib"></span>public import <code class="code">core.stdc.stdlib</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    This is a mutiple public import
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#memcpy" id="memcpy"><code class="code">memcpy</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="memcpy"></span>public import core.stdc.string : <code class="code">memcpy</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    This is a public selective import
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#copy" id="copy"><code class="code">copy</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="copy"></span>public import core.stdc.string : <code class="code">copy</code> = memcpy;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    This is a public selective renamed import
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#memcpy" id="memcpy"><code class="code">memcpy</code></a>
+</div><div class="ddoc_header_anchor">
+  <a href="#memcmp" id="memcmp"><code class="code">memcmp</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="memcmp"></span><span class="ddoc_anchor" id="memcpy.2"></span>public import core.stdc.string : <code class="code">memcpy</code>, <code class="code">memcmp</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    This is a public multiple selective import
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#copy" id="copy"><code class="code">copy</code></a>
+</div><div class="ddoc_header_anchor">
+  <a href="#compare" id="compare"><code class="code">compare</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="compare"></span><span class="ddoc_anchor" id="copy.2"></span>public import core.stdc.string : <code class="code">copy</code> = memcpy, <code class="code">compare</code> = memcmp;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    This is a public multiple selective renamed import
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#str" id="str"><code class="code">str</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="str"></span>public import <code class="code">str</code> = core.stdc.string;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    This is a public renamed import
+  </p>
+</div>
+
 </section>
 
 </div>
@@ -1983,7 +2244,7 @@
 <br>
 auto <code class="code">redBlackTree</code>(bool allowDuplicates, E)(E[] <code class="code">elems</code>...);
 <br>
-auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code">elems</code>...);
+auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code">elems</code>...) if (__traits(compiles, (E a, E b) =&gt; mixin(less)));
 
           </code>
         </p>

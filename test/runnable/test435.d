@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+Success
+---
+*/
 import core.stdc.stdio;
 
 class A
@@ -139,5 +145,3 @@ void main()
     test4();
     printf("Success\n");
 }
-
-
