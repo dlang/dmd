@@ -727,6 +727,10 @@ final class CParser(AST) : Parser!AST
      *
      * unary-operator:
      *    & * + - ~ !
+     *
+     * cast-expression
+     *    unary-expression
+     *    ( type-name ) cast-expression
      */
     private AST.Expression cparseUnaryExp()
     {
@@ -822,12 +826,10 @@ final class CParser(AST) : Parser!AST
 
         case TOK.leftParenthesis:
         {
-            auto tk = peek(&token);
-
             // If ( type-name )
-            if (isTypeName(tk))
+            auto pt = &token;
+            if (isCastExpressionStart(pt))
             {
-                // (type-name) cast_exp
                 nextToken();
                 auto t = cparseTypeName();
                 check(TOK.rightParenthesis);
@@ -838,6 +840,7 @@ final class CParser(AST) : Parser!AST
                     cparseInitializer();
                     error(" `(type-name ) { initializer-list }` is not supported");  // TODO
                     e = new AST.IntegerExp(loc, 0, AST.Type.tint32);
+                    break;
                 }
                 else
                 {
@@ -3483,6 +3486,64 @@ final class CParser(AST) : Parser!AST
                     return result;
             }
             result = true;
+        }
+    }
+
+    /************************************
+     * Looking at the leading left parenthesis, and determine if it is
+     * the start of either of the following:
+     *  ( type-name ) cast-expression
+     *  ( type-name ) { initializer-list }
+     * as opposed to:
+     *  ( expression )
+     * Params:
+     *  pt = first token
+     * Returns:
+     *  true if start of ( type-name ) ...
+     */
+    private bool isCastExpressionStart(Token* pt)
+    {
+        auto t = pt;
+        if (t.value != TOK.leftParenthesis)
+            return false;
+        t = peek(t);
+        if (!(t.value == TOK.identifier && peek(t).value == TOK.rightParenthesis))
+            return isTypeName(t) && t.value == TOK.rightParenthesis;
+
+        t = peek(t);  // move past identifier
+        t = peek(t);  // move past right parenthesis
+
+        /* The ambiguous cases arise from if type-name is just an identifier
+         *   ( identifier ) cast-expression
+         *   ( identifier ) { initializer-list }
+         */
+
+        switch (t.value)
+        {
+        case TOK.leftParenthesis:
+        case TOK.plusPlus:
+        case TOK.minusMinus:
+        case TOK.not:
+        case TOK.tilde:
+        case TOK.sizeof_:
+        case TOK._Alignof:
+        case TOK.identifier:
+            return true;
+
+        case TOK.leftCurly:
+            return true;  // ( type-name ) { initializer-list }
+
+        case TOK.and:
+        case TOK.mul:
+        case TOK.min:
+        case TOK.add:
+            /* maybe, but just assume it is because (identifer)*unary-expresion
+             * is an expression, but has no effect and so assume it isn't one
+             */
+            return true;
+
+        default:
+            return false; // ( expression )
         }
     }
 
