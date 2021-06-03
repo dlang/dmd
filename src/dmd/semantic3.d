@@ -1372,14 +1372,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (ctor.fbody && ad && ad.fieldDtor && global.params.dtorFields && !global.params.betterC && !ctor.type.toTypeFunction.isnothrow)
         {
             /* Generate:
+             * {
              *   this.fieldDtor()
+             * }
              */
             Expression e = new ThisExp(ctor.loc);
             e.type = ad.type.mutableOf();
             e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
             auto ce = new CallExp(ctor.loc, e);
             auto sexp = new ExpStatement(ctor.loc, ce);
-            auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+            auto cs = new CompoundStatement(ctor.loc, sexp);
 
             // @@@DEPRECATED_2096@@@
             // Allow negligible attribute violations to allow for a smooth
@@ -1411,6 +1413,47 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
+            // Reset the instance to T.init to prevent double destruction for
+            // dynamically allocated instances, e.g. when new T() throws
+            {
+                auto this_ = new ThisExp(ctor.loc);
+                auto other = new DsymbolExp(ctor.loc, ad);
+                Expression reset;
+
+                // Rewrite as (cast(void*) this)[0 .. size] = typeid(this).initializer[]
+                if (ad.isClassDeclaration())
+                {
+                    // (cast(void*) this)[0 .. size]
+                    auto thisPtr = new CastExp(ctor.loc, this_, Type.tvoidptr);
+                    auto size = new IntegerExp(ad.structsize);
+                    auto thisBytes = new SliceExp(ctor.loc, thisPtr, IntegerExp.literal!0, size);
+
+                    // typeid(this).initializer[]
+                    auto tie = new TypeidExp(ctor.loc, other);
+                    auto initBytes = new DotIdExp(ctor.loc, tie, Id.initializer_);
+
+                    // Wrap assignment in a @trusted delegate
+                    auto assign = new AssignExp(ctor.loc, thisBytes, initBytes);
+                    auto tf = new TypeFunction(ParameterList(), Type.tvoid, LINK.d);
+                    tf.trust = TRUST.trusted;
+                    auto fld = new FuncLiteralDeclaration(ctor.loc, ctor.loc, tf, TOK.delegate_, null);
+                    fld.fbody = new ExpStatement(ctor.loc, assign);
+
+                    reset = new CallExp(ctor.loc, new FuncExp(ctor.loc, fld));
+                }
+                // Rewrite as blit: this = T.init
+                else
+                {
+                    auto init_ = new DotIdExp(ctor.loc, other, Id._init);
+                    reset = new BlitExp(ctor.endloc, this_, init_);
+                }
+
+                // Insert scope (exit) <reset> before the dtor call
+                auto del = new ExpStatement(ctor.endloc, reset);
+                auto sgs = new ScopeGuardStatement(ctor.endloc, TOK.onScopeExit, del);
+                cs.statements.shift(sgs);
+            }
+
             version (all)
             {
                 /* Generate:
@@ -1424,10 +1467,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  */
                 Identifier id = Identifier.generateId("__o");
                 auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
-                auto handler = new CompoundStatement(ctor.loc, ss, ts);
+                cs.statements.push(ts);
 
                 auto catches = new Catches();
-                auto ctch = new Catch(ctor.loc, getException(), id, handler);
+                auto ctch = new Catch(ctor.loc, getException(), id, cs);
                 catches.push(ctch);
 
                 ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
@@ -1439,7 +1482,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  * Hopefully we can use this version someday when scope(failure) catches
                  * Exception instead of Throwable.
                  */
-                auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
+                auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, cs);
                 ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
             }
         }

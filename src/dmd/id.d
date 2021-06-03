@@ -86,6 +86,7 @@ immutable Msgtable[] msgtable =
     { "capture", "__capture" },
     { "this2", "__this" },
     { "_init", "init" },
+    { "initializer_", "initializer" },
     { "__sizeof", "sizeof" },
     { "__xalignof", "alignof" },
     { "_mangleof", "mangleof" },
