@@ -1141,6 +1141,41 @@ void test15777()
 }
 
 /***************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17041
+
+auto ref int[2] foo17041(A...)(auto ref A args)
+{
+    foreach(a; args)
+    {
+        a = [12, 22];
+    }
+    foreach(ref a; args)
+    {
+        a = [31, 41];
+        return args[0];
+    }
+}
+
+void test17041()
+{
+    int[2] x = [10, 20];
+    foreach(a; AliasSeq!(x))
+    {
+        a = [11, 21];
+    }
+    assert(x == [10, 20]); // test by value
+    foreach(ref a; AliasSeq!(x))
+    {
+        a = [30, 40];
+    }
+    assert(x == [30, 40]); // test by ref value
+
+    assert(foo17041(x) == [31, 41]); // test lvalue
+    assert(x == [31, 41]);
+    assert(foo17041(cast(int[2]) [10, 20]) == [31, 41]); // test rvalue
+}
+
+/***************************************/
 
 int main()
 {
@@ -1168,10 +1203,10 @@ int main()
     test11291();
     test12103();
     test12739();
-    printf("test12932()\n");
     test12932();
     test13756();
     test14653();
+    test17041();
 
     printf("Success\n");
     return 0;
