@@ -856,7 +856,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     Dsymbol ds = null;
                     if (!(storageClass & STC.manifest))
                     {
-                        if ((isStatic || tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STC.alias_) && e.op == TOK.variable)
+                        if ((isStatic || tb.ty == Tfunction || storageClass&STC.alias_) && e.op == TOK.variable)
                             ds = (cast(VarExp)e).var;
                         else if (e.op == TOK.template_)
                             ds = (cast(TemplateExp)e).td;
