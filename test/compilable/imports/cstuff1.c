@@ -305,6 +305,22 @@ void test4(int i)
 
 /********************************/
 
+void parenExp(int a, int b)
+{
+    if (!(a == b))
+        a = b;
+    if ((int)3 == 3);
+	a = b;
+    if ((a) == b)
+	a = b;
+    a = (int) (1 << (b));
+    typedef int t;
+    int* p;
+    a = a + (t)*p;
+}
+
+/********************************/
+
 struct SS { int a; };
 
 int tests1()
