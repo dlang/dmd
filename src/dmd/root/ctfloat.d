@@ -64,6 +64,7 @@ extern (C++) struct CTFloat
 
     static if (!is(real_t == real))
     {
+        static import dmd.root.longdouble;
         alias sin = dmd.root.longdouble.sinl;
         alias cos = dmd.root.longdouble.cosl;
         alias tan = dmd.root.longdouble.tanl;
