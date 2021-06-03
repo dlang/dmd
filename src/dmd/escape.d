@@ -1219,9 +1219,10 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             continue;
 
         Dsymbol p = v.toParent2();
+        const returnAppliesToValue = !(!v.isScope && v.isRef) && !(v.isScope && refs && v.isRef);
 
         if ((v.isScope() || (v.storage_class & STC.maybescope)) &&
-            !(v.storage_class & STC.return_) &&
+            !v.isReturn() && returnAppliesToValue &&
             v.isParameter() &&
             !v.doNotInferReturn &&
             sc.func.flags & FUNCFLAG.returnInprocess &&
@@ -1233,7 +1234,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         if (v.isScope())
         {
-            if (v.storage_class & STC.return_)
+            if (v.isReturn && returnAppliesToValue)
                 continue;
 
             auto pfunc = p.isFuncDeclaration();
@@ -1260,7 +1261,23 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 if (global.params.useDIP1000 == FeatureState.enabled) // https://issues.dlang.org/show_bug.cgi?id=17029
                 {
                     if (!gag)
-                        error(e.loc, "scope variable `%s` may not be returned", v.toChars());
+                    {
+                        const char* vType = v.isParameter() ? "parameter" : "variable";
+                        error(e.loc, "scope %s `%s` may not be returned", vType, v.toChars());
+                    }
+                    if (v.isParameter())
+                    {
+                        if (!v.isReturn && returnAppliesToValue)
+                        {
+                            const char* pType = (v.ident is Id.This) ? "function" : "parameter";
+                            errorSupplemental(e.loc, "perhaps annotate the %s with `return`", pType);
+                        }
+                        else if (v.isReturn && !v.isReturnInferred && !returnAppliesToValue)
+                        {
+                            errorSupplemental(e.loc, "note that `return` applies to `ref`, not the value");
+                        }
+                    }
+
                     result = true;
                 }
                 continue;
@@ -1286,6 +1303,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     foreach (VarDeclaration v; er.byref)
     {
         if (log) printf("byref `%s`\n", v.toChars());
+        const returnAppliesToRef = (!v.isScope && v.isRef) || (v.isScope && refs && v.isRef);
 
         // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
@@ -1293,23 +1311,24 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         {
             if (!gag)
             {
-                const(char)* msg, supplemental;
-                if (v.storage_class & STC.parameter &&
-                    (v.type.hasPointers() || v.storage_class & STC.ref_))
+                const char* eName = v.isParameter ? "parameter" : "local variable";
+                previewErrorFunc(sc.isDeprecated(), featureState)(
+                    e.loc, "returning `%s` escapes a reference to %s `%s`", e.toChars(), eName, v.toChars());
+                if (returnAppliesToRef)
                 {
-                    msg = "returning `%s` escapes a reference to parameter `%s`";
-                    supplemental = "perhaps annotate the parameter with `return`";
+                    if (v.isParameter())
+                    {
+                        const char* pType = (v.ident is Id.This) ? "function" : "parameter";
+                        previewSupplementalFunc(sc.isDeprecated(), featureState)(
+                            e.loc, "perhaps annotate the %s with `return`", pType);
+                    }
                 }
-                else
+                else if (v.isReturn && !v.isReturnInferred)
                 {
-                    msg = "returning `%s` escapes a reference to local variable `%s`";
-                    if (v.ident is Id.This)
-                        supplemental = "perhaps annotate the function with `return`";
+                    previewSupplementalFunc(sc.isDeprecated(), featureState)(
+                        e.loc, "note that `return` applies to the value of `%s`, not its address", v.toChars()
+                    );
                 }
-
-                previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), v.toChars());
-                if (supplemental)
-                    previewSupplementalFunc(sc.isDeprecated(), featureState)(e.loc, supplemental);
             }
             result = true;
         }
@@ -1352,9 +1371,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
          * Infer the addition of 'return', or set result to be the offending expression.
          */
         if ( (v.storage_class & (STC.ref_ | STC.out_)) &&
-            !(v.storage_class & (STC.return_ | STC.foreach_)))
+            (!(v.storage_class & (STC.return_ | STC.foreach_)) || !returnAppliesToRef) )
         {
-            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func)
+            if (returnAppliesToRef && sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }

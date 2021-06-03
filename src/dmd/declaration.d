@@ -476,6 +476,16 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.scope_) != 0;
     }
 
+    final bool isReturn() const pure nothrow @nogc @safe
+    {
+        return (storage_class & STC.return_) != 0;
+    }
+
+    final bool isReturnInferred() const pure nothrow @nogc @safe
+    {
+        return (storage_class & STC.returninferred) != 0;
+    }
+
     final bool isSynchronized() const pure nothrow @nogc @safe
     {
         return (storage_class & STC.synchronized_) != 0;
