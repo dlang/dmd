@@ -3462,7 +3462,7 @@ Expression integralPromotions(Expression e, Scope* sc)
 
 void fix16997(Scope* sc, UnaExp ue)
 {
-    if (global.params.fix16997)
+    if (global.params.fix16997 || sc.flags & SCOPE.Cfile)
         ue.e1 = integralPromotions(ue.e1, sc);          // desired C-like behavor
     else
     {

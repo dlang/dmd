@@ -347,6 +347,55 @@ int test5()
 
 /********************************/
 
+int test16997()
+{
+    /* Exhaustively test all signed and unsigned byte promotions for
+     * - + and ~
+     */
+    for (int i = 0; i < 256; ++i)
+    {
+        unsigned char c = (unsigned char)i;
+
+        int i1 = (int) (~c);
+        int i2 = (int) (~(int) c);
+
+        //printf("%d, %d\n", i1, i2);
+        if (i1 != i2) return 0;
+
+        i1 = (int) (+c);
+        i2 = (int) (+(int) c);
+        if (i1 != i2) return 0;
+
+        i1 = (int) (-c);
+        i2 = (int) (-(int) c);
+        if (i1 != i2) return 0;
+    }
+
+    for (int i = 0; i < 256; ++i)
+    {
+        signed char c = (signed char)i;
+
+        int i1 = (int) (~c);
+        int i2 = (int) (~(int) c);
+
+        //printf("%d, %d\n", i1, i2);
+        if (i1 != i2) return 0;
+
+        i1 = (int) (+c);
+        i2 = (int) (+(int) c);
+        if (i1 != i2) return 0;
+
+        i1 = (int) (-c);
+        i2 = (int) (-(int) c);
+        if (i1 != i2) return 0;
+    }
+    return 1;
+}
+
+_Static_assert(test16997(), "in");
+
+/********************************/
+
 int printf(const char*, ...);
 
 int main()
