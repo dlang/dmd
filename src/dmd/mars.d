@@ -1487,7 +1487,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     if (t.deprecated_)
                         continue;
 
-                    buf ~= `setFlagFor!name(params.`~t.paramName~`);`;
+                    buf ~= `setFlagFor(name, params.`~t.paramName~`);`;
                 }
                 buf ~= "return true;\n";
 
@@ -1496,7 +1496,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     buf ~= `case "`~t.name~`":`;
                     if (t.deprecated_)
                         buf ~= "deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
-                    buf ~= `setFlagFor!name(params.`~t.paramName~`); return true;`;
+                    buf ~= `setFlagFor(name, params.`~t.paramName~`); return true;`;
                 }
                 return buf;
             }
@@ -2671,13 +2671,13 @@ private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles)
 }
 
 /// Sets the boolean for a flag with the given name
-private static void setFlagFor(string name)(ref bool b)
+private static void setFlagFor(string name, ref bool b)
 {
     b = name != "revert";
 }
 
 /// Sets the FeatureState for a flag with the given name
-private static void setFlagFor(string name)(ref FeatureState s)
+private static void setFlagFor(string name, ref FeatureState s)
 {
     s = name != "revert" ? FeatureState.enabled : FeatureState.disabled;
 }
