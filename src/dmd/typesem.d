@@ -4545,7 +4545,7 @@ Expression defaultInit(Type mt, const ref Loc loc)
             printf("TypeNoreturn::defaultInit() '%s'\n", mt.toChars());
         }
         auto cond = IntegerExp.createBool(false);
-        auto msg = new StringExp(loc, "Accessed variable of type `noreturn`!");
+        auto msg = new StringExp(loc, "Accessed expression of type `noreturn`");
         auto ae = new AssertExp(loc, cond, msg);
         ae.type = mt;
         return ae;
