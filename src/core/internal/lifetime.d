@@ -92,11 +92,14 @@ constructors etc.
 template emplaceInitializer(T)
 if (!is(T == const) && !is(T == immutable) && !is(T == inout))
 {
-    import core.internal.traits : hasElaborateAssign;
+    import core.internal.traits : hasElaborateAssign, Unqual;
 
-    // Avoid stack allocation by hacking to get to the init symbol.
-    pragma(mangle, "_D" ~ T.mangleof[1..$] ~ "6__initZ")
-    __gshared extern immutable typeof(T.init) initializer;
+    // Avoid stack allocation by hacking to get to the struct/union init symbol.
+    static if (is(T == struct) || is(T == union))
+    {
+        pragma(mangle, "_D" ~ Unqual!T.mangleof[1..$] ~ "6__initZ")
+        __gshared extern immutable T initializer;
+    }
 
     void emplaceInitializer(scope ref T chunk) nothrow pure @trusted
     {
@@ -105,14 +108,15 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
             import core.stdc.string : memset;
             memset(cast(void*) &chunk, 0, T.sizeof);
         }
-        else static if (T.sizeof <= 16 && !hasElaborateAssign!T && __traits(compiles, (){ T chunk; chunk = T.init; }))
+        else static if (__traits(isScalar, T) ||
+                        T.sizeof <= 16 && !hasElaborateAssign!T && __traits(compiles, (){ T chunk; chunk = T.init; }))
         {
             chunk = T.init;
         }
-        else static if (is(T U : U[N], size_t N)) // if isStaticArray
+        else static if (__traits(isStaticArray, T))
         {
             // For static arrays there is no initializer symbol created. Instead, we emplace elements one-by-one.
-            foreach (i; 0..N)
+            foreach (i; 0 .. T.length)
             {
                 emplaceInitializer(chunk[i]);
             }
@@ -162,10 +166,38 @@ if (!is(T == const) && !is(T == immutable) && !is(T == inout))
         this(this) {}
     }
 
+    static union LargeNonZeroUnion
+    {
+        byte[128] a = 1;
+    }
+
     testInitializer!int();
     testInitializer!double();
     testInitializer!ElaborateAndZero();
     testInitializer!ElaborateAndNonZero();
+    testInitializer!LargeNonZeroUnion();
+
+    static if (is(__vector(double[4])))
+    {
+        // DMD 2.096 and GDC 11.1 can't compare vectors with `is` so can't use
+        // testInitializer.
+        enum VE : __vector(double[4])
+        {
+            a = [1.0, 2.0, 3.0, double.nan],
+            b = [4.0, 5.0, 6.0, double.nan],
+        }
+        const VE expected = VE.a;
+        VE dst = VE.b;
+        shared VE sharedDst = VE.b;
+        emplaceInitializer(dst);
+        emplaceInitializer(sharedDst);
+        () @trusted {
+            import core.stdc.string : memcmp;
+            assert(memcmp(&expected, &dst, VE.sizeof) == 0);
+            assert(memcmp(&expected, cast(void*) &sharedDst, VE.sizeof) == 0);
+        }();
+        static assert(!__traits(compiles, emplaceInitializer(expected)));
+    }
 }
 
 /*
