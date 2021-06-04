@@ -102,6 +102,19 @@ class Alias : public typename_
 };
 
 extern void user(Alias* i);
+
+template <typename typename_>
+struct InvalidNames
+{
+    // Ignoring var register alignment 0
+    typename_ register_;
+    void foo(typename_ and_);
+    InvalidNames()
+    {
+    }
+};
+
+extern void useInvalid(InvalidNames<int32_t > _param_0);
 ---
 +/
 #line 100
@@ -136,3 +149,12 @@ class Base {
 class Alias(typename) : typename {}
 
 void user(Alias!Base i) {}
+
+struct InvalidNames(typename)
+{
+    typename register;
+
+    void foo(typename and) {}
+}
+
+void useInvalid(InvalidNames!int) {}

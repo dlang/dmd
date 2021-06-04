@@ -57,6 +57,7 @@ struct ASTCodegen
     alias Tfloat80                  = dmd.mtype.Tfloat80;
     alias Tfunction                 = dmd.mtype.Tfunction;
     alias Tpointer                  = dmd.mtype.Tpointer;
+    alias Treference                = dmd.mtype.Treference;
     alias Tident                    = dmd.mtype.Tident;
     alias Tint8                     = dmd.mtype.Tint8;
     alias Tint16                    = dmd.mtype.Tint16;
@@ -70,6 +71,13 @@ struct ASTCodegen
     alias Tuns64                    = dmd.mtype.Tuns64;
     alias Tvoid                     = dmd.mtype.Tvoid;
     alias Twchar                    = dmd.mtype.Twchar;
+
+    alias Timaginary32              = dmd.mtype.Timaginary32;
+    alias Timaginary64              = dmd.mtype.Timaginary64;
+    alias Timaginary80              = dmd.mtype.Timaginary80;
+    alias Tcomplex32                = dmd.mtype.Tcomplex32;
+    alias Tcomplex64                = dmd.mtype.Tcomplex64;
+    alias Tcomplex80                = dmd.mtype.Tcomplex80;
 
     alias ParameterList             = dmd.mtype.ParameterList;
     alias VarArg                    = dmd.mtype.VarArg;
