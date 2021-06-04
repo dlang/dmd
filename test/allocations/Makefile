@@ -1,12 +1,17 @@
 include ../common.mak
 
-TESTS:=overflow_from_zero overflow_from_existing
+TESTS:=overflow_from_zero overflow_from_existing alloc_from_assert
 
 DIFF:=diff
 SED:=sed
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
+
+$(ROOT)/alloc_from_assert.done: $(ROOT)/alloc_from_assert
+	@echo Testing $*
+	$(QUIET)$(TIMELIMIT)$(ROOT)/alloc_from_assert $(RUN_ARGS)
+	@touch $@
 
 $(ROOT)/overflow_from_zero.done: STDERR_EXP="Memory allocation failed"
 $(ROOT)/overflow_from_existing.done: STDERR_EXP="Memory allocation failed"

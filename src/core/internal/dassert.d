@@ -191,6 +191,19 @@ private string miniFormat(V)(const scope ref V v)
     {
         return v ? "true" : "false";
     }
+    else static if (is(V == __vector(ET[N]), ET, size_t N))
+    {
+        string msg = "[";
+        foreach (i; 0 .. N)
+        {
+            if (i > 0)
+                msg ~= ", ";
+
+            msg ~= miniFormat(v[i]);
+        }
+        msg ~= "]";
+        return msg;
+    }
     else static if (__traits(isIntegral, V))
     {
         static if (is(V == char))
@@ -458,4 +471,20 @@ unittest
     // Even invalid values
     es = cast(E2) S(2, "World");
     assert(miniFormat(es) == `cast(E2)  S(2, "World")`);
+}
+
+// vectors
+unittest
+{
+    static if (is(__vector(float[4])))
+    {
+        __vector(float[4]) f = [-1.5f, 0.5f, 1.0f, 0.125f];
+        assert(miniFormat(f) == "[-1.5, 0.5, 1, 0.125]");
+    }
+
+    static if (is(__vector(int[4])))
+    {
+        __vector(int[4]) i = [-1, 0, 1, 3];
+        assert(miniFormat(i) == "[-1, 0, 1, 3]");
+    }
 }
