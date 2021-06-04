@@ -437,6 +437,8 @@ class Lexer
                 }
                 return;
 
+            case 'u':
+            case 'U':
             case 'L':
                 if (!Ccompile)
                     goto case_ident;
@@ -449,9 +451,12 @@ class Lexer
                 }
                 else if (p[1] == '\"')  // C wide string literal
                 {
+                    const c = *p;
                     ++p;
                     escapeStringConstant(t);
-                    t.postfix = 't';
+                    t.postfix = c == 'L' ? (wchar_tsize == 2 ? 'w' : 'd') :
+                                c == 'u' ? 'w' :
+                                'd';
                     return;
                 }
                 goto case_ident;
@@ -511,7 +516,7 @@ class Lexer
                 /*case 'q': case 'r':*/
             case 's':
             case 't':
-            case 'u':
+            //case 'u':
             case 'v':
             case 'w':
                 /*case 'x':*/
@@ -537,7 +542,7 @@ class Lexer
             case 'R':
             case 'S':
             case 'T':
-            case 'U':
+            //case 'U':
             case 'V':
             case 'W':
             case 'X':
@@ -1738,6 +1743,9 @@ class Lexer
     of the string.
     Params:
         t = the token to set the resulting string to
+    * References:
+    *   D https://dlang.org/spec/lex.html#double_quoted_strings
+    *   ImportC C11 6.4.5
     */
     private void escapeStringConstant(Token* t)
     {
@@ -1754,9 +1762,13 @@ class Lexer
             case '\\':
                 switch (*p)
                 {
+                case '&':
+                    if (Ccompile)
+                        goto default;
+                    goto case;
+
                 case 'u':
                 case 'U':
-                case '&':
                     c = escapeSequence();
                     stringbuffer.writeUTF8(c);
                     continue;
@@ -1767,12 +1779,16 @@ class Lexer
                 break;
             case '\n':
                 endOfLine();
+                if (Ccompile)
+                    goto Lunterminated;
                 break;
             case '\r':
                 if (*p == '\n')
                     continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
+                if (Ccompile)
+                    goto Lunterminated;
                 break;
             case '"':
                 t.setString(stringbuffer);
@@ -1783,6 +1799,7 @@ class Lexer
             case 0x1A:
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
+            Lunterminated:
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
                 return;
@@ -1795,6 +1812,8 @@ class Lexer
                     {
                         c = '\n';
                         endOfLine();
+                        if (Ccompile)
+                            goto Lunterminated;
                     }
                     p++;
                     stringbuffer.writeUTF8(c);
