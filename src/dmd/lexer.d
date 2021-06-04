@@ -1235,19 +1235,22 @@ class Lexer
      */
     private uint escapeSequence()
     {
-        return Lexer.escapeSequence(token.loc, p);
+        return Lexer.escapeSequence(token.loc, p, Ccompile);
     }
 
-    /**
-    Parse the given string literal escape sequence into a single character.
-    Params:
-        loc = the location of the current token
-        sequence = pointer to string with escape sequence to parse. this is a reference
-                   variable that is also used to return the position after the sequence
-    Returns:
-        the escaped sequence as a single character
-    */
-    private static dchar escapeSequence(const ref Loc loc, ref const(char)* sequence)
+    /********
+     * Parse the given string literal escape sequence into a single character.
+     * D https://dlang.org/spec/lex.html#escape_sequences
+     * C11 6.4.4.4
+     * Params:
+     *  loc = location to use for error messages
+     *  sequence = pointer to string with escape sequence to parse. Updated to
+     *             point past the end of the escape sequence
+     *  Ccompile = true for compile C11 escape sequences
+     * Returns:
+     *  the escape sequence as a single character
+     */
+    private static dchar escapeSequence(const ref Loc loc, ref const(char)* sequence, bool Ccompile)
     {
         const(char)* p = sequence; // cache sequence reference on stack
         scope(exit) sequence = p;
@@ -1331,6 +1334,9 @@ class Lexer
             }
             break;
         case '&':
+            if (Ccompile)
+                goto default;
+
             // named character entity
             for (const idstart = ++p; 1; p++)
             {
@@ -1691,7 +1697,7 @@ class Lexer
     q{foo$(LPAREN)}  // "foo$(LPAREN)"
     q{{foo}"}"}      // "{foo}"}""
     ---
-    It is assumed that `p` points to the opening curly-brace '{'.
+    It is assumed that `p` points to the opening curly-brace.
     Params:
         result = pointer to the token that accepts the result
     */
@@ -3014,10 +3020,10 @@ unittest
     }
     diagnosticHandler = &assertDiagnosticHandler;
 
-    static void test(T)(string sequence, T expected)
+    static void test(T)(string sequence, T expected, bool Ccompile = false)
     {
         auto p = cast(const(char)*)sequence.ptr;
-        assert(expected == Lexer.escapeSequence(Loc.initial, p));
+        assert(expected == Lexer.escapeSequence(Loc.initial, p, Ccompile));
         assert(p == sequence.ptr + sequence.length);
     }
 
@@ -3076,13 +3082,13 @@ unittest
 
     diagnosticHandler = &expectDiagnosticHandler;
 
-    void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength)
+    void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength, bool Ccompile = false)
     {
         uint errors = global.errors;
         gotError = false;
         expected = expectedError;
         auto p = cast(const(char)*)sequence.ptr;
-        auto actualReturnValue = Lexer.escapeSequence(Loc.initial, p);
+        auto actualReturnValue = Lexer.escapeSequence(Loc.initial, p, Ccompile);
         assert(gotError);
         assert(expectedReturnValue == actualReturnValue);
 
@@ -3093,6 +3099,7 @@ unittest
 
     test("c", `undefined escape sequence \c`, 'c', 1);
     test("!", `undefined escape sequence \!`, '!', 1);
+    test("&quot;", `undefined escape sequence \&`, '&', 1, true);
 
     test("x1", `escape hex sequence has 1 hex digits instead of 2`, '\x01', 2);
 
@@ -3117,6 +3124,7 @@ unittest
     test("Ug0000000", `undefined escape hex sequence \Ug`, 'g', 2);
 
     test("&BAD;", `unnamed character entity &BAD;`  , '?', 5);
+    test("&quot", `unterminated named entity &quot;`, '?', 5);
     test("&quot", `unterminated named entity &quot;`, '?', 5);
 
     test("400", `escape octal sequence \400 is larger than \377`, 0x100, 3);
