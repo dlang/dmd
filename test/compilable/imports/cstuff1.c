@@ -440,4 +440,11 @@ int main()
 #line 1000
 %:line 1010
 
+# 1020 "cstuff1.c" 1 2 3 4
+# 1030
+struct S21944
+{
+    int var;
+#1040 "cstuff1.c" 3 4
+};
 
