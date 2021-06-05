@@ -1134,11 +1134,16 @@ class Lexer
                     p++;
                     Token n;
                     scan(&n);
+                    if (Ccompile && n.value == TOK.int32Literal)
+                    {
+                        poundLine(n, true);
+                        continue;
+                    }
                     if (n.value == TOK.identifier)
                     {
                         if (n.ident == Id.line)
                         {
-                            poundLine();
+                            poundLine(n, false);
                             continue;
                         }
                         else
@@ -2769,17 +2774,28 @@ class Lexer
     }
 
     /*********************************************
-     * parse:
-     *      #line linnum [filespec]
-     * also allow __LINE__ for linnum, and __FILE__ for filespec
+     * Parse line/file preprocessor directive:
+     *    #line linnum [filespec]
+     * Allow __LINE__ for linnum, and __FILE__ for filespec.
+     * Accept linemarker format:
+     *    # linnum [filespec] {flags}
+     * There can be zero or more flags, which are one of the digits 1..4, and
+     * must be in ascending order. The flags are ignored.
+     * Params:
+     *  tok = token we're on, which is linnum of linemarker
+     *  linemarker = true if line marker format and lexer is on linnum
+     * References:
+     *  linemarker https://gcc.gnu.org/onlinedocs/gcc-11.1.0/cpp/Preprocessor-Output.html
      */
-    private void poundLine()
+    private void poundLine(ref Token tok, bool linemarker)
     {
         auto linnum = this.scanloc.linnum;
         const(char)* filespec = null;
         const loc = this.loc();
-        Token tok;
-        scan(&tok);
+        bool flags;
+
+        if (!linemarker)
+            scan(&tok);
         if (tok.value == TOK.int32Literal || tok.value == TOK.int64Literal)
         {
             const lin = cast(int)(tok.unsvalue - 1);
@@ -2788,7 +2804,7 @@ class Lexer
             else
                 linnum = lin;
         }
-        else if (tok.value == TOK.line)
+        else if (tok.value == TOK.line)  // #line __LINE__
         {
         }
         else
@@ -2823,6 +2839,8 @@ class Lexer
                 p++;
                 continue; // skip white space
             case '_':
+                if (filespec || flags)
+                    goto Lerr;
                 if (memcmp(p, "__FILE__".ptr, 8) == 0)
                 {
                     p += 8;
@@ -2831,7 +2849,7 @@ class Lexer
                 }
                 goto Lerr;
             case '"':
-                if (filespec)
+                if (filespec || flags)
                     goto Lerr;
                 stringbuffer.setsize(0);
                 p++;
@@ -2865,6 +2883,17 @@ class Lexer
                     break;
                 }
                 continue;
+
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+                flags = true;   // linemarker flags seen
+                ++p;
+                if ('0' <= *p && *p <= '9')
+                    goto Lerr;  // only one digit allowed
+                continue;
+
             default:
                 if (*p & 0x80)
                 {
@@ -2876,7 +2905,10 @@ class Lexer
             }
         }
     Lerr:
-        error(loc, "#line integer [\"filespec\"]\\n expected");
+        if (linemarker)
+            error(loc, "# integer [\"filespec\"] { 1 | 2 | 3 | 4 }\\n expected");
+        else
+            error(loc, "#line integer [\"filespec\"]\\n expected");
     }
 
     /********************************************
