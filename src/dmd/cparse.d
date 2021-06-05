@@ -186,9 +186,6 @@ final class CParser(AST) : Parser!AST
         case TOK.imaginary32Literal:
         case TOK.imaginary64Literal:
         case TOK.imaginary80Literal:
-        case TOK.charLiteral:
-        case TOK.wcharLiteral:
-        case TOK.dcharLiteral:
         case TOK.leftParenthesis:
         case TOK.mul:
         case TOK.min:
@@ -648,16 +645,6 @@ final class CParser(AST) : Parser!AST
 
         case TOK.imaginary80Literal:
             e = new AST.RealExp(loc, token.floatvalue, AST.Type.timaginary80);
-            nextToken();
-            break;
-
-        case TOK.charLiteral:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.tchar);
-            nextToken();
-            break;
-
-        case TOK.wchar_tLiteral:
-            e = new AST.IntegerExp(loc, token.unsvalue, AST.Type.twchar); // correct to twchar_t in semantic()
             nextToken();
             break;
 
