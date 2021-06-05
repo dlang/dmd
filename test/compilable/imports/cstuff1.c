@@ -307,6 +307,7 @@ void test4(int i)
 
 void parenExp(int a, int b)
 {
+    char* q = (char*)"hello";
     if (!(a == b))
         a = b;
     if ((int)3 == 3);
