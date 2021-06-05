@@ -426,14 +426,16 @@ class Lexer
                 if (issinglechar(p[1]) && p[2] == '\'')
                 {
                     t.unsvalue = p[1];        // simple one character literal
-                    t.value = TOK.charLiteral;
+                    t.value = Ccompile ? TOK.int32Literal : TOK.charLiteral;
                     p += 3;
+                }
+                else if (Ccompile)
+                {
+                    clexerCharConstant(*t, 0);
                 }
                 else
                 {
                     t.value = charConstant(t);
-                    if (Ccompile)
-                        t.value = TOK.charLiteral;
                 }
                 return;
 
@@ -444,9 +446,11 @@ class Lexer
                     goto case_ident;
                 if (p[1] == '\'')       // C wide character constant
                 {
+                    char c = *p;
+                    if (c == 'L')       // convert L to u or U
+                        c = (wchar_tsize == 4) ? 'u' : 'U';
                     ++p;
-                    charConstant(t);
-                    t.value = TOK.wchar_tLiteral;
+                    clexerCharConstant(*t, c);
                     return;
                 }
                 else if (p[1] == '\"')  // C wide string literal
@@ -1743,9 +1747,9 @@ class Lexer
     }
 
     /**
-    Scan a double-quoted string while building the processed string value by
+    Scan a quoted string while building the processed string value by
     handling escape sequences. The result is returned in the given `t` token.
-    This function assumes that `p` currently points to the opening double-quote
+    This function assumes that `p` currently points to the opening quote
     of the string.
     Params:
         t = the token to set the resulting string to
@@ -1758,7 +1762,7 @@ class Lexer
         t.value = TOK.string_;
 
         const start = loc();
-        p++;
+        const tc = *p++;        // opening quote
         stringbuffer.setsize(0);
         while (1)
         {
@@ -1796,7 +1800,10 @@ class Lexer
                 if (Ccompile)
                     goto Lunterminated;
                 break;
+            case '\'':
             case '"':
+                if (c != tc)
+                    goto default;
                 t.setString(stringbuffer);
                 if (!Ccompile)
                     stringPostfix(t);
@@ -1832,6 +1839,8 @@ class Lexer
     }
 
     /**************************************
+     * Reference:
+     *    https://dlang.org/spec/lex.html#characterliteral
      */
     private TOK charConstant(Token* t)
     {
@@ -1919,6 +1928,86 @@ class Lexer
         }
         p++;
         return tk;
+    }
+
+    /***************************************
+     * Lex C character constant.
+     * Parser is on the opening quote.
+     * Params:
+     *  t = token to fill in
+     *  prefix = one of `u`, `U` or 0.
+     * Reference:
+     *  C11 6.4.4.4
+     */
+    private void clexerCharConstant(ref Token t, char prefix)
+    {
+        escapeStringConstant(&t);
+        const(char)[] str = t.ustring[0 .. t.len];
+        const n = str.length;
+        const loc = t.loc;
+        if (n == 0)
+        {
+            error(loc, "empty character constant");
+            t.value = TOK.semicolon;
+            return;
+        }
+
+        uint u;
+        switch (prefix)
+        {
+            case 0:
+                if (n == 1) // fast case
+                {
+                    u = str[0];
+                }
+                else if (n > 4)
+                    error(loc, "max number of chars in character literal is 4, had %d",
+                        cast(int)n);
+                else
+                {
+                    foreach (i, c; str)
+                        (cast(char*)&u)[n - 1 - i] = c;
+                }
+                break;
+
+            case 'u':
+                dchar d1;
+                size_t idx;
+                auto msg = utf_decodeChar(str, idx, d1);
+                dchar d2 = 0;
+                if (idx < n && !msg)
+                    msg = utf_decodeChar(str, idx, d2);
+                if (msg)
+                    error(loc, "%s", msg);
+                else if (idx < n)
+                    error(loc, "max number of chars in 16 bit character literal is 2, had %d",
+                        (n + 1) >> 1);
+                else if (d1 > 0x1_0000)
+                    error(loc, "%d does not fit in 16 bits", d1);
+                else if (d2 > 0x1_0000)
+                    error(loc, "%d does not fit in 16 bits", d2);
+                u = d1;
+                if (d2)
+                    u = (d1 << 16) | d2;
+                break;
+
+            case 'U':
+                dchar d;
+                size_t idx;
+                auto msg = utf_decodeChar(str, idx, d);
+                if (msg)
+                    error(loc, "%s", msg);
+                else if (idx < n)
+                    error(loc, "max number of chars in 32 bit character literal is 1, had %d",
+                        (n + 3) >> 2);
+                u = d;
+                break;
+
+            default:
+                assert(0);
+        }
+        t.value = TOK.int32Literal;
+        t.unsvalue = u;
     }
 
     /***************************************
