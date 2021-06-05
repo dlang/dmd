@@ -3324,7 +3324,10 @@ final class CParser(AST) : Parser!AST
             t = peek(t);
         }
         else
+        {
+            pt = t;
             return true;        // declarator is optional
+        }
 
         if (t.value == TOK.leftBracket)
         {
@@ -3388,6 +3391,7 @@ final class CParser(AST) : Parser!AST
     private bool isTypeName(ref Token* pt)
     {
         auto t = pt;
+        //printf("isTypeName() %s\n", t.toChars());
         if (!isSpecifierQualifierList(t))
             return false;
         if (!isCDeclarator(t, true))
