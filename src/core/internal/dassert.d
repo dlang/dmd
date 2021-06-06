@@ -228,10 +228,12 @@ private string miniFormat(V)(const scope ref V v)
         }
         else
         {
-            enum printfFormat = getPrintfFormat!V;
-            char[20] val;
-            const len = sprintf(&val[0], printfFormat, v);
-            return val.idup[0 .. len];
+            import core.internal.string;
+            static if (__traits(isUnsigned, V))
+                const val = unsignedToTempString(v);
+            else
+                const val = signedToTempString(v);
+            return val.get().idup();
         }
     }
     else static if (__traits(isFloating, V))

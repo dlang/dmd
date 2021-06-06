@@ -29,6 +29,7 @@ void testIntegers()()
     test(uint.min, uint.max, "0 != 4294967295");
     test(long.min, long.max, "-9223372036854775808 != 9223372036854775807");
     test(ulong.min, ulong.max, "0 != 18446744073709551615");
+    if (!__ctfe)
     test(shared(ulong).min, shared(ulong).max, "0 != 18446744073709551615");
 
     int testFun() { return 1; }
@@ -354,30 +355,45 @@ void testContextPointer()
     test(t, t, `T(1, <context>: 0xABCD) != T(1, <context>: 0xABCD)`);
 }
 
-void main()
+int main()
 {
     testIntegers();
     testIntegerComparisons();
-    testFloatingPoint();
-    testPointers();
+    if (!__ctfe)
+        testFloatingPoint();
+    if (!__ctfe)
+        testPointers();
     testStrings();
-    testToString();
+    if (!__ctfe)
+        testToString();
     testArray();
-    testStruct();
+    if (!__ctfe)
+        testStruct();
     testAA();
     testAttributes();
-    testVoidArray();
+    if (!__ctfe)
+        testVoidArray();
     testTemporary();
     testEnum();
     testUnary();
     testTuple();
-    testStructEquals();
-    testStructEquals2();
+    if (!__ctfe)
+        testStructEquals();
+    if (!__ctfe)
+        testStructEquals2();
     testStructEquals3();
-    testStructEquals4();
-    testStructEquals5();
-    testStructEquals6();
-    testContextPointer();
+    if (!__ctfe)
+        testStructEquals4();
+    if (!__ctfe)
+        testStructEquals5();
+    if (!__ctfe)
+        testStructEquals6();
+    if (!__ctfe)
+        testContextPointer();
 
-    fprintf(stderr, "success.\n");
+    if (!__ctfe)
+        fprintf(stderr, "success.\n");
+    return 0;
 }
+
+enum forceCTFE = main();
