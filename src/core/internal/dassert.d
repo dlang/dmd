@@ -309,6 +309,9 @@ private string miniFormat(V)(const scope ref V v)
         // special-handling for void-arrays
         static if (is(E == void))
         {
+            if (__ctfe)
+                return "<void[] not supported>";
+
             const bytes = cast(byte[]) v;
             return miniFormat(bytes);
         }

@@ -203,7 +203,7 @@ void testAttributes() @safe pure @nogc nothrow
 // https://issues.dlang.org/show_bug.cgi?id=20066
 void testVoidArray()()
 {
-    test!"!is"([], null, "[] is `null`");
+    test!"!is"([], null, (__ctfe ? "<void[] not supported>" : "[]") ~ " is `null`");
     test!"!is"(null, null, "`null` is `null`");
     test([1], null, "[1] != `null`");
     test("s", null, "\"s\" != `null`");
@@ -211,7 +211,7 @@ void testVoidArray()()
     test!"!="(null, null, "`null` == `null`");
 
     const void[] chunk = [byte(1), byte(2), byte(3)];
-    test(chunk, null, "[1, 2, 3] != `null`");
+    test(chunk, null, (__ctfe ? "<void[] not supported>" : "[1, 2, 3]") ~ " != `null`");
 }
 
 void testTemporary()
@@ -402,8 +402,7 @@ int main()
     testStruct();
     testAA();
     testAttributes();
-    if (!__ctfe)
-        testVoidArray();
+    testVoidArray();
     testTemporary();
     testEnum();
     testUnary();
