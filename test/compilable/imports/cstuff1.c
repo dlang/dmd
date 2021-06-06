@@ -210,6 +210,13 @@ void test__func__()
     _Static_assert((sizeof __func__) == 13, "ok");
 }
 
+void teststringtype()
+{
+    char* p = "hello";
+    unsigned short* up = u"hello";
+    unsigned int* Up = U"hello";
+}
+
 /********************************/
 
 struct SA { int a, b, *const c, d[50]; };
