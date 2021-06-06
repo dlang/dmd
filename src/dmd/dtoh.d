@@ -457,79 +457,8 @@ public:
         if (global.params.warnings != DiagnosticReporting.off || canFix)
         {
             // Warn about identifiers that are keywords in C++.
-            switch (ident.toString())
-            {
-                // C++ operators
-                case "and":
-                case "and_eq":
-                case "bitand":
-                case "bitor":
-                case "compl":
-                case "not":
-                case "not_eq":
-                case "or":
-                case "or_eq":
-                case "xor":
-                case "xor_eq":
-                    warnCxxCompat("special operator in C++");
-                    break;
-
-                // C++ keywords
-                case "const_cast":
-                case "delete":
-                case "dynamic_cast":
-                case "explicit":
-                case "friend":
-                case "inline":
-                case "mutable":
-                case "namespace":
-                case "operator":
-                case "register":
-                case "reinterpret_cast":
-                case "signed":
-                case "static_cast":
-                case "typedef":
-                case "typename":
-                case "unsigned":
-                case "using":
-                case "virtual":
-                case "volatile":
-                    warnCxxCompat("keyword in C++");
-                    break;
-
-                // C++11 keywords
-                case "alignas":
-                case "alignof":
-                case "char16_t":
-                case "char32_t":
-                case "constexpr":
-                case "decltype":
-                case "noexcept":
-                case "nullptr":
-                case "static_assert":
-                case "thread_local":
-                    if (global.params.cplusplus >= CppStdRevision.cpp11)
-                        warnCxxCompat("keyword in C++11");
-                    break;
-
-                // C++20 keywords
-                case "char8_t":
-                case "consteval":
-                case "constinit":
-                // Concepts-related keywords
-                case "concept":
-                case "requires":
-                // Coroutines-related keywords
-                case "co_await":
-                case "co_yield":
-                case "co_return":
-                    if (global.params.cplusplus >= CppStdRevision.cpp20)
-                        warnCxxCompat("keyword in C++20");
-                    break;
-
-                default:
-                    break;
-            }
+            if (auto kc = keywordClass(ident))
+                warnCxxCompat(kc);
         }
         buf.writestring(ident.toString());
         if (needsFix)
@@ -2922,6 +2851,86 @@ void hashInclude(ref OutBuffer buf, string content)
 {
     buf.writestring("#include ");
     buf.writestringln(content);
+}
+
+/// Determines whether `ident` is a reserved keyword in C++
+/// Returns: the kind of keyword or `null`
+const(char*) keywordClass(const Identifier ident)
+{
+    if (!ident)
+        return null;
+
+    switch (ident.toString())
+    {
+        // C++ operators
+        case "and":
+        case "and_eq":
+        case "bitand":
+        case "bitor":
+        case "compl":
+        case "not":
+        case "not_eq":
+        case "or":
+        case "or_eq":
+        case "xor":
+        case "xor_eq":
+            return "special operator in C++";
+
+        // C++ keywords
+        case "const_cast":
+        case "delete":
+        case "dynamic_cast":
+        case "explicit":
+        case "friend":
+        case "inline":
+        case "mutable":
+        case "namespace":
+        case "operator":
+        case "register":
+        case "reinterpret_cast":
+        case "signed":
+        case "static_cast":
+        case "typedef":
+        case "typename":
+        case "unsigned":
+        case "using":
+        case "virtual":
+        case "volatile":
+            return "keyword in C++";
+
+        // C++11 keywords
+        case "alignas":
+        case "alignof":
+        case "char16_t":
+        case "char32_t":
+        case "constexpr":
+        case "decltype":
+        case "noexcept":
+        case "nullptr":
+        case "static_assert":
+        case "thread_local":
+            if (global.params.cplusplus >= CppStdRevision.cpp11)
+                return "keyword in C++11";
+            return null;
+
+        // C++20 keywords
+        case "char8_t":
+        case "consteval":
+        case "constinit":
+        // Concepts-related keywords
+        case "concept":
+        case "requires":
+        // Coroutines-related keywords
+        case "co_await":
+        case "co_yield":
+        case "co_return":
+            if (global.params.cplusplus >= CppStdRevision.cpp20)
+                return "keyword in C++20";
+            return null;
+
+        default:
+            return null;
+    }
 }
 
 /// Finds the outermost symbol if `sym` is nested.
