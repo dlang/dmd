@@ -155,8 +155,6 @@ overhead small and avoid the use of Phobos.
 private string miniFormat(V)(const scope ref V v)
 {
     import core.internal.traits: isAggregateType;
-    import core.stdc.stdio : sprintf;
-    import core.stdc.string : strlen;
 
     static if (is(V == shared T, T))
     {
@@ -238,6 +236,7 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (__traits(isFloating, V))
     {
+        import core.stdc.stdio : sprintf;
         import core.stdc.config : LD = c_long_double;
         // Workaround for https://issues.dlang.org/show_bug.cgi?id=20759
         static if (is(LD == real))
@@ -275,11 +274,9 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (is(V == U*, U))
     {
-        // Format as ulong because not all sprintf implementations
-        // prepend a 0x for pointers
-        char[20] val;
-        const len = sprintf(&val[0], "0x%llX", cast(ulong) v);
-        return val.idup[0 .. len];
+        // Format as ulong and prepend a 0x for pointers
+        import core.internal.string;
+        return cast(immutable) ("0x" ~ unsignedToTempString!16(cast(ulong) v));
     }
     // toString() isn't always const, e.g. classes inheriting from Object
     else static if (__traits(compiles, { string s = V.init.toString(); }))

@@ -63,7 +63,7 @@ void testPointers()
     static if ((void*).sizeof == 4)
         enum ptr = "0x12345670";
     else
-        enum ptr = "0x123456789ABCDEF0";
+        enum ptr = "0x123456789abcdef0";
 
     int* p = cast(int*) mixin(ptr);
     test(cast(S*) p, p, ptr ~ " != " ~ ptr);
@@ -352,7 +352,7 @@ void testContextPointer()
     }
     T t = T(1);
     t.tupleof[$-1] = cast(void*) 0xABCD; // Deterministic context pointer
-    test(t, t, `T(1, <context>: 0xABCD) != T(1, <context>: 0xABCD)`);
+    test(t, t, `T(1, <context>: 0xabcd) != T(1, <context>: 0xabcd)`);
 }
 
 int main()
@@ -361,8 +361,7 @@ int main()
     testIntegerComparisons();
     if (!__ctfe)
         testFloatingPoint();
-    if (!__ctfe)
-        testPointers();
+    testPointers();
     testStrings();
     if (!__ctfe)
         testToString();
@@ -388,8 +387,7 @@ int main()
         testStructEquals5();
     if (!__ctfe)
         testStructEquals6();
-    if (!__ctfe)
-        testContextPointer();
+    testContextPointer();
 
     if (!__ctfe)
         fprintf(stderr, "success.\n");
