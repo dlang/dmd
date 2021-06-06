@@ -46,10 +46,19 @@ void testIntegerComparisons()()
 
 void testFloatingPoint()()
 {
-    test(1.5, 2.5, "1.5 != 2.5");
-    test(float.max, -float.max, "3.40282e+38 != -3.40282e+38");
-    test(double.max, -double.max, "1.79769e+308 != -1.79769e+308");
-    test(real(1), real(-1), "1 != -1");
+    if (__ctfe)
+    {
+        test(float.max, -float.max, "<float not supported> != <float not supported>");
+        test(double.max, -double.max, "<double not supported> != <double not supported>");
+        test(real(1), real(-1), "<real not supported> != <real not supported>");
+    }
+    else
+    {
+        test(1.5, 2.5, "1.5 != 2.5");
+        test(float.max, -float.max, "3.40282e+38 != -3.40282e+38");
+        test(double.max, -double.max, "1.79769e+308 != -1.79769e+308");
+        test(real(1), real(-1), "1 != -1");
+    }
 }
 
 void testPointers()
@@ -385,8 +394,7 @@ int main()
 {
     testIntegers();
     testIntegerComparisons();
-    if (!__ctfe)
-        testFloatingPoint();
+    testFloatingPoint();
     testPointers();
     testStrings();
     testToString();

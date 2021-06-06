@@ -240,6 +240,10 @@ private string miniFormat(V)(const scope ref V v)
     {
         import core.stdc.stdio : sprintf;
         import core.stdc.config : LD = c_long_double;
+
+        if (__ctfe)
+            return '<' ~ V.stringof ~ " not supported>";
+
         // Workaround for https://issues.dlang.org/show_bug.cgi?id=20759
         static if (is(LD == real))
             enum realFmt = "%Lg";
