@@ -2083,7 +2083,7 @@ final class CParser(AST) : Parser!AST
             case TKW.xshort | TKW.xint:         t = AST.Type.tint16; break;
 
             case TKW.xunsigned | TKW.xshort | TKW.xint:
-            case TKW.xunsigned | TKW.xshort:    t = AST.Type.tint16; break;
+            case TKW.xunsigned | TKW.xshort:    t = AST.Type.tuns16; break;
 
             case TKW.xint:
             case TKW.xsigned:
@@ -3704,6 +3704,8 @@ final class CParser(AST) : Parser!AST
         auto ifn = new AST.ExpInitializer(loc, efn);
         auto lenfn = new AST.IntegerExp(loc, fn.length + 1, AST.Type.tuns32); // +1 for terminating 0
         auto tfn = new AST.TypeSArray(AST.Type.tchar, lenfn);
+        efn.type = tfn.immutableOf();
+        efn.committed = 1;
         auto sfn = new AST.VarDeclaration(loc, tfn, Id.__func__, ifn, STC.gshared | STC.immutable_);
         auto e = new AST.DeclarationExp(loc, sfn);
         return new AST.ExpStatement(loc, e);
