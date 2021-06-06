@@ -77,7 +77,7 @@ import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
 
-
+// debug = LOGSEMANTIC;
 /********************************************************
  * Perform semantic analysis and CTFE on expressions to produce
  * a string.
