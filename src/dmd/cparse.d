@@ -1785,6 +1785,7 @@ final class CParser(AST) : Parser!AST
             return new AST.ExpInitializer(token.loc, ae);
         }
         nextToken();
+        bool first = true;
         while (1)
         {
             bool hasDesignation = false;
@@ -1816,9 +1817,25 @@ final class CParser(AST) : Parser!AST
                 check(TOK.assign);
                 error("initializer designations are not supported"); // TODO
             }
-            cparseInitializer();
-            if (token.value == TOK.rightCurly || token.value == TOK.endOfFile)
-                break;
+            auto cinit = cparseInitializer();
+            if (token.value == TOK.comma)
+            {
+                nextToken();
+                if (token.value == TOK.rightCurly)
+                {
+                    nextToken();
+                    if (first && cinit.isExpInitializer())
+                        return cinit;  // treat `{ exp , }` as just `exp`
+                }
+                first = false;
+                continue;
+            }
+            if (token.value == TOK.rightCurly && first && cinit.isExpInitializer())
+            {
+                nextToken();
+                return cinit;  // treat `{ exp }` as just `exp`
+            }
+            break;
         }
         check(TOK.rightCurly);
         error("`{ initializer-list }` is not implemented"); // TODO

@@ -188,6 +188,18 @@ void tokens()
 
 /********************************/
 
+int testexpinit()
+{
+    int i = 1;
+    int j = { 2 };
+    int k = { 3 , };
+    return i + j + k;
+}
+
+_Static_assert(testexpinit() == 1 + 2 + 3, "ok");
+
+/********************************/
+
 // Character literals
 _Static_assert(sizeof('a') == 4, "ok");
 _Static_assert(sizeof(u'a') == 4, "ok");
