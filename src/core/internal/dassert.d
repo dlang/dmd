@@ -161,13 +161,15 @@ private string miniFormat(V)(const scope ref V v)
         // Use atomics to avoid race conditions whenever possible
         static if (__traits(compiles, atomicLoad(v)))
         {
-            T tmp = cast(T) atomicLoad(v);
-            return miniFormat(tmp);
+            if (!__ctfe)
+            {
+                T tmp = cast(T) atomicLoad(v);
+                return miniFormat(tmp);
+            }
         }
-        else
-        {   // Fall back to a simple cast - we're violating the type system anyways
-            return miniFormat(*cast(T*) &v);
-        }
+
+        // Fall back to a simple cast - we're violating the type system anyways
+        return miniFormat(__ctfe ? cast(const T) v : *cast(const T*) &v);
     }
     // Format enum members using their name
     else static if (is(V BaseType == enum))

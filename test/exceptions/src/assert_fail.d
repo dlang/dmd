@@ -29,7 +29,6 @@ void testIntegers()()
     test(uint.min, uint.max, "0 != 4294967295");
     test(long.min, long.max, "-9223372036854775808 != 9223372036854775807");
     test(ulong.min, ulong.max, "0 != 18446744073709551615");
-    if (!__ctfe)
     test(shared(ulong).min, shared(ulong).max, "0 != 18446744073709551615");
 
     int testFun() { return 1; }
@@ -108,6 +107,7 @@ void testToString()()
     test(new Foo("a"), new Foo("b"), "Foo(a) != Foo(b)");
 
     scope f = cast(shared) new Foo("a");
+    if (!__ctfe) // Ref somehow get's lost in CTFE
     test!"!="(f, f, "Foo(a) == Foo(a)");
 
     // Verifiy that the const toString is selected if present
@@ -355,6 +355,32 @@ void testContextPointer()
     test(t, t, `T(1, <context>: 0xabcd) != T(1, <context>: 0xabcd)`);
 }
 
+void testShared()
+{
+    static struct Small
+    {
+        int i;
+    }
+
+    auto s1 = shared Small(1);
+    const s2 = shared Small(2);
+    test(s1, s2, "Small(1) != Small(2)");
+
+    static struct Big
+    {
+        long[10] l;
+    }
+
+    auto b1 = shared Big([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    const b2 = shared Big();
+    test(b1, b2, "Big([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) != Big([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])");
+
+    // Sanity check: Big shouldn't be supported by atomicLoad
+    import core.atomic : atomicLoad;
+    static assert( __traits(compiles, atomicLoad(s1)));
+    static assert(!__traits(compiles, atomicLoad(b1)));
+}
+
 int main()
 {
     testIntegers();
@@ -363,11 +389,9 @@ int main()
         testFloatingPoint();
     testPointers();
     testStrings();
-    if (!__ctfe)
-        testToString();
+    testToString();
     testArray();
-    if (!__ctfe)
-        testStruct();
+    testStruct();
     testAA();
     testAttributes();
     if (!__ctfe)
@@ -388,6 +412,7 @@ int main()
     if (!__ctfe)
         testStructEquals6();
     testContextPointer();
+    testShared();
 
     if (!__ctfe)
         fprintf(stderr, "success.\n");
