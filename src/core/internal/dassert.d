@@ -184,7 +184,7 @@ private string miniFormat(V)(const scope ref V v)
 
         // Format invalid enum values as their base type
         enum cast_ = "cast(" ~ V.stringof ~ ")";
-        const val = miniFormat(*(cast(BaseType*) &v));
+        const val = miniFormat(__ctfe ? cast(const BaseType) v : *cast(const BaseType*) &v);
         return combine([ cast_ ], "", [ val ]);
     }
     else static if (is(V == bool))
