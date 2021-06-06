@@ -668,18 +668,16 @@ extern(D):
      * Returns:
      *  The base address of the memory block referenced by p or null on error.
      */
-    static inout(void)* addrOf( inout(void)* p ) nothrow @nogc /* FIXME pure */
+    static inout(void)* addrOf( inout(void)* p ) nothrow @nogc pure @trusted
     {
         return cast(inout(void)*)gc_addrOf(cast(void*)p);
     }
 
-
     /// ditto
-    static void* addrOf(void* p) pure nothrow @nogc
+    static void* addrOf(void* p) pure nothrow @nogc @trusted
     {
         return gc_addrOf(p);
     }
-
 
     /**
      * Returns the true size of the memory block referenced by p.  This value
