@@ -1776,29 +1776,41 @@ final class CParser(AST) : Parser!AST
      * designator:
      *    [ constant-expression ]
      *    . identifier
+     * Returns:
+     *    initializer
      */
     AST.Initializer cparseInitializer()
     {
         if (token.value != TOK.leftCurly)
         {
-            auto ae = cparseAssignExp();
+            auto ae = cparseAssignExp();        // assignment-expression
             return new AST.ExpInitializer(token.loc, ae);
         }
         nextToken();
-        bool first = true;
+        const loc = token.loc;
+
+        /* Collect one or more `designation (opt) initializer`
+         * into ci.initializerList, but lazily create ci
+         */
+        AST.CInitializer ci;
         while (1)
         {
-            bool hasDesignation = false;
+            /* There can be 0 or more designators preceding an initializer.
+             * Collect them in desigInit
+             */
+            AST.DesigInit desigInit;
             while (1)
             {
-                if (token.value == TOK.leftBracket)
+                if (token.value == TOK.leftBracket)     // [ constant-expression ]
                 {
                     nextToken();
-                    cparseConstantExp();
+                    auto e = cparseConstantExp();
                     check(TOK.rightBracket);
-                    hasDesignation = true;
+                    if (!desigInit.designatorList)
+                        desigInit.designatorList = new AST.Designators;
+                    desigInit.designatorList.push(AST.Designator(e));
                 }
-                else if (token.value == TOK.dot)
+                else if (token.value == TOK.dot)        // . identifier
                 {
                     nextToken();
                     if (token.value != TOK.identifier)
@@ -1806,41 +1818,47 @@ final class CParser(AST) : Parser!AST
                         error("identifier expected following `.` designator");
                         break;
                     }
+                    if (!desigInit.designatorList)
+                        desigInit.designatorList = new AST.Designators;
+                    desigInit.designatorList.push(AST.Designator(token.ident));
                     nextToken();
-                    hasDesignation = true;
                 }
                 else
                     break;
-            }
-            if (hasDesignation)
-            {
+
                 check(TOK.assign);
-                error("initializer designations are not supported"); // TODO
             }
-            auto cinit = cparseInitializer();
+
+            desigInit.initializer = cparseInitializer();
+            const justExp = !ci &&
+                            !desigInit.designatorList &&
+                            desigInit.initializer.isExpInitializer();
             if (token.value == TOK.comma)
             {
                 nextToken();
                 if (token.value == TOK.rightCurly)
                 {
                     nextToken();
-                    if (first && cinit.isExpInitializer())
-                        return cinit;  // treat `{ exp , }` as just `exp`
+                    if (justExp)
+                        return desigInit.initializer;  // treat `{ exp , }` as just `exp`
                 }
-                first = false;
+                if (!ci)
+                    ci = new AST.CInitializer(loc);
+                ci.initializerList.push(desigInit);
                 continue;
             }
-            if (token.value == TOK.rightCurly && first && cinit.isExpInitializer())
+            if (token.value == TOK.rightCurly && justExp)
             {
                 nextToken();
-                return cinit;  // treat `{ exp }` as just `exp`
+                return desigInit.initializer;  // treat `{ exp }` as just `exp`
             }
+            if (!ci)
+                ci = new AST.CInitializer(loc);
+            ci.initializerList.push(desigInit);
             break;
         }
         check(TOK.rightCurly);
-        error("`{ initializer-list }` is not implemented"); // TODO
-        auto e = new AST.IntegerExp(token.loc, 0, AST.Type.tint32);
-        return new AST.ExpInitializer(token.loc, e);
+        return ci;
     }
 
     /*************************************

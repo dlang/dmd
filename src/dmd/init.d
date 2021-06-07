@@ -46,6 +46,7 @@ enum InitKind : ubyte
     struct_,
     array,
     exp,
+    C_,
 }
 
 /***********************************************************
@@ -94,6 +95,11 @@ extern (C++) class Initializer : ASTNode
     final inout(ExpInitializer) isExpInitializer() inout pure
     {
         return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
+    }
+
+    final inout(CInitializer) isCInitializer() inout pure
+    {
+        return kind == InitKind.C_ ? cast(inout CInitializer)cast(void*)this : null;
     }
 
     override void accept(Visitor v)
@@ -217,6 +223,46 @@ extern (C++) final class ExpInitializer : Initializer
     }
 }
 
+/*********************************************
+ * Holds the `designator` for C initializers
+ */
+struct Designator
+{
+    Expression exp;     /// [ constant-expression ]
+    Identifier ident;   /// . identifier
+
+    this(Expression exp) { this.exp = exp; }
+    this(Identifier ident) { this.ident = ident; }
+}
+
+/*********************************************
+ * Holds the `designation (opt) initializer` for C initializers
+ */
+struct DesigInit
+{
+    Designators* designatorList; /// designation (opt)
+    Initializer initializer;     /// initializer
+}
+
+/********************************
+ * C11 6.7.9 Initialization
+ * Represents the C initializer-list
+ */
+extern (C++) final class CInitializer : Initializer
+{
+    DesigInits initializerList; /// initializer-list
+
+    extern (D) this(const ref Loc loc)
+    {
+        super(loc, InitKind.C_);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
 /****************************************
  * Copy the AST for Initializer.
  * Params:
@@ -254,6 +300,31 @@ Initializer syntaxCopy(Initializer inx)
         return ai;
     }
 
+    static Initializer copyC(CInitializer vi)
+    {
+        auto ci = new CInitializer(vi.loc);
+        ci.initializerList.setDim(vi.initializerList.length);
+        foreach (const i; 0 .. vi.initializerList.length)
+        {
+            DesigInit* cdi = &ci.initializerList[i];
+            DesigInit* vdi = &ci.initializerList[i];
+            cdi.initializer = vdi.initializer.syntaxCopy();
+            if (vdi.designatorList)
+            {
+                cdi.designatorList = new Designators();
+                cdi.designatorList.setDim(vdi.designatorList.length);
+                foreach (const j; 0 .. vdi.designatorList.length)
+                {
+                    Designator* cdid = &(*cdi.designatorList)[j];
+                    Designator* vdid = &(*vdi.designatorList)[j];
+                    cdid.exp = vdid.exp ? vdid.exp.syntaxCopy() : null;
+                    cdid.ident = vdid.ident;
+                }
+            }
+        }
+        return ci;
+    }
+
     final switch (inx.kind)
     {
         case InitKind.void_:   return new VoidInitializer(inx.loc);
@@ -261,5 +332,6 @@ Initializer syntaxCopy(Initializer inx)
         case InitKind.struct_: return copyStruct(cast(StructInitializer)inx);
         case InitKind.array:   return copyArray(cast(ArrayInitializer)inx);
         case InitKind.exp:     return new ExpInitializer(inx.loc, (cast(ExpInitializer)inx).exp.syntaxCopy());
+        case InitKind.C_:      return copyC(cast(CInitializer)inx);
     }
 }

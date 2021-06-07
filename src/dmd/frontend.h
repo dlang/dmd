@@ -166,6 +166,8 @@ class GotoCaseStatement;
 class ReturnStatement;
 class GotoStatement;
 struct Ensure;
+struct Designator;
+struct DesigInit;
 enum class LINK : uint8_t
 {
     default_ = 0u,
@@ -789,6 +791,7 @@ class VoidInitializer;
 class StructInitializer;
 class ArrayInitializer;
 class ExpInitializer;
+class CInitializer;
 enum class JsonFieldFlags : uint32_t
 {
     none = 0u,
@@ -1871,6 +1874,10 @@ typedef Array<GotoStatement* > GotoStatements;
 typedef Array<TemplateInstance* > TemplateInstances;
 
 typedef Array<Ensure > Ensures;
+
+typedef Array<Designator > Designators;
+
+typedef Array<DesigInit > DesigInits;
 
 class AttribDeclaration : public Dsymbol
 {
@@ -4932,6 +4939,7 @@ enum class InitKind : uint8_t
     struct_ = 2u,
     array = 3u,
     exp = 4u,
+    C_ = 5u,
 };
 
 class Initializer : public ASTNode
@@ -4945,6 +4953,7 @@ public:
     StructInitializer* isStructInitializer();
     ArrayInitializer* isArrayInitializer();
     ExpInitializer* isExpInitializer();
+    CInitializer* isCInitializer();
     void accept(Visitor* v);
 };
 
@@ -4989,6 +4998,14 @@ public:
     bool expandTuples;
     Expression* exp;
     void accept(Visitor* v);
+};
+
+class CInitializer final : public Initializer
+{
+public:
+    Array<DesigInit > initializerList;
+    void accept(Visitor* v);
+    ~CInitializer();
 };
 
 extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type* t, NeedInterpret needInterpret);
@@ -5907,6 +5924,7 @@ public:
     virtual void visit(typename AST::StructInitializer i);
     virtual void visit(typename AST::ArrayInitializer i);
     virtual void visit(typename AST::VoidInitializer i);
+    virtual void visit(typename AST::CInitializer i);
 };
 
 template <typename AST>
@@ -6830,6 +6848,7 @@ public:
     void visit(StructInitializer* si);
     void visit(ArrayInitializer* ai);
     void visit(ExpInitializer* ei);
+    void visit(CInitializer* ci);
     void visit(ArrayLiteralExp* e);
     void visit(AssocArrayLiteralExp* e);
     void visit(TypeExp* e);

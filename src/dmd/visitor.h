@@ -178,6 +178,7 @@ class ErrorInitializer;
 class StructInitializer;
 class ArrayInitializer;
 class ExpInitializer;
+class CInitializer;
 
 class Expression;
 class IntegerExp;
@@ -575,6 +576,7 @@ public:
     virtual void visit(StructInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
+    virtual void visit(CInitializer *i) { visit((Initializer *)i); }
 };
 
 class Visitor : public ParseTimeVisitor

@@ -63,3 +63,8 @@ typedef Array<class GotoStatement *> GotoStatements;
 typedef Array<class TemplateInstance *> TemplateInstances;
 
 typedef Array<struct Ensure> Ensures;
+
+typedef Array<struct Designator> Designators;
+
+typedef Array<struct DesigInit> DesigInits;
+

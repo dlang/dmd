@@ -544,6 +544,13 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         return i;
     }
 
+    Initializer visitC(CInitializer i)
+    {
+        //printf("CInitializer::semantic()\n");
+        error(i.loc, "C initializers not supported yet");
+        return new ErrorInitializer();
+    }
+
     final switch (init.kind)
     {
         case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
@@ -551,6 +558,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
         case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
         case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
         case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+        case InitKind.C_:      return visitC     (cast(     CInitializer)init);
     }
 }
 
@@ -702,6 +710,13 @@ Initializer inferType(Initializer init, Scope* sc)
         return init;
     }
 
+    Initializer visitC(CInitializer i)
+    {
+        //printf(CInitializer::inferType()\n");
+        error(i.loc, "TODO C inferType initializers not supported yet");
+        return new ErrorInitializer();
+    }
+
     final switch (init.kind)
     {
         case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
@@ -709,6 +724,7 @@ Initializer inferType(Initializer init, Scope* sc)
         case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
         case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
         case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+        case InitKind.C_:      return visitC     (cast(     CInitializer)init);
     }
 }
 
@@ -900,6 +916,11 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
         return i.exp;
     }
 
+    Expression visitC(CInitializer i)
+    {
+        //printf("CInitializer.initializerToExpression()\n");
+        return null;
+    }
 
     final switch (init.kind)
     {
@@ -908,6 +929,7 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
         case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
         case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
         case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+        case InitKind.C_:      return visitC     (cast(     CInitializer)init);
     }
 }
 
