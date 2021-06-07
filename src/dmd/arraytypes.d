@@ -52,3 +52,6 @@ alias ReturnStatements = Array!(ReturnStatement);
 alias GotoStatements = Array!(GotoStatement);
 alias TemplateInstances = Array!(TemplateInstance);
 alias Ensures = Array!(Ensure);
+alias Designators = Array!(Designator);
+alias DesigInits = Array!(DesigInit);
+

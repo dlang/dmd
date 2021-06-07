@@ -204,6 +204,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
         case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
         case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+        case InitKind.C_:      assert(0);
     }
 }
 

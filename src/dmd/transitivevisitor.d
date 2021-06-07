@@ -894,6 +894,20 @@ package mixin template ParseVisitMethods(AST)
         ei.exp.accept(this);
     }
 
+    override void visit(AST.CInitializer ci)
+    {
+        //printf("Visiting CInitializer\n");
+        foreach (di; ci.initializerList)
+        {
+            foreach (des; (*di.designatorList)[])
+            {
+                if (des.exp)
+                    des.exp.accept(this);
+            }
+            di.initializer.accept(this);
+        }
+    }
+
 //      Expressions
 //===================================================
 

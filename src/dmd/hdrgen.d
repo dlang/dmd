@@ -3609,6 +3609,11 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
         ei.exp.expressionToBuffer(buf, hgs);
     }
 
+    void visitC(CInitializer ci)
+    {
+        buf.writestring("hdrgen C initializers TODO");
+    }
+
     final switch (inx.kind)
     {
         case InitKind.error:   return visitError (inx.isErrorInitializer ());
@@ -3616,6 +3621,7 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
         case InitKind.struct_: return visitStruct(inx.isStructInitializer());
         case InitKind.array:   return visitArray (inx.isArrayInitializer ());
         case InitKind.exp:     return visitExp   (inx.isExpInitializer   ());
+        case InitKind.C_:      return visitC     (inx.isCInitializer     ());
     }
 }
 

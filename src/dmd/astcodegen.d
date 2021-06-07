@@ -34,6 +34,7 @@ struct ASTCodegen
     public import dmd.staticassert;
     public import dmd.typesem;
     public import dmd.ctfeexpr;
+    public import dmd.init : Designator;
 
 
     alias initializerToExpression   = dmd.initsem.initializerToExpression;

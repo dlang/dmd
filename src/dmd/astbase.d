@@ -51,6 +51,8 @@ struct ASTBase
     alias Identifiers           = Array!(Identifier);
     alias Initializers          = Array!(Initializer);
     alias Ensures               = Array!(Ensure);
+    alias Designators           = Array!(Designator);
+    alias DesigInits            = Array!(DesigInit);
 
     enum Sizeok : ubyte
     {
@@ -6507,6 +6509,7 @@ struct ASTBase
         struct_,
         array,
         exp,
+        C_,
     }
 
     extern (C++) class Initializer : ASTNode
@@ -6606,6 +6609,36 @@ struct ASTBase
         extern (D) this(const ref Loc loc)
         {
             super(loc, InitKind.void_);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    struct Designator
+    {
+        Expression exp;         /// [ constant-expression ]
+        Identifier ident;       /// . identifier
+
+        this(Expression exp) { this.exp = exp; }
+        this(Identifier ident) { this.ident = ident; }
+    }
+
+    struct DesigInit
+    {
+        Designators* designatorList; /// designation (opt)
+        Initializer initializer;     /// initializer
+    }
+
+    extern (C++) final class CInitializer : Initializer
+    {
+        DesigInits initializerList; /// initializer-list
+
+        extern (D) this(const ref Loc loc)
+        {
+            super(loc, InitKind.C_);
         }
 
         override void accept(Visitor v)

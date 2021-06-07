@@ -291,4 +291,5 @@ public:
     void visit(AST.StructInitializer i) { visit(cast(AST.Initializer)i); }
     void visit(AST.ArrayInitializer i) { visit(cast(AST.Initializer)i); }
     void visit(AST.VoidInitializer i) { visit(cast(AST.Initializer)i); }
+    void visit(AST.CInitializer i) { visit(cast(AST.CInitializer)i); }
 }
