@@ -518,6 +518,49 @@ public:
             buf.writeByte('_');
     }
 
+    /// Checks whether `t` is a type that can be exported to C++
+    private bool isSupportedType(AST.Type t)
+    {
+        if (!t)
+        {
+            assert(tdparent);
+            return true;
+        }
+
+        switch (t.ty)
+        {
+            // Nested types
+            case AST.Tarray:
+            case AST.Tsarray:
+            case AST.Tpointer:
+            case AST.Treference:
+            case AST.Tdelegate:
+                return isSupportedType((cast(AST.TypeNext) t).next);
+
+            // Function pointers
+            case AST.Tfunction:
+            {
+                auto tf = cast(AST.TypeFunction) t;
+                if (!isSupportedType(tf.next))
+                    return false;
+                foreach (_, param; tf.parameterList)
+                {
+                    if (!isSupportedType(param.type))
+                        return false;
+                }
+                return true;
+            }
+
+            // _Imaginary is C only.
+            case AST.Timaginary32:
+            case AST.Timaginary64:
+            case AST.Timaginary80:
+                return false;
+            default:
+                return true;
+        }
+    }
+
     override void visit(AST.Dsymbol s)
     {
         debug (Debug_DtoH)
@@ -680,20 +723,7 @@ public:
         if ((tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))
         {
             ignored("function %s because of linkage", fd.toPrettyChars());
-
-            // Virtual extern(D) functions require a dummy declaration to ensure proper
-            // vtable layout - but omit redundant declarations - the slot was already
-            // reserved  in the base class
-            if (fd.isVirtual() && fd.introducing)
-            {
-                // Hide placeholders because they are not ABI compatible
-                writeProtection(AST.Visibility.Kind.private_);
-
-                __gshared int counter; // Ensure unique names in all cases
-                buf.printf("virtual void __vtable_slot_%u();", counter++);
-                buf.writenl();
-            }
-            return;
+            return checkVirtualFunction(fd);
         }
         if (!adparent && !fd.fbody)
         {
@@ -704,6 +734,20 @@ public:
         {
             ignored("function %s because it is private", fd.toPrettyChars());
             return;
+        }
+        if (tf && !isSupportedType(tf.next))
+        {
+            ignored("function %s because its return type cannot be mapped to C++", fd.toPrettyChars());
+            return checkVirtualFunction(fd);
+        }
+        if (tf) foreach (i, fparam; tf.parameterList)
+        {
+            if (!isSupportedType(fparam.type))
+            {
+                ignored("function %s because one of its parameters has type `%s` which cannot be mapped to C++",
+                        fd.toPrettyChars(), fparam.type.toChars());
+                return checkVirtualFunction(fd);
+            }
         }
 
         writeProtection(fd.visibility.kind);
@@ -771,6 +815,23 @@ public:
         if (!adparent)
             buf.writenl();
 
+    }
+
+    /// Checks whether `fd` is a virtual function and emits a dummy declaration
+    /// if required to ensure proper vtable layout
+    private void checkVirtualFunction(AST.FuncDeclaration fd)
+    {
+        // Omit redundant declarations - the slot was already
+        // reserved in the base class
+        if (fd.isVirtual() && fd.introducing)
+        {
+            // Hide placeholders because they are not ABI compatible
+            writeProtection(AST.Visibility.Kind.private_);
+
+            __gshared int counter; // Ensure unique names in all cases
+            buf.printf("virtual void __vtable_slot_%u();", counter++);
+            buf.writenl();
+        }
     }
 
     override void visit(AST.UnitTestDeclaration utd)
@@ -870,6 +931,11 @@ public:
                 ignored("variable %s because of linkage", vd.toPrettyChars());
                 return;
             }
+            if (!isSupportedType(vd.type))
+            {
+                ignored("variable %s because its type cannot be mapped to C++", vd.toPrettyChars());
+                return;
+            }
             writeProtection(vd.visibility.kind);
             typeToBuffer(vd.type, vd, adparent && !(vd.storage_class & (AST.STC.static_ | AST.STC.gshared)));
             buf.writestringln(";");
@@ -887,6 +953,11 @@ public:
             if (vd.storage_class & AST.STC.tls)
             {
                 ignored("variable %s because of thread-local storage", vd.toPrettyChars());
+                return;
+            }
+            if (!isSupportedType(vd.type))
+            {
+                ignored("variable %s because its type cannot be mapped to C++", vd.toPrettyChars());
                 return;
             }
             writeProtection(vd.visibility.kind);
@@ -1758,6 +1829,20 @@ public:
             case AST.Tfloat32:  typeName = "float";     break;
             case AST.Tfloat64:  typeName = "double";    break;
             case AST.Tfloat80:
+                typeName = "_d_real";
+                hasReal = true;
+                break;
+            case AST.Tcomplex32:  typeName = "_Complex float";  break;
+            case AST.Tcomplex64:  typeName = "_Complex double"; break;
+            case AST.Tcomplex80:
+                typeName = "_Complex _d_real";
+                hasReal = true;
+                break;
+            // ???: This is not strictly correct, but it should be ignored
+            // in all places where it matters most (variables, functions, ...).
+            case AST.Timaginary32: typeName = "float";  break;
+            case AST.Timaginary64: typeName = "double"; break;
+            case AST.Timaginary80:
                 typeName = "_d_real";
                 hasReal = true;
                 break;
