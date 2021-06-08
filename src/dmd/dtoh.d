@@ -30,75 +30,20 @@ import dmd.utils;
 
 //debug = Debug_DtoH;
 
-private struct DMDType
-{
-    __gshared Identifier c_long;
-    __gshared Identifier c_ulong;
-    __gshared Identifier c_longlong;
-    __gshared Identifier c_ulonglong;
-    __gshared Identifier c_long_double;
-    __gshared Identifier c_wchar_t;
-    __gshared Identifier c_complex_float;
-    __gshared Identifier c_complex_double;
-    __gshared Identifier c_complex_real;
-
-    static void _init()
-    {
-        c_long          = Identifier.idPool("__c_long");
-        c_ulong         = Identifier.idPool("__c_ulong");
-        c_longlong      = Identifier.idPool("__c_longlong");
-        c_ulonglong     = Identifier.idPool("__c_ulonglong");
-        c_long_double   = Identifier.idPool("__c_long_double");
-        c_wchar_t       = Identifier.idPool("__c_wchar_t");
-        c_complex_float  = Identifier.idPool("__c_complex_float");
-        c_complex_double = Identifier.idPool("__c_complex_double");
-        c_complex_real = Identifier.idPool("__c_complex_real");
-    }
-}
-
-private void initialize()
-{
-    __gshared bool initialized;
-
-    if (!initialized)
-    {
-        initialized = true;
-
-        DMDType._init();
-    }
-}
-
-void hashIf(ref OutBuffer buf, string content)
-{
-    buf.writestring("#if ");
-    buf.writestringln(content);
-}
-
-void hashElIf(ref OutBuffer buf, string content)
-{
-    buf.writestring("#elif ");
-    buf.writestringln(content);
-}
-
-void hashEndIf(ref OutBuffer buf)
-{
-    buf.writestringln("#endif");
-}
-
-void hashDefine(ref OutBuffer buf, string content)
-{
-    buf.writestring("# define ");
-    buf.writestringln(content);
-}
-
-void hashInclude(ref OutBuffer buf, string content)
-{
-    buf.writestring("#include ");
-    buf.writestringln(content);
-}
-
-
-
+/**
+ * Generates a C++ header containing bindings for all `extern(C[++])` declarations
+ * found in the supplied modules.
+ *
+ * Params:
+ *   ms = the modules
+ *
+ * Notes:
+ *  - the header is written to `<global.params.cxxhdrdir>/<global.params.cxxhdrfile>`
+ *    or `stdout` if no explicit file was specified
+ *  - bindings conform to the C++ standard defined in `global.params.cplusplus`
+ *  - ignored declarations are mentioned in a comment if `global.params.doCxxHdrGeneration`
+ *    is set to `CxxHeaderMode.verbose`
+ */
 extern(C++) void genCppHdrFiles(ref Modules ms)
 {
     initialize();
@@ -236,7 +181,10 @@ struct _d_dynamicArray
     }
 }
 
+private:
+
 /****************************************************
+ * Visitor that writes bindings for `extern(C[++]` declarations.
  */
 extern(C++) final class ToCppBuffer : Visitor
 {
@@ -251,27 +199,58 @@ public:
         Other
     }
 
+    /// Namespace providing the actual AST nodes
     alias AST = ASTCodegen;
 
+    /// Visited nodes
     bool[void*] visited;
-    bool[void*] forwarded;
-    OutBuffer* fwdbuf;
-    OutBuffer* checkbuf;
-    OutBuffer* donebuf;
-    OutBuffer* buf;
-    AST.AggregateDeclaration adparent;
-    AST.TemplateDeclaration tdparent;
-    Identifier ident;
-    LINK linkage = LINK.d;
-    bool forwardedAA;
-    AST.Type* origType;
-    /// Last written visibility level
-    AST.Visibility.Kind currentVisibility;
-    AST.STC storageClass; /// Currently applicable storage classes
 
-    int ignoredCounter; /// How many symbols were ignored
+    /// Forward declared nodes (which might not be emitted yet)
+    bool[void*] forwarded;
+
+    /// Buffer for forward declarations
+    OutBuffer* fwdbuf;
+
+    /// Buffer for integrity checks
+    OutBuffer* checkbuf;
+
+    /// Buffer for declarations that must emitted before the currently
+    /// visited node but can't be forward declared (see `includeSymbol`)
+    OutBuffer* donebuf;
+
+    /// Default buffer for the currently visited declaration
+    OutBuffer* buf;
+
+    /// The generated header uses `real` emitted as `_d_real`?
     bool hasReal;
+
+    /// The generated header should contain comments for skipped declarations?
     const bool printIgnored;
+
+    /// Default linkage in the current scope (e.g. LINK.c inside `extern(C) { ... }`)
+    LINK linkage = LINK.d;
+
+    /// Enclosing class / struct / union
+    AST.AggregateDeclaration adparent;
+
+    /// Enclosing template declaration
+    AST.TemplateDeclaration tdparent;
+
+    /// Identifier of the currently visited `VarDeclaration`
+    /// (required to write variables of funtion pointers)
+    Identifier ident;
+
+    /// Original type of the currently visited declaration
+    AST.Type* origType;
+
+    /// Last written visibility level applying to the current scope
+    AST.Visibility.Kind currentVisibility;
+
+    /// Currently applicable storage classes
+    AST.STC storageClass;
+
+    /// How many symbols were ignored
+    int ignoredCounter;
 
     this(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
     {
@@ -305,6 +284,7 @@ public:
         this.ignoredCounter = countStash;
     }
 
+    /// Determines what kind of enum `type` is (see `EnumKind`)
     private EnumKind getEnumKind(AST.Type type)
     {
         if (type) switch (type.ty)
@@ -330,6 +310,8 @@ public:
         return EnumKind.Other;
     }
 
+    /// Determines the type used to represent `type` in C++.
+    /// Returns: `const [w,d]char*` for `[w,d]string` or `type`
     private AST.Type determineEnumType(AST.Type type)
     {
         if (auto arr = type.isTypeDArray())
@@ -345,7 +327,8 @@ public:
         return type;
     }
 
-    void writeDeclEnd()
+    /// Writes a final `;` and insert an empty line outside of aggregates
+    private void writeDeclEnd()
     {
         buf.writestringln(";");
 
@@ -1139,7 +1122,8 @@ public:
         handleNspace(ns, ns.decl);
     }
 
-    void handleNspace(AST.Dsymbol namespace, Dsymbols* members)
+    /// Writes the namespace declaration and visits all members
+    private void handleNspace(AST.Dsymbol namespace, Dsymbols* members)
     {
         buf.writestring("namespace ");
         writeIdentifier(namespace);
@@ -1373,6 +1357,8 @@ public:
         }
     }
 
+    /// Starts a custom alignment section using `#pragma pack` if
+    /// `alignment` specifies a custom alignment
     private void pushAlignToBuffer(uint alignment)
     {
         // DMD ensures alignment is a power of two
@@ -1390,6 +1376,8 @@ public:
         buf.writenl();
     }
 
+    /// Ends a custom alignment section using `#pragma pack` if
+    /// `alignment` specifies a custom alignment
     private void popAlignToBuffer(uint alignment)
     {
         if (alignment == STRUCTALIGN_DEFAULT || (tdparent && alignment == 0))
@@ -1398,6 +1386,8 @@ public:
         buf.writestringln("#pragma pack(pop)");
     }
 
+    /// Emits `ds` into `donebuf` s.t. it is declared before the
+    /// currently visited symbol that uses it.
     private void includeSymbol(AST.Dsymbol ds)
     {
         debug (Debug_DtoH)
@@ -1923,6 +1913,8 @@ public:
         buf.writeByte(')');
     }
 
+    ///  Writes the type that represents `ed` into `buf`.
+    /// (Might not be `ed` for special enums or enums that were emitted as namespaces)
     private void enumToBuffer(AST.EnumDeclaration ed)
     {
         debug (Debug_DtoH)
@@ -2120,6 +2112,7 @@ public:
         tdparent = save;
     }
 
+    /// Writes the template<...> header for the supplied template declaration
     private void printTemplateParams(const AST.TemplateDeclaration td)
     {
         buf.writestring("template <");
@@ -2624,6 +2617,7 @@ public:
         visitInteger(e.toInteger, e.type);
     }
 
+    /// Writes `v` as type `t` into `buf`
     private void visitInteger(dinteger_t v, AST.Type t)
     {
         debug (Debug_DtoH)
@@ -2719,7 +2713,8 @@ public:
     }
     else
     {
-        // Writes a formatted message into `buf` if `printIgnored` is true.
+        /// Writes a formatted message into `buf` if `printIgnored` is true
+        /// and increments `ignoredCounter`
         pragma(printf)
         private void ignored(const char* format, ...) nothrow
         {
@@ -2744,4 +2739,78 @@ public:
         auto td = s.isInstantiated();
         return td && td !is tdparent;
     }
+}
+
+/// Namespace for identifiers used to represent special enums in C++
+struct DMDType
+{
+    __gshared Identifier c_long;
+    __gshared Identifier c_ulong;
+    __gshared Identifier c_longlong;
+    __gshared Identifier c_ulonglong;
+    __gshared Identifier c_long_double;
+    __gshared Identifier c_wchar_t;
+    __gshared Identifier c_complex_float;
+    __gshared Identifier c_complex_double;
+    __gshared Identifier c_complex_real;
+
+    static void _init()
+    {
+        c_long          = Identifier.idPool("__c_long");
+        c_ulong         = Identifier.idPool("__c_ulong");
+        c_longlong      = Identifier.idPool("__c_longlong");
+        c_ulonglong     = Identifier.idPool("__c_ulonglong");
+        c_long_double   = Identifier.idPool("__c_long_double");
+        c_wchar_t       = Identifier.idPool("__c_wchar_t");
+        c_complex_float  = Identifier.idPool("__c_complex_float");
+        c_complex_double = Identifier.idPool("__c_complex_double");
+        c_complex_real = Identifier.idPool("__c_complex_real");
+    }
+}
+
+/// Initializes all data structures used by the header generator
+void initialize()
+{
+    __gshared bool initialized;
+
+    if (!initialized)
+    {
+        initialized = true;
+
+        DMDType._init();
+    }
+}
+
+/// Writes `#if <content>` into the supplied buffer
+void hashIf(ref OutBuffer buf, string content)
+{
+    buf.writestring("#if ");
+    buf.writestringln(content);
+}
+
+/// Writes `#elif <content>` into the supplied buffer
+void hashElIf(ref OutBuffer buf, string content)
+{
+    buf.writestring("#elif ");
+    buf.writestringln(content);
+}
+
+/// Writes `#endif` into the supplied buffer
+void hashEndIf(ref OutBuffer buf)
+{
+    buf.writestringln("#endif");
+}
+
+/// Writes `#define <content>` into the supplied buffer
+void hashDefine(ref OutBuffer buf, string content)
+{
+    buf.writestring("# define ");
+    buf.writestringln(content);
+}
+
+/// Writes `#include <content>` into the supplied buffer
+void hashInclude(ref OutBuffer buf, string content)
+{
+    buf.writestring("#include ");
+    buf.writestringln(content);
 }
