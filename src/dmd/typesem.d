@@ -61,6 +61,7 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.compiler;
 
 /**************************
  * This evaluates exp while setting length to be the number
@@ -653,6 +654,10 @@ Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
  */
 extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 {
+    version (CallbackAPI)
+        if (Compiler.alternativeTypeSemantic)
+            Compiler.alternativeTypeSemantic(t, loc, sc);
+
     static Type error()
     {
         return Type.terror;

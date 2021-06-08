@@ -70,6 +70,7 @@ import dmd.target;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.compiler;
 
 enum LOG = false;
 
@@ -97,6 +98,15 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
  */
 extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
 {
+    version (CallbackAPI)
+    {
+        if (Compiler.alternativeDsymbolSemantic)
+        {
+            Compiler.alternativeDsymbolSemantic(dsym, sc);
+            return;
+        }
+    }
+
     scope v = new DsymbolSemanticVisitor(sc);
     dsym.accept(v);
 }
@@ -173,7 +183,15 @@ package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
     return true;
 }
 
-private extern(C++) final class DsymbolSemanticVisitor : Visitor
+private extern (C++) final class DsymbolSemanticVisitor : DsymbolSemanticVisitorImpl
+{
+    this(Scope* sc)
+    {
+        super(sc);
+    }
+}
+
+extern (C++) abstract class DsymbolSemanticVisitorImpl : Visitor
 {
     alias visit = Visitor.visit;
 

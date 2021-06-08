@@ -22,6 +22,7 @@ import dmd.root.rootobject;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.compiler;
 
 /************************************************
  * Performs semantic on TemplateParameter AST nodes.
@@ -35,13 +36,24 @@ import dmd.visitor;
  */
 extern(C++) bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
 {
+    version (CallbackAPI)
+        if (Compiler.alternativeTemplateParamSemantic)
+            return Compiler.alternativeTemplateParamSemantic(tp, sc, parameters);
+
     scope v = new TemplateParameterSemanticVisitor(sc, parameters);
     tp.accept(v);
     return v.result;
 }
 
+private extern (C++) final class TemplateParameterSemanticVisitor : TemplateParameterSemanticVisitorImpl
+{
+    this(Scope* sc, TemplateParameters* parameters)
+    {
+        super(sc, parameters);
+    }
+}
 
-private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
+extern (C++) abstract class TemplateParameterSemanticVisitorImpl : Visitor
 {
     alias visit = Visitor.visit;
 

@@ -76,6 +76,7 @@ import dmd.typinf;
 import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
+import dmd.compiler;
 
 enum LOGSEMANTIC = false;
 
@@ -2534,7 +2535,15 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-private extern (C++) final class ExpressionSemanticVisitor : Visitor
+private extern (C++) final class ExpressionSemanticVisitor : ExpressionSemanticVisitorImpl
+{
+    this(Scope* sc)
+    {
+        super(sc);
+    }
+}
+
+extern (C++) abstract class ExpressionSemanticVisitorImpl : Visitor
 {
     alias visit = Visitor.visit;
 
@@ -11727,6 +11736,11 @@ Expression binSemanticProp(BinExp e, Scope* sc)
 // entrypoint for semantic ExpressionSemanticVisitor
 extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
 {
+    version (CallbackAPI)
+        if (Compiler.alternativeExpressionSemantic)
+            return Compiler.alternativeExpressionSemantic(e, sc);
+
+
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
     return v.result;

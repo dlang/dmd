@@ -131,7 +131,12 @@ private Expression checkAssignmentAsCondition(Expression e)
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 {
     version (CallbackAPI)
+    {
         Compiler.onStatementSemanticStart(s, sc);
+
+        if (Compiler.alternativeStatementSemantic)
+            return Compiler.alternativeStatementSemantic(s, sc);
+    }
 
     scope v = new StatementSemanticVisitor(sc);
     s.accept(v);
@@ -142,7 +147,15 @@ extern(C++) Statement statementSemantic(Statement s, Scope* sc)
     return v.result;
 }
 
-private extern (C++) final class StatementSemanticVisitor : Visitor
+private extern (C++) final class StatementSemanticVisitor : StatementSemanticVisitorImpl
+{
+    this(Scope* sc)
+    {
+        super(sc);
+    }
+}
+
+extern (C++) abstract class StatementSemanticVisitorImpl : Visitor
 {
     alias visit = Visitor.visit;
 

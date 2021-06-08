@@ -29,6 +29,9 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
 import dmd.statement;
+import dmd.dsymbol;
+import dmd.dtemplate;
+import dmd.init;
 
 version (DMDLIB)
 {
@@ -173,6 +176,20 @@ extern (C++) struct Compiler
          */
         __gshared OnStatementSemanticDone onStatementSemanticDone
                     = function void(Statement s, Scope *sc) {};
+
+        alias AlternativeDsymbolSemantic = void function(Dsymbol, Scope*);
+        alias AlternativeStatementSemantic = Statement function(Statement, Scope*);
+        alias AlternativeExpressionSemantic = Expression function(Expression, Scope*);
+        alias AlternativeTemplateParamSemantic = bool function(TemplateParameter, Scope*, TemplateParameters*);
+        alias AlternativeTypeSemantic = Type function(Type, const ref Loc, Scope*);
+        alias AlternativeInitializerSemantic = Initializer function(Initializer, Scope*, Type, NeedInterpret);
+
+        __gshared AlternativeDsymbolSemantic alternativeDsymbolSemantic;
+        __gshared AlternativeStatementSemantic alternativeStatementSemantic;
+        __gshared AlternativeExpressionSemantic alternativeExpressionSemantic;
+        __gshared AlternativeTemplateParamSemantic alternativeTemplateParamSemantic;
+        __gshared AlternativeTypeSemantic alternativeTypeSemantic;
+        __gshared AlternativeInitializerSemantic alternativeInitializerSemantic;
     }
 }
 

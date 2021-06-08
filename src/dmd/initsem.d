@@ -37,6 +37,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.compiler;
 
 /********************************
  * If possible, convert array initializer to associative array initializer.
@@ -91,6 +92,12 @@ Lno:
  */
 extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
 {
+    version (CallbackAPI)
+    {
+        if (Compiler.alternativeInitializerSemantic)
+            return Compiler.alternativeInitializerSemantic(init, sc, t, needInterpret);
+    }
+
     Initializer visitVoid(VoidInitializer i)
     {
         i.type = t;
