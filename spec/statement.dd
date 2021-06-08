@@ -457,7 +457,7 @@ $(GNAME Foreach):
 
 $(GNAME ForeachTypeList):
     $(GLINK ForeachType)
-    $(GLINK ForeachType) , $(I ForeachTypeList)
+    $(GLINK ForeachType) $(D ,) $(I ForeachTypeList)
 
 $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)

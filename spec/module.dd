@@ -208,7 +208,7 @@ $(GNAME ImportBindList):
 
 $(GNAME ImportBind):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) = $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D =) $(GLINK_LEX Identifier)
 
 $(GNAME ModuleAliasIdentifier):
     $(GLINK_LEX Identifier)

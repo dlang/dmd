@@ -17,8 +17,8 @@ $(GNAME TemplateParameters):
 
 $(GNAME TemplateParameterList):
     $(GLINK TemplateParameter)
-    $(GLINK TemplateParameter) ,
-    $(GLINK TemplateParameter) , $(I TemplateParameterList)
+    $(GLINK TemplateParameter) $(D ,)
+    $(GLINK TemplateParameter) $(D ,) $(I TemplateParameterList)
 
 $(GNAME TemplateParameter):
     $(GLINK TemplateTypeParameter)
@@ -68,8 +68,8 @@ $(GNAME TemplateArguments):
 
 $(GNAME TemplateArgumentList):
     $(GLINK TemplateArgument)
-    $(GLINK TemplateArgument) ,
-    $(GLINK TemplateArgument) , $(I TemplateArgumentList)
+    $(GLINK TemplateArgument) $(D ,)
+    $(GLINK TemplateArgument) $(D ,) $(I TemplateArgumentList)
 
 $(GNAME TemplateArgument):
     $(GLINK2 type, Type)

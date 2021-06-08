@@ -73,7 +73,7 @@ $(GNAME TypeSuffix):
     $(D *)
     $(D [ ])
     $(D [) $(GLINK2 expression, AssignExpression) $(D ])
-    $(D [) $(GLINK2 expression, AssignExpression) .. $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ..) $(GLINK2 expression, AssignExpression) $(D ])
     $(D [) $(GLINK Type) $(D ])
     $(D delegate) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
     $(D function) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)

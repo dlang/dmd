@@ -38,7 +38,7 @@ $(GNAME ParameterList):
 $(GNAME Parameter):
     $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
     $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) = $(ASSIGNEXPRESSION)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(ASSIGNEXPRESSION)
     $(I ParameterAttributes)$(OPT) $(GLINK2 type, Type)
     $(I ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
 

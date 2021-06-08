@@ -6,11 +6,11 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME PragmaDeclaration):
-    $(GLINK Pragma);
+    $(GLINK Pragma) $(D ;)
     $(GLINK Pragma) $(GLINK2 attribute, DeclarationBlock)
 
 $(GNAME PragmaStatement):
-    $(GLINK Pragma);
+    $(GLINK Pragma) $(D ;)
     $(GLINK Pragma) $(GLINK NoScopeStatement)
 
 $(GNAME Pragma):
