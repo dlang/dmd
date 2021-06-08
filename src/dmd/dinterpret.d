@@ -2600,6 +2600,7 @@ public:
         {
             printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e.loc.toChars(), e.toChars(), e.ownedByCtfe);
         }
+
         if (e.ownedByCtfe >= OwnedBy.ctfe)
         {
             result = e;
@@ -2776,14 +2777,38 @@ public:
                             return;
                         (*exps)[i] = ex;
                     }
+
                 }
                 sd.fill(e.loc, exps, false);
+
+                foreach (i, v; sd.fields)
+                {
+                    Expression exp = (*exps)[i];
+                    if (!exp)
+                        continue;
+                    Expression ex;
+                    if ((v.type.ty != exp.type.ty) && v.type.ty == Tsarray)
+                    {
+                        // Block assignment from inside struct literals
+                        auto tsa = cast(TypeSArray)v.type;
+                        auto len = cast(size_t)tsa.dim.toInteger();
+                        UnionExp ue = void;
+                        ex = createBlockDuplicatedArrayLiteral(&ue, exp.loc, v.type, exp, len);
+                        if (ex == ue.exp())
+                            ex = ue.copy();
+                    }
+                    if (ex && ex !is exp)
+                    {
+                        exps = copyArrayOnWrite(exps, e.arguments);
+                        (*exps)[i] = ex;
+                    }
+                }
 
                 auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, sd, exps, e.newtype);
                 se.origin = se;
                 se.type = e.newtype;
                 se.ownedByCtfe = OwnedBy.ctfe;
-                result = interpret(pue, se, istate);
+                result = se;
             }
             if (exceptionOrCant(result))
                 return;
