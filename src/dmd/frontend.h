@@ -37,29 +37,20 @@ struct _d_dynamicArray final
 # define _d_real long double
 #endif
 
-class RootObject;
 class Visitor;
 class Identifier;
-class Dsymbol;
 class CPPNamespaceDeclaration;
 struct Symbol;
-struct Loc;
 struct OutBuffer;
-struct Param;
-struct Global;
 struct Scope;
 class DeprecatedDeclaration;
 class UserAttributeDeclaration;
 class UnitTestDeclaration;
 class Module;
 class TemplateInstance;
-struct Ungag;
-class ScopeDsymbol;
-class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
 class Type;
-struct Visibility;
 class Package;
 class EnumMember;
 class TemplateDeclaration;
@@ -105,28 +96,17 @@ class VisibilityDeclaration;
 class OverloadSet;
 class CompileDeclaration;
 class DsymbolTable;
-struct BitArray;
 struct MangleOverride;
 class AliasThis;
 class Expression;
 class TypeTuple;
-class LinkDeclaration;
-class CPPMangleDeclaration;
-class AlignDeclaration;
-class PragmaDeclaration;
 class Condition;
-class ConditionalDeclaration;
-class StaticIfDeclaration;
 class StaticForeach;
-class StaticForeachDeclaration;
 struct UnionExp;
-struct complex_t;
 class DebugCondition;
 class VersionCondition;
 class ForeachStatement;
 class ForeachRangeStatement;
-class DVCondition;
-class StaticIfCondition;
 class StringExp;
 class TupleExp;
 class IntegerExp;
@@ -232,44 +212,22 @@ class LineInitExp;
 class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
-class ClassReferenceExp;
 class ThrownExceptionExp;
 class BinAssignExp;
-struct BaseClass;
 class TypeInfoClassDeclaration;
-struct ObjcClassDeclaration;
 class TypeFunction;
 class Initializer;
 struct IntRange;
-class TypeInfoStructDeclaration;
-class TypeInfoInterfaceDeclaration;
-class TypeInfoPointerDeclaration;
-class TypeInfoArrayDeclaration;
-class TypeInfoStaticArrayDeclaration;
-class TypeInfoAssociativeArrayDeclaration;
-class TypeInfoEnumDeclaration;
-class TypeInfoFunctionDeclaration;
-class TypeInfoDelegateDeclaration;
-class TypeInfoTupleDeclaration;
-class TypeInfoConstDeclaration;
-class TypeInfoInvariantDeclaration;
-class TypeInfoSharedDeclaration;
-class TypeInfoWildDeclaration;
-class TypeInfoVectorDeclaration;
 struct Macro;
 struct ModuleDeclaration;
-struct FileName;
 struct FileBuffer;
-struct MacroTable;
 struct Escape;
-struct ReadResult;
 class WithStatement;
 class Tuple;
 class Parameter;
 class TemplateParameter;
 struct TemplatePrevious;
 class TemplateTupleParameter;
-struct Mcache;
 struct TYPE;
 class TypeBasic;
 class TypeError;
@@ -298,10 +256,7 @@ class TemplateValueParameter;
 class TemplateAliasParameter;
 class TemplateThisParameter;
 class TypeQualified;
-union __AnonStruct__u;
-class UnaExp;
-class BinExp;
-struct ASTCodegen;
+class Statement;
 class ErrorStatement;
 class PeelStatement;
 class UnrolledLoopStatement;
@@ -310,8 +265,6 @@ class DebugStatement;
 class DtorExpStatement;
 class ForwardingStatement;
 class ErrorInitializer;
-class ObjcClassReferenceExp;
-class Statement;
 class CompoundStatement;
 class CompoundDeclarationStatement;
 class ScopeStatement;
@@ -328,44 +281,24 @@ class TryCatchStatement;
 class TryFinallyStatement;
 class LabelStatement;
 class ReturnStatement;
-struct Ensure;
 class GotoStatement;
-struct ObjcFuncDeclaration;
 struct ObjcSelector;
-struct ParameterList;
 class VoidInitializer;
 class StructInitializer;
 class ArrayInitializer;
 class ExpInitializer;
 class CInitializer;
-struct DesigInit;
+struct Designator;
 class ExpStatement;
 class GotoDefaultStatement;
 class GotoCaseStatement;
 class BreakStatement;
 class ContinueStatement;
 class ThrowStatement;
-class CompileStatement;
-class ConditionalStatement;
-class StaticForeachStatement;
-class PragmaStatement;
 class StaticAssert;
-class StaticAssertStatement;
 class Catch;
-class ScopeGuardStatement;
 struct Token;
-class AsmStatement;
 struct code;
-class InlineAsmStatement;
-class GccAsmStatement;
-class CompoundAsmStatement;
-class ImportStatement;
-struct TargetC;
-struct TargetCPP;
-struct TargetObjC;
-struct Triple;
-struct Target;
-struct Mem;
 class Object;
 class TypeInfo_Class;
 class TypeInfo;
@@ -983,6 +916,37 @@ enum class PASS
     obj = 9,
 };
 
+struct Ungag final
+{
+    uint32_t oldgag;
+    ~Ungag();
+    Ungag() :
+        oldgag()
+    {
+    }
+};
+
+struct Visibility final
+{
+    enum class Kind : uint8_t
+    {
+        undefined = 0u,
+        none = 1u,
+        private_ = 2u,
+        package_ = 3u,
+        protected_ = 4u,
+        public_ = 5u,
+        export_ = 6u,
+    };
+
+    Kind kind;
+    Package* pkg;
+    Visibility() :
+        pkg()
+    {
+    }
+};
+
 class Dsymbol : public ASTNode
 {
 public:
@@ -1116,17 +1080,6 @@ public:
     virtual CompileDeclaration* isCompileDeclaration();
 };
 
-enum class Kind : uint8_t
-{
-    undefined = 0u,
-    none = 1u,
-    private_ = 2u,
-    package_ = 3u,
-    protected_ = 4u,
-    public_ = 5u,
-    export_ = 6u,
-};
-
 struct BitArray final
 {
     typedef uint64_t Chunk_t;
@@ -1183,16 +1136,6 @@ enum class CPPMANGLE : uint8_t
     def = 0u,
     asStruct = 1u,
     asClass = 2u,
-};
-
-struct Visibility final
-{
-    Kind kind;
-    Package* pkg;
-    Visibility() :
-        pkg()
-    {
-    }
 };
 
 enum class Sizeok : uint8_t
@@ -1777,6 +1720,99 @@ public:
     }
 };
 
+struct FileBuffer final
+{
+    _d_dynamicArray< uint8_t > data;
+    static FileBuffer* create();
+    FileBuffer() :
+        data()
+    {
+    }
+    FileBuffer(_d_dynamicArray< uint8_t > data) :
+        data(data)
+        {}
+};
+
+struct File final
+{
+    struct ReadResult final
+    {
+        bool success;
+        FileBuffer buffer;
+        ReadResult() :
+            success(),
+            buffer()
+        {
+        }
+        ReadResult(bool success, FileBuffer buffer = FileBuffer({})) :
+            success(success),
+            buffer(buffer)
+            {}
+    };
+
+    static ReadResult read(const char* name);
+    static bool write(const char* name, const void* data, size_t size);
+    static void remove(const char* name);
+    static bool update(const char* name, const void* data, size_t size);
+    File()
+    {
+    }
+};
+
+struct OutBuffer final
+{
+private:
+    _d_dynamicArray< uint8_t > data;
+    size_t offset;
+    bool notlinehead;
+public:
+    bool doindent;
+    bool spaces;
+    int32_t level;
+    ~OutBuffer();
+    size_t length() const;
+    char* extractData();
+    void destroy();
+    void reserve(size_t nbytes);
+    void setsize(size_t size);
+    void reset();
+    void write(const void* data, size_t nbytes);
+    void writestring(const char* string);
+    void prependstring(const char* string);
+    void writenl();
+    void writeByte(uint32_t b);
+    void writeUTF8(uint32_t b);
+    void prependbyte(uint32_t b);
+    void writewchar(uint32_t w);
+    void writeword(uint32_t w);
+    void writeUTF16(uint32_t w);
+    void write4(uint32_t w);
+    void write(const OutBuffer* const buf);
+    void write(RootObject* obj);
+    void fill0(size_t nbytes);
+    void vprintf(const char* format, va_list args);
+    void printf(const char* format, ...);
+    void print(uint64_t u);
+    void bracket(char left, char right);
+    size_t bracket(size_t i, const char* left, size_t j, const char* right);
+    void spread(size_t offset, size_t nbytes);
+    size_t insert(size_t offset, const void* p, size_t nbytes);
+    void remove(size_t offset, size_t nbytes);
+    char* peekChars();
+    char* extractChars();
+    OutBuffer() :
+        doindent(),
+        spaces(),
+        level()
+    {
+    }
+    OutBuffer(bool doindent, bool spaces = false, int32_t level = 0) :
+        doindent(doindent),
+        spaces(spaces),
+        level(level)
+        {}
+};
+
 enum class StructPOD
 {
     no = 0,
@@ -2316,6 +2352,139 @@ public:
     virtual void visit(typename AST::CInitializer i);
 };
 
+struct Ensure final
+{
+    Identifier* id;
+    Statement* ensure;
+    Ensure syntaxCopy();
+    static Array<Ensure >* arraySyntaxCopy(Array<Ensure >* a);
+    Ensure() :
+        id(),
+        ensure()
+    {
+    }
+    Ensure(Identifier* id, Statement* ensure = nullptr) :
+        id(id),
+        ensure(ensure)
+        {}
+};
+
+enum class MODFlags
+{
+    const_ = 1,
+    immutable_ = 4,
+    shared_ = 2,
+    wild = 8,
+    wildconst = 9,
+    mutable_ = 16,
+};
+
+enum class VarArg : uint8_t
+{
+    none = 0u,
+    variadic = 1u,
+    typesafe = 2u,
+};
+
+struct ParameterList final
+{
+    Array<Parameter* >* parameters;
+    StorageClass stc;
+    VarArg varargs;
+    bool hasIdentifierList;
+    ParameterList(Array<Parameter* >* parameters, VarArg varargs = (VarArg)0u, StorageClass stc = 0);
+    size_t length();
+    Parameter* opIndex(size_t i);
+    ParameterList() :
+        parameters(),
+        stc(),
+        varargs((VarArg)0u),
+        hasIdentifierList()
+    {
+    }
+};
+
+enum class STC : uint64_t
+{
+    undefined_ = 0LLU,
+    static_ = 1LLU,
+    extern_ = 2LLU,
+    const_ = 4LLU,
+    final_ = 8LLU,
+    abstract_ = 16LLU,
+    parameter = 32LLU,
+    field = 64LLU,
+    override_ = 128LLU,
+    auto_ = 256LLU,
+    synchronized_ = 512LLU,
+    deprecated_ = 1024LLU,
+    in_ = 2048LLU,
+    out_ = 4096LLU,
+    lazy_ = 8192LLU,
+    foreach_ = 16384LLU,
+    variadic = 65536LLU,
+    ctorinit = 131072LLU,
+    templateparameter = 262144LLU,
+    scope_ = 524288LLU,
+    immutable_ = 1048576LLU,
+    ref_ = 2097152LLU,
+    init = 4194304LLU,
+    manifest = 8388608LLU,
+    nodtor = 16777216LLU,
+    nothrow_ = 33554432LLU,
+    pure_ = 67108864LLU,
+    tls = 134217728LLU,
+    alias_ = 268435456LLU,
+    shared_ = 536870912LLU,
+    gshared = 1073741824LLU,
+    wild = 2147483648LLU,
+    property = 4294967296LLU,
+    safe = 8589934592LLU,
+    trusted = 17179869184LLU,
+    system = 34359738368LLU,
+    ctfe = 68719476736LLU,
+    disable = 137438953472LLU,
+    result = 274877906944LLU,
+    nodefaultctor = 549755813888LLU,
+    temp = 1099511627776LLU,
+    rvalue = 2199023255552LLU,
+    nogc = 4398046511104LLU,
+    volatile_ = 8796093022208LLU,
+    return_ = 17592186044416LLU,
+    autoref = 35184372088832LLU,
+    inference = 70368744177664LLU,
+    exptemp = 140737488355328LLU,
+    maybescope = 281474976710656LLU,
+    scopeinferred = 562949953421312LLU,
+    future = 1125899906842624LLU,
+    local = 2251799813685248LLU,
+    returninferred = 4503599627370496LLU,
+    live = 9007199254740992LLU,
+    register_ = 18014398509481984LLU,
+    safeGroup = 60129542144LLU,
+    IOR = 2103296LLU,
+    TYPECTOR = 2685403140LLU,
+    FUNCATTR = 9011661828521984LLU,
+};
+
+struct ASTCodegen final
+{
+    typedef UserAttributeDeclaration* UserAttributeDeclaration;
+    typedef Ensure Ensure;
+    typedef MODFlags MODFlags;
+    typedef Type* Type;
+    typedef Parameter* Parameter;
+    typedef ParameterList ParameterList;
+    typedef VarArg VarArg;
+    typedef STC STC;
+    typedef Dsymbol* Dsymbol;
+    typedef Array<Dsymbol* > Dsymbols;
+    typedef Visibility Visibility;
+    ASTCodegen()
+    {
+    }
+};
+
 class Visitor : public ParseTimeVisitor<ASTCodegen >
 {
 public:
@@ -2460,31 +2629,6 @@ enum class PURE : uint8_t
     strong = 4u,
 };
 
-enum class VarArg : uint8_t
-{
-    none = 0u,
-    variadic = 1u,
-    typesafe = 2u,
-};
-
-struct ParameterList final
-{
-    Array<Parameter* >* parameters;
-    StorageClass stc;
-    VarArg varargs;
-    bool hasIdentifierList;
-    ParameterList(Array<Parameter* >* parameters, VarArg varargs = (VarArg)0u, StorageClass stc = 0);
-    size_t length();
-    Parameter* opIndex(size_t i);
-    ParameterList() :
-        parameters(),
-        stc(),
-        varargs((VarArg)0u),
-        hasIdentifierList()
-    {
-    }
-};
-
 enum class InitKind : uint8_t
 {
     void_ = 0u,
@@ -2493,6 +2637,21 @@ enum class InitKind : uint8_t
     array = 3u,
     exp = 4u,
     C_ = 5u,
+};
+
+struct DesigInit final
+{
+    Array<Designator >* designatorList;
+    Initializer* initializer;
+    DesigInit() :
+        designatorList(),
+        initializer()
+    {
+    }
+    DesigInit(Array<Designator >* designatorList, Initializer* initializer = nullptr) :
+        designatorList(designatorList),
+        initializer(initializer)
+        {}
 };
 
 enum class NeedInterpret
@@ -2674,6 +2833,26 @@ enum class CPU
     avx512 = 10,
     baseline = 11,
     native = 12,
+};
+
+struct Triple final
+{
+private:
+    _d_dynamicArray< const char > source;
+public:
+    CPU cpu;
+    bool is64bit;
+    bool isLP64;
+    Target::OS os;
+    uint8_t osMajor;
+    TargetC::Runtime cenv;
+    TargetCPP::Runtime cppenv;
+    Triple() :
+        is64bit(),
+        isLP64(),
+        osMajor()
+    {
+    }
 };
 
 typedef _d_real longdouble;
@@ -5174,23 +5353,6 @@ public:
     Scope* sc;
     void visit(ReturnStatement* s);
     void visit(TryFinallyStatement* s);
-};
-
-struct Ensure final
-{
-    Identifier* id;
-    Statement* ensure;
-    Ensure syntaxCopy();
-    static Array<Ensure >* arraySyntaxCopy(Array<Ensure >* a);
-    Ensure() :
-        id(),
-        ensure()
-    {
-    }
-    Ensure(Identifier* id, Statement* ensure = nullptr) :
-        id(id),
-        ensure(ensure)
-        {}
 };
 
 class FuncDeclaration : public Declaration

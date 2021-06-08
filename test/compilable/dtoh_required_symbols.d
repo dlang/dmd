@@ -38,7 +38,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-struct ExternDStruct;
 class ExternDClass;
 struct ExternDStruct2;
 struct ExternDStruct3;
@@ -103,6 +102,18 @@ struct ExternDStruct2 final
     ExternDStruct2()
     {
     }
+};
+
+struct ExternDStruct3 final
+{
+    int32_t a;
+    ExternDStruct3() :
+        a()
+    {
+    }
+    ExternDStruct3(int32_t a) :
+        a(a)
+        {}
 };
 
 namespace ExternDEnum2

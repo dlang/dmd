@@ -39,9 +39,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-struct S;
-struct Inner;
-
 struct S final
 {
     int8_t a;

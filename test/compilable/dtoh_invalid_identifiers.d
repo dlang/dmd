@@ -45,9 +45,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-class Alias;
-class Base;
-
 extern void register(int32_t* ptr);
 
 namespace const_cast

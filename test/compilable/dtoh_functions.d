@@ -39,10 +39,20 @@ struct _d_dynamicArray final
 };
 #endif
 
-struct S;
-struct W1;
-struct W2;
-struct S2;
+struct S final
+{
+    int32_t i;
+    int32_t get(int32_t , int32_t );
+    static int32_t get();
+    static const int32_t staticVar;
+    S() :
+        i()
+    {
+    }
+    S(int32_t i) :
+        i(i)
+        {}
+};
 
 extern "C" int32_t bar(int32_t x);
 
@@ -103,21 +113,6 @@ struct W2 final
 extern W2 w2;
 
 extern void enums(uint64_t e = $?:32=1LLU|64=static_cast<uint64_t>(E::m)$, uint8_t e2 = static_cast<uint8_t>(w2.w1.ms), S s = static_cast<S>(w2.w1.msn));
-
-struct S final
-{
-    int32_t i;
-    int32_t get(int32_t , int32_t );
-    static int32_t get();
-    static const int32_t staticVar;
-    S() :
-        i()
-    {
-    }
-    S(int32_t i) :
-        i(i)
-        {}
-};
 
 extern S s;
 

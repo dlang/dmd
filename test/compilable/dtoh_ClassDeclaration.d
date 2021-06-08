@@ -39,10 +39,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-class C;
-class A;
-struct Inner;
-
 class C
 {
 public:

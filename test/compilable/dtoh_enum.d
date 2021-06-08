@@ -39,9 +39,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-struct Foo;
-struct FooCpp;
-
 enum : int32_t { Anon = 10 };
 
 enum : bool { Anon2 = true };

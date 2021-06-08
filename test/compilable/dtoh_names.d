@@ -39,11 +39,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-struct Outer;
-struct Inner;
-struct Middle;
-struct Inner;
-
 extern double bar();
 
 struct Outer final
