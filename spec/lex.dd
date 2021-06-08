@@ -241,7 +241,7 @@ $(GNAME IdentifierChars):
     $(GLINK IdentifierChar) $(GSELF IdentifierChars)
 
 $(GNAME IdentifierStart):
-    $(D _)
+    $(B _)
     $(I Letter)
     $(I UniversalAlpha)
 
@@ -298,28 +298,28 @@ $(GNAME DoubleQuotedCharacter):
     $(GLINK EndOfLine)
 
 $(GNAME EscapeSequence):
-    $(D \\')
-    $(D \\")
-    $(D \\?)
-    $(D \\\\)
-    $(D \0)
-    $(D \a)
-    $(D \b)
-    $(D \f)
-    $(D \n)
-    $(D \r)
-    $(D \t)
-    $(D \v)
-    $(D \x) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(D \\) $(GLINK OctalDigit)
-    $(D \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(D \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(D \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(D \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(D \\) $(GLINK2 entity, NamedCharacterEntity)
+    $(B \\')
+    $(B \\")
+    $(B \\?)
+    $(B \\\\)
+    $(B \0)
+    $(B \a)
+    $(B \b)
+    $(B \f)
+    $(B \n)
+    $(B \r)
+    $(B \t)
+    $(B \v)
+    $(B \x) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK2 entity, NamedCharacterEntity)
 
 $(GNAME HexString):
-    $(D x") $(GLINK HexStringChars)$(OPT) $(D ") $(GLINK StringPostfix)$(OPT)
+    $(B x") $(GLINK HexStringChars)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
 
 $(GNAME HexStringChars):
     $(GLINK HexStringChar)
@@ -339,7 +339,7 @@ $(GNAME DelimitedString):
     $(B q") $(I Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(I MatchingDelimiter) $(B ")
 
 $(GNAME TokenString):
-    $(D q)$(CODE_LCURL) $(GLINK Tokens)$(OPT) $(CODE_RCURL)
+    $(B q)$(CODE_LCURL) $(GLINK Tokens)$(OPT) $(CODE_RCURL)
 
 )
 
@@ -645,7 +645,7 @@ $(GNAME DecimalDigit):
 
 $(GNAME DecimalDigitUS):
     $(GLINK DecimalDigit)
-    $(D _)
+    $(B _)
 
 $(GNAME BinaryDigitsNoSingleUS):
     $(GLINK BinaryDigit)
@@ -663,7 +663,7 @@ $(GNAME BinaryDigit):
 
 $(GNAME BinaryDigitUS):
     $(GLINK BinaryDigit)
-    $(D _)
+    $(B _)
 
 $(GNAME OctalDigit):
     $(B 0)
@@ -698,7 +698,7 @@ $(GNAME HexDigit):
 
 $(GNAME HexDigitUS):
     $(GLINK HexDigit)
-    $(D _)
+    $(B _)
 
 $(GNAME HexLetter):
     $(B a)
