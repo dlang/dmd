@@ -4036,6 +4036,12 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 return mt.getProperty(sc, e.loc, ident, flag & 1);
             }
 
+            if (e.isTypeExp() && ident == Id._tupleof)
+            {
+                TupleDeclaration td = new TupleDeclaration(e.loc, Identifier.generateId("__tup"), cast(Objects*) mt.sym.members);
+                return new TupleExp(e.loc, td).expressionSemantic(sc);
+            }
+
             Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, 1);
             if (!(flag & 1) && !res)
             {
