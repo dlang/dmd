@@ -34,10 +34,10 @@ $(GRAMMAR
 $(GNAME AsmStatement):
     $(D asm) $(GLINK FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
 
-    $(GNAME AsmInstructionList):
-        $(GLINK AsmInstruction) $(D ;)
-        $(GLINK AsmInstruction) $(D ;) $(I AsmInstructionList)
-    )
+$(GNAME AsmInstructionList):
+    $(GLINK AsmInstruction) $(D ;)
+    $(GLINK AsmInstruction) $(D ;) $(I AsmInstructionList)
+)
 
     $(P Assembler instructions must be located inside an `asm` block.
         Like functions, `asm` statements must be anotated with adequate function attributes to be compatible with the caller.
