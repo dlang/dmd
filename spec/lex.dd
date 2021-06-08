@@ -801,10 +801,10 @@ $(GNAME DecimalFloat):
     $(B .) $(GLINK DecimalInteger) $(GLINK DecimalExponent)
     $(GLINK LeadingDecimal) $(GLINK DecimalExponent)
 
-$(GNAME DecimalExponent)
+$(GNAME DecimalExponent):
     $(GLINK DecimalExponentStart) $(GLINK DecimalDigitsNoSingleUS)
 
-$(GNAME DecimalExponentStart)
+$(GNAME DecimalExponentStart):
     $(B e)
     $(B E)
     $(B e+)

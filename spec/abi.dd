@@ -589,7 +589,7 @@ $(GNAME Parameter2):
     $(B K) $(GLINK Type)     $(GREEN // ref)
     $(B L) $(GLINK Type)     $(GREEN // lazy)
 
-$(GNAME ParamClose)
+$(GNAME ParamClose):
     $(B X)     $(GREEN // variadic T t...$(RPAREN) style)
     $(B Y)     $(GREEN // variadic T t,...$(RPAREN) style)
     $(B Z)     $(GREEN // not variadic)

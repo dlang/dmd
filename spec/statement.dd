@@ -464,7 +464,7 @@ $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK_LEX Identifier)
     $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(GLINK_LEX Identifier)
 
-$(GNAME ForeachTypeAttributes)
+$(GNAME ForeachTypeAttributes):
     $(GLINK ForeachTypeAttribute)
     $(GLINK ForeachTypeAttribute) $(GLINK ForeachTypeAttributes)$(OPT)
 
