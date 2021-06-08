@@ -1542,7 +1542,7 @@ $(GNAME ConstructorArgs):
 
 which is equivalent to:
 
-$(GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateBody)
 // ...
 $(D new) $(I AllocatorArguments) $(I Identifier) $(I ConstructorArgs)
