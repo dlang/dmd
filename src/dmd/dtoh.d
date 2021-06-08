@@ -227,30 +227,39 @@ public:
     /// The generated header should contain comments for skipped declarations?
     const bool printIgnored;
 
-    /// Default linkage in the current scope (e.g. LINK.c inside `extern(C) { ... }`)
-    LINK linkage = LINK.d;
+    /// State specific to the current context which depends
+    /// on the currently visited node and it's parents
+    static struct Context
+    {
+        /// Default linkage in the current scope (e.g. LINK.c inside `extern(C) { ... }`)
+        LINK linkage = LINK.d;
 
-    /// Enclosing class / struct / union
-    AST.AggregateDeclaration adparent;
+        /// Enclosing class / struct / union
+        AST.AggregateDeclaration adparent;
 
-    /// Enclosing template declaration
-    AST.TemplateDeclaration tdparent;
+        /// Enclosing template declaration
+        AST.TemplateDeclaration tdparent;
 
-    /// Identifier of the currently visited `VarDeclaration`
-    /// (required to write variables of funtion pointers)
-    Identifier ident;
+        /// Identifier of the currently visited `VarDeclaration`
+        /// (required to write variables of funtion pointers)
+        Identifier ident;
 
-    /// Original type of the currently visited declaration
-    AST.Type* origType;
+        /// Original type of the currently visited declaration
+        AST.Type* origType;
 
-    /// Last written visibility level applying to the current scope
-    AST.Visibility.Kind currentVisibility;
+        /// Last written visibility level applying to the current scope
+        AST.Visibility.Kind currentVisibility;
 
-    /// Currently applicable storage classes
-    AST.STC storageClass;
+        /// Currently applicable storage classes
+        AST.STC storageClass;
 
-    /// How many symbols were ignored
-    int ignoredCounter;
+         /// How many symbols were ignored
+        int ignoredCounter;
+    }
+
+    /// Informations about the current context in the AST
+    Context context;
+    alias context this;
 
     this(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
     {
