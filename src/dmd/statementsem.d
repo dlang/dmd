@@ -906,9 +906,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     else
                     {
                         e = resolveProperties(sc, e);
-                        type = e.type;
-                        if (paramtype)
-                            type = paramtype;
                         Initializer ie = new ExpInitializer(Loc.initial, e);
                         auto v = new VarDeclaration(loc, type, ident, ie, storageClass);
                         if (storageClass & STC.ref_)
