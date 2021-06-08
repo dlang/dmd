@@ -1824,9 +1824,11 @@ final class CParser(AST) : Parser!AST
                     nextToken();
                 }
                 else
+                {
+                    if (desigInit.designatorList)
+                        check(TOK.assign);
                     break;
-
-                check(TOK.assign);
+                }
             }
 
             desigInit.initializer = cparseInitializer();
@@ -1858,6 +1860,7 @@ final class CParser(AST) : Parser!AST
             break;
         }
         check(TOK.rightCurly);
+        //printf("ci: %s\n", ci.toChars());
         return ci;
     }
 

@@ -3611,7 +3611,32 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
 
     void visitC(CInitializer ci)
     {
-        buf.writestring("hdrgen C initializers TODO");
+        buf.writeByte('{');
+        foreach (i, ref DesigInit di; ci.initializerList)
+        {
+            if (i)
+                buf.writestring(", ");
+            if (di.designatorList)
+            {
+                foreach (ref Designator d; (*di.designatorList)[])
+                {
+                    if (d.exp)
+                    {
+                        buf.writeByte('[');
+                        toCBuffer(d.exp, buf, hgs);
+                        buf.writeByte(']');
+                    }
+                    else
+                    {
+                        buf.writeByte('.');
+                        buf.writestring(d.ident.toString());
+                    }
+                }
+                buf.writeByte('=');
+            }
+            initializerToBuffer(di.initializer, buf, hgs);
+        }
+        buf.writeByte('}');
     }
 
     final switch (inx.kind)
