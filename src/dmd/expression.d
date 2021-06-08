@@ -1457,7 +1457,7 @@ extern (C++) abstract class Expression : ASTNode
     {
         if (auto ts = t.baseElemOf().isTypeStruct())
         {
-            if (global.params.useTypeInfo)
+            if (global.params.useTypeInfo && Type.dtypeinfo)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=11395
                 // Require TypeInfo generation for array concatenation
