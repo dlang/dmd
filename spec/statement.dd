@@ -177,7 +177,7 @@ $(GNAME BlockStatement):
 
 $(GNAME StatementList):
     $(PSSEMI_PSCURLYSCOPE)
-    $(PSSEMI_PSCURLYSCOPE) $(I StatementList)
+    $(PSSEMI_PSCURLYSCOPE) $(GSELF StatementList)
 )
 
     $(P A block statement is a sequence of statements enclosed by `{ }`.
@@ -457,7 +457,7 @@ $(GNAME Foreach):
 
 $(GNAME ForeachTypeList):
     $(GLINK ForeachType)
-    $(GLINK ForeachType) $(D ,) $(I ForeachTypeList)
+    $(GLINK ForeachType) $(D ,) $(GSELF ForeachTypeList)
 
 $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
@@ -1093,7 +1093,7 @@ $(GNAME ScopeStatementList):
 
 $(GNAME StatementListNoCaseNoDefault):
     $(GLINK StatementNoCaseNoDefault)
-    $(GLINK StatementNoCaseNoDefault) $(I StatementListNoCaseNoDefault)
+    $(GLINK StatementNoCaseNoDefault) $(GSELF StatementListNoCaseNoDefault)
 
 $(GNAME StatementNoCaseNoDefault):
     $(D ;)
@@ -1621,7 +1621,7 @@ $(GNAME TryStatement):
 
 $(GNAME Catches):
     $(GLINK Catch)
-    $(GLINK Catch) $(I Catches)
+    $(GLINK Catch) $(GSELF Catches)
 
 $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
@@ -1847,7 +1847,7 @@ $(GNAME AsmStatement):
 
 $(GNAME AsmInstructionList):
     $(GLINK2 iasm, AsmInstruction) $(D ;)
-    $(GLINK2 iasm, AsmInstruction) $(D ;) $(I AsmInstructionList)
+    $(GLINK2 iasm, AsmInstruction) $(D ;) $(GSELF AsmInstructionList)
 )
 
 $(P An asm statement enables the direct use of assembly language instructions.

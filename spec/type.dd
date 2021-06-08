@@ -14,7 +14,7 @@ $(GNAME Type):
 
 $(GNAME TypeCtors):
     $(GLINK TypeCtor)
-    $(GLINK TypeCtor) $(I TypeCtors)
+    $(GLINK TypeCtor) $(GSELF TypeCtors)
 
 $(GNAME TypeCtor):
     $(D const)
@@ -80,11 +80,11 @@ $(GNAME TypeSuffix):
 
 $(GNAME QualifiedIdentifier):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(D .) $(I QualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF QualifiedIdentifier)
     $(GLINK2 template, TemplateInstance)
-    $(GLINK2 template, TemplateInstance) $(D .) $(I QualifiedIdentifier)
+    $(GLINK2 template, TemplateInstance) $(D .) $(GSELF QualifiedIdentifier)
     $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
-    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D].) $(I QualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D].) $(GSELF QualifiedIdentifier)
 )
 
 

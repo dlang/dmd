@@ -11,7 +11,7 @@ $(GNAME Module):
 
 $(GNAME DeclDefs):
     $(GLINK DeclDef)
-    $(GLINK DeclDef) $(I DeclDefs)
+    $(GLINK DeclDef) $(GSELF DeclDefs)
 
 $(GNAME DeclDef):
     $(GLINK2 attribute, AttributeSpecifier)
@@ -91,7 +91,7 @@ $(GNAME ModuleDeclaration):
 
 $(GNAME ModuleAttributes):
     $(GLINK ModuleAttribute)
-    $(GLINK ModuleAttribute) $(I ModuleAttributes)
+    $(GLINK ModuleAttribute) $(GSELF ModuleAttributes)
 
 $(GNAME ModuleAttribute):
     $(GLINK2 attribute, DeprecatedAttribute)
@@ -106,7 +106,7 @@ $(GNAME ModuleName):
 
 $(GNAME Packages):
     $(I PackageName)
-    $(I Packages) $(D .) $(I PackageName)
+    $(GSELF Packages) $(D .) $(I PackageName)
 
 $(GNAME PackageName):
     $(GLINK_LEX Identifier)
@@ -204,7 +204,7 @@ $(GNAME ImportBindings):
 
 $(GNAME ImportBindList):
     $(GLINK ImportBind)
-    $(GLINK ImportBind) $(D ,) $(I ImportBindList)
+    $(GLINK ImportBind) $(D ,) $(GSELF ImportBindList)
 
 $(GNAME ImportBind):
     $(GLINK_LEX Identifier)

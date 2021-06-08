@@ -217,7 +217,7 @@ $(GNAME MangledName):
 $(GRAMMAR
 $(GNAME QualifiedName):
     $(GLINK SymbolFunctionName)
-    $(GLINK SymbolFunctionName) $(I QualifiedName)
+    $(GLINK SymbolFunctionName) $(GSELF QualifiedName)
 
 $(GNAME SymbolFunctionName):
     $(GLINK SymbolName)
@@ -252,7 +252,7 @@ $(GNAME TemplateID):
 
 $(GNAME TemplateArgs):
     $(GLINK TemplateArg)
-    $(GLINK TemplateArg) $(I TemplateArgs)
+    $(GLINK TemplateArg) $(GSELF TemplateArgs)
 
 $(GNAME TemplateArg):
     $(GLINK TemplateArgX)
@@ -277,7 +277,7 @@ $(GNAME TemplateArgX):
 $(GRAMMAR
 $(GNAME Values):
     $(GLINK Value)
-    $(GLINK Value) $(I Values)
+    $(GLINK Value) $(GSELF Values)
 
 $(GNAME Value):
     $(B n)
@@ -371,7 +371,7 @@ $(GNAME Namechar):
 
 $(GNAME Namechars):
     $(GLINK Namechar)
-    $(GLINK Namechar) $(I Namechars)
+    $(GLINK Namechar) $(GSELF Namechars)
 )
 
         $(P A $(GLINK Name) is a standard D $(DDSUBLINK spec/lex, identifiers, identifier).)
@@ -382,7 +382,7 @@ $(GNAME LName):
 
 $(GNAME Number):
     $(GLINK Digit)
-    $(GLINK Digit) $(I Number)
+    $(GLINK Digit) $(GSELF Number)
 
 $(GNAME Digit):
     $(B 0)
@@ -529,7 +529,7 @@ $(GNAME CallConvention):
 
 $(GNAME FuncAttrs):
     $(GLINK FuncAttr)
-    $(GLINK FuncAttr) $(I FuncAttrs)
+    $(GLINK FuncAttr) $(GSELF FuncAttrs)
 
 $(GNAME FuncAttr):
     $(GLINK FuncAttrPure)
@@ -579,7 +579,7 @@ $(GNAME FuncAttrLive):
 
 $(GNAME Parameters):
     $(GLINK Parameter)
-    $(GLINK Parameter) $(I Parameters)
+    $(GLINK Parameter) $(GSELF Parameters)
 
 $(GNAME Parameter):
     $(GLINK Parameter2)

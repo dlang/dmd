@@ -18,7 +18,7 @@ $(GNAME TemplateParameters):
 $(GNAME TemplateParameterList):
     $(GLINK TemplateParameter)
     $(GLINK TemplateParameter) $(D ,)
-    $(GLINK TemplateParameter) $(D ,) $(I TemplateParameterList)
+    $(GLINK TemplateParameter) $(D ,) $(GSELF TemplateParameterList)
 
 $(GNAME TemplateParameter):
     $(GLINK TemplateTypeParameter)
@@ -69,7 +69,7 @@ $(GNAME TemplateArguments):
 $(GNAME TemplateArgumentList):
     $(GLINK TemplateArgument)
     $(GLINK TemplateArgument) $(D ,)
-    $(GLINK TemplateArgument) $(D ,) $(I TemplateArgumentList)
+    $(GLINK TemplateArgument) $(D ,) $(GSELF TemplateArgumentList)
 
 $(GNAME TemplateArgument):
     $(GLINK2 type, Type)
@@ -82,9 +82,9 @@ $(GNAME Symbol):
 
 $(GNAME SymbolTail):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(D .) $(I SymbolTail)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF SymbolTail)
     $(GLINK TemplateInstance)
-    $(GLINK TemplateInstance) $(D .) $(I SymbolTail)
+    $(GLINK TemplateInstance) $(D .) $(GSELF SymbolTail)
 
 $(GNAME TemplateSingleArgument):
     $(GLINK_LEX Identifier)

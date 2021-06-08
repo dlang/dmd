@@ -80,7 +80,7 @@ $(GNAME TraitsKeyword):
 
 $(GNAME TraitsArguments):
     $(GLINK TraitsArgument)
-    $(GLINK TraitsArgument) $(D ,) $(I TraitsArguments)
+    $(GLINK TraitsArgument) $(D ,) $(GSELF TraitsArguments)
 
 $(GNAME TraitsArgument):
     $(GLINK2 expression, AssignExpression)

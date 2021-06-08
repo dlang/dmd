@@ -32,7 +32,7 @@ $(GNAME Parameters):
 
 $(GNAME ParameterList):
     $(GLINK Parameter)
-    $(GLINK Parameter) $(D ,) $(I ParameterList)
+    $(GLINK Parameter) $(D ,) $(GSELF ParameterList)
     $(I VariadicArgumentsAttributes) $(D ...)
 
 $(GNAME Parameter):
@@ -45,9 +45,9 @@ $(GNAME Parameter):
 $(GNAME ParameterAttributes):
     $(GLINK InOut)
     $(GLINK2 attribute, UserDefinedAttribute)
-    $(I ParameterAttributes) $(GLINK InOut)
-    $(I ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
-    $(I ParameterAttributes)
+    $(GSELF ParameterAttributes) $(GLINK InOut)
+    $(GSELF ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
+    $(GSELF ParameterAttributes)
 
 $(GNAME InOut):
     $(D auto)
@@ -77,7 +77,7 @@ $(H3 Function attributes)
 $(GRAMMAR
 $(GNAME FunctionAttributes):
     $(GLINK FunctionAttribute)
-    $(GLINK FunctionAttribute) $(I FunctionAttributes)
+    $(GLINK FunctionAttribute) $(GSELF FunctionAttributes)
 
 $(GNAME FunctionAttribute):
     $(GLINK2 attribute, FunctionAttributeKwd)
@@ -85,7 +85,7 @@ $(GNAME FunctionAttribute):
 
 $(GNAME MemberFunctionAttributes):
     $(GLINK MemberFunctionAttribute)
-    $(GLINK MemberFunctionAttribute) $(I MemberFunctionAttributes)
+    $(GLINK MemberFunctionAttribute) $(GSELF MemberFunctionAttributes)
 
 $(GNAME MemberFunctionAttribute):
     $(D const)
@@ -137,7 +137,7 @@ $(H2 $(LNAME2 contracts, Function Contracts))
 $(GRAMMAR
 $(GNAME FunctionContracts):
     $(GLINK FunctionContract)
-    $(GLINK FunctionContract) $(I FunctionContracts)
+    $(GLINK FunctionContract) $(GSELF FunctionContracts)
 
 $(GNAME FunctionContract):
     $(GLINK InOutContractExpression)

@@ -41,7 +41,7 @@ $(GNAME SuperClass):
 
 $(GNAME Interfaces):
     $(GLINK Interface)
-    $(GLINK Interface) $(D ,) $(I Interfaces)
+    $(GLINK Interface) $(D ,) $(GSELF Interfaces)
 
 $(GNAME Interface):
     $(GLINK2 type, BasicType)

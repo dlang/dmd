@@ -92,7 +92,7 @@ $(H2 $(LNAME2 white_space, White Space))
 $(GRAMMAR
 $(GNAME WhiteSpace):
     $(GLINK Space)
-    $(GLINK Space) $(I WhiteSpace)
+    $(GLINK Space) $(GSELF WhiteSpace)
 
 $(GNAME Space):
     $(B \u0020)
@@ -121,7 +121,7 @@ $(GNAME NestingBlockComment):
 
 $(GNAME NestingBlockCommentCharacters):
     $(GLINK NestingBlockCommentCharacter)
-    $(GLINK NestingBlockCommentCharacter) $(I NestingBlockCommentCharacters)
+    $(GLINK NestingBlockCommentCharacter) $(GSELF NestingBlockCommentCharacters)
 
 $(GNAME NestingBlockCommentCharacter):
     $(GLINK Character)
@@ -129,7 +129,7 @@ $(GNAME NestingBlockCommentCharacter):
 
 $(GNAME Characters):
     $(GLINK Character)
-    $(GLINK Character) $(I Characters))
+    $(GLINK Character) $(GSELF Characters))
 
     $(P There are three kinds of comments:)
 
@@ -162,7 +162,7 @@ $(H2 $(LNAME2 tokens, Tokens))
 $(GRAMMAR
 $(GNAME Tokens):
     $(GLINK Token)
-    $(GLINK Token) $(I Tokens)
+    $(GLINK Token) $(GSELF Tokens)
 
 $(GNAME Token):
 $(MULTICOLS 4,     $(GLINK Identifier)
@@ -238,7 +238,7 @@ $(GNAME Identifier):
 
 $(GNAME IdentifierChars):
     $(GLINK IdentifierChar)
-    $(GLINK IdentifierChar) $(I IdentifierChars)
+    $(GLINK IdentifierChar) $(GSELF IdentifierChars)
 
 $(GNAME IdentifierStart):
     $(D _)
@@ -279,7 +279,7 @@ $(GNAME AlternateWysiwygString):
 
 $(GNAME WysiwygCharacters):
     $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(I WysiwygCharacters)
+    $(GLINK WysiwygCharacter) $(GSELF WysiwygCharacters)
 
 $(GNAME WysiwygCharacter):
     $(GLINK Character)
@@ -290,7 +290,7 @@ $(GNAME DoubleQuotedString):
 
 $(GNAME DoubleQuotedCharacters):
     $(GLINK DoubleQuotedCharacter)
-    $(GLINK DoubleQuotedCharacter) $(I DoubleQuotedCharacters)
+    $(GLINK DoubleQuotedCharacter) $(GSELF DoubleQuotedCharacters)
 
 $(GNAME DoubleQuotedCharacter):
     $(GLINK Character)
@@ -323,7 +323,7 @@ $(GNAME HexString):
 
 $(GNAME HexStringChars):
     $(GLINK HexStringChar)
-    $(GLINK HexStringChar) $(I HexStringChars)
+    $(GLINK HexStringChar) $(GSELF HexStringChars)
 
 $(GNAME HexStringChar):
     $(GLINK HexDigit)
@@ -624,11 +624,11 @@ $(GNAME NonZeroDigit):
 
 $(GNAME DecimalDigits):
     $(GLINK DecimalDigit)
-    $(GLINK DecimalDigit) $(I DecimalDigits)
+    $(GLINK DecimalDigit) $(GSELF DecimalDigits)
 
 $(GNAME DecimalDigitsUS):
     $(GLINK DecimalDigitUS)
-    $(GLINK DecimalDigitUS) $(I DecimalDigitsUS)
+    $(GLINK DecimalDigitUS) $(GSELF DecimalDigitsUS)
 
 $(GNAME DecimalDigitsNoSingleUS):
     $(GLINK DecimalDigit)
@@ -655,7 +655,7 @@ $(GNAME BinaryDigitsNoSingleUS):
 
 $(GNAME BinaryDigitsUS):
     $(GLINK BinaryDigitUS)
-    $(GLINK BinaryDigitUS) $(I BinaryDigitsUS)
+    $(GLINK BinaryDigitUS) $(GSELF BinaryDigitsUS)
 
 $(GNAME BinaryDigit):
     $(B 0)
@@ -677,11 +677,11 @@ $(GNAME OctalDigit):
 
 $(GNAME HexDigits):
     $(GLINK HexDigit)
-    $(GLINK HexDigit) $(I HexDigits)
+    $(GLINK HexDigit) $(GSELF HexDigits)
 
 $(GNAME HexDigitsUS):
     $(GLINK HexDigitUS)
-    $(GLINK HexDigitUS) $(I HexDigitsUS)
+    $(GLINK HexDigitUS) $(GSELF HexDigitsUS)
 
 $(GNAME HexDigitsNoSingleUS):
     $(GLINK HexDigit)
