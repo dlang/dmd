@@ -2105,7 +2105,7 @@ void test()
 }
 ------
 
-        $(D _arguments) gives the number of arguments and the `typeid`
+        $(P $(D _arguments) gives the number of arguments and the `typeid`
         of each, enabling type safety to be checked at run time.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -3095,7 +3095,7 @@ static assert(countTen(12) == 12);  // invalid, modifies y.
     $(NOTE `__ctfe` can be used to provide
         an alternative execution path to avoid operations which are forbidden
         in CTFE. Every usage of $(D __ctfe) is statically evaluated
-        and has no run-time cost.)
+        and has no run-time cost.
     )
 
     $(P Non-recoverable errors (such as $(D_KEYWORD assert) failures) are illegal.
@@ -3250,7 +3250,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         )
 
         $(P When indexing or slicing an array, an out of bounds access
-            will cause a runtime error.)
+            will cause a runtime error.
         )
 
         $(P Functions nested inside safe functions default to being
@@ -3646,7 +3646,7 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         $(P is the equivalent of:)
 
         ---
-        copy(sort(array(map!(a => a.idup)(byLine(stdin, KeepTerminator.yes))), lockingTextWriter(stdout));
+        copy(sort(array(map!(a => a.idup)(byLine(stdin, KeepTerminator.yes)))), lockingTextWriter(stdout));
         ---
 
         $(P UFCS works with $(D @property) functions:)

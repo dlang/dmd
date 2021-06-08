@@ -547,7 +547,7 @@ $(H2 $(LNAME2 escape_sequences, Escape Sequences))
         $(D \U0001F603) represents the Unicode character U+1F603 (SMILING FACE
         WITH OPEN MOUTH).)
     $(TROW $(D \)$(I name), Named character entity from the HTML5
-        specification. These names begin with $(CODE_AMP) and end with $(D ;), e.g., $(CODE_AMP)$D(euro;).
+        specification. These names begin with $(CODE_AMP) and end with $(D ;), e.g.$(COMMA) $(D $(AMP)euro;).
         See $(GLINK2 entity, NamedCharacterEntity).)
     )
 

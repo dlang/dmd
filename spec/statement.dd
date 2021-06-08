@@ -1663,7 +1663,7 @@ $(GNAME FinallyStatement):
         the capture of the entire chain.
         )
 
-        $(P Thrown objects derived from $(LINK2 https://dlang.org/phobos/object.html#.Error, $(D class $Error)) are treated differently. They
+        $(P Thrown objects derived from the $(LINK2 https://dlang.org/phobos/object.html#.Error, $(D Error)) class are treated differently. They
         bypass the normal chaining mechanism, such that the chain can only be
         caught by catching the first $(D Error). In addition to the list of
         subsequent exceptions, $(D Error) also contains a pointer that points
