@@ -742,6 +742,9 @@ class TemplateValueParameter;
 class TemplateAliasParameter;
 class TemplateThisParameter;
 class TypeQualified;
+union __AnonStruct__u;
+class UnaExp;
+class BinExp;
 struct ASTCodegen;
 class ErrorStatement;
 class PeelStatement;
@@ -752,9 +755,6 @@ class DtorExpStatement;
 class ForwardingStatement;
 class ErrorInitializer;
 class ObjcClassReferenceExp;
-union __AnonStruct__u;
-class UnaExp;
-class BinExp;
 class CompoundStatement;
 class CompoundDeclarationStatement;
 class WhileStatement;
@@ -3423,89 +3423,6 @@ public:
 };
 
 extern void genCppHdrFiles(Array<Module* >& ms);
-
-class ToCppBuffer final : public Visitor
-{
-public:
-    using Visitor::visit;
-    enum class EnumKind
-    {
-        Int = 0,
-        Numeric = 1,
-        String = 2,
-        Enum = 3,
-        Other = 4,
-    };
-
-    typedef ASTCodegen AST;
-    void* visited;
-    void* forwarded;
-    OutBuffer* fwdbuf;
-    OutBuffer* checkbuf;
-    OutBuffer* donebuf;
-    OutBuffer* buf;
-    AggregateDeclaration* adparent;
-    TemplateDeclaration* tdparent;
-    Identifier* ident;
-    LINK linkage;
-    bool forwardedAA;
-    Type** origType;
-    Kind currentVisibility;
-    STC storageClass;
-    int32_t ignoredCounter;
-    bool hasReal;
-    const bool printIgnored;
-    ToCppBuffer(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf);
-    void writeDeclEnd();
-    void visit(Dsymbol* s);
-    void visit(Import* i);
-    void visit(AttribDeclaration* pd);
-    void visit(StorageClassDeclaration* scd);
-    void visit(LinkDeclaration* ld);
-    void visit(CPPMangleDeclaration* md);
-    void visit(Module* m);
-    void visit(FuncDeclaration* fd);
-    void visit(UnitTestDeclaration* utd);
-    void visit(VarDeclaration* vd);
-    void visit(TypeInfoDeclaration* tid);
-    void visit(AliasDeclaration* ad);
-    void visit(Nspace* ns);
-    void visit(CPPNamespaceDeclaration* ns);
-    void handleNspace(Dsymbol* namespace_, Array<Dsymbol* >* members);
-    void visit(AnonDeclaration* ad);
-    void visit(StructDeclaration* sd);
-    void visit(ClassDeclaration* cd);
-    void visit(EnumDeclaration* ed);
-    void visit(EnumMember* em);
-    void visit(Type* t);
-    void visit(TypeIdentifier* t);
-    void visit(TypeNull* t);
-    void visit(TypeTypeof* t);
-    void visit(TypeBasic* t);
-    void visit(TypePointer* t);
-    void visit(TypeSArray* t);
-    void visit(TypeAArray* t);
-    void visit(TypeFunction* tf);
-    void visit(TypeEnum* t);
-    void visit(TypeStruct* t);
-    void visit(TypeDArray* t);
-    void visit(TypeInstance* t);
-    void visit(TemplateDeclaration* td);
-    void visit(TemplateMixin* tm);
-    void visit(TypeClass* t);
-    void visit(Parameter* p);
-    void visit(Expression* e);
-    void visit(VarExp* e);
-    void visit(CallExp* e);
-    void visit(DotVarExp* e);
-    void visit(DotIdExp* e);
-    void visit(NullExp* e);
-    void visit(ArrayLiteralExp* e);
-    void visit(StringExp* e);
-    void visit(RealExp* e);
-    void visit(IntegerExp* e);
-    void visit(StructLiteralExp* sle);
-};
 
 class DebugSymbol final : public Dsymbol
 {
