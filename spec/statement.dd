@@ -1918,9 +1918,7 @@ else
 
 $(H2 $(LEGACY_LNAME2 PragmaStatement, pragma-statement, Pragma Statement))
 
-$(GRAMMAR
-$(GLINK2 pragma, PragmaStatement)
-)
+$(P See $(GLINK2 pragma, PragmaStatement)).
 
 $(H2 $(LEGACY_LNAME2 MixinStatement, mixin-statement, Mixin Statement))
 
