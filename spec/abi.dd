@@ -275,6 +275,10 @@ $(GNAME TemplateArgX):
     with `pragma(mangle,...)`.)
 
 $(GRAMMAR
+$(GNAME Values):
+    $(GLINK Value)
+    $(GLINK Value) $(I Values)
+
 $(GNAME Value):
     $(B n)
     $(B i) $(GLINK Number)
@@ -282,8 +286,8 @@ $(GNAME Value):
     $(B e) $(GLINK HexFloat)
     $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat)
     $(GLINK CharWidth) $(GLINK Number) $(B _) $(GLINK HexDigits)
-    $(B A) $(GLINK Number) $(GLINK Value)...
-    $(B S) $(GLINK Number) $(GLINK Value)...
+    $(B A) $(GLINK Number) $(GLINK Values)
+    $(B S) $(GLINK Number) $(GLINK Values)
     $(B f) $(GLINK MangledName)
 
 $(GNAME HexFloat):
@@ -340,14 +344,14 @@ $(GNAME CharWidth):
             The $(GLINK HexDigits) are the hex data for the string.
             )
 
-            $(DT $(B A) $(GLINK Number) $(GLINK Value)...)
+            $(DT $(B A) $(GLINK Number) $(GLINK Values))
             $(DD An array or asssociative array literal.
             $(GLINK Number) is the length of the array.
             $(GLINK Value) is repeated $(GLINK Number) times for a normal array,
             and 2 * $(GLINK Number) times for an associative array.
             )
 
-            $(DT $(B S) $(GLINK Number) $(GLINK Value)...)
+            $(DT $(B S) $(GLINK Number) $(GLINK Values))
             $(DD A struct literal. $(GLINK Value) is repeated $(GLINK Number) times.
             )
     )

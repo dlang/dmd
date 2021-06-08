@@ -160,6 +160,10 @@ is two tokens, $(D abc) and $(D def), not one $(D abcdef) token.)
 $(H2 $(LNAME2 tokens, Tokens))
 
 $(GRAMMAR
+$(GNAME Tokens):
+    $(GLINK Token)
+    $(GLINK Token) $(I Tokens)
+
 $(GNAME Token):
 $(MULTICOLS 4,     $(GLINK Identifier)
     $(GLINK StringLiteral)
@@ -335,7 +339,7 @@ $(GNAME DelimitedString):
     $(B q") $(I Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(I MatchingDelimiter) $(B ")
 
 $(GNAME TokenString):
-    $(D q)$(CODE_LCURL) $(GLINK Token)s$(OPT) $(CODE_RCURL)
+    $(D q)$(CODE_LCURL) $(GLINK Tokens)$(OPT) $(CODE_RCURL)
 
 )
 
