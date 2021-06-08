@@ -109,6 +109,18 @@ enum STC
 
 static STC const STC_D = (STC)3;
 
+struct Foo
+{
+    int32_t i;
+    Foo() :
+        i()
+    {
+    }
+    Foo(int32_t i) :
+        i(i)
+        {}
+};
+
 namespace MyEnum
 {
     static Foo const A = Foo(42);
@@ -137,10 +149,12 @@ namespace MyEnumCpp
 
 static /* MyEnum */ Foo const testCpp = Foo(42);
 
+extern const bool e_b;
 ---
 +/
 
-extern(C++) enum Anon = 10;
+extern(C++):
+enum Anon = 10;
 extern(C++) enum Anon2 = true;
 extern(C++) enum Anon3 = "wow";
 
