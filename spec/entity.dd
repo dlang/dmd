@@ -6,7 +6,7 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME NamedCharacterEntity):
-    $(CODE_AMP) $(GLINK_LEX Identifier) $(B ;)
+    $(B $(AMP)) $(GLINK_LEX Identifier) $(B ;)
 )
 
         $(P The full list of named character entities from the

@@ -404,7 +404,7 @@ $(H2 $(LNAME2 andand_expressions, AndAnd Expressions))
 $(GRAMMAR
 $(GNAME AndAndExpression):
     $(GLINK OrExpression)
-    $(GSELF AndAndExpression) $(CODE_AMP)$(CODE_AMP) $(GLINK OrExpression)
+    $(GSELF AndAndExpression) $(D $(AMP)$(AMP)) $(GLINK OrExpression)
 )
 
     $(P The result type of an $(I AndAndExpression) is $(D bool), unless the right operand
@@ -866,7 +866,7 @@ $(H2 $(LEGACY_LNAME2 UnaryExpression, unary-expression, Unary Expressions))
 
 $(GRAMMAR
 $(GNAME UnaryExpression):
-    $(CODE_AMP) $(GSELF UnaryExpression)
+    $(D $(AMP)) $(GSELF UnaryExpression)
     $(D ++) $(GSELF UnaryExpression)
     $(D --) $(GSELF UnaryExpression)
     $(D *) $(GSELF UnaryExpression)
