@@ -198,7 +198,8 @@ static TypeStruct *createTupleType(Loc loc, Expressions *e)
     Type *ty = new TypeTypeof(loc, new TupleExp(loc, e));
     sdecl->members->push(new VarDeclaration(loc, ty, fid, NULL));
     TypeStruct *r = (TypeStruct *)sdecl->type;
-    r->vtinfo = TypeInfoStructDeclaration::create(r); // prevent typeinfo from going to object file
+    if (global.params.useTypeInfo && Type::dtypeinfo)
+        r->vtinfo = TypeInfoStructDeclaration::create(r); // prevent typeinfo from going to object file
     return r;
 }
 

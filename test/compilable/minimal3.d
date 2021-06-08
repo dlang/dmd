@@ -11,3 +11,13 @@ void issue19234()
     A[10] b;
     b[] = a[];
 }
+
+/**********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22005
+void issue22005()
+{
+    enum int[4] foo = [1,2,3,4];
+    static foreach (i, e; foo)
+    {
+    }
+}
