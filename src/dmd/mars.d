@@ -291,7 +291,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         foreach (charz; *params.debugids)
             DebugCondition.addGlobalIdent(charz.toDString());
 
-    setDefaultLibrary();
+    setDefaultLibrary(params, target);
 
     // Initialization
     target._init(params);
@@ -1223,37 +1223,37 @@ const(char)[] parse_conf_arg(Strings* args)
  * Note that if `-defaultlib=` or `-debuglib=` was used,
  * we don't override that either.
  */
-private void setDefaultLibrary()
+private void setDefaultLibrary(ref Param params, const ref Target target)
 {
-    if (global.params.defaultlibname is null)
+    if (params.defaultlibname is null)
     {
         if (target.os == Target.OS.Windows)
         {
             if (target.is64bit)
-                global.params.defaultlibname = "phobos64";
+                params.defaultlibname = "phobos64";
             else if (target.mscoff)
-                global.params.defaultlibname = "phobos32mscoff";
+                params.defaultlibname = "phobos32mscoff";
             else
-                global.params.defaultlibname = "phobos";
+                params.defaultlibname = "phobos";
         }
         else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
-            global.params.defaultlibname = "libphobos2.a";
+            params.defaultlibname = "libphobos2.a";
         }
         else if (target.os == Target.OS.OSX)
         {
-            global.params.defaultlibname = "phobos2";
+            params.defaultlibname = "phobos2";
         }
         else
         {
             assert(0, "fix this");
         }
     }
-    else if (!global.params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
-        global.params.defaultlibname = null;
+    else if (!params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
+        params.defaultlibname = null;
 
-    if (global.params.debuglibname is null)
-        global.params.debuglibname = global.params.defaultlibname;
+    if (params.debuglibname is null)
+        params.debuglibname = params.defaultlibname;
 }
 
 /**
