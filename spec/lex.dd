@@ -942,7 +942,7 @@ $(MULTICOLS 4,
     $(LINK2 version.html#debug, $(D debug))
     $(LINK2 statement.html#SwitchStatement, $(D default))
     $(LINK2 type.html#delegates, $(D delegate))
-    $(LINK2 expression.html#DeleteExpression, $(D delete)) ($(LINK2 $(ROOT_DIR)deprecate.html#delete, deprecated))
+    $(GDEPRECATED $(LINK2 expression.html#DeleteExpression, $(D delete)))
     $(LINK2 attribute.html#deprecated, $(D deprecated))
     $(LINK2 statement.html#DoStatement, $(D do))
     $(LINK2 type.html, $(D double))
@@ -979,7 +979,7 @@ $(MULTICOLS 4,
     $(LINK2 function.html#overload-sets, $(D lazy))
     $(LINK2 type.html, $(D long))
 
-    $(D macro) (reserved)
+    $(GRESERVED $(D macro))
     $(LINK2 expression.html#MixinExpression, $(D mixin))
     $(LINK2 module.html#ModuleDeclaration, $(D module))
 
