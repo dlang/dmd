@@ -7,6 +7,8 @@ experimental C++ header generator:
 - (Superclass) methods aliases are emitted as `using ...` instead of `typedef ...`
 - `extern(D)` symbols are no longer emitted by accident in certain situations
 - `extern(D)` structs and classes are emitted if referenced by an exported symbol
+- Forward declarations consistently include `template<...>`
+- `extern(C++, class)`, `extern(C++, struct)` affects forward declarations
 - Renamed imports are emitted as `using ...`
 - Complex types are emitted as `_Complex`.
 - Declarations are emitted before the first member access

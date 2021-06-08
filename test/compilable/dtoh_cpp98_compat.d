@@ -41,8 +41,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-struct MyString;
-
 class ImportsC
 {
 };

@@ -43,8 +43,6 @@ struct _d_dynamicArray final
 # define _d_real long double
 #endif
 
-struct Null;
-
 class ClassFromStruct final
 {
 public:

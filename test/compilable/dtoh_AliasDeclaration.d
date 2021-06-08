@@ -41,10 +41,7 @@ struct _d_dynamicArray final
 };
 #endif
 
-struct S;
-struct S2;
 class C;
-class C2;
 
 extern void importFunc();
 

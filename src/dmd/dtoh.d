@@ -268,6 +268,9 @@ public:
         /// Currently visited types are required by another declaration
         /// and hence must be emitted
         bool mustEmit;
+
+        /// Processing a type that can be forward referenced
+        bool forwarding;
     }
 
     /// Informations about the current context in the AST
@@ -1769,6 +1772,12 @@ public:
             buf.writestring("va_list");
             return;
         }
+
+        // Pointer targets can be forward referenced
+        const fwdSave = forwarding;
+        forwarding = true;
+        scope (exit) forwarding = fwdSave;
+
         t.next.accept(this);
         if (t.next.ty != AST.Tfunction)
             buf.writeByte('*');
@@ -1869,7 +1878,6 @@ public:
         if (kind == EnumKind.Int || kind == EnumKind.Numeric)
         {
             writeFullName(ed);
-            includeSymbol(ed);
         }
         else
         {
@@ -1898,13 +1906,6 @@ public:
         {
             printf("[AST.TypeStruct enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeStruct exit] %s\n", t.toChars());
-        }
-        if (cast(void*)t.sym !in forwarded && !t.sym.parent.isTemplateInstance())
-        {
-            forwarded[cast(void*)t.sym] = true;
-            fwdbuf.writestring(t.sym.isUnionDeclaration() ? "union " : "struct ");
-            fwdbuf.writestring(t.sym.toChars());
-            fwdbuf.writestringln(";");
         }
 
         if (t.isConst() || t.isImmutable())
@@ -1944,6 +1945,9 @@ public:
             scope(exit) printf("[visitTi(AST.TemplateInstance) exit] %s\n", ti.toChars());
         }
 
+        // Ensure that the TD appears before the instance
+        if (auto td = findTemplateDeclaration(ti))
+            ensureDeclared(td);
 
         foreach (o; *ti.tiargs)
         {
@@ -2097,13 +2101,11 @@ public:
             printf("[AST.TypeClass enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeClass exit] %s\n", t.toChars());
         }
-        if (cast(void*)t.sym !in forwarded)
-        {
-            forwarded[cast(void*)t.sym] = true;
-            fwdbuf.writestring("class ");
-            fwdbuf.writestring(t.sym.toChars());
-            fwdbuf.writestringln(";");
-        }
+
+        // Classes are emitted as pointer and hence can be forwarded
+        const fwdSave = forwarding;
+        forwarding = true;
+        scope (exit) forwarding = fwdSave;
 
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
@@ -2727,6 +2729,74 @@ public:
     }
 
     /**
+     * Ensures that `sym` is declared before the current position in `buf` by
+     * either creating a forward reference in `fwdbuf` if possible or
+     * calling `includeSymbol` to emit the entire declaration into `donebuf`.
+     */
+    private void ensureDeclared(AST.Dsymbol sym)
+    {
+        auto par = sym.toParent2();
+        auto ed = sym.isEnumDeclaration();
+
+        // Eagerly include the symbol if we cannot create a valid forward declaration
+        // Forwarding of scoped enums requires C++11 or above
+        if (!forwarding || !par.isModule() || (ed && global.params.cplusplus < CppStdRevision.cpp11))
+        {
+            // Emit the entire enclosing declaration if any
+            includeSymbol(outermostSymbol(sym));
+            return;
+        }
+
+        auto ti = sym.isInstantiated();
+        auto td = ti ? findTemplateDeclaration(ti) : null;
+        auto check = cast(void*) (td ? td : sym);
+
+        // Omit redundant fwd-declaration if we already emitted the entire declaration
+        if (visited.get(check, false))
+            return;
+
+        // Already created a fwd-declaration?
+        if (check in forwarded)
+            return;
+        forwarded[check] = true;
+
+        // Print template<...>
+        if (ti)
+        {
+            auto bufSave = buf;
+            buf = fwdbuf;
+            printTemplateParams(td);
+            buf = bufSave;
+        }
+
+        // Determine the kind of symbol that is forwared: struct, ...
+        const(char)* kind;
+
+        if (auto ad = sym.isAggregateDeclaration())
+        {
+            // Look for extern(C++, class) <some aggregate>
+            if (ad.cppmangle == CPPMANGLE.def)
+                kind = ad.kind();
+            else if (ad.cppmangle == CPPMANGLE.asStruct)
+                kind =  "struct";
+            else
+                kind = "class";
+        }
+        else if (ed)
+        {
+            // Only called from enumToBuffer, so should always be emitted as an actual enum
+            kind = "enum class";
+        }
+        else
+            kind = sym.kind(); // Should be unreachable but just to be sure
+
+        fwdbuf.writestring(kind);
+        fwdbuf.writeByte(' ');
+        fwdbuf.writestring(sym.toChars());
+        fwdbuf.writestringln(";");
+    }
+
+    /**
      * Writes the qualified name of `sym` into `buf` including parent
      * symbols and template parameters.
      */
@@ -2758,6 +2828,7 @@ public:
             return false;
         }
         AST.TemplateInstance ti;
+        bool nested;
 
         // Check if the `sym` is nested into another symbol and hence requires `Parent::sym`
         if (auto par = sym.toParent())
@@ -2770,12 +2841,16 @@ public:
 
             // Prefix the name with any enclosing declaration
             // Stop at either module or enclosing aggregate
-            if (!par.isModule() && !isNestedIn(par, adparent))
+            nested = !par.isModule();
+            if (nested && !isNestedIn(par, adparent))
             {
                 writeFullName(par);
                 buf.writestring("::");
             }
         }
+
+        if (!nested)
+            ensureDeclared(sym);
 
         if (ti)
             visitTi(ti);
