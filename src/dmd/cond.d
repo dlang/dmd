@@ -255,7 +255,8 @@ extern (C++) final class StaticForeach : RootObject
         auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
         sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
         auto r = cast(TypeStruct)sdecl.type;
-        r.vtinfo = TypeInfoStructDeclaration.create(r); // prevent typeinfo from going to object file
+        if (global.params.useTypeInfo && Type.dtypeinfo)
+            r.vtinfo = TypeInfoStructDeclaration.create(r); // prevent typeinfo from going to object file
         return r;
     }
 
