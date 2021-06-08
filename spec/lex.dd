@@ -70,8 +70,8 @@ $(H2 $(LNAME2 end_of_file, End of File))
 $(GRAMMAR
 $(GNAME EndOfFile):
     $(I physical end of the file)
-    $(D \u0000)
-    $(D \u001A))
+    $(B \u0000)
+    $(B \u001A))
 
 $(P The source text is terminated by whichever comes first.)
 
@@ -79,11 +79,11 @@ $(H2 $(LNAME2 end_of_line, End of Line))
 
 $(GRAMMAR
 $(GNAME EndOfLine):
-    $(D \u000D)
-    $(D \u000A)
-    $(D \u000D \u000A)
-    $(D \u2028)
-    $(D \u2029)
+    $(B \u000D)
+    $(B \u000A)
+    $(B \u000D) $(B \u000A)
+    $(B \u2028)
+    $(B \u2029)
     $(GLINK EndOfFile))
 
 
@@ -95,10 +95,10 @@ $(GNAME WhiteSpace):
     $(GLINK Space) $(I WhiteSpace)
 
 $(GNAME Space):
-    $(D \u0020)
-    $(D \u0009)
-    $(D \u000B)
-    $(D \u000C)
+    $(B \u0020)
+    $(B \u0009)
+    $(B \u000B)
+    $(B \u000C)
 )
 
 
