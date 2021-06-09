@@ -767,10 +767,9 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
     {
         //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
         //static int i; if (++i == 2) assert(0);
-        Expressions* elements;
-        uint edim;
+        uint edim;      // the length of the resulting array literal
         const(uint) amax = 0x80000000;
-        Type t = null;
+        Type t = null;  // type of the array literal being initialized
         if (init.type)
         {
             if (init.type == Type.terror)
@@ -781,13 +780,13 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
             switch (t.ty)
             {
             case Tvector:
-                t = (cast(TypeVector)t).basetype;
+                t = t.isTypeVector().basetype;
                 goto case Tsarray;
 
             case Tsarray:
-                uinteger_t adim = (cast(TypeSArray)t).dim.toInteger();
+                uinteger_t adim = t.isTypeSArray().dim.toInteger();
                 if (adim >= amax)
-                    goto Lno;
+                    return null;
                 edim = cast(uint)adim;
                 break;
 
@@ -802,97 +801,103 @@ extern (C++) Expression initializerToExpression(Initializer init, Type itype = n
         }
         else
         {
+            /* Calculate the length of the array literal
+             */
             edim = cast(uint)init.value.dim;
-            for (size_t i = 0, j = 0; i < init.value.dim; i++, j++)
+            size_t j = 0;
+            foreach (i; 0 .. init.value.dim)
             {
-                if (init.index[i])
+                if (auto e = init.index[i])
                 {
-                    if (init.index[i].op == TOK.int64)
+                    if (e.op == TOK.int64)
                     {
-                        const uinteger_t idxval = init.index[i].toInteger();
+                        const uinteger_t idxval = e.toInteger();
                         if (idxval >= amax)
-                            goto Lno;
+                            return null;
                         j = cast(size_t)idxval;
                     }
                     else
-                        goto Lno;
+                        return null;
                 }
-                if (j >= edim)
-                    edim = cast(uint)(j + 1);
+                ++j;
+                if (j > edim)
+                    edim = cast(uint)j;
             }
         }
-        elements = new Expressions(edim);
-        elements.zero();
-        for (size_t i = 0, j = 0; i < init.value.dim; i++, j++)
-        {
-            if (init.index[i])
-                j = cast(size_t)init.index[i].toInteger();
-            assert(j < edim);
-            Initializer iz = init.value[i];
-            if (!iz)
-                goto Lno;
-            Expression ex = iz.initializerToExpression();
-            if (!ex)
-            {
-                goto Lno;
-            }
-            (*elements)[j] = ex;
-        }
-        {
-            /* Fill in any missing elements with the default initializer
-             */
-            Expression _init = null;
-            for (size_t i = 0; i < edim; i++)
-            {
-                if (!(*elements)[i])
-                {
-                    if (!init.type)
-                        goto Lno;
-                    if (!_init)
-                        _init = (cast(TypeNext)t).next.defaultInit(Loc.initial);
-                    (*elements)[i] = _init;
-                }
-            }
 
-            /* Expand any static array initializers that are a single expression
-             * into an array of them
-             */
-            if (t)
+        auto elements = new Expressions(edim);
+        elements.zero();
+        size_t j = 0;
+        foreach (i; 0 .. init.value.dim)
+        {
+            if (auto e = init.index[i])
+                j = cast(size_t)e.toInteger();
+            assert(j < edim);
+            if (Initializer iz = init.value[i])
             {
-                Type tn = t.nextOf().toBasetype();
-                if (tn.ty == Tsarray)
+                if (Expression ex = iz.initializerToExpression())
                 {
-                    const dim = cast(size_t)(cast(TypeSArray)tn).dim.toInteger();
-                    Type te = tn.nextOf().toBasetype();
-                    foreach (ref e; *elements)
+                    (*elements)[j] = ex;
+                    ++j;
+                }
+                else
+                    return null;
+            }
+            else
+                return null;
+        }
+
+        /* Fill in any missing elements with the default initializer
+         */
+        Expression defaultInit = null;  // lazily create it
+        foreach (ref element; (*elements)[0 .. edim])
+        {
+            if (!element)
+            {
+                if (!init.type) // don't know what type to use
+                    return null;
+                if (!defaultInit)
+                    defaultInit = (cast(TypeNext)t).next.defaultInit(Loc.initial);
+                element = defaultInit;
+            }
+        }
+
+        /* Expand any static array initializers that are a single expression
+         * into an array of them
+         *    e => [e, e, ..., e, e]
+         */
+        if (t)
+        {
+            Type tn = t.nextOf().toBasetype();
+            if (tn.ty == Tsarray)
+            {
+                const dim = cast(size_t)(cast(TypeSArray)tn).dim.toInteger();
+                Type te = tn.nextOf().toBasetype();
+                foreach (ref e; *elements)
+                {
+                    if (te.equals(e.type))
                     {
-                        if (te.equals(e.type))
-                        {
-                            auto elements2 = new Expressions(dim);
-                            foreach (ref e2; *elements2)
-                                e2 = e;
-                            e = new ArrayLiteralExp(e.loc, tn, elements2);
-                        }
+                        auto elements2 = new Expressions(dim);
+                        foreach (ref e2; *elements2)
+                            e2 = e;
+                        e = new ArrayLiteralExp(e.loc, tn, elements2);
                     }
                 }
             }
-
-            /* If any elements are errors, then the whole thing is an error
-             */
-            for (size_t i = 0; i < edim; i++)
-            {
-                Expression e = (*elements)[i];
-                if (e.op == TOK.error)
-                {
-                    return e;
-                }
-            }
-
-            Expression e = new ArrayLiteralExp(init.loc, init.type, elements);
-            return e;
         }
-    Lno:
-        return null;
+
+        /* If any elements are errors, then the whole thing is an error
+         */
+        foreach (e; (*elements)[0 .. edim])
+        {
+            if (e.op == TOK.error)
+            {
+                return e;
+            }
+        }
+
+        Expression e = new ArrayLiteralExp(init.loc, init.type, elements);
+        return e;
     }
 
     Expression visitExp(ExpInitializer i)
