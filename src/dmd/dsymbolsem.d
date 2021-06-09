@@ -910,6 +910,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc.stc &= ~(STC.TYPECTOR | STC.pure_ | STC.nothrow_ | STC.nogc | STC.ref_ | STC.disable);
 
             ExpInitializer ei = dsym._init.isExpInitializer();
+
             if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
                     // Preset the required type to fail in FuncLiteralDeclaration::semantic3
                 ei.exp = inferType(ei.exp, dsym.type);
@@ -1010,11 +1011,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym._scope = scx ? scx : sc.copy();
                 dsym._scope.setNoFree();
             }
-            else if (dsym.storage_class & (STC.const_ | STC.immutable_ | STC.manifest) || dsym.type.isConst() || dsym.type.isImmutable())
+            else if (dsym.storage_class & (STC.const_ | STC.immutable_ | STC.manifest) ||
+                     dsym.type.isConst() || dsym.type.isImmutable() ||
+                     sc.flags & SCOPE.Cfile)
             {
                 /* Because we may need the results of a const declaration in a
                  * subsequent type, such as an array dimension, before semantic2()
                  * gets ordinarily run, try to run semantic2() now.
+                 * If a C array is of unknown size, the initializer can provide the size. Do this
+                 * eagerly because C does it eagerly.
                  * Ignore failure.
                  */
                 if (!inferred)
@@ -1066,6 +1071,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                         ei.exp = exp;
                     }
+
                     dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
                     dsym.inuse--;
                     if (global.errors > errors)

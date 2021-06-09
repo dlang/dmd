@@ -231,6 +231,11 @@ void teststringtype()
 
 /********************************/
 
+char s[] = "hello";
+_Static_assert(sizeof(s) == 6, "in");
+
+/********************************/
+
 struct SA { int a, b, *const c, d[50]; };
 
 int test1(int i)
