@@ -82,15 +82,19 @@ Lno:
  * Params:
  *      init = Initializer AST node
  *      sc = context
- *      t = type that the initializer needs to become
+ *      tx = type that the initializer needs to become. If tx is an incomplete
+ *           type and the initializer completes it, it is updated to be the
+ *           complete type. ImportC has incomplete types
  *      needInterpret = if CTFE needs to be run on this,
  *                      such as if it is the initializer for a const declaration
  * Returns:
  *      `Initializer` with completed semantic analysis, `ErrorInitializer` if errors
  *      were encountered
  */
-extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
+extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedInterpret needInterpret)
 {
+    Type t = tx;
+
     Initializer visitVoid(VoidInitializer i)
     {
         i.type = t;
@@ -196,7 +200,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 }
                 assert(sc);
                 Initializer iz = i.value[j];
-                iz = iz.initializerSemantic(sc, vd.type.addMod(t.mod), needInterpret);
+                auto tm = vd.type.addMod(t.mod);
+                iz = iz.initializerSemantic(sc, tm, needInterpret);
                 Expression ex = iz.initializerToExpression();
                 if (ex.op == TOK.error)
                 {
@@ -310,7 +315,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             ExpInitializer ei = val.isExpInitializer();
             if (ei && !idx)
                 ei.expandTuples = true;
-            val = val.initializerSemantic(sc, t.nextOf(), needInterpret);
+            auto tn = t.nextOf();
+            val = val.initializerSemantic(sc, tn, needInterpret);
             if (val.isErrorInitializer())
                 errors = true;
             ei = val.isExpInitializer();
@@ -454,6 +460,21 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 goto L1;
             }
         }
+
+        /* C11 6.7.9-14..15
+         * Initialize an array of unknown size with a string.
+         * ImportC regards Tarray as an array of unknown size.
+         * Change to static array of known size
+         */
+        if (sc.flags & SCOPE.Cfile && i.exp.op == TOK.string_ && tb.ty == Tarray)
+        {
+            StringExp se = i.exp.isStringExp();
+            auto ts = new TypeSArray(tb.nextOf(), new IntegerExp(Loc.initial, se.len + 1, Type.tsize_t));
+            t = typeSemantic(ts, Loc.initial, sc);
+            i.exp.type = t;
+            tx = t;
+        }
+
         // Look for implicit constructor call
         if (tb.ty == Tstruct && !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !i.exp.implicitConvTo(t))
         {

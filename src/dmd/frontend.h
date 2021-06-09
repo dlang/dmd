@@ -5008,7 +5008,7 @@ public:
     ~CInitializer();
 };
 
-extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type* t, NeedInterpret needInterpret);
+extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type*& tx, NeedInterpret needInterpret);
 
 extern Expression* initializerToExpression(Initializer* init, Type* itype = nullptr);
 
