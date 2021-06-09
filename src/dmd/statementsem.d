@@ -795,24 +795,25 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     }
                 }
                 p.type = p.type.typeSemantic(loc, sc);
-                TY keyty = p.type.ty;
-                if (keyty != Tint32 && keyty != Tuns32)
+
+                if (!p.type.isintegral())
                 {
-                    if (target.isLP64)
-                    {
-                        if (keyty != Tint64 && keyty != Tuns64)
-                        {
-                            fs.error("`foreach`: key type must be `int` or `uint`, `long` or `ulong`, not `%s`", p.type.toChars());
-                            setError();
-                            return returnEarly();
-                        }
-                    }
-                    else
-                    {
-                        fs.error("`foreach`: key type must be `int` or `uint`, not `%s`", p.type.toChars());
-                        setError();
-                        return returnEarly();
-                    }
+                    fs.error("foreach: key cannot be of non-integral type `%s`",
+                             p.type.toChars());
+                    setError();
+                    return returnEarly();
+                }
+
+                const length = te ? te.exps.length : tuple.arguments.length;
+                IntRange dimrange = IntRange(SignExtendedNumber(length))._cast(Type.tsize_t);
+                // https://issues.dlang.org/show_bug.cgi?id=12504
+                dimrange.imax = SignExtendedNumber(dimrange.imax.value-1);
+                if (!IntRange.fromType(p.type).contains(dimrange))
+                {
+                    fs.error("index type `%s` cannot cover index range 0..%llu",
+                             p.type.toChars(), cast(ulong)length);
+                    setError();
+                    return returnEarly();
                 }
                 Initializer ie = new ExpInitializer(Loc.initial, new IntegerExp(k));
                 auto var = new VarDeclaration(loc, p.type, p.ident, ie);

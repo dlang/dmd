@@ -21,3 +21,16 @@ void issue22005()
     {
     }
 }
+
+/**********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22006
+void issue22006()
+{
+    alias size_t = typeof(int.sizeof);
+    alias AliasSeq(T...) = T;
+
+    foreach (size_t i, e; [0, 1, 2, 3]) { }
+    static foreach (size_t i, e; [0, 1, 2, 3]) { }
+    foreach (size_t i, e; AliasSeq!(0, 1, 2, 3)) { }
+    static foreach (size_t i, e; AliasSeq!(0, 1, 2, 3)) { }
+}
