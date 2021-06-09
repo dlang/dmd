@@ -66,13 +66,13 @@ $(GNAME AsmInstruction):
     $(D align) $(GLINK IntegerExpression)
     $(D even)
     $(D naked)
-    $(D db) $(I Operands)
-    $(D ds) $(I Operands)
-    $(D di) $(I Operands)
-    $(D dl) $(I Operands)
-    $(D df) $(I Operands)
-    $(D dd) $(I Operands)
-    $(D de) $(I Operands)
+    $(D db) $(GLINK Operands)
+    $(D ds) $(GLINK Operands)
+    $(D di) $(GLINK Operands)
+    $(D dl) $(GLINK Operands)
+    $(D df) $(GLINK Operands)
+    $(D dd) $(GLINK Operands)
+    $(D de) $(GLINK Operands)
     $(D db) $(GLINK_LEX StringLiteral)
     $(D ds) $(GLINK_LEX StringLiteral)
     $(D di) $(GLINK_LEX StringLiteral)
@@ -80,11 +80,11 @@ $(GNAME AsmInstruction):
     $(D dw) $(GLINK_LEX StringLiteral)
     $(D dq) $(GLINK_LEX StringLiteral)
     $(I Opcode)
-    $(I Opcode Operands)
+    $(I Opcode) $(GLINK Operands)
 
 $(GNAME Operands):
-    $(I Operand)
-    $(I Operand) $(D ,) $(GSELF Operands)
+    $(GLINK Operand)
+    $(GLINK Operand) $(D ,) $(GSELF Operands)
 )
 
 $(H2 $(LNAME2 labels, Labels))
@@ -266,74 +266,74 @@ $(H2 $(LNAME2 operands, Operands))
 
 $(GRAMMAR
 $(GNAME Operand):
-    $(I AsmExp)
+    $(GLINK AsmExp)
 
 $(GNAME AsmExp):
-    $(I AsmLogOrExp)
-    $(I AsmLogOrExp) $(D ?) $(GSELF AsmExp) $(D :) $(GSELF AsmExp)
+    $(GLINK AsmLogOrExp)
+    $(GLINK AsmLogOrExp) $(D ?) $(GSELF AsmExp) $(D :) $(GSELF AsmExp)
 
 $(GNAME AsmLogOrExp):
-    $(I AsmLogAndExp)
-    $(GSELF AsmLogOrExp) $(D ||) $(I AsmLogAndExp)
+    $(GLINK AsmLogAndExp)
+    $(GSELF AsmLogOrExp) $(D ||) $(GLINK AsmLogAndExp)
 
 $(GNAME AsmLogAndExp):
-    $(I AsmOrExp)
-    $(GSELF AsmLogAndExp) $(D &&) $(I AsmOrExp)
+    $(GLINK AsmOrExp)
+    $(GSELF AsmLogAndExp) $(D &&) $(GLINK AsmOrExp)
 
 $(GNAME AsmOrExp):
-    $(I AsmXorExp)
-    $(GSELF AsmOrExp) $(D |) $(I AsmXorExp)
+    $(GLINK AsmXorExp)
+    $(GSELF AsmOrExp) $(D |) $(GLINK AsmXorExp)
 
 $(GNAME AsmXorExp):
-    $(I AsmAndExp)
-    $(GSELF AsmXorExp) $(D ^) $(I AsmAndExp)
+    $(GLINK AsmAndExp)
+    $(GSELF AsmXorExp) $(D ^) $(GLINK AsmAndExp)
 
 $(GNAME AsmAndExp):
-    $(I AsmEqualExp)
-    $(GSELF AsmAndExp) $(D &) $(I AsmEqualExp)
+    $(GLINK AsmEqualExp)
+    $(GSELF AsmAndExp) $(D &) $(GLINK AsmEqualExp)
 
 $(GNAME AsmEqualExp):
-    $(I AsmRelExp)
-    $(GSELF AsmEqualExp) $(D ==) $(I AsmRelExp)
-    $(GSELF AsmEqualExp) $(D !=) $(I AsmRelExp)
+    $(GLINK AsmRelExp)
+    $(GSELF AsmEqualExp) $(D ==) $(GLINK AsmRelExp)
+    $(GSELF AsmEqualExp) $(D !=) $(GLINK AsmRelExp)
 
 $(GNAME AsmRelExp):
-    $(I AsmShiftExp)
-    $(GSELF AsmRelExp) $(D <) $(I AsmShiftExp)
-    $(GSELF AsmRelExp) $(D <)$(D =) $(I AsmShiftExp)
-    $(GSELF AsmRelExp) $(D >) $(I AsmShiftExp)
-    $(GSELF AsmRelExp) $(D >=) $(I AsmShiftExp)
+    $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D <) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D <)$(D =) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D >) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D >=) $(GLINK AsmShiftExp)
 
 $(GNAME AsmShiftExp):
-    $(I AsmAddExp)
-    $(GSELF AsmShiftExp) $(D <)$(D <) $(I AsmAddExp)
-    $(GSELF AsmShiftExp) $(D >>) $(I AsmAddExp)
-    $(GSELF AsmShiftExp) $(D >>>) $(I AsmAddExp)
+    $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D <)$(D <) $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D >>) $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D >>>) $(GLINK AsmAddExp)
 
 $(GNAME AsmAddExp):
-    $(I AsmMulExp)
-    $(GSELF AsmAddExp) $(D +) $(I AsmMulExp)
-    $(GSELF AsmAddExp) $(D -) $(I AsmMulExp)
+    $(GLINK AsmMulExp)
+    $(GSELF AsmAddExp) $(D +) $(GLINK AsmMulExp)
+    $(GSELF AsmAddExp) $(D -) $(GLINK AsmMulExp)
 
 $(GNAME AsmMulExp):
-    $(I AsmBrExp)
-    $(GSELF AsmMulExp) $(D *) $(I AsmBrExp)
-    $(GSELF AsmMulExp) $(D /) $(I AsmBrExp)
-    $(GSELF AsmMulExp) $(D %) $(I AsmBrExp)
+    $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D *) $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D /) $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D %) $(GLINK AsmBrExp)
 
 $(GNAME AsmBrExp):
-    $(I AsmUnaExp)
-    $(GSELF AsmBrExp) $(D [) $(I AsmExp) $(D ])
+    $(GLINK AsmUnaExp)
+    $(GSELF AsmBrExp) $(D [) $(GLINK AsmExp) $(D ])
 
 $(GNAME AsmUnaExp):
-    $(GLINK AsmTypePrefix) $(I AsmExp)
-    $(D offsetof) $(I AsmExp)
-    $(D seg) $(I AsmExp)
+    $(GLINK AsmTypePrefix) $(GLINK AsmExp)
+    $(D offsetof) $(GLINK AsmExp)
+    $(D seg) $(GLINK AsmExp)
     $(D +) $(GSELF AsmUnaExp)
     $(D -) $(GSELF AsmUnaExp)
     $(D !) $(GSELF AsmUnaExp)
     $(D ~) $(GSELF AsmUnaExp)
-    $(I AsmPrimaryExp)
+    $(GLINK AsmPrimaryExp)
 
 $(GNAME AsmPrimaryExp):
     $(GLINK_LEX IntegerLiteral)
@@ -341,10 +341,10 @@ $(GNAME AsmPrimaryExp):
     $(D __LOCAL_SIZE)
     $(D $)
     $(GLINK Register)
-    $(GLINK Register) $(D :) $(I AsmExp)
+    $(GLINK Register) $(D :) $(GLINK AsmExp)
     $(GLINK Register64)
-    $(GLINK Register64) $(D :) $(I AsmExp)
-    $(I DotIdentifier)
+    $(GLINK Register64) $(D :) $(GLINK AsmExp)
+    $(GLINK DotIdentifier)
     $(D this)
 
 $(GNAME DotIdentifier):

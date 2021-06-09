@@ -352,7 +352,7 @@ $(H2 $(LNAME2 template_this_parameter, Template This Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateThisParameter):
-    $(D this) $(I TemplateTypeParameter)
+    $(D this) $(GLINK TemplateTypeParameter)
 )
 
     $(P $(I TemplateThisParameter)s are used in member function templates

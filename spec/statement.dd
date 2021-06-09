@@ -367,7 +367,7 @@ clauses.)
 
 $(GRAMMAR
 $(GNAME ForStatement):
-    $(D for $(LPAREN)) $(GLINK Initialize) $(I Test)$(OPT) $(D ;) $(GLINK Increment)$(OPT) $(D $(RPAREN)) $(PSSCOPE)
+    $(D for $(LPAREN)) $(GLINK Initialize) $(GLINK Test)$(OPT) $(D ;) $(GLINK Increment)$(OPT) $(D $(RPAREN)) $(PSSCOPE)
 
 $(GNAME Initialize):
     $(D ;)
@@ -446,7 +446,7 @@ $(P A `foreach` statement loops over the contents of an aggregate.)
 
 $(GRAMMAR
 $(GNAME AggregateForeach):
-    $(I Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
+    $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
 
 $(GNAME ForeachStatement):
     $(GLINK AggregateForeach) $(PS0)

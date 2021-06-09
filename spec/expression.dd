@@ -222,7 +222,7 @@ $(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
 
 $(GRAMMAR
 $(GNAME Expression):
-    $(I CommaExpression)
+    $(GLINK CommaExpression)
 
 $(GNAME CommaExpression):
     $(GLINK AssignExpression)
@@ -900,9 +900,9 @@ $(H3 $(LNAME2 new_expressions, New Expressions))
 
 $(GRAMMAR
 $(GNAME NewExpression):
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type)
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type)
+    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
+    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
 
 $(GNAME AllocatorArguments):
@@ -1244,7 +1244,8 @@ $(H2 $(LNAME2 slice_expressions, Slice Expressions))
 $(GRAMMAR
 $(GNAME SliceExpression):
     $(GLINK PostfixExpression) $(D [ ])
-    $(GLINK PostfixExpression) $(D [) $(I Slice) $(D ,)$(OPT) $(D ])
+    $(GLINK PostfixExpression) $(D [) $(GLINK Slice) $(D ,)$(OPT) $(D ])
+
 $(GNAME Slice):
     $(GLINK AssignExpression)
     $(GLINK AssignExpression) $(D ,) $(GSELF Slice)

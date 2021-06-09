@@ -23,8 +23,8 @@ $(GNAME VarDeclarations):
     $(GLINK AutoDeclaration)
 
 $(GNAME Declarators):
-    $(I DeclaratorInitializer)
-    $(I DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
+    $(GLINK DeclaratorInitializer)
+    $(GLINK DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
 
 $(GNAME DeclaratorInitializer):
     $(GLINK VarDeclarator)
@@ -59,9 +59,9 @@ $(GNAME VarDeclarator):
 
 $(GNAME AltDeclarator):
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN))
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN))
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
 
 $(GNAME AltDeclaratorInner):
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
@@ -220,7 +220,7 @@ $(H2 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference)
 
 $(GRAMMAR
 $(GNAME AutoDeclaration):
-    $(GLINK StorageClasses) $(I AutoAssignments) $(D ;)
+    $(GLINK StorageClasses) $(GLINK AutoAssignments) $(D ;)
 
 $(GNAME AutoAssignments):
     $(GLINK AutoAssignment)
@@ -267,7 +267,7 @@ $(GRAMMAR
 $(GNAME AliasDeclaration):
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK Declarators) $(D ;)
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, FuncDeclarator) $(D ;)
-    $(D alias) $(I AliasAssignments) $(D ;)
+    $(D alias) $(GLINK AliasAssignments) $(D ;)
 
 $(GNAME AliasAssignments):
     $(GLINK AliasAssignment)

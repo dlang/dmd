@@ -33,14 +33,14 @@ $(GNAME Parameters):
 $(GNAME ParameterList):
     $(GLINK Parameter)
     $(GLINK Parameter) $(D ,) $(GSELF ParameterList)
-    $(I VariadicArgumentsAttributes) $(D ...)
+    $(GLINK VariadicArgumentsAttributes) $(D ...)
 
 $(GNAME Parameter):
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(ASSIGNEXPRESSION)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, Type)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(ASSIGNEXPRESSION)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
 
 $(GNAME ParameterAttributes):
     $(GLINK InOut)

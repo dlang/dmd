@@ -98,15 +98,15 @@ $(GNAME ModuleAttribute):
     $(GLINK2 attribute, UserDefinedAttribute)
 
 $(GNAME ModuleFullyQualifiedName):
-    $(I ModuleName)
-    $(I Packages) $(D .) $(I ModuleName)
+    $(GLINK ModuleName)
+    $(GLINK Packages) $(D .) $(GLINK ModuleName)
 
 $(GNAME ModuleName):
     $(GLINK_LEX Identifier)
 
 $(GNAME Packages):
-    $(I PackageName)
-    $(GSELF Packages) $(D .) $(I PackageName)
+    $(GLINK PackageName)
+    $(GSELF Packages) $(D .) $(GLINK PackageName)
 
 $(GNAME PackageName):
     $(GLINK_LEX Identifier)
