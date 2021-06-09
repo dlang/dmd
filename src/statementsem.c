@@ -563,9 +563,6 @@ public:
             else
             {
                 e = resolveProperties(sc, e);
-                type = e->type;
-                if (paramtype)
-                    type = paramtype;
                 Initializer *ie = new ExpInitializer(Loc(), e);
                 VarDeclaration *v = new VarDeclaration(loc, type, ident, ie);
                 if (storageClass & STCref)

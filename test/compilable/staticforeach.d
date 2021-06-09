@@ -116,6 +116,7 @@ T
 foo2
 T2
 TestStaticForeach2
+issue22007
 1 2 '3'
 2 3 '4'
 0 1
@@ -868,4 +869,12 @@ static:
     {
         static assert(0);
     }
+}
+
+//https://issues.dlang.org/show_bug.cgi?id=22007
+void issue22007()
+{
+    immutable int[32] array = 1;
+    foreach (size_t a, int b; array) {}
+    static foreach (size_t a, int b; array) { }
 }
