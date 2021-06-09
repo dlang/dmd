@@ -112,6 +112,7 @@ static void lowerArrayAggregate(StaticForeach *sfe, Scope *sc)
         sfe->aggrfe->aggr = new TupleExp(aggr->loc, es);
         sfe->aggrfe->aggr = expressionSemantic(sfe->aggrfe->aggr, sc);
         sfe->aggrfe->aggr = sfe->aggrfe->aggr->optimize(WANTvalue);
+        sfe->aggrfe->aggr = sfe->aggrfe->aggr->ctfeInterpret();
     }
     else
     {
@@ -395,11 +396,6 @@ void staticForeachPrepare(StaticForeach *sfe, Scope *sc)
         sfe->aggrfe->aggr = expressionSemantic(sfe->aggrfe->aggr, sc);
         sc = sc->endCTFE();
         sfe->aggrfe->aggr = sfe->aggrfe->aggr->optimize(WANTvalue);
-        Type *tab = sfe->aggrfe->aggr->type->toBasetype();
-        if (tab->ty != Ttuple)
-        {
-            sfe->aggrfe->aggr = sfe->aggrfe->aggr->ctfeInterpret();
-        }
     }
 
     if (sfe->aggrfe && sfe->aggrfe->aggr->type->toBasetype()->ty == Terror)
