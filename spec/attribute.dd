@@ -10,9 +10,9 @@ $(GNAME AttributeSpecifier):
     $(GLINK Attribute) $(GLINK DeclarationBlock)
 
 $(GNAME Attribute):
-    $(RELATIVE_LINK2 linkage, $(I LinkageAttribute))
-    $(RELATIVE_LINK2 align, $(I AlignAttribute))
-    $(RELATIVE_LINK2 deprecated, $(I DeprecatedAttribute))
+    $(GLINK LinkageAttribute)
+    $(GLINK AlignAttribute)
+    $(GLINK DeprecatedAttribute)
     $(GLINK VisibilityAttribute)
     $(GLINK2 pragma, Pragma)
     $(RELATIVE_LINK2 static, $(D static))
