@@ -510,9 +510,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             continue;
                     }
 
-                    if (e.op == TOK.tuple)
+                    if (auto te = e.isTupleExp())
                     {
-                        TupleExp te = cast(TupleExp)e;
                         if (iexps.dim - 1 + te.exps.dim > nelems)
                             goto Lnomatch;
 
@@ -573,7 +572,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (ie && ie.op == TOK.tuple)
             {
-                TupleExp te = cast(TupleExp)ie;
+                auto te = ie.isTupleExp();
                 size_t tedim = te.exps.dim;
                 if (tedim != nelems)
                 {
@@ -596,9 +595,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (ie)
                 {
                     Expression einit = ie;
-                    if (ie.op == TOK.tuple)
+                    if (auto te = ie.isTupleExp())
                     {
-                        TupleExp te = cast(TupleExp)ie;
                         einit = (*te.exps)[i];
                         if (i == 0)
                             einit = Expression.combine(te.e0, einit);
@@ -763,7 +761,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 bool isWild = false;
                 for (FuncDeclaration fd = func; fd; fd = fd.toParentDecl().isFuncDeclaration())
                 {
-                    if ((cast(TypeFunction)fd.type).iswild)
+                    if (fd.type.isTypeFunction().iswild)
                     {
                         isWild = true;
                         break;
@@ -777,7 +775,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         if (!(dsym.storage_class & (STC.ctfe | STC.extern_ | STC.ref_ | STC.result)) &&
-            tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+            tbn.ty == Tstruct && tbn.isTypeStruct().sym.noDefaultCtor)
         {
             if (!dsym._init)
             {
@@ -880,7 +878,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym._init = new ExpInitializer(dsym.loc, e);
                 goto Ldtor;
             }
-            if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.zeroInit)
+            if (tv.ty == Tstruct && tv.isTypeStruct().sym.zeroInit)
             {
                 /* If a struct is all zeros, as a special case
                  * set its initializer to the integer 0.
@@ -970,10 +968,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         Expression ex = ei.exp.lastComma();
                         if (ex.op == TOK.blit || ex.op == TOK.construct)
                             ex = (cast(AssignExp)ex).e2;
-                        if (ex.op == TOK.new_)
+                        if (auto ne = ex.isNewExp())
                         {
                             // See if initializer is a NewExp that can be allocated on the stack
-                            NewExp ne = cast(NewExp)ex;
                             if (dsym.type.toBasetype().ty == Tclass)
                             {
                                 if (ne.newargs && ne.newargs.dim > 1)
@@ -987,10 +984,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 }
                             }
                         }
-                        else if (ex.op == TOK.function_)
+                        else if (auto fe = ex.isFuncExp())
                         {
                             // or a delegate that doesn't escape a reference to the function
-                            FuncDeclaration f = (cast(FuncExp)ex).fd;
+                            FuncDeclaration f = fe.fd;
                             if (f.tookAddressOf)
                                 f.tookAddressOf--;
                         }
@@ -1026,7 +1023,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     dsym.inuse++;
                     // Bug 20549. Don't try this on modules or packages, syntaxCopy
                     // could crash (inf. recursion) on a mod/pkg referencing itself
-                    if (ei && (ei.exp.op != TOK.scope_ ? true : !(cast(ScopeExp)ei.exp).sds.isPackage()))
+                    if (ei && (ei.exp.op != TOK.scope_ ? true : !ei.exp.isScopeExp().sds.isPackage()))
                     {
                         Expression exp = ei.exp.syntaxCopy();
 
@@ -1103,7 +1100,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 auto tv = dsym.type.baseElemOf();
                 if (tv.ty == Tstruct &&
-                    (cast(TypeStruct)tv).sym.dtor.storage_class & STC.scope_)
+                    tv.isTypeStruct().sym.dtor.storage_class & STC.scope_)
                 {
                     dsym.storage_class |= STC.scope_;
                 }
@@ -1949,7 +1946,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              */
             if (auto te = ed.memtype.isTypeEnum())
             {
-                EnumDeclaration sym = cast(EnumDeclaration)te.toDsymbol(sc);
+                auto sym = te.toDsymbol(sc).isEnumDeclaration();
                 // Special enums like __c_[u]long[long] are fine to forward reference
                 // see https://issues.dlang.org/show_bug.cgi?id=20599
                 if (!sym.isSpecial() && (!sym.memtype ||  !sym.members || !sym.symtab || sym._scope))
