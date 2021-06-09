@@ -312,15 +312,25 @@ static void lowerNonArrayAggregate(StaticForeach *sfe, Scope *sc)
     Identifier *idres = Identifier::generateId("__res");
     VarDeclaration *vard = new VarDeclaration(aloc, aty, idres, NULL);
     Statements *s2 = new Statements();
-    s2->push(new ExpStatement(aloc, vard));
-    Expression *catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
-    s2->push(createForeach(sfe, aloc, pparams[1], new ExpStatement(aloc, catass)));
-    s2->push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
+
+    // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
+    // an empty foreach to expose them.
+    unsigned olderrors = global.startGagging();
+    ety = typeSemantic(ety, aloc, sc);
+    if (global.endGagging(olderrors))
+        s2->push(createForeach(sfe, aloc, pparams[1], NULL));
+    else
+    {
+        s2->push(new ExpStatement(aloc, vard));
+        Expression *catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
+        s2->push(createForeach(sfe, aloc, pparams[1], new ExpStatement(aloc, catass)));
+        s2->push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
+    }
 
     Expression *aggr;
     Type *indexty;
 
-    if (sfe->rangefe && (indexty = typeSemantic(ety, aloc, sc))->isintegral())
+    if (sfe->rangefe && (indexty = ety)->isintegral())
     {
         sfe->rangefe->lwr->type = indexty;
         sfe->rangefe->upr->type = indexty;
