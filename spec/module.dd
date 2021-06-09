@@ -193,7 +193,7 @@ $(GNAME ImportDeclaration):
 $(GNAME ImportList):
     $(GLINK Import)
     $(GLINK ImportBindings)
-    $(GLINK Import) $(D ,) $(GLINK ImportList)
+    $(GLINK Import) $(D ,) $(GSELF ImportList)
 
 $(GNAME Import):
     $(GLINK ModuleFullyQualifiedName)

@@ -20,11 +20,11 @@ $(GNAME EnumBody):
 $(GNAME EnumMembers):
     $(GLINK EnumMember)
     $(GLINK EnumMember) $(D ,)
-    $(GLINK EnumMember) $(D ,) $(GLINK EnumMembers)
+    $(GLINK EnumMember) $(D ,) $(GSELF EnumMembers)
 
 $(GNAME EnumMemberAttributes):
     $(GLINK EnumMemberAttribute)
-    $(GLINK EnumMemberAttribute) $(GLINK EnumMemberAttributes)
+    $(GLINK EnumMemberAttribute) $(GSELF EnumMemberAttributes)
 
 $(GNAME EnumMemberAttribute):
     $(GLINK2 attribute, DeprecatedAttribute)
@@ -43,7 +43,7 @@ $(GNAME AnonymousEnumDeclaration):
 $(GNAME AnonymousEnumMembers):
     $(GLINK AnonymousEnumMember)
     $(GLINK AnonymousEnumMember) $(D ,)
-    $(GLINK AnonymousEnumMember) $(D ,) $(GLINK AnonymousEnumMembers)
+    $(GLINK AnonymousEnumMember) $(D ,) $(GSELF AnonymousEnumMembers)
 
 $(GNAME AnonymousEnumMember):
     $(GLINK EnumMember)

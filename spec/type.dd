@@ -67,7 +67,7 @@ $(MULTICOLS 5,
     $(D void))
 
 $(GNAME TypeSuffixes):
-    $(GLINK TypeSuffix) $(GLINK TypeSuffixes)$(OPT)
+    $(GLINK TypeSuffix) $(GSELF TypeSuffixes)$(OPT)
 
 $(GNAME TypeSuffix):
     $(D *)

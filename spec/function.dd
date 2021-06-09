@@ -62,7 +62,7 @@ $(GNAME InOut):
 
 $(GNAME VariadicArgumentsAttributes):
     $(GLINK VariadicArgumentsAttribute)
-    $(GLINK VariadicArgumentsAttribute) $(GLINK VariadicArgumentsAttributes)
+    $(GLINK VariadicArgumentsAttribute) $(GSELF VariadicArgumentsAttributes)
 
 $(GNAME VariadicArgumentsAttribute):
     $(D const)
