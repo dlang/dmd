@@ -1402,7 +1402,7 @@ public:
         decl.doindent = true;
         decl.spaces = true;
         visitAsRoot(ds, &decl);
-        donebuf.writestring(decl.peekChars());
+        donebuf.write(&decl);
     }
 
     override void visit(AST.ClassDeclaration cd)
