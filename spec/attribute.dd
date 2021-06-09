@@ -93,8 +93,8 @@ $(GNAME LinkageType):
 
 $(GNAME NamespaceList):
     $(GLINK2 expression, ConditionalExpression)
-    $(GLINK2 expression, ConditionalExpression)$(COMMA)
-    $(GLINK2 expression, ConditionalExpression)$(COMMA) $(GSELF NamespaceList)
+    $(GLINK2 expression, ConditionalExpression)$(D ,)
+    $(GLINK2 expression, ConditionalExpression)$(D ,) $(GSELF NamespaceList)
 )
 
         $(P D provides an easy way to call C functions and operating
