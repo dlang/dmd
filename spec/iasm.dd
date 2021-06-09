@@ -79,8 +79,11 @@ $(GNAME AsmInstruction):
     $(D dl) $(GLINK_LEX StringLiteral)
     $(D dw) $(GLINK_LEX StringLiteral)
     $(D dq) $(GLINK_LEX StringLiteral)
-    $(I Opcode)
-    $(I Opcode) $(GLINK Operands)
+    $(GLINK Opcode)
+    $(GLINK Opcode) $(GLINK Operands)
+
+$(GNAME Opcode):
+    $(GLINK_LEX Identifier)
 
 $(GNAME Operands):
     $(GLINK Operand)
