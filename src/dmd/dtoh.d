@@ -30,6 +30,9 @@ import dmd.utils;
 
 //debug = Debug_DtoH;
 
+// Generate asserts to validate the header
+//debug = Debug_DtoH_Checks;
+
 /**
  * Generates a C++ header containing bindings for all `extern(C[++])` declarations
  * found in the supplied modules.
@@ -49,7 +52,6 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     initialize();
 
     OutBuffer fwd;
-    OutBuffer check;
     OutBuffer done;
     OutBuffer decl;
 
@@ -58,10 +60,17 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     fwd.spaces = true;
     decl.doindent = true;
     decl.spaces = true;
-    check.doindent = true;
-    check.spaces = true;
 
-    scope v = new ToCppBuffer(&check, &fwd, &done, &decl);
+    scope v = new ToCppBuffer(&fwd, &done, &decl);
+
+    // Conditionally include another buffer for sanity checks
+    debug (Debug_DtoH_Checks)
+    {
+        OutBuffer check;
+        check.doindent = true;
+        check.spaces = true;
+        v.checkbuf = &check;
+    }
 
     OutBuffer buf;
     buf.doindent = true;
@@ -137,7 +146,7 @@ struct _d_dynamicArray
     // buf.writestringln("// decl:");
     buf.write(&decl);
 
-    debug (Debug_DtoH)
+    debug (Debug_DtoH_Checks)
     {
         // buf.writestringln("// check:");
         buf.writestring(`
@@ -212,7 +221,7 @@ public:
     OutBuffer* fwdbuf;
 
     /// Buffer for integrity checks
-    OutBuffer* checkbuf;
+    debug (Debug_DtoH_Checks) OutBuffer* checkbuf;
 
     /// Buffer for declarations that must emitted before the currently
     /// visited node but can't be forward declared (see `includeSymbol`)
@@ -261,9 +270,8 @@ public:
     Context context;
     alias context this;
 
-    this(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
+    this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
     {
-        this.checkbuf = checkbuf;
         this.fwdbuf = fwdbuf;
         this.donebuf = donebuf;
         this.buf = buf;
@@ -758,6 +766,7 @@ public:
             (tdparent && adparent.isClassDeclaration() && !(this.storageClass & AST.STC.final_ || fd.isFinal))))
                 buf.writestring("virtual ");
 
+        debug (Debug_DtoH_Checks)
         if (adparent && !tdparent)
         {
             auto s = adparent.search(Loc.initial, fd.ident);
@@ -973,14 +982,17 @@ public:
             if (auto t = vd.type.isTypeStruct())
                 includeSymbol(t.sym);
 
-            checkbuf.level++;
-            const pn = adparent.ident.toChars();
-            const vn = vd.ident.toChars();
-            const vo = vd.offset;
-            checkbuf.printf("assert(offsetof(%s, %s) == %d);",
-                                             pn, vn,    vo);
-            checkbuf.writenl();
-            checkbuf.level--;
+            debug (Debug_DtoH_Checks)
+            {
+                checkbuf.level++;
+                const pn = adparent.ident.toChars();
+                const vn = vd.ident.toChars();
+                const vo = vd.offset;
+                checkbuf.printf("assert(offsetof(%s, %s) == %d);",
+                                                pn, vn,    vo);
+                checkbuf.writenl();
+                checkbuf.level--;
+            }
             return;
         }
 
@@ -1352,6 +1364,7 @@ public:
         // Workaround because size triggers a forward-reference error
         // for struct templates (the size is undetermined even if the
         // size doesn't depend on the parameters)
+        debug (Debug_DtoH_Checks)
         if (!tdparent)
         {
             checkbuf.level++;
@@ -1408,7 +1421,7 @@ public:
         decl.doindent = true;
         decl.spaces = true;
         visitAsRoot(ds, &decl);
-        donebuf.writestring(decl.peekChars());
+        donebuf.write(&decl);
     }
 
     override void visit(AST.ClassDeclaration cd)
