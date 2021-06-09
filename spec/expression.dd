@@ -2406,12 +2406,12 @@ $(H2 $(LNAME2 specialkeywords, Special Keywords))
 
 $(GRAMMAR
 $(GNAME SpecialKeyword):
-    $(D $(RELATIVE_LINK2 specialkeywords, __FILE__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __FILE_FULL_PATH__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __MODULE__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __LINE__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __FUNCTION__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __PRETTY_FUNCTION__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __FILE__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __FILE_FULL_PATH__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __MODULE__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __LINE__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __FUNCTION__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __PRETTY_FUNCTION__))
 )
 
 
