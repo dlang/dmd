@@ -173,6 +173,7 @@ extern (C++) final class StaticForeach : RootObject
             aggrfe.aggr = new TupleExp(aggr.loc, es);
             aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
             aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
+            aggrfe.aggr = aggrfe.aggr.ctfeInterpret();
         }
         else
         {
@@ -451,11 +452,6 @@ extern (C++) final class StaticForeach : RootObject
             aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
             sc = sc.endCTFE();
             aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
-            auto tab = aggrfe.aggr.type.toBasetype();
-            if (tab.ty != Ttuple)
-            {
-                aggrfe.aggr = aggrfe.aggr.ctfeInterpret();
-            }
         }
 
         if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
