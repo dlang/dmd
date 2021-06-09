@@ -340,7 +340,21 @@ $(GNAME StringPostfix):
     $(B d)
 
 $(GNAME DelimitedString):
-    $(B q") $(I Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(I MatchingDelimiter) $(B ")
+    $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ")
+
+$(GNAME Delimiter):
+    $(B $(LPAREN))
+    $(B {)
+    $(B [)
+    $(B <)
+    $(GLINK Identifier)
+
+$(GNAME MatchingDelimiter):
+    $(B $(RPAREN))
+    $(B })
+    $(B ])
+    $(B >)
+    $(GLINK Identifier)
 )
 $(GRAMMAR
 $(GNAME TokenString):
