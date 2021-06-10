@@ -282,6 +282,17 @@ extern (C++) void expandTuples(Expressions* exps)
             (*exps)[i] = Expression.combine(te.e0, (*exps)[i]);
             arg = (*exps)[i];
         }
+
+        // Inline expand all the UDAItems
+        while (arg.op == TOK.at)
+        {
+            UDAItem ue = cast(UDAItem)arg;
+            exps.remove(i); // remove arg
+            exps.insert(i, ue.exps); // replace with item contents
+            if (i == exps.dim)
+                return; // empty item, no more arguments
+            arg = (*exps)[i];
+        }
     }
 }
 
@@ -1678,6 +1689,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(NullExp)      isNullExp() { return op == TOK.null_ ? cast(typeof(return))this : null; }
         inout(StringExp)    isStringExp() { return op == TOK.string_ ? cast(typeof(return))this : null; }
         inout(TupleExp)     isTupleExp() { return op == TOK.tuple ? cast(typeof(return))this : null; }
+        inout(UDAItem)      isUDAItem() { return op == TOK.at ? cast(typeof(return))this : null; }
         inout(ArrayLiteralExp) isArrayLiteralExp() { return op == TOK.arrayLiteral ? cast(typeof(return))this : null; }
         inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == TOK.assocArrayLiteral ? cast(typeof(return))this : null; }
         inout(StructLiteralExp) isStructLiteralExp() { return op == TOK.structLiteral ? cast(typeof(return))this : null; }
@@ -6962,6 +6974,32 @@ extern (C++) final class ObjcClassReferenceExp : Expression
             __traits(classInstanceSize, ObjcClassReferenceExp));
         this.classDeclaration = classDeclaration;
         type = objc.getRuntimeMetaclass(classDeclaration).getType();
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+extern (C++) class UDAItem : Expression
+{
+    Expressions* exps;
+    bool parens;
+
+    extern (D) this(const ref Loc loc, Expression e, bool parens)
+    {
+        super(loc, TOK.at, __traits(classInstanceSize, UDAItem));
+        exps = new Expressions();
+        exps.push(e);
+        this.parens = parens;
+    }
+
+    extern (D) this(const ref Loc loc, Expressions* exps, bool parens)
+    {
+        super(loc, TOK.at, __traits(classInstanceSize, UDAItem));
+        this.exps = exps;
+        this.parens = parens;
     }
 
     override void accept(Visitor v)

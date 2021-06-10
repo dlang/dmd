@@ -1485,16 +1485,17 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
 
         foreach (exp; *sym.userAttribDecl.atts)
         {
-            if (isGNUABITag(exp))
+            auto e = exp.isUDAItem() ? (cast(UDAItem)exp).exps[0][0] : exp;
+            if (isGNUABITag(e))
             {
                 if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
                 {
-                    exp.error("`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
+                    e.error("`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
                     sym.errors = true;
                 }
                 else if (linkage != LINK.cpp)
                 {
-                    exp.error("`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
+                    e.error("`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
                     sym.errors = true;
                 }
                 // Only one `@gnuAbiTag` is allowed by semantic2

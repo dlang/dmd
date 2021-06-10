@@ -128,6 +128,7 @@ public:
     NullExp* isNullExp();
     StringExp* isStringExp();
     TupleExp* isTupleExp();
+    UDAItem* isUDAItem();
     ArrayLiteralExp* isArrayLiteralExp();
     AssocArrayLiteralExp* isAssocArrayLiteralExp();
     StructLiteralExp* isStructLiteralExp();
