@@ -229,18 +229,18 @@ private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
  */
 private bool writeMixin(const(char)[] s, ref Loc loc)
 {
-    if (!global.params.mixinOut)
+    if (!global.params.mixinOut.buffer)
         return false;
 
-    OutBuffer* ob = global.params.mixinOut;
+    OutBuffer* ob = global.params.mixinOut.buffer;
 
     ob.writestring("// expansion at ");
     ob.writestring(loc.toChars());
     ob.writenl();
 
-    global.params.mixinLines++;
+    global.params.mixinOut.bufferLines++;
 
-    loc = Loc(global.params.mixinFile, global.params.mixinLines + 1, loc.charnum);
+    loc = Loc(global.params.mixinOut.name.ptr, global.params.mixinOut.bufferLines + 1, loc.charnum);
 
     // write by line to create consistent line endings
     size_t lastpos = 0;
@@ -252,7 +252,7 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
         {
             ob.writestring(s[lastpos .. i]);
             ob.writenl();
-            global.params.mixinLines++;
+            global.params.mixinOut.bufferLines++;
             if (c == '\r')
                 ++i;
             lastpos = i + 1;
@@ -265,10 +265,10 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
     if (s.length == 0 || s[$-1] != '\n')
     {
         ob.writenl(); // ensure empty line after expansion
-        global.params.mixinLines++;
+        global.params.mixinOut.bufferLines++;
     }
     ob.writenl();
-    global.params.mixinLines++;
+    global.params.mixinOut.bufferLines++;
 
     return true;
 }
@@ -625,7 +625,7 @@ class Parser(AST) : Lexer
                 goto Lerror;
 
             case TOK.unittest_:
-                if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
+                if (global.params.useUnitTests || global.params.ddoc.doOutput || global.params.dihdr.doOutput)
                 {
                     s = parseUnitTest(pAttrs);
                     if (*pLastDecl)
@@ -2793,7 +2793,7 @@ class Parser(AST) : Lexer
         /** Extract unittest body as a string. Must be done eagerly since memory
          will be released by the lexer before doc gen. */
         char* docline = null;
-        if (global.params.doDocComments && endPtr > begPtr)
+        if (global.params.ddoc.doOutput && endPtr > begPtr)
         {
             /* Remove trailing whitespaces */
             for (const(char)* p = endPtr - 1; begPtr <= p && (*p == ' ' || *p == '\r' || *p == '\n' || *p == '\t'); --p)
