@@ -95,6 +95,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 {
     Type t = tx;
 
+    static Initializer err()
+    {
+        return new ErrorInitializer();
+    }
+
     Initializer visitVoid(VoidInitializer i)
     {
         i.type = t;
@@ -120,13 +125,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             if (sd.hasRegularCtor(true))
             {
                 error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
-                return new ErrorInitializer();
+                return err();
             }
             sd.size(i.loc);
             if (sd.sizeok != Sizeok.done)
-            {
-                return new ErrorInitializer();
-            }
+                return err();
             const nfields = sd.nonHiddenFields();
             //expandTuples for non-identity arguments?
             auto elements = new Expressions(nfields);
@@ -148,7 +151,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                             error(initLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
                             error(initLoc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
-                        return new ErrorInitializer();
+                        return err();
                     }
                     s.checkDeprecated(i.loc, sc);
 
@@ -159,7 +162,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                         if (fieldi >= nfields)
                         {
                             error(i.loc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
-                            return new ErrorInitializer();
+                            return err();
                         }
                         if (s == sd.fields[fieldi])
                             break;
@@ -168,7 +171,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 else if (fieldi >= nfields)
                 {
                     error(i.loc, "too many initializers for `%s`", sd.toChars());
-                    return new ErrorInitializer();
+                    return err();
                 }
                 VarDeclaration vd = sd.fields[fieldi];
                 if ((*elements)[fieldi])
@@ -213,14 +216,10 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 ++fieldi;
             }
             if (errors)
-            {
-                return new ErrorInitializer();
-            }
+                return err();
             auto sle = new StructLiteralExp(i.loc, sd, elements, t);
             if (!sd.fill(i.loc, elements, false))
-            {
-                return new ErrorInitializer();
-            }
+                return err();
             sle.type = t;
             auto ie = new ExpInitializer(i.loc, sle);
             return ie.initializerSemantic(sc, t, needInterpret);
@@ -240,7 +239,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
         if (t.ty != Terror)
             error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
-        return new ErrorInitializer();
+        return err();
     }
 
     Initializer visitArray(ArrayInitializer i)
@@ -276,7 +275,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 if (!e)
                 {
                     error(i.loc, "cannot use array to initialize `%s`", t.toChars());
-                    goto Lerr;
+                    return err();
                 }
                 auto ei = new ExpInitializer(e.loc, e);
                 return ei.initializerSemantic(sc, t, needInterpret);
@@ -287,7 +286,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             goto default;
         default:
             error(i.loc, "cannot use array to initialize `%s`", t.toChars());
-            goto Lerr;
+            return err();
         }
         i.type = t;
         length = 0;
@@ -343,7 +342,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             if (length == 0)
             {
                 error(i.loc, "array dimension overflow");
-                goto Lerr;
+                return err();
             }
             if (length > i.dim)
                 i.dim = length;
@@ -354,24 +353,21 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             if (i.dim > edim)
             {
                 error(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
-                goto Lerr;
+                return err();
             }
         }
         if (errors)
-            goto Lerr;
+            return err();
+
+        const sz = t.nextOf().size();
+        bool overflow;
+        const max = mulu(i.dim, sz, overflow);
+        if (overflow || max >= amax)
         {
-            const sz = t.nextOf().size();
-            bool overflow;
-            const max = mulu(i.dim, sz, overflow);
-            if (overflow || max >= amax)
-            {
-                error(i.loc, "array dimension %llu exceeds max of %llu", ulong(i.dim), ulong(amax / sz));
-                goto Lerr;
-            }
-            return i;
+            error(i.loc, "array dimension %llu exceeds max of %llu", ulong(i.dim), ulong(amax / sz));
+            return err();
         }
-    Lerr:
-        return new ErrorInitializer();
+        return i;
     }
 
     Initializer visitExp(ExpInitializer i)
@@ -384,9 +380,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         if (needInterpret)
             sc = sc.endCTFE();
         if (i.exp.op == TOK.error)
-        {
-            return new ErrorInitializer();
-        }
+            return err();
         uint olderrors = global.errors;
         /* Save the expression before ctfe
          * Otherwise the error message would contain for example "&[0][0]" instead of "new int"
@@ -427,13 +421,13 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         if (i.exp.op == TOK.type)
         {
             i.exp.error("initializer must be an expression, not `%s`", i.exp.toChars());
-            return new ErrorInitializer();
+            return err();
         }
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i.exp))
         {
             i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", currExp.toChars());
-            return new ErrorInitializer();
+            return err();
         }
         Type tb = t.toBasetype();
         Type ti = i.exp.type.toBasetype();
@@ -569,7 +563,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
     {
         //printf("CInitializer::semantic()\n");
         error(i.loc, "C initializers not supported yet");
-        return new ErrorInitializer();
+        return err();
     }
 
     final switch (init.kind)
