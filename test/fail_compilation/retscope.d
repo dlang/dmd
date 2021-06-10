@@ -2,7 +2,8 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(22): Error: scope variable `p` may not be returned
+fail_compilation/retscope.d(22): Error: scope parameter `p` may not be returned
+fail_compilation/retscope.d(22):        perhaps annotate the parameter with `return`
 fail_compilation/retscope.d(32): Error: returning `b ? nested1(& i) : nested2(& j)` escapes a reference to local variable `j`
 fail_compilation/retscope.d(45): Error: scope variable `p` assigned to non-scope `q`
 fail_compilation/retscope.d(47): Error: address of variable `i` assigned to `q` with longer lifetime
@@ -10,7 +11,6 @@ fail_compilation/retscope.d(48): Error: scope variable `a` assigned to non-scope
 fail_compilation/retscope.d(49): Error: address of struct temporary returned by `(*fp2)()` assigned to longer lived variable `q`
 ---
 */
-
 
 
 
@@ -149,10 +149,10 @@ S10* test10()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(158): Error: scope variable `this` may not be returned
+fail_compilation/retscope.d(158): Error: scope parameter `this` may not be returned
+fail_compilation/retscope.d(158):        perhaps annotate the function with `return`
 ---
 */
-
 class C11
 {
     @safe C11 foo() scope { return this; }
@@ -218,10 +218,10 @@ void* escape3 (scope void* p) @safe {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(229): Error: scope variable `ptr` may not be returned
+fail_compilation/retscope.d(229): Error: scope parameter `ptr` may not be returned
+fail_compilation/retscope.d(229):        perhaps annotate the parameter with `return`
 ---
 */
-
 alias dg_t = void* delegate () return scope @safe;
 
 void* funretscope(scope dg_t ptr) @safe

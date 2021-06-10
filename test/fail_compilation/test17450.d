@@ -5,7 +5,7 @@ TEST_OUTPUT:
 fail_compilation/test17450.d(17): Error: returning `&s.bar` escapes a reference to parameter `s`
 fail_compilation/test17450.d(17):        perhaps annotate the parameter with `return`
 fail_compilation/test17450.d(20): Error: returning `&this.bar` escapes a reference to parameter `this`
-fail_compilation/test17450.d(20):        perhaps annotate the parameter with `return`
+fail_compilation/test17450.d(20):        perhaps annotate the function with `return`
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=17450
@@ -33,8 +33,10 @@ struct S {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test17450.d(103): Error: scope variable `c` may not be returned
-fail_compilation/test17450.d(106): Error: scope variable `this` may not be returned
+fail_compilation/test17450.d(103): Error: scope parameter `c` may not be returned
+fail_compilation/test17450.d(103):        perhaps annotate the parameter with `return`
+fail_compilation/test17450.d(106): Error: scope parameter `this` may not be returned
+fail_compilation/test17450.d(106):        perhaps annotate the function with `return`
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=17450
