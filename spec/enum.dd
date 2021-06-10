@@ -29,7 +29,7 @@ $(GNAME EnumMemberAttributes):
 $(GNAME EnumMemberAttribute):
     $(GLINK2 attribute, DeprecatedAttribute)
     $(GLINK2 attribute, UserDefinedAttribute)
-    $(D @)$(GLINK2 attribute, disable)
+    $(D @)$(LINK2 attribute.html#disable, $(D disable))
 
 $(GNAME EnumMember):
     $(GLINK EnumMemberAttributes)$(OPT) $(GLINK_LEX Identifier)
