@@ -1219,7 +1219,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             continue;
 
         Dsymbol p = v.toParent2();
-        const returnAppliesToValue = !(!v.isScope && v.isRef) && !(v.isScope && refs && v.isRef);
+        const returnAppliesToValue =
+            !(!v.isScope && (v.isRef || v.isOut)) && !(v.isScope && refs && (v.isRef || v.isOut));
 
         if ((v.isScope() || (v.storage_class & STC.maybescope)) &&
             !v.isReturn() && returnAppliesToValue &&
@@ -1303,7 +1304,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     foreach (VarDeclaration v; er.byref)
     {
         if (log) printf("byref `%s`\n", v.toChars());
-        const returnAppliesToRef = (!v.isScope && v.isRef) || (v.isScope && refs && v.isRef);
+        const returnAppliesToRef = (!v.isScope && (v.isRef || v.isOut)) || (v.isScope && refs && (v.isRef || v.isOut));
 
         // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
