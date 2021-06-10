@@ -300,13 +300,13 @@ $(GNAME AsmEqualExp):
 $(GNAME AsmRelExp):
     $(GLINK AsmShiftExp)
     $(GSELF AsmRelExp) $(D <) $(GLINK AsmShiftExp)
-    $(GSELF AsmRelExp) $(D <)$(D =) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D <=) $(GLINK AsmShiftExp)
     $(GSELF AsmRelExp) $(D >) $(GLINK AsmShiftExp)
     $(GSELF AsmRelExp) $(D >=) $(GLINK AsmShiftExp)
 
 $(GNAME AsmShiftExp):
     $(GLINK AsmAddExp)
-    $(GSELF AsmShiftExp) $(D <)$(D <) $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D <<) $(GLINK AsmAddExp)
     $(GSELF AsmShiftExp) $(D >>) $(GLINK AsmAddExp)
     $(GSELF AsmShiftExp) $(D >>>) $(GLINK AsmAddExp)
 

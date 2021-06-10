@@ -250,7 +250,7 @@ $(GNAME AssignExpression):
     $(GLINK ConditionalExpression) $(D |=) $(GSELF AssignExpression)
     $(GLINK ConditionalExpression) $(D ^=) $(GSELF AssignExpression)
     $(GLINK ConditionalExpression) $(D ~=) $(GSELF AssignExpression)
-    $(GLINK ConditionalExpression) $(D <)$(D <)$(D =) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D <<=) $(GSELF AssignExpression)
     $(GLINK ConditionalExpression) $(D >>=) $(GSELF AssignExpression)
     $(GLINK ConditionalExpression) $(D >>>=) $(GSELF AssignExpression)
     $(GLINK ConditionalExpression) $(D ^^=) $(GSELF AssignExpression)
@@ -604,7 +604,7 @@ $(H2 $(LNAME2 relation_expressions, Relational Expressions))
 $(GRAMMAR
 $(GNAME RelExpression):
     $(GLINK ShiftExpression) $(D <) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D <)$(D =) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D <=) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >=) $(GLINK ShiftExpression)
 )
@@ -720,9 +720,9 @@ $(H2 $(LNAME2 shift_expressions, Shift Expressions))
 $(GRAMMAR
 $(GNAME ShiftExpression):
     $(GLINK AddExpression)
-    $(GSELF ShiftExpression) $(D <)$(D <) $(GLINK AddExpression)
-    $(GSELF ShiftExpression) $(D >)$(D >) $(GLINK AddExpression)
-    $(GSELF ShiftExpression) $(D >)$(D >)$(D >) $(GLINK AddExpression)
+    $(GSELF ShiftExpression) $(D <<) $(GLINK AddExpression)
+    $(GSELF ShiftExpression) $(D >>) $(GLINK AddExpression)
+    $(GSELF ShiftExpression) $(D >>>) $(GLINK AddExpression)
 )
 
     $(P The operands must be integral types, and undergo the $(INTEGER_PROMOTIONS).
