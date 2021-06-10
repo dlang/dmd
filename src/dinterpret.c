@@ -643,7 +643,12 @@ Expression *ctfeInterpret(Expression *e)
     case TOKfloat64:
     case TOKcomplex80:
     case TOKnull:
+    case TOKvoid:
     case TOKstring:
+    case TOKthis:
+    case TOKsuper:
+    case TOKtype:
+    case TOKtypeid:
         if (e->type->ty == Terror)
             return new ErrorExp();
         /* fall through */
