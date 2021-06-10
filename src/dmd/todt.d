@@ -79,6 +79,9 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
     void visitStruct(StructInitializer si)
     {
+        /* The StructInitializer was converted to a StructLiteralExp,
+         * which is converted to dtb by membersToDt()
+         */
         //printf("StructInitializer.toDt('%s')\n", si.toChars());
         assert(0);
     }
@@ -197,6 +200,17 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         Expression_toDt(ei.exp, dtb);
     }
 
+    void visitC(CInitializer ci)
+    {
+        //printf("CInitializer::semantic()\n");
+        auto dil = ci.initializerList[];
+        foreach (di; dil)
+        {
+            assert(!di.designatorList);
+            Initializer_toDt(di.initializer, dtb);
+        }
+    }
+
     final switch (init.kind)
     {
         case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
@@ -204,7 +218,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
         case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
         case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
-        case InitKind.C_:      assert(0);
+        case InitKind.C_:      return visitC     (cast(     CInitializer)init);
     }
 }
 

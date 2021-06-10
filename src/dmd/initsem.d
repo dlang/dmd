@@ -559,11 +559,46 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         return i;
     }
 
-    Initializer visitC(CInitializer i)
+    Initializer visitC(CInitializer ci)
     {
         //printf("CInitializer::semantic()\n");
-        error(i.loc, "C initializers not supported yet");
-        return err();
+        t = t.toBasetype();
+        auto tsa = t.isTypeSArray();
+        if (!tsa)
+        {
+            error(ci.loc, "C non-static-array initializers not supported yet");
+            return err();
+        }
+
+        const uint amax = 0x8000_0000;
+        bool errors;
+        auto tn = tsa.nextOf();
+        auto dil = ci.initializerList[];
+        foreach (di; dil)
+        {
+            if (di.designatorList)
+            {
+                error(ci.loc, "C designator-list not supported yet");
+                return err();
+            }
+            di.initializer = di.initializer.initializerSemantic(sc, tn, needInterpret);
+            if (di.initializer.isErrorInitializer())
+                errors = true;
+        }
+
+        if (errors)
+            return err();
+
+        const sz = tn.size();
+        bool overflow;
+        const max = mulu(dil.length, sz, overflow);
+        if (overflow || max >= amax)
+        {
+            error(ci.loc, "array dimension %llu exceeds max of %llu", ulong(dil.length), ulong(amax / sz));
+            return err();
+        }
+
+        return ci;
     }
 
     final switch (init.kind)
