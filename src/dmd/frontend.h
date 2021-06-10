@@ -5542,6 +5542,8 @@ public:
     bool isWild() const;
     bool isAuto() const;
     bool isScope() const;
+    bool isReturn() const;
+    bool isReturnInferred() const;
     bool isSynchronized() const;
     bool isParameter() const;
     bool isDeprecated() const;
