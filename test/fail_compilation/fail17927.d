@@ -1,9 +1,12 @@
 /* REQUIRED_ARGS: -preview=dip1000
  * TEST_OUTPUT:
 ---
-fail_compilation/fail17927.d(13): Error: scope variable `this` may not be returned
-fail_compilation/fail17927.d(21): Error: scope variable `ptr` may not be returned
-fail_compilation/fail17927.d(23): Error: scope variable `ptr` may not be returned
+fail_compilation/fail17927.d(16): Error: scope parameter `this` may not be returned
+fail_compilation/fail17927.d(16):        perhaps annotate the function with `return`
+fail_compilation/fail17927.d(24): Error: scope parameter `ptr` may not be returned
+fail_compilation/fail17927.d(24):        perhaps annotate the parameter with `return`
+fail_compilation/fail17927.d(26): Error: scope parameter `ptr` may not be returned
+fail_compilation/fail17927.d(26):        perhaps annotate the parameter with `return`
 ---
 */
 

@@ -1,8 +1,9 @@
 /* REQUIRED_ARGS: -preview=dip1000
    TEST_OUTPUT:
 ---
-fail_compilation/test14238.d(20): Error: scope variable `fn` may not be returned
-fail_compilation/test14238.d(28): Error: escaping reference to stack allocated value returned by `&baz`
+fail_compilation/test14238.d(21): Error: scope parameter `fn` may not be returned
+fail_compilation/test14238.d(21):        perhaps annotate the parameter with `return`
+fail_compilation/test14238.d(29): Error: escaping reference to stack allocated value returned by `&baz`
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=14238
