@@ -84,7 +84,7 @@ $(GNAME QualifiedIdentifier):
     $(GLINK2 template, TemplateInstance)
     $(GLINK2 template, TemplateInstance) $(D .) $(GSELF QualifiedIdentifier)
     $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
-    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D].) $(GSELF QualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D] .) $(GSELF QualifiedIdentifier)
 )
 
 

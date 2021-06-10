@@ -1738,9 +1738,9 @@ $(H2 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Sta
 
 $(GRAMMAR
 $(GNAME ScopeGuardStatement):
-    $(D scope(exit)) $(PSCURLYSCOPE)
-    $(D scope(success)) $(PSCURLYSCOPE)
-    $(D scope(failure)) $(PSCURLYSCOPE)
+    $(D scope ( exit )) $(PSCURLYSCOPE)
+    $(D scope ( success )) $(PSCURLYSCOPE)
+    $(D scope ( failure )) $(PSCURLYSCOPE)
 )
 
 $(P The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close of the

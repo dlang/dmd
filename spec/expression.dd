@@ -569,7 +569,7 @@ $(H3 $(LNAME2 identity_expressions, Identity Expressions))
 $(GRAMMAR
 $(GNAME IdentityExpression):
     $(GLINK ShiftExpression) $(D is) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !is) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D ! is) $(GLINK ShiftExpression)
 )
 
     $(P The $(D is) compares for identity.
@@ -691,7 +691,7 @@ $(H2 $(LNAME2 in_expressions, In Expressions))
 $(GRAMMAR
 $(GNAME InExpression):
     $(GLINK ShiftExpression) $(D in) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !in) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D ! in) $(GLINK ShiftExpression)
 )
 
 $(P An associative array can be tested to see if an element is in the array:)
