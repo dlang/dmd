@@ -20,6 +20,7 @@ jobs:
   # Build the documentation used by all releases
   build-docs:
     name: Build documentation for all repos
+    if: github.repository == 'dlang/dmd'
 
     steps:
       # Clone all required repos
@@ -78,6 +79,7 @@ jobs:
   # Build and package a new release for each platform
   build-all-releases:
     name: Build nightly for ${{ matrix.target }}  on ${{ matrix.os }}
+    if: github.repository == 'dlang/dmd'
     needs: build-docs
     timeout-minutes: 60
 
@@ -264,6 +266,7 @@ jobs:
   # Bundles and publishes the entire release
   generate_release:
     name: "Publish artifacts on the release page"
+    if: github.repository == 'dlang/dmd'
     needs: build-all-releases
     steps:
       #################################################################
