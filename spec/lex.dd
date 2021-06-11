@@ -186,6 +186,11 @@ $(GNAME Tokens):
     $(GLINK Token) $(GSELF Tokens)
 
 $(GNAME Token):
+    $(D {)
+    $(D })
+    $(GLINK TokenNoBraces)
+
+$(GNAME TokenNoBraces):
 $(MULTICOLS 4,     $(GLINK Identifier)
     $(GLINK StringLiteral)
     $(GLINK CharacterLiteral)
@@ -225,8 +230,6 @@ $(MULTICOLS 4,     $(GLINK Identifier)
     $(D $(RPAREN))
     $(D [)
     $(D ])
-    $(D {)
-    $(D })
     $(D ?)
     $(D ,)
     $(D ;)
@@ -362,7 +365,15 @@ $(GNAME DelimitedString):
 )
 $(GRAMMAR
 $(GNAME TokenString):
-    $(D q{) $(GLINK Tokens)$(OPT) $(D })
+    $(D q{) $(GLINK TokenStringTokens)$(OPT) $(D })
+
+$(GNAME TokenStringTokens):
+    $(GLINK TokenStringToken)
+    $(GLINK TokenStringToken) $(GSELF TokenStringTokens)
+
+$(GNAME TokenStringToken):
+    $(GLINK TokenNoBraces)
+    $(D {) $(GLINK TokenStringTokens)$(OPT) $(D })
 )
 
         $(P
