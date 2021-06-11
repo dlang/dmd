@@ -497,7 +497,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (!members || !symtab) // opaque or addMember is not yet done
         {
             // .stringof is always defined (but may be hidden by some other symbol)
-            if (ident != Id.stringof)
+            if (ident != Id.stringof && !(flags & IgnoreErrors))
                 error("is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
             return null;
