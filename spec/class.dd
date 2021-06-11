@@ -32,11 +32,10 @@ $(GNAME ClassDeclaration):
     $(GLINK2 template, ClassTemplateDeclaration)
 
 $(GNAME BaseClassList):
-    $(D :) $(GLINK SuperClass)
-    $(D :) $(GLINK SuperClass) $(D ,) $(GLINK Interfaces)
-    $(D :) $(GLINK Interfaces)
+    $(D :) $(GLINK SuperClassOrInterface)
+    $(D :) $(GLINK SuperClassOrInterface) $(D ,) $(GLINK Interfaces)
 
-$(GNAME SuperClass):
+$(GNAME SuperClassOrInterface):
     $(GLINK2 type, BasicType)
 
 $(GNAME Interfaces):
@@ -1534,7 +1533,7 @@ $(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
 
 $(GRAMMAR
 $(GNAME NewAnonClassExpression):
-    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK SuperClass)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK SuperClassOrInterface)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME ConstructorArgs):
     $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
@@ -1543,7 +1542,7 @@ $(GNAME ConstructorArgs):
 which is equivalent to:
 
 $(GRAMMAR_INFORMATIVE
-$(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateBody)
+$(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClassOrInterface) $(I Interfaces) $(I AggregateBody)
 // ...
 $(D new) $(I AllocatorArguments) $(I Identifier) $(I ConstructorArgs)
 )
