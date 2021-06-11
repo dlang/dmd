@@ -4,6 +4,13 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
   setup_repos_script: |
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../dmd
+
+    # for PRs - merge with target branch first
+    if [ ! -z ${CIRRUS_PR+x} ] ; then
+      git fetch origin "+refs/pull/$CIRRUS_PR/merge:";
+      git checkout -f FETCH_HEAD;
+    fi
+
     ./ci.sh setup_repos "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}"
   build_script: ./ci.sh build
 
