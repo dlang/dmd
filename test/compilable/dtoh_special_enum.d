@@ -40,7 +40,6 @@ struct _d_dynamicArray
 #endif
 
 enum class __c_not_special;
-
 extern "C" void fn_long(long _param_0);
 
 extern "C" void fn_ulong(unsigned long _param_0);

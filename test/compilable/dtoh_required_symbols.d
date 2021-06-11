@@ -39,11 +39,6 @@ struct _d_dynamicArray
 #endif
 
 struct ExternDStruct;
-enum class ExternDEnum
-{
-    A = 0,
-};
-
 class ExternDClass;
 
 struct ExternDStruct
@@ -59,6 +54,11 @@ struct ExternDStruct
         i(i),
         d(d)
         {}
+};
+
+enum class ExternDEnum
+{
+    A = 0,
 };
 
 template <>
