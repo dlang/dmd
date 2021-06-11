@@ -314,7 +314,6 @@ $(H2 $(LNAME2 constructors, Constructors))
 
 $(GRAMMAR
 $(GNAME Constructor):
-    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
     $(GLINK2 template, ConstructorTemplate)
 )
@@ -677,7 +676,6 @@ $(H2 $(LNAME2 destructors, Destructors))
 
 $(GRAMMAR
 $(GNAME Destructor):
-    $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
@@ -1008,7 +1006,6 @@ $(H2 $(LNAME2 allocators, Class Allocators))
 $(B Note): Class allocators are deprecated in D2.
 $(GRAMMAR
 $(GNAME Allocator):
-    $(D new) $(GLINK2 function, Parameters) $(D ;)
     $(D new) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
 )
 
@@ -1088,7 +1085,6 @@ assert(foo.x == int.init);  // object is still accessible
 
 $(GRAMMAR
 $(GNAME Deallocator):
-    $(D delete) $(GLINK2 function, Parameters) $(D ;)
     $(D delete) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
 )
 
