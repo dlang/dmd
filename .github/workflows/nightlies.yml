@@ -22,6 +22,11 @@ jobs:
     name: Build documentation for all repos
     if: github.repository == 'dlang/dmd'
 
+    outputs:
+      dmd-revision: ${{ steps.get-revisions.outputs.dmd-revision }}
+      druntime-revision: ${{ steps.get-revisions.outputs.druntime-revision }}
+      phobos-revision: ${{ steps.get-revisions.outputs.phobos-revision }}
+
     steps:
       # Clone all required repos
       - name: Clone dmd
@@ -73,6 +78,18 @@ jobs:
           path: dlang.org/web
           retention-days: 1
           if-no-files-found: error
+
+      - name: Determine revisions
+        id: get-revisions
+        shell: bash
+        run: |
+          set -euox pipefail
+
+          for REPO in dmd druntime phobos
+          do
+            REV=$( git -C $REPO rev-parse HEAD )
+            echo "::set-output name=$REPO-revision::$REV"
+          done
 
     runs-on: ubuntu-latest
 
@@ -267,7 +284,9 @@ jobs:
   generate_release:
     name: "Publish artifacts on the release page"
     if: github.repository == 'dlang/dmd'
-    needs: build-all-releases
+    needs:
+      - build-docs
+      - build-all-releases
     steps:
       #################################################################
       # Fetch all artifacts from the jobs defined above
@@ -293,12 +312,29 @@ jobs:
       # Create the new release using the downloaded artifacts
       #
       - name: Create the nightly release
-        uses: "marvinpinto/action-automatic-releases@latest"
+        uses: ncipollo/release-action@v1.8.6
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: nightly
-          title: DMD nightly
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          name: DMD nightly
           prerelease: true
-          files:  ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
+          body: |
+            Nightly build of the reference D compiler (incl. Druntime and Phobos)
+
+            Note that the official date and commit will be outdated because this
+            release is continuously updated. The actually built revisions are:
+
+            | Component | Revision                                                         |
+            | --------- | ---------------------------------------------------------------- |
+            | DMD       | dlang/dmd@${{ needs.build-docs.outputs.dmd-revision }}           |
+            | DRuntime  | dlang/druntime@${{ needs.build-docs.outputs.druntime-revision }} |
+            | Phobos    | dlang/phobos@${{ needs.build-docs.outputs.phobos-revision }}     |
+
+          artifacts:  ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
+          artifactErrorsFailBuild: true
+
+          # Always tag the same commit to only update the body + assets
+          tag: nightly
+          commit: f01bc99e87ad9d04b47a5323f6ccb1fd728eae8c
+          allowUpdates: true
 
     runs-on: ubuntu-latest
