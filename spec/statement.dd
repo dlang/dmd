@@ -142,7 +142,6 @@ $(P     Statements can be labeled. A label is an identifier that
 $(GRAMMAR
 $(GNAME LabeledStatement):
     $(GLINK_LEX Identifier) $(D :)
-    $(GLINK_LEX Identifier) $(D :) $(PSSEMI)
     $(GLINK_LEX Identifier) $(D :) $(PSSEMI_PSCURLYSCOPE)
 )
 
