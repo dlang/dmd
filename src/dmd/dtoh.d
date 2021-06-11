@@ -264,6 +264,10 @@ public:
 
          /// How many symbols were ignored
         int ignoredCounter;
+
+        /// Currently visited types are required by another declaration
+        /// and hence must be emitted
+        bool mustEmit;
     }
 
     /// Informations about the current context in the AST
@@ -278,27 +282,20 @@ public:
         this.printIgnored = global.params.doCxxHdrGeneration == CxxHeaderMode.verbose;
     }
 
-    /// Visit `dsym` with `buf` while temporarily clearing **parent fields
+    /// Visit `dsym` with `buf` while temporarily clearing `context`
     private void visitAsRoot(AST.Dsymbol dsym, OutBuffer* buf)
     {
-        const stcStash = this.storageClass;
-        auto adStash = this.adparent;
-        auto tdStash = this.tdparent;
+        auto ctxStash = this.context;
         auto bufStash = this.buf;
-        auto countStash = this.ignoredCounter;
 
-        this.storageClass = AST.STC.undefined_;
-        this.adparent = null;
-        this.tdparent = null;
+        this.context = Context.init;
         this.buf = buf;
+        this.mustEmit = true;
 
         dsym.accept(this);
 
-        this.storageClass = stcStash;
-        this.adparent = adStash;
-        this.tdparent = tdStash;
+        this.context = ctxStash;
         this.buf = bufStash;
-        this.ignoredCounter = countStash;
     }
 
     /// Determines what kind of enum `type` is (see `EnumKind`)
@@ -851,9 +848,8 @@ public:
             printf("[AST.VarDeclaration enter] %s\n", vd.toChars());
             scope(exit) printf("[AST.VarDeclaration exit] %s\n", vd.toChars());
         }
-        if (cast(void*)vd in visited)
+        if (!shouldEmit(vd))
             return;
-        visited[cast(void*)vd] = true;
 
         // Tuple field are expanded into multiple VarDeclarations
         // (we'll visit them later)
@@ -873,11 +869,6 @@ public:
         if (vd.storage_class & AST.STC.manifest &&
             vd._init && vd._init.isExpInitializer() && vd.type !is null)
         {
-            if (linkage != LINK.c && linkage != LINK.cpp)
-            {
-                ignored("variable %s because of linkage", vd.toPrettyChars());
-                return;
-            }
             AST.Type type = vd.type;
             EnumKind kind = getEnumKind(type);
 
@@ -927,11 +918,6 @@ public:
 
         if (tdparent && vd.type && !vd.type.deco)
         {
-            if (linkage != LINK.c && linkage != LINK.cpp)
-            {
-                ignored("variable %s because of linkage", vd.toPrettyChars());
-                return;
-            }
             if (!isSupportedType(vd.type))
             {
                 ignored("variable %s because its type cannot be mapped to C++", vd.toPrettyChars());
@@ -1016,9 +1002,8 @@ public:
             scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
         }
 
-        if (cast(void*) ad in visited)
+        if (!shouldEmit(ad))
             return;
-        visited[cast(void*) ad] = true;
 
         writeProtection(ad.visibility.kind);
 
@@ -1201,18 +1186,8 @@ public:
             scope(exit) printf("[AST.StructDeclaration exit] %s\n", sd.toChars());
         }
 
-        if (isSkippableTemplateInstance(sd))
+        if (!shouldEmit(sd))
             return;
-
-        if (cast(void*)sd in visited)
-            return;
-
-        visited[cast(void*)sd] = true;
-        if (linkage != LINK.c && linkage != LINK.cpp)
-        {
-            ignored("non-cpp struct %s because of linkage", sd.toChars());
-            return;
-        }
 
         const ignoredStash = this.ignoredCounter;
         scope (exit) this.ignoredCounter = ignoredStash;
@@ -1414,7 +1389,8 @@ public:
             printf("[includeSymbol(AST.Dsymbol) enter] %s\n", ds.toChars());
             scope(exit) printf("[includeSymbol(AST.Dsymbol) exit] %s\n", ds.toChars());
         }
-        if (cast(void*) ds in visited)
+        auto ptr = cast(void*) ds in visited;
+        if (ptr && *ptr)
             return;
 
         OutBuffer decl;
@@ -1432,17 +1408,8 @@ public:
             scope(exit) printf("[AST.ClassDeclaration exit] %s\n", cd.toChars());
         }
 
-        if (isSkippableTemplateInstance(cd))
+        if (!shouldEmit(cd))
             return;
-
-        if (cast(void*)cd in visited)
-            return;
-        visited[cast(void*)cd] = true;
-        if (!cd.isCPPclass() && !(tdparent && linkage == LINK.cpp)) // FIXME: ClassKind not set for templated classes?
-        {
-            ignored("non-cpp class %s", cd.toChars());
-            return;
-        }
 
         writeProtection(cd.visibility.kind);
 
@@ -1514,16 +1481,8 @@ public:
             printf("[AST.EnumDeclaration enter] %s\n", ed.toChars());
             scope(exit) printf("[AST.EnumDeclaration exit] %s\n", ed.toChars());
         }
-        if (cast(void*)ed in visited)
+        if (!shouldEmit(ed))
             return;
-
-        visited[cast(void*)ed] = true;
-
-        //if (linkage != LINK.c && linkage != LINK.cpp)
-        //{
-            //ignored("non-cpp enum %s because of linkage\n", ed.toChars());
-            //return;
-        //}
 
         if (ed.isSpecial())
         {
@@ -2090,9 +2049,8 @@ public:
             printf("[AST.TemplateDeclaration enter] %s\n", td.toChars());
             scope(exit) printf("[AST.TemplateDeclaration exit] %s\n", td.toChars());
         }
-        if (cast(void*)td in visited)
+        if (!shouldEmit(td))
             return;
-        visited[cast(void*)td] = true;
 
         if (!td.parameters || !td.onemember || (!td.onemember.isStructDeclaration && !td.onemember.isClassDeclaration && !td.onemember.isFuncDeclaration))
         {
@@ -2108,12 +2066,6 @@ public:
                 visit(cast(AST.Dsymbol)td);
                 return;
             }
-        }
-
-        if (linkage != LINK.c && linkage != LINK.cpp)
-        {
-            ignored("template %s because of linkage", td.toPrettyChars());
-            return;
         }
 
         auto save = tdparent;
@@ -2773,11 +2725,62 @@ public:
         }
     }
 
-    /** Checks whether s is a template instance that should not be emitted **/
-    private bool isSkippableTemplateInstance(AST.Dsymbol s)
+    /**
+     * Determines whether `s` should be emitted. This requires that `sym`
+     * - was not visited before
+     * - is `extern(C[++]`)
+     * - is not instantiated from a template (visits the `TemplateDeclaration` instead)
+     *
+     * Params:
+     *   sym = the symbol
+     *
+     * Returns: whether `sym` should be emitted
+     **/
+    private bool shouldEmit(AST.Dsymbol sym)
     {
-        auto td = s.isInstantiated();
-        return td && td !is tdparent;
+        debug (Debug_DtoH)
+        {
+            printf("[shouldEmit enter] %s\n", sym.toPrettyChars());
+            scope(exit) printf("[shouldEmit exit] %s\n", sym.toPrettyChars());
+        }
+
+        auto statePtr = (cast(void*) sym) in visited;
+
+         // `sym` was already emitted or skipped and isn't required
+        if (statePtr && (*statePtr || !mustEmit))
+            return false;
+
+        // Template *instances* should not be emitted, forward to the declaration
+        if (auto ti = sym.isInstantiated())
+        {
+            auto td = findTemplateDeclaration(ti);
+            assert(td);
+            visit(td);
+            return false;
+        }
+
+        // Required or matching linkage (except extern(C) classes which don't make sense)
+        bool res = mustEmit || linkage == LINK.cpp || (linkage == LINK.c && !sym.isClassDeclaration());
+        if (!res)
+        {
+            // Check against the internal information which might be missing, e.g. inside of template declarations
+            auto dec = sym.isDeclaration();
+            res = dec && (dec.linkage == LINK.cpp || dec.linkage == LINK.c);
+        }
+
+        // Remember result for later calls
+        if (statePtr)
+            *statePtr = res;
+        else
+            visited[(cast(void*) sym)] = res;
+
+        // Print a warning when the symbol is ignored for the first time
+        // Might not be correct if it is required by symbol the is visited
+        // AFTER the current node
+        if (!statePtr && !res)
+            ignored("%s %s because of linkage", sym.kind(), sym.toPrettyChars());
+
+        return res;
     }
 }
 

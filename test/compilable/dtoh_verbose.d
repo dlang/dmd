@@ -46,12 +46,12 @@ extern void importFunc();
 // Ignored function dtoh_verbose.foo because of linkage
 // Ignored variable dtoh_verbose.i because of linkage
 // Ignored function dtoh_verbose.bar because of linkage
-// Ignored non-cpp struct S because of linkage
-// Ignored non-cpp class C
+// Ignored struct dtoh_verbose.S because of linkage
+// Ignored class dtoh_verbose.C because of linkage
 // Ignored function dtoh_verbose.bar because it is extern
 // Ignored variable dtoh_verbose.i1 because of linkage
 // Ignored template dtoh_verbose.templ(T)(T t) because of linkage
-// Ignored function dtoh_verbose.templ!int.templ
+// Ignored alias dtoh_verbose.inst because of linkage
 // Ignored enum dtoh_verbose.arrayOpaque because of its base type
 // Ignored renamed import `myFunc = importFunc` because `using` only supports types
 struct A
@@ -70,6 +70,7 @@ struct Hidden
     }
 };
 
+// Ignored alias dtoh_verbose.D because of linkage
 class Visitor
 {
 public:
@@ -102,6 +103,7 @@ void templ(T)(T t) {}
 
 alias inst = templ!int;
 
+extern(C++)
 enum arrayOpaque : int[4];
 
 public import dtoh_imports : myFunc = importFunc;

@@ -96,6 +96,8 @@ using MyStdc = MyStdcInt;
 ---
 */
 
+extern (C++):
+
 alias T = int;
 
 extern (C) int x;

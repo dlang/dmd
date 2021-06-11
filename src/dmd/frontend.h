@@ -143,6 +143,13 @@ enum class Kind : uint8_t
 };
 
 struct BitArray;
+enum class ClassKind : uint8_t
+{
+    d = 0u,
+    cpp = 1u,
+    objc = 2u,
+};
+
 enum class CPPMANGLE : uint8_t
 {
     def = 0u,
@@ -153,21 +160,15 @@ enum class CPPMANGLE : uint8_t
 struct MangleOverride;
 class AliasThis;
 class Expression;
+enum class Sizeok : uint8_t
+{
+    none = 0u,
+    fwd = 1u,
+    inProcess = 2u,
+    done = 3u,
+};
+
 class TypeTuple;
-class TemplateParameter;
-class Statement;
-struct BaseClass;
-class Parameter;
-class Initializer;
-class Catch;
-class CaseStatement;
-class ScopeStatement;
-class GotoCaseStatement;
-class ReturnStatement;
-class GotoStatement;
-struct Ensure;
-struct Designator;
-struct DesigInit;
 enum class LINK : uint8_t
 {
     default_ = 0u,
@@ -238,6 +239,13 @@ enum class BUILTIN : uint8_t
 
 struct UnionExp;
 struct complex_t;
+enum class Include : uint8_t
+{
+    notComputed = 0u,
+    yes = 1u,
+    no = 2u,
+};
+
 class DebugCondition;
 class VersionCondition;
 class ForeachStatement;
@@ -629,9 +637,26 @@ class PrettyFuncInitExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
 class BinAssignExp;
+struct BaseClass;
 class TypeInfoClassDeclaration;
+enum class Abstract : uint8_t
+{
+    fwdref = 0u,
+    yes = 1u,
+    no = 2u,
+};
+
+enum class Baseok : uint8_t
+{
+    none = 0u,
+    start = 1u,
+    done = 2u,
+    semanticdone = 3u,
+};
+
 struct ObjcClassDeclaration;
 class TypeFunction;
+class Initializer;
 struct IntRange;
 class TypeInfoStructDeclaration;
 class TypeInfoInterfaceDeclaration;
@@ -650,14 +675,30 @@ class TypeInfoWildDeclaration;
 class TypeInfoVectorDeclaration;
 struct Macro;
 struct OutBuffer;
+enum class PKG
+{
+    unknown = 0,
+    module_ = 1,
+    package_ = 2,
+};
+
 struct ModuleDeclaration;
 struct FileName;
 struct FileBuffer;
 struct MacroTable;
 struct Escape;
 struct ReadResult;
+enum class StructPOD
+{
+    no = 0,
+    yes = 1,
+    fwd = 2,
+};
+
 class WithStatement;
 class Tuple;
+class Parameter;
+class TemplateParameter;
 struct TemplatePrevious;
 class TemplateTupleParameter;
 enum class TY : uint8_t
@@ -743,8 +784,22 @@ class TemplateAliasParameter;
 class TemplateThisParameter;
 class TypeQualified;
 union __AnonStruct__u;
+enum class OwnedBy : uint8_t
+{
+    code = 0u,
+    ctfe = 1u,
+    cache = 2u,
+};
+
 class UnaExp;
 class BinExp;
+enum class MemorySet
+{
+    none = 0,
+    blockAssign = 1,
+    referenceInit = 2,
+};
+
 struct ASTCodegen;
 class ErrorStatement;
 class PeelStatement;
@@ -755,19 +810,32 @@ class DtorExpStatement;
 class ForwardingStatement;
 class ErrorInitializer;
 class ObjcClassReferenceExp;
+class Statement;
 class CompoundStatement;
 class CompoundDeclarationStatement;
+class ScopeStatement;
 class WhileStatement;
 class DoStatement;
 class ForStatement;
 class IfStatement;
 class SwitchStatement;
+class CaseStatement;
 class CaseRangeStatement;
 class DefaultStatement;
 class SynchronizedStatement;
 class TryCatchStatement;
 class TryFinallyStatement;
 class LabelStatement;
+class ReturnStatement;
+struct Ensure;
+enum class ILS : uint8_t
+{
+    uninitialized = 0u,
+    no = 1u,
+    yes = 2u,
+};
+
+class GotoStatement;
 struct ObjcFuncDeclaration;
 struct ObjcSelector;
 enum class PURE : uint8_t
@@ -787,11 +855,28 @@ enum class VarArg : uint8_t
     typesafe = 2u,
 };
 
+enum class InitKind : uint8_t
+{
+    void_ = 0u,
+    error = 1u,
+    struct_ = 2u,
+    array = 3u,
+    exp = 4u,
+    C_ = 5u,
+};
+
 class VoidInitializer;
 class StructInitializer;
 class ArrayInitializer;
 class ExpInitializer;
 class CInitializer;
+struct DesigInit;
+enum class NeedInterpret
+{
+    INITnointerpret = 0,
+    INITinterpret = 1,
+};
+
 enum class JsonFieldFlags : uint32_t
 {
     none = 0u,
@@ -801,9 +886,75 @@ enum class JsonFieldFlags : uint32_t
     semantics = 8u,
 };
 
-struct ObNode;
+enum class TRUST : uint8_t
+{
+    default_ = 0u,
+    system = 1u,
+    trusted = 2u,
+    safe = 3u,
+};
+
+enum class AliasThisRec
+{
+    no = 0,
+    yes = 1,
+    fwdref = 2,
+    typeMask = 3,
+    tracing = 4,
+    tracingDT = 8,
+};
+
+enum class STMT : uint8_t
+{
+    Error = 0u,
+    Peel = 1u,
+    Exp = 2u,
+    DtorExp = 3u,
+    Compile = 4u,
+    Compound = 5u,
+    CompoundDeclaration = 6u,
+    CompoundAsm = 7u,
+    UnrolledLoop = 8u,
+    Scope = 9u,
+    Forwarding = 10u,
+    While = 11u,
+    Do = 12u,
+    For = 13u,
+    Foreach = 14u,
+    ForeachRange = 15u,
+    If = 16u,
+    Conditional = 17u,
+    StaticForeach = 18u,
+    Pragma = 19u,
+    StaticAssert = 20u,
+    Switch = 21u,
+    Case = 22u,
+    CaseRange = 23u,
+    Default = 24u,
+    GotoDefault = 25u,
+    GotoCase = 26u,
+    SwitchError = 27u,
+    Return = 28u,
+    Break = 29u,
+    Continue = 30u,
+    Synchronized = 31u,
+    With = 32u,
+    TryCatch = 33u,
+    TryFinally = 34u,
+    ScopeGuard = 35u,
+    Throw = 36u,
+    Debug = 37u,
+    Goto = 38u,
+    Label = 39u,
+    Asm = 40u,
+    InlineAsm = 41u,
+    GccAsm = 42u,
+    Import = 43u,
+};
+
 class ExpStatement;
 class GotoDefaultStatement;
+class GotoCaseStatement;
 class BreakStatement;
 class ContinueStatement;
 class ThrowStatement;
@@ -813,6 +964,7 @@ class StaticForeachStatement;
 class PragmaStatement;
 class StaticAssert;
 class StaticAssertStatement;
+class Catch;
 class ScopeGuardStatement;
 struct Token;
 class AsmStatement;
@@ -824,9 +976,85 @@ class ImportStatement;
 struct TargetC;
 struct TargetCPP;
 struct TargetObjC;
+enum class CPU
+{
+    x87 = 0,
+    mmx = 1,
+    sse = 2,
+    sse2 = 3,
+    sse3 = 4,
+    ssse3 = 5,
+    sse4_1 = 6,
+    sse4_2 = 7,
+    avx = 8,
+    avx2 = 9,
+    avx512 = 10,
+    baseline = 11,
+    native = 12,
+};
+
 struct Param;
 struct Triple;
 struct Target;
+enum class DiagnosticReporting : uint8_t
+{
+    error = 0u,
+    inform = 1u,
+    off = 2u,
+};
+
+enum class FeatureState : int8_t
+{
+    default_ = -1,
+    disabled = 0,
+    enabled = 1,
+};
+
+enum class PIC : uint8_t
+{
+    fixed = 0u,
+    pic = 1u,
+    pie = 2u,
+};
+
+enum class CppStdRevision : uint32_t
+{
+    cpp98 = 199711u,
+    cpp11 = 201103u,
+    cpp14 = 201402u,
+    cpp17 = 201703u,
+    cpp20 = 202002u,
+};
+
+enum class CHECKENABLE : uint8_t
+{
+    _default = 0u,
+    off = 1u,
+    on = 2u,
+    safeonly = 3u,
+};
+
+enum class CHECKACTION : uint8_t
+{
+    D = 0u,
+    C = 1u,
+    halt = 2u,
+    context = 3u,
+};
+
+enum class CxxHeaderMode : uint32_t
+{
+    none = 0u,
+    silent = 1u,
+    verbose = 2u,
+};
+
+enum class MessageStyle : uint8_t
+{
+    digitalmars = 0u,
+    gnu = 1u,
+};
+
 struct Mem;
 class Object;
 class TypeInfo_Class;
@@ -1045,6 +1273,41 @@ public:
     ~ScopeDsymbol();
 };
 
+template <typename T>
+struct Array
+{
+    // Ignoring var length alignment 0
+    size_t length;
+    // Ignoring var data alignment 0
+    _d_dynamicArray< T > data;
+    // Ignoring var SMALLARRAYCAP alignment 0
+    // Ignoring var smallarray alignment 0
+    void* smallarray;
+    Array(size_t dim);
+    ~Array();
+    const char* toChars() const;
+    Array& push(T ptr);
+    Array& append(Array* a);
+    void reserve(size_t nentries);
+    void remove(size_t i);
+    void insert(size_t index, Array* a);
+    void insert(size_t index, T ptr);
+    void setDim(size_t newdim);
+    size_t find(T ptr) const;
+    bool contains(T ptr) const;
+    T& opIndex(size_t i);
+    T* tdata();
+    Array<T >* copy() const;
+    void shift(T ptr);
+    void zero();
+    T pop();
+    typedef length opDollar;
+    typedef length dim;
+    Array()
+    {
+    }
+};
+
 struct Visibility
 {
     Kind kind;
@@ -1257,6 +1520,16 @@ public:
     static void free(const char* str);
     const char* toChars() const;
     FileName()
+    {
+    }
+};
+
+template <typename K, typename V>
+struct AssocArray
+{
+    // Ignoring var aa alignment 0
+    AA* aa;
+    AssocArray()
     {
     }
 };
@@ -1484,6 +1757,234 @@ public:
     TypeTag* isTypeTag();
     void accept(Visitor* v);
     TypeFunction* toTypeFunction();
+};
+
+template <typename AST>
+class ParseTimeVisitor
+{
+public:
+    virtual void visit(typename AST::Dsymbol );
+    virtual void visit(typename AST::Parameter );
+    virtual void visit(typename AST::Statement );
+    virtual void visit(typename AST::Type );
+    virtual void visit(typename AST::Expression );
+    virtual void visit(typename AST::TemplateParameter );
+    virtual void visit(typename AST::Condition );
+    virtual void visit(typename AST::Initializer );
+    virtual void visit(typename AST::AliasThis s);
+    virtual void visit(typename AST::Declaration s);
+    virtual void visit(typename AST::ScopeDsymbol s);
+    virtual void visit(typename AST::Import s);
+    virtual void visit(typename AST::AttribDeclaration s);
+    virtual void visit(typename AST::StaticAssert s);
+    virtual void visit(typename AST::DebugSymbol s);
+    virtual void visit(typename AST::VersionSymbol s);
+    virtual void visit(typename AST::AliasAssign s);
+    virtual void visit(typename AST::Package s);
+    virtual void visit(typename AST::EnumDeclaration s);
+    virtual void visit(typename AST::AggregateDeclaration s);
+    virtual void visit(typename AST::TemplateDeclaration s);
+    virtual void visit(typename AST::TemplateInstance s);
+    virtual void visit(typename AST::Nspace s);
+    virtual void visit(typename AST::VarDeclaration s);
+    virtual void visit(typename AST::FuncDeclaration s);
+    virtual void visit(typename AST::AliasDeclaration s);
+    virtual void visit(typename AST::TupleDeclaration s);
+    virtual void visit(typename AST::FuncLiteralDeclaration s);
+    virtual void visit(typename AST::PostBlitDeclaration s);
+    virtual void visit(typename AST::CtorDeclaration s);
+    virtual void visit(typename AST::DtorDeclaration s);
+    virtual void visit(typename AST::InvariantDeclaration s);
+    virtual void visit(typename AST::UnitTestDeclaration s);
+    virtual void visit(typename AST::NewDeclaration s);
+    virtual void visit(typename AST::StaticCtorDeclaration s);
+    virtual void visit(typename AST::StaticDtorDeclaration s);
+    virtual void visit(typename AST::SharedStaticCtorDeclaration s);
+    virtual void visit(typename AST::SharedStaticDtorDeclaration s);
+    virtual void visit(typename AST::CompileDeclaration s);
+    virtual void visit(typename AST::UserAttributeDeclaration s);
+    virtual void visit(typename AST::LinkDeclaration s);
+    virtual void visit(typename AST::AnonDeclaration s);
+    virtual void visit(typename AST::AlignDeclaration s);
+    virtual void visit(typename AST::CPPMangleDeclaration s);
+    virtual void visit(typename AST::CPPNamespaceDeclaration s);
+    virtual void visit(typename AST::VisibilityDeclaration s);
+    virtual void visit(typename AST::PragmaDeclaration s);
+    virtual void visit(typename AST::StorageClassDeclaration s);
+    virtual void visit(typename AST::ConditionalDeclaration s);
+    virtual void visit(typename AST::StaticForeachDeclaration s);
+    virtual void visit(typename AST::DeprecatedDeclaration s);
+    virtual void visit(typename AST::StaticIfDeclaration s);
+    virtual void visit(typename AST::EnumMember s);
+    virtual void visit(typename AST::Module s);
+    virtual void visit(typename AST::StructDeclaration s);
+    virtual void visit(typename AST::UnionDeclaration s);
+    virtual void visit(typename AST::ClassDeclaration s);
+    virtual void visit(typename AST::InterfaceDeclaration s);
+    virtual void visit(typename AST::TemplateMixin s);
+    virtual void visit(typename AST::ImportStatement s);
+    virtual void visit(typename AST::ScopeStatement s);
+    virtual void visit(typename AST::ReturnStatement s);
+    virtual void visit(typename AST::LabelStatement s);
+    virtual void visit(typename AST::StaticAssertStatement s);
+    virtual void visit(typename AST::CompileStatement s);
+    virtual void visit(typename AST::WhileStatement s);
+    virtual void visit(typename AST::ForStatement s);
+    virtual void visit(typename AST::DoStatement s);
+    virtual void visit(typename AST::ForeachRangeStatement s);
+    virtual void visit(typename AST::ForeachStatement s);
+    virtual void visit(typename AST::IfStatement s);
+    virtual void visit(typename AST::ScopeGuardStatement s);
+    virtual void visit(typename AST::ConditionalStatement s);
+    virtual void visit(typename AST::StaticForeachStatement s);
+    virtual void visit(typename AST::PragmaStatement s);
+    virtual void visit(typename AST::SwitchStatement s);
+    virtual void visit(typename AST::CaseRangeStatement s);
+    virtual void visit(typename AST::CaseStatement s);
+    virtual void visit(typename AST::DefaultStatement s);
+    virtual void visit(typename AST::BreakStatement s);
+    virtual void visit(typename AST::ContinueStatement s);
+    virtual void visit(typename AST::GotoDefaultStatement s);
+    virtual void visit(typename AST::GotoCaseStatement s);
+    virtual void visit(typename AST::GotoStatement s);
+    virtual void visit(typename AST::SynchronizedStatement s);
+    virtual void visit(typename AST::WithStatement s);
+    virtual void visit(typename AST::TryCatchStatement s);
+    virtual void visit(typename AST::TryFinallyStatement s);
+    virtual void visit(typename AST::ThrowStatement s);
+    virtual void visit(typename AST::AsmStatement s);
+    virtual void visit(typename AST::ExpStatement s);
+    virtual void visit(typename AST::CompoundStatement s);
+    virtual void visit(typename AST::CompoundDeclarationStatement s);
+    virtual void visit(typename AST::CompoundAsmStatement s);
+    virtual void visit(typename AST::InlineAsmStatement s);
+    virtual void visit(typename AST::GccAsmStatement s);
+    virtual void visit(typename AST::TypeBasic t);
+    virtual void visit(typename AST::TypeError t);
+    virtual void visit(typename AST::TypeNull t);
+    virtual void visit(typename AST::TypeNoreturn t);
+    virtual void visit(typename AST::TypeTag t);
+    virtual void visit(typename AST::TypeVector t);
+    virtual void visit(typename AST::TypeEnum t);
+    virtual void visit(typename AST::TypeTuple t);
+    virtual void visit(typename AST::TypeClass t);
+    virtual void visit(typename AST::TypeStruct t);
+    virtual void visit(typename AST::TypeNext t);
+    virtual void visit(typename AST::TypeQualified t);
+    virtual void visit(typename AST::TypeTraits t);
+    virtual void visit(typename AST::TypeMixin t);
+    virtual void visit(typename AST::TypeReference t);
+    virtual void visit(typename AST::TypeSlice t);
+    virtual void visit(typename AST::TypeDelegate t);
+    virtual void visit(typename AST::TypePointer t);
+    virtual void visit(typename AST::TypeFunction t);
+    virtual void visit(typename AST::TypeArray t);
+    virtual void visit(typename AST::TypeDArray t);
+    virtual void visit(typename AST::TypeAArray t);
+    virtual void visit(typename AST::TypeSArray t);
+    virtual void visit(typename AST::TypeIdentifier t);
+    virtual void visit(typename AST::TypeReturn t);
+    virtual void visit(typename AST::TypeTypeof t);
+    virtual void visit(typename AST::TypeInstance t);
+    virtual void visit(typename AST::DeclarationExp e);
+    virtual void visit(typename AST::IntegerExp e);
+    virtual void visit(typename AST::NewAnonClassExp e);
+    virtual void visit(typename AST::IsExp e);
+    virtual void visit(typename AST::RealExp e);
+    virtual void visit(typename AST::NullExp e);
+    virtual void visit(typename AST::TypeidExp e);
+    virtual void visit(typename AST::TraitsExp e);
+    virtual void visit(typename AST::StringExp e);
+    virtual void visit(typename AST::NewExp e);
+    virtual void visit(typename AST::AssocArrayLiteralExp e);
+    virtual void visit(typename AST::ArrayLiteralExp e);
+    virtual void visit(typename AST::MixinExp e);
+    virtual void visit(typename AST::FuncExp e);
+    virtual void visit(typename AST::IntervalExp e);
+    virtual void visit(typename AST::TypeExp e);
+    virtual void visit(typename AST::ScopeExp e);
+    virtual void visit(typename AST::IdentifierExp e);
+    virtual void visit(typename AST::UnaExp e);
+    virtual void visit(typename AST::DefaultInitExp e);
+    virtual void visit(typename AST::BinExp e);
+    virtual void visit(typename AST::DsymbolExp e);
+    virtual void visit(typename AST::TemplateExp e);
+    virtual void visit(typename AST::SymbolExp e);
+    virtual void visit(typename AST::TupleExp e);
+    virtual void visit(typename AST::ThisExp e);
+    virtual void visit(typename AST::VarExp e);
+    virtual void visit(typename AST::DollarExp e);
+    virtual void visit(typename AST::SuperExp e);
+    virtual void visit(typename AST::AddrExp e);
+    virtual void visit(typename AST::PreExp e);
+    virtual void visit(typename AST::PtrExp e);
+    virtual void visit(typename AST::NegExp e);
+    virtual void visit(typename AST::UAddExp e);
+    virtual void visit(typename AST::NotExp e);
+    virtual void visit(typename AST::ComExp e);
+    virtual void visit(typename AST::DeleteExp e);
+    virtual void visit(typename AST::CastExp e);
+    virtual void visit(typename AST::CallExp e);
+    virtual void visit(typename AST::DotIdExp e);
+    virtual void visit(typename AST::AssertExp e);
+    virtual void visit(typename AST::ImportExp e);
+    virtual void visit(typename AST::DotTemplateInstanceExp e);
+    virtual void visit(typename AST::ArrayExp e);
+    virtual void visit(typename AST::FuncInitExp e);
+    virtual void visit(typename AST::PrettyFuncInitExp e);
+    virtual void visit(typename AST::FileInitExp e);
+    virtual void visit(typename AST::LineInitExp e);
+    virtual void visit(typename AST::ModuleInitExp e);
+    virtual void visit(typename AST::CommaExp e);
+    virtual void visit(typename AST::PostExp e);
+    virtual void visit(typename AST::PowExp e);
+    virtual void visit(typename AST::MulExp e);
+    virtual void visit(typename AST::DivExp e);
+    virtual void visit(typename AST::ModExp e);
+    virtual void visit(typename AST::AddExp e);
+    virtual void visit(typename AST::MinExp e);
+    virtual void visit(typename AST::CatExp e);
+    virtual void visit(typename AST::ShlExp e);
+    virtual void visit(typename AST::ShrExp e);
+    virtual void visit(typename AST::UshrExp e);
+    virtual void visit(typename AST::EqualExp e);
+    virtual void visit(typename AST::InExp e);
+    virtual void visit(typename AST::IdentityExp e);
+    virtual void visit(typename AST::CmpExp e);
+    virtual void visit(typename AST::AndExp e);
+    virtual void visit(typename AST::XorExp e);
+    virtual void visit(typename AST::OrExp e);
+    virtual void visit(typename AST::LogicalExp e);
+    virtual void visit(typename AST::CondExp e);
+    virtual void visit(typename AST::AssignExp e);
+    virtual void visit(typename AST::BinAssignExp e);
+    virtual void visit(typename AST::AddAssignExp e);
+    virtual void visit(typename AST::MinAssignExp e);
+    virtual void visit(typename AST::MulAssignExp e);
+    virtual void visit(typename AST::DivAssignExp e);
+    virtual void visit(typename AST::ModAssignExp e);
+    virtual void visit(typename AST::PowAssignExp e);
+    virtual void visit(typename AST::AndAssignExp e);
+    virtual void visit(typename AST::OrAssignExp e);
+    virtual void visit(typename AST::XorAssignExp e);
+    virtual void visit(typename AST::ShlAssignExp e);
+    virtual void visit(typename AST::ShrAssignExp e);
+    virtual void visit(typename AST::UshrAssignExp e);
+    virtual void visit(typename AST::CatAssignExp e);
+    virtual void visit(typename AST::TemplateAliasParameter tp);
+    virtual void visit(typename AST::TemplateTypeParameter tp);
+    virtual void visit(typename AST::TemplateTupleParameter tp);
+    virtual void visit(typename AST::TemplateValueParameter tp);
+    virtual void visit(typename AST::TemplateThisParameter tp);
+    virtual void visit(typename AST::StaticIfCondition c);
+    virtual void visit(typename AST::DVCondition c);
+    virtual void visit(typename AST::DebugCondition c);
+    virtual void visit(typename AST::VersionCondition c);
+    virtual void visit(typename AST::ExpInitializer i);
+    virtual void visit(typename AST::StructInitializer i);
+    virtual void visit(typename AST::ArrayInitializer i);
+    virtual void visit(typename AST::VoidInitializer i);
+    virtual void visit(typename AST::CInitializer i);
 };
 
 class Visitor : public ParseTimeVisitor<ASTCodegen >
@@ -1723,28 +2224,7 @@ struct TargetObjC
         {}
 };
 
-enum class Sizeok : uint8_t
-{
-    none = 0u,
-    fwd = 1u,
-    inProcess = 2u,
-    done = 3u,
-};
-
-enum class Baseok : uint8_t
-{
-    none = 0u,
-    start = 1u,
-    done = 2u,
-    semanticdone = 3u,
-};
-
-enum class ClassKind : uint8_t
-{
-    d = 0u,
-    cpp = 1u,
-    objc = 2u,
-};
+typedef _d_real longdouble;
 
 class AggregateDeclaration : public ScopeDsymbol
 {
@@ -1820,64 +2300,6 @@ extern TypeTuple* toArgTypes_sysv_x64(Type* t);
 extern TypeTuple* toArgTypes_aarch64(Type* t);
 
 extern bool isHFVA(Type* t, int32_t maxNumElements = 4, Type** rewriteType = nullptr);
-
-typedef Array<const char* > Strings;
-
-typedef Array<Identifier* > Identifiers;
-
-typedef Array<TemplateParameter* > TemplateParameters;
-
-typedef Array<Expression* > Expressions;
-
-typedef Array<Statement* > Statements;
-
-typedef Array<BaseClass* > BaseClasses;
-
-typedef Array<ClassDeclaration* > ClassDeclarations;
-
-typedef Array<Dsymbol* > Dsymbols;
-
-typedef Array<RootObject* > Objects;
-
-typedef Array<DtorDeclaration* > DtorDeclarations;
-
-typedef Array<FuncDeclaration* > FuncDeclarations;
-
-typedef Array<Parameter* > Parameters;
-
-typedef Array<Initializer* > Initializers;
-
-typedef Array<VarDeclaration* > VarDeclarations;
-
-typedef Array<Type* > Types;
-
-typedef Array<Catch* > Catches;
-
-typedef Array<StaticDtorDeclaration* > StaticDtorDeclarations;
-
-typedef Array<SharedStaticDtorDeclaration* > SharedStaticDtorDeclarations;
-
-typedef Array<AliasDeclaration* > AliasDeclarations;
-
-typedef Array<Module* > Modules;
-
-typedef Array<CaseStatement* > CaseStatements;
-
-typedef Array<ScopeStatement* > ScopeStatements;
-
-typedef Array<GotoCaseStatement* > GotoCaseStatements;
-
-typedef Array<ReturnStatement* > ReturnStatements;
-
-typedef Array<GotoStatement* > GotoStatements;
-
-typedef Array<TemplateInstance* > TemplateInstances;
-
-typedef Array<Ensure > Ensures;
-
-typedef Array<Designator > Designators;
-
-typedef Array<DesigInit > DesigInits;
 
 class AttribDeclaration : public Dsymbol
 {
@@ -2098,38 +2520,11 @@ public:
     static void checkGNUABITag(Dsymbol* sym, LINK linkage);
 };
 
-enum class BE
-{
-    none = 0,
-    fallthru = 1,
-    throw_ = 2,
-    return_ = 4,
-    goto_ = 8,
-    halt = 16,
-    break_ = 32,
-    continue_ = 64,
-    errthrow = 128,
-    any = 31,
-};
-
 extern BUILTIN isBuiltin(FuncDeclaration* fd);
 
 extern Expression* eval_builtin(Loc loc, FuncDeclaration* fd, Array<Expression* >* arguments);
 
 extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
-
-enum class TargetOS : uint8_t
-{
-    linux = 1u,
-    Windows = 2u,
-    OSX = 4u,
-    OpenBSD = 8u,
-    FreeBSD = 16u,
-    Solaris = 32u,
-    DragonFlyBSD = 64u,
-    all = 127u,
-    Posix = 125u,
-};
 
 extern bool includeImports;
 
@@ -2160,13 +2555,6 @@ struct complex_t
 extern _d_real creall(complex_t x);
 
 extern _d_real cimagl(complex_t x);
-
-enum class Include : uint8_t
-{
-    notComputed = 0u,
-    yes = 1u,
-    no = 2u,
-};
 
 class Condition : public ASTNode
 {
@@ -2232,19 +2620,6 @@ public:
     const char* toChars() const;
 };
 
-enum class CppOperator
-{
-    Cast = 0,
-    Assign = 1,
-    Eq = 2,
-    Index = 3,
-    Call = 4,
-    Unary = 5,
-    Binary = 6,
-    OpAssign = 7,
-    Unknown = 8,
-};
-
 extern const char* toCppMangleItanium(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleItanium(Dsymbol* s);
@@ -2278,25 +2653,7 @@ public:
     const char* toChars() const;
 };
 
-enum class CSX : uint16_t
-{
-    none = 0u,
-    this_ctor = 1u,
-    super_ctor = 2u,
-    label = 4u,
-    return_ = 8u,
-    any_ctor = 16u,
-    halt = 32u,
-};
-
 extern bool arrayTypeCompatibleWithoutCasting(Type* t1, Type* t2);
-
-enum class Abstract : uint8_t
-{
-    fwdref = 0u,
-    yes = 1u,
-    no = 2u,
-};
 
 struct BaseClass
 {
@@ -2315,20 +2672,6 @@ struct BaseClass
         baseInterfaces()
     {
     }
-};
-
-enum class ClassFlags : uint32_t
-{
-    none = 0u,
-    isCOMclass = 1u,
-    noPointers = 2u,
-    hasOffTi = 4u,
-    hasCtor = 8u,
-    hasGetMembers = 16u,
-    hasTypeInfo = 32u,
-    isAbstract = 64u,
-    isCPPclass = 128u,
-    hasDtor = 256u,
 };
 
 class ClassDeclaration : public AggregateDeclaration
@@ -2408,69 +2751,6 @@ public:
 };
 
 extern void ObjectNotFound(Identifier* id);
-
-enum class STC : uint64_t
-{
-    undefined_ = 0LLU,
-    static_ = 1LLU,
-    extern_ = 2LLU,
-    const_ = 4LLU,
-    final_ = 8LLU,
-    abstract_ = 16LLU,
-    parameter = 32LLU,
-    field = 64LLU,
-    override_ = 128LLU,
-    auto_ = 256LLU,
-    synchronized_ = 512LLU,
-    deprecated_ = 1024LLU,
-    in_ = 2048LLU,
-    out_ = 4096LLU,
-    lazy_ = 8192LLU,
-    foreach_ = 16384LLU,
-    variadic = 65536LLU,
-    ctorinit = 131072LLU,
-    templateparameter = 262144LLU,
-    scope_ = 524288LLU,
-    immutable_ = 1048576LLU,
-    ref_ = 2097152LLU,
-    init = 4194304LLU,
-    manifest = 8388608LLU,
-    nodtor = 16777216LLU,
-    nothrow_ = 33554432LLU,
-    pure_ = 67108864LLU,
-    tls = 134217728LLU,
-    alias_ = 268435456LLU,
-    shared_ = 536870912LLU,
-    gshared = 1073741824LLU,
-    wild = 2147483648LLU,
-    property = 4294967296LLU,
-    safe = 8589934592LLU,
-    trusted = 17179869184LLU,
-    system = 34359738368LLU,
-    ctfe = 68719476736LLU,
-    disable = 137438953472LLU,
-    result = 274877906944LLU,
-    nodefaultctor = 549755813888LLU,
-    temp = 1099511627776LLU,
-    rvalue = 2199023255552LLU,
-    nogc = 4398046511104LLU,
-    volatile_ = 8796093022208LLU,
-    return_ = 17592186044416LLU,
-    autoref = 35184372088832LLU,
-    inference = 70368744177664LLU,
-    exptemp = 140737488355328LLU,
-    maybescope = 281474976710656LLU,
-    scopeinferred = 562949953421312LLU,
-    future = 1125899906842624LLU,
-    local = 2251799813685248LLU,
-    returninferred = 4503599627370496LLU,
-    live = 9007199254740992LLU,
-    register_ = 18014398509481984LLU,
-    safeGroup = 60129542144LLU,
-    IOR = 2103296LLU,
-    TYPECTOR = 2685403140LLU,
-    FUNCATTR = 9011661828521984LLU,
-};
 
 class Declaration : public Dsymbol
 {
@@ -2876,13 +3156,6 @@ extern void mangleToBuffer(Dsymbol* s, OutBuffer* buf);
 
 extern void mangleToBuffer(TemplateInstance* ti, OutBuffer* buf);
 
-enum class PKG
-{
-    unknown = 0,
-    module_ = 1,
-    package_ = 2,
-};
-
 class Package : public ScopeDsymbol
 {
 public:
@@ -3007,45 +3280,9 @@ struct ModuleDeclaration
 
 extern void gendocfile(Module* m);
 
-enum class SCOPE
-{
-    ctor = 1,
-    noaccesscheck = 2,
-    condition = 4,
-    debug_ = 8,
-    constraint = 16,
-    invariant_ = 32,
-    require = 64,
-    ensure = 96,
-    contract = 96,
-    ctfe = 128,
-    compile = 256,
-    ignoresymbolvisibility = 512,
-    onlysafeaccess = 1024,
-    Cfile = 2048,
-    free = 32768,
-    fullinst = 65536,
-    alias_ = 131072,
-    printf = 262144,
-    scanf = 524288,
-};
-
 extern FuncDeclaration* search_toString(StructDeclaration* sd);
 
 extern void semanticTypeInfo(Scope* sc, Type* t);
-
-enum class StructFlags
-{
-    none = 0,
-    hasPointers = 1,
-};
-
-enum class StructPOD
-{
-    no = 0,
-    yes = 1,
-    fwd = 2,
-};
 
 class StructDeclaration : public AggregateDeclaration
 {
@@ -3091,18 +3328,6 @@ public:
     UnionDeclaration* isUnionDeclaration();
     void accept(Visitor* v);
     ~UnionDeclaration();
-};
-
-enum
-{
-    IgnoreNone = 0,
-    IgnorePrivateImports = 1,
-    IgnoreErrors = 2,
-    IgnoreAmbiguous = 4,
-    SearchLocalsOnly = 8,
-    SearchImportsOnly = 16,
-    SearchUnqualifiedModule = 32,
-    IgnoreSymbolVisibility = 128,
 };
 
 class WithScopeSymbol final : public ScopeDsymbol
@@ -3483,13 +3708,6 @@ public:
     UnionExp()
     {
     }
-};
-
-enum class OwnedBy : uint8_t
-{
-    code = 0u,
-    ctfe = 1u,
-    cache = 2u,
 };
 
 class IntegerExp final : public Expression
@@ -3881,10 +4099,6 @@ public:
     void accept(Visitor* v);
 };
 
-typedef UnionExp(*fp_t)(Loc& loc, Type , Expression , Expression );
-
-typedef bool(*fp2_t)(Loc& loc, TOK , Expression , Expression );
-
 class BinExp : public Expression
 {
 public:
@@ -4197,13 +4411,6 @@ public:
     void accept(Visitor* v);
 };
 
-enum class MemorySet
-{
-    none = 0,
-    blockAssign = 1,
-    referenceInit = 2,
-};
-
 class AssignExp : public BinExp
 {
 public:
@@ -4499,13 +4706,6 @@ extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
 
-enum class ILS : uint8_t
-{
-    uninitialized = 0u,
-    no = 1u,
-    yes = 2u,
-};
-
 class NrvoWalker final : public StatementRewriteWalker
 {
 public:
@@ -4514,21 +4714,6 @@ public:
     Scope* sc;
     void visit(ReturnStatement* s);
     void visit(TryFinallyStatement* s);
-};
-
-enum class FUNCFLAG : uint32_t
-{
-    purityInprocess = 1u,
-    safetyInprocess = 2u,
-    nothrowInprocess = 4u,
-    nogcInprocess = 8u,
-    returnInprocess = 16u,
-    inlineScanned = 32u,
-    inferScope = 64u,
-    hasCatches = 128u,
-    compileTimeOnly = 256u,
-    printf = 512u,
-    scanf = 1024u,
 };
 
 struct Ensure
@@ -4665,13 +4850,6 @@ public:
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v);
     ~FuncDeclaration();
-};
-
-enum class FuncResolveFlag : uint8_t
-{
-    standard = 0u,
-    quiet = 1u,
-    overloadOnly = 2u,
 };
 
 class FuncAliasDeclaration final : public FuncDeclaration
@@ -4843,22 +5021,6 @@ extern void moduleToBuffer(OutBuffer* buf, Module* m);
 
 extern const char* parametersTypeToChars(ParameterList pl);
 
-enum class NeedInterpret
-{
-    INITnointerpret = 0,
-    INITinterpret = 1,
-};
-
-enum class InitKind : uint8_t
-{
-    void_ = 0u,
-    error = 1u,
-    struct_ = 2u,
-    array = 3u,
-    exp = 4u,
-    C_ = 5u,
-};
-
 class Initializer : public ASTNode
 {
 public:
@@ -4932,26 +5094,6 @@ extern Expression* initializerToExpression(Initializer* init, Type* itype = null
 extern void json_generate(OutBuffer* buf, Array<Module* >* modules);
 
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);
-
-typedef TY ENUMTY;
-
-enum class MODFlags
-{
-    const_ = 1,
-    immutable_ = 4,
-    shared_ = 2,
-    wild = 8,
-    wildconst = 9,
-    mutable_ = 16,
-};
-
-typedef uint8_t MOD;
-
-enum class DotExpFlag
-{
-    gag = 1,
-    noDeref = 2,
-};
 
 class TypeError final : public Type
 {
@@ -5111,26 +5253,6 @@ public:
     d_uns64 size(const Loc& loc) /* const */;
     bool isZeroInit(const Loc& loc) /* const */;
     void accept(Visitor* v);
-};
-
-enum class RET
-{
-    regs = 1,
-    stack = 2,
-};
-
-enum class TRUST : uint8_t
-{
-    default_ = 0u,
-    system = 1u,
-    trusted = 2u,
-    safe = 3u,
-};
-
-enum class TRUSTformat
-{
-    TRUSTformatDefault = 0,
-    TRUSTformatSystem = 1,
 };
 
 class TypeFunction final : public TypeNext
@@ -5302,16 +5424,6 @@ public:
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
     ~TypeReturn();
-};
-
-enum class AliasThisRec
-{
-    no = 0,
-    yes = 1,
-    fwdref = 2,
-    typeMask = 3,
-    tracing = 4,
-    tracingDT = 8,
 };
 
 class TypeStruct final : public Type
@@ -5534,31 +5646,6 @@ public:
     ~Nspace();
 };
 
-typedef Array<ObNode* > ObNodes;
-
-typedef StmtState<ObNode > StmtState;
-
-enum class ObType : uint8_t
-{
-    goto_ = 0u,
-    return_ = 1u,
-    retexp = 2u,
-    throw_ = 3u,
-    exit = 4u,
-    try_ = 5u,
-    finally_ = 6u,
-    fend = 7u,
-};
-
-enum class PtrState : uint8_t
-{
-    Initial = 0u,
-    Undefined = 1u,
-    Owner = 2u,
-    Borrowed = 3u,
-    Readonly = 4u,
-};
-
 class Objc
 {
 public:
@@ -5586,264 +5673,6 @@ public:
     virtual void checkTupleof(Expression* expression, TypeClass* type) const = 0;
 };
 
-enum class ParseStatementFlags
-{
-    semi = 1,
-    scope_ = 2,
-    curly = 4,
-    curlyScope = 8,
-    semiOk = 16,
-};
-
-enum class PREC
-{
-    zero = 0,
-    expr = 1,
-    assign = 2,
-    cond = 3,
-    oror = 4,
-    andand = 5,
-    or_ = 6,
-    xor_ = 7,
-    and_ = 8,
-    equal = 9,
-    rel = 10,
-    shift = 11,
-    add = 12,
-    mul = 13,
-    pow = 14,
-    unary = 15,
-    primary = 16,
-};
-
-template <typename AST>
-class ParseTimeVisitor
-{
-public:
-    virtual void visit(typename AST::Dsymbol );
-    virtual void visit(typename AST::Parameter );
-    virtual void visit(typename AST::Statement );
-    virtual void visit(typename AST::Type );
-    virtual void visit(typename AST::Expression );
-    virtual void visit(typename AST::TemplateParameter );
-    virtual void visit(typename AST::Condition );
-    virtual void visit(typename AST::Initializer );
-    virtual void visit(typename AST::AliasThis s);
-    virtual void visit(typename AST::Declaration s);
-    virtual void visit(typename AST::ScopeDsymbol s);
-    virtual void visit(typename AST::Import s);
-    virtual void visit(typename AST::AttribDeclaration s);
-    virtual void visit(typename AST::StaticAssert s);
-    virtual void visit(typename AST::DebugSymbol s);
-    virtual void visit(typename AST::VersionSymbol s);
-    virtual void visit(typename AST::AliasAssign s);
-    virtual void visit(typename AST::Package s);
-    virtual void visit(typename AST::EnumDeclaration s);
-    virtual void visit(typename AST::AggregateDeclaration s);
-    virtual void visit(typename AST::TemplateDeclaration s);
-    virtual void visit(typename AST::TemplateInstance s);
-    virtual void visit(typename AST::Nspace s);
-    virtual void visit(typename AST::VarDeclaration s);
-    virtual void visit(typename AST::FuncDeclaration s);
-    virtual void visit(typename AST::AliasDeclaration s);
-    virtual void visit(typename AST::TupleDeclaration s);
-    virtual void visit(typename AST::FuncLiteralDeclaration s);
-    virtual void visit(typename AST::PostBlitDeclaration s);
-    virtual void visit(typename AST::CtorDeclaration s);
-    virtual void visit(typename AST::DtorDeclaration s);
-    virtual void visit(typename AST::InvariantDeclaration s);
-    virtual void visit(typename AST::UnitTestDeclaration s);
-    virtual void visit(typename AST::NewDeclaration s);
-    virtual void visit(typename AST::StaticCtorDeclaration s);
-    virtual void visit(typename AST::StaticDtorDeclaration s);
-    virtual void visit(typename AST::SharedStaticCtorDeclaration s);
-    virtual void visit(typename AST::SharedStaticDtorDeclaration s);
-    virtual void visit(typename AST::CompileDeclaration s);
-    virtual void visit(typename AST::UserAttributeDeclaration s);
-    virtual void visit(typename AST::LinkDeclaration s);
-    virtual void visit(typename AST::AnonDeclaration s);
-    virtual void visit(typename AST::AlignDeclaration s);
-    virtual void visit(typename AST::CPPMangleDeclaration s);
-    virtual void visit(typename AST::CPPNamespaceDeclaration s);
-    virtual void visit(typename AST::VisibilityDeclaration s);
-    virtual void visit(typename AST::PragmaDeclaration s);
-    virtual void visit(typename AST::StorageClassDeclaration s);
-    virtual void visit(typename AST::ConditionalDeclaration s);
-    virtual void visit(typename AST::StaticForeachDeclaration s);
-    virtual void visit(typename AST::DeprecatedDeclaration s);
-    virtual void visit(typename AST::StaticIfDeclaration s);
-    virtual void visit(typename AST::EnumMember s);
-    virtual void visit(typename AST::Module s);
-    virtual void visit(typename AST::StructDeclaration s);
-    virtual void visit(typename AST::UnionDeclaration s);
-    virtual void visit(typename AST::ClassDeclaration s);
-    virtual void visit(typename AST::InterfaceDeclaration s);
-    virtual void visit(typename AST::TemplateMixin s);
-    virtual void visit(typename AST::ImportStatement s);
-    virtual void visit(typename AST::ScopeStatement s);
-    virtual void visit(typename AST::ReturnStatement s);
-    virtual void visit(typename AST::LabelStatement s);
-    virtual void visit(typename AST::StaticAssertStatement s);
-    virtual void visit(typename AST::CompileStatement s);
-    virtual void visit(typename AST::WhileStatement s);
-    virtual void visit(typename AST::ForStatement s);
-    virtual void visit(typename AST::DoStatement s);
-    virtual void visit(typename AST::ForeachRangeStatement s);
-    virtual void visit(typename AST::ForeachStatement s);
-    virtual void visit(typename AST::IfStatement s);
-    virtual void visit(typename AST::ScopeGuardStatement s);
-    virtual void visit(typename AST::ConditionalStatement s);
-    virtual void visit(typename AST::StaticForeachStatement s);
-    virtual void visit(typename AST::PragmaStatement s);
-    virtual void visit(typename AST::SwitchStatement s);
-    virtual void visit(typename AST::CaseRangeStatement s);
-    virtual void visit(typename AST::CaseStatement s);
-    virtual void visit(typename AST::DefaultStatement s);
-    virtual void visit(typename AST::BreakStatement s);
-    virtual void visit(typename AST::ContinueStatement s);
-    virtual void visit(typename AST::GotoDefaultStatement s);
-    virtual void visit(typename AST::GotoCaseStatement s);
-    virtual void visit(typename AST::GotoStatement s);
-    virtual void visit(typename AST::SynchronizedStatement s);
-    virtual void visit(typename AST::WithStatement s);
-    virtual void visit(typename AST::TryCatchStatement s);
-    virtual void visit(typename AST::TryFinallyStatement s);
-    virtual void visit(typename AST::ThrowStatement s);
-    virtual void visit(typename AST::AsmStatement s);
-    virtual void visit(typename AST::ExpStatement s);
-    virtual void visit(typename AST::CompoundStatement s);
-    virtual void visit(typename AST::CompoundDeclarationStatement s);
-    virtual void visit(typename AST::CompoundAsmStatement s);
-    virtual void visit(typename AST::InlineAsmStatement s);
-    virtual void visit(typename AST::GccAsmStatement s);
-    virtual void visit(typename AST::TypeBasic t);
-    virtual void visit(typename AST::TypeError t);
-    virtual void visit(typename AST::TypeNull t);
-    virtual void visit(typename AST::TypeNoreturn t);
-    virtual void visit(typename AST::TypeTag t);
-    virtual void visit(typename AST::TypeVector t);
-    virtual void visit(typename AST::TypeEnum t);
-    virtual void visit(typename AST::TypeTuple t);
-    virtual void visit(typename AST::TypeClass t);
-    virtual void visit(typename AST::TypeStruct t);
-    virtual void visit(typename AST::TypeNext t);
-    virtual void visit(typename AST::TypeQualified t);
-    virtual void visit(typename AST::TypeTraits t);
-    virtual void visit(typename AST::TypeMixin t);
-    virtual void visit(typename AST::TypeReference t);
-    virtual void visit(typename AST::TypeSlice t);
-    virtual void visit(typename AST::TypeDelegate t);
-    virtual void visit(typename AST::TypePointer t);
-    virtual void visit(typename AST::TypeFunction t);
-    virtual void visit(typename AST::TypeArray t);
-    virtual void visit(typename AST::TypeDArray t);
-    virtual void visit(typename AST::TypeAArray t);
-    virtual void visit(typename AST::TypeSArray t);
-    virtual void visit(typename AST::TypeIdentifier t);
-    virtual void visit(typename AST::TypeReturn t);
-    virtual void visit(typename AST::TypeTypeof t);
-    virtual void visit(typename AST::TypeInstance t);
-    virtual void visit(typename AST::DeclarationExp e);
-    virtual void visit(typename AST::IntegerExp e);
-    virtual void visit(typename AST::NewAnonClassExp e);
-    virtual void visit(typename AST::IsExp e);
-    virtual void visit(typename AST::RealExp e);
-    virtual void visit(typename AST::NullExp e);
-    virtual void visit(typename AST::TypeidExp e);
-    virtual void visit(typename AST::TraitsExp e);
-    virtual void visit(typename AST::StringExp e);
-    virtual void visit(typename AST::NewExp e);
-    virtual void visit(typename AST::AssocArrayLiteralExp e);
-    virtual void visit(typename AST::ArrayLiteralExp e);
-    virtual void visit(typename AST::MixinExp e);
-    virtual void visit(typename AST::FuncExp e);
-    virtual void visit(typename AST::IntervalExp e);
-    virtual void visit(typename AST::TypeExp e);
-    virtual void visit(typename AST::ScopeExp e);
-    virtual void visit(typename AST::IdentifierExp e);
-    virtual void visit(typename AST::UnaExp e);
-    virtual void visit(typename AST::DefaultInitExp e);
-    virtual void visit(typename AST::BinExp e);
-    virtual void visit(typename AST::DsymbolExp e);
-    virtual void visit(typename AST::TemplateExp e);
-    virtual void visit(typename AST::SymbolExp e);
-    virtual void visit(typename AST::TupleExp e);
-    virtual void visit(typename AST::ThisExp e);
-    virtual void visit(typename AST::VarExp e);
-    virtual void visit(typename AST::DollarExp e);
-    virtual void visit(typename AST::SuperExp e);
-    virtual void visit(typename AST::AddrExp e);
-    virtual void visit(typename AST::PreExp e);
-    virtual void visit(typename AST::PtrExp e);
-    virtual void visit(typename AST::NegExp e);
-    virtual void visit(typename AST::UAddExp e);
-    virtual void visit(typename AST::NotExp e);
-    virtual void visit(typename AST::ComExp e);
-    virtual void visit(typename AST::DeleteExp e);
-    virtual void visit(typename AST::CastExp e);
-    virtual void visit(typename AST::CallExp e);
-    virtual void visit(typename AST::DotIdExp e);
-    virtual void visit(typename AST::AssertExp e);
-    virtual void visit(typename AST::ImportExp e);
-    virtual void visit(typename AST::DotTemplateInstanceExp e);
-    virtual void visit(typename AST::ArrayExp e);
-    virtual void visit(typename AST::FuncInitExp e);
-    virtual void visit(typename AST::PrettyFuncInitExp e);
-    virtual void visit(typename AST::FileInitExp e);
-    virtual void visit(typename AST::LineInitExp e);
-    virtual void visit(typename AST::ModuleInitExp e);
-    virtual void visit(typename AST::CommaExp e);
-    virtual void visit(typename AST::PostExp e);
-    virtual void visit(typename AST::PowExp e);
-    virtual void visit(typename AST::MulExp e);
-    virtual void visit(typename AST::DivExp e);
-    virtual void visit(typename AST::ModExp e);
-    virtual void visit(typename AST::AddExp e);
-    virtual void visit(typename AST::MinExp e);
-    virtual void visit(typename AST::CatExp e);
-    virtual void visit(typename AST::ShlExp e);
-    virtual void visit(typename AST::ShrExp e);
-    virtual void visit(typename AST::UshrExp e);
-    virtual void visit(typename AST::EqualExp e);
-    virtual void visit(typename AST::InExp e);
-    virtual void visit(typename AST::IdentityExp e);
-    virtual void visit(typename AST::CmpExp e);
-    virtual void visit(typename AST::AndExp e);
-    virtual void visit(typename AST::XorExp e);
-    virtual void visit(typename AST::OrExp e);
-    virtual void visit(typename AST::LogicalExp e);
-    virtual void visit(typename AST::CondExp e);
-    virtual void visit(typename AST::AssignExp e);
-    virtual void visit(typename AST::BinAssignExp e);
-    virtual void visit(typename AST::AddAssignExp e);
-    virtual void visit(typename AST::MinAssignExp e);
-    virtual void visit(typename AST::MulAssignExp e);
-    virtual void visit(typename AST::DivAssignExp e);
-    virtual void visit(typename AST::ModAssignExp e);
-    virtual void visit(typename AST::PowAssignExp e);
-    virtual void visit(typename AST::AndAssignExp e);
-    virtual void visit(typename AST::OrAssignExp e);
-    virtual void visit(typename AST::XorAssignExp e);
-    virtual void visit(typename AST::ShlAssignExp e);
-    virtual void visit(typename AST::ShrAssignExp e);
-    virtual void visit(typename AST::UshrAssignExp e);
-    virtual void visit(typename AST::CatAssignExp e);
-    virtual void visit(typename AST::TemplateAliasParameter tp);
-    virtual void visit(typename AST::TemplateTypeParameter tp);
-    virtual void visit(typename AST::TemplateTupleParameter tp);
-    virtual void visit(typename AST::TemplateValueParameter tp);
-    virtual void visit(typename AST::TemplateThisParameter tp);
-    virtual void visit(typename AST::StaticIfCondition c);
-    virtual void visit(typename AST::DVCondition c);
-    virtual void visit(typename AST::DebugCondition c);
-    virtual void visit(typename AST::VersionCondition c);
-    virtual void visit(typename AST::ExpInitializer i);
-    virtual void visit(typename AST::StructInitializer i);
-    virtual void visit(typename AST::ArrayInitializer i);
-    virtual void visit(typename AST::VoidInitializer i);
-    virtual void visit(typename AST::CInitializer i);
-};
-
 template <typename AST>
 class PermissiveVisitor : public ParseTimeVisitor<AST >
 {
@@ -5866,54 +5695,6 @@ extern void semantic3(Dsymbol* dsym, Scope* sc);
 extern bool isTrivialExp(Expression* e);
 
 extern bool hasSideEffect(Expression* e, bool assumeImpureCalls = false);
-
-enum class STMT : uint8_t
-{
-    Error = 0u,
-    Peel = 1u,
-    Exp = 2u,
-    DtorExp = 3u,
-    Compile = 4u,
-    Compound = 5u,
-    CompoundDeclaration = 6u,
-    CompoundAsm = 7u,
-    UnrolledLoop = 8u,
-    Scope = 9u,
-    Forwarding = 10u,
-    While = 11u,
-    Do = 12u,
-    For = 13u,
-    Foreach = 14u,
-    ForeachRange = 15u,
-    If = 16u,
-    Conditional = 17u,
-    StaticForeach = 18u,
-    Pragma = 19u,
-    StaticAssert = 20u,
-    Switch = 21u,
-    Case = 22u,
-    CaseRange = 23u,
-    Default = 24u,
-    GotoDefault = 25u,
-    GotoCase = 26u,
-    SwitchError = 27u,
-    Return = 28u,
-    Break = 29u,
-    Continue = 30u,
-    Synchronized = 31u,
-    With = 32u,
-    TryCatch = 33u,
-    TryFinally = 34u,
-    ScopeGuard = 35u,
-    Throw = 36u,
-    Debug = 37u,
-    Goto = 38u,
-    Label = 39u,
-    Asm = 40u,
-    InlineAsm = 41u,
-    GccAsm = 42u,
-    Import = 43u,
-};
 
 class Statement : public ASTNode
 {
@@ -6488,23 +6269,6 @@ public:
     void accept(Visitor* v);
 };
 
-enum class CPU
-{
-    x87 = 0,
-    mmx = 1,
-    sse = 2,
-    sse2 = 3,
-    sse3 = 4,
-    ssse3 = 5,
-    sse4_1 = 6,
-    sse4_2 = 7,
-    avx = 8,
-    avx2 = 9,
-    avx512 = 10,
-    baseline = 11,
-    native = 12,
-};
-
 struct Target
 {
     enum class OS : uint8_t
@@ -6820,45 +6584,7 @@ public:
     void visit(RemoveExp* e);
 };
 
-typedef void* Key;
-
-typedef void* Value;
-
-typedef KeyValueTemplate<void*, void* > KeyValue;
-
-typedef _d_real longdouble;
-
 extern void browse(const char* url);
-
-enum class Color
-{
-    black = 0,
-    red = 1,
-    green = 2,
-    blue = 4,
-    yellow = 3,
-    magenta = 5,
-    cyan = 6,
-    lightGray = 7,
-    bright = 8,
-    darkGray = 8,
-    brightRed = 9,
-    brightGreen = 10,
-    brightBlue = 12,
-    brightYellow = 11,
-    brightMagenta = 13,
-    brightCyan = 14,
-    white = 15,
-};
-
-namespace Classification
-{
-    static Color const error = (Color)9;
-    static Color const gagged = (Color)12;
-    static Color const warning = (Color)11;
-    static Color const deprecation = (Color)14;
-    static Color const tip = (Color)10;
-};
 
 extern void error(const Loc& loc, const char* format, ...);
 
@@ -6899,76 +6625,6 @@ extern void vdeprecationSupplemental(const Loc& loc, const char* format, va_list
 extern void fatal();
 
 extern void halt();
-
-enum class HIGHLIGHT : uint8_t
-{
-    Default = 0u,
-    Escape = 255u,
-    Identifier = 15u,
-    Keyword = 15u,
-    Literal = 15u,
-    Comment = 8u,
-    Other = 6u,
-};
-
-enum class DiagnosticReporting : uint8_t
-{
-    error = 0u,
-    inform = 1u,
-    off = 2u,
-};
-
-enum class MessageStyle : uint8_t
-{
-    digitalmars = 0u,
-    gnu = 1u,
-};
-
-enum class CHECKENABLE : uint8_t
-{
-    _default = 0u,
-    off = 1u,
-    on = 2u,
-    safeonly = 3u,
-};
-
-enum class CHECKACTION : uint8_t
-{
-    D = 0u,
-    C = 1u,
-    halt = 2u,
-    context = 3u,
-};
-
-enum class PIC : uint8_t
-{
-    fixed = 0u,
-    pic = 1u,
-    pie = 2u,
-};
-
-enum class CppStdRevision : uint32_t
-{
-    cpp98 = 199711u,
-    cpp11 = 201103u,
-    cpp14 = 201402u,
-    cpp17 = 201703u,
-    cpp20 = 202002u,
-};
-
-enum class CxxHeaderMode : uint32_t
-{
-    none = 0u,
-    silent = 1u,
-    verbose = 2u,
-};
-
-enum class FeatureState : int8_t
-{
-    default_ = -1,
-    disabled = 0,
-    enabled = 1,
-};
 
 struct Param
 {
@@ -7353,8 +7009,6 @@ struct Param
         {}
 };
 
-typedef uint32_t structalign_t;
-
 struct Global
 {
     _d_dynamicArray< const char > inifilename;
@@ -7417,30 +7071,6 @@ struct Global
         debugids(debugids)
         {}
 };
-
-typedef uint64_t dinteger_t;
-
-typedef int64_t sinteger_t;
-
-typedef uint64_t uinteger_t;
-
-typedef int8_t d_int8;
-
-typedef uint8_t d_uns8;
-
-typedef int16_t d_int16;
-
-typedef uint16_t d_uns16;
-
-typedef int32_t d_int32;
-
-typedef uint32_t d_uns32;
-
-typedef int64_t d_int64;
-
-typedef uint64_t d_uns64;
-
-typedef uint64_t StorageClass;
 
 struct Id
 {
@@ -7915,41 +7545,6 @@ struct Token
         {}
 };
 
-template <typename T>
-struct Array
-{
-    // Ignoring var length alignment 0
-    size_t length;
-    // Ignoring var data alignment 0
-    _d_dynamicArray< T > data;
-    // Ignoring var SMALLARRAYCAP alignment 0
-    // Ignoring var smallarray alignment 0
-    void* smallarray;
-    Array(size_t dim);
-    ~Array();
-    const char* toChars() const;
-    Array& push(T ptr);
-    Array& append(Array* a);
-    void reserve(size_t nentries);
-    void remove(size_t i);
-    void insert(size_t index, Array* a);
-    void insert(size_t index, T ptr);
-    void setDim(size_t newdim);
-    size_t find(T ptr) const;
-    bool contains(T ptr) const;
-    T& opIndex(size_t i);
-    T* tdata();
-    Array<T >* copy() const;
-    void shift(T ptr);
-    void zero();
-    T pop();
-    typedef length opDollar;
-    typedef length dim;
-    Array()
-    {
-    }
-};
-
 using real_t = longdouble;
 
 struct CTFloat
@@ -7997,8 +7592,6 @@ struct CTFloat
     {
     }
 };
-
-typedef Array<const char* > Strings;
 
 struct Port
 {
