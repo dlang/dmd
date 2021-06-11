@@ -477,7 +477,8 @@ enum class BUILTIN : unsigned char
     yl2xp1,
     toPrecFloat,
     toPrecDouble,
-    toPrecReal
+    toPrecReal,
+    ctfeWrite
 };
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);

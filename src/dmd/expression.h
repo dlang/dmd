@@ -914,7 +914,7 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     bool isBool(bool result);
-
+    StringExp* toStringExp();
     void accept(Visitor *v) { v->visit(this); }
 };
 

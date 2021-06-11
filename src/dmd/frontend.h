@@ -235,6 +235,7 @@ enum class BUILTIN : uint8_t
     toPrecFloat = 33u,
     toPrecDouble = 34u,
     toPrecReal = 35u,
+    ctfeWrite = 36u,
 };
 
 struct UnionExp;
@@ -4315,6 +4316,7 @@ public:
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
     bool isBool(bool result);
+    StringExp* toStringExp();
     void accept(Visitor* v);
 };
 
@@ -7346,6 +7348,7 @@ struct Id
     static Identifier* core;
     static Identifier* etc;
     static Identifier* attribute;
+    static Identifier* builtins;
     static Identifier* math;
     static Identifier* sin;
     static Identifier* cos;
@@ -7399,6 +7402,7 @@ struct Id
     static Identifier* outp;
     static Identifier* outpl;
     static Identifier* outpw;
+    static Identifier* __ctfeWrite;
     static Identifier* isAbstractClass;
     static Identifier* isArithmetic;
     static Identifier* isAssociativeArray;
