@@ -282,14 +282,35 @@ public:
         this.printIgnored = global.params.doCxxHdrGeneration == CxxHeaderMode.verbose;
     }
 
-    /// Visit `dsym` with `buf` while temporarily clearing `context`
-    private void visitAsRoot(AST.Dsymbol dsym, OutBuffer* buf)
+    /**
+     * Emits `dsym` into `donebuf` s.t. it is declared before the currently
+     * visited symbol that written to `buf`.
+     *
+     * Temporarily clears `context` to behave as if it was visited normally.
+     */
+    private void includeSymbol(AST.Dsymbol dsym)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[includeSymbol(AST.Dsymbol) enter] %s\n", dsym.toChars());
+            scope(exit) printf("[includeSymbol(AST.Dsymbol) exit] %s\n", dsym.toChars());
+        }
+
+        auto ptr = cast(void*) dsym in visited;
+        if (ptr && *ptr)
+            return;
+
+        // Temporary replacement for `buf` which is appended to `donebuf`
+        OutBuffer decl;
+        decl.doindent = true;
+        decl.spaces = true;
+        scope (exit) donebuf.write(&decl);
+
         auto ctxStash = this.context;
         auto bufStash = this.buf;
 
         this.context = Context.init;
-        this.buf = buf;
+        this.buf = &decl;
         this.mustEmit = true;
 
         dsym.accept(this);
@@ -1378,26 +1399,6 @@ public:
             return;
 
         buf.writestringln("#pragma pack(pop)");
-    }
-
-    /// Emits `ds` into `donebuf` s.t. it is declared before the
-    /// currently visited symbol that uses it.
-    private void includeSymbol(AST.Dsymbol ds)
-    {
-        debug (Debug_DtoH)
-        {
-            printf("[includeSymbol(AST.Dsymbol) enter] %s\n", ds.toChars());
-            scope(exit) printf("[includeSymbol(AST.Dsymbol) exit] %s\n", ds.toChars());
-        }
-        auto ptr = cast(void*) ds in visited;
-        if (ptr && *ptr)
-            return;
-
-        OutBuffer decl;
-        decl.doindent = true;
-        decl.spaces = true;
-        visitAsRoot(ds, &decl);
-        donebuf.write(&decl);
     }
 
     override void visit(AST.ClassDeclaration cd)
