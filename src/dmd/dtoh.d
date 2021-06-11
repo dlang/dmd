@@ -1932,7 +1932,10 @@ public:
 
         // Check if the enum was emitted as a real enum
         if (kind == EnumKind.Int || kind == EnumKind.Numeric)
+        {
+            includeSymbol(ed);
             buf.writestring(ed.toChars());
+        }
         else
         {
             // Use the base type if the enum was emitted as a namespace
@@ -1948,12 +1951,7 @@ public:
             printf("[AST.TypeEnum enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeEnum exit] %s\n", t.toChars());
         }
-        if (cast(void*)t.sym !in forwarded)
-        {
-            forwarded[cast(void*)t.sym] = true;
-            //printf("Visiting enum %s from module %s %s\n", t.sym.toPrettyChars(), t.toChars(), t.sym.loc.toChars());
-            visitAsRoot(t.sym, fwdbuf);
-        }
+
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         enumToBuffer(t.sym);
