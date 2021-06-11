@@ -34,7 +34,7 @@ $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
 $(H2 $(LNAME2 Invariants, Invariants))
 
-        $(P See $(DDSUBLINK struct, StructInvariant, Struct Invariants) and $(DDSUBLINK class, invariants, Class Invariants).)
+        $(P See $(DDSUBLINK struct, Invariant, Struct Invariants) and $(DDSUBLINK class, invariants, Class Invariants).)
 
 
 $(H2 $(LNAME2 references, References))

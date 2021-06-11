@@ -1933,11 +1933,11 @@ $(GNAME AssertArguments):
     )
 
     $(P If the first $(I AssignExpression) is a reference to a class instance for
-    which a $(DDSUBLINK spec/class, invariants, Class Invariant) exists, the $(I Class Invariant) must hold.
+    which a $(DDSUBLINK spec/class, invariants, class Invariant) exists, the class $(I Invariant) must hold.
     )
 
     $(P If the first $(I AssignExpression) is a pointer to a struct instance for
-    which a $(I Struct Invariant) exists, the $(I Struct Invariant) must hold.
+    which a struct $(I Invariant) exists, the struct $(I Invariant) must hold.
     )
 
     $(P The type of an $(I AssertExpression) is $(D void).

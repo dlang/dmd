@@ -1500,16 +1500,16 @@ void main()
 ---
 )
 
-$(H2 $(LNAME2 StructInvariant, Struct Invariants))
+$(H2 $(LNAME2 Invariant, Struct Invariants))
 
 $(GRAMMAR
-$(GNAME StructInvariant):
+$(GNAME Invariant):
     $(D invariant $(LPAREN) $(RPAREN)) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
     $(D invariant $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN) ;)
 )
 
-    $(P $(I StructInvariant)s specify the relationships among the members of a struct instance.
+    $(P Struct $(I Invariant)s specify the relationships among the members of a struct instance.
     Those relationships must hold for any interactions with the instance from its
     public interface.
     )
@@ -1525,10 +1525,10 @@ $(GNAME StructInvariant):
 
     $(P There may be multiple invariants in a struct. They are applied in lexical order.)
 
-    $(P $(I StructInvariant)s must hold at the exit of the struct constructor (if any),
+    $(P Struct $(I Invariant)s must hold at the exit of the struct constructor (if any),
     and at the entry of the struct destructor (if any).)
 
-    $(P $(I StructInvariant)s must hold
+    $(P Struct $(I Invariant)s must hold
     at the entry and exit of all public or exported non-static member functions.
     The order of application of invariants is:
     $(OL
@@ -1588,7 +1588,7 @@ $(GNAME StructInvariant):
 
     $(IMPLEMENTATION_DEFINED
     $(OL
-    $(LI Whether the $(I StructInvariant) is executed at runtime or not. This is typically
+    $(LI Whether the struct $(I Invariant) is executed at runtime or not. This is typically
     controlled with a compiler switch.)
     $(LI The behavior when the invariant does not hold is typically the same as
     for when $(GLINK2 expression, AssertExpression)s fail.)
