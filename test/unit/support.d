@@ -54,7 +54,10 @@ string stripDelimited(string str)
 
 const struct CompilationResult
 {
+    import dmd.dmodule : Module;
+
     Diagnostic[] diagnostics;
+    Module module_;
 
     alias diagnostics this;
 
@@ -101,7 +104,7 @@ CompilationResult compiles(string code, string filename = "test.d")
 
     t.module_.fullSemantic();
 
-    return CompilationResult(diagnosticCollector.diagnostics);
+    return CompilationResult(diagnosticCollector.diagnostics, t.module_);
 }
 
 class NoopDiagnosticReporter : DiagnosticReporter

@@ -131,7 +131,8 @@ extern (C++) final class Nspace : ScopeDsymbol
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
-            error("is forward referenced when looking for `%s`", ident.toChars());
+            if (!(flags & IgnoreErrors))
+                error("is forward referenced when looking for `%s`", ident.toChars());
             return null;
         }
 
