@@ -10,6 +10,7 @@ experimental C++ header generator:
 - Renamed imports are emitted as `using ...`
 - Complex types are emitted as `_Complex`.
 - Initializers of `union` variables/parameters omit non-active members
+- Typecasts are emitted as C style, not D's `cast(...) ...`
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

@@ -2358,6 +2358,20 @@ public:
                 return;
             }
         }
+        else if (auto ce = exp.isCastExp())
+        {
+            buf.writeByte('(');
+            if (ce.to)
+                ce.to.accept(this);
+            else if (ce.e1.type)
+                // Try the expression type with modifiers in case of cast(const) in templates
+                ce.e1.type.castMod(ce.mod).accept(this);
+            else
+                // Fallback, not necessarily correct but the best we've got here
+                target.accept(this);
+            buf.writestring(") ");
+            ce.e1.accept(this);
+        }
         else if (needsCast(target, exp))
         {
             buf.writestring("static_cast<");
