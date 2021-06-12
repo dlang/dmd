@@ -251,6 +251,8 @@ struct DesigInit
 extern (C++) final class CInitializer : Initializer
 {
     DesigInits initializerList; /// initializer-list
+    Type type;              /// type that array will be used to initialize
+    bool sem;               /// true if semantic() is run
 
     extern (D) this(const ref Loc loc)
     {
