@@ -114,6 +114,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
     Initializer visitStruct(StructInitializer i)
     {
         //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), i.toChars());
+        /* This works by replacing the StructInitializer with an ExpInitializer.
+          */
         t = t.toBasetype();
         if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
             t = t.nextOf().toBasetype();
@@ -562,17 +564,23 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
     Initializer visitC(CInitializer ci)
     {
         //printf("CInitializer::semantic()\n");
+        if (ci.sem) // if semantic() already run
+            return ci;
+        ci.sem = true;
         t = t.toBasetype();
+        ci.type = t;    // later passes will need this
+
         auto tsa = t.isTypeSArray();
-        if (!tsa)
+        auto ta = t.isTypeDArray();
+        if (!(tsa || ta))
         {
-            error(ci.loc, "C non-static-array initializers not supported yet");
+            error(ci.loc, "C non-array initializers not supported yet");
             return err();
         }
 
         const uint amax = 0x8000_0000;
         bool errors;
-        auto tn = tsa.nextOf();
+        auto tn = t.nextOf();
         auto dil = ci.initializerList[];
         foreach (di; dil)
         {
@@ -581,17 +589,38 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 error(ci.loc, "C designator-list not supported yet");
                 return err();
             }
-            di.initializer = di.initializer.initializerSemantic(sc, tn, needInterpret);
+            auto tnx = tn; // in case initializerSemantic tries to change it
+            di.initializer = di.initializer.initializerSemantic(sc, tnx, needInterpret);
             if (di.initializer.isErrorInitializer())
                 errors = true;
+            if (tnx != tn) // oops, it was changed! Must have been an incomplete type
+            {
+                // C11 6.2.5-20 "element type shall be complete whenever the array type is specified"
+                error(ci.loc, "incomplete element types not allowed");
+                errors = true;
+            }
         }
 
         if (errors)
             return err();
 
+        if (ta) // array of unknown length
+        {
+            // Change to array of known length
+            tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, dil.length, Type.tsize_t));
+            tx = tsa;       // rewrite caller's type
+            ci.type = tsa;  // remember for later passes
+        }
+        const uinteger_t edim = tsa.dim.toInteger();
+        if (dil.length > edim)
+        {
+            error(ci.loc, "%d initializers for static array length of %d", cast(int)dil.length, cast(int)edim);
+            return err;
+        }
+
         const sz = tn.size();
         bool overflow;
-        const max = mulu(dil.length, sz, overflow);
+        const max = mulu(edim, sz, overflow);
         if (overflow || max >= amax)
         {
             error(ci.loc, "array dimension %llu exceeds max of %llu", ulong(dil.length), ulong(amax / sz));

@@ -202,12 +202,28 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
     void visitC(CInitializer ci)
     {
-        //printf("CInitializer::semantic()\n");
+        //printf("CInitializer.toDt()\n");
+
+        /* append all initializers to dtb
+         */
         auto dil = ci.initializerList[];
         foreach (di; dil)
         {
             assert(!di.designatorList);
             Initializer_toDt(di.initializer, dtb);
+        }
+
+        /* zero fill any remainder
+         */
+        auto tsa = ci.type.toBasetype().isTypeSArray();
+        assert(tsa);
+        const tsaLength = cast(size_t)tsa.dim.toInteger();
+        if (dil.length < tsaLength) // not enough initializers
+        {
+            // zero fill to end of array
+            Type tn = tsa.nextOf().toBasetype();
+            const uint size = cast(uint)tn.size();
+            dtb.nzeros(cast(uint)(size * (tsaLength - dil.length)));
         }
     }
 
