@@ -2876,7 +2876,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             assert(treq.nextOf().ty == Tfunction);
             if (treq.ty == Tdelegate)
                 fld.tok = TOK.delegate_;
-            else if (treq.ty == Tpointer && treq.nextOf().ty == Tfunction)
+            else if (treq.isPtrToFunction())
                 fld.tok = TOK.function_;
             else
                 assert(0);

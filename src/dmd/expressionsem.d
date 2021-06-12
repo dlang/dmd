@@ -376,12 +376,12 @@ private bool checkPropertyCall(Expression e)
                 tf = cast(TypeFunction)ce.f.type;
             }
         }
-        else if (ce.e1.type.ty == Tfunction)
-            tf = cast(TypeFunction)ce.e1.type;
-        else if (ce.e1.type.ty == Tdelegate)
-            tf = cast(TypeFunction)ce.e1.type.nextOf();
-        else if (ce.e1.type.ty == Tpointer && ce.e1.type.nextOf().ty == Tfunction)
-            tf = cast(TypeFunction)ce.e1.type.nextOf();
+        else if (auto t = ce.e1.type.isTypeFunction())
+            tf = t;
+        else if (auto t = ce.e1.type.isTypeDelegate())
+            tf = t.nextOf().isTypeFunction();
+        else if (auto t = ce.e1.type.isPtrToFunction())
+            tf = t;
         else
             assert(0);
     }
@@ -4071,7 +4071,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.fd.treq && !exp.fd.type.nextOf())
         {
             TypeFunction tfv = null;
-            if (exp.fd.treq.ty == Tdelegate || (exp.fd.treq.ty == Tpointer && exp.fd.treq.nextOf().ty == Tfunction))
+            if (exp.fd.treq.ty == Tdelegate || exp.fd.treq.isPtrToFunction())
                 tfv = cast(TypeFunction)exp.fd.treq.nextOf();
             if (tfv)
             {
@@ -4768,7 +4768,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             // If we've got a pointer to a function then deference it
             // https://issues.dlang.org/show_bug.cgi?id=16483
-            if (exp.e1.type.ty == Tpointer && exp.e1.type.nextOf().ty == Tfunction)
+            if (exp.e1.type.isPtrToFunction())
             {
                 Expression e = new PtrExp(exp.loc, exp.e1);
                 e.type = exp.e1.type.nextOf();
@@ -4897,9 +4897,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tf = cast(TypeFunction)td.next;
                 p = "delegate";
             }
-            else if (t1.ty == Tpointer && (cast(TypePointer)t1).next.ty == Tfunction)
+            else if (auto tfx = t1.isPtrToFunction())
             {
-                tf = cast(TypeFunction)(cast(TypePointer)t1).next;
+                tf = tfx;
                 p = "function pointer";
             }
             else if (exp.e1.op == TOK.dotVariable && (cast(DotVarExp)exp.e1).var.isOverDeclaration())
@@ -5633,10 +5633,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     tded = (cast(TypeDelegate)e.targ).next;
                     tded = (cast(TypeFunction)tded).next;
                 }
-                else if (e.targ.ty == Tpointer && (cast(TypePointer)e.targ).next.ty == Tfunction)
+                else if (auto tded2 = e.targ.isPtrToFunction())
                 {
-                    tded = (cast(TypePointer)e.targ).next;
-                    tded = (cast(TypeFunction)tded).next;
+                    tded = tded2.next;
                 }
                 else
                     return no();
@@ -7643,7 +7642,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t1b = exp.e1.type.toBasetype();
         if (t1b.ty == Tpointer)
         {
-            if ((cast(TypePointer)t1b).next.ty == Tfunction)
+            if (t1b.isPtrToFunction())
             {
                 exp.error("cannot slice function pointer `%s`", exp.e1.toChars());
                 return setError();
@@ -8139,7 +8138,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         switch (t1b.ty)
         {
         case Tpointer:
-            if ((cast(TypePointer)t1b).next.ty == Tfunction)
+            if (t1b.isPtrToFunction())
             {
                 exp.error("cannot index function pointer `%s`", exp.e1.toChars());
                 return setError();
@@ -9886,11 +9885,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb2 = exp.e2.type.toBasetype();
 
         bool err = false;
-        if (tb1.ty == Tdelegate || tb1.ty == Tpointer && tb1.nextOf().ty == Tfunction)
+        if (tb1.ty == Tdelegate || tb1.isPtrToFunction())
         {
             err |= exp.e1.checkArithmetic() || exp.e1.checkSharedAccess(sc);
         }
-        if (tb2.ty == Tdelegate || tb2.ty == Tpointer && tb2.nextOf().ty == Tfunction)
+        if (tb2.ty == Tdelegate || tb2.isPtrToFunction())
         {
             err |= exp.e2.checkArithmetic() || exp.e2.checkSharedAccess(sc);
         }
@@ -9987,11 +9986,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t2 = exp.e2.type.toBasetype();
 
         bool err = false;
-        if (t1.ty == Tdelegate || t1.ty == Tpointer && t1.nextOf().ty == Tfunction)
+        if (t1.ty == Tdelegate || t1.isPtrToFunction())
         {
             err |= exp.e1.checkArithmetic() || exp.e1.checkSharedAccess(sc);
         }
-        if (t2.ty == Tdelegate || t2.ty == Tpointer && t2.nextOf().ty == Tfunction)
+        if (t2.ty == Tdelegate || t2.isPtrToFunction())
         {
             err |= exp.e2.checkArithmetic() || exp.e2.checkSharedAccess(sc);
         }

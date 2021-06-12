@@ -1459,6 +1459,7 @@ public:
     virtual bool needsCopyOrPostblit();
     virtual bool needsNested();
     virtual TypeBasic* isTypeBasic();
+    TypeFunction* isPtrToFunction();
     TypeError* isTypeError();
     TypeVector* isTypeVector();
     TypeSArray* isTypeSArray();

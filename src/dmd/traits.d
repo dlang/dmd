@@ -497,8 +497,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return cast(TypeFunction)t;
             else if (t.ty == Tdelegate)
                 return cast(TypeFunction)t.nextOf();
-            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
-                return cast(TypeFunction)t.nextOf();
+            else if (auto tf = t.isPtrToFunction())
+                return tf;
         }
 
         return null;
