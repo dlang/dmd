@@ -37,6 +37,9 @@ $(GNAME DeclDef):
     $(GLINK2 template-mixin, TemplateMixinDeclaration)
     $(GLINK2 template-mixin, TemplateMixin)
     $(GLINK MixinDeclaration)
+    $(GLINK EmptyDeclaration)
+
+$(GNAME EmptyDeclaration):
     $(D ;)
 )
 

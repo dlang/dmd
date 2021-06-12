@@ -12,16 +12,19 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME Statement):
-    $(D ;)
+    $(GLINK EmptyStatement)
     $(GLINK NonEmptyStatement)
     $(GLINK ScopeBlockStatement)
+
+$(GNAME EmptyStatement):
+    $(D ;)
 
 $(GNAME NoScopeNonEmptyStatement):
     $(GLINK NonEmptyStatement)
     $(GLINK BlockStatement)
 
 $(GNAME NoScopeStatement):
-    $(D ;)
+    $(GLINK EmptyStatement)
     $(GLINK NonEmptyStatement)
     $(GLINK BlockStatement)
 
@@ -1095,7 +1098,7 @@ $(GNAME StatementListNoCaseNoDefault):
     $(GLINK StatementNoCaseNoDefault) $(GSELF StatementListNoCaseNoDefault)
 
 $(GNAME StatementNoCaseNoDefault):
-    $(D ;)
+    $(GLINK EmptyStatement)
     $(GLINK NonEmptyStatementNoCaseNoDefault)
     $(GLINK ScopeBlockStatement)
 )
