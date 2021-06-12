@@ -119,9 +119,9 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         t = t.toBasetype();
         if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
             t = t.nextOf().toBasetype();
-        if (t.ty == Tstruct)
+        if (auto ts = t.isTypeStruct())
         {
-            StructDeclaration sd = (cast(TypeStruct)t).sym;
+            StructDeclaration sd = ts.sym;
             // check if the sd has a regular ctor (user defined non-copy ctor)
             // that is not disabled.
             if (sd.hasRegularCtor(true))
@@ -135,20 +135,25 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             const nfields = sd.nonHiddenFields();
             //expandTuples for non-identity arguments?
             auto elements = new Expressions(nfields);
-            for (size_t j = 0; j < elements.dim; j++)
-                (*elements)[j] = null;
+            auto elems = (*elements)[];
+            foreach (ref elem; elems)
+                elem = null;
+
             // Run semantic for explicitly given initializers
             // TODO: this part is slightly different from StructLiteralExp::semantic.
             bool errors = false;
-            for (size_t fieldi = 0, j = 0; j < i.field.dim; j++)
+            size_t fieldi = 0;
+            foreach (j, id; i.field[])
             {
-                if (Identifier id = i.field[j])
+                if (id)
                 {
+                    /* Determine `fieldi` that `id` matches
+                     */
                     Dsymbol s = sd.search(i.loc, id);
                     if (!s)
                     {
                         s = sd.search_correct(id);
-                        Loc initLoc = i.value[j].loc;
+                        const initLoc = i.value[j].loc;
                         if (s)
                             error(initLoc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
@@ -156,9 +161,9 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                         return err();
                     }
                     s.checkDeprecated(i.loc, sc);
-
                     s = s.toAlias();
-                    // Find out which field index it is
+
+                    // Find out which field index `s` is
                     for (fieldi = 0; 1; fieldi++)
                     {
                         if (fieldi >= nfields)
@@ -175,13 +180,16 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     error(i.loc, "too many initializers for `%s`", sd.toChars());
                     return err();
                 }
+
                 VarDeclaration vd = sd.fields[fieldi];
-                if ((*elements)[fieldi])
+                if (elems[fieldi])
                 {
                     error(i.loc, "duplicate initializer for field `%s`", vd.toChars());
                     errors = true;
                     continue;
                 }
+
+                // Check for @safe violations
                 if (vd.type.hasPointers)
                 {
                     if ((t.alignment() < target.ptrsize ||
@@ -193,32 +201,37 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                         errors = true;
                     }
                 }
-                for (size_t k = 0; k < nfields; k++)
+
+                // Check for overlapping initializations (can happen with unions)
+                foreach (k, v2; sd.fields[0 .. nfields])
                 {
-                    VarDeclaration v2 = sd.fields[k];
-                    if (vd.isOverlappedWith(v2) && (*elements)[k])
+                    if (vd.isOverlappedWith(v2) && elems[k])
                     {
                         error(i.loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
                         errors = true;
                         continue;
                     }
                 }
+
+                // Convert initializer to Expression `ex`
                 assert(sc);
-                Initializer iz = i.value[j];
                 auto tm = vd.type.addMod(t.mod);
-                iz = iz.initializerSemantic(sc, tm, needInterpret);
-                Expression ex = iz.initializerToExpression();
+                auto iz = i.value[j].initializerSemantic(sc, tm, needInterpret);
+                auto ex = iz.initializerToExpression();
                 if (ex.op == TOK.error)
                 {
                     errors = true;
                     continue;
                 }
+
                 i.value[j] = iz;
-                (*elements)[fieldi] = doCopyOrMove(sc, ex);
+                elems[fieldi] = doCopyOrMove(sc, ex);
                 ++fieldi;
             }
             if (errors)
                 return err();
+
+            // Make a StructLiteralExp out of elements[]
             auto sle = new StructLiteralExp(i.loc, sd, elements, t);
             if (!sd.fill(i.loc, elements, false))
                 return err();
@@ -228,7 +241,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
         else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && i.value.dim == 0)
         {
-            TOK tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
+            const tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
             /* Rewrite as empty delegate literal { }
              */
             Type tf = new TypeFunction(ParameterList(), null, LINK.d);
