@@ -13,6 +13,24 @@ phase of translation.)
 
 $(H2 $(LNAME2 source_text, Source Text))
 
+$(GRAMMAR
+$(GNAME SourceFile):
+    $(GLINK ByteOrderMark) $(GLINK2 module, Module)$(OPT)
+    $(GLINK Shebang) $(GLINK2 module, Module)$(OPT)
+    $(GLINK2 module, Module)$(OPT)
+)
+$(GRAMMAR_LEX
+$(GNAME ByteOrderMark):
+    $(B \uFEFF)
+
+$(GNAME Shebang):
+    $(B #!) $(GLINK Characters)$(OPT) $(GLINK EndOfShebang)
+
+$(GNAME EndOfShebang):
+    $(B \u000A)
+    $(GLINK EndOfFile)
+)
+
 $(P Source text can be encoded as any one of the following:)
 
         $(LIST
