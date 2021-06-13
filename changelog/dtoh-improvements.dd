@@ -12,6 +12,8 @@ experimental C++ header generator:
 - Initializers of `union` variables/parameters omit non-active members
 - Typecasts are emitted as C style, not D's `cast(...) ...`
 - Structs are always tagged as `final` because D disallows `struct` inheritance
+- Symbol names always include template parameters and enclosing declarations
+  when required
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
