@@ -239,7 +239,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             auto ie = new ExpInitializer(i.loc, sle);
             return ie.initializerSemantic(sc, t, needInterpret);
         }
-        else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && i.value.dim == 0)
+        else if ((t.ty == Tdelegate || t.isPtrToFunction()) && i.value.dim == 0)
         {
             const tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
             /* Rewrite as empty delegate literal { }
@@ -1092,7 +1092,7 @@ private bool hasNonConstPointers(Expression e)
         }
         return true;
     }
-    if (e.type.ty == Tpointer && e.type.nextOf().ty != Tfunction)
+    if (e.type.ty == Tpointer && !e.type.isPtrToFunction())
     {
         if (e.op == TOK.symbolOffset) // address of a global is OK
             return false;

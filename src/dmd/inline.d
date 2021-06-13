@@ -2058,7 +2058,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
              * any calls to the fp or dg can be inlined.
              */
             if (vfrom.type.ty == Tdelegate ||
-                vfrom.type.ty == Tpointer && vfrom.type.nextOf().ty == Tfunction)
+                vfrom.type.isPtrToFunction())
             {
                 if (auto ve = arg.isVarExp())
                 {

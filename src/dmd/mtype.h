@@ -313,6 +313,7 @@ public:
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
+    TypeFunction *isPtrToFunction();
     TypeError *isTypeError();
     TypeVector *isTypeVector();
     TypeSArray *isTypeSArray();

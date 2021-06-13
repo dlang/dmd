@@ -1284,7 +1284,7 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
         if (!popnd.ptype)
             return CONSTRUCT_FLAGS(sz, _m, _normal, 0);
         ty = popnd.ptype.ty;
-        if (ty == Tpointer && popnd.ptype.nextOf().ty == Tfunction &&
+        if (popnd.ptype.isPtrToFunction() &&
             !ps.isVarDeclaration())
         {
             return CONSTRUCT_FLAGS(OpndSize._32, _m, _fn16, 0);
