@@ -2704,18 +2704,35 @@ extern (C++) abstract class Type : ASTNode
         return null;
     }
 
-    /****************
-     * Is this type a pointer to a function?
-     * Returns:
-     *  the function type if it is
-     */
     final pure inout nothrow @nogc
     {
+        /****************
+         * Is this type a pointer to a function?
+         * Returns:
+         *  the function type if it is
+         */
         inout(TypeFunction) isPtrToFunction()
         {
             return (ty == Tpointer && (cast(TypePointer)this).next.ty == Tfunction)
                 ? cast(typeof(return))(cast(TypePointer)this).next
                 : null;
+        }
+
+        /*****************
+         * Is this type a function, delegate, or pointer to a function?
+         * Returns:
+         *  the function type if it is
+         */
+        inout(TypeFunction) isFunction_Delegate_PtrToFunction()
+        {
+            return ty == Tfunction ? cast(typeof(return))this :
+
+                   ty == Tdelegate ? cast(typeof(return))(cast(TypePointer)this).next :
+
+                   ty == Tpointer && (cast(TypePointer)this).next.ty == Tfunction ?
+                        cast(typeof(return))(cast(TypePointer)this).next :
+
+                   null;
         }
     }
 
