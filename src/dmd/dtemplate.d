@@ -229,12 +229,16 @@ private Expression getValue(ref Dsymbol s)
  */
 private Expression getValue(Expression e)
 {
-    if (e && e.op == TOK.variable)
+    if (!e)
+        return null;
+    if (auto ve = e.isVarExp())
     {
-        VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
-        if (v && v.storage_class & STC.manifest)
+        if (auto v = ve.var.isVarDeclaration())
         {
-            e = v.getConstInitializer();
+            if (v.storage_class & STC.manifest)
+            {
+                e = v.getConstInitializer();
+            }
         }
     }
     return e;
@@ -417,27 +421,27 @@ private size_t expressionHash(Expression e)
     switch (e.op)
     {
     case TOK.int64:
-        return cast(size_t) (cast(IntegerExp)e).getInteger();
+        return cast(size_t) e.isIntegerExp().getInteger();
 
     case TOK.float64:
-        return CTFloat.hash((cast(RealExp)e).value);
+        return CTFloat.hash(e.isRealExp().value);
 
     case TOK.complex80:
-        auto ce = cast(ComplexExp)e;
+        auto ce = e.isComplexExp();
         return mixHash(CTFloat.hash(ce.toReal), CTFloat.hash(ce.toImaginary));
 
     case TOK.identifier:
-        return cast(size_t)cast(void*) (cast(IdentifierExp)e).ident;
+        return cast(size_t)cast(void*) e.isIdentifierExp().ident;
 
     case TOK.null_:
-        return cast(size_t)cast(void*) (cast(NullExp)e).type;
+        return cast(size_t)cast(void*) e.isNullExp().type;
 
     case TOK.string_:
         return calcHash(e.isStringExp.peekData());
 
     case TOK.tuple:
     {
-        auto te = cast(TupleExp)e;
+        auto te = e.isTupleExp();
         size_t hash = 0;
         hash += te.e0 ? expressionHash(te.e0) : 0;
         foreach (elem; *te.exps)
@@ -447,7 +451,7 @@ private size_t expressionHash(Expression e)
 
     case TOK.arrayLiteral:
     {
-        auto ae = cast(ArrayLiteralExp)e;
+        auto ae = e.isArrayLiteralExp();
         size_t hash;
         foreach (i; 0 .. ae.elements.dim)
             hash = mixHash(hash, expressionHash(ae[i]));
@@ -456,7 +460,7 @@ private size_t expressionHash(Expression e)
 
     case TOK.assocArrayLiteral:
     {
-        auto ae = cast(AssocArrayLiteralExp)e;
+        auto ae = e.isAssocArrayLiteralExp();
         size_t hash;
         foreach (i; 0 .. ae.keys.dim)
             // reduction needs associative op as keys are unsorted (use XOR)
@@ -466,7 +470,7 @@ private size_t expressionHash(Expression e)
 
     case TOK.structLiteral:
     {
-        auto se = cast(StructLiteralExp)e;
+        auto se = e.isStructLiteralExp();
         size_t hash;
         foreach (elem; *se.elements)
             hash = mixHash(hash, elem ? expressionHash(elem) : 0);
@@ -474,10 +478,10 @@ private size_t expressionHash(Expression e)
     }
 
     case TOK.variable:
-        return cast(size_t)cast(void*) (cast(VarExp)e).var;
+        return cast(size_t)cast(void*) e.isVarExp().var;
 
     case TOK.function_:
-        return cast(size_t)cast(void*) (cast(FuncExp)e).fd;
+        return cast(size_t)cast(void*) e.isFuncExp().fd;
 
     default:
         // no custom equals for this expression
@@ -839,8 +843,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             /* Declare all the function parameters as variables and add them to the scope
              * Making parameters is similar to FuncDeclaration.semantic3
              */
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            assert(tf.ty == Tfunction);
+            auto tf = fd.type.isTypeFunction();
 
             scx.parent = fd;
 
@@ -1165,8 +1168,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             FuncDeclaration fd = onemember ? onemember.isFuncDeclaration() : null;
             if (fd)
             {
-                assert(fd.type.ty == Tfunction);
-                TypeFunction tf = (cast(TypeFunction) fd.type).syntaxCopy();
+                TypeFunction tf = fd.type.isTypeFunction().syntaxCopy();
 
                 fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, tf);
                 fd.parent = ti;
@@ -2370,7 +2372,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         fd.parent = ti;
 
         assert(fd.type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)fd.type;
+        auto tf = fd.type.isTypeFunction();
         tf.fargs = fargs;
 
         if (tthis)
@@ -3002,10 +3004,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             assert(fd && m.lastf);
             {
                 // Disambiguate by tf.callMatch
-                auto tf1 = cast(TypeFunction)fd.type;
-                assert(tf1.ty == Tfunction);
-                auto tf2 = cast(TypeFunction)m.lastf.type;
-                assert(tf2.ty == Tfunction);
+                auto tf1 = fd.type.isTypeFunction();
+                auto tf2 = m.lastf.type.isTypeFunction();
                 MATCH c1 = tf1.callMatch(tthis_fd, fargs_, 0, null, sc);
                 MATCH c2 = tf2.callMatch(tthis_best, fargs_, 0, null, sc);
                 //printf("2: c1 = %d, c2 = %d\n", c1, c2);
@@ -3107,10 +3107,9 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
 
         tthis_best = m.lastf.needThis() && !m.lastf.isCtorDeclaration() ? tthis : null;
 
-        auto tf = cast(TypeFunction)m.lastf.type;
-        if (tf.ty == Terror)
+        if (m.lastf.type.ty == Terror)
             goto Lerror;
-        assert(tf.ty == Tfunction);
+        auto tf = m.lastf.type.isTypeFunction();
         if (!tf.callMatch(tthis_best, fargs_, 0, null, sc))
             goto Lnomatch;
 
@@ -3871,9 +3870,11 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         override void visit(TypeFunction t)
         {
             // Extra check that function characteristics must match
-            if (tparam && tparam.ty == Tfunction)
+            if (!tparam)
+                return visit(cast(Type)t);
+
+            if (auto tp = tparam.isTypeFunction())
             {
-                TypeFunction tp = cast(TypeFunction)tparam;
                 if (t.parameterList.varargs != tp.parameterList.varargs || t.linkage != tp.linkage)
                 {
                     result = MATCH.nomatch;
@@ -4787,9 +4788,11 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (e.td)
             {
                 Type to = tparam;
-                if (!to.nextOf() || to.nextOf().ty != Tfunction)
+                if (!to.nextOf())
                     return;
-                TypeFunction tof = cast(TypeFunction)to.nextOf();
+                auto tof = to.nextOf().isTypeFunction();
+                if (!tof)
+                    return;
 
                 // Parameter types inference from 'tof'
                 assert(e.td._scope);
