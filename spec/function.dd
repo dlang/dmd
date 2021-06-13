@@ -47,7 +47,6 @@ $(GNAME ParameterAttributes):
     $(GLINK2 attribute, UserDefinedAttribute)
     $(GSELF ParameterAttributes) $(GLINK InOut)
     $(GSELF ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
-    $(GSELF ParameterAttributes)
 
 $(GNAME InOut):
     $(D auto)
