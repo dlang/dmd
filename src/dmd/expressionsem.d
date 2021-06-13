@@ -361,13 +361,11 @@ private bool checkPropertyCall(Expression e)
 {
     e = lastComma(e);
 
-    if (e.op == TOK.call)
+    if (auto ce = e.isCallExp())
     {
-        CallExp ce = cast(CallExp)e;
-        TypeFunction tf;
         if (ce.f)
         {
-            tf = cast(TypeFunction)ce.f.type;
+            auto tf = ce.f.type.isTypeFunction();
             /* If a forward reference to ce.f, try to resolve it
              */
             if (!tf.deco && ce.f.semanticRun < PASS.semanticdone)
@@ -376,13 +374,7 @@ private bool checkPropertyCall(Expression e)
                 tf = cast(TypeFunction)ce.f.type;
             }
         }
-        else if (auto t = ce.e1.type.isTypeFunction())
-            tf = t;
-        else if (auto t = ce.e1.type.isTypeDelegate())
-            tf = t.nextOf().isTypeFunction();
-        else if (auto t = ce.e1.type.isPtrToFunction())
-            tf = t;
-        else
+        else if (!ce.e1.type.isFunction_Delegate_PtrToFunction())
             assert(0);
     }
     return false;
@@ -5626,17 +5618,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Get the 'return type' for the function,
                  * delegate, or pointer to function.
                  */
-                if (e.targ.ty == Tfunction)
-                    tded = (cast(TypeFunction)e.targ).next;
-                else if (e.targ.ty == Tdelegate)
-                {
-                    tded = (cast(TypeDelegate)e.targ).next;
-                    tded = (cast(TypeFunction)tded).next;
-                }
-                else if (auto tded2 = e.targ.isPtrToFunction())
-                {
-                    tded = tded2.next;
-                }
+                if (auto tf = e.targ.isFunction_Delegate_PtrToFunction())
+                    tded = tf.next;
                 else
                     return no();
                 break;

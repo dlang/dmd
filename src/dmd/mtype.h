@@ -314,6 +314,7 @@ public:
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
     TypeFunction *isPtrToFunction();
+    TypeFunction *isFunction_Delegate_PtrToFunction();
     TypeError *isTypeError();
     TypeVector *isTypeVector();
     TypeSArray *isTypeSArray();

@@ -376,8 +376,7 @@ public:
          */
         if (t != rootType)
         {
-            if (t.ty == Tfunction || t.ty == Tdelegate ||
-                t.isPtrToFunction())
+            if (t.isFunction_Delegate_PtrToFunction())
             {
                 t = t.merge2();
             }

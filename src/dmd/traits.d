@@ -493,11 +493,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (t)
         {
-            if (t.ty == Tfunction)
-                return cast(TypeFunction)t;
-            else if (t.ty == Tdelegate)
-                return cast(TypeFunction)t.nextOf();
-            else if (auto tf = t.isPtrToFunction())
+            if (auto tf = t.isFunction_Delegate_PtrToFunction())
                 return tf;
         }
 
