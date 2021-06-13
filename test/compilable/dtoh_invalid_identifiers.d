@@ -47,6 +47,7 @@ struct _d_dynamicArray final
 #endif
 
 class Alias;
+class Base;
 
 extern bool and;
 
@@ -101,7 +102,7 @@ class Alias : public typename_
 {
 };
 
-extern void user(Alias* i);
+extern void user(Alias<Base* >* i);
 
 template <typename typename_>
 struct InvalidNames final

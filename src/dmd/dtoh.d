@@ -1078,7 +1078,9 @@ public:
             printTemplateParams(td);
             buf.writestring("using ");
             writeIdentifier(ad);
-            buf.printf(" = %s<", td.ident.toChars());
+            buf.writestring(" = ");
+            writeFullName(td);
+            buf.writeByte('<');
 
             foreach (const idx, const p; *td.parameters)
             {
@@ -1437,15 +1439,9 @@ public:
             {
                 base.type.accept(this);
             }
-            // base.type references onemember for template instances
-            // and hence skips the TypeInstance...
-            else if (auto ti = base.sym.isInstantiated())
-            {
-                visitTi(ti);
-            }
             else
             {
-                buf.writestring(base.sym.toChars());
+                writeFullName(base.sym);
                 includeSymbol(base.sym);
             }
         }
@@ -1938,8 +1934,8 @@ public:
         // Check if the enum was emitted as a real enum
         if (kind == EnumKind.Int || kind == EnumKind.Numeric)
         {
+            writeFullName(ed);
             includeSymbol(ed);
-            buf.writestring(ed.toChars());
         }
         else
         {
@@ -1979,12 +1975,7 @@ public:
 
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
-        if (auto ti = t.sym.parent.isTemplateInstance())
-        {
-            visitTi(ti);
-            return;
-        }
-        buf.writestring(t.sym.toChars());
+        writeFullName(t.sym);
     }
 
     override void visit(AST.TypeDArray t)
@@ -2182,7 +2173,7 @@ public:
 
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
-        buf.writestring(t.sym.toChars());
+        writeFullName(t.sym);
         buf.writeByte('*');
         if (t.isConst() || t.isImmutable())
             buf.writestring(" const");
@@ -2422,12 +2413,10 @@ public:
     /// Partially prints the FQN including parent aggregates
     private void printPrefix(AST.Dsymbol var)
     {
-        if (!var || !var.isAggregateDeclaration())
+        if (!var || var is adparent || var.isModule())
             return;
-        printPrefix(var.parent);
-        includeSymbol(var);
 
-        buf.writestring(var.toString());
+        writeFullName(var);
         buf.writestring("::");
     }
 
@@ -2798,6 +2787,63 @@ public:
             ignored("%s %s because of linkage", sym.kind(), sym.toPrettyChars());
 
         return res;
+    }
+
+    /**
+     * Writes the qualified name of `sym` into `buf` including parent
+     * symbols and template parameters.
+     */
+    private void writeFullName(AST.Dsymbol sym)
+    in
+    {
+        assert(sym);
+        assert(sym.ident, sym.toString());
+        // Should never be called directly with a TI, only onemember
+        assert(!sym.isTemplateInstance(), sym.toString());
+    }
+    do
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[writeFullName enter] %s\n", sym.toPrettyChars());
+            scope(exit) printf("[writeFullName exit] %s\n", sym.toPrettyChars());
+        }
+
+        /// Checks whether `sym` is nested in `par` and hence doesn't need the FQN
+        static bool isNestedIn(AST.Dsymbol sym, AST.Dsymbol par)
+        {
+            while (par)
+            {
+                if (sym is par)
+                    return true;
+                par = par.toParent();
+            }
+            return false;
+        }
+        AST.TemplateInstance ti;
+
+        // Check if the `sym` is nested into another symbol and hence requires `Parent::sym`
+        if (auto par = sym.toParent())
+        {
+            // toParent() yields the template instance if `sym` is the onemember of a TI
+            ti = par.isTemplateInstance();
+
+            // Skip the TI because Foo!int.Foo is folded into Foo<int>
+            if (ti) par = ti.toParent();
+
+            // Prefix the name with any enclosing declaration
+            // Stop at either module or enclosing aggregate
+            if (!par.isModule() && !isNestedIn(par, adparent))
+            {
+                writeFullName(par);
+                buf.writestring("::");
+            }
+        }
+
+        if (ti)
+            visitTi(ti);
+        else
+            buf.writestring(sym.ident.toString());
     }
 }
 
