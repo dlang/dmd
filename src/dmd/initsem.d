@@ -576,9 +576,9 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
     Initializer visitC(CInitializer ci)
     {
-        //printf("CInitializer::semantic()\n");
         if (ci.sem) // if semantic() already run
             return ci;
+        //printf("CInitializer::semantic() %s %s\n", t.toChars(), ci.toChars());
         ci.sem = true;
         t = t.toBasetype();
         ci.type = t;    // later passes will need this
@@ -593,50 +593,91 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
         const uint amax = 0x8000_0000;
         bool errors;
-        auto tn = t.nextOf();
         auto dil = ci.initializerList[];
-        foreach (di; dil)
+        size_t i = 0;
+
+        /* Support recursion to handle un-braced array initializers
+         * Params:
+         *    t = element type
+         *    dim = max number of elements
+         * Returns:
+         *    # of elements in array
+         */
+        size_t array(Type t, size_t dim)
         {
-            if (di.designatorList)
-            {
-                error(ci.loc, "C designator-list not supported yet");
-                return err();
-            }
-            auto tnx = tn; // in case initializerSemantic tries to change it
-            di.initializer = di.initializer.initializerSemantic(sc, tnx, needInterpret);
-            if (di.initializer.isErrorInitializer())
-                errors = true;
-            if (tnx != tn) // oops, it was changed! Must have been an incomplete type
+            //printf(" type %s i %d dim %d dil.length = %d\n", t.toChars(), cast(int)i, cast(int)dim, cast(int)dil.length);
+            auto tn = t.nextOf().toBasetype();
+            if (auto tna = tn.isTypeDArray())
             {
                 // C11 6.2.5-20 "element type shall be complete whenever the array type is specified"
-                error(ci.loc, "incomplete element types not allowed");
+                error(ci.loc, "incomplete element type `%s` not allowed", tna.toChars());
                 errors = true;
+                return 1;
             }
+            if (i == dil.length)
+                return 0;
+            size_t n;
+            auto tnsa = tn.isTypeSArray();
+            const nelems = tnsa ? cast(size_t)tnsa.dim.toInteger() : 0;
+
+            foreach (j; 0 .. dim)
+            {
+                auto di = dil[i];
+                if (di.designatorList)
+                {
+                    error(ci.loc, "C designator-list not supported yet");
+                    errors = true;
+                    break;
+                }
+                if (tnsa && di.initializer.isExpInitializer())
+                {
+                    // no braces enclosing array initializer, so recurse
+                    array(tnsa, nelems);
+                }
+                else
+                {
+                    ++i;
+                    auto tnx = tn; // in case initializerSemantic tries to change it
+                    di.initializer = di.initializer.initializerSemantic(sc, tnx, needInterpret);
+                    if (di.initializer.isErrorInitializer())
+                        errors = true;
+                    assert(tnx == tn); // sub-types should not be modified
+                }
+                ++n;
+                if (i == dil.length)
+                    break;
+            }
+            //printf(" n: %d i: %d\n", cast(int)n, cast(int)i);
+            return n;
         }
+
+        size_t dim = ta ? dil.length : cast(size_t)tsa.dim.toInteger();
+        auto n = array(t, dim);
 
         if (errors)
             return err();
 
+        auto tn = t.nextOf();
         if (ta) // array of unknown length
         {
             // Change to array of known length
-            tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, dil.length, Type.tsize_t));
+            tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, n, Type.tsize_t));
             tx = tsa;       // rewrite caller's type
             ci.type = tsa;  // remember for later passes
         }
         const uinteger_t edim = tsa.dim.toInteger();
-        if (dil.length > edim)
+        if (i < dil.length)
         {
-            error(ci.loc, "%d initializers for static array length of %d", cast(int)dil.length, cast(int)edim);
-            return err;
+            error(ci.loc, "%d extra initializer(s) for static array length of %d", cast(int)(dil.length - i), cast(int)edim);
+            return err();
         }
 
-        const sz = tn.size();
+        const sz = tn.size(); // element size
         bool overflow;
         const max = mulu(edim, sz, overflow);
         if (overflow || max >= amax)
         {
-            error(ci.loc, "array dimension %llu exceeds max of %llu", ulong(dil.length), ulong(amax / sz));
+            error(ci.loc, "array dimension %llu exceeds max of %llu", ulong(edim), ulong(amax / sz));
             return err();
         }
 
