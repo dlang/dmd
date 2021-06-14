@@ -130,16 +130,10 @@ private template canBitwiseHash(T)
 
 //enum hash. CTFE depends on base type
 size_t hashOf(T)(auto ref T val, size_t seed = 0)
-if (is(T EType == enum) && (!__traits(isScalar, T) || is(T == __vector)))
+if (is(T == enum) && !__traits(isScalar, T))
 {
-    static if (is(T EType == enum)) //for EType
-    {
-        return hashOf(cast(EType) val, seed);
-    }
-    else
-    {
-        static assert(0);
-    }
+    static if (is(T EType == enum)) {} //for EType
+    return hashOf(cast(EType) val, seed);
 }
 
 //CTFE ready (depends on base type).
@@ -261,6 +255,11 @@ size_t hashOf(T)(scope const T val) if (__traits(isScalar, T) && !is(T == __vect
         size_t result = cast(size_t) val;
         return result ^ (result >> 4);
     }
+    else static if (is(T EType == enum) && is(typeof(val[0])))
+    {
+        // Enum type whose base type is vector.
+        return hashOf(cast(EType) val);
+    }
     else static if (__traits(isIntegral, T))
     {
         static if (T.sizeof <= size_t.sizeof)
@@ -300,6 +299,11 @@ size_t hashOf(T)(scope const T val, size_t seed) if (__traits(isScalar, T) && !i
             assert(0, "Unable to calculate hash of non-null pointer at compile time");
         }
         return hashOf(cast(size_t) val, seed);
+    }
+    else static if (is(T EType == enum) && is(typeof(val[0])))
+    {
+        // Enum type whose base type is vector.
+        return hashOf(cast(EType) val, seed);
     }
     else static if (__traits(isIntegral, val) && T.sizeof <= size_t.sizeof)
     {
@@ -357,8 +361,8 @@ size_t hashOf(T)(scope const T val, size_t seed) if (__traits(isScalar, T) && !i
     }
 }
 
-size_t hashOf(T)(scope const auto ref T val, size_t seed = 0) @safe @nogc nothrow pure
-if (is(T == __vector) && !is(T == enum))
+size_t hashOf(T)(scope const T val, size_t seed = 0) @safe @nogc nothrow pure
+if (is(T == __vector)) // excludes enum types
 {
     static if (__traits(isFloating, T) && (floatCoalesceZeroes || floatCoalesceNaNs))
     {
