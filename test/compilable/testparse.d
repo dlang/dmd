@@ -179,3 +179,15 @@ void testIfConditionWithSTCandType()
 // https://issues.dlang.org/show_bug.cgi?id=20791
 extern(C++, "foo", )
 struct S {}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22019
+void test22019()
+{
+    final switch (1)
+    {
+        case 1,:
+        case 2,3,:
+            break;
+    }
+}
