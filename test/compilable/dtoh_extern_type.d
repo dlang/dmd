@@ -18,7 +18,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -45,7 +45,7 @@ struct _d_dynamicArray
 
 struct Null;
 
-class ClassFromStruct
+class ClassFromStruct final
 {
 public:
     void foo();
@@ -60,7 +60,7 @@ public:
     virtual void foo();
 };
 
-struct StructFromStruct
+struct StructFromStruct final
 {
     void foo();
     StructFromStruct()
@@ -73,7 +73,7 @@ struct StructFromClass
     virtual void foo();
 };
 
-struct Floats
+struct Floats final
 {
     float f;
     double d;
@@ -100,7 +100,7 @@ struct Floats
         {}
 };
 
-struct Null
+struct Null final
 {
     _d_dynamicArray< const char > null_;
     Null() :
@@ -112,7 +112,7 @@ struct Null
         {}
 };
 
-struct Wrapper
+struct Wrapper final
 {
     Null n1;
     Null n2;

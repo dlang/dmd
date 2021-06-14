@@ -103,7 +103,7 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -1230,6 +1230,10 @@ public:
             buf.writenl();
             return;
         }
+
+        // D structs are always final
+        if (!sd.isUnionDeclaration())
+            buf.writestring(" final");
 
         buf.writenl();
         buf.writestring("{");

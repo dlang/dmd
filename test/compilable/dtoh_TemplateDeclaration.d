@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -40,7 +40,7 @@ struct _d_dynamicArray
 #endif
 
 template <typename T>
-struct A
+struct A final
 {
     // Ignoring var x alignment 0
     T x;
@@ -50,7 +50,7 @@ struct A
     }
 };
 
-struct B
+struct B final
 {
     A<int32_t > x;
     B() :
@@ -63,7 +63,7 @@ struct B
 };
 
 template <typename T>
-struct Foo
+struct Foo final
 {
     // Ignoring var val alignment 0
     T val;
@@ -73,7 +73,7 @@ struct Foo
 };
 
 template <typename T>
-struct Bar
+struct Bar final
 {
     // Ignoring var v alignment 0
     Foo<T > v;
@@ -83,7 +83,7 @@ struct Bar
 };
 
 template <typename T>
-struct Array
+struct Array final
 {
     typedef Array This;
     typedef typeof(1 + 2) Int;
@@ -137,7 +137,7 @@ class ChildInt : public Parent<int32_t >
 {
 };
 
-struct HasMixins
+struct HasMixins final
 {
     void foo(int32_t t);
     HasMixins()
@@ -146,7 +146,7 @@ struct HasMixins
 };
 
 template <typename T>
-struct HasMixinsTemplate
+struct HasMixinsTemplate final
 {
     void foo(T t);
     HasMixinsTemplate()

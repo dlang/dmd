@@ -19,7 +19,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -79,7 +79,7 @@ typedef C2* aliasC2;
 typedef size_t(*F)(size_t x);
 
 template <typename T, typename U>
-struct TS
+struct TS final
 {
     TS()
     {

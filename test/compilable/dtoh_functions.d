@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -75,7 +75,7 @@ namespace MSN
     static S const s = S(42);
 };
 
-struct W1
+struct W1 final
 {
     MS ms;
     /* MSN */ S msn;
@@ -88,7 +88,7 @@ struct W1
         {}
 };
 
-struct W2
+struct W2 final
 {
     W1 w1;
     W2() :
@@ -104,7 +104,7 @@ extern W2 w2;
 
 extern void enums(uint64_t e = $?:32=1LLU|64=static_cast<uint64_t>(E::m)$, uint8_t e2 = static_cast<uint8_t>(w2.w1.ms), S s = static_cast<S>(w2.w1.msn));
 
-struct S
+struct S final
 {
     int32_t i;
     int32_t get(int32_t , int32_t );
@@ -123,10 +123,10 @@ extern S s;
 
 extern void aggregates(int32_t a = s.i, int32_t b = s.get(1, 2), int32_t c = S::get(), int32_t d = S::staticVar);
 
-struct S2
+struct S2 final
 {
     S s;
-    struct S3
+    struct S3 final
     {
         static int32_t i;
         S3()

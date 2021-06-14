@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -109,7 +109,7 @@ enum STC
 
 static STC const STC_D = (STC)3;
 
-struct Foo
+struct Foo final
 {
     int32_t i;
     Foo() :
@@ -129,7 +129,7 @@ namespace MyEnum
 
 static /* MyEnum */ Foo const test = Foo(42);
 
-struct FooCpp
+struct FooCpp final
 {
     int32_t i;
     FooCpp() :
