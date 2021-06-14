@@ -207,24 +207,47 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         /* append all initializers to dtb
          */
         auto dil = ci.initializerList[];
-        foreach (di; dil)
+        size_t i = 0;
+
+        /* Support recursion to handle un-braced array initializers
+         * Params:
+         *    t = element type
+         *    dim = number of elements
+         */
+        void array(Type t, size_t dim)
         {
-            assert(!di.designatorList);
-            Initializer_toDt(di.initializer, dtb);
+            //printf(" type %s i %d dim %d dil.length = %d\n", t.toChars(), cast(int)i, cast(int)dim, cast(int)dil.length);
+            auto tn = t.nextOf().toBasetype();
+            auto tnsa = tn.isTypeSArray();
+            const nelems = tnsa ? cast(size_t)tnsa.dim.toInteger() : 0;
+
+            foreach (j; 0 .. dim)
+            {
+                if (i == dil.length)
+                {
+                    if (j < dim)
+                    {   // Not enough initializers, fill in with 0
+                        const size = cast(uint)tn.size();
+                        dtb.nzeros(cast(uint)(size * (dim - j)));
+                    }
+                    break;
+                }
+                auto di = dil[i];
+                assert(!di.designatorList);
+                if (tnsa && di.initializer.isExpInitializer())
+                {
+                    // no braces enclosing array initializer, so recurse
+                    array(tnsa, nelems);
+                }
+                else
+                {
+                    ++i;
+                    Initializer_toDt(di.initializer, dtb);
+                }
+            }
         }
 
-        /* zero fill any remainder
-         */
-        auto tsa = ci.type.toBasetype().isTypeSArray();
-        assert(tsa);
-        const tsaLength = cast(size_t)tsa.dim.toInteger();
-        if (dil.length < tsaLength) // not enough initializers
-        {
-            // zero fill to end of array
-            Type tn = tsa.nextOf().toBasetype();
-            const uint size = cast(uint)tn.size();
-            dtb.nzeros(cast(uint)(size * (tsaLength - dil.length)));
-        }
+        array(ci.type, cast(size_t)ci.type.isTypeSArray().dim.toInteger());
     }
 
     final switch (init.kind)
