@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -90,7 +90,7 @@ public:
         int32_t u1;
         char u2[4$?:32=u|64=LLU$];
     };
-    struct Inner
+    struct Inner final
     {
         int32_t x;
         Inner() :

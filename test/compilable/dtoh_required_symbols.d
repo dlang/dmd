@@ -16,7 +16,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -41,7 +41,7 @@ struct _d_dynamicArray
 struct ExternDStruct;
 class ExternDClass;
 
-struct ExternDStruct
+struct ExternDStruct final
 {
     int32_t i;
     double d;
@@ -62,7 +62,7 @@ enum class ExternDEnum
 };
 
 template <>
-struct ExternDStructTemplate
+struct ExternDStructTemplate final
 {
     // Ignoring var i alignment 0
     int32_t i;
@@ -73,7 +73,7 @@ struct ExternDStructTemplate
     }
 };
 
-struct ExternCppStruct
+struct ExternCppStruct final
 {
     ExternDStruct s;
     ExternDEnum e;

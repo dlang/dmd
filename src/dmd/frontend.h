@@ -12,7 +12,7 @@
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -404,7 +404,7 @@ public:
 
 extern Global global;
 
-struct Loc
+struct Loc final
 {
     const char* filename;
     uint32_t linnum;
@@ -577,7 +577,7 @@ enum class Kind : uint8_t
     export_ = 6u,
 };
 
-struct BitArray
+struct BitArray final
 {
     typedef uint64_t Chunk_t;
     enum : uint64_t { ChunkSize = 8LLU };
@@ -622,7 +622,7 @@ public:
 };
 
 template <typename T>
-struct Array
+struct Array final
 {
     // Ignoring var length alignment 0
     size_t length;
@@ -670,7 +670,7 @@ enum class CPPMANGLE : uint8_t
     asClass = 2u,
 };
 
-struct Visibility
+struct Visibility final
 {
     Kind kind;
     Package* pkg;
@@ -1202,7 +1202,7 @@ enum class Baseok : uint8_t
     semanticdone = 3u,
 };
 
-struct ObjcClassDeclaration
+struct ObjcClassDeclaration final
 {
     bool isMeta;
     bool isExtern;
@@ -1229,7 +1229,7 @@ enum class PKG
     package_ = 2,
 };
 
-struct FileName
+struct FileName final
 {
 private:
     _d_dynamicArray< const char > str;
@@ -1268,7 +1268,7 @@ enum class StructPOD
 };
 
 template <typename K, typename V>
-struct AssocArray
+struct AssocArray final
 {
     // Ignoring var aa alignment 0
     AA* aa;
@@ -1336,7 +1336,7 @@ public:
     TY ty;
     uint8_t mod;
     char* deco;
-    struct Mcache
+    struct Mcache final
     {
         Type* cto;
         Type* ito;
@@ -1914,7 +1914,7 @@ enum class ILS : uint8_t
     yes = 2u,
 };
 
-struct ObjcFuncDeclaration
+struct ObjcFuncDeclaration final
 {
     ObjcSelector* selector;
     VarDeclaration* selectorParameter;
@@ -1948,7 +1948,7 @@ enum class VarArg : uint8_t
     typesafe = 2u,
 };
 
-struct ParameterList
+struct ParameterList final
 {
     Array<Parameter* >* parameters;
     StorageClass stc;
@@ -2064,7 +2064,7 @@ enum class STMT : uint8_t
     Import = 43u,
 };
 
-struct TargetC
+struct TargetC final
 {
     enum class Runtime : uint8_t
     {
@@ -2097,7 +2097,7 @@ struct TargetC
         {}
 };
 
-struct TargetCPP
+struct TargetCPP final
 {
     enum class Runtime : uint8_t
     {
@@ -2137,7 +2137,7 @@ struct TargetCPP
         {}
 };
 
-struct TargetObjC
+struct TargetObjC final
 {
     bool supported;
     TargetObjC() :
@@ -2533,7 +2533,7 @@ extern Array<const char* > includeModulePatterns;
 
 extern Array<Module* > compiledImports;
 
-struct Compiler
+struct Compiler final
 {
     static Expression* paintAsType(UnionExp* pue, Expression* e, Type* type);
     static void onParseModule(Module* m);
@@ -2543,7 +2543,7 @@ struct Compiler
     }
 };
 
-struct complex_t
+struct complex_t final
 {
     _d_real re;
     _d_real im;
@@ -2656,7 +2656,7 @@ public:
 
 extern bool arrayTypeCompatibleWithoutCasting(Type* t1, Type* t2);
 
-struct BaseClass
+struct BaseClass final
 {
     Type* type;
     ClassDeclaration* sym;
@@ -3137,7 +3137,7 @@ extern Expression* getValue(VarDeclaration* vd);
 
 extern void printCtfePerformanceStats();
 
-struct MacroTable
+struct MacroTable final
 {
 private:
     Macro* mactab;
@@ -3261,7 +3261,7 @@ public:
     ~Module();
 };
 
-struct ModuleDeclaration
+struct ModuleDeclaration final
 {
     Loc loc;
     Identifier* id;
@@ -3676,7 +3676,7 @@ public:
 
 extern void expandTuples(Array<Expression* >* exps);
 
-struct UnionExp
+struct UnionExp final
 {
     Expression* exp();
     Expression* copy();
@@ -4717,7 +4717,7 @@ public:
     void visit(TryFinallyStatement* s);
 };
 
-struct Ensure
+struct Ensure final
 {
     Identifier* id;
     Statement* ensure;
@@ -6272,7 +6272,7 @@ public:
     void accept(Visitor* v);
 };
 
-struct Target
+struct Target final
 {
     enum class OS : uint8_t
     {
@@ -6309,7 +6309,7 @@ struct Target
     bool run_noext;
     bool mscoff;
     template <typename T>
-    struct FPTypeProperties
+    struct FPTypeProperties final
     {
         // Ignoring var max alignment 0
         real_t max;
@@ -6629,7 +6629,7 @@ extern void fatal();
 
 extern void halt();
 
-struct Param
+struct Param final
 {
     bool obj;
     bool link;
@@ -7012,7 +7012,7 @@ struct Param
         {}
 };
 
-struct Global
+struct Global final
 {
     _d_dynamicArray< const char > inifilename;
     _d_dynamicArray< const char > copyright;
@@ -7075,7 +7075,7 @@ struct Global
         {}
 };
 
-struct Id
+struct Id final
 {
     static Identifier* IUnknown;
     static Identifier* Object;
@@ -7503,7 +7503,7 @@ public:
     static bool isValidIdentifier(const char* str);
 };
 
-struct Token
+struct Token final
 {
     Token* next;
     Loc loc;
@@ -7550,7 +7550,7 @@ struct Token
 
 using real_t = longdouble;
 
-struct CTFloat
+struct CTFloat final
 {
     enum : bool { yl2x_supported = true };
 
@@ -7596,7 +7596,7 @@ struct CTFloat
     }
 };
 
-struct Port
+struct Port final
 {
     static int32_t memicmp(const char* const s1, const char* const s2, size_t n);
     static char* strupr(char* s);
@@ -7614,7 +7614,7 @@ struct Port
     }
 };
 
-struct Mem
+struct Mem final
 {
     static char* xstrdup(const char* s);
     static void xfree(void* p);

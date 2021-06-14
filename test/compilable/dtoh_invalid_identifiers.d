@@ -24,7 +24,7 @@ compilable/dtoh_invalid_identifiers.d(123): Warning: alias `char8_t` is a keywor
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -58,7 +58,7 @@ namespace const_cast
 
 }
 template <typename register_>
-struct S
+struct S final
 {
     // Ignoring var x alignment 0
     register_ x;
@@ -67,7 +67,7 @@ struct S
     }
 };
 
-struct S2
+struct S2 final
 {
     int32_t register_;
     void and();
@@ -104,7 +104,7 @@ class Alias : public typename_
 extern void user(Alias* i);
 
 template <typename typename_>
-struct InvalidNames
+struct InvalidNames final
 {
     // Ignoring var register alignment 0
     typename_ register_;
