@@ -9214,6 +9214,8 @@ LagainStc:
                 break;
 
             nextToken(); //comma
+            if (token.value == endtok)
+                error("trailing comma in argument list");
         }
 
         check(endtok);
