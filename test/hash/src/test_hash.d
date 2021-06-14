@@ -14,6 +14,7 @@ void main()
     issue19582();
     issue20034();
     issue21642();
+    issue22024();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -243,6 +244,25 @@ void issue21642() @safe nothrow pure
     import core.internal.convert : toUbyte;
     shared C c;
     assert(toUbyte(c) == [ubyte(1)]);
+}
+
+/// Accept enum type whose ultimate base type is a SIMD vector.
+void issue22024() @nogc nothrow pure @safe
+{
+    static if (is(__vector(float[2])))
+    {
+        enum E2 : __vector(float[2]) { a = __vector(float[2]).init, }
+        enum F2 : E2 { a = E2.init, }
+        assert(hashOf(E2.init) == hashOf(F2.init));
+        assert(hashOf(E2.init, 1) == hashOf(F2.init, 1));
+    }
+    static if (is(__vector(float[4])))
+    {
+        enum E4 : __vector(float[4]) { a = __vector(float[4]).init, }
+        enum F4 : E4 { a = E4.init, }
+        assert(hashOf(E4.init) == hashOf(F4.init));
+        assert(hashOf(E4.init, 1) == hashOf(F4.init, 1));
+    }
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
