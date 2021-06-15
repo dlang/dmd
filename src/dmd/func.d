@@ -552,22 +552,6 @@ extern (C++) class FuncDeclaration : Declaration
             if (thandle.ty == Tstruct)
             {
                 vthis.storage_class |= STC.ref_;
-
-                /* if member function is marked 'inout', then 'this' is 'return ref'
-                 * The same thing is done for `ref inout` parameters in TypeFunction's semantic routine.
-                 */
-                if (auto tf = type.isTypeFunction())
-                {
-                    /* This feature was a mistake, but existing code relies on it.
-                     * So only disable it in @safe code and DIP1000 code
-                     */
-                    if (!(global.params.useDIP1000 == FeatureState.enabled &&
-                          tf.trust == TRUST.safe))
-                    {
-                        if (tf.isInOutQual())
-                            vthis.storage_class |= STC.return_;
-                    }
-                }
             }
         }
 

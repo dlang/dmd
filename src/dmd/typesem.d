@@ -1431,12 +1431,6 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     errors = true;
                 }
 
-                if ((fparam.storageClass & (STC.ref_ | STC.wild)) == (STC.ref_ | STC.wild))
-                {
-                    // 'ref inout' implies 'return'
-                    fparam.storageClass |= STC.return_;
-                }
-
                 if (fparam.storageClass & STC.return_)
                 {
                     if (fparam.isReference())
