@@ -370,26 +370,32 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (is(V == struct))
     {
-        enum ctxPtr = __traits(isNested, V);
-        string msg = V.stringof ~ "(";
-        foreach (i, ref field; v.tupleof)
-        {
-            if (i > 0)
-                msg ~= ", ";
-
-            // Mark context pointer
-            static if (ctxPtr && i == v.tupleof.length - 1)
-                msg ~= "<context>: ";
-
-            msg ~= miniFormat(field);
-        }
-        msg ~= ")";
-        return msg;
+        return formatMembers(v);
     }
     else
     {
         return V.stringof;
     }
+}
+
+/// Formats `v`'s members as `V(<member 1>, <member 2>, ...)`
+private string formatMembers(V)(const scope ref V v)
+{
+    enum ctxPtr = __traits(isNested, V);
+    string msg = V.stringof ~ "(";
+    foreach (i, ref field; v.tupleof)
+    {
+        if (i > 0)
+            msg ~= ", ";
+
+        // Mark context pointer
+        static if (ctxPtr && i == v.tupleof.length - 1)
+            msg ~= "<context>: ";
+
+        msg ~= miniFormat(field);
+    }
+    msg ~= ")";
+    return msg;
 }
 
 // This should be a local import in miniFormat but fails with a cyclic dependency error
