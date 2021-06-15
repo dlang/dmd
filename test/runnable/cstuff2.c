@@ -156,6 +156,16 @@ void test9()
 
 /*********************************/
 
+void test10()
+{
+    char s[6] = { "s" }; if (s[0] != 's')                     { printf("error 10s\n"); exit(1); }
+    char t[7] = { "t" }; if (t[0] != 't' && t[1] != 0)        { printf("error 10t\n"); exit(1); }
+    static char u[6] = { "u" }; if (u[0] != 'u')              { printf("error 10u\n"); exit(1); }
+    static char v[7] = { "v" }; if (v[0] != 'v' && v[1] != 0) { printf("error 10v\n"); exit(1); }
+}
+
+/*********************************/
+
 int main()
 {
     test1();
@@ -167,6 +177,7 @@ int main()
     test7();
     test8();
     test9();
+    test10();
 
     return 0;
 }

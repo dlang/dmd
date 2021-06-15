@@ -585,6 +585,15 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
 
         auto dil = ci.initializerList[];
 
+        /* If `{ expression }` return the expression initializer
+         */
+        ExpInitializer isBraceExpression()
+        {
+            return (dil.length == 1 && !dil[0].designatorList)
+                    ? dil[0].initializer.isExpInitializer()
+                    : null;
+        }
+
         auto tsa = t.isTypeSArray();
         auto ta = t.isTypeDArray();
         if (!(tsa || ta))
@@ -592,16 +601,26 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             /* Not an array. See if it is `{ exp }` which can be
              * converted to an ExpInitializer
              */
-            ExpInitializer ei;
-            if (dil.length == 1 &&
-                !dil[0].designatorList &&
-                (ei = dil[0].initializer.isExpInitializer()) !is null)
+            if (ExpInitializer ei = isBraceExpression())
             {
                 return ei.initializerSemantic(sc, t, needInterpret);
             }
 
             error(ci.loc, "C non-array initializers not supported yet");
             return err();
+        }
+
+        /* If it's an array of integral being initialized by `{ string }`
+         * replace with `string`
+         */
+        auto tn = t.nextOf();
+        if (tn.isintegral())
+        {
+            if (ExpInitializer ei = isBraceExpression())
+            {
+                if (ei.exp.isStringExp())
+                    return ei.initializerSemantic(sc, t, needInterpret);
+            }
         }
 
         const uint amax = 0x8000_0000;
@@ -669,7 +688,6 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         if (errors)
             return err();
 
-        auto tn = t.nextOf();
         if (ta) // array of unknown length
         {
             // Change to array of known length
