@@ -143,6 +143,19 @@ void test8()
 
 /*********************************/
 
+void test9()
+{
+    int i = 1;            if (i != 1) { printf("error 9i\n"); exit(1); }
+    int j = { 2 };        if (j != 2) { printf("error 9j\n"); exit(1); }
+    int k = { 3,};        if (k != 3) { printf("error 9k\n"); exit(1); }
+
+    static int l = 4;     if (l != 4) { printf("error 9l\n"); exit(1); }
+    static int m = { 5 }; if (m != 5) { printf("error 9m\n"); exit(1); }
+    static int n = { 6,}; if (n != 6) { printf("error 9n\n"); exit(1); }
+}
+
+/*********************************/
+
 int main()
 {
     test1();
@@ -153,6 +166,7 @@ int main()
     test6();
     test7();
     test8();
+    test9();
 
     return 0;
 }

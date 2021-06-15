@@ -583,17 +583,29 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         t = t.toBasetype();
         ci.type = t;    // later passes will need this
 
+        auto dil = ci.initializerList[];
+
         auto tsa = t.isTypeSArray();
         auto ta = t.isTypeDArray();
         if (!(tsa || ta))
         {
+            /* Not an array. See if it is `{ exp }` which can be
+             * converted to an ExpInitializer
+             */
+            ExpInitializer ei;
+            if (dil.length == 1 &&
+                !dil[0].designatorList &&
+                (ei = dil[0].initializer.isExpInitializer()) !is null)
+            {
+                return ei.initializerSemantic(sc, t, needInterpret);
+            }
+
             error(ci.loc, "C non-array initializers not supported yet");
             return err();
         }
 
         const uint amax = 0x8000_0000;
         bool errors;
-        auto dil = ci.initializerList[];
         size_t i = 0;
 
         /* Support recursion to handle un-braced array initializers

@@ -1832,31 +1832,15 @@ final class CParser(AST) : Parser!AST
             }
 
             desigInit.initializer = cparseInitializer();
-            const justExp = !ci &&
-                            !desigInit.designatorList &&
-                            desigInit.initializer.isExpInitializer();
-            if (token.value == TOK.comma)
-            {
-                nextToken();
-                if (token.value == TOK.rightCurly)
-                {
-                    nextToken();
-                    if (justExp)
-                        return desigInit.initializer;  // treat `{ exp , }` as just `exp`
-                }
-                if (!ci)
-                    ci = new AST.CInitializer(loc);
-                ci.initializerList.push(desigInit);
-                continue;
-            }
-            if (token.value == TOK.rightCurly && justExp)
-            {
-                nextToken();
-                return desigInit.initializer;  // treat `{ exp }` as just `exp`
-            }
             if (!ci)
                 ci = new AST.CInitializer(loc);
             ci.initializerList.push(desigInit);
+            if (token.value == TOK.comma)
+            {
+                nextToken();
+                if (token.value != TOK.rightCurly)
+                    continue;
+            }
             break;
         }
         check(TOK.rightCurly);
