@@ -466,7 +466,7 @@ $(GNAME ForeachType):
 
 $(GNAME ForeachTypeAttributes):
     $(GLINK ForeachTypeAttribute)
-    $(GLINK ForeachTypeAttribute) $(GSELF ForeachTypeAttributes)$(OPT)
+    $(GLINK ForeachTypeAttribute) $(GSELF ForeachTypeAttributes)
 
 $(GNAME ForeachTypeAttribute):
     $(D ref)
