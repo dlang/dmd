@@ -3847,7 +3847,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else if (t.ty == Tstruct)
             {
-                if (!ws.exp.isLvalue())
+                // https://issues.dlang.org/show_bug.cgi?id=22017
+                // if the with expression is an lvalue and a CallExp,
+                // the called function must be a ref function. In this
+                // situation we will still create the temporary so that
+                // we can destroy it after the WithStatement.
+                if (!ws.exp.isLvalue() || ws.exp.isCallExp())
                 {
                     /* Re-write to
                      * {
