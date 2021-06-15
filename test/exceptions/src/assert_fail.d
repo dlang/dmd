@@ -390,6 +390,22 @@ void testShared()
     static assert(!__traits(compiles, atomicLoad(b1)));
 }
 
+void testException()
+{
+    static struct MayThrow
+    {
+        int i;
+        string toString()
+        {
+            if (i == 1)
+                throw new Exception("Error");
+            return "Some message";
+        }
+    }
+
+    test(MayThrow(0), MayThrow(1), `Some message != <toString() failed: "Error", called on MayThrow(1)>`);
+}
+
 int main()
 {
     testIntegers();
@@ -420,6 +436,7 @@ int main()
         testStructEquals6();
     testContextPointer();
     testShared();
+    testException();
 
     if (!__ctfe)
         fprintf(stderr, "success.\n");

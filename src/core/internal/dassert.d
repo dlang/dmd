@@ -294,11 +294,18 @@ private string miniFormat(V)(const scope ref V v)
                 return "`null`";
         }
 
-        // Prefer const overload of toString
-        static if (__traits(compiles, { string s = v.toString(); }))
-            return v.toString();
-        else
-            return (cast() v).toString();
+        try
+        {
+            // Prefer const overload of toString
+            static if (__traits(compiles, { string s = v.toString(); }))
+                return v.toString();
+            else
+                return (cast() v).toString();
+        }
+        catch (Exception e)
+        {
+            return `<toString() failed: "` ~ e.msg ~ `", called on ` ~ formatMembers(v) ~`>`;
+        }
     }
     // Static arrays or slices (but not aggregates with `alias this`)
     else static if (is(V : U[], U) && !isAggregateType!V)
