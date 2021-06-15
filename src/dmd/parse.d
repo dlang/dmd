@@ -6202,16 +6202,14 @@ LagainStc:
                 AST.Expressions cases; // array of Expression's
                 AST.Expression last = null;
 
-                nextToken();
-                do
+                while (1)
                 {
+                    nextToken();
                     exp = parseAssignExp();
                     cases.push(exp);
                     if (token.value != TOK.comma)
                         break;
-                    nextToken(); //comma
                 }
-                while (token.value != TOK.colon && token.value != TOK.endOfFile);
                 check(TOK.colon);
 
                 /* case exp: .. case last:
