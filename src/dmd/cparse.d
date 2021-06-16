@@ -2863,22 +2863,6 @@ final class CParser(AST) : Parser!AST
      *    struct-declaration
      *    struct-declaration-list struct-declaration
      *
-     * struct-declaration:
-     *    specifier-qualifier-list struct-declarator-list (opt) ;
-     *    static_assert-declaration
-     *
-     * specifier-qualifier-list:
-     *    type-specifier specifier-qualifier-list (opt)
-     *    type-qualifier specifier-qualifier-list (opt)
-     *
-     * struct-declarator-list:
-     *    struct-declarator
-     *    struct-declarator-list , struct-declarator
-     *
-     * struct-declarator:
-     *    declarator
-     *    declarator (opt) : constant-expression
-     *
      * Params:
      *  loc = location of `struct` or `union`
      *  structOrUnion = TOK.struct_ or TOK.union_
@@ -2904,7 +2888,7 @@ final class CParser(AST) : Parser!AST
             symbols = new AST.Dsymbols();
             while (token.value != TOK.rightCurly)
             {
-                cparseDeclaration(LVL.member);
+                cparseStructDeclaration();
 
                 if (token.value == TOK.endOfFile)
                     break;
@@ -2931,6 +2915,160 @@ final class CParser(AST) : Parser!AST
          * Defer to the semantic() pass with a TypeTag.
          */
         return new AST.TypeTag(loc, structOrUnion, tag, members);
+    }
+
+    /*************************************
+     * C11 6.7.2.1
+     * Parse a struct declaration member.
+     * struct-declaration:
+     *    specifier-qualifier-list struct-declarator-list (opt) ;
+     *    static_assert-declaration
+     *
+     * struct-declarator-list:
+     *    struct-declarator
+     *    struct-declarator-list , struct-declarator
+     *
+     * struct-declarator:
+     *    declarator
+     *    declarator (opt) : constant-expression
+     */
+    void cparseStructDeclaration()
+    {
+        //printf("cparseStructDeclaration()\n");
+        if (token.value == TOK._Static_assert)
+        {
+            auto s = cparseStaticAssert();
+            symbols.push(s);
+            return;
+        }
+
+        auto symbolsSave = symbols;
+        Specifier specifier;
+        auto tspec = cparseSpecifierQualifierList(LVL.member, specifier);
+
+        /* If a declarator does not follow, it is unnamed
+         */
+        if (token.value == TOK.semicolon && tspec)
+        {
+            nextToken();
+            auto tt = tspec.isTypeTag();
+            if (!tt)
+                return; // legal but meaningless empty declaration
+
+            /* If anonymous struct declaration
+             *   struct { ... members ... };
+             * C11 6.7.2.1-13
+             */
+            if (!tt.id && tt.members)
+            {
+                /* members of anonymous struct are considered members of
+                 * the containing struct
+                 */
+                // TODO: merge in specifier
+                auto ad = new AST.AnonDeclaration(tt.loc, tt.tok == TOK.union_, tt.members);
+                if (!symbols)
+                    symbols = new AST.Dsymbols();
+                symbols.push(ad);
+                return;
+            }
+            if (!tt.id && !tt.members)
+                return; // already gave error in cparseStruct()
+
+            /* `struct tag;` and `struct tag { ... };`
+             * always result in a declaration in the current scope
+             */
+            // TODO: merge in specifier
+            auto stag = (tt.tok == TOK.struct_)
+                ? new AST.StructDeclaration(tt.loc, tt.id, false)
+                : new AST.UnionDeclaration(tt.loc, tt.id);
+            stag.members = tt.members;
+            if (!symbols)
+                symbols = new AST.Dsymbols();
+            symbols.push(stag);
+            return;
+        }
+
+        while (1)
+        {
+            Identifier id;
+            AST.Type dt;
+            if (token.value == TOK.colon)
+            {
+                // C11 6.7.2.1-12 unnamed bit-field
+                nextToken();
+                cparseConstantExp();
+                error("unnamed bit fields are not supported"); // TODO
+                dt = AST.Type.tuns32;
+            }
+            else
+                dt = cparseDeclarator(DTR.xdirect, tspec, id);
+            if (!dt)
+            {
+                panic();
+                nextToken();
+                break;          // error recovery
+            }
+            if (id && token.value == TOK.colon)
+            {
+                // C11 6.7.2.1-10 bit-field
+                nextToken();
+                cparseConstantExp();
+                error("bit fields are not supported"); // TODO
+            }
+
+            if (specifier.mod & MOD.xconst)
+                dt = dt.addSTC(STC.const_);
+
+            /* GNU Extensions
+             * struct-declarator:
+             *    declarator gnu-attributes (opt)
+             *    declarator (opt) : constant-expression gnu-attributes (opt)
+             */
+            if (token.value == TOK.__attribute__)
+                cparseGnuAttributes();
+
+            AST.Dsymbol s = null;
+            symbols = symbolsSave;
+            if (!symbols)
+                symbols = new AST.Dsymbols;     // lazilly create it
+
+            if (!tspec && !specifier.scw && !specifier.mod)
+                error("specifier-qualifier-list required");
+            else if (id)
+            {
+                if (dt.ty == AST.Tvoid)
+                    error("`void` has no value");
+
+                // declare the symbol
+                // Give member variables an implicit void initializer
+                auto initializer = new AST.VoidInitializer(token.loc);
+                s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(LVL.member, specifier));
+            }
+            if (s !is null)
+                symbols.push(s);
+
+            switch (token.value)
+            {
+                case TOK.identifier:
+                    error("missing comma");
+                    goto default;
+
+                case TOK.semicolon:
+                    nextToken();
+                    return;
+
+                case TOK.comma:
+                    nextToken();
+                    break;
+
+                default:
+                    error("`;` or `,` expected");
+                    while (token.value != TOK.semicolon && token.value != TOK.endOfFile)
+                        nextToken();
+                    nextToken();
+                    return;
+            }
+        }
     }
 
     //}
