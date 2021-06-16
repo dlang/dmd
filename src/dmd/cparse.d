@@ -1399,7 +1399,16 @@ final class CParser(AST) : Parser!AST
 
         auto symbolsSave = symbols;
         Specifier specifier;
-        auto tspec = cparseDeclarationSpecifiers(level, specifier);
+        AST.Type tspec;
+        if (level == LVL.member)
+        {
+            // C11 6.7.2.1 Member declarations expect a specifier-qualifier-list
+            tspec = cparseSpecifierQualifierList(level, specifier);
+        }
+        else
+        {
+            tspec = cparseDeclarationSpecifiers(level, specifier);
+        }
 
         /* If a declarator does not follow, it is unnamed
          */
@@ -1858,7 +1867,7 @@ final class CParser(AST) : Parser!AST
      *    alignment-specifier declaration-specifiers (opt)
      * Params:
      *  level = declaration context
-     *  specifiers = specifiers in and out
+     *  specifier = specifiers in and out
      * Returns:
      *  resulting type, null if not specified
      */
@@ -2383,7 +2392,8 @@ final class CParser(AST) : Parser!AST
      */
     AST.Type cparseTypeName()
     {
-        auto tspec = cparseSpecifierQualifierList();
+        Specifier specifier;
+        auto tspec = cparseSpecifierQualifierList(LVL.global, specifier);
         Identifier id;
         auto dt = cparseDeclarator(tspec, id);
         if (id)
@@ -2396,11 +2406,15 @@ final class CParser(AST) : Parser!AST
      * specifier-qualifier-list:
      *    type-specifier specifier-qualifier-list (opt)
      *    type-qualifier specifier-qualifier-list (opt)
+     * Params:
+     *  level = declaration context
+     *  specifier = specifiers in and out
+     * Returns:
+     *  resulting type, null if not specified
      */
-    AST.Type cparseSpecifierQualifierList()
+    AST.Type cparseSpecifierQualifierList(LVL level, ref Specifier specifier)
     {
-        Specifier specifier;
-        auto t = cparseDeclarationSpecifiers(LVL.global, specifier);
+        auto t = cparseDeclarationSpecifiers(level, specifier);
         if (specifier.scw)
             error("storage class not allowed in specifier-qualified-list");
         return t;
