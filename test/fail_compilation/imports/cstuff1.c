@@ -26,3 +26,21 @@ struct S22029
     auto int afield;
     register int rfield;
 };
+
+// https://issues.dlang.org/show_bug.cgi?id=22030
+#line 400
+int;
+int *;
+int &;
+int , int;
+
+struct S22030
+{
+  int;
+  int *;
+  int &;
+  int, int;
+  int _;
+};
+
+void test22030(struct S22030, struct S22030*, struct S22030[4]);
