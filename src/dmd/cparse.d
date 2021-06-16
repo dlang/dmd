@@ -1412,15 +1412,17 @@ final class CParser(AST) : Parser!AST
 
         /* If a declarator does not follow, it is unnamed
          */
-        if (token.value == TOK.semicolon &&
-            tspec && tspec.isTypeTag())
+        if (token.value == TOK.semicolon && tspec)
         {
+            nextToken();
+            auto tt = tspec.isTypeTag();
+            if (!tt)
+                return; // legal but meaningless empty declaration
+
             /* If anonymous struct declaration
              *   struct { ... members ... };
              * C11 6.7.2.1-13
              */
-            nextToken();
-            auto tt = tspec.isTypeTag();
             if (!tt.id && tt.members)
             {
                 if (level != LVL.member)
@@ -1472,7 +1474,7 @@ final class CParser(AST) : Parser!AST
                 dt = AST.Type.tuns32;
             }
             else
-                dt = cparseDeclarator(tspec, id);
+                dt = cparseDeclarator(DTR.xdirect, tspec, id);
             if (!dt)
             {
                 panic();
@@ -1495,16 +1497,6 @@ final class CParser(AST) : Parser!AST
                     tf.next = tf.next.addSTC(STC.const_);
                 else
                     dt = dt.addSTC(STC.const_);
-            }
-
-            if (!id)    // no identifier
-            {
-                if (dt !is tspec)
-                {
-                    error("identifier or `(` expected"); // )
-                    panic();
-                    break;
-                }
             }
 
             /* GNU Extensions
@@ -1533,7 +1525,10 @@ final class CParser(AST) : Parser!AST
                             error("attributes should be specified before the function definition");
                             auto t = &token;
                             if (skipBraces(t))
+                            {
+                                token = *t;
                                 return;
+                            }
                         }
                     }
                     break;
@@ -2210,6 +2205,7 @@ final class CParser(AST) : Parser!AST
      *    identifier-list , identifier
      *
      * Params:
+     *  declarator   = declarator kind
      *  t            = base type to start with
      *  pident       = set to Identifier if there is one, null if not
      *  storageClass = any storage classes seen so far
@@ -2218,10 +2214,10 @@ final class CParser(AST) : Parser!AST
      *  symbol table for the parameter-type-list, which will contain any
      *  declared struct, union or enum tags.
      */
-    private AST.Type cparseDeclarator(AST.Type t, out Identifier pident,
-        StorageClass storageClass = 0)
+    private AST.Type cparseDeclarator(DTR declarator, AST.Type t,
+        out Identifier pident, StorageClass storageClass = 0)
     {
-        //printf("cparseDeclarator()\n");
+        //printf("cparseDeclarator(%d)\n", declarator);
 
         AST.Type ts;
         while (1)
@@ -2240,7 +2236,7 @@ final class CParser(AST) : Parser!AST
                  *       T ((*fp))();
                  */
                 nextToken();
-                ts = cparseDeclarator(t, pident);
+                ts = cparseDeclarator(declarator, t, pident);
                 check(TOK.rightParenthesis);
                 break;
 
@@ -2253,6 +2249,11 @@ final class CParser(AST) : Parser!AST
                 continue;
 
             default:
+                if (declarator == DTR.xdirect)
+                {
+                    error("identifier or `(` expected"); // )
+                    panic();
+                }
                 ts = t;
                 break;
             }
@@ -2395,7 +2396,7 @@ final class CParser(AST) : Parser!AST
         Specifier specifier;
         auto tspec = cparseSpecifierQualifierList(LVL.global, specifier);
         Identifier id;
-        auto dt = cparseDeclarator(tspec, id);
+        auto dt = cparseDeclarator(DTR.xabstract, tspec, id);
         if (id)
             error("identifier not allowed in abstract-declarator");
         return dt;
@@ -2458,7 +2459,7 @@ final class CParser(AST) : Parser!AST
             auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier);
 
             Identifier id;
-            auto t = cparseDeclarator(tspec, id);
+            auto t = cparseDeclarator(DTR.xabstract, tspec, id);
             if (specifier.mod & MOD.xconst)
                 t = t.addSTC(STC.const_);
             auto param = new AST.Parameter(STC.parameter, t, id, null, null);
@@ -3589,6 +3590,13 @@ final class CParser(AST) : Parser!AST
         prototype = 4,    /// function prototype
         local     = 8,    /// local
         member    = 0x10, /// struct member
+    }
+
+    /// Types of declarator to parse
+    enum DTR
+    {
+        xdirect   = 1,  /// C11 6.7.6 direct-declarator
+        xabstract = 2,  /// C11 6.7.7 abstract-declarator
     }
 
     /// C11 6.7.1 Storage-class specifiers
