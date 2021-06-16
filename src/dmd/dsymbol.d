@@ -1096,6 +1096,11 @@ extern (C++) class Dsymbol : ASTNode
                     continue;
                 if (!s)
                     s = *ps;
+                else if (ps.isAliasAssign() && (s.isAliasDeclaration() || s.isAliasAssign()))
+                {
+                    s = *ps;
+                    continue;
+                }
                 else if (s.isOverloadable() && (*ps).isOverloadable())
                 {
                     // keep head of overload set
@@ -2141,7 +2146,6 @@ extern (C++) final class ExpressionDsymbol : Dsymbol
  */
 extern (C++) final class AliasAssign : Dsymbol
 {
-    Identifier ident; /// Dsymbol's ident will be null, as this class is anonymous
     Type type;        /// replace previous RHS of AliasDeclaration with `type`
     Dsymbol aliassym; /// replace previous RHS of AliasDeclaration with `aliassym`
                       /// only one of type and aliassym can be != null
@@ -2165,6 +2169,20 @@ extern (C++) final class AliasAssign : Dsymbol
 
     override inout(AliasAssign) isAliasAssign() inout
     {
+        return this;
+    }
+
+    override Dsymbol toAlias()
+    {
+        if (_scope)
+            dsymbolSemantic(this, _scope);
+        assert(semanticRun >= PASS.semanticdone);
+
+        // aliassym should point to the assigned AliasDeclaration
+        if (aliassym)
+            return aliassym.toAlias();
+
+        assert(global.errors);
         return this;
     }
 

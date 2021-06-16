@@ -625,11 +625,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (!(parameters && parameters.length == 1))
             return;
 
-        auto ad = s.isAliasDeclaration();
-        if (!ad || !ad.type)
+        Type type;
+        if (auto ad = s.isAliasDeclaration())
+            type = ad.type;
+        if (auto aa = s.isAliasAssign())
+            type = aa.type;
+        if (!type)
             return;
 
-        auto ti = ad.type.isTypeIdentifier();
+        auto ti = type.isTypeIdentifier();
 
         if (!ti || ti.idents.length != 0)
             return;
