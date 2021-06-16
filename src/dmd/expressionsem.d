@@ -5987,7 +5987,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (global.params.moduleDeps !is null)
         {
             OutBuffer* ob = global.params.moduleDeps;
-            Module imod = sc.instantiatingModule();
+            Module imod = sc._module;
 
             if (!global.params.moduleDepsFile)
                 ob.writestring("depsFile ");

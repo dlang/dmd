@@ -987,7 +987,7 @@ private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[
     if (!global.params.moduleDeps || global.params.moduleDepsFile)
         return;
     OutBuffer* ob = global.params.moduleDeps;
-    Module imod = sc ? sc.instantiatingModule() : condition.mod;
+    Module imod = sc ? sc._module : condition.mod;
     if (!imod)
         return;
     ob.writestring(depType);

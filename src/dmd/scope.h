@@ -139,8 +139,6 @@ struct Scope
     Scope *startCTFE();
     Scope *endCTFE();
 
-    Module *instantiatingModule();
-
     Dsymbol *search(const Loc &loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
 
     ClassDeclaration *getClassScope();

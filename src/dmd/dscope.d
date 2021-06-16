@@ -325,12 +325,6 @@ struct Scope
         }
     }
 
-    extern (C++) Module instantiatingModule()
-    {
-        // TODO: in speculative context, returning 'module' is correct?
-        return minst ? minst : _module;
-    }
-
     /************************************
      * Perform unqualified name lookup by following the chain of scopes up
      * until found.
