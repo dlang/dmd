@@ -1399,16 +1399,7 @@ final class CParser(AST) : Parser!AST
 
         auto symbolsSave = symbols;
         Specifier specifier;
-        AST.Type tspec;
-        if (level == LVL.member)
-        {
-            // C11 6.7.2.1 Member declarations expect a specifier-qualifier-list
-            tspec = cparseSpecifierQualifierList(level, specifier);
-        }
-        else
-        {
-            tspec = cparseDeclarationSpecifiers(level, specifier);
-        }
+        auto tspec = cparseDeclarationSpecifiers(level, specifier);
 
         /* If a declarator does not follow, it is unnamed
          */
@@ -1416,34 +1407,8 @@ final class CParser(AST) : Parser!AST
         {
             nextToken();
             auto tt = tspec.isTypeTag();
-            if (!tt)
-                return; // legal but meaningless empty declaration
-
-            /* If anonymous struct declaration
-             *   struct { ... members ... };
-             * C11 6.7.2.1-13
-             */
-            if (!tt.id && tt.members)
-            {
-                if (level != LVL.member)
-                    return;  // legal but meaningless declaration, ignore it
-
-                /* members of anonymous struct are considered members of
-                 * the containing struct
-                 */
-                // TODO: merge in specifier
-                auto ad = new AST.AnonDeclaration(tt.loc, tt.tok == TOK.union_, tt.members);
-                if (!symbols)
-                    symbols = new AST.Dsymbols();
-                symbols.push(ad);
-                return;
-            }
-            if (!tt.id && !tt.members)
-                return; // already gave error in cparseStruct()
-
-            // Give it a name if it doesn't have one because semantic() routines need a name
-            if (!tt.id)
-                tt.id = Identifier.generateId("__tag"[]);
+            if (!tt || !tt.id)
+                return; // legal but meaningless empty declaration, ignore it
 
             /* `struct tag;` and `struct tag { ... };`
              * always result in a declaration in the current scope
@@ -1464,29 +1429,12 @@ final class CParser(AST) : Parser!AST
         {
             Identifier id;
             AST.Expression asmname;
-            AST.Type dt;
-            if (level == LVL.member && token.value == TOK.colon)
-            {
-                // C11 6.7.2.1-12 unnamed bit-field
-                nextToken();
-                cparseConstantExp();
-                error("unnamed bit fields are not supported"); // TODO
-                dt = AST.Type.tuns32;
-            }
-            else
-                dt = cparseDeclarator(DTR.xdirect, tspec, id);
+            auto dt = cparseDeclarator(DTR.xdirect, tspec, id);
             if (!dt)
             {
                 panic();
                 nextToken();
                 break;          // error recovery
-            }
-            if (id && level == LVL.member && token.value == TOK.colon)
-            {
-                // C11 6.7.2.1 bit-field
-                nextToken();
-                cparseConstantExp();
-                error("bit fields are not supported"); // TODO
             }
 
             if (specifier.mod & MOD.xconst)
