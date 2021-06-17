@@ -294,11 +294,18 @@ private string miniFormat(V)(const scope ref V v)
                 return "`null`";
         }
 
-        // Prefer const overload of toString
-        static if (__traits(compiles, { string s = v.toString(); }))
-            return v.toString();
-        else
-            return (cast() v).toString();
+        try
+        {
+            // Prefer const overload of toString
+            static if (__traits(compiles, { string s = v.toString(); }))
+                return v.toString();
+            else
+                return (cast() v).toString();
+        }
+        catch (Exception e)
+        {
+            return `<toString() failed: "` ~ e.msg ~ `", called on ` ~ formatMembers(v) ~`>`;
+        }
     }
     // Static arrays or slices (but not aggregates with `alias this`)
     else static if (is(V : U[], U) && !isAggregateType!V)
@@ -370,26 +377,32 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (is(V == struct))
     {
-        enum ctxPtr = __traits(isNested, V);
-        string msg = V.stringof ~ "(";
-        foreach (i, ref field; v.tupleof)
-        {
-            if (i > 0)
-                msg ~= ", ";
-
-            // Mark context pointer
-            static if (ctxPtr && i == v.tupleof.length - 1)
-                msg ~= "<context>: ";
-
-            msg ~= miniFormat(field);
-        }
-        msg ~= ")";
-        return msg;
+        return formatMembers(v);
     }
     else
     {
         return V.stringof;
     }
+}
+
+/// Formats `v`'s members as `V(<member 1>, <member 2>, ...)`
+private string formatMembers(V)(const scope ref V v)
+{
+    enum ctxPtr = __traits(isNested, V);
+    string msg = V.stringof ~ "(";
+    foreach (i, ref field; v.tupleof)
+    {
+        if (i > 0)
+            msg ~= ", ";
+
+        // Mark context pointer
+        static if (ctxPtr && i == v.tupleof.length - 1)
+            msg ~= "<context>: ";
+
+        msg ~= miniFormat(field);
+    }
+    msg ~= ")";
+    return msg;
 }
 
 // This should be a local import in miniFormat but fails with a cyclic dependency error
