@@ -584,6 +584,9 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         ci.type = t;    // later passes will need this
 
         auto dil = ci.initializerList[];
+        size_t i = 0;   // index into dil[]
+        const uint amax = 0x8000_0000;
+        bool errors;
 
         /* If `{ expression }` return the expression initializer
          */
@@ -592,6 +595,89 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             return (dil.length == 1 && !dil[0].designatorList)
                     ? dil[0].initializer.isExpInitializer()
                     : null;
+        }
+
+        /* Convert struct initializer into ExpInitializer
+         */
+        Initializer structs(TypeStruct ts)
+        {
+            StructDeclaration sd = ts.sym;
+            sd.size(ci.loc);
+            if (sd.sizeok != Sizeok.done)
+            {
+                errors = true;
+                return err();
+            }
+            const nfields = sd.nonHiddenFields();
+            auto elements = new Expressions(nfields);
+            auto elems = (*elements)[];
+            foreach (ref elem; elems)
+                elem = null;
+
+          FieldLoop:
+            for (size_t fieldi = 0; fieldi < nfields; ++fieldi)
+            {
+                if (i == dil.length)
+                    break;
+
+                auto di = dil[i];
+                if (di.designatorList)
+                {
+                    error(ci.loc, "C designator-list not supported yet");
+                    errors = true;
+                    break;
+                }
+
+                VarDeclaration vd = sd.fields[fieldi];
+
+                // Check for overlapping initializations (can happen with unions)
+                foreach (k, v2; sd.fields[0 .. nfields])
+                {
+                    if (vd.isOverlappedWith(v2) && elems[k])
+                    {
+                        continue FieldLoop;     // skip it
+                    }
+                }
+
+                ++i;
+
+                // Convert initializer to Expression `ex`
+                assert(sc);
+                auto tm = vd.type.addMod(ts.mod);
+                auto iz = di.initializer.initializerSemantic(sc, tm, needInterpret);
+                auto ex = iz.initializerToExpression();
+                if (ex.op == TOK.error)
+                {
+                    errors = true;
+                    continue;
+                }
+
+                elems[fieldi] = ex;
+            }
+            if (errors)
+                return err();
+
+            // Make a StructLiteralExp out of elements[]
+            Type tx = ts;
+            auto sle = new StructLiteralExp(ci.loc, sd, elements, tx);
+            if (!sd.fill(ci.loc, elements, false))
+                return err();
+            sle.type = tx;
+            auto ie = new ExpInitializer(ci.loc, sle);
+            return ie.initializerSemantic(sc, tx, needInterpret);
+        }
+
+        if (auto ts = t.isTypeStruct())
+        {
+            auto ei = structs(ts);
+            if (errors)
+                return err();
+            if (i < dil.length)
+            {
+                error(ci.loc, "%d extra initializer(s) for `struct %s`", cast(int)(dil.length - i), ts.toChars());
+                return err();
+            }
+            return ei;
         }
 
         auto tsa = t.isTypeSArray();
@@ -622,10 +708,6 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                     return ei.initializerSemantic(sc, t, needInterpret);
             }
         }
-
-        const uint amax = 0x8000_0000;
-        bool errors;
-        size_t i = 0;
 
         /* Support recursion to handle un-braced array initializers
          * Params:
