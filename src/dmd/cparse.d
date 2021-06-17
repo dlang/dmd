@@ -2226,6 +2226,8 @@ final class CParser(AST) : Parser!AST
             {
             case TOK.identifier:        // identifier
                 //printf("identifier %s\n", token.ident.toChars());
+                if (declarator == DTR.xabstract)
+                    error("identifier not allowed in abstract-declarator");
                 pident = token.ident;
                 ts = t;
                 nextToken();
@@ -2396,10 +2398,7 @@ final class CParser(AST) : Parser!AST
         Specifier specifier;
         auto tspec = cparseSpecifierQualifierList(LVL.global, specifier);
         Identifier id;
-        auto dt = cparseDeclarator(DTR.xabstract, tspec, id);
-        if (id)
-            error("identifier not allowed in abstract-declarator");
-        return dt;
+        return cparseDeclarator(DTR.xabstract, tspec, id);
     }
 
     /***********************************
@@ -2459,7 +2458,7 @@ final class CParser(AST) : Parser!AST
             auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier);
 
             Identifier id;
-            auto t = cparseDeclarator(DTR.xabstract, tspec, id);
+            auto t = cparseDeclarator(DTR.xparameter, tspec, id);
             if (specifier.mod & MOD.xconst)
                 t = t.addSTC(STC.const_);
             auto param = new AST.Parameter(STC.parameter, t, id, null, null);
@@ -3101,8 +3100,21 @@ final class CParser(AST) : Parser!AST
                 pt = t;
                 return true;
             }
-            if (!isCDeclarator(t, false))
+            if (t.value == TOK.colon)
+            {
+                t = peek(t);
+                if (!isConstantExpression(t))
+                    return false;
+                return true;        // unnamed bit-field
+            }
+            if (!isCDeclarator(t, DTR.xdirect))
                 return false;
+            if (t.value == TOK.colon)
+            {
+                t = peek(t);
+                if (!isConstantExpression(t))
+                    return false;
+            }
             if (t.value == TOK.asm_)
             {
                 t = peek(t);
@@ -3457,20 +3469,13 @@ final class CParser(AST) : Parser!AST
      * Check to see if tokens starting with *pt form a declarator.
      * Params:
      *  pt = pointer to starting token, updated to point past declarator if true is returned
-     *  isAbstract = true if abstract-declarator instead of just declarator
+     *  declarator = declarator kind
      * Returns:
      *  true if it does
      */
-    private bool isCDeclarator(ref Token* pt, bool isAbstract)
+    private bool isCDeclarator(ref Token* pt, DTR declarator)
     {
         auto t = pt;
-        if (t.value == TOK.colon)
-        {
-            t = peek(t);
-            if (!isConstantExpression(t))
-                return false;
-            return true;        // unnamed bit-field
-        }
         while (1)
         {
             if (t.value == TOK.mul)     // pointer
@@ -3485,20 +3490,20 @@ final class CParser(AST) : Parser!AST
 
         if (t.value == TOK.identifier)
         {
-            if (isAbstract)
+            if (declarator == DTR.xabstract)
                 return false;
             t = peek(t);
         }
         else if (t.value == TOK.leftParenthesis)
         {
             t = peek(t);
-            if (!isCDeclarator(t, isAbstract))
+            if (!isCDeclarator(t, declarator))
                 return false;
             if (t.value != TOK.rightParenthesis)
                 return false;
             t = peek(t);
         }
-        else
+        else if (declarator != DTR.xdirect)
         {
             pt = t;
             return true;        // declarator is optional
@@ -3513,13 +3518,6 @@ final class CParser(AST) : Parser!AST
         {
             if (!skipParens(t, &t))
                  return false;
-        }
-
-        if (t.value == TOK.colon)
-        {
-            t = peek(t);
-            if (!isConstantExpression(t))
-                return false;
         }
         pt = t;
         return true;
@@ -3569,7 +3567,7 @@ final class CParser(AST) : Parser!AST
         //printf("isTypeName() %s\n", t.toChars());
         if (!isSpecifierQualifierList(t))
             return false;
-        if (!isCDeclarator(t, true))
+        if (!isCDeclarator(t, DTR.xabstract))
             return false;
         pt = t;
         return true;
@@ -3733,8 +3731,9 @@ final class CParser(AST) : Parser!AST
     /// Types of declarator to parse
     enum DTR
     {
-        xdirect   = 1,  /// C11 6.7.6 direct-declarator
-        xabstract = 2,  /// C11 6.7.7 abstract-declarator
+        xdirect    = 1, /// C11 6.7.6 direct-declarator
+        xabstract  = 2, /// C11 6.7.7 abstract-declarator
+        xparameter = 3, /// parameter declarator may be either direct or abstract
     }
 
     /// C11 6.7.1 Storage-class specifiers

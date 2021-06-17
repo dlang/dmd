@@ -9,6 +9,7 @@ fail_compilation/imports/cstuff1.c(253): Error: `void` has no value
 fail_compilation/imports/cstuff1.c(253): Error: missing comma
 fail_compilation/imports/cstuff1.c(253): Error: `;` or `,` expected
 fail_compilation/imports/cstuff1.c(254): Error: empty struct-declaration-list for `struct Anonymous`
+fail_compilation/imports/cstuff1.c(257): Error: identifier not allowed in abstract-declarator
 fail_compilation/imports/cstuff1.c(303): Error: storage class not allowed in specifier-qualified-list
 fail_compilation/imports/cstuff1.c(304): Error: storage class not allowed in specifier-qualified-list
 fail_compilation/imports/cstuff1.c(305): Error: storage class not allowed in specifier-qualified-list
