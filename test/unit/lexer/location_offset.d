@@ -482,6 +482,7 @@ enum ignoreTokens
     arrayLiteral,
     assocArrayLiteral,
     structLiteral,
+    compoundLiteral,
     classReference,
     thrownException,
     delegatePointer,

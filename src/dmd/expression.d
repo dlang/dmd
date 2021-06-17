@@ -49,6 +49,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
+import dmd.init;
 import dmd.inline;
 import dmd.mtype;
 import dmd.nspace;
@@ -541,6 +542,7 @@ private:
         char[__traits(classInstanceSize, ArrayLiteralExp)] arrayliteralexp;
         char[__traits(classInstanceSize, AssocArrayLiteralExp)] assocarrayliteralexp;
         char[__traits(classInstanceSize, StructLiteralExp)] structliteralexp;
+        char[__traits(classInstanceSize, CompoundLiteralExp)] compoundliteralexp;
         char[__traits(classInstanceSize, NullExp)] nullexp;
         char[__traits(classInstanceSize, DotVarExp)] dotvarexp;
         char[__traits(classInstanceSize, AddrExp)] addrexp;
@@ -1681,6 +1683,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(ArrayLiteralExp) isArrayLiteralExp() { return op == TOK.arrayLiteral ? cast(typeof(return))this : null; }
         inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == TOK.assocArrayLiteral ? cast(typeof(return))this : null; }
         inout(StructLiteralExp) isStructLiteralExp() { return op == TOK.structLiteral ? cast(typeof(return))this : null; }
+        inout(CompoundLiteralExp) isCompoundLiteralExp() { return op == TOK.compoundLiteral ? cast(typeof(return))this : null; }
         inout(TypeExp)      isTypeExp() { return op == TOK.type ? cast(typeof(return))this : null; }
         inout(ScopeExp)     isScopeExp() { return op == TOK.scope_ ? cast(typeof(return))this : null; }
         inout(TemplateExp)  isTemplateExp() { return op == TOK.template_ ? cast(typeof(return))this : null; }
@@ -3373,6 +3376,28 @@ extern (C++) final class StructLiteralExp : Expression
             return e;
         }
         return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ * C11 6.5.2.5
+ * ( type-name ) { initializer-list }
+ */
+extern (C++) final class CompoundLiteralExp : Expression
+{
+    Initializer initializer; /// initializer-list
+
+    extern (D) this(const ref Loc loc, Type type_name, Initializer initializer)
+    {
+        super(loc, TOK.compoundLiteral, __traits(classInstanceSize, CompoundLiteralExp));
+        super.type = type_name;
+        this.initializer = initializer;
+        //printf("CompoundLiteralExp::CompoundLiteralExp(%s)\n", toChars());
     }
 
     override void accept(Visitor v)

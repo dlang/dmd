@@ -290,6 +290,7 @@ enum TOK : ushort
     arrow,      // ->
     colonColon, // ::
     wchar_tLiteral,
+    compoundLiteral, // ( type-name ) { initializer-list }
 
     // C only keywords
     inline,
@@ -776,6 +777,7 @@ extern (C++) struct Token
         TOK.wcharLiteral: "wcharv",
         TOK.dcharLiteral: "dcharv",
         TOK.wchar_tLiteral: "wchar_tv",
+        TOK.compoundLiteral: "compoundliteral",
 
         TOK.halt: "halt",
         TOK.hexadecimalString: "xstring",
