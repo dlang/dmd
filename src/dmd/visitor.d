@@ -65,6 +65,7 @@ public:
     void visit(ASTCodegen.ErrorExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ComplexExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.StructLiteralExp e) { visit(cast(ASTCodegen.Expression)e); }
+    void visit(ASTCodegen.CompoundLiteralExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ObjcClassReferenceExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.SymOffExp e) { visit(cast(ASTCodegen.SymbolExp)e); }
     void visit(ASTCodegen.OverExp e) { visit(cast(ASTCodegen.Expression)e); }
@@ -157,6 +158,12 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
                     el.accept(this);
             e.stageflags = old;
         }
+    }
+
+    override void visit(ASTCodegen.CompoundLiteralExp e)
+    {
+        if (e.initializer)
+            e.initializer.accept(this);
     }
 
     override void visit(ASTCodegen.DotTemplateExp e)

@@ -88,6 +88,7 @@ immutable PREC[TOK.max + 1] precedence =
     TOK.variable : PREC.primary,
     TOK.symbolOffset : PREC.primary,
     TOK.structLiteral : PREC.primary,
+    TOK.compoundLiteral : PREC.primary,
     TOK.arrayLength : PREC.primary,
     TOK.delegatePointer : PREC.primary,
     TOK.delegateFunctionPointer : PREC.primary,

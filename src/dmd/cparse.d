@@ -823,10 +823,9 @@ final class CParser(AST) : Parser!AST
 
                 if (token.value == TOK.leftCurly)
                 {
-                    // ( type-name ) { initializer-list }
-                    cparseInitializer();
-                    error(" `(type-name ) { initializer-list }` is not supported");  // TODO
-                    e = new AST.IntegerExp(loc, 0, AST.Type.tint32);
+                    // C11 6.5.2.5 ( type-name ) { initializer-list }
+                    auto ci = cparseInitializer();
+                    e = new AST.CompoundLiteralExp(loc, t, ci);
                     break;
                 }
                 else

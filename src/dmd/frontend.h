@@ -143,6 +143,7 @@ class NullExp;
 class ArrayLiteralExp;
 class AssocArrayLiteralExp;
 class StructLiteralExp;
+class CompoundLiteralExp;
 class TypeExp;
 class ScopeExp;
 class TemplateExp;
@@ -1508,27 +1509,28 @@ enum class TOK : uint16_t
     arrow = 235u,
     colonColon = 236u,
     wchar_tLiteral = 237u,
-    inline_ = 238u,
-    register_ = 239u,
-    restrict = 240u,
-    signed_ = 241u,
-    sizeof_ = 242u,
-    typedef_ = 243u,
-    unsigned_ = 244u,
-    volatile_ = 245u,
-    _Alignas = 246u,
-    _Alignof = 247u,
-    _Atomic = 248u,
-    _Bool = 249u,
-    _Complex = 250u,
-    _Generic = 251u,
-    _Imaginary = 252u,
-    _Noreturn = 253u,
-    _Static_assert = 254u,
-    _Thread_local = 255u,
-    __cdecl = 256u,
-    __declspec = 257u,
-    __attribute__ = 258u,
+    compoundLiteral = 238u,
+    inline_ = 239u,
+    register_ = 240u,
+    restrict = 241u,
+    signed_ = 242u,
+    sizeof_ = 243u,
+    typedef_ = 244u,
+    unsigned_ = 245u,
+    volatile_ = 246u,
+    _Alignas = 247u,
+    _Alignof = 248u,
+    _Atomic = 249u,
+    _Bool = 250u,
+    _Complex = 251u,
+    _Generic = 252u,
+    _Imaginary = 253u,
+    _Noreturn = 254u,
+    _Static_assert = 255u,
+    _Thread_local = 256u,
+    __cdecl = 257u,
+    __declspec = 258u,
+    __attribute__ = 259u,
 };
 
 enum class MATCH
@@ -1607,6 +1609,7 @@ public:
     ArrayLiteralExp* isArrayLiteralExp();
     AssocArrayLiteralExp* isAssocArrayLiteralExp();
     StructLiteralExp* isStructLiteralExp();
+    CompoundLiteralExp* isCompoundLiteralExp();
     TypeExp* isTypeExp();
     ScopeExp* isScopeExp();
     TemplateExp* isTemplateExp();
@@ -2354,6 +2357,7 @@ public:
     virtual void visit(ErrorExp* e);
     virtual void visit(ComplexExp* e);
     virtual void visit(StructLiteralExp* e);
+    virtual void visit(CompoundLiteralExp* e);
     virtual void visit(ObjcClassReferenceExp* e);
     virtual void visit(SymOffExp* e);
     virtual void visit(OverExp* e);
@@ -4141,6 +4145,7 @@ private:
         char arrayliteralexp[57LLU];
         char assocarrayliteralexp[57LLU];
         char structliteralexp[95LLU];
+        char compoundliteralexp[48LLU];
         char nullexp[40LLU];
         char dotvarexp[65LLU];
         char addrexp[56LLU];
@@ -4375,6 +4380,13 @@ public:
     Expression* getField(Type* type, uint32_t offset);
     int32_t getFieldIndex(Type* type, uint32_t offset);
     Expression* addDtorHook(Scope* sc);
+    void accept(Visitor* v);
+};
+
+class CompoundLiteralExp final : public Expression
+{
+public:
+    Initializer* initializer;
     void accept(Visitor* v);
 };
 
@@ -7019,6 +7031,7 @@ public:
     void visit(DebugStatement* s);
     void visit(ForwardingStatement* s);
     void visit(StructLiteralExp* e);
+    void visit(CompoundLiteralExp* e);
     void visit(DotTemplateExp* e);
     void visit(DotVarExp* e);
     void visit(DelegateExp* e);
