@@ -2189,7 +2189,6 @@ public:
     virtual void visit(typename AST::TypeError t);
     virtual void visit(typename AST::TypeNull t);
     virtual void visit(typename AST::TypeNoreturn t);
-    virtual void visit(typename AST::TypeTag t);
     virtual void visit(typename AST::TypeVector t);
     virtual void visit(typename AST::TypeEnum t);
     virtual void visit(typename AST::TypeTuple t);
@@ -2199,6 +2198,7 @@ public:
     virtual void visit(typename AST::TypeQualified t);
     virtual void visit(typename AST::TypeTraits t);
     virtual void visit(typename AST::TypeMixin t);
+    virtual void visit(typename AST::TypeTag t);
     virtual void visit(typename AST::TypeReference t);
     virtual void visit(typename AST::TypeSlice t);
     virtual void visit(typename AST::TypeDelegate t);
