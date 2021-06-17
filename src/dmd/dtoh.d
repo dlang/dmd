@@ -2433,7 +2433,7 @@ public:
         if (isFp)
             buf.writeByte('(');
         else if (e.f)
-            includeSymbol(e.f);
+            includeSymbol(outermostSymbol(e.f));
 
         e.e1.accept(this);
 
@@ -2457,6 +2457,9 @@ public:
             printf("[AST.DotVarExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.DotVarExp exit] %s\n", e.toChars());
         }
+
+        if (auto sym = symbolFromType(e.e1.type))
+            includeSymbol(outermostSymbol(sym));
 
         // Accessing members through a pointer?
         if (auto pe = e.e1.isPtrExp)
@@ -2919,4 +2922,31 @@ void hashInclude(ref OutBuffer buf, string content)
 {
     buf.writestring("#include ");
     buf.writestringln(content);
+}
+
+/// Finds the outermost symbol if `sym` is nested.
+/// Returns `sym` if it appears at module scope
+ASTCodegen.Dsymbol outermostSymbol(ASTCodegen.Dsymbol sym)
+{
+    assert(sym);
+    while (true)
+    {
+        auto par = sym.toParent();
+        if (par.isModule())
+            return sym;
+        sym = par;
+    }
+}
+
+/// Fetches the symbol for user-defined types from the type `t`
+/// if `t` is either `TypeClass`, `TypeStruct` or `TypeEnum`
+ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t)
+{
+    if (auto tc = t.isTypeClass())
+        return tc.sym;
+    if (auto ts = t.isTypeStruct())
+        return ts.sym;
+    if (auto te = t.isTypeEnum())
+        return te.sym;
+    return null;
 }
