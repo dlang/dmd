@@ -331,7 +331,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (global.params.symdebugref)
                 Type_toCtype(cd.type); // calls toDebug() only once
-            else if (global.params.symdebug)
+            else if (global.params.symdebug && target.os == Target.OS.Windows)
                 toDebug(cd);
 
             assert(cd.semanticRun >= PASS.semantic3done);     // semantic() should have been run to completion
@@ -443,7 +443,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (global.params.symdebugref)
                 Type_toCtype(id.type); // calls toDebug() only once
-            else if (global.params.symdebug)
+            else if (global.params.symdebug && target.os == Target.OS.Windows)
                 toDebug(id);
 
             // Put out the members
@@ -493,7 +493,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             {
                 if (global.params.symdebugref)
                     Type_toCtype(sd.type); // calls toDebug() only once
-                else if (global.params.symdebug)
+                else if (global.params.symdebug && target.os == Target.OS.Windows)
                     toDebug(sd);
 
                 if (global.params.useTypeInfo && Type.dtypeinfo)
@@ -660,7 +660,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (global.params.symdebugref)
                 Type_toCtype(ed.type); // calls toDebug() only once
-            else if (global.params.symdebug)
+            else if (global.params.symdebug && target.os == Target.OS.Windows)
                 toDebug(ed);
 
             if (global.params.useTypeInfo && Type.dtypeinfo)

@@ -11,9 +11,6 @@
 
 module dmd.tocvdebug;
 
-version (Windows)
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stddef;
@@ -53,8 +50,6 @@ import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-extern (C++):
-
 /* The CV4 debug format is defined in:
  *      "CV4 Symbolic Debug Information Specification"
  *      rev 3.1 March 5, 1993
@@ -92,57 +87,57 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
     //printf("cv4_memfunctypidx(fd = '%s')\n", fd.toChars());
 
     type *t = Type_toCtype(fd.type);
-    if (AggregateDeclaration ad = fd.isMemberLocal())
+    AggregateDeclaration ad = fd.isMemberLocal();
+    if (!ad)
+        return cv4_typidx(t);
+    
+    // It's a member function, which gets a special type record
+
+    const idx_t thisidx = fd.isStatic()
+                ? dttab4[TYvoid]
+                : (ad.handleType() ? cv4_typidx(Type_toCtype(ad.handleType())) : 0);
+    assert(thisidx);
+
+    uint nparam;
+    const idx_t paramidx = cv4_arglist(t,&nparam);
+
+    const ubyte call = cv4_callconv(t);
+
+    switch (config.fulltypes)
     {
-        // It's a member function, which gets a special type record
-
-        const idx_t thisidx = fd.isStatic()
-                    ? dttab4[TYvoid]
-                    : (ad.handleType() ? cv4_typidx(Type_toCtype(ad.handleType())) : 0);
-        assert(thisidx);
-
-        uint nparam;
-        const idx_t paramidx = cv4_arglist(t,&nparam);
-
-        const ubyte call = cv4_callconv(t);
-
-        switch (config.fulltypes)
+        case CV4:
         {
-            case CV4:
-            {
-                debtyp_t* d = debtyp_alloc(18);
-                ubyte *p = &d.data[0];
-                TOWORD(p,LF_MFUNCTION);
-                TOWORD(p + 2,cv4_typidx(t.Tnext));
-                TOWORD(p + 4,cv4_typidx(Type_toCtype(ad.type)));
-                TOWORD(p + 6,thisidx);
-                p[8] = call;
-                p[9] = 0;                               // reserved
-                TOWORD(p + 10,nparam);
-                TOWORD(p + 12,paramidx);
-                TOLONG(p + 14,0);                       // thisadjust
-                return cv_debtyp(d);
-            }
-            case CV8:
-            {
-                debtyp_t* d = debtyp_alloc(26);
-                ubyte *p = &d.data[0];
-                TOWORD(p,0x1009);
-                TOLONG(p + 2,cv4_typidx(t.Tnext));
-                TOLONG(p + 6,cv4_typidx(Type_toCtype(ad.type)));
-                TOLONG(p + 10,thisidx);
-                p[14] = call;
-                p[15] = 0;                               // reserved
-                TOWORD(p + 16,nparam);
-                TOLONG(p + 18,paramidx);
-                TOLONG(p + 22,0);                       // thisadjust
-                return cv_debtyp(d);
-            }
-            default:
-                assert(0);
+            debtyp_t* d = debtyp_alloc(18);
+            ubyte *p = &d.data[0];
+            TOWORD(p,LF_MFUNCTION);
+            TOWORD(p + 2,cv4_typidx(t.Tnext));
+            TOWORD(p + 4,cv4_typidx(Type_toCtype(ad.type)));
+            TOWORD(p + 6,thisidx);
+            p[8] = call;
+            p[9] = 0;                               // reserved
+            TOWORD(p + 10,nparam);
+            TOWORD(p + 12,paramidx);
+            TOLONG(p + 14,0);                       // thisadjust
+            return cv_debtyp(d);
         }
+        case CV8:
+        {
+            debtyp_t* d = debtyp_alloc(26);
+            ubyte *p = &d.data[0];
+            TOWORD(p,0x1009);
+            TOLONG(p + 2,cv4_typidx(t.Tnext));
+            TOLONG(p + 6,cv4_typidx(Type_toCtype(ad.type)));
+            TOLONG(p + 10,thisidx);
+            p[14] = call;
+            p[15] = 0;                               // reserved
+            TOWORD(p + 16,nparam);
+            TOLONG(p + 18,paramidx);
+            TOLONG(p + 22,0);                       // thisadjust
+            return cv_debtyp(d);
+        }
+        default:
+            assert(0);
     }
-    return cv4_typidx(t);
 }
 
 enum CV4_NAMELENMAX = 0x3b9f;                   // found by trial and error
@@ -161,16 +156,17 @@ uint cv4_Denum(EnumDeclaration e)
     {
         for (size_t i = 0; i < e.members.dim; i++)
         {
-            if (EnumMember sf = (*e.members)[i].isEnumMember())
-            {
-                const value = sf.value().toInteger();
+            EnumMember sf = (*e.members)[i].isEnumMember();
+            if (!sf)
+                continue;
 
-                // store only member's simple name
-                uint len = 4 + cv4_numericbytes(cast(uint)value) + cv_stringbytes(sf.toChars());
+            const value = sf.value().toInteger();
 
-                len = cv_align(null, len);
-                mc.count(len);
-            }
+            // store only member's simple name
+            uint len = 4 + cv4_numericbytes(cast(uint)value) + cv_stringbytes(sf.toChars());
+
+            len = cv_align(null, len);
+            mc.count(len);
         }
     }
 
@@ -217,25 +213,25 @@ uint cv4_Denum(EnumDeclaration e)
         // And fill it in
         for (size_t i = 0; i < e.members.dim; i++)
         {
-            if (EnumMember sf = (*e.members)[i].isEnumMember())
-            {
-                ubyte* p = mc.writePtr();
-                dinteger_t value = sf.value().toInteger();
-                TOWORD(p, (config.fulltypes == CV8) ? LF_ENUMERATE_V3 : LF_ENUMERATE);
-                uint attribute = 0;
-                TOWORD(p + 2, attribute);
-                cv4_storenumeric(p + 4,cast(uint)value);
-                uint j = 4 + cv4_numericbytes(cast(uint)value);
-                // store only member's simple name
-                j += cv_namestring(p + j, sf.toChars());
-                j = cv_align(p + j, j);
-                mc.written(j);
-                // If enum is not a member of a class, output enum members as constants
-    //          if (!isclassmember(s))
-    //          {
-    //              cv4_outsym(sf);
-    //          }
-            }
+            EnumMember sf = (*e.members)[i].isEnumMember();
+            if (!sf)
+                continue;
+            ubyte* p = mc.writePtr();
+            dinteger_t value = sf.value().toInteger();
+            TOWORD(p, (config.fulltypes == CV8) ? LF_ENUMERATE_V3 : LF_ENUMERATE);
+            uint attribute = 0;
+            TOWORD(p + 2, attribute);
+            cv4_storenumeric(p + 4,cast(uint)value);
+            uint j = 4 + cv4_numericbytes(cast(uint)value);
+            // store only member's simple name
+            j += cv_namestring(p + j, sf.toChars());
+            j = cv_align(p + j, j);
+            mc.written(j);
+            // If enum is not a member of a class, output enum members as constants
+    //      if (!isclassmember(s))
+    //      {
+    //          cv4_outsym(sf);
+    //      }
         }
         fieldlist = mc.debtyp();
     }
@@ -282,22 +278,20 @@ uint cv_align(ubyte *p, uint n)
 void cv_udt(const char* id, uint typidx)
 {
     if (config.fulltypes == CV8)
-        cv8_udt(id, typidx);
-    else
-    {
-        const len = strlen(id);
-        ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + len);
+        return cv8_udt(id, typidx);
 
-        // Output a 'user-defined type' for the tag name
-        TOWORD(debsym + 2,S_UDT);
-        TOIDX(debsym + 4,typidx);
-        uint length = 2 + 2 + cgcv.sz_idx;
-        length += cv_namestring(debsym + length,id);
-        TOWORD(debsym,length - 2);
+    const len = strlen(id);
+    ubyte *debsym = cast(ubyte *) alloca(39 + IDOHD + len);
 
-        assert(length <= 40 + len);
-        objmod.write_bytes(SegData[DEBSYM],length,debsym);
-    }
+    // Output a 'user-defined type' for the tag name
+    TOWORD(debsym + 2,S_UDT);
+    TOIDX(debsym + 4,typidx);
+    uint length = 2 + 2 + cgcv.sz_idx;
+    length += cv_namestring(debsym + length,id);
+    TOWORD(debsym,length - 2);
+
+    assert(length <= 40 + len);
+    objmod.write_bytes(SegData[DEBSYM],length,debsym);
 }
 
 /* ==================================================================== */
@@ -461,7 +455,6 @@ int cv_mem_p(Dsymbol s, CvFieldList *pmc)
     pmc.written(len);
     return 0;
 }
-
 
 void toDebug(StructDeclaration sd)
 {
@@ -769,9 +762,8 @@ void toDebug(ClassDeclaration cd)
             mc.written(cast(uint)(p - base));
         }
 
-        for (size_t i = 0; i < cd.members.dim; i++)
+        foreach(s; (*cd.members)[])
         {
-            Dsymbol s = (*cd.members)[i];
             s.apply(&cv_mem_p, &mc);
         }
     }
@@ -916,317 +908,284 @@ void toDebugClosure(Symbol* closstru)
 
 int cvMember(Dsymbol s, ubyte *p)
 {
-    extern (C++) class CVMember : Visitor
-    {
-        ubyte *p;
-        int result;
-
-        this(ubyte *p)
-        {
-            this.p = p;
-            result = 0;
-        }
-
-        alias visit = Visitor.visit;
-
-        override void visit(Dsymbol s)
-        {
-        }
-
-        void cvMemberCommon(Dsymbol s, const(char)* id, idx_t typidx)
-        {
-            if (!p)
-                result = cv_stringbytes(id);
-
-            switch (config.fulltypes)
-            {
-                case CV8:
-                    if (!p)
-                    {
-                        result += 8;
-                        result = cv_align(null, result);
-                    }
-                    else
-                    {
-                        TOWORD(p,LF_NESTTYPE_V3);
-                        TOWORD(p + 2,0);
-                        TOLONG(p + 4,typidx);
-                        result = 8 + cv_namestring(p + 8, id);
-                        result = cv_align(p + result, result);
-                    }
-                    break;
-
-                case CV4:
-                    if (!p)
-                    {
-                        result += 4;
-                    }
-                    else
-                    {
-                        TOWORD(p,LF_NESTTYPE);
-                        TOWORD(p + 2,typidx);
-                        result = 4 + cv_namestring(p + 4, id);
-                    }
-                    break;
-
-                default:
-                    assert(0);
-            }
-            debug
-            {
-                if (p)
-                {
-                    int save = result;
-                    p = null;
-                    cvMemberCommon(s, id, typidx);
-                    assert(result == save);
-                }
-            }
-        }
-
-        override void visit(EnumDeclaration ed)
-        {
-            //printf("EnumDeclaration.cvMember() '%s'\n", d.toChars());
-
-            cvMemberCommon(ed, ed.toChars(), cv4_Denum(ed));
-        }
-
-        override void visit(FuncDeclaration fd)
-        {
-            //printf("FuncDeclaration.cvMember() '%s'\n", fd.toChars());
-
-            if (!fd.type)               // if not compiled in,
-                return;                 // skip it
-            if (!fd.type.nextOf())      // if not fully analyzed (e.g. auto return type)
-                return;                 // skip it
-
-            const id = fd.toChars();
-
-            if (!p)
-            {
-                result = 2 + 2 + cgcv.sz_idx + cv_stringbytes(id);
-                result = cv_align(null, result);
-                return;
-            }
-            else
-            {
-                int count = 0;
-                int mlen = 2;
-                {
-                    if (fd.introducing)
-                        mlen += 4;
-                    mlen += cgcv.sz_idx * 2;
-                    count++;
-                }
-
-                // Allocate and fill it in
-                debtyp_t *d = debtyp_alloc(mlen);
-                ubyte *q = d.data.ptr;
-                TOWORD(q,config.fulltypes == CV8 ? LF_METHODLIST_V2 : LF_METHODLIST);
-                q += 2;
-        //      for (s = sf; s; s = s.Sfunc.Foversym)
-                {
-                    uint attribute = visibilityToCVAttr(fd.visible().kind);
-
-                    /* 0*4 vanilla method
-                     * 1*4 virtual method
-                     * 2*4 static method
-                     * 3*4 friend method
-                     * 4*4 introducing virtual method
-                     * 5*4 pure virtual method
-                     * 6*4 pure introducing virtual method
-                     * 7*4 reserved
-                     */
-
-                    if (fd.isStatic())
-                        attribute |= 2*4;
-                    else if (fd.isVirtual())
-                    {
-                        if (fd.introducing)
-                        {
-                            if (fd.isAbstract())
-                                attribute |= 6*4;
-                            else
-                                attribute |= 4*4;
-                        }
-                        else
-                        {
-                            if (fd.isAbstract())
-                                attribute |= 5*4;
-                            else
-                                attribute |= 1*4;
-                        }
-                    }
-                    else
-                        attribute |= 0*4;
-
-                    TOIDX(q,attribute);
-                    q += cgcv.sz_idx;
-                    TOIDX(q, cv4_memfunctypidx(fd));
-                    q += cgcv.sz_idx;
-                    if (fd.introducing)
-                    {
-                        TOLONG(q, fd.vtblIndex * target.ptrsize);
-                        q += 4;
-                    }
-                }
-                assert(q - d.data.ptr == mlen);
-
-                idx_t typidx = cv_debtyp(d);
-                if (typidx)
-                {
-                    switch (config.fulltypes)
-                    {
-                        case CV8:
-                            TOWORD(p,LF_METHOD_V3);
-                            goto Lmethod;
-                        case CV4:
-                            TOWORD(p,LF_METHOD);
-                        Lmethod:
-                            TOWORD(p + 2,count);
-                            result = 4;
-                            TOIDX(p + result, typidx);
-                            result += cgcv.sz_idx;
-                            result += cv_namestring(p + result, id);
-                            break;
-
-                        default:
-                            assert(0);
-                    }
-                }
-                result = cv_align(p + result, result);
-                debug
-                {
-                    int save = result;
-                    result = 0;
-                    p = null;
-                    visit(fd);
-                    assert(result == save);
-                }
-            }
-        }
-
-        override void visit(VarDeclaration vd)
-        {
-            //printf("VarDeclaration.cvMember(p = %p) '%s'\n", p, vd.toChars());
-
-            if (vd.type.toBasetype().ty == Ttuple)
-                return;
-
-            const id = vd.toChars();
-
-            if (!p)
-            {
-                if (vd.isField())
-                {
-                    if (config.fulltypes == CV8)
-                        result += 2;
-                    result += 6 + cv_stringbytes(id);
-                    result += cv4_numericbytes(vd.offset);
-                }
-                else if (vd.isStatic())
-                {
-                    if (config.fulltypes == CV8)
-                        result += 2;
-                    result += 6 + cv_stringbytes(id);
-                }
-                result = cv_align(null, result);
-            }
-            else
-            {
-                idx_t typidx = cv_typidx(Type_toCtype(vd.type));
-                uint attribute = visibilityToCVAttr(vd.visible().kind);
-                assert((attribute & ~3) == 0);
-                switch (config.fulltypes)
-                {
-                    case CV8:
-                        if (vd.isField())
-                        {
-                            TOWORD(p,LF_MEMBER_V3);
-                            TOWORD(p + 2,attribute);
-                            TOLONG(p + 4,typidx);
-                            cv4_storenumeric(p + 8, vd.offset);
-                            result = 8 + cv4_numericbytes(vd.offset);
-                            result += cv_namestring(p + result, id);
-                        }
-                        else if (vd.isStatic())
-                        {
-                            TOWORD(p,LF_STMEMBER_V3);
-                            TOWORD(p + 2,attribute);
-                            TOLONG(p + 4,typidx);
-                            result = 8;
-                            result += cv_namestring(p + result, id);
-                        }
-                        break;
-
-                    case CV4:
-                        if (vd.isField())
-                        {
-                            TOWORD(p,LF_MEMBER);
-                            TOWORD(p + 2,typidx);
-                            TOWORD(p + 4,attribute);
-                            cv4_storenumeric(p + 6, vd.offset);
-                            result = 6 + cv4_numericbytes(vd.offset);
-                            result += cv_namestring(p + result, id);
-                        }
-                        else if (vd.isStatic())
-                        {
-                            TOWORD(p,LF_STMEMBER);
-                            TOWORD(p + 2,typidx);
-                            TOWORD(p + 4,attribute);
-                            result = 6;
-                            result += cv_namestring(p + result, id);
-                        }
-                        break;
-
-                     default:
-                        assert(0);
-                }
-
-                result = cv_align(p + result, result);
-                debug
-                {
-                    int save = result;
-                    result = 0;
-                    p = null;
-                    visit(vd);
-                    assert(result == save);
-                }
-            }
-        }
-    }
-
     scope v = new CVMember(p);
     s.accept(v);
     return v.result;
 }
 
-}
-else
+private extern (C++) class CVMember : Visitor
 {
-    import dmd.denum;
-    import dmd.dstruct;
-    import dmd.dclass;
-    import dmd.backend.cc;
+    ubyte *p;
+    int result;
 
-    /****************************
-     * Stub them out.
-     */
-
-    extern (C++) void toDebug(EnumDeclaration ed)
+    this(ubyte *p)
     {
-        //printf("EnumDeclaration::toDebug('%s')\n", ed.toChars());
+        this.p = p;
+        result = 0;
     }
 
-    extern (C++) void toDebug(StructDeclaration sd)
+    alias visit = Visitor.visit;
+
+    override void visit(Dsymbol s)
     {
     }
 
-    extern (C++) void toDebug(ClassDeclaration cd)
+    void cvMemberCommon(Dsymbol s, const(char)* id, idx_t typidx)
     {
+        if (!p)
+            result = cv_stringbytes(id);
+
+        switch (config.fulltypes)
+        {
+            case CV8:
+                if (!p)
+                {
+                    result += 8;
+                    result = cv_align(null, result);
+                }
+                else
+                {
+                    TOWORD(p,LF_NESTTYPE_V3);
+                    TOWORD(p + 2,0);
+                    TOLONG(p + 4,typidx);
+                    result = 8 + cv_namestring(p + 8, id);
+                    result = cv_align(p + result, result);
+                }
+                break;
+
+            case CV4:
+                if (!p)
+                {
+                    result += 4;
+                }
+                else
+                {
+                    TOWORD(p,LF_NESTTYPE);
+                    TOWORD(p + 2,typidx);
+                    result = 4 + cv_namestring(p + 4, id);
+                }
+                break;
+
+            default:
+                assert(0);
+        }
+        debug
+        {
+            if (p)
+            {
+                int save = result;
+                p = null;
+                cvMemberCommon(s, id, typidx);
+                assert(result == save);
+            }
+        }
     }
 
-    extern (C++) void toDebugClosure(Symbol* closstru)
+    override void visit(EnumDeclaration ed)
     {
+        //printf("EnumDeclaration.cvMember() '%s'\n", d.toChars());
+
+        cvMemberCommon(ed, ed.toChars(), cv4_Denum(ed));
+    }
+
+    override void visit(FuncDeclaration fd)
+    {
+        //printf("FuncDeclaration.cvMember() '%s'\n", fd.toChars());
+
+        if (!fd.type)               // if not compiled in,
+            return;                 // skip it
+        if (!fd.type.nextOf())      // if not fully analyzed (e.g. auto return type)
+            return;                 // skip it
+
+        const id = fd.toChars();
+
+        if (!p)
+        {
+            result = 2 + 2 + cgcv.sz_idx + cv_stringbytes(id);
+            result = cv_align(null, result);
+            return;
+        }
+
+        int count = 0;
+        int mlen = 2;
+        {
+            if (fd.introducing)
+                mlen += 4;
+            mlen += cgcv.sz_idx * 2;
+            count++;
+        }
+
+        // Allocate and fill it in
+        debtyp_t *d = debtyp_alloc(mlen);
+        ubyte *q = d.data.ptr;
+        TOWORD(q,config.fulltypes == CV8 ? LF_METHODLIST_V2 : LF_METHODLIST);
+        q += 2;
+    //  for (s = sf; s; s = s.Sfunc.Foversym)
+        {
+            uint attribute = visibilityToCVAttr(fd.visible().kind);
+
+            /* 0*4 vanilla method
+             * 1*4 virtual method
+             * 2*4 static method
+             * 3*4 friend method
+             * 4*4 introducing virtual method
+             * 5*4 pure virtual method
+             * 6*4 pure introducing virtual method
+             * 7*4 reserved
+             */
+
+            if (fd.isStatic())
+                attribute |= 2*4;
+            else if (fd.isVirtual())
+            {
+                if (fd.introducing)
+                {
+                    if (fd.isAbstract())
+                        attribute |= 6*4;
+                    else
+                        attribute |= 4*4;
+                }
+                else
+                {
+                    if (fd.isAbstract())
+                        attribute |= 5*4;
+                    else
+                        attribute |= 1*4;
+                }
+            }
+            else
+                attribute |= 0*4;
+
+            TOIDX(q,attribute);
+            q += cgcv.sz_idx;
+            TOIDX(q, cv4_memfunctypidx(fd));
+            q += cgcv.sz_idx;
+            if (fd.introducing)
+            {
+                TOLONG(q, fd.vtblIndex * target.ptrsize);
+                q += 4;
+            }
+        }
+        assert(q - d.data.ptr == mlen);
+
+        idx_t typidx = cv_debtyp(d);
+        if (typidx)
+        {
+            switch (config.fulltypes)
+            {
+                case CV8:
+                    TOWORD(p,LF_METHOD_V3);
+                    goto Lmethod;
+                case CV4:
+                    TOWORD(p,LF_METHOD);
+                Lmethod:
+                    TOWORD(p + 2,count);
+                    result = 4;
+                    TOIDX(p + result, typidx);
+                    result += cgcv.sz_idx;
+                    result += cv_namestring(p + result, id);
+                    break;
+
+                default:
+                    assert(0);
+            }
+        }
+        result = cv_align(p + result, result);
+        debug
+        {
+            int save = result;
+            result = 0;
+            p = null;
+            visit(fd);
+            assert(result == save);
+        }
+    }
+
+    override void visit(VarDeclaration vd)
+    {
+        //printf("VarDeclaration.cvMember(p = %p) '%s'\n", p, vd.toChars());
+
+        if (vd.type.toBasetype().ty == Ttuple)
+            return;
+
+        const id = vd.toChars();
+
+        if (!p)
+        {
+            if (vd.isField())
+            {
+                if (config.fulltypes == CV8)
+                    result += 2;
+                result += 6 + cv_stringbytes(id);
+                result += cv4_numericbytes(vd.offset);
+            }
+            else if (vd.isStatic())
+            {
+                if (config.fulltypes == CV8)
+                    result += 2;
+                result += 6 + cv_stringbytes(id);
+            }
+            result = cv_align(null, result);
+            return;
+        }
+
+        idx_t typidx = cv_typidx(Type_toCtype(vd.type));
+        uint attribute = visibilityToCVAttr(vd.visible().kind);
+        assert((attribute & ~3) == 0);
+        switch (config.fulltypes)
+        {
+            case CV8:
+                if (vd.isField())
+                {
+                    TOWORD(p,LF_MEMBER_V3);
+                    TOWORD(p + 2,attribute);
+                    TOLONG(p + 4,typidx);
+                    cv4_storenumeric(p + 8, vd.offset);
+                    result = 8 + cv4_numericbytes(vd.offset);
+                    result += cv_namestring(p + result, id);
+                }
+                else if (vd.isStatic())
+                {
+                    TOWORD(p,LF_STMEMBER_V3);
+                    TOWORD(p + 2,attribute);
+                    TOLONG(p + 4,typidx);
+                    result = 8;
+                    result += cv_namestring(p + result, id);
+                }
+                break;
+
+            case CV4:
+                if (vd.isField())
+                {
+                    TOWORD(p,LF_MEMBER);
+                    TOWORD(p + 2,typidx);
+                    TOWORD(p + 4,attribute);
+                    cv4_storenumeric(p + 6, vd.offset);
+                    result = 6 + cv4_numericbytes(vd.offset);
+                    result += cv_namestring(p + result, id);
+                }
+                else if (vd.isStatic())
+                {
+                    TOWORD(p,LF_STMEMBER);
+                    TOWORD(p + 2,typidx);
+                    TOWORD(p + 4,attribute);
+                    result = 6;
+                    result += cv_namestring(p + result, id);
+                }
+                break;
+
+             default:
+                assert(0);
+        }
+
+        result = cv_align(p + result, result);
+        debug
+        {
+            int save = result;
+            result = 0;
+            p = null;
+            visit(vd);
+            assert(result == save);
+        }
     }
 }
