@@ -42,8 +42,8 @@ int test21937c() __attribute__((nothrow , leaf)) __attribute__((noreturn));
 __attribute__((noinline))
 void test21937d()
 {
-  typedef int attr_var_t;
-  attr_var_t attr_local __attribute__((unused));
+    typedef int attr_var_t;
+    attr_var_t attr_local __attribute__((unused));
 }
 
 __attribute__((aligned)) int test21937e;
@@ -51,24 +51,24 @@ int test21937f __attribute__((aligned));
 
 struct __attribute__((packed)) S21937a
 {
-  __attribute__((deprecated("msg"))) char c;
-  int i __attribute__((deprecated));
+    __attribute__((deprecated("msg"))) char c;
+    int i __attribute__((deprecated));
 };
 
 struct S21937b
 {
-  __attribute__((deprecated("msg"))) char c;
-  int i __attribute__((deprecated));
+    __attribute__((deprecated("msg"))) char c;
+    int i __attribute__((deprecated));
 } __attribute__((packed));
 
 enum __attribute__((aligned)) E21937a
 {
-  E21937a_A,
+    E21937a_A,
 };
 
 enum E21937b
 {
-  E21937b_A,
+    E21937b_A,
 } __attribute__((aligned));
 
 typedef int T21937a __attribute__((unused));
@@ -153,3 +153,16 @@ struct S21973
 
 struct S21982 { int field; };
 struct S21982 test21982;
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22028
+
+struct S22028
+{
+    struct nested
+    {
+        int field;
+    };
+    const int cfield;
+    _Static_assert(1 == 1, "ok");
+};

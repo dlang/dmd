@@ -14,6 +14,16 @@ enum E21962 { };
 enum { };
 
 /********************************/
+// https://issues.dlang.org/show_bug.cgi?id=22028
+#line 250
+struct S22028
+{
+    int init = 1;
+    void vfield nocomma;
+    struct { };
+};
+
+/********************************/
 // https://issues.dlang.org/show_bug.cgi?id=22029
 #line 300
 struct S22029
