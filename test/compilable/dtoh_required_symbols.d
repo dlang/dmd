@@ -1,4 +1,4 @@
-/*
+/+
 REQUIRED_ARGS: -o- -HC
 TEST_OUTPUT:
 ---
@@ -40,6 +40,8 @@ struct _d_dynamicArray final
 
 struct ExternDStruct;
 class ExternDClass;
+struct ExternDStruct2;
+struct ExternDStruct3;
 
 struct ExternDStruct final
 {
@@ -73,6 +75,41 @@ struct ExternDStructTemplate final
     }
 };
 
+class Object
+{
+    virtual void __vtable_slot_0();
+    virtual void __vtable_slot_1();
+    virtual void __vtable_slot_2();
+    virtual void __vtable_slot_3();
+public:
+    class Monitor
+    {
+        virtual void __vtable_slot_4();
+        virtual void __vtable_slot_5();
+    };
+
+};
+
+class ExternDClass : public Object
+{
+public:
+    int32_t i;
+    double d;
+};
+
+struct ExternDStruct2 final
+{
+    int32_t doStuff();
+    ExternDStruct2()
+    {
+    }
+};
+
+namespace ExternDEnum2
+{
+    static ExternDStruct3 const A = ExternDStruct3(1);
+};
+
 struct ExternCppStruct final
 {
     ExternDStruct s;
@@ -93,11 +130,19 @@ struct ExternCppStruct final
 extern ExternDClass* globalC;
 
 extern void foo(int32_t arg = globalC.i);
+
+extern ExternDStruct2* globalS2;
+
+extern void bar(int32_t arg = globalS2->doStuff());
+
+extern /* ExternDEnum2 */ ExternDStruct3* globalE2;
+
+extern void baz(int32_t arg = globalE2->a);
 ---
 
 Known issues:
 - class declarations must be emitted on member access
-*/
++/
 
 // extern(D) symbols are ignored upon first visit but required later
 
@@ -112,6 +157,19 @@ struct ExternDStruct
 	__gshared double sharedDouble;
 }
 
+struct ExternDStruct2
+{
+	extern(C++) int doStuff()
+    {
+        return 1;
+    }
+}
+
+struct ExternDStruct3
+{
+	int a;
+}
+
 class ExternDClass
 {
 	int i;
@@ -121,6 +179,11 @@ class ExternDClass
 enum ExternDEnum
 {
 	A
+}
+
+enum ExternDEnum2 : ExternDStruct3
+{
+	A = ExternDStruct3(1)
 }
 
 struct ExternDStructTemplate()
@@ -141,3 +204,11 @@ struct ExternCppStruct
 __gshared ExternDClass globalC;
 
 void foo(int arg = globalC.i) {}
+
+__gshared ExternDStruct2* globalS2;
+
+void bar(int arg = globalS2.doStuff()) {}
+
+__gshared ExternDEnum2* globalE2;
+
+void baz(int arg = globalE2.a) {}
