@@ -166,6 +166,28 @@ void test10()
 
 /*********************************/
 
+void test11()
+{
+    struct S { int a, b; };
+    struct S s = { 1, 2 };
+    if (s.a != 1 || s.b != 2) { printf("xx\n"); exit(1); }
+    static struct S s2 = { 1, };
+    if (s2.a != 1 || s2.b != 0) { printf("xx\n"); exit(1); }
+
+    struct T { int a; struct { int b, c; }; };
+    struct T t = { 1, 2, 3 };
+    if (t.a != 1 || t.b != 2 || t.c != 3) { printf("xx\n"); exit(1); }
+
+    struct U { int a; union { int b, c; }; int d; };
+    struct U u = { 1, 2, 3 };
+    if (u.a != 1 ||
+        u.b != 2 ||
+        u.c != 2 ||
+        u.d != 3) { printf("%d %d %d %d\n", u.a, u.b, u.c, u.d); exit(1); }
+}
+
+/*********************************/
+
 int main()
 {
     test1();
@@ -178,6 +200,7 @@ int main()
     test8();
     test9();
     test10();
+    test11();
 
     return 0;
 }
