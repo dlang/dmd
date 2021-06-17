@@ -10,6 +10,7 @@ experimental C++ header generator:
 - Renamed imports are emitted as `using ...`
 - Complex types are emitted as `_Complex`.
 - Declarations are emitted before the first member access
+- Global variables with invalid names in C++ are omitted
 - Initializers of `union` variables/parameters omit non-active members
 - Typecasts are emitted as C style, not D's `cast(...) ...`
 - Structs are always tagged as `final` because D disallows `struct` inheritance

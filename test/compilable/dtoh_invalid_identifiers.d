@@ -3,9 +3,8 @@ REQUIRED_ARGS: -HC -c -o- -wi -extern-std=c++20
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-compilable/dtoh_invalid_identifiers.d(102): Warning: variable `and` is a special operator in C++
-compilable/dtoh_invalid_identifiers.d(102):        The generated C++ header will contain identifiers that are keywords in C++
 compilable/dtoh_invalid_identifiers.d(103): Warning: function `register` is a keyword in C++
+compilable/dtoh_invalid_identifiers.d(103):        The generated C++ header will contain identifiers that are keywords in C++
 compilable/dtoh_invalid_identifiers.d(105): Warning: namespace `const_cast` is a keyword in C++
 compilable/dtoh_invalid_identifiers.d(116): Warning: function `and` is a special operator in C++
 compilable/dtoh_invalid_identifiers.d(121): Warning: enum `mutable` is a keyword in C++
@@ -48,8 +47,6 @@ struct _d_dynamicArray final
 
 class Alias;
 class Base;
-
-extern bool and;
 
 extern void register(int32_t* ptr);
 

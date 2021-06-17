@@ -897,6 +897,11 @@ public:
                 ignored("variable %s because its type cannot be mapped to C++", vd.toPrettyChars());
                 return;
             }
+            if (auto kc = keywordClass(vd.ident))
+            {
+                ignored("variable %s because its name is a %s", vd.toPrettyChars(), kc);
+                return;
+            }
             writeProtection(vd.visibility.kind);
             if (vd.linkage == LINK.c)
                 buf.writestring("extern \"C\" ");
