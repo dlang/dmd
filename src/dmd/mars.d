@@ -2349,6 +2349,27 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else
                 goto Lerror;
         }
+        debug(LOG)
+        {
+            if (startsWith(p + 1, "LOG"))
+            {
+                //Parse:
+                //    -LOG=identifier
+                if (p[4] == '=')
+                {
+                    if (Identifier.isValidIdentifier(p + 5))
+                    {
+                        if (!params.calls)
+                            params.calls = new Array!(const(char)*);
+                        params.calls.push(p + 5);
+                    }
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
+            }
+        }
         else if (arg == "--b")
             dmdParams.debugb = true;
         else if (arg == "--c")
