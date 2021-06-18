@@ -6230,7 +6230,7 @@ LagainStc:
                         // not merged into the current case. This can happen for
                         // case 1: ... break;
                         // debug { case 2: ... }
-                        if (cur.isBreakStatement())
+                        if (cur && cur.isBreakStatement())
                             break;
                     }
                     s = new AST.CompoundStatement(loc, statements);
