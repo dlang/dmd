@@ -223,6 +223,15 @@ void test11()
 
 /*********************************/
 
+void test12()
+{
+    int i;
+    i = (int) { 3 };
+    if (i != 3) { printf("test12\n"); exit(1); }
+}
+
+/*********************************/
+
 int main()
 {
     test1();
@@ -238,6 +247,7 @@ int main()
     test9();
     test10();
     test11();
+    test12();
 
     return 0;
 }
