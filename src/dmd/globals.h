@@ -210,6 +210,7 @@ struct Param
 
     unsigned versionlevel; // version level
     Array<const char *> *versionids;   // version identifiers
+    Array<const char *> *calls; // list of calls that is marked for logging
 
     DString defaultlibname;     // default library for non-debug builds
     DString debuglibname;       // default library for debug builds

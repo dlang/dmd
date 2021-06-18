@@ -560,6 +560,7 @@ struct Param final
     Array<const char* >* debugids;
     uint32_t versionlevel;
     Array<const char* >* versionids;
+    Array<const char* >* calls;
     _d_dynamicArray< const char > defaultlibname;
     _d_dynamicArray< const char > debuglibname;
     _d_dynamicArray< const char > mscrtlib;
@@ -682,6 +683,7 @@ struct Param final
         debugids(),
         versionlevel(),
         versionids(),
+        calls(),
         defaultlibname(),
         debuglibname(),
         mscrtlib(),
@@ -812,6 +814,7 @@ struct Param final
         debugids(debugids),
         versionlevel(versionlevel),
         versionids(versionids),
+        calls(calls),
         defaultlibname(defaultlibname),
         debuglibname(debuglibname),
         mscrtlib(mscrtlib),

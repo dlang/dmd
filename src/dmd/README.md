@@ -176,6 +176,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [dimport.d](https://github.com/dlang/dmd/blob/master/src/dmd/dimport.d)       | Renamed imports (`import aliasSymbol = pkg1.pkg2.symbol`)                                   |
 | [arrayop.d](https://github.com/dlang/dmd/blob/master/src/dmd/arrayop.d)       | Array operations (`a[] = b[] + c[]`)                                                        |
 | [typinf.d](https://github.com/dlang/dmd/blob/master/src/dmd/typinf.d)         | Generate typeinfo for `typeid()` (as well as internals)                                     |
+| [audit_log](https://github.com/dlang/dmd/blob/master/src/dmd/common/audit_log.d)   | Generates text files for debugging purposes                                            |
 
 | File                                                                        | Purpose                                                                            |
 |-----------------------------------------------------------------------------|------------------------------------------------------------------------------------|
