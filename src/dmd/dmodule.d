@@ -593,7 +593,7 @@ extern (C++) final class Module : Package
 
     extern (C++) static Module load(Loc loc, Identifiers* packages, Identifier ident)
     {
-        return load(loc, (*packages)[], ident);
+        return load(loc, packages ? (*packages)[] : null, ident);
     }
 
     extern (D) static Module load(Loc loc, Identifier[] packages, Identifier ident)

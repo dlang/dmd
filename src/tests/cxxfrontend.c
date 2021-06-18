@@ -537,6 +537,14 @@ void test_cppmangle()
     assert(!global.endGagging(errors));
 }
 
+void test_module()
+{
+    unsigned errors = global.startGagging();
+    Module *mod = Module::load(Loc(), NULL, Identifier::idPool("doesnotexist.d"));
+    assert(mod == NULL);
+    assert(global.endGagging(errors));
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -557,6 +565,7 @@ int main(int argc, char **argv)
     test_array();
     test_outbuffer();
     test_cppmangle();
+    test_module();
 
     frontend_term();
 
