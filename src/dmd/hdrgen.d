@@ -2044,6 +2044,14 @@ public:
         buf.writeByte(')');
     }
 
+    override void visit(CompoundLiteralExp e)
+    {
+        buf.writeByte('(');
+        typeToBuffer(e.type, null, buf, hgs);
+        buf.writeByte(')');
+        e.initializer.initializerToBuffer(buf, hgs);
+    }
+
     override void visit(TypeExp e)
     {
         typeToBuffer(e.type, null, buf, hgs);

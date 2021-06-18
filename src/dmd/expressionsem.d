@@ -3238,6 +3238,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
+    override void visit(CompoundLiteralExp cle)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("CompoundLiteralExp::semantic('%s')\n", cle.toChars());
+        }
+        Type t = cle.type.typeSemantic(cle.loc, sc);
+        auto init = initializerSemantic(cle.initializer, sc, t, INITnointerpret);
+        auto e = initializerToExpression(init, t);
+        if (!e)
+        {
+            error(cle.loc, "cannot convert initializer `%s` to expression", init.toChars());
+            return setError();
+        }
+        result = e;
+        return;
+    }
+
     override void visit(TypeExp exp)
     {
         if (exp.type.ty == Terror)
