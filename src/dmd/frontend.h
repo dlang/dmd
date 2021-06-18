@@ -7406,7 +7406,6 @@ struct Id final
     static Identifier* btr;
     static Identifier* bts;
     static Identifier* bswap;
-    static Identifier* volatile;
     static Identifier* volatileLoad;
     static Identifier* volatileStore;
     static Identifier* _popcnt;
@@ -7487,7 +7486,6 @@ struct Id final
     static Identifier* NULL;
     static Identifier* TRUE;
     static Identifier* FALSE;
-    static Identifier* unsigned;
     static Identifier* wchar_t;
     static Identifier* __tag;
     static Identifier* dllimport;

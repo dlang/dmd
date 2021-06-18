@@ -80,6 +80,8 @@ public:
 };
 
 extern void unused();
+
+// Ignored variable dtoh_verbose.and because its name is a special operator in C++
 ---
 */
 
@@ -136,3 +138,5 @@ extern(C++) class Visitor
 }
 
 extern(C++) void unused() {}
+
+extern(C++) __gshared bool and;
