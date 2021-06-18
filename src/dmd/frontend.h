@@ -1461,15 +1461,15 @@ enum class TOK : uint16_t
     _Alignof = 248u,
     _Atomic = 249u,
     _Bool = 250u,
-    _Complex = 251u,
+    _Complex_ = 251u,
     _Generic = 252u,
     _Imaginary = 253u,
     _Noreturn = 254u,
     _Static_assert = 255u,
     _Thread_local = 256u,
-    __cdecl = 257u,
-    __declspec = 258u,
-    __attribute__ = 259u,
+    __cdecl_ = 257u,
+    __declspec_ = 258u,
+    __attribute___ = 259u,
 };
 
 enum class MATCH
@@ -7937,15 +7937,9 @@ struct Id final
     static Identifier* _super;
     static Identifier* ctor;
     static Identifier* dtor;
-    static Identifier* __xdtor;
-    static Identifier* __fieldDtor;
-    static Identifier* __aggrDtor;
     static Identifier* cppdtor;
     static Identifier* ticppdtor;
     static Identifier* postblit;
-    static Identifier* __xpostblit;
-    static Identifier* __fieldPostblit;
-    static Identifier* __aggrPostblit;
     static Identifier* classInvariant;
     static Identifier* unitTest;
     static Identifier* require;
@@ -7953,8 +7947,6 @@ struct Id final
     static Identifier* capture;
     static Identifier* this2;
     static Identifier* _init;
-    static Identifier* __sizeof;
-    static Identifier* __xalignof;
     static Identifier* _mangleof;
     static Identifier* stringof;
     static Identifier* _tupleof;
@@ -7966,7 +7958,6 @@ struct Id final
     static Identifier* dollar;
     static Identifier* ctfe;
     static Identifier* offset;
-    static Identifier* offsetof;
     static Identifier* ModuleInfo;
     static Identifier* ClassInfo;
     static Identifier* classinfo;
@@ -7983,18 +7974,7 @@ struct Id final
     static Identifier* empty;
     static Identifier* p;
     static Identifier* q;
-    static Identifier* __vptr;
-    static Identifier* __monitor;
     static Identifier* gate;
-    static Identifier* __c_long;
-    static Identifier* __c_ulong;
-    static Identifier* __c_longlong;
-    static Identifier* __c_ulonglong;
-    static Identifier* __c_long_double;
-    static Identifier* __c_wchar_t;
-    static Identifier* __c_complex_float;
-    static Identifier* __c_complex_double;
-    static Identifier* __c_complex_real;
     static Identifier* cpp_type_info_ptr;
     static Identifier* _assert;
     static Identifier* _unittest;
@@ -8068,11 +8048,7 @@ struct Id final
     static Identifier* trusted;
     static Identifier* system;
     static Identifier* disable;
-    static Identifier* ___out;
-    static Identifier* ___in;
-    static Identifier* __int;
     static Identifier* _dollar;
-    static Identifier* __LOCAL_SIZE;
     static Identifier* uadd;
     static Identifier* neg;
     static Identifier* com;
@@ -8157,8 +8133,6 @@ struct Id final
     static Identifier* monitorexit;
     static Identifier* criticalenter;
     static Identifier* criticalexit;
-    static Identifier* __ArrayPostblit;
-    static Identifier* __ArrayDtor;
     static Identifier* _d_delThrowable;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
@@ -8175,17 +8149,11 @@ struct Id final
     static Identifier* tohash;
     static Identifier* tostring;
     static Identifier* getmembers;
-    static Identifier* __alloca;
     static Identifier* main;
     static Identifier* WinMain;
     static Identifier* DllMain;
     static Identifier* CMain;
     static Identifier* rt_init;
-    static Identifier* __cmp;
-    static Identifier* __equals;
-    static Identifier* __switch;
-    static Identifier* __switch_error;
-    static Identifier* __ArrayCast;
     static Identifier* _d_HookTraceImpl;
     static Identifier* _d_arraysetlengthTImpl;
     static Identifier* _d_arraysetlengthT;
@@ -8229,10 +8197,6 @@ struct Id final
     static Identifier* fabs;
     static Identifier* toPrec;
     static Identifier* simd;
-    static Identifier* __prefetch;
-    static Identifier* __simd_sto;
-    static Identifier* __simd;
-    static Identifier* __simd_ib;
     static Identifier* bitop;
     static Identifier* bsf;
     static Identifier* bsr;
@@ -8317,15 +8281,11 @@ struct Id final
     static Identifier* udaGNUAbiTag;
     static Identifier* udaSelector;
     static Identifier* udaOptional;
-    static Identifier* NULL;
     static Identifier* TRUE;
     static Identifier* FALSE;
-    static Identifier* wchar_t;
-    static Identifier* __tag;
     static Identifier* dllimport;
     static Identifier* dllexport;
     static Identifier* vector_size;
-    static Identifier* __func__;
     static void initialize();
     Id()
     {

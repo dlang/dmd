@@ -3000,7 +3000,8 @@ const(char*) keywordClass(const Identifier ident)
     if (!ident)
         return null;
 
-    switch (ident.toString())
+    const name = ident.toString();
+    switch (name)
     {
         // C++ operators
         case "and":
@@ -3017,6 +3018,7 @@ const(char*) keywordClass(const Identifier ident)
             return "special operator in C++";
 
         // C++ keywords
+        case "_Complex":
         case "const_cast":
         case "delete":
         case "dynamic_cast":
@@ -3038,6 +3040,12 @@ const(char*) keywordClass(const Identifier ident)
         case "volatile":
             return "keyword in C++";
 
+        // Common macros imported by this header
+        // stddef.h
+        case "offsetof":
+        case "NULL":
+            return "default macro in C++";
+
         // C++11 keywords
         case "alignas":
         case "alignof":
@@ -3049,6 +3057,7 @@ const(char*) keywordClass(const Identifier ident)
         case "nullptr":
         case "static_assert":
         case "thread_local":
+        case "wchar_t":
             if (global.params.cplusplus >= CppStdRevision.cpp11)
                 return "keyword in C++11";
             return null;
@@ -3069,6 +3078,10 @@ const(char*) keywordClass(const Identifier ident)
             return null;
 
         default:
+            // Identifiers starting with __ are reserved
+            if (name.length >= 2 && name[0..2] == "__")
+                return "reserved identifier in C++";
+
             return null;
     }
 }
