@@ -46,11 +46,18 @@ int , int;
 
 struct S22030
 {
-  int;
-  int *;
-  int &;
-  int, int;
-  int _;
+    int;
+    int *;
+    int &;
+    int, int;
+    int _;
 };
 
 void test22030(struct S22030, struct S22030*, struct S22030[4]);
+
+// https://issues.dlang.org/show_bug.cgi?id=22035
+#line 500
+void test22035()
+{
+    case 1 2:
+}

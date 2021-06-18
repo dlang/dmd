@@ -21,6 +21,8 @@ fail_compilation/imports/cstuff1.c(403): Error: identifier or `(` expected
 fail_compilation/imports/cstuff1.c(408): Error: identifier or `(` expected
 fail_compilation/imports/cstuff1.c(409): Error: identifier or `(` expected
 fail_compilation/imports/cstuff1.c(410): Error: identifier or `(` expected
+fail_compilation/imports/cstuff1.c(502): Error: found `2` when expecting `:`
+fail_compilation/imports/cstuff1.c(502): Error: found `:` instead of statement
 ---
 */
 import imports.cstuff1;
