@@ -55,6 +55,11 @@ struct S22030
 
 void test22030(struct S22030, struct S22030*, struct S22030[4]);
 
+// https://issues.dlang.org/show_bug.cgi?id=22032
+#line 450
+struct S22032 { int field; }
+int test22032;
+
 // https://issues.dlang.org/show_bug.cgi?id=22035
 #line 500
 void test22035()

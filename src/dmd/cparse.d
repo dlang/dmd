@@ -1997,7 +1997,7 @@ final class CParser(AST) : Parser!AST
                     tkwx = TKW.init;
                 }
                 tkw |= tkwx;
-                if (!(tkw & TKW.xtag))  // if parser already advanced
+                if (!(tkwx & TKW.xtag)) // if parser already advanced
                     nextToken();
                 continue;
             }
