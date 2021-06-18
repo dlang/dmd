@@ -3286,6 +3286,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                  * with:
                  *      exp; return;
                  */
+                rs.exp = rs.exp.optimize(WANTvalue);
                 e0 = Expression.combine(e0, rs.exp);
                 rs.exp = null;
             }
