@@ -39,12 +39,13 @@ int main()
 
     WithTuple wt = createTuple();
     // printf("\n(%d, %f)\n\n", wt.__memberTuple_field_0, wt.__memberTuple_field_1);
-    assert(wt.__memberTuple_field_0 == 1);
-    assert(wt.__memberTuple_field_1 == 2.0);
+    assert(wt.__memberTuple_field_0_ == 1);
+    assert(wt.__memberTuple_field_1_ == 2.0);
 
     // printf("\n(%d, %f)\n\n", __globalTuple_field_0, __globalTuple_field_1);
-    assert(__globalTuple_field_0 == 3);
-    assert(__globalTuple_field_1 == 4.0);
+    // Omitted because a leading __ implies a reserved name
+    // assert(__globalTuple_field_0 == 3);
+    // assert(__globalTuple_field_1 == 4.0);
 
     tupleFunction(5, 6.0);
 
