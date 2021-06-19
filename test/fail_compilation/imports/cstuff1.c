@@ -23,6 +23,8 @@ struct S22028
     struct { };
 };
 
+int test22028 = sizeof(struct S22028 ident);
+
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=22029
 #line 300
