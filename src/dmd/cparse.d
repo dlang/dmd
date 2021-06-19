@@ -3450,11 +3450,6 @@ final class CParser(AST) : Parser!AST
                 return false;
             t = peek(t);
         }
-        else if (declarator != DTR.xdirect)
-        {
-            pt = t;
-            return true;        // declarator is optional
-        }
 
         if (t.value == TOK.leftBracket)
         {
