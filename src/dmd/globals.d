@@ -233,10 +233,7 @@ extern (C++) struct Param
     uint versionlevel;                  // version level
     Array!(const(char)*)* versionids;   // version identifiers
 
-    debug(LOG)
-    {
-        Array!(const(char)*)* calls; //Module or Function Call
-    }
+    Array!(const(char)*)* calls; // list of calls that is being marked for logging 
 
     const(char)[] defaultlibname;        // default library for non-debug builds
     const(char)[] debuglibname;          // default library for debug builds
