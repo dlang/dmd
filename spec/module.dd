@@ -6,6 +6,7 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME Module):
+    $(GLINK ModuleDeclaration)
     $(GLINK ModuleDeclaration) $(GLINK DeclDefs)
     $(GLINK DeclDefs)
 
