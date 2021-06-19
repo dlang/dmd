@@ -143,6 +143,19 @@ void test8()
 
 /*********************************/
 
+void test8a()
+{
+    int i;
+    static int a[3] = { 1,2,3 };
+    // Casting to an array type is not allowed by C11, but
+    // CompoundLiterals are not there yet to test this
+    // grammar
+    i = ((int[3])a)[2];
+    if (i != 3) { printf("test8a\n"); exit(1); }
+}
+
+/*********************************/
+
 void test9()
 {
     int i = 1;            if (i != 1) { printf("error 9i\n"); exit(1); }
@@ -198,6 +211,7 @@ int main()
     test6();
     test7();
     test8();
+    test8a();
     test9();
     test10();
     test11();
