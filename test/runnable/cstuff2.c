@@ -51,7 +51,8 @@ void test3()
 void test4()
 {
     static int a[3] = {1, 2, 3};
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
         if (a[i] != i + 1)
         {
@@ -66,9 +67,11 @@ void test4()
 void test5()
 {
     static int b[3][2] = { 1,2,3,4,5,6 };
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        int j;
+        for (j = 0; j < 2; ++j)
         {
             if (b[i][j] != i * 2 + j + 1)
             {
@@ -84,9 +87,11 @@ void test5()
 void test6()
 {
     static int c[3][2] = { {1,2},{3,4},{5,6} };
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        int j;
+        for (j = 0; j < 2; ++j)
         {
             if (c[i][j] != i * 2 + j + 1)
             {
@@ -102,9 +107,11 @@ void test6()
 void test7()
 {
     static int d[3][2] = { {1,2},3,4,{5,6} };
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        int j;
+        for (j = 0; j < 2; ++j)
         {
             if (d[i][j] != i * 2 + j + 1)
             {
@@ -120,9 +127,11 @@ void test7()
 void test8()
 {
     static int d[3][2] = { {1,2} };
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        int j;
+        for (j = 0; j < 2; ++j)
         {
             if (i == 0)
             {
