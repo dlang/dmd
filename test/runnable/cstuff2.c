@@ -156,6 +156,19 @@ void test8a()
 
 /*********************************/
 
+void test8b()
+{
+    struct S { int a, b; };
+    static struct S ax[3] = { 0x11,0x22,0x33,0 };
+    //printf("%x %x %x %x\n", ax[0].a, ax[0].b, ax[1].a, ax[1].b);
+    if (ax[0].a != 0x11 ||
+        ax[0].b != 0x22 ||
+        ax[1].a != 0x33 ||
+        ax[1].b != 0) { printf("test8b\n"); exit(1); }
+}
+
+/*********************************/
+
 void test9()
 {
     int i = 1;            if (i != 1) { printf("error 9i\n"); exit(1); }
@@ -212,6 +225,7 @@ int main()
     test7();
     test8();
     test8a();
+    test8b();
     test9();
     test10();
     test11();

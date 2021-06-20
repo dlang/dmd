@@ -578,7 +578,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
     {
         if (ci.sem) // if semantic() already run
             return ci;
-        //printf("CInitializer::semantic() %s %s\n", t.toChars(), ci.toChars());
+        //printf("CInitializer::semantic() (%s) %s\n", t.toChars(), ci.toChars());
         ci.sem = true;
         t = t.toBasetype();
         ci.type = t;    // later passes will need this
@@ -601,6 +601,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
          */
         Initializer structs(TypeStruct ts)
         {
+            //printf("structs %s\n", ts.toChars());
             StructDeclaration sd = ts.sym;
             sd.size(ci.loc);
             if (sd.sizeok != Sizeok.done)
@@ -692,7 +693,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 return ei.initializerSemantic(sc, t, needInterpret);
             }
 
-            error(ci.loc, "C non-array initializers not supported yet");
+            error(ci.loc, "C non-array initializer (%s) %s not supported yet", t.toChars(), ci.toChars());
             return err();
         }
 
@@ -746,6 +747,10 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 {
                     // no braces enclosing array initializer, so recurse
                     array(tnsa, nelems);
+                }
+                else if (auto tns = tn.isTypeStruct())
+                {
+                    dil[n].initializer = structs(tns);
                 }
                 else
                 {

@@ -202,7 +202,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
     void visitC(CInitializer ci)
     {
-        //printf("CInitializer.toDt()\n");
+        //printf("CInitializer.toDt() (%s) %s\n", ci.type.toChars(), ci.toChars());
 
         /* append all initializers to dtb
          */
