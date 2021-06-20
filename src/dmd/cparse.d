@@ -2155,7 +2155,7 @@ final class CParser(AST) : Parser!AST
      *  declarator   = declarator kind
      *  t            = base type to start with
      *  pident       = set to Identifier if there is one, null if not
-     *  storageClass = any storage classes seen so far
+     *  storageClass = any storage classes seen so far that apply to a function
      * Returns:
      *  type declared. If a TypeFunction is returned, this.symbols is the
      *  symbol table for the parameter-type-list, which will contain any
@@ -2165,149 +2165,191 @@ final class CParser(AST) : Parser!AST
         out Identifier pident, StorageClass storageClass = 0)
     {
         //printf("cparseDeclarator(%d)\n", declarator);
+        AST.Types constTypes; // all the Types that will need `const` applied to them
+        constTypes.setDim(0);
 
-        AST.Type ts;
-        while (1)
+        AST.Type parseDecl(AST.Type t)
         {
-            switch (token.value)
+            AST.Type ts;
+            while (1)
             {
-            case TOK.identifier:        // identifier
-                //printf("identifier %s\n", token.ident.toChars());
-                if (declarator == DTR.xabstract)
-                    error("identifier not allowed in abstract-declarator");
-                pident = token.ident;
-                ts = t;
-                nextToken();
-                break;
-
-            case TOK.leftParenthesis:   // ( declarator )
-                /* like: T (*fp)();
-                 *       T ((*fp))();
-                 */
-                nextToken();
-                ts = cparseDeclarator(declarator, t, pident);
-                check(TOK.rightParenthesis);
-                break;
-
-            case TOK.mul:               // pointer
-                t = new AST.TypePointer(t);
-                nextToken();
-                // add post fixes
-                /*const mod =*/ cparseTypeQualifierList();
-                // t = t.addSTC(stc); // TODO
-                continue;
-
-            default:
-                if (declarator == DTR.xdirect)
+                switch (token.value)
                 {
-                    error("identifier or `(` expected"); // )
-                    panic();
-                }
-                ts = t;
-                break;
-            }
-            break;
-        }
-
-        // parse DeclaratorSuffixes
-        while (1)
-        {
-            /* Insert tx into
-             *   ts -> ... -> t
-             * so that
-             *   ts -> ... -> tx -> t
-             */
-            static void insertTx(ref AST.Type ts, AST.Type tx, AST.Type t)
-            {
-                AST.Type* pt;
-                for (pt = &ts; *pt != t; pt = &(cast(AST.TypeNext)*pt).next)
-                {
-                }
-                *pt = tx;
-            }
-
-            switch (token.value)
-            {
-                case TOK.leftBracket:
-                {
-                    // post [] syntax.
-                    AST.TypeNext ta;
+                case TOK.identifier:        // identifier
+                    //printf("identifier %s\n", token.ident.toChars());
+                    if (declarator == DTR.xabstract)
+                        error("identifier not allowed in abstract-declarator");
+                    pident = token.ident;
+                    ts = t;
                     nextToken();
+                    break;
 
-                    // pick up any leading type qualifiers, `static` and `*`
-                    bool isStatic;
-                    if (token.value == TOK.static_)
+                case TOK.leftParenthesis:   // ( declarator )
+                    /* like: T (*fp)();
+                     *       T ((*fp))();
+                     */
+                    nextToken();
+                    ts = parseDecl(t);
+                    check(TOK.rightParenthesis);
+                    break;
+
+                case TOK.mul:               // pointer
+                    t = new AST.TypePointer(t);
+                    nextToken();
+                    // add post fixes const/volatile/restrict/_Atomic
+                    const mod = cparseTypeQualifierList();
+                    if (mod & MOD.xconst)
+                        constTypes.push(t);
+                    continue;
+
+                default:
+                    if (declarator == DTR.xdirect)
                     {
-                        isStatic = true;
-                        nextToken();
+                        error("identifier or `(` expected"); // )
+                        panic();
                     }
-                    /*const tqual =*/ cparseTypeQualifierList(); // TODO do something with tqual
-                    bool isVLA;
-                    if (!isStatic)
+                    ts = t;
+                    break;
+                }
+                break;
+            }
+
+            // parse DeclaratorSuffixes
+            while (1)
+            {
+                /* Insert tx -> t into
+                 *   ts -> ... -> t
+                 * so that
+                 *   ts -> ... -> tx -> t
+                 */
+                static void insertTx(ref AST.Type ts, AST.Type tx, AST.Type t)
+                {
+                    AST.Type* pt;
+                    for (pt = &ts; *pt != t; pt = &(cast(AST.TypeNext)*pt).next)
                     {
+                    }
+                    *pt = tx;
+                }
+
+                switch (token.value)
+                {
+                    case TOK.leftBracket:
+                    {
+                        // post [] syntax.
+                        AST.Type ta;
+                        nextToken();
+
+                        // pick up any leading type qualifiers, `static` and `*`
+                        bool isStatic;
                         if (token.value == TOK.static_)
                         {
                             isStatic = true;
                             nextToken();
                         }
-                        else if (token.value == TOK.mul)
+
+                        bool isVLA;
+                        if (!isStatic)
                         {
-                            if (peekNext() == TOK.rightBracket)
+                            if (token.value == TOK.static_)
                             {
-                                isVLA = true;
+                                isStatic = true;
                                 nextToken();
                             }
+                            else if (token.value == TOK.mul)
+                            {
+                                if (peekNext() == TOK.rightBracket)
+                                {
+                                    isVLA = true;
+                                    nextToken();
+                                }
+                            }
                         }
-                    }
-                    if (isVLA) // C11 6.7.6.2
-                    {
-                        error("variable length arrays are not supported");
-                    }
-                    if (isStatic) // C11 6.7.6.3
-                    {
-                        error("static array parameters are not supported");
+                        if (isVLA) // C11 6.7.6.2
+                        {
+                            error("variable length arrays are not supported");
+                        }
+                        if (isStatic) // C11 6.7.6.3
+                        {
+                            error("static array parameters are not supported");
+                        }
+
+                        if (token.value == TOK.rightBracket)
+                        {
+                            // An array of unknown size, fake it with a DArray
+                            ta = new AST.TypeDArray(t); // []
+                            nextToken();
+                        }
+                        else
+                        {
+                            //printf("It's a static array\n");
+                            AST.Expression e = cparseAssignExp(); // [ expression ]
+                            ta = new AST.TypeSArray(t, e);
+                            check(TOK.rightBracket);
+                        }
+
+                        const mod = cparseTypeQualifierList(); // const/volatile/restrict/_Atomic
+                        if (mod & MOD.xconst) // ignore the other bits
+                            ta = ta.addSTC(STC.const_);
+
+                        insertTx(ts, ta, t);  // ts -> ... -> ta -> t
+                        continue;
                     }
 
-                    if (token.value == TOK.rightBracket)
+                    case TOK.leftParenthesis:
                     {
-                        // An array of unknown size, fake it with a DArray
-                        ta = new AST.TypeDArray(t); // []
-                        nextToken();
-                    }
-                    else
-                    {
-                        //printf("It's a static array\n");
-                        AST.Expression e = cparseAssignExp(); // [ expression ]
-                        ta = new AST.TypeSArray(t, e);
-                        check(TOK.rightBracket);
+                        // New symbol table for parameter-list
+                        auto symbolsSave = this.symbols;
+                        this.symbols = null;
+
+                        auto parameterList = cparseParameterList();
+                        AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, 0);
+    //                  tf = tf.addSTC(storageClass);  // TODO
+                        insertTx(ts, tf, t);  // ts -> ... -> tf -> t
+
+                        if (ts != tf)
+                            this.symbols = symbolsSave;
+                        break;
                     }
 
-                    insertTx(ts, ta, t);  // ts -> ... -> ta -> t
-                    continue;
+                    default:
+                        break;
                 }
-
-                case TOK.leftParenthesis:
-                {
-                    // New symbol table for parameter-list
-                    auto symbolsSave = this.symbols;
-                    this.symbols = null;
-
-                    auto parameterList = cparseParameterList();
-                    AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, 0);
-//                  tf = tf.addSTC(storageClass);  // TODO
-                    insertTx(ts, tf, t);  // ts -> ... -> tf -> t
-
-                    if (ts != tf)
-                        this.symbols = symbolsSave;
-                    break;
-                }
-
-                default:
-                    break;
+                break;
             }
-            break;
+            return ts;
         }
-        return ts;
+
+        t = parseDecl(t);
+
+        /* Because const is transitive, cannot assemble types from
+         * fragments. Instead, types to be annotated with const are put
+         * in constTypes[], and a bottom up scan of t is done to apply
+         * const
+         */
+        if (constTypes.length)
+        {
+            AST.Type constApply(AST.Type t)
+            {
+                if (t.nextOf())
+                {
+                    auto tn = cast(AST.TypeNext)t; // t.nextOf() should return a ref instead of this
+                    tn.next = constApply(tn.next);
+                }
+                foreach (tc; constTypes[])
+                {
+                    if (tc is t)
+                    {
+                        return t.addSTC(STC.const_);
+                    }
+                }
+                return t;
+            }
+
+            t = constApply(t);
+        }
+
+        //printf("result: %s\n", t.toChars());
+        return t;
     }
 
     /******************************
