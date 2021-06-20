@@ -556,21 +556,56 @@ public:
             buf.writestring("using ");
             writeIdentifier(alias_, i.loc, "renamed import");
             buf.writestring(" = ");
+            // Start at module scope to avoid collisions with local symbols
+            if (this.context.adparent)
+                buf.writestring("::");
             buf.writestring(sym.ident.toString());
             writeDeclEnd();
             return null;
         }
 
-        // Omit local imports
-        assert(i.parent);
-        if (!i.parent.isModule())
+        // Only missing without semantic analysis
+        // FIXME: Templates need work due to missing parent & imported module
+        if (!i.parent)
         {
-            ignored("local %s", i.toChars());
+            assert(tdparent);
+            ignored("`%s` because it's inside of a template declaration", i.toChars());
             return;
         }
 
+        // Non-public imports don't create new symbols, include as needed
+        if (i.visibility.kind < AST.Visibility.Kind.public_)
+            return;
+
+        // Symbols from static imports should be emitted inline
+        if (i.isstatic)
+            return;
+
+        const isLocal = !i.parent.isModule();
+
         // Need module for symbol lookup
         assert(i.mod);
+
+        // Emit an alias for each public module member
+        if (isLocal && i.names.length == 0)
+        {
+            assert(i.mod.symtab);
+            foreach (entry; i.mod.symtab.tab.asRange)
+            {
+                auto ident = entry.key;
+                auto sym = entry.value;
+
+                // Skip invisible members
+                import dmd.access : symbolIsVisible;
+                if (!symbolIsVisible(i, sym))
+                    continue;
+
+                includeSymbol(sym);
+                if (auto err = writeImport(sym, ident))
+                    ignored("public import for `%s` because `using` %s", ident.toChars(), err);
+            }
+            return;
+        }
 
         // Include all public imports and emit using declarations for each alias
         foreach (const idx, name; i.names)
@@ -1592,6 +1627,16 @@ public:
 
     override void visit(AST.EnumMember em)
     {
+        assert(em.ed);
+
+        // Members of anonymous members are reachable without referencing the
+        // EnumDeclaration, e.g. public import foo : someEnumMember;
+        if (em.ed.isAnonymous())
+        {
+            visit(em.ed);
+            return;
+        }
+
         assert(false, "This node type should be handled in the EnumDeclaration");
     }
 

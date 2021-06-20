@@ -56,7 +56,7 @@ extern void importFunc();
 // Ignored renamed import `myFunc = importFunc` because `using` only supports types
 struct A final
 {
-    // Ignored local __anonymous
+    // Ignored renamed import `myFunc = importFunc` because `using` only supports types
     A()
     {
     }
@@ -82,6 +82,23 @@ public:
 extern void unused();
 
 // Ignored variable dtoh_verbose.and because its name is a special operator in C++
+template <typename T>
+struct FullImportTmpl final
+{
+    // Ignored `dtoh_imports` because it's inside of a template declaration
+    FullImportTmpl()
+    {
+    }
+};
+
+template <typename T>
+struct SelectiveImportsTmpl final
+{
+    // Ignored `__anonymous` because it's inside of a template declaration
+    SelectiveImportsTmpl()
+    {
+    }
+};
 ---
 */
 
@@ -112,7 +129,7 @@ public import dtoh_imports : myFunc = importFunc;
 
 extern(C++) struct A
 {
-    import core.stdc.errno : cErrorC = errno;
+    public import dtoh_imports : myFunc = importFunc;
 }
 
 extern(C++) struct Hidden
@@ -140,3 +157,16 @@ extern(C++) class Visitor
 extern(C++) void unused() {}
 
 extern(C++) __gshared bool and;
+
+extern(C++) struct FullImportTmpl(T)
+{
+    public import dtoh_imports;
+
+}
+
+extern(C++) struct SelectiveImportsTmpl(T)
+{
+    public import dtoh_imports :
+        importFunc,
+        aliasName = ImportsC;
+}

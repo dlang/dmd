@@ -9,7 +9,7 @@ experimental C++ header generator:
 - `extern(D)` structs and classes are emitted if referenced by an exported symbol
 - Forward declarations consistently include `template<...>`
 - `extern(C++, class)`, `extern(C++, struct)` affects forward declarations
-- Renamed imports are emitted as `using ...`
+- Renamed or local imports are emitted as `using ...` when possible
 - Complex types are emitted as `_Complex`.
 - Declarations are emitted before the first member access
 - Global variables with invalid names in C++ are omitted
