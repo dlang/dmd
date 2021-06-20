@@ -21,7 +21,7 @@ void test19754()
     (cast(long[2]) a)[0] = 5;
     (cast(long[2]) a)[0] += 3;
 
-    static if (is(typeof(__vector(int[4]))))
+    static if (is(__vector(int[4])))
     {
         __vector(int[4]) v;
         (cast(int[4]) v)[0] = 5;
