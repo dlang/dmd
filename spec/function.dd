@@ -42,6 +42,7 @@ $(GNAME Parameter):
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(ASSIGNEXPRESSION)
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type)
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D =) $(ASSIGNEXPRESSION)
 
 $(GNAME ParameterAttributes):
     $(GLINK InOut)
