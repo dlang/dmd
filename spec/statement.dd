@@ -1073,10 +1073,10 @@ $(GNAME SwitchStatement):
     $(D switch $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
 
 $(GNAME CaseStatement):
-    $(D case) $(GLINK2 expression, ArgumentList) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)
+    $(D case) $(GLINK2 expression, ArgumentList) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
 
 $(GNAME CaseRangeStatement):
-    $(D case) $(GLINK FirstExp) $(D : .. case) $(GLINK LastExp) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)
+    $(D case) $(GLINK FirstExp) $(D : .. case) $(GLINK LastExp) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
 
 $(GNAME FirstExp):
     $(ASSIGNEXPRESSION)
@@ -1085,7 +1085,7 @@ $(GNAME LastExp):
     $(ASSIGNEXPRESSION)
 
 $(GNAME DefaultStatement):
-    $(D default :) $(PSSEMI_PSCURLYSCOPE_LIST)
+    $(D default :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
 
 $(GNAME ScopeStatementList):
     $(GLINK StatementListNoCaseNoDefault)
