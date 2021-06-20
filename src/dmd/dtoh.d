@@ -530,6 +530,37 @@ public:
             scope(exit) printf("[AST.Import exit] %s\n", i.toChars());
         }
 
+        /// Writes `using <alias_> = <sym.ident>` into `buf`
+        const(char*) writeImport(AST.Dsymbol sym, const Identifier alias_)
+        {
+            /// `using` was introduced in C++ 11 and only works for types...
+            if (global.params.cplusplus < CppStdRevision.cpp11)
+                return "requires C++11";
+
+            if (auto ad = sym.isAliasDeclaration())
+            {
+                sym = ad.toAlias();
+                ad = sym.isAliasDeclaration();
+
+                // Might be an alias to a basic type
+                if (ad && !ad.aliassym && ad.type)
+                    goto Emit;
+            }
+
+            // Restricted to types and other aliases
+            if (!sym.isScopeDsymbol() && !sym.isAggregateDeclaration())
+                return "only supports types";
+
+            // Write `using <alias_> = `<sym>`
+            Emit:
+            buf.writestring("using ");
+            writeIdentifier(alias_, i.loc, "renamed import");
+            buf.writestring(" = ");
+            buf.writestring(sym.ident.toString());
+            writeDeclEnd();
+            return null;
+        }
+
         // Omit local imports
         assert(i.parent);
         if (!i.parent.isModule())
@@ -555,37 +586,8 @@ public:
             if (!alias_)
                 continue;
 
-            /// `using` was introduced in C++ 11 and only works for types...
-            if (global.params.cplusplus < CppStdRevision.cpp11)
-            {
-                ignored("renamed import `%s = %s` because `using` requires C++11", alias_.toChars(), name.toChars());
-                continue;
-            }
-
-            if (auto ad = sym.isAliasDeclaration())
-            {
-                sym = ad.toAlias();
-                ad = sym.isAliasDeclaration();
-
-                // Might be an alias to a basic type
-                if (ad && !ad.aliassym && ad.type)
-                    goto Emit;
-            }
-
-            // Restricted to types and other aliases
-            if (!sym.isScopeDsymbol() && !sym.isAggregateDeclaration())
-            {
-                ignored("renamed import `%s = %s` because `using` only supports types", alias_.toChars(), name.toChars());
-                continue;
-            }
-
-            // Write `using <alias_> = `<sym>`
-            Emit:
-            buf.writestring("using ");
-            writeIdentifier(alias_, i.loc, "renamed import");
-            buf.writestring(" = ");
-            buf.writestring(sym.ident.toString());
-            writeDeclEnd();
+            if (auto err = writeImport(sym, alias_))
+                ignored("renamed import `%s = %s` because `using` %s", alias_.toChars(), name.toChars(), err);
         }
     }
 
