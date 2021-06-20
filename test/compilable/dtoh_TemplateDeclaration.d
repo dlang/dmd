@@ -44,8 +44,25 @@ struct A final
 {
     // Ignoring var x alignment 0
     T x;
+    // Ignoring var Enum alignment 0
+    enum : int32_t { Enum = 42 };
+
+    // Ignoring var GsharedNum alignment 0
+    static int32_t GsharedNum;
+    // Ignoring var MemNum alignment 0
+    const int32_t MemNum;
     void foo();
     A()
+    {
+    }
+};
+
+template <typename T>
+struct NotInstantiated final
+{
+    // Ignoring var noInit alignment 0
+    // Ignoring var missingSem alignment 0
+    NotInstantiated()
     {
     }
 };
@@ -128,7 +145,7 @@ public:
     T childFinal();
 };
 
-extern void withDefTempl(A<int32_t > a = A<int32_t >(2));
+extern void withDefTempl(A<int32_t > a = A<int32_t >(2, 13));
 
 template <typename T>
 extern void withDefTempl2(A<T > a = static_cast<A<T >>(A!T(2)));
@@ -161,9 +178,17 @@ extern HasMixinsTemplate<bool > hmti;
 extern (C++) struct A(T)
 {
     T x;
-    // enum Num = 42; // dtoh segfaults at enum
-
+    enum Enum = 42;
+    __gshared GsharedNum = 43;
+    immutable MemNum = 13;
     void foo() {}
+}
+
+// Invalid declarations accepted because it's not instantiated
+extern (C++) struct NotInstantiated(T)
+{
+    enum T noInit;
+    enum missingSem = T.init;
 }
 
 extern (C++) struct B

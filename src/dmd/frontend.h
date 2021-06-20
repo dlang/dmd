@@ -387,6 +387,8 @@ struct Array final
     // Ignoring var data alignment 0
     _d_dynamicArray< T > data;
     // Ignoring var SMALLARRAYCAP alignment 0
+    enum : int32_t { SMALLARRAYCAP = 1 };
+
     // Ignoring var smallarray alignment 0
     void* smallarray;
     Array(size_t dim);

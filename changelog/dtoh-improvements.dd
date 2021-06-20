@@ -18,6 +18,7 @@ experimental C++ header generator:
 - Structs are always tagged as `final` because D disallows `struct` inheritance
 - Symbol names always include template parameters and enclosing declarations
   when required
+- Properly emits (static / enum) members of templated aggregates
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

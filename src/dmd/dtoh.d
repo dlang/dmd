@@ -869,10 +869,34 @@ public:
             buf.writenl();
         }
 
-        if (vd.storage_class & AST.STC.manifest &&
-            vd._init && vd._init.isExpInitializer() && vd.type !is null)
+        // Determine the variable type which might be missing inside of
+        // template declarations. Infer the type from the initializer then
+        AST.Type type = vd.type;
+        if (!type)
         {
-            AST.Type type = vd.type;
+            assert(tdparent);
+
+            // Just a precaution, implicit type without initializer should be rejected
+            if (!vd._init)
+                return;
+
+            if (auto ei = vd._init.isExpInitializer())
+                type = ei.exp.type;
+
+            // Can happen if the expression needs further semantic
+            if (!type)
+            {
+                ignored("%s because the type could not be determined", vd.toPrettyChars());
+                return;
+            }
+
+            // Apply const/immutable to the inferred type
+            if (vd.storage_class & (AST.STC.const_ | AST.STC.immutable_))
+                type = type.constOf();
+        }
+
+        if (vd.storage_class & AST.STC.manifest)
+        {
             EnumKind kind = getEnumKind(type);
 
             if (vd.visibility.kind == AST.Visibility.Kind.none || vd.visibility.kind == AST.Visibility.Kind.private_) {
@@ -919,23 +943,10 @@ public:
             return;
         }
 
-        if (tdparent && vd.type && !vd.type.deco)
-        {
-            if (!isSupportedType(vd.type))
-            {
-                ignored("variable %s because its type cannot be mapped to C++", vd.toPrettyChars());
-                return;
-            }
-            writeProtection(vd.visibility.kind);
-            typeToBuffer(vd.type, vd, adparent && !(vd.storage_class & (AST.STC.static_ | AST.STC.gshared)));
-            buf.writestringln(";");
-            return;
-        }
-
         if (vd.storage_class & (AST.STC.static_ | AST.STC.extern_ | AST.STC.tls | AST.STC.gshared) ||
         vd.parent && vd.parent.isModule())
         {
-            if (vd.linkage != LINK.c && vd.linkage != LINK.cpp)
+            if (vd.linkage != LINK.c && vd.linkage != LINK.cpp && !(tdparent && (this.linkage == LINK.c || this.linkage == LINK.cpp)))
             {
                 ignored("variable %s because of linkage", vd.toPrettyChars());
                 return;
@@ -945,7 +956,7 @@ public:
                 ignored("variable %s because of thread-local storage", vd.toPrettyChars());
                 return;
             }
-            if (!isSupportedType(vd.type))
+            if (!isSupportedType(type))
             {
                 ignored("variable %s because its type cannot be mapped to C++", vd.toPrettyChars());
                 return;
@@ -962,19 +973,16 @@ public:
                 buf.writestring("extern ");
             if (adparent)
                 buf.writestring("static ");
-            typeToBuffer(vd.type, vd);
+            typeToBuffer(type, vd);
             writeDeclEnd();
             return;
         }
 
-        if (adparent && vd.type && vd.type.deco)
+        if (adparent)
         {
             writeProtection(vd.visibility.kind);
-            typeToBuffer(vd.type, vd, true);
+            typeToBuffer(type, vd, true);
             buf.writestringln(";");
-
-            if (auto t = vd.type.isTypeStruct())
-                includeSymbol(t.sym);
 
             debug (Debug_DtoH_Checks)
             {

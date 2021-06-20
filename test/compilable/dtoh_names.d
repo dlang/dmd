@@ -66,13 +66,13 @@ struct Outer final
         struct InnerTmpl final
         {
             // Ignoring var innerTmplOuterPtr alignment 0
-            Outer* innerTmplOuterPtr;
+            static Outer* innerTmplOuterPtr;
             // Ignoring var innerTmplPtr alignment 0
-            Middle* innerTmplPtr;
+            static Middle* innerTmplPtr;
             // Ignoring var innerTmplInnerPtr alignment 0
-            Inner* innerTmplInnerPtr;
+            static Inner* innerTmplInnerPtr;
             // Ignoring var innerTmplInnerTmplPtr alignment 0
-            InnerTmpl* innerTmplInnerTmplPtr;
+            static InnerTmpl* innerTmplInnerTmplPtr;
             InnerTmpl()
             {
             }
@@ -87,15 +87,15 @@ struct Outer final
     struct MiddleTmpl final
     {
         // Ignoring var middleTmplPtr alignment 0
-        MiddleTmpl<T >* middleTmplPtr;
+        static MiddleTmpl<T >* middleTmplPtr;
         // Ignoring var middleTmplInnerTmplPtr alignment 0
-        MiddleTmpl<T >* middleTmplInnerTmplPtr;
+        static MiddleTmpl<T >* middleTmplInnerTmplPtr;
         struct Inner final
         {
             // Ignoring var ptr alignment 0
-            Inner* ptr;
+            static Inner* ptr;
             // Ignoring var ptr2 alignment 0
-            MiddleTmpl<T >* ptr2;
+            static MiddleTmpl<T >* ptr2;
             Inner()
             {
             }
@@ -105,13 +105,13 @@ struct Outer final
         struct InnerTmpl final
         {
             // Ignoring var innerTmplPtr alignment 0
-            InnerTmpl* innerTmplPtr;
+            static InnerTmpl* innerTmplPtr;
             // Ignoring var innerTmplPtrDiff alignment 0
-            InnerTmpl<char >* innerTmplPtrDiff;
+            static InnerTmpl<char >* innerTmplPtrDiff;
             // Ignoring var middleTmplInnerTmplPtr alignment 0
-            MiddleTmpl<T >* middleTmplInnerTmplPtr;
+            static MiddleTmpl<T >* middleTmplInnerTmplPtr;
             // Ignoring var a alignment 0
-            T a;
+            static T a;
             static U bar();
             InnerTmpl()
             {
