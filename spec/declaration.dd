@@ -90,6 +90,7 @@ $(GNAME StorageClasses):
 $(GNAME StorageClass):
 $(MULTICOLS 5,     $(GLINK2 attribute, LinkageAttribute)
     $(GLINK2 attribute, AlignAttribute)
+    $(GLINK2 attribute, AtAttribute)
     $(D deprecated)
     $(D enum)
     $(D static)
