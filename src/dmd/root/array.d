@@ -292,8 +292,8 @@ public:
         debug (stomp)
         {
             assert(length);
-            auto result = data[length - 1];
-            remove(length - 1);
+            auto result = data[--length];
+            memset(data.ptr + length, 0xFF, T.sizeof);
             return result;
         }
         else
