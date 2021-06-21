@@ -6413,8 +6413,10 @@ LagainStc:
                     const catchloc = token.loc;
 
                     nextToken();
-                    if (token.value == TOK.leftCurly || token.value != TOK.leftParenthesis)
+                    if (token.value != TOK.leftParenthesis)
                     {
+                        deprecation("`catch` statement without an exception specification is deprecated");
+                        deprecationSupplemental(token.loc, "use `catch(Throwable)` for old behavior");
                         t = null;
                         id = null;
                     }

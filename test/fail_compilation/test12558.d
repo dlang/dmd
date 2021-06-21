@@ -1,10 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test12558.d(17): Error: `catch` statement without an exception specification is deprecated
-fail_compilation/test12558.d(17):        use `catch(Throwable)` for old behavior
-fail_compilation/test12558.d(22): Error: `catch` statement without an exception specification is deprecated
-fail_compilation/test12558.d(22):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(32): Deprecation: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(32):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(36): Deprecation: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(36):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(43): Deprecation: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(43):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(47): Deprecation: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(47):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(56): Deprecation: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(56):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(31): Error: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(31):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(36): Error: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(36):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(42): Error: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(42):        use `catch(Throwable)` for old behavior
+fail_compilation/test12558.d(47): Error: `catch` statement without an exception specification is deprecated
+fail_compilation/test12558.d(47):        use `catch(Throwable)` for old behavior
 ---
 */
 
@@ -23,18 +37,21 @@ void main()
         handler();
     }
 
-    // ensure diagnostics are not emitted for verioned-out blocks
-    version (none)
-    {
-        try {
-            assert(0);
-        } catch  // should not emit diagnostics
-            handler();
+    try {
+        assert(0);
+    } catch
+        handler();
 
-        try {
-            assert(0);
-        } catch {  // ditto
-            handler();
-        }
+    try {
+        assert(0);
+    } catch {
+        handler();
     }
+}
+
+void foo()()
+{
+    try {}
+    catch
+        assert(false);
 }
