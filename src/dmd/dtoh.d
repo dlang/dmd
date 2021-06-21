@@ -590,19 +590,32 @@ public:
         if (isLocal && i.names.length == 0)
         {
             assert(i.mod.symtab);
+
+            // Sort alphabetically s.t. slight changes in semantic don't cause
+            // massive changes in the order of declarations
+            AST.Dsymbols entries;
+            entries.reserve(i.mod.symtab.length);
+
             foreach (entry; i.mod.symtab.tab.asRange)
             {
-                auto ident = entry.key;
-                auto sym = entry.value;
-
-                // Skip invisible members
+                // Skip anonymous / invisible members
                 import dmd.access : symbolIsVisible;
-                if (!symbolIsVisible(i, sym))
-                    continue;
+                if (!entry.key.isAnonymous() && symbolIsVisible(i, entry.value))
+                    entries.push(entry.value);
+            }
 
+            // Seperate function because of a spurious dual-context deprecation
+            static int compare(const AST.Dsymbol* a, const AST.Dsymbol* b)
+            {
+                return strcmp(a.ident.toChars(), b.ident.toChars());
+            }
+            entries.sort!compare();
+
+            foreach (sym; entries)
+            {
                 includeSymbol(sym);
-                if (auto err = writeImport(sym, ident))
-                    ignored("public import for `%s` because `using` %s", ident.toChars(), err);
+                if (auto err = writeImport(sym, sym.ident))
+                    ignored("public import for `%s` because `using` %s", sym.ident.toChars(), err);
             }
             return;
         }

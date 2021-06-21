@@ -98,8 +98,8 @@ using MyStdc = MyStdcInt;
 
 struct FullImport final
 {
-    using MyStdcInt = ::MyStdcInt;
     using ImportsC = ::ImportsC;
+    using MyStdcInt = ::MyStdcInt;
     FullImport()
     {
     }
