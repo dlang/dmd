@@ -92,7 +92,7 @@ struct SysTime
         try
             SimpleTimeZone.fromISOExtString(zoneStr);
 
-        catch DateTimeException;
+        catch (DateTimeException e) {}
     }
 }
 

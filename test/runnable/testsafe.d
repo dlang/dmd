@@ -197,11 +197,6 @@ void safeexception()
         try {}
         catch(Throwable e) {}
     }));
-
-    static assert(!__traits(compiles, () @safe {
-        try {}
-        catch {}
-    }));
 }
 
 @safe
@@ -495,4 +490,3 @@ void main()
 {
     test14162();
 }
-
