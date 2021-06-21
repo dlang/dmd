@@ -774,6 +774,26 @@ extern (C++) class Dsymbol : ASTNode
             if (isAliasDeclaration() && !_scope)
                 setScope(sc);
             Dsymbol s2 = sds.symtabLookup(this,ident);
+
+            // If using C prototype/forward declaration rules.
+            if (sc.flags & SCOPE.Cfile)
+            {
+                if (auto sd = isStructDeclaration())
+                {
+                    if (auto sd2 = s2.isStructDeclaration())
+                    {
+                        // Not a redeclaration if one is a forward declaration.
+                        // Move members to the first declared type.
+                        if (!sd.members || !sd2.members)
+                        {
+                            if (!sd2.members)
+                                sd2.members = sd.members;
+                            sd.members = null;
+                            return;
+                        }
+                    }
+                }
+            }
             if (!s2.overloadInsert(this))
             {
                 sds.multiplyDefined(Loc.initial, this, s2);

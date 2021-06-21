@@ -166,3 +166,16 @@ struct S22028
     const int cfield;
     _Static_assert(1 == 1, "ok");
 };
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22060
+
+struct S22060;
+typedef struct S22060 T22060a;
+struct S22060;
+typedef struct S22060 T22060b;
+struct S22060;
+struct S22060
+{
+    int _flags;
+};
