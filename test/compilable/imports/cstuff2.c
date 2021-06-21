@@ -179,3 +179,19 @@ struct S22060
 {
     int _flags;
 };
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22063
+
+typedef struct S22063_t
+{
+    int field;
+} S22063;
+
+void test22063()
+{
+    struct S22063_t v1 = { 0 };
+    struct S22063_t *v2 = 0;
+    S22063 v3 = { 0 };
+    S22063 *v4 = 0;
+}
