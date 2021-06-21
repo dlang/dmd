@@ -3089,22 +3089,15 @@ final class CParser(AST) : Parser!AST
                 pt = t;
                 return true;
             }
-            if (t.value == TOK.colon)
-            {
-                t = peek(t);
-                if (!isConstantExpression(t))
-                    return false;
-                return true;        // unnamed bit-field
-            }
             if (!isCDeclarator(t, DTR.xdirect))
                 return false;
-            if (t.value == TOK.colon)
+            if (t.value == TOK.asm_)
             {
                 t = peek(t);
-                if (!isConstantExpression(t))
+                if (t.value != TOK.leftParenthesis || !skipParens(t, &t))
                     return false;
             }
-            if (t.value == TOK.asm_)
+            if (t.value == TOK.__attribute__)
             {
                 t = peek(t);
                 if (t.value != TOK.leftParenthesis || !skipParens(t, &t))
@@ -3255,6 +3248,9 @@ final class CParser(AST) : Parser!AST
                 //case TOK._Imaginary:
                 case TOK._Complex:
                 case TOK.identifier: // typedef-name
+                    t = peek(t);
+                    any = true;
+                    break;
 
                 case TOK.struct_:
                 case TOK.union_:
@@ -3491,6 +3487,10 @@ final class CParser(AST) : Parser!AST
             if (t.value != TOK.rightParenthesis)
                 return false;
             t = peek(t);
+        }
+        else if (declarator == DTR.xdirect)
+        {
+            return false;
         }
 
         if (t.value == TOK.leftBracket)
