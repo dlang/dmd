@@ -838,13 +838,13 @@ final class CParser(AST) : Parser!AST
             }
 
             e = cparsePrimaryExp();
-            e = cparsePostExp(e);
+            e = cparsePostfixExp(e);
             break;
         }
 
         default:
             e = cparsePrimaryExp();
-            e = cparsePostExp(e);
+            e = cparsePostfixExp(e);
             break;
         }
         assert(e);
@@ -868,7 +868,7 @@ final class CParser(AST) : Parser!AST
      *    assignment-expression
      *    argument-expression-list , assignment-expression
      */
-    private AST.Expression cparsePostExp(AST.Expression e)
+    private AST.Expression cparsePostfixExp(AST.Expression e)
     {
         while (1)
         {
