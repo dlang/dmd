@@ -720,6 +720,7 @@ final class CParser(AST) : Parser!AST
      */
     private AST.Expression cparsePostfixExp(AST.Expression e)
     {
+        e = cparsePrimaryExp();
         while (1)
         {
             const loc = token.loc;
@@ -785,10 +786,6 @@ final class CParser(AST) : Parser!AST
      *
      * unary-operator:
      *    & * + - ~ !
-     *
-     * cast-expression
-     *    unary-expression
-     *    ( type-name ) cast-expression
      */
     private AST.Expression cparseUnaryExp()
     {
@@ -811,37 +808,37 @@ final class CParser(AST) : Parser!AST
 
         case TOK.and:
             nextToken();
-            e = cparseUnaryExp();
+            e = cparseCastExp();
             e = new AST.AddrExp(loc, e);
             break;
 
         case TOK.mul:
             nextToken();
-            e = cparseUnaryExp();
+            e = cparseCastExp();
             e = new AST.PtrExp(loc, e);
             break;
 
         case TOK.min:
             nextToken();
-            e = cparseUnaryExp();
+            e = cparseCastExp();
             e = new AST.NegExp(loc, e);
             break;
 
         case TOK.add:
             nextToken();
-            e = cparseUnaryExp();
+            e = cparseCastExp();
             e = new AST.UAddExp(loc, e);
             break;
 
         case TOK.not:
             nextToken();
-            e = cparseUnaryExp();
+            e = cparseCastExp();
             e = new AST.NotExp(loc, e);
             break;
 
         case TOK.tilde:
             nextToken();
-            e = cparseUnaryExp();
+            e = cparseCastExp();
             e = new AST.ComExp(loc, e);
             break;
 
@@ -860,11 +857,6 @@ final class CParser(AST) : Parser!AST
                     e = new AST.DotIdExp(loc, e, Id.__sizeof);
                     break;
                 }
-                nextToken();
-                e = cparseExpression();
-                check(TOK.rightParenthesis);
-                e = new AST.DotIdExp(loc, e, Id.__sizeof);
-                break;
             }
             e = cparseUnaryExp();
             e = new AST.DotIdExp(loc, e, Id.__sizeof);
@@ -882,12 +874,31 @@ final class CParser(AST) : Parser!AST
             break;
         }
 
-        case TOK.leftParenthesis:
+        default:
+            e = cparsePostfixExp(e);
+            break;
+        }
+        assert(e);
+        return e;
+    }
+
+    /**************
+     * C11 6.5.4
+     * cast-expression
+     *    unary-expression
+     *    ( type-name ) cast-expression
+     */
+    private AST.Expression cparseCastExp()
+    {
+        if (token.value == TOK.leftParenthesis)
         {
             // If ( type-name )
             auto pt = &token;
             if (isCastExpressionStart(pt))
             {
+                // Expression may be either a cast or a compound literal, which
+                // requires checking whether the next token is `{`
+                const loc = token.loc;
                 nextToken();
                 auto t = cparseTypeName();
                 check(TOK.rightParenthesis);
@@ -896,30 +907,17 @@ final class CParser(AST) : Parser!AST
                 {
                     // C11 6.5.2.5 ( type-name ) { initializer-list }
                     auto ci = cparseInitializer();
-                    e = new AST.CompoundLiteralExp(loc, t, ci);
-                    break;
+                    return new AST.CompoundLiteralExp(loc, t, ci);
                 }
                 else
                 {
-                    // (type-name) cast_exp
-                    e = cparseUnaryExp();
-                    e = new AST.CastExp(loc, e, t);
-                    break;
+                    // (type-name) cast-expression
+                    auto ce = cparseCastExp();
+                    return new AST.CastExp(loc, ce, t);
                 }
             }
-
-            e = cparsePrimaryExp();
-            e = cparsePostfixExp(e);
-            break;
         }
-
-        default:
-            e = cparsePrimaryExp();
-            e = cparsePostfixExp(e);
-            break;
-        }
-        assert(e);
-        return e;
+        return cparseUnaryExp();
     }
 
     /**************
@@ -933,7 +931,7 @@ final class CParser(AST) : Parser!AST
     private AST.Expression cparseMulExp()
     {
         const loc = token.loc;
-        auto e = cparseUnaryExp();
+        auto e = cparseCastExp();
 
         while (1)
         {
@@ -941,19 +939,19 @@ final class CParser(AST) : Parser!AST
             {
             case TOK.mul:
                 nextToken();
-                auto e2 = cparseUnaryExp();
+                auto e2 = cparseCastExp();
                 e = new AST.MulExp(loc, e, e2);
                 continue;
 
             case TOK.div:
                 nextToken();
-                auto e2 = cparseUnaryExp();
+                auto e2 = cparseCastExp();
                 e = new AST.DivExp(loc, e, e2);
                 continue;
 
             case TOK.mod:
                 nextToken();
-                auto e2 = cparseUnaryExp();
+                auto e2 = cparseCastExp();
                 e = new AST.ModExp(loc, e, e2);
                 continue;
 

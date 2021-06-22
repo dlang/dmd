@@ -25,6 +25,11 @@ fail_compilation/imports/cstuff1.c(410): Error: identifier or `(` expected
 fail_compilation/imports/cstuff1.c(451): Error: illegal type combination
 fail_compilation/imports/cstuff1.c(502): Error: found `2` when expecting `:`
 fail_compilation/imports/cstuff1.c(502): Error: found `:` instead of statement
+fail_compilation/imports/cstuff1.c(603): Error: expression expected, not `short`
+fail_compilation/imports/cstuff1.c(603): Error: found `var` when expecting `;` following statement
+fail_compilation/imports/cstuff1.c(604): Error: expression expected, not `long`
+fail_compilation/imports/cstuff1.c(604): Error: found `long` when expecting `)`
+fail_compilation/imports/cstuff1.c(604): Error: found `)` when expecting `;` following statement
 ---
 */
 import imports.cstuff1;
