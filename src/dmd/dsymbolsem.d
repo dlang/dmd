@@ -348,7 +348,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.error("extern symbols cannot have initializers");
 
         dsym.userAttribDecl = sc.userAttribDecl;
-        dsym.cppnamespace = sc.namespace;
+        dsym.mangleParent = sc.mangleParent;
 
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
@@ -1766,7 +1766,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (ns.ident is null)
         {
-            ns.cppnamespace = sc.namespace;
+            ns.mangleParent = sc.mangleParent;
             sc = sc.startCTFE();
             ns.exp = ns.exp.expressionSemantic(sc);
             ns.exp = resolveProperties(sc, ns.exp);
@@ -1776,16 +1776,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (auto te = ns.exp.isTupleExp())
             {
                 expandTuples(te.exps);
-                CPPNamespaceDeclaration current = ns.cppnamespace;
+                CPPNamespaceDeclaration current = ns.mangleParent.hasCPPNamespace;
                 for (size_t d = 0; d < te.exps.dim; ++d)
                 {
                     auto exp = (*te.exps)[d];
-                    auto prev = d ? current : ns.cppnamespace;
+                    auto prev = d ? current : ns.mangleParent.hasCPPNamespace;
                     current = (d + 1) != te.exps.dim
                         ? new CPPNamespaceDeclaration(ns.loc, exp, null)
                         : ns;
                     current.exp = exp;
-                    current.cppnamespace = prev;
+                    current.mangleParent = ParentSymbolAttribute(prev);
                     if (auto se = exp.toStringExp())
                     {
                         current.ident = identFromSE(se);
@@ -1808,6 +1808,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                              ns.exp.toChars());
         }
         attribSemantic(ns);
+    }
+
+    override void visit(LinkDeclaration ld)
+    {
+        if (auto prev = sc.mangleParent.hasLink())
+            ld.mangleParent = prev;
+        return attribSemantic(ld);
     }
 
     override void visit(UserAttributeDeclaration uad)
@@ -1915,7 +1922,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (sc.stc & STC.deprecated_)
             ed.isdeprecated = true;
         ed.userAttribDecl = sc.userAttribDecl;
-        ed.cppnamespace = sc.namespace;
+        ed.mangleParent = sc.mangleParent;
 
         ed.semanticRun = PASS.semantic;
         UserAttributeDeclaration.checkGNUABITag(ed, sc.linkage);
@@ -2312,7 +2319,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         tempdecl.parent = sc.parent;
         tempdecl.visibility = sc.visibility;
-        tempdecl.cppnamespace = sc.namespace;
+        tempdecl.mangleParent = sc.mangleParent;
         tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
         tempdecl.deprecated_ = !!(sc.stc & STC.deprecated_);
 
@@ -2794,7 +2801,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!sc || funcdecl.errors)
             return;
 
-        funcdecl.cppnamespace = sc.namespace;
+        funcdecl.mangleParent = sc.mangleParent;
         funcdecl.parent = sc.parent;
         Dsymbol parent = funcdecl.toParent();
 
@@ -4255,7 +4262,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 sd.classKind = ClassKind.cpp;
-            sd.cppnamespace = sc.namespace;
+            sd.mangleParent = sc.mangleParent;
             sd.cppmangle = sc.cppmangle;
         }
         else if (sd.symtab && !scx)
@@ -4469,7 +4476,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 cldec.classKind = ClassKind.cpp;
-            cldec.cppnamespace = sc.namespace;
+            cldec.mangleParent = sc.mangleParent;
             cldec.cppmangle = sc.cppmangle;
             if (sc.linkage == LINK.objc)
                 objc.setObjc(cldec);
@@ -5185,7 +5192,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (!idec.baseclasses.dim && sc.linkage == LINK.cpp)
                 idec.classKind = ClassKind.cpp;
-            idec.cppnamespace = sc.namespace;
+            idec.mangleParent = sc.mangleParent;
             UserAttributeDeclaration.checkGNUABITag(idec, sc.linkage);
 
             if (sc.linkage == LINK.objc)
@@ -5520,9 +5527,9 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         goto Lerror;
 
     // Copy the tempdecl namespace (not the scope one)
-    tempinst.cppnamespace = tempdecl.cppnamespace;
-    if (tempinst.cppnamespace)
-        tempinst.cppnamespace.dsymbolSemantic(sc);
+    tempinst.mangleParent = tempdecl.mangleParent;
+    if (auto attr = tempinst.mangleParent.asAttribute())
+        attr.dsymbolSemantic(sc);
 
     /* Greatly simplified semantic processing for AliasSeq templates
      */

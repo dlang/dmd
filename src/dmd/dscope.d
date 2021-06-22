@@ -113,8 +113,8 @@ struct Scope
     /// alignment for struct members
     AlignDeclaration aligndecl;
 
-    /// C++ namespace this symbol is in
-    CPPNamespaceDeclaration namespace;
+    /// C++ namespace or `extern(D, mod)` this symbol is in
+    ParentSymbolAttribute mangleParent;
 
     /// linkage for external functions
     LINK linkage = LINK.d;

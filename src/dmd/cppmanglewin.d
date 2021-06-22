@@ -924,7 +924,7 @@ extern(D):
                     {
                         writeName(ag.mangleOverride.id);
                         if (sym.parent && !sym.parent.needThis())
-                            for (auto ns = ag.mangleOverride.agg.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
+                            for (auto ns = ag.mangleOverride.agg.toAlias().mangleParent.hasCPPNamespace; ns !is null && ns.ident !is null; ns = ns.mangleParent.hasCPPNamespace)
                                 writeName(ns.ident);
                         return;
                     }
@@ -935,7 +935,7 @@ extern(D):
                 else
                 {
                     writeName(ag.mangleOverride.id);
-                    for (auto ns = ti.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
+                    for (auto ns = ti.toAlias().mangleParent.hasCPPNamespace; ns !is null && ns.ident !is null; ns = ns.mangleParent.hasCPPNamespace)
                         writeName(ns.ident);
                     return;
                 }
@@ -997,7 +997,7 @@ extern(D):
         writeName(Identifier.idPool(tmp.buf.extractSlice()));
         if (needNamespaces && actualti != ti)
         {
-            for (auto ns = ti.toAlias().cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
+            for (auto ns = ti.toAlias().mangleParent.hasCPPNamespace; ns !is null && ns.ident !is null; ns = ns.mangleParent.hasCPPNamespace)
                 writeName(ns.ident);
         }
     }
@@ -1060,7 +1060,7 @@ extern(D):
         {
             mangleName(p, dont_use_back_reference);
             // Mangle our string namespaces as well
-            for (auto ns = p.cppnamespace; ns !is null && ns.ident !is null; ns = ns.cppnamespace)
+            for (auto ns = p.mangleParent.hasCPPNamespace; ns !is null && ns.ident !is null; ns = ns.mangleParent.hasCPPNamespace)
                 mangleName(ns, dont_use_back_reference);
 
             p = p.toParent();

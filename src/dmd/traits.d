@@ -2003,7 +2003,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             // into `extern(C++, "a") extern(C++, "b") extern(C++, "c")`,
             // creating a linked list what `a`'s `cppnamespace` points to `b`,
             // and `b`'s points to `c`. Our entry point is `a`.
-            for (; ns !is null; ns = ns.cppnamespace)
+            for (; ns !is null; ns = ns.mangleParent.hasCPPNamespace)
             {
                 ns.dsymbolSemantic(sc);
 
@@ -2026,14 +2026,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             auto pp = p.toParent();
             if (pp.isTemplateInstance())
             {
-                if (!p.cppnamespace)
+                if (!p.mangleParent.hasCPPNamespace)
                     continue;
                 //if (!p.toParent().cppnamespace)
                 //    continue;
                 auto inner = new Expressions(0);
                 auto outer = new Expressions(0);
-                if (prependNamespaces(inner,  p.cppnamespace)) return ErrorExp.get();
-                if (prependNamespaces(outer, pp.cppnamespace)) return ErrorExp.get();
+                if (prependNamespaces(inner,  p.mangleParent.hasCPPNamespace)) return ErrorExp.get();
+                if (prependNamespaces(outer, pp.mangleParent.hasCPPNamespace)) return ErrorExp.get();
 
                 size_t i = 0;
                 while(i < outer.dim && ((*inner)[i]) == (*outer)[i])
@@ -2047,7 +2047,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (p.isNspace())
                 exps.insert(0, new StringExp(p.loc, p.ident.toString()));
 
-            if (prependNamespaces(exps, p.cppnamespace))
+            if (prependNamespaces(exps, p.mangleParent.hasCPPNamespace))
                 return ErrorExp.get();
         }
         if (auto d = s.isDeclaration())

@@ -1060,9 +1060,9 @@ struct ASTBase
     {
         LINK linkage;
 
-        extern (D) this(const ref Loc loc, LINK p, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, LINK p, Dsymbols* decl, Identifier id = null)
         {
-            super(loc, null, decl);
+            super(loc, id, decl);
             this.linkage = p;
         }
 

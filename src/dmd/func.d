@@ -397,7 +397,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (!_scope)
             return !errors;
 
-        this.cppnamespace = _scope.namespace;
+        this.mangleParent = _scope.mangleParent;
 
         if (!originalType) // semantic not yet run
         {
