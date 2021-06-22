@@ -1441,9 +1441,9 @@ final class CParser(AST) : Parser!AST
                 // `const` is always applied to the return type, not the
                 // type function itself.
                 if (auto tf = dt.isTypeFunction())
-                    tf.next = tf.next.addSTC(STC.const_);
+                    tf.next = toConst(tf.next);
                 else
-                    dt = dt.addSTC(STC.const_);
+                    dt = toConst(dt);
             }
 
             /* GNU Extensions
@@ -2289,7 +2289,7 @@ final class CParser(AST) : Parser!AST
 
                         const mod = cparseTypeQualifierList(); // const/volatile/restrict/_Atomic
                         if (mod & MOD.xconst) // ignore the other bits
-                            ta = ta.addSTC(STC.const_);
+                            ta = toConst(ta);
 
                         insertTx(ts, ta, t);  // ts -> ... -> ta -> t
                         continue;
@@ -2339,7 +2339,7 @@ final class CParser(AST) : Parser!AST
                 {
                     if (tc is t)
                     {
-                        return t.addSTC(STC.const_);
+                        return toConst(t);
                     }
                 }
                 return t;
@@ -2449,7 +2449,7 @@ final class CParser(AST) : Parser!AST
             Identifier id;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id);
             if (specifier.mod & MOD.xconst)
-                t = t.addSTC(STC.const_);
+                t = toConst(t);
             auto param = new AST.Parameter(STC.parameter, t, id, null, null);
             parameters.push(param);
             if (token.value == TOK.rightParenthesis)
@@ -3005,7 +3005,7 @@ final class CParser(AST) : Parser!AST
             }
 
             if (specifier.mod & MOD.xconst)
-                dt = dt.addSTC(STC.const_);
+                dt = toConst(dt);
 
             /* GNU Extensions
              * struct-declarator:
@@ -3884,6 +3884,18 @@ final class CParser(AST) : Parser!AST
     {
         while (token.value != TOK.rightCurly && token.value != TOK.semicolon && token.value != TOK.endOfFile)
             nextToken();
+    }
+
+    /**************************
+     * Apply `const` to a type.
+     * Params:
+     *    t = type to add const to
+     * Returns:
+     *    resulting type
+     */
+    private AST.Type toConst(AST.Type t)
+    {
+        return t.addSTC(STC.const_);
     }
 
     //}
