@@ -69,6 +69,20 @@ void test22035()
     case 1 2:
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=22067
+#line 550
+void test22067()
+{
+    int var;
+    (int) var = 1;
+    sizeof(var) = 2;
+    ++(short)3;
+    --4;
+    (5)++;
+    ((int)var)--;
+    (&6);
+}
+
 // https://issues.dlang.org/show_bug.cgi?id=22068
 #line 600
 void test22068()

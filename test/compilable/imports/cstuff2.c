@@ -197,6 +197,24 @@ void test22063()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22067
+
+void test22067()
+{
+    union U {
+        int value;
+        char *ptr;
+        char array[4];
+    } var;
+    union U *pvar = &var;
+    var.value = 0xabcdef;
+    var.array[0]++;
+    (*var.ptr)--;
+    ++(*pvar).value;
+    --(*pvar).array[3];
+}
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22069
 
 void test22069()
