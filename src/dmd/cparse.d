@@ -1438,12 +1438,7 @@ final class CParser(AST) : Parser!AST
 
             if (specifier.mod & MOD.xconst)
             {
-                // `const` is always applied to the return type, not the
-                // type function itself.
-                if (auto tf = dt.isTypeFunction())
-                    tf.next = toConst(tf.next);
-                else
-                    dt = toConst(dt);
+                dt = toConst(dt);
             }
 
             /* GNU Extensions
@@ -3895,7 +3890,13 @@ final class CParser(AST) : Parser!AST
      */
     private AST.Type toConst(AST.Type t)
     {
-        return t.addSTC(STC.const_);
+        // `const` is always applied to the return type, not the
+        // type function itself.
+        if (auto tf = t.isTypeFunction())
+            tf.next = tf.next.addSTC(STC.const_);
+        else
+            t = t.addSTC(STC.const_);
+        return t;
     }
 
     //}
