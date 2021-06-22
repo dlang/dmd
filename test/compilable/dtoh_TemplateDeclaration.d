@@ -39,7 +39,36 @@ struct _d_dynamicArray final
 };
 #endif
 
+typedef uint$?:32=32|64=64$_t size_t;
+
+struct Outer final
+{
+    int32_t a;
+    struct Member final
+    {
+        typedef int32_t Nested;
+        Member()
+        {
+        }
+    };
+
+    Outer() :
+        a()
+    {
+    }
+    Outer(int32_t a) :
+        a(a)
+        {}
+};
+
 enum : int32_t { SomeOtherLength = 1 };
+
+struct ActualBuffer final
+{
+    ActualBuffer()
+    {
+    }
+};
 
 template <typename T>
 struct A final
@@ -191,6 +220,27 @@ struct NotAA final
     {
     }
 };
+
+template <typename Buffer>
+struct BufferTmpl final
+{
+    // Ignoring var buffer alignment 0
+    Buffer buffer;
+    // Ignoring var buffer2 alignment 0
+    Buffer buffer2;
+    BufferTmpl()
+    {
+    }
+};
+
+struct ImportedBuffer final
+{
+    typedef ActualBuffer Buffer;
+    ActualBuffer buffer2;
+    ImportedBuffer()
+    {
+    }
+};
 ---
 */
 
@@ -251,7 +301,6 @@ extern (C++) struct Array(T)
     void visit(T.Member.Nested i) {}
 }
 
-// Not emitted yet even though it is used above
 struct Outer
 {
     int a;
@@ -328,4 +377,25 @@ struct NotAA(T)
     T[length] buffer;
     T[SomeOtherLength] otherBuffer;
     T[foo(1)] calcBuffer;
+}
+
+// Same name but hidden by the template paramter
+extern (D) struct Buffer {}
+extern (D) struct ActualBuffer {}
+
+struct BufferTmpl(Buffer)
+{
+    Buffer buffer;
+    mixin BufferMixin!();
+}
+
+struct ImportedBuffer
+{
+    alias Buffer = ActualBuffer;
+    mixin BufferMixin!();
+}
+
+mixin template BufferMixin()
+{
+    Buffer buffer2;
 }

@@ -1760,6 +1760,11 @@ public:
             printf("[AST.TypeIdentifier enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeIdentifier exit] %s\n", t.toChars());
         }
+
+        // Try to resolve the referenced symbol
+        if (auto sym = findSymbol(t.ident))
+            ensureDeclared(outermostSymbol(sym));
+
         if (t.idents.length)
             buf.writestring("typename ");
 
@@ -2186,14 +2191,38 @@ public:
      */
     private AST.Dsymbol findSymbol(Identifier name, AST.Dsymbol context)
     {
-        for (auto par = context; par; par = par.toParent())
+        // Follow the declaration context
+        for (auto par = context; par; par = par.toParentDecl())
         {
+            // Check that `name` doesn't refer to a template parameter
+            if (auto td = par.isTemplateDeclaration())
+            {
+                foreach (const p; *td.parameters)
+                {
+                    if (p.ident == name)
+                        return null;
+                }
+            }
+
             if (auto mem = findMember(par, name))
             {
                 return mem;
             }
         }
         return null;
+    }
+
+    /// ditto
+    private AST.Dsymbol findSymbol(Identifier name)
+    {
+        AST.Dsymbol sym;
+        if (adparent)
+            sym = findSymbol(name, adparent);
+
+        if (!sym && tdparent)
+            sym = findSymbol(name, tdparent);
+
+        return sym;
     }
 
     /// Finds the template declaration for instance `ti`
@@ -2857,7 +2886,7 @@ public:
 
         // Eagerly include the symbol if we cannot create a valid forward declaration
         // Forwarding of scoped enums requires C++11 or above
-        if (!forwarding || !par.isModule() || (ed && global.params.cplusplus < CppStdRevision.cpp11))
+        if (!forwarding || (par && !par.isModule()) || (ed && global.params.cplusplus < CppStdRevision.cpp11))
         {
             // Emit the entire enclosing declaration if any
             includeSymbol(outermostSymbol(sym));

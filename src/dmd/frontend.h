@@ -223,6 +223,7 @@ struct ModuleDeclaration;
 struct FileBuffer;
 struct Escape;
 class WithStatement;
+struct AA;
 class Tuple;
 class Parameter;
 class TemplateParameter;
@@ -378,6 +379,8 @@ enum class CHECKACTION : uint8_t
     halt = 2u,
     context = 3u,
 };
+
+typedef uint64_t size_t;
 
 template <typename T>
 struct Array final
@@ -925,6 +928,8 @@ struct Ungag final
     }
 };
 
+typedef uint64_t d_uns64;
+
 struct Visibility final
 {
     enum class Kind : uint8_t
@@ -1122,6 +1127,8 @@ public:
     void accept(Visitor* v);
     ~ScopeDsymbol();
 };
+
+typedef uint64_t StorageClass;
 
 enum class ClassKind : uint8_t
 {
@@ -1474,6 +1481,10 @@ enum class TOK : uint16_t
     __declspec = 258u,
     __attribute__ = 259u,
 };
+
+typedef uint64_t dinteger_t;
+
+typedef uint64_t uinteger_t;
 
 enum class MATCH
 {
