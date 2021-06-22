@@ -17,7 +17,7 @@ void test(const string actual, const string expected, size_t line = __LINE__)
     }
 }
 
-void testIntegers()()
+void testIntegers()
 {
     test(1, 2, "1 != 2");
     test(-10, 8, "-10 != 8");
@@ -35,7 +35,7 @@ void testIntegers()()
     test(testFun(), 2, "1 != 2");
 }
 
-void testIntegerComparisons()()
+void testIntegerComparisons()
 {
     test!"!="(2, 2, "2 == 2");
     test!"<"(2, 1, "2 >= 1");
@@ -44,7 +44,7 @@ void testIntegerComparisons()()
     test!">="(1, 2, "1 < 2");
 }
 
-void testFloatingPoint()()
+void testFloatingPoint()
 {
     if (__ctfe)
     {
@@ -100,7 +100,7 @@ void testStrings()
     test(dchar(0xDDDD), dchar('∑'), "cast(dchar) 56797 != '∑'");
 }
 
-void testToString()()
+void testToString()
 {
     class Foo
     {
@@ -140,7 +140,7 @@ void testToString()()
 }
 
 
-void testArray()()
+void testArray()
 {
     test([1], [0], "[1] != [0]");
     test([1, 2, 3], [0], "[1, 2, 3] != [0]");
@@ -155,7 +155,7 @@ void testArray()()
     static struct S
     {
         int[2] arr;
-        int[] get() { return arr[]; }
+        int[] get() return { return arr[]; }
         alias get this;
     }
 
@@ -163,7 +163,7 @@ void testArray()()
     test(a, S([3, 4]), "S([1, 2]) != S([3, 4])");
 }
 
-void testStruct()()
+void testStruct()
 {
     struct S { int s; }
     struct T { T[] t; }
@@ -183,7 +183,7 @@ void testStruct()()
     test(_d_assert_fail!(typeof(sn))("!=", sn, sn), "NoCopy() == NoCopy()");
 }
 
-void testAA()()
+void testAA()
 {
     test([1:"one"], [2: "two"], `[1: "one"] != [2: "two"]`);
     test!"in"(1, [2: 3], "1 !in [2: 3]");
@@ -201,7 +201,7 @@ void testAttributes() @safe pure @nogc nothrow
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20066
-void testVoidArray()()
+void testVoidArray()
 {
     test!"!is"([], null, (__ctfe ? "<void[] not supported>" : "[]") ~ " is `null`");
     test!"!is"(null, null, "`null` is `null`");
