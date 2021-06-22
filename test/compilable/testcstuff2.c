@@ -186,6 +186,15 @@ struct S22060
 };
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22061
+
+union S22061
+{
+    int field;
+};
+typedef union S22061 S22061;
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22063
 
 typedef struct S22063_t
