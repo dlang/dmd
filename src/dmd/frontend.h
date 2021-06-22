@@ -4735,6 +4735,7 @@ struct ASTCodegen final
     using ThrownExceptionExp = ::ThrownExceptionExp;
     typedef UserAttributeDeclaration* UserAttributeDeclaration;
     typedef Ensure Ensure;
+    typedef ErrorExp* ErrorExp;
     typedef MODFlags MODFlags;
     typedef Type* Type;
     typedef Parameter* Parameter;
