@@ -179,3 +179,9 @@ struct S22060
 {
     int _flags;
 };
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22062
+
+typedef struct S22062 S22062;
+typedef union U22062 U22062;

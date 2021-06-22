@@ -2085,6 +2085,13 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 }
                 mtype.resolved = sd.type;
             }
+            else if (s.isAliasDeclaration())
+            {
+                /* typedef struct S S;
+                 */
+                auto ad = s.isAliasDeclaration();
+                mtype.resolved = ad.getType();
+            }
             else
             {
                 /* int S;
