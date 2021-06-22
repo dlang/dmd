@@ -68,3 +68,12 @@ void test22035()
 {
     case 1 2:
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=22068
+#line 600
+void test22068()
+{
+    int var;
+    ++(short) var;
+    --(long long) var;
+}
