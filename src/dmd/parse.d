@@ -211,6 +211,21 @@ struct PrefixAttributes(AST)
     const(char)* comment;
 }
 
+/// The result of the `ParseLinkage` function
+struct ParsedLinkage(AST)
+{
+    /// What linkage was specified
+    LINK link;
+    /// If `extern(C++, class|struct)`, contains the `class|struct`
+    CPPMANGLE cppmangle;
+    /// If `extern(C++, (some_tuple_expression)|"string")`, will be set to `true`
+    bool cppMangleOnly;
+    /// If `extern(C++, some.identifier)`, will be the identifiers
+    AST.Identifiers* idents;
+    /// If `extern(C++, (some_tuple_expression)|"string"), will be the expressions
+    AST.Expressions* identExps;
+}
+
 /*****************************
  * Destructively extract storage class from pAttrs.
  */
@@ -927,18 +942,14 @@ class Parser(AST) : Lexer
                     }
 
                     const linkLoc = token.loc;
-                    AST.Identifiers* idents = null;
-                    AST.Expressions* identExps = null;
-                    CPPMANGLE cppmangle;
-                    bool cppMangleOnly = false;
-                    const link = parseLinkage(&idents, &identExps, cppmangle, cppMangleOnly);
+                    auto res = parseLinkage();
                     if (pAttrs.link != LINK.default_)
                     {
-                        if (pAttrs.link != link)
+                        if (pAttrs.link != res.link)
                         {
-                            error("conflicting linkage `extern (%s)` and `extern (%s)`", AST.linkageToChars(pAttrs.link), AST.linkageToChars(link));
+                            error("conflicting linkage `extern (%s)` and `extern (%s)`", AST.linkageToChars(pAttrs.link), AST.linkageToChars(res.link));
                         }
-                        else if (idents || identExps || cppmangle != CPPMANGLE.def)
+                        else if (res.idents || res.identExps || res.cppmangle != CPPMANGLE.def)
                         {
                             // Allow:
                             //      extern(C++, foo) extern(C++, bar) void foo();
@@ -951,52 +962,52 @@ class Parser(AST) : Lexer
                         else
                             error("redundant linkage `extern (%s)`", AST.linkageToChars(pAttrs.link));
                     }
-                    pAttrs.link = link;
-                    this.linkage = link;
+                    pAttrs.link = res.link;
+                    this.linkage = res.link;
                     this.linkLoc = linkLoc;
                     a = parseBlock(pLastDecl, pAttrs);
-                    if (idents)
+                    if (res.idents)
                     {
-                        assert(link == LINK.cpp);
-                        assert(idents.dim);
-                        for (size_t i = idents.dim; i;)
+                        assert(res.link == LINK.cpp);
+                        assert(res.idents.dim);
+                        for (size_t i = res.idents.dim; i;)
                         {
-                            Identifier id = (*idents)[--i];
+                            Identifier id = (*res.idents)[--i];
                             if (s)
                             {
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            if (cppMangleOnly)
+                            if (res.cppMangleOnly)
                                 s = new AST.CPPNamespaceDeclaration(linkLoc, id, a);
                             else
                                 s = new AST.Nspace(linkLoc, id, null, a);
                         }
                         pAttrs.link = LINK.default_;
                     }
-                    else if (identExps)
+                    else if (res.identExps)
                     {
-                        assert(link == LINK.cpp);
-                        assert(identExps.dim);
-                        for (size_t i = identExps.dim; i;)
+                        assert(res.link == LINK.cpp);
+                        assert(res.identExps.dim);
+                        for (size_t i = res.identExps.dim; i;)
                         {
-                            AST.Expression exp = (*identExps)[--i];
+                            AST.Expression exp = (*res.identExps)[--i];
                             if (s)
                             {
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            if (cppMangleOnly)
+                            if (res.cppMangleOnly)
                                 s = new AST.CPPNamespaceDeclaration(linkLoc, exp, a);
                             else
                                 s = new AST.Nspace(linkLoc, null, exp, a);
                         }
                         pAttrs.link = LINK.default_;
                     }
-                    else if (cppmangle != CPPMANGLE.def)
+                    else if (res.cppmangle != CPPMANGLE.def)
                     {
-                        assert(link == LINK.cpp);
-                        s = new AST.CPPMangleDeclaration(linkLoc, cppmangle, a);
+                        assert(res.link == LINK.cpp);
+                        s = new AST.CPPMangleDeclaration(linkLoc, res.cppmangle, a);
                     }
                     else if (pAttrs.link != LINK.default_)
                     {
@@ -2224,22 +2235,19 @@ class Parser(AST) : Lexer
      *      extern (C++, (StringExp))
      * The parser is on the 'extern' token.
      */
-    private LINK parseLinkage(AST.Identifiers** pidents, AST.Expressions** pIdentExps, out CPPMANGLE cppmangle, out bool cppMangleOnly)
+    private ParsedLinkage!(AST) parseLinkage()
     {
-        AST.Identifiers* idents = null;
-        AST.Expressions* identExps = null;
-        cppmangle = CPPMANGLE.def;
+        ParsedLinkage!(AST) result;
         nextToken();
         assert(token.value == TOK.leftParenthesis);
         nextToken();
-        LINK returnLinkage(LINK link)
+        ParsedLinkage!(AST) returnLinkage(LINK link)
         {
             check(TOK.rightParenthesis);
-            *pidents = idents;
-            *pIdentExps = identExps;
-            return link;
+            result.link = link;
+            return result;
         }
-        LINK invalidLinkage()
+        ParsedLinkage!(AST) invalidLinkage()
         {
             error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Windows`, `System`");
             return returnLinkage(LINK.d);
@@ -2285,16 +2293,16 @@ class Parser(AST) : Lexer
 
         if (token.value == TOK.class_ || token.value == TOK.struct_)
         {
-            cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
+            result.cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
             nextToken();
         }
         else if (token.value == TOK.identifier) // named scope namespace
         {
-            idents = new AST.Identifiers();
+            result.idents = new AST.Identifiers();
             while (1)
             {
                 Identifier idn = token.ident;
-                idents.push(idn);
+                result.idents.push(idn);
                 nextToken();
                 if (token.value == TOK.dot)
                 {
@@ -2302,18 +2310,18 @@ class Parser(AST) : Lexer
                     if (token.value == TOK.identifier)
                         continue;
                     error("identifier expected for C++ namespace");
-                    idents = null;  // error occurred, invalidate list of elements.
+                    result.idents = null;  // error occurred, invalidate list of elements.
                 }
                 break;
             }
         }
         else // non-scoped StringExp namespace
         {
-            cppMangleOnly = true;
-            identExps = new AST.Expressions();
+            result.cppMangleOnly = true;
+            result.identExps = new AST.Expressions();
             while (1)
             {
-                identExps.push(parseCondExp());
+                result.identExps.push(parseCondExp());
                 if (token.value != TOK.comma)
                     break;
                 nextToken();
@@ -4378,17 +4386,14 @@ class Parser(AST) : Lexer
                     if (sawLinkage)
                         error("redundant linkage declaration");
                     sawLinkage = true;
-                    AST.Identifiers* idents = null;
-                    AST.Expressions* identExps = null;
-                    CPPMANGLE cppmangle;
-                    bool cppMangleOnly = false;
                     linkloc = token.loc;
-                    link = parseLinkage(&idents, &identExps, cppmangle, cppMangleOnly);
-                    if (idents || identExps)
+                    auto res = parseLinkage();
+                    link = res.link;
+                    if (res.idents || res.identExps)
                     {
                         error("C++ name spaces not allowed here");
                     }
-                    if (cppmangle != CPPMANGLE.def)
+                    if (res.cppmangle != CPPMANGLE.def)
                     {
                         error("C++ mangle declaration not allowed here");
                     }
