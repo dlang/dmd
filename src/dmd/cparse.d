@@ -701,6 +701,77 @@ final class CParser(AST) : Parser!AST
         return e;
     }
 
+    /*********************************
+     * C11 6.5.2
+     * postfix-expression:
+     *    primary-expression
+     *    postfix-expression [ expression ]
+     *    postfix-expression ( argument-expression-list (opt) )
+     *    postfix-expression . identifier
+     *    postfix-expression -> identifier
+     *    postfix-expression ++
+     *    postfix-expression --
+     *    ( type-name ) { initializer-list }
+     *    ( type-name ) { initializer-list , }
+     *
+     * argument-expression-list:
+     *    assignment-expression
+     *    argument-expression-list , assignment-expression
+     */
+    private AST.Expression cparsePostfixExp(AST.Expression e)
+    {
+        while (1)
+        {
+            const loc = token.loc;
+            switch (token.value)
+            {
+            case TOK.dot:
+            case TOK.arrow:
+                nextToken();
+                if (token.value == TOK.identifier)
+                {
+                    Identifier id = token.ident;
+                    e = new AST.DotIdExp(loc, e, id);
+                    break;
+                }
+                error("identifier expected following `.`, not `%s`", token.toChars());
+                break;
+
+            case TOK.plusPlus:
+                e = new AST.PostExp(TOK.plusPlus, loc, e);
+                break;
+
+            case TOK.minusMinus:
+                e = new AST.PostExp(TOK.minusMinus, loc, e);
+                break;
+
+            case TOK.leftParenthesis:
+                e = new AST.CallExp(loc, e, cparseArguments());
+                continue;
+
+            case TOK.leftBracket:
+                {
+                    // array dereferences:
+                    //      array[index]
+                    AST.Expression index;
+                    auto arguments = new AST.Expressions();
+
+                    inBrackets++;
+                    nextToken();
+                    index = cparseAssignExp();
+                    arguments.push(index);
+                    check(TOK.rightBracket);
+                    inBrackets--;
+                    e = new AST.ArrayExp(loc, e, arguments);
+                    continue;
+                }
+            default:
+                return e;
+            }
+            nextToken();
+        }
+    }
+
     /************************
      * C11 6.5.3
      * unary-expression:
@@ -849,77 +920,6 @@ final class CParser(AST) : Parser!AST
         }
         assert(e);
         return e;
-    }
-
-    /*********************************
-     * C11 6.5.2
-     * postfix-expression:
-     *    primary-expression
-     *    postfix-expression [ expression ]
-     *    postfix-expression ( argument-expression-list (opt) )
-     *    postfix-expression . identifier
-     *    postfix-expression -> identifier
-     *    postfix-expression ++
-     *    postfix-expression --
-     *    ( type-name ) { initializer-list }
-     *    ( type-name ) { initializer-list , }
-     *
-     * argument-expression-list:
-     *    assignment-expression
-     *    argument-expression-list , assignment-expression
-     */
-    private AST.Expression cparsePostfixExp(AST.Expression e)
-    {
-        while (1)
-        {
-            const loc = token.loc;
-            switch (token.value)
-            {
-            case TOK.dot:
-            case TOK.arrow:
-                nextToken();
-                if (token.value == TOK.identifier)
-                {
-                    Identifier id = token.ident;
-                    e = new AST.DotIdExp(loc, e, id);
-                    break;
-                }
-                error("identifier expected following `.`, not `%s`", token.toChars());
-                break;
-
-            case TOK.plusPlus:
-                e = new AST.PostExp(TOK.plusPlus, loc, e);
-                break;
-
-            case TOK.minusMinus:
-                e = new AST.PostExp(TOK.minusMinus, loc, e);
-                break;
-
-            case TOK.leftParenthesis:
-                e = new AST.CallExp(loc, e, cparseArguments());
-                continue;
-
-            case TOK.leftBracket:
-                {
-                    // array dereferences:
-                    //      array[index]
-                    AST.Expression index;
-                    auto arguments = new AST.Expressions();
-
-                    inBrackets++;
-                    nextToken();
-                    index = cparseAssignExp();
-                    arguments.push(index);
-                    check(TOK.rightBracket);
-                    inBrackets--;
-                    e = new AST.ArrayExp(loc, e, arguments);
-                    continue;
-                }
-            default:
-                return e;
-            }
-            nextToken();
-        }
     }
 
     /**************
