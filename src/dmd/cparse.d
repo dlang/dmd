@@ -726,12 +726,6 @@ final class CParser(AST) : Parser!AST
 
         switch (token.value)
         {
-        case TOK.and:
-            nextToken();
-            e = cparseUnaryExp();
-            e = new AST.AddrExp(loc, e);
-            break;
-
         case TOK.plusPlus:
             nextToken();
             e = cparseUnaryExp();
@@ -742,6 +736,12 @@ final class CParser(AST) : Parser!AST
             nextToken();
             e = cparseUnaryExp();
             e = new AST.PreExp(TOK.preMinusMinus, loc, e);
+            break;
+
+        case TOK.and:
+            nextToken();
+            e = cparseUnaryExp();
+            e = new AST.AddrExp(loc, e);
             break;
 
         case TOK.mul:
