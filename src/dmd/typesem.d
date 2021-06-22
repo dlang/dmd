@@ -60,7 +60,6 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem;
 
 /**************************
  * This evaluates exp while setting length to be the number
