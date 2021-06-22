@@ -51,6 +51,11 @@ class ImportsC
 
 typedef int32_t MyStdcInt;
 
+enum
+{
+    IgnoreErrors = 0,
+};
+
 typedef int32_t T;
 
 extern "C" int32_t x;
@@ -90,6 +95,30 @@ typedef TSD<int32_t, int16_t > TSI;
 using aliasName = ImportsC;
 
 using MyStdc = MyStdcInt;
+
+struct FullImport final
+{
+    using ImportsC = ::ImportsC;
+    using MyStdcInt = ::MyStdcInt;
+    FullImport()
+    {
+    }
+};
+
+struct SelectiveImports final
+{
+    using aliasName = ::ImportsC;
+    SelectiveImports()
+    {
+    }
+};
+
+struct PrivateImport final
+{
+    PrivateImport()
+    {
+    }
+};
 ---
 */
 
@@ -141,3 +170,24 @@ public import dtoh_imports :
     importFunc,
     aliasName = ImportsC,
     MyStdc = MyStdcInt;
+
+struct FullImport
+{
+    public import dtoh_imports;
+
+}
+
+struct SelectiveImports
+{
+    public import dtoh_imports :
+        importFunc,
+        aliasName = ImportsC;
+
+    public static import dtoh_imports;
+}
+
+struct PrivateImport
+{
+    import dtoh_imports;
+
+}

@@ -530,16 +530,95 @@ public:
             scope(exit) printf("[AST.Import exit] %s\n", i.toChars());
         }
 
-        // Omit local imports
-        assert(i.parent);
-        if (!i.parent.isModule())
+        /// Writes `using <alias_> = <sym.ident>` into `buf`
+        const(char*) writeImport(AST.Dsymbol sym, const Identifier alias_)
         {
-            ignored("local %s", i.toChars());
+            /// `using` was introduced in C++ 11 and only works for types...
+            if (global.params.cplusplus < CppStdRevision.cpp11)
+                return "requires C++11";
+
+            if (auto ad = sym.isAliasDeclaration())
+            {
+                sym = ad.toAlias();
+                ad = sym.isAliasDeclaration();
+
+                // Might be an alias to a basic type
+                if (ad && !ad.aliassym && ad.type)
+                    goto Emit;
+            }
+
+            // Restricted to types and other aliases
+            if (!sym.isScopeDsymbol() && !sym.isAggregateDeclaration())
+                return "only supports types";
+
+            // Write `using <alias_> = `<sym>`
+            Emit:
+            buf.writestring("using ");
+            writeIdentifier(alias_, i.loc, "renamed import");
+            buf.writestring(" = ");
+            // Start at module scope to avoid collisions with local symbols
+            if (this.context.adparent)
+                buf.writestring("::");
+            buf.writestring(sym.ident.toString());
+            writeDeclEnd();
+            return null;
+        }
+
+        // Only missing without semantic analysis
+        // FIXME: Templates need work due to missing parent & imported module
+        if (!i.parent)
+        {
+            assert(tdparent);
+            ignored("`%s` because it's inside of a template declaration", i.toChars());
             return;
         }
 
+        // Non-public imports don't create new symbols, include as needed
+        if (i.visibility.kind < AST.Visibility.Kind.public_)
+            return;
+
+        // Symbols from static imports should be emitted inline
+        if (i.isstatic)
+            return;
+
+        const isLocal = !i.parent.isModule();
+
         // Need module for symbol lookup
         assert(i.mod);
+
+        // Emit an alias for each public module member
+        if (isLocal && i.names.length == 0)
+        {
+            assert(i.mod.symtab);
+
+            // Sort alphabetically s.t. slight changes in semantic don't cause
+            // massive changes in the order of declarations
+            AST.Dsymbols entries;
+            entries.reserve(i.mod.symtab.length);
+
+            foreach (entry; i.mod.symtab.tab.asRange)
+            {
+                // Skip anonymous / invisible members
+                import dmd.access : symbolIsVisible;
+                if (!entry.key.isAnonymous() && symbolIsVisible(i, entry.value))
+                    entries.push(entry.value);
+            }
+
+            // Seperate function because of a spurious dual-context deprecation
+            static int compare(const AST.Dsymbol* a, const AST.Dsymbol* b)
+            {
+                return strcmp(a.ident.toChars(), b.ident.toChars());
+            }
+            entries.sort!compare();
+
+            foreach (sym; entries)
+            {
+                includeSymbol(sym);
+                if (auto err = writeImport(sym, sym.ident))
+                    ignored("public import for `%s` because `using` %s", sym.ident.toChars(), err);
+            }
+            return;
+        }
 
         // Include all public imports and emit using declarations for each alias
         foreach (const idx, name; i.names)
@@ -555,37 +634,8 @@ public:
             if (!alias_)
                 continue;
 
-            /// `using` was introduced in C++ 11 and only works for types...
-            if (global.params.cplusplus < CppStdRevision.cpp11)
-            {
-                ignored("renamed import `%s = %s` because `using` requires C++11", alias_.toChars(), name.toChars());
-                continue;
-            }
-
-            if (auto ad = sym.isAliasDeclaration())
-            {
-                sym = ad.toAlias();
-                ad = sym.isAliasDeclaration();
-
-                // Might be an alias to a basic type
-                if (ad && !ad.aliassym && ad.type)
-                    goto Emit;
-            }
-
-            // Restricted to types and other aliases
-            if (!sym.isScopeDsymbol() && !sym.isAggregateDeclaration())
-            {
-                ignored("renamed import `%s = %s` because `using` only supports types", alias_.toChars(), name.toChars());
-                continue;
-            }
-
-            // Write `using <alias_> = `<sym>`
-            Emit:
-            buf.writestring("using ");
-            writeIdentifier(alias_, i.loc, "renamed import");
-            buf.writestring(" = ");
-            buf.writestring(sym.ident.toString());
-            writeDeclEnd();
+            if (auto err = writeImport(sym, alias_))
+                ignored("renamed import `%s = %s` because `using` %s", alias_.toChars(), name.toChars(), err);
         }
     }
 
@@ -1590,6 +1640,16 @@ public:
 
     override void visit(AST.EnumMember em)
     {
+        assert(em.ed);
+
+        // Members of anonymous members are reachable without referencing the
+        // EnumDeclaration, e.g. public import foo : someEnumMember;
+        if (em.ed.isAnonymous())
+        {
+            visit(em.ed);
+            return;
+        }
+
         assert(false, "This node type should be handled in the EnumDeclaration");
     }
 
