@@ -6112,7 +6112,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     // Don't create an invalid temporary for void-expressions
                     // Further semantic will issue an appropriate error
-                    if (op.type.ty == ENUMTY.Tvoid)
+                    if (op.type.ty == Tvoid)
                         return op;
 
                     // https://issues.dlang.org/show_bug.cgi?id=21590

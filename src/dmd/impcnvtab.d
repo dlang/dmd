@@ -18,17 +18,17 @@ module dmd.impcnvtab;
 
 import dmd.mtype;
 
-immutable ENUMTY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;
-immutable ENUMTY[TMAX][TMAX] impcnvType1 = impCnvTab.impcnvType1Tab;
-immutable ENUMTY[TMAX][TMAX] impcnvType2 = impCnvTab.impcnvType2Tab;
+immutable TY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;
+immutable TY[TMAX][TMAX] impcnvType1 = impCnvTab.impcnvType1Tab;
+immutable TY[TMAX][TMAX] impcnvType2 = impCnvTab.impcnvType2Tab;
 
 private:
 
 struct ImpCnvTab
 {
-    ENUMTY[TMAX][TMAX] impcnvResultTab;
-    ENUMTY[TMAX][TMAX] impcnvType1Tab;
-    ENUMTY[TMAX][TMAX] impcnvType2Tab;
+    TY[TMAX][TMAX] impcnvResultTab;
+    TY[TMAX][TMAX] impcnvType1Tab;
+    TY[TMAX][TMAX] impcnvType2Tab;
 }
 
 enum ImpCnvTab impCnvTab = generateImpCnvTab();
@@ -48,7 +48,7 @@ ImpCnvTab generateImpCnvTab()
         }
     }
 
-    void X(ENUMTY t1, ENUMTY t2, ENUMTY nt1, ENUMTY nt2, ENUMTY rt)
+    void X(TY t1, TY t2, TY nt1, TY nt2, TY rt)
     {
         impCnvTab.impcnvResultTab[t1][t2] = rt;
         impCnvTab.impcnvType1Tab[t1][t2] = nt1;

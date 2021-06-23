@@ -81,7 +81,7 @@ extern (C++) struct Target
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
     import dmd.globals : LINK, Loc, d_int64;
-    import dmd.mtype : TY = ENUMTY, Type, TypeFunction, TypeTuple;
+    import dmd.mtype : TY, Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
 
