@@ -866,10 +866,25 @@ final class CParser(AST) : Parser!AST
                 auto tk = peek(&token);
                 if (isTypeName(tk))
                 {
+                    /* Expression may be either be requesting the sizeof a type-name
+                     * or a compound literal, which requires checking whether
+                     * the next token is `{`
+                     */
                     nextToken();
                     auto t = cparseTypeName();
                     check(TOK.rightParenthesis);
-                    e = new AST.TypeExp(loc, t);
+                    if (token.value == TOK.leftCurly)
+                    {
+                        // ( type-name ) { initializer-list }
+                        auto ci = cparseInitializer();
+                        e = new AST.CompoundLiteralExp(loc, t, ci);
+                        e = cparsePostfixOperators(e);
+                    }
+                    else
+                    {
+                        // ( type-name )
+                        e = new AST.TypeExp(loc, t);
+                    }
                     e = new AST.DotIdExp(loc, e, Id.__sizeof);
                     break;
                 }

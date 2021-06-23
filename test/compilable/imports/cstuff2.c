@@ -217,6 +217,17 @@ void test22069()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22079
+
+struct S22079
+{
+    int a, b, c;
+};
+
+_Static_assert(sizeof(struct S22079){1,2,3} == sizeof(int)*3, "ok");
+_Static_assert(sizeof(struct S22079){1,2,3}.a == sizeof(int), "ok");
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22080
 
 int F22080(const char *);
