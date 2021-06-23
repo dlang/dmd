@@ -187,9 +187,11 @@ final class CParser(AST) : Parser!AST
         case TOK.imaginary64Literal:
         case TOK.imaginary80Literal:
         case TOK.leftParenthesis:
+        case TOK.and:
         case TOK.mul:
         case TOK.min:
         case TOK.add:
+        case TOK.tilde:
         case TOK.not:
         case TOK.plusPlus:
         case TOK.minusMinus:
