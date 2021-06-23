@@ -195,3 +195,18 @@ void test22063()
     S22063 v3 = { 0 };
     S22063 *v4 = 0;
 }
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22069
+
+void test22069()
+{
+    int var;
+    int *ptr;
+    &var;
+    *ptr;
+    +var;
+    -var;
+    ~var;
+    !var;
+}
