@@ -210,3 +210,13 @@ void test22069()
     ~var;
     !var;
 }
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22080
+
+int F22080(const char *);
+
+int test22080()
+{
+    int (*fun)(const char *) = &F22080;
+}
