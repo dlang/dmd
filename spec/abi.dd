@@ -947,7 +947,7 @@ $(H2 $(LNAME2 module_init_and_fina, Module Initialization and Termination))
         module.
         )
 
-        $(P All the static denstructors for a module are aggregated into a
+        $(P All the static destructors for a module are aggregated into a
         single function, and a pointer to that function is inserted
         into the dtor member of the ModuleInfo instance for that
         module.
