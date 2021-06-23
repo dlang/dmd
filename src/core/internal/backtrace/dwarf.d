@@ -317,7 +317,9 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                     // Can be called with either `locInfo` or `lastLoc`
                     void update(const ref LocationInfo match)
                     {
-                        const sourceFile = lp.sourceFiles[match.file - 1];
+                        // File indices are 1-based for DWARF < 5
+                        const fileIndex = match.file - (lp.dwarfVersion < 5 ? 1 : 0);
+                        const sourceFile = lp.sourceFiles[fileIndex];
                         debug (DwarfDebugMachine)
                         {
                             printf("-- found for [%p]:\n", loc.address);
@@ -325,7 +327,7 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                                    cast(int) sourceFile.file.length, sourceFile.file.ptr);
                             printf("--   line: %d\n", match.line);
                         }
-                        // DMD emits entries with FQN, but other implmentations
+                        // DMD emits entries with FQN, but other implementations
                         // (e.g. LDC) make use of directories
                         // See https://github.com/dlang/druntime/pull/2945
                         if (sourceFile.dirIndex != 0)
@@ -592,76 +594,13 @@ T read(T)(ref const(ubyte)[] buffer) @nogc nothrow
     return result;
 }
 
-/**
- * Reads an ULEB128 length and then reads the followings bytes specified by the
- * length.
- *
- * Params:
- *      buffer = buffer where the data is read from
- * Returns:
- *      Value contained in the block.
- */
-ulong readBlock(ref const(ubyte)[] buffer) @nogc nothrow
+// Reads a null-terminated string from `buffer`.
+const(char)[] readStringz(ref const(ubyte)[] buffer) @nogc nothrow
 {
-    ulong length = buffer.readULEB128();
-    assert(length <= ulong.sizeof);
-
-    ulong block;
-    foreach (i; 0 .. length)
-    {
-        ubyte b = buffer.read!ubyte;
-        block <<= 8 * i;
-        block |= b;
-    }
-
-    return block;
-}
-
-/**
- * Reads a MD5 hash from the `buffer`.
- *
- * Params:
- *      buffer = buffer where the data is read from
- * Returns:
- *      A MD5 hash
- */
-char[16] readMD5(ref const(ubyte)[] buffer) @nogc nothrow
-{
-    assert(buffer.length >= 16);
-
-    ubyte[16] bytes;
-    foreach (h; 0 .. 16)
-        bytes[h] = buffer.read!ubyte;
-
-    return cast(char[16])bytes;
-}
-
-/**
- * Reads a null-terminated string from `buffer`.
- * The string is not removed from buffer and doesn't contain the last null byte.
- *
- * Params:
- *      buffer = buffer where the data is read from
- *
- * Returns:
- *      A string
- */
-const(char)[] readString(ref const(ubyte)[] buffer) @nogc nothrow
-{
-    import core.sys.posix.string : strnlen;
-
-    return cast(const(char)[])buffer[0 .. strnlen(cast(char*)buffer.ptr, buffer.length)];
-}
-
-unittest
-{
-    const(ubyte)[] data = [0x48, 0x61, 0x76, 0x65, 0x20, 0x61, 0x20, 0x67, 0x6f,
-        0x6f, 0x64, 0x20, 0x64, 0x61, 0x79, 0x20, 0x21, 0x00];
-    const(char)[] result = data.readString();
-    assert(result == "Have a good day !");
-
-    data = [0x00];
-    assert(data.readString == null);
+    const p = cast(char*) buffer.ptr;
+    const str = p[0 .. strlen(p)];
+    buffer = buffer[str.length+1 .. $];
+    return str;
 }
 
 ulong readULEB128(ref const(ubyte)[] buffer) @nogc nothrow
@@ -710,102 +649,18 @@ long readSLEB128(ref const(ubyte)[] buffer) @nogc nothrow
     return val;
 }
 
-Array!EntryFormatData readEntryFormat(ref const(ubyte)[] buffer, ref Array!ulong entryFormat) @nogc nothrow
+enum DW_LNCT : ushort
 {
-    // The count needs to be pair, as the specification says
-    assert(entryFormat.length % 2 == 0);
-    Array!EntryFormatData result;
-
-    for (uint i = 0; i < entryFormat.length; i += 2)
-    {
-        EntryFormatData efdata;
-        ulong form = entryFormat[i + 1];
-
-        switch (entryFormat[i])
-        {
-            case StandardContentDescription.path:
-                if (form == FormEncoding._string)
-                    efdata.path = buffer.readString();
-                else
-                {
-                    size_t offset = buffer.read!size_t;
-
-                    // TODO: set filename.path to the string at offset
-                    static if (0)
-                    {
-                        if (form == FormEncoding.line_strp) // Offset in debug_line_str
-                        {
-
-                        }
-                        else if (form == FormEncoding.strp) // Offset in debug_str
-                        {
-
-                        }
-                        else if (form == FormEncoding.strp_sup) // Offset of debug_str in debug_info
-                        {
-
-                        }
-                        else
-                            assert(0);
-                    }
-                    else
-                        assert(0);
-                }
-                break;
-
-            case StandardContentDescription.directoryIndex:
-                if (form == FormEncoding.data1)
-                    efdata.directoryIndex = cast(ulong)buffer.read!ubyte;
-                else if (form == FormEncoding.data2)
-                    efdata.directoryIndex = cast(ulong)buffer.read!ushort;
-                else if (form == FormEncoding.udata)
-                    efdata.directoryIndex = buffer.readULEB128();
-                else
-                    assert(0);
-                break;
-
-            case StandardContentDescription.timeStamp:
-                if (form == FormEncoding.udata)
-                    efdata.timeStamp = buffer.readULEB128();
-                else if (form == FormEncoding.data4)
-                    efdata.timeStamp = cast(ulong)buffer.read!uint;
-                else if (form == FormEncoding.data8)
-                    efdata.timeStamp = buffer.read!ulong;
-                else if (form == FormEncoding.block)
-                    efdata.timeStamp = buffer.readBlock();
-                else
-                    assert(0);
-                break;
-
-            case StandardContentDescription.size:
-                if (form == FormEncoding.data1)
-                    efdata.size = cast(ulong)buffer.read!ubyte;
-                else if (form == FormEncoding.data2)
-                    efdata.size = cast(ulong)buffer.read!ushort;
-                else if (form == FormEncoding.data4)
-                    efdata.size = cast(ulong)buffer.read!uint;
-                else if (form == FormEncoding.data8)
-                    efdata.size = buffer.read!ulong;
-                else
-                    assert(0);
-                break;
-
-            case StandardContentDescription.md5:
-                if (form == FormEncoding.data16)
-                    efdata.md5 = buffer.readMD5();
-                else
-                    assert(0);
-                break;
-
-            default:
-                assert(0);
-        }
-        result.insertBack(efdata);
-    }
-    return result;
+    path = 1,
+    directoryIndex = 2,
+    timestamp = 3,
+    size = 4,
+    md5 = 5,
+    loUser = 0x2000,
+    hiUser = 0x3fff,
 }
 
-enum FormEncoding : ubyte
+enum DW_FORM : ubyte
 {
     addr = 1,
     block2 = 3,
@@ -813,7 +668,7 @@ enum FormEncoding : ubyte
     data2 = 5,
     data4 = 6,
     data8 = 7,
-    _string = 8,
+    string_ = 8,
     block = 9,
     block1 = 10,
     data1 = 11,
@@ -852,6 +707,36 @@ enum FormEncoding : ubyte
     addrx4 = 44,
 }
 
+struct EntryFormatPair
+{
+    DW_LNCT type;
+    DW_FORM form;
+}
+
+/// Reads a DWARF v5 directory/file name entry format.
+Array!EntryFormatPair readEntryFormat(ref const(ubyte)[] buffer) @nogc nothrow
+{
+    const numPairs = buffer.read!ubyte();
+
+    Array!EntryFormatPair pairs;
+    pairs.length = numPairs;
+
+    foreach (ref pair; pairs)
+    {
+        pair.type = cast(DW_LNCT) buffer.readULEB128();
+        pair.form = cast(DW_FORM) buffer.readULEB128();
+    }
+
+    debug (DwarfDebugMachine)
+    {
+        printf("entryFormat: (%d)\n", cast(int) pairs.length);
+        foreach (ref pair; pairs)
+            printf("\t- type: %d, form: %d\n", cast(int) pair.type, cast(int) pair.form);
+    }
+
+    return pairs;
+}
+
 enum StandardOpcode : ubyte
 {
     extendedOp = 0,
@@ -875,24 +760,6 @@ enum ExtendedOpcode : ubyte
     setAddress = 2,
     defineFile = 3,
     setDiscriminator = 4,
-}
-
-enum StandardContentDescription : ubyte
-{
-    path = 1,
-    directoryIndex = 2,
-    timeStamp = 3,
-    size = 4,
-    md5 = 5,
-}
-
-struct EntryFormatData
-{
-    const(char)[] path;
-    ulong directoryIndex;
-    ulong timeStamp;
-    ulong size;
-    char[16] md5;
 }
 
 struct StateMachine
@@ -931,17 +798,6 @@ struct LineNumberProgram
     ubyte lineRange;
     ubyte opcodeBase;
     const(ubyte)[] standardOpcodeLengths;
-
-    ubyte directoryEntryFormatCount;
-    Array!ulong directoryEntryFormat;
-    ulong directoriesCount;
-    Array!EntryFormatData directories;
-
-    ubyte fileNameEntryFormatCount;
-    Array!ulong fileNameEntryFormat;
-    ulong fileNamesCount;
-    Array!EntryFormatData fileNames;
-
     Array!(const(char)[]) includeDirectories;
     Array!SourceFile sourceFiles;
     const(ubyte)[] program;
@@ -950,7 +806,7 @@ struct LineNumberProgram
 struct SourceFile
 {
     const(char)[] file;
-    size_t dirIndex;
+    size_t dirIndex; // 1-based
 }
 
 LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
@@ -993,78 +849,135 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
 
     if (lp.dwarfVersion >= 5)
     {
-        lp.directoryEntryFormatCount = data.read!ubyte();
-        foreach (c; 0 .. lp.directoryEntryFormatCount)
-            lp.directoryEntryFormat.insertBack(data.readULEB128());
-
-        lp.directoriesCount = data.readULEB128();
-        lp.directories = data.readEntryFormat(lp.directoryEntryFormat);
-
-
-        lp.fileNameEntryFormatCount = data.read!ubyte;
-        foreach (c; 0 .. lp.fileNameEntryFormatCount)
-            lp.fileNameEntryFormat.insertBack(data.readULEB128());
-
-        lp.fileNamesCount = data.readULEB128();
-        lp.fileNames = data.readEntryFormat(lp.fileNameEntryFormat);
-    }
-
-    // A sequence ends with a null-byte.
-    static auto readSequence(alias ReadEntry)(ref const(ubyte)[] data)
-    {
-        alias ResultType = typeof(ReadEntry(data));
-
-        static size_t count(const(ubyte)[] data)
+        static void consumeGenericForm(ref const(ubyte)[] data, DW_FORM form, bool is64bitDwarf)
         {
-            size_t count = 0;
-            while (data.length && data[0] != 0)
+            with (DW_FORM) switch (form)
             {
-                ReadEntry(data);
-                ++count;
+                case strp, strp_sup, line_strp:
+                    data = data[is64bitDwarf ? 8 : 4 .. $]; break;
+                case data1, strx1:
+                    data = data[1 .. $]; break;
+                case data2, strx2:
+                    data = data[2 .. $]; break;
+                case strx3:
+                    data = data[3 .. $]; break;
+                case data4, strx4:
+                    data = data[4 .. $]; break;
+                case data8:
+                    data = data[8 .. $]; break;
+                case data16:
+                    data = data[16 .. $]; break;
+                case udata, strx:
+                    data.readULEB128(); break;
+                case block:
+                    const length = cast(size_t) data.readULEB128();
+                    data = data[length .. $];
+                    break;
+                default:
+                    assert(0); // TODO: support other forms for vendor extensions
             }
-            return count;
         }
 
-        const numEntries = count(data);
+        const dirFormat = data.readEntryFormat();
+        lp.includeDirectories.length = cast(size_t) data.readULEB128();
+        foreach (ref dir; lp.includeDirectories)
+        {
+            dir = "<unknown dir>"; // fallback
+            foreach (ref pair; dirFormat)
+            {
+                if (pair.type == DW_LNCT.path &&
+                    // TODO: support other forms too (offsets in other sections)
+                    pair.form == DW_FORM.string_)
+                {
+                    dir = data.readStringz();
+                }
+                else // uninteresting type
+                    consumeGenericForm(data, pair.form, is64bitDwarf);
+            }
+        }
 
-        Array!ResultType result;
-        result.length = numEntries;
-
-        foreach (i; 0 .. numEntries)
-            result[i] = ReadEntry(data);
-
-        data = data[1 .. $]; // skip over sequence-terminating null
-
-        return result;
+        const fileFormat = data.readEntryFormat();
+        lp.sourceFiles.length = cast(size_t) data.readULEB128();
+        foreach (ref sf; lp.sourceFiles)
+        {
+            sf.file = "<unknown file>"; // fallback
+            foreach (ref pair; fileFormat)
+            {
+                if (pair.type == DW_LNCT.path &&
+                    // TODO: support other forms too (offsets in other sections)
+                    pair.form == DW_FORM.string_)
+                {
+                    sf.file = data.readStringz();
+                }
+                else if (pair.type == DW_LNCT.directoryIndex)
+                {
+                    if (pair.form == DW_FORM.data1)
+                        sf.dirIndex = data.read!ubyte();
+                    else if (pair.form == DW_FORM.data2)
+                        sf.dirIndex = data.read!ushort();
+                    else if (pair.form == DW_FORM.udata)
+                        sf.dirIndex = cast(size_t) data.readULEB128();
+                    else
+                        assert(0); // not allowed by DWARF 5 spec
+                    sf.dirIndex++; // DWARF v5 indices are 0-based
+                }
+                else // uninteresting type
+                    consumeGenericForm(data, pair.form, is64bitDwarf);
+            }
+        }
     }
-
-    /// Directories are simply a sequence of NUL-terminated strings
-    static const(char)[] readIncludeDirectoryEntry(ref const(ubyte)[] data)
+    else
     {
-        const ptr = cast(const(char)*) data.ptr;
-        const dir = ptr[0 .. strlen(ptr)];
-        data = data[dir.length + "\0".length .. $];
-        return dir;
+        // A sequence ends with a null-byte.
+        static auto readSequence(alias ReadEntry)(ref const(ubyte)[] data)
+        {
+            alias ResultType = typeof(ReadEntry(data));
+
+            static size_t count(const(ubyte)[] data)
+            {
+                size_t count = 0;
+                while (data.length && data[0] != 0)
+                {
+                    ReadEntry(data);
+                    ++count;
+                }
+                return count;
+            }
+
+            const numEntries = count(data);
+
+            Array!ResultType result;
+            result.length = numEntries;
+
+            foreach (i; 0 .. numEntries)
+                result[i] = ReadEntry(data);
+
+            data = data[1 .. $]; // skip over sequence-terminating null
+
+            return result;
+        }
+
+        /// Directories are simply a sequence of NUL-terminated strings
+        static const(char)[] readIncludeDirectoryEntry(ref const(ubyte)[] data)
+        {
+            return data.readStringz();
+        }
+        lp.includeDirectories = readSequence!readIncludeDirectoryEntry(data);
+
+        static SourceFile readFileNameEntry(ref const(ubyte)[] data)
+        {
+            const file = data.readStringz();
+            const dirIndex = cast(size_t) data.readULEB128();
+            data.readULEB128(); // last mod
+            data.readULEB128(); // file len
+
+            return SourceFile(
+                file,
+                dirIndex,
+            );
+        }
+        lp.sourceFiles = readSequence!readFileNameEntry(data);
     }
-    lp.includeDirectories = readSequence!readIncludeDirectoryEntry(data);
-
-    static SourceFile readFileNameEntry(ref const(ubyte)[] data)
-    {
-        const ptr = cast(const(char)*) data.ptr;
-        const file = ptr[0 .. strlen(ptr)];
-        data = data[file.length + "\0".length .. $];
-
-        auto dirIndex = cast(size_t) data.readULEB128();
-
-        data.readULEB128(); // last mod
-        data.readULEB128(); // file len
-
-        return SourceFile(
-            file,
-            dirIndex,
-        );
-    }
-    lp.sourceFiles = readSequence!readFileNameEntry(data);
 
     debug (DwarfDebugMachine)
     {
