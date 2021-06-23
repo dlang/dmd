@@ -721,6 +721,20 @@ final class CParser(AST) : Parser!AST
     private AST.Expression cparsePostfixExp(AST.Expression e)
     {
         e = cparsePrimaryExp();
+        return cparsePostfixOperators(e);
+    }
+
+    /********************************
+     * C11 6.5.2
+     * Parse a series of operators for a postfix expression after already parsing
+     * a primary-expression or compound literal expression.
+     * Params:
+     *      e = parsed primary or compound literal expression
+     * Returns:
+     *      parsed postfix expression
+     */
+    private AST.Expression cparsePostfixOperators(AST.Expression e)
+    {
         while (1)
         {
             const loc = token.loc;
