@@ -404,10 +404,21 @@ q{
     static if (!isChained) enum size_t seed = 0;
     static if (hasCallableToHash!(typeof(val))) //CTFE depends on toHash()
     {
-        static if (isChained)
-            return hashOf(cast(size_t) val.toHash(), seed);
+        static if (!__traits(isSame, typeof(val), __traits(parent, val.toHash))
+            && is(typeof(val is null)))
+        {
+            static if (isChained)
+                return hashOf(__traits(getMember, val, __traits(getAliasThis, typeof(val))), seed);
+            else
+                return hashOf(__traits(getMember, val, __traits(getAliasThis, typeof(val))));
+        }
         else
-            return val.toHash();
+        {
+            static if (isChained)
+                return hashOf(cast(size_t) val.toHash(), seed);
+            else
+                return val.toHash();
+        }
     }
     else
     {
@@ -456,10 +467,21 @@ q{
                 {
                     static if (hasCallableToHash!F)
                     {
-                        static if (i == 0 && !isChained)
-                            size_t h = val.tupleof[i].toHash();
+                        static if (!__traits(isSame, F, __traits(parent, val.tupleof[i].toHash))
+                            && is(typeof(val.tupleof[i] is null)))
+                        {
+                            static if (i == 0 && !isChained)
+                                size_t h = hashOf(__traits(getMember, val.tupleof[i], __traits(getAliasThis, F)));
+                            else
+                                h = hashOf(__traits(getMember, val.tupleof[i], __traits(getAliasThis, F)), h);
+                        }
                         else
-                            h = hashOf(cast(size_t) val.tupleof[i].toHash(), h);
+                        {
+                            static if (i == 0 && !isChained)
+                                size_t h = val.tupleof[i].toHash();
+                            else
+                                h = hashOf(cast(size_t) val.tupleof[i].toHash(), h);
+                        }
                     }
                     else static if (F.tupleof.length == 1)
                     {
@@ -584,7 +606,13 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
     && !canBitwiseHash!T)
 {
     static if (__traits(compiles, {size_t h = val.toHash();}))
-        return val ? val.toHash() : 0;
+    {
+        static if (is(__traits(parent, val.toHash) P) && !is(immutable T* : immutable P*)
+                && is(typeof((ref P p) => p is null)))
+            return val ? hashOf(__traits(getMember, val, __traits(getAliasThis, T))) : 0;
+        else
+            return val ? val.toHash() : 0;
+    }
     else
         return val ? (cast(Object)val).toHash() : 0;
 }
@@ -595,7 +623,14 @@ if (!is(T == enum) && (is(T == interface) || is(T == class))
     && !canBitwiseHash!T)
 {
     static if (__traits(compiles, {size_t h = val.toHash();}))
-        return hashOf(val ? cast(size_t) val.toHash() : size_t(0), seed);
+    {
+        static if (is(__traits(parent, val.toHash) P) && !is(immutable T* : immutable P*)
+                && is(typeof((ref P p) => p is null)))
+            return hashOf(val ? hashOf(__traits(getMember, val, __traits(getAliasThis, T)))
+                              : size_t(0), seed);
+        else
+            return hashOf(val ? cast(size_t) val.toHash() : size_t(0), seed);
+    }
     else
         return hashOf(val ? (cast(Object)val).toHash() : 0, seed);
 }
