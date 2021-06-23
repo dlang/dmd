@@ -27,20 +27,13 @@ fail_compilation/failcstuff1.c(352): Error: found `2` when expecting `:`
 fail_compilation/failcstuff1.c(352): Error: found `:` instead of statement
 fail_compilation/failcstuff1.c(403): Error: left operand is not assignable
 fail_compilation/failcstuff1.c(404): Error: left operand is not assignable
-fail_compilation/failcstuff1.c(405): Error: expression expected, not `short`
 fail_compilation/failcstuff1.c(405): Error: increment operand is not assignable
-fail_compilation/failcstuff1.c(405): Error: found `3` when expecting `;` following statement
 fail_compilation/failcstuff1.c(406): Error: decrement operand is not assignable
 fail_compilation/failcstuff1.c(407): Error: increment operand is not assignable
 fail_compilation/failcstuff1.c(408): Error: decrement operand is not assignable
 fail_compilation/failcstuff1.c(409): Error: cannot take address of unary operand
-fail_compilation/failcstuff1.c(453): Error: expression expected, not `short`
 fail_compilation/failcstuff1.c(453): Error: increment operand is not assignable
-fail_compilation/failcstuff1.c(453): Error: found `var` when expecting `;` following statement
-fail_compilation/failcstuff1.c(454): Error: expression expected, not `long`
-fail_compilation/failcstuff1.c(454): Error: found `long` when expecting `)`
 fail_compilation/failcstuff1.c(454): Error: decrement operand is not assignable
-fail_compilation/failcstuff1.c(454): Error: found `)` when expecting `;` following statement
 ---
 */
 

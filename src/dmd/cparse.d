@@ -812,13 +812,16 @@ final class CParser(AST) : Parser!AST
         {
         case TOK.plusPlus:
             nextToken();
-            e = cparseUnaryExp();
+            // Parse `++` as an unary operator so that cast expressions only give
+            // an error for being non-lvalues.
+            e = cparseCastExp();
             e = new AST.PreExp(TOK.prePlusPlus, loc, toCLvalue(e, LVAL.increment));
             break;
 
         case TOK.minusMinus:
             nextToken();
-            e = cparseUnaryExp();
+            // Parse `--` as an unary operator, same as prefix increment.
+            e = cparseCastExp();
             e = new AST.PreExp(TOK.preMinusMinus, loc, toCLvalue(e, LVAL.decrement));
             break;
 
