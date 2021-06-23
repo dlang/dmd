@@ -3170,8 +3170,6 @@ enum class DotExpFlag
     noDeref = 2,
 };
 
-typedef TY ENUMTY;
-
 enum : int32_t { LOGDEFAULTINIT = 0 };
 
 enum : int32_t { LOGDOTEXP = 0 };
@@ -4644,7 +4642,6 @@ struct ASTCodegen final
     using VoidInitializer = ::VoidInitializer;
     using AliasThisRec = ::AliasThisRec;
     using DotExpFlag = ::DotExpFlag;
-    using ENUMTY = ::ENUMTY;
     using MOD = ::MOD;
     using MODFlags = ::MODFlags;
     using PURE = ::PURE;
