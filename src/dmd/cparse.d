@@ -1584,6 +1584,14 @@ final class CParser(AST) : Parser!AST
             }
             if (s !is null)
             {
+                if (level == LVL.local)
+                {
+                    // Wrap the declaration in `extern (C) { declaration }`
+                    // Necessary for function pointers, but harmless to apply to all.
+                    auto decls = new AST.Dsymbols(1);
+                    (*decls)[0] = s;
+                    s = new AST.LinkDeclaration(s.loc, linkage, decls);
+                }
                 // Saw `asm("name")` in the function, type, or variable definition.
                 // This maps directly to `pragma(mangle, "name")`
                 if (asmname)
