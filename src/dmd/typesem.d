@@ -1987,7 +1987,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
     Type visitTag(TypeTag mtype)
     {
-        //printf("TypeTag.semantic() %s\n", mtype.toChars());
+        printf("TypeTag.semantic() %s\n", mtype.toChars());
         if (mtype.resolved)
         {
             /* struct S s, *p;
@@ -2034,7 +2034,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
          * TODO: semantics for enums are slightly different, not implemented yet
          */
         Dsymbol scopesym;
-        auto s = sc.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors);
+        auto s = sc.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors | TagNameSpace);
         if (!s)
         {
             // no pre-existing declaration, so declare it

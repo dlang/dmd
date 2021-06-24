@@ -461,6 +461,16 @@ struct Scope
 
                 if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
                 {
+		    if (flags & TagNameSpace)
+		    {
+			// ImportC: if symbol is not a tag, look for it in tag table
+			if (!s.isStructDeclaration())
+			{
+			    s = cast(Dsymbol)sc._module.tagSymTab[cast(void*)s];
+			    if (!s)
+				goto NotFound;
+			}
+		    }
                     if (!(flags & (SearchImportsOnly | IgnoreErrors)) &&
                         ident == Id.length && sc.scopesym.isArrayScopeSymbol() &&
                         sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
@@ -473,6 +483,7 @@ struct Scope
                     return s;
                 }
 
+	    NotFound:
                 if (global.params.fixAliasThis)
                 {
                     Expression exp = new ThisExp(loc);
@@ -611,6 +622,7 @@ struct Scope
 
     extern (D) Dsymbol insert(Dsymbol s)
     {
+	printf("insert() %s\n", s.toChars());
         if (VarDeclaration vd = s.isVarDeclaration())
         {
             if (lastVar)

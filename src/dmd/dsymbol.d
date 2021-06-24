@@ -215,6 +215,7 @@ enum : int
                                     // because qualified module searches search
                                     // their imports
     IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
+    TagNameSpace            = 0x100, // search ImportC tag symbol table
 }
 
 /***********************************************************
@@ -763,7 +764,7 @@ extern (C++) class Dsymbol : ASTNode
 
     void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("Dsymbol::addMember('%s')\n", toChars());
+        printf("Dsymbol::addMember('%s')\n", toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds.toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds.symtab = %p)\n", this, toChars(), sds, sds.symtab);
         parent = sds;
