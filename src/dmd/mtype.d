@@ -223,6 +223,15 @@ StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
     return stc;
 }
 
+/**
+ * If t is a special enum type (i.e. __c_long & friends) get the memory type of that enum
+ */
+private Type specialToMemType(Type t)
+{
+    const isSpecial = t.ty == Tenum && (cast(TypeEnum)t).sym.isSpecial();
+    return isSpecial ? (cast(TypeEnum)t).memType() : t;
+}
+
 private enum TFlags
 {
     integral     = 1,
@@ -3915,7 +3924,7 @@ extern (C++) final class TypeDArray : TypeArray
                 return MATCH.convert;
             }
 
-            MATCH m = next.constConv(ta.next);
+            MATCH m = specialToMemType(next).constConv(specialToMemType(ta.next));
             if (m > MATCH.nomatch)
             {
                 if (m == MATCH.exact && mod != to.mod)
@@ -4118,14 +4127,14 @@ extern (C++) final class TypePointer : TypeNext
             if (!MODimplicitConv(next.mod, tp.next.mod))
                 return MATCH.nomatch; // not const-compatible
 
-            /* Alloc conversion to void*
+            /* Allow conversion to void*
              */
             if (next.ty != Tvoid && tp.next.ty == Tvoid)
             {
                 return MATCH.convert;
             }
 
-            MATCH m = next.constConv(tp.next);
+            MATCH m = specialToMemType(next).constConv(specialToMemType(tp.next));
             if (m > MATCH.nomatch)
             {
                 if (m == MATCH.exact && mod != to.mod)
