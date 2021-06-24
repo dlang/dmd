@@ -152,10 +152,10 @@ struct ASTBase
          STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ |
          STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ |
          STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls |
-         STC.gshared | STC.property | STC.live |
+         STC.gshared | STC.property | STC.future | STC.local | STC.live |
          STC.safeGroup | STC.disable);
 
-    enum TY : int
+    enum TY : ubyte
     {
         Tarray,     // slice array, aka T[]
         Tsarray,    // static array, aka T[dimension]
@@ -292,7 +292,6 @@ struct ASTBase
         system     = 1,    // @system (same as TRUST.default)
         trusted    = 2,    // @trusted
         safe       = 3,    // @safe
-        live       = 4,    // @live
     }
 
     enum PURE : ubyte
