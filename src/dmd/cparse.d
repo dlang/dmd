@@ -938,7 +938,8 @@ final class CParser(AST) : Parser!AST
                 {
                     // C11 6.5.2.5 ( type-name ) { initializer-list }
                     auto ci = cparseInitializer();
-                    return new AST.CompoundLiteralExp(loc, t, ci);
+                    auto ce = new AST.CompoundLiteralExp(loc, t, ci);
+                    return cparsePostfixOperators(ce);
                 }
                 else
                 {
