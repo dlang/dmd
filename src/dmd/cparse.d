@@ -925,7 +925,7 @@ final class CParser(AST) : Parser!AST
         {
             // If ( type-name )
             auto pt = &token;
-            if (isCastExpressionStart(pt))
+            if (isCastExpression(pt))
             {
                 // Expression may be either a cast or a compound literal, which
                 // requires checking whether the next token is `{`
@@ -3671,60 +3671,166 @@ final class CParser(AST) : Parser!AST
 
     /************************************
      * Looking at the leading left parenthesis, and determine if it is
-     * the start of either of the following:
-     *  ( type-name ) cast-expression
-     *  ( type-name ) { initializer-list }
+     * either of the following:
+     *    ( type-name ) cast-expression
+     *    ( type-name ) { initializer-list }
      * as opposed to:
-     *  ( expression )
+     *    ( expression )
      * Params:
-     *  pt = first token
+     *    pt = starting token, updated to one past end of constant-expression if true
+     *    afterParenType = true if already seen ( type-name )
      * Returns:
-     *  true if start of ( type-name ) ...
+     *    true if matches ( type-name ) ...
      */
-    private bool isCastExpressionStart(Token* pt)
+    private bool isCastExpression(ref Token* pt, bool afterParenType = false)
     {
         auto t = pt;
-        if (t.value != TOK.leftParenthesis)
-            return false;
-        t = peek(t);
-        if (!(t.value == TOK.identifier && peek(t).value == TOK.rightParenthesis))
-            return isTypeName(t) && t.value == TOK.rightParenthesis;
-
-        t = peek(t);  // move past identifier
-        t = peek(t);  // move past right parenthesis
-
-        /* The ambiguous cases arise from if type-name is just an identifier
-         *   ( identifier ) cast-expression
-         *   ( identifier ) { initializer-list }
-         */
-
         switch (t.value)
         {
-        case TOK.leftParenthesis:
-        case TOK.plusPlus:
-        case TOK.minusMinus:
-        case TOK.not:
-        case TOK.tilde:
-        case TOK.sizeof_:
-        case TOK._Alignof:
-        case TOK.identifier:
-            return true;
+            case TOK.leftParenthesis:
+                auto tk = peek(t);  // move past left parenthesis
+                if (!isTypeName(tk) || tk.value != TOK.rightParenthesis)
+                {
+                    if (afterParenType)
+                        goto default; // could be ( type-name ) ( unary-expression )
+                    return false;
+                }
+                t = peek(tk);  // move past right parenthesis
 
-        case TOK.leftCurly:
-            return true;  // ( type-name ) { initializer-list }
+                if (t.value == TOK.leftCurly)
+                {
+                    // ( type-name ) { initializer-list }
+                    if (!isInitializer(t))
+                        return false;
+                    break;
+                }
+                if (!isCastExpression(t, true))
+                    return false;
+                // ( type-name ) cast-expression
+                break;
 
-        case TOK.and:
-        case TOK.mul:
-        case TOK.min:
-        case TOK.add:
-            /* maybe, but just assume it is because (identifer)*unary-expresion
-             * is an expression, but has no effect and so assume it isn't one
-             */
-            return true;
-
-        default:
-            return false; // ( expression )
+            default:
+                if (!afterParenType || !isUnaryExpression(t, afterParenType))
+                    return false;
+                // if we've already seen ( type-name ), then this is a cast
+                break;
         }
+        pt = t;
+        return true;
+    }
+
+    /********************************
+     * See if match for unary-expression.
+     * Params:
+     *    pt = starting token, updated to one past end of constant-expression if true
+     *    afterParenType = true if already seen ( type-name ) of a cast-expression
+     * Returns:
+     *    true if unary-expression
+     */
+    private bool isUnaryExpression(ref Token* pt, bool afterParenType = false)
+    {
+        auto t = pt;
+        switch (t.value)
+        {
+            case TOK.plusPlus:
+            case TOK.minusMinus:
+                t = peek(t);
+                if (!isUnaryExpression(t, afterParenType))
+                    return false;
+                break;
+
+            case TOK.and:
+            case TOK.mul:
+            case TOK.min:
+            case TOK.add:
+            case TOK.not:
+            case TOK.tilde:
+                t = peek(t);
+                if (!isCastExpression(t, afterParenType))
+                    return false;
+                break;
+
+            case TOK.sizeof_:
+                t = peek(t);
+                if (t.value == TOK.leftParenthesis)
+                {
+                    auto tk = peek(t);
+                    if (isTypeName(tk))
+                    {
+                        if (tk.value != TOK.rightParenthesis)
+                            return false;
+                        t = peek(tk);
+                        break;
+                    }
+                }
+                if (!isUnaryExpression(t, afterParenType))
+                    return false;
+                break;
+
+            case TOK._Alignof:
+                t = peek(t);
+                if (t.value != TOK.leftParenthesis)
+                    return false;
+                t = peek(t);
+                if (!isTypeName(t) || t.value != TOK.rightParenthesis)
+                    return false;
+                break;
+
+            default:
+                // Compound literals are handled by cast and sizeof expressions,
+                // so be content with just seeing a primary expression.
+                if (!isPrimaryExpression(t))
+                    return false;
+                break;
+        }
+        pt = t;
+        return true;
+    }
+
+    /********************************
+     * See if match for primary-expression.
+     * Params:
+     *    pt = starting token, updated to one past end of constant-expression if true
+     * Returns:
+     *    true if primary-expression
+     */
+    private bool isPrimaryExpression(ref Token* pt)
+    {
+        auto t = pt;
+        switch (t.value)
+        {
+            case TOK.identifier:
+            case TOK.int32Literal:
+            case TOK.uns32Literal:
+            case TOK.int64Literal:
+            case TOK.uns64Literal:
+            case TOK.float32Literal:
+            case TOK.float64Literal:
+            case TOK.float80Literal:
+            case TOK.imaginary32Literal:
+            case TOK.imaginary64Literal:
+            case TOK.imaginary80Literal:
+            case TOK.string_:
+                t = peek(t);
+                break;
+
+            case TOK.leftParenthesis:
+                // ( expression )
+                if (!skipParens(t, &t))
+                    return false;
+                break;
+
+            case TOK._Generic:
+                t = peek(t);
+                if (!skipParens(t, &t))
+                    return false;
+                break;
+
+            default:
+                return false;
+        }
+        pt = t;
+        return true;
     }
 
     //}
