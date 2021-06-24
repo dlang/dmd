@@ -235,6 +235,15 @@ void test22069()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22073
+
+struct S22073a { int field; };
+struct S22073b { const char *field; };
+
+_Static_assert((struct S22073a){6789}.field == 6789, "ok");
+_Static_assert((struct S22073b){"zxcv"}.field[2] == 'c', "ok");
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22079
 
 struct S22079
