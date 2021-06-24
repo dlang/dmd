@@ -3112,12 +3112,9 @@ final class Parser(AST) : Lexer
             nextToken();
             int alt = 0;
             const typeLoc = token.loc;
-            Identifier ident;
             memtype = parseBasicType();
-            memtype = parseDeclarator(memtype, alt, ident);
-            if (ident)
-                error("unexpected identifier `%s` in declarator", ident.toChars());
-            checkCstyleTypeSyntax(typeLoc, memtype, alt, ident);
+            memtype = parseDeclarator(memtype, alt, null);
+            checkCstyleTypeSyntax(typeLoc, memtype, alt, null);
         }
 
         e = new AST.EnumDeclaration(loc, id, memtype);
@@ -3611,11 +3608,8 @@ final class Parser(AST) : Lexer
         t = parseBasicType();
 
         int alt = 0;
-        Identifier ident;
-        t = parseDeclarator(t, alt, ident, ptpl);
-        checkCstyleTypeSyntax(typeLoc, t, alt, ident);
-        if (pident)
-            *pident = ident;
+        t = parseDeclarator(t, alt, pident, ptpl);
+        checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
         t = t.addSTC(stc);
         return t;
@@ -4086,7 +4080,7 @@ final class Parser(AST) : Lexer
      *  type declared
      * Reference: https://dlang.org/spec/declaration.html#Declarator
      */
-    private AST.Type parseDeclarator(AST.Type t, ref int palt, out Identifier pident,
+    private AST.Type parseDeclarator(AST.Type t, ref int palt, Identifier* pident,
         AST.TemplateParameters** tpl = null, StorageClass storageClass = 0,
         bool* pdisable = null, AST.Expressions** pudas = null)
     {
@@ -4096,7 +4090,10 @@ final class Parser(AST) : Lexer
         switch (token.value)
         {
         case TOK.identifier:
-            pident = token.ident;
+            if (pident)
+                *pident = token.ident;
+            else
+                error("unexpected identifier `%s` in declarator", token.ident.toChars());
             ts = t;
             nextToken();
             break;
@@ -4793,7 +4790,7 @@ final class Parser(AST) : Lexer
             const loc = token.loc;
             Identifier ident;
 
-            auto t = parseDeclarator(ts, alt, ident, &tpl, storage_class, &disable, &udas);
+            auto t = parseDeclarator(ts, alt, &ident, &tpl, storage_class, &disable, &udas);
             assert(t);
             if (!tfirst)
                 tfirst = t;
