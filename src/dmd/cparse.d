@@ -15,6 +15,7 @@ module dmd.cparse;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import dmd.astenums;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;

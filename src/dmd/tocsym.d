@@ -19,6 +19,7 @@ import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;

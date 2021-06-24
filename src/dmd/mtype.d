@@ -20,6 +20,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
@@ -223,140 +224,11 @@ StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
     return stc;
 }
 
-private enum TFlags
-{
-    integral     = 1,
-    floating     = 2,
-    unsigned     = 4,
-    real_        = 8,
-    imaginary    = 0x10,
-    complex      = 0x20,
-}
-
-enum TY : ubyte
-{
-    Tarray,     // slice array, aka T[]
-    Tsarray,    // static array, aka T[dimension]
-    Taarray,    // associative array, aka T[type]
-    Tpointer,
-    Treference,
-    Tfunction,
-    Tident,
-    Tclass,
-    Tstruct,
-    Tenum,
-
-    Tdelegate,
-    Tnone,
-    Tvoid,
-    Tint8,
-    Tuns8,
-    Tint16,
-    Tuns16,
-    Tint32,
-    Tuns32,
-    Tint64,
-
-    Tuns64,
-    Tfloat32,
-    Tfloat64,
-    Tfloat80,
-    Timaginary32,
-    Timaginary64,
-    Timaginary80,
-    Tcomplex32,
-    Tcomplex64,
-    Tcomplex80,
-
-    Tbool,
-    Tchar,
-    Twchar,
-    Tdchar,
-    Terror,
-    Tinstance,
-    Ttypeof,
-    Ttuple,
-    Tslice,
-    Treturn,
-
-    Tnull,
-    Tvector,
-    Tint128,
-    Tuns128,
-    Ttraits,
-    Tmixin,
-    Tnoreturn,
-    Ttag,
-    TMAX,
-}
-
-alias Tarray = TY.Tarray;
-alias Tsarray = TY.Tsarray;
-alias Taarray = TY.Taarray;
-alias Tpointer = TY.Tpointer;
-alias Treference = TY.Treference;
-alias Tfunction = TY.Tfunction;
-alias Tident = TY.Tident;
-alias Tclass = TY.Tclass;
-alias Tstruct = TY.Tstruct;
-alias Tenum = TY.Tenum;
-alias Tdelegate = TY.Tdelegate;
-alias Tnone = TY.Tnone;
-alias Tvoid = TY.Tvoid;
-alias Tint8 = TY.Tint8;
-alias Tuns8 = TY.Tuns8;
-alias Tint16 = TY.Tint16;
-alias Tuns16 = TY.Tuns16;
-alias Tint32 = TY.Tint32;
-alias Tuns32 = TY.Tuns32;
-alias Tint64 = TY.Tint64;
-alias Tuns64 = TY.Tuns64;
-alias Tfloat32 = TY.Tfloat32;
-alias Tfloat64 = TY.Tfloat64;
-alias Tfloat80 = TY.Tfloat80;
-alias Timaginary32 = TY.Timaginary32;
-alias Timaginary64 = TY.Timaginary64;
-alias Timaginary80 = TY.Timaginary80;
-alias Tcomplex32 = TY.Tcomplex32;
-alias Tcomplex64 = TY.Tcomplex64;
-alias Tcomplex80 = TY.Tcomplex80;
-alias Tbool = TY.Tbool;
-alias Tchar = TY.Tchar;
-alias Twchar = TY.Twchar;
-alias Tdchar = TY.Tdchar;
-alias Terror = TY.Terror;
-alias Tinstance = TY.Tinstance;
-alias Ttypeof = TY.Ttypeof;
-alias Ttuple = TY.Ttuple;
-alias Tslice = TY.Tslice;
-alias Treturn = TY.Treturn;
-alias Tnull = TY.Tnull;
-alias Tvector = TY.Tvector;
-alias Tint128 = TY.Tint128;
-alias Tuns128 = TY.Tuns128;
-alias Ttraits = TY.Ttraits;
-alias Tmixin = TY.Tmixin;
-alias Tnoreturn = TY.Tnoreturn;
-alias Ttag = TY.Ttag;
-alias TMAX = TY.TMAX;
-
 ///Returns true if ty is char, wchar, or dchar
 bool isSomeChar(TY ty) pure nothrow @nogc @safe
 {
     return ty == Tchar || ty == Twchar || ty == Tdchar;
 }
-
-enum MODFlags : int
-{
-    const_       = 1,    // type is const
-    immutable_   = 4,    // type is immutable
-    shared_      = 2,    // type is shared
-    wild         = 8,    // type is wild
-    wildconst    = (MODFlags.wild | MODFlags.const_), // type is wild const
-    mutable      = 0x10, // type is mutable (only used in wildcard matching)
-}
-
-alias MOD = ubyte;
 
 /****************
  * dotExp() bit flags
@@ -366,19 +238,6 @@ enum DotExpFlag
     gag     = 1,    // don't report "not a property" error and just return null
     noDeref = 2,    // the use of the expression will not attempt a dereference
 }
-
-/***************
- * Variadic argument lists
- * https://dlang.org/spec/function.html#variadic
- */
-enum VarArg : ubyte
-{
-    none     = 0,  /// fixed number of arguments
-    variadic = 1,  /// (T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
-    typesafe = 2,  /// (T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
-                   ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
-}
-
 
 /***********************************************************
  */
@@ -4217,14 +4076,6 @@ enum RET : int
     stack        = 2,    // returned on stack
 }
 
-enum TRUST : ubyte
-{
-    default_   = 0,
-    system     = 1,    // @system (same as TRUST.default)
-    trusted    = 2,    // @trusted
-    safe       = 3,    // @safe
-}
-
 enum TRUSTformat : int
 {
     TRUSTformatDefault,     // do not emit @system when trust == TRUST.default_
@@ -4233,15 +4084,6 @@ enum TRUSTformat : int
 
 alias TRUSTformatDefault = TRUSTformat.TRUSTformatDefault;
 alias TRUSTformatSystem = TRUSTformat.TRUSTformatSystem;
-
-enum PURE : ubyte
-{
-    impure      = 0,    // not pure at all
-    fwdref      = 1,    // it's pure, but not known which level yet
-    weak        = 2,    // no mutable globals are read or written
-    const_      = 3,    // parameters are values or const
-    strong      = 4,    // parameters are values or immutable
-}
 
 /***********************************************************
  */
@@ -5800,17 +5642,6 @@ extern (C++) final class TypeReturn : TypeQualified
     {
         v.visit(this);
     }
-}
-
-// Whether alias this dependency is recursive or not.
-enum AliasThisRec : int
-{
-    no           = 0,    // no alias this recursion
-    yes          = 1,    // alias this has recursive dependency
-    fwdref       = 2,    // not yet known
-    typeMask     = 3,    // mask to read no/yes/fwdref
-    tracing      = 0x4,  // mark in progress of implicitConvTo/deduceWild
-    tracingDT    = 0x8,  // mark in progress of deduceType
 }
 
 /***********************************************************

@@ -15,6 +15,7 @@ module dmd.parse;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import dmd.astenums;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -231,11 +232,11 @@ struct ParsedLinkage(AST)
  */
 private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
 {
-    StorageClass stc = AST.STC.undefined_;
+    StorageClass stc = STC.undefined_;
     if (pAttrs)
     {
         stc = pAttrs.storageClass;
-        pAttrs.storageClass = AST.STC.undefined_;
+        pAttrs.storageClass = STC.undefined_;
     }
     return stc;
 }
@@ -294,7 +295,6 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 class Parser(AST) : Lexer
 {
     AST.ModuleDeclaration* md;
-    alias STC = AST.STC;
 
     protected
     {
@@ -2517,7 +2517,7 @@ class Parser(AST) : Lexer
         auto parameterList = parseParameterList(null);
         stc = parsePostfix(stc, &udas);
 
-        if (parameterList.varargs != AST.VarArg.none || AST.Parameter.dim(parameterList.parameters) != 0)
+        if (parameterList.varargs != VarArg.none || AST.Parameter.dim(parameterList.parameters) != 0)
         {
             if (stc & STC.static_)
                 error(loc, "constructor cannot be static");
@@ -2849,7 +2849,7 @@ class Parser(AST) : Lexer
     private AST.ParameterList parseParameterList(AST.TemplateParameters** tpl)
     {
         auto parameters = new AST.Parameters();
-        AST.VarArg varargs = AST.VarArg.none;
+        VarArg varargs = VarArg.none;
         int hasdefault = 0;
         StorageClass varargsStc;
 
@@ -2876,7 +2876,7 @@ class Parser(AST) : Lexer
                     break;
 
                 case TOK.dotDotDot:
-                    varargs = AST.VarArg.variadic;
+                    varargs = VarArg.variadic;
                     varargsStc = storageClass;
                     if (varargsStc & ~VarArgsStc)
                     {
@@ -3075,7 +3075,7 @@ class Parser(AST) : Lexer
                              */
                             if (storageClass & (STC.out_ | STC.ref_))
                                 error("variadic argument cannot be `out` or `ref`");
-                            varargs = AST.VarArg.typesafe;
+                            varargs = VarArg.typesafe;
                             parameters.push(param);
                             nextToken();
                             break;
@@ -3876,14 +3876,14 @@ class Parser(AST) : Lexer
                         AST.Type t = maybeArray;
                         while (true)
                         {
-                            if (t.ty == AST.Tsarray)
+                            if (t.ty == Tsarray)
                             {
                                 // The index expression is an Expression.
                                 AST.TypeSArray a = cast(AST.TypeSArray)t;
                                 dimStack.push(a.dim.syntaxCopy());
                                 t = a.next.syntaxCopy();
                             }
-                            else if (t.ty == AST.Taarray)
+                            else if (t.ty == Taarray)
                             {
                                 // The index expression is a Type. It will be interpreted as an expression at semantic time.
                                 AST.TypeAArray a = cast(AST.TypeAArray)t;
@@ -4808,7 +4808,7 @@ class Parser(AST) : Lexer
             else if (t != tfirst)
                 error("multiple declarations must have the same type, not `%s` and `%s`", tfirst.toChars(), t.toChars());
 
-            bool isThis = (t.ty == AST.Tident && (cast(AST.TypeIdentifier)t).ident == Id.This && token.value == TOK.assign);
+            bool isThis = (t.ty == Tident && (cast(AST.TypeIdentifier)t).ident == Id.This && token.value == TOK.assign);
             if (ident)
                 checkCstyleTypeSyntax(loc, t, alt, ident);
             else if (!isThis && (t != AST.Type.terror))
@@ -4880,7 +4880,7 @@ class Parser(AST) : Lexer
                     break;
                 }
             }
-            else if (t.ty == AST.Tfunction)
+            else if (t.ty == Tfunction)
             {
                 AST.Expression constraint = null;
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
@@ -8528,28 +8528,28 @@ LagainStc:
                     case TOK.const_:
                         if (peekNext() == TOK.leftParenthesis)
                             break; // const as type constructor
-                        m |= AST.MODFlags.const_; // const as storage class
+                        m |= MODFlags.const_; // const as storage class
                         nextToken();
                         continue;
 
                     case TOK.immutable_:
                         if (peekNext() == TOK.leftParenthesis)
                             break;
-                        m |= AST.MODFlags.immutable_;
+                        m |= MODFlags.immutable_;
                         nextToken();
                         continue;
 
                     case TOK.shared_:
                         if (peekNext() == TOK.leftParenthesis)
                             break;
-                        m |= AST.MODFlags.shared_;
+                        m |= MODFlags.shared_;
                         nextToken();
                         continue;
 
                     case TOK.inout_:
                         if (peekNext() == TOK.leftParenthesis)
                             break;
-                        m |= AST.MODFlags.wild;
+                        m |= MODFlags.wild;
                         nextToken();
                         continue;
 
@@ -9281,7 +9281,7 @@ LagainStc:
         auto t = parseBasicType(true);
         t = parseTypeSuffixes(t);
         t = t.addSTC(stc);
-        if (t.ty == AST.Taarray)
+        if (t.ty == Taarray)
         {
             AST.TypeAArray taa = cast(AST.TypeAArray)t;
             AST.Type index = taa.index;
@@ -9293,7 +9293,7 @@ LagainStc:
             }
             t = new AST.TypeSArray(taa.next, edim);
         }
-        else if (token.value == TOK.leftParenthesis && t.ty != AST.Tsarray)
+        else if (token.value == TOK.leftParenthesis && t.ty != Tsarray)
         {
             arguments = parseArguments();
         }
@@ -9328,26 +9328,26 @@ LagainStc:
      */
     static StorageClass isBuiltinAtAttribute(Identifier ident)
     {
-        return (ident == Id.property) ? AST.STC.property :
-               (ident == Id.nogc)     ? AST.STC.nogc     :
-               (ident == Id.safe)     ? AST.STC.safe     :
-               (ident == Id.trusted)  ? AST.STC.trusted  :
-               (ident == Id.system)   ? AST.STC.system   :
-               (ident == Id.live)     ? AST.STC.live     :
-               (ident == Id.future)   ? AST.STC.future   :
-               (ident == Id.disable)  ? AST.STC.disable  :
+        return (ident == Id.property) ? STC.property :
+               (ident == Id.nogc)     ? STC.nogc     :
+               (ident == Id.safe)     ? STC.safe     :
+               (ident == Id.trusted)  ? STC.trusted  :
+               (ident == Id.system)   ? STC.system   :
+               (ident == Id.live)     ? STC.live     :
+               (ident == Id.future)   ? STC.future   :
+               (ident == Id.disable)  ? STC.disable  :
                0;
     }
 
     enum StorageClass atAttrGroup =
-                AST.STC.property |
-                AST.STC.nogc     |
-                AST.STC.safe     |
-                AST.STC.trusted  |
-                AST.STC.system   |
-                AST.STC.live     |
-                /*AST.STC.future   |*/ // probably should be included
-                AST.STC.disable;
+                STC.property |
+                STC.nogc     |
+                STC.safe     |
+                STC.trusted  |
+                STC.system   |
+                STC.live     |
+                /*STC.future   |*/ // probably should be included
+                STC.disable;
     }
 
 enum PREC : int

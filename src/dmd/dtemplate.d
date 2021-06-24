@@ -43,6 +43,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.ast_node;
 import dmd.dcast;
 import dmd.dclass;

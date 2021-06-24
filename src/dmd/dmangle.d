@@ -14,6 +14,8 @@
 
 module dmd.dmangle;
 
+import dmd.astenums;
+
 /******************************************************************************
  * Returns exact mangled name of function.
  */

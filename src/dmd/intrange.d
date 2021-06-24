@@ -13,6 +13,7 @@ module dmd.intrange;
 
 import core.stdc.stdio;
 
+import dmd.astenums;
 import dmd.mtype;
 import dmd.expression;
 import dmd.globals;

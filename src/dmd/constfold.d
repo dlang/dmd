@@ -18,6 +18,7 @@ module dmd.constfold;
 import core.stdc.string;
 import core.stdc.stdio;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;

@@ -18,6 +18,7 @@ import core.stdc.stdarg;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dscope;

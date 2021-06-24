@@ -77,6 +77,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [ast_node.d](https://github.com/dlang/dmd/blob/master/src/dmd/ast_node.d)         | Define an abstract AST node class                           |
 | [astbase.d](https://github.com/dlang/dmd/blob/master/src/dmd/astbase.d)           | Namespace of AST nodes that can be produced by the parser   |
 | [astcodegen.d](https://github.com/dlang/dmd/blob/master/src/dmd/astcodegen.d)     | Namespace of AST nodes of a AST ready for code generation   |
+| [astenums.d](https://github.com/dlang/dmd/blob/master/src/dmd/astenums.d)         | Enums common to DMD and AST                                 |
 | [expression.d](https://github.com/dlang/dmd/blob/master/src/dmd/expression.d)     | Define expression AST nodes                                 |
 | [statement.d](https://github.com/dlang/dmd/blob/master/src/dmd/statement.d)       | Define statement AST nodes                                  |
 | [staticassert.d](https://github.com/dlang/dmd/blob/master/src/dmd/staticassert.d) | Define a `static assert` AST node                           |

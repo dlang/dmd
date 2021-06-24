@@ -38,6 +38,7 @@ import dmd.backend.type;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.blockexit;
 import dmd.dclass;
 import dmd.declaration;

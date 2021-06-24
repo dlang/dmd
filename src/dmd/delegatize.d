@@ -15,6 +15,7 @@ module dmd.delegatize;
 
 import core.stdc.stdio;
 import dmd.apply;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;

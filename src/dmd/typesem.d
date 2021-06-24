@@ -21,6 +21,7 @@ import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.complex;
 import dmd.dcast;
 import dmd.dclass;

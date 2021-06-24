@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.ctorflow;
 import dmd.dclass;
@@ -576,7 +577,7 @@ struct Scope
      */
     extern (D) static const(char)* search_correct_C(Identifier ident)
     {
-        import dmd.mtype : Twchar;
+        import dmd.astenums : Twchar;
         TOK tok;
         if (ident == Id.NULL)
             tok = TOK.null_;

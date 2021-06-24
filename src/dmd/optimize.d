@@ -13,6 +13,7 @@ module dmd.optimize;
 
 import core.stdc.stdio;
 
+import dmd.astenums;
 import dmd.constfold;
 import dmd.ctfeexpr;
 import dmd.dclass;
@@ -691,7 +692,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             }
             if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
             {
-                import dmd.aggregate : Sizeok;
+                import dmd.astenums : Sizeok;
 
                 // See if we can remove an unnecessary cast
                 ClassDeclaration cdfrom = e.e1.type.isClassHandle();

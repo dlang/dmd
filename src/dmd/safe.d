@@ -16,6 +16,7 @@ module dmd.safe;
 import core.stdc.stdio;
 
 import dmd.aggregate;
+import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;

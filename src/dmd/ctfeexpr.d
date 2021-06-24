@@ -15,6 +15,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.complex;
 import dmd.constfold;
 import dmd.compiler;

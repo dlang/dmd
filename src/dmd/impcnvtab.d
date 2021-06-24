@@ -16,6 +16,7 @@
 
 module dmd.impcnvtab;
 
+import dmd.astenums;
 import dmd.mtype;
 
 immutable TY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;

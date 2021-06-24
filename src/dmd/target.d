@@ -81,7 +81,8 @@ extern (C++) struct Target
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
     import dmd.globals : LINK, Loc, d_int64;
-    import dmd.mtype : TY, Type, TypeFunction, TypeTuple;
+    import dmd.astenums : TY;
+    import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
 
@@ -1019,7 +1020,7 @@ extern (C++) struct Target
 
                 TypeTuple getArgTypes()
                 {
-                    import dmd.aggregate : Sizeok;
+                    import dmd.astenums : Sizeok;
                     if (auto ts = t.toBasetype().isTypeStruct())
                     {
                         auto sd = ts.sym;
@@ -1370,7 +1371,7 @@ struct TargetCPP
      */
     extern (C++) Type parameterType(Parameter p)
     {
-        import dmd.declaration : STC;
+        import dmd.astenums : STC;
         import dmd.globals : LINK;
         import dmd.mtype : ParameterList, TypeDelegate, TypeFunction;
         import dmd.typesem : merge;

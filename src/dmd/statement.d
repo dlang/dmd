@@ -20,6 +20,7 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.canthrow;
@@ -74,55 +75,6 @@ TypeIdentifier getException()
     tid.addIdent(Id.Exception);
     return tid;
 }
-
-/********************************
- * Identify Statement types with this enum rather than
- * virtual functions.
- */
-
-enum STMT : ubyte
-{
-    Error,
-    Peel,
-    Exp, DtorExp,
-    Compile,
-    Compound, CompoundDeclaration, CompoundAsm,
-    UnrolledLoop,
-    Scope,
-    Forwarding,
-    While,
-    Do,
-    For,
-    Foreach,
-    ForeachRange,
-    If,
-    Conditional,
-    StaticForeach,
-    Pragma,
-    StaticAssert,
-    Switch,
-    Case,
-    CaseRange,
-    Default,
-    GotoDefault,
-    GotoCase,
-    SwitchError,
-    Return,
-    Break,
-    Continue,
-    Synchronized,
-    With,
-    TryCatch,
-    TryFinally,
-    ScopeGuard,
-    Throw,
-    Debug,
-    Goto,
-    Label,
-    Asm, InlineAsm, GccAsm,
-    Import,
-}
-
 
 /***********************************************************
  * Specification: http://dlang.org/spec/statement.html

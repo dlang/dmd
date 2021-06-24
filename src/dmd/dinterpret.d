@@ -18,6 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.apply;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.builtin;
 import dmd.constfold;
