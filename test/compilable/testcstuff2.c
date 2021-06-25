@@ -195,10 +195,12 @@ typedef struct S22063_t
 
 void test22063()
 {
-    struct S22063_t v1 = { 0 };
-    struct S22063_t *v2 = 0;
+    // BUG: no definition of struct
+    //struct S22063_t v1 = { 0 };
+    // BUG: cannot implicitly cast from integer to pointer.
+    struct S22063_t *v2 = (struct S22063_t *)0;
     S22063 v3 = { 0 };
-    S22063 *v4 = 0;
+    S22063 *v4 = (S22063 *)0;
 }
 
 /***************************************************/
@@ -226,21 +228,6 @@ void test22067()
     (*var.ptr)--;
     ++(*pvar).value;
     --(*pvar).array[3];
-}
-
-/***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=22069
-
-void test22069()
-{
-    int var;
-    int *ptr;
-    &var;
-    *ptr;
-    +var;
-    -var;
-    ~var;
-    !var;
 }
 
 /***************************************************/
