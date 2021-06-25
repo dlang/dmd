@@ -83,7 +83,7 @@ public:
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
-    void* tagSymTab;		// ImportC: tag symbols that conflict with other symbols used as the index
+    void* tagSymTab;            // ImportC: tag symbols that conflict with other symbols used as the index
     bool selfImports();         // returns true if module imports itself
 
     int rootimports;            // 0: don't know, 1: does not, 2: does

@@ -461,16 +461,16 @@ struct Scope
 
                 if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
                 {
-		    if (flags & TagNameSpace)
-		    {
-			// ImportC: if symbol is not a tag, look for it in tag table
-			if (!s.isStructDeclaration())
-			{
-			    s = cast(Dsymbol)sc._module.tagSymTab[cast(void*)s];
-			    if (!s)
-				goto NotFound;
-			}
-		    }
+                    if (flags & TagNameSpace)
+                    {
+                        // ImportC: if symbol is not a tag, look for it in tag table
+                        if (!s.isStructDeclaration())
+                        {
+                            s = cast(Dsymbol)sc._module.tagSymTab[cast(void*)s];
+                            if (!s)
+                                goto NotFound;
+                        }
+                    }
                     if (!(flags & (SearchImportsOnly | IgnoreErrors)) &&
                         ident == Id.length && sc.scopesym.isArrayScopeSymbol() &&
                         sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
@@ -483,7 +483,7 @@ struct Scope
                     return s;
                 }
 
-	    NotFound:
+            NotFound:
                 if (global.params.fixAliasThis)
                 {
                     Expression exp = new ThisExp(loc);
@@ -620,9 +620,16 @@ struct Scope
         return null;
     }
 
+    /******************************
+     * Add symbol s to innermost symbol table.
+     * Params:
+     *  s = symbol to insert
+     * Returns:
+     *  null if already in table, `s` if not
+     */
     extern (D) Dsymbol insert(Dsymbol s)
     {
-	printf("insert() %s\n", s.toChars());
+        //printf("insert() %s\n", s.toChars());
         if (VarDeclaration vd = s.isVarDeclaration())
         {
             if (lastVar)
@@ -644,7 +651,16 @@ struct Scope
         //printf("\t\tscopesym = %p\n", scopesym);
         if (!scopesym.symtab)
             scopesym.symtab = new DsymbolTable();
-        return scopesym.symtabInsert(s);
+        if (!(flags & SCOPE.Cfile))
+            return scopesym.symtabInsert(s);
+
+        // ImportC insert
+        if (!scopesym.symtabInsert(s)) // if already in table
+        {
+            Dsymbol s2 = scopesym.symtabLookup(s, s.ident); // s2 is existing entry
+            return handleTagSymbols(this, s, s2, scopesym);
+        }
+        return s; // inserted
     }
 
     /********************************************

@@ -1987,7 +1987,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
     Type visitTag(TypeTag mtype)
     {
-        printf("TypeTag.semantic() %s\n", mtype.toChars());
+        //printf("TypeTag.semantic() %s\n", mtype.toChars());
         if (mtype.resolved)
         {
             /* struct S s, *p;
