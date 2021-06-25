@@ -6706,7 +6706,11 @@ extern (C++) final class CondExp : BinExp
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
-        //error("conditional expression %s is not a modifiable lvalue", toChars());
+        if (!e1.isLvalue() && !e2.isLvalue())
+        {
+            error("conditional expression `%s` is not a modifiable lvalue", toChars());
+            return ErrorExp.get();
+        }
         e1 = e1.modifiableLvalue(sc, e1);
         e2 = e2.modifiableLvalue(sc, e2);
         return toLvalue(sc, this);

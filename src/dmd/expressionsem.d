@@ -5827,8 +5827,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.e1 = exp.e1.expressionSemantic(sc);
-        exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
         exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
+        exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
         exp.type = exp.e1.type;
 
         if (auto ad = isAggregate(exp.e1.type))
@@ -8307,8 +8307,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
-
         Type t1 = exp.e1.type.toBasetype();
         if (t1.ty == Tclass || t1.ty == Tstruct || exp.e1.op == TOK.arrayLength)
         {
@@ -8349,6 +8347,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
+        exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
 
         e = exp;
         if (exp.e1.checkScalar() ||
@@ -9103,8 +9102,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             Expression ex;
                             ex = new IndexExp(exp.loc, ea, ek);
                             ex = ex.expressionSemantic(sc);
-                            ex = ex.optimize(WANTvalue);
                             ex = ex.modifiableLvalue(sc, ex); // allocate new slot
+                            ex = ex.optimize(WANTvalue);
 
                             ey = new ConstructExp(exp.loc, ex, ey);
                             ey = ey.expressionSemantic(sc);
@@ -9375,12 +9374,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Expression e1x = exp.e1;
 
             // Try to do a decent error message with the expression
-            // before it got constant folded
-
-            e1x = e1x.optimize(WANTvalue, /*keepLvalue*/ true);
-
+            // before it gets constant folded
             if (exp.op == TOK.assign)
                 e1x = e1x.modifiableLvalue(sc, e1old);
+
+            e1x = e1x.optimize(WANTvalue, /*keepLvalue*/ true);
 
             if (e1x.op == TOK.error)
             {
