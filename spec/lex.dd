@@ -341,7 +341,7 @@ $(GNAME DelimitedString):
 )
 $(GRAMMAR
 $(GNAME TokenString):
-    $(B q)$(B {) $(GLINK Tokens)$(OPT) $(B })
+    $(D q{) $(GLINK Tokens)$(OPT) $(D })
 )
 
         $(P
