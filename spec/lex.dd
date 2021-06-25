@@ -1097,8 +1097,8 @@ $(H2 $(LEGACY_LNAME2 Special Token Sequence, special-token-sequence, Special Tok
 
 $(GRAMMAR
 $(GNAME SpecialTokenSequence):
-    $(D # line) $(GLINK IntegerLiteral) $(GLINK EndOfLine)
-    $(D # line) $(GLINK IntegerLiteral) $(GLINK Filespec) $(GLINK EndOfLine)
+    $(D # line) $(GLINK IntegerLiteral) $(GLINK Filespec)$(OPT) $(GLINK EndOfLine)
+    $(D # line) $(D __LINE__) $(GLINK Filespec)$(OPT) $(GLINK EndOfLine)
 )
 $(GRAMMAR_LEX
 $(GNAME Filespec):
