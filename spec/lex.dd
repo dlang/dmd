@@ -71,7 +71,8 @@ $(GRAMMAR_LEX
 $(GNAME EndOfFile):
     $(I physical end of the file)
     $(B \u0000)
-    $(B \u001A))
+    $(B \u001A)
+)
 
 $(P The source text is terminated by whichever comes first.)
 
@@ -84,7 +85,8 @@ $(GNAME EndOfLine):
     $(B \u000D) $(B \u000A)
     $(B \u2028)
     $(B \u2029)
-    $(GLINK EndOfFile))
+    $(GLINK EndOfFile)
+)
 
 
 $(H2 $(LNAME2 white_space, White Space))
@@ -129,7 +131,8 @@ $(GNAME NestingBlockCommentCharacter):
 
 $(GNAME Characters):
     $(GLINK Character)
-    $(GLINK Character) $(GSELF Characters))
+    $(GLINK Character) $(GSELF Characters)
+)
 
     $(P There are three kinds of comments:)
 
@@ -1045,7 +1048,8 @@ $(MULTICOLS 4,
     $(LINK2 traits.html, $(D __traits))
     $(LINK2 $(ROOT_DIR)phobos/core_simd.html#.Vector, $(D __vector))
     $(LINK2 expression.html#IsExpression, $(D __parameters))
-))
+)
+)
 
 
 $(H2 $(LNAME2 specialtokens, Special Tokens))
