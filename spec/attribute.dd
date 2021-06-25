@@ -81,7 +81,7 @@ $(GRAMMAR
 $(GNAME LinkageAttribute):
     $(D extern) $(D $(LPAREN)) $(GLINK LinkageType) $(D $(RPAREN))
     $(D extern) $(D $(LPAREN)) $(D C++) $(D ,) $(GLINK2 declaration, QualifiedIdentifier) $(D $(RPAREN))
-    $(D extern) $(D $(LPAREN)) $(D C++) $(D ,) $(GLINK2 attribute, NamespaceList) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C++) $(D ,) $(GLINK NamespaceList) $(D $(RPAREN))
 
 $(GNAME LinkageType):
     $(D C)
