@@ -341,20 +341,36 @@ $(GNAME StringPostfix):
 
 $(GNAME DelimitedString):
     $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ")
+    $(B q"$(LPAREN)) $(GLINK ParenDelimitedCharacters)$(OPT) $(B $(RPAREN)")
+    $(B q"[) $(GLINK BracketDelimitedCharacters)$(OPT) $(B ]")
+    $(B q"{) $(GLINK BraceDelimitedCharacters)$(OPT) $(B }")
+    $(B q"<) $(GLINK AngleDelimitedCharacters)$(OPT) $(B >")
 
 $(GNAME Delimiter):
-    $(B $(LPAREN))
-    $(B {)
-    $(B [)
-    $(B <)
     $(GLINK Identifier)
 
 $(GNAME MatchingDelimiter):
-    $(B $(RPAREN))
-    $(B })
-    $(B ])
-    $(B >)
     $(GLINK Identifier)
+
+$(GNAME ParenDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF ParenDelimitedCharacters)
+    $(B $(LPAREN)) $(GSELF ParenDelimitedCharacters)$(OPT) $(B $(RPAREN))
+
+$(GNAME BracketDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF BracketDelimitedCharacters)
+    $(B [) $(GSELF BracketDelimitedCharacters)$(OPT) $(B ])
+
+$(GNAME BraceDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF BraceDelimitedCharacters)
+    $(B {) $(GSELF BraceDelimitedCharacters)$(OPT) $(B })
+
+$(GNAME AngleDelimitedCharacters):
+    $(GLINK WysiwygCharacter)
+    $(GLINK WysiwygCharacter) $(GSELF AngleDelimitedCharacters)
+    $(B <) $(GSELF AngleDelimitedCharacters)$(OPT) $(B >)
 )
 $(GRAMMAR
 $(GNAME TokenString):
