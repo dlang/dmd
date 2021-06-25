@@ -764,7 +764,7 @@ extern (C++) class Dsymbol : ASTNode
 
     void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        printf("Dsymbol::addMember('%s')\n", toChars());
+        //printf("Dsymbol::addMember('%s')\n", toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds.toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds.symtab = %p)\n", this, toChars(), sds, sds.symtab);
         parent = sds;
@@ -777,25 +777,11 @@ extern (C++) class Dsymbol : ASTNode
                 setScope(sc);
             Dsymbol s2 = sds.symtabLookup(this,ident);
 
-            // If using C prototype/forward declaration rules.
-            if (sc.flags & SCOPE.Cfile)
-            {
-                if (auto sd = isStructDeclaration())
-                {
-                    if (auto sd2 = s2.isStructDeclaration())
-                    {
-                        // Not a redeclaration if one is a forward declaration.
-                        // Move members to the first declared type.
-                        if (!sd.members || !sd2.members)
-                        {
-                            if (!sd2.members)
-                                sd2.members = sd.members;
-                            sd.members = null;
-                            return;
-                        }
-                    }
-                }
-            }
+            // If using C tag/prototype/forward declaration rules
+            if (sc.flags & SCOPE.Cfile &&
+                handleTagSymbols(*sc, this, s2, sds))
+                    return;
+
             if (!s2.overloadInsert(this))
             {
                 sds.multiplyDefined(Loc.initial, this, s2);
@@ -1655,6 +1641,13 @@ public:
         return fdx;
     }
 
+    /********************************
+     * Insert Dsymbol in table.
+     * Params:
+     *   s = symbol to add
+     * Returns:
+     *   null if already in table, `s` if inserted
+     */
     Dsymbol symtabInsert(Dsymbol s)
     {
         return symtab.insert(s);
@@ -1662,8 +1655,12 @@ public:
 
     /****************************************
      * Look up identifier in symbol table.
+     * Params:
+     *  s = symbol
+     *  id = identifier to look up
+     * Returns:
+     *   Dsymbol if found, null if not
      */
-
     Dsymbol symtabLookup(Dsymbol s, Identifier id)
     {
         return symtab.lookup(id);
@@ -2271,3 +2268,98 @@ extern (C++) final class DsymbolTable : RootObject
         return tab.length;
     }
 }
+
+/**********************************************
+ * ImportC tag symbols sit in a parallel symbol table,
+ * so that this C code works:
+ * ---
+ * struct S { a; };
+ * int S;
+ * struct S s;
+ * ---
+ * But there are relatively few such tag symbols, so that would be
+ * a waste of memory and complexity. An additional problem is we'd like the D side
+ * to find the tag symbols with ordinary lookup, not lookup in both
+ * tables, if the tag symbol is not conflicting with an ordinary symbol.
+ * The solution is to put the tag symbols that conflict into an associative
+ * array, indexed by the address of the ordinary symbol that conflicts with it.
+ * C has no modules, so this associative array is tagSymTab[] in ModuleDeclaration.
+ * A side effect of our approach is that D code cannot access a tag symbol that is
+ * hidden by an ordinary symbol. This is more of a theoretical problem, as nobody
+ * has mentioned it when importing C headers. If someone wants to do it,
+ * too bad so sad. Change the C code.
+ * This function fixes up the symbol table when faced with adding a new symbol
+ * `s` when there is an existing symbol `s2` with the same name.
+ * C also allows forward and prototype declarations of tag symbols,
+ * this function merges those.
+ * Params:
+ *      sc = context
+ *      s = symbol to add to symbol table
+ *      s2 = existing declaration
+ *      sds = symbol table
+ * Returns:
+ *      if s and s2 are successfully put in symbol table then return the merged symbol,
+ *      null if they conflict
+ */
+Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
+{
+    enum log = false;
+    if (log) printf("handleTagSymbols('%s')\n", s.toChars());
+    auto sd = s.isStructDeclaration(); // new declaration
+    auto sd2 = s2.isStructDeclaration(); // existing declaration
+
+    if (!sd2)
+    {
+        /* Look in tag table
+         */
+        if (log) printf(" look in tag table\n");
+        if (auto p = cast(void*)s2 in sc._module.tagSymTab)
+        {
+            Dsymbol s2tag = *p;
+            sd2 = s2tag.isStructDeclaration();
+            assert(sd2);        // only tags allowed in tag symbol table
+        }
+    }
+
+    if (sd && sd2) // `s` is a tag, `sd2` is the same tag
+    {
+        if (log) printf(" tag is already defined\n");
+        /* Not a redeclaration if one is a forward declaration.
+         * Move members to the first declared type, which is sd2.
+         */
+        if (sd2.members)
+        {
+            if (!sd.members)
+                return sd2;  // ignore the sd redeclaration
+        }
+        else if (sd.members)
+        {
+            sd2.members = sd.members; // transfer definition to sd2
+            sd.members = null;
+            return sd2;
+        }
+        else
+            return sd2; // ignore redeclaration
+    }
+    else if (sd) // `s` is a tag, `s2` is not
+    {
+        if (log) printf(" s is tag, s2 is not\n");
+        /* add `s` as tag indexed by s2
+         */
+        sc._module.tagSymTab[cast(void*)s2] = s;
+        return s;
+    }
+    else if (s2 is sd2) // `s2` is a tag, `s` is not
+    {
+        if (log) printf(" s2 is tag, s is not\n");
+        /* replace `s2` in symbol table with `s`,
+         * then add `s2` as tag indexed by `s`
+         */
+        sds.symtab.update(s);
+        sc._module.tagSymTab[cast(void*)s] = s2;
+        return s;
+    }
+    if (log) printf(" collision\n");
+    return null;
+}
+

@@ -2588,6 +2588,7 @@ enum
     SearchImportsOnly = 16,
     SearchUnqualifiedModule = 32,
     IgnoreSymbolVisibility = 128,
+    TagNameSpace = 256,
 };
 
 enum : int32_t { IDX_NOTFOUND = 305419896 };
@@ -5953,6 +5954,7 @@ public:
     Array<const char* > contentImportedFiles;
     int32_t needmoduleinfo;
     int32_t selfimports;
+    void* tagSymTab;
     bool selfImports();
     int32_t rootimports;
     bool rootImports();

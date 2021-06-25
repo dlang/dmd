@@ -352,9 +352,9 @@ void parenExp(int a, int b)
     if (!(a == b))
         a = b;
     if ((int)3 == 3);
-	a = b;
+        a = b;
     if ((a) == b)
-	a = b;
+        a = b;
     a = (int) (1 << (b));
     typedef int t;
     int* p;
@@ -451,6 +451,31 @@ int test16997()
 }
 
 _Static_assert(test16997(), "in");
+
+/********************************/
+
+struct SH { int a; };
+int SH;
+int SJ;
+struct SJ { int a; };
+
+void testtags()
+{
+    struct SH h;
+    h.a = SH;
+    struct SJ j;
+    j.a = SJ;
+
+    struct SK { int a; };
+    int SK;
+    struct SK k;
+    k.a = SK;
+
+    int SL;
+    struct SL { int a; };
+    struct SL l;
+    l.a = SL;
+}
 
 /********************************/
 
