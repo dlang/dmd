@@ -88,7 +88,7 @@ $(GNAME SymbolTail):
 
 $(GNAME TemplateSingleArgument):
     $(GLINK_LEX Identifier)
-    $(GLINK2 declaration, FundamentalType)
+    $(GLINK2 type, FundamentalType)
     $(GLINK_LEX CharacterLiteral)
     $(GLINK_LEX StringLiteral)
     $(GLINK_LEX IntegerLiteral)
@@ -97,7 +97,7 @@ $(GNAME TemplateSingleArgument):
     $(D false)
     $(D null)
     $(D this)
-    $(GLINK2 grammar, SpecialKeyword)
+    $(GLINK2 expression, SpecialKeyword)
 )
 
     $(P Once instantiated, the declarations inside the template, called
@@ -460,7 +460,7 @@ $(GNAME TemplateValueParameterSpecialization):
 
 $(GNAME TemplateValueParameterDefault):
     $(D =) $(ASSIGNEXPRESSION)
-    $(D =) $(GLINK2 traits, SpecialKeyword)
+    $(D =) $(GLINK2 expression, SpecialKeyword)
 )
 
     $(P Template value parameter types can be any type which can

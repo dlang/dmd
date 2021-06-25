@@ -17,7 +17,7 @@ $(GNAME AutoFuncDeclaration):
     $(GLINK2 declaration, StorageClasses) $(GLINK_LEX Identifier) $(GLINK FuncDeclaratorSuffix) $(GLINK FunctionBody)
 
 $(GNAME FuncDeclarator):
-    $(GLINK2 declaration, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK FuncDeclaratorSuffix)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK FuncDeclaratorSuffix)
 
 $(GNAME FuncDeclaratorSuffix):
     $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT)

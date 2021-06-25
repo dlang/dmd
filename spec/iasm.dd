@@ -350,7 +350,7 @@ $(GNAME AsmPrimaryExp):
 $(GNAME DotIdentifier):
     $(GLINK_LEX Identifier)
     $(GLINK_LEX Identifier) $(D .) $(GSELF DotIdentifier)
-    $(GLINK2 declaration, FundamentalType) $(D .) $(GLINK_LEX Identifier)
+    $(GLINK2 type, FundamentalType) $(D .) $(GLINK_LEX Identifier)
 )
 
     $(P The operand syntax more or less follows the Intel CPU documentation
@@ -381,7 +381,7 @@ $(GNAME AsmTypePrefix):
     $(D word ptr)
     $(D dword ptr)
     $(D qword ptr)
-    $(GLINK2 declaration, FundamentalType) $(D ptr)
+    $(GLINK2 type, FundamentalType) $(D ptr)
 )
 
     $(P In cases where the operand size is ambiguous, as in:)
