@@ -362,7 +362,7 @@ $(GRAMMAR
 $(GNAME VisibilityAttribute):
     $(D private)
     $(D package)
-    $(D package) $(D $(LPAREN)) $(GLINK QualifiedIdentifier) $(D $(RPAREN))
+    $(D package) $(D $(LPAREN)) $(GLINK2 type, QualifiedIdentifier) $(D $(RPAREN))
     $(D protected)
     $(D public)
     $(D export)

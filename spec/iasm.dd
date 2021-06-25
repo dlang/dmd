@@ -32,7 +32,7 @@ $(H2 $(LNAME2 asmstatements, Asm statement))
 
 $(GRAMMAR
 $(GNAME AsmStatement):
-    $(D asm) $(GLINK FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
+    $(D asm) $(GLINK2 function, FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
 
 $(GNAME AsmInstructionList):
     $(GLINK AsmInstruction) $(D ;)

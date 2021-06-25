@@ -118,7 +118,7 @@ $(GNAME MissingFunctionBody):
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
 
 $(GNAME ShortenedFunctionBody):
-    $(D =>) $(GLINK AssignExpression) $(D ;)
+    $(D =>) $(GLINK2 expression, AssignExpression) $(D ;)
 )
 
         $(P Examples:)

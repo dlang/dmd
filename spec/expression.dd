@@ -1165,7 +1165,7 @@ $(GNAME CastExpression):
         assert(is(typeof(cast(const)x) == const int));
         ---
 
-    $(P Casting with no $(GLINK Type) or $(GLINK CastQual) removes
+    $(P Casting with no $(GLINK2 type, Type) or $(GLINK CastQual) removes
         any top level $(D const), $(D immutable), $(D shared) or $(D inout)
         type modifiers from the type
         of the $(GLINK UnaryExpression).)
@@ -1362,7 +1362,7 @@ $(GNAME PrimaryExpression):
     $(D $)
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
-    $(GLINK CharacterLiteral)
+    $(GLINK_LEX CharacterLiteral)
     $(GLINK StringLiterals)
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
@@ -1373,8 +1373,8 @@ $(GNAME PrimaryExpression):
     $(GLINK NewExpression)
     $(GLINK2 type, FundamentalType) $(D .) $(IDENTIFIER)
     $(GLINK2 type, FundamentalType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
-    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
+    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, Typeof)
     $(GLINK TypeidExpression)
     $(GLINK IsExpression)

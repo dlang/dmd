@@ -11,7 +11,7 @@ $(GNAME PragmaDeclaration):
 
 $(GNAME PragmaStatement):
     $(GLINK Pragma) $(D ;)
-    $(GLINK Pragma) $(GLINK NoScopeStatement)
+    $(GLINK Pragma) $(GLINK2 statement, NoScopeStatement)
 
 $(GNAME Pragma):
     $(D pragma) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN))
