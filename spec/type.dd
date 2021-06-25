@@ -30,7 +30,7 @@ $(GNAME BasicType):
     $(GLINK Typeof) $(D .) $(GLINK QualifiedIdentifier)
     $(GLINK TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN))
     $(GLINK Vector)
-    $(GLINK2 grammar, Traits)
+    $(GLINK2 traits, TraitsExpression)
     $(GLINK MixinType)
 
 $(GNAME Vector):
