@@ -60,14 +60,14 @@ $(UL
 
 $(H2 $(LNAME2 character_set, Character Set))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME Character):
     $(I any Unicode character)
 )
 
 $(H2 $(LNAME2 end_of_file, End of File))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME EndOfFile):
     $(I physical end of the file)
     $(B \u0000)
@@ -77,7 +77,7 @@ $(P The source text is terminated by whichever comes first.)
 
 $(H2 $(LNAME2 end_of_line, End of Line))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME EndOfLine):
     $(B \u000D)
     $(B \u000A)
@@ -89,7 +89,7 @@ $(GNAME EndOfLine):
 
 $(H2 $(LNAME2 white_space, White Space))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME WhiteSpace):
     $(GLINK Space)
     $(GLINK Space) $(GSELF WhiteSpace)
@@ -104,7 +104,7 @@ $(GNAME Space):
 
 $(H2 $(LNAME2 comment, Comments))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME Comment):
     $(GLINK BlockComment)
     $(GLINK LineComment)
@@ -231,7 +231,7 @@ $(MULTICOLS 4,     $(GLINK Identifier)
 
 $(H2 $(LNAME2 identifiers, Identifiers))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME Identifier):
     $(GLINK IdentifierStart)
     $(GLINK IdentifierStart) $(GLINK IdentifierChars)
@@ -270,7 +270,8 @@ $(GNAME StringLiteral):
     $(GLINK HexString)
     $(GLINK DelimitedString)
     $(GLINK TokenString)
-
+)
+$(GRAMMAR_LEX
 $(GNAME WysiwygString):
     $(B r") $(GLINK WysiwygCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
 
@@ -337,10 +338,10 @@ $(GNAME StringPostfix):
 
 $(GNAME DelimitedString):
     $(B q") $(I Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(I MatchingDelimiter) $(B ")
-
+)
+$(GRAMMAR
 $(GNAME TokenString):
     $(B q)$(B {) $(GLINK Tokens)$(OPT) $(B })
-
 )
 
         $(P
@@ -557,7 +558,7 @@ $(H2 $(LNAME2 escape_sequences, Escape Sequences))
 
 $(H2 $(LNAME2 characterliteral, Character Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME CharacterLiteral):
     $(B ') $(GLINK SingleQuotedCharacter) $(B ')
 
@@ -577,7 +578,7 @@ single quotes.)
 
 $(H2 $(LNAME2 integerliteral, Integer Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME IntegerLiteral):
     $(GLINK Integer)
     $(GLINK Integer) $(GLINK IntegerSuffix)
@@ -784,7 +785,7 @@ $(GNAME HexLetter):
 
 $(H2 $(LNAME2 floatliteral, Floating Point Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME FloatLiteral):
     $(GLINK Float)
     $(GLINK Float) $(GLINK Suffix)
@@ -1076,7 +1077,8 @@ $(GRAMMAR
 $(GNAME SpecialTokenSequence):
     $(D # line) $(GLINK IntegerLiteral) $(GLINK EndOfLine)
     $(D # line) $(GLINK IntegerLiteral) $(GLINK Filespec) $(GLINK EndOfLine)
-
+)
+$(GRAMMAR_LEX
 $(GNAME Filespec):
     $(B ") $(GLINK Characters)$(OPT) $(B ")
 )

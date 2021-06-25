@@ -4,7 +4,7 @@ $(SPEC_S Named Character Entities,
 
 $(HEADERNAV_TOC)
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME NamedCharacterEntity):
     $(B $(AMP)) $(GLINK_LEX Identifier) $(B ;)
 )
