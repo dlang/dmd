@@ -202,6 +202,15 @@ void test22063()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22066
+
+void test22066()
+{
+  int var = 0;
+  (var)++;
+}
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22067
 
 void test22067()
