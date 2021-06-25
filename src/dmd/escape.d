@@ -18,6 +18,7 @@ import core.stdc.string;
 import dmd.root.rmem;
 
 import dmd.aggregate;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;

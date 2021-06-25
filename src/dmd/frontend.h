@@ -3154,16 +3154,6 @@ extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type*& tx,
 
 extern Expression* initializerToExpression(Initializer* init, Type* itype = nullptr);
 
-enum class AliasThisRec
-{
-    no = 0,
-    yes = 1,
-    fwdref = 2,
-    typeMask = 3,
-    tracing = 4,
-    tracingDT = 8,
-};
-
 enum class DotExpFlag
 {
     gag = 1,
@@ -3173,18 +3163,6 @@ enum class DotExpFlag
 enum : int32_t { LOGDEFAULTINIT = 0 };
 
 enum : int32_t { LOGDOTEXP = 0 };
-
-typedef uint8_t MOD;
-
-enum class MODFlags
-{
-    const_ = 1,
-    immutable_ = 4,
-    shared_ = 2,
-    wild = 8,
-    wildconst = 9,
-    mutable_ = 16,
-};
 
 class Parameter final : public ASTNode
 {
@@ -3226,14 +3204,6 @@ enum class RET
 };
 
 enum : uint64_t { SIZE_INVALID = 18446744073709551615LLU };
-
-enum class TRUST : uint8_t
-{
-    default_ = 0u,
-    system = 1u,
-    trusted = 2u,
-    safe = 3u,
-};
 
 enum class TRUSTformat
 {
@@ -3306,6 +3276,16 @@ public:
     bool isZeroInit(const Loc& loc) /* const */;
     TypeBasic* isTypeBasic();
     void accept(Visitor* v);
+};
+
+enum class AliasThisRec
+{
+    no = 0,
+    yes = 1,
+    fwdref = 2,
+    typeMask = 3,
+    tracing = 4,
+    tracingDT = 8,
 };
 
 class TypeClass final : public Type
@@ -3403,6 +3383,14 @@ public:
     d_uns64 size(const Loc& loc);
     Expression* defaultInitLiteral(const Loc& loc);
     void accept(Visitor* v);
+};
+
+enum class TRUST : uint8_t
+{
+    default_ = 0u,
+    system = 1u,
+    trusted = 2u,
+    safe = 3u,
 };
 
 class TypeFunction final : public TypeNext
@@ -4360,13 +4348,21 @@ public:
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 
+enum class MODFlags
+{
+    const_ = 1,
+    immutable_ = 4,
+    shared_ = 2,
+    wild = 8,
+    wildconst = 9,
+    mutable_ = 16,
+};
+
 struct ASTCodegen final
 {
     using AggregateDeclaration = ::AggregateDeclaration;
-    using Baseok = ::Baseok;
     using ClassKind = ::ClassKind;
     using MangleOverride = ::MangleOverride;
-    using Sizeok = ::Sizeok;
     using AliasThis = ::AliasThis;
     using AliasDeclarations = ::AliasDeclarations;
     using BaseClasses = ::BaseClasses;
@@ -4429,7 +4425,6 @@ struct ASTCodegen final
     using Declaration = ::Declaration;
     using MatchAccumulator = ::MatchAccumulator;
     using OverDeclaration = ::OverDeclaration;
-    using STC = ::STC;
     using SymbolDeclaration = ::SymbolDeclaration;
     using ThisDeclaration = ::ThisDeclaration;
     using TupleDeclaration = ::TupleDeclaration;
@@ -4456,11 +4451,9 @@ struct ASTCodegen final
     using Import = ::Import;
     using Module = ::Module;
     using ModuleDeclaration = ::ModuleDeclaration;
-    using PKG = ::PKG;
     using Package = ::Package;
     using StructDeclaration = ::StructDeclaration;
     using StructFlags = ::StructFlags;
-    using StructPOD = ::StructPOD;
     using UnionDeclaration = ::UnionDeclaration;
     using AliasAssign = ::AliasAssign;
     using ArrayScopeSymbol = ::ArrayScopeSymbol;
@@ -4635,22 +4628,15 @@ struct ASTCodegen final
     using Designator = ::Designator;
     using ErrorInitializer = ::ErrorInitializer;
     using ExpInitializer = ::ExpInitializer;
-    using InitKind = ::InitKind;
     using Initializer = ::Initializer;
     using NeedInterpret = ::NeedInterpret;
     using StructInitializer = ::StructInitializer;
     using VoidInitializer = ::VoidInitializer;
-    using AliasThisRec = ::AliasThisRec;
     using DotExpFlag = ::DotExpFlag;
-    using MOD = ::MOD;
-    using MODFlags = ::MODFlags;
-    using PURE = ::PURE;
     using Parameter = ::Parameter;
     using ParameterList = ::ParameterList;
     using RET = ::RET;
-    using TRUST = ::TRUST;
     using TRUSTformat = ::TRUSTformat;
-    using TY = ::TY;
     using Type = ::Type;
     using TypeAArray = ::TypeAArray;
     using TypeArray = ::TypeArray;
@@ -4679,7 +4665,6 @@ struct ASTCodegen final
     using TypeTuple = ::TypeTuple;
     using TypeTypeof = ::TypeTypeof;
     using TypeVector = ::TypeVector;
-    using VarArg = ::VarArg;
     using Nspace = ::Nspace;
     using AsmStatement = ::AsmStatement;
     using BreakStatement = ::BreakStatement;
@@ -4714,7 +4699,6 @@ struct ASTCodegen final
     using PeelStatement = ::PeelStatement;
     using PragmaStatement = ::PragmaStatement;
     using ReturnStatement = ::ReturnStatement;
-    using STMT = ::STMT;
     using ScopeGuardStatement = ::ScopeGuardStatement;
     using ScopeStatement = ::ScopeStatement;
     using Statement = ::Statement;

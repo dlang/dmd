@@ -15,6 +15,7 @@ module dmd.nogc;
 
 import dmd.aggregate;
 import dmd.apply;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.expression;

@@ -24,6 +24,7 @@ import dmd.root.stringtable;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.canthrow;
 import dmd.ctfeexpr;

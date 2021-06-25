@@ -11,6 +11,7 @@
 
 module dmd.argtypes_aarch64;
 
+import dmd.astenums;
 import dmd.mtype;
 
 /****************************************************

@@ -20,6 +20,7 @@ import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.backend.type;
 import dmd.complex;
 import dmd.ctfeexpr;

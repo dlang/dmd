@@ -19,6 +19,7 @@ import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.blockexit;
 import dmd.clone;
 import dmd.cond;

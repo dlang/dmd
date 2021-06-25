@@ -15,6 +15,7 @@ module dmd.dstruct;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
@@ -185,13 +186,6 @@ enum StructFlags : int
 {
     none        = 0x0,
     hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
-}
-
-enum StructPOD : int
-{
-    no,    // struct is not POD
-    yes,   // struct is POD
-    fwd,   // POD not yet computed
 }
 
 /***********************************************************

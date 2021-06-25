@@ -15,6 +15,7 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
 import dmd.dclass;
 import dmd.declaration;

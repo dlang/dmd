@@ -20,6 +20,7 @@ import dmd.backend.type;
 
 import dmd.root.rmem;
 
+import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;

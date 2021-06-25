@@ -15,6 +15,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.ast_node;
 import dmd.dsymbol;
 import dmd.expression;
@@ -35,19 +36,6 @@ enum NeedInterpret : int
 
 alias INITnointerpret = NeedInterpret.INITnointerpret;
 alias INITinterpret = NeedInterpret.INITinterpret;
-
-/*************
- * Discriminant for which kind of initializer
- */
-enum InitKind : ubyte
-{
-    void_,
-    error,
-    struct_,
-    array,
-    exp,
-    C_,
-}
 
 /***********************************************************
  */

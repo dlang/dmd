@@ -13,6 +13,7 @@ module dmd.chkformat;
 //import core.stdc.stdio : printf, scanf;
 import core.stdc.ctype : isdigit;
 
+import dmd.astenums;
 import dmd.cond;
 import dmd.errors;
 import dmd.expression;

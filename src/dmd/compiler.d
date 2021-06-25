@@ -12,6 +12,7 @@
 module dmd.compiler;
 
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.arraytypes;
 import dmd.dmodule;
 import dmd.dscope;

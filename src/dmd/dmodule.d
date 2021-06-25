@@ -19,6 +19,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.compiler;
 import dmd.gluelayer;
 import dmd.dimport;
@@ -241,13 +242,6 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident)
     filename = buf.extractSlice()[0 .. $ - 1];
 
     return filename;
-}
-
-enum PKG : int
-{
-    unknown,     // not yet determined whether it's a package.d or not
-    module_,      // already determined that's an actual package.d
-    package_,     // already determined that's an actual package
 }
 
 /***********************************************************

@@ -12,6 +12,7 @@
 module dmd.visitor;
 
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.parsetimevisitor;
 import dmd.tokens;
 import dmd.transitivevisitor;

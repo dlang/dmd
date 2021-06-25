@@ -17,6 +17,7 @@ import dmd.aggregate;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.expression;

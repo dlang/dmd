@@ -5,6 +5,7 @@
 
 module dmd.transitivevisitor;
 
+import dmd.astenums;
 import dmd.permissivevisitor;
 import dmd.tokens;
 import dmd.root.rootobject;
@@ -315,7 +316,7 @@ package mixin template ParseVisitMethods(AST)
         //printf("Visiting Type\n");
         if (!t)
             return;
-        if (t.ty == AST.Tfunction)
+        if (t.ty == Tfunction)
         {
             visitFunctionType(cast(AST.TypeFunction)t, null);
             return;
@@ -379,7 +380,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.TypePointer t)
     {
         //printf("Visiting TypePointer\n");
-        if (t.next.ty == AST.Tfunction)
+        if (t.next.ty == Tfunction)
         {
             visitFunctionType(cast(AST.TypeFunction)t.next, null);
         }
@@ -807,7 +808,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.FuncLiteralDeclaration f)
     {
         //printf("Visiting FuncLiteralDeclaration\n");
-        if (f.type.ty == AST.Terror)
+        if (f.type.ty == Terror)
             return;
         AST.TypeFunction tf = cast(AST.TypeFunction)f.type;
         if (!f.inferRetType && tf.next)

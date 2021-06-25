@@ -11,6 +11,7 @@
 
 module dmd.typinf;
 
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;

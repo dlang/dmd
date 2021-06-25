@@ -15,6 +15,7 @@ module dmd.arrayop;
 
 import core.stdc.stdio;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;

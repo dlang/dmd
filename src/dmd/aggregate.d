@@ -20,6 +20,7 @@ import core.checkedint;
 import dmd.aliasthis;
 import dmd.apply;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.gluelayer : Symbol;
 import dmd.declaration;
 import dmd.dscope;
@@ -37,22 +38,6 @@ import dmd.mtype;
 import dmd.tokens;
 import dmd.typesem : defaultInit;
 import dmd.visitor;
-
-enum Sizeok : ubyte
-{
-    none,           /// size of aggregate is not yet able to compute
-    fwd,            /// size of aggregate is ready to compute
-    inProcess,      /// in the midst of computing the size
-    done,           /// size of aggregate is set correctly
-}
-
-enum Baseok : ubyte
-{
-    none,             /// base classes not computed yet
-    start,            /// in process of resolving base classes
-    done,             /// all base classes are resolved
-    semanticdone,     /// all base classes semantic done
-}
 
 /**
  * The ClassKind enum is used in AggregateDeclaration AST nodes to

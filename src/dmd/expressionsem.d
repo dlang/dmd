@@ -22,6 +22,7 @@ import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.canthrow;
 import dmd.chkformat;
 import dmd.ctorflow;

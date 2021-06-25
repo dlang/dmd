@@ -26,6 +26,7 @@ module dmd.attrib;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.cond;
 import dmd.declaration;
 import dmd.dmodule;
