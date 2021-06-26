@@ -32,6 +32,7 @@ $(GNAME Parameters):
 
 $(GNAME ParameterList):
     $(GLINK Parameter)
+    $(GLINK Parameter) $(D ,)
     $(GLINK Parameter) $(D ,) $(GSELF ParameterList)
     $(GLINK VariadicArgumentsAttributes) $(D ...)
 
