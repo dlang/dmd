@@ -35,7 +35,7 @@ src/dmd/transitivevisitor.d @RazvanN7
 src/dmd/vcbuild @rainers
 
 # GitHub's implementation of the CODEOWNERS format is buggy, it doesn't allow src/dmd/*.h
-*.h @ibuclaw @kinke @klickverbot
+*.h @ibuclaw @klickverbot
 
 # CI & automation
 posix.mak @MartinNowak @wilzbach
