@@ -44,6 +44,10 @@ extern (C++) class Initializer : ASTNode
     Loc loc;
     InitKind kind;
 
+    override DYNCAST dyncast() const nothrow pure {
+        return DYNCAST.initializer;
+    }
+
 
     extern (D) this(const ref Loc loc, InitKind kind)
     {

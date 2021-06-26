@@ -70,6 +70,8 @@ string astTypeName(RootObject node)
             return astTypeName(cast(Condition) node);
         case DYNCAST.templateparameter:
             return astTypeName(cast(TemplateParameter) node);
+        case DYNCAST.initializer:
+            return astTypeName(cast(Initializer) node);
     }
 }
 
