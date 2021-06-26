@@ -635,6 +635,7 @@ Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
             case DYNCAST.statement:
             case DYNCAST.condition:
             case DYNCAST.templateparameter:
+            case DYNCAST.initializer:
                 assert(0);
         }
     }

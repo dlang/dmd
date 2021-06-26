@@ -311,6 +311,7 @@ enum class DYNCAST
     statement = 7,
     condition = 8,
     templateparameter = 9,
+    initializer = 10,
 };
 
 class RootObject
@@ -3082,6 +3083,7 @@ class Initializer : public ASTNode
 public:
     Loc loc;
     InitKind kind;
+    DYNCAST dyncast() const;
     const char* toChars() const;
     ErrorInitializer* isErrorInitializer();
     VoidInitializer* isVoidInitializer();
