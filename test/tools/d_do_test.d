@@ -561,6 +561,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         testArgs.compileOutput = readText(testArgs.compileOutputFile)
                                     .unifyNewLine() // Avoid CRLF issues
                                     .strip();
+
+        // Only sanitize directory separators from file types that support standalone \
+        if (!testArgs.compileOutputFile.endsWith(".json"))
+            testArgs.compileOutput = testArgs.compileOutput.unifyDirSep(envData.sep);
     }
     else
         findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
