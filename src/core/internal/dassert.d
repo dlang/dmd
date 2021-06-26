@@ -379,6 +379,18 @@ private string miniFormat(V)(const scope ref V v)
     {
         return formatMembers(v);
     }
+    // Extern C++ classes don't have a toString by default
+    else static if (is(V == class) || is(V == interface))
+    {
+        if (v is null)
+            return "null";
+
+        // Extern classes might be opaque
+        static if (is(typeof(v.tupleof)))
+            return formatMembers(v);
+        else
+            return '<' ~ V.stringof ~ '>';
+    }
     else
     {
         return V.stringof;

@@ -364,6 +364,44 @@ void testContextPointer()
     test(t, t, `T(1, <context>: 0xabcd) != T(1, <context>: 0xabcd)`);
 }
 
+void testExternClasses()
+{
+    {
+        extern(C++) static class Cpp
+        {
+            int a;
+            this(int a) { this.a = a; }
+        }
+        scope a = new Cpp(1);
+        scope b = new Cpp(2);
+        test(a, b, "Cpp(1) != Cpp(2)");
+        test(a, Cpp.init, "Cpp(1) != null");
+    }
+    {
+        extern(C++) static class CppToString
+        {
+            int a;
+            this(int a) { this.a = a; }
+            extern(D) string toString() const { return a == 0 ? "hello" : "world"; }
+        }
+        scope a = new CppToString(0);
+        scope b = new CppToString(1);
+        test(a, b, "hello != world");
+    }
+    if (!__ctfe)
+    {
+        extern(C++) static class Opaque;
+        Opaque null_ = null;
+        Opaque notNull = cast(Opaque) &null_;
+        test(null_, notNull, "null != <Opaque>");
+    }
+    {
+        extern(C++) static interface Stuff {}
+        scope Stuff stuff = new class Stuff {};
+        test(stuff, Stuff.init, "Stuff() != null");
+    }
+}
+
 void testShared()
 {
     static struct Small
@@ -435,6 +473,7 @@ int main()
     if (!__ctfe)
         testStructEquals6();
     testContextPointer();
+    testExternClasses();
     testShared();
     testException();
 
