@@ -4449,6 +4449,13 @@ struct ASTBase
         {
             v.visit(this);
         }
+
+        extern (C++) final pure inout nothrow @nogc
+        {
+            inout(DeclarationExp) isDeclarationExp() { return op == TOK.declaration ? cast(typeof(return))this : null; }
+            inout(AssignExp) isConstructExp() { return op == TOK.construct ? cast(typeof(return))this : null; }
+            inout(AssignExp) isBlitExp()      { return op == TOK.blit ? cast(typeof(return))this : null; }
+        }
     }
 
     extern (C++) final class DeclarationExp : Expression
