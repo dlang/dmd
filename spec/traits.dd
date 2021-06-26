@@ -43,6 +43,7 @@ $(GNAME TraitsKeyword):
     $(GLINK isOut)
     $(GLINK isLazy)
     $(GLINK isReturnOnStack)
+    $(GLINK isCopyable)
     $(GLINK isZeroInit)
     $(GLINK isModule)
     $(GLINK isPackage)
@@ -534,6 +535,27 @@ void foo(T)(){}
 static assert(__traits(isTemplate,foo));
 static assert(!__traits(isTemplate,foo!int()));
 static assert(!__traits(isTemplate,"string"));
+---
+)
+
+$(H2 $(GNAME isCopyable))
+
+$(P Takes one argument. If that argument is a copyable type then $(D true) is returned,
+otherwise $(D false).
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+}
+static assert( __traits(isCopyable, S));
+
+struct T
+{
+    @disable this(this); // disable copy construction
+}
+static assert(!__traits(isCopyable, T));
 ---
 )
 
