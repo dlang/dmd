@@ -1591,6 +1591,8 @@ final class CParser(AST) : Parser!AST
                 {
                     if (hasInitializer)
                         error("no initializer for function declaration");
+                    if (specifier.scw & SCW.x_Thread_local)
+                        error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
                     s = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(level, specifier), dt);
                 }
                 else
