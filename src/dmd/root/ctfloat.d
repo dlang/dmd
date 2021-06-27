@@ -185,7 +185,7 @@ extern (C++) struct CTFloat
         version(CRuntime_DigitalMars) __locale_decpoint = save;
         if (isOutOfRange)
             *isOutOfRange = (errno == ERANGE);
-        return r;
+        return cast(typeof(return))r;
     }
 
     @system

@@ -11,8 +11,7 @@ module dmd.backend.bcomplex;
 
 public import dmd.root.longdouble : targ_ldouble = longdouble;
 import core.stdc.math : fabs, fabsl, sqrt;
-version(CRuntime_Microsoft)
-    private import dmd.root.longdouble : fabsl, sqrt; // needed if longdouble is longdouble_soft
+import dmd.root.longdouble : fabsl, sqrt; // needed if longdouble is longdouble_soft
 
 extern (C++):
 @nogc:
