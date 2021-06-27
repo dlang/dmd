@@ -2142,6 +2142,14 @@ public:
         }
         else if (SymbolDeclaration s = d.isSymbolDeclaration())
         {
+            // exclude void[]-typed `__traits(initSymbol)`
+            if (auto ta = s.type.toBasetype().isTypeDArray())
+            {
+                assert(ta.next.ty == Tvoid);
+                error(loc, "cannot determine the address of the initializer symbol during CTFE");
+                return CTFEExp.cantexp;
+            }
+
             // Struct static initializers, for example
             e = s.dsym.type.defaultInitLiteral(loc);
             if (e.op == TOK.error)
