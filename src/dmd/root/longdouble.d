@@ -89,7 +89,11 @@ void ld_clearfpu()
 pure:
 @trusted: // LDC: LLVM __asm is @system AND requires taking the address of variables
 
-struct longdouble_soft
+version(CRuntime_Microsoft)
+    private enum ldalign = 2;
+else
+    private enum ldalign = 16;
+align (ldalign) struct longdouble_soft
 {
 nothrow @nogc pure:
     // DMD's x87 `real` on Windows is packed (alignof = 2 -> sizeof = 10).
