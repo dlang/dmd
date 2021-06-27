@@ -1919,6 +1919,27 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         return pointerBitmap(e);
     }
+    if (e.ident == Id.initSymbol)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        AggregateDeclaration ad = t ? isAggregate(t) : null;
+
+        // Interfaces don't have an init symbol and hence cause linker errors
+        if (!ad || ad.isInterfaceDeclaration())
+        {
+            e.error("struct / class type expected as argument to __traits(initSymbol) instead of `%s`", o.toChars());
+            return ErrorExp.get();
+        }
+
+        Declaration d = new SymbolDeclaration(ad.loc, ad);
+        d.type = Type.tvoid.arrayOf().constOf();
+        d.storage_class |= STC.rvalue;
+        return new VarExp(e.loc, d);
+    }
     if (e.ident == Id.isZeroInit)
     {
         if (dim != 1)

@@ -569,6 +569,28 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         Symbol *s = toSymbol(se.var);
+
+        // VarExp generated for `__traits(initSymbol, Aggregate)`?
+        if (auto symDec = se.var.isSymbolDeclaration())
+        {
+            if (se.type.isTypeDArray())
+            {
+                assert(se.type == Type.tvoid.arrayOf().constOf(), se.toString());
+
+                // Generate s[0 .. Aggregate.sizeof] for non-zero initialised aggregates
+                // Otherwise create (null, Aggregate.sizeof)
+                auto ad = symDec.dsym;
+                auto ptr = (ad.isStructDeclaration() && ad.type.isZeroInit(Loc.initial))
+                        ? el_long(TYnptr, 0)
+                        : el_ptr(s);
+                auto length = el_long(TYsize_t, ad.structsize);
+                auto slice = el_pair(TYdarray, length, ptr);
+                elem_setLoc(slice, se.loc);
+                result = slice;
+                return;
+            }
+        }
+
         FuncDeclaration fd = null;
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();

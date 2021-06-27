@@ -5705,7 +5705,7 @@ public:
 class SymbolDeclaration final : public Declaration
 {
 public:
-    StructDeclaration* dsym;
+    AggregateDeclaration* dsym;
     SymbolDeclaration* isSymbolDeclaration();
     void accept(Visitor* v);
 };
@@ -8276,6 +8276,7 @@ struct Id final
     static Identifier* getUnitTests;
     static Identifier* getVirtualIndex;
     static Identifier* getPointerBitmap;
+    static Identifier* initSymbol;
     static Identifier* getCppNamespaces;
     static Identifier* isReturnOnStack;
     static Identifier* isZeroInit;
