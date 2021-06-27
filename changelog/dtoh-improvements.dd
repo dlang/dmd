@@ -19,6 +19,7 @@ experimental C++ header generator:
 - Symbol names always include template parameters and enclosing declarations
   when required
 - Properly emits (static / enum) members of templated aggregates
+- Properly emits static arrays in template declarations
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

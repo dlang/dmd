@@ -1679,17 +1679,65 @@ public:
         }
 
         this.ident = s.ident;
-        origType ? origType.accept(this) : t.accept(this);
+        auto type = origType ? *origType : t;
+        AST.Dsymbol customLength;
+
+        // Check for quirks that are usually resolved during semantic
+        if (tdparent)
+        {
+            // Declarations within template declarations might use TypeAArray
+            // instead of TypeSArray when the length is not an IntegerExp,
+            // e.g. int[SOME_CONSTANT]
+            if (auto taa = type.isTypeAArray())
+            {
+                // Try to resolve the symbol from the key if it's not an actual type
+                Identifier id;
+                if (auto ti = taa.index.isTypeIdentifier())
+                    id = ti.ident;
+
+                if (id)
+                {
+                    auto sym = findSymbol(id, adparent ? adparent : tdparent);
+                    if (!sym)
+                    {
+                        // Couldn't resolve, assume actual AA
+                    }
+                    else if (AST.isType(sym))
+                    {
+                        // a real associative array, forward to visit
+                    }
+                    else if (auto vd = sym.isVarDeclaration())
+                    {
+                        // Actually a static array with length symbol
+                        customLength = sym;
+                        type = taa.next; // visit the element type, length is written below
+                    }
+                    else
+                    {
+                        printf("Resolved unexpected symbol while determining static array length: %s\n", sym.toChars());
+                        fflush(stdout);
+                        fatal();
+                    }
+                }
+            }
+        }
+        type.accept(this);
         if (this.ident)
         {
             buf.writeByte(' ');
             writeIdentifier(s, canFixup);
         }
         this.ident = null;
-        if (auto tsa = t.isTypeSArray())
+
+        // Size is either taken from the type or resolved above
+        auto tsa = t.isTypeSArray();
+        if (tsa || customLength)
         {
             buf.writeByte('[');
-            tsa.dim.accept(this);
+            if (tsa)
+                tsa.dim.accept(this);
+            else
+                writeFullName(customLength);
             buf.writeByte(']');
         }
     }
@@ -2140,7 +2188,7 @@ public:
     {
         for (auto par = context; par; par = par.toParent())
         {
-            if (auto mem = par.search(Loc.initial, name))
+            if (auto mem = findMember(par, name))
             {
                 return mem;
             }
@@ -3089,7 +3137,7 @@ ASTCodegen.Dsymbol outermostSymbol(ASTCodegen.Dsymbol sym)
     while (true)
     {
         auto par = sym.toParent();
-        if (par.isModule())
+        if (!par || par.isModule())
             return sym;
         sym = par;
     }
@@ -3106,4 +3154,53 @@ ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t)
     if (auto te = t.isTypeEnum())
         return te.sym;
     return null;
+}
+
+/**
+ * Searches `sym` for a member with the given name.
+ *
+ * This method usually delegates to `Dsymbol.search` but might also
+ * manually check the members if the symbol did not receive semantic
+ * analysis.
+ *
+ * Params:
+ *   sym  = symbol to search
+ *   name = identifier of the requested symbol
+ *
+ * Returns: the symbol or `null` if not found
+ */
+ASTCodegen.Dsymbol findMember(ASTCodegen.Dsymbol sym, Identifier name)
+{
+    if (auto mem = sym.search(Loc.initial, name, ASTCodegen.IgnoreErrors))
+        return mem;
+
+    // search doesn't work for declarations inside of uninstantiated
+    // `TemplateDeclaration`s due to the missing symtab.
+    if (sym.semanticRun >= ASTCodegen.PASS.semanticdone)
+        return null;
+
+    // Manually check the members if present
+    auto sds = sym.isScopeDsymbol();
+    if (!sds || !sds.members)
+        return null;
+
+    /// Recursively searches for `name` without entering nested aggregates, ...
+    static ASTCodegen.Dsymbol search(ASTCodegen.Dsymbols* members, Identifier name)
+    {
+        foreach (mem; *members)
+        {
+            if (mem.ident == name)
+                return mem;
+
+            // Look inside of private:, ...
+            if (auto ad = mem.isAttribDeclaration())
+            {
+                if (auto s = search(ad.decl, name))
+                    return s;
+            }
+        }
+        return null;
+    }
+
+    return search(sds.members, name);
 }

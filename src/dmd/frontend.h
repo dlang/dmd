@@ -390,7 +390,7 @@ struct Array final
     enum : int32_t { SMALLARRAYCAP = 1 };
 
     // Ignoring var smallarray alignment 0
-    void* smallarray;
+    T smallarray[SMALLARRAYCAP];
     Array(size_t dim);
     ~Array();
     const char* toChars() const;
@@ -4734,6 +4734,7 @@ struct ASTCodegen final
     typedef Dsymbol* Dsymbol;
     typedef Array<Dsymbol* > Dsymbols;
     typedef Visibility Visibility;
+    typedef PASS PASS;
     ASTCodegen()
     {
     }
