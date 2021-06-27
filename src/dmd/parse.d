@@ -218,8 +218,6 @@ struct ParsedLinkage(AST)
     LINK link;
     /// If `extern(C++, class|struct)`, contains the `class|struct`
     CPPMANGLE cppmangle;
-    /// If `extern(C++, (some_tuple_expression)|"string")`, will be set to `true`
-    bool cppMangleOnly;
     /// If `extern(C++, some.identifier)`, will be the identifiers
     AST.Identifiers* idents;
     /// If `extern(C++, (some_tuple_expression)|"string"), will be the expressions
@@ -978,10 +976,7 @@ class Parser(AST) : Lexer
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            if (res.cppMangleOnly)
-                                s = new AST.CPPNamespaceDeclaration(linkLoc, id, a);
-                            else
-                                s = new AST.Nspace(linkLoc, id, null, a);
+                            s = new AST.Nspace(linkLoc, id, null, a);
                         }
                         pAttrs.link = LINK.default_;
                     }
@@ -997,10 +992,7 @@ class Parser(AST) : Lexer
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            if (res.cppMangleOnly)
-                                s = new AST.CPPNamespaceDeclaration(linkLoc, exp, a);
-                            else
-                                s = new AST.Nspace(linkLoc, null, exp, a);
+                            s = new AST.CPPNamespaceDeclaration(linkLoc, exp, a);
                         }
                         pAttrs.link = LINK.default_;
                     }
@@ -2317,7 +2309,6 @@ class Parser(AST) : Lexer
         }
         else // non-scoped StringExp namespace
         {
-            result.cppMangleOnly = true;
             result.identExps = new AST.Expressions();
             while (1)
             {
