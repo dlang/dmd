@@ -553,7 +553,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         if (auto sd = e.var.isSymbolDeclaration())
             if (sd.dsym)
             {
-                StructDeclaration_toDt(sd.dsym, dtb);
+                StructDeclaration_toDt(sd.dsym.isStructDeclaration(), dtb);
                 return;
             }
 

@@ -5658,7 +5658,7 @@ public:
 class SymbolDeclaration final : public Declaration
 {
 public:
-    StructDeclaration* dsym;
+    AggregateDeclaration* dsym;
     SymbolDeclaration* isSymbolDeclaration();
     void accept(Visitor* v);
 };
