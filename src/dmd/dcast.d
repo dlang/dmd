@@ -2566,6 +2566,23 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         }
     }
 
+    // Casting to noreturn isn't an actual cast
+    // Rewrite cast(<qual> noreturn) <exp>
+    // as      <exp>, assert(false)
+    if (t.isTypeNoreturn())
+    {
+        // Don't generate an unreachable assert(false) if e will abort
+        if (e.type.isTypeNoreturn())
+        {
+            // Paint e to accomodate for different type qualifiers
+            e.type = t;
+            return e;
+        }
+
+        auto ini = t.defaultInitLiteral(e.loc);
+        return Expression.combine(e, ini);
+    }
+
     scope CastTo v = new CastTo(sc, t);
     e.accept(v);
     return v.result;
