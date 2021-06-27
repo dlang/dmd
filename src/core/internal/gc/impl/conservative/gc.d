@@ -115,19 +115,13 @@ extern(C) pragma(crt_constructor) void _d_register_precise_gc()
 
 private GC initialize()
 {
-    import core.stdc.string: memcpy;
+    import core.lifetime : emplace;
 
-    auto p = cstdlib.malloc(__traits(classInstanceSize, ConservativeGC));
-
-    if (!p)
+    auto gc = cast(ConservativeGC) cstdlib.malloc(__traits(classInstanceSize, ConservativeGC));
+    if (!gc)
         onOutOfMemoryErrorNoGC();
 
-    auto init = typeid(ConservativeGC).initializer();
-    assert(init.length == __traits(classInstanceSize, ConservativeGC));
-    auto instance = cast(ConservativeGC) memcpy(p, init.ptr, init.length);
-    instance.__ctor();
-
-    return instance;
+    return emplace(gc);
 }
 
 private GC initialize_precise()

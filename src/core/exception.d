@@ -640,11 +640,11 @@ private T staticError(T, Args...)(auto ref Args args)
         static assert(__traits(classInstanceSize, T) <= _store.length,
                       T.stringof ~ " is too large for staticError()");
 
-        _store[0 .. __traits(classInstanceSize, T)] = typeid(T).initializer[];
         return cast(T) _store.ptr;
     }
     auto res = (cast(T function() @trusted pure nothrow @nogc) &get)();
-    res.__ctor(args);
+    import core.lifetime : emplace;
+    emplace(res, args);
     return res;
 }
 
