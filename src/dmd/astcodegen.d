@@ -96,4 +96,6 @@ struct ASTCodegen
     alias isExpression              = dmd.dtemplate.isExpression;
     alias isTuple                   = dmd.dtemplate.isTuple;
 
+    alias IgnoreErrors              = dmd.dsymbol.IgnoreErrors;
+    alias PASS                      = dmd.dsymbol.PASS;
 }

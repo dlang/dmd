@@ -39,6 +39,8 @@ struct _d_dynamicArray final
 };
 #endif
 
+enum : int32_t { SomeOtherLength = 1 };
+
 template <typename T>
 struct A final
 {
@@ -172,6 +174,23 @@ struct HasMixinsTemplate final
 };
 
 extern HasMixinsTemplate<bool > hmti;
+
+template <typename T>
+struct NotAA final
+{
+    // Ignoring var length alignment 0
+    enum : int32_t { length = 12 };
+
+    // Ignoring var buffer alignment 0
+    T buffer[length];
+    // Ignoring var otherBuffer alignment 0
+    T otherBuffer[SomeOtherLength];
+    // Ignoring var calcBuffer alignment 0
+    T calcBuffer[foo(1)];
+    NotAA()
+    {
+    }
+};
 ---
 */
 
@@ -296,3 +315,17 @@ struct HasMixinsTemplate(T)
 }
 
 __gshared HasMixinsTemplate!bool hmti;
+
+/// Declarations that look like associative arrays
+
+extern(D) enum SomeOtherLength = 1;
+
+struct NotAA(T)
+{
+    private:
+    enum length = 12;
+    public:
+    T[length] buffer;
+    T[SomeOtherLength] otherBuffer;
+    T[foo(1)] calcBuffer;
+}
