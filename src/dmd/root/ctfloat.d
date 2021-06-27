@@ -28,7 +28,7 @@ private
 
     version(CRuntime_Microsoft) extern (C++)
     {
-        public import dmd.root.longdouble : longdouble_soft, ld_sprint;
+        public import dmd.root.longdouble/* : longdouble_soft, ld_sprint*/;
         import dmd.root.strtold;
     }
 }
