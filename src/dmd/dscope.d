@@ -466,9 +466,10 @@ struct Scope
                         // ImportC: if symbol is not a tag, look for it in tag table
                         if (!s.isStructDeclaration())
                         {
-                            s = cast(Dsymbol)sc._module.tagSymTab[cast(void*)s];
-                            if (!s)
+                            auto ps = cast(void*)s in sc._module.tagSymTab;
+                            if (!ps)
                                 goto NotFound;
+                            s = *ps;
                         }
                     }
                     if (!(flags & (SearchImportsOnly | IgnoreErrors)) &&

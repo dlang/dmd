@@ -128,3 +128,7 @@ void test22068()
     ++(short) var;
     --(long long) var;
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=22086
+#line 500
+typedef union U22086 U22086;
