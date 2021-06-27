@@ -13,7 +13,7 @@ module dmd.root.longdouble;
 
 static if (real.sizeof > 8)
     alias longdouble = real;
-else:
+else
     alias longdouble = longdouble_soft;
 
 import core.stdc.config;
