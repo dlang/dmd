@@ -4201,8 +4201,8 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == class))
 
         static if (initialize)
         {
-            enum classSize = __traits(classInstanceSize, T);
-            (cast(void*)obj)[0 .. classSize] = typeid(T).initializer[];
+            const initializer = __traits(initSymbol, T);
+            (cast(void*)obj)[0 .. initializer.length] = initializer[];
         }
     }
     else

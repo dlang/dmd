@@ -103,8 +103,8 @@ T emplace(T, Args...)(T chunk, auto ref Args args)
         " is abstract and it can't be emplaced");
 
     // Initialize the object in its pre-ctor state
-    enum classSize = __traits(classInstanceSize, T);
-    (() @trusted => (cast(void*) chunk)[0 .. classSize] = typeid(T).initializer[])();
+    const initializer = __traits(initSymbol, T);
+    (() @trusted { (cast(void*) chunk)[0 .. initializer.length] = initializer[]; })();
 
     static if (isInnerClass!T)
     {
@@ -2123,12 +2123,7 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
             static if (__traits(isZeroInit, T))
                 () @trusted { memset(&source, 0, sz); }();
             else
-            {
-                import core.internal.lifetime : emplaceInitializer;
-                ubyte[T.sizeof] init = void;
-                emplaceInitializer(*(() @trusted { return cast(T*)init.ptr; }()));
-                () @trusted { memcpy(&source, init.ptr, sz); }();
-            }
+                () @trusted { memcpy(&source, __traits(initSymbol, T).ptr, sz); }();
         }
     }
     else static if (__traits(isStaticArray, T))

@@ -2018,8 +2018,7 @@ extern (C) void thread_init() @nogc
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
     }
-    if (typeid(Thread).initializer.ptr)
-        _mainThreadStore[] = typeid(Thread).initializer[];
+    _mainThreadStore[] = __traits(initSymbol, Thread)[];
     Thread.sm_main = attachThread((cast(Thread)_mainThreadStore.ptr).__ctor());
 }
 

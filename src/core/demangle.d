@@ -105,7 +105,7 @@ pure @safe:
         //throw new ParseException( msg );
         debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
         throw __ctfe ? new ParseException(msg)
-                     : cast(ParseException) cast(void*) typeid(ParseException).initializer;
+                     : cast(ParseException) __traits(initSymbol, ParseException).ptr;
 
     }
 
@@ -116,7 +116,7 @@ pure @safe:
 
         //throw new OverflowException( msg );
         debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
-        throw cast(OverflowException) cast(void*) typeid(OverflowException).initializer;
+        throw cast(OverflowException) __traits(initSymbol, OverflowException).ptr;
     }
 
 
