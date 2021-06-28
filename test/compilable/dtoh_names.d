@@ -177,7 +177,7 @@ struct Outer
             __gshared InnerTmpl!char* innerTmplPtrDiff;
             __gshared MiddleTmpl!T.Inner* middleTmplInnerTmplPtr;
 
-            static T a;
+            __gshared T a;
             static U bar() { return U.init; }
         }
     }

@@ -230,7 +230,7 @@ enum MS : ubyte { dm }
 enum MSN : S { s = S(42) }
 struct W1 { MS ms; MSN msn; }
 struct W2 { W1 w1; }
-W2 w2;
+__gshared W2 w2;
 
 void enums(ulong e = E.m, ubyte e2 = w2.w1.ms, S s = w2.w1.msn) {}
 
@@ -249,7 +249,7 @@ struct S
     }
 }
 
-S s;
+__gshared S s;
 
 void aggregates(int a = s.i, int b = s.get(1, 2), int c = S.get(), int d = S.staticVar) {}
 
@@ -259,16 +259,16 @@ struct S2
     S s;
     static struct S3
     {
-        static int i = 3;
+        __gshared int i = 3;
     }
 }
 
-S2 s2;
+__gshared S2 s2;
 
 void chains(int a = s2.s.i, int b = S2.S3.i) {}
 
-S* ptr;
-int function(int) f;
+__gshared S* ptr;
+__gshared int function(int) f;
 
 void special(int a = ptr.i, int b = ptr.get(1, 2), int j = f(1)) {}
 

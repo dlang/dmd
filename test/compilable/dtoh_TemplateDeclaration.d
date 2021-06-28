@@ -265,7 +265,7 @@ struct Outer
 
 extern(C++) T foo(T, U)(U u) { return T.init; }
 
-extern(C++) A!(A!int) aaint;
+extern(C++) __gshared A!(A!int) aaint;
 
 extern(C++) class Parent(T)
 {
