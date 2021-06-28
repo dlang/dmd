@@ -80,7 +80,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
-            if (const match = e.implicitConvTo(t))
+            if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
             {
                 if (match == MATCH.constant && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
                 {
@@ -1456,6 +1456,42 @@ MATCH implicitConvTo(Expression e, Type t)
     return v.result;
 }
 
+/**
+ * Same as implicitConvTo(); except follow C11 rules, which are quite a bit
+ * more permissive than D.
+ * C11 6.3 and 6.5.16.1
+ * Params:
+ *   e = Expression that is to be casted
+ *   t = Expected resulting type
+ * Returns:
+ *   The `MATCH` level between `e.type` and `t`.
+ */
+MATCH cimplicitConvTo(Expression e, Type t)
+{
+    Type tb = t.toBasetype();
+    Type typeb = e.type.toBasetype();
+
+    if (tb.equals(typeb))
+        return MATCH.exact;
+    if ((typeb.isintegral() || typeb.isfloating()) &&
+        (tb.isintegral() || tb.isfloating()))
+        return MATCH.convert;
+    if (tb.ty == Tpointer && typeb.isintegral()) // C11 6.3.2.3-5
+        return MATCH.convert;
+    if (tb.isintegral() && typeb.ty == Tpointer) // C11 6.3.2.3-6
+        return MATCH.convert;
+    if (tb.ty == Tpointer && typeb.ty == Tpointer)
+    {
+        if (tb.isTypePointer().next.ty == Tvoid ||
+            typeb.isTypePointer().next.ty == Tvoid)
+            return MATCH.convert;       // convert to/from void* C11 6.3.2.3-1
+    }
+
+    return implicitConvTo(e, t);
+}
+
+/*****************************************
+ */
 Type toStaticArrayType(SliceExp e)
 {
     if (e.lwr && e.upr)

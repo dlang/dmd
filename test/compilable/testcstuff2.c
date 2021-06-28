@@ -259,3 +259,42 @@ int test22080()
 {
     int (*fun)(const char *) = &F22080;
 }
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22088
+
+void test22088()
+{
+    int *p;
+    int i;
+    p = i;
+    i = p;
+
+    void *pv;
+    p = pv;
+    pv = p;
+
+    long long ll;
+    ll = i;
+    i = ll;
+
+    char c;
+    c = i;
+    i = c;
+
+    float f;
+    f = i;
+    i = f;
+
+    double d;
+    d = i;
+    i = d;
+
+    long double ld;
+    ld = i;
+    i = ld;
+    c = ld;
+}
+
+/***************************************************/
+
