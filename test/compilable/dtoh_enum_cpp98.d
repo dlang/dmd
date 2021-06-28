@@ -233,7 +233,7 @@ extern(C++) enum c = [2: 3];
 extern(C) void foo();
 extern(C++) enum d = &foo;
 
-immutable bool e_b;
+__gshared immutable bool e_b;
 extern(C++) enum e = &e_b;
 
 // Opaque enums require C++ 11
