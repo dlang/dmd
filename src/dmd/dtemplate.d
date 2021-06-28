@@ -3246,7 +3246,7 @@ private Type rawTypeMerge(Type t1, Type t2)
     if (t1b.equivalent(t2b))
         return t1b.castMod(MODmerge(t1b.mod, t2b.mod));
 
-    auto ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
+    auto ty = implicitConvCommonTy(t1b.ty, t2b.ty);
     if (ty != Terror)
         return Type.basic[ty];
 

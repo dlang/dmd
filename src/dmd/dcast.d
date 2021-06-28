@@ -2855,11 +2855,11 @@ Lagain:
     t1b = t1.toBasetype();
     t2b = t2.toBasetype();
 
-    TY ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
+    const ty = implicitConvCommonTy(t1b.ty, t2b.ty);
     if (ty != Terror)
     {
-        TY ty1 = cast(TY)impcnvType1[t1b.ty][t2b.ty];
-        TY ty2 = cast(TY)impcnvType2[t1b.ty][t2b.ty];
+        const ty1 = implicitConvTy1(t1b.ty, t2b.ty);
+        const ty2 = implicitConvTy2(t1b.ty, t2b.ty);
 
         if (t1b.ty == ty1) // if no promotions
         {

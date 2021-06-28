@@ -19,11 +19,57 @@ module dmd.impcnvtab;
 import dmd.astenums;
 import dmd.mtype;
 
+pure @nogc nothrow @safe:
+
+/*************************************************
+ * If ty1 and ty2 are basic types, return the TY that both can
+ * be implicitly converted to.
+ * Params:
+ *      ty1 = first operand type
+ *      ty2 = second operand type
+ * Returns:
+ *      ty = common type, else Terror
+ */
+TY implicitConvCommonTy(TY ty1, TY ty2)
+{
+    return impCnvTab.impcnvResultTab[ty1][ty2];
+}
+
+/*************************************************
+ * If ty1 and ty2 are basic types, return the TY that ty1 can
+ * be implicitly converted to to bring them to a common ty.
+ * Params:
+ *      ty1 = first operand type
+ *      ty2 = second operand type
+ * Returns:
+ *      ty = what ty1 should be converted to, else Terror
+ */
+TY implicitConvTy1(TY ty1, TY ty2)
+{
+    return impCnvTab.impcnvType1Tab[ty1][ty2];
+}
+
+/*************************************************
+ * If ty1 and ty2 are basic types, return the TY that ty2 can
+ * be implicitly converted to to bring them to a common ty.
+ * Params:
+ *      ty1 = first operand type
+ *      ty2 = second operand type
+ * Returns:
+ *      ty = what ty2 should be converted to, else Terror
+ */
+TY implicitConvTy2(TY ty1, TY ty2)
+{
+    return impCnvTab.impcnvType2Tab[ty1][ty2];
+}
+
+/******************************************************************************/
+
+private:
+
 immutable TY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;
 immutable TY[TMAX][TMAX] impcnvType1 = impCnvTab.impcnvType1Tab;
 immutable TY[TMAX][TMAX] impcnvType2 = impCnvTab.impcnvType2Tab;
-
-private:
 
 struct ImpCnvTab
 {
