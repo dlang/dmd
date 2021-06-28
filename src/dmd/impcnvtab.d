@@ -38,6 +38,7 @@ TY implicitConvCommonTy(TY ty1, TY ty2)
 /*************************************************
  * If ty1 and ty2 are basic types, return the TY that ty1 can
  * be implicitly converted to to bring them to a common ty.
+ * It's symmetric, i.e. the operands can be swapped.
  * Params:
  *      ty1 = first operand type
  *      ty2 = second operand type
@@ -49,27 +50,9 @@ TY implicitConvTy1(TY ty1, TY ty2)
     return impCnvTab.impcnvType1Tab[ty1][ty2];
 }
 
-/*************************************************
- * If ty1 and ty2 are basic types, return the TY that ty2 can
- * be implicitly converted to to bring them to a common ty.
- * Params:
- *      ty1 = first operand type
- *      ty2 = second operand type
- * Returns:
- *      ty = what ty2 should be converted to, else Terror
- */
-TY implicitConvTy2(TY ty1, TY ty2)
-{
-    return impCnvTab.impcnvType2Tab[ty1][ty2];
-}
-
 /******************************************************************************/
 
 private:
-
-immutable TY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;
-immutable TY[TMAX][TMAX] impcnvType1 = impCnvTab.impcnvType1Tab;
-immutable TY[TMAX][TMAX] impcnvType2 = impCnvTab.impcnvType2Tab;
 
 struct ImpCnvTab
 {

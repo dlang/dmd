@@ -2859,7 +2859,7 @@ Lagain:
     if (ty != Terror)
     {
         const ty1 = implicitConvTy1(t1b.ty, t2b.ty);
-        const ty2 = implicitConvTy2(t1b.ty, t2b.ty);
+        const ty2 = implicitConvTy1(t2b.ty, t1b.ty);
 
         if (t1b.ty == ty1) // if no promotions
         {
