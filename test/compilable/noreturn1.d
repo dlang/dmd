@@ -49,7 +49,8 @@ static assert(noreturn.alignof == 0);
 static assert((noreturn*).sizeof == (int*).sizeof);
 static assert((noreturn[]).sizeof == (int[]).sizeof);
 
-noreturn exits(int* p) { *p = 3; }
+version (DigitalMars)
+    noreturn exits(int* p) { *p = 3; }
 
 noreturn exit();
 
