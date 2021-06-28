@@ -109,7 +109,7 @@ struct Scope
 
     LINK linkage;               // linkage for external functions
     CPPMANGLE cppmangle;        // C++ mangle type
-    PINLINE inlining;            // inlining strategy for functions
+    PragmaDeclaration *inlining; // inlining strategy for functions
 
     Visibility visibility;            // visibility for class members
     int explicitVisibility;     // set if in an explicit visibility attribute
