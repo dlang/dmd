@@ -58,7 +58,6 @@ struct ImpCnvTab
 {
     TY[TMAX][TMAX] impcnvResultTab;
     TY[TMAX][TMAX] impcnvType1Tab;
-    TY[TMAX][TMAX] impcnvType2Tab;
 }
 
 enum ImpCnvTab impCnvTab = generateImpCnvTab();
@@ -74,15 +73,16 @@ ImpCnvTab generateImpCnvTab()
         {
             impCnvTab.impcnvResultTab[i][j] = Terror;
             impCnvTab.impcnvType1Tab[i][j] = Terror;
-            impCnvTab.impcnvType2Tab[i][j] = Terror;
         }
     }
 
     void X(TY t1, TY t2, TY nt1, TY nt2, TY rt)
     {
         impCnvTab.impcnvResultTab[t1][t2] = rt;
+        impCnvTab.impcnvResultTab[t2][t1] = rt;
+
         impCnvTab.impcnvType1Tab[t1][t2] = nt1;
-        impCnvTab.impcnvType2Tab[t1][t2] = nt2;
+        impCnvTab.impcnvType1Tab[t2][t1] = nt2;
     }
 
     /* ======================= */
@@ -374,19 +374,6 @@ ImpCnvTab generateImpCnvTab()
     /* ======================= */
 
     X(Tcomplex80,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80);
-
-    foreach (i; 0 .. cast(size_t)TMAX)
-    {
-        foreach (j; 0 .. cast(size_t)TMAX)
-        {
-            if (impCnvTab.impcnvResultTab[i][j] == Terror)
-            {
-                impCnvTab.impcnvResultTab[i][j] = impCnvTab.impcnvResultTab[j][i];
-                impCnvTab.impcnvType1Tab[i][j] = impCnvTab.impcnvType2Tab[j][i];
-                impCnvTab.impcnvType2Tab[i][j] = impCnvTab.impcnvType1Tab[j][i];
-            }
-        }
-    }
 
     return impCnvTab;
 }
