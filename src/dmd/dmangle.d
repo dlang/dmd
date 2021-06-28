@@ -60,29 +60,6 @@ extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
     v.mangleTemplateInstance(ti);
 }
 
-/******************************************************************************
- * Mangle function signatures ('this' qualifier, and parameter types)
- * to check conflicts in function overloads.
- * It's different from fd.type.deco. For example, fd.type.deco would be null
- * if fd is an auto function.
- *
- * Params:
- *    buf = `OutBuffer` to write the mangled function signature to
-*     fd  = `FuncDeclaration` to mangle
- */
-void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
-{
-    auto tf = fd.type.isTypeFunction();
-
-    scope Mangler v = new Mangler(&buf);
-
-    MODtoDecoBuffer(&buf, tf.mod);
-    foreach (idx, param; tf.parameterList)
-        param.accept(v);
-    buf.writeByte('Z' - tf.parameterList.varargs);
-}
-
-
 /// Returns: `true` if the given character is a valid mangled character
 package bool isValidMangling(dchar c) nothrow
 {
