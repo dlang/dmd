@@ -1457,6 +1457,12 @@ final class CParser(AST) : Parser!AST
             return;
         }
 
+        if (tspec && specifier.mod & MOD.xconst)
+        {
+            tspec = toConst(tspec);
+            specifier.mod = MOD.xnone;          // 'used' it
+        }
+
         bool first = true;
         while (1)
         {
@@ -1468,11 +1474,6 @@ final class CParser(AST) : Parser!AST
                 panic();
                 nextToken();
                 break;          // error recovery
-            }
-
-            if (specifier.mod & MOD.xconst)
-            {
-                dt = toConst(dt);
             }
 
             /* GNU Extensions
