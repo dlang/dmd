@@ -2453,13 +2453,14 @@ public:
             scope(exit) printf("[AST.VarExp exit] %s\n", e.toChars());
         }
 
-        // Static members are not represented as DotVarExp, hence
-        // manually print the full name here
-        if (e.var.storage_class & AST.STC.static_)
-            printPrefix(e.var.parent);
-
-        includeSymbol(e.var);
-        writeIdentifier(e.var, !!e.var.isThis());
+        // Local members don't need another prefix and might've been renamed
+        if (e.var.isThis())
+        {
+            includeSymbol(e.var);
+            writeIdentifier(e.var, true);
+        }
+        else
+            writeFullName(e.var);
     }
 
     /// Partially prints the FQN including parent aggregates
