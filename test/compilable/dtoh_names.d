@@ -39,8 +39,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-extern double bar();
-
 struct Outer final
 {
     static Outer* outerPtr;

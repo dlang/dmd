@@ -45,6 +45,15 @@ struct S final
     int32_t get(int32_t , int32_t );
     static int32_t get();
     static const int32_t staticVar;
+    void useVars(int32_t pi = i, int32_t psv = staticVar);
+    struct Nested final
+    {
+        void useStaticVar(int32_t i = staticVar);
+        Nested()
+        {
+        }
+    };
+
     S() :
         i()
     {
@@ -230,7 +239,14 @@ struct S
     int i;
     int get(int, int);
     static int get();
-    static const int staticVar;
+    __gshared const int staticVar;
+
+    void useVars(int pi = i, int psv = staticVar) {}
+
+    struct Nested
+    {
+        void useStaticVar(int i = staticVar) {}
+    }
 }
 
 S s;

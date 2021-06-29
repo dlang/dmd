@@ -20,6 +20,7 @@ experimental C++ header generator:
   when required
 - Properly emits (static / enum) members of templated aggregates
 - Properly emits static arrays in template declarations
+- No longer omits the parent aggregate when referencing `__gshared` variables
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
