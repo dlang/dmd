@@ -4249,41 +4249,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcDeclarationSemantic(nd);
     }
 
-    /* https://issues.dlang.org/show_bug.cgi?id=19731
-     *
-     * Some aggregate member functions might have had
-     * semantic 3 ran on them despite being in semantic1
-     * (e.g. auto functions); if that is the case, then
-     * invariants will not be taken into account for them
-     * because at the time of the analysis it would appear
-     * as if the struct declaration does not have any
-     * invariants. To solve this issue, we need to redo
-     * semantic3 on the function declaration.
-     */
-    private void reinforceInvariant(AggregateDeclaration ad, Scope* sc)
-    {
-        // for each member
-        for(int i = 0; i < ad.members.dim; i++)
-        {
-            if (!(*ad.members)[i])
-                continue;
-            auto fd = (*ad.members)[i].isFuncDeclaration();
-            if (!fd || fd.generated || fd.semanticRun != PASS.semantic3done)
-                continue;
-
-            /* if it's a user defined function declaration and semantic3
-             * was already performed on it, create a syntax copy and
-             * redo the first semantic step.
-             */
-            auto fd_temp = fd.syntaxCopy(null).isFuncDeclaration();
-            fd_temp.storage_class &= ~STC.auto_; // type has already been inferred
-            if (auto cd = ad.isClassDeclaration())
-                cd.vtbl.remove(fd.vtblIndex);
-            fd_temp.dsymbolSemantic(sc);
-            (*ad.members)[i] = fd_temp;
-        }
-    }
-
     override void visit(StructDeclaration sd)
     {
         //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
@@ -4429,8 +4394,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         sd.inv = buildInv(sd, sc2);
-        if (sd.inv)
-            reinforceInvariant(sd, sc2);
 
         Module.dprogress++;
         sd.semanticRun = PASS.semanticdone;
@@ -5079,8 +5042,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         cldec.inv = buildInv(cldec, sc2);
-        if (cldec.inv)
-            reinforceInvariant(cldec, sc2);
 
         Module.dprogress++;
         cldec.semanticRun = PASS.semanticdone;
