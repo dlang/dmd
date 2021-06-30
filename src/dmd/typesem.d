@@ -2001,21 +2001,57 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
          */
         void declareTag()
         {
-            if (mtype.tok == TOK.enum_)
+            ScopeDsymbol declare(ScopeDsymbol sd)
             {
-                .error(mtype.loc, "enum not implemented");
-                mtype.resolved = error();
-            }
-            else
-            {
-                auto sd = new StructDeclaration(mtype.loc, mtype.id, false);
                 sd.members = mtype.members;
                 auto scopesym = sc.inner().scopesym;
                 if (scopesym.members)
                     scopesym.members.push(sd);
                 sd.parent = sc.parent;
                 sd.dsymbolSemantic(sc);
-                mtype.resolved = visitStruct(new TypeStruct(sd));
+                return scopesym;
+            }
+
+            switch (mtype.tok)
+            {
+                case TOK.enum_:
+                    auto ed = new EnumDeclaration(mtype.loc, mtype.id, Type.tint32);
+                    auto scopesym = declare(ed);
+                    mtype.resolved = visitEnum(new TypeEnum(ed));
+
+                    // promote each enum member to enclosing scope with alias declarations
+                    if (ed.members)
+                    {
+                        foreach (m; (*ed.members)[])
+                        {
+                            auto ad = new AliasDeclaration(m.loc, m.ident, m);
+                            if (!scopesym.members)
+                                scopesym.members = new Dsymbols();
+                            scopesym.members.push(ad);
+                            ad.setScope(sc);
+                            ad.parent = sc.parent;
+                            if (!scopesym.symtab)
+                                scopesym.symtab = new DsymbolTable();
+                            ad.addMember(sc, scopesym);
+                            ad.dsymbolSemantic(sc);
+                        }
+                    }
+                    break;
+
+                case TOK.struct_:
+                    auto sd = new StructDeclaration(mtype.loc, mtype.id, false);
+                    declare(sd);
+                    mtype.resolved = visitStruct(new TypeStruct(sd));
+                    break;
+
+                case TOK.union_:
+                    auto ud = new UnionDeclaration(mtype.loc, mtype.id);
+                    declare(ud);
+                    mtype.resolved = visitStruct(new TypeStruct(ud));
+                    break;
+
+                default:
+                    assert(0);
             }
         }
 
@@ -2031,14 +2067,14 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         }
 
         /* look for pre-existing declaration
-         * TODO: tag namespace not implemented yet
-         * TODO: semantics for enums are slightly different, not implemented yet
          */
         Dsymbol scopesym;
         auto s = sc.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors | TagNameSpace);
         if (!s)
         {
             // no pre-existing declaration, so declare it
+            if (mtype.tok == TOK.enum_ && !mtype.members)
+                .error(mtype.loc, "`enum %s` is incomplete without members", mtype.id.toChars()); // C11 6.7.2.3-3
             declareTag();
             return mtype.resolved;
         }
@@ -2055,8 +2091,13 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 auto ed = s.isEnumDeclaration();
                 if (mtype.members && ed.members)
                     .error(mtype.loc, "`%s` already has members", mtype.id.toChars());
-                else
+                else if (!ed.members)
+                {
                     ed.members = mtype.members;
+                }
+                else
+                {
+                }
                 mtype.resolved = ed.type;
             }
             else if (mtype.tok == TOK.union_ && s.isUnionDeclaration() ||
@@ -2118,9 +2159,11 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             }
             else
             {
-                /* int S;
+                /* union S;
                  * { struct S *s; }
                  */
+                .error(mtype.loc, "redeclaring `%s %s` as `%s %s`",
+                    s.kind(), s.toChars(), Token.toChars(mtype.tok), mtype.id.toChars());
                 declareTag();
             }
         }

@@ -1447,13 +1447,33 @@ final class CParser(AST) : Parser!AST
              * always result in a declaration in the current scope
              */
             // TODO: merge in specifier
-            auto stag = (tt.tok == TOK.struct_)
-                ? new AST.StructDeclaration(tt.loc, tt.id, false)
-                : new AST.UnionDeclaration(tt.loc, tt.id);
+            auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
+                        (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
+                                                  new AST.EnumDeclaration(tt.loc, tt.id, AST.Type.tint32);
             stag.members = tt.members;
             if (!symbols)
                 symbols = new AST.Dsymbols();
             symbols.push(stag);
+
+            if (tt.tok == TOK.enum_)
+            {
+                if (!tt.members)
+                    error(tt.loc, "`enum %s` has no members", stag.toChars());
+                else
+                {
+                    /* C promotes enum members to the enclosing scope,
+                     * do it by making alias declarations.
+                     * C doesn't have enum.member capability, so can only
+                     * see the members as the aliases.
+                     * D can see the members either way.
+                     */
+                    foreach (m; (*tt.members)[])
+                    {
+                        auto ad = new AST.AliasDeclaration(m.loc, m.ident, m);
+                        symbols.push(ad);
+                    }
+                }
+            }
             return;
         }
 
@@ -2788,7 +2808,7 @@ final class CParser(AST) : Parser!AST
      * Returns:
      *  type of the enum
      */
-    private AST.TypeEnum cparseEnum(ref AST.Dsymbols* symbols)
+    private AST.Type cparseEnum(ref AST.Dsymbols* symbols)
     {
         const loc = token.loc;
         nextToken();
@@ -2809,15 +2829,11 @@ final class CParser(AST) : Parser!AST
             nextToken();
         }
 
-        auto etag = new AST.EnumDeclaration(loc, tag, AST.Type.tint32);
-        if (!symbols)
-            symbols = new AST.Dsymbols();
-        symbols.push(etag);
-
+        AST.Dsymbols* members;
         if (token.value == TOK.leftCurly)
         {
             nextToken();
-            Identifier lastId;
+            members = new AST.Dsymbols();
 
             if (token.value == TOK.rightCurly)  // C11 6.7.2.2-1
             {
@@ -2829,7 +2845,7 @@ final class CParser(AST) : Parser!AST
 
             while (token.value == TOK.identifier)
             {
-                auto id = token.ident;  // enumeration-constant
+                auto ident = token.ident;  // enumeration-constant
                 nextToken();
                 auto mloc = token.loc;
 
@@ -2838,25 +2854,14 @@ final class CParser(AST) : Parser!AST
                 {
                     nextToken();
                     value = cparseConstantExp();
+                    // TODO C11 6.7.2.2-2 value must fit into an int
                 }
-                else if (lastId)
-                {
-                    auto one = new AST.IntegerExp(mloc, 1, AST.Type.tint32);
-                    auto last = new AST.IdentifierExp(mloc, lastId);
-                    value = new AST.AddExp(mloc, last, one);            // value = lastId + 1
-                }
-                else
-                    value = new AST.IntegerExp(mloc, 0, AST.Type.tint32);  // value = 0
 
-                /* C enum members are equivalent to D manifest constants
-                 */
-                auto _init = new AST.ExpInitializer(mloc, value);
-                auto man = new AST.VarDeclaration(mloc, AST.Type.tint32, id, _init, STC.manifest);
-                symbols.push(man);
+                auto em = new AST.EnumMember(mloc, ident, value, null, 0, null, null);
+                members.push(em);
 
                 if (token.value == TOK.comma)
                 {
-                    lastId = id;
                     nextToken();
                     continue;
                 }
@@ -2872,7 +2877,12 @@ final class CParser(AST) : Parser!AST
         }
         else if (!tag)
             error("missing `identifier` after `enum`");
-        return new AST.TypeEnum(etag);
+
+        /* Need semantic information to determine if this is a declaration,
+         * redeclaration, or reference to existing declaration.
+         * Defer to the semantic() pass with a TypeTag.
+         */
+        return new AST.TypeTag(loc, TOK.enum_, tag, members);
     }
 
     /*************************************

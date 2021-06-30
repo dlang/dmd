@@ -464,7 +464,7 @@ struct Scope
                     if (flags & TagNameSpace)
                     {
                         // ImportC: if symbol is not a tag, look for it in tag table
-                        if (!s.isStructDeclaration())
+                        if (!s.isScopeDsymbol())
                         {
                             auto ps = cast(void*)s in sc._module.tagSymTab;
                             if (!ps)

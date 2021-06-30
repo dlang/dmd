@@ -2305,8 +2305,8 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
 {
     enum log = false;
     if (log) printf("handleTagSymbols('%s')\n", s.toChars());
-    auto sd = s.isStructDeclaration(); // new declaration
-    auto sd2 = s2.isStructDeclaration(); // existing declaration
+    auto sd = s.isScopeDsymbol(); // new declaration
+    auto sd2 = s2.isScopeDsymbol(); // existing declaration
 
     if (!sd2)
     {
@@ -2316,7 +2316,7 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
         if (auto p = cast(void*)s2 in sc._module.tagSymTab)
         {
             Dsymbol s2tag = *p;
-            sd2 = s2tag.isStructDeclaration();
+            sd2 = s2tag.isScopeDsymbol();
             assert(sd2);        // only tags allowed in tag symbol table
         }
     }
@@ -2324,6 +2324,10 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
     if (sd && sd2) // `s` is a tag, `sd2` is the same tag
     {
         if (log) printf(" tag is already defined\n");
+
+        if (sd.kind() != sd2.kind())  // being enum/struct/union must match
+            return null;              // conflict
+
         /* Not a redeclaration if one is a forward declaration.
          * Move members to the first declared type, which is sd2.
          */
@@ -2362,4 +2366,5 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
     if (log) printf(" collision\n");
     return null;
 }
+
 
