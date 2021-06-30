@@ -34,6 +34,7 @@ fail_compilation/failcstuff1.c(408): Error: decrement operand is not assignable
 fail_compilation/failcstuff1.c(409): Error: cannot take address of unary operand
 fail_compilation/failcstuff1.c(453): Error: increment operand is not assignable
 fail_compilation/failcstuff1.c(454): Error: decrement operand is not assignable
+fail_compilation/failcstuff1.c(600): Error: `enum ENUM` has no members
 ---
 */
 
@@ -132,3 +133,6 @@ void test22068()
 // https://issues.dlang.org/show_bug.cgi?id=22086
 #line 500
 typedef union U22086 U22086;
+
+#line 600
+enum ENUM;

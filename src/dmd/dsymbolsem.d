@@ -1890,8 +1890,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(EnumDeclaration ed)
     {
-        //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc.scopesym, sc.scopesym.toChars(), toChars());
-        //printf("EnumDeclaration::semantic() %p %s\n", this, toChars());
+        //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc.scopesym, sc.scopesym.toChars(), ed.toChars());
+        //printf("EnumDeclaration::semantic() %p %s\n", this, ed.toChars());
         if (ed.semanticRun >= PASS.semanticdone)
             return; // semantic() already completed
         if (ed.semanticRun == PASS.semantic)
@@ -2072,7 +2072,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(EnumMember em)
     {
-        //printf("EnumMember::semantic() %s\n", toChars());
+        //printf("EnumMember::semantic() %s\n", em.toChars());
 
         void errorReturn()
         {
