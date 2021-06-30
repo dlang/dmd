@@ -222,11 +222,11 @@ $(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
 
 $(GRAMMAR
 $(GNAME Expression):
-    $(I CommaExpression)
+    $(GLINK CommaExpression)
 
 $(GNAME CommaExpression):
     $(GLINK AssignExpression)
-    $(I CommaExpression) $(D ,) $(GLINK AssignExpression)
+    $(GSELF CommaExpression) $(D ,) $(GLINK AssignExpression)
 )
 
     $(P The left operand of the $(D ,) is evaluated, then the right operand
@@ -240,20 +240,20 @@ $(H2 $(LNAME2 assign_expressions, Assign Expressions))
 $(GRAMMAR
 $(GNAME AssignExpression):
     $(GLINK ConditionalExpression)
-    $(GLINK ConditionalExpression) $(D =) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D +=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D -=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D *=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D /=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D %=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D &=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D |=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D ^=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D ~=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D <)$(D <)$(D =) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D >>=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D >>>=) $(I AssignExpression)
-    $(GLINK ConditionalExpression) $(D ^^=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D =) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D +=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D -=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D *=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D /=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D %=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D &=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D |=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D ^=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D ~=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D <<=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D >>=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D >>>=) $(GSELF AssignExpression)
+    $(GLINK ConditionalExpression) $(D ^^=) $(GSELF AssignExpression)
 )
 
     $(P For all assign expressions, the left operand must be a modifiable
@@ -331,7 +331,7 @@ $(H2 $(LNAME2 conditional_expressions, Conditional Expressions))
 $(GRAMMAR
 $(GNAME ConditionalExpression):
     $(GLINK OrOrExpression)
-    $(GLINK OrOrExpression) $(D ?) $(GLINK Expression) $(D :) $(I ConditionalExpression)
+    $(GLINK OrOrExpression) $(D ?) $(GLINK Expression) $(D :) $(GSELF ConditionalExpression)
 )
 
     $(P The first expression is converted to $(D bool), and is evaluated.
@@ -376,7 +376,7 @@ $(H2 $(LNAME2 oror_expressions, OrOr Expressions))
 $(GRAMMAR
 $(GNAME OrOrExpression):
     $(GLINK AndAndExpression)
-    $(I OrOrExpression) $(D ||) $(GLINK AndAndExpression)
+    $(GSELF OrOrExpression) $(D ||) $(GLINK AndAndExpression)
 )
 
     $(P The result type of an $(I OrOrExpression) is $(D bool), unless the right operand
@@ -404,7 +404,7 @@ $(H2 $(LNAME2 andand_expressions, AndAnd Expressions))
 $(GRAMMAR
 $(GNAME AndAndExpression):
     $(GLINK OrExpression)
-    $(I AndAndExpression) $(CODE_AMP)$(CODE_AMP) $(GLINK OrExpression)
+    $(GSELF AndAndExpression) $(D $(AMP)$(AMP)) $(GLINK OrExpression)
 )
 
     $(P The result type of an $(I AndAndExpression) is $(D bool), unless the right operand
@@ -440,7 +440,7 @@ $(H3 $(LNAME2 or_expressions, Or Expressions))
 $(GRAMMAR
 $(GNAME OrExpression):
     $(GLINK XorExpression)
-    $(I OrExpression) $(D |) $(GLINK XorExpression)
+    $(GSELF OrExpression) $(D |) $(GLINK XorExpression)
 )
 
     $(P The operands are OR'd together.)
@@ -450,7 +450,7 @@ $(H3 $(LNAME2 xor_expressions, Xor Expressions))
 $(GRAMMAR
 $(GNAME XorExpression):
     $(GLINK AndExpression)
-    $(I XorExpression) $(D ^) $(GLINK AndExpression)
+    $(GSELF XorExpression) $(D ^) $(GLINK AndExpression)
 )
 
     $(P The operands are XOR'd together.)
@@ -460,7 +460,7 @@ $(H3 $(LNAME2 and_expressions, And Expressions))
 $(GRAMMAR
 $(GNAME AndExpression):
     $(GLINK CmpExpression)
-    $(I AndExpression) $(D &) $(GLINK CmpExpression)
+    $(GSELF AndExpression) $(D &) $(GLINK CmpExpression)
 )
 
     $(P The operands are AND'd together.)
@@ -569,7 +569,7 @@ $(H3 $(LNAME2 identity_expressions, Identity Expressions))
 $(GRAMMAR
 $(GNAME IdentityExpression):
     $(GLINK ShiftExpression) $(D is) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !is) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D ! is) $(GLINK ShiftExpression)
 )
 
     $(P The $(D is) compares for identity.
@@ -604,7 +604,7 @@ $(H2 $(LNAME2 relation_expressions, Relational Expressions))
 $(GRAMMAR
 $(GNAME RelExpression):
     $(GLINK ShiftExpression) $(D <) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D <)$(D =) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D <=) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >=) $(GLINK ShiftExpression)
 )
@@ -691,7 +691,7 @@ $(H2 $(LNAME2 in_expressions, In Expressions))
 $(GRAMMAR
 $(GNAME InExpression):
     $(GLINK ShiftExpression) $(D in) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !in) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D ! in) $(GLINK ShiftExpression)
 )
 
 $(P An associative array can be tested to see if an element is in the array:)
@@ -720,9 +720,9 @@ $(H2 $(LNAME2 shift_expressions, Shift Expressions))
 $(GRAMMAR
 $(GNAME ShiftExpression):
     $(GLINK AddExpression)
-    $(I ShiftExpression) $(D <)$(D <) $(GLINK AddExpression)
-    $(I ShiftExpression) $(D >)$(D >) $(GLINK AddExpression)
-    $(I ShiftExpression) $(D >)$(D >)$(D >) $(GLINK AddExpression)
+    $(GSELF ShiftExpression) $(D <<) $(GLINK AddExpression)
+    $(GSELF ShiftExpression) $(D >>) $(GLINK AddExpression)
+    $(GSELF ShiftExpression) $(D >>>) $(GLINK AddExpression)
 )
 
     $(P The operands must be integral types, and undergo the $(INTEGER_PROMOTIONS).
@@ -749,8 +749,8 @@ $(H2 $(LNAME2 add_expressions, Add Expressions))
 $(GRAMMAR
 $(GNAME AddExpression):
     $(GLINK MulExpression)
-    $(I AddExpression) $(D +) $(GLINK MulExpression)
-    $(I AddExpression) $(D -) $(GLINK MulExpression)
+    $(GSELF AddExpression) $(D +) $(GLINK MulExpression)
+    $(GSELF AddExpression) $(D -) $(GLINK MulExpression)
     $(GLINK CatExpression)
 )
 
@@ -818,9 +818,9 @@ $(H2 $(LNAME2 mul_expressions, Mul Expressions))
 $(GRAMMAR
 $(GNAME MulExpression):
     $(GLINK UnaryExpression)
-    $(I MulExpression) $(D *) $(GLINK UnaryExpression)
-    $(I MulExpression) $(D /) $(GLINK UnaryExpression)
-    $(I MulExpression) $(D %) $(GLINK UnaryExpression)
+    $(GSELF MulExpression) $(D *) $(GLINK UnaryExpression)
+    $(GSELF MulExpression) $(D /) $(GLINK UnaryExpression)
+    $(GSELF MulExpression) $(D %) $(GLINK UnaryExpression)
 )
 
     $(P The operands must be arithmetic types.
@@ -866,13 +866,13 @@ $(H2 $(LEGACY_LNAME2 UnaryExpression, unary-expression, Unary Expressions))
 
 $(GRAMMAR
 $(GNAME UnaryExpression):
-    $(CODE_AMP) $(I UnaryExpression)
-    $(D ++) $(I UnaryExpression)
-    $(D --) $(I UnaryExpression)
-    $(D *) $(I UnaryExpression)
-    $(D -) $(I UnaryExpression)
-    $(D +) $(I UnaryExpression)
-    $(D !) $(I UnaryExpression)
+    $(D $(AMP)) $(GSELF UnaryExpression)
+    $(D ++) $(GSELF UnaryExpression)
+    $(D --) $(GSELF UnaryExpression)
+    $(D *) $(GSELF UnaryExpression)
+    $(D -) $(GSELF UnaryExpression)
+    $(D +) $(GSELF UnaryExpression)
+    $(D !) $(GSELF UnaryExpression)
     $(GLINK ComplementExpression)
     $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(IDENTIFIER)
     $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(GLINK2 template, TemplateInstance)
@@ -900,9 +900,9 @@ $(H3 $(LNAME2 new_expressions, New Expressions))
 
 $(GRAMMAR
 $(GNAME NewExpression):
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type)
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type)
+    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
+    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
 
 $(GNAME AllocatorArguments):
@@ -911,7 +911,7 @@ $(GNAME AllocatorArguments):
 $(GNAME ArgumentList):
     $(GLINK AssignExpression)
     $(GLINK AssignExpression) $(D ,)
-    $(GLINK AssignExpression) $(D ,) $(I ArgumentList)
+    $(GLINK AssignExpression) $(D ,) $(GSELF ArgumentList)
 )
 
     $(P $(I NewExpression)s are used to allocate memory on the garbage
@@ -1165,7 +1165,7 @@ $(GNAME CastExpression):
         assert(is(typeof(cast(const)x) == const int));
         ---
 
-    $(P Casting with no $(GLINK Type) or $(GLINK CastQual) removes
+    $(P Casting with no $(GLINK2 type, Type) or $(GLINK CastQual) removes
         any top level $(D const), $(D immutable), $(D shared) or $(D inout)
         type modifiers from the type
         of the $(GLINK UnaryExpression).)
@@ -1205,12 +1205,12 @@ $(H2 $(LNAME2 postfix_expressions, Postfix Expressions))
 $(GRAMMAR
 $(GNAME PostfixExpression):
     $(GLINK PrimaryExpression)
-    $(I PostfixExpression) $(D .) $(IDENTIFIER)
-    $(I PostfixExpression) $(D .) $(GLINK2 template, TemplateInstance)
-    $(I PostfixExpression) $(D .) $(GLINK NewExpression)
-    $(I PostfixExpression) $(D ++)
-    $(I PostfixExpression) $(D --)
-    $(I PostfixExpression) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GSELF PostfixExpression) $(D .) $(IDENTIFIER)
+    $(GSELF PostfixExpression) $(D .) $(GLINK2 template, TemplateInstance)
+    $(GSELF PostfixExpression) $(D .) $(GLINK NewExpression)
+    $(GSELF PostfixExpression) $(D ++)
+    $(GSELF PostfixExpression) $(D --)
+    $(GSELF PostfixExpression) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK IndexExpression)
     $(GLINK SliceExpression)
@@ -1244,12 +1244,13 @@ $(H2 $(LNAME2 slice_expressions, Slice Expressions))
 $(GRAMMAR
 $(GNAME SliceExpression):
     $(GLINK PostfixExpression) $(D [ ])
-    $(GLINK PostfixExpression) $(D [) $(I Slice) $(D ,)$(OPT) $(D ])
+    $(GLINK PostfixExpression) $(D [) $(GLINK Slice) $(D ,)$(OPT) $(D ])
+
 $(GNAME Slice):
     $(GLINK AssignExpression)
-    $(GLINK AssignExpression) $(D ,) $(I Slice)
+    $(GLINK AssignExpression) $(D ,) $(GSELF Slice)
     $(GLINK AssignExpression) $(D ..) $(GLINK AssignExpression)
-    $(GLINK AssignExpression) $(D ..) $(GLINK AssignExpression) $(D ,) $(I Slice)
+    $(GLINK AssignExpression) $(D ..) $(GLINK AssignExpression) $(D ,) $(GSELF Slice)
 )
 
     $(P $(I PostfixExpression) is evaluated.
@@ -1361,7 +1362,7 @@ $(GNAME PrimaryExpression):
     $(D $)
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
-    $(GLINK CharacterLiteral)
+    $(GLINK_LEX CharacterLiteral)
     $(GLINK StringLiterals)
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
@@ -1370,10 +1371,10 @@ $(GNAME PrimaryExpression):
     $(GLINK MixinExpression)
     $(GLINK ImportExpression)
     $(GLINK NewExpression)
-    $(GLINK2 declaration, FundamentalType) $(D .) $(IDENTIFIER)
-    $(GLINK2 declaration, FundamentalType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
-    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, FundamentalType) $(D .) $(IDENTIFIER)
+    $(GLINK2 type, FundamentalType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
+    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 type, Typeof)
     $(GLINK TypeidExpression)
     $(GLINK IsExpression)
@@ -1470,7 +1471,7 @@ $(H3 $(LNAME2 string_literals, String Literals))
 $(GRAMMAR
 $(GNAME StringLiterals):
     $(GLINK_LEX StringLiteral)
-    $(I StringLiterals) $(GLINK_LEX StringLiteral)
+    $(GSELF StringLiterals) $(GLINK_LEX StringLiteral)
 )
 
     $(P String literals can implicitly convert to any
@@ -1618,7 +1619,7 @@ $(GNAME AssocArrayLiteral):
 
 $(GNAME KeyValuePairs):
     $(GLINK KeyValuePair)
-    $(GLINK KeyValuePair) $(D ,) $(I KeyValuePairs)
+    $(GLINK KeyValuePair) $(D ,) $(GSELF KeyValuePairs)
 
 $(GNAME KeyValuePair):
     $(GLINK KeyExpression) $(D :) $(GLINK ValueExpression)
@@ -2405,12 +2406,12 @@ $(H2 $(LNAME2 specialkeywords, Special Keywords))
 
 $(GRAMMAR
 $(GNAME SpecialKeyword):
-    $(D $(RELATIVE_LINK2 specialkeywords, __FILE__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __FILE_FULL_PATH__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __MODULE__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __LINE__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __FUNCTION__))
-    $(D $(RELATIVE_LINK2 specialkeywords, __PRETTY_FUNCTION__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __FILE__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __FILE_FULL_PATH__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __MODULE__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __LINE__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __FUNCTION__))
+    $(RELATIVE_LINK2 specialkeywords, $(D __PRETTY_FUNCTION__))
 )
 
 

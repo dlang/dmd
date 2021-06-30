@@ -23,8 +23,8 @@ $(GNAME VarDeclarations):
     $(GLINK AutoDeclaration)
 
 $(GNAME Declarators):
-    $(I DeclaratorInitializer)
-    $(I DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
+    $(GLINK DeclaratorInitializer)
+    $(GLINK DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
 
 $(GNAME DeclaratorInitializer):
     $(GLINK VarDeclarator)
@@ -34,7 +34,7 @@ $(GNAME DeclaratorInitializer):
 
 $(GNAME DeclaratorIdentifierList):
     $(GLINK DeclaratorIdentifier)
-    $(GLINK DeclaratorIdentifier) $(D ,) $(I DeclaratorIdentifierList)
+    $(GLINK DeclaratorIdentifier) $(D ,) $(GSELF DeclaratorIdentifierList)
 
 $(GNAME DeclaratorIdentifier):
     $(GLINK VarDeclaratorIdentifier)
@@ -59,9 +59,9 @@ $(GNAME VarDeclarator):
 
 $(GNAME AltDeclarator):
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN))
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN))
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
 
 $(GNAME AltDeclaratorInner):
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
@@ -70,7 +70,7 @@ $(GNAME AltDeclaratorInner):
 
 $(GNAME AltDeclaratorSuffixes):
     $(GLINK AltDeclaratorSuffix)
-    $(GLINK AltDeclaratorSuffix) $(I AltDeclaratorSuffixes)
+    $(GLINK AltDeclaratorSuffix) $(GSELF AltDeclaratorSuffixes)
 
 $(GNAME AltDeclaratorSuffix):
     $(D [ ])
@@ -84,7 +84,7 @@ $(GNAME AltFuncDeclaratorSuffix):
 $(GRAMMAR
 $(GNAME StorageClasses):
     $(GLINK StorageClass)
-    $(GLINK StorageClass) $(I StorageClasses)
+    $(GLINK StorageClass) $(GSELF StorageClasses)
 
 $(GNAME StorageClass):
 $(MULTICOLS 5,     $(GLINK2 attribute, LinkageAttribute)
@@ -129,7 +129,7 @@ $(GNAME ArrayInitializer):
 $(GNAME ArrayMemberInitializations):
     $(GLINK ArrayMemberInitialization)
     $(GLINK ArrayMemberInitialization) $(D ,)
-    $(GLINK ArrayMemberInitialization) $(D ,) $(I ArrayMemberInitializations)
+    $(GLINK ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
 
 $(GNAME ArrayMemberInitialization):
     $(GLINK NonVoidInitializer)
@@ -141,7 +141,7 @@ $(GNAME StructInitializer):
 $(GNAME StructMemberInitializers):
     $(GLINK StructMemberInitializer)
     $(GLINK StructMemberInitializer) $(D ,)
-    $(GLINK StructMemberInitializer) $(D ,) $(I StructMemberInitializers)
+    $(GLINK StructMemberInitializer) $(D ,) $(GSELF StructMemberInitializers)
 
 $(GNAME StructMemberInitializer):
     $(GLINK NonVoidInitializer)
@@ -220,11 +220,11 @@ $(H2 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference)
 
 $(GRAMMAR
 $(GNAME AutoDeclaration):
-    $(GLINK StorageClasses) $(I AutoAssignments) $(D ;)
+    $(GLINK StorageClasses) $(GLINK AutoAssignments) $(D ;)
 
 $(GNAME AutoAssignments):
     $(GLINK AutoAssignment)
-    $(I AutoAssignments) $(D ,) $(GLINK AutoAssignment)
+    $(GSELF AutoAssignments) $(D ,) $(GLINK AutoAssignment)
 
 $(GNAME AutoAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
@@ -267,11 +267,11 @@ $(GRAMMAR
 $(GNAME AliasDeclaration):
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK Declarators) $(D ;)
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, FuncDeclarator) $(D ;)
-    $(D alias) $(I AliasAssignments) $(D ;)
+    $(D alias) $(GLINK AliasAssignments) $(D ;)
 
 $(GNAME AliasAssignments):
     $(GLINK AliasAssignment)
-    $(I AliasAssignments) $(D ,) $(GLINK AliasAssignment)
+    $(GSELF AliasAssignments) $(D ,) $(GLINK AliasAssignment)
 
 $(GNAME AliasAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, Type)

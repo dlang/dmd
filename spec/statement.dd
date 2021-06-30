@@ -177,7 +177,7 @@ $(GNAME BlockStatement):
 
 $(GNAME StatementList):
     $(PSSEMI_PSCURLYSCOPE)
-    $(PSSEMI_PSCURLYSCOPE) $(I StatementList)
+    $(PSSEMI_PSCURLYSCOPE) $(GSELF StatementList)
 )
 
     $(P A block statement is a sequence of statements enclosed by `{ }`.
@@ -367,7 +367,7 @@ clauses.)
 
 $(GRAMMAR
 $(GNAME ForStatement):
-    $(D for $(LPAREN)) $(GLINK Initialize) $(I Test)$(OPT) $(D ;) $(GLINK Increment)$(OPT) $(D $(RPAREN)) $(PSSCOPE)
+    $(D for $(LPAREN)) $(GLINK Initialize) $(GLINK Test)$(OPT) $(D ;) $(GLINK Increment)$(OPT) $(D $(RPAREN)) $(PSSCOPE)
 
 $(GNAME Initialize):
     $(D ;)
@@ -446,7 +446,7 @@ $(P A `foreach` statement loops over the contents of an aggregate.)
 
 $(GRAMMAR
 $(GNAME AggregateForeach):
-    $(I Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
+    $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
 
 $(GNAME ForeachStatement):
     $(GLINK AggregateForeach) $(PS0)
@@ -457,16 +457,16 @@ $(GNAME Foreach):
 
 $(GNAME ForeachTypeList):
     $(GLINK ForeachType)
-    $(GLINK ForeachType) , $(I ForeachTypeList)
+    $(GLINK ForeachType) $(D ,) $(GSELF ForeachTypeList)
 
 $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK_LEX Identifier)
     $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(GLINK_LEX Identifier)
 
-$(GNAME ForeachTypeAttributes)
+$(GNAME ForeachTypeAttributes):
     $(GLINK ForeachTypeAttribute)
-    $(GLINK ForeachTypeAttribute) $(GLINK ForeachTypeAttributes)$(OPT)
+    $(GLINK ForeachTypeAttribute) $(GSELF ForeachTypeAttributes)
 
 $(GNAME ForeachTypeAttribute):
     $(D ref)
@@ -1093,7 +1093,7 @@ $(GNAME ScopeStatementList):
 
 $(GNAME StatementListNoCaseNoDefault):
     $(GLINK StatementNoCaseNoDefault)
-    $(GLINK StatementNoCaseNoDefault) $(I StatementListNoCaseNoDefault)
+    $(GLINK StatementNoCaseNoDefault) $(GSELF StatementListNoCaseNoDefault)
 
 $(GNAME StatementNoCaseNoDefault):
     $(D ;)
@@ -1621,7 +1621,7 @@ $(GNAME TryStatement):
 
 $(GNAME Catches):
     $(GLINK Catch)
-    $(GLINK Catch) $(I Catches)
+    $(GLINK Catch) $(GSELF Catches)
 
 $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
@@ -1738,9 +1738,9 @@ $(H2 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Sta
 
 $(GRAMMAR
 $(GNAME ScopeGuardStatement):
-    $(D scope(exit)) $(PSCURLYSCOPE)
-    $(D scope(success)) $(PSCURLYSCOPE)
-    $(D scope(failure)) $(PSCURLYSCOPE)
+    $(D scope ( exit )) $(PSCURLYSCOPE)
+    $(D scope ( success )) $(PSCURLYSCOPE)
+    $(D scope ( failure )) $(PSCURLYSCOPE)
 )
 
 $(P The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close of the
@@ -1847,7 +1847,7 @@ $(GNAME AsmStatement):
 
 $(GNAME AsmInstructionList):
     $(GLINK2 iasm, AsmInstruction) $(D ;)
-    $(GLINK2 iasm, AsmInstruction) $(D ;) $(I AsmInstructionList)
+    $(GLINK2 iasm, AsmInstruction) $(D ;) $(GSELF AsmInstructionList)
 )
 
 $(P An asm statement enables the direct use of assembly language instructions.
@@ -1918,9 +1918,7 @@ else
 
 $(H2 $(LEGACY_LNAME2 PragmaStatement, pragma-statement, Pragma Statement))
 
-$(GRAMMAR
-$(GLINK2 pragma, PragmaStatement)
-)
+$(P See $(GLINK2 pragma, PragmaStatement)).
 
 $(H2 $(LEGACY_LNAME2 MixinStatement, mixin-statement, Mixin Statement))
 

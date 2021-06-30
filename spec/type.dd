@@ -14,7 +14,7 @@ $(GNAME Type):
 
 $(GNAME TypeCtors):
     $(GLINK TypeCtor)
-    $(GLINK TypeCtor) $(I TypeCtors)
+    $(GLINK TypeCtor) $(GSELF TypeCtors)
 
 $(GNAME TypeCtor):
     $(D const)
@@ -30,8 +30,8 @@ $(GNAME BasicType):
     $(GLINK Typeof) $(D .) $(GLINK QualifiedIdentifier)
     $(GLINK TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN))
     $(GLINK Vector)
-    $(GLINK2 grammar, Traits)
-    $(GLINK2 type, MixinType)
+    $(GLINK2 traits, TraitsExpression)
+    $(GLINK MixinType)
 
 $(GNAME Vector):
     $(D __vector) $(D $(LPAREN)) $(GLINK VectorBaseType) $(D $(RPAREN))
@@ -67,24 +67,24 @@ $(MULTICOLS 5,
     $(D void))
 
 $(GNAME TypeSuffixes):
-    $(GLINK TypeSuffix) $(GLINK TypeSuffixes)$(OPT)
+    $(GLINK TypeSuffix) $(GSELF TypeSuffixes)$(OPT)
 
 $(GNAME TypeSuffix):
     $(D *)
     $(D [ ])
     $(D [) $(GLINK2 expression, AssignExpression) $(D ])
-    $(D [) $(GLINK2 expression, AssignExpression) .. $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ..) $(GLINK2 expression, AssignExpression) $(D ])
     $(D [) $(GLINK Type) $(D ])
     $(D delegate) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
     $(D function) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
 
 $(GNAME QualifiedIdentifier):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(D .) $(I QualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF QualifiedIdentifier)
     $(GLINK2 template, TemplateInstance)
-    $(GLINK2 template, TemplateInstance) $(D .) $(I QualifiedIdentifier)
+    $(GLINK2 template, TemplateInstance) $(D .) $(GSELF QualifiedIdentifier)
     $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
-    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D].) $(I QualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D] .) $(GSELF QualifiedIdentifier)
 )
 
 

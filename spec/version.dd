@@ -734,7 +734,7 @@ $(H2 $(LEGACY_LNAME2 StaticAssert, static-assert, Static Assert))
 
 $(GRAMMAR
 $(GNAME StaticAssert):
-    $(D static assert $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN);)
+    $(D static assert $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN) ;)
 )
 
         $(P The first $(ASSIGNEXPRESSION) is evaluated at compile time, and converted

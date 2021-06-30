@@ -60,51 +60,53 @@ $(UL
 
 $(H2 $(LNAME2 character_set, Character Set))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME Character):
     $(I any Unicode character)
 )
 
 $(H2 $(LNAME2 end_of_file, End of File))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME EndOfFile):
     $(I physical end of the file)
-    $(D \u0000)
-    $(D \u001A))
+    $(B \u0000)
+    $(B \u001A)
+)
 
 $(P The source text is terminated by whichever comes first.)
 
 $(H2 $(LNAME2 end_of_line, End of Line))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME EndOfLine):
-    $(D \u000D)
-    $(D \u000A)
-    $(D \u000D \u000A)
-    $(D \u2028)
-    $(D \u2029)
-    $(GLINK EndOfFile))
+    $(B \u000D)
+    $(B \u000A)
+    $(B \u000D) $(B \u000A)
+    $(B \u2028)
+    $(B \u2029)
+    $(GLINK EndOfFile)
+)
 
 
 $(H2 $(LNAME2 white_space, White Space))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME WhiteSpace):
     $(GLINK Space)
-    $(GLINK Space) $(I WhiteSpace)
+    $(GLINK Space) $(GSELF WhiteSpace)
 
 $(GNAME Space):
-    $(D \u0020)
-    $(D \u0009)
-    $(D \u000B)
-    $(D \u000C)
+    $(B \u0020)
+    $(B \u0009)
+    $(B \u000B)
+    $(B \u000C)
 )
 
 
 $(H2 $(LNAME2 comment, Comments))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME Comment):
     $(GLINK BlockComment)
     $(GLINK LineComment)
@@ -121,7 +123,7 @@ $(GNAME NestingBlockComment):
 
 $(GNAME NestingBlockCommentCharacters):
     $(GLINK NestingBlockCommentCharacter)
-    $(GLINK NestingBlockCommentCharacter) $(I NestingBlockCommentCharacters)
+    $(GLINK NestingBlockCommentCharacter) $(GSELF NestingBlockCommentCharacters)
 
 $(GNAME NestingBlockCommentCharacter):
     $(GLINK Character)
@@ -129,7 +131,8 @@ $(GNAME NestingBlockCommentCharacter):
 
 $(GNAME Characters):
     $(GLINK Character)
-    $(GLINK Character) $(I Characters))
+    $(GLINK Character) $(GSELF Characters)
+)
 
     $(P There are three kinds of comments:)
 
@@ -160,6 +163,10 @@ is two tokens, $(D abc) and $(D def), not one $(D abcdef) token.)
 $(H2 $(LNAME2 tokens, Tokens))
 
 $(GRAMMAR
+$(GNAME Tokens):
+    $(GLINK Token)
+    $(GLINK Token) $(GSELF Tokens)
+
 $(GNAME Token):
 $(MULTICOLS 4,     $(GLINK Identifier)
     $(GLINK StringLiteral)
@@ -172,9 +179,9 @@ $(MULTICOLS 4,     $(GLINK Identifier)
     $(D .)
     $(D ..)
     $(D ...)
-    $(CODE_AMP)
-    $(CODE_AMP)$(D =)
-    $(CODE_AMP)$(CODE_AMP)
+    $(D $(AMP))
+    $(D $(AMP)=)
+    $(D $(AMP)$(AMP))
     $(D |)
     $(D |=)
     $(D ||)
@@ -185,23 +192,23 @@ $(MULTICOLS 4,     $(GLINK Identifier)
     $(D +=)
     $(D ++)
     $(D <)
-    $(D <)$(D =)
-    $(D <)$(D <)
-    $(D <)$(D <)$(D =)
+    $(D <=)
+    $(D <<)
+    $(D <<=)
     $(D >)
-    $(D >)$(D =)
-    $(D >)$(D >)$(D =)
-    $(D >)$(D >)$(D >)$(D =)
-    $(D >)$(D >)
-    $(D >)$(D >)$(D >)
+    $(D >=)
+    $(D >>=)
+    $(D >>>=)
+    $(D >>)
+    $(D >>>)
     $(D !)
     $(D !=)
     $(D $(LPAREN))
     $(D $(RPAREN))
     $(D [)
     $(D ])
-    $(CODE_LCURL)
-    $(CODE_RCURL)
+    $(D {)
+    $(D })
     $(D ?)
     $(D ,)
     $(D ;)
@@ -211,8 +218,8 @@ $(MULTICOLS 4,     $(GLINK Identifier)
     $(D ==)
     $(D *)
     $(D *=)
-    $(CODE_PERCENT)
-    $(CODE_PERCENT)$(D =)
+    $(D %)
+    $(D %=)
     $(D ^)
     $(D ^=)
     $(D ^^)
@@ -227,17 +234,17 @@ $(MULTICOLS 4,     $(GLINK Identifier)
 
 $(H2 $(LNAME2 identifiers, Identifiers))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME Identifier):
     $(GLINK IdentifierStart)
     $(GLINK IdentifierStart) $(GLINK IdentifierChars)
 
 $(GNAME IdentifierChars):
     $(GLINK IdentifierChar)
-    $(GLINK IdentifierChar) $(I IdentifierChars)
+    $(GLINK IdentifierChar) $(GSELF IdentifierChars)
 
 $(GNAME IdentifierStart):
-    $(D _)
+    $(B _)
     $(I Letter)
     $(I UniversalAlpha)
 
@@ -266,7 +273,8 @@ $(GNAME StringLiteral):
     $(GLINK HexString)
     $(GLINK DelimitedString)
     $(GLINK TokenString)
-
+)
+$(GRAMMAR_LEX
 $(GNAME WysiwygString):
     $(B r") $(GLINK WysiwygCharacters)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
 
@@ -275,7 +283,7 @@ $(GNAME AlternateWysiwygString):
 
 $(GNAME WysiwygCharacters):
     $(GLINK WysiwygCharacter)
-    $(GLINK WysiwygCharacter) $(I WysiwygCharacters)
+    $(GLINK WysiwygCharacter) $(GSELF WysiwygCharacters)
 
 $(GNAME WysiwygCharacter):
     $(GLINK Character)
@@ -286,7 +294,7 @@ $(GNAME DoubleQuotedString):
 
 $(GNAME DoubleQuotedCharacters):
     $(GLINK DoubleQuotedCharacter)
-    $(GLINK DoubleQuotedCharacter) $(I DoubleQuotedCharacters)
+    $(GLINK DoubleQuotedCharacter) $(GSELF DoubleQuotedCharacters)
 
 $(GNAME DoubleQuotedCharacter):
     $(GLINK Character)
@@ -294,32 +302,32 @@ $(GNAME DoubleQuotedCharacter):
     $(GLINK EndOfLine)
 
 $(GNAME EscapeSequence):
-    $(D \\')
-    $(D \\")
-    $(D \\?)
-    $(D \\\\)
-    $(D \0)
-    $(D \a)
-    $(D \b)
-    $(D \f)
-    $(D \n)
-    $(D \r)
-    $(D \t)
-    $(D \v)
-    $(D \x) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(D \\) $(GLINK OctalDigit)
-    $(D \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(D \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
-    $(D \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(D \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
-    $(D \\) $(GLINK2 entity, NamedCharacterEntity)
+    $(B \\')
+    $(B \\")
+    $(B \\?)
+    $(B \\\\)
+    $(B \0)
+    $(B \a)
+    $(B \b)
+    $(B \f)
+    $(B \n)
+    $(B \r)
+    $(B \t)
+    $(B \v)
+    $(B \x) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \\) $(GLINK OctalDigit) $(GLINK OctalDigit) $(GLINK OctalDigit)
+    $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
+    $(B \\) $(GLINK2 entity, NamedCharacterEntity)
 
 $(GNAME HexString):
-    $(D x") $(GLINK HexStringChars)$(OPT) $(D ") $(GLINK StringPostfix)$(OPT)
+    $(B x") $(GLINK HexStringChars)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
 
 $(GNAME HexStringChars):
     $(GLINK HexStringChar)
-    $(GLINK HexStringChar) $(I HexStringChars)
+    $(GLINK HexStringChar) $(GSELF HexStringChars)
 
 $(GNAME HexStringChar):
     $(GLINK HexDigit)
@@ -333,10 +341,10 @@ $(GNAME StringPostfix):
 
 $(GNAME DelimitedString):
     $(B q") $(I Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(I MatchingDelimiter) $(B ")
-
+)
+$(GRAMMAR
 $(GNAME TokenString):
-    $(D q)$(CODE_LCURL) $(GLINK Token)s$(OPT) $(CODE_RCURL)
-
+    $(D q{) $(GLINK Tokens)$(OPT) $(D })
 )
 
         $(P
@@ -553,7 +561,7 @@ $(H2 $(LNAME2 escape_sequences, Escape Sequences))
 
 $(H2 $(LNAME2 characterliteral, Character Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME CharacterLiteral):
     $(B ') $(GLINK SingleQuotedCharacter) $(B ')
 
@@ -573,7 +581,7 @@ single quotes.)
 
 $(H2 $(LNAME2 integerliteral, Integer Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME IntegerLiteral):
     $(GLINK Integer)
     $(GLINK Integer) $(GLINK IntegerSuffix)
@@ -620,11 +628,11 @@ $(GNAME NonZeroDigit):
 
 $(GNAME DecimalDigits):
     $(GLINK DecimalDigit)
-    $(GLINK DecimalDigit) $(I DecimalDigits)
+    $(GLINK DecimalDigit) $(GSELF DecimalDigits)
 
 $(GNAME DecimalDigitsUS):
     $(GLINK DecimalDigitUS)
-    $(GLINK DecimalDigitUS) $(I DecimalDigitsUS)
+    $(GLINK DecimalDigitUS) $(GSELF DecimalDigitsUS)
 
 $(GNAME DecimalDigitsNoSingleUS):
     $(GLINK DecimalDigit)
@@ -641,7 +649,7 @@ $(GNAME DecimalDigit):
 
 $(GNAME DecimalDigitUS):
     $(GLINK DecimalDigit)
-    $(D _)
+    $(B _)
 
 $(GNAME BinaryDigitsNoSingleUS):
     $(GLINK BinaryDigit)
@@ -651,7 +659,7 @@ $(GNAME BinaryDigitsNoSingleUS):
 
 $(GNAME BinaryDigitsUS):
     $(GLINK BinaryDigitUS)
-    $(GLINK BinaryDigitUS) $(I BinaryDigitsUS)
+    $(GLINK BinaryDigitUS) $(GSELF BinaryDigitsUS)
 
 $(GNAME BinaryDigit):
     $(B 0)
@@ -659,7 +667,7 @@ $(GNAME BinaryDigit):
 
 $(GNAME BinaryDigitUS):
     $(GLINK BinaryDigit)
-    $(D _)
+    $(B _)
 
 $(GNAME OctalDigit):
     $(B 0)
@@ -673,11 +681,11 @@ $(GNAME OctalDigit):
 
 $(GNAME HexDigits):
     $(GLINK HexDigit)
-    $(GLINK HexDigit) $(I HexDigits)
+    $(GLINK HexDigit) $(GSELF HexDigits)
 
 $(GNAME HexDigitsUS):
     $(GLINK HexDigitUS)
-    $(GLINK HexDigitUS) $(I HexDigitsUS)
+    $(GLINK HexDigitUS) $(GSELF HexDigitsUS)
 
 $(GNAME HexDigitsNoSingleUS):
     $(GLINK HexDigit)
@@ -694,7 +702,7 @@ $(GNAME HexDigit):
 
 $(GNAME HexDigitUS):
     $(GLINK HexDigit)
-    $(D _)
+    $(B _)
 
 $(GNAME HexLetter):
     $(B a)
@@ -780,7 +788,7 @@ $(GNAME HexLetter):
 
 $(H2 $(LNAME2 floatliteral, Floating Point Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME FloatLiteral):
     $(GLINK Float)
     $(GLINK Float) $(GLINK Suffix)
@@ -801,10 +809,10 @@ $(GNAME DecimalFloat):
     $(B .) $(GLINK DecimalInteger) $(GLINK DecimalExponent)
     $(GLINK LeadingDecimal) $(GLINK DecimalExponent)
 
-$(GNAME DecimalExponent)
+$(GNAME DecimalExponent):
     $(GLINK DecimalExponentStart) $(GLINK DecimalDigitsNoSingleUS)
 
-$(GNAME DecimalExponentStart)
+$(GNAME DecimalExponentStart):
     $(B e)
     $(B E)
     $(B e+)
@@ -938,7 +946,7 @@ $(MULTICOLS 4,
     $(LINK2 version.html#debug, $(D debug))
     $(LINK2 statement.html#SwitchStatement, $(D default))
     $(LINK2 type.html#delegates, $(D delegate))
-    $(LINK2 expression.html#DeleteExpression, $(D delete)) ($(LINK2 $(ROOT_DIR)deprecate.html#delete, deprecated))
+    $(GDEPRECATED $(LINK2 expression.html#DeleteExpression, $(D delete)))
     $(LINK2 attribute.html#deprecated, $(D deprecated))
     $(LINK2 statement.html#DoStatement, $(D do))
     $(LINK2 type.html, $(D double))
@@ -975,7 +983,7 @@ $(MULTICOLS 4,
     $(LINK2 function.html#overload-sets, $(D lazy))
     $(LINK2 type.html, $(D long))
 
-    $(D macro) (reserved)
+    $(GRESERVED $(D macro))
     $(LINK2 expression.html#MixinExpression, $(D mixin))
     $(LINK2 module.html#ModuleDeclaration, $(D module))
 
@@ -1040,7 +1048,8 @@ $(MULTICOLS 4,
     $(LINK2 traits.html, $(D __traits))
     $(LINK2 $(ROOT_DIR)phobos/core_simd.html#.Vector, $(D __vector))
     $(LINK2 expression.html#IsExpression, $(D __parameters))
-))
+)
+)
 
 
 $(H2 $(LNAME2 specialtokens, Special Tokens))
@@ -1072,7 +1081,8 @@ $(GRAMMAR
 $(GNAME SpecialTokenSequence):
     $(D # line) $(GLINK IntegerLiteral) $(GLINK EndOfLine)
     $(D # line) $(GLINK IntegerLiteral) $(GLINK Filespec) $(GLINK EndOfLine)
-
+)
+$(GRAMMAR_LEX
 $(GNAME Filespec):
     $(B ") $(GLINK Characters)$(OPT) $(B ")
 )
