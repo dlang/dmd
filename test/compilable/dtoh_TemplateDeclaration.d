@@ -179,7 +179,7 @@ public:
 extern void withDefTempl(A<int32_t > a = A<int32_t >(2, 13));
 
 template <typename T>
-extern void withDefTempl2(A<T > a = static_cast<A<T >>(A!T(2)));
+extern void withDefTempl2(A<T > a = static_cast<A<T >>(A<T >(2)));
 
 class ChildInt : public Parent<int32_t >
 {

@@ -2613,6 +2613,21 @@ public:
         buf.writestring(e.ident.toChars());
     }
 
+    override void visit(AST.ScopeExp e)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.ScopeExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.ScopeExp exit] %s\n", e.toChars());
+        }
+
+        // Usually a template instance in a TemplateDeclaration
+        if (auto ti = e.sds.isTemplateInstance())
+            visitTi(ti);
+        else
+            writeFullName(e.sds);
+    }
+
     override void visit(AST.NullExp e)
     {
         debug (Debug_DtoH)
