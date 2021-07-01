@@ -1020,14 +1020,9 @@ void parseEnvironment()
     // detect PIC
     version(Posix)
     {
-        // default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+        // default to PIC, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.
-        bool pic;
-        if (model == "64")
-            pic = true;
-        else if (model == "32")
-            pic = false;
-
+        bool pic = true;
         const picValue = env.getDefault("PIC", "");
         switch (picValue)
         {
