@@ -4,7 +4,7 @@ $(SPEC_S ImportC,
 
 $(HEADERNAV_TOC)
 
-    $(NOTE: This document is a work in progress.)
+    $(NOTE This document is under construction. Please excuse the dust and noise.)
 
     $(P ImportC is a C compiler embedded into the D implementation.
     Its purpose is to enable direct importation of C files, without
@@ -22,7 +22,7 @@ $(HEADERNAV_TOC)
 $(H2 $(LNAME2 dialect, ImportC Dialect))
 
     $(P There are many versions of C. ImportC is designed to be an
-    implementation of (LINK2 https://en.wikipedia.org/wiki/C11_(C_standard_revision), ISO/IEC 9899:1999),
+    implementation of $(LINK2 https://en.wikipedia.org/wiki/C11_(C_standard_revision), ISO/IEC 9899:1999),
     which will hereafter be referred to as $(B C11).
     References to the C11 Standard will be C11 followed by the paragraph number.
     Prior versions, such as C99, C89, and K+R C, are not supported.
@@ -31,7 +31,7 @@ $(H2 $(LNAME2 dialect, ImportC Dialect))
     $(P Adjustment to the ImportC dialect is made to match the
     behavior of the C compiler that the D compiler is matched to. For
     example, on Win32 D is matched to the Digital Mars C compiler,
-    and can be matched to the Visual C compiler using the $(TT -mscoff32)
+    and can be matched to the Visual C compiler using the $(TT -m32mscoff)
     switch. Win64 D is matched to the Visual C compiler.
     On Posix targets, the matching C compiler is Gnu C or Clang C.
     )
@@ -83,7 +83,7 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(P $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-11.1.0/cpp/Preprocessor-Output.html, linemarker)
     directives are normally embedded in the output of C preprocessors.)
 
-$(H2 $(LINK2 limitations, Limitations))
+$(H2 $(LNAME2 limitations, Limitations))
 
     $(H3 Exception Handling)
 
@@ -95,19 +95,19 @@ $(H2 $(LINK2 limitations, Limitations))
     meaning that although $(CCODE int *const p;) means in C11 that p is a const pointer to int,
     in ImportC it means p is a const pointer to a const int.)
 
-$(H2 $(LINK2 extensions, Extensions))
+$(H2 $(LNAME2 extensions, Extensions))
 
 
-$(H2 $(LINK2 gnu-clang-extensions, Gnu and Clang Extensions))
+$(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
 
-$(H2 $(LINK2 visualc-extensions, Visual C Extensions))
+$(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
 
 
-$(H2 $(LINK2 digital-mars-extensions, Digital Mars C Extensions))
+$(H2 $(LNAME2 digital-mars-extensions, Digital Mars C Extensions))
 
 
-$(H2 $(LINK2 d-side, ImportC from D's Point of View))
+$(H2 $(LNAME2 d-side, ImportC from D's Point of View))
 
     $(P There is no one-to-one mapping of C constructs to D constructs, although
     it is very close. What follows is a description of how the D side views
@@ -143,7 +143,7 @@ $(H2 $(LINK2 d-side, ImportC from D's Point of View))
     static assert(E.min == 0 && E.max == 2);
     ---
 
-$(H2 $(LINK2 warnings, Warnings))
+$(H2 $(LNAME2 warnings, Warnings))
 
     $(P Many suspicious C constructs normally cause warnings to be emitted by default by
     typical compilers, such as:)
@@ -154,13 +154,13 @@ $(H2 $(LINK2 warnings, Warnings))
     code developed using another C compiler, and it is written as intended.
     If C11 says it is legal, ImportC accepts it.)
 
-$(H2 $(LINK2 importcpp, ImportC++))
+$(H2 $(LNAME2 importcpp, ImportC++))
 
-    $(P ImportC will not compile C++ code. For that, use ($TT dpp).)
+    $(P ImportC will not compile C++ code. For that, use $(TT dpp).)
 
-$(H2 $(LINK2 history, How ImportC Came About))
+$(H2 $(LNAME2 history, How ImportC Came About))
 
-$(H2 $(LINK2 internals, How ImportC Works))
+$(H2 $(LNAME2 internals, How ImportC Works))
 
     $(P This is a description of how ImportC is implemented, intended
     to remove the mystery of various design choices.)
