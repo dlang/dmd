@@ -2474,6 +2474,45 @@ public:
         buf.writestring(e.toString());
     }
 
+    override void visit(AST.UnaExp e)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.UnaExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.UnaExp exit] %s\n", e.toChars());
+        }
+
+        buf.writestring(tokToString(e.op));
+        e.e1.accept(this);
+    }
+
+    override void visit(AST.BinExp e)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.BinExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.BinExp exit] %s\n", e.toChars());
+        }
+
+        e.e1.accept(this);
+        buf.writeByte(' ');
+        buf.writestring(tokToString(e.op));
+        buf.writeByte(' ');
+        e.e2.accept(this);
+    }
+
+    /// Translates operator `op` into the C++ representation
+    private extern(D) static string tokToString(const TOK op)
+    {
+        switch (op) with (TOK)
+        {
+            case identity:      return "==";
+            case notIdentity:   return "!=";
+            default:
+                return Token.toString(op);
+        }
+    }
+
     override void visit(AST.VarExp e)
     {
         debug (Debug_DtoH)
@@ -2572,6 +2611,21 @@ public:
         e.e1.accept(this);
         buf.writestring("::");
         buf.writestring(e.ident.toChars());
+    }
+
+    override void visit(AST.ScopeExp e)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.ScopeExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.ScopeExp exit] %s\n", e.toChars());
+        }
+
+        // Usually a template instance in a TemplateDeclaration
+        if (auto ti = e.sds.isTemplateInstance())
+            visitTi(ti);
+        else
+            writeFullName(e.sds);
     }
 
     override void visit(AST.NullExp e)

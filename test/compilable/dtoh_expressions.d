@@ -96,3 +96,32 @@ T requiredTmpl(T)(void* ptr = cast(void*) foo()) {}
 T stcCastTmpl(T)(const int* ci = cast(immutable) somePtr) {}
 
 T paramCastTmpl(T)(const int* ci = cast(T) somePtr) {}
+
+/+
+TEST_OUTPUT:
+---
+
+struct Data final
+{
+    static Data* pt;
+    static int32_t* bar();
+    Data()
+    {
+    }
+};
+
+extern void useData(bool a = !Data::pt, bool b = Data::bar() == nullptr, bool c = Data::bar() != nullptr);
+---
++/
+
+struct Data
+{
+    static Data* pt;
+    static int* bar() { return null; }
+}
+
+void useData(
+    bool a = !Data.pt,
+    bool b = Data.bar() is null,
+    bool c = Data.bar() !is null
+) {}
