@@ -17,6 +17,7 @@ experimental C++ header generator:
 - Initializers of `union` variables/parameters omit non-active members
 - Typecasts are emitted as C style, not D's `cast(...) ...`
 - Structs are always tagged as `final` because D disallows `struct` inheritance
+- No longer asserts for declarations using `noreturn`
 - Symbol names always include template parameters and enclosing declarations
   when required
 - Properly emits (static / enum) members of templated aggregates
