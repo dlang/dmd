@@ -278,7 +278,7 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
                     "-m"~env["MODEL"],
                     "-of"~targetBin,
                     sourceFile
-                ] ~ tool.extraArgs;
+                ] ~ getPicFlags(env) ~ tool.extraArgs;
             }
 
             writefln("Executing: %-(%s %)", command);
@@ -518,15 +518,11 @@ string[string] getEnvironment()
         auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`../../druntime`));
         auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../phobos`));
 
-        // default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+        // default to PIC, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.
-        bool pic;
-        version(X86_64)
-            pic = true;
-        else version(X86)
+        bool pic = true;
+        if (environment.get("PIC", "") == "0")
             pic = false;
-        if (environment.get("PIC", "0") == "1")
-            pic = true;
 
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
         env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
