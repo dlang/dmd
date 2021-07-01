@@ -1,4 +1,4 @@
-/*
+/+
 REQUIRED_ARGS: -HC=silent -c -o- -Icompilable/extra-files
 PERMUTE_ARGS:
 EXTRA_FILES: extra-files/dtoh_imports.d extra-files/dtoh_imports2.d
@@ -119,8 +119,10 @@ struct PrivateImport final
     {
     }
 };
+
+typedef /* noreturn */ char Impossible[0];
 ---
-*/
++/
 
 extern (C++):
 
@@ -191,3 +193,5 @@ struct PrivateImport
     import dtoh_imports;
 
 }
+
+alias Impossible = noreturn;

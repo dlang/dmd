@@ -501,6 +501,9 @@ public:
                 return true;
             }
 
+            // Noreturn has a different mangling
+            case AST.Tnoreturn:
+
             // _Imaginary is C only.
             case AST.Timaginary32:
             case AST.Timaginary64:
@@ -1740,6 +1743,8 @@ public:
                 writeFullName(customLength);
             buf.writeByte(']');
         }
+        else if (t.isTypeNoreturn())
+            buf.writestring("[0]");
     }
 
     override void visit(AST.Type t)
@@ -1751,6 +1756,16 @@ public:
         }
         printf("Invalid type: %s\n", t.toPrettyChars());
         assert(0);
+    }
+
+    override void visit(AST.TypeNoreturn t)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeNoreturn enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeNoreturn exit] %s\n", t.toChars());
+        }
+        buf.writestring("/* noreturn */ char");
     }
 
     override void visit(AST.TypeIdentifier t)
