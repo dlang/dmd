@@ -260,6 +260,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Disable generated opAssign, because some members forbid identity assignment.
                     funcdecl.storage_class |= STC.disable;
                     funcdecl.fbody = null;   // remove fbody which contains the error
+                    funcdecl.errors = false;    // the disabling takes care of the error
                     funcdecl.semantic3Errors = false;
                 }
                 return;
@@ -634,6 +635,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if (funcdecl.fbody.isErrorStatement())
                 {
+                    funcdecl.errors = true;
                 }
                 else if (funcdecl.isStaticCtorDeclaration())
                 {
