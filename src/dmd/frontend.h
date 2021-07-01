@@ -222,8 +222,6 @@ struct Macro;
 struct ModuleDeclaration;
 struct FileBuffer;
 struct Escape;
-template <typename Datum>
-struct FileMapping;
 class WithStatement;
 struct AA;
 class Tuple;
@@ -298,6 +296,7 @@ class CompoundDeclarationStatement;
 struct Token;
 struct code;
 class StaticAssert;
+struct Triple;
 class Object;
 class TypeInfo_Class;
 class TypeInfo;
@@ -1767,56 +1766,6 @@ struct File final
     static void remove(const char* name);
     static bool update(const char* name, const void* data, size_t size);
     File()
-    {
-    }
-};
-
-struct OutBuffer final
-{
-private:
-    _d_dynamicArray< uint8_t > data;
-    size_t offset;
-    bool notlinehead;
-    FileMapping<uint8_t >* fileMapping;
-public:
-    bool doindent;
-    bool spaces;
-    int32_t level;
-    ~OutBuffer();
-    size_t length() const;
-    char* extractData();
-    void destroy();
-    void reserve(size_t nbytes);
-    void setsize(size_t size);
-    void reset();
-    void write(const void* data, size_t nbytes);
-    void writestring(const char* string);
-    void prependstring(const char* string);
-    void writenl();
-    void writeByte(uint32_t b);
-    void writeUTF8(uint32_t b);
-    void prependbyte(uint32_t b);
-    void writewchar(uint32_t w);
-    void writeword(uint32_t w);
-    void writeUTF16(uint32_t w);
-    void write4(uint32_t w);
-    void write(const OutBuffer* const buf);
-    void write(RootObject* obj);
-    void fill0(size_t nbytes);
-    void vprintf(const char* format, va_list args);
-    void printf(const char* format, ...);
-    void print(uint64_t u);
-    void bracket(char left, char right);
-    size_t bracket(size_t i, const char* left, size_t j, const char* right);
-    void spread(size_t offset, size_t nbytes);
-    size_t insert(size_t offset, const void* p, size_t nbytes);
-    void remove(size_t offset, size_t nbytes);
-    char* peekChars();
-    char* extractChars();
-    OutBuffer() :
-        doindent(),
-        spaces(),
-        level()
     {
     }
 };
@@ -4962,26 +4911,6 @@ enum class CPU
     avx512 = 10,
     baseline = 11,
     native = 12,
-};
-
-struct Triple final
-{
-private:
-    _d_dynamicArray< const char > source;
-public:
-    CPU cpu;
-    bool is64bit;
-    bool isLP64;
-    Target::OS os;
-    uint8_t osMajor;
-    TargetC::Runtime cenv;
-    TargetCPP::Runtime cppenv;
-    Triple() :
-        is64bit(),
-        isLP64(),
-        osMajor()
-    {
-    }
 };
 
 typedef _d_real longdouble;

@@ -2346,7 +2346,15 @@ public:
             scope(exit) printf("[AST.Parameter exit] %s\n", p.toChars());
         }
         ident = p.ident;
-        p.type.accept(this);
+
+        {
+            // Reference parameters can be forwarded
+            const fwdStash = this.forwarding;
+            this.forwarding = !!(p.storageClass & AST.STC.ref_);
+            p.type.accept(this);
+            this.forwarding = fwdStash;
+        }
+
         if (p.storageClass & AST.STC.ref_)
             buf.writeByte('&');
         buf.writeByte(' ');
