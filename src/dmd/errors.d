@@ -63,7 +63,7 @@ private immutable FRAGMENT_PREFIX_BODY_END = FRAGMENT_PREFIX ~ '}';
  *      ...    = printf-style variadic arguments
  */
 static if (__VERSION__ < 2092)
-    extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...) 
+    extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -71,7 +71,7 @@ static if (__VERSION__ < 2092)
         va_end(ap);
     }
 else
-    pragma(printf) extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...) 
+    pragma(printf) extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -969,7 +969,7 @@ extern (C++) void verrorFormatPrint(const ref Loc loc, const(char)* format, va_l
             FragmentInfo info;
             if (!verrorFormatNextFragment(nextFormat, info, nextFormat))
                 assert(0); // TODO
-            
+
             // Also TODO: Make this better
             if (!strncmp(info.name, "indent", info.nameLen))
             {
@@ -1019,7 +1019,7 @@ extern (C++) void verrorFormatPrint(const ref Loc loc, const(char)* format, va_l
 private const(char)* verrorFormatPrefixString(const(char)* format, va_list ap)
 {
     OutBuffer buf;
-    
+
     // First, find any formatting fragments, and prefix them with a silly string of chars.
     // This is to make it almost impossible for things like `myClass!"$[]"` from accidentally being
     // detected as a format fragment.
