@@ -128,7 +128,7 @@ $(OL
 )
 
 
-$(SPEC_SUBNAV_PREV_NEXT simd, Vector Extensions, ob, Live Functions)
+$(SPEC_SUBNAV_PREV_NEXT simd, Vector Extensions, importc, ImportC)
 
 )
 

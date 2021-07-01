@@ -1,0 +1,14 @@
+Ddoc
+
+$(SPEC_S ImportC,
+
+$(HEADERNAV_TOC)
+
+$(P Documentation for ImportC coming soon!)
+
+$(SPEC_SUBNAV_PREV_NEXT betterc, Better C, ob, Live Functions)
+)
+
+Macros:
+    CHAPTER=41
+    TITLE=ImportC

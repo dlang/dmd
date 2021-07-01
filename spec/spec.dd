@@ -53,6 +53,7 @@ $(TOC Table of Contents,
                 $(A abi.html, Application Binary Interface),
                 $(A simd.html, Vector Extensions),
                 $(A betterc.html, Better C),
+                $(A importc.html, Import C),
                 $(A ob.html, Live Functions)
         ))
 )
