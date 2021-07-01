@@ -1052,12 +1052,12 @@ private const(char)* verrorFormatPrefixString(const(char)* format, va_list ap)
     buf.writestring(start);
 
     // Now that the developer-made fragments have their silly prefix, we'll now expand the string.
-    const prefixedFormat = buf.extractData();
+    const prefixedFormat = buf.extractChars();
     scope (exit) mem.xfree(cast(void*)prefixedFormat);
     buf.vprintf(prefixedFormat, ap);
 
     // Now verrorFormatNextFragment can be used on the result.
-    return buf.extractData();
+    return buf.extractChars();
 }
 
 /**
