@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d, _libmscoff.d)
- * Documentation:  https://dlang.org/phobos/dmd_libmscoff.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libmscoff.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lib/mscoff.d, _mscoff.d)
+ * Documentation:  https://dlang.org/phobos/dmd_lib_mscoff.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/lib/mscoff.d
  */
 
-module dmd.libmscoff;
+module dmd.lib.mscoff;
 
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -40,10 +40,10 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
 
-import dmd.scanmscoff;
+import dmd.lib.scanmscoff;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMSCoff_factory()
+package extern (C++) Library LibMSCoff_factory()
 {
     return new LibMSCoff();
 }

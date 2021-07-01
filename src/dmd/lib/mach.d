@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmach.d, _libmach.d)
- * Documentation:  https://dlang.org/phobos/dmd_libmach.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libmach.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lib/mach.d, _mach.d)
+ * Documentation:  https://dlang.org/phobos/dmd_lib_mach.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/lib/mach.d
  */
 
-module dmd.libmach;
+module dmd.lib.mach;
 
 import core.stdc.time;
 import core.stdc.string;
@@ -40,10 +40,10 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
 
-import dmd.scanmach;
+import dmd.lib.scanmach;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMach_factory()
+package extern (C++) Library LibMach_factory()
 {
     return new LibMach();
 }

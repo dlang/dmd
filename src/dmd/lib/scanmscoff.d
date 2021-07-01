@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanmscoff.d, _scanmscoff.d)
- * Documentation:  https://dlang.org/phobos/dmd_scanmscoff.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanmscoff.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lib/scanmscoff.d, _scanmscoff.d)
+ * Documentation:  https://dlang.org/phobos/dmd_lib_scanmscoff.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/lib/scanmscoff.d
  */
 
-module dmd.scanmscoff;
+module dmd.lib.scanmscoff;
 
 import core.stdc.string, core.stdc.stdlib;
 
@@ -28,6 +28,8 @@ import dmd.root.string;
 import dmd.globals, dmd.errors;
 
 private enum LOG = false;
+
+package:
 
 /*****************************************
  * Reads an object module from base[] and passes the names
