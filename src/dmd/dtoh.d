@@ -3014,8 +3014,12 @@ public:
     /**
      * Writes the qualified name of `sym` into `buf` including parent
      * symbols and template parameters.
+     *
+     * Params:
+     *   sym         = the symbol
+     *   mustInclude = whether sym may not be forward declared
      */
-    private void writeFullName(AST.Dsymbol sym)
+    private void writeFullName(AST.Dsymbol sym, const bool mustInclude = false)
     in
     {
         assert(sym);
@@ -3059,13 +3063,20 @@ public:
             nested = !par.isModule();
             if (nested && !isNestedIn(par, adparent))
             {
-                writeFullName(par);
+                writeFullName(par, true);
                 buf.writestring("::");
             }
         }
 
         if (!nested)
-            ensureDeclared(sym);
+        {
+            // Cannot forward the symbol when called recursively
+            // for a nested symbol
+            if (mustInclude)
+                includeSymbol(sym);
+            else
+                ensureDeclared(sym);
+        }
 
         if (ti)
             visitTi(ti);
