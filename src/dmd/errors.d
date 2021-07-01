@@ -943,10 +943,7 @@ extern (C++) void verrorFormatPrint(const ref Loc loc, const(char)* format, va_l
 {
     const prefixedFormat = verrorFormatPrefixString(format, ap);
     if (!prefixedFormat)
-    {
-        print(loc, "BAD FORMAT STRING - verrorFormatPrefixString returned null.");
-        return;
-    }
+        assert(0, "BAD FORMAT STRING - verrorFormatPrefixString returned null.");
     scope (exit) mem.xfree(cast(void*)prefixedFormat);
 
     bool firstPrint = true;
@@ -968,9 +965,9 @@ extern (C++) void verrorFormatPrint(const ref Loc loc, const(char)* format, va_l
         {
             FragmentInfo info;
             if (!verrorFormatNextFragment(nextFormat, info, nextFormat))
-                assert(0); // TODO
+                assert(0, "BAD FORMAT STRING - FRAGMENT_PREFIX_START was found but could not be parsed.");
 
-            // Also TODO: Make this better
+            // TODO: Perhaps dispatch into different functions in the future, otherwise this might get messy.
             if (!strncmp(info.name, "indent", info.nameLen))
             {
                 if (global.params.formatLevel < 1)
@@ -982,13 +979,14 @@ extern (C++) void verrorFormatPrint(const ref Loc loc, const(char)* format, va_l
                 buf.reset();
                 uint indentLevel;
                 if (info.params)
-                    sscanf(info.params, "%u", &indentLevel);
+                    if (!sscanf(info.params, "%u", &indentLevel))
+                        assert(0, "BAD FORMAT STRING - 'indent' could not parse numeric parameter of: "~info.params[0..info.paramsLen]);
                 foreach (i; 0..indentLevel)
                     buf.writestring("    ");
                 buf.write(info.innerText, info.innerTextLen);
             }
             else
-                assert(0); // Also Also TODO
+                assert(0, "BAD FORMAT STRING - Formatter '"~info.name[0..info.nameLen]~"' does not exist.");
             continue;
         }
 
