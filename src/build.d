@@ -1324,8 +1324,9 @@ auto sourceFiles()
             dmsc.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
-        driver: fileArray(env["D"], "dinifile.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
-            link.d mars.d scanelf.d scanmach.d scanmscoff.d scanomf.d vsoptions.d
+        driver: fileArray(env["D"], "dinifile.d gluelayer.d link.d mars.d vsoptions.d") ~
+                fileArray(buildPath(env["D"],"lib"), "scanelf.d scanmach.d scanmscoff.d scanomf.d
+                          package.d elf.d mach.d mscoff.d omf.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d apply.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
