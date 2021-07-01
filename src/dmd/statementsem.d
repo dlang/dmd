@@ -183,31 +183,33 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         /* https://dlang.org/spec/statement.html#expression-statement
          */
 
-        if (s.exp)
+        if (!s.exp)
         {
-            //printf("ExpStatement::semantic() %s\n", exp.toChars());
-
-            // Allow CommaExp in ExpStatement because return isn't used
-            CommaExp.allow(s.exp);
-
-            s.exp = s.exp.expressionSemantic(sc);
-            s.exp = resolveProperties(sc, s.exp);
-            s.exp = s.exp.addDtorHook(sc);
-            if (checkNonAssignmentArrayOp(s.exp))
-                s.exp = ErrorExp.get();
-            if (auto f = isFuncAddress(s.exp))
-            {
-                if (f.checkForwardRef(s.exp.loc))
-                    s.exp = ErrorExp.get();
-            }
-            if (discardValue(s.exp))
-                s.exp = ErrorExp.get();
-
-            s.exp = s.exp.optimize(WANTvalue);
-            s.exp = checkGC(sc, s.exp);
-            if (s.exp.op == TOK.error)
-                return setError();
+            result = s;
+            return;
         }
+        //printf("ExpStatement::semantic() %s\n", exp.toChars());
+
+        // Allow CommaExp in ExpStatement because return isn't used
+        CommaExp.allow(s.exp);
+
+        s.exp = s.exp.expressionSemantic(sc);
+        s.exp = resolveProperties(sc, s.exp);
+        s.exp = s.exp.addDtorHook(sc);
+        if (checkNonAssignmentArrayOp(s.exp))
+            s.exp = ErrorExp.get();
+        if (auto f = isFuncAddress(s.exp))
+        {
+            if (f.checkForwardRef(s.exp.loc))
+                s.exp = ErrorExp.get();
+        }
+        if (discardValue(s.exp))
+            s.exp = ErrorExp.get();
+
+        s.exp = s.exp.optimize(WANTvalue);
+        s.exp = checkGC(sc, s.exp);
+        if (s.exp.op == TOK.error)
+            return setError();
         result = s;
     }
 
@@ -239,132 +241,132 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         for (size_t i = 0; i < cs.statements.dim;)
         {
             Statement s = (*cs.statements)[i];
-            if (s)
+            if (!s)
             {
-                Statements* flt = s.flatten(sc);
-                if (flt)
+                ++i;
+                continue;
+            }
+
+            Statements* flt = s.flatten(sc);
+            if (flt)
+            {
+                cs.statements.remove(i);
+                cs.statements.insert(i, flt);
+                continue;
+            }
+            s = s.statementSemantic(sc);
+            (*cs.statements)[i] = s;
+            if (!s)
+            {
+                /* Remove NULL statements from the list.
+                 */
+                cs.statements.remove(i);
+                continue;
+            }
+            if (s.isErrorStatement())
+            {
+                result = s;     // propagate error up the AST
+                ++i;
+                continue;       // look for errors in rest of statements
+            }
+            Statement sentry;
+            Statement sexception;
+            Statement sfinally;
+
+            (*cs.statements)[i] = s.scopeCode(sc, &sentry, &sexception, &sfinally);
+            if (sentry)
+            {
+                sentry = sentry.statementSemantic(sc);
+                cs.statements.insert(i, sentry);
+                i++;
+            }
+            if (sexception)
+                sexception = sexception.statementSemantic(sc);
+            if (sexception)
+            {
+                /* Returns: true if statements[] are empty statements
+                 */
+                static bool isEmpty(const Statement[] statements)
                 {
-                    cs.statements.remove(i);
-                    cs.statements.insert(i, flt);
-                    continue;
+                    foreach (s; statements)
+                    {
+                        if (const cs = s.isCompoundStatement())
+                        {
+                            if (!isEmpty((*cs.statements)[]))
+                                return false;
+                        }
+                        else
+                            return false;
+                    }
+                    return true;
                 }
-                s = s.statementSemantic(sc);
-                (*cs.statements)[i] = s;
-                if (s)
+
+                if (!sfinally && isEmpty((*cs.statements)[i + 1 .. cs.statements.dim]))
                 {
-                    if (s.isErrorStatement())
-                    {
-                        result = s;     // propagate error up the AST
-                        ++i;
-                        continue;       // look for errors in rest of statements
-                    }
-                    Statement sentry;
-                    Statement sexception;
-                    Statement sfinally;
-
-                    (*cs.statements)[i] = s.scopeCode(sc, &sentry, &sexception, &sfinally);
-                    if (sentry)
-                    {
-                        sentry = sentry.statementSemantic(sc);
-                        cs.statements.insert(i, sentry);
-                        i++;
-                    }
-                    if (sexception)
-                        sexception = sexception.statementSemantic(sc);
-                    if (sexception)
-                    {
-                        /* Returns: true if statements[] are empty statements
-                         */
-                        static bool isEmpty(const Statement[] statements)
-                        {
-                            foreach (s; statements)
-                            {
-                                if (const cs = s.isCompoundStatement())
-                                {
-                                    if (!isEmpty((*cs.statements)[]))
-                                        return false;
-                                }
-                                else
-                                    return false;
-                            }
-                            return true;
-                        }
-
-                        if (!sfinally && isEmpty((*cs.statements)[i + 1 .. cs.statements.dim]))
-                        {
-                        }
-                        else
-                        {
-                            /* Rewrite:
-                             *      s; s1; s2;
-                             * As:
-                             *      s;
-                             *      try { s1; s2; }
-                             *      catch (Throwable __o)
-                             *      { sexception; throw __o; }
-                             */
-                            auto a = new Statements();
-                            a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
-                            cs.statements.setDim(i + 1);
-
-                            Statement _body = new CompoundStatement(Loc.initial, a);
-                            _body = new ScopeStatement(Loc.initial, _body, Loc.initial);
-
-                            Identifier id = Identifier.generateId("__o");
-
-                            Statement handler = new PeelStatement(sexception);
-                            if (sexception.blockExit(sc.func, false) & BE.fallthru)
-                            {
-                                auto ts = new ThrowStatement(Loc.initial, new IdentifierExp(Loc.initial, id));
-                                ts.internalThrow = true;
-                                handler = new CompoundStatement(Loc.initial, handler, ts);
-                            }
-
-                            auto catches = new Catches();
-                            auto ctch = new Catch(Loc.initial, getThrowable(), id, handler);
-                            ctch.internalCatch = true;
-                            catches.push(ctch);
-
-                            Statement st = new TryCatchStatement(Loc.initial, _body, catches);
-                            if (sfinally)
-                                st = new TryFinallyStatement(Loc.initial, st, sfinally);
-                            st = st.statementSemantic(sc);
-
-                            cs.statements.push(st);
-                            break;
-                        }
-                    }
-                    else if (sfinally)
-                    {
-                        if (0 && i + 1 == cs.statements.dim)
-                        {
-                            cs.statements.push(sfinally);
-                        }
-                        else
-                        {
-                            /* Rewrite:
-                             *      s; s1; s2;
-                             * As:
-                             *      s; try { s1; s2; } finally { sfinally; }
-                             */
-                            auto a = new Statements();
-                            a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
-                            cs.statements.setDim(i + 1);
-
-                            auto _body = new CompoundStatement(Loc.initial, a);
-                            Statement stf = new TryFinallyStatement(Loc.initial, _body, sfinally);
-                            stf = stf.statementSemantic(sc);
-                            cs.statements.push(stf);
-                            break;
-                        }
-                    }
                 }
                 else
                 {
-                    /* Remove NULL statements from the list.
+                    /* Rewrite:
+                     *      s; s1; s2;
+                     * As:
+                     *      s;
+                     *      try { s1; s2; }
+                     *      catch (Throwable __o)
+                     *      { sexception; throw __o; }
                      */
-                    cs.statements.remove(i);
-                    continue;
+                    auto a = new Statements();
+                    a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
+                    cs.statements.setDim(i + 1);
+
+                    Statement _body = new CompoundStatement(Loc.initial, a);
+                    _body = new ScopeStatement(Loc.initial, _body, Loc.initial);
+
+                    Identifier id = Identifier.generateId("__o");
+
+                    Statement handler = new PeelStatement(sexception);
+                    if (sexception.blockExit(sc.func, false) & BE.fallthru)
+                    {
+                        auto ts = new ThrowStatement(Loc.initial, new IdentifierExp(Loc.initial, id));
+                        ts.internalThrow = true;
+                        handler = new CompoundStatement(Loc.initial, handler, ts);
+                    }
+
+                    auto catches = new Catches();
+                    auto ctch = new Catch(Loc.initial, getThrowable(), id, handler);
+                    ctch.internalCatch = true;
+                    catches.push(ctch);
+
+                    Statement st = new TryCatchStatement(Loc.initial, _body, catches);
+                    if (sfinally)
+                        st = new TryFinallyStatement(Loc.initial, st, sfinally);
+                    st = st.statementSemantic(sc);
+
+                    cs.statements.push(st);
+                    break;
+                }
+            }
+            else if (sfinally)
+            {
+                if (0 && i + 1 == cs.statements.dim)
+                {
+                    cs.statements.push(sfinally);
+                }
+                else
+                {
+                    /* Rewrite:
+                     *      s; s1; s2;
+                     * As:
+                     *      s; try { s1; s2; } finally { sfinally; }
+                     */
+                    auto a = new Statements();
+                    a.pushSlice((*cs.statements)[i + 1 .. cs.statements.length]);
+                    cs.statements.setDim(i + 1);
+
+                    auto _body = new CompoundStatement(Loc.initial, a);
+                    Statement stf = new TryFinallyStatement(Loc.initial, _body, sfinally);
+                    stf = stf.statementSemantic(sc);
+                    cs.statements.push(stf);
+                    break;
                 }
             }
             i++;
@@ -442,45 +444,47 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
     override void visit(ScopeStatement ss)
     {
         //printf("ScopeStatement::semantic(sc = %p)\n", sc);
+        if (!ss.statement)
+        {
+            result = ss;
+            return;
+        }
+
+        ScopeDsymbol sym = new ScopeDsymbol();
+        sym.parent = sc.scopesym;
+        sym.endlinnum = ss.endloc.linnum;
+        sc = sc.push(sym);
+
+        Statements* a = ss.statement.flatten(sc);
+        if (a)
+        {
+            ss.statement = new CompoundStatement(ss.loc, a);
+        }
+
+        ss.statement = ss.statement.statementSemantic(sc);
         if (ss.statement)
         {
-            ScopeDsymbol sym = new ScopeDsymbol();
-            sym.parent = sc.scopesym;
-            sym.endlinnum = ss.endloc.linnum;
-            sc = sc.push(sym);
-
-            Statements* a = ss.statement.flatten(sc);
-            if (a)
+            if (ss.statement.isErrorStatement())
             {
-                ss.statement = new CompoundStatement(ss.loc, a);
+                sc.pop();
+                result = ss.statement;
+                return;
             }
 
-            ss.statement = ss.statement.statementSemantic(sc);
-            if (ss.statement)
+            Statement sentry;
+            Statement sexception;
+            Statement sfinally;
+            ss.statement = ss.statement.scopeCode(sc, &sentry, &sexception, &sfinally);
+            assert(!sentry);
+            assert(!sexception);
+            if (sfinally)
             {
-                if (ss.statement.isErrorStatement())
-                {
-                    sc.pop();
-                    result = ss.statement;
-                    return;
-                }
-
-                Statement sentry;
-                Statement sexception;
-                Statement sfinally;
-                ss.statement = ss.statement.scopeCode(sc, &sentry, &sexception, &sfinally);
-                assert(!sentry);
-                assert(!sexception);
-                if (sfinally)
-                {
-                    //printf("adding sfinally\n");
-                    sfinally = sfinally.statementSemantic(sc);
-                    ss.statement = new CompoundStatement(ss.loc, ss.statement, sfinally);
-                }
+                //printf("adding sfinally\n");
+                sfinally = sfinally.statementSemantic(sc);
+                ss.statement = new CompoundStatement(ss.loc, ss.statement, sfinally);
             }
-
-            sc.pop();
         }
+        sc.pop();
         result = ss;
     }
 
@@ -2766,80 +2770,84 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
 
 
-        if (ss.condition.type.isString())
+        if (!ss.condition.type.isString())
         {
-            // Transform a switch with string labels into a switch with integer labels.
-
-            // The integer value of each case corresponds to the index of each label
-            // string in the sorted array of label strings.
-
-            // The value of the integer condition is obtained by calling the druntime template
-            // switch(object.__switch(cond, options...)) {0: {...}, 1: {...}, ...}
-
-            // We sort a copy of the array of labels because we want to do a binary search in object.__switch,
-            // without modifying the order of the case blocks here in the compiler.
-
-            if (!verifyHookExist(ss.loc, *sc, Id.__switch, "switch cases on strings"))
-                return setError();
-
-            size_t numcases = 0;
-            if (ss.cases)
-                numcases = ss.cases.dim;
-
-            for (size_t i = 0; i < numcases; i++)
-            {
-                CaseStatement cs = (*ss.cases)[i];
-                cs.index = cast(int)i;
-            }
-
-            // Make a copy of all the cases so that qsort doesn't scramble the actual
-            // data we pass to codegen (the order of the cases in the switch).
-            CaseStatements *csCopy = (*ss.cases).copy();
-
-            if (numcases)
-            {
-                static int sort_compare(in CaseStatement* x, in CaseStatement* y) @trusted
-                {
-                    auto se1 = x.exp.isStringExp();
-                    auto se2 = y.exp.isStringExp();
-                    return (se1 && se2) ? se1.compare(se2) : 0;
-                }
-                // Sort cases for efficient lookup
-                csCopy.sort!sort_compare;
-            }
-
-            // The actual lowering
-            auto arguments = new Expressions();
-            arguments.push(ss.condition);
-
-            auto compileTimeArgs = new Objects();
-
-            // The type & label no.
-            compileTimeArgs.push(new TypeExp(ss.loc, ss.condition.type.nextOf()));
-
-            // The switch labels
-            foreach (caseString; *csCopy)
-            {
-                compileTimeArgs.push(caseString.exp);
-            }
-
-            Expression sl = new IdentifierExp(ss.loc, Id.empty);
-            sl = new DotIdExp(ss.loc, sl, Id.object);
-            sl = new DotTemplateInstanceExp(ss.loc, sl, Id.__switch, compileTimeArgs);
-
-            sl = new CallExp(ss.loc, sl, arguments);
-            sl = sl.expressionSemantic(sc);
-            ss.condition = sl;
-
-            auto i = 0;
-            foreach (c; *csCopy)
-            {
-                (*ss.cases)[c.index].exp = new IntegerExp(i++);
-            }
-
-            //printf("%s\n", ss._body.toChars());
-            ss.statementSemantic(sc);
+            sc.pop();
+            result = ss;
+            return;
         }
+
+        // Transform a switch with string labels into a switch with integer labels.
+
+        // The integer value of each case corresponds to the index of each label
+        // string in the sorted array of label strings.
+
+        // The value of the integer condition is obtained by calling the druntime template
+        // switch(object.__switch(cond, options...)) {0: {...}, 1: {...}, ...}
+
+        // We sort a copy of the array of labels because we want to do a binary search in object.__switch,
+        // without modifying the order of the case blocks here in the compiler.
+
+        if (!verifyHookExist(ss.loc, *sc, Id.__switch, "switch cases on strings"))
+            return setError();
+
+        size_t numcases = 0;
+        if (ss.cases)
+            numcases = ss.cases.dim;
+
+        for (size_t i = 0; i < numcases; i++)
+        {
+            CaseStatement cs = (*ss.cases)[i];
+            cs.index = cast(int)i;
+        }
+
+        // Make a copy of all the cases so that qsort doesn't scramble the actual
+        // data we pass to codegen (the order of the cases in the switch).
+        CaseStatements *csCopy = (*ss.cases).copy();
+
+        if (numcases)
+        {
+            static int sort_compare(in CaseStatement* x, in CaseStatement* y) @trusted
+            {
+                auto se1 = x.exp.isStringExp();
+                auto se2 = y.exp.isStringExp();
+                return (se1 && se2) ? se1.compare(se2) : 0;
+            }
+            // Sort cases for efficient lookup
+            csCopy.sort!sort_compare;
+        }
+
+        // The actual lowering
+        auto arguments = new Expressions();
+        arguments.push(ss.condition);
+
+        auto compileTimeArgs = new Objects();
+
+        // The type & label no.
+        compileTimeArgs.push(new TypeExp(ss.loc, ss.condition.type.nextOf()));
+
+        // The switch labels
+        foreach (caseString; *csCopy)
+        {
+            compileTimeArgs.push(caseString.exp);
+        }
+
+        Expression sl = new IdentifierExp(ss.loc, Id.empty);
+        sl = new DotIdExp(ss.loc, sl, Id.object);
+        sl = new DotTemplateInstanceExp(ss.loc, sl, Id.__switch, compileTimeArgs);
+
+        sl = new CallExp(ss.loc, sl, arguments);
+        sl = sl.expressionSemantic(sc);
+        ss.condition = sl;
+
+        auto i = 0;
+        foreach (c; *csCopy)
+        {
+            (*ss.cases)[c.index].exp = new IntegerExp(i++);
+        }
+
+        //printf("%s\n", ss._body.toChars());
+        ss.statementSemantic(sc);
 
         sc.pop();
         result = ss;
@@ -4358,80 +4366,82 @@ void catchSemantic(Catch c, Scope* sc)
     }
     c.type = c.type.typeSemantic(c.loc, sc);
     if (c.type == Type.terror)
-        c.errors = true;
-    else
     {
-        StorageClass stc;
-        auto cd = c.type.toBasetype().isClassHandle();
-        if (!cd)
-        {
-            error(c.loc, "can only catch class objects, not `%s`", c.type.toChars());
-            c.errors = true;
-        }
-        else if (cd.isCPPclass())
-        {
-            if (!target.cpp.exceptions)
-            {
-                error(c.loc, "catching C++ class objects not supported for this target");
-                c.errors = true;
-            }
-            if (sc.func && !sc.intypeof && !c.internalCatch && sc.func.setUnsafe())
-            {
-                error(c.loc, "cannot catch C++ class objects in `@safe` code");
-                c.errors = true;
-            }
-        }
-        else if (cd != ClassDeclaration.throwable && !ClassDeclaration.throwable.isBaseOf(cd, null))
-        {
-            error(c.loc, "can only catch class objects derived from `Throwable`, not `%s`", c.type.toChars());
-            c.errors = true;
-        }
-        else if (sc.func && !sc.intypeof && !c.internalCatch && ClassDeclaration.exception &&
-                 cd != ClassDeclaration.exception && !ClassDeclaration.exception.isBaseOf(cd, null) &&
-                 sc.func.setUnsafe())
-        {
-            error(c.loc, "can only catch class objects derived from `Exception` in `@safe` code, not `%s`", c.type.toChars());
-            c.errors = true;
-        }
-        else if (global.params.ehnogc)
-        {
-            stc |= STC.scope_;
-        }
-
-        // DIP1008 requires destruction of the Throwable, even if the user didn't specify an identifier
-        auto ident = c.ident;
-        if (!ident && global.params.ehnogc)
-            ident = Identifier.generateAnonymousId("var");
-
-        if (ident)
-        {
-            c.var = new VarDeclaration(c.loc, c.type, ident, null, stc);
-            c.var.iscatchvar = true;
-            c.var.dsymbolSemantic(sc);
-            sc.insert(c.var);
-
-            if (global.params.ehnogc && stc & STC.scope_)
-            {
-                /* Add a destructor for c.var
-                 * try { handler } finally { if (!__ctfe) _d_delThrowable(var); }
-                 */
-                assert(!c.var.edtor);           // ensure we didn't create one in callScopeDtor()
-
-                Loc loc = c.loc;
-                Expression e = new VarExp(loc, c.var);
-                e = new CallExp(loc, new IdentifierExp(loc, Id._d_delThrowable), e);
-
-                Expression ec = new IdentifierExp(loc, Id.ctfe);
-                ec = new NotExp(loc, ec);
-                Statement s = new IfStatement(loc, null, ec, new ExpStatement(loc, e), null, loc);
-                c.handler = new TryFinallyStatement(loc, c.handler, s);
-            }
-
-        }
-        c.handler = c.handler.statementSemantic(sc);
-        if (c.handler && c.handler.isErrorStatement())
-            c.errors = true;
+        c.errors = true;
+        sc.pop();
+        return;
     }
+
+    StorageClass stc;
+    auto cd = c.type.toBasetype().isClassHandle();
+    if (!cd)
+    {
+        error(c.loc, "can only catch class objects, not `%s`", c.type.toChars());
+        c.errors = true;
+    }
+    else if (cd.isCPPclass())
+    {
+        if (!target.cpp.exceptions)
+        {
+            error(c.loc, "catching C++ class objects not supported for this target");
+            c.errors = true;
+        }
+        if (sc.func && !sc.intypeof && !c.internalCatch && sc.func.setUnsafe())
+        {
+            error(c.loc, "cannot catch C++ class objects in `@safe` code");
+            c.errors = true;
+        }
+    }
+    else if (cd != ClassDeclaration.throwable && !ClassDeclaration.throwable.isBaseOf(cd, null))
+    {
+        error(c.loc, "can only catch class objects derived from `Throwable`, not `%s`", c.type.toChars());
+        c.errors = true;
+    }
+    else if (sc.func && !sc.intypeof && !c.internalCatch && ClassDeclaration.exception &&
+             cd != ClassDeclaration.exception && !ClassDeclaration.exception.isBaseOf(cd, null) &&
+             sc.func.setUnsafe())
+    {
+        error(c.loc, "can only catch class objects derived from `Exception` in `@safe` code, not `%s`", c.type.toChars());
+        c.errors = true;
+    }
+    else if (global.params.ehnogc)
+    {
+        stc |= STC.scope_;
+    }
+
+    // DIP1008 requires destruction of the Throwable, even if the user didn't specify an identifier
+    auto ident = c.ident;
+    if (!ident && global.params.ehnogc)
+        ident = Identifier.generateAnonymousId("var");
+
+    if (ident)
+    {
+        c.var = new VarDeclaration(c.loc, c.type, ident, null, stc);
+        c.var.iscatchvar = true;
+        c.var.dsymbolSemantic(sc);
+        sc.insert(c.var);
+
+        if (global.params.ehnogc && stc & STC.scope_)
+        {
+            /* Add a destructor for c.var
+             * try { handler } finally { if (!__ctfe) _d_delThrowable(var); }
+             */
+            assert(!c.var.edtor);           // ensure we didn't create one in callScopeDtor()
+
+            Loc loc = c.loc;
+            Expression e = new VarExp(loc, c.var);
+            e = new CallExp(loc, new IdentifierExp(loc, Id._d_delThrowable), e);
+
+            Expression ec = new IdentifierExp(loc, Id.ctfe);
+            ec = new NotExp(loc, ec);
+            Statement s = new IfStatement(loc, null, ec, new ExpStatement(loc, e), null, loc);
+            c.handler = new TryFinallyStatement(loc, c.handler, s);
+        }
+
+    }
+    c.handler = c.handler.statementSemantic(sc);
+    if (c.handler && c.handler.isErrorStatement())
+        c.errors = true;
 
     sc.pop();
 }
