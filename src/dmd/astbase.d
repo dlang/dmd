@@ -11,6 +11,7 @@
 module dmd.astbase;
 
 import dmd.astenums;
+import dmd.astmembers;
 import dmd.parsetimevisitor;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
@@ -256,19 +257,7 @@ struct ASTBase
 
     extern (C++) class AliasThis : Dsymbol
     {
-        Identifier ident;
-
-        extern (D) this(const ref Loc loc, Identifier ident)
-        {
-            super(null);
-            this.loc = loc;
-            this.ident = ident;
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
+        mixin parseTimePropertiesAliasThis;
     }
 
     extern (C++) final class AliasAssign : Dsymbol

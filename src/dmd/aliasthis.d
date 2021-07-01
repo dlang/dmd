@@ -15,6 +15,7 @@ module dmd.aliasthis;
 
 import core.stdc.stdio;
 import dmd.aggregate;
+import dmd.astmembers;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
@@ -31,17 +32,12 @@ import dmd.visitor;
  */
 extern (C++) final class AliasThis : Dsymbol
 {
-    Identifier ident;
     /// The symbol this `alias this` resolves to
     Dsymbol sym;
     /// Whether this `alias this` is deprecated or not
     bool isDeprecated_;
 
-    extern (D) this(const ref Loc loc, Identifier ident)
-    {
-        super(loc, null);    // it's anonymous (no identifier)
-        this.ident = ident;
-    }
+    mixin parseTimePropertiesAliasThis;
 
     override AliasThis syntaxCopy(Dsymbol s)
     {
@@ -59,11 +55,6 @@ extern (C++) final class AliasThis : Dsymbol
     AliasThis isAliasThis()
     {
         return this;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
     }
 
     override bool isDeprecated() const
