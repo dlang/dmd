@@ -105,32 +105,33 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (errors)
         {
             errorSupplemental(sa.loc, "while evaluating: `static assert(%s)`", sa.exp.toChars());
+            return;
         }
-        else if (!result)
+        else if (result)
+            return;
+
+        if (sa.msg)
         {
-            if (sa.msg)
+            sc = sc.startCTFE();
+            sa.msg = sa.msg.expressionSemantic(sc);
+            sa.msg = resolveProperties(sc, sa.msg);
+            sc = sc.endCTFE();
+            sa.msg = sa.msg.ctfeInterpret();
+            if (StringExp se = sa.msg.toStringExp())
             {
-                sc = sc.startCTFE();
-                sa.msg = sa.msg.expressionSemantic(sc);
-                sa.msg = resolveProperties(sc, sa.msg);
-                sc = sc.endCTFE();
-                sa.msg = sa.msg.ctfeInterpret();
-                if (StringExp se = sa.msg.toStringExp())
-                {
-                    // same with pragma(msg)
-                    const slice = se.toUTF8(sc).peekString();
-                    error(sa.loc, "static assert:  \"%.*s\"", cast(int)slice.length, slice.ptr);
-                }
-                else
-                    error(sa.loc, "static assert:  %s", sa.msg.toChars());
+                // same with pragma(msg)
+                const slice = se.toUTF8(sc).peekString();
+                error(sa.loc, "static assert:  \"%.*s\"", cast(int)slice.length, slice.ptr);
             }
             else
-                error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
-            if (sc.tinst)
-                sc.tinst.printInstantiationTrace();
-            if (!global.gag)
-                fatal();
+                error(sa.loc, "static assert:  %s", sa.msg.toChars());
         }
+        else
+            error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
+        if (sc.tinst)
+            sc.tinst.printInstantiationTrace();
+        if (!global.gag)
+            fatal();
     }
 
     override void visit(TemplateInstance tempinst)
@@ -141,58 +142,55 @@ private extern(C++) final class Semantic2Visitor : Visitor
         static if (LOG)
         {
             printf("+TemplateInstance.semantic2('%s')\n", tempinst.toChars());
+            scope(exit) printf("-TemplateInstance.semantic2('%s')\n", tempinst.toChars());
         }
-        if (!tempinst.errors && tempinst.members)
+        if (tempinst.errors || !tempinst.members)
+            return;
+
+        TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
+        assert(tempdecl);
+
+        sc = tempdecl._scope;
+        assert(sc);
+        sc = sc.push(tempinst.argsym);
+        sc = sc.push(tempinst);
+        sc.tinst = tempinst;
+        sc.minst = tempinst.minst;
+
+        int needGagging = (tempinst.gagged && !global.gag);
+        uint olderrors = global.errors;
+        int oldGaggedErrors = -1; // dead-store to prevent spurious warning
+        if (needGagging)
+            oldGaggedErrors = global.startGagging();
+
+        for (size_t i = 0; i < tempinst.members.dim; i++)
         {
-            TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
-            assert(tempdecl);
-
-            sc = tempdecl._scope;
-            assert(sc);
-            sc = sc.push(tempinst.argsym);
-            sc = sc.push(tempinst);
-            sc.tinst = tempinst;
-            sc.minst = tempinst.minst;
-
-            int needGagging = (tempinst.gagged && !global.gag);
-            uint olderrors = global.errors;
-            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
-            if (needGagging)
-                oldGaggedErrors = global.startGagging();
-
-            for (size_t i = 0; i < tempinst.members.dim; i++)
+            Dsymbol s = (*tempinst.members)[i];
+            static if (LOG)
             {
-                Dsymbol s = (*tempinst.members)[i];
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
-                if (tempinst.gagged && global.errors != olderrors)
-                    break;
+                printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
             }
-
-            if (global.errors != olderrors)
-            {
-                if (!tempinst.errors)
-                {
-                    if (!tempdecl.literal)
-                        tempinst.error(tempinst.loc, "error instantiating");
-                    if (tempinst.tinst)
-                        tempinst.tinst.printInstantiationTrace();
-                }
-                tempinst.errors = true;
-            }
-            if (needGagging)
-                global.endGagging(oldGaggedErrors);
-
-            sc = sc.pop();
-            sc.pop();
+            s.semantic2(sc);
+            if (tempinst.gagged && global.errors != olderrors)
+                break;
         }
-        static if (LOG)
+
+        if (global.errors != olderrors)
         {
-            printf("-TemplateInstance.semantic2('%s')\n", tempinst.toChars());
+            if (!tempinst.errors)
+            {
+                if (!tempdecl.literal)
+                    tempinst.error(tempinst.loc, "error instantiating");
+                if (tempinst.tinst)
+                    tempinst.tinst.printInstantiationTrace();
+            }
+            tempinst.errors = true;
         }
+        if (needGagging)
+            global.endGagging(oldGaggedErrors);
+
+        sc = sc.pop();
+        sc.pop();
     }
 
     override void visit(TemplateMixin tmix)
@@ -203,30 +201,27 @@ private extern(C++) final class Semantic2Visitor : Visitor
         static if (LOG)
         {
             printf("+TemplateMixin.semantic2('%s')\n", tmix.toChars());
+            scope(exit) printf("-TemplateMixin.semantic2('%s')\n", tmix.toChars());
         }
-        if (tmix.members)
+        if (!tmix.members)
+            return;
+
+        assert(sc);
+        sc = sc.push(tmix.argsym);
+        sc = sc.push(tmix);
+        sc.tinst = tmix;
+        sc.minst = tmix.minst;
+        for (size_t i = 0; i < tmix.members.dim; i++)
         {
-            assert(sc);
-            sc = sc.push(tmix.argsym);
-            sc = sc.push(tmix);
-            sc.tinst = tmix;
-            sc.minst = tmix.minst;
-            for (size_t i = 0; i < tmix.members.dim; i++)
+            Dsymbol s = (*tmix.members)[i];
+            static if (LOG)
             {
-                Dsymbol s = (*tmix.members)[i];
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
+                printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
             }
-            sc = sc.pop();
-            sc.pop();
+            s.semantic2(sc);
         }
-        static if (LOG)
-        {
-            printf("-TemplateMixin.semantic2('%s')\n", tmix.toChars());
-        }
+        sc = sc.pop();
+        sc.pop();
     }
 
     override void visit(VarDeclaration vd)
@@ -474,15 +469,15 @@ private extern(C++) final class Semantic2Visitor : Visitor
     override void visit(Import i)
     {
         //printf("Import::semantic2('%s')\n", toChars());
-        if (i.mod)
+        if (!i.mod)
+            return;
+
+        i.mod.semantic2(null);
+        if (i.mod.needmoduleinfo)
         {
-            i.mod.semantic2(null);
-            if (i.mod.needmoduleinfo)
-            {
-                //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                if (sc)
-                    sc._module.needmoduleinfo = 1;
-            }
+            //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
+            if (sc)
+                sc._module.needmoduleinfo = 1;
         }
     }
 
@@ -494,43 +489,40 @@ private extern(C++) final class Semantic2Visitor : Visitor
         static if (LOG)
         {
             printf("+Nspace::semantic2('%s')\n", ns.toChars());
+            scope(exit) printf("-Nspace::semantic2('%s')\n", ns.toChars());
         }
         UserAttributeDeclaration.checkGNUABITag(ns, LINK.cpp);
-        if (ns.members)
+        if (!ns.members)
+            return;
+
+        assert(sc);
+        sc = sc.push(ns);
+        sc.linkage = LINK.cpp;
+        foreach (s; *ns.members)
         {
-            assert(sc);
-            sc = sc.push(ns);
-            sc.linkage = LINK.cpp;
-            foreach (s; *ns.members)
+            static if (LOG)
             {
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
+                printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
             }
-            sc.pop();
+            s.semantic2(sc);
         }
-        static if (LOG)
-        {
-            printf("-Nspace::semantic2('%s')\n", ns.toChars());
-        }
+        sc.pop();
     }
 
     override void visit(AttribDeclaration ad)
     {
         Dsymbols* d = ad.include(sc);
-        if (d)
+        if (!d)
+            return;
+
+        Scope* sc2 = ad.newScope(sc);
+        for (size_t i = 0; i < d.dim; i++)
         {
-            Scope* sc2 = ad.newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic2(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
+            Dsymbol s = (*d)[i];
+            s.semantic2(sc2);
         }
+        if (sc2 != sc)
+            sc2.pop();
     }
 
     /**
@@ -563,34 +555,34 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(UserAttributeDeclaration uad)
     {
-        if (uad.decl && uad.atts && uad.atts.dim && uad._scope)
+        if (!uad.decl || !uad.atts || !uad.atts.dim || !uad._scope)
+            return visit(cast(AttribDeclaration)uad);
+
+        Expression* lastTag;
+        static void eval(Scope* sc, Expressions* exps, ref Expression* lastTag)
         {
-            Expression* lastTag;
-            static void eval(Scope* sc, Expressions* exps, ref Expression* lastTag)
+            foreach (ref Expression e; *exps)
             {
-                foreach (ref Expression e; *exps)
+                if (!e)
+                    continue;
+
+                e = e.expressionSemantic(sc);
+                if (definitelyValueParameter(e))
+                    e = e.ctfeInterpret();
+                if (e.op == TOK.tuple)
                 {
-                    if (e)
-                    {
-                        e = e.expressionSemantic(sc);
-                        if (definitelyValueParameter(e))
-                            e = e.ctfeInterpret();
-                        if (e.op == TOK.tuple)
-                        {
-                            TupleExp te = cast(TupleExp)e;
-                            eval(sc, te.exps, lastTag);
-                        }
-
-                        // Handles compiler-recognized `core.attribute.gnuAbiTag`
-                        if (UserAttributeDeclaration.isGNUABITag(e))
-                            doGNUABITagSemantic(e, lastTag);
-                    }
+                    TupleExp te = cast(TupleExp)e;
+                    eval(sc, te.exps, lastTag);
                 }
-            }
 
-            uad._scope = null;
-            eval(sc, uad.atts, lastTag);
+                // Handles compiler-recognized `core.attribute.gnuAbiTag`
+                if (UserAttributeDeclaration.isGNUABITag(e))
+                    doGNUABITagSemantic(e, lastTag);
+            }
         }
+
+        uad._scope = null;
+        eval(sc, uad.atts, lastTag);
         visit(cast(AttribDeclaration)uad);
     }
 
@@ -657,7 +649,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         if (fd.toParent() != cd && ifd.toParent() == base.sym)
                             cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
                     }
-
                     else
                     {
                         //printf("            not found %p\n", fd);
