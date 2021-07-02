@@ -567,7 +567,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             error(Loc.initial, "no input files");
             return EXIT_FAILURE;
         }
-        library = Library.factory();
+        library = Library.factory(target.objectFormat());
         library.setFilename(params.objdir, params.libname);
         // Add input object and input library files to output library
         foreach (p; libmodules)
