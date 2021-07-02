@@ -327,19 +327,6 @@ extern (C++) abstract class Statement : ASTNode
         return walkPostorder(this, hc);
     }
 
-    /*********************************
-     * Flatten out the scope by presenting the statement
-     * as an array of statements.
-     * Params:
-     *     sc = context
-     * Returns:
-     *     The array of `Statements`, or `null` if no flattening necessary
-     */
-    Statements* flatten(Scope* sc)
-    {
-        return null;
-    }
-
     /*******************************
      * Find last statement in a sequence of statements.
      * Returns:
@@ -384,6 +371,8 @@ extern (C++) abstract class Statement : ASTNode
     inout(CompoundStatement)    isCompoundStatement()    { return stmt == STMT.Compound    ? cast(typeof(return))this : null; }
     inout(ReturnStatement)      isReturnStatement()      { return stmt == STMT.Return      ? cast(typeof(return))this : null; }
     inout(IfStatement)          isIfStatement()          { return stmt == STMT.If          ? cast(typeof(return))this : null; }
+    inout(ConditionalStatement) isConditionalStatement() { return stmt == STMT.Conditional ? cast(typeof(return))this : null; }
+    inout(StaticForeachStatement) isStaticForeachStatement() { return stmt == STMT.StaticForeach ? cast(typeof(return))this : null; }
     inout(CaseStatement)        isCaseStatement()        { return stmt == STMT.Case        ? cast(typeof(return))this : null; }
     inout(DefaultStatement)     isDefaultStatement()     { return stmt == STMT.Default     ? cast(typeof(return))this : null; }
     inout(LabelStatement)       isLabelStatement()       { return stmt == STMT.Label       ? cast(typeof(return))this : null; }
@@ -392,6 +381,7 @@ extern (C++) abstract class Statement : ASTNode
     inout(GotoCaseStatement)    isGotoCaseStatement()    { return stmt == STMT.GotoCase    ? cast(typeof(return))this : null; }
     inout(BreakStatement)       isBreakStatement()       { return stmt == STMT.Break       ? cast(typeof(return))this : null; }
     inout(DtorExpStatement)     isDtorExpStatement()     { return stmt == STMT.DtorExp     ? cast(typeof(return))this : null; }
+    inout(CompileStatement)     isCompileStatement()     { return stmt == STMT.Compile     ? cast(typeof(return))this : null; }
     inout(ForwardingStatement)  isForwardingStatement()  { return stmt == STMT.Forwarding  ? cast(typeof(return))this : null; }
     inout(DoStatement)          isDoStatement()          { return stmt == STMT.Do          ? cast(typeof(return))this : null; }
     inout(WhileStatement)       isWhileStatement()       { return stmt == STMT.While       ? cast(typeof(return))this : null; }
@@ -402,6 +392,7 @@ extern (C++) abstract class Statement : ASTNode
     inout(WithStatement)        isWithStatement()        { return stmt == STMT.With        ? cast(typeof(return))this : null; }
     inout(TryCatchStatement)    isTryCatchStatement()    { return stmt == STMT.TryCatch    ? cast(typeof(return))this : null; }
     inout(ThrowStatement)       isThrowStatement()       { return stmt == STMT.Throw       ? cast(typeof(return))this : null; }
+    inout(DebugStatement)       isDebugStatement()       { return stmt == STMT.Debug       ? cast(typeof(return))this : null; }
     inout(TryFinallyStatement)  isTryFinallyStatement()  { return stmt == STMT.TryFinally  ? cast(typeof(return))this : null; }
     inout(ScopeGuardStatement)  isScopeGuardStatement()  { return stmt == STMT.ScopeGuard  ? cast(typeof(return))this : null; }
     inout(SwitchErrorStatement)  isSwitchErrorStatement()  { return stmt == STMT.SwitchError  ? cast(typeof(return))this : null; }
@@ -644,44 +635,6 @@ extern (C++) class ExpStatement : Statement
         return new ExpStatement(loc, exp ? exp.syntaxCopy() : null);
     }
 
-    override final Statements* flatten(Scope* sc)
-    {
-        /* https://issues.dlang.org/show_bug.cgi?id=14243
-         * expand template mixin in statement scope
-         * to handle variable destructors.
-         */
-        if (exp && exp.op == TOK.declaration)
-        {
-            Dsymbol d = (cast(DeclarationExp)exp).declaration;
-            if (TemplateMixin tm = d.isTemplateMixin())
-            {
-                Expression e = exp.expressionSemantic(sc);
-                if (e.op == TOK.error || tm.errors)
-                {
-                    auto a = new Statements();
-                    a.push(new ErrorStatement());
-                    return a;
-                }
-                assert(tm.members);
-
-                Statement s = toStatement(tm);
-                version (none)
-                {
-                    OutBuffer buf;
-                    buf.doindent = 1;
-                    HdrGenState hgs;
-                    hgs.hdrgen = true;
-                    toCBuffer(s, &buf, &hgs);
-                    printf("tm ==> s = %s\n", buf.peekChars());
-                }
-                auto a = new Statements();
-                a.push(s);
-                return a;
-            }
-        }
-        return null;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -735,46 +688,6 @@ extern (C++) final class CompileStatement : Statement
     override CompileStatement syntaxCopy()
     {
         return new CompileStatement(loc, Expression.arraySyntaxCopy(exps));
-    }
-
-    private Statements* compileIt(Scope* sc)
-    {
-        //printf("CompileStatement::compileIt() %s\n", exp.toChars());
-
-        auto errorStatements()
-        {
-            auto a = new Statements();
-            a.push(new ErrorStatement());
-            return a;
-        }
-
-
-        OutBuffer buf;
-        if (expressionsToString(buf, sc, exps))
-            return errorStatements();
-
-        const errors = global.errors;
-        const len = buf.length;
-        buf.writeByte(0);
-        const str = buf.extractSlice()[0 .. len];
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
-        p.nextToken();
-
-        auto a = new Statements();
-        while (p.token.value != TOK.endOfFile)
-        {
-            Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
-            if (!s || global.errors != errors)
-                return errorStatements();
-            a.push(s);
-        }
-        return a;
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        //printf("CompileStatement::flatten() %s\n", exp.toChars());
-        return compileIt(sc);
     }
 
     override void accept(Visitor v)
@@ -834,11 +747,6 @@ extern (C++) class CompoundStatement : Statement
     override CompoundStatement syntaxCopy()
     {
         return new CompoundStatement(loc, Statement.arraySyntaxCopy(statements));
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        return statements;
     }
 
     override final inout(ReturnStatement) endsWithReturnStatement() inout nothrow pure
@@ -1016,39 +924,6 @@ extern (C++) final class ForwardingStatement : Statement
     override ForwardingStatement syntaxCopy()
     {
         return new ForwardingStatement(loc, statement.syntaxCopy());
-    }
-
-    /***********************
-     * ForwardingStatements are distributed over the flattened
-     * sequence of statements. This prevents flattening to be
-     * "blocked" by a ForwardingStatement and is necessary, for
-     * example, to support generating scope guards with `static
-     * foreach`:
-     *
-     *     static foreach(i; 0 .. 10) scope(exit) writeln(i);
-     *     writeln("this is printed first");
-     *     // then, it prints 10, 9, 8, 7, ...
-     */
-
-    override Statements* flatten(Scope* sc)
-    {
-        if (!statement)
-        {
-            return null;
-        }
-        sc = sc.push(sym);
-        auto a = statement.flatten(sc);
-        sc = sc.pop();
-        if (!a)
-        {
-            return a;
-        }
-        auto b = new Statements(a.dim);
-        foreach (i, s; *a)
-        {
-            (*b)[i] = s ? new ForwardingStatement(s.loc, sym, s) : null;
-        }
-        return b;
     }
 
     override void accept(Visitor v)
@@ -1360,30 +1235,6 @@ extern (C++) final class ConditionalStatement : Statement
         return new ConditionalStatement(loc, condition.syntaxCopy(), ifbody.syntaxCopy(), elsebody ? elsebody.syntaxCopy() : null);
     }
 
-    override Statements* flatten(Scope* sc)
-    {
-        Statement s;
-
-        //printf("ConditionalStatement::flatten()\n");
-        if (condition.include(sc))
-        {
-            DebugCondition dc = condition.isDebugCondition();
-            if (dc)
-            {
-                s = new DebugStatement(loc, ifbody);
-                debugThrowWalker(ifbody);
-            }
-            else
-                s = ifbody;
-        }
-        else
-            s = elsebody;
-
-        auto a = new Statements();
-        a.push(s);
-        return a;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1445,30 +1296,6 @@ extern (C++) final class StaticForeachStatement : Statement
     override StaticForeachStatement syntaxCopy()
     {
         return new StaticForeachStatement(loc, sfe.syntaxCopy());
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        sfe.prepare(sc);
-        if (sfe.ready())
-        {
-            import dmd.statementsem;
-            auto s = makeTupleForeach!(true, false)(sc, sfe.aggrfe, sfe.needExpansion);
-            auto result = s.flatten(sc);
-            if (result)
-            {
-                return result;
-            }
-            result = new Statements();
-            result.push(s);
-            return result;
-        }
-        else
-        {
-            auto result = new Statements();
-            result.push(new ErrorStatement());
-            return result;
-        }
     }
 
     override void accept(Visitor v)
@@ -2098,19 +1925,6 @@ extern (C++) final class DebugStatement : Statement
         return new DebugStatement(loc, statement ? statement.syntaxCopy() : null);
     }
 
-    override Statements* flatten(Scope* sc)
-    {
-        Statements* a = statement ? statement.flatten(sc) : null;
-        if (a)
-        {
-            foreach (ref s; *a)
-            {
-                s = new DebugStatement(loc, s);
-            }
-        }
-        return a;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2244,27 +2058,6 @@ extern (C++) final class LabelStatement : Statement
     override LabelStatement syntaxCopy()
     {
         return new LabelStatement(loc, ident, statement ? statement.syntaxCopy() : null);
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        Statements* a = null;
-        if (statement)
-        {
-            a = statement.flatten(sc);
-            if (a)
-            {
-                if (!a.dim)
-                {
-                    a.push(new ExpStatement(loc, cast(Expression)null));
-                }
-
-                // reuse 'this' LabelStatement
-                this.statement = (*a)[0];
-                (*a)[0] = this;
-            }
-        }
-        return a;
     }
 
     override void accept(Visitor v)
@@ -2416,11 +2209,6 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
         return new CompoundAsmStatement(loc, a, stc);
     }
 
-    override Statements* flatten(Scope* sc)
-    {
-        return null;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2453,5 +2241,207 @@ extern (C++) final class ImportStatement : Statement
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+/*********************************
+ * Flatten out the scope by presenting `statement`
+ * as an array of statements.
+ * Params:
+ *     statement = the statement to flatten
+ *     sc = context
+ * Returns:
+ *     The array of `Statements`, or `null` if no flattening necessary
+ */
+Statements* flatten(Statement statement, Scope* sc)
+{
+    /*compound and expression statements have classes that inherit from them with the same
+     *flattening behavior, so the isXXX methods won't work
+     */
+    switch(statement.stmt)
+    {
+        case STMT.Compound:
+        case STMT.CompoundDeclaration:
+            return (cast(CompoundStatement)statement).statements;
+
+        case STMT.Exp:
+        case STMT.DtorExp:
+            auto es = cast(ExpStatement)statement;
+            /* https://issues.dlang.org/show_bug.cgi?id=14243
+             * expand template mixin in statement scope
+             * to handle variable destructors.
+             */
+            if (es.exp && es.exp.op == TOK.declaration)
+            {
+                Dsymbol d = (cast(DeclarationExp)es.exp).declaration;
+                if (TemplateMixin tm = d.isTemplateMixin())
+                {
+                    Expression e = es.exp.expressionSemantic(sc);
+                    if (e.op == TOK.error || tm.errors)
+                    {
+                        auto a = new Statements();
+                        a.push(new ErrorStatement());
+                        return a;
+                    }
+                    assert(tm.members);
+
+                    Statement s = toStatement(tm);
+                    version (none)
+                    {
+                        OutBuffer buf;
+                        buf.doindent = 1;
+                        HdrGenState hgs;
+                        hgs.hdrgen = true;
+                        toCBuffer(s, &buf, &hgs);
+                        printf("tm ==> s = %s\n", buf.peekChars());
+                    }
+                    auto a = new Statements();
+                    a.push(s);
+                    return a;
+                }
+            }
+            return null;
+        case STMT.Forwarding:
+            /***********************
+             * ForwardingStatements are distributed over the flattened
+             * sequence of statements. This prevents flattening to be
+             * "blocked" by a ForwardingStatement and is necessary, for
+             * example, to support generating scope guards with `static
+             * foreach`:
+             *
+             *     static foreach(i; 0 .. 10) scope(exit) writeln(i);
+             *     writeln("this is printed first");
+             *     // then, it prints 10, 9, 8, 7, ...
+             */
+            auto fs = statement.isForwardingStatement();
+            if (!fs.statement)
+            {
+                return null;
+            }
+            sc = sc.push(fs.sym);
+            auto a = fs.statement.flatten(sc);
+            sc = sc.pop();
+            if (!a)
+            {
+                return a;
+            }
+            auto b = new Statements(a.dim);
+            foreach (i, s; *a)
+            {
+                (*b)[i] = s ? new ForwardingStatement(s.loc, fs.sym, s) : null;
+            }
+            return b;
+
+        case STMT.Conditional:
+            auto cs = statement.isConditionalStatement();
+            Statement s;
+
+            //printf("ConditionalStatement::flatten()\n");
+            if (cs.condition.include(sc))
+            {
+                DebugCondition dc = cs.condition.isDebugCondition();
+                if (dc)
+                {
+                    s = new DebugStatement(cs.loc, cs.ifbody);
+                    debugThrowWalker(cs.ifbody);
+                }
+                else
+                    s = cs.ifbody;
+            }
+            else
+                s = cs.elsebody;
+
+            auto a = new Statements();
+            a.push(s);
+            return a;
+
+        case STMT.StaticForeach:
+            auto sfs = statement.isStaticForeachStatement();
+            sfs.sfe.prepare(sc);
+            if (sfs.sfe.ready())
+            {
+                import dmd.statementsem;
+                auto s = makeTupleForeach!(true, false)(sc, sfs.sfe.aggrfe, sfs.sfe.needExpansion);
+                auto result = s.flatten(sc);
+                if (result)
+                {
+                    return result;
+                }
+                result = new Statements();
+                result.push(s);
+                return result;
+            }
+            else
+            {
+                auto result = new Statements();
+                result.push(new ErrorStatement());
+                return result;
+            }
+
+        case STMT.Debug:
+            auto ds = statement.isDebugStatement();
+            Statements* a = ds.statement ? ds.statement.flatten(sc) : null;
+            if (a)
+            {
+                foreach (ref s; *a)
+                {
+                    s = new DebugStatement(ds.loc, s);
+                }
+            }
+            return a;
+
+        case STMT.Label:
+            auto ls = statement.isLabelStatement();
+            Statements* a = null;
+            if (ls.statement)
+            {
+                a = ls.statement.flatten(sc);
+                if (a)
+                {
+                    if (!a.dim)
+                    {
+                        a.push(new ExpStatement(ls.loc, cast(Expression)null));
+                    }
+
+                    // reuse 'this' LabelStatement
+                    ls.statement = (*a)[0];
+                    (*a)[0] = ls;
+                }
+            }
+            return a;
+
+        case STMT.Compile:
+            auto cs = statement.isCompileStatement();
+
+            auto errorStatements()
+            {
+                auto a = new Statements();
+                a.push(new ErrorStatement());
+                return a;
+            }
+
+
+            OutBuffer buf;
+            if (expressionsToString(buf, sc, cs.exps))
+                return errorStatements();
+
+            const errors = global.errors;
+            const len = buf.length;
+            buf.writeByte(0);
+            const str = buf.extractSlice()[0 .. len];
+            scope p = new Parser!ASTCodegen(cs.loc, sc._module, str, false);
+            p.nextToken();
+
+            auto a = new Statements();
+            while (p.token.value != TOK.endOfFile)
+            {
+                Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
+                if (!s || global.errors != errors)
+                    return errorStatements();
+                a.push(s);
+            }
+            return a;
+        default:
+            return null;
     }
 }

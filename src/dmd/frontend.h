@@ -277,11 +277,14 @@ class ErrorStatement;
 class ExpStatement;
 class CompoundStatement;
 class IfStatement;
+class ConditionalStatement;
+class StaticForeachStatement;
 class DefaultStatement;
 class LabelStatement;
 class GotoDefaultStatement;
 class BreakStatement;
 class DtorExpStatement;
+class CompileStatement;
 class ForwardingStatement;
 class DoStatement;
 class WhileStatement;
@@ -290,6 +293,7 @@ class SwitchStatement;
 class ContinueStatement;
 class TryCatchStatement;
 class ThrowStatement;
+class DebugStatement;
 class TryFinallyStatement;
 class ScopeGuardStatement;
 class SwitchErrorStatement;
@@ -3807,7 +3811,6 @@ public:
     bool usesEH();
     bool comeFrom();
     bool hasCode();
-    virtual Array<Statement* >* flatten(Scope* sc);
     virtual Statement* last();
     void accept(Visitor* v);
     virtual ReturnStatement* endsWithReturnStatement();
@@ -3817,6 +3820,8 @@ public:
     CompoundStatement* isCompoundStatement();
     ReturnStatement* isReturnStatement();
     IfStatement* isIfStatement();
+    ConditionalStatement* isConditionalStatement();
+    StaticForeachStatement* isStaticForeachStatement();
     CaseStatement* isCaseStatement();
     DefaultStatement* isDefaultStatement();
     LabelStatement* isLabelStatement();
@@ -3825,6 +3830,7 @@ public:
     GotoCaseStatement* isGotoCaseStatement();
     BreakStatement* isBreakStatement();
     DtorExpStatement* isDtorExpStatement();
+    CompileStatement* isCompileStatement();
     ForwardingStatement* isForwardingStatement();
     DoStatement* isDoStatement();
     WhileStatement* isWhileStatement();
@@ -3835,6 +3841,7 @@ public:
     WithStatement* isWithStatement();
     TryCatchStatement* isTryCatchStatement();
     ThrowStatement* isThrowStatement();
+    DebugStatement* isDebugStatement();
     TryFinallyStatement* isTryFinallyStatement();
     ScopeGuardStatement* isScopeGuardStatement();
     SwitchErrorStatement* isSwitchErrorStatement();
@@ -3899,7 +3906,6 @@ class CompileStatement final : public Statement
 public:
     Array<Expression* >* exps;
     CompileStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
 
@@ -3909,7 +3915,6 @@ public:
     Array<Statement* >* statements;
     static CompoundStatement* create(Loc loc, Statement* s1, Statement* s2);
     CompoundStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     ReturnStatement* endsWithReturnStatement();
     Statement* last();
     void accept(Visitor* v);
@@ -3920,7 +3925,6 @@ class CompoundAsmStatement final : public CompoundStatement
 public:
     StorageClass stc;
     CompoundAsmStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
 
@@ -3938,7 +3942,6 @@ public:
     Statement* ifbody;
     Statement* elsebody;
     ConditionalStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
 
@@ -3955,7 +3958,6 @@ class DebugStatement final : public Statement
 public:
     Statement* statement;
     DebugStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
 
@@ -3986,7 +3988,6 @@ public:
     Expression* exp;
     static ExpStatement* create(Loc loc, Expression* exp);
     ExpStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
 
@@ -4062,7 +4063,6 @@ public:
     ForwardingScopeDsymbol* sym;
     Statement* statement;
     ForwardingStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
 
@@ -4169,7 +4169,6 @@ public:
     void* extra;
     bool breaks;
     LabelStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
 
@@ -4234,7 +4233,6 @@ class StaticForeachStatement final : public Statement
 public:
     StaticForeach* sfe;
     StaticForeachStatement* syntaxCopy();
-    Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
 
