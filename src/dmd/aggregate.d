@@ -210,15 +210,16 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.storage_class & STC.ref_)
                 return 0;
             auto tv = v.type.baseElemOf();
-            if (tv.ty != Tstruct)
-                return 0;
-            if (ad == (cast(TypeStruct)tv).sym)
+            if (auto tvs = tv.isTypeStruct())
             {
-                const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
-                ad.error("cannot have field `%s` with %ssame struct type", v.toChars(), psz);
-                ad.type = Type.terror;
-                ad.errors = true;
-                return 1;
+                if (ad == tvs.sym)
+                {
+                    const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
+                    ad.error("cannot have field `%s` with %ssame struct type", v.toChars(), psz);
+                    ad.type = Type.terror;
+                    ad.errors = true;
+                    return 1;
+                }
             }
             return 0;
         }
@@ -538,8 +539,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                          * will return the base of the enum, and its default initializer
                          * would be different from the enum's.
                          */
-                        while (telem.toBasetype().ty == Tsarray)
-                            telem = (cast(TypeSArray)telem.toBasetype()).next;
+                        TypeSArray tsa;
+                        while ((tsa = telem.toBasetype().isTypeSArray()) !is null)
+                            telem = tsa.next;
                         if (telem.ty == Tvoid)
                             telem = Type.tuns8.addMod(telem.mod);
                     }

@@ -197,10 +197,10 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
     if (!e)
         return false;
 
-    if (e.type.ty == Tclass)
+    if (auto tc = e.type.isTypeClass())
     {
         // Do access check
-        ClassDeclaration cd = (cast(TypeClass)e.type).sym;
+        ClassDeclaration cd = tc.sym;
         if (e.op == TOK.super_)
         {
             if (ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration())
@@ -208,10 +208,10 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
         }
         return checkAccess(cd, loc, sc, d);
     }
-    else if (e.type.ty == Tstruct)
+    else if (auto ts = e.type.isTypeStruct())
     {
         // Do access check
-        StructDeclaration cd = (cast(TypeStruct)e.type).sym;
+        StructDeclaration cd = ts.sym;
         return checkAccess(cd, loc, sc, d);
     }
     return false;
