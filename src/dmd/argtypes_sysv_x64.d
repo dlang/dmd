@@ -281,8 +281,8 @@ extern (C++) final class ToClassesVisitor : Visitor
     {
         // treat as struct with N fields
 
-        Type baseElemType = t.next.toBasetype();
-        if (baseElemType.ty == Tstruct && !(cast(TypeStruct) baseElemType).sym.isPOD())
+        auto baseElemType = t.next.toBasetype().isTypeStruct();
+        if (baseElemType && !baseElemType.sym.isPOD())
             return memory();
 
         classifyStaticArrayElements(0, t);
@@ -344,10 +344,10 @@ extern (C++) final class ToClassesVisitor : Visitor
             if (foffset & (ftypeAlignment - 1)) // not aligned
                 return memory();
 
-            if (ftype.ty == Tstruct)
-                classifyStructFields(foffset, cast(TypeStruct) ftype);
-            else if (ftype.ty == Tsarray)
-                classifyStaticArrayElements(foffset, cast(TypeSArray) ftype);
+            if (auto ts = ftype.isTypeStruct())
+                classifyStructFields(foffset, ts);
+            else if (auto tsa = ftype.isTypeSArray())
+                classifyStaticArrayElements(foffset, tsa);
             else
             {
                 const fEightbyteStart = foffset / 8;
