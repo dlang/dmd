@@ -61,14 +61,41 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     $(P ImportC does not have a preprocessor. It is designed to compile C
     files after they have been first run through the C preprocessor.)
 
-    $(H3 Digital Mars C Preprocessor)
+    $(H3 $(LNAME2 spp,Digital Mars C Preprocessor sppn.exe))
 
-    $(H3 Gnu C Preprocessor)
+    $(P $(LINK2 https://www.digitalmars.com/ctg/sc.html, $(TT sppn.exe)) runs on Win32 and is invoked as:)
 
-    $(H3 Clang C Preprocessor)
+    $(CONSOLE
+    sppn file.c
+    )
 
-    $(H3 Warp C Preprocessor)
+    $(P and the preprocessed output is written to $(TT file.i).)
 
+    $(H3 $(LNAME2 gcc-preprocessor, Gnu C Preprocessor))
+
+    $(P The $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/Preprocessor-Options.html, Gnu C Preprocessor) can be invoked as:)
+
+    $(CONSOLE
+    gcc -E file.c > file.i
+    )
+
+    $(H3 $(LNAME2 clang-preprocessor, Clang C Preprocessor))
+
+    $(P The $(LINK2 https://freecompilercamp.org/clang-basics/, Clang Preprocessor) can be invoked as:)
+
+    $(CONSOLE
+    clang -E file.c > file.i
+    )
+
+    $(H3 $(LNAME2 dmpp, dmpp C Preprocessor))
+
+    $(P The $(LINK2 https://www.DigitalMars/dmpp, dmpp C Preprocessor) can be invoked as:)
+
+    $(CONSOLE
+    dmpp file.c
+    )
+
+    $(P and the preprocessed output is written to $(TT file.i).)
 
 $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
