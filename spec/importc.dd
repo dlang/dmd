@@ -170,6 +170,31 @@ $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
     static assert(E.min == 0 && E.max == 2);
     ---
 
+$(H2 $(LNAME2 wrapping, Wrapping C Code))
+
+    $(P Many difficulties with adapting C code to ImportC can be done without
+    editing the C code itself. Wrap the C code in another C file and then
+    $(CCODE #include) it. Consider the following problematic C file $(TT file.c):)
+
+    $(CCODE
+    void func(int *__restrict p);
+    int S;
+    struct S { int a, b; };
+    )
+
+    $(P The problems are that $(CCODE __restrict) is not a type qualifier recognized by ImportC
+    (or C11),
+    and the struct `S` is hidden from D by the declaration $(CCODE int S;).
+    To wrap $(TT file.c) with a fix, create the file $(TT file_ic.c) with the contents:)
+
+    $(CCODE
+    #define __restrict restrict
+    #include "file.c"
+    typedef struct S S_t;
+    )
+
+    $(P Then, `import file_ic;` instead of `import file;`, and use `S_t` when $(CCODE struct S) is desired.)
+
 $(H2 $(LNAME2 warnings, Warnings))
 
     $(P Many suspicious C constructs normally cause warnings to be emitted by default by
