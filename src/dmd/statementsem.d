@@ -4473,6 +4473,94 @@ Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scon
 }
 
 
+/****************************************
+ * If `statement` has code that needs to run in a finally clause
+ * at the end of the current scope, return that code in the form of
+ * a Statement.
+ * Params:
+ *     statement = the statement
+ *     sc = context
+ *     sentry     = set to code executed upon entry to the scope
+ *     sexception = set to code executed upon exit from the scope via exception
+ *     sfinally   = set to code executed in finally block
+ * Returns:
+ *    code to be run in the finally clause
+ */
+Statement scopeCode(Statement statement, Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
+{
+    *sentry = null;
+    *sexception = null;
+    *sfinally = null;
+
+    if (auto es = statement.isExpStatement())
+    {
+        if (es.exp && es.exp.op == TOK.declaration)
+        {
+            auto de = cast(DeclarationExp)es.exp;
+            auto v = de.declaration.isVarDeclaration();
+            if (v && !v.isDataseg())
+            {
+                if (v.needsScopeDtor())
+                {
+                    *sfinally = new DtorExpStatement(es.loc, v.edtor, v);
+                    v.storage_class |= STC.nodtor; // don't add in dtor again
+                }
+            }
+        }
+        return es;
+
+    }
+    else if (auto sgs = statement.isScopeGuardStatement())
+    {
+        Statement s = new PeelStatement(sgs.statement);
+
+        switch (sgs.tok)
+        {
+        case TOK.onScopeExit:
+            *sfinally = s;
+            break;
+
+        case TOK.onScopeFailure:
+            *sexception = s;
+            break;
+
+        case TOK.onScopeSuccess:
+            {
+                /* Create:
+                 *  sentry:   bool x = false;
+                 *  sexception:    x = true;
+                 *  sfinally: if (!x) statement;
+                 */
+                auto v = copyToTemp(0, "__os", IntegerExp.createBool(false));
+                v.dsymbolSemantic(sc);
+                *sentry = new ExpStatement(statement.loc, v);
+
+                Expression e = IntegerExp.createBool(true);
+                e = new AssignExp(Loc.initial, new VarExp(Loc.initial, v), e);
+                *sexception = new ExpStatement(Loc.initial, e);
+
+                e = new VarExp(Loc.initial, v);
+                e = new NotExp(Loc.initial, e);
+                *sfinally = new IfStatement(Loc.initial, null, e, s, null, Loc.initial);
+
+                break;
+            }
+        default:
+            assert(0);
+        }
+        return null;
+    }
+    else if (auto ls = statement.isLabelStatement())
+    {
+        if (ls.statement)
+            ls.statement = ls.statement.scopeCode(sc, sentry, sexception, sfinally);
+        return ls;
+    }
+
+    return statement;
+}
+
+
 /*******************
  * Determines additional argument types for makeTupleForeach.
  */
