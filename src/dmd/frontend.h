@@ -5039,8 +5039,7 @@ public:
     Visibility visible();
     Type* handleType();
     bool hasInvariant();
-    Symbol* stag;
-    Symbol* sinit;
+    void* sinit;
     AggregateDeclaration* isAggregateDeclaration();
     void accept(Visitor* v);
     ~AggregateDeclaration();
