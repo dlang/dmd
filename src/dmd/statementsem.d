@@ -2688,7 +2688,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 ed = ds.isEnumDeclaration();
             if (ed)
             {
-              Lmembers:
+                int missingMembers = 0;
+                const maxShown = !global.params.verbose ? 6 : int.max;
+            Lmembers:
                 foreach (es; *ed.members)
                 {
                     EnumMember em = es.isEnumMember();
@@ -2696,13 +2698,24 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         foreach (cs; *ss.cases)
                         {
-                            if (cs.exp.equals(em.value) || (!cs.exp.type.isString() && !em.value.type.isString() && cs.exp.toInteger() == em.value.toInteger()))
+                            if (cs.exp.equals(em.value) || (!cs.exp.type.isString() &&
+                                !em.value.type.isString() && cs.exp.toInteger() == em.value.toInteger()))
                                 continue Lmembers;
                         }
-                        ss.error("`enum` member `%s` not represented in `final switch`", em.toChars());
-                        sc.pop();
-                        return setError();
+                        if (missingMembers == 0)
+                            ss.error("missing cases for `enum` members in `final switch`:");
+
+                        if (missingMembers < maxShown)
+                            errorSupplemental(ss.loc, "`%s`", em.toChars());
+                        missingMembers++;
                     }
+                }
+                if (missingMembers > 0)
+                {
+                    if (missingMembers > maxShown)
+                        errorSupplemental(ss.loc, "... (%d more, -v to show) ...", missingMembers - maxShown);
+                    sc.pop();
+                    return setError();
                 }
             }
             else
