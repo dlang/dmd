@@ -270,6 +270,10 @@ int test22080()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22086
+typedef union U22086 U22086;
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22088
 
 void test22088()

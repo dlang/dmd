@@ -756,11 +756,11 @@ final class CParser(AST) : Parser!AST
                 break;
 
             case TOK.plusPlus:
-                e = new AST.PostExp(TOK.plusPlus, loc, toCLvalue(e, LVAL.increment));
+                e = new AST.PostExp(TOK.plusPlus, loc, e);
                 break;
 
             case TOK.minusMinus:
-                e = new AST.PostExp(TOK.minusMinus, loc, toCLvalue(e, LVAL.decrement));
+                e = new AST.PostExp(TOK.minusMinus, loc, e);
                 break;
 
             case TOK.leftParenthesis:
@@ -816,20 +816,20 @@ final class CParser(AST) : Parser!AST
             // Parse `++` as an unary operator so that cast expressions only give
             // an error for being non-lvalues.
             e = cparseCastExp();
-            e = new AST.PreExp(TOK.prePlusPlus, loc, toCLvalue(e, LVAL.increment));
+            e = new AST.PreExp(TOK.prePlusPlus, loc, e);
             break;
 
         case TOK.minusMinus:
             nextToken();
             // Parse `--` as an unary operator, same as prefix increment.
             e = cparseCastExp();
-            e = new AST.PreExp(TOK.preMinusMinus, loc, toCLvalue(e, LVAL.decrement));
+            e = new AST.PreExp(TOK.preMinusMinus, loc, e);
             break;
 
         case TOK.and:
             nextToken();
             e = cparseCastExp();
-            e = new AST.AddrExp(loc, toCLvalue(e, LVAL.address));
+            e = new AST.AddrExp(loc, e);
             break;
 
         case TOK.mul:
@@ -1277,7 +1277,7 @@ final class CParser(AST) : Parser!AST
         case TOK.assign:
             nextToken();
             auto e2 = cparseAssignExp();
-            e = new AST.AssignExp(loc, toCLvalue(e, LVAL.assign), e2);
+            e = new AST.AssignExp(loc, e, e2);
             break;
 
         case TOK.addAssign:
@@ -4060,85 +4060,6 @@ final class CParser(AST) : Parser!AST
         else
             t = t.addSTC(STC.const_);
         return t;
-    }
-
-    /// Types of expressions where an lvalue is required.
-    enum LVAL
-    {
-        assign,     // 6.5.16 assignment operator
-        increment,  // 6.5.3.1 and 6.5.2.4 increment operator
-        decrement,  // 6.5.3.1 and 6.5.2.4 decrement operator
-        address,    // 6.5.3.2 address operator
-    }
-
-    /**************************
-     * C11 6.3.2.1
-     * Check to see if expression is a valid lvalue for C11.
-     * Prints an error message if it's not.
-     * Params:
-     *    e = expression to check
-     *    lvalue = how the lvalue is used
-     * Returns:
-     *    the expression if an lvalue, otherwise ErrorExp
-     */
-    private AST.Expression toCLvalue(AST.Expression e, LVAL lvalue)
-    {
-        switch (e.op)
-        {
-            /* References:
-            /* C11 6.5.2.5-4:
-             *  The result of a compound literal is an lvalue.
-             * C11 6.5.1-4:
-             *  A string literal is an lvalue.
-             */
-            case TOK.compoundLiteral:
-            case TOK.string_:
-                return e;
-
-            /* C11 6.5.3.2-4:
-             *  The unary '*' operator is an lvalue if it points to an object.
-             * C11 6.5.2.1-2:
-             *  The subscript operator '[]' is identical to '*((E1) + (E2))'.
-             * C11 6.5.1-2:
-             *  An identifier is an lvalue provided it is designating an object.
-             * Whether any of these expressions point to an object or function
-             * is deferred to semantic when types get resolved.
-             */
-            case TOK.star:
-            case TOK.array:
-            case TOK.identifier:
-                return e;
-
-            /* C11 6.5.2.3-3:
-             *  A postfix expression followed by the '.' or '->' operator is an
-             *  lvalue if the first expression is an lvalue.
-             */
-            case TOK.dotIdentifier:
-                auto e1 = toCLvalue(e.isDotIdExp().e1, lvalue);
-                if (e1.op == TOK.error)
-                    return e1;
-                return e;
-
-            default:
-                break;
-        }
-        // No match against known lvalues, print and return an error.
-        final switch (lvalue)
-        {
-            case LVAL.assign:
-                e.error("left operand is not assignable");
-                break;
-            case LVAL.increment:
-                e.error("increment operand is not assignable");
-                break;
-            case LVAL.decrement:
-                e.error("decrement operand is not assignable");
-                break;
-            case LVAL.address:
-                e.error("cannot take address of unary operand");
-                break;
-        }
-        return AST.ErrorExp.get();
     }
 
     //}

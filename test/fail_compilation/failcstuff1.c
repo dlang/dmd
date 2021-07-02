@@ -25,16 +25,7 @@ fail_compilation/failcstuff1.c(260): Error: identifier or `(` expected
 fail_compilation/failcstuff1.c(301): Error: illegal type combination
 fail_compilation/failcstuff1.c(352): Error: found `2` when expecting `:`
 fail_compilation/failcstuff1.c(352): Error: found `:` instead of statement
-fail_compilation/failcstuff1.c(403): Error: left operand is not assignable
-fail_compilation/failcstuff1.c(404): Error: left operand is not assignable
-fail_compilation/failcstuff1.c(405): Error: increment operand is not assignable
-fail_compilation/failcstuff1.c(406): Error: decrement operand is not assignable
-fail_compilation/failcstuff1.c(407): Error: increment operand is not assignable
-fail_compilation/failcstuff1.c(408): Error: decrement operand is not assignable
-fail_compilation/failcstuff1.c(409): Error: cannot take address of unary operand
-fail_compilation/failcstuff1.c(453): Error: increment operand is not assignable
-fail_compilation/failcstuff1.c(454): Error: decrement operand is not assignable
-fail_compilation/failcstuff1.c(600): Error: `enum ENUM` has no members
+fail_compilation/failcstuff1.c(400): Error: `enum ENUM` has no members
 ---
 */
 
@@ -107,32 +98,6 @@ void test22035()
     case 1 2:
 }
 
-// https://issues.dlang.org/show_bug.cgi?id=22067
+// https://issues.dlang.org/show_bug.cgi?id=21932
 #line 400
-void test22067()
-{
-    int var;
-    (int) var = 1;
-    sizeof(var) = 2;
-    ++(short)3;
-    --4;
-    (5)++;
-    ((int)var)--;
-    (&6);
-}
-
-// https://issues.dlang.org/show_bug.cgi?id=22068
-#line 450
-void test22068()
-{
-    int var;
-    ++(short) var;
-    --(long long) var;
-}
-
-// https://issues.dlang.org/show_bug.cgi?id=22086
-#line 500
-typedef union U22086 U22086;
-
-#line 600
 enum ENUM;
