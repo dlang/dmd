@@ -327,27 +327,6 @@ extern (C++) abstract class Statement : ASTNode
         return walkPostorder(this, hc);
     }
 
-    /****************************************
-     * If this statement has code that needs to run in a finally clause
-     * at the end of the current scope, return that code in the form of
-     * a Statement.
-     * Params:
-     *     sc = context
-     *     sentry     = set to code executed upon entry to the scope
-     *     sexception = set to code executed upon exit from the scope via exception
-     *     sfinally   = set to code executed in finally block
-     * Returns:
-     *    code to be run in the finally clause
-     */
-    Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        //printf("Statement::scopeCode()\n");
-        *sentry = null;
-        *sexception = null;
-        *sfinally = null;
-        return this;
-    }
-
     /*********************************
      * Flatten out the scope by presenting the statement
      * as an array of statements.
@@ -424,6 +403,7 @@ extern (C++) abstract class Statement : ASTNode
     inout(TryCatchStatement)    isTryCatchStatement()    { return stmt == STMT.TryCatch    ? cast(typeof(return))this : null; }
     inout(ThrowStatement)       isThrowStatement()       { return stmt == STMT.Throw       ? cast(typeof(return))this : null; }
     inout(TryFinallyStatement)  isTryFinallyStatement()  { return stmt == STMT.TryFinally  ? cast(typeof(return))this : null; }
+    inout(ScopeGuardStatement)  isScopeGuardStatement()  { return stmt == STMT.ScopeGuard  ? cast(typeof(return))this : null; }
     inout(SwitchErrorStatement)  isSwitchErrorStatement()  { return stmt == STMT.SwitchError  ? cast(typeof(return))this : null; }
     inout(UnrolledLoopStatement) isUnrolledLoopStatement() { return stmt == STMT.UnrolledLoop ? cast(typeof(return))this : null; }
     inout(ForeachRangeStatement) isForeachRangeStatement() { return stmt == STMT.ForeachRange ? cast(typeof(return))this : null; }
@@ -662,30 +642,6 @@ extern (C++) class ExpStatement : Statement
     override ExpStatement syntaxCopy()
     {
         return new ExpStatement(loc, exp ? exp.syntaxCopy() : null);
-    }
-
-    override final Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        //printf("ExpStatement::scopeCode()\n");
-
-        *sentry = null;
-        *sexception = null;
-        *sfinally = null;
-
-        if (exp && exp.op == TOK.declaration)
-        {
-            auto de = cast(DeclarationExp)exp;
-            auto v = de.declaration.isVarDeclaration();
-            if (v && !v.isDataseg())
-            {
-                if (v.needsScopeDtor())
-                {
-                    *sfinally = new DtorExpStatement(loc, v.edtor, v);
-                    v.storage_class |= STC.nodtor; // don't add in dtor again
-                }
-            }
-        }
-        return this;
     }
 
     override final Statements* flatten(Scope* sc)
@@ -1220,13 +1176,6 @@ extern (C++) final class ForStatement : Statement
             increment ? increment.syntaxCopy() : null,
             _body.syntaxCopy(),
             endloc);
-    }
-
-    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        //printf("ForStatement::scopeCode()\n");
-        Statement.scopeCode(sc, sentry, sexception, sfinally);
-        return this;
     }
 
     override Statement getRelatedLabeled()
@@ -2097,52 +2046,6 @@ extern (C++) final class ScopeGuardStatement : Statement
         return new ScopeGuardStatement(loc, tok, statement.syntaxCopy());
     }
 
-    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        //printf("ScopeGuardStatement::scopeCode()\n");
-        *sentry = null;
-        *sexception = null;
-        *sfinally = null;
-
-        Statement s = new PeelStatement(statement);
-
-        switch (tok)
-        {
-        case TOK.onScopeExit:
-            *sfinally = s;
-            break;
-
-        case TOK.onScopeFailure:
-            *sexception = s;
-            break;
-
-        case TOK.onScopeSuccess:
-            {
-                /* Create:
-                 *  sentry:   bool x = false;
-                 *  sexception:    x = true;
-                 *  sfinally: if (!x) statement;
-                 */
-                auto v = copyToTemp(0, "__os", IntegerExp.createBool(false));
-                v.dsymbolSemantic(sc);
-                *sentry = new ExpStatement(loc, v);
-
-                Expression e = IntegerExp.createBool(true);
-                e = new AssignExp(Loc.initial, new VarExp(Loc.initial, v), e);
-                *sexception = new ExpStatement(Loc.initial, e);
-
-                e = new VarExp(Loc.initial, v);
-                e = new NotExp(Loc.initial, e);
-                *sfinally = new IfStatement(Loc.initial, null, e, s, null, Loc.initial);
-
-                break;
-            }
-        default:
-            assert(0);
-        }
-        return null;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2362,20 +2265,6 @@ extern (C++) final class LabelStatement : Statement
             }
         }
         return a;
-    }
-
-    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexit, Statement* sfinally)
-    {
-        //printf("LabelStatement::scopeCode()\n");
-        if (statement)
-            statement = statement.scopeCode(sc, sentry, sexit, sfinally);
-        else
-        {
-            *sentry = null;
-            *sexit = null;
-            *sfinally = null;
-        }
-        return this;
     }
 
     override void accept(Visitor v)

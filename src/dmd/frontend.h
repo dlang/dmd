@@ -291,11 +291,11 @@ class ContinueStatement;
 class TryCatchStatement;
 class ThrowStatement;
 class TryFinallyStatement;
+class ScopeGuardStatement;
 class SwitchErrorStatement;
 class UnrolledLoopStatement;
 class CompoundDeclarationStatement;
 struct Token;
-class ScopeGuardStatement;
 struct code;
 class StaticAssert;
 class Object;
@@ -3807,7 +3807,6 @@ public:
     bool usesEH();
     bool comeFrom();
     bool hasCode();
-    virtual Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     virtual Array<Statement* >* flatten(Scope* sc);
     virtual Statement* last();
     void accept(Visitor* v);
@@ -3837,6 +3836,7 @@ public:
     TryCatchStatement* isTryCatchStatement();
     ThrowStatement* isThrowStatement();
     TryFinallyStatement* isTryFinallyStatement();
+    ScopeGuardStatement* isScopeGuardStatement();
     SwitchErrorStatement* isSwitchErrorStatement();
     UnrolledLoopStatement* isUnrolledLoopStatement();
     ForeachRangeStatement* isForeachRangeStatement();
@@ -3986,7 +3986,6 @@ public:
     Expression* exp;
     static ExpStatement* create(Loc loc, Expression* exp);
     ExpStatement* syntaxCopy();
-    Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     Array<Statement* >* flatten(Scope* sc);
     void accept(Visitor* v);
 };
@@ -4016,7 +4015,6 @@ public:
     Loc endloc;
     Statement* relatedLabeled;
     ForStatement* syntaxCopy();
-    Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     Statement* getRelatedLabeled();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -4172,7 +4170,6 @@ public:
     bool breaks;
     LabelStatement* syntaxCopy();
     Array<Statement* >* flatten(Scope* sc);
-    Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexit, Statement** sfinally);
     void accept(Visitor* v);
 };
 
@@ -4209,7 +4206,6 @@ public:
     TOK tok;
     Statement* statement;
     ScopeGuardStatement* syntaxCopy();
-    Statement* scopeCode(Scope* sc, Statement** sentry, Statement** sexception, Statement** sfinally);
     void accept(Visitor* v);
 };
 
