@@ -21,7 +21,6 @@ import dmd.aliasthis;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.gluelayer : Symbol;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
@@ -839,8 +838,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     // Back end
-    Symbol* stag;   /// tag symbol for debug data
-    Symbol* sinit;  /// initializer symbol
+    void* sinit;  /// initializer symbol
 
     override final inout(AggregateDeclaration) isAggregateDeclaration() inout
     {

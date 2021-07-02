@@ -637,7 +637,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             ad.sinit = s;
         }
     }
-    return ad.sinit;
+    return cast(Symbol*)ad.sinit;
 }
 
 Symbol *toInitializer(EnumDeclaration ed)

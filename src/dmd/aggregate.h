@@ -147,8 +147,7 @@ public:
     bool hasInvariant();
 
     // Back end
-    Symbol *stag;               // tag symbol for debug data
-    Symbol *sinit;
+    void *sinit;
 
     AggregateDeclaration *isAggregateDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
