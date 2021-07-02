@@ -2387,8 +2387,12 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
                     error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
                     if (auto dsym = mt.toDsymbol(scope_))
                         if (auto sym = dsym.isAggregateDeclaration())
+                        {
                             if (auto fd = search_function(sym, Id.opDispatch))
                                 errorSupplemental(loc, "potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message");
+                            else if (!sym.members)
+                                errorSupplemental(sym.loc, "`%s %s` is opaque and has no members.", sym.kind, mt.toPrettyChars(true));
+                        }
                 }
             }
             e = ErrorExp.get();
@@ -3730,7 +3734,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         assert(mt.ty == Tstruct || mt.ty == Tclass);
         auto sym = mt.toDsymbol(sc).isAggregateDeclaration();
         assert(sym);
-        if (ident != Id.__sizeof &&
+        if (// https://issues.dlang.org/show_bug.cgi?id=22054
+            // if a class or struct does not have a body
+            // there is no point in searching for its members
+            sym.members &&
+            ident != Id.__sizeof &&
             ident != Id.__xalignof &&
             ident != Id._init &&
             ident != Id._mangleof &&
