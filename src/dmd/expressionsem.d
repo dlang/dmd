@@ -7496,6 +7496,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        if (sc && sc.flags & SCOPE.Cfile)
+        {
+            /* C11 6.5.4-5: A cast does not yield an lvalue.
+             * So ensure that castTo does not strip away the cast so that this
+             * can be enforced in other semantic visitor methods.
+             */
+            if (!ex.isCastExp())
+            {
+                ex = new CastExp(exp.loc, ex, exp.to);
+                ex.type = exp.to;
+            }
+        }
         result = ex;
     }
 

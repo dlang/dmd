@@ -4878,6 +4878,14 @@ extern (C++) final class DotVarExp : UnaExp
     override Expression toLvalue(Scope* sc, Expression e)
     {
         //printf("DotVarExp::toLvalue(%s)\n", toChars());
+        if (sc && sc.flags & SCOPE.Cfile)
+        {
+            /* C11 6.5.2.3-3: A postfix expression followed by the '.' or '->' operator
+             * is an lvalue if the first expression is an lvalue.
+             */
+            if (!e1.isLvalue())
+                return Expression.toLvalue(sc, e);
+        }
         if (!isLvalue())
             return Expression.toLvalue(sc, e);
         if (e1.op == TOK.this_ && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
@@ -5415,6 +5423,12 @@ extern (C++) final class CastExp : UnaExp
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
+        if (sc && sc.flags & SCOPE.Cfile)
+        {
+            /* C11 6.5.4-5: A cast does not yield an lvalue.
+             */
+            return Expression.toLvalue(sc, e);
+        }
         if (isLvalue())
             return this;
         return Expression.toLvalue(sc, e);
