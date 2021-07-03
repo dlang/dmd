@@ -74,7 +74,7 @@ struct FileMapping(Datum)
             handle = .open(filename, is(Datum == const) ? O_RDONLY : (O_CREAT | O_RDWR),
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-            if (handle == -1)
+            if (handle == invalidHandle)
             {
                 static if (is(Datum == const))
                 {
