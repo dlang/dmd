@@ -2018,42 +2018,47 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 em._scope = sce;
         });
 
-        if (!ed.added)
+        if (!ed.added) // if members were not added by EnumDeclaration.addMember()
         {
+            static Scope* getEnclosing(Scope* sc)
+            {
+                for (Scope* sct = sc; sct; sct = sct.enclosing)
+                {
+                    if (sct.scopesym)
+                        return sct;
+                }
+                return null; // not found
+            }
+
             /* addMember() is not called when the EnumDeclaration appears as a function statement,
              * so we have to do what addMember() does and install the enum members in the right symbol
              * table
              */
             ScopeDsymbol scopesym = null;
-            if (ed.isAnonymous())
-            {
-                /* Anonymous enum members get added to enclosing scope.
-                 */
-                for (Scope* sct = sce; 1; sct = sct.enclosing)
-                {
-                    assert(sct);
-                    if (sct.scopesym)
-                    {
-                        scopesym = sct.scopesym;
-                        if (!sct.scopesym.symtab)
-                            sct.scopesym.symtab = new DsymbolTable();
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // Otherwise enum members are in the EnumDeclaration's symbol table
-                scopesym = ed;
-            }
+            const bool isCEnum = (sc.flags & SCOPE.Cfile) != 0;
+            const bool isAnon = ed.isAnonymous();
+
+            auto enclosing = getEnclosing(sc).scopesym;
+            if (!enclosing.symtab)
+                enclosing.symtab = new DsymbolTable();
+
+            assert(ed.symtab);
 
             ed.members.foreachDsymbol( (s)
             {
-                EnumMember em = s.isEnumMember();
-                if (em)
+                if (EnumMember em = s.isEnumMember())
                 {
                     em.ed = ed;
-                    em.addMember(sc, scopesym);
+                    if (isCEnum)
+                    {
+                        em.addMember(sc, ed);
+                        em.addMember(sc, enclosing);
+                        em.parent = ed; // restore it after previous addMember() changed it
+                    }
+                    else
+                    {
+                        em.addMember(sc, isAnon ? enclosing : ed);
+                    }
                 }
             });
         }

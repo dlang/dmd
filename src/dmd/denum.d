@@ -86,26 +86,34 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 printf("    member %s\n", em.toChars());
             }
         }
+        const bool isCEnum = (sc.flags & SCOPE.Cfile) != 0;
+        const bool isAnon = isAnonymous();
 
-        /* Anonymous enum members get added to enclosing scope.
-         */
-        ScopeDsymbol scopesym = isAnonymous() ? sds : this;
-
-        if (!isAnonymous())
+        if (!isAnon)
         {
             ScopeDsymbol.addMember(sc, sds);
-            if (!symtab)
-                symtab = new DsymbolTable();
         }
 
         if (members)
         {
+            if ((isCEnum || !isAnon) && !symtab)
+                symtab = new DsymbolTable();
+
             for (size_t i = 0; i < members.dim; i++)
             {
                 EnumMember em = (*members)[i].isEnumMember();
                 em.ed = this;
-                //printf("add %s to scope %s\n", em.toChars(), scopesym.toChars());
-                em.addMember(sc, isAnonymous() ? scopesym : this);
+                if (isCEnum)
+                {
+                    em.addMember(sc, this);  // add to EnumDeclaration's symbol table
+                    em.addMember(sc, sds);   // add to enclosing symbol table
+                    em.parent = this;        // previous line changed it
+                }
+                else
+                {
+                    //printf("add %s to scope %s\n", em.toChars(), sds.toChars());
+                    em.addMember(sc, isAnon ? sds : this);
+                }
             }
         }
         added = true;

@@ -2001,7 +2001,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
          */
         void declareTag()
         {
-            ScopeDsymbol declare(ScopeDsymbol sd)
+            void declare(ScopeDsymbol sd)
             {
                 sd.members = mtype.members;
                 auto scopesym = sc.inner().scopesym;
@@ -2009,33 +2009,14 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     scopesym.members.push(sd);
                 sd.parent = sc.parent;
                 sd.dsymbolSemantic(sc);
-                return scopesym;
             }
 
             switch (mtype.tok)
             {
                 case TOK.enum_:
                     auto ed = new EnumDeclaration(mtype.loc, mtype.id, Type.tint32);
-                    auto scopesym = declare(ed);
+                    declare(ed);
                     mtype.resolved = visitEnum(new TypeEnum(ed));
-
-                    // promote each enum member to enclosing scope with alias declarations
-                    if (ed.members)
-                    {
-                        foreach (m; (*ed.members)[])
-                        {
-                            auto ad = new AliasDeclaration(m.loc, m.ident, m);
-                            if (!scopesym.members)
-                                scopesym.members = new Dsymbols();
-                            scopesym.members.push(ad);
-                            ad.setScope(sc);
-                            ad.parent = sc.parent;
-                            if (!scopesym.symtab)
-                                scopesym.symtab = new DsymbolTable();
-                            ad.addMember(sc, scopesym);
-                            ad.dsymbolSemantic(sc);
-                        }
-                    }
                     break;
 
                 case TOK.struct_:

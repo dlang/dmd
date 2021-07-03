@@ -1459,20 +1459,6 @@ final class CParser(AST) : Parser!AST
             {
                 if (!tt.members)
                     error(tt.loc, "`enum %s` has no members", stag.toChars());
-                else
-                {
-                    /* C promotes enum members to the enclosing scope,
-                     * do it by making alias declarations.
-                     * C doesn't have enum.member capability, so can only
-                     * see the members as the aliases.
-                     * D can see the members either way.
-                     */
-                    foreach (m; (*tt.members)[])
-                    {
-                        auto ad = new AST.AliasDeclaration(m.loc, m.ident, m);
-                        symbols.push(ad);
-                    }
-                }
             }
             return;
         }

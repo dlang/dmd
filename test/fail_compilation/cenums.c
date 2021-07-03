@@ -3,8 +3,7 @@
 fail_compilation/cenums.c(202): Error: `enum E2` is incomplete without members
 fail_compilation/cenums.c(303): Error: redeclaring `union E3` as `enum E3`
 fail_compilation/cenums.c(502): Error: enum member `cenums.test5.F.a` conflicts with enum member `cenums.test5.F.a` at fail_compilation/cenums.c(502)
-fail_compilation/cenums.c(502): Error: declaration `a` is already defined
-fail_compilation/cenums.c(502):        `alias` `a` is defined here
+fail_compilation/cenums.c(502): Error: enum member `cenums.test5.F.a` conflicts with enum member `cenums.test5.F.a` at fail_compilation/cenums.c(502)
 ---
 */
 
