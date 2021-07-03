@@ -429,6 +429,44 @@ a = 2;         // sets `S.i` to `2`
 b = 4;         // sets `S.j` to `4`
 -----------
 
+
+$(H2 $(LNAME2 alias-reassignment, Alias Reassignment))
+
+        $(GRAMMAR
+        $(GNAME AliasReassignment):
+            $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK Type)
+            $(GLINK_LEX Identifier) $(D =) $(GLINK2 expression, FunctionLiteral)
+            $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+        )
+
+        $(P An alias declaration inside a template can be reassigned a new value.)
+
+        ---
+        template staticMap(alias F, T...)
+        {
+            alias A = AliasSeq!();
+            static foreach (t; T)
+                A = AliasSeq!(A, F!T); // alias reassignment
+            alias staticMap = A;
+        }
+        ---
+
+        $(P The $(I Identifier) must resolve to a lexically preceding $(GLINK AliasDeclaration).
+        Both must be members of the same $(GLINK2 template, TemplateDeclaration).
+        )
+
+        $(P The right hand side of the $(I AliasReassignment) replaces the right hand side of the
+        $(I AliasDeclaration).
+        )
+
+        $(P Once the $(I AliasDeclaration) has been referred to in any context other than the
+        right hand side of an $(I AliasReassignment) it can no longer be reassigned.
+        )
+
+        $(RATIONALE Alias reassignment can result in faster compile times and lowered memory consumption,
+        and requires significantly simpler code than the alternative recursive method.)
+
+
 $(H2 $(LNAME2 extern, Extern Declarations))
 
 $(P Variable declarations with the storage class $(D extern) are not allocated
