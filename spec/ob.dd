@@ -45,7 +45,7 @@ void release(int*); // deallocate a memory object
 
 @live void test()
 {
-    auto p = void;
+    int* p = void;
     release(p); // error, p does not have a defined value
 }
 
@@ -303,9 +303,9 @@ $(H3 $(LNAME2 vargs, Variadic Function Arguments))
 $(P Arguments to variadic functions (such as `printf`) are considered to be consumed.
 )
 
-$(SPEC_SUBNAV_PREV betterc, Better C)
+$(SPEC_SUBNAV_PREV importc, ImportC)
 )
 
 Macros:
-        CHAPTER=41
+        CHAPTER=42
         TITLE=Live Functions

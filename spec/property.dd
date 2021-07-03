@@ -157,7 +157,7 @@ $(H2 $(LNAME2 stringof, .stringof Property))
 
     enum Color { Red }
 
-    int b = 4;
+    int i = 4;
 
     void main()
     {

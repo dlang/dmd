@@ -105,7 +105,7 @@ $(H2 $(LNAME2 POD, Plain Old Data))
 
     $(OL
     $(LI it is not nested)
-    $(LI it has no postblits, destructors, or assignment operators)
+    $(LI it has no postblits, copy constructors, destructors, or assignment operators)
     $(LI it has no `ref` fields or fields that are themselves non-POD)
     )
 
@@ -482,12 +482,13 @@ $(H3 $(LNAME2 delegating-constructor, Delegating Constructors))
 
             this(char c)
             {
-                c || this(1); // error, not on all paths
+                c || this(1);  // error, not on all paths
             }
 
             this(wchar w)
             {
-                (w) ? this(1) : this('c'); } // ok
+                (w) ? this(1) : this('c');  // ok
+            }
 
             this(byte b)
             {
@@ -902,8 +903,8 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     )
 
-    $(P When a copy constructor is defined for a `struct`, all
-    implicit blitting is disabled for that `struct`:
+    $(P When a copy constructor is defined for a `struct` (or marked `@disable`), the compiler no
+    longer implicitly generates default copy/blitting constructors for that `struct`:
     )
     ---
     struct A
@@ -917,7 +918,7 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     void main()
     {
         immutable A a;
-        fun(a);          // error: copy constructor cannot be called with types (immutable) immutable
+        fun(a);        // error: copy constructor cannot be called with types (immutable) immutable
     }
     ---
 
@@ -1009,8 +1010,12 @@ $(GNAME Postblit):
 
     $(P WARNING: The postblit is considered legacy and is not recommended for new code.
     Code should use $(RELATIVE_LINK2 struct-copy-constructor, copy constructors)
-    defined in the previous section. For backward compatibility reasons, a `struct` that defines
-    both a copy constructor and a postblit will only use the postblit for implicit copying.)
+    defined in the previous section. For backward compatibility reasons, a `struct` that
+    explicitly defines both a copy constructor and a postblit will only use the postblit
+    for implicit copying. However, if the postblit is disabled, the copy constructor will
+    be used. If a struct defines a copy constructor (user-defined or generated) and has
+    fields that define postblits, a deprecation will be issued, informing that the postblit
+    will have priority over the copy constructor.)
 
         $(P $(I Copy construction) is defined as initializing
          a struct instance from another struct of the same type.
@@ -1689,12 +1694,17 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
 
 $(H2 $(LNAME2 nested, Nested Structs))
 
-    $(P A $(I nested struct) is a struct that is declared inside the scope
-        of a function or a templated struct that has aliases to local
-        functions as a template argument.
-        Nested structs have member functions.
+    $(P A struct is a $(I nested struct) if)
+
+        $(OL
+        $(LI it is declared inside the scope of a function, or)
+        $(LI it is a templated struct with one or more template arguments
+             that alias local functions.)
+        )
+
+    $(P A nested struct can have member functions.
         It has access to the context of its enclosing scope
-        (via an added hidden field).)
+        via a hidden field.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -1713,10 +1723,8 @@ $(H2 $(LNAME2 nested, Nested Structs))
         ---
         )
 
-    $(P A struct can be prevented from being nested by
-        using the static attribute, but then of course it
-        will not be able to access variables from its enclosing
-        scope.)
+    $(P The static attribute will prevent a struct from being nested. As such,
+        the struct will not have access to its enclosing scope.)
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---

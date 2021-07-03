@@ -18,69 +18,73 @@ $(GNAME TraitsExpression):
     $(D __traits) $(D $(LPAREN)) $(GLINK TraitsKeyword) $(D ,) $(GLINK TraitsArguments) $(D $(RPAREN))
 
 $(GNAME TraitsKeyword):
-    $(GLINK isAbstractClass)
-    $(GLINK isArithmetic)
-    $(GLINK isAssociativeArray)
-    $(GLINK isFinalClass)
-    $(GLINK isPOD)
-    $(GLINK isNested)
-    $(GLINK isFuture)
-    $(GLINK isDeprecated)
-    $(GLINK isFloating)
-    $(GLINK isIntegral)
-    $(GLINK isScalar)
-    $(GLINK isStaticArray)
-    $(GLINK isUnsigned)
-    $(GLINK isDisabled)
-    $(GLINK isVirtualFunction)
-    $(GLINK isVirtualMethod)
-    $(GLINK isAbstractFunction)
-    $(GLINK isFinalFunction)
-    $(GLINK isStaticFunction)
-    $(GLINK isOverrideFunction)
-    $(GLINK isTemplate)
-    $(GLINK isRef)
-    $(GLINK isOut)
-    $(GLINK isLazy)
-    $(GLINK isReturnOnStack)
-    $(GLINK isZeroInit)
-    $(GLINK isModule)
-    $(GLINK isPackage)
-    $(GLINK hasMember)
-    $(GLINK hasCopyConstructor)
-    $(GLINK hasPostblit)
-    $(GLINK identifier)
-    $(GLINK getAliasThis)
-    $(GLINK getAttributes)
-    $(GLINK getFunctionAttributes)
-    $(GLINK getFunctionVariadicStyle)
-    $(GLINK getLinkage)
-    $(GLINK getLocation)
-    $(GLINK getMember)
-    $(GLINK getOverloads)
-    $(GLINK getParameterStorageClasses)
-    $(GLINK getPointerBitmap)
-    $(GLINK getProtection)
-    $(GLINK getTargetInfo)
-    $(GLINK getVirtualFunctions)
-    $(GLINK getVirtualMethods)
-    $(GLINK getUnitTests)
-    $(GLINK parent)
-    $(GLINK child)
-    $(GLINK classInstanceSize)
-    $(GLINK getVirtualIndex)
-    $(GLINK allMembers)
-    $(GLINK derivedMembers)
-    $(GLINK isSame)
-    $(GLINK compiles)
+    $(RELATIVE_LINK2 isAbstractClass, $(D isAbstractClass))
+    $(RELATIVE_LINK2 isArithmetic, $(D isArithmetic))
+    $(RELATIVE_LINK2 isAssociativeArray, $(D isAssociativeArray))
+    $(RELATIVE_LINK2 isFinalClass, $(D isFinalClass))
+    $(RELATIVE_LINK2 isPOD, $(D isPOD))
+    $(RELATIVE_LINK2 isNested, $(D isNested))
+    $(RELATIVE_LINK2 isFuture, $(D isFuture))
+    $(RELATIVE_LINK2 isDeprecated, $(D isDeprecated))
+    $(RELATIVE_LINK2 isFloating, $(D isFloating))
+    $(RELATIVE_LINK2 isIntegral, $(D isIntegral))
+    $(RELATIVE_LINK2 isScalar, $(D isScalar))
+    $(RELATIVE_LINK2 isStaticArray, $(D isStaticArray))
+    $(RELATIVE_LINK2 isUnsigned, $(D isUnsigned))
+    $(RELATIVE_LINK2 isDisabled, $(D isDisabled))
+    $(RELATIVE_LINK2 isVirtualFunction, $(D isVirtualFunction))
+    $(RELATIVE_LINK2 isVirtualMethod, $(D isVirtualMethod))
+    $(RELATIVE_LINK2 isAbstractFunction, $(D isAbstractFunction))
+    $(RELATIVE_LINK2 isFinalFunction, $(D isFinalFunction))
+    $(RELATIVE_LINK2 isStaticFunction, $(D isStaticFunction))
+    $(RELATIVE_LINK2 isOverrideFunction, $(D isOverrideFunction))
+    $(RELATIVE_LINK2 isTemplate, $(D isTemplate))
+    $(RELATIVE_LINK2 isRef, $(D isRef))
+    $(RELATIVE_LINK2 isOut, $(D isOut))
+    $(RELATIVE_LINK2 isLazy, $(D isLazy))
+    $(RELATIVE_LINK2 isReturnOnStack, $(D isReturnOnStack))
+    $(RELATIVE_LINK2 isCopyable, $(D isCopyable))
+    $(RELATIVE_LINK2 isZeroInit, $(D isZeroInit))
+    $(RELATIVE_LINK2 isModule, $(D isModule))
+    $(RELATIVE_LINK2 isPackage, $(D isPackage))
+    $(RELATIVE_LINK2 hasMember, $(D hasMember))
+    $(RELATIVE_LINK2 hasCopyConstructor, $(D hasCopyConstructor))
+    $(RELATIVE_LINK2 hasPostblit, $(D hasPostblit))
+    $(RELATIVE_LINK2 identifier, $(D identifier))
+    $(RELATIVE_LINK2 getAliasThis, $(D getAliasThis))
+    $(RELATIVE_LINK2 getAttributes, $(D getAttributes))
+    $(RELATIVE_LINK2 getFunctionAttributes, $(D getFunctionAttributes))
+    $(RELATIVE_LINK2 getFunctionVariadicStyle, $(D getFunctionVariadicStyle))
+    $(RELATIVE_LINK2 getLinkage, $(D getLinkage))
+    $(RELATIVE_LINK2 getLocation, $(D getLocation))
+    $(RELATIVE_LINK2 getMember, $(D getMember))
+    $(RELATIVE_LINK2 getOverloads, $(D getOverloads))
+    $(RELATIVE_LINK2 getParameterStorageClasses, $(D getParameterStorageClasses))
+    $(RELATIVE_LINK2 getPointerBitmap, $(D getPointerBitmap))
+    $(RELATIVE_LINK2 getCppNamespaces, $(D getCppNamespaces))
+    $(RELATIVE_LINK2 getVisibility, $(D getVisibility))
+    $(RELATIVE_LINK2 getProtection, $(D getProtection))
+    $(RELATIVE_LINK2 getTargetInfo, $(D getTargetInfo))
+    $(RELATIVE_LINK2 getVirtualFunctions, $(D getVirtualFunctions))
+    $(RELATIVE_LINK2 getVirtualMethods, $(D getVirtualMethods))
+    $(RELATIVE_LINK2 getUnitTests, $(D getUnitTests))
+    $(RELATIVE_LINK2 parent, $(D parent))
+    $(RELATIVE_LINK2 child, $(D child))
+    $(RELATIVE_LINK2 classInstanceSize, $(D classInstanceSize))
+    $(RELATIVE_LINK2 getVirtualIndex, $(D getVirtualIndex))
+    $(RELATIVE_LINK2 allMembers, $(D allMembers))
+    $(RELATIVE_LINK2 derivedMembers, $(D derivedMembers))
+    $(RELATIVE_LINK2 isSame, $(D isSame))
+    $(RELATIVE_LINK2 compiles, $(D compiles))
+    $(RELATIVE_LINK2 toType, $(D toType))
 
 $(GNAME TraitsArguments):
     $(GLINK TraitsArgument)
-    $(GLINK TraitsArgument) $(D ,) $(I TraitsArguments)
+    $(GLINK TraitsArgument) $(D ,) $(GSELF TraitsArguments)
 
 $(GNAME TraitsArgument):
     $(GLINK2 expression, AssignExpression)
-    $(GLINK2 declaration, Type)
+    $(GLINK2 type, Type)
 )
 
 $(H2 $(GNAME isArithmetic))
@@ -127,8 +131,6 @@ import core.simd : float4;
 enum E : float { a, b }
 
 static assert(__traits(isFloating, float));
-static assert(__traits(isFloating, idouble));
-static assert(__traits(isFloating, creal));
 static assert(__traits(isFloating, E));
 static assert(__traits(isFloating, float4));
 
@@ -533,6 +535,27 @@ void foo(T)(){}
 static assert(__traits(isTemplate,foo));
 static assert(!__traits(isTemplate,foo!int()));
 static assert(!__traits(isTemplate,"string"));
+---
+)
+
+$(H2 $(GNAME isCopyable))
+
+$(P Takes one argument. If that argument is a copyable type then $(D true) is returned,
+otherwise $(D false).
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+}
+static assert( __traits(isCopyable, S));
+
+struct T
+{
+    @disable this(this); // disable copy construction
+}
+static assert(!__traits(isCopyable, T));
 ---
 )
 
@@ -1127,11 +1150,30 @@ void main()
 ---
 )
 
+$(H2 $(GNAME getCppNamespaces))
+    $(P The argument is a symbol.
+    The result is a tuple of strings, possibly empty, that correspond to the namespaces the symbol resides in.
+    )
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+extern(C++, "ns")
+struct Foo {}
+struct Bar {}
+extern(C++, __traits(getCppNamespaces, Foo)) struct Baz {}
+static assert(__traits(getCppNamespaces, Foo) ==  __traits(getCppNamespaces, Baz));
+void main()
+{
+    static assert(__traits(getCppNamespaces, Foo)[0] == "ns");
+    static assert(!__traits(getCppNamespaces, Bar).length);
+    static assert(__traits(getCppNamespaces, Foo) ==  __traits(getCppNamespaces, Baz));
+}
+---
+)
 
-$(H2 $(GNAME getProtection))
+$(H2 $(GNAME getVisibility))
 
         $(P The argument is a symbol.
-        The result is a string giving its protection level: "public", "private", "protected", "export", or "package".
+        The result is a string giving its visibility level: "public", "private", "protected", "export", or "package".
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1148,10 +1190,10 @@ void main()
 {
     D d = new D();
 
-    auto i = __traits(getProtection, d.foo);
+    auto i = __traits(getVisibility, d.foo);
     writeln(i);
 
-    auto j = __traits(getProtection, d.bar);
+    auto j = __traits(getVisibility, d.bar);
     writeln(j);
 }
 ---
@@ -1163,6 +1205,10 @@ $(CONSOLE
 export
 public
 )
+
+$(H2 $(GNAME getProtection))
+
+        $(P A backward-compatible alias for $(GLINK getVisibility).)
 
 $(H2 $(GNAME getTargetInfo))
 
@@ -1183,6 +1229,7 @@ version (CppRuntime_Microsoft)
 
         $(UL
         $(LI $(D "cppRuntimeLibrary") - The C++ runtime library affinity for this toolchain)
+        $(LI $(D "cppStd") - The version of the C++ standard supported by $(D extern$(LPAREN)C++$(RPAREN)) code, equivalent to the `__cplusplus` macro in a C++ compiler)
         $(LI $(D "floatAbi") - Floating point ABI; may be $(D "hard"), $(D "soft"), or $(D "softfp"))
         $(LI $(D "objectFormat") - Target object format)
         )
@@ -1372,7 +1419,7 @@ void main()
 $(CONSOLE
 3
 6
-7
+8
 )
 
 $(H2 $(GNAME classInstanceSize))
@@ -1494,7 +1541,8 @@ void main()
         $(P If the two arguments are expressions made up of literals
         or enums that evaluate to the same value, true is returned.)
 
-        $(P If the two arguments are both lambda functions (or aliases
+        $(P If the two arguments are both
+        $(DDSUBLINK spec/expression, function_literals, lambda functions) (or aliases
         to lambda functions), then they are compared for equality. For
         the comparison to be computed correctly, the following conditions
         must be met for both lambda functions:)
@@ -1636,6 +1684,27 @@ void main()
         partial specialization allows for.)
         )
 
+$(H2 $(GNAME toType))
+
+        $(P Takes a single argument, which must evaluate to an expression of type `string`.
+        The contents of the string must correspond to the $(DDSUBLINK abi, name_mangling, mangled contents of a type)
+        that has been seen by the implementation.)
+
+        $(P Only D mangling is supported. Other manglings, such as C++ mangling, are not.)
+
+        $(P The value returned is a type.)
+
+        ---
+        template Type(T) { alias Type = T; }
+
+        Type!(__traits(toType, "i")) j = 3; // j is declared as type `int`
+
+        static assert(is(Type!(__traits(toType, (int*).mangleof)) == int*));
+
+        __traits(toType, "i") x = 4; // x is also declared as type `int`
+        ---
+
+        $(RATIONALE Provides the inverse operation of the $(DDSUBLINK property, mangleof, `.mangleof`) property.)
 
 
 $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)

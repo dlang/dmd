@@ -15,8 +15,7 @@ $(H2 Phases of Compilation)
 $(P The process of compiling is divided into multiple phases. Each phase is
 independent of subsequent phases. For example, the scanner is not affected by
 the semantic analyzer. This separation of passes makes language tools like
-syntax-directed editors relatively easy to create. It is also possible to
-compress D source by storing it in $(SINGLEQUOTE tokenized) form.)
+syntax-directed editors relatively easy to create.)
 
 $(OL
         $(LI $(B source character set)$(BR)

@@ -379,7 +379,7 @@ $(OL
     }
     ---
 
-        $(P Alternatively, you can declare a single templated $(D opEquals)
+        $(P Alternatively, declare a single templated $(D opEquals)
         function with an $(DDSUBLINK spec/template, auto-ref-parameters, auto ref)
         parameter:)
     ---
@@ -469,7 +469,7 @@ $(H2 $(LEGACY_LNAME2 FunctionCall, function-call, Function Call Operator Overloa
 
         $(P Note that merely declaring $(D opCall) automatically disables
         $(DDSUBLINK spec/struct, StructLiteral, struct literal) syntax.
-        To avoid the limitation, you need to also declare a
+        To avoid the limitation, declare a
         $(DDSUBLINK spec/struct, Struct-Constructor, constructor)
         so that it takes priority over $(D opCall) in $(D Type(...)) syntax.
         )

@@ -92,11 +92,11 @@ $(UL
 )
 
 $(P The solution is to use exception handling to report errors. All
-errors are objects derived from abstract class $(D Error). $(D Error)
+errors are objects derived from the abstract class $(LINK2 https://dlang.org/phobos/object.html#.Error, $(D Error)). $(D Error)
 has a pure virtual function called toString() which produces a $(D string)
 with a human readable description of the error.)
 
-$(P If code detects an error like "out of memory," then an Error is thrown
+$(P If code detects an error like "out of memory," then an $(D Error) is thrown
 with a message saying "Out of memory". The function call stack is unwound,
 looking for a handler for the Error.
 $(DDSUBLINK spec/statement, TryStatement, Finally blocks)

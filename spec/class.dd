@@ -37,14 +37,14 @@ $(GNAME BaseClassList):
     $(D :) $(GLINK Interfaces)
 
 $(GNAME SuperClass):
-    $(GLINK2 declaration, BasicType)
+    $(GLINK2 type, BasicType)
 
 $(GNAME Interfaces):
     $(GLINK Interface)
-    $(GLINK Interface) $(D ,) $(I Interfaces)
+    $(GLINK Interface) $(D ,) $(GSELF Interfaces)
 
 $(GNAME Interface):
-    $(GLINK2 declaration, BasicType)
+    $(GLINK2 type, BasicType)
 )
 
 $(P Classes consist of:)
@@ -1276,13 +1276,7 @@ void main()
         $(P $(GLINK2 attribute, Attribute)s are ignored for $(D AliasThis).
         )
 
-        $(P Multiple $(I AliasThis) are allowed. For implicit conversions
-        and forwarded lookups, all $(I AliasThis) declarations are attempted;
-        if more than one $(I AliasThis) is eligible, the ambiguity is
-        disallowed by raising an error.
-        Note: Multiple $(I AliasThis) is currently unimplemented.
-        )
-
+        $(P Multiple $(I AliasThis) are currently not allowed.)
 
 $(H2 $(LNAME2 auto, Scope Classes))
 $(B Note): Scope classes have been $(DDSUBLINK deprecate, scope for allocating classes on the stack, recommended for deprecation).
@@ -1540,7 +1534,7 @@ $(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
 
 $(GRAMMAR
 $(GNAME NewAnonClassExpression):
-    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(I ConstructorArgs)$(OPT) $(GLINK SuperClass)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK SuperClass)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME ConstructorArgs):
     $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
@@ -1548,7 +1542,7 @@ $(GNAME ConstructorArgs):
 
 which is equivalent to:
 
-$(GRAMMAR
+$(GRAMMAR_INFORMATIVE
 $(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateBody)
 // ...
 $(D new) $(I AllocatorArguments) $(I Identifier) $(I ConstructorArgs)

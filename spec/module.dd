@@ -11,7 +11,7 @@ $(GNAME Module):
 
 $(GNAME DeclDefs):
     $(GLINK DeclDef)
-    $(GLINK DeclDef) $(I DeclDefs)
+    $(GLINK DeclDef) $(GSELF DeclDefs)
 
 $(GNAME DeclDef):
     $(GLINK2 attribute, AttributeSpecifier)
@@ -40,44 +40,43 @@ $(GNAME DeclDef):
     $(D ;)
 )
 
-$(P Modules have a one-to-one correspondence with source files. The module name
-is, by default, the file name with the path and extension stripped off, and can
-be set explicitly with the module declaration.)
+$(P Modules have a one-to-one correspondence with source files. When not
+explicitly set via a $(GLINK ModuleDeclaration), a module's name defaults
+to the name of the file stripped of its path and extension.)
 
-$(P Modules automatically provide a namespace scope for their contents. Modules
+$(P A module's name automatically acts as a namespace scope for its contents. Modules
 superficially resemble classes, but differ in that:)
 
 $(UL
-        $(LI There's only one instance of each module, and it is
+        $(LI Only one instance of a module exists, and it is
         statically allocated.)
 
-        $(LI There is no virtual table.)
+        $(LI Modules do not have virtual tables.)
 
-        $(LI Modules do not inherit, they have no super modules, etc.)
+        $(LI Modules do not inherit, do not have super modules, etc.)
 
-        $(LI A file may contain only one module.)
+        $(LI A source file may contain only one module.)
 
-        $(LI Module symbols can be imported.)
+        $(LI Symbols in a module can be imported.)
 
-        $(LI Modules are always compiled at global scope, and are unaffected
+        $(LI Modules are always compiled at global scope and are unaffected
         by surrounding attributes or other modifiers.)
 )
 
-$(P Modules can be grouped together in hierarchies called $(I packages).)
+$(P Modules can be grouped into hierarchies called $(I packages).)
 
 $(P Modules offer several guarantees:)
 
 $(UL
 
-        $(LI The order in which modules are imported does not affect the
+        $(LI The order in which modules are imported does not affect their
         semantics.)
 
-        $(LI The semantics of a module are not affected by what imports
-        it.)
+        $(LI The semantics of a module are not affected by the scope in which
+        it is imported.)
 
-        $(LI If a module C imports modules A and B, any modifications to B
-        will not silently change code in C that is dependent on A.)
-
+        $(LI If a module $(D C) imports modules $(D A) and $(D B), any modifications
+        to $(D B) will not silently change code in $(D C) that is dependent on $(D A).)
 )
 
 $(H2 $(LNAME2 module_declaration, Module Declaration))
@@ -92,22 +91,22 @@ $(GNAME ModuleDeclaration):
 
 $(GNAME ModuleAttributes):
     $(GLINK ModuleAttribute)
-    $(GLINK ModuleAttribute) $(I ModuleAttributes)
+    $(GLINK ModuleAttribute) $(GSELF ModuleAttributes)
 
 $(GNAME ModuleAttribute):
     $(GLINK2 attribute, DeprecatedAttribute)
     $(GLINK2 attribute, UserDefinedAttribute)
 
 $(GNAME ModuleFullyQualifiedName):
-    $(I ModuleName)
-    $(I Packages) $(D .) $(I ModuleName)
+    $(GLINK ModuleName)
+    $(GLINK Packages) $(D .) $(GLINK ModuleName)
 
 $(GNAME ModuleName):
     $(GLINK_LEX Identifier)
 
 $(GNAME Packages):
-    $(I PackageName)
-    $(I Packages) $(D .) $(I PackageName)
+    $(GLINK PackageName)
+    $(GSELF Packages) $(D .) $(GLINK PackageName)
 
 $(GNAME PackageName):
     $(GLINK_LEX Identifier)
@@ -133,7 +132,7 @@ lower case package and module names will avoid or minimize problems when moving 
 between dissimilar file systems.)
 
 $(P If the file name of a module is an invalid module name (e.g.
-`foo-bar.d`), you may use a module declaration to set a valid module name:)
+`foo-bar.d`), use a module declaration to set a valid module name:)
 
 ---------
 module foo_bar;
@@ -194,7 +193,7 @@ $(GNAME ImportDeclaration):
 $(GNAME ImportList):
     $(GLINK Import)
     $(GLINK ImportBindings)
-    $(GLINK Import) $(D ,) $(GLINK ImportList)
+    $(GLINK Import) $(D ,) $(GSELF ImportList)
 
 $(GNAME Import):
     $(GLINK ModuleFullyQualifiedName)
@@ -205,11 +204,11 @@ $(GNAME ImportBindings):
 
 $(GNAME ImportBindList):
     $(GLINK ImportBind)
-    $(GLINK ImportBind) $(D ,) $(I ImportBindList)
+    $(GLINK ImportBind) $(D ,) $(GSELF ImportBindList)
 
 $(GNAME ImportBind):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) = $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D =) $(GLINK_LEX Identifier)
 
 $(GNAME ModuleAliasIdentifier):
     $(GLINK_LEX Identifier)
@@ -484,7 +483,7 @@ void main()
 
 $(H2 $(LNAME2 module_scope_operators, Module Scope Operator))
 
-    $(P A leading `.` causes the
+    $(P A leading dot (`.`) causes the
     identifier to be looked up in the module scope.)
 
 ---------

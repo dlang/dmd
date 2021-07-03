@@ -8,16 +8,97 @@ $(HEADERNAV_TOC)
     an expression can hold, and determine the semantics of operations on those values.
     )
 
-    $(P Basic data types are leaf types. Derived data types build on leaf types. User defined
-    types are aggregates of basic and derived types.
+$(GRAMMAR
+$(GNAME Type):
+    $(GLINK TypeCtors)$(OPT) $(GLINK BasicType) $(GLINK TypeSuffixes)$(OPT)
+
+$(GNAME TypeCtors):
+    $(GLINK TypeCtor)
+    $(GLINK TypeCtor) $(GSELF TypeCtors)
+
+$(GNAME TypeCtor):
+    $(D const)
+    $(D immutable)
+    $(D inout)
+    $(D shared)
+
+$(GNAME BasicType):
+    $(GLINK FundamentalType)
+    $(D .) $(GLINK QualifiedIdentifier)
+    $(GLINK QualifiedIdentifier)
+    $(GLINK Typeof)
+    $(GLINK Typeof) $(D .) $(GLINK QualifiedIdentifier)
+    $(GLINK TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN))
+    $(GLINK Vector)
+    $(GLINK2 traits, TraitsExpression)
+    $(GLINK MixinType)
+
+$(GNAME Vector):
+    $(D __vector) $(D $(LPAREN)) $(GLINK VectorBaseType) $(D $(RPAREN))
+
+$(GNAME VectorBaseType):
+    $(GLINK Type)
+
+$(GNAME FundamentalType):
+$(MULTICOLS 5,
+    $(D bool)
+    $(D byte)
+    $(D ubyte)
+    $(D short)
+    $(D ushort)
+    $(D int)
+    $(D uint)
+    $(D long)
+    $(D ulong)
+    $(D cent)
+    $(D ucent)
+    $(D char)
+    $(D wchar)
+    $(D dchar)
+    $(D float)
+    $(D double)
+    $(D real)
+    $(D ifloat)
+    $(D idouble)
+    $(D ireal)
+    $(D cfloat)
+    $(D cdouble)
+    $(D creal)
+    $(D void))
+
+$(GNAME TypeSuffixes):
+    $(GLINK TypeSuffix) $(GSELF TypeSuffixes)$(OPT)
+
+$(GNAME TypeSuffix):
+    $(D *)
+    $(D [ ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ..) $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK Type) $(D ])
+    $(D delegate) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+    $(D function) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+
+$(GNAME QualifiedIdentifier):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF QualifiedIdentifier)
+    $(GLINK2 template, TemplateInstance)
+    $(GLINK2 template, TemplateInstance) $(D .) $(GSELF QualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
+    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D] .) $(GSELF QualifiedIdentifier)
+)
+
+
+    $(P $(RELATIVE_LINK2 basic_data_types, Basic Data Types) are leaf types.
+    $(RELATIVE_LINK2 derived-data_types, Derived Data Types) build on leaf types.
+    $(RELATIVE_LINK2 user-defined-types, User-Defined Types) are aggregates of basic and derived types.
     )
 
 $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
     $(TABLE_3COLS Basic Data Types,
     $(THEAD Keyword, Default Initializer ($(D .init)), Description)
-    $(TROW $(D void), $(D -), no type)
-    $(TROW $(D bool), $(D false), boolean value)
+    $(TROW $(D void), no default initializer, `void` has no value)
+    $(TROW $(RELATIVE_LINK2 bool, $(D bool)), $(D false), boolean value)
     $(TROW $(D byte), $(D 0), signed 8 bits)
     $(TROW $(D ubyte), $(D 0u), unsigned 8 bits)
     $(TROW $(D short), $(D 0), signed 16 bits)
@@ -30,8 +111,7 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D ucent), $(D 0u), unsigned 128 bits (reserved for future use))
     $(TROW $(D float), $(D float.nan), 32 bit floating point)
     $(TROW $(D double), $(D double.nan), 64 bit floating point)
-    $(TROW $(D real), $(D real.nan), largest FP size implemented in
-    hardware$(FOOTNOTE Implementation Note: 80 bits for x86 CPUs or $(D double) size$(COMMA) whichever is larger))
+    $(TROW $(D real), $(D real.nan), largest floating point size available)
     $(TROW $(D ifloat), $(D float.nan*1.0i), imaginary float)
     $(TROW $(D idouble), $(D double.nan*1.0i), imaginary double)
     $(TROW $(D ireal), $(D real.nan*1.0i), imaginary real)
@@ -43,37 +123,40 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D dchar), $(D 'U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
     )
 
+    $(IMPLEMENTATION_DEFINED The real floating point type has at least the range and precision
+    of the `double` type. On x86 CPUs it is often implemented as the 80 bit Extended Real
+    type supported by the x86 FPU.
+    )
+
+    $(P NOTE: Complex and imaginary types `ifloat`, `idouble`, `ireal`, `cfloat`, `cdouble`,
+    and `creal` have been deprecated in favor of `std.complex.Complex`.)
+
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
     $(UL
-    $(LI pointer)
-    $(LI array)
-    $(LI associative array)
-    $(LI function)
-    $(LI delegate)
+    $(LI $(DDSUBLINK arrays, pointers, Pointer))
+    $(LI $(DDSUBLINK arrays, static-arrays, Static Array))
+    $(LI $(DDSUBLINK arrays, dynamic-arrays, Dynamic Array))
+    $(LI $(DDLINK spec/hash-map, Associative Array, Associative Array))
+    $(LI $(DDLINK spec/function, Functions, Functions))
+    $(LI $(RELATIVE_LINK2 delegates, Delegates))
     )
 
-    $(P $(DDSUBLINK spec/arrays, strings, $(I Strings)) are a special case of arrays.)
 
 $(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
 
     $(UL
-    $(LI enum)
-    $(LI struct)
-    $(LI union)
-    $(LI class)
-
+    $(LI $(DDLINK spec/enum, Enums, Enums))
+    $(LI $(DDLINK spec/struct, Structs and Unions, Structs and Unions))
+    $(LI $(DDLINK spec/class, Classes, Classes))
+    $(LI $(DDLINK spec/interface, Interfaces, Interfaces))
     )
 
-$(H2 $(LEGACY_LNAME2 Base Types, base-types, Base Types))
+$(H2 $(LNAME2 type-conversions, Type Conversions))
 
-    $(P The $(I base type) of an enum is the type it is based on:)
+    See also: $(GLINK2 expression, CastExpression).
 
----
-enum E : T { ... }  // T is the base type of E
----
-
-$(H2 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
+$(H3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
     $(P Casting pointers to non-pointers and vice versa is allowed.)
 
@@ -81,7 +164,7 @@ $(H2 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversio
     allocated by the garbage collector.
     )
 
-$(H2 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
+$(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions))
 
     $(P Implicit conversions are used to automatically convert
     types as required.
@@ -105,7 +188,47 @@ f = Foo.E;       // OK
 -------------------
 )
 
-$(H2 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
+    $(P A derived class can be implicitly converted to its base class, but going
+    the other way requires an explicit cast. For example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+Base bd = new Derived();              // implicit conversion
+Derived db = cast(Derived)new Base(); // explicit conversion
+-------------------
+)
+
+    $(P A dynamic array, say `x`, of a derived class can be implicitly converted
+    to a dynamic array, say `y`, of a base class iff elements of `x` and `y` are
+    qualified as being either both `const` or `both` `immutable`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+const(Base)[] ca = (const(Derived)[]).init; // `const` elements
+immutable(Base)[] ia = (immutable(Derived)[]).init; // `immutable` elements
+-------------------
+)
+
+    $(P A static array, say `x`, of a derived class can be implicitly converted
+    to a static array, say `y`, of a base class iff elements of `x` and `y` are
+    qualified as being either both `const` or `both` `immutable` or both mutable
+    (neither `const` nor `immutable`).)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-------------------
+class Base {}
+class Derived : Base {}
+Base[3] ma = (Derived[3]).init; // mutable elements
+const(Base)[3] ca = (const(Derived)[3]).init; // `const` elements
+immutable(Base)[3] ia = (immutable(Derived)[3]).init; // `immutable` elements
+-------------------
+)
+
+$(H3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
 
     $(P Integer Promotions are conversions of the following types:
     )
@@ -151,7 +274,7 @@ $(H2 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions)
     column.
     )
 
-$(H2 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
+$(H3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions))
 
     $(P The usual arithmetic conversions convert operands of binary
     operators to a common type. The operands must already be
@@ -227,8 +350,8 @@ $(P The bool type is a byte-size type that can only hold the value `true` or
 `false`.)
 
 $(P The only operators that can accept operands of type bool are: $(CODE_AMP)
-$(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =) $(D ^=) !
-$(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).)
+$(CODE_PIPE), $(D ^), $(CODE_AMP)$(D =), $(CODE_PIPE)$(D =), $(D ^=), !,
+$(CODE_AMP)$(CODE_AMP), $(CODE_PIPE)$(CODE_PIPE), and $(D ?:).)
 
 $(P A `bool` value can be implicitly converted to any integral type, with
 `false` becoming 0 and `true` becoming 1.)
@@ -282,7 +405,7 @@ dg(3);   // call o.member(3)
 -------------------
 
     $(P The equivalent of member function pointers can be constructed
-    using anonymous lambda functions:)
+    using $(DDSUBLINK spec/expression, function_literals, anonymous lambda functions):)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
@@ -305,19 +428,111 @@ $(P The C style syntax for declaring pointers to functions is deprecated:)
 int (*fp)(int);  // fp is pointer to a function
 -------------------
 
-$(H2 $(LNAME2 mixin_types, $(D Mixin Types)))
+$(H2 $(LNAME2 typeof, $(D typeof)))
+
+$(GRAMMAR
+$(GNAME Typeof):
+    $(D typeof $(LPAREN)) $(GLINK2 expression, Expression) $(D $(RPAREN))
+    $(D typeof $(LPAREN)) $(D return) $(D $(RPAREN))
+)
+
+        $(P
+        $(D typeof) is a way to specify a type based on the type
+        of an expression. For example:
+        )
+
+        --------------------
+        void func(int i)
+        {
+            typeof(i) j;       // j is of type int
+            typeof(3 + 6.0) x; // x is of type double
+            typeof(1)* p;      // p is of type pointer to int
+            int[typeof(p)] a;  // a is of type int[int*]
+
+            writeln(typeof('c').sizeof); // prints 1
+            double c = cast(typeof(1.0))j; // cast j to double
+        }
+        --------------------
+
+        $(P
+        $(I Expression) is not evaluated, it is used purely to
+        generate the type:
+        )
+
+        --------------------
+        void func()
+        {
+            int i = 1;
+            typeof(++i) j; // j is declared to be an int, i is not incremented
+            writeln(i);  // prints 1
+        }
+        --------------------
+
+        $(P Special cases: )
+    $(OL
+        $(LI $(D typeof(this)) will generate the type of what $(D this)
+        would be in a non-static member function, even if not in a member
+        function.
+        )
+        $(LI Analogously, $(D typeof(super)) will generate the type of what
+        $(D super) would be in a non-static member function.
+        )
+        $(LI $(D typeof(return)) will, when inside a function scope,
+        give the return type of that function.
+        )
+    )
+
+        --------------------
+        class A { }
+
+        class B : A
+        {
+            typeof(this) x;  // x is declared to be a B
+            typeof(super) y; // y is declared to be an A
+        }
+
+        struct C
+        {
+            static typeof(this) z;  // z is declared to be a C
+
+            typeof(super) q; // error, no super struct for C
+        }
+
+        typeof(this) r;   // error, no enclosing struct or class
+        --------------------
+
+        $(P If the expression is a $(DDSUBLINK spec/function, property-functions,
+        Property Function), $(D typeof) gives its return type.
+        )
+
+        --------------------
+        struct S
+        {
+            @property int foo() { return 1; }
+        }
+        typeof(S.foo) n;  // n is declared to be an int
+        --------------------
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI $(I Typeof) is most useful in writing generic
+        template code.)
+        )
+        )
+
+$(H2 $(LNAME2 mixin_types, Mixin Types))
 
 $(GRAMMAR
 $(GNAME MixinType):
-    $(D mixin $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN))
+    $(D mixin $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
 )
 
-    $(P Each $(GLINK AssignExpression) in the $(I ArgumentList) is
+    $(P Each $(GLINK2 expression, AssignExpression) in the $(I ArgumentList) is
         evaluated at compile time, and the result must be representable
         as a string.
         The resulting strings are concatenated to form a string.
         The text contents of the string must be compilable as a valid
-        $(GLINK2 declaration, Type), and is compiled as such.)
+        $(GLINK2 type, Type), and is compiled as such.)
 
         ---
         void test(mixin("int")* p) // int* p
@@ -328,14 +543,20 @@ $(GNAME MixinType):
         ---
 
 
-$(H2 $(LNAME2 size_t, $(D size_t)))
+$(H2 $(LNAME2 aliased-types, Aliased Types))
+
+$(H3 $(LNAME2 size_t, $(D size_t)))
 
     $(P $(D size_t) is an alias to one of the unsigned integral basic types,
     and represents a type that is large enough to represent an offset into
     all addressable memory.)
 
-$(H2 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
+$(H3 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
     $(P $(D ptrdiff_t) is an alias to the signed integral basic type the same size as $(D size_t).)
+
+$(H3 $(LNAME2 string, $(D string)))
+
+    $(P A $(DDSUBLINK spec/arrays, strings, $(I string) is a special case of an array.))
 
 $(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 )

@@ -20,12 +20,12 @@ $(GNAME Declaration):
 
 $(GRAMMAR
 $(GNAME VarDeclarations):
-    $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK Declarators) $(D ;)
+    $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK Declarators) $(D ;)
     $(GLINK AutoDeclaration)
 
 $(GNAME Declarators):
-    $(I DeclaratorInitializer)
-    $(I DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
+    $(GLINK DeclaratorInitializer)
+    $(GLINK DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
 
 $(GNAME DeclaratorInitializer):
     $(GLINK VarDeclarator)
@@ -35,7 +35,7 @@ $(GNAME DeclaratorInitializer):
 
 $(GNAME DeclaratorIdentifierList):
     $(GLINK DeclaratorIdentifier)
-    $(GLINK DeclaratorIdentifier) $(D ,) $(I DeclaratorIdentifierList)
+    $(GLINK DeclaratorIdentifier) $(D ,) $(GSELF DeclaratorIdentifierList)
 
 $(GNAME DeclaratorIdentifier):
     $(GLINK VarDeclaratorIdentifier)
@@ -46,125 +46,46 @@ $(GNAME VarDeclaratorIdentifier):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
 
 $(GNAME AltDeclaratorIdentifier):
-    $(GLINK BasicType2) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)$(OPT)
-    $(GLINK BasicType2) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)$(OPT) $(D =) $(GLINK Initializer)
-    $(GLINK BasicType2)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
-    $(GLINK BasicType2)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes) $(D =) $(GLINK Initializer)
+    $(GLINK2 type, TypeSuffixes) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)$(OPT)
+    $(GLINK2 type, TypeSuffixes) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)$(OPT) $(D =) $(GLINK Initializer)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes) $(D =) $(GLINK Initializer)
 
 $(GNAME Declarator):
     $(GLINK VarDeclarator)
     $(GLINK AltDeclarator)
 
 $(GNAME VarDeclarator):
-    $(GLINK BasicType2)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
 
 $(GNAME AltDeclarator):
-    $(GLINK BasicType2)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
-    $(GLINK BasicType2)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorX) $(D $(RPAREN))
-    $(GLINK BasicType2)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorX) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
-    $(GLINK BasicType2)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorX) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN))
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
 
-$(GNAME AltDeclaratorX):
-    $(GLINK BasicType2)$(OPT) $(GLINK_LEX Identifier)
-    $(GLINK BasicType2)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltFuncDeclaratorSuffix)
+$(GNAME AltDeclaratorInner):
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltFuncDeclaratorSuffix)
     $(GLINK AltDeclarator)
 
 $(GNAME AltDeclaratorSuffixes):
     $(GLINK AltDeclaratorSuffix)
-    $(GLINK AltDeclaratorSuffix) $(I AltDeclaratorSuffixes)
+    $(GLINK AltDeclaratorSuffix) $(GSELF AltDeclaratorSuffixes)
 
 $(GNAME AltDeclaratorSuffix):
     $(D [ ])
     $(D [) $(GLINK2 expression, AssignExpression) $(D ])
-    $(D [) $(GLINK Type) $(D ])
+    $(D [) $(GLINK2 type, Type) $(D ])
 
 $(GNAME AltFuncDeclaratorSuffix):
     $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
 $(GRAMMAR
-$(GNAME Type):
-    $(GLINK TypeCtors)$(OPT) $(GLINK BasicType) $(GLINK BasicType2)$(OPT)
-
-$(GNAME TypeCtors):
-    $(GLINK TypeCtor)
-    $(GLINK TypeCtor) $(I TypeCtors)
-
-$(GNAME TypeCtor):
-    $(D const)
-    $(D immutable)
-    $(D inout)
-    $(D shared)
-
-$(GNAME BasicType):
-    $(GLINK BasicTypeX)
-    $(D .) $(GLINK IdentifierList)
-    $(GLINK IdentifierList)
-    $(GLINK Typeof)
-    $(GLINK Typeof) $(D .) $(GLINK IdentifierList)
-    $(GLINK TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN))
-    $(GLINK Vector)
-    $(GLINK2 grammar, Traits)
-    $(GLINK2 type, MixinType)
-
-$(GNAME Vector):
-    $(D __vector) $(D $(LPAREN)) $(GLINK VectorBaseType) $(D $(RPAREN))
-
-$(GNAME VectorBaseType):
-    $(GLINK Type)
-
-$(GNAME BasicTypeX):
-$(MULTICOLS 5,
-    $(D bool)
-    $(D byte)
-    $(D ubyte)
-    $(D short)
-    $(D ushort)
-    $(D int)
-    $(D uint)
-    $(D long)
-    $(D ulong)
-    $(D cent)
-    $(D ucent)
-    $(D char)
-    $(D wchar)
-    $(D dchar)
-    $(D float)
-    $(D double)
-    $(D real)
-    $(D ifloat)
-    $(D idouble)
-    $(D ireal)
-    $(D cfloat)
-    $(D cdouble)
-    $(D creal)
-    $(D void))
-
-$(GNAME BasicType2):
-    $(GLINK BasicType2X) $(GLINK BasicType2)$(OPT)
-
-$(GNAME BasicType2X):
-    $(D *)
-    $(D [ ])
-    $(D [) $(GLINK2 expression, AssignExpression) $(D ])
-    $(D [) $(GLINK2 expression, AssignExpression) .. $(GLINK2 expression, AssignExpression) $(D ])
-    $(D [) $(GLINK Type) $(D ])
-    $(D delegate) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
-    $(D function) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
-
-$(GNAME IdentifierList):
-    $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(D .) $(I IdentifierList)
-    $(GLINK2 template, TemplateInstance)
-    $(GLINK2 template, TemplateInstance) $(D .) $(I IdentifierList)
-    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D])
-    $(GLINK_LEX Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D].) $(I IdentifierList)
-)
-
-$(GRAMMAR
 $(GNAME StorageClasses):
     $(GLINK StorageClass)
-    $(GLINK StorageClass) $(I StorageClasses)
+    $(GLINK StorageClass) $(GSELF StorageClasses)
 
 $(GNAME StorageClass):
 $(MULTICOLS 5,     $(GLINK2 attribute, LinkageAttribute)
@@ -209,7 +130,7 @@ $(GNAME ArrayInitializer):
 $(GNAME ArrayMemberInitializations):
     $(GLINK ArrayMemberInitialization)
     $(GLINK ArrayMemberInitialization) $(D ,)
-    $(GLINK ArrayMemberInitialization) $(D ,) $(I ArrayMemberInitializations)
+    $(GLINK ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
 
 $(GNAME ArrayMemberInitialization):
     $(GLINK NonVoidInitializer)
@@ -221,7 +142,7 @@ $(GNAME StructInitializer):
 $(GNAME StructMemberInitializers):
     $(GLINK StructMemberInitializer)
     $(GLINK StructMemberInitializer) $(D ,)
-    $(GLINK StructMemberInitializer) $(D ,) $(I StructMemberInitializers)
+    $(GLINK StructMemberInitializer) $(D ,) $(GSELF StructMemberInitializers)
 
 $(GNAME StructMemberInitializer):
     $(GLINK NonVoidInitializer)
@@ -230,24 +151,23 @@ $(GNAME StructMemberInitializer):
 
 $(H2 $(LNAME2 declaration_syntax, Declaration Syntax))
 
-$(P Declaration syntax generally reads right to left:)
+$(P Declaration syntax generally reads right to left, including arrays:)
 
 --------------------
 int x;    // x is an int
 int* x;   // x is a pointer to int
 int** x;  // x is a pointer to a pointer to int
+
 int[] x;  // x is an array of ints
 int*[] x; // x is an array of pointers to ints
 int[]* x; // x is a pointer to an array of ints
+
+int[3] x;     // x is a static array of 3 ints
+int[3][5] x;  // x is a static array of 5 static arrays of 3 ints
+int[3]*[5] x; // x is a static array of 5 pointers to static arrays of 3 ints
 --------------------
 
-$(P Arrays read right to left as well:)
-
---------------------
-int[3] x;     // x is an array of 3 ints
-int[3][5] x;  // x is an array of 5 arrays of 3 ints
-int[3]*[5] x; // x is an array of 5 pointers to arrays of 3 ints
---------------------
+$(H3 $(LNAME2 pointers-to-functions, Pointers to Functions))
 
 $(P
 Pointers to functions are declared using the $(D function) keyword:
@@ -263,19 +183,24 @@ int function(char)[] x; // x is an array of
                      // and returning an int
 --------------------
 
+$(H3 $(LNAME2 c-style-declarations, C-Style Declarations))
+
 $(P
 C-style array, function pointer and pointer to array declarations are deprecated:
 )
 
 --------------------
-int x[3];          // x is an array of 3 ints
-int x[3][5];       // x is an array of 3 arrays of 5 ints
-int (*x[5])[3];    // x is an array of 5 pointers to arrays of 3 ints
+int x[3];          // x is a static array of 3 ints
+int x[3][5];       // x is a static array of 3 arrays of 5 ints
+
+int (*x[5])[3];    // x is a static array of 5 pointers to static arrays of 3 ints
 int (*x)(char);    // x is a pointer to a function taking a char argument
                    // and returning an int
 int (*[] x)(char); // x is an array of pointers to functions
                    // taking a char argument and returning an int
 --------------------
+
+$(H3 $(LNAME2 declaring-multiple-symbols, Declaring Multiple Symbols))
 
 $(P
 In a declaration declaring multiple symbols, all the declarations
@@ -285,8 +210,10 @@ must be of the same type:
 --------------------
 int x,y;   // x and y are ints
 int* x,y;  // x and y are pointers to ints
-int x,*y;  // error, multiple types
 int[] x,y; // x and y are arrays of ints
+
+// invalid C-style declarations
+int x,*y;  // error, multiple types
 int x[],y; // error, multiple types
 --------------------
 
@@ -294,13 +221,13 @@ $(H2 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference)
 
 $(GRAMMAR
 $(GNAME AutoDeclaration):
-    $(GLINK StorageClasses) $(I AutoDeclarationX) $(D ;)
+    $(GLINK StorageClasses) $(GLINK AutoAssignments) $(D ;)
 
-$(GNAME AutoDeclarationX):
-    $(GLINK AutoDeclarationY)
-    $(I AutoDeclarationX) $(D ,) $(GLINK AutoDeclarationY)
+$(GNAME AutoAssignments):
+    $(GLINK AutoAssignment)
+    $(GSELF AutoAssignments) $(D ,) $(GLINK AutoAssignment)
 
-$(GNAME AutoDeclarationY):
+$(GNAME AutoAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
 )
 
@@ -339,18 +266,18 @@ $(H2 $(LNAME2 alias, Alias Declarations))
 
 $(GRAMMAR
 $(GNAME AliasDeclaration):
-    $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK Declarators) $(D ;)
-    $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK2 function, FuncDeclarator) $(D ;)
-    $(D alias) $(I AliasDeclarationX) $(D ;)
+    $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK Declarators) $(D ;)
+    $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, FuncDeclarator) $(D ;)
+    $(D alias) $(GLINK AliasAssignments) $(D ;)
 
-$(GNAME AliasDeclarationX):
-    $(GLINK AliasDeclarationY)
-    $(I AliasDeclarationX) $(D ,) $(GLINK AliasDeclarationY)
+$(GNAME AliasAssignments):
+    $(GLINK AliasAssignment)
+    $(GSELF AliasAssignments) $(D ,) $(GLINK AliasAssignment)
 
-$(GNAME AliasDeclarationY):
-    $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK Type)
+$(GNAME AliasAssignment):
+    $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, Type)
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK2 expression, FunctionLiteral)
-    $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+    $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
     $(P $(I AliasDeclaration)s create a symbol that is an alias for another type,
@@ -572,6 +499,44 @@ pragma(msg, TK); // prints tuple(3, (const(uint)), (int))
 ---
         )
 
+$(H2 $(LNAME2 alias-reassignment, Alias Reassignment))
+
+        $(GRAMMAR
+        $(GNAME AliasReassignment):
+            $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK Type)
+            $(GLINK_LEX Identifier) $(D =) $(GLINK2 expression, FunctionLiteral)
+            $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+        )
+
+        $(P An alias declaration inside a template can be reassigned a new value.)
+
+        ---
+        template staticMap(alias F, T...)
+        {
+            alias A = AliasSeq!();
+            static foreach (t; T)
+                A = AliasSeq!(A, F!T); // alias reassignment
+            alias staticMap = A;
+        }
+        ---
+
+        $(P The $(I Identifier) must resolve to a lexically preceding $(GLINK AliasDeclaration).
+        Both must be members of the same $(GLINK2 template, TemplateDeclaration).
+        )
+
+        $(P The right hand side of the $(I AliasReassignment) replaces the right hand side of the
+        $(I AliasDeclaration).
+        )
+
+        $(P Once the $(I AliasDeclaration) has been referred to in any context other than the
+        right hand side of an $(I AliasReassignment) it can no longer be reassigned.
+        )
+
+        $(RATIONALE Alias reassignment can result in faster compile times and lowered memory consumption,
+        and requires significantly simpler code than the alternative recursive method.)
+
+
+
 $(H2 $(LNAME2 extern, Extern Declarations))
 
 $(P Variable declarations with the storage class $(D extern) are not allocated
@@ -596,98 +561,6 @@ extern extern(C) int bar;
         connect with global variables declarations and functions in C or C++ files.)
         ))
 
-$(H2 $(LNAME2 typeof, $(D typeof)))
-
-$(GRAMMAR
-$(GNAME Typeof):
-    $(D typeof $(LPAREN)) $(GLINK2 expression, Expression) $(D $(RPAREN))
-    $(D typeof $(LPAREN)) $(D return) $(D $(RPAREN))
-)
-
-        $(P
-        $(I Typeof) is a way to specify a type based on the type
-        of an expression. For example:
-        )
-
-        --------------------
-        void func(int i)
-        {
-            typeof(i) j;       // j is of type int
-            typeof(3 + 6.0) x; // x is of type double
-            typeof(1)* p;      // p is of type pointer to int
-            int[typeof(p)] a;  // a is of type int[int*]
-
-            writefln("%d", typeof('c').sizeof); // prints 1
-            double c = cast(typeof(1.0))j; // cast j to double
-        }
-        --------------------
-
-        $(P
-        The $(I Expression) is not evaluated, it is used purely to
-        generate the type:
-        )
-
-        --------------------
-        void func()
-        {
-            int i = 1;
-            typeof(++i) j; // j is declared to be an int, i is not incremented
-            writefln("%d", i);  // prints 1
-        }
-        --------------------
-
-        $(P Special cases: )
-    $(OL
-        $(LI $(D typeof(this)) will generate the type of what $(D this)
-        would be in a non-static member function, even if not in a member
-        function.
-        )
-        $(LI Analogously, $(D typeof(super)) will generate the type of what
-        $(D super) would be in a non-static member function.
-        )
-        $(LI $(D typeof(return)) will, when inside a function scope,
-        give the return type of that function.
-        )
-    )
-
-        --------------------
-        class A { }
-
-        class B : A
-        {
-            typeof(this) x;  // x is declared to be a B
-            typeof(super) y; // y is declared to be an A
-        }
-
-        struct C
-        {
-            static typeof(this) z;  // z is declared to be a C
-
-            typeof(super) q; // error, no super struct for C
-        }
-
-        typeof(this) r;   // error, no enclosing struct or class
-        --------------------
-
-        $(P If the expression is a $(DDSUBLINK spec/function, property-functions,
-        Property Function), $(D typeof) gives its return type.
-        )
-
-        --------------------
-        struct S
-        {
-            @property int foo() { return 1; }
-        }
-        typeof(S.foo) n;  // n is declared to be an int
-        --------------------
-
-        $(BEST_PRACTICE
-        $(OL
-        $(LI $(I Typeof) is most useful in writing generic
-        template code.)
-        )
-        )
-
 $(H2 $(LNAME2 void_init, Void Initializations))
 
 $(GRAMMAR
@@ -702,14 +575,27 @@ $(GNAME VoidInitializer):
         used before it is set, undefined program behavior will result.
         )
 
-        $(UNDEFINED_BEHAVIOR If a void initialized variable's value is
-        used before it is set, the behavior is undefined.
+        $(IMPLEMENTATION_DEFINED If a void initialized variable's value is
+        used before it is set, its value is implementation defined.
 
         ---
-        void foo()
+        void bad()
         {
             int x = void;
-            writeln(x);  // will print garbage
+            writeln(x);  // print implementation defined value
+        }
+        ---
+        )
+
+        $(UNDEFINED_BEHAVIOR If a void initialized variable's value is
+        used before it is set, and the value is a reference, pointer or an instance
+        of a struct with an invariant, the behavior is undefined.
+
+        ---
+        void muchWorse()
+        {
+            char[] p = void;
+            writeln(p);  // may result in apocalypse
         }
         ---
         )

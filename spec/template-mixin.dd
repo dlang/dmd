@@ -16,14 +16,14 @@ $(GNAME TemplateMixin):
     $(D mixin) $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(GLINK_LEX Identifier)$(OPT) $(D ;)
 
 $(GNAME MixinTemplateName):
-    $(D .) $(GLINK QualifiedIdentifierList)
-    $(GLINK QualifiedIdentifierList)
-    $(GLINK2 declaration, Typeof) $(D .) $(GLINK QualifiedIdentifierList)
+    $(D .) $(GLINK MixinQualifiedIdentifier)
+    $(GLINK MixinQualifiedIdentifier)
+    $(GLINK2 type, Typeof) $(D .) $(GLINK MixinQualifiedIdentifier)
 
-$(GNAME QualifiedIdentifierList):
+$(GNAME MixinQualifiedIdentifier):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(D .) $(I QualifiedIdentifierList)
-    $(GLINK2 template, TemplateInstance) $(D .) $(I QualifiedIdentifierList)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF MixinQualifiedIdentifier)
+    $(GLINK2 template, TemplateInstance) $(D .) $(GSELF MixinQualifiedIdentifier)
 )
 
         $(P A $(I TemplateMixin) can occur in declaration lists of modules,

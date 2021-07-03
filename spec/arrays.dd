@@ -666,14 +666,15 @@ array.length = i;
 ---------
 )
 
-        $(P Picking a good initial guess is an art, but you usually can
-        pick a value covering 99% of the cases.
+        $(P Base selection of the initial size on expected common
+        use cases, which can be determined by instrumenting the code,
+        or simply using good judgement.
         For example, when gathering user
         input from the console - it's unlikely to be longer than 80.
         )
 
-        $(P Also, you may wish to utilize the $(D reserve)
-        function to pre-allocate array data to use with the append operator.)
+        $(P The $(D reserve)
+        function expands an array's capacity for use by the append operator.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------

@@ -20,11 +20,11 @@ Some existing approaches to this are:
 )
 
 $(UL
-$(LI $(LINK2 http://www.stack.nl/~dimitri/doxygen, Doxygen) which already has some support for D)
+$(LI $(LINK2 https://www.doxygen.nl/, Doxygen) which already has some support for D)
 $(LI Java's $(LINK2 https://docs.oracle.com/javase/7/docs/technotes/guides/javadoc/index.html, Javadoc),
  probably the most well-known)
 $(LI C$(HASH)'s $(LINK2 https://msdn.microsoft.com/en-us/library/b2s063f7.aspx, embedded XML))
-$(LI Other $(LINK2 https://python.org/sigs/doc-sig/otherlangs.html, documentation tools))
+$(LI Other $(LINK2 https://doc.rust-lang.org/rustdoc/what-is-rustdoc.html, documentation tools))
 )
 
 $(P
@@ -201,7 +201,7 @@ $(P
 The document comment is a series of $(I Section)s.
 A $(I Section) is a name that is the first non-blank character on
 a line immediately followed by a ':'. This name forms the section name.
-The section name is not case sensitive.
+The section name is not case-sensitive.
 )
 
 $(P
@@ -512,10 +512,6 @@ $(P
  +/
 ------------------------------------
 
-$(P
-$(EM Enable support for backticks, tildes and other code languages with the `-preview=markdown` compiler flag.)
-)
-
 $(H3 $(LNAME2 inline_code, Inline Code))
 
 $(P
@@ -569,10 +565,6 @@ best to avoid using it where practical.
 $(H3 $(LNAME2 headings, Headings))
 
 $(P
-$(EM Enable this feature with the `-preview=markdown` compiler flag.)
-)
-
-$(P
 A long documentation section can be subdivided by adding headings. A heading is
 a line of text that starts with one to six `#` characters followed by whitespace
 and then the heading text. The number of `#` characters determines the heading
@@ -591,10 +583,6 @@ level. Headings may optionally end with any number of trailing `#` characters.
 ---
 
 $(H3 $(LNAME2 links, Links))
-
-$(P
-$(EM Enable this feature with the `-preview=markdown` compiler flag.)
-)
 
 $(P
 Documentation may link to other documentation or to a URL. There are four
@@ -643,8 +631,8 @@ The generated links to D symbols are relative if they have the same root package
 as the module being documented. If not, their URLs are preceded by a
 `$(DOLLAR)(DDOC_ROOT_pkg)` macro, where `pkg` is the root package of the symbol
 being linked to. Links to D symbols are generated with a `$(DOLLAR)(DOC_EXTENSION)`
-macro after the module name. So the generated URL for `[Object]` in the above
-example is as if you had written:
+macro after the module name. Then the generated URL for `[Object]` in the above
+example is as if it had been written:
 )
 
 ---
@@ -652,7 +640,7 @@ $(DOLLAR)(DOC_ROOT_object)object$(DOLLAR)(DOC_EXTENSION)#.Object
 ---
 
 $(P
-You may define your own `DOC_ROOT_` macros for any external packages you wish
+`DOC_ROOT_` macros can be defined for any external packages
 to link to using a $(LINK2 #macros, Macros section).
 )
 
@@ -688,10 +676,6 @@ normal link is used as the image's alt text.
 )
 
 $(H3 $(LNAME2 lists, Lists))
-
-$(P
-$(EM Enable this feature with the `-preview=markdown` compiler flag.)
-)
 
 $(P
 Documentation may contain lists. Start an ordered list with a number followed by
@@ -763,10 +747,6 @@ after the list symbol:
 $(H3 $(LNAME2 tables, Tables))
 
 $(P
-$(EM Enable this feature with the `-preview=markdown` compiler flag.)
-)
-
-$(P
 Data may be placed into a table. Tables consist of a single header row, a
 delimiter row, and zero or more data rows. Cells in each row are separated by
 pipe (`|`) characters. Initial and trailing `|`'s are optional. The number of
@@ -791,10 +771,6 @@ and `:`'s on both sides of the hyphens create a center-aligned column.
 )
 
 $(H3 $(LNAME2 quotes, Quotes))
-
-$(P
-$(EM Enable this feature with the `-preview=markdown` compiler flag.)
-)
 
 $(P
 Documentation may include a section of quoted material by prefixing each line of
@@ -823,10 +799,6 @@ Lines of text that directly follow a quoted line are considered part of the quot
 $(H3 $(LNAME2 hrules, Horizontal Rules))
 
 $(P
-$(EM Enable this feature with the `-preview=markdown` compiler flag.)
-)
-
-$(P
 Create a horizontal rule by adding a line containing three or more asterisks,
 underscores or hyphens:
 )
@@ -841,7 +813,7 @@ underscores or hyphens:
 $(P
 As with $(LINK2 #lists, lists), note that the initial `*` in the example above
 will be stripped because it is part of a documentation comment that is delimited
-with asterisks, so you need at least three subsequent asterisks.
+with asterisks. At least three subsequent asterisks are needed.
 )
 
 $(P
@@ -862,10 +834,6 @@ spaces:
 $(H3 $(LNAME2 text_emphasis, Text Emphasis))
 
 $(P
-$(EM Enable this feature with the `-preview=markdown` compiler flag.)
-)
-
-$(P
 A span of text wrapped in asterisks (`*`) is emphasized, and text wrapped in
 two asterisks (`**`) is strongly emphasized:
 )
@@ -879,7 +847,7 @@ $(P
 )
 
 $(P
-You can insert a literal asterisk by $(LINK2 #punctuation_escapes,
+Insert a literal asterisk by $(LINK2 #punctuation_escapes,
 backslash-escaping) it: `\*` is rendered as *.
 )
 
@@ -925,11 +893,7 @@ $(P
 $(H3 $(LNAME2 punctuation_escapes, Punctuation Escapes))
 
 $(P
-$(EM Enable this feature with the `-preview=markdown` compiler flag.)
-)
-
-$(P
-    You can escape any ASCII punctuation symbol with a backslash `\`.
+    Escape any ASCII punctuation symbol with a backslash `\`.
     Doing so outputs the original character without the backslash, except for
     the following characters which output predefined macros instead:
 )

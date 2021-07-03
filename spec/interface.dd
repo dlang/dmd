@@ -4,6 +4,9 @@ $(SPEC_S Interfaces,
 
 $(HEADERNAV_TOC)
 
+    $(P An $(I Interface) describes a list of functions that a class which inherits
+    from the interface must implement.)
+
 $(GRAMMAR
 $(GNAME InterfaceDeclaration):
     $(D interface) $(GLINK_LEX Identifier) $(D ;)
@@ -14,20 +17,26 @@ $(GNAME BaseInterfaceList):
     $(D :) $(GLINK2 class, Interfaces)
 )
 
-    $(P Interfaces describe a list of functions that a class that inherits
-    from the interface must implement.
-    A class that implements an interface can be converted to a reference
+    $(IMPLEMENTATION_DEFINED $(P Specialized interfaces may be supported:)
+
+    $(OL
+    $(LI $(RELATIVE_LINK2 com-interfaces, $(I COM Interfaces))
+    are binary compatible with COM/OLE/ActiveX objects for Windows.
+    )
+
+    $(LI $(RELATIVE_LINK2 cpp-interfaces, $(I C++ Interfaces))
+    are binary compatible with C++ abstract classes.
+    )
+
+    $(LI [Objective-C Interfaces](objc_interface.html#protocols)
+    are binary compatible with Objective-C protocols.
+    )
+    )
+    )
+
+
+    $(P A class that implements an interface can be implicitly converted to a reference
     to that interface.)
-
-    $(P Some operating system objects, like COM/OLE/ActiveX for Win32,
-    have specialized interfaces. D interfaces that are compatible with
-    COM/OLE/ActiveX are called $(RELATIVE_LINK2 com-interfaces, $(I COM Interfaces)).
-    )
-
-    $(P $(RELATIVE_LINK2 cpp-interfaces, $(I C++ Interfaces)) are another
-    form of interfaces, meant to be binary compatible with C++.
-    )
-
 
     $(P Interfaces cannot derive from classes; only from other interfaces.
     Classes cannot derive from an interface multiple times.
@@ -242,16 +251,16 @@ $(SECTION2 $(LEGACY_LNAME2 COM-Interfaces, com-interfaces, COM Interfaces),
     $(LI It derives from the interface $(D core.stdc.windows.com.IUnknown).)
     $(LI It cannot be the argument to $(REF1 destroy, object).)
     $(LI References cannot be upcast to the enclosing class object, nor
-    can they be downcast to a derived interface. To accomplish this,
-    an appropriate $(D QueryInterface()) would have to be implemented
-    for that interface in standard COM fashion.)
+    can they be downcast to a derived interface.
+    Implement $(D QueryInterface())
+    for that interface in standard COM fashion to convert to another COM interface.)
     $(LI Classes derived from COM interfaces are COM classes.)
     $(LI The default linkage for member functions of COM classes
     is $(D extern(System)).
 
-    Note that if you want to implement or override any base-class methods of
+    $(NOTE To implement or override any base-class methods of
     D interfaces or classes (ones which do not inherit from $(D IUnknown)),
-    you have to explicitly mark them as having the $(D extern(D)) linkage:
+    explicitly mark them as having the $(D extern(D)) linkage.)
 
     ---
     import core.sys.windows.windows;
@@ -286,14 +295,14 @@ $(SECTION2 $(LEGACY_LNAME2 COM-Interfaces, com-interfaces, COM Interfaces),
     }
     ---
 
-    The same applies to other $(D Object) methods such as $(D opCmp), $(D toHash), etc.
+    $(P The same applies to other $(D Object) methods such as $(D opCmp), $(D toHash), etc.)
 
     )
-    $(LI The first member of the $(D vtbl[]) is not the pointer
+    $(LI The first member of the COM $(D vtbl[]) is not the pointer
     to the InterfaceInfo, but the first virtual function pointer.)
     )
 
-    $(P For more information, see
+    $(P See also
     $(LINK2 http://www.lunesu.com/uploads/ModernCOMProgramminginD.pdf, Modern COM Programming in D)
     )
 

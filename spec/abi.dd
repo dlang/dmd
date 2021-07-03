@@ -217,7 +217,7 @@ $(GNAME MangledName):
 $(GRAMMAR
 $(GNAME QualifiedName):
     $(GLINK SymbolFunctionName)
-    $(GLINK SymbolFunctionName) $(I QualifiedName)
+    $(GLINK SymbolFunctionName) $(GSELF QualifiedName)
 
 $(GNAME SymbolFunctionName):
     $(GLINK SymbolName)
@@ -252,7 +252,7 @@ $(GNAME TemplateID):
 
 $(GNAME TemplateArgs):
     $(GLINK TemplateArg)
-    $(GLINK TemplateArg) $(I TemplateArgs)
+    $(GLINK TemplateArg) $(GSELF TemplateArgs)
 
 $(GNAME TemplateArg):
     $(GLINK TemplateArgX)
@@ -275,6 +275,10 @@ $(GNAME TemplateArgX):
     with `pragma(mangle,...)`.)
 
 $(GRAMMAR
+$(GNAME Values):
+    $(GLINK Value)
+    $(GLINK Value) $(GSELF Values)
+
 $(GNAME Value):
     $(B n)
     $(B i) $(GLINK Number)
@@ -282,8 +286,9 @@ $(GNAME Value):
     $(B e) $(GLINK HexFloat)
     $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat)
     $(GLINK CharWidth) $(GLINK Number) $(B _) $(GLINK HexDigits)
-    $(B A) $(GLINK Number) $(GLINK Value)...
-    $(B S) $(GLINK Number) $(GLINK Value)...
+    $(B A) $(GLINK Number) $(GLINK Values)
+    $(B S) $(GLINK Number) $(GLINK Values)
+    $(B f) $(GLINK MangledName)
 
 $(GNAME HexFloat):
     $(B NAN)
@@ -339,14 +344,14 @@ $(GNAME CharWidth):
             The $(GLINK HexDigits) are the hex data for the string.
             )
 
-            $(DT $(B A) $(GLINK Number) $(GLINK Value)...)
+            $(DT $(B A) $(GLINK Number) $(GLINK Values))
             $(DD An array or asssociative array literal.
             $(GLINK Number) is the length of the array.
             $(GLINK Value) is repeated $(GLINK Number) times for a normal array,
             and 2 * $(GLINK Number) times for an associative array.
             )
 
-            $(DT $(B S) $(GLINK Number) $(GLINK Value)...)
+            $(DT $(B S) $(GLINK Number) $(GLINK Values))
             $(DD A struct literal. $(GLINK Value) is repeated $(GLINK Number) times.
             )
     )
@@ -366,7 +371,7 @@ $(GNAME Namechar):
 
 $(GNAME Namechars):
     $(GLINK Namechar)
-    $(GLINK Namechar) $(I Namechars)
+    $(GLINK Namechar) $(GSELF Namechars)
 )
 
         $(P A $(GLINK Name) is a standard D $(DDSUBLINK spec/lex, identifiers, identifier).)
@@ -377,7 +382,7 @@ $(GNAME LName):
 
 $(GNAME Number):
     $(GLINK Digit)
-    $(GLINK Digit) $(I Number)
+    $(GLINK Digit) $(GSELF Number)
 
 $(GNAME Digit):
     $(B 0)
@@ -524,7 +529,7 @@ $(GNAME CallConvention):
 
 $(GNAME FuncAttrs):
     $(GLINK FuncAttr)
-    $(GLINK FuncAttr) $(I FuncAttrs)
+    $(GLINK FuncAttr) $(GSELF FuncAttrs)
 
 $(GNAME FuncAttr):
     $(GLINK FuncAttrPure)
@@ -574,7 +579,7 @@ $(GNAME FuncAttrLive):
 
 $(GNAME Parameters):
     $(GLINK Parameter)
-    $(GLINK Parameter) $(I Parameters)
+    $(GLINK Parameter) $(GSELF Parameters)
 
 $(GNAME Parameter):
     $(GLINK Parameter2)
@@ -588,7 +593,7 @@ $(GNAME Parameter2):
     $(B K) $(GLINK Type)     $(GREEN // ref)
     $(B L) $(GLINK Type)     $(GREEN // lazy)
 
-$(GNAME ParamClose)
+$(GNAME ParamClose):
     $(B X)     $(GREEN // variadic T t...$(RPAREN) style)
     $(B Y)     $(GREEN // variadic T t,...$(RPAREN) style)
     $(B Z)     $(GREEN // not variadic)
@@ -946,7 +951,7 @@ $(H2 $(LNAME2 module_init_and_fina, Module Initialization and Termination))
         module.
         )
 
-        $(P All the static denstructors for a module are aggregated into a
+        $(P All the static destructors for a module are aggregated into a
         single function, and a pointer to that function is inserted
         into the dtor member of the ModuleInfo instance for that
         module.
