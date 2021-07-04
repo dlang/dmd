@@ -434,7 +434,7 @@ $(H2 $(LNAME2 AliasAssign, Alias Assign))
 
 $(GRAMMAR
 $(GNAME AliasAssign):
-    $(I Identifier) $(D =) $(GLINK Type)
+    $(GLINK_LEX Identifier) $(D =) $(GLINK2 type, Type)
 )
 
         $(P An $(GLINK AliasDeclaration) can have a new value assigned to it with an
@@ -501,12 +501,12 @@ pragma(msg, TK); // prints tuple(3, (const(uint)), (int))
 
 $(H2 $(LNAME2 alias-reassignment, Alias Reassignment))
 
-        $(GRAMMAR
-        $(GNAME AliasReassignment):
-            $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK Type)
-            $(GLINK_LEX Identifier) $(D =) $(GLINK2 expression, FunctionLiteral)
-            $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
-        )
+$(GRAMMAR
+$(GNAME AliasReassignment):
+    $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, Type)
+    $(GLINK_LEX Identifier) $(D =) $(GLINK2 expression, FunctionLiteral)
+    $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+)
 
         $(P An alias declaration inside a template can be reassigned a new value.)
 
