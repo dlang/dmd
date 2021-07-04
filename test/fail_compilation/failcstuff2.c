@@ -24,6 +24,10 @@ fail_compilation/failcstuff2.c(126): Error: `makeS22067().field` is not an lvalu
 fail_compilation/failcstuff2.c(127): Error: `makeS22067().field` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(153): Error: `cast(short)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(154): Error: `cast(long)var` is not an lvalue and cannot be modified
+fail_compilation/failcstuff2.c(204): Error: variable `var` is used as a type
+fail_compilation/failcstuff2.c(207):        variable `var` is declared here
+fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
+fail_compilation/failcstuff2.c(207):        variable `var` is declared here
 ---
 */
 
@@ -83,4 +87,13 @@ void test22068()
     int var;
     ++(short) var;
     --(long long) var;
+}
+
+#line 200
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21992
+void test21992(int var)
+{
+    var = (var) ~ 1234;
+    var = (var) ! 1234;
 }
