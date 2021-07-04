@@ -665,6 +665,19 @@ struct Scope
     }
 
     /********************************************
+     * Search enclosing scopes for ScopeDsymbol.
+     */
+    ScopeDsymbol getScopesym()
+    {
+        for (Scope* sc = &this; sc; sc = sc.enclosing)
+        {
+            if (sc.scopesym)
+                return sc.scopesym;
+        }
+        return null; // not found
+    }
+
+    /********************************************
      * Search enclosing scopes for ClassDeclaration.
      */
     extern (C++) ClassDeclaration getClassScope()
