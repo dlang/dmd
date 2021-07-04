@@ -2018,55 +2018,25 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 em._scope = sce;
         });
 
-        if (!ed.added) // if members were not added by EnumDeclaration.addMember()
+        static Scope* getEnclosing(Scope* sc)
         {
-            static Scope* getEnclosing(Scope* sc)
+            for (Scope* sct = sc; sct; sct = sct.enclosing)
             {
-                for (Scope* sct = sc; sct; sct = sct.enclosing)
-                {
-                    if (sct.scopesym)
-                        return sct;
-                }
-                return null; // not found
+                if (sct.scopesym)
+                    return sct;
             }
-
-            /* addMember() is not called when the EnumDeclaration appears as a function statement,
-             * so we have to do what addMember() does and install the enum members in the right symbol
-             * table
-             */
-            ScopeDsymbol scopesym = null;
-            const bool isCEnum = (sc.flags & SCOPE.Cfile) != 0;
-            const bool isAnon = ed.isAnonymous();
-
-            auto enclosing = getEnclosing(sc).scopesym;
-            if (!enclosing.symtab)
-                enclosing.symtab = new DsymbolTable();
-
-            assert(ed.symtab);
-
-            ed.members.foreachDsymbol( (s)
-            {
-                if (EnumMember em = s.isEnumMember())
-                {
-                    em.ed = ed;
-                    if (isCEnum)
-                    {
-                        em.addMember(sc, ed);
-                        em.addMember(sc, enclosing);
-                        em.parent = ed; // restore it after previous addMember() changed it
-                    }
-                    else
-                    {
-                        em.addMember(sc, isAnon ? enclosing : ed);
-                    }
-                }
-            });
+            return null; // not found
         }
+
+        /* addMember() is not called when the EnumDeclaration appears as a function statement,
+         * so we have to do what addMember() does and install the enum members in the right symbol
+         * table
+         */
+        addEnumMembers(ed, sc, getEnclosing(sc).scopesym);
 
         ed.members.foreachDsymbol( (s)
         {
-            EnumMember em = s.isEnumMember();
-            if (em)
+            if (EnumMember em = s.isEnumMember())
                 em.dsymbolSemantic(em._scope);
         });
         //printf("defaultval = %lld\n", defaultval);
@@ -5424,6 +5394,50 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (idec.storage_class & STC.scope_)
             deprecation(idec.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
     }
+}
+
+/*******************************************
+ * Add members of EnumDeclaration to the symbol table(s).
+ * Params:
+ *      ed = EnumDeclaration
+ *      sc = context of `ed`
+ *      sds = symbol table that `ed` resides in
+ */
+void addEnumMembers(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
+{
+    if (ed.added)
+        return;
+    ed.added = true;
+
+    if (!ed.members)
+        return;
+
+    const bool isCEnum = (sc.flags & SCOPE.Cfile) != 0; // it's an ImportC enum
+    const bool isAnon = ed.isAnonymous();
+
+    if ((isCEnum || isAnon) && !sds.symtab)
+        sds.symtab = new DsymbolTable();
+
+    if ((isCEnum || !isAnon) && !ed.symtab)
+        ed.symtab = new DsymbolTable();
+
+    ed.members.foreachDsymbol( (s)
+    {
+        if (EnumMember em = s.isEnumMember())
+        {
+            em.ed = ed;
+            if (isCEnum)
+            {
+                em.addMember(sc, ed);   // add em to ed's symbol table
+                em.addMember(sc, sds);  // add em to symbol table that ed is in
+                em.parent = ed; // restore it after previous addMember() changed it
+            }
+            else
+            {
+                em.addMember(sc, isAnon ? sds : ed);
+            }
+        }
+    });
 }
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs)
