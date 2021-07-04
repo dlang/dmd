@@ -7297,6 +7297,39 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if ((sc && sc.flags & SCOPE.Cfile) &&
+            exp.to && exp.to.ty == Tident &&
+            (exp.e1.op == TOK.address || exp.e1.op == TOK.star ||
+             exp.e1.op == TOK.uadd || exp.e1.op == TOK.negate))
+        {
+            /* Ambiguous cases arise from CParser if type-name is just an identifier.
+             *   ( identifier ) cast-expression
+             * If we determine that `identifier` is a variable, and cast-expression
+             * is one of the unary operators (& * + -), then rewrite this cast
+             * as a binary expression.
+             */
+            Loc loc = exp.loc;
+            Type t;
+            Expression e;
+            Dsymbol s;
+            exp.to.resolve(loc, sc, e, t, s);
+            if (e !is null)
+            {
+                if (auto ex = exp.e1.isAddrExp())       // (ident) &exp -> (ident & exp)
+                    result = new AndExp(loc, e, ex.e1);
+                else if (auto ex = exp.e1.isPtrExp())   // (ident) *exp -> (ident * exp)
+                    result = new MulExp(loc, e, ex.e1);
+                else if (auto ex = exp.e1.isUAddExp())  // (ident) +exp -> (ident + exp)
+                    result = new AddExp(loc, e, ex.e1);
+                else if (auto ex = exp.e1.isNegExp())   // (ident) -exp -> (ident - exp)
+                    result = new MinExp(loc, e, ex.e1);
+
+                assert(result);
+                result = result.expressionSemantic(sc);
+                return;
+            }
+        }
+
         if (exp.to)
         {
             exp.to = exp.to.typeSemantic(exp.loc, sc);

@@ -160,6 +160,17 @@ struct S21982 { int field; };
 struct S21982 test21982;
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21992
+
+void test21992(int var)
+{
+    var = (var) & 1234;
+    var = (var) * 1234;
+    var = (var) + 1234;
+    var = (var) - 1234;
+}
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22028
 
 struct S22028
