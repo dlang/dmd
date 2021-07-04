@@ -116,7 +116,7 @@ extern void useData(bool a = !Data::pt, bool b = Data::bar() == nullptr, bool c 
 
 struct Data
 {
-    static Data* pt;
+    __gshared Data* pt;
     static int* bar() { return null; }
 }
 
