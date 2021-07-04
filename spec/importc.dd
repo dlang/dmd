@@ -101,22 +101,22 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
     $(P Nevertheless, ImportC supports these preprocessor directives:)
 
-    $(H3 Line control)
+    $(H3 $(LNAME2 line-control, Line control))
 
     $(P C11 6.10.4)
 
-    $(H3 Linemarker)
+    $(H3 $(LNAME2 linemarker, Linemarker))
 
     $(P $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-11.1.0/cpp/Preprocessor-Output.html, linemarker)
     directives are normally embedded in the output of C preprocessors.)
 
 $(H2 $(LNAME2 limitations, Limitations))
 
-    $(H3 Exception Handling)
+    $(H3 $(LNAME2 exceptions, Exception Handling))
 
     $(P ImportC is assumed to never throw exceptions. `setjmp` and `longjmp` are not supported.)
 
-    $(H3 Transitive Const)
+    $(H3 $(LNAME2 const, Transitive Const))
 
     $(P C11 specifies that `const` only applies locally. `const` in ImportC applies transitively,
     meaning that although $(CCODE int *const p;) means in C11 that p is a const pointer to int,
@@ -140,17 +140,17 @@ $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
     it is very close. What follows is a description of how the D side views
     the C declarations that are imported.)
 
-    $(H3 Module Name)
+    $(H3 $(LNAME2 module-name, Module Name))
 
     $(P The module name assigned to the ImportC file is the filename stripped
     of its path and extension. This is just like the default module name assigned
     to a D module that does not have a module declaration.)
 
-    $(H3 `extern (C)`)
+    $(H3 $(LNAME2 extern-C, `extern (C)`))
 
     $(P All C symbols are `extern (C)`.)
 
-    $(H3 Enums)
+    $(H3 $(LNAME2 enums, Enums))
 
     $(P The C enum:)
 
