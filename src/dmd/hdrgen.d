@@ -3835,7 +3835,7 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         // https://issues.dlang.org/show_bug.cgi?id=13776
         // Don't use ti.toAlias() to avoid forward reference error
         // while printing messages.
-        TemplateInstance ti = t.sym.parent.isTemplateInstance();
+        TemplateInstance ti = t.sym.parent ? t.sym.parent.isTemplateInstance() : null;
         if (ti && ti.aliasdecl == t.sym)
             buf.writestring(hgs.fullQual ? ti.toPrettyChars() : ti.toChars());
         else
