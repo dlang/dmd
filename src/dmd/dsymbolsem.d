@@ -1196,14 +1196,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (!imp.aliasId && !imp.names.dim) // neither a selective nor a renamed import
             {
-                ScopeDsymbol scopesym;
-                for (Scope* scd = sc; scd; scd = scd.enclosing)
-                {
-                    if (!scd.scopesym)
-                        continue;
-                    scopesym = scd.scopesym;
-                    break;
-                }
+                ScopeDsymbol scopesym = sc.getScopesym();
 
                 if (!imp.isstatic)
                 {
@@ -2018,21 +2011,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 em._scope = sce;
         });
 
-        static Scope* getEnclosing(Scope* sc)
-        {
-            for (Scope* sct = sc; sct; sct = sct.enclosing)
-            {
-                if (sct.scopesym)
-                    return sct;
-            }
-            return null; // not found
-        }
-
         /* addMember() is not called when the EnumDeclaration appears as a function statement,
          * so we have to do what addMember() does and install the enum members in the right symbol
          * table
          */
-        addEnumMembers(ed, sc, getEnclosing(sc).scopesym);
+        addEnumMembers(ed, sc, sc.getScopesym());
 
         ed.members.foreachDsymbol( (s)
         {
@@ -2572,15 +2555,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         tm.symtab = new DsymbolTable();
 
-        for (Scope* sce = sc; 1; sce = sce.enclosing)
-        {
-            ScopeDsymbol sds = sce.scopesym;
-            if (sds)
-            {
-                sds.importScope(tm, Visibility(Visibility.Kind.public_));
-                break;
-            }
-        }
+        sc.getScopesym().importScope(tm, Visibility(Visibility.Kind.public_));
 
         static if (LOG)
         {
