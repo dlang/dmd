@@ -478,7 +478,7 @@ class Lexer
                     goto case_ident;
                 p++;
                 auto start = p;
-                auto hexString = new OutBuffer();
+                OutBuffer hexString;
                 t.value = hexStringConstant(t);
                 hexString.write(start[0 .. p - start]);
                 error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractChars());
