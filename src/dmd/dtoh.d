@@ -518,20 +518,15 @@ public:
     {
         debug (Debug_DtoH)
         {
-            printf("[AST.Dsymbol enter] %s\n", s.toChars());
+            mixin(traceVisit!s);
             import dmd.asttypename;
             printf("[AST.Dsymbol enter] %s\n", s.astTypeName().ptr);
-            scope(exit) printf("[AST.Dsymbol exit] %s\n", s.toChars());
         }
     }
 
     override void visit(AST.Import i)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Import enter] %s\n", i.toChars());
-            scope(exit) printf("[AST.Import exit] %s\n", i.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!i);
 
         /// Writes `using <alias_> = <sym.ident>` into `buf`
         const(char*) writeImport(AST.Dsymbol sym, const Identifier alias_)
@@ -644,11 +639,8 @@ public:
 
     override void visit(AST.AttribDeclaration pd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.AttribDeclaration enter] %s\n", pd.toChars());
-            scope(exit) printf("[AST.AttribDeclaration exit] %s\n", pd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!pd);
+
         Dsymbols* decl = pd.include(null);
         if (!decl)
             return;
@@ -662,11 +654,8 @@ public:
 
     override void visit(AST.StorageClassDeclaration scd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.StorageClassDeclaration enter] %s\n", scd.toChars());
-            scope(exit) printf("[AST.StorageClassDeclaration exit] %s\n", scd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!scd);
+
         const stcStash = this.storageClass;
         this.storageClass |= scd.stc;
         visit(cast(AST.AttribDeclaration) scd);
@@ -675,11 +664,8 @@ public:
 
     override void visit(AST.LinkDeclaration ld)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.LinkDeclaration enter] %s\n", ld.toChars());
-            scope(exit) printf("[AST.LinkDeclaration exit] %s\n", ld.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ld);
+
         auto save = linkage;
         linkage = ld.linkage;
         visit(cast(AST.AttribDeclaration)ld);
@@ -688,6 +674,8 @@ public:
 
     override void visit(AST.CPPMangleDeclaration md)
     {
+        debug (Debug_DtoH) mixin(traceVisit!md);
+
         const oldLinkage = this.linkage;
         this.linkage = LINK.cpp;
         visit(cast(AST.AttribDeclaration) md);
@@ -696,11 +684,8 @@ public:
 
     override void visit(AST.Module m)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Module enter] %s\n", m.toChars());
-            scope(exit) printf("[AST.Module exit] %s\n", m.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!m);
+
         foreach (s; *m.members)
         {
             if (s.visible().kind < AST.Visibility.Kind.public_)
@@ -711,11 +696,8 @@ public:
 
     override void visit(AST.FuncDeclaration fd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.FuncDeclaration enter] %s\n", fd.toChars());
-            scope(exit) printf("[AST.FuncDeclaration exit] %s\n", fd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!fd);
+
         if (cast(void*)fd in visited)
             return;
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
@@ -840,20 +822,13 @@ public:
 
     override void visit(AST.UnitTestDeclaration utd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.UnitTestDeclaration enter] %s\n", utd.toChars());
-            scope(exit) printf("[AST.UnitTestDeclaration exit] %s\n", utd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!utd);
     }
 
     override void visit(AST.VarDeclaration vd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.VarDeclaration enter] %s\n", vd.toChars());
-            scope(exit) printf("[AST.VarDeclaration exit] %s\n", vd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!vd);
+
         if (!shouldEmit(vd))
             return;
 
@@ -1006,20 +981,12 @@ public:
 
     override void visit(AST.TypeInfoDeclaration tid)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeInfoDeclaration enter] %s\n", tid.toChars());
-            scope(exit) printf("[AST.TypeInfoDeclaration exit] %s\n", tid.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!tid);
     }
 
     override void visit(AST.AliasDeclaration ad)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.AliasDeclaration enter] %s\n", ad.toChars());
-            scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ad);
 
         if (!shouldEmit(ad))
             return;
@@ -1141,11 +1108,13 @@ public:
 
     override void visit(AST.Nspace ns)
     {
+        debug (Debug_DtoH) mixin(traceVisit!ns);
         handleNspace(ns, ns.members);
     }
 
     override void visit(AST.CPPNamespaceDeclaration ns)
     {
+        debug (Debug_DtoH) mixin(traceVisit!ns);
         handleNspace(ns, ns.decl);
     }
 
@@ -1169,11 +1138,7 @@ public:
 
     override void visit(AST.AnonDeclaration ad)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.AnonDeclaration enter] %s\n", ad.toChars());
-            scope(exit) printf("[AST.AnonDeclaration exit] %s\n", ad.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ad);
 
         buf.writestringln(ad.isunion ? "union" : "struct");
         buf.writestringln("{");
@@ -1201,11 +1166,7 @@ public:
 
     override void visit(AST.StructDeclaration sd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.StructDeclaration enter] %s\n", sd.toChars());
-            scope(exit) printf("[AST.StructDeclaration exit] %s\n", sd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!sd);
 
         if (!shouldEmit(sd))
             return;
@@ -1407,11 +1368,7 @@ public:
 
     override void visit(AST.ClassDeclaration cd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.ClassDeclaration enter] %s\n", cd.toChars());
-            scope(exit) printf("[AST.ClassDeclaration exit] %s\n", cd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!cd);
 
         if (!shouldEmit(cd))
             return;
@@ -1475,11 +1432,8 @@ public:
 
     override void visit(AST.EnumDeclaration ed)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.EnumDeclaration enter] %s\n", ed.toChars());
-            scope(exit) printf("[AST.EnumDeclaration exit] %s\n", ed.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ed);
+
         if (!shouldEmit(ed))
             return;
 
@@ -1749,32 +1703,21 @@ public:
 
     override void visit(AST.Type t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Type enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.Type exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
         printf("Invalid type: %s\n", t.toPrettyChars());
         assert(0);
     }
 
     override void visit(AST.TypeNoreturn t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeNoreturn enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeNoreturn exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         buf.writestring("/* noreturn */ char");
     }
 
     override void visit(AST.TypeIdentifier t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeIdentifier enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeIdentifier exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
 
         // Try to resolve the referenced symbol
         if (auto sym = findSymbol(t.ident))
@@ -1802,11 +1745,8 @@ public:
 
     override void visit(AST.TypeNull t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeNull enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeNull exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         if (global.params.cplusplus >= CppStdRevision.cpp11)
             buf.writestring("nullptr_t");
         else
@@ -1816,11 +1756,8 @@ public:
 
     override void visit(AST.TypeTypeof t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeInstance enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeInstance exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         assert(t.exp);
 
         if (t.exp.type)
@@ -1845,11 +1782,8 @@ public:
 
     override void visit(AST.TypeBasic t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeBasic enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeBasic exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         string typeName;
@@ -1897,11 +1831,8 @@ public:
 
     override void visit(AST.TypePointer t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypePointer enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypePointer exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         auto ts = t.next.isTypeStruct();
         if (ts && !strcmp(ts.sym.ident.toChars(), "__va_list_tag"))
         {
@@ -1923,31 +1854,20 @@ public:
 
     override void visit(AST.TypeSArray t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeSArray enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeSArray exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
         t.next.accept(this);
     }
 
     override void visit(AST.TypeAArray t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeAArray enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeAArray exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
         AST.Type.tvoidptr.accept(this);
     }
 
     override void visit(AST.TypeFunction tf)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeFunction enter] %s\n", tf.toChars());
-            scope(exit) printf("[AST.TypeFunction exit] %s\n", tf.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!tf);
+
         tf.next.accept(this);
         buf.writeByte('(');
         buf.writeByte('*');
@@ -1975,11 +1895,8 @@ public:
     /// (Might not be `ed` for special enums or enums that were emitted as namespaces)
     private void enumToBuffer(AST.EnumDeclaration ed)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[enumToBuffer(AST.EnumDeclaration) enter] %s\n", ed.toChars());
-            scope(exit) printf("[enumToBuffer(AST.EnumDeclaration) exit] %s\n", ed.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ed);
+
         if (ed.isSpecial())
         {
             if (ed.ident == DMDType.c_long)
@@ -2025,11 +1942,7 @@ public:
 
     override void visit(AST.TypeEnum t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeEnum enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeEnum exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
 
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
@@ -2038,11 +1951,7 @@ public:
 
     override void visit(AST.TypeStruct t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeStruct enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeStruct exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
 
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
@@ -2051,11 +1960,8 @@ public:
 
     override void visit(AST.TypeDArray t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeDArray enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeDArray exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         buf.writestring("_d_dynamicArray< ");
@@ -2065,21 +1971,12 @@ public:
 
     override void visit(AST.TypeInstance t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeInstance enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeInstance exit] %s\n", t.toChars());
-        }
         visitTi(t.tempinst);
     }
 
     private void visitTi(AST.TemplateInstance ti)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[visitTi(AST.TemplateInstance) enter] %s\n", ti.toChars());
-            scope(exit) printf("[visitTi(AST.TemplateInstance) exit] %s\n", ti.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ti);
 
         // Ensure that the TD appears before the instance
         if (auto td = findTemplateDeclaration(ti))
@@ -2112,11 +2009,8 @@ public:
 
     override void visit(AST.TemplateDeclaration td)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TemplateDeclaration enter] %s\n", td.toChars());
-            scope(exit) printf("[AST.TemplateDeclaration exit] %s\n", td.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!td);
+
         if (!shouldEmit(td))
             return;
 
@@ -2171,11 +2065,7 @@ public:
     /// Emit declarations of the TemplateMixin in the current scope
     override void visit(AST.TemplateMixin tm)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TemplateMixin enter] %s\n", tm.toChars());
-            scope(exit) printf("[AST.TemplateMixin exit] %s\n", tm.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!tm);
 
         auto members = tm.members;
 
@@ -2256,11 +2146,7 @@ public:
 
     override void visit(AST.TypeClass t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeClass enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeClass exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
 
         // Classes are emitted as pointer and hence can be forwarded
         const fwdSave = forwarding;
@@ -2340,11 +2226,8 @@ public:
 
     override void visit(AST.Parameter p)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Parameter enter] %s\n", p.toChars());
-            scope(exit) printf("[AST.Parameter exit] %s\n", p.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!p);
+
         ident = p.ident;
         p.type.accept(this);
         if (p.storageClass & AST.STC.ref_)
@@ -2479,11 +2362,8 @@ public:
 
     override void visit(AST.Expression e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Expression enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.Expression exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
         // Valid in most cases, others should be overriden below
         // to use the appropriate operators  (:: and ->)
         buf.writestring(e.toString());
@@ -2491,11 +2371,7 @@ public:
 
     override void visit(AST.UnaExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.UnaExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.UnaExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         buf.writestring(tokToString(e.op));
         e.e1.accept(this);
@@ -2503,11 +2379,7 @@ public:
 
     override void visit(AST.BinExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.BinExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.BinExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         e.e1.accept(this);
         buf.writeByte(' ');
@@ -2530,11 +2402,7 @@ public:
 
     override void visit(AST.VarExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.VarExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.VarExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         // Local members don't need another prefix and might've been renamed
         if (e.var.isThis())
@@ -2558,11 +2426,7 @@ public:
 
     override void visit(AST.CallExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.CallExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.CallExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         // Dereferencing function pointers requires additional braces: (*f)(args)
         const isFp = e.e1.isPtrExp();
@@ -2588,11 +2452,7 @@ public:
 
     override void visit(AST.DotVarExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.DotVarExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.DotVarExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         if (auto sym = symbolFromType(e.e1.type))
             includeSymbol(outermostSymbol(sym));
@@ -2617,11 +2477,7 @@ public:
 
     override void visit(AST.DotIdExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.DotIdExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.DotIdExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         e.e1.accept(this);
         buf.writestring("::");
@@ -2630,11 +2486,7 @@ public:
 
     override void visit(AST.ScopeExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.ScopeExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.ScopeExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         // Usually a template instance in a TemplateDeclaration
         if (auto ti = e.sds.isTemplateInstance())
@@ -2645,11 +2497,8 @@ public:
 
     override void visit(AST.NullExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.NullExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.NullExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
         if (global.params.cplusplus >= CppStdRevision.cpp11)
             buf.writestring("nullptr");
         else
@@ -2658,21 +2507,13 @@ public:
 
     override void visit(AST.ArrayLiteralExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.ArrayLiteralExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.ArrayLiteralExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
         buf.writestring("arrayliteral");
     }
 
     override void visit(AST.StringExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.StringExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.StringExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         if (e.sz == 2)
             buf.writeByte('u');
@@ -2709,11 +2550,7 @@ public:
 
     override void visit(AST.RealExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.RealExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.RealExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         import dmd.root.ctfloat : CTFloat;
 
@@ -2740,22 +2577,15 @@ public:
 
     override void visit(AST.IntegerExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.IntegerExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.IntegerExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
         visitInteger(e.toInteger, e.type);
     }
 
     /// Writes `v` as type `t` into `buf`
     private void visitInteger(dinteger_t v, AST.Type t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[visitInteger(AST.Type) enter] %s\n", t.toChars());
-            scope(exit) printf("[visitInteger(AST.Type) exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         switch (t.ty)
         {
             case AST.Tenum:
@@ -2808,11 +2638,8 @@ public:
 
     override void visit(AST.StructLiteralExp sle)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.StructLiteralExp enter] %s\n", sle.toChars());
-            scope(exit) printf("[AST.StructLiteralExp exit] %s\n", sle.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!sle);
+
         const isUnion = sle.sd.isUnionDeclaration();
         sle.sd.type.accept(this);
         buf.writeByte('(');
@@ -3315,4 +3142,18 @@ ASTCodegen.Dsymbol findMember(ASTCodegen.Dsymbol sym, Identifier name)
     }
 
     return search(sds.members, name);
+}
+
+debug (Debug_DtoH)
+{
+    /// Generates code to trace the entry and exit of the enclosing `visit` function
+    string traceVisit(alias node)()
+    {
+        const type = typeof(node).stringof;
+        const method = __traits(hasMember, node, "toPrettyChars") ? "toPrettyChars" : "toChars";
+        const arg = __traits(identifier, node) ~ '.' ~ method;
+
+        return `printf("[` ~ type ~  ` enter] %s\n", ` ~ arg ~ `());
+                scope(exit) printf("[` ~ type ~ ` exit] %s\n", ` ~ arg ~ `());`;
+    }
 }
