@@ -471,6 +471,7 @@ immutable Msgtable[] msgtable =
     { "hasPostblit" },
     { "hasCopyConstructor" },
     { "isCopyable" },
+    { "hasAliasing" },
     { "toType" },
 
     // For C++ mangling
