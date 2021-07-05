@@ -351,7 +351,7 @@ public:
     extern (C++) void pop(VarDeclaration v)
     {
         assert(!v.isDataseg() || v.isCTFE());
-        assert(!(v.storage_class & (STC.ref_ | STC.out_)));
+        assert(!v.isReference());
         const oldid = v.ctfeAdrOnStack;
         v.ctfeAdrOnStack = cast(uint)cast(size_t)savedId[oldid];
         if (v.ctfeAdrOnStack == values.dim - 1)
@@ -2132,7 +2132,7 @@ public:
                     errorSupplemental(vie.var.loc, "`%s` was uninitialized and used before set", vie.var.toChars());
                     return CTFEExp.cantexp;
                 }
-                if (goal != CTFEGoal.LValue && (v.isRef() || v.isOut()))
+                if (goal != CTFEGoal.LValue && v.isReference())
                     e = interpret(e, istate, goal);
             }
             if (!e)

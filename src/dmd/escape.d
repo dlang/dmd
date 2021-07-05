@@ -374,7 +374,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
         notMaybeScope(v);
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0 && p == sc.func)
+        if (!v.isReference() && p == sc.func)
         {
             if (par && (par.storageClass & (STC.scope_ | STC.return_)) == STC.scope_)
                 continue;
@@ -399,7 +399,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
             notMaybeScope(v);
 
-            if ((v.storage_class & (STC.ref_ | STC.out_ | STC.scope_)) && p == sc.func)
+            if ((v.isReference() || v.isScope()) && p == sc.func)
             {
                 unsafeAssign(v, "reference to local");
                 continue;
@@ -595,7 +595,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     // Determine if va is a parameter that is an indirect reference
     const bool vaIsRef = va && va.storage_class & STC.parameter &&
-        (va.storage_class & (STC.ref_ | STC.out_) || va.type.toBasetype().ty == Tclass);
+        (va.isReference() || va.type.toBasetype().ty == Tclass);
     if (log && vaIsRef) printf("va is ref `%s`\n", va.toChars());
 
     /* Determine if va is the first parameter, through which other 'return' parameters
@@ -688,7 +688,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                  // va is class reference
                  ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope()) ||
                  vaIsRef ||
-                 va.storage_class & (STC.ref_ | STC.out_) && !(v.storage_class & (STC.parameter | STC.temp))) &&
+                 va.isReference() && !(v.storage_class & (STC.parameter | STC.temp))) &&
                 sc.func.setUnsafe())
             {
                 if (!gag)
@@ -757,7 +757,7 @@ ByRef:
 
         if (global.params.useDIP1000 == FeatureState.enabled)
         {
-            if (va && va.isScope() && (v.storage_class & (STC.ref_ | STC.out_)) == 0)
+            if (va && va.isScope() && !v.isReference())
             {
                 if (!(va.storage_class & STC.return_))
                 {
@@ -787,7 +787,7 @@ ByRef:
             continue;
         }
 
-        if (va && v.storage_class & (STC.ref_ | STC.out_))
+        if (va && v.isReference())
         {
             Dsymbol pva = va.toParent2();
             for (Dsymbol pv = p; pv; )
@@ -810,7 +810,7 @@ ByRef:
         if (!(va && va.isScope()))
             notMaybeScope(v);
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) || p != sc.func)
+        if (v.isReference() || p != sc.func)
             continue;
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
@@ -855,7 +855,7 @@ ByRef:
             if (!(va && va.isScope()))
                 notMaybeScope(v);
 
-            if (!(v.storage_class & (STC.ref_ | STC.out_ | STC.scope_)) || p != sc.func)
+            if (!(v.isReference() || v.isScope()) || p != sc.func)
                 continue;
 
             if (va && !va.isDataseg() && !va.doNotInferScope)
@@ -1086,7 +1086,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0)
+        if (!v.isReference())
         {
             if (p == sc.func)
             {
@@ -1098,7 +1098,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         /* Check for returning a ref variable by 'ref', but should be 'return ref'
          * Infer the addition of 'return', or set result to be the offending expression.
          */
-        if (!(v.storage_class & (STC.ref_ | STC.out_)))
+        if (!v.isReference())
             continue;
 
         if (!sc._module || !sc._module.isRoot())
@@ -1323,7 +1323,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if (!refs && sc.func.vthis == v)
             notMaybeScope(v);
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0)
+        if (!v.isReference())
         {
             if (p == sc.func)
             {
@@ -1351,8 +1351,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         /* Check for returning a ref variable by 'ref', but should be 'return ref'
          * Infer the addition of 'return', or set result to be the offending expression.
          */
-        if ( (v.storage_class & (STC.ref_ | STC.out_)) &&
-            !(v.storage_class & (STC.return_ | STC.foreach_)))
+        if (v.isReference() && !(v.storage_class & (STC.return_ | STC.foreach_)))
         {
             if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func)
             {
@@ -2161,7 +2160,7 @@ public void eliminateMaybeScopes(VarDeclaration[] array)
                         {
                             // v cannot be scope since it is assigned to a non-scope va
                             notMaybeScope(v);
-                            if (!(v.storage_class & (STC.ref_ | STC.out_)))
+                            if (!v.isReference())
                                 v.storage_class &= ~(STC.return_ | STC.returninferred);
                             changes = true;
                         }

@@ -5552,6 +5552,7 @@ public:
     bool isIn() const;
     bool isOut() const;
     bool isRef() const;
+    bool isReference() const;
     bool isFuture() const;
     Visibility visible();
     Declaration* isDeclaration();
