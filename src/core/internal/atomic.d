@@ -10,7 +10,7 @@
 
 module core.internal.atomic;
 
-import core.atomic : MemoryOrder;
+import core.atomic : MemoryOrder, has128BitCAS;
 
 version (DigitalMars)
 {
@@ -1065,8 +1065,9 @@ enum CanCAS(T) = is(T : ulong) ||
                  is(T : U[], U) ||
                  is(T : R delegate(A), R, A...) ||
                  (is(T == struct) && __traits(isPOD, T) &&
-                  T.sizeof <= size_t.sizeof*2 && // no more than 2 words
-                  (T.sizeof & (T.sizeof - 1)) == 0 // is power of 2
+                  (T.sizeof <= size_t.sizeof*2 ||       // no more than 2 words
+                   (T.sizeof == 16 && has128BitCAS)) && // or supports 128-bit CAS
+                  (T.sizeof & (T.sizeof - 1)) == 0      // is power of 2
                  );
 
 template IntOrLong(T)
