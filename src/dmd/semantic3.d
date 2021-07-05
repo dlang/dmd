@@ -1570,3 +1570,55 @@ private struct FuncDeclSem3
         }
     }
 }
+
+private void semanticTypeInfoMembers(StructDeclaration sd)
+{
+    if (sd.xeq &&
+        sd.xeq._scope &&
+        sd.xeq.semanticRun < PASS.semantic3done)
+    {
+        uint errors = global.startGagging();
+        sd.xeq.semantic3(sd.xeq._scope);
+        if (global.endGagging(errors))
+            sd.xeq = sd.xerreq;
+    }
+
+    if (sd.xcmp &&
+        sd.xcmp._scope &&
+        sd.xcmp.semanticRun < PASS.semantic3done)
+    {
+        uint errors = global.startGagging();
+        sd.xcmp.semantic3(sd.xcmp._scope);
+        if (global.endGagging(errors))
+            sd.xcmp = sd.xerrcmp;
+    }
+
+    FuncDeclaration ftostr = search_toString(sd);
+    if (ftostr &&
+        ftostr._scope &&
+        ftostr.semanticRun < PASS.semantic3done)
+    {
+        ftostr.semantic3(ftostr._scope);
+    }
+
+    if (sd.xhash &&
+        sd.xhash._scope &&
+        sd.xhash.semanticRun < PASS.semantic3done)
+    {
+        sd.xhash.semantic3(sd.xhash._scope);
+    }
+
+    if (sd.postblit &&
+        sd.postblit._scope &&
+        sd.postblit.semanticRun < PASS.semantic3done)
+    {
+        sd.postblit.semantic3(sd.postblit._scope);
+    }
+
+    if (sd.dtor &&
+        sd.dtor._scope &&
+        sd.dtor.semanticRun < PASS.semantic3done)
+    {
+        sd.dtor.semantic3(sd.dtor._scope);
+    }
+}

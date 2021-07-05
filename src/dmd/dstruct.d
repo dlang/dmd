@@ -31,7 +31,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.opover;
-import dmd.semantic3;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
@@ -246,58 +245,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
               : new StructDeclaration(loc, ident, false);
         ScopeDsymbol.syntaxCopy(sd);
         return sd;
-    }
-
-    final void semanticTypeInfoMembers()
-    {
-        if (xeq &&
-            xeq._scope &&
-            xeq.semanticRun < PASS.semantic3done)
-        {
-            uint errors = global.startGagging();
-            xeq.semantic3(xeq._scope);
-            if (global.endGagging(errors))
-                xeq = xerreq;
-        }
-
-        if (xcmp &&
-            xcmp._scope &&
-            xcmp.semanticRun < PASS.semantic3done)
-        {
-            uint errors = global.startGagging();
-            xcmp.semantic3(xcmp._scope);
-            if (global.endGagging(errors))
-                xcmp = xerrcmp;
-        }
-
-        FuncDeclaration ftostr = search_toString(this);
-        if (ftostr &&
-            ftostr._scope &&
-            ftostr.semanticRun < PASS.semantic3done)
-        {
-            ftostr.semantic3(ftostr._scope);
-        }
-
-        if (xhash &&
-            xhash._scope &&
-            xhash.semanticRun < PASS.semantic3done)
-        {
-            xhash.semantic3(xhash._scope);
-        }
-
-        if (postblit &&
-            postblit._scope &&
-            postblit.semanticRun < PASS.semantic3done)
-        {
-            postblit.semantic3(postblit._scope);
-        }
-
-        if (dtor &&
-            dtor._scope &&
-            dtor.semanticRun < PASS.semantic3done)
-        {
-            dtor.semantic3(dtor._scope);
-        }
     }
 
     override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
