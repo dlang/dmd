@@ -210,7 +210,47 @@ $(H2 $(LNAME2 importcpp, ImportC++))
 
     $(P ImportC will not compile C++ code. For that, use $(TT dpp).)
 
-$(H2 $(LNAME2 history, How ImportC Came About))
+
+$(H2 $(LNAME2 other-solutions, Other Solutions))
+
+    $(H3 $(LNAME2 dpp, dpp by Atila Neves))
+
+    $(P $(LINK2 https://code.dlang.org/packages/dpp/0.2.1, dpp code))
+
+    $(P $(LINK2 https://dlang.org/blog/2019/04/08/project-highlight-dpp/, dpp Article))
+
+    $(P From the Article:)
+
+    $(BLOCKQUOTE dpp is a compiler wrapper that will parse a D source
+    file with the .dpp extension and expand in place any #include directives
+    it encounters, translating all of the C or C++ symbols to D, and then
+    pass the result to a D compiler (DMD by default).)
+
+    $(P Like DStep, dpp relies on libclang.)
+
+
+    $(H3 $(LNAME2 dstep, DStep by Jacob Carlborg))
+
+    $(P $(LINK2 https://code.dlang.org/packages/dstep, DStep code))
+
+    $(P $(LINK2 https://dlang.org/blog/2019/04/22/dstep-1-0-0/, DStep Article))
+
+    $(P From the Article:)
+
+    $(BLOCKQUOTE DStep is a tool for automatically generating D
+    bindings for C and Objective-C libraries. This is implemented by
+    processing C or Objective-C header files and outputting D modules.
+    DStep uses the Clang compiler as a library (libclang) to process the header files.)
+
+
+    $(H3 $(LNAME2 htod, htod by Walter Bright))
+
+    $(P $(LINK2 https://dlang.org/htod.html, htod) converts a C $(TT .h) file
+    to a D source file, suitable for importing into D code.
+    $(B htod) is built from the front end of the Digital Mars C and C++ compiler.
+    It works just like a C or C++ compiler except that its output is source
+    code for a D module rather than object code.)
+
 
 $(H2 $(LNAME2 internals, How ImportC Works))
 
