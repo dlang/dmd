@@ -2180,7 +2180,7 @@ const:
      * Returns:
      *  array of pointers to the ModuleInfo's of modules imported by this one
      */
-    @property immutable(ModuleInfo*)[] importedModules() nothrow pure @nogc
+    @property immutable(ModuleInfo*)[] importedModules() return nothrow pure @nogc
     {
         if (flags & MIimportedModules)
         {
@@ -2194,7 +2194,7 @@ const:
      * Returns:
      *  array of TypeInfo_Class references for classes defined in this module
      */
-    @property TypeInfo_Class[] localClasses() nothrow pure @nogc
+    @property TypeInfo_Class[] localClasses() return nothrow pure @nogc
     {
         if (flags & MIlocalClasses)
         {
@@ -2208,7 +2208,7 @@ const:
      * Returns:
      *  name of module, `null` if no name
      */
-    @property string name() nothrow pure @nogc
+    @property string name() return nothrow pure @nogc
     {
         import core.stdc.string : strlen;
 
