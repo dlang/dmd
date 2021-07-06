@@ -778,7 +778,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     bool is64bit = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-    if (is64bit || arch == "32mscoff")
+    if (is64bit || arch == "32")
         environment.update("LIB", 3).value = null;
 
     // read from DFLAGS in [Environment{arch}] section
@@ -1166,7 +1166,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
  *          Should be "32" or "64"
  *
  * Returns:
- *   "32", "64" or "32mscoff" if the "-m32", "-m64", "-m32mscoff" flags were passed,
+ *   "32", "64" or "32omf" if the "-m32", "-m64", "-m32omf" flags were passed,
  *   respectively. If they weren't, return `arch`.
  */
 const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
@@ -1177,8 +1177,10 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 
         if (arg.length && arg[0] == '-')
         {
-            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m32mscoff" || arg[1 .. $] == "m64")
+            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m32omf" || arg[1 .. $] == "m64")
                 arch = arg[2 .. $];
+            else if (arg[1 .. $] == "m32mscoff")
+                arch = "32";
             else if (arg[1 .. $] == "run")
                 break;
         }
@@ -1231,10 +1233,10 @@ private void setDefaultLibrary(ref Param params, const ref Target target)
         {
             if (target.is64bit)
                 params.defaultlibname = "phobos64";
-            else if (target.mscoff)
-                params.defaultlibname = "phobos32mscoff";
-            else
+            else if (target.omfobj)
                 params.defaultlibname = "phobos";
+            else
+                params.defaultlibname = "phobos32mscoff";
         }
         else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
@@ -1755,19 +1757,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             continue; // skip druntime options, e.g. used to configure the GC
         }
-        else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
+        else if (arg == "-m32" || arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32
         {
-                target.is64bit = false;
-                target.mscoff = false;
+            target.is64bit = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
             target.is64bit = true;
         }
-        else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
+        else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omf
         {
             target.is64bit = false;
-            target.mscoff = true;
+            target.omfobj = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
@@ -2505,8 +2506,6 @@ private void reconcileCommands(ref Param params)
             error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
         if (dmdParams.dwarf)
             error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
-        if (target.is64bit)
-            target.mscoff = true;
     }
     else if (target.os == Target.OS.DragonFlyBSD)
     {
@@ -2531,7 +2530,7 @@ private void reconcileCommands(ref Param params)
             }
         }
 
-        if (target.mscoff && !params.mscrtlib)
+        if (!target.omfobj && !params.mscrtlib)
         {
             version (Windows)
             {
@@ -2545,8 +2544,8 @@ private void reconcileCommands(ref Param params)
     }
     else
     {
-        if (!target.is64bit && target.mscoff)
-            error(Loc.initial, "`-m32mscoff` can only be used when targetting windows");
+        if (target.omfobj)
+            error(Loc.initial, "`-m32omf` can only be used when targetting windows");
         if (params.mscrtlib)
             error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }

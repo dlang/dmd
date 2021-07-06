@@ -38,7 +38,7 @@ class Library
     {
         if (target.os == Target.OS.Windows)
         {
-            return (target.mscoff || target.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
+            return target.omfobj ? LibOMF_factory() : LibMSCoff_factory();
         }
         else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {

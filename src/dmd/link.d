@@ -226,7 +226,120 @@ public int runLINK()
         if (phobosLibname)
             global.params.libfiles.push(phobosLibname.xarraydup.ptr);
 
-        if (target.mscoff)
+        if (target.omfobj)
+        {
+            OutBuffer cmdbuf;
+            global.params.libfiles.push("user32");
+            global.params.libfiles.push("kernel32");
+            for (size_t i = 0; i < global.params.objfiles.length; i++)
+            {
+                if (i)
+                    cmdbuf.writeByte('+');
+                const(char)[] p = global.params.objfiles[i].toDString();
+                const(char)[] basename = FileName.removeExt(FileName.name(p));
+                const(char)[] ext = FileName.ext(p);
+                if (ext.length && !strchr(basename.ptr, '.'))
+                {
+                    // Write name sans extension (but not if a double extension)
+                    writeFilename(&cmdbuf, p[0 .. $ - ext.length - 1]);
+                }
+                else
+                    writeFilename(&cmdbuf, p);
+                FileName.free(basename.ptr);
+            }
+            cmdbuf.writeByte(',');
+            if (global.params.exefile)
+                writeFilename(&cmdbuf, global.params.exefile);
+            else
+            {
+                setExeFile();
+            }
+            // Make sure path to exe file exists
+            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            cmdbuf.writeByte(',');
+            if (global.params.mapfile)
+                writeFilename(&cmdbuf, global.params.mapfile);
+            else if (dmdParams.map)
+            {
+                writeFilename(&cmdbuf, getMapFilename());
+            }
+            else
+                cmdbuf.writestring("nul");
+            cmdbuf.writeByte(',');
+            for (size_t i = 0; i < global.params.libfiles.length; i++)
+            {
+                if (i)
+                    cmdbuf.writeByte('+');
+                writeFilename(&cmdbuf, global.params.libfiles[i]);
+            }
+            if (global.params.deffile)
+            {
+                cmdbuf.writeByte(',');
+                writeFilename(&cmdbuf, global.params.deffile);
+            }
+            /* Eliminate unnecessary trailing commas    */
+            while (1)
+            {
+                const size_t i = cmdbuf.length;
+                if (!i || cmdbuf[i - 1] != ',')
+                    break;
+                cmdbuf.setsize(cmdbuf.length - 1);
+            }
+            if (global.params.resfile)
+            {
+                cmdbuf.writestring("/RC:");
+                writeFilename(&cmdbuf, global.params.resfile);
+            }
+            if (dmdParams.map || global.params.mapfile)
+                cmdbuf.writestring("/m");
+            version (none)
+            {
+                if (debuginfo)
+                    cmdbuf.writestring("/li");
+                if (codeview)
+                {
+                    cmdbuf.writestring("/co");
+                    if (codeview3)
+                        cmdbuf.writestring(":3");
+                }
+            }
+            else
+            {
+                if (global.params.symdebug)
+                    cmdbuf.writestring("/co");
+            }
+            cmdbuf.writestring("/noi");
+            for (size_t i = 0; i < global.params.linkswitches.length; i++)
+            {
+                cmdbuf.writestring(global.params.linkswitches[i]);
+            }
+            cmdbuf.writeByte(';');
+            cmdbuf.writeByte(0); //null terminate the buffer
+            char[] p = cmdbuf.extractSlice()[0 .. $-1];
+            const(char)[] lnkfilename;
+            if (p.length > 7000)
+            {
+                lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
+                writeFile(Loc.initial, lnkfilename, p);
+                if (lnkfilename.length < p.length)
+                {
+                    p[0] = '@';
+                    p[1 .. lnkfilename.length +1] = lnkfilename;
+                    p[lnkfilename.length +1] = 0;
+                }
+            }
+            const(char)* linkcmd = getenv("LINKCMD");
+            if (!linkcmd)
+                linkcmd = "optlink";
+            const int status = executecmd(linkcmd, p.ptr);
+            if (lnkfilename)
+            {
+                lnkfilename.toCStringThen!(lf => remove(lf.ptr));
+                FileName.free(lnkfilename.ptr);
+            }
+            return status;
+        }
+        else
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
@@ -334,119 +447,6 @@ public int runLINK()
                 }
             }
 
-            const int status = executecmd(linkcmd, p.ptr);
-            if (lnkfilename)
-            {
-                lnkfilename.toCStringThen!(lf => remove(lf.ptr));
-                FileName.free(lnkfilename.ptr);
-            }
-            return status;
-        }
-        else
-        {
-            OutBuffer cmdbuf;
-            global.params.libfiles.push("user32");
-            global.params.libfiles.push("kernel32");
-            for (size_t i = 0; i < global.params.objfiles.length; i++)
-            {
-                if (i)
-                    cmdbuf.writeByte('+');
-                const(char)[] p = global.params.objfiles[i].toDString();
-                const(char)[] basename = FileName.removeExt(FileName.name(p));
-                const(char)[] ext = FileName.ext(p);
-                if (ext.length && !strchr(basename.ptr, '.'))
-                {
-                    // Write name sans extension (but not if a double extension)
-                    writeFilename(&cmdbuf, p[0 .. $ - ext.length - 1]);
-                }
-                else
-                    writeFilename(&cmdbuf, p);
-                FileName.free(basename.ptr);
-            }
-            cmdbuf.writeByte(',');
-            if (global.params.exefile)
-                writeFilename(&cmdbuf, global.params.exefile);
-            else
-            {
-                setExeFile();
-            }
-            // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
-            cmdbuf.writeByte(',');
-            if (global.params.mapfile)
-                writeFilename(&cmdbuf, global.params.mapfile);
-            else if (dmdParams.map)
-            {
-                writeFilename(&cmdbuf, getMapFilename());
-            }
-            else
-                cmdbuf.writestring("nul");
-            cmdbuf.writeByte(',');
-            for (size_t i = 0; i < global.params.libfiles.length; i++)
-            {
-                if (i)
-                    cmdbuf.writeByte('+');
-                writeFilename(&cmdbuf, global.params.libfiles[i]);
-            }
-            if (global.params.deffile)
-            {
-                cmdbuf.writeByte(',');
-                writeFilename(&cmdbuf, global.params.deffile);
-            }
-            /* Eliminate unnecessary trailing commas    */
-            while (1)
-            {
-                const size_t i = cmdbuf.length;
-                if (!i || cmdbuf[i - 1] != ',')
-                    break;
-                cmdbuf.setsize(cmdbuf.length - 1);
-            }
-            if (global.params.resfile)
-            {
-                cmdbuf.writestring("/RC:");
-                writeFilename(&cmdbuf, global.params.resfile);
-            }
-            if (dmdParams.map || global.params.mapfile)
-                cmdbuf.writestring("/m");
-            version (none)
-            {
-                if (debuginfo)
-                    cmdbuf.writestring("/li");
-                if (codeview)
-                {
-                    cmdbuf.writestring("/co");
-                    if (codeview3)
-                        cmdbuf.writestring(":3");
-                }
-            }
-            else
-            {
-                if (global.params.symdebug)
-                    cmdbuf.writestring("/co");
-            }
-            cmdbuf.writestring("/noi");
-            for (size_t i = 0; i < global.params.linkswitches.length; i++)
-            {
-                cmdbuf.writestring(global.params.linkswitches[i]);
-            }
-            cmdbuf.writeByte(';');
-            cmdbuf.writeByte(0); //null terminate the buffer
-            char[] p = cmdbuf.extractSlice()[0 .. $-1];
-            const(char)[] lnkfilename;
-            if (p.length > 7000)
-            {
-                lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
-                if (lnkfilename.length < p.length)
-                {
-                    p[0] = '@';
-                    p[1 .. lnkfilename.length +1] = lnkfilename;
-                    p[lnkfilename.length +1] = 0;
-                }
-            }
-            const(char)* linkcmd = getenv("LINKCMD");
-            if (!linkcmd)
-                linkcmd = "optlink";
             const int status = executecmd(linkcmd, p.ptr);
             if (lnkfilename)
             {
@@ -833,7 +833,7 @@ version (Windows)
         size_t len;
         if (global.params.verbose)
             message("%s %s", cmd, args);
-        if (!target.mscoff)
+        if (target.omfobj)
         {
             if ((len = strlen(args)) > 255)
             {

@@ -6,7 +6,7 @@ call "%VSINSTALLDIR%\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
 set DMD_DIR=%cd%
 if "%CONFIGURATION%" == "" set CONFIGURATION=RelWithAsserts
 set PLATFORM=Win32
-set MODEL=32mscoff
+set MODEL=32
 if "%ARCH%"=="x64" set PLATFORM=x64
 if "%ARCH%"=="x64" set MODEL=64
 set DMD=%DMD_DIR%\generated\Windows\%CONFIGURATION%\%PLATFORM%\dmd.exe
@@ -96,7 +96,7 @@ rem FIXME: lld-link fails to link phobos unittests ("error: relocation against s
 if "%C_RUNTIME%" == "mingw" exit /B 0
 cd "%DMD_DIR%\..\phobos"
 if "%D_COMPILER%_%MODEL%" == "ldc_64" copy %LDC_DIR%\lib64\libcurl.dll .
-if "%D_COMPILER%_%MODEL%" == "ldc_32mscoff" copy %LDC_DIR%\lib32\libcurl.dll .
+if "%D_COMPILER%_%MODEL%" == "ldc_32" copy %LDC_DIR%\lib32\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_64" copy %DMD_DIR%\dmd2\windows\bin64\libcurl.dll .
-if "%D_COMPILER%_%MODEL%" == "dmd_32mscoff" copy %DMD_DIR%\dmd2\windows\bin\libcurl.dll .
+if "%D_COMPILER%_%MODEL%" == "dmd_32" copy %DMD_DIR%\dmd2\windows\bin\libcurl.dll .
 "%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" unittest || exit /B 7

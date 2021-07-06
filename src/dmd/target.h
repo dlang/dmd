@@ -147,7 +147,7 @@ struct Target
     DString lib_ext;    /// extension for static library files
     DString dll_ext;    /// extension for dynamic library files
     bool run_noext;     /// allow -run sources without extensions
-    bool mscoff;        /// for Win32: write COFF object files instead of OMF
+    bool omfobj;        /// for Win32: write OMF object files instead of COFF
 
     template <typename T>
     struct FPTypeProperties

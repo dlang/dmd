@@ -307,14 +307,14 @@ LIB="%@P%\..\..\..\..\..\phobos"
 [Environment64]
 DFLAGS=%DFLAGS% -L/OPT:NOICF
 
-[Environment32mscoff]
+[Environment32]
 DFLAGS=%DFLAGS% -L/OPT:NOICF
 `;
     }
     else
     {
         enum confFile = "dmd.conf";
-        enum conf = `[Environment32]
+        enum conf = `[Environment32omf]
 DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic}
 
 [Environment64]
