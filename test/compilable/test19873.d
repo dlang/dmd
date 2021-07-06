@@ -1,3 +1,4 @@
+// PERMUTE_ARGS -preview=dip1000
 // https://issues.dlang.org/show_bug.cgi?id=19873
 int* ed(scope int* x)
 {
@@ -20,7 +21,7 @@ int* es(scope int* x) @system
 auto ad(scope int* x)
 {
     auto y = x;
-    //return y; TODO
+    return y;
 }
 
 auto at(scope int* x) @trusted

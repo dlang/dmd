@@ -596,14 +596,6 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     FuncDeclaration fd = sc.func;
 
-    // Try to infer 'scope' for va if in a function not marked @system
-    bool inferScope = false;
-    if (va && fd)
-    {
-        if (auto tf = fd.type.isTypeFunction())
-            inferScope = tf.trust == TRUST.safe || fd.flags & FUNCFLAG.safetyInprocess;
-    }
-    //printf("inferScope = %d, %d\n", inferScope, (va.storage_class & STCmaybescope) != 0);
 
     // Determine if va is a parameter that is an indirect reference
     const bool vaIsRef = va && va.storage_class & STC.parameter &&
@@ -680,7 +672,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (va.isScope())
                     continue;
 
-                if (inferScope && !va.doNotInferScope)
+                if (!va.doNotInferScope)
                 {
                     if (log) printf("inferring scope for lvalue %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
@@ -716,7 +708,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
             if (va && !va.isDataseg() && !va.doNotInferScope)
             {
-                if (!va.isScope() && inferScope)
+                if (!va.isScope())
                 {   /* v is scope, and va is not scope, so va needs to
                      * infer scope
                      */
@@ -752,7 +744,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             {
                 if (va && !va.isDataseg() && !va.doNotInferScope)
                 {
-                    if (!va.isScope() && inferScope)
+                    if (!va.isScope())
                     {   //printf("inferring scope for %s\n", va.toChars());
                         va.storage_class |= STC.scope_ | STC.scopeinferred;
                     }
@@ -843,7 +835,7 @@ ByRef:
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
         {
-            if (!va.isScope() && inferScope)
+            if (!va.isScope())
             {   //printf("inferring scope for %s\n", va.toChars());
                 va.storage_class |= STC.scope_ | STC.scopeinferred;
             }
@@ -893,7 +885,7 @@ ByRef:
                 /* Don't infer STC.scope_ for va, because then a closure
                  * won't be generated for fd.
                  */
-                //if (!va.isScope() && inferScope)
+                //if (!va.isScope())
                     //va.storage_class |= STC.scope_ | STC.scopeinferred;
                 continue;
             }
@@ -946,7 +938,7 @@ ByRef:
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
         {
-            if (!va.isScope() && inferScope)
+            if (!va.isScope())
             {   //printf("inferring scope for %s\n", va.toChars());
                 va.storage_class |= STC.scope_ | STC.scopeinferred;
             }
@@ -1287,7 +1279,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                )
             {
                 // Only look for errors if in module listed on command line
-                if (global.params.useDIP1000 == FeatureState.enabled) // https://issues.dlang.org/show_bug.cgi?id=17029
+                // https://issues.dlang.org/show_bug.cgi?id=17029
+                if (global.params.useDIP1000 == FeatureState.enabled && sc.func.setUnsafe())
                 {
                     if (!gag)
                         error(e.loc, "scope variable `%s` may not be returned", v.toChars());
