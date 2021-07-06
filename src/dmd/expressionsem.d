@@ -12690,3 +12690,115 @@ bool verifyHookExist(const ref Loc loc, ref Scope sc, Identifier id, string desc
     error(loc, "`%s.%s` not found. The current runtime does not support %.*s, or the runtime is corrupt.", module_.toChars(), id.toChars(), cast(int)description.length, description.ptr);
     return false;
 }
+
+/***************************************
+ * Fit elements[] to the corresponding types of the `sd`'s fields.
+ *
+ * Params:
+ *      sd = the struct declaration
+ *      loc = location to use for error messages
+ *      sc = context
+ *      elements = explicit arguments used to construct object
+ *      stype = the constructed object type.
+ * Returns:
+ *      false if any errors occur,
+ *      otherwise true and elements[] are rewritten for the output.
+ */
+private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions* elements, Type stype)
+{
+    if (!elements)
+        return true;
+
+    const nfields = sd.nonHiddenFields();
+    size_t offset = 0;
+    for (size_t i = 0; i < elements.dim; i++)
+    {
+        Expression e = (*elements)[i];
+        if (!e)
+            continue;
+
+        e = resolveProperties(sc, e);
+        if (i >= nfields)
+        {
+            if (i <= sd.fields.dim && e.op == TOK.null_)
+            {
+                // CTFE sometimes creates null as hidden pointer; we'll allow this.
+                continue;
+            }
+                .error(loc, "more initializers than fields (%zu) of `%s`", nfields, sd.toChars());
+            return false;
+        }
+        VarDeclaration v = sd.fields[i];
+        if (v.offset < offset)
+        {
+            .error(loc, "overlapping initialization for `%s`", v.toChars());
+            if (!sd.isUnionDeclaration())
+            {
+                enum errorMsg = "`struct` initializers that contain anonymous unions" ~
+                    " must initialize only the first member of a `union`. All subsequent" ~
+                    " non-overlapping fields are default initialized";
+                .errorSupplemental(loc, errorMsg);
+            }
+            return false;
+        }
+        offset = cast(uint)(v.offset + v.type.size());
+
+        Type t = v.type;
+        if (stype)
+            t = t.addMod(stype.mod);
+        Type origType = t;
+        Type tb = t.toBasetype();
+
+        const hasPointers = tb.hasPointers();
+        if (hasPointers)
+        {
+            if ((stype.alignment() < target.ptrsize ||
+                 (v.offset & (target.ptrsize - 1))) &&
+                (sc.func && sc.func.setUnsafe()))
+            {
+                .error(loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
+                       sd.toChars(), v.toChars());
+                return false;
+            }
+        }
+
+        /* Look for case of initializing a static array with a too-short
+         * string literal, such as:
+         *  char[5] foo = "abc";
+         * Allow this by doing an explicit cast, which will lengthen the string
+         * literal.
+         */
+        if (e.op == TOK.string_ && tb.ty == Tsarray)
+        {
+            StringExp se = cast(StringExp)e;
+            Type typeb = se.type.toBasetype();
+            TY tynto = tb.nextOf().ty;
+            if (!se.committed &&
+                (typeb.ty == Tarray || typeb.ty == Tsarray) && tynto.isSomeChar &&
+                se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
+            {
+                e = se.castTo(sc, t);
+                goto L1;
+            }
+        }
+
+        while (!e.implicitConvTo(t) && tb.ty == Tsarray)
+        {
+            /* Static array initialization, as in:
+             *  T[3][5] = e;
+             */
+            t = tb.nextOf();
+            tb = t.toBasetype();
+        }
+        if (!e.implicitConvTo(t))
+            t = origType; // restore type for better diagnostic
+
+        e = e.implicitCastTo(sc, t);
+    L1:
+        if (e.op == TOK.error)
+            return false;
+
+        (*elements)[i] = doCopyOrMove(sc, e);
+    }
+    return true;
+}

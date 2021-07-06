@@ -6068,7 +6068,6 @@ public:
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     const char* kind() const;
     void finalizeSize();
-    bool fit(const Loc& loc, Scope* sc, Array<Expression* >* elements, Type* stype);
     bool isPOD();
     StructDeclaration* isStructDeclaration();
     void accept(Visitor* v);
