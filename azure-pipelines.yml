@@ -6,7 +6,7 @@ jobs:
   - job: Windows_DMD_bootstrap
     timeoutInMinutes: 120
     pool:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-latest'
     variables:
       D_COMPILER: dmd
       HOST_DMD_VERSION: 2.079.0
@@ -26,7 +26,7 @@ jobs:
   - job: Windows_DMD_latest
     timeoutInMinutes: 120
     pool:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-latest'
     variables:
       D_COMPILER: dmd
       HOST_DMD_VERSION: LATEST
