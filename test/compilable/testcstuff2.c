@@ -321,4 +321,26 @@ void test22088()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22106
+
+typedef struct S22106
+{
+    int field;
+} S22106_t;
+
+struct T22106
+{
+    struct S22106 f1;
+    S22106_t f2;
+};
+
+void testS22106()
+{
+    struct S22106 v1;
+    S22106_t v2;
+}
+
+int S22106; // not a redeclaration of 'struct S22106'
+
+/***************************************************/
 

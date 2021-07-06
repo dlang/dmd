@@ -2007,6 +2007,11 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 auto scopesym = sc.inner().scopesym;
                 if (scopesym.members)
                     scopesym.members.push(sd);
+                if (scopesym.symtab && !scopesym.symtabInsert(sd))
+                {
+                    Dsymbol s2 = scopesym.symtabLookup(sd, mtype.id);
+                    handleTagSymbols(*sc, sd, s2, scopesym);
+                }
                 sd.parent = sc.parent;
                 sd.dsymbolSemantic(sc);
             }
