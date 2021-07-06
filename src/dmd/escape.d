@@ -1185,6 +1185,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if (v.isDataseg())
             continue;
 
+        const vsr = buildScopeRef(v.storage_class);
+
         Dsymbol p = v.toParent2();
 
         if ((v.isScope() || (v.storage_class & STC.maybescope)) &&
@@ -1200,8 +1202,13 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         if (v.isScope())
         {
-            if (v.storage_class & STC.return_)
+            /* If `return scope` applies to v.
+             */
+            if (vsr == ScopeRef.ReturnScope ||
+                vsr == ScopeRef.Ref_ReturnScope)
+            {
                 continue;
+            }
 
             auto pfunc = p.isFuncDeclaration();
             if (pfunc &&
