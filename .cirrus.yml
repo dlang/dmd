@@ -41,36 +41,75 @@ coverage_environment_template: &COVERAGE_ENVIRONMENT_TEMPLATE
   CODECOV_TOKEN: ENCRYPTED[cc6ce01618eaee6c9a08ebc81446a9233588df3b2c6ba4e30ffb7715ee9815734ccfd9fcec4f6abfc6a1b9dd8253110d]
 
 # Linux
+linux_task_matrix_template: &LINUX_TASK_MATRIX_TEMPLATE
+  - TASK_NAME_SUFFIX: x86, DMD (latest)
+    MODEL: 32
+  - TASK_NAME_SUFFIX: x86, DMD (coverage)
+    MODEL: 32
+    << : *COVERAGE_ENVIRONMENT_TEMPLATE
+  - TASK_NAME_SUFFIX: x86, DMD (bootstrap)
+    MODEL: 32
+    HOST_DMD: dmd-2.079.0
+  - TASK_NAME_SUFFIX: x64, DMD (latest)
+  # Enable this to replace coverage tests on CircleCI
+  # - TASK_NAME_SUFFIX: x64, DMD (coverage)
+  #   << : *COVERAGE_ENVIRONMENT_TEMPLATE
+  - TASK_NAME_SUFFIX: x64, DMD (bootstrap)
+    HOST_DMD: dmd-2.079.0
+  - TASK_NAME_SUFFIX: x64, LDC
+    HOST_DC: ldc #TODO: Update to HOST_DMD when support for HOST_DC is removed
+  - TASK_NAME_SUFFIX: x64, GDC
+    HOST_DMD: gdmd-9
+
 task:
-  name: Ubuntu 16.04 $TASK_NAME_SUFFIX
+  name: Ubuntu 20.04 $TASK_NAME_SUFFIX
   container:
-    image: ubuntu:16.04
+    image: ubuntu:20.04
     cpu: 4
     memory: 8G
   timeout_in: 60m
   environment:
     matrix:
-      - TASK_NAME_SUFFIX: x86, DMD (latest)
-        MODEL: 32
-      - TASK_NAME_SUFFIX: x86, DMD (coverage)
-        MODEL: 32
-        << : *COVERAGE_ENVIRONMENT_TEMPLATE
-      - TASK_NAME_SUFFIX: x86, DMD (bootstrap)
-        MODEL: 32
-        HOST_DMD: dmd-2.079.0
-      - TASK_NAME_SUFFIX: x64, DMD (latest)
-      # Enable this to replace coverage tests on CircleCI
-      # - TASK_NAME_SUFFIX: x64, DMD (coverage)
-      #   << : *COVERAGE_ENVIRONMENT_TEMPLATE
-      - TASK_NAME_SUFFIX: x64, DMD (bootstrap)
-        HOST_DMD: dmd-2.079.0
-      - TASK_NAME_SUFFIX: x64, LDC
-        HOST_DC: ldc #TODO: Update to HOST_DMD when support for HOST_DC is removed
-      - TASK_NAME_SUFFIX: x64, GDC
-        HOST_DMD: gdmd-9
+      << : *LINUX_TASK_MATRIX_TEMPLATE
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: Ubuntu 18.04 $TASK_NAME_SUFFIX
+  container:
+    image: ubuntu:18.04
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    matrix:
+      << : *LINUX_TASK_MATRIX_TEMPLATE
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
+macos_task_matrix_template: &MACOS_TASK_MATRIX_TEMPLATE
+  - TASK_NAME_SUFFIX: DMD (latest)
+  - TASK_NAME_SUFFIX: DMD (coverage)
+    << : *COVERAGE_ENVIRONMENT_TEMPLATE
+  - TASK_NAME_SUFFIX: DMD (bootstrap)
+    # de-facto bootstrap version on OSX
+    # See: https://forum.dlang.org/post/qfsgt2$1goc$1@digitalmars.com
+    HOST_DMD: dmd-2.088.0
+
+task:
+  name: macOS 11 x64, $TASK_NAME_SUFFIX
+  osx_instance:
+    image: big-sur-xcode
+  timeout_in: 60m
+  environment:
+    OS_NAME: darwin
+    # override Cirrus default OS (`darwin`)
+    OS: osx
+    # 12 CPU cores and 24 GB of memory are available
+    N: 12
+    matrix:
+      << : *MACOS_TASK_MATRIX_TEMPLATE
+  << : *COMMON_STEPS_TEMPLATE
+
 task:
   name: macOS 10.15 x64, $TASK_NAME_SUFFIX
   osx_instance:
@@ -83,20 +122,31 @@ task:
     # 12 CPU cores and 24 GB of memory are available
     N: 12
     matrix:
-      - TASK_NAME_SUFFIX: DMD (latest)
-      - TASK_NAME_SUFFIX: DMD (coverage)
-        << : *COVERAGE_ENVIRONMENT_TEMPLATE
-      - TASK_NAME_SUFFIX: DMD (bootstrap)
-        # de-facto bootstrap version on OSX
-        # See: https://forum.dlang.org/post/qfsgt2$1goc$1@digitalmars.com
-        HOST_DMD: dmd-2.088.0
+      << : *MACOS_TASK_MATRIX_TEMPLATE
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
 task:
-  name: FreeBSD 12.1 x64, DMD ($TASK_NAME_TYPE)
+  name: FreeBSD 13.0 x64, DMD ($TASK_NAME_TYPE)
   freebsd_instance:
-    image_family: freebsd-12-1
+    image_family: freebsd-13-0
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    OS_NAME: freebsd
+    CI_DFLAGS: -version=TARGET_FREEBSD13
+    matrix:
+      - TASK_NAME_TYPE: latest
+      - TASK_NAME_TYPE: coverage
+        << : *COVERAGE_ENVIRONMENT_TEMPLATE
+  install_bash_script: pkg install -y bash
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: FreeBSD 12.2 x64, DMD ($TASK_NAME_TYPE)
+  freebsd_instance:
+    image_family: freebsd-12-2
     cpu: 4
     memory: 8G
   timeout_in: 60m
