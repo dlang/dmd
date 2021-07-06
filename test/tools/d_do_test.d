@@ -639,76 +639,102 @@ string execute(ref File f, string command, bool expectpass)
     enum TIMEOUT = 3.minutes;
 
     f.writeln(command);
-    typeof(std.process.executeShell(command)) result;
 
-    version (Windows)
+    // Spawn shell and await it's termination
+    auto pipes = pipeShell(command, Redirect.stdin | Redirect.stdout | Redirect.stderrToStdout);
+
+    // waitTimeout is available since 2.097
+    static if (false && is(typeof(waitTimeout)))
     {
-        // Spawn shell and await it's termination
-        auto pipes = pipeShell(command, Redirect.stdin | Redirect.stdout | Redirect.stderrToStdout);
+        const waitRes = pipes.pid.waitTimeout(TIMEOUT);
+        const terminated = waitRes.terminated;
+    }
+    // Use WaitForSingleObject from the native Win32 API
+    else version (Windows)
+    {
+        import core.sys.windows.winbase;
+        import core.sys.windows.windef;
 
-        // waitTimeout is available since 2.097
-        static if (is(typeof(waitTimeout)))
+        // Check that the timeout is supported by the API
+        enum MSECS = TIMEOUT.total!"msecs";
+        static assert(MSECS < DWORD.max);
+
+        bool terminated;
+        final switch (WaitForSingleObject(pipes.pid.osHandle(), cast(DWORD) MSECS))
         {
-            const waitRes = pipes.pid.waitTimeout(TIMEOUT);
-        }
-        else
-        {
-            import core.sys.windows.winbase : WaitForSingleObject;
-            import core.sys.windows.windef : DWORD;
+            // Process finished before the timeout
+            case WAIT_OBJECT_0:
+                terminated = true;
+                break;
 
-            // Wait using the native Win32 API
-            enum MSECS = TIMEOUT.total!"msecs";
-            static assert(MSECS < DWORD.max);
-            WaitForSingleObject(pipes.pid.osHandle, cast(DWORD) MSECS);
+            // Aborting wait due to timeout
+            case WAIT_TIMEOUT:
+                terminated = false;
+                break;
 
-            // Fetch status + exit code
-            const waitRes = pipes.pid.tryWait();
-        }
-
-        result.status = waitRes.terminated ? waitRes.status : 124;
-
-        // Read output from the pipe
-        if (const size = pipes.stdout.size())
-        {
-            auto buffer = new byte[cast(size_t) size];
-            result.output = cast(string) pipes.stdout.rawRead(buffer);
-        }
-
-        // Try to kill the spawned shell if it's still running
-        if (!waitRes.terminated)
-        {
-            pipes.stdin.close();
-            pipes.stdout.close();
-
-            if (auto ex = kill(pipes.pid).collectException())
-                writeln("Failed to kill process: ", ex.msg);
-            else
-                // Let the process release file locks, ...
-                pipes.pid.waitTimeout(5.seconds);
+            // Some error occurred
+            case WAIT_ABANDONED:
+            case WAIT_FAILED:
+                throw ProcessException.newFromLastError();
         }
     }
+    // Use poll from POSIX and wait until the pipe is closed
+    else version (Posix)
+    {
+        import core.stdc.config : c_long;
+        import core.sys.posix.poll;
+
+        // Check that the timeout is supported by the API
+        enum MSECS = TIMEOUT.total!"msecs";
+        static assert(MSECS < c_long.max);
+
+        pollfd pfd = {
+            fd: pipes.stdout.fileno,
+            events: POLLERR // Triggered when the process closes the pipe
+        };
+        const ret = poll(&pfd, 1, cast(int) MSECS);
+        enforce(ret >= 0, "poll failed!");
+        const terminated = ret != 0;
+    }
+    // Wait unconditionally as a fallback
     else
+        const terminated = true;
+
+    const status = terminated ? wait(pipes.pid) : 0;
+
+    // Initiate shutdown of the program if it is still running
+    if (!terminated)
     {
-        result = std.process.executeShell(command);
+        pipes.stdin.close();
+
+        if (auto ex = kill(pipes.pid).collectException())
+            writeln("Failed to kill process: ", ex.msg);
+
+        // Let the process release file locks, ...
+        // This avoids some race conditions esp. on Windows
+        import core.thread;
+        Thread.sleep(3.seconds);
+
+        // N.B.: Currently ignores the output
+        enforce(false, "Exceeded wait timeout of " ~ TIMEOUT.toString());
     }
 
-    f.write(result.output);
+    // Try to read the output from the pipe
+    ubyte[1024] buffer;
+    string output = cast(string) pipes.stdout.byChunk(buffer).join();
+    f.write(output);
 
-    if (result.status < 0)
+    if (status < 0)
     {
-        enforce(false, "caught signal: " ~ to!string(result.status));
-    }
-    else if (result.status == 124)
-    {
-        enforce(false, format("Exceeded wait timeout of " ~ TIMEOUT.toString()));
+        enforce(false, "caught signal: " ~ to!string(status));
     }
     else
     {
         const exp = expectpass ? 0 : 1;
-        enforce(result.status == exp, format("Expected rc == %d, but exited with rc == %d", exp, result.status));
+        enforce(status == exp, format("Expected rc == %d, but exited with rc == %d", exp, status));
     }
 
-    return result.output;
+    return output;
 }
 
 /// add quotes around the whole string if it contains spaces that are not in quotes
