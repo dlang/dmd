@@ -321,6 +321,12 @@ void test22088()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22103
+
+void test22103a(char *const argv[restrict]);
+void test22103b(char *const argv[restrict 4]);
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22106
 
 typedef struct S22106
@@ -343,4 +349,3 @@ void testS22106()
 int S22106; // not a redeclaration of 'struct S22106'
 
 /***************************************************/
-

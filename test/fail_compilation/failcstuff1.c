@@ -26,6 +26,20 @@ fail_compilation/failcstuff1.c(301): Error: illegal type combination
 fail_compilation/failcstuff1.c(352): Error: found `2` when expecting `:`
 fail_compilation/failcstuff1.c(352): Error: found `:` instead of statement
 fail_compilation/failcstuff1.c(400): Error: `enum ENUM` has no members
+fail_compilation/failcstuff1.c(450): Error: static array parameters are not supported
+fail_compilation/failcstuff1.c(450): Error: static or type qualifier used in non-outermost array type derivation
+fail_compilation/failcstuff1.c(451): Error: static or type qualifier used in non-outermost array type derivation
+fail_compilation/failcstuff1.c(451): Error: array type has incomplete element type `int[]`
+fail_compilation/failcstuff1.c(452): Error: array type has incomplete element type `int[]`
+fail_compilation/failcstuff1.c(453): Error: array type has incomplete element type `int[]`
+fail_compilation/failcstuff1.c(454): Error: found `const` when expecting `,`
+fail_compilation/failcstuff1.c(458): Error: static array parameters are not supported
+fail_compilation/failcstuff1.c(458): Error: static or type qualifier used outside of function prototype
+fail_compilation/failcstuff1.c(459): Error: static or type qualifier used outside of function prototype
+fail_compilation/failcstuff1.c(460): Error: variable length arrays are not supported
+fail_compilation/failcstuff1.c(460): Error: variable length array used outside of function prototype
+fail_compilation/failcstuff1.c(461): Error: array type has incomplete element type `int[]`
+fail_compilation/failcstuff1.c(462): Error: `=`, `;` or `,` expected
 ---
 */
 
@@ -101,3 +115,20 @@ void test22035()
 // https://issues.dlang.org/show_bug.cgi?id=21932
 #line 400
 enum ENUM;
+
+// https://issues.dlang.org/show_bug.cgi?id=22103
+#line 450
+void test22103a(int array[4][static 4]);
+void test22103b(int array[4][restrict]);
+void test22103c(int array[4][]);
+void test22103d(int array[][]);
+void test22103e(int array[4] const);
+
+void test22103e()
+{
+    int array1[static volatile 4];
+    int array2[restrict 4];
+    int array3[4][*];
+    int array4[][];
+    int array4[4] const;
+}
