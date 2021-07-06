@@ -598,8 +598,11 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
-    if (va && fd && fd.type && fd.type.isTypeFunction())
-        inferScope = fd.type.isTypeFunction().trust != TRUST.system;
+    if (va && fd)
+    {
+        if (auto tf = fd.type.isTypeFunction())
+            inferScope = tf.trust == TRUST.safe || fd.flags & FUNCFLAG.safetyInprocess;
+    }
     //printf("inferScope = %d, %d\n", inferScope, (va.storage_class & STCmaybescope) != 0);
 
     // Determine if va is a parameter that is an indirect reference
