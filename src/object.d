@@ -3491,7 +3491,7 @@ private U[] _dup(T, U)(scope T[] a) pure nothrow @trusted if (__traits(isPOD, T)
     return *cast(U[]*) &arr;
 }
 
-private U[] _dupCtfe(T, U)(T[] a)
+private U[] _dupCtfe(T, U)(scope T[] a)
 {
     static if (is(T : void))
         assert(0, "Cannot dup a void[] array at compile time.");
@@ -3530,6 +3530,21 @@ private U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
     } ();
 
     return res;
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=22107
+@safe unittest
+{
+    static int i;
+    @safe struct S
+    {
+        this(this) { i++; }
+    }
+
+    void fun(scope S[] values...) @safe
+    {
+        values.dup;
+    }
 }
 
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
