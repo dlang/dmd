@@ -7233,6 +7233,7 @@ ScopeRef buildScopeRef(bool returnByRef, StorageClass stc) pure nothrow @nogc @s
     ScopeRef result;
     final switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
     {
+        case STC.return_:
         case 0:                        result = ScopeRef.None;        break;
         case STC.ref_:                 result = ScopeRef.Ref;         break;
         case STC.scope_:               result = ScopeRef.Scope;       break;
