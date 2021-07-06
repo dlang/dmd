@@ -222,8 +222,6 @@ struct Macro;
 struct ModuleDeclaration;
 struct FileBuffer;
 struct Escape;
-template <typename Datum>
-struct FileMapping;
 class WithStatement;
 struct AA;
 class Tuple;
@@ -1777,7 +1775,6 @@ private:
     _d_dynamicArray< uint8_t > data;
     size_t offset;
     bool notlinehead;
-    FileMapping<uint8_t >* fileMapping;
 public:
     bool doindent;
     bool spaces;
@@ -1819,6 +1816,11 @@ public:
         level()
     {
     }
+    OutBuffer(bool doindent, bool spaces = false, int32_t level = 0) :
+        doindent(doindent),
+        spaces(spaces),
+        level(level)
+        {}
 };
 
 enum class StructPOD

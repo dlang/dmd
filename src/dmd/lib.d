@@ -95,19 +95,10 @@ class Library
         if (global.params.verbose)
             message("library   %s", loc.filename);
 
-        auto filenameString = loc.filename.toDString;
-        ensurePathToNameExists(Loc.initial, filenameString);
-        auto tmpname = filenameString ~ ".tmp\0";
-        scope(exit) destroy(tmpname);
-
-        auto libbuf = OutBuffer(tmpname.ptr);
+        OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);
 
-        if (!libbuf.moveToFile(loc.filename))
-        {
-            .error(loc, "Error writing file '%s'", loc.filename);
-            fatal();
-        }
+        writeFile(Loc.initial, loc.filename.toDString, libbuf[]);
     }
 
     final void error(const(char)* format, ...)

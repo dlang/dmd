@@ -17,12 +17,10 @@ class RootObject;
 
 struct OutBuffer
 {
-    // IMPORTANT: PLEASE KEEP STATE AND DESTRUCTOR IN SYNC WITH DEFINITION IN ./outbuffer.d.
 private:
     DArray<unsigned char> data;
     d_size_t offset;
     bool notlinehead;
-    void* fileMapping;  // pointer to a file mapping object not used on the C++ side
 public:
     bool doindent;
     bool spaces;
@@ -36,7 +34,6 @@ public:
         doindent = 0;
         level = 0;
         notlinehead = 0;
-        fileMapping = 0;
     }
     ~OutBuffer()
     {
