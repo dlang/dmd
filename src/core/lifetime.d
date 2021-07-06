@@ -1915,7 +1915,7 @@ pure nothrow @safe @nogc unittest
     static assert(is(typeof({ S s; move(s, s); }) == T));
 }
 
-private void moveImpl(T)(scope ref T target, return ref T source)
+private void moveImpl(T)(scope ref T target, return scope ref T source)
 {
     import core.internal.traits : hasElaborateDestructor;
 
@@ -1930,7 +1930,7 @@ private void moveImpl(T)(scope ref T target, return ref T source)
     moveEmplaceImpl(target, source);
 }
 
-private T moveImpl(T)(ref T source)
+private T moveImpl(T)(return scope ref T source)
 {
     // Properly infer safety from moveEmplaceImpl as the implementation below
     // might void-initialize pointers in result and hence needs to be @trusted
@@ -1939,7 +1939,7 @@ private T moveImpl(T)(ref T source)
     return trustedMoveImpl(source);
 }
 
-private T trustedMoveImpl(T)(ref T source) @trusted
+private T trustedMoveImpl(T)(return scope ref T source) @trusted
 {
     T result = void;
     moveEmplaceImpl(result, source);
