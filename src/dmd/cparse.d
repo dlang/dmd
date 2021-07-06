@@ -2281,35 +2281,44 @@ final class CParser(AST) : Parser!AST
                 {
                     case TOK.leftBracket:
                     {
-                        // post [] syntax.
+                        // post [] syntax, pick up any leading type qualifiers, `static` and `*`
                         AST.Type ta;
                         nextToken();
 
-                        // pick up any leading type qualifiers, `static` and `*`
+                        auto mod = cparseTypeQualifierList();   // const/volatile/restrict/_Atomic
+
                         bool isStatic;
+                        bool isVLA;
                         if (token.value == TOK.static_)
                         {
-                            isStatic = true;
+                            isStatic = true;    // `static`
                             nextToken();
+                            if (!mod)           // type qualifiers after `static`
+                                mod = cparseTypeQualifierList();
                         }
-
-                        bool isVLA;
-                        if (!isStatic)
+                        else if (token.value == TOK.mul)
                         {
-                            if (token.value == TOK.static_)
+                            if (peekNext() == TOK.rightBracket)
                             {
-                                isStatic = true;
+                                isVLA = true;   // `*`
                                 nextToken();
                             }
-                            else if (token.value == TOK.mul)
-                            {
-                                if (peekNext() == TOK.rightBracket)
-                                {
-                                    isVLA = true;
-                                    nextToken();
-                                }
-                            }
                         }
+
+                        if (isStatic || token.value != TOK.rightBracket)
+                        {
+                            //printf("It's a static array\n");
+                            AST.Expression e = cparseAssignExp(); // [ expression ]
+                            ta = new AST.TypeSArray(t, e);
+                        }
+                        else
+                        {
+                            // An array of unknown size, fake it with a DArray
+                            ta = new AST.TypeDArray(t); // []
+                        }
+                        check(TOK.rightBracket);
+
+                        // Issue errors for unsupported types.
                         if (isVLA) // C11 6.7.6.2
                         {
                             error("variable length arrays are not supported");
@@ -2318,25 +2327,35 @@ final class CParser(AST) : Parser!AST
                         {
                             error("static array parameters are not supported");
                         }
-
-                        if (token.value == TOK.rightBracket)
+                        if (declarator != DTR.xparameter)
                         {
-                            // An array of unknown size, fake it with a DArray
-                            ta = new AST.TypeDArray(t); // []
-                            nextToken();
+                            /* C11 6.7.6.2-4: '*' can only be used with function prototype scope.
+                             */
+                            if (isVLA)
+                                error("variable length array used outside of function prototype");
+                            /* C11 6.7.6.2-1: type qualifiers and 'static' shall only appear
+                             * in a declaration of a function parameter with an array type.
+                             */
+                            if (isStatic || mod)
+                                error("static or type qualifier used outside of function prototype");
                         }
-                        else
+                        if (ts.isTypeSArray() || ts.isTypeDArray())
                         {
-                            //printf("It's a static array\n");
-                            AST.Expression e = cparseAssignExp(); // [ expression ]
-                            ta = new AST.TypeSArray(t, e);
-                            check(TOK.rightBracket);
+                            /* C11 6.7.6.2-1: type qualifiers and 'static' shall only appear
+                             * in the outermost array type derivation.
+                             */
+                            if (isStatic || mod)
+                                error("static or type qualifier used in non-outermost array type derivation");
+                            /* C11 6.7.6.2-1: the element type shall not be an incomplete or
+                             * function type.
+                             */
+                            if (ta.isTypeDArray() && !isVLA)
+                                error("array type has incomplete element type `%s`", ta.toChars());
                         }
 
-                        const mod = cparseTypeQualifierList(); // const/volatile/restrict/_Atomic
+                        // Apply type qualifiers to the constructed type.
                         if (mod & MOD.xconst) // ignore the other bits
                             ta = toConst(ta);
-
                         insertTx(ts, ta, t);  // ts -> ... -> ta -> t
                         continue;
                     }
