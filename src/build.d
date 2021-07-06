@@ -1476,7 +1476,7 @@ auto detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (uname.canFind("x86_64", "amd64", "64-bit", "64-Bit", "64 bit"))
+    if (uname.canFind("x86_64", "amd64", "64-bit", "64-Bit", "64 bit", "aarch64"))
         return "64";
     if (uname.canFind("i386", "i586", "i686", "32-bit", "32-Bit", "32 bit"))
         return "32";
