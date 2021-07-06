@@ -51,9 +51,9 @@ $(H2 $(LNAME2 command-line, Invoking ImportC))
     $(LI indirectly via importing a C file)
     )
 
-    $(H3 ImportC Files on the Command Line)
+    $(H3 $(LNAME2 command-line, ImportC Files on the Command Line))
 
-    $(H3 Importing C Files)
+    $(H3 $(LNAME2 importing, Importing C Files))
 
 
 $(H2 $(LNAME2 preprocessor, Preprocessor))
@@ -97,6 +97,7 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(P and the preprocessed output is written to $(TT file.i).)
 
+
 $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
     $(P Nevertheless, ImportC supports these preprocessor directives:)
@@ -110,19 +111,61 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(P $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-11.1.0/cpp/Preprocessor-Output.html, linemarker)
     directives are normally embedded in the output of C preprocessors.)
 
+
 $(H2 $(LNAME2 limitations, Limitations))
 
     $(H3 $(LNAME2 exceptions, Exception Handling))
 
     $(P ImportC is assumed to never throw exceptions. `setjmp` and `longjmp` are not supported.)
 
-    $(H3 $(LNAME2 const, Transitive Const))
+    $(H3 $(LNAME2 const, Const))
 
     $(P C11 specifies that `const` only applies locally. `const` in ImportC applies transitively,
     meaning that although $(CCODE int *const p;) means in C11 that p is a const pointer to int,
     in ImportC it means p is a const pointer to a const int.)
 
+    $(H3 $(LNAME2 volatile, Volatile))
+
+    $(P The `volatile` type-qualifier (C11 6.7.3) is ignored. Use of `volatile` to implement shared
+    memory access is unlikely to work anyway, $(LINK2 #_atomic, _Atomic) is for that.
+    To use `volatile` as a device register, call a function to do it that is compiled separately,
+    or use inline assembler.
+    )
+
+    $(H3 $(LNAME2 restrict, Restrict))
+
+    $(P The `restrict` type-qualifier (C11 6.7.3) is ignored.)
+
+    $(H3 $(LNAME2 _atomic, _Atomic))
+
+    $(P The `_Atomic` type-qualifier (C11 6.7.3) is ignored.
+    To do atomic operations, use an externally compiled function for that, or the inline assembler.)
+
+
 $(H2 $(LNAME2 extensions, Extensions))
+
+    $(H3 $(LNAME2 forward-references, Forward References))
+
+    $(P Any declarations in scope can be accessed, not just
+    declarations that lexically precede a reference.)
+
+    $(H3 $(LNAME2 ctfe, Compile Time Function Execution))
+
+    $(P Evaluating constant expressions includes executing functions in the
+    same manner as D's CTFE can.)
+
+    $(H3 $(LNAME2 inlining, Function Inlining))
+
+    $(P Functions for which the function body is present can
+    be inlined by ImportC as well as by the D code that calls them.)
+
+    $(H3 $(LNAME2 register, Register Storage Class))
+
+    $(P Objects with `register` storage class are treated as `auto` declarations.)
+
+    $(P Objects with `register` storage class may have their address taken. C11 6.3.2.1-2)
+
+    $(P Arrays can have `register` storage class, and may be enregistered by the compiler. C11 6.3.2.1-3)
 
 
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
