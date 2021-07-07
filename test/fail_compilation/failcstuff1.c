@@ -40,6 +40,12 @@ fail_compilation/failcstuff1.c(460): Error: variable length arrays are not suppo
 fail_compilation/failcstuff1.c(460): Error: variable length array used outside of function prototype
 fail_compilation/failcstuff1.c(461): Error: array type has incomplete element type `int[]`
 fail_compilation/failcstuff1.c(462): Error: `=`, `;` or `,` expected
+fail_compilation/failcstuff1.c(502): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(502): Error: found `;` when expecting `)`
+fail_compilation/failcstuff1.c(503): Error: `=`, `;` or `,` expected
+fail_compilation/failcstuff1.c(504): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(504): Error: found `;` when expecting `)`
+fail_compilation/failcstuff1.c(505): Error: `=`, `;` or `,` expected
 ---
 */
 
@@ -131,4 +137,14 @@ void test22103e()
     int array3[4][*];
     int array4[][];
     int array4[4] const;
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=22102
+#line 500
+void test22102()
+{
+    int(0);
+    int var1;
+    int();
+    int var2;
 }

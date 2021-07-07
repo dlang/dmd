@@ -163,6 +163,18 @@ final class CParser(AST) : Parser!AST
                 case TOK.rightShiftAssign:
                     goto Lexp;
 
+                case TOK.leftParenthesis:
+                {
+                    /* If tokens look like a function call, assume it is one,
+                     * As any type-name won't be resolved until semantic, this
+                     * could be rewritten later.
+                     */
+                    auto tk = &token;
+                    if (isFunctionCall(tk))
+                        goto Lexp;
+                    goto default;
+                }
+
                 default:
                 {
                     /* If tokens look like a declaration, assume it is one
@@ -3203,6 +3215,46 @@ final class CParser(AST) : Parser!AST
 
         // skip over assignment-expression, ending before comma or semiColon or EOF
         if (!isAssignmentExpression(t))
+            return false;
+        pt = t;
+        return true;
+    }
+
+    /********************************
+     * See if match for:
+     *    postfix-expression ( argument-expression-list(opt) )
+     * Params:
+     *  pt = starting token, updated to one past end of initializer if true
+     * Returns:
+     *  true if function call
+     */
+    private bool isFunctionCall(ref Token* pt)
+    {
+        //printf("isFunctionCall()\n");
+        auto t = pt;
+
+        if (!isPrimaryExpression(t))
+            return false;
+        if (t.value != TOK.leftParenthesis)
+            return false;
+        t = peek(t);
+        while (1)
+        {
+            if (!isAssignmentExpression(t))
+                return false;
+            if (t.value == TOK.comma)
+            {
+                t = peek(t);
+                continue;
+            }
+            if (t.value == TOK.rightParenthesis)
+            {
+                t = peek(t);
+                break;
+            }
+            return false;
+        }
+        if (t.value != TOK.semicolon)
             return false;
         pt = t;
         return true;

@@ -4463,6 +4463,40 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Rewrite (*fp)(arguments) to fp(arguments)
                 exp.e1 = (cast(PtrExp)exp.e1).e1;
             }
+            else if (exp.e1.op == TOK.type && (sc && sc.flags & SCOPE.Cfile))
+            {
+                /* Ambiguous cases arise from CParser where there is not enough
+                 * information to determine if we have a function call or declaration.
+                 *   type-name ( identifier ) ;
+                 *   identifier ( identifier ) ;
+                 * If exp.e1 is a type-name, then this is a declaration. C11 does not
+                 * have type construction syntax, so don't convert this to a cast().
+                 */
+                if (exp.arguments && exp.arguments.dim == 1)
+                {
+                    Expression arg = (*exp.arguments)[0];
+                    if (auto ie = (*exp.arguments)[0].isIdentifierExp())
+                    {
+                        TypeExp te = cast(TypeExp)exp.e1;
+                        auto initializer = new VoidInitializer(ie.loc);
+                        Dsymbol s = new VarDeclaration(ie.loc, te.type, ie.ident, initializer);
+                        auto decls = new Dsymbols(1);
+                        (*decls)[0] = s;
+                        s = new LinkDeclaration(s.loc, LINK.c, decls);
+                        result = new DeclarationExp(exp.loc, s);
+                        result = result.expressionSemantic(sc);
+                    }
+                    else
+                    {
+                        arg.error("identifier or `(` expected");
+                        result = ErrorExp.get();
+                    }
+                    return;
+                }
+                exp.error("identifier or `(` expected before `)`");
+                result = ErrorExp.get();
+                return;
+            }
         }
 
         Type t1 = exp.e1.type ? exp.e1.type.toBasetype() : null;
