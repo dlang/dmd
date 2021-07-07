@@ -6,7 +6,7 @@ variables:
 
 jobs:
   - job: Windows
-    timeoutInMinutes: 120
+    timeoutInMinutes: 60
     pool:
       vmImage: 'vs2017-win2016'
     variables:
@@ -42,7 +42,7 @@ jobs:
         displayName: Build and test
 
   - job: Windows_VisualD
-    timeoutInMinutes: 120
+    timeoutInMinutes: 60
     pool:
       vmImage: 'vs2017-win2016'
     variables:
