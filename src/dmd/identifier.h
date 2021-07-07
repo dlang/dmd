@@ -11,7 +11,7 @@
 #pragma once
 
 #include "root/dcompat.h"
-#include "root/root.h"
+#include "root/object.h"
 
 class Identifier : public RootObject
 {

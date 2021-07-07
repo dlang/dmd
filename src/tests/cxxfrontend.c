@@ -9,8 +9,10 @@
  */
 
 #include "root/array.h"
+#include "root/bitarray.h"
 #include "root/ctfloat.h"
 #include "root/dcompat.h"
+#include "root/dsystem.h"
 #include "root/file.h"
 #include "root/filename.h"
 #include "root/longdouble.h"
@@ -18,7 +20,6 @@
 #include "root/outbuffer.h"
 #include "root/port.h"
 #include "root/rmem.h"
-#include "root/root.h"
 
 #include "aggregate.h"
 #include "aliasthis.h"

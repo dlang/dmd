@@ -1372,7 +1372,7 @@ auto sourceFiles()
         "),
         rootHeaders: fileArray(env["ROOT"], "
             array.h bitarray.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
-            object.h outbuffer.h port.h rmem.h root.h
+            object.h outbuffer.h port.h rmem.h
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
