@@ -7576,6 +7576,14 @@ struct Target final
         Posix = 125u,
     };
 
+    enum class ObjectFormat
+    {
+        ELF = 0,
+        MachO = 1,
+        COFF = 2,
+        OMF = 3,
+    };
+
     OS os;
     uint8_t osMajor;
     uint8_t ptrsize;
@@ -7634,6 +7642,7 @@ private:
     const Param* params;
 public:
     void _init(const Param& params);
+    ObjectFormat objectFormat() const;
     void setCPU();
     void setTriple(const Triple& triple);
     void addPredefinedGlobalIdentifiers() const;
