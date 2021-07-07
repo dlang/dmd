@@ -183,15 +183,15 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 | File                                                                          | Purpose                                              |
 |-------------------------------------------------------------------------------|------------------------------------------------------|
-| [lib/package.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/package.d)               | Abstract library class                               |
-| [lib/elf.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/elf.d)         | Library in ELF format (Unix)                         |
-| [lib/mach.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/mach.d)       | Library in Mach-O format (macOS)                     |
-| [lib/mscoff.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/mscoff.d)   | Library in COFF format (32/64-bit Windows)           |
-| [lib/omf.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/omf.d)         | Library in OMF format (legacy 32-bit Windows)        |
-| [lib/scanelf.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/scanelf.d)       | Extract symbol names from a library in ELF format    |
-| [lib/scanmach.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/scanmach.d)     | Extract symbol names from a library in Mach-O format |
-| [lib/scanmscoff.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/scanmscoff.d) | Extract symbol names from a library in COFF format   |
-| [lib/scanomf.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib/scanomf.d)       | Extract symbol names from a library in OMF format    |
+| [lib.d](https://github.com/dlang/dmd/blob/master/src/dmd/lib.d)               | Abstract library class                               |
+| [libelf.d](https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d)         | Library in ELF format (Unix)                         |
+| [libmach.d](https://github.com/dlang/dmd/blob/master/src/dmd/libmach.d)       | Library in Mach-O format (macOS)                     |
+| [libmscoff.d](https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d)   | Library in COFF format (32/64-bit Windows)           |
+| [libomf.d](https://github.com/dlang/dmd/blob/master/src/dmd/libomf.d)         | Library in OMF format (legacy 32-bit Windows)        |
+| [scanelf.d](https://github.com/dlang/dmd/blob/master/src/dmd/scanelf.d)       | Extract symbol names from a library in ELF format    |
+| [scanmach.d](https://github.com/dlang/dmd/blob/master/src/dmd/scanmach.d)     | Extract symbol names from a library in Mach-O format |
+| [scanmscoff.d](https://github.com/dlang/dmd/blob/master/src/dmd/scanmscoff.d) | Extract symbol names from a library in COFF format   |
+| [scanomf.d](https://github.com/dlang/dmd/blob/master/src/dmd/scanomf.d)       | Extract symbol names from a library in OMF format    |
 
 ### Code generation / back-end interfacing
 
