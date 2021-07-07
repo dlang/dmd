@@ -1738,7 +1738,7 @@ final class CParser(AST) : Parser!AST
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
         Specifier specifier;
         specifier.scw = scw;
-        auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(LVL.global, specifier), ft);
+        auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, specifiersToSTC(LVL.global, specifier), ft);
 
         if (addFuncName)
         {

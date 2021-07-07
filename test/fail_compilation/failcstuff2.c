@@ -25,9 +25,9 @@ fail_compilation/failcstuff2.c(127): Error: `makeS22067().field` is not an lvalu
 fail_compilation/failcstuff2.c(153): Error: `cast(short)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(154): Error: `cast(long)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(204): Error: variable `var` is used as a type
-fail_compilation/failcstuff2.c(207):        variable `var` is declared here
+fail_compilation/failcstuff2.c(203):        variable `var` is declared here
 fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
-fail_compilation/failcstuff2.c(207):        variable `var` is declared here
+fail_compilation/failcstuff2.c(203):        variable `var` is declared here
 ---
 */
 
