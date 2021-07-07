@@ -273,7 +273,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             Statement sexception;
             Statement sfinally;
 
-            (*cs.statements)[i] = s.scopeCode(sc, &sentry, &sexception, &sfinally);
+            (*cs.statements)[i] = s.scopeCode(sc, sentry, sexception, sfinally);
             if (sentry)
             {
                 sentry = sentry.statementSemantic(sc);
@@ -474,7 +474,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             Statement sentry;
             Statement sexception;
             Statement sfinally;
-            ss.statement = ss.statement.scopeCode(sc, &sentry, &sexception, &sfinally);
+            ss.statement = ss.statement.scopeCode(sc, sentry, sexception, sfinally);
             assert(!sentry);
             assert(!sexception);
             if (sfinally)
@@ -4499,12 +4499,8 @@ Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scon
  * Returns:
  *    code to be run in the finally clause
  */
-Statement scopeCode(Statement statement, Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
+Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out Statement sexception, out Statement sfinally)
 {
-    *sentry = null;
-    *sexception = null;
-    *sfinally = null;
-
     if (auto es = statement.isExpStatement())
     {
         if (es.exp && es.exp.op == TOK.declaration)
@@ -4515,7 +4511,7 @@ Statement scopeCode(Statement statement, Scope* sc, Statement* sentry, Statement
             {
                 if (v.needsScopeDtor())
                 {
-                    *sfinally = new DtorExpStatement(es.loc, v.edtor, v);
+                    sfinally = new DtorExpStatement(es.loc, v.edtor, v);
                     v.storage_class |= STC.nodtor; // don't add in dtor again
                 }
             }
@@ -4530,11 +4526,11 @@ Statement scopeCode(Statement statement, Scope* sc, Statement* sentry, Statement
         switch (sgs.tok)
         {
         case TOK.onScopeExit:
-            *sfinally = s;
+            sfinally = s;
             break;
 
         case TOK.onScopeFailure:
-            *sexception = s;
+            sexception = s;
             break;
 
         case TOK.onScopeSuccess:
@@ -4546,15 +4542,15 @@ Statement scopeCode(Statement statement, Scope* sc, Statement* sentry, Statement
                  */
                 auto v = copyToTemp(0, "__os", IntegerExp.createBool(false));
                 v.dsymbolSemantic(sc);
-                *sentry = new ExpStatement(statement.loc, v);
+                sentry = new ExpStatement(statement.loc, v);
 
                 Expression e = IntegerExp.createBool(true);
                 e = new AssignExp(Loc.initial, new VarExp(Loc.initial, v), e);
-                *sexception = new ExpStatement(Loc.initial, e);
+                sexception = new ExpStatement(Loc.initial, e);
 
                 e = new VarExp(Loc.initial, v);
                 e = new NotExp(Loc.initial, e);
-                *sfinally = new IfStatement(Loc.initial, null, e, s, null, Loc.initial);
+                sfinally = new IfStatement(Loc.initial, null, e, s, null, Loc.initial);
 
                 break;
             }
