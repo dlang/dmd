@@ -38,12 +38,13 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.mem;
 import dmd.backend.obj;
-import dmd.backend.outbuf;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.barray;
+
+import dmd.common.outbuffer;
 
 version (SCPP)
 {
@@ -93,7 +94,7 @@ enum DEBTYPVECDIM = 16_001;   //8009 //3001     // dimension of debtypvec (shoul
 enum DEBTYPHASHDIM = 1009;
 private uint[DEBTYPHASHDIM] debtyphash;
 
-private Outbuffer *reset_symbuf; // Keep pointers to reset symbols
+private OutBuffer *reset_symbuf; // Keep pointers to reset symbols
 
 @trusted
 idx_t DEB_NULL() { return cgcv.deb_offset; }        // index of null debug type record
@@ -462,7 +463,7 @@ void cv_init()
     }
     else
     {
-        reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        reset_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(reset_symbuf);
         reset_symbuf.reserve(10 * (Symbol*).sizeof);
     }
@@ -2481,7 +2482,7 @@ version (MARS)
 version (SCPP)
 {
         if (CPP && isclassmember(s))            // if method
-        {   Outbuffer buf2;
+        {   OutBuffer buf2;
 
             param_tostring(&buf2,s.Stype);
             buf2.prependBytes(cpp_prettyident(s));

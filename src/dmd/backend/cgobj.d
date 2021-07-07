@@ -8,7 +8,6 @@
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.d, backend/cgobj.d)
  */
-
 module dmd.backend.cgobj;
 
 version (SCPP)
@@ -38,10 +37,11 @@ import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -318,6 +318,8 @@ enum
 
 struct Linnum
 {
+    import dmd.common.outbuffer;
+
 version (MARS)
         const(char)* filename;  // source file name
 else
@@ -325,7 +327,7 @@ else
 
         int cseg;               // our internal segment number
         int seg;                // segment/public index
-        Outbuffer data;         // linnum/offset data
+        OutBuffer data;         // linnum/offset data
 
         void reset() nothrow
         {
@@ -352,7 +354,7 @@ struct Objstate
 {
     const(char)* modname;
     char *csegname;
-    Outbuffer *buf;     // output buffer
+    OutBuffer *buf;     // output buffer
 
     int fdsegattr;      // far data segment attribute
     int csegattr;       // code segment attribute
@@ -447,7 +449,7 @@ __gshared
 @trusted
 void objrecord(uint rectyp, const(char)* record, uint reclen)
 {
-    Outbuffer *o = obj.buf;
+    auto o = obj.buf;
 
     //printf("rectyp = x%x, record[0] = x%x, reclen = x%x\n",rectyp,record[0],reclen);
     o.reserve(reclen + 4);
@@ -688,7 +690,7 @@ segidx_t OmfObj_seg_debugT()
  */
 
 @trusted
-Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
+Obj OmfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
         //printf("OmfObj_init()\n");
         Obj mobj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
@@ -1203,7 +1205,7 @@ version (MARS)
 
         const slice = ln.data[];
         const pend = slice.ptr + slice.length;
-        for (const(ubyte)* p = slice.ptr; p < pend; )
+        for (auto p = slice.ptr; p < pend; )
         {
             srcpos.Slinnum = *cast(ushort *)p;
             p += 2;

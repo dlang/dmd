@@ -22,9 +22,10 @@ import dmd.backend.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.oper : OPMAX;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -235,6 +236,8 @@ alias IDXSYM = uint;
 
 struct seg_data
 {
+    import dmd.common.outbuffer;
+
     segidx_t             SDseg;         // index into SegData[]
     targ_size_t          SDoffset;      // starting offset for data
     int                  SDalignment;   // power of 2
@@ -253,8 +256,8 @@ struct seg_data
 
     //ELFOBJ || MACHOBJ
     IDXSEC           SDshtidx;          // section header table index
-    Outbuffer       *SDbuf;             // buffer to hold data
-    Outbuffer       *SDrel;             // buffer to hold relocation info
+    OutBuffer       *SDbuf;             // buffer to hold data
+    OutBuffer       *SDrel;             // buffer to hold relocation info
 
     //ELFOBJ
     IDXSYM           SDsymidx;          // each section is in the symbol table
@@ -521,7 +524,7 @@ void cod3_set32();
 void cod3_set64();
 void cod3_align_bytes(int seg, size_t nbytes);
 void cod3_align(int seg);
-void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
+void cod3_buildmodulector(OutBuffer* buf, int codeOffset, int refOffset);
 void cod3_stackadj(ref CodeBuilder cdb, int nbytes);
 void cod3_stackalign(ref CodeBuilder cdb, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);

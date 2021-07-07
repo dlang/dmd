@@ -39,7 +39,6 @@ import dmd.backend.cdef;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.mach;
