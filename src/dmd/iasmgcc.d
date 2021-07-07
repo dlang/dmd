@@ -240,13 +240,13 @@ Lerror:
  *      |     GotoAsmInstruction
  *      |
  *      | BasicAsmInstruction:
- *      |     Expression
+ *      |     AssignExpression
  *      |
  *      | ExtAsmInstruction:
- *      |     Expression : Operands(opt) : Operands(opt) : Clobbers(opt)
+ *      |     AssignExpression : Operands(opt) : Operands(opt) : Clobbers(opt)
  *      |
  *      | GotoAsmInstruction:
- *      |     Expression : : Operands(opt) : Clobbers(opt) : GotoLabels(opt)
+ *      |     AssignExpression : : Operands(opt) : Clobbers(opt) : GotoLabels(opt)
  * Params:
  *      p = parser state
  *      s = asm statement to parse
@@ -255,7 +255,7 @@ Lerror:
  */
 GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
 {
-    s.insn = p.parseExpression();
+    s.insn = p.parseAssignExp();
     if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
         goto Ldone;
 
@@ -522,6 +522,10 @@ unittest
         q{ asm { ""
                :
                : "g" (a ? b : : c);
+        } },
+
+        // Found ',' when expecting ':'
+        q{ asm { "", "";
         } },
     ];
 
