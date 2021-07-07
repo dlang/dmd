@@ -849,7 +849,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         typeof(Type.size()) lastsize;
         if (vlast.storage_class & STC.lazy_)
             lastsize = target.ptrsize * 2;
-        else if (vlast.isRef() || vlast.isOut())
+        else if (vlast.isReference)
             lastsize = target.ptrsize;
         else
             lastsize = vlast.type.size();

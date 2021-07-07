@@ -1872,8 +1872,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         L1:
             if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
             {
-                const isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
-                if (ubyte wm = arg.type.deduceWild(p.type, isRef))
+                if (ubyte wm = arg.type.deduceWild(p.type, p.isReference()))
                 {
                     wildmatch = wildmatch ? MODmerge(wildmatch, wm) : wm;
                     //printf("[%d] p = %s, a = %s, wm = %d, wildmatch = %d\n", i, p.type.toChars(), arg.type.toChars(), wm, wildmatch);

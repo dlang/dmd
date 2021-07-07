@@ -1842,7 +1842,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                     // https://issues.dlang.org/show_bug.cgi?id=12876
                     // Optimize argument to allow CT-known length matching
-                    farg = farg.optimize(WANTvalue, (fparam.storageClass & (STC.ref_ | STC.out_)) != 0);
+                    farg = farg.optimize(WANTvalue, fparam.isReference());
                     //printf("farg = %s %s\n", farg.type.toChars(), farg.toChars());
 
                     RootObject oarg = farg;

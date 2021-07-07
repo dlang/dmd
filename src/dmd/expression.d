@@ -6071,7 +6071,7 @@ extern (C++) final class ConstructExp : AssignExp
 
         super(loc, TOK.construct, ve, e2);
 
-        if (v.storage_class & (STC.ref_ | STC.out_))
+        if (v.isReference())
             memset = MemorySet.referenceInit;
     }
 
@@ -6099,7 +6099,7 @@ extern (C++) final class BlitExp : AssignExp
 
         super(loc, TOK.blit, ve, e2);
 
-        if (v.storage_class & (STC.ref_ | STC.out_))
+        if (v.isReference())
             memset = MemorySet.referenceInit;
     }
 

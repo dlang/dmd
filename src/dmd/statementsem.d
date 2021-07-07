@@ -1433,7 +1433,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     auto var = new VarDeclaration(loc, p.type, p.ident, null);
                     var.storage_class |= STC.foreach_;
                     var.storage_class |= p.storageClass & (STC.IOR | STC.TYPECTOR);
-                    if (var.storage_class & (STC.ref_ | STC.out_))
+                    if (var.isReference())
                         var.storage_class |= STC.nodtor;
 
                     fs.value = var;

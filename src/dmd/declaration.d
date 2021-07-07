@@ -526,6 +526,12 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.ref_) != 0;
     }
 
+    /// Returns: Whether the variable is a reference, annotated with `out` or `ref`
+    final bool isReference() const pure nothrow @nogc @safe
+    {
+        return (storage_class & (STC.ref_ | STC.out_)) != 0;
+    }
+
     final bool isFuture() const pure nothrow @nogc @safe
     {
         return (storage_class & STC.future) != 0;

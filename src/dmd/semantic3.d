@@ -1112,7 +1112,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                     foreach (v; *funcdecl.parameters)
                     {
-                        if (v.storage_class & (STC.ref_ | STC.out_ | STC.lazy_))
+                        if (v.isReference() || (v.storage_class & STC.lazy_))
                             continue;
                         if (v.needsScopeDtor())
                         {
