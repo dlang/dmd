@@ -139,7 +139,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.aav;
 import dmd.root.string;
 import dmd.root.stringtable;

@@ -54,7 +54,7 @@ import dmd.opover;
 import dmd.parse;
 import dmd.root.ctfloat;
 import dmd.root.rmem;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.root.stringtable;

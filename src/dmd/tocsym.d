@@ -69,7 +69,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     import core.stdc.stdlib : malloc, free;
-    import dmd.root.outbuffer : OutBuffer;
+    import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;
     mangleToBuffer(ds, &buf);
@@ -139,7 +139,7 @@ Symbol *toSymbol(Dsymbol s)
             assert(!vd.needThis());
 
             const(char)[] id;
-            import dmd.root.outbuffer : OutBuffer;
+            import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             bool isNRVO = false;
             if (vd.isDataseg())

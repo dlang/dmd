@@ -26,7 +26,7 @@ import dmd.root.filename;
 import dmd.visitor;
 import dmd.tokens;
 
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.utils;
 
 //debug = Debug_DtoH;

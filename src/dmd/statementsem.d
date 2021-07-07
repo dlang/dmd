@@ -54,7 +54,7 @@ import dmd.nogc;
 import dmd.opover;
 import dmd.parse;
 import dmd.printast;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.string;
 import dmd.semantic2;
 import dmd.sideeffect;

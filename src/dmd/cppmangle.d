@@ -41,7 +41,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.target;

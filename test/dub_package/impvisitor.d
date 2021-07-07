@@ -7,7 +7,7 @@ import dmd.permissivevisitor;
 import dmd.transitivevisitor;
 
 import dmd.tokens;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 
 import core.stdc.stdio;
 

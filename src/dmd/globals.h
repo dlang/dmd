@@ -12,7 +12,7 @@
 
 #include "root/dcompat.h"
 #include "root/ctfloat.h"
-#include "root/outbuffer.h"
+#include "common/outbuffer.h"
 #include "root/filename.h"
 #include "compiler.h"
 

@@ -67,7 +67,7 @@ import dmd.initsem;
 import dmd.mtype;
 import dmd.opover;
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
