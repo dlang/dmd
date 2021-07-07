@@ -7025,53 +7025,16 @@ extern (C++) final class Parameter : ASTNode
         if (from == to)
             return true;
 
-        /* Shrinking the representation is necessary because StorageClass is so wide
-         * Params:
-         *   returnByRef = true if the function returns by ref
-         *   stc = storage class of parameter
-         */
-        static uint buildSR(bool returnByRef, StorageClass stc) pure nothrow @nogc @safe
-        {
-            uint result;
-            final switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
-            {
-                case 0:                    result = SR.None;        break;
-                case STC.ref_:               result = SR.Ref;         break;
-                case STC.scope_:             result = SR.Scope;       break;
-                case STC.return_ | STC.ref_:   result = SR.ReturnRef;   break;
-                case STC.return_ | STC.scope_: result = SR.ReturnScope; break;
-                case STC.ref_    | STC.scope_: result = SR.RefScope;    break;
-                case STC.return_ | STC.ref_ | STC.scope_:
-                    result = returnByRef ? SR.ReturnRef_Scope : SR.Ref_ReturnScope;
-                    break;
-            }
-            return result;
-        }
-
         /* result is true if the 'from' can be used as a 'to'
          */
 
         if ((from ^ to) & STC.ref_)               // differing in 'ref' means no covariance
             return false;
 
-        return covariant[buildSR(returnByRef, from)][buildSR(returnByRef, to)];
+        return covariant[buildScopeRef(returnByRef, from)][buildScopeRef(returnByRef, to)];
     }
 
-    /* Classification of 'scope-return-ref' possibilities
-     */
-    private enum SR
-    {
-        None,
-        Scope,
-        ReturnScope,
-        Ref,
-        ReturnRef,
-        RefScope,
-        ReturnRef_Scope,
-        Ref_ReturnScope,
-    }
-
-    extern (D) private static bool[SR.max + 1][SR.max + 1] covariantInit() pure nothrow @nogc @safe
+    extern (D) private static bool[ScopeRef.max + 1][ScopeRef.max + 1] covariantInit() pure nothrow @nogc @safe
     {
         /* Initialize covariant[][] with this:
 
@@ -7087,26 +7050,26 @@ extern (C++) final class Parameter : ASTNode
              ReturnRef-Scope       X       X
              Ref-ReturnScope   X   X            X
         */
-        bool[SR.max + 1][SR.max + 1] covariant;
+        bool[ScopeRef.max + 1][ScopeRef.max + 1] covariant;
 
-        foreach (i; 0 .. SR.max + 1)
+        foreach (i; 0 .. ScopeRef.max + 1)
         {
             covariant[i][i] = true;
-            covariant[SR.RefScope][i] = true;
+            covariant[ScopeRef.RefScope][i] = true;
         }
-        covariant[SR.ReturnScope][SR.None]        = true;
-        covariant[SR.Scope      ][SR.None]        = true;
-        covariant[SR.Scope      ][SR.ReturnScope] = true;
+        covariant[ScopeRef.ReturnScope][ScopeRef.None]        = true;
+        covariant[ScopeRef.Scope      ][ScopeRef.None]        = true;
+        covariant[ScopeRef.Scope      ][ScopeRef.ReturnScope] = true;
 
-        covariant[SR.Ref            ][SR.ReturnRef] = true;
-        covariant[SR.ReturnRef_Scope][SR.ReturnRef] = true;
-        covariant[SR.Ref_ReturnScope][SR.Ref      ] = true;
-        covariant[SR.Ref_ReturnScope][SR.ReturnRef] = true;
+        covariant[ScopeRef.Ref            ][ScopeRef.ReturnRef] = true;
+        covariant[ScopeRef.ReturnRef_Scope][ScopeRef.ReturnRef] = true;
+        covariant[ScopeRef.Ref_ReturnScope][ScopeRef.Ref      ] = true;
+        covariant[ScopeRef.Ref_ReturnScope][ScopeRef.ReturnRef] = true;
 
         return covariant;
     }
 
-    extern (D) private static immutable bool[SR.max + 1][SR.max + 1] covariant = covariantInit();
+    extern (D) private static immutable bool[ScopeRef.max + 1][ScopeRef.max + 1] covariant = covariantInit();
 
     extern (D) bool opEquals(const Parameter other) const
     {
@@ -7252,3 +7215,49 @@ bool isCopyable(Type t)
     }
     return true;
 }
+
+/***************************************
+ * Computes how a parameter may be returned.
+ * Shrinking the representation is necessary because StorageClass is so wide
+ * Params:
+ *   returnByRef = true if the function returns by ref
+ *   stc = storage class of parameter
+ * Returns:
+ *   value from enum ScopeRef
+ */
+ScopeRef buildScopeRef(bool returnByRef, StorageClass stc) pure nothrow @nogc @safe
+{
+    ScopeRef result;
+    final switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
+    {
+        case 0:                        result = ScopeRef.None;        break;
+        case STC.ref_:                 result = ScopeRef.Ref;         break;
+        case STC.scope_:               result = ScopeRef.Scope;       break;
+        case STC.return_ | STC.ref_:   result = ScopeRef.ReturnRef;   break;
+        case STC.return_ | STC.scope_: result = ScopeRef.ReturnScope; break;
+        case STC.ref_    | STC.scope_: result = ScopeRef.RefScope;    break;
+
+        case STC.return_ | STC.ref_ | STC.scope_:
+            result = returnByRef ? ScopeRef.ReturnRef_Scope
+                                 : ScopeRef.Ref_ReturnScope;
+            break;
+    }
+    return result;
+}
+
+/**
+ * Classification of 'scope-return-ref' possibilities
+ */
+enum ScopeRef
+{
+    None,
+    Scope,
+    ReturnScope,
+    Ref,
+    ReturnRef,
+    RefScope,
+    ReturnRef_Scope,
+    Ref_ReturnScope,
+}
+
+

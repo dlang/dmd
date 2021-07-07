@@ -3196,19 +3196,6 @@ public:
     static Parameter* getNth(Array<Parameter* >* parameters, size_t nth);
     const char* toChars() const;
     bool isCovariant(bool returnByRef, const Parameter* const p, bool previewIn = global.params.previewIn) const;
-private:
-    enum class SR
-    {
-        None = 0,
-        Scope = 1,
-        ReturnScope = 2,
-        Ref = 3,
-        ReturnRef = 4,
-        RefScope = 5,
-        ReturnRef_Scope = 6,
-        Ref_ReturnScope = 7,
-    };
-
 };
 
 enum class RET
@@ -3218,6 +3205,18 @@ enum class RET
 };
 
 enum : uint64_t { SIZE_INVALID = 18446744073709551615LLU };
+
+enum class ScopeRef
+{
+    None = 0,
+    Scope = 1,
+    ReturnScope = 2,
+    Ref = 3,
+    ReturnRef = 4,
+    RefScope = 5,
+    ReturnRef_Scope = 6,
+    Ref_ReturnScope = 7,
+};
 
 enum class TRUSTformat
 {
@@ -4646,6 +4645,7 @@ struct ASTCodegen final
     using Parameter = ::Parameter;
     using ParameterList = ::ParameterList;
     using RET = ::RET;
+    using ScopeRef = ::ScopeRef;
     using TRUSTformat = ::TRUSTformat;
     using Type = ::Type;
     using TypeAArray = ::TypeAArray;
