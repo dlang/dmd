@@ -4,7 +4,7 @@ variables:
 
 jobs:
   - job: Windows_DMD_bootstrap
-    timeoutInMinutes: 120
+    timeoutInMinutes: 60
     pool:
       vmImage: 'vs2017-win2016'
     variables:
@@ -24,7 +24,7 @@ jobs:
       - template: .azure-pipelines/windows.yml
 
   - job: Windows_DMD_latest
-    timeoutInMinutes: 120
+    timeoutInMinutes: 60
     pool:
       vmImage: 'vs2017-win2016'
     variables:
@@ -45,7 +45,7 @@ jobs:
       - template: .azure-pipelines/windows-artifact.yml
 
   - job: Windows_Coverage
-    timeoutInMinutes: 120
+    timeoutInMinutes: 60
     pool:
       vmImage: 'vs2017-win2016'
     variables:
@@ -68,7 +68,7 @@ jobs:
       - template: .azure-pipelines/windows.yml
 
   - job: Windows_VisualD_LDC
-    timeoutInMinutes: 120
+    timeoutInMinutes: 60
     pool:
       vmImage: 'vs2017-win2016'
     variables:
