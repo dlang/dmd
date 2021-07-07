@@ -4,12 +4,12 @@
  * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lib/elf.d, _elf.d)
- * Documentation:  https://dlang.org/phobos/dmd_lib_elf.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/lib/elf.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d, _libelf.d)
+ * Documentation:  https://dlang.org/phobos/dmd_libelf.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libelf.d
  */
 
-module dmd.lib.elf;
+module dmd.libelf;
 
 import core.stdc.time;
 import core.stdc.string;
@@ -38,10 +38,10 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
 
-import dmd.lib.scanelf;
+import dmd.scanelf;
 
 // Entry point (only public symbol in this module).
-package extern (C++) Library LibElf_factory()
+public extern (C++) Library LibElf_factory()
 {
     return new LibElf();
 }
