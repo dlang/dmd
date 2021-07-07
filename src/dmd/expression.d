@@ -3683,11 +3683,16 @@ extern (C++) final class SymOffExp : SymbolExp
  */
 extern (C++) final class VarExp : SymbolExp
 {
+    uint vrefOrder;
     bool delegateWasExtracted;
     extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true)
     {
-        if (var.isVarDeclaration())
+        if (auto sd = var.isStructDeclaration())
+        {
+            vrefOrder = sd.vrefCount++;
+            //loc.message("VarExp(): ve:%p var:%p ro:%d rc:%d", this, var, vrefOrder, vd.vrefCount); // TODO: reuse `inuse`?
             hasOverloads = false;
+        }
 
         super(loc, TOK.variable, __traits(classInstanceSize, VarExp), var, hasOverloads);
         //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var.toChars(), loc.toChars());

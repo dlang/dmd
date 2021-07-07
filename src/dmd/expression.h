@@ -564,6 +564,7 @@ public:
 class VarExp : public SymbolExp
 {
 public:
+    unsigned vrefOrder;
     bool delegateWasExtracted;
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(const RootObject *o) const;

@@ -411,6 +411,11 @@ extern (C++) abstract class Declaration : Dsymbol
         return s;
     }
 
+    final bool mayNeedMove() const pure nothrow @nogc @safe
+    {
+        return (storage_class & (STC.ref_ | STC.manifest | STC.out_)) == 0;
+    }
+
     final bool isStatic() const pure nothrow @nogc @safe
     {
         return (storage_class & STC.static_) != 0;

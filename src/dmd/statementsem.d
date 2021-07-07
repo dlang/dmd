@@ -60,6 +60,7 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 import dmd.compiler;
+import dmd.dstruct;
 
 version (DMDLIB)
 {
@@ -3188,7 +3189,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (fd.fes)
             fd = fd.fes.func; // fd is now function enclosing foreach
 
-            TypeFunction tf = cast(TypeFunction)fd.type;
+        TypeFunction tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
 
         if (rs.exp && rs.exp.op == TOK.variable && (cast(VarExp)rs.exp).var == fd.vresult)
@@ -4608,5 +4609,90 @@ TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(
     else
     {
         return v.makeTupleForeach!(isStatic, isDecl)(fs, args);
+    }
+}
+
+/*************************************
+ * Infer `STC.rvalue` of variables and non-`ref`-parameters
+ * (`VarDeclaration`s) in function `fd`.
+ *
+ * TODO: can we activate pass-by-move lazily for different `VarExp`'s of the
+ * same `VarDeclaration`?
+ *
+ * TODO: can we |= nodtor and then insert call to destructor for if branches
+ * that doesn't need moving?
+ */
+void inferStatementRvalues(Scope* sc,
+                           Statement ts) // top statemennt
+{
+    assert(ts);
+    if (CompoundStatement s = ts.isCompoundStatement)
+    {
+        if (!s.statements)
+            return;
+        foreach (Statement ss; *s.statements) // sub-statement
+            if (ss)
+                inferStatementRvalues(sc, ss);
+    }
+    else if (ReturnStatement s = ts.isReturnStatement)
+    {
+        if (s.exp)
+            if (VarExp ve = s.exp.isVarExp)
+                tryMove(sc, ve);
+    }
+    else if (ExpStatement s = ts.isExpStatement)
+    {
+        if (s.exp)
+            if (AssignExp ae = s.exp.isAssignExp)
+                if (VarExp ve = ae.e2.isVarExp)
+                    tryMove(sc, ve);
+    }
+    else if (IfStatement s = ts.isIfStatement)
+    {
+        if (s.ifbody)
+            inferStatementRvalues(sc, s.ifbody);
+        if (s.elsebody)
+            inferStatementRvalues(sc, s.elsebody);
+        if (s.condition)
+            inferExpressionRvalues(sc, s.condition);
+        // TODO: `vd.cannotBeRvalue` = true for each `vd` referenced under s
+    }
+    else
+    {
+        // ts.loc.warning("TODO: ts:%p", ts);
+    }
+}
+
+void inferExpressionRvalues(Scope* sc, Expression e)
+{
+    assert(e);
+}
+
+void tryMove(Scope* sc, VarExp e)
+{
+    assert(e);
+    if (!e.var.mayNeedMove)
+        return;
+    // e.warning("e.var:%p %p", e.var, e.var.isStructDeclaration);
+    // e.var.loc.warning("var:%p %s", e.var, e.var.toChars());
+    if (StructDeclaration sd = e.var.isStructDeclaration)
+    {
+        const isLastRef = (e.vrefOrder + 1 == sd.vrefCount);
+        if (!isLastRef) // if all value-passing of `e` can be passed as an r-value
+            return;
+        if (sd.wasMovedBy)
+        {
+            e.loc.warning("variable `%s` already moved", e.toChars());
+            sd.wasMovedBy.loc.warningSupplemental("already moved by `%s`", sd.wasMovedBy.toChars());
+        }
+        else
+        {
+            /* trigger move `VarExp.isLvalue` to assignment
+             * `false` and, in turn, move in `doCopyOrMove`: */
+            sd.storage_class |= STC.rvalue;
+            sd.wasMovedBy = e;
+            // e.loc.message("variable `%s` was moved", e.toChars());
+            // sd.loc.message("from inferred rvalue declaration `%s`", sd.toChars());
+        }
     }
 }

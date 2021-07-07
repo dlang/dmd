@@ -218,6 +218,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     // ABI-specific type(s) if the struct can be passed in registers
     TypeTuple argTypes;
 
+    VarExp wasMovedBy;          // `VarExp` this was moved by
+    uint vrefCount;             // total number of references in `VarExp`s
+
     extern (D) this(const ref Loc loc, Identifier id, bool inObject)
     {
         super(loc, id);
