@@ -28,6 +28,8 @@ fail_compilation/failcstuff2.c(204): Error: variable `var` is used as a type
 fail_compilation/failcstuff2.c(203):        variable `var` is declared here
 fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
 fail_compilation/failcstuff2.c(203):        variable `var` is declared here
+fail_compilation/failcstuff2.c(254): Error: identifier or `(` expected before `)`
+fail_compilation/failcstuff2.c(255): Error: identifier or `(` expected
 ---
 */
 
@@ -96,4 +98,15 @@ void test21992(int var)
 {
     var = (var) ~ 1234;
     var = (var) ! 1234;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22102
+#line 250
+typedef int int22102;
+
+void test22102()
+{
+    int22102();
+    int22102(0);
 }
