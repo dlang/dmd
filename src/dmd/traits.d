@@ -49,7 +49,7 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 import dmd.root.rootobject;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.string;
 
 enum LOGSEMANTIC = false;

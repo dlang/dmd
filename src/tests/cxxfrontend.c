@@ -17,7 +17,7 @@
 #include "root/filename.h"
 #include "root/longdouble.h"
 #include "root/object.h"
-#include "root/outbuffer.h"
+#include "common/outbuffer.h"
 #include "root/port.h"
 #include "root/rmem.h"
 

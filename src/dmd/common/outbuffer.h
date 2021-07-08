@@ -4,14 +4,14 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/dmd/root/outbuffer.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/common/outbuffer.h
  */
 
 #pragma once
 
-#include "dsystem.h"
-#include "dcompat.h"
-#include "rmem.h"
+#include "root/dsystem.h"
+#include "root/dcompat.h"
+#include "root/rmem.h"
 
 class RootObject;
 

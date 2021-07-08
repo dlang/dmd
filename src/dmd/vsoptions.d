@@ -23,7 +23,7 @@ import core.sys.windows.winreg;
 import dmd.env;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string : toDString;
 

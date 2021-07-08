@@ -30,7 +30,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;

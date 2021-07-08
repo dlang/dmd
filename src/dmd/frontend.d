@@ -445,7 +445,7 @@ Returns:
 */
 string prettyPrint(Module m)
 {
-    import dmd.root.outbuffer: OutBuffer;
+    import dmd.common.outbuffer: OutBuffer;
     import dmd.hdrgen : HdrGenState, moduleToBuffer2;
 
     auto buf = OutBuffer();

@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/outbuffer.d
  */
 
-module dmd.root.outbuffer;
+module dmd.common.outbuffer;
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
@@ -63,7 +63,7 @@ struct OutBuffer
     /**
     Frees resources associated automatically.
     */
-    extern (C++) ~this() pure nothrow
+    extern (C++) ~this() pure nothrow @trusted
     {
         if (fileMapping)
         {
@@ -197,6 +197,32 @@ struct OutBuffer
         reserve(buf.length);
         memcpy(this.data.ptr + offset, buf.ptr, buf.length);
         offset += buf.length;
+    }
+
+    /**
+     * Writes a 16 bit value, no reserve check.
+     */
+    // @trusted
+    // void write16n(int v)
+    // {
+    //     assert(0);
+    // }
+
+    /**
+     * Writes a 16 bit value.
+     */
+    void write16(int v) nothrow
+    {
+        auto u = cast(ushort) v;
+        write(&u, u.sizeof);
+    }
+
+    /**
+     * Writes a 32 bit int.
+     */
+    @trusted void write32(int v) nothrow
+    {
+        write(&v, v.sizeof);
     }
 
     extern (C++) void writestring(const(char)* string) pure nothrow

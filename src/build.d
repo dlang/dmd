@@ -1364,7 +1364,7 @@ auto sourceFiles()
         lexer: fileArray(env["D"], "
             console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
         ") ~ fileArray(env["ROOT"], "
-            array.d bitarray.d ctfloat.d file.d filename.d hash.d outbuffer.d port.d region.d rmem.d
+            array.d bitarray.d ctfloat.d file.d filename.d hash.d ../common/outbuffer.d port.d region.d rmem.d
             rootobject.d stringtable.d
         "),
         root: fileArray(env["ROOT"], "
@@ -1372,7 +1372,7 @@ auto sourceFiles()
         "),
         rootHeaders: fileArray(env["ROOT"], "
             array.h bitarray.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
-            object.h outbuffer.h port.h rmem.h
+            object.h ../common/outbuffer.h port.h rmem.h
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d

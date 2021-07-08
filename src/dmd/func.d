@@ -45,7 +45,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
 import dmd.objc;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.root.stringtable;

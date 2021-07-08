@@ -318,6 +318,8 @@ enum
 
 struct Linnum
 {
+    import dmd.common.outbuffer;
+
 version (MARS)
         const(char)* filename;  // source file name
 else
@@ -325,7 +327,7 @@ else
 
         int cseg;               // our internal segment number
         int seg;                // segment/public index
-        Outbuffer data;         // linnum/offset data
+        OutBuffer data;         // linnum/offset data
 
         void reset() nothrow
         {
@@ -1203,7 +1205,7 @@ version (MARS)
 
         const slice = ln.data[];
         const pend = slice.ptr + slice.length;
-        for (const(ubyte)* p = slice.ptr; p < pend; )
+        for (auto p = slice.ptr; p < pend; )
         {
             srcpos.Slinnum = *cast(ushort *)p;
             p += 2;

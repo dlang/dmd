@@ -34,7 +34,7 @@ import dmd.utils;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.string;

@@ -17,7 +17,7 @@ import core.stdc.string;
 import core.stdc.time;
 
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 

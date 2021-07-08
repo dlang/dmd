@@ -27,7 +27,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.string;

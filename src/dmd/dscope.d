@@ -33,7 +33,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.speller;
 import dmd.statement;

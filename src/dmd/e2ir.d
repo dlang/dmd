@@ -226,7 +226,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
              * But the checksum algorithm is unknown. Just invent our own.
              */
 
-            import dmd.root.outbuffer : OutBuffer;
+            import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             buf.writestring("__");
 

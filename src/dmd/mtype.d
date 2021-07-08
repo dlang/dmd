@@ -43,7 +43,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.opover;
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.stringtable;

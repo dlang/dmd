@@ -42,7 +42,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.target; // for target.systemLinkage
 import dmd.tokens;
 import dmd.visitor;
