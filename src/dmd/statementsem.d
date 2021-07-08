@@ -4627,6 +4627,14 @@ TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(
  */
 private Statements* flatten(Statement statement, Scope* sc)
 {
+    static auto errorStatements()
+    {
+        auto a = new Statements();
+        a.push(new ErrorStatement());
+        return a;
+    }
+
+
     /*compound and expression statements have classes that inherit from them with the same
      *flattening behavior, so the isXXX methods won't work
      */
@@ -4643,36 +4651,33 @@ private Statements* flatten(Statement statement, Scope* sc)
              * expand template mixin in statement scope
              * to handle variable destructors.
              */
-            if (es.exp && es.exp.op == TOK.declaration)
-            {
-                Dsymbol d = (cast(DeclarationExp)es.exp).declaration;
-                if (TemplateMixin tm = d.isTemplateMixin())
-                {
-                    Expression e = es.exp.expressionSemantic(sc);
-                    if (e.op == TOK.error || tm.errors)
-                    {
-                        auto a = new Statements();
-                        a.push(new ErrorStatement());
-                        return a;
-                    }
-                    assert(tm.members);
+            if (!es.exp || es.exp.op != TOK.declaration)
+                return null;
 
-                    Statement s = toStatement(tm);
-                    version (none)
-                    {
-                        OutBuffer buf;
-                        buf.doindent = 1;
-                        HdrGenState hgs;
-                        hgs.hdrgen = true;
-                        toCBuffer(s, &buf, &hgs);
-                        printf("tm ==> s = %s\n", buf.peekChars());
-                    }
-                    auto a = new Statements();
-                    a.push(s);
-                    return a;
-                }
+            Dsymbol d = (cast(DeclarationExp)es.exp).declaration;
+            auto tm = d.isTemplateMixin();
+            if (!tm)
+                return null;
+
+            Expression e = es.exp.expressionSemantic(sc);
+            if (e.op == TOK.error || tm.errors)
+                return errorStatements();
+            assert(tm.members);
+
+            Statement s = toStatement(tm);
+            version (none)
+            {
+                OutBuffer buf;
+                buf.doindent = 1;
+                HdrGenState hgs;
+                hgs.hdrgen = true;
+                toCBuffer(s, &buf, &hgs);
+                printf("tm ==> s = %s\n", buf.peekChars());
             }
-            return null;
+            auto a = new Statements();
+            a.push(s);
+            return a;
+
         case STMT.Forwarding:
             /***********************
              * ForwardingStatements are distributed over the flattened
@@ -4743,53 +4748,42 @@ private Statements* flatten(Statement statement, Scope* sc)
                 return result;
             }
             else
-            {
-                auto result = new Statements();
-                result.push(new ErrorStatement());
-                return result;
-            }
+                return errorStatements();
 
         case STMT.Debug:
             auto ds = statement.isDebugStatement();
             Statements* a = ds.statement ? ds.statement.flatten(sc) : null;
-            if (a)
+            if (!a)
+                return null;
+
+            foreach (ref s; *a)
             {
-                foreach (ref s; *a)
-                {
-                    s = new DebugStatement(ds.loc, s);
-                }
+                s = new DebugStatement(ds.loc, s);
             }
             return a;
 
         case STMT.Label:
             auto ls = statement.isLabelStatement();
-            Statements* a = null;
-            if (ls.statement)
-            {
-                a = ls.statement.flatten(sc);
-                if (a)
-                {
-                    if (!a.dim)
-                    {
-                        a.push(new ExpStatement(ls.loc, cast(Expression)null));
-                    }
+            if (!ls.statement)
+                return null;
 
-                    // reuse 'this' LabelStatement
-                    ls.statement = (*a)[0];
-                    (*a)[0] = ls;
-                }
+            Statements* a = null;
+            a = ls.statement.flatten(sc);
+            if (!a)
+                return null;
+
+            if (!a.dim)
+            {
+                a.push(new ExpStatement(ls.loc, cast(Expression)null));
             }
+
+            // reuse 'this' LabelStatement
+            ls.statement = (*a)[0];
+            (*a)[0] = ls;
             return a;
 
         case STMT.Compile:
             auto cs = statement.isCompileStatement();
-
-            auto errorStatements()
-            {
-                auto a = new Statements();
-                a.push(new ErrorStatement());
-                return a;
-            }
 
 
             OutBuffer buf;
