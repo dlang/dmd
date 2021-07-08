@@ -7227,6 +7227,9 @@ bool isCopyable(Type t)
  */
 ScopeRef buildScopeRef(bool returnByRef, StorageClass stc) pure nothrow @nogc @safe
 {
+    if (stc & STC.out_)
+        stc |= STC.ref_;        // treat `out` and `ref` the same
+
     ScopeRef result;
     final switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
     {
