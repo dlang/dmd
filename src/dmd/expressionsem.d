@@ -12836,3 +12836,30 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
     }
     return true;
 }
+
+
+/**
+ * Returns `em` as a VariableExp
+ * Params:
+ *     em = the EnumMember to wrap
+ *     loc = location of use of em
+ *     sc = scope of use of em
+ * Returns:
+ *     VarExp referenceing `em` or ErrorExp if `em` if disabled/deprecated
+ */
+Expression getVarExp(EnumMember em, const ref Loc loc, Scope* sc)
+{
+    dsymbolSemantic(em, sc);
+    if (em.errors)
+        return ErrorExp.get();
+    em.checkDisabled(loc, sc);
+
+    if (em.depdecl && !em.depdecl._scope)
+        em.depdecl._scope = sc;
+    em.checkDeprecated(loc, sc);
+
+    if (em.errors)
+        return ErrorExp.get();
+    Expression e = new VarExp(loc, em);
+    return e.expressionSemantic(sc);
+}

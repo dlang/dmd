@@ -23,7 +23,6 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -297,23 +296,6 @@ extern (C++) final class EnumMember : VarDeclaration
     override const(char)* kind() const
     {
         return "enum member";
-    }
-
-    Expression getVarExp(const ref Loc loc, Scope* sc)
-    {
-        dsymbolSemantic(this, sc);
-        if (errors)
-            return ErrorExp.get();
-        checkDisabled(loc, sc);
-
-        if (depdecl && !depdecl._scope)
-            depdecl._scope = sc;
-        checkDeprecated(loc, sc);
-
-        if (errors)
-            return ErrorExp.get();
-        Expression e = new VarExp(loc, this);
-        return e.expressionSemantic(sc);
     }
 
     override inout(EnumMember) isEnumMember() inout
