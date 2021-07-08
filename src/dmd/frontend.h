@@ -5855,7 +5855,6 @@ public:
     EnumDeclaration* ed;
     EnumMember* syntaxCopy(Dsymbol* s);
     const char* kind() const;
-    Expression* getVarExp(const Loc& loc, Scope* sc);
     EnumMember* isEnumMember();
     void accept(Visitor* v);
     ~EnumMember();
