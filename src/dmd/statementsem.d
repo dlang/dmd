@@ -2691,7 +2691,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 ed = ds.isEnumDeclaration(); // typedef'ed enum
             if (!ed && te && ((ds = te.toDsymbol(sc)) !is null))
                 ed = ds.isEnumDeclaration();
-            if (ed)
+            if (ed && ss.cases.length < ed.members.length)
             {
                 int missingMembers = 0;
                 const maxShown = !global.params.verbose ? 6 : int.max;
