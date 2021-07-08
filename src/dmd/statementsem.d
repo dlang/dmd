@@ -19,7 +19,10 @@ import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
+import dmd.astcodegen;
 import dmd.astenums;
+import dmd.ast_node;
+import dmd.attrib;
 import dmd.blockexit;
 import dmd.clone;
 import dmd.cond;
@@ -49,12 +52,14 @@ import dmd.intrange;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.opover;
+import dmd.parse;
 import dmd.printast;
 import dmd.root.outbuffer;
 import dmd.root.string;
 import dmd.semantic2;
 import dmd.sideeffect;
 import dmd.statement;
+import dmd.staticassert;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
@@ -4609,4 +4614,394 @@ TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(
     {
         return v.makeTupleForeach!(isStatic, isDecl)(fs, args);
     }
+}
+
+/*********************************
+ * Flatten out the scope by presenting `statement`
+ * as an array of statements.
+ * Params:
+ *     statement = the statement to flatten
+ *     sc = context
+ * Returns:
+ *     The array of `Statements`, or `null` if no flattening necessary
+ */
+private Statements* flatten(Statement statement, Scope* sc)
+{
+    /*compound and expression statements have classes that inherit from them with the same
+     *flattening behavior, so the isXXX methods won't work
+     */
+    switch(statement.stmt)
+    {
+        case STMT.Compound:
+        case STMT.CompoundDeclaration:
+            return (cast(CompoundStatement)statement).statements;
+
+        case STMT.Exp:
+        case STMT.DtorExp:
+            auto es = cast(ExpStatement)statement;
+            /* https://issues.dlang.org/show_bug.cgi?id=14243
+             * expand template mixin in statement scope
+             * to handle variable destructors.
+             */
+            if (es.exp && es.exp.op == TOK.declaration)
+            {
+                Dsymbol d = (cast(DeclarationExp)es.exp).declaration;
+                if (TemplateMixin tm = d.isTemplateMixin())
+                {
+                    Expression e = es.exp.expressionSemantic(sc);
+                    if (e.op == TOK.error || tm.errors)
+                    {
+                        auto a = new Statements();
+                        a.push(new ErrorStatement());
+                        return a;
+                    }
+                    assert(tm.members);
+
+                    Statement s = toStatement(tm);
+                    version (none)
+                    {
+                        OutBuffer buf;
+                        buf.doindent = 1;
+                        HdrGenState hgs;
+                        hgs.hdrgen = true;
+                        toCBuffer(s, &buf, &hgs);
+                        printf("tm ==> s = %s\n", buf.peekChars());
+                    }
+                    auto a = new Statements();
+                    a.push(s);
+                    return a;
+                }
+            }
+            return null;
+        case STMT.Forwarding:
+            /***********************
+             * ForwardingStatements are distributed over the flattened
+             * sequence of statements. This prevents flattening to be
+             * "blocked" by a ForwardingStatement and is necessary, for
+             * example, to support generating scope guards with `static
+             * foreach`:
+             *
+             *     static foreach(i; 0 .. 10) scope(exit) writeln(i);
+             *     writeln("this is printed first");
+             *     // then, it prints 10, 9, 8, 7, ...
+             */
+            auto fs = statement.isForwardingStatement();
+            if (!fs.statement)
+            {
+                return null;
+            }
+            sc = sc.push(fs.sym);
+            auto a = fs.statement.flatten(sc);
+            sc = sc.pop();
+            if (!a)
+            {
+                return a;
+            }
+            auto b = new Statements(a.dim);
+            foreach (i, s; *a)
+            {
+                (*b)[i] = s ? new ForwardingStatement(s.loc, fs.sym, s) : null;
+            }
+            return b;
+
+        case STMT.Conditional:
+            auto cs = statement.isConditionalStatement();
+            Statement s;
+
+            //printf("ConditionalStatement::flatten()\n");
+            if (cs.condition.include(sc))
+            {
+                DebugCondition dc = cs.condition.isDebugCondition();
+                if (dc)
+                {
+                    s = new DebugStatement(cs.loc, cs.ifbody);
+                    debugThrowWalker(cs.ifbody);
+                }
+                else
+                    s = cs.ifbody;
+            }
+            else
+                s = cs.elsebody;
+
+            auto a = new Statements();
+            a.push(s);
+            return a;
+
+        case STMT.StaticForeach:
+            auto sfs = statement.isStaticForeachStatement();
+            sfs.sfe.prepare(sc);
+            if (sfs.sfe.ready())
+            {
+                auto s = makeTupleForeach!(true, false)(sc, sfs.sfe.aggrfe, sfs.sfe.needExpansion);
+                auto result = s.flatten(sc);
+                if (result)
+                {
+                    return result;
+                }
+                result = new Statements();
+                result.push(s);
+                return result;
+            }
+            else
+            {
+                auto result = new Statements();
+                result.push(new ErrorStatement());
+                return result;
+            }
+
+        case STMT.Debug:
+            auto ds = statement.isDebugStatement();
+            Statements* a = ds.statement ? ds.statement.flatten(sc) : null;
+            if (a)
+            {
+                foreach (ref s; *a)
+                {
+                    s = new DebugStatement(ds.loc, s);
+                }
+            }
+            return a;
+
+        case STMT.Label:
+            auto ls = statement.isLabelStatement();
+            Statements* a = null;
+            if (ls.statement)
+            {
+                a = ls.statement.flatten(sc);
+                if (a)
+                {
+                    if (!a.dim)
+                    {
+                        a.push(new ExpStatement(ls.loc, cast(Expression)null));
+                    }
+
+                    // reuse 'this' LabelStatement
+                    ls.statement = (*a)[0];
+                    (*a)[0] = ls;
+                }
+            }
+            return a;
+
+        case STMT.Compile:
+            auto cs = statement.isCompileStatement();
+
+            auto errorStatements()
+            {
+                auto a = new Statements();
+                a.push(new ErrorStatement());
+                return a;
+            }
+
+
+            OutBuffer buf;
+            if (expressionsToString(buf, sc, cs.exps))
+                return errorStatements();
+
+            const errors = global.errors;
+            const len = buf.length;
+            buf.writeByte(0);
+            const str = buf.extractSlice()[0 .. len];
+            scope p = new Parser!ASTCodegen(cs.loc, sc._module, str, false);
+            p.nextToken();
+
+            auto a = new Statements();
+            while (p.token.value != TOK.endOfFile)
+            {
+                Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
+                if (!s || global.errors != errors)
+                    return errorStatements();
+                a.push(s);
+            }
+            return a;
+        default:
+            return null;
+    }
+}
+
+/***********************************************************
+ * Convert TemplateMixin members (== Dsymbols) to Statements.
+ */
+private Statement toStatement(Dsymbol s)
+{
+    extern (C++) final class ToStmt : Visitor
+    {
+        alias visit = Visitor.visit;
+    public:
+        Statement result;
+
+        Statement visitMembers(Loc loc, Dsymbols* a)
+        {
+            if (!a)
+                return null;
+
+            auto statements = new Statements();
+            foreach (s; *a)
+            {
+                statements.push(toStatement(s));
+            }
+            return new CompoundStatement(loc, statements);
+        }
+
+        override void visit(Dsymbol s)
+        {
+            .error(Loc.initial, "Internal Compiler Error: cannot mixin %s `%s`\n", s.kind(), s.toChars());
+            result = new ErrorStatement();
+        }
+
+        override void visit(TemplateMixin tm)
+        {
+            auto a = new Statements();
+            foreach (m; *tm.members)
+            {
+                Statement s = toStatement(m);
+                if (s)
+                    a.push(s);
+            }
+            result = new CompoundStatement(tm.loc, a);
+        }
+
+        /* An actual declaration symbol will be converted to DeclarationExp
+         * with ExpStatement.
+         */
+        Statement declStmt(Dsymbol s)
+        {
+            auto de = new DeclarationExp(s.loc, s);
+            de.type = Type.tvoid; // avoid repeated semantic
+            return new ExpStatement(s.loc, de);
+        }
+
+        override void visit(VarDeclaration d)
+        {
+            result = declStmt(d);
+        }
+
+        override void visit(AggregateDeclaration d)
+        {
+            result = declStmt(d);
+        }
+
+        override void visit(FuncDeclaration d)
+        {
+            result = declStmt(d);
+        }
+
+        override void visit(EnumDeclaration d)
+        {
+            result = declStmt(d);
+        }
+
+        override void visit(AliasDeclaration d)
+        {
+            result = declStmt(d);
+        }
+
+        override void visit(TemplateDeclaration d)
+        {
+            result = declStmt(d);
+        }
+
+        /* All attributes have been already picked by the semantic analysis of
+         * 'bottom' declarations (function, struct, class, etc).
+         * So we don't have to copy them.
+         */
+        override void visit(StorageClassDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
+        override void visit(DeprecatedDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
+        override void visit(LinkDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
+        override void visit(VisibilityDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
+        override void visit(AlignDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
+        override void visit(UserAttributeDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
+        override void visit(ForwardingAttribDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
+        override void visit(StaticAssert s)
+        {
+        }
+
+        override void visit(Import s)
+        {
+        }
+
+        override void visit(PragmaDeclaration d)
+        {
+        }
+
+        override void visit(ConditionalDeclaration d)
+        {
+            result = visitMembers(d.loc, d.include(null));
+        }
+
+        override void visit(StaticForeachDeclaration d)
+        {
+            assert(d.sfe && !!d.sfe.aggrfe ^ !!d.sfe.rangefe);
+            result = visitMembers(d.loc, d.include(null));
+        }
+
+        override void visit(CompileDeclaration d)
+        {
+            result = visitMembers(d.loc, d.include(null));
+        }
+    }
+
+    if (!s)
+        return null;
+
+    scope ToStmt v = new ToStmt();
+    s.accept(v);
+    return v.result;
+}
+
+/**
+Marks all occurring ThrowStatements as internalThrows.
+This is intended to be called from a DebugStatement as it allows
+to mark all its nodes as nothrow.
+
+Params:
+    s = AST Node to traverse
+*/
+private void debugThrowWalker(Statement s)
+{
+
+    extern(C++) final class DebugWalker : SemanticTimeTransitiveVisitor
+    {
+        alias visit = SemanticTimeTransitiveVisitor.visit;
+    public:
+
+        override void visit(ThrowStatement s)
+        {
+            s.internalThrow = true;
+        }
+
+        override void visit(CallExp s)
+        {
+            s.inDebugStatement = true;
+        }
+    }
+
+    scope walker = new DebugWalker();
+    s.accept(walker);
 }
