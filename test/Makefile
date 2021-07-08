@@ -217,6 +217,8 @@ auto-tester-test:
 	echo "Windows builds have been disabled"
 else
 auto-tester-test: $(RUNNER)
+	if which uname; then uname -a; fi
+	if which lsb_release; then lsb_release -a; fi
 	$(EXECUTE_RUNNER) runnable compilable fail_compilation dshell
 endif
 
