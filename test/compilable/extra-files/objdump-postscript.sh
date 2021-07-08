@@ -12,6 +12,6 @@ echo SANITIZING Objdump...
 < "${obj_file}.dump" \
     tail -n+3 > "${obj_file}.dump.sanitized"
 
-diff -pu --strip-trailing-cr "${expect_file}" "${obj_file}.dump.sanitized"
+diff -up --strip-trailing-cr "${expect_file}" "${obj_file}.dump.sanitized"
 
 rm_retry "${OUTPUT_BASE}.o"{,.dump,.dump,.sanitized}
