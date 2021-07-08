@@ -5837,7 +5837,6 @@ public:
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     bool isDeprecated() const;
     Visibility visible();
-    Expression* getMaxMinValue(const Loc& loc, Identifier* id);
     bool isSpecial() const;
     Expression* getDefaultValue(const Loc& loc);
     Type* getMemtype(const Loc& loc);

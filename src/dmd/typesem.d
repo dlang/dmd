@@ -4743,3 +4743,122 @@ Expression defaultInit(Type mt, const ref Loc loc)
                                 null;
     }
 }
+
+
+/******************************
+ * Get the value of the .max/.min property of `ed` as an Expression.
+ * Lazily computes the value and caches it in maxval/minval.
+ * Reports any errors.
+ * Params:
+ *      ed = the EnumDeclaration being examined
+ *      loc = location to use for error messages
+ *      id = Id::max or Id::min
+ * Returns:
+ *      corresponding value of .max/.min
+ */
+private Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
+{
+    //printf("EnumDeclaration::getMaxValue()\n");
+
+    static Expression pvalToResult(Expression e, const ref Loc loc)
+    {
+        if (e.op != TOK.error)
+        {
+            e = e.copy();
+            e.loc = loc;
+        }
+        return e;
+    }
+
+    Expression* pval = (id == Id.max) ? &ed.maxval : &ed.minval;
+
+    Expression errorReturn()
+    {
+        *pval = ErrorExp.get();
+        return *pval;
+    }
+
+    if (ed.inuse)
+    {
+        ed.error(loc, "recursive definition of `.%s` property", id.toChars());
+        return errorReturn();
+    }
+    if (*pval)
+        return pvalToResult(*pval, loc);
+
+    if (ed._scope)
+        dsymbolSemantic(ed, ed._scope);
+    if (ed.errors)
+        return errorReturn();
+    if (!ed.members)
+    {
+        if (ed.isSpecial())
+        {
+            /* Allow these special enums to not need a member list
+             */
+            return ed.memtype.getProperty(ed._scope, loc, id, 0);
+        }
+
+        ed.error(loc, "is opaque and has no `.%s`", id.toChars());
+        return errorReturn();
+    }
+    if (!(ed.memtype && ed.memtype.isintegral()))
+    {
+        ed.error(loc, "has no `.%s` property because base type `%s` is not an integral type",
+              id.toChars(), ed.memtype ? ed.memtype.toChars() : "");
+        return errorReturn();
+    }
+
+    bool first = true;
+    for (size_t i = 0; i < ed.members.dim; i++)
+    {
+        EnumMember em = (*ed.members)[i].isEnumMember();
+        if (!em)
+            continue;
+        if (em.errors)
+        {
+            ed.errors = true;
+            continue;
+        }
+
+        if (em.semanticRun < PASS.semanticdone)
+        {
+            em.error("is forward referenced looking for `.%s`", id.toChars());
+            ed.errors = true;
+            continue;
+        }
+
+        if (first)
+        {
+            *pval = em.value;
+            first = false;
+        }
+        else
+        {
+            /* In order to work successfully with UDTs,
+             * build expressions to do the comparisons,
+             * and let the semantic analyzer and constant
+             * folder give us the result.
+             */
+
+            /* Compute:
+             *   if (e > maxval)
+             *      maxval = e;
+             */
+            Expression e = em.value;
+            Expression ec = new CmpExp(id == Id.max ? TOK.greaterThan : TOK.lessThan, em.loc, e, *pval);
+            ed.inuse++;
+            ec = ec.expressionSemantic(em._scope);
+            ed.inuse--;
+            ec = ec.ctfeInterpret();
+            if (ec.op == TOK.error)
+            {
+                ed.errors = true;
+                continue;
+            }
+            if (ec.toInteger())
+                *pval = e;
+        }
+    }
+    return ed.errors ? errorReturn() : pvalToResult(*pval, loc);
+}
