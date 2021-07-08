@@ -1546,57 +1546,7 @@ extern (C++) abstract class Expression : ASTNode
         return type ? Modifiable.yes : Modifiable.no; // default modifiable
     }
 
-    /*****************************
-     * If expression can be tested for true or false,
-     * returns the modified expression.
-     * Otherwise returns ErrorExp.
-     */
-    Expression toBoolean(Scope* sc)
-    {
-        // Default is 'yes' - do nothing
-        Expression e = this;
-        Type t = type;
-        Type tb = type.toBasetype();
-        Type att = null;
-
-        while (1)
-        {
-            // Structs can be converted to bool using opCast(bool)()
-            if (auto ts = tb.isTypeStruct())
-            {
-                AggregateDeclaration ad = ts.sym;
-                /* Don't really need to check for opCast first, but by doing so we
-                 * get better error messages if it isn't there.
-                 */
-                if (Dsymbol fd = search_function(ad, Id._cast))
-                {
-                    e = new CastExp(loc, e, Type.tbool);
-                    e = e.expressionSemantic(sc);
-                    return e;
-                }
-
-                // Forward to aliasthis.
-                if (ad.aliasthis && !isRecursiveAliasThis(att, tb))
-                {
-                    e = resolveAliasThis(sc, e);
-                    t = e.type;
-                    tb = e.type.toBasetype();
-                    continue;
-                }
-            }
-            break;
-        }
-
-        if (!t.isBoolean())
-        {
-            if (tb != Type.terror)
-                error("expression `%s` of type `%s` does not have a boolean value", toChars(), t.toChars());
-            return ErrorExp.get();
-        }
-        return e;
-    }
-
-    /************************************************
+   /************************************************
      * Destructors are attached to VarDeclarations.
      * Hence, if expression returns a temp that needs a destructor,
      * make sure and create a VarDeclaration for that temp.
@@ -5373,12 +5323,6 @@ extern (C++) final class DeleteExp : UnaExp
         this.isRAII = isRAII;
     }
 
-    override Expression toBoolean(Scope* sc)
-    {
-        error("`delete` does not give a boolean result");
-        return ErrorExp.get();
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5722,16 +5666,6 @@ extern (C++) final class CommaExp : BinExp
         return e2.isBool(result);
     }
 
-    override Expression toBoolean(Scope* sc)
-    {
-        auto ex2 = e2.toBoolean(sc);
-        if (ex2.op == TOK.error)
-            return ex2;
-        e2 = ex2;
-        type = e2.type;
-        return this;
-    }
-
     override Expression addDtorHook(Scope* sc)
     {
         e2 = e2.addDtorHook(sc);
@@ -6035,16 +5969,6 @@ extern (C++) class AssignExp : BinExp
          * so this function does nothing.
          */
         return this;
-    }
-
-    override final Expression toBoolean(Scope* sc)
-    {
-        // Things like:
-        //  if (a = b) ...
-        // are usually mistakes.
-
-        error("assignment cannot be used as a condition, perhaps `==` was meant?");
-        return ErrorExp.get();
     }
 
     override void accept(Visitor v)
@@ -6567,15 +6491,6 @@ extern (C++) final class LogicalExp : BinExp
         assert(op == TOK.andAnd || op == TOK.orOr);
     }
 
-    override Expression toBoolean(Scope* sc)
-    {
-        auto ex2 = e2.toBoolean(sc);
-        if (ex2.op == TOK.error)
-            return ex2;
-        e2 = ex2;
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -6729,19 +6644,6 @@ extern (C++) final class CondExp : BinExp
         e1 = e1.modifiableLvalue(sc, e1);
         e2 = e2.modifiableLvalue(sc, e2);
         return toLvalue(sc, this);
-    }
-
-    override Expression toBoolean(Scope* sc)
-    {
-        auto ex1 = e1.toBoolean(sc);
-        auto ex2 = e2.toBoolean(sc);
-        if (ex1.op == TOK.error)
-            return ex1;
-        if (ex2.op == TOK.error)
-            return ex2;
-        e1 = ex1;
-        e2 = ex2;
-        return this;
     }
 
     void hookDtors(Scope* sc)
@@ -7011,5 +6913,108 @@ extern (C++) final class ObjcClassReferenceExp : Expression
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+/*****************************
+ * Try to treat `exp` as a boolean,
+ * Params:
+ *     exp = the expression
+ *     sc = scope to evalute `exp` in
+ * Returns:
+ *     Modified expression on success, ErrorExp on error
+ */
+Expression toBoolean(Expression exp, Scope* sc)
+{
+    switch(exp.op)
+    {
+        case TOK.delete_:
+            exp.error("`delete` does not give a boolean result");
+            return ErrorExp.get();
+
+        case TOK.comma:
+            auto ce = exp.isCommaExp();
+            auto ex2 = ce.e2.toBoolean(sc);
+            if (ex2.op == TOK.error)
+                return ex2;
+            ce.e2 = ex2;
+            ce.type = ce.e2.type;
+            return ce;
+
+        case TOK.assign:
+        case TOK.construct:
+        case TOK.blit:
+            // Things like:
+            //  if (a = b) ...
+            // are usually mistakes.
+            exp.error("assignment cannot be used as a condition, perhaps `==` was meant?");
+            return ErrorExp.get();
+
+        //LogicalExp
+        case TOK.andAnd:
+        case TOK.orOr:
+            auto le = exp.isLogicalExp();
+            auto ex2 = le.e2.toBoolean(sc);
+            if (ex2.op == TOK.error)
+                return ex2;
+            le.e2 = ex2;
+            return le;
+
+        case TOK.question:
+            auto ce = exp.isCondExp();
+            auto ex1 = ce.e1.toBoolean(sc);
+            auto ex2 = ce.e2.toBoolean(sc);
+            if (ex1.op == TOK.error)
+                return ex1;
+            if (ex2.op == TOK.error)
+                return ex2;
+            ce.e1 = ex1;
+            ce.e2 = ex2;
+            return ce;
+
+
+        default:
+            // Default is 'yes' - do nothing
+            Expression e = exp;
+            Type t = exp.type;
+            Type tb = t.toBasetype();
+            Type att = null;
+
+            while (1)
+            {
+                // Structs can be converted to bool using opCast(bool)()
+                if (auto ts = tb.isTypeStruct())
+                {
+                    AggregateDeclaration ad = ts.sym;
+                    /* Don't really need to check for opCast first, but by doing so we
+                     * get better error messages if it isn't there.
+                     */
+                    if (Dsymbol fd = search_function(ad, Id._cast))
+                    {
+                        e = new CastExp(exp.loc, e, Type.tbool);
+                        e = e.expressionSemantic(sc);
+                        return e;
+                    }
+
+                    // Forward to aliasthis.
+                    if (ad.aliasthis && !isRecursiveAliasThis(att, tb))
+                    {
+                        e = resolveAliasThis(sc, e);
+                        t = e.type;
+                        tb = e.type.toBasetype();
+                        continue;
+                    }
+                }
+                break;
+            }
+
+            if (!t.isBoolean())
+            {
+                if (tb != Type.terror)
+                    exp.error("expression `%s` of type `%s` does not have a boolean value",
+                              exp.toChars(), t.toChars());
+                return ErrorExp.get();
+            }
+            return e;
     }
 }
