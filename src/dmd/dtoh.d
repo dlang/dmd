@@ -271,6 +271,9 @@ public:
 
         /// Processing a type that can be forward referenced
         bool forwarding;
+
+        /// Inside of an anonymous struct/union (AnonDeclaration)
+        bool inAnonymousDecl;
     }
 
     /// Informations about the current context in the AST
@@ -378,7 +381,7 @@ public:
     private void writeProtection(const AST.Visibility.Kind kind)
     {
         // Don't write visibility for global declarations
-        if (!adparent)
+        if (!adparent || inAnonymousDecl)
             return;
 
         string token;
@@ -1139,6 +1142,10 @@ public:
     override void visit(AST.AnonDeclaration ad)
     {
         debug (Debug_DtoH) mixin(traceVisit!ad);
+
+        const anonStash = inAnonymousDecl;
+        inAnonymousDecl = true;
+        scope (exit) inAnonymousDecl = anonStash;
 
         buf.writestringln(ad.isunion ? "union" : "struct");
         buf.writestringln("{");

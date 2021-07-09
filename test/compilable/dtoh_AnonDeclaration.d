@@ -53,6 +53,15 @@ struct S final
         extern "C" void foo();
         void bar();
     };
+    struct
+    {
+        int32_t outerPrivate;
+    };
+    struct
+    {
+        int32_t innerPrivate;
+        int32_t innerBar;
+    };
     S()
     {
     }
@@ -76,6 +85,18 @@ extern (C++) struct S
         double z;
         extern(C) void foo() {}
         extern(C++) void bar() {}
+    }
+
+    // Private not emitted because AnonDeclaration has no protection
+    private struct
+    {
+        int outerPrivate;
+    }
+
+    public struct {
+        // Private cannot be exported to C++
+        private int innerPrivate;
+        int innerBar;
     }
 }
 
