@@ -162,92 +162,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     /***************************************
-     * Find all instance fields, then push them into `fields`.
-     *
-     * Runs semantic() for all instance field variables, but also
-     * the field types can remain yet not resolved forward references,
-     * except direct recursive definitions.
-     * After the process sizeok is set to Sizeok.fwd.
-     *
-     * Returns:
-     *      false if any errors occur.
-     */
-    final bool determineFields()
-    {
-        if (_scope)
-            dsymbolSemantic(this, null);
-        if (sizeok != Sizeok.none)
-            return true;
-
-        //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
-        // determineFields can be called recursively from one of the fields's v.semantic
-        fields.setDim(0);
-
-        static int func(Dsymbol s, AggregateDeclaration ad)
-        {
-            auto v = s.isVarDeclaration();
-            if (!v)
-                return 0;
-            if (v.storage_class & STC.manifest)
-                return 0;
-
-            if (v.semanticRun < PASS.semanticdone)
-                v.dsymbolSemantic(null);
-            // Return in case a recursive determineFields triggered by v.semantic already finished
-            if (ad.sizeok != Sizeok.none)
-                return 1;
-
-            if (v.aliassym)
-                return 0;   // If this variable was really a tuple, skip it.
-
-            if (v.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.ctfe | STC.templateparameter))
-                return 0;
-            if (!v.isField() || v.semanticRun < PASS.semanticdone)
-                return 1;   // unresolvable forward reference
-
-            ad.fields.push(v);
-
-            if (v.storage_class & STC.ref_)
-                return 0;
-            auto tv = v.type.baseElemOf();
-            if (auto tvs = tv.isTypeStruct())
-            {
-                if (ad == tvs.sym)
-                {
-                    const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
-                    ad.error("cannot have field `%s` with %ssame struct type", v.toChars(), psz);
-                    ad.type = Type.terror;
-                    ad.errors = true;
-                    return 1;
-                }
-            }
-            return 0;
-        }
-
-        if (members)
-        {
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                if (s.apply(&func, this))
-                {
-                    if (sizeok != Sizeok.none)
-                    {
-                        // recursive determineFields already finished
-                        return true;
-                    }
-                    return false;
-                }
-            }
-        }
-
-        if (sizeok != Sizeok.done)
-            sizeok = Sizeok.fwd;
-
-        return true;
-    }
-
-    /***************************************
      * Returns:
      *      The total number of fields minus the number of hidden fields.
      */
@@ -289,7 +203,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
 
         // Determine instance fields when sizeok == Sizeok.none
-        if (!determineFields())
+        if (!this.determineFields())
             goto Lfail;
         if (sizeok != Sizeok.done)
             finalizeSize();

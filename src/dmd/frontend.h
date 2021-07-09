@@ -4944,7 +4944,6 @@ public:
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
-    bool determineFields();
     size_t nonHiddenFields();
     bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;
