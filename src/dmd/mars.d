@@ -682,7 +682,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Output the makefile dependencies
     if (params.emitMakeDeps)
-        emitMakeDeps(params, library);
+        emitMakeDeps(params);
 
     if (global.warnings)
         errorOnWarning();
@@ -806,7 +806,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
 /// Emit the makefile dependencies for the -makedeps switch
 version (NoMain) {} else
 {
-    void emitMakeDeps(ref Param params, Library library)
+    void emitMakeDeps(ref Param params)
     {
         assert(params.emitMakeDeps);
 
@@ -817,9 +817,12 @@ version (NoMain) {} else
         {
             buf.writeEscapedMakePath(&params.exefile[0]);
         }
-        else if (params.lib && library)
+        else if (params.lib)
         {
-            buf.writeEscapedMakePath(library.getFilename());
+            const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
+            libname = FileName.forceExt(libname,target.lib_ext);
+
+            buf.writeEscapedMakePath(&libname[0]);
         }
         else if (params.objname)
         {
