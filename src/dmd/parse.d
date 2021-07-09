@@ -1482,7 +1482,11 @@ class Parser(AST) : Lexer
             return 0;
         }
 
-        error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
+        if (token.isKeyword())
+            error("`%s` is a keyword, not an `@` attribute", token.toChars());
+        else
+            error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
+
         return 0;
     }
 
