@@ -25,6 +25,7 @@ experimental C++ header generator:
 - Properly emits static arrays in template declarations
 - No longer omits the parent aggregate when referencing `__gshared` variables
 - No longer uses D syntax for expressions nested in unary / binary expressions
+- Does not emit `public:`, ... inside of anonymous structs/unions
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
