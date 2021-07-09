@@ -2,8 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/interpret3.d(2914): Deprecation: `case` variables have to be `const` or `immutable`
-compilable/interpret3.d(6351): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+compilable/interpret3.d(6350): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
 ---
 */
 
@@ -2904,16 +2903,16 @@ static assert(bug4448b() == 3);
 
 /**************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6985
-// non-constant case
+// Formerly, non-constant case, but switch cases with mutable cases now error
+// Currently: run-time constant variable case
 
 int bug6985(int z)
 {
-    int q = z * 2 - 6;
+    const int q = z * 2 - 6;
     switch(z)
     {
     case q:
-        q = 87;
-        break;
+        return 87;
     default:
     }
     return q;
