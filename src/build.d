@@ -159,6 +159,7 @@ Command-line parameters
     // A more proper solution would be to redirect DMD's output to this script's
     // output using `std.process`', but it's more involved and the following
     // "just works"
+    version(Posix) // UPDATE: only when ANSII color codes are supported, that is. Don't do this on Windows.
     if (!flags["DFLAGS"].canFind("-color=off") &&
         [env["HOST_DMD_RUN"], "-color=on", "-h"].tryRun().status == 0)
         flags["DFLAGS"] ~= "-color=on";
