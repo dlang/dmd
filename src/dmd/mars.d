@@ -559,21 +559,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     printCtfePerformanceStats();
     printTemplateStats();
 
-    Library library = null;
-    if (params.lib)
-    {
-        if (params.objfiles.length == 0)
-        {
-            error(Loc.initial, "no input files");
-            return EXIT_FAILURE;
-        }
-        library = Library.factory();
-        library.setFilename(params.objdir, params.libname);
-        // Add input object and input library files to output library
-        foreach (p; libmodules)
-            library.addObject(p.toDString(), null);
-    }
-
     // Generate output files
     if (params.doJsonGeneration)
     {
@@ -606,6 +591,22 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (global.errors)
         fatal();
+
+    if (params.lib && params.objfiles.length == 0)
+    {
+        error(Loc.initial, "no input files");
+        return EXIT_FAILURE;
+    }
+
+    Library library = null;
+    if (params.lib)
+    {
+        library = Library.factory();
+        library.setFilename(params.objdir, params.libname);
+        // Add input object and input library files to output library
+        foreach (p; libmodules)
+            library.addObject(p.toDString(), null);
+    }
 
     if (!params.obj)
     {
