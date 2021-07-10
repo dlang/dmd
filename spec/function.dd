@@ -58,7 +58,7 @@ $(GNAME InOut):
     $(D lazy)
     $(D out)
     $(D ref)
-    $(RELATIVE_LINK2 return-ref-parameters, $(D return ref))
+    $(D return)
     $(D scope)
 
 $(GNAME VariadicArgumentsAttributes):
