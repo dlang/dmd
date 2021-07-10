@@ -1430,8 +1430,7 @@ code *asm_emit(Loc loc,
             ADDFWAIT &&
             !(ptb.pptb0.usFlags & _nfwait))
             pc.Iflags |= CFwait;
-        else if ((ptb.pptb0.usFlags & _fwait) &&
-                 config.target_cpu >= TARGET_80386)
+        else if ((ptb.pptb0.usFlags & _fwait))
             pc.Iflags |= CFwait;
 
         debug (debuga)
