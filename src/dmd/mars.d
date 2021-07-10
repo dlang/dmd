@@ -464,8 +464,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
-    backend_init();
-
     // Do semantic analysis
     foreach (m; modules)
     {
@@ -473,6 +471,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
+
+    backend_init();
+
     //if (global.errors)
     //    fatal();
     Module.dprogress = 1;
