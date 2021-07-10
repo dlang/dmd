@@ -24,7 +24,6 @@ import core.stdc.string;
 
 import dmd.arraytypes;
 import dmd.astcodegen;
-import dmd.gluelayer;
 import dmd.builtin;
 import dmd.cond;
 import dmd.console;
@@ -47,7 +46,8 @@ import dmd.inline;
 import dmd.json;
 version (NoMain) {} else
 {
-    import dmd.lib;
+    import dmd.glue : generateCodeAndWrite;
+    import dmd.dmsc : backend_init, backend_term;
     import dmd.link;
     import dmd.vsoptions;
 }
@@ -598,59 +598,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
     }
 
-    Library library = null;
-    if (params.lib)
-    {
-        library = Library.factory();
-        library.setFilename(params.objdir, params.libname);
-        // Add input object and input library files to output library
-        foreach (p; libmodules)
-            library.addObject(p.toDString(), null);
-    }
+    generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
+                         params.lib, params.obj, params.oneobj, params.multiobj,
+                         params.verbose);
 
-    if (!params.obj)
-    {
-    }
-    else if (params.oneobj)
-    {
-        Module firstm;    // first module we generate code for
-        foreach (m; modules)
-        {
-            if (m.isHdrFile)
-                continue;
-            if (!firstm)
-            {
-                firstm = m;
-                obj_start(m.srcfile.toChars());
-            }
-            if (params.verbose)
-                message("code      %s", m.toChars());
-            genObjFile(m, false);
-        }
-        if (!global.errors && firstm)
-        {
-            obj_end(library, firstm.objfile.toChars());
-        }
-    }
-    else
-    {
-        foreach (m; modules)
-        {
-            if (m.isHdrFile)
-                continue;
-            if (params.verbose)
-                message("code      %s", m.toChars());
-            obj_start(m.srcfile.toChars());
-            genObjFile(m, params.multiobj);
-            obj_end(library, m.objfile.toChars());
-            obj_write_deferred(library);
-            if (global.errors && !params.lib)
-                m.deleteObjFile();
-        }
-    }
-    if (params.lib && !global.errors)
-        library.write();
     backend_term();
+
     if (global.errors)
         fatal();
     int status = EXIT_SUCCESS;
