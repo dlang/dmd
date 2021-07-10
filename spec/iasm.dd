@@ -1239,6 +1239,50 @@ $(H3 $(LNAME2 simd, SIMD))
 
     $(P SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2 and AVX are supported.)
 
+$(H2 $(LNAME2 gcc, GCC syntax))
+
+$(P The $(LINK2 https://gdcproject.org/, GNU D Compiler) uses an alternative, GCC-based syntax for inline assembler:)
+
+$(GRAMMAR
+$(GNAME GccAsmStatement):
+    $(D asm) $(GLINK2 function, FunctionAttributes)$(OPT) $(D {) $(GLINK GccAsmInstructionList) $(D })
+
+$(GNAME GccAsmInstructionList):
+    $(GLINK GccAsmInstruction) $(D ;)
+    $(GLINK GccAsmInstruction) $(D ;) $(GSELF GccAsmInstructionList)
+
+$(GNAME GccAsmInstruction):
+    $(GLINK GccBasicAsmInstruction)
+    $(GLINK GccExtAsmInstruction)
+    $(GLINK GccGotoAsmInstruction)
+
+$(GNAME GccBasicAsmInstruction):
+    $(GLINK2 expression, AssignExpression)
+
+$(GNAME GccExtAsmInstruction):
+    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT)
+    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT)
+    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT)
+
+$(GNAME GccGotoAsmInstruction):
+    $(GLINK2 expression, AssignExpression) $(D :) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT) $(D :) $(GLINK GccAsmGotoLabels)$(OPT)
+
+$(GNAME GccAsmOperands):
+    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX StringLiteral) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
+    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX StringLiteral) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN)) $(D ,) $(GSELF GccAsmOperands)
+
+$(GNAME GccSymbolicName):
+    $(D [) $(GLINK_LEX Identifier) $(D ])
+
+$(GNAME GccAsmClobbers):
+    $(GLINK_LEX StringLiteral)
+    $(GLINK_LEX StringLiteral) $(D ,) $(GSELF GccAsmClobbers)
+
+$(GNAME GccAsmGotoLabels):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D ,) $(GSELF GccAsmGotoLabels)
+)
+
 $(COMMENT
 $(H3 $(LNAME2 other, Other))
     $(P AES, CMUL, FSGSBASE, RDRAND, FP16C and FMA are supported.)
