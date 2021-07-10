@@ -361,11 +361,11 @@ $(GNAME StringPostfix):
     $(B d)
 
 $(GNAME DelimitedString):
-    $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ")
-    $(B q"$(LPAREN)) $(GLINK ParenDelimitedCharacters)$(OPT) $(B $(RPAREN)")
-    $(B q"[) $(GLINK BracketDelimitedCharacters)$(OPT) $(B ]")
-    $(B q"{) $(GLINK BraceDelimitedCharacters)$(OPT) $(B }")
-    $(B q"<) $(GLINK AngleDelimitedCharacters)$(OPT) $(B >")
+    $(B q") $(GLINK Delimiter) $(GLINK WysiwygCharacters)$(OPT) $(GLINK MatchingDelimiter) $(B ") $(GLINK StringPostfix)$(OPT)
+    $(B q"$(LPAREN)) $(GLINK ParenDelimitedCharacters)$(OPT) $(B $(RPAREN)") $(GLINK StringPostfix)$(OPT)
+    $(B q"[) $(GLINK BracketDelimitedCharacters)$(OPT) $(B ]") $(GLINK StringPostfix)$(OPT)
+    $(B q"{) $(GLINK BraceDelimitedCharacters)$(OPT) $(B }") $(GLINK StringPostfix)$(OPT)
+    $(B q"<) $(GLINK AngleDelimitedCharacters)$(OPT) $(B >") $(GLINK StringPostfix)$(OPT)
 
 $(GNAME Delimiter):
     $(GLINK Identifier)
@@ -395,7 +395,7 @@ $(GNAME AngleDelimitedCharacters):
 )
 $(GRAMMAR
 $(GNAME TokenString):
-    $(D q{) $(GLINK TokenStringTokens)$(OPT) $(D })
+    $(D q{) $(GLINK TokenStringTokens)$(OPT) $(D }) $(GLINK StringPostfix)$(OPT)
 
 $(GNAME TokenStringTokens):
     $(GLINK TokenStringToken)
