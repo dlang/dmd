@@ -1,12 +1,7 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
-
-/*
-TEST_OUTPUT:
-----
-----
-*/
+// TEST_OUTPUT_FILE: extra-files/ddoc_markdown_tables.html
+// OUTPUT_FILES: ${RESULTS_DIR}/compilable/ddoc_markdown_tables.html
 
 /++
 # Tables
