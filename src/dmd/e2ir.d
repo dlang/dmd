@@ -2149,7 +2149,7 @@ extern (C++) class ToElemVisitor : Visitor
                     c1 = el_bin(OPandand, TYint, c1, c2);
 
                     // Construct: (c1 || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, ae.loc, el_copytree(elwr), el_copytree(eupr), el_copytree(enbytesx));
+                    auto ea = buildArraySliceError(irs, ae.loc, el_copytree(elwr), el_copytree(eupr), el_copytree(enbytesx));
                     elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                     einit = el_combine(einit, eb);
                 }
@@ -2246,7 +2246,7 @@ extern (C++) class ToElemVisitor : Visitor
                         }
 
                         // Construct: (c || arrayBoundsError)
-                        echeck = el_bin(OPoror, TYvoid, c, buildArrayBoundsError(irs, ae.loc, null, el_copytree(eleny), el_copytree(elen)));
+                        echeck = el_bin(OPoror, TYvoid, c, buildArrayIndexError(irs, ae.loc, el_copytree(eleny), el_copytree(elen)));
                     }
                     else
                     {
@@ -4483,7 +4483,9 @@ extern (C++) class ToElemVisitor : Visitor
                 if (c1)
                 {
                     // Construct: (c1 || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, se.loc, el_copytree(elwr2), el_copytree(eupr2), el_copytree(elen));
+                    // if lowerIsLessThanUpper (e.g. arr[-1..0]), elen is null here
+                    elen = elen ? elen : el_long(TYsize_t, 0);
+                    auto ea = buildArraySliceError(irs, se.loc, el_copytree(elwr2), el_copytree(eupr2), el_copytree(elen));
                     elem *eb = el_bin(OPoror, TYvoid, c1, ea);
 
                     elwr = el_combine(elwr, eb);
@@ -4585,7 +4587,7 @@ extern (C++) class ToElemVisitor : Visitor
                 elem *n = el_same(&e);
 
                 // Construct: ((e || arrayBoundsError), n)
-                auto ea = buildArrayBoundsError(irs, ie.loc, null, null, null); // FIXME
+                auto ea = buildRangeError(irs, ie.loc);
                 e = el_bin(OPoror,TYvoid,e,ea);
                 e = el_bin(OPcomma, TYnptr, e, n);
             }
@@ -4620,7 +4622,7 @@ extern (C++) class ToElemVisitor : Visitor
                     n2x = el_bin(OPlt, TYint, n2x, elength);
 
                     // Construct: (n2x || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, ie.loc, null, el_copytree(n2), el_copytree(elength));
+                    auto ea = buildArrayIndexError(irs, ie.loc, el_copytree(n2), el_copytree(elength));
                     eb = el_bin(OPoror,TYvoid,n2x,ea);
                 }
             }
@@ -6430,28 +6432,83 @@ elem *filelinefunction(IRState *irs, const ref Loc loc)
 }
 
 /******************************************************
- * Construct elem to run when an array bounds check fails.
+ * Construct elem to run when an array bounds check fails. (Without additional context)
  * Params:
  *      irs = to get function from
  *      loc = to get file/line from
- *      lwr = lower bound passed, if slice (array[lwr .. upr]). null otherwise.
- *      upr = upper bound passed if slice (array[lwr .. upr]), index if not a slice (array[upr])
+ * Returns:
+ *      elem generated
+ */
+elem* buildRangeError(IRState *irs, const ref Loc loc)
+{
+    final switch (irs.params.checkAction)
+    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array overflow");
+    case CHECKACTION.halt:
+        return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DARRAYP)), el_params(el_long(TYint, loc.linnum), efile, null));
+    }
+}
+
+/******************************************************
+ * Construct elem to run when an array slice is created that is out of bounds
+ * Params:
+ *      irs = to get function from
+ *      loc = to get file/line from
+ *      lower = lower bound in slice
+ *      upper = upper bound in slice
  *      elength = length of array
  * Returns:
  *      elem generated
  */
-elem *buildArrayBoundsError(IRState *irs, const ref Loc loc, elem* lwr, elem* upr, elem* elength)
-{
-    if (irs.params.checkAction == CHECKACTION.C)
+elem* buildArraySliceError(IRState *irs, const ref Loc loc, elem* lower, elem* upper, elem* length) {
+    final switch (irs.params.checkAction)
     {
-        return callCAssert(irs, loc, null, null, "array overflow");
-    }
-    if (irs.params.checkAction == CHECKACTION.halt)
-    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array slice out of bounds");
+    case CHECKACTION.halt:
         return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        assert(upper);
+        assert(lower);
+        assert(length);
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DARRAY_SLICEP)), el_params(length, upper, lower, el_long(TYint, loc.linnum), efile, null));
     }
-    auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
+}
 
+/******************************************************
+ * Construct elem to run when an out of bounds array index is accessed
+ * Params:
+ *      irs = to get function from
+ *      loc = to get file/line from
+ *      index = index in the array
+ *      elength = length of array
+ * Returns:
+ *      elem generated
+ */
+elem* buildArrayIndexError(IRState *irs, const ref Loc loc, elem* index, elem* length) {
+    final switch (irs.params.checkAction)
+    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array index out of bounds");
+    case CHECKACTION.halt:
+        return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        assert(length);
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DARRAY_INDEXP)), el_params(length, index, el_long(TYint, loc.linnum), efile, null));
+    }
+}
+
+/// Returns: elem representing a C-string (char*) to the filename
+elem* locToFileElem(const IRState *irs, const ref Loc loc) {
     elem* efile;
     if (loc.filename)
     {
@@ -6461,20 +6518,7 @@ elem *buildArrayBoundsError(IRState *irs, const ref Loc loc, elem* lwr, elem* up
     }
     else
         efile = toEfilenamePtr(cast(Module)irs.blx._module);
-    auto eline = el_long(TYint, loc.linnum);
-    if(upr is null)
-    {
-        upr = el_long(TYsize_t, 0);
-    }
-    if(lwr is null)
-    {
-        lwr = el_long(TYsize_t, 0);
-    }
-    if(elength is null)
-    {
-        elength = el_long(TYsize_t, 0);
-    }
-    return el_bin(OPcall, TYvoid, eassert, el_params(elength, upr, lwr, eline, efile, null));
+    return efile;
 }
 
 /****************************************
