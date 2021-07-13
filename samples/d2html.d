@@ -54,7 +54,6 @@ void main(string[] args)
         
     foreach (word; kwd.byLine())
         keywords[word.idup] = true;
-    
     kwd.close();
 
     // open input and output files
