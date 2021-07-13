@@ -51,7 +51,6 @@ void main(string[] args)
     // check if file 'd2html.kwd' exists
     assert("d2html.kwd".exists, "file d2html.kwd does not exist");
     auto kwd = File("d2html.kwd");
-        
     foreach (word; kwd.byLine())
         keywords[word.idup] = true;
     kwd.close();
