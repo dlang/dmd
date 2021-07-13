@@ -410,9 +410,8 @@ bool needOpEquals(StructDeclaration sd)
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (VarDeclaration v; sd.fields)
     {
-        VarDeclaration v = sd.fields[i];
         if (v.storage_class & STC.ref_)
             continue;
         if (v.overlapped)
@@ -729,9 +728,8 @@ private bool needToHash(StructDeclaration sd)
     /* If any of the fields has an toHash, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (VarDeclaration v; sd.fields)
     {
-        VarDeclaration v = sd.fields[i];
         if (v.storage_class & STC.ref_)
             continue;
         if (v.overlapped)
@@ -994,9 +992,8 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         Expression e = null;
         e = null;
         stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-        for (size_t i = 0; i < ad.dtors.dim; i++)
+        foreach (FuncDeclaration fd; ad.dtors)
         {
-            FuncDeclaration fd = ad.dtors[i];
             stc = mergeFuncAttrs(stc, fd);
             if (stc & STC.disable)
             {
@@ -1221,10 +1218,8 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 
     // if any of the postblits are disabled, then the generated postblit
     // will be disabled
-    for (size_t i = 0; i < sd.postblits.dim; i++)
-    {
-        stc |= sd.postblits[i].storage_class & STC.disable;
-    }
+    foreach (postblit; sd.postblits)
+        stc |= postblit.storage_class & STC.disable;
 
     VarDeclaration[] fieldsToDestroy;
     auto postblitCalls = new Statements();
@@ -1427,9 +1422,8 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     default:
         Expression e = null;
         stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-        for (size_t i = 0; i < sd.postblits.dim; i++)
+        foreach (fd; sd.postblits)
         {
-            auto fd = sd.postblits[i];
             stc = mergeFuncAttrs(stc, fd);
             if (stc & STC.disable)
             {
