@@ -322,7 +322,7 @@ void main(string[] args)
                             else if (c == 9)
                             {
                                 // expand tabs
-                                immutable auto spaces3 = tabsize -
+                                immutable spaces3 = tabsize -
                                               (src.tell() - linestart) % tabsize;
 
                                 for (int i3 = 0; i3 < spaces3; i3++)
