@@ -17,7 +17,6 @@ import std.conv;
 import std.string;
 import std.stdio;
 import std.ascii;
-import std.file;
 
 // colors for syntax highlighting, default values are
 // my preferences in Microsoft Visual Studio editor
@@ -48,7 +47,6 @@ void main(string[] args)
         args ~= args[1] ~ ".htm";
 
     // load keywords
-    // check if file 'd2html.kwd' exists
     assert("d2html.kwd".exists, "file d2html.kwd does not exist");
     auto kwd = File("d2html.kwd");
     foreach (word; kwd.byLine())
@@ -81,14 +79,14 @@ void main(string[] args)
             }
         }
 
-        ulong linestart = 0; // for tabs
+        ulong linestart = 0;             // for tabs
         char c;
 
         c = readc(src);
 
         while (true)
         {
-            if (isWhite(c)) // whitespace
+            if (isWhite(c))                     // whitespace
             {
                 do
                 {
@@ -115,7 +113,7 @@ void main(string[] args)
                     c = readc(src);
                 } while (isWhite(c));
             }
-            else if (isAlpha(c)) // keyword or identifier
+            else if (isAlpha(c))                // keyword or identifier
             {
                 string token;
 
@@ -125,19 +123,19 @@ void main(string[] args)
                     c = readc(src);
                 } while (isAlpha(c) || isDigit(c));
 
-                if (token in keywords)  // keyword
+                if (token in keywords)                   // keyword
                     dst.write("<font color='#" ~ Colors.keyword ~
                                     "'>" ~ token ~ "</font>");
                 else                    // simple identifier
                     dst.write(token);
             }
-            else if (c == '0')  // binary, octal or hexadecimal number
+            else if (c == '0')                  // binary, octal or hexadecimal number
             {
                 dst.write("<font color='#" ~ Colors.number ~ "008000'>");
                 dst.write(c);
                 c = readc(src);
 
-                if (c == 'X' || c == 'x') // hexadecimal
+                if (c == 'X' || c == 'x')                       // hexadecimal
                 {
                     dst.write(c);
                     c = readc(src);
@@ -149,7 +147,7 @@ void main(string[] args)
 
                     // TODO: add support for hexadecimal floats
                 }
-                else if (c == 'B' || c == 'b')  // binary
+                else if (c == 'B' || c == 'b')                  // binary
                 {
                     dst.write(c);
                     c = readc(src);
@@ -159,7 +157,7 @@ void main(string[] args)
                         c = readc(src);
                     }
                 }
-                else // octal
+                else                    // octal
                 {
                     do
                     {
@@ -170,17 +168,17 @@ void main(string[] args)
 
                 dst.write("</font>");
             }
-            else if (c == '#') // hash
+            else if (c == '#')                // hash
             {
                 dst.write(c);
                 c = readc(src);
             }
-            else if (c == '\\') // backward slash
+            else if (c == '\\')                // backward slash
             {
                 dst.write(c);
                 c = readc(src);
             }
-            else if (isDigit(c)) // decimal number
+            else if (isDigit(c))                // decimal number
             {
                 dst.write("<font color='#" ~ Colors.number ~ "'>");
 
@@ -233,13 +231,13 @@ void main(string[] args)
 
                 dst.write("</font>");
             }
-            else if (c == '\'') // string without escape sequences
+            else if (c == '\'')                 // string without escape sequences
             {
                 dst.write("<font color='#" ~ Colors.astring ~ "'>");
 
                 do
                 {
-                    if (c == '<') // special symbol in HTML
+                    if (c == '<')                       // special symbol in HTML
                         dst.write("&lt;");
                     else
                         dst.write(c);
@@ -250,43 +248,43 @@ void main(string[] args)
                 c = readc(src);
                 dst.write("</font>");
             }
-            else if (c == 34) // string with escape sequences
+            else if (c == 34)                   // string with escape sequences
             {
                 dst.write("<font color='#" ~ Colors.astring ~ "'>");
-                char prev; // used to handle \" properly
+                char prev;                      // used to handle \" properly
 
                 do
                 {
-                    if (c == '<') // special symbol in HTML
+                    if (c == '<')                       // special symbol in HTML
                         dst.write("&lt;");
                     else
                         dst.write(c);
 
                     prev = c;
                     c = readc(src);
-                } while (!(c == 34 && prev != '\\')); // handle \"
+                } while (!(c == 34 && prev != '\\'));                   // handle \"
                 dst.write(c);
                 c = readc(src);
                 dst.write("</font>");
             }
-            else if (isPunctuation(c)) // either operator or comment
+            else if (isPunctuation(c))          // either operator or comment
             {
-                if (c == '<') // special symbol in HTML
+                if (c == '<')                   // special symbol in HTML
                 {
                     dst.write("&lt;");
                     c = readc(src);
                 }
-                else if (c == '/') // could be a comment...
+                else if (c == '/')                      // could be a comment...
                 {
                     c = readc(src);
 
-                    if (c == '/') // single-line one
+                    if (c == '/')                       // single-line one
                     {
                         dst.write("<font color='#" ~ Colors.comment ~ "'>/");
 
                         while (c != 10)
                         {
-                            if (c == '<') // special symbol in HTML
+                            if (c == '<')                               // special symbol in HTML
                                 dst.write("&lt;");
                             else if (c == 9)
                             {
@@ -307,14 +305,14 @@ void main(string[] args)
 
                         dst.write("</font>");
                     }
-                    else if (c == '*') // multi-line one
+                    else if (c == '*')                          // multi-line one
                     {
                         dst.write("<font color='#" ~ Colors.comment ~ "'>/");
                         char prev2;
 
                         do
                         {
-                            if (c == '<')  // special symbol in HTML
+                            if (c == '<')                               // special symbol in HTML
                                 dst.write("&lt;");
                             else if (c == 9)
                             {
@@ -343,10 +341,10 @@ void main(string[] args)
                         dst.write("</font>");
                         c = readc(src);
                     }
-                    else // just an operator
+                    else                        // just an operator
                         dst.write(cast(char) '/');
                 }
-                else // just an operator
+                else                    // just an operator
                 {
                     dst.write(c);
                     c = readc(src);
