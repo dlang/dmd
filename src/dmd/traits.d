@@ -1669,7 +1669,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
             void pushBaseMembersDg(ClassDeclaration cd)
             {
-                for (size_t i = 0; i < cd.baseclasses.dim; i++)
+                foreach (const i; 0 .. cd.baseclasses.dim)
                 {
                     auto cb = (*cd.baseclasses)[i].sym;
                     assert(cb);

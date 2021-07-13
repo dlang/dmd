@@ -585,7 +585,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
             auto exps = new Objects(nelems);
-            for (size_t i = 0; i < nelems; i++)
+            foreach (const i; 0 .. nelems)
             {
                 Parameter arg = Parameter.getNth(tt.arguments, i);
 
@@ -1221,7 +1221,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             sc = sc.push(imp.mod);
             sc.visibility = imp.visibility;
-            for (size_t i = 0; i < imp.aliasdecls.dim; i++)
+            foreach (const i; 0 .. imp.aliasdecls.dim)
             {
                 AliasDeclaration ad = imp.aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
@@ -1334,7 +1334,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             Scope* sc2 = ad.newScope(sc);
             bool errors;
-            for (size_t i = 0; i < d.dim; i++)
+            foreach (const i; 0 .. d.dim)
             {
                 Dsymbol s = (*d)[i];
                 s.dsymbolSemantic(sc2);
@@ -1371,7 +1371,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.gshared);
             sc.inunion = scd.isunion ? scd : null;
             sc.flags = 0;
-            for (size_t i = 0; i < scd.decl.dim; i++)
+            foreach (const i; 0 .. scd.decl.dim)
             {
                 Dsymbol s = (*scd.decl)[i];
                 s.dsymbolSemantic(sc);
@@ -1538,7 +1538,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (pd.args)
             {
-                for (size_t i = 0; i < pd.args.dim; i++)
+                foreach (const i; 0 .. pd.args.dim)
                 {
                     Expression e = (*pd.args)[i];
                     sc = sc.startCTFE();
@@ -1668,7 +1668,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (pd.args)
         {
             const errors_save = global.startGagging();
-            for (size_t i = 0; i < pd.args.dim; i++)
+            foreach (const i; 0 .. pd.args.dim)
             {
                 Expression e = (*pd.args)[i];
                 sc = sc.startCTFE();
@@ -1740,7 +1740,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (cd._scope && cd.decl)
             {
-                for (size_t i = 0; i < cd.decl.dim; i++)
+                foreach (const i; 0 .. cd.decl.dim)
                 {
                     Dsymbol s = (*cd.decl)[i];
                     s.setScope(cd._scope);
@@ -2334,14 +2334,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (global.params.doDocComments)
         {
             tempdecl.origParameters = new TemplateParameters(tempdecl.parameters.dim);
-            for (size_t i = 0; i < tempdecl.parameters.dim; i++)
+            foreach (const i; 0 .. tempdecl.parameters.dim)
             {
                 TemplateParameter tp = (*tempdecl.parameters)[i];
                 (*tempdecl.origParameters)[i] = tp.syntaxCopy();
             }
         }
 
-        for (size_t i = 0; i < tempdecl.parameters.dim; i++)
+        foreach (const i; 0 .. tempdecl.parameters.dim)
         {
             TemplateParameter tp = (*tempdecl.parameters)[i];
             if (!tp.declareParameter(paramscope))
@@ -2363,7 +2363,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* Calculate TemplateParameter.dependent
          */
         TemplateParameters tparams = TemplateParameters(1);
-        for (size_t i = 0; i < tempdecl.parameters.dim; i++)
+        foreach (const i; 0 .. tempdecl.parameters.dim)
         {
             TemplateParameter tp = (*tempdecl.parameters)[i];
             tparams[0] = tp;
@@ -2512,7 +2512,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (tm.tiargs.dim != tmix.tiargs.dim)
                 continue;
 
-            for (size_t i = 0; i < tm.tiargs.dim; i++)
+            foreach (const i; 0 .. tm.tiargs.dim)
             {
                 RootObject o = (*tm.tiargs)[i];
                 Type ta = isType(o);
@@ -3170,7 +3170,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 goto Ldone;
 
             bool may_override = false;
-            for (size_t i = 0; i < cd.baseclasses.dim; i++)
+            foreach (const i; 0 .. cd.baseclasses.dim)
             {
                 BaseClass* b = (*cd.baseclasses)[i];
                 ClassDeclaration cbd = b.type.toBasetype().isClassHandle();
@@ -3509,7 +3509,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 BaseClass* bc = null;
                 Dsymbol s = null;
-                for (size_t i = 0; i < cd.baseclasses.dim; i++)
+                foreach (const i; 0 .. cd.baseclasses.dim)
                 {
                     bc = (*cd.baseclasses)[i];
                     s = bc.sym.search_correct(funcdecl.ident);
@@ -4782,7 +4782,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc2.pop();
         }
 
-        for (size_t i = 0; i < cldec.baseclasses.dim; i++)
+        foreach (const i; 0 .. cldec.baseclasses.dim)
         {
             BaseClass* b = (*cldec.baseclasses)[i];
             Type tb = b.type.toBasetype();
@@ -5277,7 +5277,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!idec.symtab)
             idec.symtab = new DsymbolTable();
 
-        for (size_t i = 0; i < idec.baseclasses.dim; i++)
+        foreach (const i; 0 .. idec.baseclasses.dim)
         {
             BaseClass* b = (*idec.baseclasses)[i];
             Type tb = b.type.toBasetype();
@@ -5708,7 +5708,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     tempinst.members = Dsymbol.arraySyntaxCopy(tempdecl.members);
 
     // resolve TemplateThisParameter
-    for (size_t i = 0; i < tempdecl.parameters.dim; i++)
+    foreach (const i; 0 .. tempdecl.parameters.dim)
     {
         if ((*tempdecl.parameters)[i].isTemplateThisParameter() is null)
             continue;
@@ -5842,7 +5842,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
      */
     {
         bool found_deferred_ad = false;
-        for (size_t i = 0; i < Module.deferred.dim; i++)
+        foreach (const i; 0 .. Module.deferred.dim)
         {
             Dsymbol sd = Module.deferred[i];
             AggregateDeclaration ad = sd.isAggregateDeclaration();
@@ -5892,7 +5892,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         //printf("Run semantic3 on %s\n", toChars());
         tempinst.trySemantic3(sc2);
 
-        for (size_t i = 0; i < deferred.dim; i++)
+        foreach (const i; 0 .. deferred.dim)
         {
             //printf("+ run deferred semantic3 on %s\n", deferred[i].toChars());
             deferred[i].semantic3(null);
@@ -6544,7 +6544,7 @@ bool determineFields(AggregateDeclaration ad)
 
     if (ad.members)
     {
-        for (size_t i = 0; i < ad.members.dim; i++)
+        foreach (const i; 0 .. ad.members.dim)
         {
             auto s = (*ad.members)[i];
             if (s.apply(&func, ad))

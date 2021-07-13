@@ -4497,7 +4497,7 @@ extern (C++) final class TypeFunction : TypeNext
         Parameters* params = parameterList.parameters;
         if (mod & MODFlags.wild)
             params = parameterList.parameters.copy();
-        for (size_t i = 0; i < params.dim; i++)
+        foreach (const i; 0 .. params.dim)
         {
             Parameter p = (*params)[i];
             Type t = p.type.substWildTo(m);
@@ -5395,7 +5395,7 @@ extern (C++) abstract class TypeQualified : Type
     {
         //printf("TypeQualified::syntaxCopyHelper(%s) %s\n", t.toChars(), toChars());
         idents.setDim(t.idents.dim);
-        for (size_t i = 0; i < idents.dim; i++)
+        foreach (const i; 0 .. idents.dim)
         {
             RootObject id = t.idents[i];
             with (DYNCAST) final switch (id.dyncast())
@@ -5768,7 +5768,7 @@ extern (C++) final class TypeStruct : Type
         /* If any of the fields are const or immutable,
          * then one cannot assign this struct.
          */
-        for (size_t i = 0; i < sym.fields.dim; i++)
+        foreach (const i; 0 .. sym.fields.dim)
         {
             VarDeclaration v = sym.fields[i];
             //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s\n", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
@@ -5822,7 +5822,7 @@ extern (C++) final class TypeStruct : Type
         if (sym.isNested())
             return true;
 
-        for (size_t i = 0; i < sym.fields.dim; i++)
+        foreach (const i; 0 .. sym.fields.dim)
         {
             VarDeclaration v = sym.fields[i];
             if (!v.isDataseg() && v.type.needsNested())
@@ -5900,7 +5900,7 @@ extern (C++) final class TypeStruct : Type
                      * allow the conversion.
                      */
                     uint offset = ~0; // dead-store to prevent spurious warning
-                    for (size_t i = 0; i < sym.fields.dim; i++)
+                    foreach (const i; 0 .. sym.fields.dim)
                     {
                         VarDeclaration v = sym.fields[i];
                         if (i == 0)
@@ -6361,7 +6361,7 @@ extern (C++) final class TypeTuple : Type
         {
             if (arguments)
             {
-                for (size_t i = 0; i < arguments.dim; i++)
+                foreach (const i; 0 .. arguments.dim)
                 {
                     Parameter arg = (*arguments)[i];
                     assert(arg && arg.type);
@@ -6381,7 +6381,7 @@ extern (C++) final class TypeTuple : Type
         if (exps)
         {
             arguments.setDim(exps.dim);
-            for (size_t i = 0; i < exps.dim; i++)
+            foreach (const i; 0 .. exps.dim)
             {
                 Expression e = (*exps)[i];
                 if (e.type.ty == Ttuple)
@@ -6461,7 +6461,7 @@ extern (C++) final class TypeTuple : Type
         {
             if (arguments.dim == tt.arguments.dim)
             {
-                for (size_t i = 0; i < tt.arguments.dim; i++)
+                foreach (const i; 0 .. tt.arguments.dim)
                 {
                     const Parameter arg1 = (*arguments)[i];
                     Parameter arg2 = (*tt.arguments)[i];
@@ -6852,7 +6852,7 @@ extern (C++) final class Parameter : ASTNode
         if (parameters)
         {
             params = new Parameters(parameters.dim);
-            for (size_t i = 0; i < params.dim; i++)
+            foreach (const i; 0 .. params.dim)
                 (*params)[i] = (*parameters)[i].syntaxCopy();
         }
         return params;

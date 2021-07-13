@@ -2000,7 +2000,7 @@ void showCtfeExpr(Expression e, int level = 0)
     if (elements)
     {
         size_t fieldsSoFar = 0;
-        for (size_t i = 0; i < elements.dim; i++)
+        foreach (const i; 0 .. elements.dim)
         {
             Expression z = null;
             VarDeclaration v = null;

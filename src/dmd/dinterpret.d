@@ -463,7 +463,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
      * store the results in eargs[]
      */
     Expressions eargs = Expressions(dim);
-    for (size_t i = 0; i < dim; i++)
+    foreach (const i; 0 .. dim)
     {
         Expression earg = (*arguments)[i];
         Parameter fparam = tf.parameterList[i];
@@ -550,7 +550,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         setValue(fd.vthis, thisarg);
     }
 
-    for (size_t i = 0; i < dim; i++)
+    foreach (const i; 0 .. dim)
     {
         Expression earg = eargs[i];
         Parameter fparam = tf.parameterList[i];
@@ -2457,7 +2457,7 @@ public:
 
         auto expsx = e.elements;
         size_t dim = expsx ? expsx.dim : 0;
-        for (size_t i = 0; i < dim; i++)
+        foreach (const i; 0 .. dim)
         {
             Expression exp = (*expsx)[i];
             Expression ex;
@@ -6914,7 +6914,7 @@ private Expression interpret_dup(UnionExp* pue, InterState* istate, Expression e
     if (earg.op != TOK.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
         return null;
     auto aae = copyLiteral(earg).copy().isAssocArrayLiteralExp();
-    for (size_t i = 0; i < aae.keys.dim; i++)
+    foreach (const i; 0 .. aae.keys.dim)
     {
         if (Expression e = evaluatePostblit(istate, (*aae.keys)[i]))
             return e;

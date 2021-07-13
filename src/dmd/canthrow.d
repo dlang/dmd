@@ -230,7 +230,7 @@ private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow
     }
     else if (auto td = s.isTupleDeclaration())
     {
-        for (size_t i = 0; i < td.objects.dim; i++)
+        foreach (const i; 0 .. td.objects.dim)
         {
             RootObject o = (*td.objects)[i];
             if (o.dyncast() == DYNCAST.expression)

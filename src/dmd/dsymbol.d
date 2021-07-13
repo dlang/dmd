@@ -671,7 +671,7 @@ extern (C++) class Dsymbol : ASTNode
         if (a)
         {
             b = a.copy();
-            for (size_t i = 0; i < b.dim; i++)
+            foreach (const i; 0 .. b.dim)
             {
                 (*b)[i] = (*b)[i].syntaxCopy(null);
             }
@@ -1086,7 +1086,7 @@ extern (C++) class Dsymbol : ASTNode
             return true;
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (const i; 0 .. members.dim)
         {
             Dsymbol sx = (*members)[i];
             bool x = sx.oneMember(ps, ident);
@@ -1341,7 +1341,7 @@ public:
         Dsymbol s = null;
         OverloadSet a = null;
         // Look in imported modules
-        for (size_t i = 0; i < importedScopes.dim; i++)
+        foreach (const i; 0 .. importedScopes.dim)
         {
             // If private import, don't search it
             if ((flags & IgnorePrivateImports) && visibilities[i] == Visibility.Kind.private_)
@@ -1481,7 +1481,7 @@ public:
             }
             else
             {
-                for (size_t i = 0; i < os2.a.dim; i++)
+                foreach (const i; 0 .. os2.a.dim)
                 {
                     os = mergeOverloadSet(ident, os, os2.a[i]);
                 }
@@ -1520,7 +1520,7 @@ public:
                 importedScopes = new Dsymbols();
             else
             {
-                for (size_t i = 0; i < importedScopes.dim; i++)
+                foreach (const i; 0 .. importedScopes.dim)
                 {
                     Dsymbol ss = (*importedScopes)[i];
                     if (ss == s) // if already imported
@@ -1674,7 +1674,7 @@ public:
     {
         if (members)
         {
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (const i; 0 .. members.dim)
             {
                 Dsymbol member = (*members)[i];
                 if (member.hasStaticCtorOrDtor())

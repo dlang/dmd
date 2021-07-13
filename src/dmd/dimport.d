@@ -114,7 +114,7 @@ extern (C++) final class Import : Dsymbol
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);
         si.comment = comment;
-        for (size_t i = 0; i < names.dim; i++)
+        foreach (const i; 0 .. names.dim)
         {
             si.addAlias(names[i], aliases[i]);
         }
@@ -289,7 +289,7 @@ extern (C++) final class Import : Dsymbol
         /* Instead of adding the import to sd's symbol table,
          * add each of the alias=name pairs
          */
-        for (size_t i = 0; i < names.dim; i++)
+        foreach (const i; 0 .. names.dim)
         {
             Identifier name = names[i];
             Identifier _alias = aliases[i];

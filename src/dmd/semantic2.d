@@ -163,7 +163,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (needGagging)
             oldGaggedErrors = global.startGagging();
 
-        for (size_t i = 0; i < tempinst.members.dim; i++)
+        foreach (const i; 0 .. tempinst.members.dim)
         {
             Dsymbol s = (*tempinst.members)[i];
             static if (LOG)
@@ -211,7 +211,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         sc = sc.push(tmix);
         sc.tinst = tmix;
         sc.minst = tmix.minst;
-        for (size_t i = 0; i < tmix.members.dim; i++)
+        foreach (const i; 0 .. tmix.members.dim)
         {
             Dsymbol s = (*tmix.members)[i];
             static if (LOG)
@@ -331,7 +331,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         Scope* sc = Scope.createGlobal(mod); // create root scope
         //printf("Module = %p\n", sc.scopesym);
         // Pass 2 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < mod.members.dim; i++)
+        foreach (const i; 0 .. mod.members.dim)
         {
             Dsymbol s = (*mod.members)[i];
             s.semantic2(sc);
@@ -516,7 +516,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
 
         Scope* sc2 = ad.newScope(sc);
-        for (size_t i = 0; i < d.dim; i++)
+        foreach (const i; 0 .. d.dim)
         {
             Dsymbol s = (*d)[i];
             s.semantic2(sc2);
@@ -605,7 +605,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         ad.determineSize(ad.loc);
 
-        for (size_t i = 0; i < ad.members.dim; i++)
+        foreach (const i; 0 .. ad.members.dim)
         {
             Dsymbol s = (*ad.members)[i];
             //printf("\t[%d] %s\n", i, s.toChars());

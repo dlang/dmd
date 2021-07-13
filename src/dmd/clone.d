@@ -410,7 +410,7 @@ bool needOpEquals(StructDeclaration sd)
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (const i; 0 .. sd.fields.dim)
     {
         VarDeclaration v = sd.fields[i];
         if (v.storage_class & STC.ref_)
@@ -729,7 +729,7 @@ private bool needToHash(StructDeclaration sd)
     /* If any of the fields has an toHash, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (const i; 0 .. sd.fields.dim)
     {
         VarDeclaration v = sd.fields[i];
         if (v.storage_class & STC.ref_)
@@ -858,7 +858,7 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     if (!dtorIsCppPrototype)
     {
         Expression e = null;
-        for (size_t i = 0; i < ad.fields.dim; i++)
+        foreach (const i; 0 .. ad.fields.dim)
         {
             auto v = ad.fields[i];
             if (v.storage_class & STC.ref_)
@@ -994,7 +994,7 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         Expression e = null;
         e = null;
         stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-        for (size_t i = 0; i < ad.dtors.dim; i++)
+        foreach (const i; 0 .. ad.dtors.dim)
         {
             FuncDeclaration fd = ad.dtors[i];
             stc = mergeFuncAttrs(stc, fd);
@@ -1221,7 +1221,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 
     // if any of the postblits are disabled, then the generated postblit
     // will be disabled
-    for (size_t i = 0; i < sd.postblits.dim; i++)
+    foreach (const i; 0 .. sd.postblits.dim)
     {
         stc |= sd.postblits[i].storage_class & STC.disable;
     }
@@ -1427,7 +1427,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     default:
         Expression e = null;
         stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-        for (size_t i = 0; i < sd.postblits.dim; i++)
+        foreach (const i; 0 .. sd.postblits.dim)
         {
             auto fd = sd.postblits[i];
             stc = mergeFuncAttrs(stc, fd);

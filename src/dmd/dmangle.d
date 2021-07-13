@@ -936,7 +936,7 @@ public:
 
         auto args = ti.tiargs;
         size_t nparams = tempdecl.parameters.dim - (tempdecl.isVariadic() ? 1 : 0);
-        for (size_t i = 0; i < args.dim; i++)
+        foreach (const i; 0 .. args.dim)
         {
             auto o = (*args)[i];
             Type ta = isType(o);
@@ -1030,7 +1030,6 @@ public:
             {
                 assert(i + 1 == args.dim); // must be last one
                 args = &va.objects;
-                i = -cast(size_t)1;
             }
             else
                 assert(0);

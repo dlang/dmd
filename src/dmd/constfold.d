@@ -799,7 +799,7 @@ UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e
             cmp = 0;
         else
         {
-            for (size_t i = 0; i < es1.elements.dim; i++)
+            foreach (const i; 0 .. es1.elements.dim)
             {
                 auto ee1 = es1[i];
                 auto ee2 = es2[i];
@@ -832,7 +832,7 @@ UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e
         else
         {
             cmp = 1; // if dim1 winds up being 0
-            for (size_t i = 0; i < dim1; i++)
+            foreach (const i; 0 .. dim1)
             {
                 uinteger_t c = es1.charAt(i);
                 auto ee2 = es2[i];
@@ -862,7 +862,7 @@ UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e
         else
         {
             cmp = 1;
-            for (size_t i = 0; i < es1.elements.dim; i++)
+            foreach (const i; 0 .. es1.elements.dim)
             {
                 Expression ee1 = (*es1.elements)[i];
                 Expression ee2 = (*es2.elements)[i];
@@ -1163,7 +1163,7 @@ UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
         StructDeclaration sd = tb.toDsymbol(null).isStructDeclaration();
         assert(sd);
         auto elements = new Expressions();
-        for (size_t i = 0; i < sd.fields.dim; i++)
+        foreach (const i; 0 .. sd.fields.dim)
         {
             VarDeclaration v = sd.fields[i];
             UnionExp zero;

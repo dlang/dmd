@@ -286,7 +286,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         // Set the offsets of the fields and determine the size of the struct
         uint offset = 0;
         bool isunion = isUnionDeclaration() !is null;
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (const i; 0 .. members.dim)
         {
             Dsymbol s = (*members)[i];
             s.setFieldOffset(this, &offset, isunion);
@@ -390,7 +390,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
 
         // Recursively check all fields are POD.
-        for (size_t i = 0; i < fields.dim; i++)
+        foreach (const i; 0 .. fields.dim)
         {
             VarDeclaration v = fields[i];
             if (v.storage_class & STC.ref_)

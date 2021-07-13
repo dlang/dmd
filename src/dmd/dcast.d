@@ -760,7 +760,7 @@ MATCH implicitConvTo(Expression e, Type t)
                         if (m < result)
                             result = m;
                     }
-                    for (size_t i = 0; i < e.elements.dim; i++)
+                    foreach (const i; 0 .. e.elements.dim)
                     {
                         Expression el = (*e.elements)[i];
                         if (result == MATCH.nomatch)
@@ -1335,7 +1335,7 @@ MATCH implicitConvTo(Expression e, Type t)
                     {
                         extern (C++) static bool convertible(Expression e, ClassDeclaration cd, MOD mod)
                         {
-                            for (size_t i = 0; i < cd.fields.dim; i++)
+                            foreach (const i; 0 .. cd.fields.dim)
                             {
                                 VarDeclaration v = cd.fields[i];
                                 Initializer _init = v._init;
@@ -2112,7 +2112,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             {
                 OverExp eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
-                for (size_t i = 0; i < eo.vars.a.dim; i++)
+                foreach (const i; 0 .. eo.vars.a.dim)
                 {
                     auto s = eo.vars.a[i];
                     auto f2 = s.isFuncDeclaration();
@@ -2184,7 +2184,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             TupleExp te = cast(TupleExp)e.copy();
             te.e0 = e.e0 ? e.e0.copy() : null;
             te.exps = e.exps.copy();
-            for (size_t i = 0; i < te.exps.dim; i++)
+            foreach (const i; 0 .. te.exps.dim)
             {
                 Expression ex = (*te.exps)[i];
                 ex = ex.castTo(sc, t);
@@ -2254,7 +2254,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     if (e.basis)
                         ae.basis = e.basis.castTo(sc, tb.nextOf());
                     ae.elements = e.elements.copy();
-                    for (size_t i = 0; i < e.elements.dim; i++)
+                    foreach (const i; 0 .. e.elements.dim)
                     {
                         Expression ex = (*e.elements)[i];
                         if (!ex)
@@ -2333,7 +2333,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 ae.keys = e.keys.copy();
                 ae.values = e.values.copy();
                 assert(e.keys.dim == e.values.dim);
-                for (size_t i = 0; i < e.keys.dim; i++)
+                foreach (const i; 0 .. e.keys.dim)
                 {
                     Expression ex = (*e.values)[i];
                     ex = ex.castTo(sc, tb.nextOf());
@@ -2639,7 +2639,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
             Type tn = tb.nextOf();
             if (ale.basis)
                 ale.basis = inferType(ale.basis, tn, flag);
-            for (size_t i = 0; i < ale.elements.dim; i++)
+            foreach (const i; 0 .. ale.elements.dim)
             {
                 if (Expression e = (*ale.elements)[i])
                 {
@@ -2659,7 +2659,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
             TypeAArray taa = cast(TypeAArray)tb;
             Type ti = taa.index;
             Type tv = taa.nextOf();
-            for (size_t i = 0; i < aale.keys.dim; i++)
+            foreach (const i; 0 .. aale.keys.dim)
             {
                 if (Expression e = (*aale.keys)[i])
                 {
@@ -2667,7 +2667,7 @@ Expression inferType(Expression e, Type t, int flag = 0)
                     (*aale.keys)[i] = e;
                 }
             }
-            for (size_t i = 0; i < aale.values.dim; i++)
+            foreach (const i; 0 .. aale.values.dim)
             {
                 if (Expression e = (*aale.values)[i])
                 {

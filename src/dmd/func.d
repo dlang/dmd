@@ -1922,7 +1922,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (requiresClosure)
             goto Lyes;
 
-        for (size_t i = 0; i < closureVars.dim; i++)
+        foreach (const i; 0 .. closureVars.dim)
         {
             VarDeclaration v = closureVars[i];
             //printf("\tv = %s\n", v.toChars());
@@ -2066,7 +2066,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (foverrides.dim && isVirtualMethod())
         {
-            for (size_t i = 0; i < foverrides.dim; i++)
+            foreach (const i; 0 .. foverrides.dim)
             {
                 FuncDeclaration fdv = foverrides[i];
                 if (fdv.hasNestedFrameRefs())
@@ -2920,7 +2920,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             printf("\tthis: %s\n", tthis.toChars());
         if (fargs)
         {
-            for (size_t i = 0; i < fargs.dim; i++)
+            foreach (const i; 0 .. fargs.dim)
             {
                 Expression arg = (*fargs)[i];
                 assert(arg.type);

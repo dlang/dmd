@@ -479,7 +479,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module.runDeferredSemantic();
     if (Module.deferred.dim)
     {
-        for (size_t i = 0; i < Module.deferred.dim; i++)
+        foreach (const i; 0 .. Module.deferred.dim)
         {
             Dsymbol sd = Module.deferred[i];
             sd.error("unable to resolve forward reference in definition");
@@ -509,7 +509,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         // Note: DO NOT USE foreach here because Module.amodules.dim can
         //       change on each iteration of the loop
-        for (size_t i = 0; i < compiledImports.dim; i++)
+        foreach (const i; 0 .. compiledImports.dim)
         {
             auto m = compiledImports[i];
             assert(m.isRoot);
@@ -718,7 +718,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         return badArgs();
     // Convert argc/argv into arguments[] for easier handling
     Strings arguments = Strings(argc);
-    for (size_t i = 0; i < argc; i++)
+    foreach (const i; 0 .. argc)
     {
         if (!argv[i])
             return badArgs();
@@ -1517,7 +1517,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
     version (none)
     {
-        for (size_t i = 0; i < arguments.dim; i++)
+        foreach (const i; 0 .. arguments.dim)
         {
             printf("arguments[%d] = '%s'\n", i, arguments[i]);
         }

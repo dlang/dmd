@@ -568,7 +568,7 @@ void build_syment_table(bool bigobj)
 
     int n = cast(int)SegData.length;
     size_t dim = symbuf.length() / (Symbol *).sizeof;
-    for (size_t i = 0; i < dim; i++)
+    foreach (const i; 0 .. dim)
     {   Symbol *s = (cast(Symbol **)symbuf.buf)[i];
         s.Sxtrnnum = cast(uint)(syment_buf.length() / symsize);
         n++;

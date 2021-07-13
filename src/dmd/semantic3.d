@@ -127,7 +127,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (needGagging)
             oldGaggedErrors = global.startGagging();
 
-        for (size_t i = 0; i < tempinst.members.dim; i++)
+        foreach (const i; 0 .. tempinst.members.dim)
         {
             Dsymbol s = (*tempinst.members)[i];
             s.semantic3(sc);
@@ -167,7 +167,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         sc = sc.push(tmix.argsym);
         sc = sc.push(tmix);
-        for (size_t i = 0; i < tmix.members.dim; i++)
+        foreach (const i; 0 .. tmix.members.dim)
         {
             Dsymbol s = (*tmix.members)[i];
             s.semantic3(sc);
@@ -188,7 +188,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         Scope* sc = Scope.createGlobal(mod); // create root scope
         //printf("Module = %p\n", sc.scopesym);
         // Pass 3 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < mod.members.dim; i++)
+        foreach (const i; 0 .. mod.members.dim)
         {
             Dsymbol s = (*mod.members)[i];
             //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
@@ -641,7 +641,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                      * ctor consts were initialized.
                      */
                     ScopeDsymbol pd = funcdecl.toParent().isScopeDsymbol();
-                    for (size_t i = 0; i < pd.members.dim; i++)
+                    foreach (const i; 0 .. pd.members.dim)
                     {
                         Dsymbol s = (*pd.members)[i];
                         s.checkCtorConstInit();
@@ -803,7 +803,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     /* Cannot move this loop into NrvoWalker, because
                      * returns[i] may be in the nested delegate for foreach-body.
                      */
-                    for (size_t i = 0; i < funcdecl.returns.dim; i++)
+                    foreach (const i; 0 .. funcdecl.returns.dim)
                     {
                         ReturnStatement rs = (*funcdecl.returns)[i];
                         Expression exp = rs.exp;
@@ -1016,7 +1016,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 // Merge in initialization of 'out' parameters
                 if (funcdecl.parameters)
                 {
-                    for (size_t i = 0; i < funcdecl.parameters.dim; i++)
+                    foreach (const i; 0 .. funcdecl.parameters.dim)
                     {
                         VarDeclaration v = (*funcdecl.parameters)[i];
                         if (v.storage_class & STC.out_)
@@ -1474,7 +1474,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             return;
 
         Scope* sc2 = ad.newScope(sc);
-        for (size_t i = 0; i < d.dim; i++)
+        foreach (const i; 0 .. d.dim)
         {
             Dsymbol s = (*d)[i];
             s.semantic3(sc2);
@@ -1499,7 +1499,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         auto sc2 = ad.newScope(sc);
 
-        for (size_t i = 0; i < ad.members.dim; i++)
+        foreach (const i; 0 .. ad.members.dim)
         {
             Dsymbol s = (*ad.members)[i];
             s.semantic3(sc2);
@@ -1558,7 +1558,7 @@ private struct FuncDeclSem3
     {
         if (funcdecl.frequires)
         {
-            for (size_t i = 0; i < funcdecl.foverrides.dim; i++)
+            foreach (const i; 0 .. funcdecl.foverrides.dim)
             {
                 FuncDeclaration fdv = funcdecl.foverrides[i];
                 if (fdv.fbody && !fdv.frequires)

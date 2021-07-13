@@ -1434,7 +1434,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) &&
                 s.Srange && !(s.Sflags & SFLspill))
             {
-                for (size_t i = 0; i < si; i++)
+                foreach (const i; 0 .. si)
                 {
                     if (!vec_testbit(i,tbl))
                         continue;
@@ -1892,7 +1892,7 @@ void freenode(elem *e)
     if (e.Ecomsub--) return;             /* usage count                  */
     if (e.Ecount)                        /* if it was a CSE              */
     {
-        for (size_t i = 0; i < regcon.cse.value.length; i++)
+        foreach (const i; 0 .. regcon.cse.value.length)
         {
             if (regcon.cse.value[i] == e)       /* if a register is holding it  */
             {

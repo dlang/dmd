@@ -1223,7 +1223,7 @@ extern (C++) final class Module : Package
         {
             // Add all symbols into module's symbol table
             symtab = new DsymbolTable();
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (const i; 0 .. members.dim)
             {
                 Dsymbol s = (*members)[i];
                 s.addMember(sc, sc.scopesym);
@@ -1236,12 +1236,12 @@ extern (C++) final class Module : Package
          * before any semantic() on any of them.
          */
         setScope(sc); // remember module scope for semantic
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (const i; 0 .. members.dim)
         {
             Dsymbol s = (*members)[i];
             s.setScope(sc);
         }
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (const i; 0 .. members.dim)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc);
@@ -1428,7 +1428,7 @@ extern (C++) final class Module : Package
         Module.runDeferredSemantic();
 
         Dsymbols* a = &Module.deferred2;
-        for (size_t i = 0; i < a.dim; i++)
+        foreach (const i; 0 .. a.dim)
         {
             Dsymbol s = (*a)[i];
             //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
@@ -1445,7 +1445,7 @@ extern (C++) final class Module : Package
         Module.runDeferredSemantic2();
 
         Dsymbols* a = &Module.deferred3;
-        for (size_t i = 0; i < a.dim; i++)
+        foreach (const i; 0 .. a.dim)
         {
             Dsymbol s = (*a)[i];
             //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());

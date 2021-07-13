@@ -118,7 +118,7 @@ __gshared goal_t[BCMAX] bc_goal;
 @trusted
 void block_init()
 {
-    for (size_t i = 0; i < BCMAX; i++)
+    foreach (const i; 0 .. BCMAX)
         bc_goal[i] = GOALvalue;
 
     bc_goal[BCgoto] = GOALnone;

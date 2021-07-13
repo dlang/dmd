@@ -295,7 +295,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 {
                     auto sd = p.isStructDeclaration();
                     assert(sd);
-                    for (size_t i = 0; i < sd.fields.dim; i++)
+                    foreach (const i; 0 .. sd.fields.dim)
                     {
                         auto structField = sd.fields[i];
                         if (structField.overlapped)
@@ -589,7 +589,7 @@ extern (C++) final class TupleDeclaration : Declaration
         {
             /* It's only a type tuple if all the Object's are types
              */
-            for (size_t i = 0; i < objects.dim; i++)
+            foreach (const i; 0 .. objects.dim)
             {
                 RootObject o = (*objects)[i];
                 if (o.dyncast() != DYNCAST.type)
@@ -605,7 +605,7 @@ extern (C++) final class TupleDeclaration : Declaration
             auto args = new Parameters(objects.dim);
             OutBuffer buf;
             int hasdeco = 1;
-            for (size_t i = 0; i < types.dim; i++)
+            foreach (const i; 0 .. types.dim)
             {
                 Type t = (*types)[i];
                 //printf("type = %s\n", t.toChars());
@@ -636,7 +636,7 @@ extern (C++) final class TupleDeclaration : Declaration
     override Dsymbol toAlias2()
     {
         //printf("TupleDeclaration::toAlias2() '%s' objects = %s\n", toChars(), objects.toChars());
-        for (size_t i = 0; i < objects.dim; i++)
+        foreach (const i; 0 .. objects.dim)
         {
             RootObject o = (*objects)[i];
             if (Dsymbol s = isDsymbol(o))
@@ -651,7 +651,7 @@ extern (C++) final class TupleDeclaration : Declaration
     override bool needThis()
     {
         //printf("TupleDeclaration::needThis(%s)\n", toChars());
-        for (size_t i = 0; i < objects.dim; i++)
+        foreach (const i; 0 .. objects.dim)
         {
             RootObject o = (*objects)[i];
             if (o.dyncast() == DYNCAST.expression)
@@ -1128,7 +1128,7 @@ extern (C++) class VarDeclaration : Declaration
             // If this variable was really a tuple, set the offsets for the tuple fields
             TupleDeclaration v2 = aliassym.isTupleDeclaration();
             assert(v2);
-            for (size_t i = 0; i < v2.objects.dim; i++)
+            foreach (const i; 0 .. v2.objects.dim)
             {
                 RootObject o = (*v2.objects)[i];
                 assert(o.dyncast() == DYNCAST.expression);
@@ -1155,7 +1155,7 @@ extern (C++) class VarDeclaration : Declaration
             *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
             return;
         }
-        for (size_t i = 0; i < ad.fields.dim; i++)
+        foreach (const i; 0 .. ad.fields.dim)
         {
             if (ad.fields[i] == this)
             {

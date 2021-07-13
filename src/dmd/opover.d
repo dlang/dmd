@@ -1078,7 +1078,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 }
                 else
                 {
-                    for (size_t i = 0; i < dim; i++)
+                    foreach (const i; 0 .. dim)
                     {
                         auto ex1 = (*tup1.exps)[i];
                         auto ex2 = (*tup2.exps)[i];

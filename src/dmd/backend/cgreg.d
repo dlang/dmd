@@ -86,7 +86,7 @@ void cgreg_init()
     memset(regrange.ptr, 0, regrange.sizeof);
 
     // Make adjustments to symbols we might stick in registers
-    for (size_t i = 0; i < globsym.length; i++)
+    foreach (const i; 0 .. globsym.length)
     {   uint sz;
         Symbol *s = globsym[i];
 
@@ -158,7 +158,7 @@ void cgreg_term()
 {
     if (config.flags4 & CFG4optimized)
     {
-        for (size_t i = 0; i < globsym.length; i++)
+        foreach (const i; 0 .. globsym.length)
         {
             Symbol *s = globsym[i];
             vec_free(s.Srange);
@@ -167,7 +167,7 @@ void cgreg_term()
             s.Slvreg = null;
         }
 
-        for (size_t i = 0; i < regrange.length; i++)
+        foreach (const i; 0 .. regrange.length)
         {
             if (regrange[i])
             {   vec_free(regrange[i]);

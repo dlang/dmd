@@ -114,7 +114,7 @@ struct ASTBase
         extern (D) static bool oneMembers(ref Dsymbols members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (const i; 0 .. members.dim)
             {
                 Dsymbol sx = members[i];
                 bool x = sx.oneMember(ps, ident);
@@ -936,7 +936,7 @@ struct ASTBase
             {
                 a = new Objects();
                 a.setDim(objs.dim);
-                for (size_t i = 0; i < objs.dim; i++)
+                foreach (const i; 0 .. objs.dim)
                     (*a)[i] = objectSyntaxCopy((*objs)[i]);
             }
             return a;
@@ -1695,7 +1695,7 @@ struct ASTBase
             {
                 params = new Parameters();
                 params.setDim(parameters.dim);
-                for (size_t i = 0; i < params.dim; i++)
+                foreach (const i; 0 .. params.dim)
                     (*params)[i] = (*parameters)[i].syntaxCopy();
             }
             return params;
@@ -3565,7 +3565,7 @@ struct ASTBase
             if (exps)
             {
                 arguments.setDim(exps.dim);
-                for (size_t i = 0; i < exps.dim; i++)
+                foreach (const i; 0 .. exps.dim)
                 {
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
@@ -4167,7 +4167,7 @@ struct ASTBase
         final void syntaxCopyHelper(TypeQualified t)
         {
             idents.setDim(t.idents.dim);
-            for (size_t i = 0; i < idents.dim; i++)
+            foreach (const i; 0 .. idents.dim)
             {
                 RootObject id = t.idents[i];
                 if (id.dyncast() == DYNCAST.dsymbol)
@@ -5064,7 +5064,7 @@ struct ASTBase
             this.exps = new Expressions();
 
             this.exps.reserve(tup.objects.dim);
-            for (size_t i = 0; i < tup.objects.dim; i++)
+            foreach (const i; 0 .. tup.objects.dim)
             {
                 RootObject o = (*tup.objects)[i];
                 if (Dsymbol s = getDsymbol(o))

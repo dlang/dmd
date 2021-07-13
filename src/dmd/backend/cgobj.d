@@ -841,7 +841,7 @@ else
         outpubdata();                   // finish writing PUBDEFs
 
         // Put out LEDATA records and associated fixups
-        for (size_t i = 0; i < obj.ledatas.length; i++)
+        foreach (const i; 0 .. obj.ledatas.length)
         {   Ledatarec *d = obj.ledatas[i];
 
             if (d.i)                   // if any data in this record
@@ -917,7 +917,7 @@ static if (TERMCODE)
         OmfObj_segment_group(SegData[CODE].SDoffset, SegData[DATA].SDoffset, SegData[CDATA].SDoffset, SegData[UDATA].SDoffset);  // do real sizes
 
         // Update any out-of-date far segment sizes
-        for (size_t i = 0; i < SegData.length; i++)
+        foreach (const i; 0 .. SegData.length)
         {
             seg_data* f = SegData[i];
             if (f.isfarseg && f.origsize != f.SDoffset)

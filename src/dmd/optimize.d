@@ -343,7 +343,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         override void visit(TupleExp e)
         {
             expOptimize(e.e0, WANTvalue);
-            for (size_t i = 0; i < e.exps.dim; i++)
+            foreach (const i; 0 .. e.exps.dim)
             {
                 expOptimize((*e.exps)[i], WANTvalue);
             }
@@ -354,7 +354,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             if (e.elements)
             {
                 expOptimize(e.basis, result & WANTexpand);
-                for (size_t i = 0; i < e.elements.dim; i++)
+                foreach (const i; 0 .. e.elements.dim)
                 {
                     expOptimize((*e.elements)[i], result & WANTexpand);
                 }
@@ -364,7 +364,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         override void visit(AssocArrayLiteralExp e)
         {
             assert(e.keys.dim == e.values.dim);
-            for (size_t i = 0; i < e.keys.dim; i++)
+            foreach (const i; 0 .. e.keys.dim)
             {
                 expOptimize((*e.keys)[i], result & WANTexpand);
                 expOptimize((*e.values)[i], result & WANTexpand);
@@ -379,7 +379,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             e.stageflags |= stageOptimize;
             if (e.elements)
             {
-                for (size_t i = 0; i < e.elements.dim; i++)
+                foreach (const i; 0 .. e.elements.dim)
                 {
                     expOptimize((*e.elements)[i], result & WANTexpand);
                 }
@@ -590,14 +590,14 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             // Optimize parameters
             if (e.newargs)
             {
-                for (size_t i = 0; i < e.newargs.dim; i++)
+                foreach (const i; 0 .. e.newargs.dim)
                 {
                     expOptimize((*e.newargs)[i], WANTvalue);
                 }
             }
             if (e.arguments)
             {
-                for (size_t i = 0; i < e.arguments.dim; i++)
+                foreach (const i; 0 .. e.arguments.dim)
                 {
                     expOptimize((*e.arguments)[i], WANTvalue);
                 }
@@ -618,7 +618,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 // t1 can apparently be void for __ArrayDtor(T) calls
                 if (auto tf = t1.isTypeFunction())
                 {
-                    for (size_t i = 0; i < e.arguments.dim; i++)
+                    foreach (const i; 0 .. e.arguments.dim)
                     {
                         Parameter p = tf.parameterList[i];
                         bool keep = p && p.isReference();

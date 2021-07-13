@@ -57,7 +57,7 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
     const dim = ai.value.dim;
     auto keys = new Expressions(dim);
     auto values = new Expressions(dim);
-    for (size_t i = 0; i < dim; i++)
+    foreach (const i; 0 .. dim)
     {
         e = ai.index[i];
         if (!e)
@@ -849,7 +849,7 @@ Initializer inferType(Initializer init, Scope* sc)
         {
             keys = new Expressions(init.value.dim);
             values = new Expressions(init.value.dim);
-            for (size_t i = 0; i < init.value.dim; i++)
+            foreach (const i; 0 .. init.value.dim)
             {
                 Expression e = init.index[i];
                 if (!e)
@@ -875,7 +875,7 @@ Initializer inferType(Initializer init, Scope* sc)
         {
             auto elements = new Expressions(init.value.dim);
             elements.zero();
-            for (size_t i = 0; i < init.value.dim; i++)
+            foreach (const i; 0 .. init.value.dim)
             {
                 assert(!init.index[i]); // already asserted by isAssociativeArray()
                 Initializer iz = init.value[i];

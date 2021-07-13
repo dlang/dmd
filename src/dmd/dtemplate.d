@@ -1382,7 +1382,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         version (none)
         {
-            for (size_t i = 0; i < dedargs.dim; i++)
+            foreach (const i; 0 .. dedargs.dim)
             {
                 printf("\tdedarg[%d] = ", i);
                 RootObject oarg = (*dedargs)[i];
@@ -1412,7 +1412,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 assert(parameters.dim);
                 (*dedargs)[parameters.dim - 1] = t;
 
-                for (size_t i = 0; i < t.objects.dim; i++)
+                foreach (const i; 0 .. t.objects.dim)
                 {
                     t.objects[i] = (*tiargs)[n + i];
                 }
@@ -1424,7 +1424,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
             memcpy(dedargs.tdata(), tiargs.tdata(), n * (*dedargs.tdata()).sizeof);
 
-            for (size_t i = 0; i < n; i++)
+            foreach (const i; 0 .. n)
             {
                 assert(i < parameters.dim);
                 Declaration sparam = null;
@@ -1449,7 +1449,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
         version (none)
         {
-            for (size_t i = 0; i < dedargs.dim; i++)
+            foreach (const i; 0 .. dedargs.dim)
             {
                 printf("\tdedarg[%d] = ", i);
                 RootObject oarg = (*dedargs)[i];
@@ -1624,7 +1624,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         if (nfargs2 - argi < rem)
                             return nomatch();
                         declaredTuple.objects.setDim(nfargs2 - argi - rem);
-                        for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                        foreach (const i; 0 .. declaredTuple.objects.dim)
                         {
                             farg = (*fargs)[argi + i];
 
@@ -1666,7 +1666,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         // https://issues.dlang.org/show_bug.cgi?id=6810
                         // If declared tuple is not a type tuple,
                         // it cannot be function parameter types.
-                        for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                        foreach (const i; 0 .. declaredTuple.objects.dim)
                         {
                             if (!isType(declaredTuple.objects[i]))
                                 return nomatch();
@@ -2247,7 +2247,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         version (none)
         {
-            for (size_t i = 0; i < dedargs.dim; i++)
+            foreach (const i; 0 .. dedargs.dim)
             {
                 RootObject o = (*dedargs)[i];
                 printf("\tdedargs[%d] = %d, %s\n", i, o.dyncast(), o.toChars());
@@ -2606,7 +2606,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         printf("    tiargs:\n");
         if (tiargs)
         {
-            for (size_t i = 0; i < tiargs.dim; i++)
+            foreach (const i; 0 .. tiargs.dim)
             {
                 RootObject arg = (*tiargs)[i];
                 printf("\t%s\n", arg.toChars());
@@ -3150,7 +3150,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
  */
 private size_t templateIdentifierLookup(Identifier id, TemplateParameters* parameters)
 {
-    for (size_t i = 0; i < parameters.dim; i++)
+    foreach (const i; 0 .. parameters.dim)
     {
         TemplateParameter tp = (*parameters)[i];
         if (tp.ident.equals(id))
@@ -4009,7 +4009,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (tparam && tparam.ty == Tident)
             {
                 TypeIdentifier tp = cast(TypeIdentifier)tparam;
-                for (size_t i = 0; i < t.idents.dim; i++)
+                foreach (const i; 0 .. t.idents.dim)
                 {
                     RootObject id1 = t.idents[i];
                     RootObject id2 = tp.idents[i];
@@ -6993,7 +6993,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              *  }
              */
             size_t dim = td_last.parameters.dim - (td_last.isVariadic() ? 1 : 0);
-            for (size_t i = 0; i < dim; i++)
+            foreach (const i; 0 .. dim)
             {
                 if (tiargs.dim <= i)
                     tiargs.push(tdtypes[i]);

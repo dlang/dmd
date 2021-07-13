@@ -114,7 +114,7 @@ extern (C++) struct BaseClass
         auto bc = cast(BaseClass*)mem.xcalloc(sym.interfaces.length, BaseClass.sizeof);
         baseInterfaces = bc[0 .. sym.interfaces.length];
         //printf("%s.copyBaseInterfaces()\n", sym.toChars());
-        for (size_t i = 0; i < baseInterfaces.length; i++)
+        foreach (const i; 0 .. baseInterfaces.length)
         {
             BaseClass* b = &baseInterfaces[i];
             BaseClass* b2 = sym.interfaces[i];
@@ -399,7 +399,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         cd.storage_class |= storage_class;
 
         cd.baseclasses.setDim(this.baseclasses.dim);
-        for (size_t i = 0; i < cd.baseclasses.dim; i++)
+        foreach (const i; 0 .. cd.baseclasses.dim)
         {
             BaseClass* b = (*this.baseclasses)[i];
             auto b2 = new BaseClass(b.type.syntaxCopy());
@@ -432,7 +432,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (!cd)
             return false;
         //printf("ClassDeclaration.isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd.toChars());
-        for (size_t i = 0; i < cd.baseclasses.dim; i++)
+        foreach (const i; 0 .. cd.baseclasses.dim)
         {
             BaseClass* b = (*cd.baseclasses)[i];
             if (b.sym == this || isBaseOf2(b.sym))
@@ -513,7 +513,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (!s)
         {
             // Search bases classes in depth-first, left to right order
-            for (size_t i = 0; i < baseclasses.dim; i++)
+            foreach (const i; 0 .. baseclasses.dim)
             {
                 BaseClass* b = (*baseclasses)[i];
                 if (b.sym)
@@ -873,7 +873,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             return 0;
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (const i; 0 .. members.dim)
         {
             auto s = (*members)[i];
             if (s.apply(&func))
@@ -911,7 +911,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 return 0;
             }
 
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (const i; 0 .. members.dim)
             {
                 auto s = (*members)[i];
                 s.apply(&virtualSemantic);

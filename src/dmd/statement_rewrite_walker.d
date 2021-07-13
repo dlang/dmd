@@ -50,7 +50,7 @@ public:
     {
         if (s.statements && s.statements.dim)
         {
-            for (size_t i = 0; i < s.statements.dim; i++)
+            foreach (const i; 0 .. s.statements.dim)
             {
                 if ((*s.statements)[i])
                     visitStmt((*s.statements)[i]);
@@ -67,7 +67,7 @@ public:
     {
         if (s.statements && s.statements.dim)
         {
-            for (size_t i = 0; i < s.statements.dim; i++)
+            foreach (const i; 0 .. s.statements.dim)
             {
                 if ((*s.statements)[i])
                     visitStmt((*s.statements)[i]);
@@ -163,7 +163,7 @@ public:
             visitStmt(s._body);
         if (s.catches && s.catches.dim)
         {
-            for (size_t i = 0; i < s.catches.dim; i++)
+            foreach (const i; 0 .. s.catches.dim)
             {
                 Catch c = (*s.catches)[i];
                 if (c && c.handler)

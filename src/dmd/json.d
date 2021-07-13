@@ -396,7 +396,7 @@ public:
         arrayStart();
         if (parameters)
         {
-            for (size_t i = 0; i < parameters.dim; i++)
+            foreach (const i; 0 .. parameters.dim)
             {
                 Parameter p = (*parameters)[i];
                 objectStart();
@@ -495,7 +495,7 @@ public:
         property("comment", s.comment.toDString);
         propertyStart("members");
         arrayStart();
-        for (size_t i = 0; i < s.members.dim; i++)
+        foreach (const i; 0 .. s.members.dim)
         {
             (*s.members)[i].accept(this);
         }
@@ -526,7 +526,7 @@ public:
             property("alias", s.aliasId.toString());
         bool hasRenamed = false;
         bool hasSelective = false;
-        for (size_t i = 0; i < s.aliases.dim; i++)
+        foreach (const i; 0 .. s.aliases.dim)
         {
             // avoid empty "renamed" and "selective" sections
             if (hasRenamed && hasSelective)
@@ -541,7 +541,7 @@ public:
             // import foo : alias1 = target1;
             propertyStart("renamed");
             objectStart();
-            for (size_t i = 0; i < s.aliases.dim; i++)
+            foreach (const i; 0 .. s.aliases.dim)
             {
                 const name = s.names[i];
                 const _alias = s.aliases[i];
@@ -570,7 +570,7 @@ public:
         Dsymbols* ds = d.include(null);
         if (ds)
         {
-            for (size_t i = 0; i < ds.dim; i++)
+            foreach (const i; 0 .. ds.dim)
             {
                 Dsymbol s = (*ds)[i];
                 s.accept(this);
@@ -586,7 +586,7 @@ public:
             return; // Don't visit the if/else bodies again below
         }
         Dsymbols* ds = d.decl ? d.decl : d.elsedecl;
-        for (size_t i = 0; i < ds.dim; i++)
+        foreach (const i; 0 .. ds.dim)
         {
             Dsymbol s = (*ds)[i];
             s.accept(this);
@@ -635,7 +635,7 @@ public:
         {
             propertyStart("members");
             arrayStart();
-            for (size_t i = 0; i < d.members.dim; i++)
+            foreach (const i; 0 .. d.members.dim)
             {
                 Dsymbol s = (*d.members)[i];
                 s.accept(this);
@@ -657,7 +657,7 @@ public:
         {
             propertyStart("overrides");
             arrayStart();
-            for (size_t i = 0; i < d.foverrides.dim; i++)
+            foreach (const i; 0 .. d.foverrides.dim)
             {
                 FuncDeclaration fd = d.foverrides[i];
                 item(fd.toPrettyChars().toDString);
@@ -685,7 +685,7 @@ public:
         jsonProperties(d);
         propertyStart("parameters");
         arrayStart();
-        for (size_t i = 0; i < d.parameters.dim; i++)
+        foreach (const i; 0 .. d.parameters.dim)
         {
             TemplateParameter s = (*d.parameters)[i];
             objectStart();
@@ -736,7 +736,7 @@ public:
         }
         propertyStart("members");
         arrayStart();
-        for (size_t i = 0; i < d.members.dim; i++)
+        foreach (const i; 0 .. d.members.dim)
         {
             Dsymbol s = (*d.members)[i];
             s.accept(this);
@@ -751,7 +751,7 @@ public:
         {
             if (d.members)
             {
-                for (size_t i = 0; i < d.members.dim; i++)
+                foreach (const i; 0 .. d.members.dim)
                 {
                     Dsymbol s = (*d.members)[i];
                     s.accept(this);
@@ -766,7 +766,7 @@ public:
         {
             propertyStart("members");
             arrayStart();
-            for (size_t i = 0; i < d.members.dim; i++)
+            foreach (const i; 0 .. d.members.dim)
             {
                 Dsymbol s = (*d.members)[i];
                 s.accept(this);

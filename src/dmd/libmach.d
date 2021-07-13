@@ -339,7 +339,7 @@ private:
         }
         __gshared char* pad = [0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A, 0x0A];
         /************* Scan Object Modules for Symbols ******************/
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MachObjModule* om = objmodules[i];
             if (om.scan)
@@ -349,7 +349,7 @@ private:
         }
         /************* Determine module offsets ******************/
         uint moffset = 8 + MachLibHeader.sizeof + 4 + 4;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (const i; 0 .. objsymbols.dim)
         {
             MachObjSymbol* os = objsymbols[i];
             moffset += 8 + os.name.length + 1;
@@ -362,7 +362,7 @@ private:
         {
             printf("\tmoffset = x%x\n", moffset);
         }
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MachObjModule* om = objmodules[i];
             moffset += moffset & 1;
@@ -413,7 +413,7 @@ private:
         Port.writelongLE(cast(uint)(objsymbols.dim * 8), buf.ptr);
         libbuf.write(buf[0 .. 4]);
         int stringoff = 0;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (const i; 0 .. objsymbols.dim)
         {
             MachObjSymbol* os = objsymbols[i];
             Port.writelongLE(stringoff, buf.ptr);
@@ -424,7 +424,7 @@ private:
         }
         Port.writelongLE(stringoff, buf.ptr);
         libbuf.write(buf[0 .. 4]);
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (const i; 0 .. objsymbols.dim)
         {
             MachObjSymbol* os = objsymbols[i];
             libbuf.writestring(os.name);
@@ -441,7 +441,7 @@ private:
         assert(libbuf.length == hoffset);
         /* Write out each of the object modules
          */
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MachObjModule* om2 = objmodules[i];
             if (libbuf.length & 1)

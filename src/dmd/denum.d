@@ -79,7 +79,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         version (none)
         {
             printf("EnumDeclaration::addMember() %s\n", toChars());
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (const i; 0 .. members.dim)
             {
                 EnumMember em = (*members)[i].isEnumMember();
                 printf("    member %s\n", em.toChars());

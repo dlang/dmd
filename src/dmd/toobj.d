@@ -110,7 +110,7 @@ void genModuleInfo(Module m)
 
     // importedModules[]
     size_t aimports_dim = m.aimports.dim;
-    for (size_t i = 0; i < m.aimports.dim; i++)
+    foreach (const i; 0 .. m.aimports.dim)
     {
         Module mod = m.aimports[i];
         if (!mod.needmoduleinfo)
@@ -262,7 +262,7 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
     const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
     const bits_size_t = bytes_size_t * 8;
     auto words = cast(size_t)(sz / bytes_size_t);
-    for (size_t i = 0; i < data.dim; i++)
+    foreach (const i; 0 .. data.dim)
     {
         size_t bits = words < bits_size_t ? words : bits_size_t;
         for (size_t b = 0; b < bits; b++)
@@ -732,7 +732,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (d)
             {
-                for (size_t i = 0; i < d.dim; i++)
+                foreach (const i; 0 .. d.dim)
                 {
                     Dsymbol s = (*d)[i];
                     s.accept(this);
@@ -1109,7 +1109,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
     uint csymoffset = target.classinfosize;    // must be ClassInfo.size
     csymoffset += cd.vtblInterfaces.dim * (4 * target.ptrsize);
 
-    for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
+    foreach (const i; 0 .. cd.vtblInterfaces.dim)
     {
         BaseClass *b = (*cd.vtblInterfaces)[i];
 
@@ -1322,7 +1322,7 @@ Louter:
     {
         if (pc.members)
         {
-            for (size_t i = 0; i < pc.members.dim; i++)
+            foreach (const i; 0 .. pc.members.dim)
             {
                 Dsymbol sm = (*pc.members)[i];
                 //printf("sm = %s %s\n", sm.kind(), sm.toChars());
@@ -1365,7 +1365,7 @@ Louter:
     // of the fixup (*)
 
     offset += cd.vtblInterfaces.dim * (4 * target.ptrsize);
-    for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
+    foreach (const i; 0 .. cd.vtblInterfaces.dim)
     {
         BaseClass *b = (*cd.vtblInterfaces)[i];
         ClassDeclaration id = b.sym;
@@ -1557,7 +1557,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     // of the fixup (*)
 
     offset += id.vtblInterfaces.dim * (4 * target.ptrsize);
-    for (size_t i = 0; i < id.vtblInterfaces.dim; i++)
+    foreach (const i; 0 .. id.vtblInterfaces.dim)
     {
         BaseClass *b = (*id.vtblInterfaces)[i];
         ClassDeclaration base = b.sym;

@@ -1153,7 +1153,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             Expressions a;
             a.push(e2);
 
-            for (size_t i = 0; i < os.a.dim; i++)
+            foreach (const i; 0 .. os.a.dim)
             {
                 if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, FuncResolveFlag.quiet))
                 {
@@ -1170,7 +1170,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             }
         }
         {
-            for (size_t i = 0; i < os.a.dim; i++)
+            foreach (const i; 0 .. os.a.dim)
             {
                 if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, FuncResolveFlag.quiet))
                 {
@@ -1403,7 +1403,7 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
     size_t j0 = ~0;
     bool foundType;
 
-    for (size_t i = 0; i < exps.dim; i++)
+    foreach (const i; 0 .. exps.dim)
     {
         Expression e = exps[i];
         if (!e)
@@ -1478,7 +1478,7 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
     if (t0.ty == Terror)
         return null;
 
-    for (size_t i = 0; i < exps.dim; i++)
+    foreach (const i; 0 .. exps.dim)
     {
         Expression e = exps[i];
         if (!e)
@@ -1607,7 +1607,7 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
     {
         expandTuples(exps);
 
-        for (size_t i = 0; i < exps.dim; i++)
+        foreach (const i; 0 .. exps.dim)
         {
             Expression arg = (*exps)[i];
             arg = resolveProperties(sc, arg);
@@ -3075,7 +3075,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // Run semantic() on each argument
         bool err = false;
-        for (size_t i = 0; i < exp.exps.dim; i++)
+        foreach (const i; 0 .. exp.exps.dim)
         {
             Expression e = (*exp.exps)[i];
             e = e.expressionSemantic(sc);
@@ -3581,7 +3581,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (cd.isAbstract())
             {
                 exp.error("cannot create instance of abstract class `%s`", cd.toChars());
-                for (size_t i = 0; i < cd.vtbl.dim; i++)
+                foreach (const i; 0 .. cd.vtbl.dim)
                 {
                     FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
                     if (fd && fd.isAbstract())
@@ -3872,7 +3872,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.error("default construction is disabled for type `%s`", tb.nextOf().toChars());
                 return setError();
             }
-            for (size_t i = 0; i < nargs; i++)
+            foreach (const i; 0 .. nargs)
             {
                 if (tb.ty != Tarray)
                 {
@@ -4213,7 +4213,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto tiargs = new Objects();
             tiargs.reserve(exp.td.parameters.dim);
 
-            for (size_t i = 0; i < exp.td.parameters.dim; i++)
+            foreach (const i; 0 .. exp.td.parameters.dim)
             {
                 TemplateParameter tp = (*exp.td.parameters)[i];
                 assert(dim <= tfl.parameterList.length);
@@ -5615,7 +5615,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     args.reserve(cd.baseclasses.dim);
                     if (cd.semanticRun < PASS.semanticdone)
                         cd.dsymbolSemantic(null);
-                    for (size_t i = 0; i < cd.baseclasses.dim; i++)
+                    foreach (const i; 0 .. cd.baseclasses.dim)
                     {
                         BaseClass* b = (*cd.baseclasses)[i];
                         args.push(new Parameter(STC.in_, b.type, null, null, null));
@@ -6470,7 +6470,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             auto exps = new Expressions();
             exps.reserve(tup.objects.dim);
-            for (size_t i = 0; i < tup.objects.dim; i++)
+            foreach (const i; 0 .. tup.objects.dim)
             {
                 RootObject o = (*tup.objects)[i];
                 Expression e;
@@ -8763,7 +8763,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else
                 {
                     auto exps = new Expressions(dim);
-                    for (size_t i = 0; i < dim; i++)
+                    foreach (const i; 0 .. dim)
                     {
                         Expression ex1 = (*tup1.exps)[i];
                         Expression ex2 = (*tup2.exps)[i];
@@ -11885,7 +11885,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
          */
         TupleExp te = cast(TupleExp)exp.e1;
         auto exps = new Expressions(te.exps.dim);
-        for (size_t i = 0; i < exps.dim; i++)
+        foreach (const i; 0 .. exps.dim)
         {
             Expression e = (*te.exps)[i];
             e = e.expressionSemantic(sc);
@@ -12745,7 +12745,7 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
 
     const nfields = sd.nonHiddenFields();
     size_t offset = 0;
-    for (size_t i = 0; i < elements.dim; i++)
+    foreach (const i; 0 .. elements.dim)
     {
         Expression e = (*elements)[i];
         if (!e)

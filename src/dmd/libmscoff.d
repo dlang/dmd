@@ -418,7 +418,7 @@ private:
         }
         assert(MSCoffLibHeader.sizeof == 60);
         /************* Scan Object Modules for Symbols ******************/
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MSCoffObjModule* om = objmodules[i];
             if (om.scan)
@@ -430,7 +430,7 @@ private:
         /* The longnames section is where we store long file names.
          */
         uint noffset = 0;
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MSCoffObjModule* om = objmodules[i];
             size_t len = om.name.length;
@@ -448,7 +448,7 @@ private:
         }
         /************* Determine string table length ******************/
         size_t slength = 0;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (const i; 0 .. objsymbols.dim)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             slength += os.name.length + 1;
@@ -468,7 +468,7 @@ private:
             printf("\tmoffset = x%x\n", moffset);
         }
         /************* Offset of each module *************************/
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MSCoffObjModule* om = objmodules[i];
             moffset += moffset & 1;
@@ -504,7 +504,7 @@ private:
         // Sort objsymbols[] in module offset order
         objsymbols.sort!(MSCoffObjSymbol.offset_pred);
         uint lastoffset;
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (const i; 0 .. objsymbols.dim)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             //printf("objsymbols[%d] = '%s', offset = %u\n", i, os.name, os.om.offset);
@@ -517,7 +517,7 @@ private:
             Port.writelongBE(lastoffset, buf.ptr);
             libbuf.write(buf[0 .. 4]);
         }
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (const i; 0 .. objsymbols.dim)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             libbuf.writestring(os.name);
@@ -532,7 +532,7 @@ private:
         libbuf.write((&h)[0 .. 1]);
         Port.writelongLE(cast(uint)objmodules.dim, buf.ptr);
         libbuf.write(buf[0 .. 4]);
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MSCoffObjModule* om2 = objmodules[i];
             om2.index = cast(ushort)i;
@@ -543,13 +543,13 @@ private:
         libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in lexical order
         objsymbols.sort!(MSCoffObjSymbol.name_pred);
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (const i; 0 .. objsymbols.dim)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             Port.writelongLE(os.om.index + 1, buf.ptr);
             libbuf.write(buf[0 .. 2]);
         }
-        for (size_t i = 0; i < objsymbols.dim; i++)
+        foreach (const i; 0 .. objsymbols.dim)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             libbuf.writestring(os.name);
@@ -570,7 +570,7 @@ private:
         h.trailer[0] = '`';
         h.trailer[1] = '\n';
         libbuf.write((&h)[0 .. 1]);
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MSCoffObjModule* om2 = objmodules[i];
             if (om2.name_offset >= 0)
@@ -581,7 +581,7 @@ private:
         }
         /* Write out each of the object modules
          */
-        for (size_t i = 0; i < objmodules.dim; i++)
+        foreach (const i; 0 .. objmodules.dim)
         {
             MSCoffObjModule* om2 = objmodules[i];
             if (libbuf.length & 1)

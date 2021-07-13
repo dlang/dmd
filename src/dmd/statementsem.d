@@ -2813,7 +2813,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (ss.cases)
             numcases = ss.cases.dim;
 
-        for (size_t i = 0; i < numcases; i++)
+        foreach (const i; 0 .. numcases)
         {
             CaseStatement cs = (*ss.cases)[i];
             cs.index = cast(int)i;

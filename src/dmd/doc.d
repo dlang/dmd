@@ -386,7 +386,7 @@ extern(C++) void gendocfile(Module m)
         if (p)
             global.params.ddocfiles.shift(p);
         // Override with the ddoc macro files from the command line
-        for (size_t i = 0; i < global.params.ddocfiles.dim; i++)
+        foreach (const i; 0 .. global.params.ddocfiles.dim)
         {
             auto buffer = readFile(m.loc, global.params.ddocfiles[i]);
             // BUG: convert file contents to UTF-8 before use
@@ -862,7 +862,7 @@ private void expandTemplateMixinComments(TemplateMixin tm, ref OutBuffer buf, Sc
     TemplateDeclaration td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
     if (td && td.members)
     {
-        for (size_t i = 0; i < td.members.dim; i++)
+        foreach (const i; 0 .. td.members.dim)
         {
             Dsymbol sm = (*td.members)[i];
             TemplateMixin tmc = sm.isTemplateMixin();
@@ -894,7 +894,7 @@ private void emitMemberComments(ScopeDsymbol sds, ref OutBuffer buf, Scope* sc)
     buf.writestring(m);
     size_t offset2 = buf.length; // to see if we write anything
     sc = sc.push(sds);
-    for (size_t i = 0; i < sds.members.dim; i++)
+    foreach (const i; 0 .. sds.members.dim)
     {
         Dsymbol s = (*sds.members)[i];
         //printf("\ts = '%s'\n", s.toChars());
@@ -1006,7 +1006,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
 
                 // Put the declaration signatures as the document 'title'
                 buf.writestring(ddoc_decl_s);
-                for (size_t i = 0; i < dc.a.dim; i++)
+                foreach (const i; 0 .. dc.a.dim)
                 {
                     Dsymbol sx = dc.a[i];
                     // the added linebreaks in here make looking at multiple
@@ -1134,7 +1134,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 return;
             if (ed.isAnonymous() && ed.members)
             {
-                for (size_t i = 0; i < ed.members.dim; i++)
+                foreach (const i; 0 .. ed.members.dim)
                 {
                     Dsymbol s = (*ed.members)[i];
                     emitComment(s, *buf, sc);
@@ -1172,7 +1172,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
             Dsymbols* d = ad.include(null);
             if (d)
             {
-                for (size_t i = 0; i < d.dim; i++)
+                foreach (const i; 0 .. d.dim)
                 {
                     Dsymbol s = (*d)[i];
                     //printf("AttribDeclaration::emitComment %s\n", s.toChars());
@@ -1206,7 +1206,7 @@ private void emitComment(Dsymbol s, ref OutBuffer buf, Scope* sc)
              * a template, then include(null) will fail.
              */
             Dsymbols* d = cd.decl ? cd.decl : cd.elsedecl;
-            for (size_t i = 0; i < d.dim; i++)
+            foreach (const i; 0 .. d.dim)
             {
                 Dsymbol s = (*d)[i];
                 emitComment(s, *buf, sc);
@@ -1322,7 +1322,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 buf.writeByte('(');
                 if (td.origParameters && td.origParameters.dim)
                 {
-                    for (size_t i = 0; i < td.origParameters.dim; i++)
+                    foreach (const i; 0 .. td.origParameters.dim)
                     {
                         if (i)
                             buf.writestring(", ");
@@ -1480,7 +1480,7 @@ private void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
                 buf.printf("%s %s", cd.kind(), cd.toChars());
             }
             int any = 0;
-            for (size_t i = 0; i < cd.baseclasses.dim; i++)
+            foreach (const i; 0 .. cd.baseclasses.dim)
             {
                 BaseClass* bc = (*cd.baseclasses)[i];
                 if (bc.sym && bc.sym.ident == Id.Object)
@@ -1553,7 +1553,7 @@ struct DocComment
         if (!comment)
             return dc;
         dc.parseSections(comment);
-        for (size_t i = 0; i < dc.sections.dim; i++)
+        foreach (const i; 0 .. dc.sections.dim)
         {
             Section sec = dc.sections[i];
             if (iequals("copyright", sec.name))
@@ -1880,7 +1880,7 @@ struct DocComment
         size_t offset1 = buf.length;
         buf.writestring("$(DDOC_SECTIONS ");
         size_t offset2 = buf.length;
-        for (size_t i = 0; i < sections.dim; i++)
+        foreach (const i; 0 .. sections.dim)
         {
             Section sec = sections[i];
             if (sec.nooutput)
@@ -1898,7 +1898,7 @@ struct DocComment
             else
                 sec.write(loc, &this, sc, a, buf);
         }
-        for (size_t i = 0; i < a.dim; i++)
+        foreach (const i; 0 .. a.dim)
         {
             Dsymbol s = (*a)[i];
             if (Dsymbol td = getEponymousParent(s))
@@ -2680,7 +2680,7 @@ private Parameter isFunctionParameter(Dsymbol s, const(char)* p, size_t len)
  */
 private Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (const i; 0 .. a.dim)
     {
         Parameter fparam = isFunctionParameter((*a)[i], p, len);
         if (fparam)
@@ -2695,7 +2695,7 @@ private Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
  */
 private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size_t len)
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (const i; 0 .. a.dim)
     {
         TemplateDeclaration td = (*a)[i].isTemplateDeclaration();
         if (td && td.onemember)
@@ -2743,7 +2743,7 @@ private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size
  */
 private TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, size_t len)
 {
-    for (size_t i = 0; i < a.dim; i++)
+    foreach (const i; 0 .. a.dim)
     {
         TemplateDeclaration td = (*a)[i].isTemplateDeclaration();
         // Check for the parent, if the current symbol is not a template declaration.

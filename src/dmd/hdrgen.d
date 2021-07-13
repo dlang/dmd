@@ -1972,7 +1972,7 @@ public:
     {
         buf.writeByte('"');
         const o = buf.length;
-        for (size_t i = 0; i < e.len; i++)
+        foreach (const i; 0 .. e.len)
         {
             const c = e.charAt(i);
             switch (c)

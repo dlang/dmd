@@ -231,7 +231,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
     }
     s = s.toAlias();
     //printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
-    for (size_t i = 0; i < mt.idents.dim; i++)
+    foreach (const i; 0 .. mt.idents.dim)
     {
         RootObject id = mt.idents[i];
         if (id.dyncast() == DYNCAST.expression ||
@@ -1165,7 +1165,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         if (mtype.parameterList.parameters)
         {
             tf.parameterList.parameters = mtype.parameterList.parameters.copy();
-            for (size_t i = 0; i < mtype.parameterList.parameters.dim; i++)
+            foreach (const i; 0 .. mtype.parameterList.parameters.dim)
             {
                 Parameter p = cast(Parameter)mem.xmalloc(__traits(classInstanceSize, Parameter));
                 memcpy(cast(void*)p, cast(void*)(*mtype.parameterList.parameters)[i], __traits(classInstanceSize, Parameter));
@@ -3233,7 +3233,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
                  * is a slice [i1..i2] out of the old one.
                  */
                 auto objects = new Objects(cast(size_t)(i2 - i1));
-                for (size_t i = 0; i < objects.dim; i++)
+                foreach (const i; 0 .. objects.dim)
                 {
                     (*objects)[i] = (*td.objects)[cast(size_t)i1 + i];
                 }
@@ -3868,7 +3868,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             auto exps = new Expressions();
             exps.reserve(mt.sym.fields.dim);
-            for (size_t i = 0; i < mt.sym.fields.dim; i++)
+            foreach (const i; 0 .. mt.sym.fields.dim)
             {
                 VarDeclaration v = mt.sym.fields[i];
                 Expression ex;
@@ -4126,7 +4126,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             auto exps = new Expressions();
             exps.reserve(mt.sym.fields.dim);
-            for (size_t i = 0; i < mt.sym.fields.dim; i++)
+            foreach (const i; 0 .. mt.sym.fields.dim)
             {
                 VarDeclaration v = mt.sym.fields[i];
                 // Don't include hidden 'this' pointer
@@ -4698,7 +4698,7 @@ Expression defaultInit(Type mt, const ref Loc loc)
             printf("TypeTuple::defaultInit() '%s'\n", mt.toChars());
         }
         auto exps = new Expressions(mt.arguments.dim);
-        for (size_t i = 0; i < mt.arguments.dim; i++)
+        foreach (const i; 0 .. mt.arguments.dim)
         {
             Parameter p = (*mt.arguments)[i];
             assert(p.type);
@@ -4818,7 +4818,7 @@ private Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identif
     }
 
     bool first = true;
-    for (size_t i = 0; i < ed.members.dim; i++)
+    foreach (const i; 0 .. ed.members.dim)
     {
         EnumMember em = (*ed.members)[i].isEnumMember();
         if (!em)
