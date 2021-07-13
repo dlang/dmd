@@ -574,7 +574,7 @@ MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
             if (result != MATCH.nomatch)
                 return;
-            if (e.type.ty == t.ty && e.type.ty == Tstruct && (cast(TypeStruct)e.type).sym == (cast(TypeStruct)t).sym)
+            if (e.type.ty == t.ty && e.type.isTypeStruct() && e.type.isTypeStruct().sym == t.isTypeStruct().sym)
             {
                 result = MATCH.constant;
                 foreach (i, el; (*e.elements)[])
@@ -615,7 +615,7 @@ MATCH implicitConvTo(Expression e, Type t)
                     TY tynto = t.nextOf().ty;
                     if (tynto == tyn)
                     {
-                        if ((cast(TypeSArray)e.type).dim.toInteger() == (cast(TypeSArray)t).dim.toInteger())
+                        if (e.type.isTypeSArray().dim.toInteger() == t.isTypeSArray().dim.toInteger())
                         {
                             result = MATCH.exact;
                         }
@@ -626,7 +626,7 @@ MATCH implicitConvTo(Expression e, Type t)
                         if (e.committed && tynto != tyn)
                             return;
                         size_t fromlen = e.numberOfCodeUnits(tynto);
-                        size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                        size_t tolen = cast(size_t)t.isTypeSArray().dim.toInteger();
                         if (tolen < fromlen)
                             return;
                         if (tolen != fromlen)
@@ -650,7 +650,7 @@ MATCH implicitConvTo(Expression e, Type t)
                         if (e.committed && tynto != tyn)
                             return;
                         size_t fromlen = e.numberOfCodeUnits(tynto);
-                        size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                        size_t tolen = cast(size_t)t.isTypeSArray().dim.toInteger();
                         if (tolen < fromlen)
                             return;
                         if (tolen != fromlen)
@@ -703,7 +703,7 @@ MATCH implicitConvTo(Expression e, Type t)
                         result = m;
                         return;
                     case Tenum:
-                        if ((cast(TypeEnum)tn).sym.isSpecial())
+                        if (tn.isTypeEnum().sym.isSpecial())
                         {
                             /* Allow string literal -> const(wchar_t)[]
                              */
@@ -1228,7 +1228,7 @@ MATCH implicitConvTo(Expression e, Type t)
                     continue;
                 if (fd.errors || fd.type.ty != Tfunction)
                     return; // error
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                TypeFunction tf = fd.type.isTypeFunction();
                 if (tf.purity == PURE.impure)
                     return; // impure
 
@@ -1306,10 +1306,10 @@ MATCH implicitConvTo(Expression e, Type t)
             Type ntb = e.newtype.toBasetype();
             if (ntb.ty == Tarray)
                 ntb = ntb.nextOf().toBasetype();
-            if (ntb.ty == Tstruct)
+            if (auto ts = ntb.isTypeStruct())
             {
                 // Don't allow nested structs - uplevel reference may not be convertible
-                StructDeclaration sd = (cast(TypeStruct)ntb).sym;
+                StructDeclaration sd = ts.sym;
                 sd.size(e.loc); // resolve any forward references
                 if (sd.isNested())
                     return;
@@ -1318,11 +1318,11 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 /* Zeros are implicitly convertible, except for special cases.
                  */
-                if (ntb.ty == Tclass)
+                if (auto tc = ntb.isTypeClass())
                 {
                     /* With new() must look at the class instance initializer.
                      */
-                    ClassDeclaration cd = (cast(TypeClass)ntb).sym;
+                    ClassDeclaration cd = tc.sym;
 
                     cd.size(e.loc); // resolve any forward references
 
@@ -1632,7 +1632,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             else if (tob.ty == Tvector && t1b.ty != Tvector)
             {
                 //printf("test1 e = %s, e.type = %s, tob = %s\n", e.toChars(), e.type.toChars(), tob.toChars());
-                TypeVector tv = cast(TypeVector)tob;
+                TypeVector tv = tob.isTypeVector();
                 result = new CastExp(e.loc, e, tv.elementType());
                 result = new VectorExp(e.loc, result, tob);
                 result = result.expressionSemantic(sc);
@@ -1704,7 +1704,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     // cast(U[])sa; // ==> cast(U[])sa[];
                     d_uns64 fsize = t1b.nextOf().size();
                     d_uns64 tsize = tob.nextOf().size();
-                    if (((cast(TypeSArray)t1b).dim.toInteger() * fsize) % tsize != 0)
+                    if ((t1b.isTypeSArray().dim.toInteger() * fsize) % tsize != 0)
                     {
                         // copied from sarray_toDarray() in e2ir.c
                         e.error("cannot cast expression `%s` of type `%s` to `%s` since sizes don't line up", e.toChars(), e.type.toChars(), t.toChars());
@@ -1887,7 +1887,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 d_uns64 szx = tb.nextOf().size();
                 assert(szx <= 255);
                 se.sz = cast(ubyte)szx;
-                se.len = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
+                se.len = cast(size_t)tb.isTypeSArray().dim.toInteger();
                 se.committed = 1;
                 se.type = t;
 
@@ -2061,9 +2061,9 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             assert(copied);
 
             // See if need to truncate or extend the literal
-            if (tb.ty == Tsarray)
+            if (auto tsa = tb.isTypeSArray())
             {
-                size_t dim2 = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
+                size_t dim2 = cast(size_t)tsa.dim.toInteger();
                 //printf("dim from = %d, to = %d\n", (int)se.len, (int)dim2);
 
                 // Changing dimensions
@@ -2181,7 +2181,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 return;
             }
 
-            TupleExp te = cast(TupleExp)e.copy();
+            TupleExp te = e.copy().isTupleExp();
             te.e0 = e.e0 ? e.e0.copy() : null;
             te.exps = e.exps.copy();
             for (size_t i = 0; i < te.exps.dim; i++)
@@ -2243,9 +2243,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 }
                 else
                 {
-                    if (tb.ty == Tsarray)
+                    if (auto tsa = tb.isTypeSArray())
                     {
-                        TypeSArray tsa = cast(TypeSArray)tb;
                         if (e.elements.dim != tsa.dim.toInteger())
                             goto L1;
                     }
@@ -2279,15 +2278,15 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
             {
                 // Convert array literal to vector type
-                TypeVector tv = cast(TypeVector)tb;
-                TypeSArray tbase = cast(TypeSArray)tv.basetype;
+                TypeVector tv = tb.isTypeVector();
+                TypeSArray tbase = tv.basetype.isTypeSArray();
                 assert(tbase.ty == Tsarray);
                 const edim = e.elements.dim;
                 const tbasedim = tbase.dim.toInteger();
                 if (edim > tbasedim)
                     goto L1;
 
-                ae = cast(ArrayLiteralExp)e.copy();
+                ae = e.copy().isArrayLiteralExp();
                 ae.type = tbase; // https://issues.dlang.org/show_bug.cgi?id=12642
                 ae.elements = e.elements.copy();
                 Type telement = tv.elementType();
@@ -2340,7 +2339,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     (*ae.values)[i] = ex;
 
                     ex = (*e.keys)[i];
-                    ex = ex.castTo(sc, (cast(TypeAArray)tb).index);
+                    ex = ex.castTo(sc, tb.isTypeAArray().index);
                     (*ae.keys)[i] = ex;
                 }
                 ae.type = t;
@@ -2555,7 +2554,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
             // Handle the cast from Tarray to Tsarray with CT-known slicing
 
-            TypeSArray tsa = cast(TypeSArray)toStaticArrayType(e);
+            TypeSArray tsa = toStaticArrayType(e).isTypeSArray();
             if (tsa && tsa.size(e.loc) == tb.size(e.loc))
             {
                 /* Match if the sarray sizes are equal:
@@ -2569,7 +2568,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 result.type = t;
                 return;
             }
-            if (tsa && tsa.dim.equals((cast(TypeSArray)tb).dim))
+            if (tsa && tsa.dim.equals(tb.isTypeSArray().dim))
             {
                 /* Match if the dimensions are equal
                  * with the implicit conversion of e.e1:
@@ -2577,7 +2576,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                  */
                 Type t1b = e.e1.type.toBasetype();
                 if (t1b.ty == Tsarray)
-                    t1b = tb.nextOf().sarrayOf((cast(TypeSArray)t1b).dim.toInteger());
+                    t1b = tb.nextOf().sarrayOf(t1b.isTypeSArray().dim.toInteger());
                 else if (t1b.ty == Tarray)
                     t1b = tb.nextOf().arrayOf();
                 else if (t1b.ty == Tpointer)
@@ -2654,9 +2653,8 @@ Expression inferType(Expression e, Type t, int flag = 0)
     Expression visitAar(AssocArrayLiteralExp aale)
     {
         Type tb = t.toBasetype();
-        if (tb.ty == Taarray)
+        if (auto taa = tb.isTypeAArray())
         {
-            TypeAArray taa = cast(TypeAArray)tb;
             Type ti = taa.index;
             Type tv = taa.nextOf();
             for (size_t i = 0; i < aale.keys.dim; i++)
@@ -2880,7 +2878,7 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
 
     if (t1.mod != t2.mod &&
         t1.ty == Tenum && t2.ty == Tenum &&
-        (cast(TypeEnum)t1).sym == (cast(TypeEnum)t2).sym)
+        t1.isTypeEnum().sym == t2.isTypeEnum().sym)
     {
         ubyte mod = MODmerge(t1.mod, t2.mod);
         t1 = t1.castMod(mod);
@@ -2950,8 +2948,8 @@ Lagain:
 
         if (t1n.ty == Tfunction && t2n.ty == Tfunction)
         {
-            TypeFunction tf1 = cast(TypeFunction)t1n;
-            TypeFunction tf2 = cast(TypeFunction)t2n;
+            TypeFunction tf1 = t1n.isTypeFunction();
+            TypeFunction tf2 = t2n.isTypeFunction();
             tf1.purityLevel();
             tf2.purityLevel();
 
@@ -3021,7 +3019,7 @@ Lagain:
         return null;
     }
 
-    if ((t1.ty == Tsarray || t1.ty == Tarray) && (e2.op == TOK.null_ && t2.ty == Tpointer && t2.nextOf().ty == Tvoid || e2.op == TOK.arrayLiteral && t2.ty == Tsarray && t2.nextOf().ty == Tvoid && (cast(TypeSArray)t2).dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
+    if ((t1.ty == Tsarray || t1.ty == Tarray) && (e2.op == TOK.null_ && t2.ty == Tpointer && t2.nextOf().ty == Tvoid || e2.op == TOK.arrayLiteral && t2.ty == Tsarray && t2.nextOf().ty == Tvoid && t2.isTypeSArray().dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
     {
         /*  (T[n] op void*)   => T[]
          *  (T[]  op void*)   => T[]
@@ -3033,7 +3031,7 @@ Lagain:
         return coerce(t1.nextOf().arrayOf());
     }
 
-    if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == TOK.null_ && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == TOK.arrayLiteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && (cast(TypeSArray)t1).dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
+    if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == TOK.null_ && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == TOK.arrayLiteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && t1.isTypeSArray().dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
     {
         /*  (void*   op T[n]) => T[]
          *  (void*   op T[])  => T[]
@@ -3145,8 +3143,8 @@ Lagain:
 
             if (t1.ty == Tclass && t2.ty == Tclass)
             {
-                TypeClass tc1 = cast(TypeClass)t1;
-                TypeClass tc2 = cast(TypeClass)t2;
+                TypeClass tc1 = t1.isTypeClass();
+                TypeClass tc2 = t2.isTypeClass();
 
                 /* Pick 'tightest' type
                  */
@@ -3164,7 +3162,7 @@ Lagain:
                 else
                     return null;
             }
-            else if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
+            else if (t1.ty == Tstruct && t1.isTypeStruct().sym.aliasthis)
             {
                 if (isRecursiveAliasThis(att1, e1.type))
                     return null;
@@ -3173,7 +3171,7 @@ Lagain:
                 t1 = e1.type;
                 continue;
             }
-            else if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
+            else if (t2.ty == Tstruct && t2.isTypeStruct().sym.aliasthis)
             {
                 if (isRecursiveAliasThis(att2, e2.type))
                     return null;
@@ -3200,8 +3198,8 @@ Lagain:
             goto Lagain;
         }
 
-        TypeStruct ts1 = cast(TypeStruct)t1;
-        TypeStruct ts2 = cast(TypeStruct)t2;
+        TypeStruct ts1 = t1.isTypeStruct();
+        TypeStruct ts2 = t2.isTypeStruct();
         if (ts1.sym != ts2.sym)
         {
             if (!ts1.sym.aliasthis && !ts2.sym.aliasthis)
@@ -3253,7 +3251,7 @@ Lagain:
 
     if (t1.ty == Tstruct || t2.ty == Tstruct)
     {
-        if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
+        if (t1.ty == Tstruct && t1.isTypeStruct().sym.aliasthis)
         {
             if (isRecursiveAliasThis(att1, e1.type))
                 return null;
@@ -3263,7 +3261,7 @@ Lagain:
             t = t1;
             goto Lagain;
         }
-        if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
+        if (t2.ty == Tstruct && t2.isTypeStruct().sym.aliasthis)
         {
             if (isRecursiveAliasThis(att2, e2.type))
                 return null;
@@ -3290,8 +3288,8 @@ Lagain:
         // https://issues.dlang.org/show_bug.cgi?id=13841
         // all vector types should have no common types between
         // different vectors, even though their sizes are same.
-        auto tv1 = cast(TypeVector)t1;
-        auto tv2 = cast(TypeVector)t2;
+        auto tv1 = t1.isTypeVector();
+        auto tv2 = t2.isTypeVector();
         if (!tv1.basetype.equals(tv2.basetype))
             return null;
 
