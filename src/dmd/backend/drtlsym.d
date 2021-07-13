@@ -109,6 +109,8 @@ Symbol *getRtlsym(int i)
         case RTLSYM_DUNITTEST_MSG:          symbolz(ps,FLfunc,FREGSAVED,"_d_unittest_msg", 0, t); break;
         case RTLSYM_DARRAY:                 symbolz(ps,FLfunc,FREGSAVED,"_d_arraybounds", SFLexit, t); break;
         case RTLSYM_DARRAYP:                symbolz(ps,FLfunc,FREGSAVED,"_d_arrayboundsp", SFLexit, t); break;
+        case RTLSYM_DARRAY_SLICEP:          symbolz(ps,FLfunc,FREGSAVED,"_d_arraybounds_slicep", SFLexit, t); break;
+        case RTLSYM_DARRAY_INDEXP:          symbolz(ps,FLfunc,FREGSAVED,"_d_arraybounds_indexp", SFLexit, t); break;
         case RTLSYM_DINVARIANT:             symbolz(ps,FLfunc,FREGSAVED,"_D9invariant12_d_invariantFC6ObjectZv", 0, tsdlib); break;
         case RTLSYM_MEMCPY:                 symbolz(ps,FLfunc,FREGSAVED,"memcpy",    0, t); break;
         case RTLSYM_MEMSET8:                symbolz(ps,FLfunc,FREGSAVED,"memset",    0, t); break;
