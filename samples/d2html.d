@@ -98,7 +98,7 @@ void main(string[] args)
                     if (c == 9)
                     {
                         // expand tabs to spaces
-                        immutable auto spaces = tabsize -
+                        immutable spaces = tabsize -
                                      (src.tell() - linestart) % tabsize;
 
                         for (int i = 0; i < spaces; i++)
