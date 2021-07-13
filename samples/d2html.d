@@ -48,19 +48,15 @@ void main(string[] args)
 
     // load keywords
     // check if file 'd2html.kwd' exists
-    if (exists("d2html.kwd"))
-    {
-        auto kwd = File("d2html.kwd");
-
-        foreach (word; kwd.byLine())
-            keywords[word.idup] = true;
-        kwd.close();
-    }
-    else
-    {
-        writeln("d2html.kwd file does not exist");
-        return;
-    }
+    assert("d2html.kwd".exists, "file d2html.kwd does not exist");
+    auto kwd = File("d2html.kwd");
+        
+    foreach (word; kwd.byLine())
+        keywords[word.idup] = true;
+    
+    kwd.close();
+    
+    
 
     // open input and output files
     auto src = File(args[1]);
