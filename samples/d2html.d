@@ -12,31 +12,33 @@
  */
 
 import core.stdc.stdio;
+
 import std.conv;
 import std.string;
 import std.stdio;
 import std.ascii;
-import std.file;
 
 // colors for syntax highlighting, default values are
 // my preferences in Microsoft Visual Studio editor
 enum Colors
 {
     keyword = "0000FF",
-    number = "008000",
+    number  = "008000",
     astring = "000080",
     comment = "808080"
 }
 
-enum tabsize = 4; // number of spaces in tab
+enum tabsize = 4;  // number of spaces in tab
 bool[string] keywords;
+
 
 void main(string[] args)
 {
     // need help?
     if (args.length < 2 || args.length > 3)
     {
-        printf("D to HTML converter\n" ~ "Usage: D2HTML <program>.d [<file>.htm]\n");
+        printf("D to HTML converter\n" ~
+               "Usage: D2HTML <program>.d [<file>.htm]\n");
         return;
     }
 
@@ -86,21 +88,22 @@ void main(string[] args)
             }
         }
 
-        ulong linestart = 0; // for tabs
+        ulong linestart = 0;             // for tabs
         char c;
 
         c = readc(src);
 
         while (true)
         {
-            if (isWhite(c)) // whitespace
+            if (isWhite(c))                     // whitespace
             {
                 do
                 {
                     if (c == 9)
                     {
                         // expand tabs to spaces
-                        immutable auto spaces = tabsize - (src.tell() - linestart) % tabsize;
+                        immutable auto spaces = tabsize -
+                                     (src.tell() - linestart) % tabsize;
 
                         for (int i = 0; i < spaces; i++)
                             dst.write(" ");
@@ -117,10 +120,9 @@ void main(string[] args)
                     }
 
                     c = readc(src);
-                }
-                while (isWhite(c));
+                } while (isWhite(c));
             }
-            else if (isAlpha(c)) // keyword or identifier
+            else if (isAlpha(c))                // keyword or identifier
             {
                 string token;
 
@@ -128,67 +130,64 @@ void main(string[] args)
                 {
                     token ~= c;
                     c = readc(src);
-                }
-                while (isAlpha(c) || isDigit(c));
+                } while (isAlpha(c) || isDigit(c));
 
-                if (token in keywords) // keyword
-                    dst.write("<font color='#" ~ Colors.keyword ~ "'>" ~ token ~ "</font>");
-                else // simple identifier
+                if (token in keywords)                   // keyword
+                    dst.write("<font color='#" ~ Colors.keyword ~
+                                    "'>" ~ token ~ "</font>");
+                else                    // simple identifier
                     dst.write(token);
             }
-            else if (c == '0') // binary, octal or hexadecimal number
+            else if (c == '0')                  // binary, octal or hexadecimal number
             {
                 dst.write("<font color='#" ~ Colors.number ~ "008000'>");
                 dst.write(c);
                 c = readc(src);
 
-                if (c == 'X' || c == 'x') // hexadecimal
+                if (c == 'X' || c == 'x')                       // hexadecimal
                 {
                     dst.write(c);
                     c = readc(src);
 
-                    while (isHexDigit(c))
-                    {
+                    while (isHexDigit(c)) {
                         dst.write(c);
                         c = readc(src);
                     }
 
                     // TODO: add support for hexadecimal floats
                 }
-                else if (c == 'B' || c == 'b') // binary
+                else if (c == 'B' || c == 'b')                  // binary
                 {
                     dst.write(c);
                     c = readc(src);
 
-                    while (c == '0' || c == '1')
-                    {
+                    while (c == '0' || c == '1') {
                         dst.write(c);
                         c = readc(src);
                     }
                 }
-                else // octal
+                else                    // octal
                 {
                     do
                     {
                         dst.write(c);
                         c = readc(src);
-                    }
-                    while (isOctalDigit(c));
+                    } while (isOctalDigit(c));
                 }
 
                 dst.write("</font>");
             }
-            else if (c == '#') // hash
+            else if (c == '#')                // hash
             {
                 dst.write(c);
                 c = readc(src);
             }
-            else if (c == '\\') // backward slash
+            else if (c == '\\')                // backward slash
             {
                 dst.write(c);
                 c = readc(src);
             }
-            else if (isDigit(c)) // decimal number
+            else if (isDigit(c))                // decimal number
             {
                 dst.write("<font color='#" ~ Colors.number ~ "'>");
 
@@ -197,8 +196,7 @@ void main(string[] args)
                 {
                     dst.write(c);
                     c = readc(src);
-                }
-                while (isDigit(c));
+                } while (isDigit(c));
 
                 // fractional part
                 if (c == '.')
@@ -233,7 +231,8 @@ void main(string[] args)
                 }
 
                 // suffices
-                while (c == 'U' || c == 'u' || c == 'L' || c == 'l' || c == 'F' || c == 'f')
+                while (c == 'U' || c == 'u' || c == 'L' ||
+                       c == 'l' || c == 'F' || c == 'f')
                 {
                     dst.write(c);
                     c = readc(src);
@@ -241,67 +240,66 @@ void main(string[] args)
 
                 dst.write("</font>");
             }
-            else if (c == '\'') // string without escape sequences
+            else if (c == '\'')                 // string without escape sequences
             {
                 dst.write("<font color='#" ~ Colors.astring ~ "'>");
 
                 do
                 {
-                    if (c == '<') // special symbol in HTML
+                    if (c == '<')                       // special symbol in HTML
                         dst.write("&lt;");
                     else
                         dst.write(c);
 
                     c = readc(src);
-                }
-                while (c != '\'');
+                } while (c != '\'');
                 dst.write(c);
                 c = readc(src);
                 dst.write("</font>");
             }
-            else if (c == 34) // string with escape sequences
+            else if (c == 34)                   // string with escape sequences
             {
                 dst.write("<font color='#" ~ Colors.astring ~ "'>");
-                char prev; // used to handle \" properly
+                char prev;                      // used to handle \" properly
 
                 do
                 {
-                    if (c == '<') // special symbol in HTML
+                    if (c == '<')                       // special symbol in HTML
                         dst.write("&lt;");
                     else
                         dst.write(c);
 
                     prev = c;
                     c = readc(src);
-                }
-                while (!(c == 34 && prev != '\\')); // handle \"
+                } while (!(c == 34 && prev != '\\'));                   // handle \"
                 dst.write(c);
                 c = readc(src);
                 dst.write("</font>");
             }
-            else if (isPunctuation(c)) // either operator or comment
+            else if (isPunctuation(c))          // either operator or comment
             {
-                if (c == '<') // special symbol in HTML
+                if (c == '<')                   // special symbol in HTML
                 {
                     dst.write("&lt;");
                     c = readc(src);
                 }
-                else if (c == '/') // could be a comment...
+                else if (c == '/')                      // could be a comment...
                 {
                     c = readc(src);
 
-                    if (c == '/') // single-line one
+                    if (c == '/')                       // single-line one
                     {
                         dst.write("<font color='#" ~ Colors.comment ~ "'>/");
 
                         while (c != 10)
                         {
-                            if (c == '<') // special symbol in HTML
+                            if (c == '<')                               // special symbol in HTML
                                 dst.write("&lt;");
                             else if (c == 9)
                             {
                                 // expand tabs
-                                immutable auto spaces2 = tabsize - (src.tell() - linestart) % tabsize;
+                                immutable auto spaces2 = tabsize -
+                                              (src.tell() - linestart) % tabsize;
 
                                 for (int i2 = 0; i2 < spaces2; i2++)
                                     dst.write(" ");
@@ -316,19 +314,20 @@ void main(string[] args)
 
                         dst.write("</font>");
                     }
-                    else if (c == '*') // multi-line one
+                    else if (c == '*')                          // multi-line one
                     {
                         dst.write("<font color='#" ~ Colors.comment ~ "'>/");
                         char prev2;
 
                         do
                         {
-                            if (c == '<') // special symbol in HTML
+                            if (c == '<')                               // special symbol in HTML
                                 dst.write("&lt;");
                             else if (c == 9)
                             {
                                 // expand tabs
-                                immutable auto spaces3 = tabsize - (src.tell() - linestart) % tabsize;
+                                immutable auto spaces3 = tabsize -
+                                              (src.tell() - linestart) % tabsize;
 
                                 for (int i3 = 0; i3 < spaces3; i3++)
                                     dst.write(" ");
@@ -346,16 +345,15 @@ void main(string[] args)
 
                             prev2 = c;
                             c = readc(src);
-                        }
-                        while (!(c == '/' && prev2 == '*'));
+                        } while (!(c == '/' && prev2 == '*'));
                         dst.write(c);
                         dst.write("</font>");
                         c = readc(src);
                     }
-                    else // just an operator
+                    else                        // just an operator
                         dst.write(cast(char) '/');
                 }
-                else // just an operator
+                else                    // just an operator
                 {
                     dst.write(c);
                     c = readc(src);
