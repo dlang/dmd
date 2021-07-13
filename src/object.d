@@ -2429,6 +2429,7 @@ class Throwable : Object
         formatStackTrace(sink);
     }
 
+    /// Output each item in this Throwable's stack-trace on a separate line
     protected final void formatStackTrace(scope void delegate(in char[]) sink) const
     {
         if (info)
