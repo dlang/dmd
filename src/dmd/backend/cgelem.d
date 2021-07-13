@@ -2072,6 +2072,8 @@ private elem * elcom(elem *e, goal_t goal)
 @trusted
 private elem * elcond(elem *e, goal_t goal)
 {
+    //printf("elcond() goal = %d\n", goal);
+    //elem_print(e);
     elem *e1 = e.EV.E1;
     switch (e1.Eoper)
     {
@@ -2320,10 +2322,58 @@ private elem * elcond(elem *e, goal_t goal)
                 e.EV.E1.EV.E1 = e1;
             }
 
+            /* Replace:
+             *   *p op e ? p : false
+             * with:
+             *   bool
+             */
+            else if (goal == GOALflags &&
+                ec2.Eoper == OPconst && !boolres(ec2) &&
+                typtr(ec1.Ety) &&
+                ec1.Eoper == OPvar &&
+                OTbinary(e1.Eoper) &&
+                !OTsideff(e1.Eoper) &&
+                e1.EV.E1.Eoper == OPind &&
+                el_match(findPointer(e1.EV.E1.EV.E1), ec1) &&
+                !el_sideeffect(e))
+            {
+                /* NOTE: should optimize other cases of this
+                 */
+                el_free(e.EV.E2);
+                e.EV.E2 = null;
+                e.Eoper = OPbool;
+                e.Ety = TYint;
+            }
             break;
         }
     }
     return e;
+}
+
+/******************************
+ * Given an elem that is the operand to OPind,
+ * find the expression representing the pointer.
+ * Params:
+ *      e = operand to OPind
+ * Returns:
+ *      expression that represents the pointer
+ */
+@trusted
+private elem* findPointer(elem* e)
+{
+    if (e.Eoper == OPvar)
+        return e;
+    if (OTleaf(e.Eoper) || !(e.Eoper == OPadd || e.Eoper == OPmin))
+        return null;
+
+    if (typtr(e.EV.E1.Ety))
+        return findPointer(e.EV.E1);
+    if (OTbinary(e.Eoper))
+    {
+        if (typtr(e.EV.E2.Ety))
+            return findPointer(e.EV.E2);
+    }
+    return null;
 }
 
 
