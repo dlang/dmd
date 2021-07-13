@@ -51,6 +51,11 @@ class RangeError : Error
     {
         super( "Range violation", file, line, next );
     }
+
+    protected this( string msg, string file, size_t line, Throwable next = null ) @nogc nothrow pure @safe
+    {
+        super( msg, file, line, next );
+    }
 }
 
 unittest
@@ -77,39 +82,41 @@ unittest
  */
 class ArrayIndexError : RangeError
 {
-    /// index into array
+    /// Index into array
     const size_t index;
-    /// length of indexed array
+    /// Length of indexed array
     const size_t length;
+
+    // Buffer to avoid GC allocations
+    private immutable char[100] msgBuf = '\0';
 
     this(size_t index, size_t length, string file = __FILE__,
          size_t line = __LINE__, Throwable next = null) @nogc nothrow pure @safe
     {
         this.index  = index;
         this.length = length;
-        super(file, line, next);
-    }
 
-    override void toString(scope void delegate(in char[]) sink) const
-    {
-        import core.internal.string : signedToTempString, unsignedToTempString;
-
-        char[20] tmpBuff = void;
-
-        sink(typeid(this).name);
-        sink("@");
-        sink(file);
-        sink("("); sink(unsignedToTempString!10(line, tmpBuff)); sink("): ");
-        sink("index ["); sink(unsignedToTempString!10(index, tmpBuff)); sink("]");
-        if (index > size_t.max / 2)
+        // Constructing the message is a bit clumsy:
+        // It's essentially `printf("index [%zu] exceeds array length [%zu]", index, length)`,
+        // but even `snprintf` isn't `pure`.
+        // Also string concatenation isn't `@nogc`, and casting to/from immutable isn't `@safe`
+        import core.internal.string : unsignedToTempString;
+        size_t p = 0;
+        char[msgBuf.length] buf = void;
+        char[20] tmpBuf = void;
+        void put(const(char)[] s)
         {
-            // while array indices are unsigned, a very large array index usually
-            // comes from signed-to-unsigned conversion of a negative number
-            sink(" (="); sink(signedToTempString!10(cast(ptrdiff_t) index, tmpBuff)); sink(" signed)");
+            assert(p + s.length <= buf.length); // don't throw ArraySliceError inside ArrayIndexError ctor
+            buf[p..p+s.length] = s[];
+            p += s.length;
         }
-        sink(" exceeds array length ");
-        sink(unsignedToTempString!10(length, tmpBuff));
-        formatStackTrace(sink);
+        put("index [");
+        put(unsignedToTempString!10(index, tmpBuf));
+        put("]");
+        put(" exceeds array length ");
+        put(unsignedToTempString!10(length, tmpBuf));
+        this.msgBuf = buf;
+        super(msgBuf[0..p], file, line, next);
     }
 }
 
@@ -118,10 +125,12 @@ class ArrayIndexError : RangeError
  */
 class ArraySliceError : RangeError
 {
-    /// lower/upper bound passed, if slice (array[lower .. upper]), if not a slice (array[upper])
+    /// Lower/upper bound passed to slice: `array[lower .. upper]`
     const size_t lower, upper;
-    /// length of sliced array
+    /// Length of sliced array
     const size_t length;
+
+    private immutable char[120] msgBuf = '\0';
 
     this(size_t lower, size_t upper, size_t length, string file = __FILE__,
          size_t line = __LINE__, Throwable next = null) @nogc nothrow pure @safe
@@ -129,42 +138,45 @@ class ArraySliceError : RangeError
         this.lower  = lower;
         this.upper  = upper;
         this.length = length;
-        super(file, line, next);
-    }
 
-    override void toString(scope void delegate(in char[]) sink) const
-    {
+        // Constructing the message is a bit clumsy for the same reasons as ArrayIndexError
         import core.internal.string : unsignedToTempString;
+        size_t p = 0;
+        char[msgBuf.length] buf = void;
+        char[20] tmpBuf = void;
+        void put(const(char)[] s)
+        {
+            assert(p + s.length <= buf.length); // don't throw ArraySliceError inside ArraySliceError ctor
+            buf[p..p+s.length] = s[];
+            p += s.length;
+        }
+        put("slice [");
+        put(unsignedToTempString!10(lower, tmpBuf));
+        put(" .. ");
+        put(unsignedToTempString!10(upper, tmpBuf));
+        put("] ");
 
-        char[20] tmpBuff = void;
-
-        sink(typeid(this).name);
-        sink("@");
-        sink(file);
-        sink("("); sink(unsignedToTempString!10(line, tmpBuff)); sink(")");
-        sink(": ");
-
-        sink("slice [");
-        sink(unsignedToTempString!10(lower, tmpBuff));
-        sink(" .. ");
-        sink(unsignedToTempString!10(upper, tmpBuff));
-        sink("] ");
         if (lower > upper)
         {
-            sink("has a larger lower index than upper index");
+            put("has a larger lower index than upper index");
         }
         else
         {
-            sink("extends past the array of length ");
-            sink(unsignedToTempString!10(length, tmpBuff));
+            put("extends past source array of length ");
+            put(unsignedToTempString!10(length, tmpBuf));
         }
 
-        formatStackTrace(sink);
+        this.msgBuf = buf;
+        super(msgBuf[0..p], file, line, next);
     }
 }
 
 unittest
 {
+    assert(new ArraySliceError(40, 80, 20).msg == "slice [40 .. 80] extends past source array of length 20");
+    assert(new ArraySliceError(90, 70, 20).msg == "slice [90 .. 70] has a larger lower index than upper index");
+    assert(new ArrayIndexError(900, 700).msg == "index [900] exceeds array length 700");
+
     try
     {
         int[] a = [1, 2, 3];
@@ -605,7 +617,7 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg ) nothr
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * A callback for array bounds errors in D.  A $(LREF RangeError) will be thrown.
+ * A callback for general array bounds errors in D. A $(LREF RangeError) will be thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
@@ -620,7 +632,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
 }
 
 /**
- * A callback for array bounds errors in D.  A $(LREF RangeError) will be thrown.
+ * A callback for array slice out of bounds errors in D.
  *
  * Params:
  *  lower  = the lower bound of the index passed of a slice
@@ -639,17 +651,16 @@ extern (C) void onArraySliceError( size_t lower = 0, size_t upper = 0, size_t le
 }
 
 /**
- * A callback for array bounds errors in D.  A $(LREF RangeError) will be thrown.
+ * A callback for array index out of bounds errors in D.
  *
  * Params:
- *  lower  = the lower bound of the index passed of a slice
- *  upper  = the upper bound of the index passed of a slice or the index if not a slice
+ *  index  = index in the array
  *  length = length of the array
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
  *
  * Throws:
- *  $(LREF onArrayIndexError).
+ *  $(LREF ArrayIndexError).
  */
 extern (C) void onArrayIndexError( size_t index = 0, size_t length = 0,
                               string file = __FILE__, size_t line = __LINE__ ) @trusted pure nothrow @nogc
@@ -814,7 +825,7 @@ extern (C)
 }
 
 // TLS storage shared for all errors, chaining might create circular reference
-private align(2 * size_t.sizeof) void[128] _store;
+private align(2 * size_t.sizeof) void[256] _store;
 
 // only Errors for now as those are rarely chained
 private T staticError(T, Args...)(auto ref Args args)
