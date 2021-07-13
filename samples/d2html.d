@@ -17,6 +17,7 @@ import std.conv;
 import std.string;
 import std.stdio;
 import std.ascii;
+import std.file;
 
 // colors for syntax highlighting, default values are
 // my preferences in Microsoft Visual Studio editor
