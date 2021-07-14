@@ -727,8 +727,11 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 }
             }
 
-            foreach (sm; *members)
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                auto sm = (*members)[i];
                 sm.apply(&SearchCtor.fp, null);
+            }
         }
         return s;
     }
