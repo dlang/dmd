@@ -120,6 +120,27 @@ class ArrayIndexError : RangeError
     }
 }
 
+@safe pure unittest
+{
+    assert(new ArrayIndexError(900, 700).msg == "index [900] exceeds array length 700");
+}
+
+unittest
+{
+    try
+    {
+        _d_arraybounds_indexp("test", 400, 9, 3);
+        assert(0, "no ArrayIndexError thrown");
+    }
+    catch (ArrayIndexError re)
+    {
+        assert(re.file   == "test");
+        assert(re.line   == 400);
+        assert(re.index  == 9);
+        assert(re.length == 3);
+    }
+}
+
 /**
  * Thrown when an out of bounds array slice is created
  */
@@ -171,52 +192,26 @@ class ArraySliceError : RangeError
     }
 }
 
-unittest
+@safe pure unittest
 {
     assert(new ArraySliceError(40, 80, 20).msg == "slice [40 .. 80] extends past source array of length 20");
     assert(new ArraySliceError(90, 70, 20).msg == "slice [90 .. 70] has a larger lower index than upper index");
-    assert(new ArrayIndexError(900, 700).msg == "index [900] exceeds array length 700");
+}
 
+unittest
+{
     try
     {
-        int[] a = [1, 2, 3];
-        try
-        {
-            // This is necessary because the unittests are compiled with -release
-            // We need to ensure te compiler emit a call to _d_array_bounds[p] in order
-            // to test it.
-            () @safe
-            {
-                int[] bad = a[1 .. 7];
-                assert(0);
-            }();
-        }
-        catch (ArraySliceError re)
-        {
-            assert(re.line   == __LINE__ - 6);
-            assert(re.lower  == 1);
-            assert(re.upper  == 7);
-            assert(re.length == 3);
-        }
-        try
-        {
-            // Ditto
-            () @safe
-            {
-                int bad = a[9];
-                assert(0);
-            }();
-        }
-        catch (ArrayIndexError re)
-        {
-            assert(re.line   == __LINE__ - 6);
-            assert(re.index  == 9);
-            assert(re.length == 3);
-        }
+        _d_arraybounds_slicep("test", 400, 1, 7, 3);
+        assert(0, "no ArraySliceError thrown");
     }
-    catch (RangeError)
+    catch (ArraySliceError re)
     {
-        // The compiler didn't generate range errors with context, so we can't test them
+        assert(re.file   == "test");
+        assert(re.line   == 400);
+        assert(re.lower  == 1);
+        assert(re.upper  == 7);
+        assert(re.length == 3);
     }
 }
 
