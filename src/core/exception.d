@@ -101,22 +101,16 @@ class ArrayIndexError : RangeError
         // but even `snprintf` isn't `pure`.
         // Also string concatenation isn't `@nogc`, and casting to/from immutable isn't `@safe`
         import core.internal.string : unsignedToTempString;
-        size_t p = 0;
         char[msgBuf.length] buf = void;
         char[20] tmpBuf = void;
-        void put(const(char)[] s)
-        {
-            assert(p + s.length <= buf.length); // don't throw ArraySliceError inside ArrayIndexError ctor
-            buf[p..p+s.length] = s[];
-            p += s.length;
-        }
-        put("index [");
-        put(unsignedToTempString!10(index, tmpBuf));
-        put("]");
-        put(" exceeds array length ");
-        put(unsignedToTempString!10(length, tmpBuf));
+        char[] sink = buf[];
+        sink.rangeMsgPut("index [");
+        sink.rangeMsgPut(unsignedToTempString!10(index, tmpBuf));
+        sink.rangeMsgPut("]");
+        sink.rangeMsgPut(" exceeds array length ");
+        sink.rangeMsgPut(unsignedToTempString!10(length, tmpBuf));
         this.msgBuf = buf;
-        super(msgBuf[0..p], file, line, next);
+        super(msgBuf[0..$-sink.length], file, line, next);
     }
 }
 
@@ -162,33 +156,26 @@ class ArraySliceError : RangeError
 
         // Constructing the message is a bit clumsy for the same reasons as ArrayIndexError
         import core.internal.string : unsignedToTempString;
-        size_t p = 0;
         char[msgBuf.length] buf = void;
         char[20] tmpBuf = void;
-        void put(const(char)[] s)
-        {
-            assert(p + s.length <= buf.length); // don't throw ArraySliceError inside ArraySliceError ctor
-            buf[p..p+s.length] = s[];
-            p += s.length;
-        }
-        put("slice [");
-        put(unsignedToTempString!10(lower, tmpBuf));
-        put(" .. ");
-        put(unsignedToTempString!10(upper, tmpBuf));
-        put("] ");
-
+        char[] sink = buf;
+        sink.rangeMsgPut("slice [");
+        sink.rangeMsgPut(unsignedToTempString!10(lower, tmpBuf));
+        sink.rangeMsgPut(" .. ");
+        sink.rangeMsgPut(unsignedToTempString!10(upper, tmpBuf));
+        sink.rangeMsgPut("] ");
         if (lower > upper)
         {
-            put("has a larger lower index than upper index");
+            sink.rangeMsgPut("has a larger lower index than upper index");
         }
         else
         {
-            put("extends past source array of length ");
-            put(unsignedToTempString!10(length, tmpBuf));
+            sink.rangeMsgPut("extends past source array of length ");
+            sink.rangeMsgPut(unsignedToTempString!10(length, tmpBuf));
         }
 
         this.msgBuf = buf;
-        super(msgBuf[0..p], file, line, next);
+        super(msgBuf[0..$-sink.length], file, line, next);
     }
 }
 
@@ -213,6 +200,14 @@ unittest
         assert(re.upper  == 7);
         assert(re.length == 3);
     }
+}
+
+/// Mini `std.range.primitives: put` for constructor of ArraySliceError / ArrayIndexError
+private void rangeMsgPut(ref char[] r, scope const(char)[] e) @nogc nothrow pure @safe
+{
+    assert(r.length >= e.length); // don't throw ArraySliceError inside ArrayIndexError ctor
+    r[0 .. e.length] = e[];
+    r = r[e.length .. $];
 }
 
 /**
