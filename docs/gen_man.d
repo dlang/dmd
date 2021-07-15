@@ -92,7 +92,7 @@ void main()
     auto now = Clock.currTime;
     auto diffable = environment.get("DIFFABLE", "0");
     if (diffable == "1")
-        now = SysTime(DateTime(2018, 01, 01));
+        now = SysTime(DateTime(2018, 1, 1));
 
     writefln(header, now.toISOExtString.take(10));
 
