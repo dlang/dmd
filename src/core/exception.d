@@ -97,7 +97,7 @@ class ArrayIndexError : RangeError
         this.length = length;
 
         // Constructing the message is a bit clumsy:
-        // It's essentially `printf("index [%zu] exceeds array length [%zu]", index, length)`,
+        // It's essentially `printf("index [%zu] exceeds array of length [%zu]", index, length)`,
         // but even `snprintf` isn't `pure`.
         // Also string concatenation isn't `@nogc`, and casting to/from immutable isn't `@safe`
         import core.internal.string : unsignedToTempString;
@@ -107,7 +107,7 @@ class ArrayIndexError : RangeError
         sink.rangeMsgPut("index [");
         sink.rangeMsgPut(unsignedToTempString!10(index, tmpBuf));
         sink.rangeMsgPut("]");
-        sink.rangeMsgPut(" exceeds array length ");
+        sink.rangeMsgPut(" exceeds array of length ");
         sink.rangeMsgPut(unsignedToTempString!10(length, tmpBuf));
         this.msgBuf = buf;
         super(msgBuf[0..$-sink.length], file, line, next);
@@ -116,7 +116,9 @@ class ArrayIndexError : RangeError
 
 @safe pure unittest
 {
-    assert(new ArrayIndexError(900, 700).msg == "index [900] exceeds array length 700");
+    assert(new ArrayIndexError(900, 700).msg == "index [900] exceeds array of length 700");
+    // Ensure msg buffer doesn't overflow on large numbers
+    assert(new ArrayIndexError(size_t.max, size_t.max-1).msg);
 }
 
 unittest
@@ -183,6 +185,8 @@ class ArraySliceError : RangeError
 {
     assert(new ArraySliceError(40, 80, 20).msg == "slice [40 .. 80] extends past source array of length 20");
     assert(new ArraySliceError(90, 70, 20).msg == "slice [90 .. 70] has a larger lower index than upper index");
+    // Ensure msg buffer doesn't overflow on large numbers
+    assert(new ArraySliceError(size_t.max, size_t.max, size_t.max-1).msg);
 }
 
 unittest
