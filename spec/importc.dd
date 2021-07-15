@@ -22,7 +22,7 @@ $(HEADERNAV_TOC)
 $(H2 $(LNAME2 dialect, ImportC Dialect))
 
     $(P There are many versions of C. ImportC is designed to be an
-    implementation of $(LINK2 https://en.wikipedia.org/wiki/C11_(C_standard_revision), ISO/IEC 9899:1999),
+    implementation of $(LINK2 https://en.wikipedia.org/wiki/C11_(C_standard_revision), ISO/IEC 9899:2011),
     which will hereafter be referred to as $(B C11).
     References to the C11 Standard will be C11 followed by the paragraph number.
     Prior versions, such as C99, C89, and K+R C, are not supported.
