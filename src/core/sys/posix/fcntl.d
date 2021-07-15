@@ -895,10 +895,10 @@ else version (CRuntime_Musl)
         O_SEARCH        = O_PATH,
         O_EXEC          = O_PATH,
 
-        O_ACCMODE       = (03|O_SEARCH),
-        O_RDONLY        = 00,
-        O_WRONLY        = 01,
-        O_RDWR          = 02,
+        O_ACCMODE       = (3|O_SEARCH),
+        O_RDONLY        = 0,
+        O_WRONLY        = 1,
+        O_RDWR          = 2,
     }
     enum
     {
