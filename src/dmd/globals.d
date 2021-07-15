@@ -275,6 +275,7 @@ enum hdr_ext  = "di";       // for D 'header' import files
 enum json_ext = "json";     // for JSON files
 enum map_ext  = "map";      // for .map files
 enum c_ext    = "c";        // for C source files
+enum i_ext    = "i";        // for preprocessed C source file
 
 /**
  * Collection of global compiler settings and global state used by the frontend

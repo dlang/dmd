@@ -82,6 +82,10 @@ private const(char)[] lookForSourceFile(const char[] filename, const char*[] pat
     const sc = FileName.forceExt(filename, c_ext);
     if (FileName.exists(sc) == 1)
         return sc;
+
+    const si = FileName.forceExt(filename, i_ext);
+    if (FileName.exists(si) == 1)
+        return si;
     scope(exit) FileName.free(sc.ptr);
 
     if (FileName.exists(filename) == 2)
@@ -554,6 +558,7 @@ extern (C++) final class Module : Package
         else if (!FileName.equalsExt(srcfilename, mars_ext) &&
                  !FileName.equalsExt(srcfilename, hdr_ext) &&
                  !FileName.equalsExt(srcfilename, c_ext) &&
+                 !FileName.equalsExt(srcfilename, i_ext) &&
                  !FileName.equalsExt(srcfilename, dd_ext))
         {
 
@@ -1041,8 +1046,9 @@ extern (C++) final class Module : Package
         }
 
         /* If it has the extension ".c", it is a "C" file.
+         * If it has the extension ".i", it is a preprocessed "C" file.
          */
-        if (FileName.equalsExt(arg, c_ext))
+        if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext))
         {
             isCFile = true;
 
