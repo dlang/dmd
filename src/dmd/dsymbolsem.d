@@ -1978,17 +1978,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        ed.semanticRun = PASS.semanticdone;
-
         if (!ed.members) // enum ident : memtype;
+        {
+            ed.semanticRun = PASS.semanticdone;
             return;
+        }
 
         if (ed.members.dim == 0)
         {
             ed.error("enum `%s` must have at least one member", ed.toChars());
             ed.errors = true;
+            ed.semanticRun = PASS.semanticdone;
             return;
         }
+
+        if (!(sc.flags & SCOPE.Cfile))  // C enum remains incomplete until members are done
+            ed.semanticRun = PASS.semanticdone;
 
         Module.dprogress++;
 
@@ -2017,6 +2022,69 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          * table
          */
         addEnumMembers(ed, sc, sc.getScopesym());
+
+        if (sc.flags & SCOPE.Cfile)
+        {
+            /* C11 6.7.2.2
+             */
+            ed.memtype = Type.tint32; // C11 6.7.2.2-4 implementation defined
+            int nextValue = 0;        // C11 6.7.2.2-3 first member value defaults to 0
+
+            void emSemantic(EnumMember em, ref int nextValue)
+            {
+                static void errorReturn(EnumMember em)
+                {
+                    em.errors = true;
+                    em.semanticRun = PASS.semanticdone;
+                }
+
+                em.semanticRun = PASS.semantic;
+                em.type = Type.tint32;
+                em.linkage = LINK.c;
+                em.storage_class |= STC.manifest;
+                if (em.value)
+                {
+                    Expression e = em.value;
+                    assert(e.dyncast() == DYNCAST.expression);
+                    e = e.expressionSemantic(sc);
+                    e = resolveProperties(sc, e);
+                    e = e.integralPromotions(sc);
+                    e = e.ctfeInterpret();
+                    if (e.op == TOK.error)
+                        return errorReturn(em);
+                    auto ie = e.isIntegerExp();
+                    if (!ie)
+                    {
+                        // C11 6.7.2.2-2
+                        em.error("enum member must be an integral constant expression, not `%s` of type `%s`", e.toChars(), e.type.toChars());
+                        return errorReturn(em);
+                    }
+                    const sinteger_t v = ie.toInteger();
+                    if (v < int.min || v > uint.max)
+                    {
+                        // C11 6.7.2.2-2
+                        em.error("enum member value `%s` does not fit in an `int`", e.toChars());
+                        return errorReturn(em);
+                    }
+                    em.value = new IntegerExp(em.loc, cast(int)v, Type.tint32);
+                    nextValue = cast(int)v;
+                }
+                else
+                {
+                    em.value = new IntegerExp(em.loc, nextValue, Type.tint32);
+                }
+                ++nextValue; // C11 6.7.2.2-3 add 1 to value of previous enumeration constant
+                em.semanticRun = PASS.semanticdone;
+            }
+
+            ed.members.foreachDsymbol( (s)
+            {
+                if (EnumMember em = s.isEnumMember())
+                    emSemantic(em, nextValue);
+            });
+            ed.semanticRun = PASS.semanticdone;
+            return;
+        }
 
         ed.members.foreachDsymbol( (s)
         {
