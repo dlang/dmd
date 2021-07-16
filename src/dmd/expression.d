@@ -4812,29 +4812,7 @@ extern (C++) final class DotVarExp : UnaExp
                                 if (!onlyUnion)
                                     v.ctorinit = false;
                                 if (modifyLevel == Modifiable.initialization)
-                                {
-                                    // https://issues.dlang.org/show_bug.cgi?id=22118
-                                    // v is a union type field that was assigned
-                                    // a variable, therefore it counts as initialization
-                                    if (v.ctorinit)
-                                        return Modifiable.initialization;
-
-                                    // if v is of struct type, then we need to undo
-                                    // the information that was stored in fieldInit
-                                    // to get rid of the wrong error messages
-                                    auto ad = sc.func.isMemberDecl();
-                                    assert(ad);
-                                    size_t i;
-                                    for (i = 0; i < sc.ctorflow.fieldinit.length; i++)
-                                    {
-                                        if (ad.fields[i] == v)
-                                            break;
-                                    }
-                                    auto fieldInit = &sc.ctorflow.fieldinit[i];
-                                    fieldInit.csx &= CSX.none;
-                                    fieldInit.loc = Loc();
                                     return Modifiable.yes;
-                                }
                                 return modifyLevel;
                             }
                         }
