@@ -112,6 +112,26 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     directives are normally embedded in the output of C preprocessors.)
 
 
+$(H2 $(LNAME2 implementation, Implementation))
+
+    $(P The implementation defined characteristics of ImportC are:)
+
+    $(H3 $(LNAME2 enums, Enums))
+
+    $(P $(I enumeration-constants) are always typed as `int`.)
+
+    $(P The expression that defines the value of an $(I enumeration-constant) must
+    be an integral type and evaluate to an integer value that fits in an `int`.)
+
+    ---
+    enum E { -10, 0x81231234 }; // ok
+    enum F {  0x812312345678 }; // error, doesn't fit in int
+    enum G { 1.0 };             // error, not integral type
+    ---
+
+    $(P The enumerated type is `int`.)
+
+
 $(H2 $(LNAME2 limitations, Limitations))
 
     $(H3 $(LNAME2 exceptions, Exception Handling))
