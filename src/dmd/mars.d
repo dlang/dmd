@@ -2785,7 +2785,8 @@ Module createModule(const(char)* file, ref Strings libmodules)
     if (FileName.equals(ext, mars_ext) ||
         FileName.equals(ext, hdr_ext ) ||
         FileName.equals(ext, dd_ext  ) ||
-        FileName.equals(ext, c_ext   ))
+        FileName.equals(ext, c_ext   ) ||
+        FileName.equals(ext, i_ext   ))
     {
         name = FileName.removeExt(p);
         if (!name.length || name == ".." || name == ".")

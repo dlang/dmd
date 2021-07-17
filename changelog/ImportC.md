@@ -121,6 +121,45 @@ dmd hello.c
 hello world!
 ```
 
+For C code using C includes you can preprocess the C source with a C
+preprocessor. Create the file testcode.c:
+
+```
+#include <stdint.h>
+
+uint32_t someCodeInC(uint32_t a, uint32_t b)
+{
+    return a + b;
+}
+```
+
+Preprocess the C code with the C preprocessor:
+```
+gcc -E -P testcode.c >testcode.i
+```
+
+Create D file d_main.d:
+```
+import std.stdio;
+import testcode;
+
+void main()
+{
+    writeln("Result of someCodeInC(3,4) = ", someCodeInC(3, 4) );
+}
+```
+
+Compile and run it:
+```
+dmd d_main.d testcode.i
+./d_main
+Result of someCodeInC(3,4) = 7
+```
+
+The '.i' file extension can be used instead of '.c'. This makes it clear, that
+preprocessed imtermediate C code is in use. The '.i' files can be created by
+some generator script or a Makefile.
+
 ## Implementation Details
 
 ### User Experience
