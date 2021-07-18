@@ -4,6 +4,6 @@ import importc_test;
 
 int main()
 {
-    intptr_t iptr;
+    intptr_t iptr = cast(intptr_t)(&someCodeInC);
     return 0;
 }
