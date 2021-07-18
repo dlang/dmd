@@ -2701,7 +2701,17 @@ extern (C++) final class StringExp : Expression
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
-        //printf("StringExp::toLvalue(%s) type = %s\n", toChars(), type ? type.toChars() : NULL);
+        //printf("StringExp::toLvalue(%s) type = %s\n", toChars(), type ? type.toChars() : "");
+        if (sc && sc.flags & SCOPE.Cfile && type)
+        {
+            if (auto tp = type.toBasetype().isTypePointer())
+            {
+                /* Switch from pointer-to-char to static-array-of-char so we can take its lvalue
+                 */
+                auto ts = new TypeSArray(tp.nextOf(), new IntegerExp(Loc.initial, isStringExp().len + 1, Type.tsize_t));
+                type = typeSemantic(ts, Loc.initial, sc);
+            }
+        }
         return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 

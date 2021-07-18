@@ -744,6 +744,32 @@ Symbol* toSymbol(ClassReferenceExp cre)
     return cre.value.sym;
 }
 
+/******************************
+ * Convert `se` to a `Symbol` initialized with the string data.
+ * Used only by ImportC
+ * Params:
+ *    se = string expression to convert
+ * Returns:
+ *    created `Symbol`
+ */
+Symbol* toSymbol(StringExp se)
+{
+    //printf("toSymbol() %s\n", se.toChars());
+    auto t = type_alloc(TYint);
+    t.Tcount++;
+    auto s = symbol_calloc("internal", 8);
+    s.Sclass = SCstatic;
+    s.Sfl = FLextern;
+    s.Sflags |= SFLnodebug;
+    s.Stype = t;
+    auto dtb = DtBuilder(0);
+    Expression_toDt(se, dtb);
+    s.Sdt = dtb.finish();
+    outdata(s);
+    return s;
+}
+
+
 /**************************************
  * For C++ class cd, generate an instance of __cpp_type_info_ptr
  * and populate it with a pointer to the C++ type info.

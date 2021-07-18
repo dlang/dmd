@@ -319,6 +319,14 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                 write_pointers(sl.type, s, 0);
             return;
         }
+        if (auto sl = e.e1.isStringExp())
+        {
+            Symbol* s = toSymbol(sl);
+            dtb.xoff(s, 0);
+            if (sl.type.isMutable())
+                write_pointers(sl.type, s, 0);
+            return;
+        }
         nonConstExpError(e);
     }
 

@@ -440,7 +440,9 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             return err();
         }
         // Make sure all pointers are constants
-        if (needInterpret && hasNonConstPointers(i.exp))
+        // Let ImportC get away with it as C allows it.
+        if (!(sc.flags & SCOPE.Cfile) &&
+            needInterpret && hasNonConstPointers(i.exp))
         {
             i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", currExp.toChars());
             return err();
