@@ -2593,7 +2593,7 @@ extern (C++) abstract class Type : ASTNode
         }
     }
 
-    final pure inout nothrow @nogc
+    final pure inout nothrow @nogc @safe
     {
         inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
         inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }

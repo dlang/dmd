@@ -353,7 +353,7 @@ extern (C++) abstract class Statement : ASTNode
     pure nothrow @nogc
     inout(ReturnStatement) endsWithReturnStatement() inout { return null; }
 
-  final pure inout nothrow @nogc:
+    final pure inout nothrow @nogc @safe:
 
     /********************
      * A cheaper method of doing downcasting of Statements.

@@ -415,7 +415,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return (ispod == StructPOD.yes);
     }
 
-    override final inout(StructDeclaration) isStructDeclaration() inout
+    override final inout(StructDeclaration) isStructDeclaration() inout @nogc nothrow pure @safe
     {
         return this;
     }

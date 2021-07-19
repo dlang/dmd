@@ -3266,7 +3266,7 @@ struct ASTBase
             return null;
         }
 
-        final pure inout nothrow @nogc
+        final pure inout nothrow @nogc @safe
         {
             inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
             inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }
@@ -4450,7 +4450,7 @@ struct ASTBase
             v.visit(this);
         }
 
-        extern (C++) final pure inout nothrow @nogc
+        extern (C++) final pure inout nothrow @nogc @safe
         {
             inout(DeclarationExp) isDeclarationExp() { return op == TOK.declaration ? cast(typeof(return))this : null; }
             inout(AssignExp) isConstructExp() { return op == TOK.construct ? cast(typeof(return))this : null; }

@@ -206,7 +206,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         objc.addSymbols(this, classes, categories);
     }
 
-    override final inout(AttribDeclaration) isAttribDeclaration() inout
+    override final inout(AttribDeclaration) isAttribDeclaration() inout pure @safe
     {
         return this;
     }
