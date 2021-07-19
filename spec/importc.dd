@@ -514,8 +514,21 @@ $(H2 $(LNAME2 other-solutions, Other Solutions))
 
 $(H2 $(LNAME2 internals, How ImportC Works))
 
-    $(P This is a description of how ImportC is implemented, intended
-    to remove the mystery of various design choices.)
+    $(P ImportC's implementation is based on the idea that D's semantics are very similar
+    to C's. ImportC gets its own parser, which converts the C syntax into the same AST
+    (Abstract Syntax Tree) that D uses. The lexer for ImportC is the same as for D, but with
+    some modifications here and there, such as the keywords and integer literals being different.
+    Where the semantics of C differ from D, there are adjustments in the semantic analysis
+    code in the D compiler.)
+
+    $(P This co-opting of the D semantic implementation allows ImportC to be able to do things
+    like handle forward references, CTFE (Compile Time Function Execution), and inlining of C functions
+    into D code. Being able to handle forward references means it is not necessary to even
+    write a .h file to be able to import C declarations into D. Being able to perform CTFE is
+    very handy for testing that ImportC is working without needing to generate an executable.
+    But, in general, the strong temptation to add D features to ImportC has been resisted.)
+
+    $(P The optimizer and code generator are, of course, the same as D uses.)
 
 $(SPEC_SUBNAV_PREV_NEXT betterc, Better C, ob, Live Functions)
 )
