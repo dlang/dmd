@@ -3821,7 +3821,7 @@ private void _doPostblit(T)(T[] arr)
 
     [].dup!Sunpure;
     [].dup!Sthrow;
-    [].dup!Sunsafe;
+    cast(void) [].dup!Sunsafe;
     static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
     static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
     static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
@@ -3872,7 +3872,7 @@ private void _doPostblit(T)(T[] arr)
     static struct Sunsafe { this(ref const typeof(this)) @system pure nothrow {} }
     [].dup!Sunpure;
     [].dup!Sthrow;
-    [].dup!Sunsafe;
+    cast(void) [].dup!Sunsafe;
     static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
     static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
     static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
