@@ -18,6 +18,9 @@ $(HEADERNAV_TOC)
     It describes the specifics of the dialect of C that
     ImportC is, and how to use it effectively.)
 
+    $(P ImportC and $(LINK2 https://dlang.org/spec/betterc.html) are very different.
+    ImportC is an actual C compiler. BetterC is a subset of D that relies only on the
+    existence of the C Standard library.)
 
 $(H2 $(LNAME2 dialect, ImportC Dialect))
 
