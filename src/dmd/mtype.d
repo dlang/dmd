@@ -230,6 +230,36 @@ bool isSomeChar(TY ty) pure nothrow @nogc @safe
     return ty == Tchar || ty == Twchar || ty == Tdchar;
 }
 
+/************************************
+ * Determine if there are mutable indirections in (ref) t.
+ */
+bool hasMutableIndirections(bool isref, Type t)
+{
+    enum notmutable = MODFlags.immutable_ | MODFlags.const_ | MODFlags.wild;
+
+    if (isref)
+        return !(t.mod & notmutable);
+
+    t = t.baseElemOf();
+
+    if (!t.hasPointers() || t.mod & notmutable)
+        return false;
+
+    // Accept T[] and T* when T is not mutable
+    if (t.ty == Tarray || t.ty == Tpointer)
+    {
+        return !(t.nextOf().toBasetype().mod & notmutable);
+    }
+
+    /* The rest of this is too strict; fix later.
+        * For example, the only pointer members of a struct may be immutable,
+        * which would maintain strong purity.
+        * (Just like for dynamic arrays and pointers above.)
+        */
+
+    return true;
+}
+
 /****************
  * dotExp() bit flags
  */
@@ -4217,50 +4247,7 @@ extern (C++) final class TypeFunction : TypeNext
         if (tf.purity != PURE.fwdref)
             return;
 
-        /* Determine purity level based on mutability of t
-         * and whether it is a 'ref' type or not.
-         */
-        static PURE purityOfType(bool isref, Type t)
-        {
-            if (isref)
-            {
-                if (t.mod & MODFlags.immutable_)
-                    return PURE.strong;
-                if (t.mod & (MODFlags.const_ | MODFlags.wild))
-                    return PURE.const_;
-                return PURE.weak;
-            }
-
-            t = t.baseElemOf();
-
-            if (!t.hasPointers() || t.mod & MODFlags.immutable_)
-                return PURE.strong;
-
-            /* Accept immutable(T)[] and immutable(T)* as being strongly pure
-             */
-            if (t.ty == Tarray || t.ty == Tpointer)
-            {
-                Type tn = t.nextOf().toBasetype();
-                if (tn.mod & MODFlags.immutable_)
-                    return PURE.strong;
-                if (tn.mod & (MODFlags.const_ | MODFlags.wild))
-                    return PURE.const_;
-            }
-
-            /* The rest of this is too strict; fix later.
-             * For example, the only pointer members of a struct may be immutable,
-             * which would maintain strong purity.
-             * (Just like for dynamic arrays and pointers above.)
-             */
-            if (t.mod & (MODFlags.const_ | MODFlags.wild))
-                return PURE.const_;
-
-            /* Should catch delegates and function pointers, and fold in their purity
-             */
-            return PURE.weak;
-        }
-
-        purity = PURE.strong; // assume strong until something weakens it
+        purity = PURE.const_; // assume strong until something weakens it
 
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
@@ -4275,33 +4262,11 @@ extern (C++) final class TypeFunction : TypeNext
                 purity = PURE.weak;
                 break;
             }
-            switch (purityOfType((fparam.storageClass & STC.ref_) != 0, t))
-            {
-                case PURE.weak:
-                    purity = PURE.weak;
-                    break Lloop; // since PURE.weak, no need to check further
-
-                case PURE.const_:
-                    purity = PURE.const_;
-                    continue;
-
-                case PURE.strong:
-                    continue;
-
-                default:
-                    assert(0);
-            }
+            const pref = (fparam.storageClass & STC.ref_) != 0;
+            if (hasMutableIndirections(pref, t))
+                purity = PURE.weak;
         }
 
-        if (purity > PURE.weak && tf.nextOf())
-        {
-            /* Adjust purity based on mutability of return type.
-             * https://issues.dlang.org/show_bug.cgi?id=15862
-             */
-            const purity2 = purityOfType(tf.isref, tf.nextOf());
-            if (purity2 < purity)
-                purity = purity2;
-        }
         tf.purity = purity;
     }
 
