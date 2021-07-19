@@ -706,7 +706,7 @@ public int runLINK()
         {
             const bufsize = 2 + libname.length + 1;
             auto buf = (cast(char*) malloc(bufsize))[0 .. bufsize];
-            Mem.check(buf);
+            Mem.check(buf.ptr);
             buf[0 .. 2] = "-l";
 
             char* getbuf(const(char)[] suffix)
