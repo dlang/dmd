@@ -6733,6 +6733,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (sc.flags & SCOPE.Cfile)
+        {
+            /* Special handling for &"string"
+             * since C regards a string literal as an lvalue
+             */
+            if (auto se = exp.e1.isStringExp())
+            {
+                if (auto tp = se.type.toBasetype().isTypePointer())
+                {
+                    /* Switch from pointer-to-char to pointer-to-static-array-of-char
+                     */
+                    auto ts = new TypeSArray(tp.nextOf(), new IntegerExp(Loc.initial, se.len + 1, Type.tsize_t));
+                    se.type = typeSemantic(ts, Loc.initial, sc).pointerTo();
+                    result = se;
+                    return;
+                }
+            }
+        }
+
         int wasCond = exp.e1.op == TOK.question;
 
         if (exp.e1.op == TOK.dotTemplateInstance)
