@@ -4251,7 +4251,7 @@ extern (C++) final class TypeFunction : TypeNext
 
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
-    Lloop: foreach (i, fparam; tf.parameterList)
+        foreach (i, fparam; tf.parameterList)
         {
             Type t = fparam.type;
             if (!t)
