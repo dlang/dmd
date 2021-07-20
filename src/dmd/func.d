@@ -541,9 +541,6 @@ extern (C++) class FuncDeclaration : Declaration
             if (thandle.ty == Tstruct)
             {
                 vthis.storage_class |= STC.ref_;
-                // if member function is marked 'inout', then 'this' is 'return ref'
-                if (type.ty == Tfunction && (cast(TypeFunction)type).isInOutQual())
-                    vthis.storage_class |= STC.return_;
             }
         }
 
