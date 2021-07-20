@@ -173,6 +173,7 @@ T9 testfred()
 /* TEST_OUTPUT:
 ---
 fail_compilation/retscope6.d(10003): Error: scope variable `values` assigned to non-scope parameter `values` calling retscope6.escape
+fail_compilation/retscope6.d(10012): Deprecation: `pure` function `escapePtr` returns parameter `r`, annotate with `return`
 ---
 */
 
@@ -184,6 +185,13 @@ void variadicCaller(int[] values...)
 }
 
 void escape(int[] values) {}
+
+// https://issues.dlang.org/show_bug.cgi?id=20150
+
+int* escapePtr(int* r) @safe pure
+{
+    return r;
+}
 
 /* TEST_OUTPUT:
 ---
