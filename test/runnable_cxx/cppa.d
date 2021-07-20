@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -preview=in
 // PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
 // EXTRA_FILES: extra-files/cppb.h
@@ -1607,6 +1608,16 @@ extern(C++) void test18955();
 
 /****************************************/
 
+extern(C++) void testPreviewIn();
+
+extern(C++) void previewInFunction(in int a, in std_string b, ref const(std_string) c)
+{
+    assert(a == 42);
+    assert(&b is &c);
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -1656,6 +1667,7 @@ void main()
     test18966();
     test19134();
     test18955();
+    testPreviewIn();
 
     printf("Success\n");
 }

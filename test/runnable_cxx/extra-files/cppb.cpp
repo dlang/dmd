@@ -966,3 +966,11 @@ void test18955()
     callback18955(s);
 #endif
 }
+
+void previewInFunction(const int& a, const std::string& b, const std::string& c);
+
+void testPreviewIn()
+{
+    std::string s = "Hello World";
+    previewInFunction(42, s, s);
+}
