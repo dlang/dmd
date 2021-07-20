@@ -8181,6 +8181,7 @@ struct Id final
     static Identifier* hasCopyConstructor;
     static Identifier* isCopyable;
     static Identifier* toType;
+    static Identifier* tsize;
     static Identifier* allocator;
     static Identifier* basic_string;
     static Identifier* basic_istream;

@@ -473,6 +473,9 @@ immutable Msgtable[] msgtable =
     { "isCopyable" },
     { "toType" },
 
+    // For TypeInfo members
+    { "tsize" },
+
     // For C++ mangling
     { "allocator" },
     { "basic_string" },

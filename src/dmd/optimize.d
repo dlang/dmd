@@ -20,10 +20,12 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
+import dmd.id;
 import dmd.init;
 import dmd.mtype;
 import dmd.root.ctfloat;
@@ -606,10 +608,36 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         override void visit(CallExp e)
         {
-            //printf("CallExp::optimize(result = %d) %s\n", result, e.toChars());
+            enum log = false;
+            if (log) printf("CallExp::optimize(result = %d) %s\n", result, e.toChars());
             // Optimize parameters with keeping lvalue-ness
             if (expOptimize(e.e1, result))
                 return;
+            /* Recognize `typeid(T).tsize()`
+             */
+            if (auto dve = e.e1.isDotVarExp())
+            {
+                if (auto tide = dve.e1.isTypeidExp())
+                {
+                    if (Type t = isType(tide.obj))
+                    {
+                        if (auto fd = dve.var.isFuncDeclaration())
+                        {
+                            if (fd.ident == Id.tsize)
+                            {
+                                // Equivalent logic to `T.sizeof` in getProperty()
+                                d_uns64 sz = t.size(dve.loc);
+                                if (sz != SIZE_INVALID)
+                                {
+                                    ret = new IntegerExp(dve.loc, sz, Type.tsize_t);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (e.arguments)
             {
                 Type t1 = e.e1.type.toBasetype();
