@@ -1282,11 +1282,18 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
     foreach (VarDeclaration v; er.byref)
     {
-        if (log) printf("byref `%s`\n", v.toChars());
+        if (log)
+        {
+            printf("byref `%s`\n", v.toChars());
+            if (v.storage_class & STC.return_) printf(" return");
+            if (v.storage_class & STC.ref_)    printf(" ref");
+            if (v.storage_class & STC.scope_)  printf(" scope");
+            printf("\n");
+        }
 
         // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
-        void escapingRef(VarDeclaration v, FeatureState featureState = FeatureState.enabled)
+        void escapingRef(VarDeclaration v, ScopeRef vsr, FeatureState featureState = FeatureState.enabled)
         {
             if (!gag)
             {
@@ -1295,7 +1302,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     (v.type.hasPointers() || v.storage_class & STC.ref_))
                 {
                     msg = "returning `%s` escapes a reference to parameter `%s`";
-                    supplemental = "perhaps annotate the parameter with `return`";
+                    supplemental = vsr == ScopeRef.Ref_ReturnScope
+                                              ? "perhaps remove `scope` parameter annotation so `return` applies to `ref`"
+                                              : "perhaps annotate the parameter with `return`";
                 }
                 else
                 {
@@ -1314,6 +1323,12 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if (v.isDataseg())
             continue;
 
+        auto stc = v.storage_class;
+        if (stc & STC.out_)
+            stc |= STC.ref_;  // temporary hack until we adjust buildScopeRef()
+
+        const vsr = buildScopeRef(refs, stc);
+
         Dsymbol p = v.toParent2();
 
         // https://issues.dlang.org/show_bug.cgi?id=19965
@@ -1324,7 +1339,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         {
             if (p == sc.func)
             {
-                escapingRef(v);
+                escapingRef(v, vsr, FeatureState.enabled);
                 continue;
             }
             FuncDeclaration fd = p.isFuncDeclaration();
@@ -1342,15 +1357,18 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     sc.func.storage_class |= STC.return_ | STC.returninferred;
                 }
             }
-
         }
 
         /* Check for returning a ref variable by 'ref', but should be 'return ref'
          * Infer the addition of 'return', or set result to be the offending expression.
          */
-        if (v.isReference() && !(v.storage_class & (STC.return_ | STC.foreach_)))
+        if ((vsr == ScopeRef.Ref ||
+             vsr == ScopeRef.RefScope ||
+             vsr == ScopeRef.Ref_ReturnScope) &&
+            !(v.storage_class & STC.foreach_))
         {
-            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func)
+            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func &&
+                (vsr == ScopeRef.Ref || vsr == ScopeRef.RefScope))
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }
@@ -1362,7 +1380,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v, global.params.useDIP25);
+                    escapingRef(v, vsr, global.params.useDIP25);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
