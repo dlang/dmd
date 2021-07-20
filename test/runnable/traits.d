@@ -354,7 +354,7 @@ void test13()
     assert(__traits(hasMember, S, "aaa") == false);
 
     auto k = __traits(classInstanceSize, C);
-    assert(k == C.classinfo.initializer.length);
+    assert(k == typeid(C).initializer.length);
 }
 
 /********************************************************/

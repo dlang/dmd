@@ -695,7 +695,7 @@ string name26;
 template aliastest(alias A) {
     pragma(msg,"Alias Test instantiated");
     void aliastest() {
-        name26 = (new A!().al).classinfo.name;
+        name26 = typeid(new A!().al).name;
         //writefln("Alias Test: ", name26);
     }
 }

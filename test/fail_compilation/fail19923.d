@@ -1,4 +1,4 @@
-/* 
+/*
 DFLAGS:
 TEST_OUTPUT:
 ---
@@ -13,6 +13,5 @@ class Object {}
 void test()
 {
     Object o;
-    auto ti = o.classinfo;
+    auto ti = typeid(o);
 }
-

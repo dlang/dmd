@@ -34,8 +34,8 @@ void test1()
     printf("f = %p\n", f);
     assert(cast(void*)b !is cast(void*)f);
 
-    printf("f.class = '%.*s'\n", cast(int)f.classinfo.name.length, f.classinfo.name.ptr);
-    assert(f.classinfo.name == "interface2.Foo");
+    printf("f.class = '%.*s'\n", cast(int)typeid(f).name.length, typeid(f).name.ptr);
+    assert(typeid(f).name == "interface2.Foo");
 
     f.bar();
     assert(p1 is cast(void*)b);
@@ -668,7 +668,7 @@ void test19()
     assert(cast(void*)c + (2*(void*).sizeof) == cast(void*)icov);
     assert(cast(void*)c + (3*(void*).sizeof) == cast(void*)ifoo);
 
-    string s = ifoo.classinfo.name;
+    string s = typeid(ifoo).name;
     printf("%.*s\n", cast(int)s.length, s.ptr);
     assert(s == "interface2.IFoo19");
 
@@ -1122,10 +1122,8 @@ void testTypeid()
 
     assert(typeid(typeof(o)) is typeid(Object));
     assert(typeid(o) is typeid(D));
-    assert(o.classinfo is typeid(D));
     assert(typeid(typeof(i)) is typeid(I));
     assert(typeid(i) !is typeid(J));
-    assert(i.classinfo !is typeid(J));
 }
 
 /*******************************************************/
