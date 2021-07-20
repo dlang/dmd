@@ -5394,7 +5394,6 @@ public:
 
     enum : int32_t { OFFSET_FWDREF = 1985229329 };
 
-    virtual bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseInfoComplete() const;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     ClassDeclaration* searchBase(Identifier* ident);
@@ -5423,8 +5422,6 @@ class InterfaceDeclaration final : public ClassDeclaration
 public:
     InterfaceDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
-    bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
-    bool isBaseOf(BaseClass* bc, int32_t* poffset);
     const char* kind() const;
     int32_t vtblOffset() const;
     bool isCPPinterface() const;
@@ -5433,6 +5430,8 @@ public:
     void accept(Visitor* v);
     ~InterfaceDeclaration();
 };
+
+extern bool isBaseOf(ClassDeclaration* derived, ClassDeclaration* cd, int32_t* poffset);
 
 extern void ObjectNotFound(Identifier* id);
 

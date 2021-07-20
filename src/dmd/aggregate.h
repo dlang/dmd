@@ -291,7 +291,6 @@ public:
 
     #define OFFSET_RUNTIME 0x76543210
     #define OFFSET_FWDREF 0x76543211
-    virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
     bool isBaseInfoComplete();
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
@@ -324,8 +323,6 @@ class InterfaceDeclaration : public ClassDeclaration
 public:
     InterfaceDeclaration *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    bool isBaseOf(ClassDeclaration *cd, int *poffset);
-    bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind() const;
     int vtblOffset() const;
     bool isCPPinterface() const;
@@ -334,3 +331,5 @@ public:
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
+
+bool isBaseOf(ClassDeclaration* derived, ClassDeclaration* cd, int* poffset);
