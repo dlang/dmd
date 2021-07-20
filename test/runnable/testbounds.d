@@ -518,6 +518,29 @@ void test13775()
 }
 
 /******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15889
+// Array bounds check should report index and length
+void test15889()
+{
+    int[] a = new int[2];
+
+    try {
+        a[3] = 40;
+    } catch (ArrayIndexError e) {
+        assert(e.index == 3);
+        assert(e.length == 2);
+    }
+
+    try {
+        a[1 .. 4] = 50;
+    } catch (ArraySliceError e) {
+        assert(e.lower == 1);
+        assert(e.upper == 4);
+        assert(e.length == 2);
+    }
+}
+
+/******************************************/
 
 int main()
 {
@@ -529,6 +552,7 @@ int main()
     test9743();
     test9747();
     test13775();
+    test15889();
 
     printf("Success\n");
     return 0;
