@@ -81,7 +81,22 @@ int main()
 
         foreach (line; File(excepted_results_file).byLine)
         {
-            if (!canFind(result, line))
+            // Skip blank lines
+            if (!line.length)
+                continue;
+
+            // Shouldn't contain
+            if (line[0] == '!')
+            {
+                line = line[1 .. $];
+                if (canFind(result, line))
+                {
+                    failmsg ~= filename ~ ": Found `" ~ line
+                        ~ "` in the DWARF dump info, but it must not be emitted.\n";
+                    failed = true;
+                }
+            }
+            else if (!canFind(result, line))
             {
                 failmsg ~= filename ~ ": Couln't find `" ~ line
                     ~ "` in the DWARF dump info.\n";

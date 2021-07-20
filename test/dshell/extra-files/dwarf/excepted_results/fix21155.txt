@@ -1,0 +1,12 @@
+DW_AT_name        : i
+DW_AT_name        : foo
+DW_AT_name        : C
+DW_AT_name        : C.this
+DW_AT_name        : S
+DW_AT_name        : S.s
+!DW_AT_name        : fix21155.i
+!DW_AT_name        : fix21155.foo
+!DW_AT_name        : fix21155.C
+!DW_AT_name        : fix21155.C.this
+!DW_AT_name        : fix21155.S
+!DW_AT_name        : fix21155.S.s
