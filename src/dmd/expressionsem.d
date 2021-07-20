@@ -6427,18 +6427,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DotTemplateExp e)
     {
-        if (e.type)
-        {
-            result = e;
-            return;
-        }
         if (Expression ex = unaSemantic(e, sc))
         {
             result = ex;
             return;
         }
-        // 'void' like TemplateExp
-        e.type = Type.tvoid;
         result = e;
     }
 
