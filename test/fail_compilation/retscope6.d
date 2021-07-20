@@ -170,6 +170,22 @@ T9 testfred()
     return fred(&i);   // error
 }
 
+
+/* TEST_OUTPUT:
+---
+fail_compilation/retscope6.d(9505): Error: `pure` function `escape20150` returns parameter `r`, annotate with `return`
+---
+*/
+
+#line 9500
+
+// https://issues.dlang.org/show_bug.cgi?id=20150
+
+int* escape20150(int* r) @safe pure
+{
+    return r;
+}
+
 /* TEST_OUTPUT:
 ---
 fail_compilation/retscope6.d(10003): Error: scope variable `values` assigned to non-scope parameter `values` calling retscope6.escape
