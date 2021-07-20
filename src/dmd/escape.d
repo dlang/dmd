@@ -841,7 +841,7 @@ ByRef:
          * then uncount that address of. This is so it won't cause a
          * closure to be allocated.
          */
-        if (va && va.isScope() && fd.tookAddressOf)
+        if (va && va.isScope() && !(va.storage_class & STC.return_) && fd.tookAddressOf)
             --fd.tookAddressOf;
 
         foreach (v; vars)
