@@ -3736,6 +3736,20 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 ss.exp = new CastExp(ss.loc, ss.exp, t);
                 ss.exp = ss.exp.expressionSemantic(sc);
             }
+            if (!ss.exp.type.isMutable())
+            {
+                import dmd.root.outbuffer : OutBuffer;
+
+                OutBuffer buf;
+                MODMatchToBuffer(&buf, ss.exp.type.mod, 0);
+                ss.error("cannot synchronize on %sobject %s", buf.peekString(), ss.exp.toChars());
+                return setError();
+            }
+            if (sc.func.setImpure())
+            {
+                ss.error("synchronize not allowed in pure function %s", sc.func.toChars());
+                return setError();
+            }
             version (all)
             {
                 /* Rewrite as:
