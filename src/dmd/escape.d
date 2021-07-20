@@ -310,24 +310,27 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
     {
-        if (global.params.useDIP1000 == FeatureState.enabled && sc.func.setUnsafe())
+        if (sc.func.setUnsafe())
         {
             if (!gag)
             {
                 if (assertmsg)
                 {
-                    error(arg.loc, "%s `%s` assigned to non-scope parameter calling `assert()`",
+                    previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
+                                    (arg.loc, "%s `%s` assigned to non-scope parameter calling `assert()`",
                         desc, v.toChars());
                 }
                 else
                 {
-                    error(arg.loc, "%s `%s` assigned to non-scope parameter `%s` calling %s",
+                    previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
+                                    (arg.loc, "%s `%s` assigned to non-scope parameter `%s` calling %s",
                         desc, v.toChars(),
                         par ? par.toChars() : "this",
                         fdc ? fdc.toPrettyChars() : "indirectly");
                 }
             }
-            result = true;
+            if (global.params.useDIP1000 == FeatureState.enabled)
+                result = true;
         }
     }
 
@@ -752,7 +755,7 @@ ByRef:
         if (v.isDataseg())
             continue;
 
-        if (global.params.useDIP1000 == FeatureState.enabled)
+        if (global.params.useDIP1000 != FeatureState.disabled)
         {
             if (va && va.isScope() && !v.isReference())
             {
@@ -763,9 +766,15 @@ ByRef:
                 else if (sc.func.setUnsafe())
                 {
                     if (!gag)
-                        error(ae.loc, "address of local variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
-                    result = true;
-                    continue;
+                        previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
+                            (ae.loc, "address of local variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
+
+
+                    if (global.params.useDIP1000 == FeatureState.enabled)
+                    {
+                        result = true;
+                        continue;
+                    }
                 }
             }
         }
@@ -965,13 +974,11 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
         {
             if (sc._module && sc._module.isRoot())
             {
-                // Only look for errors if in module listed on command line
+                if (!gag)
+                    previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
+                                    (e.loc, "scope variable `%s` may not be thrown", v.toChars());
                 if (global.params.useDIP1000 == FeatureState.enabled) // https://issues.dlang.org/show_bug.cgi?id=17029
-                {
-                    if (!gag)
-                        error(e.loc, "scope variable `%s` may not be thrown", v.toChars());
                     result = true;
-                }
                 continue;
             }
         }
@@ -1033,14 +1040,16 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                  */
                 !(p.parent == sc.func))
             {
-                // Only look for errors if in module listed on command line
-                if (global.params.useDIP1000 == FeatureState.enabled   // https://issues.dlang.org/show_bug.cgi?id=17029
-                    && sc.func.setUnsafe())     // https://issues.dlang.org/show_bug.cgi?id=20868
+                if (sc.func.setUnsafe())     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
+                    // Only look for errors if in module listed on command line
                     if (!gag)
-                        error(e.loc, "scope variable `%s` may not be copied into allocated memory", v.toChars());
-                    result = true;
+                        previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
+                                        (e.loc, "scope variable `%s` may not be copied into allocated memory", v.toChars());
+                    if (global.params.useDIP1000 == FeatureState.enabled)
+                        result = true;
                 }
+
                 continue;
             }
         }
@@ -1253,13 +1262,13 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
                )
             {
+                // https://issues.dlang.org/show_bug.cgi?id=17029
                 // Only look for errors if in module listed on command line
-                if (global.params.useDIP1000 == FeatureState.enabled) // https://issues.dlang.org/show_bug.cgi?id=17029
-                {
-                    if (!gag)
-                        error(e.loc, "scope variable `%s` may not be returned", v.toChars());
+                if (!gag)
+                    previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
+                                    (e.loc, "scope variable `%s` may not be returned", v.toChars());
+                if (global.params.useDIP1000 == FeatureState.enabled)
                     result = true;
-                }
                 continue;
             }
         }
