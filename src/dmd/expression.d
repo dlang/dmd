@@ -3329,6 +3329,14 @@ extern (C++) final class StructLiteralExp : Expression
         return this;
     }
 
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        if (sc.flags & SCOPE.Cfile)
+            return this;  // C struct literals are lvalues
+        else
+            return Expression.toLvalue(sc, e);
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
