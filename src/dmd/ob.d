@@ -1977,7 +1977,12 @@ void checkObErrors(ref ObState obstate)
             else if (isReadonlyPtr(v))
                 pvs.state = PtrState.Readonly;
             else
+            {
+                if (pvs.state == PtrState.Owner && v.type.hasPointersToMutableFields())
+                    v.error(e.loc, "assigning to Owner without disposing of owned value");
+
                 pvs.state = PtrState.Owner;
+            }
             pvs.deps.zero();
 
             EscapeByResults er;
