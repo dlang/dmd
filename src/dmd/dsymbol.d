@@ -795,6 +795,12 @@ extern (C++) class Dsymbol : ASTNode
                 error("`.%s` property cannot be redefined", ident.toChars());
                 errors = true;
             }
+            if (ident == Id._init)
+            {
+                // @@@DEPRECATED_2.097@@@
+                // Should be an error in 2.107.
+                .deprecation(loc, "declaring a member named `%s` is deprecated", ident.toChars());
+            }
         }
     }
 
