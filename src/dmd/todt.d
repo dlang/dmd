@@ -512,6 +512,14 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
     }
 
+    /* https://issues.dlang.org/show_bug.cgi?id=12652
+       Non-constant hash initializers should have a special-case diagnostic
+     */
+    void visitAssocArrayLiteral(AssocArrayLiteralExp e)
+    {
+        e.error("Associative array literals currently cannot be initialized globally, in structs or in classes; try using 'enum' or a module constructor instead");
+    }
+
     void visitStructLiteral(StructLiteralExp sle)
     {
         //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
@@ -620,22 +628,23 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
     switch (e.op)
     {
-        default:                 return nonConstExpError(e);
-        case TOK.cast_:          return visitCast          (e.isCastExp());
-        case TOK.address:        return visitAddr          (e.isAddrExp());
-        case TOK.int64:          return visitInteger       (e.isIntegerExp());
-        case TOK.float64:        return visitReal          (e.isRealExp());
-        case TOK.complex80:      return visitComplex       (e.isComplexExp());
-        case TOK.null_:          return visitNull          (e.isNullExp());
-        case TOK.string_:        return visitString        (e.isStringExp());
-        case TOK.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
-        case TOK.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
-        case TOK.symbolOffset:   return visitSymOff        (e.isSymOffExp());
-        case TOK.variable:       return visitVar           (e.isVarExp());
-        case TOK.function_:      return visitFunc          (e.isFuncExp());
-        case TOK.vector:         return visitVector        (e.isVectorExp());
-        case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
-        case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
+        default:                      return nonConstExpError(e);
+        case TOK.cast_:               return visitCast             (e.isCastExp());
+        case TOK.address:             return visitAddr             (e.isAddrExp());
+        case TOK.int64:               return visitInteger          (e.isIntegerExp());
+        case TOK.float64:             return visitReal             (e.isRealExp());
+        case TOK.complex80:           return visitComplex          (e.isComplexExp());
+        case TOK.null_:               return visitNull             (e.isNullExp());
+        case TOK.string_:             return visitString           (e.isStringExp());
+        case TOK.arrayLiteral:        return visitArrayLiteral     (e.isArrayLiteralExp());
+        case TOK.assocArrayLiteral:   return visitAssocArrayLiteral(e.isAssocArrayLiteralExp());
+        case TOK.structLiteral:       return visitStructLiteral    (e.isStructLiteralExp());
+        case TOK.symbolOffset:        return visitSymOff           (e.isSymOffExp());
+        case TOK.variable:            return visitVar              (e.isVarExp());
+        case TOK.function_:           return visitFunc             (e.isFuncExp());
+        case TOK.vector:              return visitVector           (e.isVectorExp());
+        case TOK.classReference:      return visitClassReference   (e.isClassReferenceExp());
+        case TOK.typeid_:             return visitTypeid           (e.isTypeidExp());
     }
 }
 
