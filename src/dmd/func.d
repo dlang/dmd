@@ -1383,6 +1383,12 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (D) final bool setImpure()
     {
+        if (flags & FUNCFLAG.purityInprocess && semanticRun < PASS.semantic3 && _scope)
+        {
+            this.semantic2(_scope);
+            this.semantic3(_scope);
+        }
+
         if (flags & FUNCFLAG.purityInprocess)
         {
             flags &= ~FUNCFLAG.purityInprocess;
@@ -1420,6 +1426,12 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (D) final bool setUnsafe()
     {
+        if (flags & FUNCFLAG.safetyInprocess && semanticRun < PASS.semantic3 && _scope)
+        {
+            this.semantic2(_scope);
+            this.semantic3(_scope);
+        }
+
         if (flags & FUNCFLAG.safetyInprocess)
         {
             flags &= ~FUNCFLAG.safetyInprocess;
