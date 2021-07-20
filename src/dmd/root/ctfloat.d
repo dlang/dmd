@@ -28,7 +28,7 @@ private
 
     version(CRuntime_Microsoft) extern (C++)
     {
-        public import dmd.root.longdouble : longdouble_soft, ld_sprint;
+        public import dmd.root.longdouble/* : longdouble_soft, ld_sprint*/;
         import dmd.root.strtold;
     }
 }
@@ -185,7 +185,7 @@ extern (C++) struct CTFloat
         version(CRuntime_DigitalMars) __locale_decpoint = save;
         if (isOutOfRange)
             *isOutOfRange = (errno == ERANGE);
-        return r;
+        return cast(typeof(return))r;
     }
 
     @system

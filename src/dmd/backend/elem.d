@@ -64,7 +64,7 @@ version (SCPP_HTOD)
     import precomp;
 }
 
-version (CRuntime_Microsoft)
+static if (real.sizeof == double.sizeof)
 {
     import dmd.root.longdouble;
 }
@@ -1719,7 +1719,7 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
         auto v = e.EV.Vldouble;
         double vDouble;
 
-        version (CRuntime_Microsoft)
+        static if (real.sizeof == double.sizeof)
         {
             static if (is(typeof(v) == real))
                 *(&vDouble) = v;
@@ -3025,7 +3025,7 @@ case_tym:
 
         case TYldouble:
         {
-            version (CRuntime_Microsoft)
+            static if (real.sizeof == 8)
             {
                 char[3 + 3 * (targ_ldouble).sizeof + 1] buffer = void;
                 static if (is(typeof(e.EV.Vldouble) == real))

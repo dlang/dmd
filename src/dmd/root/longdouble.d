@@ -16,9 +16,12 @@ static if (real.sizeof > 8)
 else
     alias longdouble = longdouble_soft;
 
+import core.stdc.config;
+
 // longdouble_soft needed when building the backend with
-// Visual C or the frontend with LDC on Windows
-version(CRuntime_Microsoft):
+// Visual C or the frontend with LDC on Windows,
+// or when targetting emulated x64 on ARM macOS
+
 extern(C++):
 nothrow:
 @nogc:
@@ -86,7 +89,11 @@ void ld_clearfpu()
 pure:
 @trusted: // LDC: LLVM __asm is @system AND requires taking the address of variables
 
-struct longdouble_soft
+version(CRuntime_Microsoft)
+    private enum ldalign = 2;
+else
+    private enum ldalign = 16;
+align (ldalign) struct longdouble_soft
 {
 nothrow @nogc pure:
     // DMD's x87 `real` on Windows is packed (alignof = 2 -> sizeof = 10).
@@ -99,6 +106,11 @@ nothrow @nogc pure:
     this(uint i) { ld_set(&this, i); }
     this(long i) { ld_setll(&this, i); }
     this(ulong i) { ld_setull(&this, i); }
+    static if (is(__c_longlong))
+    {
+        this(__c_longlong i) { ld_setll(&this, i); }
+        this(__c_ulonglong i) { ld_setull(&this, i); }
+    }
     this(float f) { ld_set(&this, f); }
     this(double d)
     {
@@ -174,6 +186,8 @@ nothrow @nogc pure:
             else static if (is(T == double)) return cast(T)ld_read(&this);
             else static if (is(T == long))   return ld_readll(&this);
             else static if (is(T == ulong))  return ld_readull(&this);
+            else static if (is(T == __c_longlong))   return cast(T)ld_readull(&this);
+            else static if (is(T == __c_ulonglong))  return cast(T)ld_readull(&this);
             else static if (is(T == real))
             {
                 // convert to front end real if built with dmd
@@ -182,7 +196,7 @@ nothrow @nogc pure:
                 else
                     return ld_read(&this);
             }
-            else static assert(false, "usupported type");
+            else static assert(false, "usupported type " ~ T.stringof);
         }
     }
 
@@ -576,6 +590,7 @@ int ld_cmp(longdouble_soft x, longdouble_soft y)
             mov     res, EAX;
         }
     }
+    return res;
 }
 
 
@@ -724,6 +739,12 @@ int ld_type(longdouble_soft x)
     if(upper2 == 2 && lower62 != 0)
         return LD_TYPE_SNAN;
     return LD_TYPE_QNAN;         // qnan, indefinite, pseudo-nan
+}
+
+bool isnan(longdouble_soft x)
+{
+    int type = ld_type(x);
+    return type == LD_TYPE_SNAN || type == LD_TYPE_QNAN;
 }
 
 // consider sprintf pure
