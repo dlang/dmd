@@ -6139,6 +6139,9 @@ public:
             return;
         }
 
+        if (result.isStringExp())
+            return;
+
         if (result.op != TOK.address)
         {
             if (result.op == TOK.null_)
