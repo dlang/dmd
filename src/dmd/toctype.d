@@ -28,6 +28,7 @@ import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.mtype;
+import dmd.target;
 import dmd.tocvdebug;
 import dmd.visitor;
 
@@ -177,7 +178,7 @@ public:
                 }
             }
 
-            if (global.params.symdebugref)
+            if (global.params.symdebugref && target.os == Target.OS.Windows)
                 toDebug(sym);
 
             return;
@@ -225,7 +226,7 @@ public:
                 t.ctype = Type_toCtype(symMemtype);
             }
 
-            if (global.params.symdebugref)
+            if (global.params.symdebugref && target.os == Target.OS.Windows)
                 toDebug(t.sym);
 
             return;
@@ -266,7 +267,7 @@ public:
                 }
             }
 
-            if (global.params.symdebugref)
+            if (global.params.symdebugref && target.os == Target.OS.Windows)
                 toDebug(t.sym);
             return;
         }
