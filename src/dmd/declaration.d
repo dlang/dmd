@@ -542,7 +542,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return visibility;
     }
 
-    override final inout(Declaration) isDeclaration() inout
+    override final inout(Declaration) isDeclaration() inout pure nothrow @nogc @safe
     {
         return this;
     }
@@ -1733,7 +1733,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         return buf.extractChars();
     }
 
-    override final inout(TypeInfoDeclaration) isTypeInfoDeclaration() inout
+    override final inout(TypeInfoDeclaration) isTypeInfoDeclaration() inout @nogc nothrow pure @safe
     {
         return this;
     }

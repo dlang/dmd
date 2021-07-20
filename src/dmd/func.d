@@ -3760,32 +3760,32 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         return scd;
     }
 
-    override final inout(AggregateDeclaration) isThis() inout
+    override final inout(AggregateDeclaration) isThis() inout @nogc nothrow pure @safe
     {
         return null;
     }
 
-    override final bool isVirtual() const
+    override final bool isVirtual() const @nogc nothrow pure @safe
     {
         return false;
     }
 
-    override final bool addPreInvariant()
+    override final bool addPreInvariant() @nogc nothrow pure @safe
     {
         return false;
     }
 
-    override final bool addPostInvariant()
+    override final bool addPostInvariant() @nogc nothrow pure @safe
     {
         return false;
     }
 
-    override final bool hasStaticCtorOrDtor()
+    override final bool hasStaticCtorOrDtor() @nogc nothrow pure @safe
     {
         return true;
     }
 
-    override final inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout
+    override final inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout @nogc nothrow pure @safe
     {
         return this;
     }

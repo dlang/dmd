@@ -64,33 +64,33 @@ extern (C++) class Initializer : ASTNode
         return buf.extractChars();
     }
 
-    final inout(ErrorInitializer) isErrorInitializer() inout pure
+    final inout(ErrorInitializer) isErrorInitializer() inout @nogc nothrow pure
     {
         // Use void* cast to skip dynamic casting call
         return kind == InitKind.error ? cast(inout ErrorInitializer)cast(void*)this : null;
     }
 
-    final inout(VoidInitializer) isVoidInitializer() inout pure
+    final inout(VoidInitializer) isVoidInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.void_ ? cast(inout VoidInitializer)cast(void*)this : null;
     }
 
-    final inout(StructInitializer) isStructInitializer() inout pure
+    final inout(StructInitializer) isStructInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.struct_ ? cast(inout StructInitializer)cast(void*)this : null;
     }
 
-    final inout(ArrayInitializer) isArrayInitializer() inout pure
+    final inout(ArrayInitializer) isArrayInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.array ? cast(inout ArrayInitializer)cast(void*)this : null;
     }
 
-    final inout(ExpInitializer) isExpInitializer() inout pure
+    final inout(ExpInitializer) isExpInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
     }
 
-    final inout(CInitializer) isCInitializer() inout pure
+    final inout(CInitializer) isCInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.C_ ? cast(inout CInitializer)cast(void*)this : null;
     }

@@ -1616,7 +1616,7 @@ extern (C++) abstract class Expression : ASTNode
         return true;
     }
 
-    final pure inout nothrow @nogc
+    final pure inout nothrow @nogc @safe
     {
         inout(IntegerExp)   isIntegerExp() { return op == TOK.int64 ? cast(typeof(return))this : null; }
         inout(ErrorExp)     isErrorExp() { return op == TOK.error ? cast(typeof(return))this : null; }
@@ -4584,7 +4584,7 @@ extern (C++) class BinAssignExp : BinExp
         return toLvalue(sc, this);
     }
 
-    override inout(BinAssignExp) isBinAssignExp() pure inout nothrow @nogc
+    override inout(BinAssignExp) isBinAssignExp() pure inout nothrow @nogc @safe
     {
         return this;
     }

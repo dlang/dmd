@@ -985,7 +985,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return vtblsym;
     }
 
-    override final inout(ClassDeclaration) isClassDeclaration() inout
+    override final inout(ClassDeclaration) isClassDeclaration() inout @nogc nothrow pure @safe
     {
         return this;
     }
