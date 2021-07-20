@@ -5816,6 +5816,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(BinAssignExp exp)
     {
+        import dmd.property;
+        //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier || exp.e1.op == TOK.call)
+        {
+            //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+            Expression e1 = SemanticProp(exp,sc);
+            if(e1)
+            {
+                result = e1;
+                return;
+            }
+        }
         if (exp.type)
         {
             result = exp;
@@ -8446,6 +8458,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PreExp exp)
     {
+        import dmd.property;
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier || exp.e1.op == TOK.call)
+        {
+            //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+            Expression e1;
+            if (exp.op == TOK.prePlusPlus)
+                e1 = SemanticProp(new AddAssignExp(exp.loc, exp.e1, IntegerExp.literal!1), sc);
+            else
+                e1 = SemanticProp(new MinAssignExp(exp.loc, exp.e1, IntegerExp.literal!1), sc);
+            
+            if(e1)
+            {
+                result = e1;
+                return;
+            }
+        }
         Expression e = exp.op_overload(sc);
         // printf("PreExp::semantic('%s')\n", toChars());
         if (e)
@@ -9694,10 +9722,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PowAssignExp exp)
     {
+        import dmd.property;
         if (exp.type)
         {
             result = exp;
             return;
+        }
+
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier)
+        {
+            //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+            Expression e1 = SemanticProp(exp,sc);
+            if(e1)
+            {
+                result = e1;
+                return;
+            }
         }
 
         Expression e = exp.op_overload(sc);
@@ -9778,12 +9818,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CatAssignExp exp)
     {
+        import dmd.property;
         if (exp.type)
         {
             result = exp;
             return;
         }
-
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier)
+        {
+            //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+            Expression e1 = SemanticProp(exp,sc);
+            if(e1)
+            {
+                result = e1;
+                return;
+            }
+        }
         //printf("CatAssignExp::semantic() %s\n", exp.toChars());
         Expression e = exp.op_overload(sc);
         if (e)
@@ -11801,6 +11851,7 @@ Expression binSemanticProp(BinExp e, Scope* sc)
     e.e2 = e2x;
     return null;
 }
+
 
 // entrypoint for semantic ExpressionSemanticVisitor
 extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
