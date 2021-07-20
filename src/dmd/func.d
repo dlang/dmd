@@ -3211,17 +3211,7 @@ private bool traverseIndirections(Type ta, Type tb)
 {
     //printf("traverseIndirections(%s, %s)\n", ta.toChars(), tb.toChars());
 
-    /* Threaded list of aggregate types already examined,
-     * used to break cycles.
-     * Cycles in type graphs can only occur with aggregates.
-     */
-    static struct Ctxt
-    {
-        Ctxt* prev;
-        Type type;      // an aggregate type
-    }
-
-    static bool traverse(Type ta, Type tb, Ctxt* ctxt, bool reversePass)
+    static bool traverse(Type ta, Type tb, ref scope DsymbolTable table, bool reversePass)
     {
         //printf("traverse(%s, %s)\n", ta.toChars(), tb.toChars());
         ta = ta.baseElemOf();
@@ -3251,28 +3241,27 @@ private bool traverseIndirections(Type ta, Type tb)
 
         if (tb.ty == Tclass || tb.ty == Tstruct)
         {
-            for (Ctxt* c = ctxt; c; c = c.prev)
-                if (tb == c.type)
-                    return true;
-            Ctxt c;
-            c.prev = ctxt;
-            c.type = tb;
-
             /* Traverse the type of each field of the aggregate
              */
-            AggregateDeclaration sym = tb.toDsymbol(null).isAggregateDeclaration();
+            Dsymbol dsym = tb.toDsymbol(null);
+            if (table.insert(dsym) is null)
+            {
+                // We have already seen this symbol, break the cycle
+                return true;
+            }
+            AggregateDeclaration sym = dsym.isAggregateDeclaration();
             foreach (v; sym.fields)
             {
                 Type tprmi = v.type.addMod(tb.mod);
                 //printf("\ttb = %s, tprmi = %s\n", tb.toChars(), tprmi.toChars());
-                if (!traverse(ta, tprmi, &c, reversePass))
+                if (!traverse(ta, tprmi, table, reversePass))
                     return false;
             }
         }
         else if (tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tpointer)
         {
             Type tind = tb.nextOf();
-            if (!traverse(ta, tind, ctxt, reversePass))
+            if (!traverse(ta, tind, table, reversePass))
                 return false;
         }
         else if (tb.hasPointers())
@@ -3283,7 +3272,7 @@ private bool traverseIndirections(Type ta, Type tb)
 
         // Still no match, so try breaking up ta if we have not done so yet.
         if (!reversePass)
-            return traverse(tb, ta, ctxt, true);
+            return traverse(tb, ta, table, true);
 
         return true;
     }
@@ -3291,7 +3280,8 @@ private bool traverseIndirections(Type ta, Type tb)
     // To handle arbitrary levels of indirections in both parameters, we
     // recursively descend into aggregate members/levels of indirection in both
     // `ta` and `tb` while avoiding cycles. Start with the original types.
-    const result = traverse(ta, tb, null, false);
+    scope DsymbolTable table = new DsymbolTable();
+    const result = traverse(ta, tb, table, false);
     //printf("  returns %d\n", result);
     return result;
 }
