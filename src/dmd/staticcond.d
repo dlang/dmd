@@ -34,14 +34,14 @@ import dmd.tokens;
  * necessary.
  * Params:
  *      sc  = instantiating scope
- *      original = original expression, for error messages
  *      e =  resulting expression
  *      errors = set to `true` if errors occurred
  *      negatives = array to store negative clauses
+ *      msg = string if e is a tuple(bool, string)
  * Returns:
  *      true if evaluates to true
  */
-bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Expressions* negatives = null)
+bool evalStaticCondition(Scope* sc, Expression e, out bool errors, Expressions* negatives = null, Expression* msg = null)
 {
     if (negatives)
         negatives.setDim(0);
@@ -93,6 +93,18 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
 
         e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);
+        if (msg)
+        {
+            if (auto tup = e.toTupleExp())
+            {
+                const dim = tup.exps.dim;
+                if (dim > 2)
+                    tup.error("tuple arugment to `static assert` has more than two elements");
+                if (dim == 2)
+                    *msg = (*tup.exps)[1];
+                e = (*tup.exps)[0];
+            }
+        }
         e = e.toBoolean(sc);
 
         sc = sc.endCTFE();
