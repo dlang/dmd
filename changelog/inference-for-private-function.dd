@@ -1,0 +1,14 @@
+`private` functions now have their attributes inferred
+
+In order to reduce the amount of attributes users have to apply to their code,
+`private` functions will now have their attributes inferred as templates
+or `auto` functions currently do.
+
+E.g. the following is now possible:
+---
+private void bar() {}
+
+void foo() @safe nothrow @nogc pure {
+  bar();
+}
+---
