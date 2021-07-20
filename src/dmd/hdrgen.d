@@ -958,6 +958,11 @@ public:
     {
         buf.writestring("extern (");
         buf.writestring(linkageToString(d.linkage));
+        if (d.ident !is null)
+        {
+            buf.writestring(", ");
+            buf.writestring(d.ident.toString());
+        }
         buf.writestring(") ");
         visit(cast(AttribDeclaration)d);
     }

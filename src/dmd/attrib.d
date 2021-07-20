@@ -389,14 +389,16 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
  * `extern(C) void foo()`.
  *
  * `extern(<linkage>) <decl...>`
+ * `extern(D[, <Identifiers...>]) <decl...>`
  */
 extern (C++) final class LinkDeclaration : AttribDeclaration
 {
     LINK linkage; /// either explicitly set or `default_`
 
-    extern (D) this(const ref Loc loc, LINK linkage, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, LINK linkage, Dsymbols* decl, Identifier id = null)
     {
-        super(loc, null, decl);
+        assert(id is null || linkage == LINK.d);
+        super(loc, id, decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", linkage, decl);
         this.linkage = (linkage == LINK.system) ? target.systemLinkage() : linkage;
     }
@@ -414,7 +416,16 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
+        // `extern(D, ident)`, we always need to introduce a scope
+        if (this.ident !is null)
+        {
+            auto sc2 = sc.copy();
+            sc2.mangleParent = this;
+            return sc2;
+        }
+        return createNewScope(
+            sc, sc.stc, this.linkage, sc.cppmangle,
+            sc.visibility, sc.explicitVisibility,
             sc.aligndecl, sc.inlining);
     }
 
@@ -532,14 +543,15 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
     {
         super(loc, ident, decl);
         this.exp = exp;
-        this.cppnamespace = parent;
+        this.mangleParent = ParentSymbolAttribute(parent);
     }
 
     override CPPNamespaceDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new CPPNamespaceDeclaration(
-            this.loc, this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.cppnamespace);
+            this.loc, this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl),
+            this.mangleParent.hasCPPNamespace());
     }
 
     /**
@@ -550,7 +562,7 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
     {
         auto scx = sc.copy();
         scx.linkage = LINK.cpp;
-        scx.namespace = this;
+        scx.mangleParent = ParentSymbolAttribute(this);
         return scx;
     }
 
@@ -570,6 +582,83 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
     }
 
     override inout(CPPNamespaceDeclaration) isCPPNamespaceDeclaration() inout { return this; }
+}
+
+/// A container for either `CPPNamespaceDeclaration` or `LinkDeclaration`
+/// Its use is to avoid having 2 fields in both `Scope` and `Dsymbol` for
+/// the same (but mutually exclusive) functionality (a parent symbol for mangling).
+extern(C++) struct ParentSymbolAttribute
+{
+    /// The underlying store
+    private union {
+        LinkDeclaration link;
+        CPPNamespaceDeclaration cpp;
+    }
+
+    /// If `true`, we have a `LinkDeclaration`, otherwise it's a `CPPNamespaceDeclaration`.
+    private bool isLinkDecl;
+
+    /// Construct a new instance from the provided node
+    extern(D) this(CPPNamespaceDeclaration cpp)
+    {
+        this.isLinkDecl = false;
+        this.cpp = cpp;
+    }
+
+    /// Ditto
+    extern(D) this(LinkDeclaration link)
+    {
+        this.isLinkDecl = true;
+        this.link = link;
+    }
+
+    ///
+    void accept(Visitor v)
+    {
+        if (this.isLinkDecl)
+            this.link.accept(v);
+        else
+            this.cpp.accept(v);
+    }
+
+    /// Support direct assignment
+    ref ParentSymbolAttribute opAssign(CPPNamespaceDeclaration cpp) return
+        @trusted pure nothrow @nogc
+    {
+        this.isLinkDecl = false;
+        this.cpp = cpp;
+        return this;
+    }
+
+    /// Ditto
+    ref ParentSymbolAttribute opAssign(LinkDeclaration link) return
+        @trusted pure nothrow @nogc
+    {
+        this.isLinkDecl = true;
+        this.link = link;
+        return this;
+    }
+
+    /// Returns: `CPPNamespaceDeclaration` if it's the active member, or `null`
+    inout(CPPNamespaceDeclaration) hasCPPNamespace() inout return scope
+        @trusted pure nothrow @nogc
+    {
+        return this.isLinkDecl ? null : this.cpp;
+    }
+
+    /// Returns: `LinkDeclaration` if it's the active member, or `null`
+    inout(LinkDeclaration) hasLink() inout return scope
+        @trusted pure nothrow @nogc
+    {
+        return this.isLinkDecl ? this.link : null;
+    }
+
+    /// Returns the common base class (an attribute)
+    inout(AttribDeclaration) asAttribute() inout return scope
+        @trusted pure nothrow @nogc
+    {
+        return this.isLinkDecl ? this.link : this.cpp;
+    }
 }
 
 /***********************************************************

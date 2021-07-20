@@ -224,8 +224,8 @@ extern (C++) class Dsymbol : ASTNode
 {
     Identifier ident;
     Dsymbol parent;
-    /// C++ namespace this symbol belongs to
-    CPPNamespaceDeclaration cppnamespace;
+    /// C++ namespace or `extern(D, module)` this symbol belongs to
+    ParentSymbolAttribute mangleParent;
     Symbol* csym;           // symbol for code generator
     Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
@@ -2366,5 +2366,3 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
     if (log) printf(" collision\n");
     return null;
 }
-
-

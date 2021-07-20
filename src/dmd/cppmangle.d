@@ -188,7 +188,7 @@ private final class CppMangleVisitor : Visitor
     {
         if (VarDeclaration vd = s.isVarDeclaration())
         {
-            mangle_variable(vd, vd.cppnamespace !is null);
+            mangle_variable(vd, vd.mangleParent.hasCPPNamespace !is null);
         }
         else if (FuncDeclaration fd = s.isFuncDeclaration())
         {
@@ -386,7 +386,7 @@ private final class CppMangleVisitor : Visitor
     /// Ditto
     static bool isStd(CPPNamespaceDeclaration s)
     {
-        return s && s.cppnamespace is null && s.ident == Id.std;
+        return s && s.mangleParent.hasCPPNamespace is null && s.ident == Id.std;
     }
 
     /************************
@@ -609,7 +609,7 @@ private final class CppMangleVisitor : Visitor
         {
             printf("source_name(%s)\n", s.toChars());
             auto sl = this.buf.peekSlice();
-            assert(sl.length == 0 || haveNE || s.cppnamespace is null || sl != "_ZN");
+            assert(sl.length == 0 || haveNE || s.mangleParent.hasCPPNamespace is null || sl != "_ZN");
         }
         auto ti = s.isTemplateInstance();
 
@@ -617,7 +617,7 @@ private final class CppMangleVisitor : Visitor
         {
             auto ag = s.isAggregateDeclaration();
             const ident = (ag && ag.mangleOverride) ? ag.mangleOverride.id : s.ident;
-            this.writeNamespace(s.cppnamespace, () {
+            this.writeNamespace(s.mangleParent.hasCPPNamespace, () {
                 this.writeIdentifier(ident);
                 this.abiTags.writeSymbol(s, this);
                 },
@@ -635,7 +635,7 @@ private final class CppMangleVisitor : Visitor
         //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.name
         //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-compression
         Dsymbol q = getQualifier(ti.tempdecl);
-        Dsymbol ns = ti.tempdecl.cppnamespace;
+        Dsymbol ns = ti.tempdecl.mangleParent.hasCPPNamespace;
         const inStd = ns && isStd(ns) || q && isStd(q);
         const isNested = !inStd && (ns || q);
 
@@ -658,7 +658,7 @@ private final class CppMangleVisitor : Visitor
         if (ag && ag.mangleOverride)
         {
             this.writeNamespace(
-                ti.toAlias().cppnamespace, () {
+                ti.toAlias().mangleParent.hasCPPNamespace, () {
                     this.writeIdentifier(ag.mangleOverride.id);
                     if (ag.mangleOverride.agg && ag.mangleOverride.agg.isInstantiated())
                     {
@@ -672,7 +672,7 @@ private final class CppMangleVisitor : Visitor
         else
         {
             this.writeNamespace(
-                s.cppnamespace, () {
+                s.mangleParent.hasCPPNamespace, () {
                     this.writeIdentifier(ti.tempdecl.toAlias().ident);
                     append(ti.tempdecl);
                     this.abiTags.writeSymbol(ti.tempdecl, this);
@@ -704,8 +704,8 @@ private final class CppMangleVisitor : Visitor
     {
         // If we receive a pre-semantic `TemplateInstance`,
         // `cppnamespace` is always `null`
-        return ti.tempdecl ? ti.cppnamespace
-            : this.context.res.asType().toDsymbol(null).cppnamespace;
+        return ti.tempdecl ? ti.mangleParent.hasCPPNamespace
+            : this.context.res.asType().toDsymbol(null).mangleParent.hasCPPNamespace;
     }
 
     /********
@@ -1129,7 +1129,7 @@ private final class CppMangleVisitor : Visitor
                 buf.writestring("N");
             if (!substitute(ns))
             {
-                this.writeNamespace(ns.cppnamespace, null);
+                this.writeNamespace(ns.mangleParent.hasCPPNamespace, null);
                 this.writeIdentifier(ns.ident);
                 append(ns);
             }
@@ -1139,7 +1139,7 @@ private final class CppMangleVisitor : Visitor
         }
         else if (!substitute(ns))
         {
-            this.writeNamespace(ns.cppnamespace, null);
+            this.writeNamespace(ns.mangleParent.hasCPPNamespace, null);
             this.writeIdentifier(ns.ident);
             append(ns);
         }
@@ -1623,7 +1623,7 @@ private final class CppMangleVisitor : Visitor
                 sym2.accept(this);
         }
         this.writeNamespace(
-            sym1.cppnamespace, () {
+            sym1.mangleParent.hasCPPNamespace, () {
                 this.writeIdentifier(t.name);
                 this.append(t);
                 dg();
@@ -2289,9 +2289,9 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, Nspace b, size_t idx =
 
     // We need to see if there's more ident enclosing
     if (auto pb = b.toParent().isNspace())
-        return isNamespaceEqual(a.cppnamespace, pb);
+        return isNamespaceEqual(a.mangleParent.hasCPPNamespace, pb);
     else
-        return a.cppnamespace is null;
+        return a.mangleParent.hasCPPNamespace is null;
 }
 
 /// Returns:
@@ -2301,11 +2301,12 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaratio
     if (a is null || b is null)
         return false;
 
-    if ((a.cppnamespace is null) != (b.cppnamespace is null))
+    if ((a.mangleParent.hasCPPNamespace is null) != (b.mangleParent.hasCPPNamespace is null))
         return false;
     if (a.ident != b.ident)
         return false;
-    return a.cppnamespace is null ? true : isNamespaceEqual(a.cppnamespace, b.cppnamespace);
+    return a.mangleParent.hasCPPNamespace is null ? true :
+        isNamespaceEqual(a.mangleParent.hasCPPNamespace, b.mangleParent.hasCPPNamespace);
 }
 
 /**

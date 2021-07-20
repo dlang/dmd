@@ -623,7 +623,15 @@ public:
         if (TemplateInstance ti = s.isTemplateInstance())
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
         else
-            p = s.parent;
+        {
+            // `extern(D, some.parent.here)`
+            auto ld = s.mangleParent.hasLink();
+            if (ld && ld.linkage == LINK.d && ld.ident !is null)
+                p = ld;
+            else
+                p = s.parent;
+        }
+
         if (p)
         {
             uint localNum = s.localNum;
