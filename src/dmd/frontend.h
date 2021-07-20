@@ -6609,6 +6609,7 @@ public:
     Expression* getField(Type* type, uint32_t offset);
     int32_t getFieldIndex(Type* type, uint32_t offset);
     Expression* addDtorHook(Scope* sc);
+    Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
 };
 
