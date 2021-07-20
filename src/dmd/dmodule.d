@@ -67,7 +67,7 @@ enum package_di = "package." ~ hdr_ext;
 private const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
 {
     //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
-    /* Search along path[] for .di file, then .d file.
+    /* Search along path[] for .di file, then .d file, then .i file, then .c file.
      */
     const sdi = FileName.forceExt(filename, hdr_ext);
     if (FileName.exists(sdi) == 1)
@@ -79,13 +79,14 @@ private const(char)[] lookForSourceFile(const char[] filename, const char*[] pat
         return sd;
     scope(exit) FileName.free(sd.ptr);
 
-    const sc = FileName.forceExt(filename, c_ext);
-    if (FileName.exists(sc) == 1)
-        return sc;
-
     const si = FileName.forceExt(filename, i_ext);
     if (FileName.exists(si) == 1)
         return si;
+    scope(exit) FileName.free(si.ptr);
+
+    const sc = FileName.forceExt(filename, c_ext);
+    if (FileName.exists(sc) == 1)
+        return sc;
     scope(exit) FileName.free(sc.ptr);
 
     if (FileName.exists(filename) == 2)
@@ -119,6 +120,12 @@ private const(char)[] lookForSourceFile(const char[] filename, const char*[] pat
         FileName.free(n.ptr);
 
         n = FileName.combine(p, sd);
+        if (FileName.exists(n) == 1) {
+            return n;
+        }
+        FileName.free(n.ptr);
+
+        n = FileName.combine(p, si);
         if (FileName.exists(n) == 1) {
             return n;
         }
