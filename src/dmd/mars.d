@@ -86,7 +86,7 @@ Print DMD's logo with more debug information and error-reporting pointers.
 Params:
     stream = output stream to print the information on
 */
-extern(C) void printInternalFailure(FILE* stream)
+private void printInternalFailure(FILE* stream)
 {
     fputs(("---\n" ~
     "ERROR: This is a compiler bug.\n" ~
