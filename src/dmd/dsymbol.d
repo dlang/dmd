@@ -1229,6 +1229,8 @@ extern (C++) class Dsymbol : ASTNode
     inout(ExpressionDsymbol)           isExpressionDsymbol()           inout { return null; }
     inout(AliasAssign)                 isAliasAssign()                 inout { return null; }
     inout(ThisDeclaration)             isThisDeclaration()             inout { return null; }
+    inout(BitfieldDeclaration)         isBitfieldDeclaration()         inout { return null; }
+    inout(AnonBitfieldDeclaration)     isAnonBitfieldDeclaration()     inout { return null; }
     inout(TypeInfoDeclaration)         isTypeInfoDeclaration()         inout { return null; }
     inout(TupleDeclaration)            isTupleDeclaration()            inout { return null; }
     inout(AliasDeclaration)            isAliasDeclaration()            inout { return null; }

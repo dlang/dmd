@@ -266,6 +266,26 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class BitfieldDeclaration : public VarDeclaration
+{
+public:
+    Expression *width;
+    VarDeclaration *unitfield;
+    unsigned bitoffset;
+
+    BitfieldDeclaration *syntaxCopy(Dsymbol *);
+    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
+    BitfieldDeclaration *isBitfieldDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class AnonBitfieldDeclaration : public BitfieldDeclaration
+{
+public:
+    AnonBitfieldDeclaration *isAnonBitfieldDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 /**************************************************************/
 
 // This is a shell around a back end symbol
