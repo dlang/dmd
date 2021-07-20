@@ -3278,6 +3278,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     rs.exp = new CastExp(rs.loc, rs.exp, Type.tvoid);
                     rs.exp = rs.exp.expressionSemantic(sc);
                 }
+                /* https://issues.dlang.org/show_bug.cgi?id=22133
+                 * Returning an unresolved template should result in an error,
+                 * same as in ExpStatement semantic.
+                 * TODO: Error message should explain better what went wrong.
+                 */
+                if (discardValue(rs.exp))
+                    errors = true;
 
                 /* Replace:
                  *      return exp;
