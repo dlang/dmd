@@ -78,8 +78,7 @@ import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
 
-enum LOGSEMANTIC = false;
-
+// debug = LOGSEMANTIC;
 /********************************************************
  * Perform semantic analysis and CTFE on expressions to produce
  * a string.
@@ -717,7 +716,10 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
  */
 Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 {
-    //printf("e1 = %s %s\n", Token::toChars(e1.op), e1.toChars());
+    debug (LOGSEMANTIC)
+    {
+      printf("e1 = %s %s\n", Token.toChars(e1.op), e1.toChars());
+    }
 
     Expression handleOverloadSet(OverloadSet os)
     {
@@ -816,7 +818,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
  */
 Expression symbolToExp(Dsymbol s, const ref Loc loc, Scope *sc, bool hasOverloads)
 {
-    static if (LOGSEMANTIC)
+    debug (LOGSEMANTIC)
     {
         printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
     }
@@ -2550,7 +2552,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
      */
     override void visit(Expression e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("Expression::semantic() %s\n", e.toChars());
         }
@@ -2592,7 +2594,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(IdentifierExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("IdentifierExp::semantic('%s')\n", exp.ident.toChars());
         }
@@ -2812,7 +2814,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(ThisExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("ThisExp::semantic()\n");
         }
@@ -2879,7 +2881,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(SuperExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("SuperExp::semantic('%s')\n", e.toChars());
         }
@@ -2959,7 +2961,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(NullExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("NullExp::semantic('%s')\n", e.toChars());
         }
@@ -2975,7 +2977,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(StringExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("StringExp::semantic() %s\n", e.toChars());
         }
@@ -3060,7 +3062,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(TupleExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("+TupleExp::semantic(%s)\n", exp.toChars());
         }
@@ -3102,7 +3104,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(ArrayLiteralExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("ArrayLiteralExp::semantic('%s')\n", e.toChars());
         }
@@ -3149,7 +3151,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(AssocArrayLiteralExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("AssocArrayLiteralExp::semantic('%s')\n", e.toChars());
         }
@@ -3195,7 +3197,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(StructLiteralExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("StructLiteralExp::semantic('%s')\n", e.toChars());
         }
@@ -3305,7 +3307,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(ScopeExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("+ScopeExp::semantic(%p '%s')\n", exp, exp.toChars());
         }
@@ -3450,7 +3452,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(NewExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("NewExp::semantic() %s\n", exp.toChars());
             if (exp.thisexp)
@@ -3934,7 +3936,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(NewAnonClassExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("NewAnonClassExp::semantic() %s\n", e.toChars());
             //printf("thisexp = %p\n", thisexp);
@@ -3963,7 +3965,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(SymOffExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("SymOffExp::semantic('%s')\n", e.toChars());
         }
@@ -3987,7 +3989,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(VarExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("VarExp::semantic(%s)\n", e.toChars());
         }
@@ -4048,7 +4050,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(FuncExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("FuncExp::semantic(%s)\n", exp.toChars());
             if (exp.fd.treq)
@@ -4239,7 +4241,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CallExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("CallExp::semantic() %s\n", exp.toChars());
         }
@@ -5226,7 +5228,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DeclarationExp::semantic() %s\n", e.toChars());
         }
@@ -5362,7 +5364,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(TypeidExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("TypeidExp::semantic() %s\n", exp.toChars());
         }
@@ -5449,7 +5451,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(HaltExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("HaltExp::semantic()\n");
         }
@@ -5503,7 +5505,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             //printf("no\n");
         }
 
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("IsExp::semantic(%s)\n", e.toChars());
         }
@@ -5961,7 +5963,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* https://dlang.org/spec/expression.html#mixin_expressions
          */
 
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("MixinExp::semantic('%s')\n", exp.toChars());
         }
@@ -5974,7 +5976,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(ImportExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("ImportExp::semantic('%s')\n", e.toChars());
         }
@@ -6081,7 +6083,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(AssertExp exp)
     {
         // https://dlang.org/spec/expression.html#assert_expressions
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("AssertExp::semantic('%s')\n", exp.toChars());
         }
@@ -6395,7 +6397,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DotIdExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DotIdExp::semantic(this = %p, '%s')\n", exp, exp.toChars());
             //printf("e1.op = %d, '%s'\n", e1.op, Token::toChars(e1.op));
@@ -6444,7 +6446,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DotVarExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DotVarExp::semantic('%s')\n", exp.toChars());
         }
@@ -6602,7 +6604,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DotTemplateInstanceExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DotTemplateInstanceExp::semantic('%s')\n", exp.toChars());
         }
@@ -6615,7 +6617,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DelegateExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DelegateExp::semantic('%s')\n", e.toChars());
         }
@@ -6695,7 +6697,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DotTypeExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DotTypeExp::semantic('%s')\n", exp.toChars());
         }
@@ -6717,7 +6719,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(AddrExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("AddrExp::semantic('%s')\n", exp.toChars());
         }
@@ -7009,7 +7011,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PtrExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("PtrExp::semantic('%s')\n", exp.toChars());
         }
@@ -7062,7 +7064,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(NegExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("NegExp::semantic('%s')\n", exp.toChars());
         }
@@ -7108,7 +7110,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(UAddExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("UAddExp::semantic('%s')\n", exp.toChars());
         }
@@ -7319,7 +7321,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CastExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("CastExp::semantic('%s')\n", exp.toChars());
         }
@@ -7579,7 +7581,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(VectorExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("VectorExp::semantic('%s')\n", exp.toChars());
         }
@@ -7630,7 +7632,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(VectorArrayExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("VectorArrayExp::semantic('%s')\n", e.toChars());
         }
@@ -7652,7 +7654,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(SliceExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("SliceExp::semantic('%s')\n", exp.toChars());
         }
@@ -7944,7 +7946,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(ArrayLengthExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("ArrayLengthExp::semantic('%s')\n", e.toChars());
         }
@@ -7967,7 +7969,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(ArrayExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("ArrayExp::semantic('%s')\n", exp.toChars());
         }
@@ -7993,7 +7995,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DotExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DotExp::semantic('%s')\n", exp.toChars());
             if (exp.type)
@@ -8059,7 +8061,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(IntervalExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("IntervalExp::semantic('%s')\n", e.toChars());
         }
@@ -8097,7 +8099,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DelegatePtrExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DelegatePtrExp::semantic('%s')\n", e.toChars());
         }
@@ -8118,7 +8120,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DelegateFuncptrExp e)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("DelegateFuncptrExp::semantic('%s')\n", e.toChars());
         }
@@ -8138,7 +8140,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(IndexExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("IndexExp::semantic('%s')\n", exp.toChars());
         }
@@ -8347,7 +8349,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PostExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("PostExp::semantic('%s')\n", exp.toChars());
         }
@@ -8500,7 +8502,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(AssignExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("AssignExp::semantic('%s')\n", exp.toChars());
         }
@@ -9938,7 +9940,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(AddExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("AddExp::semantic('%s')\n", exp.toChars());
         }
@@ -10039,7 +10041,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(MinExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("MinExp::semantic('%s')\n", exp.toChars());
         }
@@ -10997,7 +10999,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(LogicalExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("LogicalExp::semantic() %s\n", exp.toChars());
         }
@@ -11081,7 +11083,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CmpExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("CmpExp::semantic('%s')\n", exp.toChars());
         }
@@ -11537,7 +11539,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CondExp exp)
     {
-        static if (LOGSEMANTIC)
+        debug (LOGSEMANTIC)
         {
             printf("CondExp::semantic('%s')\n", exp.toChars());
         }
@@ -11748,7 +11750,7 @@ Expression trySemantic(Expression exp, Scope* sc)
  */
 Expression unaSemantic(UnaExp e, Scope* sc)
 {
-    static if (LOGSEMANTIC)
+    debug (LOGSEMANTIC)
     {
         printf("UnaExp::semantic('%s')\n", e.toChars());
     }
@@ -11765,7 +11767,7 @@ Expression unaSemantic(UnaExp e, Scope* sc)
  */
 Expression binSemantic(BinExp e, Scope* sc)
 {
-    static if (LOGSEMANTIC)
+    debug (LOGSEMANTIC)
     {
         printf("BinExp::semantic('%s')\n", e.toChars());
     }
@@ -12219,7 +12221,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
 // If flag == 1, stop "not a property" error and return NULL.
 Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
 {
-    static if (LOGSEMANTIC)
+    debug (LOGSEMANTIC)
     {
         printf("DotTemplateInstanceExpY::semantic('%s')\n", exp.toChars());
     }
