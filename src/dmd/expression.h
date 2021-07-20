@@ -442,6 +442,8 @@ public:
      */
     StructLiteralExp *origin;
 
+    StructLiteralExp *copied;
+
     // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     StructLiteralExp *inlinecopy;
 

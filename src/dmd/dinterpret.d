@@ -2610,11 +2610,20 @@ public:
         {
             printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e.loc.toChars(), e.toChars(), e.ownedByCtfe);
         }
-        if (e.ownedByCtfe >= OwnedBy.ctfe)
+        if (e.ownedByCtfe == OwnedBy.ctfe ||
+            e.ownedByCtfe == OwnedBy.cache)
         {
             result = e;
             return;
         }
+
+        if (e.stageflags & stageScrub)
+        {
+            result = e;
+            return;
+        }
+        const oldflags = e.stageflags;
+//        e.stageflags |= stageScrub;
 
         size_t dim = e.elements ? e.elements.dim : 0;
         auto expsx = e.elements;
@@ -2654,7 +2663,10 @@ public:
             {
                 ex = interpretRegion(exp, istate);
                 if (exceptionOrCant(ex))
+                {
+//                    e.stageflags = oldflags;
                     return;
+                }
                 if ((v.type.ty != ex.type.ty) && v.type.ty == Tsarray)
                 {
                     // Block assignment from inside struct literals
@@ -2683,6 +2695,7 @@ public:
             {
                 e.error("CTFE internal error: invalid struct literal");
                 result = CTFEExp.cantexp;
+//                e.stageflags = oldflags;
                 return;
             }
             emplaceExp!(StructLiteralExp)(pue, e.loc, e.sd, expsx);
@@ -2697,6 +2710,7 @@ public:
             *pue = copyLiteral(e);
             result = pue.exp();
         }
+//        e.stageflags = oldflags;
     }
 
     // Create an array literal of type 'newtype' with dimensions given by
@@ -6548,6 +6562,10 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
         sle.ownedByCtfe = OwnedBy.code;
         if (!(sle.stageflags & stageScrub))
         {
+            /* Infinite recursion comes from:
+             *   struct S { this(int){this.s = &this); S* s; }
+             *   enum T = S(0);
+             */
             const old = sle.stageflags;
             sle.stageflags |= stageScrub;       // prevent infinite recursion
             if (auto ex = scrubArray(sle.elements, true))
@@ -6604,6 +6622,12 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
             if (auto ex = scrubArray(ale.elements))
                 return ex;
         }
+    }
+//<<>>
+    else if (0) if (auto ae = e.isAddrExp())
+    {
+        UnaExp ue = cast(UnaExp)ae;
+        scrubReturnValue(loc, ue.e1);
     }
     return e;
 }
@@ -6675,6 +6699,11 @@ private Expression scrubCacheValue(Expression e)
                 return ex;
         }
     }
+    else if (auto ae = e.isAddrExp())
+    {
+        UnaExp ue = cast(UnaExp)ae;
+        scrubCacheValue(ue.e1);
+    }
     return e;
 }
 
@@ -6691,6 +6720,7 @@ private Expression copyRegionExp(Expression e)
     if (!e)
         return e;
 
+printf("e: %p %d %d\n", e, e.op, ctfeGlobals.region.contains(cast(void*)e));
     static void copyArray(Expressions* elems)
     {
         foreach (ref e; *elems)
@@ -6725,6 +6755,34 @@ private Expression copyRegionExp(Expression e)
         {
             auto sle = e.isStructLiteralExp();
 
+version (all) //<<>>
+{
+assert(sle.origin.op == TOK.structLiteral);
+printf("test1 %d\n", sle.size);
+//printf("test1 %s\n", sle.toChars());
+assert(sle.origin.op == TOK.structLiteral);
+	    if (sle.copied)
+	    {
+		//printf("sle: %s\n", sle.copied.toChars());
+		assert(!ctfeGlobals.region.contains(cast(void*)sle.copied));
+		return sle.copied;
+	    }
+
+assert(sle.origin.op == TOK.structLiteral);
+            sle.copied = ctfeGlobals.region.contains(cast(void*)e)
+                ? e.copy().isStructLiteralExp()         // move sle out of region to slec
+                : sle;
+	    sle.copied.copied = sle.copied;
+	    assert(!ctfeGlobals.region.contains(cast(void*)sle.copied));
+
+	    copySE(sle.copied);
+	    sle.copied.origin = copyRegionExp(sle.origin).isStructLiteralExp();
+	    //printf("2sle: %s\n", sle.copied.toChars());
+	    return sle.copied;
+} else {
+assert(sle.origin.op == TOK.structLiteral);
+//printf("test1 %s\n", sle.toChars());
+assert(sle.origin.op == TOK.structLiteral);
             /* The following is to take care of updating sle.origin correctly,
              * which may have multiple objects pointing to it.
              */
@@ -6749,6 +6807,7 @@ private Expression copyRegionExp(Expression e)
                 slec.origin = sleo;
             }
             return slec;
+}
         }
 
         case TOK.arrayLiteral:
@@ -6822,7 +6881,7 @@ private Expression copyRegionExp(Expression e)
             return e;
 
         default:
-            printf("e: %s, %s\n", Token.toChars(e.op), e.toChars());
+//            printf("e: %s, %s\n", Token.toChars(e.op), e.toChars());
             assert(0);
     }
 
