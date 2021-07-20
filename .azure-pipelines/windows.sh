@@ -61,7 +61,7 @@ clone_repos
 if [ "$MODEL" == "64" ] ; then
     MAKE_FILE="win64.mak"
     LIBNAME=phobos64.lib
-elif [ "$MODEL" == "32mscoff" ] ; then
+elif [ "$MODEL" == "32" ] ; then
     MAKE_FILE="win64.mak"
     LIBNAME=phobos32mscoff.lib
 else

@@ -42,7 +42,7 @@ extern (C++):
 
 const(char)* toCppMangleMSVC(Dsymbol s)
 {
-    scope VisualCPPMangler v = new VisualCPPMangler(!target.mscoff);
+    scope VisualCPPMangler v = new VisualCPPMangler(target.omfobj);
     return v.mangleOf(s);
 }
 

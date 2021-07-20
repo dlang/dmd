@@ -490,12 +490,22 @@ dmd -cov -unittest myprog.d
             "generate 32 bit code",
             `$(UNIX Compile a 32 bit executable. This is the default for the 32 bit dmd.)
             $(WINDOWS Compile a 32 bit executable. This is the default.
-            The generated object code is in OMF and is meant to be used with the
-            $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
+            The generated object code is in MS-COFF and is meant to be used with
+            $(LINK2 https://msdn.microsoft.com/en-us/library/dd831853(v=vs.100).aspx, Microsoft Visual Studio 10)
+            or later compiler.)`,
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.DragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
         ),
         Option("m32mscoff",
-            "generate 32 bit code and write MS-COFF object files",
+            "generate 32 bit code and write MS-COFF object files (deprecated, use -m32)",
+            `Generate 32 bit code and write MS-COFF object files $(RED Deprecated
+            (use $(SWLINK -m32) instead).)`,
+            TargetOS.Windows
+        ),
+        Option("m32omf",
+            "generate 32 bit code and write OMF object files",
+            `Generate 32 bit code and write OMF object files.
+            The generated object code is in OMF and is meant to be used with the
+            $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler).`,
             TargetOS.Windows
         ),
         Option("m64",
@@ -569,7 +579,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("mscrtlib=<libname>",
             "MS C runtime library to reference from main/WinMain/DllMain",
-            "If building MS-COFF object files with -m64 or -m32mscoff, embed a reference to
+            "If building MS-COFF object files with -m64 or -m32, embed a reference to
             the given C runtime library $(I libname) into the object file containing `main`,
             `DllMain` or `WinMain` for automatic linking. The default is $(TT libcmt)
             (release version with static linkage), the other usual alternatives are

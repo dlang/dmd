@@ -102,7 +102,7 @@ void backend_init()
         exe = true;         // if writing out EXE file
 
     out_config_init(
-        (target.is64bit ? 64 : 32) | (target.mscoff ? 1 : 0),
+        (target.is64bit ? 64 : 32) | (target.omfobj ? 0 : 1),
         exe,
         false, //params.trace,
         params.nofloat,
