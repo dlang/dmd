@@ -48,7 +48,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     DotVarExp dve = cast(DotVarExp)e;
     if (VarDeclaration v = dve.var.isVarDeclaration())
     {
-        if (sc.intypeof || !sc.func || !sc.func.isSafeBypassingInference())
+        if (!sc.func)
             return false;
         auto ad = v.toParent2().isAggregateDeclaration();
         if (!ad)
