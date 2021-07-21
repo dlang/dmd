@@ -310,10 +310,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 }
                 else if (v2._init && i < j)
                 {
-                    // @@@DEPRECATED_v2.086@@@.
-                    .deprecation(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
+                    .error(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
                         v2.toChars(), v2._init.toChars(), vd.toChars());
-                    //errors = true;
+                    errors = true;
                 }
             }
         }
