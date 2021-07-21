@@ -2913,6 +2913,16 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                     rs.exp.type = texp;
                 }
 
+                // @@@DEPRECATED_2.098@@@
+                // End deprecation cycle after 2.108.
+                uint olderrors = global.startGagging();
+                if (discardValue(rs.exp))
+                {
+                    //errors = true;
+                }
+                if (global.endGagging(olderrors))
+                    rs.exp.deprecation("`%s` has no effect", rs.exp.toChars());
+
                 /* Replace:
                  *      return exp;
                  * with:
