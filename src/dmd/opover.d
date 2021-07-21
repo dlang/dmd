@@ -849,7 +849,6 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 }
             }
 
-            Expression tempResult;
             if (!(e.op == TOK.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
                 result = checkAliasThisForLhs(ad1, sc, e);
@@ -880,25 +879,14 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                         if (tf.isref && ad1.fields[0].type == tf.next)
                             return;
                     }
-                    tempResult = result;
+                    e.error("Cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`",
+                            e.e1.toChars(), ad1.toChars(), (cast(BinExp)result).e1.toChars());
+                    return;
                 }
             }
             if (!(e.op == TOK.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
                 result = checkAliasThisForRhs(ad2, sc, e);
-                if (result)
-                    return;
-            }
-
-            // @@@DEPRECATED_2019-02@@@
-            // 1. Deprecation for 1 year
-            // 2. Turn to error after
-            if (tempResult)
-            {
-                // move this line where tempResult is assigned to result and turn to error when derecation period is over
-                e.deprecation("Cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`", e.e1.toChars(), ad1.toChars(), (cast(BinExp)tempResult).e1.toChars());
-                // delete this line when deprecation period is over
-                result = tempResult;
             }
         }
 
