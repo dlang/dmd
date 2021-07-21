@@ -67,84 +67,6 @@ bool isCommutative(EXP op)
     return false;
 }
 
-/***********************************
- * Get Identifier for operator overload.
- */
-private Identifier opId(Expression e)
-{
-    switch (e.op)
-    {
-    case EXP.uadd:                      return Id.uadd;
-    case EXP.negate:                    return Id.neg;
-    case EXP.tilde:                     return Id.com;
-    case EXP.cast_:                     return Id._cast;
-    case EXP.in_:                       return Id.opIn;
-    case EXP.plusPlus:                  return Id.postinc;
-    case EXP.minusMinus:                return Id.postdec;
-    case EXP.add:                       return Id.add;
-    case EXP.min:                       return Id.sub;
-    case EXP.mul:                       return Id.mul;
-    case EXP.div:                       return Id.div;
-    case EXP.mod:                       return Id.mod;
-    case EXP.pow:                       return Id.pow;
-    case EXP.leftShift:                 return Id.shl;
-    case EXP.rightShift:                return Id.shr;
-    case EXP.unsignedRightShift:        return Id.ushr;
-    case EXP.and:                       return Id.iand;
-    case EXP.or:                        return Id.ior;
-    case EXP.xor:                       return Id.ixor;
-    case EXP.concatenate:               return Id.cat;
-    case EXP.assign:                    return Id.assign;
-    case EXP.addAssign:                 return Id.addass;
-    case EXP.minAssign:                 return Id.subass;
-    case EXP.mulAssign:                 return Id.mulass;
-    case EXP.divAssign:                 return Id.divass;
-    case EXP.modAssign:                 return Id.modass;
-    case EXP.powAssign:                 return Id.powass;
-    case EXP.leftShiftAssign:           return Id.shlass;
-    case EXP.rightShiftAssign:          return Id.shrass;
-    case EXP.unsignedRightShiftAssign:  return Id.ushrass;
-    case EXP.andAssign:                 return Id.andass;
-    case EXP.orAssign:                  return Id.orass;
-    case EXP.xorAssign:                 return Id.xorass;
-    case EXP.concatenateAssign:         return Id.catass;
-    case EXP.equal:                     return Id.eq;
-    case EXP.lessThan:
-    case EXP.lessOrEqual:
-    case EXP.greaterThan:
-    case EXP.greaterOrEqual:            return Id.cmp;
-    case EXP.array:                     return Id.index;
-    case EXP.star:                      return Id.opStar;
-    default:                            assert(0);
-    }
-}
-
-/***********************************
- * Get Identifier for reverse operator overload,
- * `null` if not supported for this operator.
- */
-private Identifier opId_r(Expression e)
-{
-    switch (e.op)
-    {
-    case EXP.in_:               return Id.opIn_r;
-    case EXP.add:               return Id.add_r;
-    case EXP.min:               return Id.sub_r;
-    case EXP.mul:               return Id.mul_r;
-    case EXP.div:               return Id.div_r;
-    case EXP.mod:               return Id.mod_r;
-    case EXP.pow:               return Id.pow_r;
-    case EXP.leftShift:         return Id.shl_r;
-    case EXP.rightShift:        return Id.shr_r;
-    case EXP.unsignedRightShift:return Id.ushr_r;
-    case EXP.and:               return Id.iand_r;
-    case EXP.or:                return Id.ior_r;
-    case EXP.xor:               return Id.ixor_r;
-    case EXP.concatenate:       return Id.cat_r;
-    default:                    return null;
-    }
-}
-
 /*******************************************
  * Helper function to turn operator into template argument list
  */
@@ -390,19 +312,6 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     result = result.expressionSemantic(sc);
                     return result;
                 }
-                // D1-style operator overloads, deprecated
-                if (e.op != EXP.prePlusPlus && e.op != EXP.preMinusMinus)
-                {
-                    auto id = opId(e);
-                    fd = search_function(ad, id);
-                    if (fd)
-                    {
-                        // @@@DEPRECATED_2.110@@@.
-                        // Deprecated in 2.088, made an error in 2.100
-                        e.error("`%s` is obsolete.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
-                        return ErrorExp.get();
-                    }
-                }
                 // Didn't find it. Forward to aliasthis
                 if (ad.aliasthis && !isRecursiveAliasThis(e.att1, e.e1.type))
                 {
@@ -598,8 +507,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         Expression visitBin(BinExp e)
         {
             //printf("BinExp::op_overload() (%s)\n", e.toChars());
-            Identifier id = opId(e);
-            Identifier id_r = opId_r(e);
+            Identifier id = null;
+            Identifier id_r = null;
             Expressions args1;
             Expressions args2;
             int argsset = 0;
@@ -660,38 +569,15 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     tiargs = opToArg(sc, e.op);
                 }
             }
-            if (!s && !s_r)
+            if (e.op == EXP.assign)
             {
-                // Try the D1-style operators, deprecated
-                if (ad1 && id)
+                /* Try opAssign
+                 */
+                if (ad1)
                 {
-                    s = search_function(ad1, id);
-                    if (s && id != Id.assign)
-                    {
-                        // @@@DEPRECATED_2.110@@@.
-                        // Deprecated in 2.088, made an error in 2.100
-                        if (id == Id.postinc || id == Id.postdec)
-                            e.error("`%s` is obsolete.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
-                        else
-                            e.error("`%s` is obsolete.  Use `opBinary(string op)(...) if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
-                        return ErrorExp.get();
-                    }
-                }
-                if (ad2 && id_r)
-                {
-                    s_r = search_function(ad2, id_r);
-                    // https://issues.dlang.org/show_bug.cgi?id=12778
-                    // If both x.opBinary(y) and y.opBinaryRight(x) found,
-                    // and they are exactly same symbol, x.opBinary(y) should be preferred.
-                    if (s_r && s_r == s)
-                        s_r = null;
-                    if (s_r)
-                    {
-                        // @@@DEPRECATED_2.110@@@.
-                        // Deprecated in 2.088, made an error in 2.100
-                        e.error("`%s` is obsolete.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), EXPtoString(e.op).ptr);
-                        return ErrorExp.get();
-                    }
+                    s = search_function(ad1, Id.assign);
+                    if (s)
+                        id = Id.assign;
                 }
             }
             if (s || s_r)
@@ -1207,7 +1093,6 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             {
                 return ErrorExp.get();
             }
-            Identifier id = opId(e);
             Expressions args2;
             AggregateDeclaration ad1 = isAggregate(e.e1.type);
             Dsymbol s = null;
@@ -1226,23 +1111,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             // Set tiargs, the template argument list, which will be the operator string
             if (s)
             {
-                id = Id.opOpAssign;
                 tiargs = opToArg(sc, e.op);
-            }
-
-            // Try D1-style operator overload, deprecated
-            if (!s && ad1 && id)
-            {
-                s = search_function(ad1, id);
-                if (s)
-                {
-                    // @@@DEPRECATED_2.110@@@.
-                    // Deprecated in 2.088, made an error in 2.100
-                    scope char[] op = EXPtoString(e.op).dup;
-                    op[$-1] = '\0'; // remove trailing `=`
-                    e.error("`%s` is obsolete.  Use `opOpAssign(string op)(...) if (op == \"%s\")` instead.", id.toChars(), op.ptr);
-                    return ErrorExp.get();
-                }
             }
 
             if (s)
