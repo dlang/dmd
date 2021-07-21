@@ -8836,15 +8836,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp = new ConstructExp(exp.loc, exp.e1, exp.e2);
             exp.type = t;
 
-            // @@@DEPRECATED_2020-06@@@
-            // When removing, alter `checkModifiable` to return the correct value.
-            if (sc.func.isStaticCtorDeclaration() && !sc.func.isSharedStaticCtorDeclaration() &&
-                exp.e1.type.isImmutable())
-            {
-                deprecation(exp.loc, "initialization of `immutable` variable from `static this` is deprecated.");
-                deprecationSupplemental(exp.loc, "Use `shared static this` instead.");
-            }
-
             // https://issues.dlang.org/show_bug.cgi?id=13515
             // set Index::modifiable flag for complex AA element initialization
             if (auto ie1 = exp.e1.isIndexExp())
