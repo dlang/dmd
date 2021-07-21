@@ -209,7 +209,7 @@ fail_compilation/fail_arrayop2.d(269): Error: array operation `"abc"[] + '\x01'`
 fail_compilation/fail_arrayop2.d(272): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(275): Error: `([1] * 6)[0..2]` is not an lvalue and cannot be modified
 fail_compilation/fail_arrayop2.d(278): Error: can only `*` a pointer, not a `int[]`
-fail_compilation/fail_arrayop2.d(281): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail_arrayop2.d(281): Error: The `delete` keyword has been removed.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail_arrayop2.d(281): Error: `[1] * 6` is not an lvalue and cannot be modified
 fail_compilation/fail_arrayop2.d(284): Error: array operation `da[] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(287): Error: array operation `da[] * 6` without destination memory not allowed
