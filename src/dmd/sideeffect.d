@@ -95,7 +95,8 @@ extern (C++) bool hasSideEffect(Expression e, bool assumeImpureCalls = false)
  * Returns:
  *      0   has any side effects
  *      1   nothrow + strongly pure
- *      2   nothrow + strongly pure + no mutable indirections in the return type
+ *      2   nothrow + strongly pure + only immutable indirections in the return
+ *          type
  */
 int callSideEffectLevel(FuncDeclaration f)
 {
@@ -116,7 +117,7 @@ int callSideEffectLevel(FuncDeclaration f)
         return 0;
 
     case PURE.const_:
-        return hasMutableIndirections(tf.isref, tf.next) ? 1 : 2;
+        return mutabilityOfType(tf.isref, tf.next) == 2 ? 2 : 1;
     }
 }
 
@@ -145,7 +146,7 @@ int callSideEffectLevel(Type t)
     }
 
     if (purity == PURE.const_)
-        return hasMutableIndirections(tf.isref, tf.next) ? 1 : 2;
+        return mutabilityOfType(tf.isref, tf.next) == 2 ? 2 : 1;
 
     return 0;
 }

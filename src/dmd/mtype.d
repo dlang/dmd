@@ -231,24 +231,37 @@ bool isSomeChar(TY ty) pure nothrow @nogc @safe
 }
 
 /************************************
- * Determine if there are mutable indirections in (ref) t.
+ * Determine mutability of indirections in (ref) t.
+ *
+ * Returns: When the type has any mutable indirections, returns 0.
+ * When all indirections are immutable, returns 2.
+ * Otherwise, when the type has const/inout indirections, returns 1.
  */
-bool hasMutableIndirections(bool isref, Type t)
+int mutabilityOfType(bool isref, Type t)
 {
-    enum notmutable = MODFlags.immutable_ | MODFlags.const_ | MODFlags.wild;
-
     if (isref)
-        return !(t.mod & notmutable);
+    {
+        if (t.mod & MODFlags.immutable_)
+            return 2;
+        if (t.mod & (MODFlags.const_ | MODFlags.wild))
+            return 1;
+        return 0;
+    }
 
     t = t.baseElemOf();
 
-    if (!t.hasPointers() || t.mod & notmutable)
-        return false;
+    if (!t.hasPointers() || t.mod & MODFlags.immutable_)
+        return 2;
 
-    // Accept T[] and T* when T is not mutable
+    /* Accept immutable(T)[] and immutable(T)* as being strongly pure
+        */
     if (t.ty == Tarray || t.ty == Tpointer)
     {
-        return !(t.nextOf().toBasetype().mod & notmutable);
+        Type tn = t.nextOf().toBasetype();
+        if (tn.mod & MODFlags.immutable_)
+            return 2;
+        if (tn.mod & (MODFlags.const_ | MODFlags.wild))
+            return 1;
     }
 
     /* The rest of this is too strict; fix later.
@@ -256,8 +269,12 @@ bool hasMutableIndirections(bool isref, Type t)
         * which would maintain strong purity.
         * (Just like for dynamic arrays and pointers above.)
         */
+    if (t.mod & (MODFlags.const_ | MODFlags.wild))
+        return 1;
 
-    return true;
+    /* Should catch delegates and function pointers, and fold in their purity
+        */
+    return 0;
 }
 
 /****************
@@ -4263,7 +4280,7 @@ extern (C++) final class TypeFunction : TypeNext
                 break;
             }
             const pref = (fparam.storageClass & STC.ref_) != 0;
-            if (hasMutableIndirections(pref, t))
+            if (mutabilityOfType(pref, t) == 0)
                 purity = PURE.weak;
         }
 
