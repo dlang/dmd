@@ -2066,7 +2066,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 if (global.params.vsafe)
                     err |= checkParamArgumentEscape(sc, fd, p, arg, false, false);
             }
-            else
+            else if (!(p.storageClass & STC.return_))
             {
                 /* Argument value cannot escape from the called function.
                  */
@@ -2075,7 +2075,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     a = (cast(CastExp)a).e1;
 
                 ArrayLiteralExp ale;
-                if (p.type.toBasetype().ty == Tarray && !(p.storageClass & STC.return_) &&
+                if (p.type.toBasetype().ty == Tarray &&
                     (ale = a.isArrayLiteralExp()) !is null)
                 {
                     // allocate the array literal as temporary static array on the stack
