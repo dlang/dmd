@@ -26,6 +26,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.statement;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 /**

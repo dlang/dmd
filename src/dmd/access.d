@@ -27,6 +27,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.mtype;
 import dmd.tokens;
+import dmd.typesem;
 
 private enum LOG = false;
 

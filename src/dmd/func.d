@@ -55,6 +55,7 @@ import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 /// Inline Status

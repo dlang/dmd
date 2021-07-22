@@ -46,6 +46,7 @@ import dmd.root.region;
 import dmd.root.rootobject;
 import dmd.statement;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.utf;
 import dmd.visitor;
 

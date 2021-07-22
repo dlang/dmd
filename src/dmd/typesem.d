@@ -4882,3 +4882,109 @@ private Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identif
     }
     return ed.errors ? errorReturn() : pvalToResult(*pval, loc);
 }
+
+/**
+ * Returns whether `bc` implements `id`, including indirectly (`bc` implements an interfaces
+ * that inherits from `id`)
+ *
+ * Params:
+ *    id = the interface
+ *    bc = the base class
+ *    poffset = out parameter, offset of the interface in an object
+ *
+ * Returns:
+ *    true if the `bc` implements `id`, false otherwise
+ **/
+private bool baseClassImplementsInterface(InterfaceDeclaration id, BaseClass* bc, int* poffset)
+{
+    //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", toChars(), bc.sym.toChars());
+    for (size_t j = 0; j < bc.baseInterfaces.length; j++)
+    {
+        BaseClass* b = &bc.baseInterfaces[j];
+        //printf("\tY base %s\n", b.sym.toChars());
+        if (id == b.sym)
+        {
+            //printf("\tfound at offset %d\n", b.offset);
+            if (poffset)
+            {
+                *poffset = b.offset;
+            }
+            return true;
+        }
+        if (baseClassImplementsInterface(id, b, poffset))
+        {
+            return true;
+        }
+    }
+
+    if (poffset)
+        *poffset = 0;
+    return false;
+}
+
+/*******************************************
+ * Determine if `derived` is a base class of cd.
+ * Or, if `derived` is an interface, is it implemented by `cd`
+ * Params:
+ *      derived = Potentially derived ClassDeclaration
+ *      cd = Potential base class
+ *      poffset = out parameter, offset to start of class. OFFSET_RUNTIME  must determine offset at runtime
+ * Returns:
+ *      false   not a base
+ *      true    is a base
+ */
+extern(C++) bool isBaseOf(ClassDeclaration derived, ClassDeclaration cd, int* poffset)
+{
+    if (auto id = derived.isInterfaceDeclaration())
+    {
+        //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
+        assert(!id.baseClass);
+        foreach (b; cd.interfaces)
+        {
+            //printf("\tX base %s\n", b.sym.toChars());
+            if (id == b.sym)
+            {
+                //printf("\tfound at offset %d\n", b.offset);
+                if (poffset)
+                {
+                    // don't return incorrect offsets
+                    // https://issues.dlang.org/show_bug.cgi?id=16980
+                    *poffset = cd.sizeok == Sizeok.done ? b.offset : ClassDeclaration.OFFSET_FWDREF;
+                }
+                // printf("\tfound at offset %d\n", b.offset);
+                return true;
+            }
+            if (baseClassImplementsInterface(id, b, poffset))
+            return true;
+        }
+        if (cd.baseClass && id.isBaseOf(cd.baseClass, poffset))
+            return true;
+
+        if (poffset)
+            *poffset = 0;
+        return false;
+    }
+
+    //normal Class decl
+    //printf("ClassDeclaration.isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd.toChars());
+    if (poffset)
+        *poffset = 0;
+    while (cd)
+    {
+        /* cd.baseClass might not be set if cd is forward referenced.
+         */
+        if (!cd.baseClass && cd.semanticRun < PASS.semanticdone && !cd.isInterfaceDeclaration())
+        {
+            cd.dsymbolSemantic(null);
+            if (!cd.baseClass && cd.semanticRun < PASS.semanticdone)
+                cd.error("base class is forward referenced by `%s`", derived.toChars());
+        }
+
+        if (derived == cd.baseClass)
+            return true;
+
+        cd = cd.baseClass;
+    }
+    return false;
+
+}
