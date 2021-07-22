@@ -1477,19 +1477,31 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with `ref`)");
                 }
 
-                if (fparam.storageClass & STC.scope_ && !fparam.type.hasPointers())
+                /* Scope attribute is not necessary if the parameter type does not have pointers
+                 */
+                /* Constructors are treated as if they are being returned through the hidden parameter,
+                 * which is by ref, and the ref there is ignored.
+                 * TODO: check buildScopeRef() inconsistent behavior on SCOPE.ctor
+                 */
+                const returnByRef = tf.isref && !(sc.flags & SCOPE.ctor);
+                const sr = buildScopeRef(returnByRef, fparam.storageClass);
+                switch (sr)
                 {
-                    /*     X foo(ref return scope X) => Ref-ReturnScope
-                     * ref X foo(ref return scope X) => ReturnRef-Scope
-                     * But X has no pointers, we don't need the scope part, so:
-                     *     X foo(ref return scope X) => Ref
-                     * ref X foo(ref return scope X) => ReturnRef
-                     * Constructors are treated as if they are being returned through the hidden parameter,
-                     * which is by ref, and the ref there is ignored.
-                     */
-                    fparam.storageClass &= ~STC.scope_;
-                    if (!tf.isref || (sc.flags & SCOPE.ctor))
-                        fparam.storageClass &= ~STC.return_;
+                    case ScopeRef.Scope:
+                    case ScopeRef.RefScope:
+                    case ScopeRef.ReturnRef_Scope:
+                        if (!fparam.type.hasPointers())
+                            fparam.storageClass &= ~STC.scope_;
+                        break;
+
+                    case ScopeRef.ReturnScope:
+                    case ScopeRef.Ref_ReturnScope:
+                        if (!fparam.type.hasPointers())
+                            fparam.storageClass &= ~(STC.return_ | STC.scope_);
+                        break;
+
+                    default:
+                        break;
                 }
 
                 // Remove redundant storage classes for type, they are already applied
