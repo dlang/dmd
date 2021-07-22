@@ -52,6 +52,7 @@ import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
 import dmd.tocsym;
+import dmd.typesem;
 
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;

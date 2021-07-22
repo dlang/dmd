@@ -4301,6 +4301,8 @@ public:
     void accept(Visitor* v);
 };
 
+extern bool isBaseOf(ClassDeclaration* derived, ClassDeclaration* cd, int32_t* poffset);
+
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 
 enum class MODFlags
@@ -5430,8 +5432,6 @@ public:
     void accept(Visitor* v);
     ~InterfaceDeclaration();
 };
-
-extern bool isBaseOf(ClassDeclaration* derived, ClassDeclaration* cd, int32_t* poffset);
 
 extern void ObjectNotFound(Identifier* id);
 

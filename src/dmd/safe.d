@@ -24,6 +24,7 @@ import dmd.expression;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
+import dmd.typesem;
 
 
 /*************************************************************
