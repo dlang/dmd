@@ -306,6 +306,25 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
     bool result = false;
 
+    ScopeRef psr;
+    if (par && fdc && fdc.type.isTypeFunction())
+    {
+        if (isRefReturnScope(par.storageClass))
+        {
+            const scr = (par.storageClass & STC.returnScope) != 0;
+            if (fdc.type.isTypeFunction().isref == scr)
+            {
+                /* Match the old behavior, where being a constructor is sometimes ignored.
+                 * Figure out how to fix it later
+                 */
+                par.storageClass ^= STC.returnScope;
+            }
+        }
+        psr = buildScopeRef(par.storageClass);
+    }
+    else
+        psr = ScopeRef.None;
+
     /* 'v' is assigned unsafely to 'par'
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
@@ -376,8 +395,12 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
         if (!v.isReference() && p == sc.func)
         {
-            if (par && (par.storageClass & (STC.scope_ | STC.return_)) == STC.scope_)
+            if (psr == ScopeRef.Scope ||
+                psr == ScopeRef.RefScope ||
+                psr == ScopeRef.ReturnRef_Scope)
+            {
                 continue;
+            }
 
             unsafeAssign(v, "reference to local variable");
             continue;
