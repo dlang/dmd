@@ -2901,7 +2901,6 @@ public:
 class NewDeclaration final : public FuncDeclaration
 {
 public:
-    ParameterList parameterList;
     NewDeclaration* syntaxCopy(Dsymbol* s);
     const char* kind() const;
     bool isVirtual() const;
@@ -4929,7 +4928,6 @@ public:
     VarDeclaration* vthis2;
     Array<FuncDeclaration* > invs;
     FuncDeclaration* inv;
-    NewDeclaration* aggNew;
     Dsymbol* ctor;
     CtorDeclaration* defaultCtor;
     AliasThis* aliasthis;
@@ -4941,6 +4939,7 @@ public:
     Expression* getRTInfo;
     Visibility visibility;
     bool noDefaultCtor;
+    bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
@@ -6659,7 +6658,6 @@ public:
     Array<Expression* >* arguments;
     Expression* argprefix;
     CtorDeclaration* member;
-    NewDeclaration* allocator;
     bool onstack;
     bool thrownew;
     static NewExp* create(Loc loc, Expression* thisexp, Array<Expression* >* newargs, Type* newtype, Array<Expression* >* arguments);

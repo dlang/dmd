@@ -4215,55 +4215,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(NewDeclaration nd)
     {
         //printf("NewDeclaration::semantic()\n");
-
-        // `@disable new();` should not be deprecated
-        if (!nd.isDisabled())
-        {
-            // @@@DEPRECATED_2.091@@@
-            // Made an error in 2.087.
-            // Should be removed in 2.091
-            error(nd.loc, "class allocators are obsolete, consider moving the allocation strategy outside of the class");
-        }
-
         if (nd.semanticRun >= PASS.semanticdone)
             return;
-        if (nd._scope)
-        {
-            sc = nd._scope;
-            nd._scope = null;
-        }
-
-        nd.parent = sc.parent;
-        Dsymbol p = nd.parent.pastMixin();
-        if (!p.isAggregateDeclaration())
-        {
-            error(nd.loc, "allocator can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
-            nd.type = Type.terror;
-            nd.errors = true;
-            return;
-        }
-        Type tret = Type.tvoid.pointerTo();
         if (!nd.type)
-            nd.type = new TypeFunction(nd.parameterList, tret, LINK.d, nd.storage_class);
-
-        nd.type = nd.type.typeSemantic(nd.loc, sc);
-
-        // allow for `@disable new();` to force users of a type to use an external allocation strategy
-        if (!nd.isDisabled())
-        {
-            // Check that there is at least one argument of type size_t
-            TypeFunction tf = nd.type.toTypeFunction();
-            if (tf.parameterList.length < 1)
-            {
-                nd.error("at least one argument of type `size_t` expected");
-            }
-            else
-            {
-                Parameter fparam = tf.parameterList[0];
-                if (!fparam.type.equals(Type.tsize_t))
-                    nd.error("first argument must be type `size_t`, not `%s`", fparam.type.toChars());
-            }
-        }
+            nd.type = new TypeFunction(ParameterList(), Type.tvoid.pointerTo(), LINK.d, nd.storage_class);
 
         funcDeclarationSemantic(nd);
     }
@@ -4392,7 +4347,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         /* Look for special member functions.
          */
-        sd.aggNew = cast(NewDeclaration)sd.search(Loc.initial, Id.classNew);
+        sd.disableNew = sd.search(Loc.initial, Id.classNew) !is null;
 
         // Look for the constructor
         sd.ctor = sd.searchCtor();
@@ -4985,7 +4940,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          * They must be in this class, not in a base class.
          */
         // Can be in base class
-        cldec.aggNew = cast(NewDeclaration)cldec.search(Loc.initial, Id.classNew);
+        cldec.disableNew = cldec.search(Loc.initial, Id.classNew) !is null;
 
         // Look for the constructor
         cldec.ctor = cldec.searchCtor();

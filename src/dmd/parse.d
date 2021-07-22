@@ -2822,20 +2822,47 @@ class Parser(AST) : Lexer
 
     /*****************************************
      * Parse a new definition:
-     *      new(parameters) { body }
+     *      @disable new();
      * Current token is 'new'.
      */
     private AST.Dsymbol parseNew(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
-
+        if (!(stc & STC.disable))
+        {
+            error("`new` allocator must be annotated with `@disabled`");
+        }
         nextToken();
 
-        auto parameterList = parseParameterList(null);
-        auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameterList);
-        AST.Dsymbol s = parseContracts(f);
-        return s;
+        /* @@@DEPRECATED_2.098@@@
+         * After deprecation period (2.108), remove all code in the version(all) block.
+         */
+        version (all)
+        {
+            auto parameterList = parseParameterList(null);  // parameterList ignored
+            if (parameterList.parameters.length > 0 || parameterList.varargs != VarArg.none)
+                deprecation("`new` allocator with non-empty parameter list is deprecated");
+            auto f = new AST.NewDeclaration(loc, stc);
+            if (token.value != TOK.semicolon)
+            {
+                deprecation("`new` allocator with function definition is deprecated");
+                parseContracts(f);  // body ignored
+                f.fbody = null;
+                f.fensures = null;
+                f.frequires = null;
+            }
+            else
+                nextToken();
+            return f;
+        }
+        else
+        {
+            check(TOK.leftParenthesis);
+            check(TOK.rightParenthesis);
+            check(TOK.semicolon);
+            return new AST.NewDeclaration(loc, stc);
+        }
     }
 
     /**********************************************

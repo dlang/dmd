@@ -3683,28 +3683,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            if (cd.aggNew)
+            if (cd.disableNew)
             {
-                // Prepend the size argument to newargs[]
-                Expression e = new IntegerExp(exp.loc, cd.size(exp.loc), Type.tsize_t);
-                if (!exp.newargs)
-                    exp.newargs = new Expressions();
-                exp.newargs.shift(e);
-
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, cd.aggNew, null, tb, exp.newargs, FuncResolveFlag.standard);
-                if (!f || f.errors)
-                    return setError();
-
-                checkFunctionAttributes(exp, sc, f);
-                checkAccess(cd, exp.loc, sc, f);
-
-                TypeFunction tf = cast(TypeFunction)f.type;
-                Type rettype;
-                if (functionParameters(exp.loc, sc, tf, null, null, exp.newargs, f, &rettype, &newprefix))
-                    return setError();
-
-                exp.allocator = f.isNewDeclaration();
-                assert(exp.allocator);
+                exp.error("cannot allocate `class %s` with `new` because it is annotated with `@disable new()`",
+                          originalNewtype.toChars());
+                return setError();
             }
             else
             {
@@ -3773,28 +3756,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             // checkDeprecated() is already done in newtype.typeSemantic().
 
-            if (sd.aggNew)
+            if (sd.disableNew)
             {
-                // Prepend the uint size argument to newargs[]
-                Expression e = new IntegerExp(exp.loc, sd.size(exp.loc), Type.tsize_t);
-                if (!exp.newargs)
-                    exp.newargs = new Expressions();
-                exp.newargs.shift(e);
-
-                FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.aggNew, null, tb, exp.newargs, FuncResolveFlag.standard);
-                if (!f || f.errors)
-                    return setError();
-
-                checkFunctionAttributes(exp, sc, f);
-                checkAccess(sd, exp.loc, sc, f);
-
-                TypeFunction tf = cast(TypeFunction)f.type;
-                Type rettype;
-                if (functionParameters(exp.loc, sc, tf, null, null, exp.newargs, f, &rettype, &newprefix))
-                    return setError();
-
-                exp.allocator = f.isNewDeclaration();
-                assert(exp.allocator);
+                exp.error("cannot allocate `struct %s` with `new` because it is annotated with `@disable new()`",
+                          originalNewtype.toChars());
+                return setError();
             }
             else
             {

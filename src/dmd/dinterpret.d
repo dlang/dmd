@@ -2742,12 +2742,6 @@ public:
         {
             printf("%s NewExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (e.allocator)
-        {
-            e.error("member allocators not supported by CTFE");
-            result = CTFEExp.cantexp;
-            return;
-        }
 
         Expression epre = interpret(pue, e.argprefix, istate, CTFEGoal.Nothing);
         if (exceptionOrCant(epre))
