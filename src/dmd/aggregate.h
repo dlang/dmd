@@ -21,7 +21,6 @@ class Expression;
 class FuncDeclaration;
 class CtorDeclaration;
 class DtorDeclaration;
-class NewDeclaration;
 class InterfaceDeclaration;
 class TypeInfoClassDeclaration;
 class VarDeclaration;
@@ -102,7 +101,6 @@ public:
     // Special member functions
     FuncDeclarations invs;              // Array of invariants
     FuncDeclaration *inv;               // invariant
-    NewDeclaration *aggNew;             // allocator
 
     Dsymbol *ctor;                      // CtorDeclaration or TemplateDeclaration
 
@@ -122,6 +120,7 @@ public:
 
     Visibility visibility;
     bool noDefaultCtor;         // no default construction
+    bool disableNew;            // disallow allocations using `new`
     Sizeok sizeok;              // set when structsize contains valid data
 
     virtual Scope *newScope(Scope *sc);

@@ -1031,28 +1031,19 @@ extern (C++) class ToElemVisitor : Visitor
             elem *ezprefix = null;
             elem *ez = null;
 
-            if (ne.allocator || ne.onstack)
+            if (ne.onstack)
             {
-                if (ne.onstack)
-                {
-                    /* Create an instance of the class on the stack,
-                     * and call it stmp.
-                     * Set ex to be the &stmp.
-                     */
-                    .type *tc = type_struct_class(tclass.sym.toChars(),
-                            tclass.sym.alignsize, tclass.sym.structsize,
-                            null, null,
-                            false, false, true, false);
-                    tc.Tcount--;
-                    Symbol *stmp = symbol_genauto(tc);
-                    ex = el_ptr(stmp);
-                }
-                else
-                {
-                    ex = el_var(toSymbol(ne.allocator));
-                    ex = callfunc(ne.loc, irs, 1, ne.type, ex, ne.allocator.type,
-                            ne.allocator, ne.allocator.type, null, ne.newargs);
-                }
+                /* Create an instance of the class on the stack,
+                 * and call it stmp.
+                 * Set ex to be the &stmp.
+                 */
+                .type *tc = type_struct_class(tclass.sym.toChars(),
+                        tclass.sym.alignsize, tclass.sym.structsize,
+                        null, null,
+                        false, false, true, false);
+                tc.Tcount--;
+                Symbol *stmp = symbol_genauto(tc);
+                ex = el_ptr(stmp);
 
                 Symbol *si = toInitializer(tclass.sym);
                 elem *ei = el_var(si);
@@ -1179,26 +1170,14 @@ extern (C++) class ToElemVisitor : Visitor
             elem *ezprefix = null;
             elem *ez = null;
 
-            if (ne.allocator)
-            {
+            // call _d_newitemT(ti)
+            e = getTypeInfo(ne.loc, ne.newtype, irs);
 
-                ex = el_var(toSymbol(ne.allocator));
-                ex = callfunc(ne.loc, irs, 1, ne.type, ex, ne.allocator.type,
-                            ne.allocator, ne.allocator.type, null, ne.newargs);
+            int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
+            ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
+            toTraceGC(irs, ex, ne.loc);
 
-                ectype = tclass;
-            }
-            else
-            {
-                // call _d_newitemT(ti)
-                e = getTypeInfo(ne.loc, ne.newtype, irs);
-
-                int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
-                ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
-                toTraceGC(irs, ex, ne.loc);
-
-                ectype = null;
-            }
+            ectype = null;
 
             elem *ev = el_same(&ex);
 

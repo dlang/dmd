@@ -103,7 +103,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     // Special member functions
     FuncDeclarations invs;  /// Array of invariants
     FuncDeclaration inv;    /// Merged invariant calling all members of invs
-    NewDeclaration aggNew;  /// allocator
 
     /// CtorDeclaration or TemplateDeclaration
     Dsymbol ctor;
@@ -125,6 +124,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     ///
     Visibility visibility;
     bool noDefaultCtor;             /// no default construction
+    bool disableNew;                /// disallow allocations using `new`
     Sizeok sizeok = Sizeok.none;    /// set when structsize contains valid data
 
     final extern (D) this(const ref Loc loc, Identifier id)

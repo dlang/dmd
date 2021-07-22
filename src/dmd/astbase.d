@@ -708,12 +708,9 @@ struct ASTBase
 
     extern (C++) final class NewDeclaration : FuncDeclaration
     {
-        ParameterList parameterList;
-
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, ref ParameterList parameterList)
+        extern (D) this(const ref Loc loc, StorageClass stc)
         {
-            super(loc, endloc, Id.classNew, STC.static_ | stc, null);
-            this.parameterList = parameterList;
+            super(loc, Loc.initial, Id.classNew, STC.static_ | stc, null);
         }
 
         override void accept(Visitor v)

@@ -3519,7 +3519,6 @@ extern (C++) final class NewExp : Expression
 
     Expression argprefix;       // expression to be evaluated just before arguments[]
     CtorDeclaration member;     // constructor function
-    NewDeclaration allocator;   // allocator function
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 

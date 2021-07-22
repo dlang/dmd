@@ -1765,9 +1765,7 @@ public:
     {
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
-        buf.writestring("new");
-        parametersToBuffer(d.parameterList, buf, hgs);
-        bodyToBuffer(d);
+        buf.writestring("new();");
     }
 
     override void visit(Module m)

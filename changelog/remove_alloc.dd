@@ -1,0 +1,39 @@
+Class allocators have been removed from the language
+
+Class allocators have been deprecated since v2.080.0.
+
+```
+class C
+{
+    new(size_t size)
+    {
+        return malloc(size);
+    }
+}
+```
+
+Starting with this release all class allocators not annotated with `@disable`
+will result in a compilation error. As the grammar will also be changing, there
+are new deprecation messages for the old-style allocator syntax, which accepted
+a non-empty parameter list and function body.
+
+```
+class C
+{
+    @disable new(size_t size)   // Deprecation: non-empty parameter list
+    {
+        return malloc(size);    // Deprecation: function definition
+    }
+}
+```
+
+Example of corrective action:
+```
+class C
+{
+    @disable new();
+}
+```
+
+See the $(LINK2 https://dlang.org/deprecate.html#Class%20allocators%20and%20deallocators, deprecated features page)
+for more information.
