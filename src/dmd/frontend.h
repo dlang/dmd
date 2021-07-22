@@ -1773,11 +1773,11 @@ struct File final
     }
 };
 
-enum class StructPOD
+enum class ThreeState : uint8_t
 {
-    no = 0,
-    yes = 1,
-    fwd = 2,
+    none = 0u,
+    no = 1u,
+    yes = 2u,
 };
 
 template <typename K, typename V>
@@ -5984,7 +5984,7 @@ public:
     static FuncDeclaration* xerreq;
     static FuncDeclaration* xerrcmp;
     uint32_t alignment;
-    StructPOD ispod;
+    ThreeState ispod;
     TypeTuple* argTypes;
     static StructDeclaration* create(Loc loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s);

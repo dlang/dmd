@@ -212,7 +212,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     extern (C++) __gshared FuncDeclaration xerrcmp;  // object.xopCmp
 
     structalign_t alignment;    // alignment applied outside of the struct
-    StructPOD ispod;            // if struct is POD
+    ThreeState ispod;           // if struct is POD
 
     // ABI-specific type(s) if the struct can be passed in registers
     TypeTuple argTypes;
@@ -221,7 +221,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     {
         super(loc, id);
         zeroInit = false; // assume false until we do semantic processing
-        ispod = StructPOD.fwd;
+        ispod = ThreeState.none;
         // For forward references
         type = new TypeStruct(this);
 
@@ -378,14 +378,14 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     final bool isPOD()
     {
         // If we've already determined whether this struct is POD.
-        if (ispod != StructPOD.fwd)
-            return (ispod == StructPOD.yes);
+        if (ispod != ThreeState.none)
+            return (ispod == ThreeState.yes);
 
-        ispod = StructPOD.yes;
+        ispod = ThreeState.yes;
 
         if (enclosing || postblit || dtor || hasCopyCtor)
         {
-            ispod = StructPOD.no;
+            ispod = ThreeState.no;
             return false;
         }
 
@@ -395,7 +395,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             VarDeclaration v = fields[i];
             if (v.storage_class & STC.ref_)
             {
-                ispod = StructPOD.no;
+                ispod = ThreeState.no;
                 return false;
             }
 
@@ -406,13 +406,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 StructDeclaration sd = ts.sym;
                 if (!sd.isPOD())
                 {
-                    ispod = StructPOD.no;
+                    ispod = ThreeState.no;
                     return false;
                 }
             }
         }
 
-        return (ispod == StructPOD.yes);
+        return (ispod == ThreeState.yes);
     }
 
     override final inout(StructDeclaration) isStructDeclaration() inout @nogc nothrow pure @safe
