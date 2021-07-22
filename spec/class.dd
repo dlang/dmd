@@ -69,7 +69,6 @@ $(UL
             $(LI $(RELATIVE_LINK2 invariants, Class Invariants))
             $(LI $(DDSUBLINK spec/unittest, unittest, Unit Tests))
             $(LI $(RELATIVE_LINK2 allocators, Class Allocators))
-            $(LI $(RELATIVE_LINK2 deallocators, Class Deallocators))
             $(LI $(RELATIVE_LINK2 alias-this, Alias This))
         )
         )
@@ -1058,60 +1057,6 @@ new(1,2) Foo(a);        // calls new(Foo.sizeof,1,2)
 ------
 
         $(P Derived classes inherit any allocator from their base class,
-        if one is not specified.
-        )
-
-        $(P The class allocator is not called if the instance is created
-        on the stack.
-        )
-
-        $(P See also
-        $(LINK2 https://wiki.dlang.org/Memory_Management#Explicit_Class_Instance_Allocation,
-        Explicit Class Instance Allocation).
-        )
-
-$(H2 $(LNAME2 deallocators, Class Deallocators))
-$(B Note): Class deallocators and the delete operator are deprecated in D2.
-Use the $(D destroy) function to finalize an object by calling its destructor.
-The memory of the object is $(B not) immediately deallocated, instead the GC
-will collect the memory of the object at an undetermined point after finalization:
-
-------
-class Foo { int x; this() { x = 1; } }
-Foo foo = new Foo;
-destroy(foo);
-assert(foo.x == int.init);  // object is still accessible
-------
-
-$(GRAMMAR
-$(GNAME Deallocator):
-    $(D delete) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
-)
-
-$(P A class member function of the form:)
-
-------
-delete(void *p)
-{
-    ...
-}
-------
-
-        is called a class deallocator.
-        The deallocator must have exactly one parameter of type $(D void*).
-        Only one can be specified for a class.
-        When a delete expression:
-
-------
-delete f;
-------
-
-is executed, and f is a reference to a class instance that has a deallocator,
-the deallocator is called with a pointer to the class instance after the
-destructor (if any) for the class is called. It is the responsibility of the
-deallocator to free the memory.
-
-        $(P Derived classes inherit any deallocator from their base class,
         if one is not specified.
         )
 
