@@ -42,11 +42,11 @@ enum class Baseok : uint8_t
     semanticdone  // all base classes semantic done
 };
 
-enum StructPOD
+enum class ThreeState : uint8_t
 {
-    ISPODno,            // struct is not POD
-    ISPODyes,           // struct is POD
-    ISPODfwd            // POD not yet computed
+    none,         // value not yet computed
+    no,           // value is false
+    yes,          // value is true
 };
 
 enum class Abstract : uint8_t
@@ -185,7 +185,7 @@ public:
     static FuncDeclaration *xerrcmp;     // object.xopCmp
 
     structalign_t alignment;    // alignment applied outside of the struct
-    StructPOD ispod;            // if struct is POD
+    ThreeState ispod;           // if struct is POD
 
     // ABI-specific type(s) if the struct can be passed in registers
     TypeTuple *argTypes;

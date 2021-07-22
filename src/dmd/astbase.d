@@ -1318,13 +1318,13 @@ struct ASTBase
     extern (C++) class StructDeclaration : AggregateDeclaration
     {
         int zeroInit;
-        StructPOD ispod;
+        ThreeState ispod;
 
         final extern (D) this(const ref Loc loc, Identifier id, bool inObject)
         {
             super(loc, id);
             zeroInit = 0;
-            ispod = StructPOD.fwd;
+            ispod = ThreeState.none;
             type = new TypeStruct(this);
             if (inObject)
             {

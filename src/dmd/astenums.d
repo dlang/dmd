@@ -238,11 +238,11 @@ enum PKG : int
     package_,     /// already determined that's an actual package
 }
 
-enum StructPOD : int
+enum ThreeState : ubyte
 {
-    no,    /// struct is not POD
-    yes,   /// struct is POD
-    fwd,   /// POD not yet computed
+    none,  /// state is not yet computed
+    no,    /// state is false
+    yes,   /// state is true
 }
 
 enum TRUST : ubyte
