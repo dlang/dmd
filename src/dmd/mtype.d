@@ -7261,7 +7261,13 @@ ScopeRef buildScopeRef(StorageClass stc) pure nothrow @nogc @safe
     final switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
     {
         case 0:                        result = ScopeRef.None;        break;
+
+        /* can occur in case test/compilable/testsctreturn.d
+         * related to https://issues.dlang.org/show_bug.cgi?id=20149
+         * where inout adds `return` without `scope` or `ref`
+         */
         case STC.return_:              result = ScopeRef.Return;      break;
+
         case STC.ref_:                 result = ScopeRef.Ref;         break;
         case STC.scope_:               result = ScopeRef.Scope;       break;
         case STC.return_ | STC.ref_:   result = ScopeRef.ReturnRef;   break;
