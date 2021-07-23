@@ -57,6 +57,7 @@ import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.root.stringtable;
+import dmd.safe;
 import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.target;
@@ -3580,7 +3581,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 e.error("`%s` is not an expression", e.toChars());
                 return ErrorExp.get();
             }
-            else if (checkUnsafeDotExp(sc, e, id, flag))
+            else if (checkUnsafeDotExp(sc, e, ident, flag))
             {
                 return ErrorExp.get();
             }
@@ -3627,7 +3628,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         else if (ident == Id.ptr)
         {
-            if (checkUnsafeDotExp(sc, e, id, flag))
+            if (checkUnsafeDotExp(sc, e, ident, flag))
                 return ErrorExp.get();
             return e.castTo(sc, mt.next.pointerTo());
         }
@@ -3690,7 +3691,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         else if (ident == Id.funcptr)
         {
-            if (checkUnsafePtr(sc, e, id, flag))
+            if (checkUnsafeDotExp(sc, e, ident, flag))
             {
                 return ErrorExp.get();
             }

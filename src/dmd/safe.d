@@ -21,6 +21,8 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.expression;
+import dmd.id;
+import dmd.identifier;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
