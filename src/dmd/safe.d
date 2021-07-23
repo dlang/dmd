@@ -210,7 +210,7 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
  * Returns:
  *      true if error
  */
-bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, DotExpFlag flag)
+bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
 {
     if (!(flag & DotExpFlag.noDeref) && // this use is attempting a dereference
         sc.func &&                      // inside a function
