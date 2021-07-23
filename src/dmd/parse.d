@@ -5438,6 +5438,10 @@ class Parser(AST) : Lexer
                     stc = STC.ref_;
                     goto Lagain;
 
+                case TOK.scope_:
+                    stc = STC.scope_;
+                    goto Lagain;
+
                 case TOK.enum_:
                     stc = STC.manifest;
                     goto Lagain;
