@@ -444,6 +444,52 @@ void testException()
     test(MayThrow(0), MayThrow(1), `Some message != <toString() failed: "Error", called on MayThrow(1)>`);
 }
 
+void testOverlappingFields()
+{
+    static struct S
+    {
+        union
+        {
+            double num;
+            immutable(char)[] name;
+        }
+    }
+
+    test(S(1.0), S(2.0), "S(<overlapped field>, <overlapped field>) != S(<overlapped field>, <overlapped field>)");
+
+    static struct S2
+    {
+        int valid;
+        union
+        {
+            double num;
+            immutable(char)[] name;
+        }
+    }
+
+    test(S2(4, 1.0), S2(5, 2.0), "S2(4, <overlapped field>, <overlapped field>) != S2(5, <overlapped field>, <overlapped field>)");
+
+    static struct S3
+    {
+        union
+        {
+            double num;
+            immutable(char)[] name;
+        }
+        int valid;
+    }
+    S3 a = {
+        num: 1.0,
+        valid: 8
+    };
+
+    S3 b = {
+        num: 1.0,
+        valid: 8
+    };
+    test(a, b, "S3(<overlapped field>, <overlapped field>, 8) != S3(<overlapped field>, <overlapped field>, 8)");
+}
+
 int main()
 {
     testIntegers();
@@ -476,6 +522,7 @@ int main()
     testExternClasses();
     testShared();
     testException();
+    testOverlappingFields();
 
     if (!__ctfe)
         fprintf(stderr, "success.\n");

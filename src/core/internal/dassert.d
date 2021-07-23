@@ -401,20 +401,51 @@ private string miniFormat(V)(const scope ref V v)
 private string formatMembers(V)(const scope ref V v)
 {
     enum ctxPtr = __traits(isNested, V);
+    enum isOverlapped = calcFieldOverlap([ v.tupleof.offsetof ]);
+
     string msg = V.stringof ~ "(";
     foreach (i, ref field; v.tupleof)
     {
         if (i > 0)
             msg ~= ", ";
 
-        // Mark context pointer
-        static if (ctxPtr && i == v.tupleof.length - 1)
-            msg ~= "<context>: ";
+        static if (isOverlapped[i])
+        {
+            msg ~= "<overlapped field>";
+        }
+        else
+        {
+            // Mark context pointer
+            static if (ctxPtr && i == v.tupleof.length - 1)
+                msg ~= "<context>: ";
 
-        msg ~= miniFormat(field);
+            msg ~= miniFormat(field);
+        }
     }
     msg ~= ")";
     return msg;
+}
+
+/**
+ * Calculates whether fields are overlapped based on the passed offsets.
+ *
+ * Params:
+ *   offsets = offsets of all fields matching the order of `.tupleof`
+ *
+ * Returns: an array such that arr[n] = true indicates that the n'th field
+ *          overlaps with an adjacent field
+ **/
+private bool[] calcFieldOverlap(const scope size_t[] offsets)
+{
+    bool[] overlaps = new bool[](offsets.length);
+
+    foreach (const idx; 1 .. overlaps.length)
+    {
+        if (offsets[idx - 1] == offsets[idx])
+            overlaps[idx - 1] = overlaps[idx] = true;
+    }
+
+    return overlaps;
 }
 
 // This should be a local import in miniFormat but fails with a cyclic dependency error
