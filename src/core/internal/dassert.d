@@ -37,6 +37,10 @@ module core.internal.dassert;
  */
 string _d_assert_fail(A)(const scope string op, auto ref const scope A a)
 {
+    // Prevent InvalidMemoryOperationError when triggered from a finalizer
+    if (inFinalizer())
+        return "Assertion failed (rich formatting is disabled in finalizers)";
+
     string[2] vals = [ miniFormatFakeAttributes(a), "true" ];
     immutable token = op == "!" ? "==" : "!=";
     return combine(vals[0 .. 1], token, vals[1 .. $]);
@@ -62,6 +66,10 @@ template _d_assert_fail(A...)
         const scope string comp, auto ref const scope A a, auto ref const scope B b)
     if (B.length != 0 || A.length != 1) // Resolve ambiguity with unary overload
     {
+        // Prevent InvalidMemoryOperationError when triggered from a finalizer
+        if (inFinalizer())
+            return "Assertion failed (rich formatting is disabled in finalizers)";
+
         string[A.length + B.length] vals;
         static foreach (idx; 0 .. A.length)
             vals[idx] = miniFormatFakeAttributes(a[idx]);
@@ -505,6 +513,14 @@ private auto pureAlloc(size_t t)
         return new ubyte[len];
     }
     return assumeFakeAttributes(&alloc)(t);
+}
+
+/// Wrapper for GC.inFinalizer that fakes purity
+private bool inFinalizer()() pure nothrow @nogc @safe
+{
+    // CTFE doesn't trigger InvalidMemoryErrors
+    import core.memory : GC;
+    return !__ctfe && assumeFakeAttributes(&GC.inFinalizer)();
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=21544

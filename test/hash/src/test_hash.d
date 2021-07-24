@@ -14,6 +14,8 @@ void main()
     issue19582();
     issue20034();
     issue21642();
+    issue22024();
+    issue22076();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -243,6 +245,71 @@ void issue21642() @safe nothrow pure
     import core.internal.convert : toUbyte;
     shared C c;
     assert(toUbyte(c) == [ubyte(1)]);
+}
+
+/// Accept enum type whose ultimate base type is a SIMD vector.
+void issue22024() @nogc nothrow pure @safe
+{
+    static if (is(__vector(float[2])))
+    {
+        enum E2 : __vector(float[2]) { a = __vector(float[2]).init, }
+        enum F2 : E2 { a = E2.init, }
+        assert(hashOf(E2.init) == hashOf(F2.init));
+        assert(hashOf(E2.init, 1) == hashOf(F2.init, 1));
+    }
+    static if (is(__vector(float[4])))
+    {
+        enum E4 : __vector(float[4]) { a = __vector(float[4]).init, }
+        enum F4 : E4 { a = E4.init, }
+        assert(hashOf(E4.init) == hashOf(F4.init));
+        assert(hashOf(E4.init, 1) == hashOf(F4.init, 1));
+    }
+}
+
+/// hashOf(S) can segfault if S.toHash is forwarded via `alias this` to a
+/// receiver which may be null.
+void issue22076()
+{
+    static struct S0 { Object a; alias a this; }
+
+    static struct S1
+    {
+        S0 a;
+        inout(S0)* b() inout nothrow { return &a; }
+        alias b this;
+    }
+
+    static struct S2
+    {
+        S0 a;
+        S1 b;
+    }
+
+    extern(C++) static class C0
+    {
+        int foo() { return 0; } // Need at least one function in vtable.
+        S0 a; alias a this;
+    }
+
+    extern(C++) static class C1
+    {
+        S1 a;
+        inout(S1)* b() inout nothrow { return &a; }
+        alias b this;
+    }
+
+    cast(void) hashOf(S0.init);
+    cast(void) hashOf(S0.init, 0);
+    cast(void) hashOf(S1.init);
+    cast(void) hashOf(S1.init, 0);
+    cast(void) hashOf(S2.init);
+    cast(void) hashOf(S2.init, 0);
+    auto c0 = new C0();
+    cast(void) hashOf(c0);
+    cast(void) hashOf(c0, 0);
+    auto c1 = new C1();
+    cast(void) hashOf(c1);
+    cast(void) hashOf(c1, 0);
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
