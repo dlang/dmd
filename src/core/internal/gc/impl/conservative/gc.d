@@ -2723,6 +2723,49 @@ struct Gcx
         return IsMarked.unknown;
     }
 
+    version (Posix)
+    {
+        // A fork might happen while GC code is running in a different thread.
+        // Because that would leave the GC in an inconsistent state,
+        // make sure no GC code is running by acquiring the lock here,
+        // before a fork.
+
+        extern(C) static void _d_gcx_atfork_prepare()
+        {
+            if (instance)
+                ConservativeGC.lockNR();
+        }
+
+        extern(C) static void _d_gcx_atfork_parent()
+        {
+            if (instance)
+                ConservativeGC.gcLock.unlock();
+        }
+
+        extern(C) static void _d_gcx_atfork_child()
+        {
+            if (instance)
+            {
+                ConservativeGC.gcLock.unlock();
+
+                // make sure the threads and event handles are reinitialized in a fork
+                version (COLLECT_PARALLEL)
+                {
+                    if (Gcx.instance.scanThreadData)
+                    {
+                        cstdlib.free(Gcx.instance.scanThreadData);
+                        Gcx.instance.numScanThreads = 0;
+                        Gcx.instance.scanThreadData = null;
+                        Gcx.instance.busyThreads = 0;
+
+                        memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
+                        memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
+                    }
+                }
+            }
+        }
+    }
+
     /* ============================ Parallel scanning =============================== */
     version (COLLECT_PARALLEL):
     import core.sync.event;
@@ -2954,46 +2997,6 @@ struct Gcx
             busyThreads.atomicOp!"-="(1);
         }
         debug(PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
-    }
-
-    version (Posix)
-    {
-        // A fork might happen while GC code is running in a different thread.
-        // Because that would leave the GC in an inconsistent state,
-        // make sure no GC code is running by acquiring the lock here,
-        // before a fork.
-
-        extern(C) static void _d_gcx_atfork_prepare()
-        {
-            if (instance)
-                ConservativeGC.lockNR();
-        }
-
-        extern(C) static void _d_gcx_atfork_parent()
-        {
-            if (instance)
-                ConservativeGC.gcLock.unlock();
-        }
-
-        extern(C) static void _d_gcx_atfork_child()
-        {
-            if (instance)
-            {
-                ConservativeGC.gcLock.unlock();
-
-                // make sure the threads and event handles are reinitialized in a fork
-                if (Gcx.instance.scanThreadData)
-                {
-                    cstdlib.free(Gcx.instance.scanThreadData);
-                    Gcx.instance.numScanThreads = 0;
-                    Gcx.instance.scanThreadData = null;
-                    Gcx.instance.busyThreads = 0;
-
-                    memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
-                    memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
-                }
-            }
-        }
     }
 }
 
