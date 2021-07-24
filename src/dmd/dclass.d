@@ -228,151 +228,149 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         // For forward references
         type = new TypeClass(this);
 
-        if (id)
+        // Look for special class names
+        if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
+            error("illegal class name");
+
+        // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
+        if (id.toChars()[0] == 'T')
         {
-            // Look for special class names
-            if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
-                error("illegal class name");
-
-            // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
-            if (id.toChars()[0] == 'T')
-            {
-                if (id == Id.TypeInfo)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.dtypeinfo = this;
-                }
-                if (id == Id.TypeInfo_Class)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoclass = this;
-                }
-                if (id == Id.TypeInfo_Interface)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfointerface = this;
-                }
-                if (id == Id.TypeInfo_Struct)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfostruct = this;
-                }
-                if (id == Id.TypeInfo_Pointer)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfopointer = this;
-                }
-                if (id == Id.TypeInfo_Array)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoarray = this;
-                }
-                if (id == Id.TypeInfo_StaticArray)
-                {
-                    //if (!inObject)
-                    //    Type.typeinfostaticarray.error("%s", msg);
-                    Type.typeinfostaticarray = this;
-                }
-                if (id == Id.TypeInfo_AssociativeArray)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoassociativearray = this;
-                }
-                if (id == Id.TypeInfo_Enum)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoenum = this;
-                }
-                if (id == Id.TypeInfo_Function)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfofunction = this;
-                }
-                if (id == Id.TypeInfo_Delegate)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfodelegate = this;
-                }
-                if (id == Id.TypeInfo_Tuple)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfotypelist = this;
-                }
-                if (id == Id.TypeInfo_Const)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoconst = this;
-                }
-                if (id == Id.TypeInfo_Invariant)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoinvariant = this;
-                }
-                if (id == Id.TypeInfo_Shared)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoshared = this;
-                }
-                if (id == Id.TypeInfo_Wild)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfowild = this;
-                }
-                if (id == Id.TypeInfo_Vector)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfovector = this;
-                }
-            }
-
-            if (id == Id.Object)
+            if (id == Id.TypeInfo)
             {
                 if (!inObject)
                     error("%s", msg);
-                object = this;
+                Type.dtypeinfo = this;
             }
-
-            if (id == Id.Throwable)
+            if (id == Id.TypeInfo_Class)
             {
                 if (!inObject)
                     error("%s", msg);
-                throwable = this;
+                Type.typeinfoclass = this;
             }
-            if (id == Id.Exception)
+            if (id == Id.TypeInfo_Interface)
             {
                 if (!inObject)
                     error("%s", msg);
-                exception = this;
+                Type.typeinfointerface = this;
             }
-            if (id == Id.Error)
+            if (id == Id.TypeInfo_Struct)
             {
                 if (!inObject)
                     error("%s", msg);
-                errorException = this;
+                Type.typeinfostruct = this;
             }
-            if (id == Id.cpp_type_info_ptr)
+            if (id == Id.TypeInfo_Pointer)
             {
                 if (!inObject)
                     error("%s", msg);
-                cpp_type_info_ptr = this;
+                Type.typeinfopointer = this;
+            }
+            if (id == Id.TypeInfo_Array)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoarray = this;
+            }
+            if (id == Id.TypeInfo_StaticArray)
+            {
+                //if (!inObject)
+                //    Type.typeinfostaticarray.error("%s", msg);
+                Type.typeinfostaticarray = this;
+            }
+            if (id == Id.TypeInfo_AssociativeArray)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoassociativearray = this;
+            }
+            if (id == Id.TypeInfo_Enum)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoenum = this;
+            }
+            if (id == Id.TypeInfo_Function)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfofunction = this;
+            }
+            if (id == Id.TypeInfo_Delegate)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfodelegate = this;
+            }
+            if (id == Id.TypeInfo_Tuple)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfotypelist = this;
+            }
+            if (id == Id.TypeInfo_Const)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoconst = this;
+            }
+            if (id == Id.TypeInfo_Invariant)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoinvariant = this;
+            }
+            if (id == Id.TypeInfo_Shared)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoshared = this;
+            }
+            if (id == Id.TypeInfo_Wild)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfowild = this;
+            }
+            if (id == Id.TypeInfo_Vector)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfovector = this;
             }
         }
+
+        if (id == Id.Object)
+        {
+            if (!inObject)
+                error("%s", msg);
+            object = this;
+        }
+
+        if (id == Id.Throwable)
+        {
+            if (!inObject)
+                error("%s", msg);
+            throwable = this;
+        }
+        if (id == Id.Exception)
+        {
+            if (!inObject)
+                error("%s", msg);
+            exception = this;
+        }
+        if (id == Id.Error)
+        {
+            if (!inObject)
+                error("%s", msg);
+            errorException = this;
+        }
+        if (id == Id.cpp_type_info_ptr)
+        {
+            if (!inObject)
+                error("%s", msg);
+            cpp_type_info_ptr = this;
+        }
+
         baseok = Baseok.none;
     }
 
@@ -484,33 +482,34 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (flags & SearchImportsOnly)
             return s;
 
-        if (!s)
-        {
-            // Search bases classes in depth-first, left to right order
-            for (size_t i = 0; i < baseclasses.dim; i++)
-            {
-                BaseClass* b = (*baseclasses)[i];
-                if (b.sym)
-                {
-                    if (!b.sym.symtab)
-                        error("base `%s` is forward referenced", b.sym.ident.toChars());
-                    else
-                    {
-                        import dmd.access : symbolIsVisible;
+        if (s)
+            return s;
 
-                        s = b.sym.search(loc, ident, flags);
-                        if (!s)
-                            continue;
-                        else if (s == this) // happens if s is nested in this and derives from this
-                            s = null;
-                        else if (!(flags & IgnoreSymbolVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(this, s))
-                            s = null;
-                        else
-                            break;
-                    }
-                }
+        // Search bases classes in depth-first, left to right order
+        foreach (b; (*baseclasses)[])
+        {
+            if (!b.sym)
+                continue;
+
+            if (!b.sym.symtab)
+            {
+                error("base `%s` is forward referenced", b.sym.ident.toChars());
+                continue;
             }
+
+            import dmd.access : symbolIsVisible;
+
+            s = b.sym.search(loc, ident, flags);
+            if (!s)
+                continue;
+            else if (s == this) // happens if s is nested in this and derives from this
+                s = null;
+            else if (!(flags & IgnoreSymbolVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(this, s))
+                s = null;
+            else
+                break;
         }
+
         return s;
     }
 
@@ -723,57 +722,59 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 // the first entry might be a ClassInfo
                 //printf("\t[%d] = %s\n", i, fd.toChars());
-                if (ident == fd.ident && fd.type.covariant(tf) == 1)
+                if (ident != fd.ident || fd.type.covariant(tf) != 1)
                 {
-                    //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
-                    if (!fdmatch)
-                    {
-                        updateBestMatch(fd);
-                        continue;
-                    }
-                    if (fd == fdmatch)
-                        continue;
-
-                    {
-                    // Function type matching: exact > covariant
-                    MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
-                    MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
-                    if (m1 > m2)
-                    {
-                        updateBestMatch(fd);
-                        continue;
-                    }
-                    else if (m1 < m2)
-                        continue;
-                    }
-                    {
-                    MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
-                    MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
-                    if (m1 > m2)
-                    {
-                        updateBestMatch(fd);
-                        continue;
-                    }
-                    else if (m1 < m2)
-                        continue;
-                    }
-                    {
-                    // The way of definition: non-mixin > mixin
-                    MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
-                    MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
-                    if (m1 > m2)
-                    {
-                        updateBestMatch(fd);
-                        continue;
-                    }
-                    else if (m1 < m2)
-                        continue;
-                    }
-
-                    fdambig = fd;
-                    //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
+                    //printf("\t\t%d\n", fd.type.covariant(tf));
+                    continue;
                 }
-                //else printf("\t\t%d\n", fd.type.covariant(tf));
+
+                //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
+                if (!fdmatch)
+                {
+                    updateBestMatch(fd);
+                    continue;
+                }
+                if (fd == fdmatch)
+                    continue;
+
+                {
+                // Function type matching: exact > covariant
+                MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
+                MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
+                if (m1 > m2)
+                {
+                    updateBestMatch(fd);
+                    continue;
+                }
+                else if (m1 < m2)
+                    continue;
+                }
+                {
+                MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
+                MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
+                if (m1 > m2)
+                {
+                    updateBestMatch(fd);
+                    continue;
+                }
+                else if (m1 < m2)
+                    continue;
+                }
+                {
+                // The way of definition: non-mixin > mixin
+                MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+                MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+                if (m1 > m2)
+                {
+                    updateBestMatch(fd);
+                    continue;
+                }
+                else if (m1 < m2)
+                    continue;
+                }
+
+                fdambig = fd;
+                //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
             }
         }
 
