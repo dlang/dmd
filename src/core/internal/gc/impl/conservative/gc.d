@@ -2456,22 +2456,28 @@ struct Gcx
                         static foreach (w; 0 .. PageBits.length)
                             recoverPage = recoverPage && (~freebitsdata[w] == toFree[w]);
 
-                        bool hasFinalizer = false;
-                        debug(COLLECT_PRINTF) // need output for each onject
-                            hasFinalizer = true;
-                        else debug(LOGGING)
-                            hasFinalizer = true;
-                        else debug(MEMSTOMP)
-                            hasFinalizer = true;
-                        if (pool.finals.data)
+                        // We need to loop through each object if any have a finalizer,
+                        // or, if any of the debug hooks are enabled.
+                        bool doLoop = false;
+                        debug (SENTINEL)
+                            doLoop = true;
+                        else version (assert)
+                            doLoop = true;
+                        else debug (COLLECT_PRINTF) // need output for each object
+                            doLoop = true;
+                        else debug (LOGGING)
+                            doLoop = true;
+                        else debug (MEMSTOMP)
+                            doLoop = true;
+                        else if (pool.finals.data)
                         {
                             // finalizers must be called on objects that are about to be freed
                             auto finalsdata = pool.finals.data + pn * PageBits.length;
                             static foreach (w; 0 .. PageBits.length)
-                                hasFinalizer = hasFinalizer || (toFree[w] & finalsdata[w]) != 0;
+                                doLoop = doLoop || (toFree[w] & finalsdata[w]) != 0;
                         }
 
-                        if (hasFinalizer)
+                        if (doLoop)
                         {
                             immutable size = binsize[bin];
                             void *p = pool.baseAddr + pn * PAGESIZE;
