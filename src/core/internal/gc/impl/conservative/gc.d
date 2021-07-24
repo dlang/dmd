@@ -747,7 +747,9 @@ class ConservativeGC : GC
             return;
 
         sentinel_Invariant(p);
+        auto q = p;
         p = sentinel_sub(p);
+        size_t ssize;
 
         if (pool.isLargeObject)              // if large alloc
         {
@@ -757,7 +759,9 @@ class ConservativeGC : GC
 
             // Free pages
             size_t npages = lpool.bPageOffsets[pagenum];
-            debug (MEMSTOMP) memset(p, 0xF2, npages * PAGESIZE);
+            auto size = npages * PAGESIZE;
+            ssize = sentinel_size(q, size);
+            debug (MEMSTOMP) memset(p, 0xF2, size);
             lpool.freePages(pagenum, npages);
             lpool.mergeFreePageOffsets!(true, true)(pagenum, npages);
         }
@@ -769,7 +773,9 @@ class ConservativeGC : GC
             // Add to free list
             List *list = cast(List*)p;
 
-            debug (MEMSTOMP) memset(p, 0xF2, binsize[bin]);
+            auto size = binsize[bin];
+            ssize = sentinel_size(q, size);
+            debug (MEMSTOMP) memset(p, 0xF2, size);
 
             // in case the page hasn't been recovered yet, don't add the object to the free list
             if (!gcx.recoverPool[bin] || pool.binPageChain[pagenum] == Pool.PageRecovered)
@@ -782,7 +788,7 @@ class ConservativeGC : GC
         }
         pool.clrBits(biti, ~BlkAttr.NONE);
 
-        gcx.leakDetector.log_free(sentinel_add(p));
+        gcx.leakDetector.log_free(sentinel_add(p), ssize);
     }
 
 
@@ -2382,7 +2388,7 @@ struct Gcx
                         pool.clrBits(biti, ~BlkAttr.NONE ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
-                        leakDetector.log_free(q);
+                        leakDetector.log_free(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA));
                         pool.pagetable[pn..pn+npages] = B_FREE;
                         if (pn < pool.searchStart) pool.searchStart = pn;
                         freedLargePages += npages;
@@ -2502,7 +2508,7 @@ struct Gcx
                                     assert(core.bitop.bt(toFree.ptr, i));
 
                                     debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
-                                    leakDetector.log_free(sentinel_add(p));
+                                    leakDetector.log_free(q, sentinel_size(q, size));
 
                                     debug (MEMSTOMP) memset(p, 0xF3, size);
                                 }
@@ -4243,13 +4249,13 @@ debug (LOGGING)
         }
 
 
-        private void log_free(void *p) nothrow @nogc
+        private void log_free(void *p, size_t size) nothrow @nogc
         {
             //debug(PRINTF) printf("+log_free(%p)\n", p);
             auto i = current.find(p);
             if (i == OPFAIL)
             {
-                debug(PRINTF) printf("free'ing unallocated memory %p\n", p);
+                debug(PRINTF) printf("free'ing unallocated memory %p (size %zu)\n", p, size);
             }
             else
                 current.remove(i);
@@ -4323,7 +4329,7 @@ else
     {
         static void initialize(Gcx* gcx) nothrow { }
         static void log_malloc(void *p, size_t size) nothrow { }
-        static void log_free(void *p) nothrow @nogc { }
+        static void log_free(void *p, size_t size) nothrow @nogc {}
         static void log_collect() nothrow { }
         static void log_parent(void *p, void *parent) nothrow { }
     }
