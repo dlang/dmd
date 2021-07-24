@@ -69,6 +69,7 @@ task:
     memory: 8G
   timeout_in: 60m
   environment:
+    DEBIAN_FRONTEND: noninteractive
     matrix:
       << : *LINUX_TASK_MATRIX_TEMPLATE
   << : *COMMON_STEPS_TEMPLATE
@@ -81,6 +82,7 @@ task:
     memory: 8G
   timeout_in: 60m
   environment:
+    DEBIAN_FRONTEND: noninteractive
     matrix:
       << : *LINUX_TASK_MATRIX_TEMPLATE
   << : *COMMON_STEPS_TEMPLATE
