@@ -3,8 +3,8 @@ REQUIRED_ARGS: -verrors=spec -o-
 TEST_OUTPUT:
 ---
 (spec:1) fail_compilation/fail20730b.d-mixin-43(43): Error: C style cast illegal, use `cast(int)mod`
-fail_compilation/fail20730b.d(26): Error: template `fail20730b.atomicOp` cannot deduce function from argument types `!("+=")(shared(uint), int)`, candidates are:
-fail_compilation/fail20730b.d(41):        `atomicOp(string op, T, V1)(shared ref T val, V1 mod)`
+fail_compilation/fail20730b.d(26): Error: template `fail20730b.atomicOp` cannot deduce function from argument types `!("+=")(shared(uint), int)`
+fail_compilation/fail20730b.d(41):        Candidate is: `atomicOp(string op, T, V1)(shared ref T val, V1 mod)`
   with `op = "+=",
        T = uint,
        V1 = int`

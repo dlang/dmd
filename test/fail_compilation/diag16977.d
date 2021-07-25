@@ -3,8 +3,8 @@ TEST_OUTPUT:
 ---
 fail_compilation/diag16977.d(25): Error: undefined identifier `undefined`, did you mean function `undefinedId`?
 fail_compilation/diag16977.d(26): Error: cannot implicitly convert expression `"\x01string"` of type `string` to `int`
-fail_compilation/diag16977.d(27): Error: template `diag16977.templ` cannot deduce function from argument types `!()(int)`, candidates are:
-fail_compilation/diag16977.d(20):        `templ(S)(S s)`
+fail_compilation/diag16977.d(27): Error: template `diag16977.templ` cannot deduce function from argument types `!()(int)`
+fail_compilation/diag16977.d(20):        Candidate is: `templ(S)(S s)`
   with `S = int`
   must satisfy the following constraint:
 `       false`

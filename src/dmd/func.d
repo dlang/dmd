@@ -3022,7 +3022,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         // all of overloads are templates
         if (td)
         {
-            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
+            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`",
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
@@ -3058,7 +3058,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
         if (hasOverloads)
         {
-            .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
+            .error(loc, "none of the overloads of `%s` are callable using a %sobject",
                    fd.ident.toChars(), thisBuf.peekChars());
             printCandidates(loc, fd, sc.isDeprecated());
             return null;
@@ -3088,7 +3088,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
     if (hasOverloads)
     {
-        .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
+        .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toChars(), fargsBuf.peekChars());
         printCandidates(loc, fd, sc.isDeprecated());
         return null;
@@ -3120,6 +3120,9 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     int displayed;
     const(char)* constraintsTip;
 
+    // determine if the first candidate was printed
+    bool printed = false;
+
     overloadApply(declaration, (Dsymbol s)
     {
         Dsymbol nextOverload;
@@ -3135,9 +3138,14 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
                 return 0;
 
+            const single_candidate = fd.overnext is null;
             auto tf = cast(TypeFunction) fd.type;
-            .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
+            .errorSupplemental(fd.loc,
+                    printed ? "                `%s%s`" :
+                    single_candidate ? "Candidate is: `%s%s`" : "Candidates are: `%s%s`",
+                    fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList));
+            printed = true;
             nextOverload = fd.overnext;
         }
         else if (auto td = s.isTemplateDeclaration())
@@ -3146,10 +3154,28 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             const tmsg = td.toCharsNoConstraints();
             const cmsg = td.getConstraintEvalError(constraintsTip);
+
+            const single_candidate = td.overnext is null;
+
+            // add blank space if there are multiple candidates
+            // the length of the blank space is `strlen("Candidates are: ")`
+
             if (cmsg)
-                .errorSupplemental(td.loc, "`%s`\n%s", tmsg, cmsg);
+            {
+                .errorSupplemental(td.loc,
+                        printed ? "                `%s`\n%s" :
+                        single_candidate ? "Candidate is: `%s`\n%s" : "Candidates are: `%s`\n%s",
+                        tmsg, cmsg);
+                printed = true;
+            }
             else
-                .errorSupplemental(td.loc, "`%s`", tmsg);
+            {
+                .errorSupplemental(td.loc,
+                        printed ? "                `%s`" :
+                        single_candidate ? "Candidate is: `%s`" : "Candidates are: `%s`",
+                        tmsg);
+                printed = true;
+            }
             nextOverload = td.overnext;
         }
 
