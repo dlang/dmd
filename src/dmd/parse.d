@@ -736,7 +736,7 @@ class Parser(AST) : Lexer
                     }
                     else if (next == TOK.foreach_ || next == TOK.foreach_reverse_)
                     {
-                        s = parseForeach!(true,true)(token.loc, pLastDecl);
+                        s = parseForeach!(AST.StaticForeachDeclaration)(token.loc, pLastDecl);
                     }
                     else
                     {
@@ -5362,37 +5362,18 @@ class Parser(AST) : Lexer
     }
 
     /*****************************************
-     * Determines the result type for parseForeach.
-     */
-    private template ParseForeachRet(bool isStatic, bool isDecl)
-    {
-        static if(!isStatic)
-        {
-            alias ParseForeachRet = AST.Statement;
-        }
-        else static if(isDecl)
-        {
-            alias ParseForeachRet = AST.StaticForeachDeclaration;
-        }
-        else
-        {
-            alias ParseForeachRet = AST.StaticForeachStatement;
-        }
-    }
-    /*****************************************
      * Parses `foreach` statements, `static foreach` statements and
-     * `static foreach` declarations.  The template parameter
-     * `isStatic` is true, iff a `static foreach` should be parsed.
-     * If `isStatic` is true, `isDecl` can be true to indicate that a
-     * `static foreach` declaration should be parsed.
+     * `static foreach` declarations.
+     * Params:
+     *  Foreach = one of Statement, StaticForeachStatement, StaticForeachDeclaration
+     *  loc = location of foreach
+     *  pLastDecl = non-null for StaticForeachDeclaration
+     * Returns:
+     *  the Foreach generated
      */
-    private ParseForeachRet!(isStatic, isDecl) parseForeach(bool isStatic, bool isDecl)(Loc loc, AST.Dsymbol* pLastDecl)
+    private Foreach parseForeach(alias Foreach)(Loc loc, AST.Dsymbol* pLastDecl)
     {
-        static if(isDecl)
-        {
-            static assert(isStatic);
-        }
-        static if(isStatic)
+        static if (is(Foreach == AST.StaticForeachStatement) || is(Foreach == AST.StaticForeachDeclaration))
         {
             nextToken();
         }
@@ -5504,7 +5485,7 @@ class Parser(AST) : Lexer
             AST.Expression upr = parseExpression();
             check(TOK.rightParenthesis);
             Loc endloc;
-            static if (!isDecl)
+            static if (is(Foreach == AST.Statement) || is(Foreach == AST.StaticForeachStatement))
             {
                 AST.Statement _body = parseStatement(0, null, &endloc);
             }
@@ -5513,15 +5494,15 @@ class Parser(AST) : Lexer
                 AST.Statement _body = null;
             }
             auto rangefe = new AST.ForeachRangeStatement(loc, op, p, aggr, upr, _body, endloc);
-            static if (!isStatic)
+            static if (is(Foreach == AST.Statement))
             {
                 return rangefe;
             }
-            else static if(isDecl)
+            else static if(is(Foreach == AST.StaticForeachDeclaration))
             {
                 return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc, null, rangefe), parseBlock(pLastDecl));
             }
-            else
+            else static if (is(Foreach == AST.StaticForeachStatement))
             {
                 return new AST.StaticForeachStatement(loc, new AST.StaticForeach(loc, null, rangefe));
             }
@@ -5530,7 +5511,7 @@ class Parser(AST) : Lexer
         {
             check(TOK.rightParenthesis);
             Loc endloc;
-            static if (!isDecl)
+            static if (is(Foreach == AST.Statement) || is(Foreach == AST.StaticForeachStatement))
             {
                 AST.Statement _body = parseStatement(0, null, &endloc);
             }
@@ -5539,15 +5520,15 @@ class Parser(AST) : Lexer
                 AST.Statement _body = null;
             }
             auto aggrfe = new AST.ForeachStatement(loc, op, parameters, aggr, _body, endloc);
-            static if(!isStatic)
+            static if (is(Foreach == AST.Statement))
             {
                 return aggrfe;
             }
-            else static if(isDecl)
+            else static if(is(Foreach == AST.StaticForeachDeclaration))
             {
                 return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc, aggrfe, null), parseBlock(pLastDecl));
             }
-            else
+            else static if (is(Foreach == AST.StaticForeachStatement))
             {
                 return new AST.StaticForeachStatement(loc, new AST.StaticForeach(loc, aggrfe, null));
             }
@@ -5782,7 +5763,7 @@ LagainStc:
                 }
                 if (tv == TOK.foreach_ || tv == TOK.foreach_reverse_)
                 {
-                    s = parseForeach!(true,false)(loc, null);
+                    s = parseForeach!(AST.StaticForeachStatement)(loc, null);
                     if (flags & ParseStatementFlags.scope_)
                         s = new AST.ScopeStatement(loc, s, token.loc);
                     break;
@@ -6054,7 +6035,7 @@ LagainStc:
         case TOK.foreach_:
         case TOK.foreach_reverse_:
             {
-                s = parseForeach!(false,false)(loc, null);
+                s = parseForeach!(AST.Statement)(loc, null);
                 break;
             }
         case TOK.if_:
