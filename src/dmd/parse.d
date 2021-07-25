@@ -3489,6 +3489,7 @@ class Parser(AST) : Lexer
     {
         auto decldefs = new AST.Dsymbols();
         Identifier aliasid = null;
+        auto trailing_comma = 0;
 
         int isstatic = token.value == TOK.static_;
         if (isstatic)
@@ -3539,10 +3540,14 @@ class Parser(AST) : Lexer
                 do
                 {
                     nextToken();
-                    if (token.value != TOK.identifier)
+                    if (token.value != TOK.identifier && token.value != TOK.semicolon)
                     {
                         error("identifier expected following `:`");
                         break;
+                    }
+                    if (token.value == TOK.semicolon)
+                    {
+                        trailing_comma = 1;
                     }
                     Identifier _alias = token.ident;
                     Identifier name;
@@ -3571,13 +3576,15 @@ class Parser(AST) : Lexer
             aliasid = null;
         }
         while (token.value == TOK.comma);
-
-        if (token.value == TOK.semicolon)
-            nextToken();
-        else
+        if (trailing_comma == 0)
         {
-            error("`;` expected");
-            nextToken();
+            if (token.value == TOK.semicolon)
+                nextToken();
+            else
+            {
+                error("`;` expected");
+                nextToken();
+            }
         }
 
         return decldefs;
