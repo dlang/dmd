@@ -48,13 +48,6 @@ enum class ThreeState : uint8_t
     yes,          // value is true
 };
 
-enum class Abstract : uint8_t
-{
-    fwdref = 0,      // whether an abstract class is not yet computed
-    yes,             // is abstract class
-    no               // is not abstract class
-};
-
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
 enum class ClassKind : uint8_t
@@ -277,7 +270,7 @@ public:
     int cppDtorVtblIndex;               // slot reserved for the virtual destructor [extern(C++)]
     bool inuse;                         // to prevent recursive attempts
 
-    Abstract isabstract;                // 0: fwdref, 1: is abstract class, 2: not abstract
+    ThreeState isabstract;              // if abstract class
     Baseok baseok;                      // set the progress of base classes resolving
     ObjcClassDeclaration objc;          // Data for a class declaration that is needed for the Objective-C integration
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
