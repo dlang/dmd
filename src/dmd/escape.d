@@ -1323,11 +1323,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if (v.isDataseg())
             continue;
 
-        auto stc = v.storage_class;
-        if (stc & STC.out_)
-            stc |= STC.ref_;  // temporary hack until we adjust buildScopeRef()
-
-        const vsr = buildScopeRef(refs, stc);
+        const vsr = buildScopeRef(refs, v.storage_class);
 
         Dsymbol p = v.toParent2();
 
