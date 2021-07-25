@@ -5,7 +5,7 @@
  * by the compiler whenever `-checkaction=context` is used.
  * There are two hooks, one for unary expressions, and one for binary.
  * When used, the compiler will rewrite `assert(a >= b)` as
- * `assert(a >= b, _d_assert_fail!">="(a, b))`.
+ * `assert(a >= b, _d_assert_fail!(typeof(a))(">=", a, b))`.
  * Temporaries will be created to avoid side effects if deemed necessary
  * by the compiler.
  *
@@ -80,7 +80,7 @@ template _d_assert_fail(A...)
     }
 }
 
-/// Combines the supplied arguments into one string "valA token valB"
+/// Combines the supplied arguments into one string `"valA token valB"`
 private string combine(const scope string[] valA, const scope string token,
     const scope string[] valB) pure nothrow @nogc @safe
 {
@@ -127,8 +127,7 @@ private string combine(const scope string[] valA, const scope string token,
     return (() @trusted => cast(string) buffer)();
 }
 
-// Yields the appropriate printf format token for a type T
-// Indended to be used by miniFormat
+/// Yields the appropriate `printf` format token for a type `T`
 private template getPrintfFormat(T)
 {
     static if (is(T == long))
@@ -157,13 +156,28 @@ private template getPrintfFormat(T)
 }
 
 /**
-Minimalistic formatting for use in _d_assert_fail to keep the compilation
-overhead small and avoid the use of Phobos.
-*/
+ * Generates a textual representation of `v` without relying on Phobos.
+ * The value is formatted as follows:
+ *
+ *  - primitive types and arrays yield their respective literals
+ *  - pointers are printed as hexadecimal numbers
+ *  - enum members are represented by their name
+ *  - user-defined types are formatted by either calling `toString`
+ *    if defined or printing all members, e.g. `S(1, 2)`
+ *
+ * Note that unions are rejected because this method cannot determine which
+ * member is valid when calling this method.
+ *
+ * Params:
+ *   v = the value to print
+ *
+ * Returns: a string respresenting `v` or `V.stringof` if `V` is not supported
+ */
 private string miniFormat(V)(const scope ref V v)
 {
     import core.internal.traits: isAggregateType;
 
+    /// `shared` values are formatted as their base type
     static if (is(V == shared T, T))
     {
         // Use atomics to avoid race conditions whenever possible
@@ -199,6 +213,7 @@ private string miniFormat(V)(const scope ref V v)
     {
         return v ? "true" : "false";
     }
+    // Detect vectors which match isIntegral / isFloating
     else static if (is(V == __vector(ET[N]), ET, size_t N))
     {
         string msg = "[";
@@ -249,6 +264,7 @@ private string miniFormat(V)(const scope ref V v)
         import core.stdc.stdio : sprintf;
         import core.stdc.config : LD = c_long_double;
 
+        // No suitable replacement for sprintf in druntime ATM
         if (__ctfe)
             return '<' ~ V.stringof ~ " not supported>";
 
@@ -461,7 +477,7 @@ private bool[] calcFieldOverlap(const scope size_t[] offsets)
 // -> core.atomic -> core.thread -> core.thread.osthread
 import core.atomic : atomicLoad;
 
-// Inverts a comparison token for use in _d_assert_fail
+/// Negates a comparison token, e.g. `==` is mapped to `!=`
 private string invertCompToken(scope string comp) pure nothrow @nogc @safe
 {
     switch (comp)
@@ -491,6 +507,7 @@ private string invertCompToken(scope string comp) pure nothrow @nogc @safe
     }
 }
 
+/// Casts the function pointer to include `@safe`, `@nogc`, ...
 private auto assumeFakeAttributes(T)(T t) @trusted
 {
     import core.internal.traits : Parameters, ReturnType;
@@ -500,12 +517,15 @@ private auto assumeFakeAttributes(T)(T t) @trusted
     return cast(type) t;
 }
 
+/// Wrapper for `miniFormat` which assumes that the implementation is `@safe`, `@nogc`, ...
+/// s.t. it does not violate the constraints of the the function containing the `assert`.
 private string miniFormatFakeAttributes(T)(const scope ref T t)
 {
     alias miniT = miniFormat!T;
     return assumeFakeAttributes(&miniT)(t);
 }
 
+/// Allocates an array of `t` bytes while pretending to be `@safe`, `@nogc`, ...
 private auto pureAlloc(size_t t)
 {
     static auto alloc(size_t len)
