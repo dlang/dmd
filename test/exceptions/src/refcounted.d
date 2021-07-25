@@ -1,9 +1,9 @@
 class E : Exception
 {
     static int instances;
-    this(string msg = "")
+    this(string msg = "", Throwable nextInChain = null)
     {
-        super(msg);
+        super(msg, nextInChain);
         instances++;
     }
 
@@ -89,6 +89,36 @@ void main()
         }
 
         assert(E.instances == 3);
+    }
+
+    assert(E.instances == 0);
+
+    try
+    {
+        throw new E("first");
+    }
+    catch (E first)
+    {
+        assert(first.refcount == 2);
+        assert(E.instances == 1);
+
+        try
+        {
+            throw new E("second", first);
+        }
+        catch (E second)
+        {
+            assert(first.next is null);
+            assert(second.next is first);
+
+            assert(first.refcount == 3);
+            assert(second.refcount == 2);
+
+            assert(E.instances == 2);
+        }
+
+        assert(first.refcount == 2);
+        assert(E.instances == 1);
     }
 
     assert(E.instances == 0);

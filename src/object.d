@@ -2405,6 +2405,8 @@ class Throwable : Object
     {
         this.msg = msg;
         this.nextInChain = nextInChain;
+        if (nextInChain && nextInChain._refcount)
+            ++nextInChain._refcount;
         //this.info = _d_traceContext();
     }
 
