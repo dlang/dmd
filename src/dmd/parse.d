@@ -5362,21 +5362,6 @@ class Parser(AST) : Lexer
     }
 
     /*****************************************
-     * Determines additional argument types for parseForeach.
-     */
-    private template ParseForeachArgs(bool isStatic, bool isDecl)
-    {
-        static alias Seq(T...) = T;
-        static if(isDecl)
-        {
-            alias ParseForeachArgs = Seq!(AST.Dsymbol*);
-        }
-        else
-        {
-            alias ParseForeachArgs = Seq!();
-        }
-    }
-    /*****************************************
      * Determines the result type for parseForeach.
      */
     private template ParseForeachRet(bool isStatic, bool isDecl)
@@ -5401,7 +5386,7 @@ class Parser(AST) : Lexer
      * If `isStatic` is true, `isDecl` can be true to indicate that a
      * `static foreach` declaration should be parsed.
      */
-    private ParseForeachRet!(isStatic, isDecl) parseForeach(bool isStatic, bool isDecl)(Loc loc, ParseForeachArgs!(isStatic, isDecl) args)
+    private ParseForeachRet!(isStatic, isDecl) parseForeach(bool isStatic, bool isDecl)(Loc loc, AST.Dsymbol* pLastDecl)
     {
         static if(isDecl)
         {
@@ -5410,7 +5395,6 @@ class Parser(AST) : Lexer
         static if(isStatic)
         {
             nextToken();
-            static if(isDecl) auto pLastDecl = args[0];
         }
 
         TOK op = token.value;
@@ -5794,7 +5778,7 @@ LagainStc:
                 }
                 if (tv == TOK.foreach_ || tv == TOK.foreach_reverse_)
                 {
-                    s = parseForeach!(true,false)(loc);
+                    s = parseForeach!(true,false)(loc, null);
                     if (flags & ParseStatementFlags.scope_)
                         s = new AST.ScopeStatement(loc, s, token.loc);
                     break;
@@ -6066,7 +6050,7 @@ LagainStc:
         case TOK.foreach_:
         case TOK.foreach_reverse_:
             {
-                s = parseForeach!(false,false)(loc);
+                s = parseForeach!(false,false)(loc, null);
                 break;
             }
         case TOK.if_:
