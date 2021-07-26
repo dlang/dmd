@@ -1107,12 +1107,12 @@ $(GNAME StatementNoCaseNoDefault):
 )
 
         $(P $(I Expression) is evaluated.
-        If the type of the $(I Expression) is an enum,
+        If the type of the $(I Expression) is $(CODE enum),
         it is repeatedly converted
         to its $(GLINK2 enum, EnumBaseType) until it isn't. Then,
-        if the type is of integral type,
+        if the type is integral,
         the $(I Expression) undergoes $(DDSUBLINK spec/type, integer-promotions, Integer Promotions).
-        Then, the type of the $(I Expression) must be either of integral type or
+        Then, the type of the $(I Expression) must be either integral or
         a static or dynamic array of $(CODE char), $(CODE wchar), or $(CODE dchar).
         )
 
