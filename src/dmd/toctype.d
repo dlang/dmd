@@ -260,6 +260,23 @@ public:
              */
             if (global.params.symdebug)
             {
+                // TODO ideally we would store CType of the baseClass inside the Symbol.
+                // However that requires more invasive surgery.
+                // Windows has that information but on non-windows compilers the relevant fields are null
+                import dmd.target;
+                // windows debug information somehow has access to the baseclass in Symbol
+                if (target.os != Target.OS.Windows)
+                {
+                    auto base = t.sym.baseClass;
+                    while (base)
+                    {
+                        foreach(v; base.fields)
+                        {
+                            symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                        }
+                        base = base.baseClass;
+                    }
+                }
                 foreach (v; t.sym.fields)
                 {
                     symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
