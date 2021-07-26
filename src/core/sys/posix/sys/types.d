@@ -992,7 +992,7 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    alias int lwpid_t;
+    alias int   lwpid_t;
 
     alias void* pthread_attr_t;
     alias void* pthread_cond_t;
@@ -1095,7 +1095,7 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
-    alias int lwpid_t;
+    alias int   lwpid_t;
 
     alias void* pthread_attr_t;
     alias void* pthread_cond_t;
@@ -1402,6 +1402,11 @@ else version (CRuntime_UClibc)
 else
 {
     static assert(false, "Unsupported platform");
+}
+
+version (Linux)
+{
+    alias lwpid_t = pid_t;
 }
 
 //
