@@ -1,13 +1,13 @@
 common_steps_template: &COMMON_STEPS_TEMPLATE
   clone_dmd_script: |
     set -uexo pipefail
-    git clone --branch "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}" --depth 1 https://github.com/dlang/dmd.git ../dmd
+    git clone --branch "$CIRRUS_BRANCH" --depth 1 https://github.com/dlang/dmd.git ../dmd
   install_prerequisites_script: cd ../dmd && ./cirrusci.sh
   install_host_compiler_script: cd ../dmd && ./ci.sh install_host_compiler
   setup_repos_script: |
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../druntime
-    cd ../dmd && ./ci.sh setup_repos "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}"
+    cd ../dmd && ./ci.sh setup_repos "$CIRRUS_BRANCH"
   build_script: cd ../dmd && ./ci.sh build
   test_dmd_script: cd ../dmd && ./ci.sh test_dmd
   test_druntime_script: cd ../dmd && ./ci.sh test_druntime
