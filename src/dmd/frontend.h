@@ -1661,11 +1661,11 @@ public:
     void accept(Visitor* v);
 };
 
-enum class Abstract : uint8_t
+enum class ThreeState : uint8_t
 {
-    fwdref = 0u,
-    yes = 1u,
-    no = 2u,
+    none = 0u,
+    no = 1u,
+    yes = 2u,
 };
 
 enum class Baseok : uint8_t
@@ -1771,13 +1771,6 @@ struct File final
     File()
     {
     }
-};
-
-enum class ThreeState : uint8_t
-{
-    none = 0u,
-    no = 1u,
-    yes = 2u,
 };
 
 template <typename K, typename V>
@@ -4372,7 +4365,6 @@ struct ASTCodegen final
     using StaticForeach = ::StaticForeach;
     using StaticIfCondition = ::StaticIfCondition;
     using VersionCondition = ::VersionCondition;
-    using Abstract = ::Abstract;
     using BaseClass = ::BaseClass;
     using ClassDeclaration = ::ClassDeclaration;
     using ClassFlags = ::ClassFlags;
@@ -5382,7 +5374,7 @@ public:
 private:
     bool inuse;
 public:
-    Abstract isabstract;
+    ThreeState isabstract;
     Baseok baseok;
     ObjcClassDeclaration objc;
     Symbol* cpp_type_info_ptr_sym;

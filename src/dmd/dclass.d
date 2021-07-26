@@ -35,13 +35,6 @@ import dmd.root.rmem;
 import dmd.target;
 import dmd.visitor;
 
-enum Abstract : ubyte
-{
-    fwdref = 0,      // whether an abstract class is not yet computed
-    yes,             // is abstract class
-    no,              // is not abstract class
-}
-
 /***********************************************************
  */
 extern (C++) struct BaseClass
@@ -189,7 +182,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /// to prevent recursive attempts
     private bool inuse;
 
-    Abstract isabstract;
+    ThreeState isabstract;
 
     /// set the progress of base classes resolving
     Baseok baseok;
@@ -817,13 +810,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     final bool isAbstract()
     {
         enum log = false;
-        if (isabstract != Abstract.fwdref)
-            return isabstract == Abstract.yes;
+        if (isabstract != ThreeState.none)
+            return isabstract == ThreeState.yes;
 
         if (log) printf("isAbstract(%s)\n", toChars());
 
-        bool no()  { if (log) printf("no\n");  isabstract = Abstract.no;  return false; }
-        bool yes() { if (log) printf("yes\n"); isabstract = Abstract.yes; return true;  }
+        bool no()  { if (log) printf("no\n");  isabstract = ThreeState.no;  return false; }
+        bool yes() { if (log) printf("yes\n"); isabstract = ThreeState.yes; return true;  }
 
         if (storage_class & STC.abstract_ || _scope && _scope.stc & STC.abstract_)
             return yes();
