@@ -78,7 +78,7 @@ import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
 
-enum LOGSEMANTIC = true;
+enum LOGSEMANTIC = false;
 
 /********************************************************
  * Perform semantic analysis and CTFE on expressions to produce
