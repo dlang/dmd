@@ -464,12 +464,12 @@ class TypeInfo_v : TypeInfoGeneric!ubyte
     {
         return 1;
     }
+}
 
-    unittest
-    {
-        assert(typeid(void).toString == "void");
-        assert(typeid(void).flags == 1);
-    }
+unittest
+{
+    assert(typeid(void).toString == "void");
+    assert(typeid(void).flags == 1);
 }
 
 // All integrals.

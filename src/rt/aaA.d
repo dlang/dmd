@@ -294,8 +294,8 @@ TypeInfo_Struct fakeEntryTI(ref Impl aa, const TypeInfo keyti, const TypeInfo va
     extra[0] = cast() kti;
     extra[1] = cast() vti;
 
-    static immutable tiName = __MODULE__ ~ ".Entry!(...)";
-    ti.name = tiName;
+    static immutable tiMangledName = "S2rt3aaA__T5EntryZ";
+    ti.mangledName = tiMangledName;
 
     ti.m_RTInfo = rtisize > 0 ? rtinfoEntry(aa, keyinfo, valinfo, cast(size_t*)(extra + 2), rtisize) : rtinfo;
     ti.m_flags = ti.m_RTInfo is rtinfoNoPointers ? cast(TypeInfo_Struct.StructFlags)0 : TypeInfo_Struct.StructFlags.hasPointers;
