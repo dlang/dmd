@@ -471,9 +471,10 @@ $(GNAME ForeachTypeAttributes):
     $(GLINK ForeachTypeAttribute) $(GSELF ForeachTypeAttributes)
 
 $(GNAME ForeachTypeAttribute):
-    $(D ref)
-    $(GLINK2 type, TypeCtor)
     $(D enum)
+    $(D ref)
+    $(D scope)
+    $(GLINK2 type, TypeCtor)
 
 $(GNAME ForeachAggregate):
     $(EXPRESSION)
@@ -488,8 +489,10 @@ $(P
         At the start of each iteration, the variables declared by
         the $(I ForeachTypeList)
         are set to be a copy of the elements of the aggregate.
-        If the variable is $(D ref), it is a reference to the
+        If the $(I ForeachTypeAttribute) is $(D ref), it is a reference to the
         contents of that aggregate.
+        If the $(I ForeachTypeAttribute) is $(D scope), the $(I ForeachType) declaration
+        will have $(D scope) semantics.
 )
 $(P
         The aggregate must be loop invariant, meaning that
