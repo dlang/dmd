@@ -11,7 +11,8 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
       git checkout -f FETCH_HEAD;
     fi
 
-    ./ci.sh setup_repos "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}"
+    #./ci.sh setup_repos "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}"
+    ./ci.sh setup_repos "$CIRRUS_BRANCH"
   build_script: ./ci.sh build
 
   test_dmd_script: |
