@@ -38,7 +38,7 @@ $(H2 $(LNAME2 usage, Usage))
         $(P `@trusted` functions have all the capabilities of `@system` functions but may be called from
         `@safe` functions. For this reason they should be very limited in the scope of their use. Typical uses of
         `@trusted` functions include wrapping system calls that take buffer pointer and length arguments separately so that
-        @safe` functions may call them with arrays.)
+        `@safe` functions may call them with arrays. `@trusted` functions must have a $(DDSUBLINK spec/function, safe-interfaces, safe interface).)
 
         $(P `@safe` functions have a number of restrictions on what they may do and are intended to disallow operations that
         may cause memory corruption. See $(DDSUBLINK spec/function, safe-functions, `@safe` functions).)
