@@ -14,6 +14,8 @@ import dmd.declaration;
 import dmd.dtemplate;
 import dmd.func;
 import dmd.sideeffect;
+import dmd.denum;
+import dmd.astenums;
 import core.stdc.stdio;
 
 /********************************************************************************
