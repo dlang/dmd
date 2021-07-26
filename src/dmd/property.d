@@ -2,6 +2,19 @@ module dmd.property;
 
 import dmd.expression;
 import dmd.dscope;
+import dmd.dsymbol;
+import dmd.statement;
+import dmd.expressionsem;
+import dmd.tokens;
+import dmd.mtype;
+import dmd.identifier;
+import dmd.globals;
+import dmd.arraytypes;
+import dmd.declaration;
+import dmd.dtemplate;
+import dmd.func;
+import dmd.sideeffect;
+import core.stdc.stdio;
 
 /********************************************************************************
 * Helper function to resolve `@property` functions in a `BinAssignExp`.
@@ -17,17 +30,7 @@ import dmd.dscope;
 */
 Expression SemanticProp(BinAssignExp e, Scope* sc)
 {
-    import dmd.statement;
-    import dmd.expressionsem;
-    import dmd.tokens;
-    import dmd.mtype;
-    import dmd.identifier;
-    import dmd.globals;
-    import dmd.arraytypes;
-    import dmd.declaration;
-    import dmd.dtemplate;
-    import dmd.func;
-
+    
     // This will convert id expressions to var expressions
     Expression e1x = e.e1.expressionSemantic(sc);
     Expression e2x = e.e2.expressionSemantic(sc);
@@ -69,7 +72,7 @@ Expression SemanticProp(BinAssignExp e, Scope* sc)
                 auto e1_dotId = cast(DotIdExp)e1;
                 noLambda = e1_dotId.e1.op == TOK.type;
             }
-            else if (e1.op == TOK.identifier || e1.op == TOK.call)
+            else if (e1.op == TOK.identifier || e1.op == TOK.call || e1.op == TOK.variable)
             {
                 noLambda = true;
             }
@@ -233,6 +236,62 @@ Expression SemanticProp(BinAssignExp e, Scope* sc)
                 return result;
             }
         }
+    }
+
+    e.e1 = e1x;
+    e.e2 = e2x;
+    return null;
+}
+Expression SemanticProp(PostExp e, Scope* sc)
+{
+
+    // This will convert id expressions to var expressions
+    Expression e1x = e.e1.expressionSemantic(sc);
+    Expression e2x = e.e2.expressionSemantic(sc);
+
+    if (e1x.op == TOK.error)
+        return e1x;
+    if (e2x.op == TOK.error)
+        return e2x;
+
+    // This will convert a var expression to a call expression
+    e1x = resolveProperties(sc, e1x);
+    e2x = resolveProperties(sc, e2x);
+    if (e1x.op == TOK.error)
+        return e1x;
+    if (e2x.op == TOK.error)
+        return e2x;
+
+    // Check for property assignment.
+    // https://issues.dlang.org/show_bug.cgi?id=8006
+    if (e1x.op == TOK.call)
+    {
+        Expression result = null;
+
+        /* Rewrite e1++ as:
+        * (auto tmp = e1, ++e1, tmp)
+        */
+        auto tmp = copyToTemp(0, "__pitmp", e1x);
+        Expression ea = new DeclarationExp(e.loc, tmp);
+
+        Expression eb = null;
+        if (e.op == TOK.plusPlus)
+            eb = SemanticProp(new AddAssignExp(e.loc, e.e1, IntegerExp.literal!1), sc);
+        else
+            eb = SemanticProp(new MinAssignExp(e.loc, e.e1, IntegerExp.literal!1), sc);
+        printf("eb: %s \n", eb.toChars());
+
+        Expression ec = new VarExp(e.loc, tmp);
+
+        // Combine de,ea,eb,ec
+        Expression e1;
+        e1 = new CommaExp(e.loc, ea, eb);
+        e1 = new CommaExp(e.loc, e1, ec);
+        printf("%s", e1.toChars());
+        e1 = e1.expressionSemantic(sc);
+        printf("%s", e1.toChars());
+        result = e1;
+        return result;
     }
 
     e.e1 = e1x;

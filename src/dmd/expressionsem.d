@@ -78,7 +78,7 @@ import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
 
-enum LOGSEMANTIC = false;
+enum LOGSEMANTIC = true;
 
 /********************************************************
  * Perform semantic analysis and CTFE on expressions to produce
@@ -5771,8 +5771,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(BinAssignExp exp)
     {
         import dmd.property;
-        //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
-        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier || exp.e1.op == TOK.call)
+        printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier)
         {
             //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
             Expression e1 = SemanticProp(exp,sc);
@@ -8332,6 +8332,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PostExp exp)
     {
+        import dmd.property;
         static if (LOGSEMANTIC)
         {
             printf("PostExp::semantic('%s')\n", exp.toChars());
@@ -8343,6 +8344,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (Expression ex = binSemantic(exp, sc))
+        {
+            result = ex;
+            return;
+        }
+        if (Expression ex = SemanticProp(exp,sc))
         {
             result = ex;
             return;
@@ -8432,9 +8438,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(PreExp exp)
     {
         import dmd.property;
-        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier || exp.e1.op == TOK.call)
+        if(exp.e1.op == TOK.dotIdentifier || exp.e1.op == TOK.identifier)
         {
-            //printf("BinAssignExp::semantic('%s')\n", exp.toChars());
+            printf("BinAssignExp::semantic('%s')\n", exp.toChars());
             Expression e1;
             if (exp.op == TOK.prePlusPlus)
                 e1 = SemanticProp(new AddAssignExp(exp.loc, exp.e1, IntegerExp.literal!1), sc);
@@ -8443,6 +8449,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             
             if(e1)
             {
+                printf("BinAssignExp::semantic('%s')\n", e1.toChars());
                 result = e1;
                 return;
             }
