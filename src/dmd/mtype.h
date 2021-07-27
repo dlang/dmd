@@ -224,6 +224,7 @@ public:
     bool equivalent(Type *t);
     // kludge for template.isType()
     DYNCAST dyncast() const { return DYNCAST_TYPE; }
+    size_t getUniqueID() const;
     Covariant covariant(Type *t, StorageClass *pstc = NULL);
     const char *toChars() const;
     char *toPrettyChars(bool QualifyTypes = false);

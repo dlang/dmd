@@ -426,6 +426,13 @@ extern (C++) abstract class Type : ASTNode
         return DYNCAST.type;
     }
 
+    /// Returns a non-zero unique ID for this Type, or returns 0 if the Type does not (yet) have a unique ID.
+    /// If `semantic()` has not been run, 0 is returned.
+    final size_t getUniqueID() const
+    {
+        return cast(size_t) deco;
+    }
+
     extern (D)
     final Mcache* getMcache()
     {
