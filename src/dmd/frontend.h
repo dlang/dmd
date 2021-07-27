@@ -3160,6 +3160,7 @@ enum class ScopeRef
     RefScope = 5,
     ReturnRef_Scope = 6,
     Ref_ReturnScope = 7,
+    Return = 8,
 };
 
 enum class TRUSTformat
