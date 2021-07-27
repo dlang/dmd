@@ -665,7 +665,7 @@ class TypeInfo
 
 class TypeInfo_Enum : TypeInfo
 {
-    override string toString() const { return name; }
+    override string toString() const pure { return name; }
 
     override bool opEquals(Object o)
     {
@@ -1204,7 +1204,7 @@ class TypeInfo_Vector : TypeInfo
 
 class TypeInfo_Function : TypeInfo
 {
-    override string toString() const @trusted
+    override string toString() const pure @trusted
     {
         import core.demangle : demangleType;
 
@@ -1281,7 +1281,7 @@ class TypeInfo_Function : TypeInfo
 
 class TypeInfo_Delegate : TypeInfo
 {
-    override string toString() const @trusted
+    override string toString() const pure @trusted
     {
         import core.demangle : demangleType;
 
@@ -1401,7 +1401,7 @@ private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
  */
 class TypeInfo_Class : TypeInfo
 {
-    override string toString() const { return info.name; }
+    override string toString() const pure { return info.name; }
 
     override bool opEquals(Object o)
     {
@@ -1586,7 +1586,7 @@ alias ClassInfo = TypeInfo_Class;
 
 class TypeInfo_Interface : TypeInfo
 {
-    override string toString() const { return info.name; }
+    override string toString() const pure { return info.name; }
 
     override bool opEquals(Object o)
     {
