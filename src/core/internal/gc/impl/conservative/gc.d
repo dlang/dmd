@@ -4058,7 +4058,7 @@ string debugTypeName(const(TypeInfo) ti) nothrow
     else if (auto ci = cast(TypeInfo_Class)ti)
         name = ci.name;
     else if (auto si = cast(TypeInfo_Struct)ti)
-        name = si.name;
+        name = si.mangledName; // .name() might GC-allocate, avoid deadlock
     else if (auto ci = cast(TypeInfo_Const)ti)
         static if (__traits(compiles,ci.base)) // different whether compiled with object.di or object.d
             return debugTypeName(ci.base);
