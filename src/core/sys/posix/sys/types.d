@@ -1404,11 +1404,6 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version (Linux)
-{
-    alias lwpid_t = pid_t;
-}
-
 //
 // Barrier (BAR)
 //
