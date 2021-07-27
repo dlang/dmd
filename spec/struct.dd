@@ -204,14 +204,12 @@ $(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
         ---
         union U { int a = 4; long b; }
         U x; // x.a is set to 4, x.b to an implementation-defined value
-
-        union V { int a; long b = 4; }
-        V y; // y.a is set to 0, y.b to an implementation-defined value
         ---
         )
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
+        union V { int a; long b = 4; }     // error: union field `b` with default initialization `4` must be before field `a`
         union W { int a = 4; long b = 5; } // error: overlapping default initialization for `a` and `b`
         ---
         )
