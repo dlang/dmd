@@ -1,13 +1,11 @@
 /**
- * D header file for POSIX.
+ * D header file for GNU/Linux.
  *
- * Copyright: Teodor Dutu 2021.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Teodor Dutu
- * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
-module core.sys.posix.sys.procfs;
+module core.sys.linux.sys.procfs;
 
 import core.sys.posix.sys.types : pid_t;
 
