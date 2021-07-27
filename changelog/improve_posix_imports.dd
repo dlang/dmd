@@ -2,4 +2,4 @@ Improve POSIX imports
 
 The `lwpid_t` symbol was added to `core/sys/posix/sys/types.d` for all Linux
 platforms, not just FreeBSD, NetBSD and OpenBSD. The `O_CLOEXEC` symbol was also
-added to `core/sys/posix/fcntl.d` for the x86 platform.
+added to `core/sys/posix/fcntl.d`.

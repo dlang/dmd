@@ -173,6 +173,7 @@ version (CRuntime_Glibc)
 
         enum O_APPEND       = 0x00008;  // octal      010
         enum O_NONBLOCK     = 0x10004;  // octal  0200004
+        enum O_CLOEXEC      = 0x200000; // octal 02000000
         enum O_SYNC         = 0x48000;  // octal 01100000
         enum O_DSYNC        = 0x40000;  // octal 01000000
         enum O_RSYNC        = 0x80000;  // octal 02000000
@@ -187,6 +188,7 @@ version (CRuntime_Glibc)
         enum O_APPEND       = 0x0008;
         enum O_DSYNC        = 0x0010;
         enum O_NONBLOCK     = 0x0080;
+        enum O_CLOEXEC      = 0x80000;
         enum O_RSYNC        = O_SYNC;
         enum O_SYNC         = 0x4010;
     }
@@ -199,6 +201,7 @@ version (CRuntime_Glibc)
 
         enum O_APPEND       = 0x400;    // octal    02000
         enum O_NONBLOCK     = 0x800;    // octal    04000
+        enum O_CLOEXEC      = 0x80000;  // octal 02000000
         enum O_SYNC         = 0x101000; // octal 04010000
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
@@ -212,6 +215,7 @@ version (CRuntime_Glibc)
 
         enum O_APPEND       = 0x400;    // octal    02000
         enum O_NONBLOCK     = 0x800;    // octal    04000
+        enum O_CLOEXEC      = 0x80000;  // octal 02000000
         enum O_SYNC         = 0x101000; // octal 04010000
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
@@ -225,6 +229,7 @@ version (CRuntime_Glibc)
 
         enum O_APPEND       = 0x400;    // octal    02000
         enum O_NONBLOCK     = 0x800;    // octal    04000
+        enum O_CLOEXEC      = 0x80000;  // octal 02000000
         enum O_SYNC         = 0x101000; // octal 04010000
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
@@ -238,6 +243,7 @@ version (CRuntime_Glibc)
 
         enum O_APPEND       = 0x8;
         enum O_NONBLOCK     = 0x4000;
+        enum O_CLOEXEC      = 0x400000;
         enum O_SYNC         = 0x802000;
         enum O_DSYNC        = 0x2000;
         enum O_RSYNC        = O_SYNC;
@@ -251,6 +257,7 @@ version (CRuntime_Glibc)
 
         enum O_APPEND       = 0x400;    // octal    02000
         enum O_NONBLOCK     = 0x800;    // octal    04000
+        enum O_CLOEXEC      = 0x80000;  // octal 02000000
         enum O_SYNC         = 0x101000; // octal 04010000
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
