@@ -1484,7 +1484,13 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                  * which is by ref, and the ref there is ignored.
                  */
                 const returnByRef = tf.isref && !tf.isctor;
-                const sr = buildScopeRef(returnByRef, fparam.storageClass);
+                if (!returnByRef && isRefReturnScope(fparam.storageClass))
+                {
+                    /* if `ref return scope`, evaluate to `ref` `return scope`
+                     */
+                    fparam.storageClass |= STC.returnScope;
+                }
+                const sr = buildScopeRef(fparam.storageClass);
                 switch (sr)
                 {
                     case ScopeRef.Scope:
@@ -1497,11 +1503,22 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     case ScopeRef.ReturnScope:
                     case ScopeRef.Ref_ReturnScope:
                         if (!fparam.type.hasPointers())
-                            fparam.storageClass &= ~(STC.return_ | STC.scope_);
+                            fparam.storageClass &= ~(STC.return_ | STC.scope_ | STC.returnScope);
                         break;
 
                     default:
                         break;
+                }
+
+                /* now set STC.returnScope based only on tf.isref. This is inconsistent, as mentioned above,
+                 * but necessary for compatibility for now.
+                 */
+                fparam.storageClass &= ~STC.returnScope;
+                if (!tf.isref && isRefReturnScope(fparam.storageClass))
+                {
+                    /* if `ref return scope`, evaluate to `ref` `return scope`
+                     */
+                    fparam.storageClass |= STC.returnScope;
                 }
 
                 // Remove redundant storage classes for type, they are already applied

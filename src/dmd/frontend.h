@@ -2513,6 +2513,7 @@ enum class STC : uint64_t
     returninferred = 4503599627370496LLU,
     live = 9007199254740992LLU,
     register_ = 18014398509481984LLU,
+    returnScope = 36028797018963968LLU,
     safeGroup = 60129542144LLU,
     IOR = 2103296LLU,
     TYPECTOR = 2685403140LLU,

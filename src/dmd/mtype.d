@@ -7047,7 +7047,19 @@ extern (C++) final class Parameter : ASTNode
         if ((from ^ to) & STC.ref_)               // differing in 'ref' means no covariance
             return false;
 
-        return covariant[buildScopeRef(returnByRef, from)][buildScopeRef(returnByRef, to)];
+        /* workaround until we get STC.returnScope reliably set correctly
+         */
+        if (returnByRef)
+        {
+            from &= ~STC.returnScope;
+            to   &= ~STC.returnScope;
+        }
+        else
+        {
+            from |= STC.returnScope;
+            to   |= STC.returnScope;
+        }
+        return covariant[buildScopeRef(from)][buildScopeRef(to)];
     }
 
     extern (D) private static bool[ScopeRef.max + 1][ScopeRef.max + 1] covariantInit() pure nothrow @nogc @safe
@@ -7236,12 +7248,11 @@ bool isCopyable(Type t)
  * Computes how a parameter may be returned.
  * Shrinking the representation is necessary because StorageClass is so wide
  * Params:
- *   returnByRef = true if the function returns by ref
  *   stc = storage class of parameter
  * Returns:
  *   value from enum ScopeRef
  */
-ScopeRef buildScopeRef(bool returnByRef, StorageClass stc) pure nothrow @nogc @safe
+ScopeRef buildScopeRef(StorageClass stc) pure nothrow @nogc @safe
 {
     if (stc & STC.out_)
         stc |= STC.ref_;        // treat `out` and `ref` the same
@@ -7258,8 +7269,8 @@ ScopeRef buildScopeRef(bool returnByRef, StorageClass stc) pure nothrow @nogc @s
         case STC.ref_    | STC.scope_: result = ScopeRef.RefScope;    break;
 
         case STC.return_ | STC.ref_ | STC.scope_:
-            result = returnByRef ? ScopeRef.ReturnRef_Scope
-                                 : ScopeRef.Ref_ReturnScope;
+            result = stc & STC.returnScope ? ScopeRef.Ref_ReturnScope
+                                           : ScopeRef.ReturnRef_Scope;
             break;
     }
     return result;
