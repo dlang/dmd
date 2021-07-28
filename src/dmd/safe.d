@@ -21,6 +21,8 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.expression;
+import dmd.id;
+import dmd.identifier;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
@@ -199,3 +201,29 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
     return false;
 }
 
+/*************************************************
+ * Check for unsafe use of `.ptr` or `.funcptr`
+ * Params:
+ *      sc = context
+ *      e = expression for error messages
+ *      id = `ptr` or `funcptr`
+ *      flag = DotExpFlag
+ * Returns:
+ *      true if error
+ */
+bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
+{
+    if (!(flag & DotExpFlag.noDeref) && // this use is attempting a dereference
+        sc.func &&                      // inside a function
+        !sc.intypeof &&                 // allow unsafe code in typeof expressions
+        !(sc.flags & SCOPE.debug_) &&   // allow unsafe code in debug statements
+        sc.func.setUnsafe())            // infer this function to be unsafe
+    {
+        if (id == Id.ptr)
+            e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
+        else
+            e.error("`%s.%s` cannot be used in `@safe` code", e.toChars(), id.toChars());
+        return true;
+    }
+    return false;
+}
