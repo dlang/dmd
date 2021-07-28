@@ -1,13 +1,31 @@
 common_steps_template: &COMMON_STEPS_TEMPLATE
+  set_repo_branch_env_var_script: |
+    set -uexo pipefail
+    if [ -z ${CIRRUS_PR+x} ]; then
+      # not a PR
+      REPO_BRANCH="$CIRRUS_BRANCH"
+    elif [[ ! "$CIRRUS_BRANCH" =~ ^pull/ ]]; then
+      # PR originating from the official dlang repo
+      REPO_BRANCH="$CIRRUS_BRANCH"
+    else
+      # PR from a fork
+      REPO_BRANCH="$CIRRUS_BASE_BRANCH"
+    fi
+    echo "REPO_BRANCH=$REPO_BRANCH" >> $CIRRUS_ENV
   clone_dmd_script: |
     set -uexo pipefail
-    git clone --branch "$CIRRUS_BRANCH" --depth 1 https://github.com/dlang/dmd.git ../dmd
+    DMD_BRANCH="$REPO_BRANCH"
+    if [ "$DMD_BRANCH" != master ] && [ "$DMD_BRANCH" != stable ] &&
+       ! git ls-remote --exit-code --heads "https://github.com/dlang/dmd.git" "$DMD_BRANCH" > /dev/null; then
+      DMD_BRANCH="master"
+    fi
+    git clone --branch "$DMD_BRANCH" --depth 1 https://github.com/dlang/dmd.git ../dmd
   install_prerequisites_script: cd ../dmd && ./cirrusci.sh
   install_host_compiler_script: cd ../dmd && ./ci.sh install_host_compiler
   setup_repos_script: |
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../druntime
-    cd ../dmd && ./ci.sh setup_repos "$CIRRUS_BRANCH"
+    cd ../dmd && ./ci.sh setup_repos "$REPO_BRANCH"
   build_script: cd ../dmd && ./ci.sh build
   test_dmd_script: cd ../dmd && ./ci.sh test_dmd
   test_druntime_script: cd ../dmd && ./ci.sh test_druntime
