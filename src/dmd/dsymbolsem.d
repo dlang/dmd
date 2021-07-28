@@ -3807,7 +3807,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         sc.stc &= ~STC.static_; // not a static constructor
-        sc.flags |= SCOPE.ctor;
 
         funcDeclarationSemantic(ctd);
 
