@@ -44,7 +44,7 @@ private struct FragmentInfo
     const(char)* name;
     size_t nameLen;
 
-    const(char)* params; /// can be null
+    const(char)* params; /// can be null.
     size_t paramsLen;
 
     const(char)* innerText;
