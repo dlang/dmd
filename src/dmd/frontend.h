@@ -7787,7 +7787,7 @@ public:
 
 extern void browse(const char* url);
 
-typedef void(*MessageFunc)(Loc& loc, const char* text);
+typedef void(*MessageFunc)(Loc& loc, const char* format, ...);
 
 extern void errorEx(const Loc& loc, const char* format, ...);
 
@@ -7832,8 +7832,6 @@ extern void vdeprecationSupplemental(const Loc& loc, const char* format, va_list
 extern void fatal();
 
 extern void halt();
-
-extern void verrorFormatPrint(const Loc& loc, const char* format, va_list ap, void(*print)(const Loc& loc, const char* text) , void(*printSupplemental)(const Loc& loc, const char* text) );
 
 struct Id final
 {
