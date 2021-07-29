@@ -35,7 +35,7 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
-alias MessageFunc = extern (C++) void function(const ref Loc loc, const(char)* text);
+alias MessageFunc = extern (C++) void function(const ref Loc loc, const(char)* format, ...);
 
 private struct FragmentInfo
 {
@@ -44,7 +44,7 @@ private struct FragmentInfo
     const(char)* name;
     size_t nameLen;
 
-    const(char)* params; /// can be null
+    const(char)* params; /// can be null.
     size_t paramsLen;
 
     const(char)* innerText;
@@ -88,10 +88,8 @@ else
  */
 extern (C++) void verrorEx(const ref Loc loc, const(char)* format, va_list ap)
 {
-    verrorFormatPrint(loc, format, ap, &_verrorExPrint, &_verrorExPrintSupplemental);
+    verrorFormatPrint(loc, format, ap, &error, &errorSupplemental);
 }
-extern (C++) private void _verrorExPrint(const ref Loc loc, const(char)* text) { error(loc, "%s", text); }
-extern (C++) private void _verrorExPrintSupplemental(const ref Loc loc, const(char)* text){ errorSupplemental(loc, "%s", text); }
 
 static if (__VERSION__ < 2092)
     private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
@@ -939,7 +937,7 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
  *  print               = The print function to use for the first line printed.
  *  printSupplemental   = The print function to use for every line printed after the first line.
  */
-extern (C++) void verrorFormatPrint(const ref Loc loc, const(char)* format, va_list ap, MessageFunc print, MessageFunc printSupplemental)
+private void verrorFormatPrint(const ref Loc loc, const(char)* format, va_list ap, MessageFunc print, MessageFunc printSupplemental)
 {
     const prefixedFormat = verrorFormatPrefixString(format, ap);
     if (!prefixedFormat)
@@ -950,9 +948,9 @@ extern (C++) void verrorFormatPrint(const ref Loc loc, const(char)* format, va_l
     void push(const(char)* text)
     {
         if (firstPrint)
-            print(loc, text);
+            print(loc, "%s", text);
         else
-            printSupplemental(loc, text);
+            printSupplemental(loc, "%s", text);
         firstPrint = false;
     }
 
