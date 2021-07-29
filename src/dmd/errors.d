@@ -35,8 +35,6 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
-alias MessageFunc = extern (C++) void function(const ref Loc loc, const(char)* format, ...);
-
 private struct FragmentInfo
 {
     const(char)* start; /// points to the first character of the `FRAGMENT_PREFIX_START` prefix for this fragment.
@@ -937,7 +935,7 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
  *  print               = The print function to use for the first line printed.
  *  printSupplemental   = The print function to use for every line printed after the first line.
  */
-private void verrorFormatPrint(const ref Loc loc, const(char)* format, va_list ap, MessageFunc print, MessageFunc printSupplemental)
+private void verrorFormatPrint(MFunc, MFuncSupp)(const ref Loc loc, const(char)* format, va_list ap, MFunc print, MFuncSupp printSupplemental)
 {
     const prefixedFormat = verrorFormatPrefixString(format, ap);
     if (!prefixedFormat)

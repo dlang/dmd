@@ -44,10 +44,6 @@ D_ATTRIBUTE_FORMAT(2, 0) void vmessage(const Loc& loc, const char *format, va_li
 D_ATTRIBUTE_FORMAT(1, 2) void tip(const char *format, ...);
 D_ATTRIBUTE_FORMAT(1, 0) void vtip(const char *format, va_list ap);
 
-// Used when dealing with errorEx-style format strings.
-typedef void (*MessageFunc)(const Loc& loc, const char* text);
-D_ATTRIBUTE_FORMAT(2, 0) void verrorFormatPrint(const Loc& loc, const char* format, va_list ap, MessageFunc print, MessageFunc printSupplemental);
-
 #if defined(__GNUC__) || defined(__clang__)
 #define D_ATTRIBUTE_NORETURN __attribute__((noreturn))
 #elif _MSC_VER

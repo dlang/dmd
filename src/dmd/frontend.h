@@ -7787,8 +7787,6 @@ public:
 
 extern void browse(const char* url);
 
-typedef void(*MessageFunc)(Loc& loc, const char* format, ...);
-
 extern void errorEx(const Loc& loc, const char* format, ...);
 
 extern void verrorEx(const Loc& loc, const char* format, va_list ap);
