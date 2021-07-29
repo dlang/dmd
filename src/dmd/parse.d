@@ -3529,16 +3529,17 @@ class Parser(AST) : Lexer
             }
 
             auto s = new AST.Import(loc, a, id, aliasid, isstatic);
-            decldefs.push(s);
 
             /* Look for
              *      : alias=name, alias=name;
              * syntax.
              */
+            int count = 0;
             if (token.value == TOK.colon)
             {
                 do
                 {
+                    count++;
                     nextToken();
                     if (token.value != TOK.identifier && token.value != TOK.semicolon)
                     {
@@ -3568,10 +3569,23 @@ class Parser(AST) : Lexer
                         name = _alias;
                         _alias = null;
                     }
-                    s.addAlias(name, _alias);
+                    if (count == 1 && trailing_comma == 1)
+                    {
+                        break;                        
+                    }
+                    else
+                    {
+                        if (count == 1)
+                            decldefs.push(s);
+                        s.addAlias(name, _alias);
+                    }
                 }
                 while (token.value == TOK.comma);
                 break; // no comma-separated imports of this form
+            }
+            else
+            {
+                decldefs.push(s);
             }
             aliasid = null;
         }
