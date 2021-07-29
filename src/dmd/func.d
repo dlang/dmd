@@ -1349,7 +1349,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (tf.trust == TRUST.default_)
             flags |= FUNCFLAG.safetyInprocess;
 
-        if (!tf.isnothrow)
+        if (tf.throw_ == THROW.default_)
             flags |= FUNCFLAG.nothrowInprocess;
 
         if (!tf.isnogc)
@@ -2411,7 +2411,7 @@ extern (C++) class FuncDeclaration : Declaration
             auto fo = cast(TypeFunction)(originalType ? originalType : f);
             auto fparams = toRefCopy(fo.parameterList);
             auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
-            tf.isnothrow = f.isnothrow;
+            tf.throw_ = f.throw_;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
             tf.trust = f.trust;
@@ -2454,7 +2454,7 @@ extern (C++) class FuncDeclaration : Declaration
             auto fo = cast(TypeFunction)(originalType ? originalType : f);
             fparams.pushSlice((*toRefCopy(fo.parameterList))[]);
             auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
-            tf.isnothrow = f.isnothrow;
+            tf.throw_ = f.throw_;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
             tf.trust = f.trust;

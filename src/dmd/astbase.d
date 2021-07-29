@@ -3837,23 +3837,23 @@ struct ASTBase
         private enum FunctionFlag : uint
         {
             none            = 0,
-            isnothrow       = 0x0001, // nothrow
-            isnogc          = 0x0002, // is @nogc
-            isproperty      = 0x0004, // can be called without parentheses
-            isref           = 0x0008, // returns a reference
-            isreturn        = 0x0010, // 'this' is returned by ref
-            isscope         = 0x0020, // 'this' is scope
-            isreturninferred= 0x0040, // 'this' is return from inference
-            isscopeinferred = 0x0080, // 'this' is scope from inference
-            islive          = 0x0100, // is @live
-            incomplete      = 0x0200, // return type or default arguments removed
-            inoutParam      = 0x0400, // inout on the parameters
-            inoutQual       = 0x0800, // inout on the qualifier
+            isnogc          = 0x0001, // is @nogc
+            isproperty      = 0x0002, // can be called without parentheses
+            isref           = 0x0004, // returns a reference
+            isreturn        = 0x0008, // 'this' is returned by ref
+            isscope         = 0x0010, // 'this' is scope
+            isreturninferred= 0x0020, // 'this' is return from inference
+            isscopeinferred = 0x0040, // 'this' is scope from inference
+            islive          = 0x0080, // is @live
+            incomplete      = 0x0100, // return type or default arguments removed
+            inoutParam      = 0x0200, // inout on the parameters
+            inoutQual       = 0x0400, // inout on the qualifier
         }
 
         LINK linkage;               // calling convention
         FunctionFlag funcFlags;
         TRUST trust;                // level of trust
+        THROW throw_;               // whether throw, nothrow or default
         PURE purity = PURE.impure;
         byte inuse;
         Expressions* fargs;         // function arguments
@@ -3867,8 +3867,6 @@ struct ASTBase
 
             if (stc & STC.pure_)
                 this.purity = PURE.fwdref;
-            if (stc & STC.nothrow_)
-                this.isnothrow = true;
             if (stc & STC.nogc)
                 this.isnogc = true;
             if (stc & STC.property)
@@ -3882,6 +3880,12 @@ struct ASTBase
                 this.isreturn = true;
             if (stc & STC.scope_)
                 this.isScopeQual = true;
+
+            this.throw_ = THROW.default_;
+            if (stc & STC.nothrow_)
+                this.throw_ = THROW.nothrow_;
+            if (stc & STC.throw_)
+                this.throw_ = THROW.throw_;
 
             this.trust = TRUST.default_;
             if (stc & STC.safe)
@@ -3898,7 +3902,6 @@ struct ASTBase
             Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
             auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
             t.mod = mod;
-            t.isnothrow = isnothrow;
             t.isnogc = isnogc;
             t.purity = purity;
             t.isproperty = isproperty;
@@ -3910,20 +3913,9 @@ struct ASTBase
             t.isInOutParam = isInOutParam;
             t.isInOutQual = isInOutQual;
             t.trust = trust;
+            t.throw_ = throw_;
             t.fargs = fargs;
             return t;
-        }
-
-        /// set or get if the function has the `nothrow` attribute
-        bool isnothrow() const pure nothrow @safe @nogc
-        {
-            return (funcFlags & FunctionFlag.isnothrow) != 0;
-        }
-        /// ditto
-        void isnothrow(bool v) pure nothrow @safe @nogc
-        {
-            if (v) funcFlags |= FunctionFlag.isnothrow;
-            else funcFlags &= ~FunctionFlag.isnothrow;
         }
 
         /// set or get if the function has the `@nogc` attribute
@@ -6598,6 +6590,7 @@ struct ASTBase
             SCstring(STC.immutable_, Token.toString(TOK.immutable_)),
             SCstring(STC.shared_, Token.toString(TOK.shared_)),
             SCstring(STC.nothrow_, Token.toString(TOK.nothrow_)),
+            SCstring(STC.throw_, Token.toString(TOK.throw_)),
             SCstring(STC.wild, Token.toString(TOK.inout_)),
             SCstring(STC.pure_, Token.toString(TOK.pure_)),
             SCstring(STC.ref_, Token.toString(TOK.ref_)),

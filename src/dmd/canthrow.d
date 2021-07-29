@@ -72,14 +72,14 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
         void checkFuncThrows(Expression e, FuncDeclaration f)
         {
             auto tf = f.type.toBasetype().isTypeFunction();
-            if (tf && !tf.isnothrow)
+            if (tf && tf.throw_ != THROW.nothrow_)
             {
                 if (mustNotThrow)
                 {
                     e.error("%s `%s` is not `nothrow`",
                         f.kind(), f.toPrettyChars());
 
-                    e.checkOverridenDtor(null, f, dd => dd.type.toTypeFunction().isnothrow, "not nothrow");
+                    e.checkOverridenDtor(null, f, dd => dd.type.toTypeFunction().throw_ == THROW.nothrow_, "not nothrow");
                 }
                 result |= CT.exception;
             }
@@ -134,12 +134,12 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
                 return;
             Type t = ce.e1.type.toBasetype();
             auto tf = t.isTypeFunction();
-            if (tf && tf.isnothrow)
+            if (tf && tf.throw_ == THROW.nothrow_)
                 return;
             else
             {
                 auto td = t.isTypeDelegate();
-                if (td && td.nextOf().isTypeFunction().isnothrow)
+                if (td && td.nextOf().isTypeFunction().throw_ == THROW.nothrow_)
                     return;
             }
 

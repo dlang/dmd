@@ -744,8 +744,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 funcdecl.buildEnsureRequire();
 
                 // Check for errors related to 'nothrow'.
-                const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
-                if (f.isnothrow && blockexit & BE.throw_)
+                const blockexit = funcdecl.fbody.blockExit(funcdecl, f.throw_ == THROW.nothrow_);
+                if (f.throw_ == THROW.nothrow_ && blockexit & BE.throw_)
                     error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
 
                 if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.flags & FUNCFLAG.hasCatches))
@@ -760,7 +760,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     if (funcdecl.type == f)
                         f = cast(TypeFunction)f.copy();
-                    f.isnothrow = !(blockexit & BE.throw_);
+                    f.throw_ = blockexit & BE.throw_ ? THROW.default_ : THROW.nothrow_;
                 }
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -1146,16 +1146,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                             s = s.statementSemantic(sc2);
 
-                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
+                            bool isnothrow = (f.throw_ == THROW.nothrow_) && !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
                             const blockexit = s.blockExit(funcdecl, isnothrow);
                             if (blockexit & BE.throw_)
                                 funcdecl.eh_none = false;
-                            if (f.isnothrow && isnothrow && blockexit & BE.throw_)
+                            if (isnothrow && blockexit & BE.throw_)
                                 error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
                             if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
-                                f.isnothrow = false;
+                                f.throw_ = THROW.default_;
 
-                            if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
+                            if (sbody.blockExit(funcdecl, f.throw_ == THROW.nothrow_) == BE.fallthru)
                                 sbody = new CompoundStatement(Loc.initial, sbody, s);
                             else
                                 sbody = new TryFinallyStatement(Loc.initial, sbody, s);
@@ -1389,7 +1389,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (!ctor.fbody || !ad || !ad.fieldDtor || !global.params.dtorFields || global.params.betterC || ctor.type.toTypeFunction.isnothrow)
+        if (!ctor.fbody || !ad || !ad.fieldDtor || !global.params.dtorFields || global.params.betterC || ctor.type.toTypeFunction.throw_ == THROW.nothrow_)
             return visit(cast(FuncDeclaration)ctor);
 
         /* Generate:

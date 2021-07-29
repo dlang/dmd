@@ -622,6 +622,10 @@ class Parser(AST) : Lexer
                 stc = STC.nothrow_;
                 goto Lstc;
 
+            case TOK.throw_:
+                stc = STC.throw_;
+                goto Lstc;
+
             case TOK.pure_:
                 stc = STC.pure_;
                 goto Lstc;
@@ -1233,6 +1237,12 @@ class Parser(AST) : Lexer
             if (u & (u - 1))
                 error("conflicting attribute `%s`", Token.toChars(token.value));
         }
+        if (added & STC.throwGroup)
+        {
+            StorageClass u = orig & STC.throwGroup;
+            if (u & (u - 1))
+                error("conflicting attribute `%s`", Token.toChars(token.value));
+        }
         if (added & STC.safeGroup)
         {
             StorageClass u = orig & STC.safeGroup;
@@ -1327,6 +1337,10 @@ class Parser(AST) : Lexer
 
             case TOK.nothrow_:
                 stc = STC.nothrow_;
+                break;
+
+            case TOK.throw_:
+                stc = STC.throw_;
                 break;
 
             case TOK.pure_:
@@ -4168,6 +4182,10 @@ class Parser(AST) : Lexer
 
             case TOK.nothrow_:
                 stc = STC.nothrow_;
+                goto L1;
+
+            case TOK.throw_:
+                stc = STC.throw_;
                 goto L1;
 
             case TOK.pure_:

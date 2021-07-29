@@ -541,6 +541,13 @@ enum class TRUST : unsigned char
     safe = 3       // @safe
 };
 
+enum class THROW : unsigned char
+{
+    default_ = 0,
+    throw_ = 1,   // has throw
+    nothrow_ = 2, // has nothrow
+};
+
 enum TRUSTformat
 {
     TRUSTformatDefault,  // do not emit @system when trust == TRUSTdefault
@@ -598,6 +605,7 @@ public:
     LINK linkage;                // calling convention
     unsigned funcFlags;
     TRUST trust;                 // level of trust
+    THROW throw_;                // whether throw, nothrow or default
     PURE purity;                 // PURExxxx
     char inuse;
     Expressions *fargs;          // function arguments
@@ -615,8 +623,6 @@ public:
     Type *substWildTo(unsigned mod);
     MATCH constConv(Type *to);
 
-    bool isnothrow() const;
-    void isnothrow(bool v);
     bool isnogc() const;
     void isnogc(bool v);
     bool isproperty() const;

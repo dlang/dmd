@@ -1532,7 +1532,7 @@ tym_t totym(Type tx)
                     printf("linkage = %d\n", tf.linkage);
                     assert(0);
             }
-            if (tf.isnothrow)
+            if (tf.throw_ == THROW.nothrow_)
                 t |= mTYnothrow;
             return t;
         }

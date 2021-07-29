@@ -3352,6 +3352,12 @@ enum class ScopeRef
     Return = 8,
 };
 
+enum class THROWformat
+{
+    THROWformatDefault = 0,
+    THROWformatThrow = 1,
+};
+
 enum class TRUSTformat
 {
     TRUSTformatDefault = 0,
@@ -3540,6 +3546,13 @@ enum class TRUST : uint8_t
     safe = 3u,
 };
 
+enum class THROW : uint8_t
+{
+    default_ = 0u,
+    throw_ = 1u,
+    nothrow_ = 2u,
+};
+
 class TypeFunction final : public TypeNext
 {
 public:
@@ -3548,25 +3561,25 @@ private:
     enum class FunctionFlag : uint32_t
     {
         none = 0u,
-        isnothrow = 1u,
-        isnogc = 2u,
-        isproperty = 4u,
-        isref = 8u,
-        isreturn = 16u,
-        isscope = 32u,
-        isreturninferred = 64u,
-        isscopeinferred = 128u,
-        islive = 256u,
-        incomplete = 512u,
-        inoutParam = 1024u,
-        inoutQual = 2048u,
-        isctor = 4096u,
+        isnogc = 1u,
+        isproperty = 2u,
+        isref = 4u,
+        isreturn = 8u,
+        isscope = 16u,
+        isreturninferred = 32u,
+        isscopeinferred = 64u,
+        islive = 128u,
+        incomplete = 256u,
+        inoutParam = 512u,
+        inoutQual = 1024u,
+        isctor = 2048u,
     };
 
 public:
     LINK linkage;
     FunctionFlag funcFlags;
     TRUST trust;
+    THROW throw_;
     PURE purity;
     int8_t inuse;
     Array<Expression* >* fargs;
@@ -3581,8 +3594,6 @@ public:
     Type* addStorageClass(StorageClass stc);
     Type* substWildTo(uint32_t _param_0);
     MATCH constConv(Type* to);
-    bool isnothrow() const;
-    void isnothrow(bool v);
     bool isnogc() const;
     void isnogc(bool v);
     bool isproperty() const;
@@ -4555,13 +4566,15 @@ enum class STC : uint64_t
     live = 4503599627370496LLU,
     register_ = 9007199254740992LLU,
     volatile_ = 18014398509481984LLU,
+    throw_ = 36028797018963968LLU,
     safeGroup = 962072674304LLU,
+    throwGroup = 36028797555834880LLU,
     IOR = 268288LLU,
     TYPECTOR = 42983227396LLU,
-    FUNCATTR = 4575000774574080LLU,
-    visibleStorageClasses = 7954966262857631LLU,
+    FUNCATTR = 40603797793538048LLU,
+    visibleStorageClasses = 43983763281821599LLU,
     flowThruAggregate = 962072674304LLU,
-    flowThruFunction = 18446742978991225440LLU,
+    flowThruFunction = 18410714181972261472LLU,
 };
 
 struct ASTCodegen final
@@ -4848,6 +4861,7 @@ struct ASTCodegen final
     using ParameterList = ::ParameterList;
     using RET = ::RET;
     using ScopeRef = ::ScopeRef;
+    using THROWformat = ::THROWformat;
     using TRUSTformat = ::TRUSTformat;
     using Type = ::Type;
     using TypeAArray = ::TypeAArray;

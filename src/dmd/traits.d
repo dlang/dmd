@@ -1327,7 +1327,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             mods.push(new StringExp(Loc.initial, str));
         }
         tf.modifiersApply(&addToMods);
-        tf.attributesApply(&addToMods, TRUSTformatSystem);
+        tf.attributesApply(&addToMods, TRUSTformatSystem, THROWformatThrow);
 
         auto tup = new TupleExp(e.loc, mods);
         return tup.expressionSemantic(sc);
@@ -1790,7 +1790,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     if (sc2.func && sc2.func.type.ty == Tfunction)
                     {
                         const tf = cast(TypeFunction)sc2.func.type;
-                        err |= tf.isnothrow && canThrow(ex, sc2.func, false);
+                        err |= tf.throw_ == THROW.nothrow_ && canThrow(ex, sc2.func, false);
                     }
                     ex = checkGC(sc2, ex);
                     if (ex.op == EXP.error)
