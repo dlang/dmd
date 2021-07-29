@@ -4108,6 +4108,7 @@ extern (C++) final class TypeFunction : TypeNext
         incomplete      = 0x0200, // return type or default arguments removed
         inoutParam      = 0x0400, // inout on the parameters
         inoutQual       = 0x0800, // inout on the qualifier
+        isctor          = 0x1000, // the function is a constructor
     }
 
     LINK linkage;               // calling convention
@@ -4186,6 +4187,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isInOutQual = isInOutQual;
         t.trust = trust;
         t.fargs = fargs;
+        t.isctor = isctor;
         return t;
     }
 
@@ -4460,6 +4462,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.trust = t.trust;
             tf.isInOutParam = t.isInOutParam;
             tf.isInOutQual = t.isInOutQual;
+            tf.isctor = t.isctor;
 
             if (stc & STC.pure_)
                 tf.purity = PURE.fwdref;
@@ -4526,6 +4529,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isInOutQual = false;
         t.trust = trust;
         t.fargs = fargs;
+        t.isctor = isctor;
         return t.merge();
     }
 
@@ -5124,6 +5128,18 @@ extern (C++) final class TypeFunction : TypeNext
     bool iswild() const pure nothrow @safe @nogc
     {
         return (funcFlags & (FunctionFlag.inoutParam | FunctionFlag.inoutQual)) != 0;
+    }
+
+    /// set or get if the function is a constructor
+    bool isctor() const pure nothrow @safe @nogc
+    {
+        return (funcFlags & FunctionFlag.isctor) != 0;
+    }
+    /// ditto
+    void isctor(bool v) pure nothrow @safe @nogc
+    {
+        if (v) funcFlags |= FunctionFlag.isctor;
+        else funcFlags &= ~FunctionFlag.isctor;
     }
 
     /// Returns: whether `this` function type has the same attributes (`@safe`,...) as `other`
