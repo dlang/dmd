@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS := attributes sentinel sentinel1 printf memstomp invariant logging \
+TESTS := attributes sentinel sentinel1 sentinel2 printf memstomp invariant logging \
 		 precise precisegc forkgc forkgc2 \
 		 sigmaskgc startbackgc recoverfree nocollect
 
@@ -22,6 +22,9 @@ $(ROOT)/sentinel: $(SRC)
 
 $(ROOT)/sentinel1: $(SRC) sentinel1.d
 	$(DMD) -debug=SENTINEL -debug=GC_RECURSIVE_LOCK $(DFLAGS) sentinel1.d -of$@ $(SRC)
+
+$(ROOT)/sentinel2: $(SRC) sentinel2.d
+	$(DMD) -debug=SENTINEL -debug=GC_RECURSIVE_LOCK $(DFLAGS) sentinel2.d -gx -of$@ $(SRC)
 
 $(ROOT)/printf: $(SRC)
 	$(DMD) -debug=PRINTF -debug=PRINTF_TO_FILE -debug=COLLECT_PRINTF $(UDFLAGS) -main -of$@ $(SRC_GC)
