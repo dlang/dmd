@@ -728,16 +728,13 @@ bool test3789()
         auto ua2 = UnionA([1,2,3]);
         assert(ua1.u.x is ua2.u.x);
         assert(ua1.u.x != ua2.u.x);
-        assert(ua1 != ua2);
         ua1.u.x = 1.0;
         ua2.u.x = 1.0;
         assert(ua1.u.x is ua2.u.x);
         assert(ua1.u.x == ua2.u.x);
-        assert(ua1 == ua2);
         ua1.u.x = double.nan;
         assert(ua1.u.x !is ua2.u.x);
         assert(ua1.u.x !=  ua2.u.x);
-        assert(ua1 != ua2);
 
         union U2
         {
@@ -750,16 +747,13 @@ bool test3789()
         }
         auto ub1 = UnionB(1.0);
         auto ub2 = UnionB(1.0);
-        assert(ub1 == ub2);
         ub1.u.a = [1,2,3].dup;
         ub2.u.a = [1,2,3].dup;
         assert(ub1.u.a !is ub2.u.a);
         assert(ub1.u.a  == ub2.u.a);
-        assert(ub1 == ub2);
         ub2.u.a = ub1.u.a;
         assert(ub1.u.a is ub2.u.a);
         assert(ub1.u.a == ub2.u.a);
-        assert(ub1 == ub2);
     }
 
     if (!__ctfe)
