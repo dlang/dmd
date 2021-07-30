@@ -1207,7 +1207,7 @@ deprecated unittest
     auto x = new S[10000];
     void* p = x.ptr;
     assert(GC.addrOf(p) != null);
-    delete x;
+    _d_delarray_t(cast(void[]*)&x, typeid(typeof(x[0]))); // delete x;
     assert(GC.addrOf(p) == null);
     assert(countDtor == 10000);
 
@@ -1216,7 +1216,7 @@ deprecated unittest
     auto z = y[200 .. 300];
     p = z.ptr;
     assert(GC.addrOf(p) != null);
-    delete z;
+    _d_delarray_t(cast(void[]*)&z, typeid(typeof(z[0]))); // delete z;
     assert(GC.addrOf(p) == null);
     assert(countDtor == 10000 + 400);
 }
@@ -2602,12 +2602,12 @@ deprecated unittest
 
     dtorCount = 0;
     S1* s1 = new S1;
-    delete s1;
+    _d_delstruct(cast(void**)&s1, typeid(typeof(*s1))); // delete s1;
     assert(dtorCount == 1);
 
     dtorCount = 0;
     S1[] arr1 = new S1[7];
-    delete arr1;
+    _d_delarray_t(cast(void[]*)&arr1, typeid(typeof(arr1[0]))); // delete arr1;
     assert(dtorCount == 7);
 
     dtorCount = 0;
