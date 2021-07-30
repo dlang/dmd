@@ -90,18 +90,33 @@ enum STC : ulong
     inference           = (1L << 46),   // do attribute inference
     exptemp             = (1L << 47),   // temporary variable that has lifetime restricted to an expression
     maybescope          = (1L << 48),   // parameter might be 'scope'
-    scopeinferred       = (1L << 49),   // 'scope' has been inferred and should not be part of mangling
+    scopeinferred       = (1L << 49),   // 'scope' has been inferred and should not be part of mangling, `scope_` must also be set
     future              = (1L << 50),   // introducing new base class function
     local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
-    returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
+    returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling, `return_` must also be set
     live                = (1L << 53),   // function @live attribute
-    register            = (1L << 54),   // `register` storage class
+    register            = (1L << 54),   // `register` storage class (ImportC)
+    returnScope         = (1L << 55),   // if `ref return scope` then resolve to `ref` and `return scope`
 
     safeGroup = STC.safe | STC.trusted | STC.system,
     IOR  = STC.in_ | STC.ref_ | STC.out_,
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                 safeGroup),
+}
+
+/********
+ * Determine if it's the ambigous case of where `return` attaches to.
+ * Params:
+ *   stc = STC flags
+ * Returns:
+ *   true if (`ref` | `out`) and `scope` and `return`
+ */
+@safe pure @nogc nothrow
+bool isRefReturnScope(const ulong stc)
+{
+    return (stc & (STC.scope_ | STC.return_)) == (STC.scope_ | STC.return_) &&
+           stc & (STC.ref_ | STC.out_);
 }
 
 /* This is different from the one in declaration.d, make that fix a separate PR */

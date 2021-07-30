@@ -1336,7 +1336,19 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if (v.isDataseg())
             continue;
 
-        const vsr = buildScopeRef(refs, v.storage_class);
+        if (isRefReturnScope(v.storage_class))
+        {
+            const scr = (v.storage_class & STC.returnScope) != 0;
+            if (refs == scr)
+            {
+                /* Match the old behavior, where being a constructor is sometimes ignored.
+                 * Figure out how to fix it later
+                 */
+                //error(e.loc, "buildScopeRef: sc.func: %s refs: %d e: %s, v: %s\n", sc.func.toChars(), refs, e.toChars(), v.toChars());
+                v.storage_class ^= STC.returnScope;
+            }
+        }
+        const vsr = buildScopeRef(v.storage_class);
 
         Dsymbol p = v.toParent2();
 
