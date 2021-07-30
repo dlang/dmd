@@ -3005,8 +3005,10 @@ Key[] keys(T : Value[Key], Value, Key)(T aa) @property
         alias realAA = aa;
     else
         const(Value[Key]) realAA = aa;
-    auto a = cast(void[])_aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
-    auto res = *cast(Key[]*)&a;
+    auto res = () @trusted {
+        auto a = cast(void[])_aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
+        return *cast(Key[]*)&a;
+    }();
     static if (__traits(hasPostblit, Key))
         _doPostblit(res);
     return res;
@@ -3019,7 +3021,7 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 }
 
 ///
-@system unittest
+@safe unittest
 {
     auto aa = [1: "v1", 2: "v2"];
     int sum;
@@ -3029,7 +3031,7 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
     assert(sum == 3);
 }
 
-@system unittest
+@safe unittest
 {
     static struct S
     {
@@ -3040,6 +3042,36 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 
     auto s = S("a");
     assert(s.keys.length == 0);
+}
+
+@safe unittest
+{
+    @safe static struct Key
+    {
+         string str;
+         this(this) @safe {}
+    }
+    string[Key] aa;
+    static assert(__traits(compiles, {
+                void test() @safe {
+                    const _ = aa.keys;
+                }
+            }));
+}
+
+@safe unittest
+{
+    static struct Key
+    {
+        string str;
+        this(this) @system {}
+    }
+    string[Key] aa;
+    static assert(!__traits(compiles, {
+                void test() @safe {
+                    const _ = aa.keys;
+                }
+            }));
 }
 
 /***********************************
@@ -3057,8 +3089,10 @@ Value[] values(T : Value[Key], Value, Key)(T aa) @property
         alias realAA = aa;
     else
         const(Value[Key]) realAA = aa;
-    auto a = cast(void[])_aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
-    auto res = *cast(Value[]*)&a;
+    auto res = () @trusted {
+        auto a = cast(void[])_aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
+        return *cast(Value[]*)&a;
+    }();
     static if (__traits(hasPostblit, Value))
         _doPostblit(res);
     return res;
@@ -3071,7 +3105,7 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 }
 
 ///
-@system unittest
+@safe unittest
 {
     auto aa = ["k1": 1, "k2": 2];
     int sum;
@@ -3081,7 +3115,7 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
     assert(sum == 3);
 }
 
-@system unittest
+@safe unittest
 {
     static struct S
     {
@@ -3092,6 +3126,36 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 
     auto s = S("a");
     assert(s.values.length == 0);
+}
+
+@safe unittest
+{
+    @safe static struct Value
+    {
+        string str;
+        this(this) @safe {}
+    }
+    Value[string] aa;
+    static assert(__traits(compiles, {
+                void test() @safe {
+                    const _ = aa.values;
+                }
+            }));
+}
+
+@safe unittest
+{
+    static struct Value
+    {
+        string str;
+        this(this) @system {}
+    }
+    Value[string] aa;
+    static assert(!__traits(compiles, {
+                void test() @safe {
+                    const _ = aa.values;
+                }
+            }));
 }
 
 /***********************************
