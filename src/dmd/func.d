@@ -548,13 +548,24 @@ extern (C++) class FuncDeclaration : Declaration
             }
         }
 
-        if (type.ty == Tfunction)
+        if (auto tf = type.isTypeFunction())
         {
-            TypeFunction tf = cast(TypeFunction)type;
             if (tf.isreturn)
                 vthis.storage_class |= STC.return_;
             if (tf.isScopeQual)
                 vthis.storage_class |= STC.scope_;
+
+            /* Add STC.returnScope like typesem.d does for TypeFunction parameters,
+             * at least it should be the same. At the moment, we'll just
+             * do existing practice. But we should examine how TypeFunction does
+             * it, for consistency.
+             */
+            if (!tf.isref && isRefReturnScope(vthis.storage_class))
+            {
+                /* if `ref return scope`, evaluate to `ref` `return scope`
+                 */
+                vthis.storage_class |= STC.returnScope;
+            }
         }
         if (flags & FUNCFLAG.inferScope && !(vthis.storage_class & STC.scope_))
             vthis.storage_class |= STC.maybescope;
