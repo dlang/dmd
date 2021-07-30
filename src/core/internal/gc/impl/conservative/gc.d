@@ -25,6 +25,7 @@ module core.internal.gc.impl.conservative.gc;
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = INVARIANT;            // enable invariants
 //debug = PROFILE_API;          // profile API calls for config.profile > 1
+//debug = GC_RECURSIVE_LOCK;    // check for recursive locking on the same thread
 
 /***************************************************/
 version = COLLECT_PARALLEL;  // parallel scanning
@@ -213,10 +214,17 @@ class ConservativeGC : GC
         runLocked!(go, otherTime, numOthers)(gcx);
     }
 
+    debug (GC_RECURSIVE_LOCK) static bool lockedOnThisThread;
 
     auto runLocked(alias func, Args...)(auto ref Args args)
     {
         debug(PROFILE_API) immutable tm = (config.profile > 1 ? currTime.ticks : 0);
+        debug(GC_RECURSIVE_LOCK)
+        {
+            if (lockedOnThisThread)
+                onInvalidMemoryOperationError();
+            lockedOnThisThread = true;
+        }
         lockNR();
         scope (failure) gcLock.unlock();
         debug(PROFILE_API) immutable tm2 = (config.profile > 1 ? currTime.ticks : 0);
@@ -229,6 +237,12 @@ class ConservativeGC : GC
         debug(PROFILE_API) if (config.profile > 1)
             lockTime += tm2 - tm;
         gcLock.unlock();
+        debug(GC_RECURSIVE_LOCK)
+        {
+            if (!lockedOnThisThread)
+                onInvalidMemoryOperationError();
+            lockedOnThisThread = false;
+        }
 
         static if (!is(typeof(func(args)) == void))
             return res;
@@ -238,6 +252,12 @@ class ConservativeGC : GC
     auto runLocked(alias func, alias time, alias count, Args...)(auto ref Args args)
     {
         debug(PROFILE_API) immutable tm = (config.profile > 1 ? currTime.ticks : 0);
+        debug(GC_RECURSIVE_LOCK)
+        {
+            if (lockedOnThisThread)
+                onInvalidMemoryOperationError();
+            lockedOnThisThread = true;
+        }
         lockNR();
         scope (failure) gcLock.unlock();
         debug(PROFILE_API) immutable tm2 = (config.profile > 1 ? currTime.ticks : 0);
@@ -255,6 +275,12 @@ class ConservativeGC : GC
             time += now - tm2;
         }
         gcLock.unlock();
+        debug(GC_RECURSIVE_LOCK)
+        {
+            if (!lockedOnThisThread)
+                onInvalidMemoryOperationError();
+            lockedOnThisThread = false;
+        }
 
         static if (!is(typeof(func(args)) == void))
             return res;
