@@ -1,0 +1,23 @@
+Comparing unions that do not overload opEquals now triggers an error
+
+Previously, DMD would compare unions that did not define `opEquals` by using
+`memcmp`. This was problematic because:
+1. The comparison would be nonsense between variables that use different fields
+of the union
+2. If some of the members of the union did define `opEquals`, DMD would not know
+which of them to call, as it would not know which of them was valid.
+
+In order to avoid these scenarios, DMD can no longer compile unions without
+`opEquals` and outputs an error that suggests implementing `opEquals`.
+
+Example:
+```
+union U(T1, T2)
+{
+    T1 a;
+    T2 b;
+}
+
+U!(int, float) u1, u2;
+u1 == u2;  // this triggers the error
+```

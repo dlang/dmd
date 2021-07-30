@@ -1007,6 +1007,19 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 if (sd != (cast(TypeStruct)t2).sym)
                     return;
 
+                 /* https://issues.dlang.org/show_bug.cgi?id=15828
+                 * Do not allow comparisons between union types unless opEquals
+                 * is defined.
+                 */
+                if (sd.isUnionDeclaration())
+                {
+                    e.error("union type `%s` should define opEquals",
+                        t1.toChars(), t2.toChars());
+                    result = ErrorExp.get();
+
+                    return;
+                }
+
                 import dmd.clone : needOpEquals;
                 if (!global.params.fieldwise && !needOpEquals(sd))
                 {
