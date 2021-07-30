@@ -1326,7 +1326,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             sc = sc.push();
             if (funcdecl.isCtorDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=#15665
-                sc.flags |= SCOPE.ctor;
+                f.isctor = true;
             sc.stc = 0;
             sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             funcdecl.type = f.typeSemantic(funcdecl.loc, sc);

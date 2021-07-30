@@ -2995,7 +2995,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (funcdecl.isCtorDeclaration())
             {
-                sc.flags |= SCOPE.ctor;
+                tf.isctor = true;
                 Type tret = ad.handleType();
                 assert(tret);
                 tret = tret.addStorageClass(funcdecl.storage_class | sc.stc);
