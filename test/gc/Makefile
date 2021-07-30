@@ -35,7 +35,7 @@ $(ROOT)/precise: $(SRC)
 	$(DMD) -debug -debug=INVARIANT -debug=MEMSTOMP $(UDFLAGS) -main -of$@ $(SRC)
 $(ROOT)/precise.done: RUN_ARGS += --DRT-gcopt=gc:precise
 
-$(ROOT)/precisegc: $(SRC)
+$(ROOT)/precisegc: $(SRC) precisegc.d
 	$(DMD) $(UDFLAGS) -gx -of$@ $(SRC) precisegc.d
 
 $(ROOT)/attributes: attributes.d
