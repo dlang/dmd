@@ -60,13 +60,7 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
                 return false;
         }
 
-        import std.conv;
-        if (smember.kind().to!string() == "constructor") {
-            ad.error(loc, "`Constructor` is not accessible%s", (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
-        }
-        else {
-            ad.error(loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
-        }
+        ad.error(loc, "`%s %s` is not accessible%s", smember.kind(), smember.toChars, (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
         //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
         //        smember.kind(), smember.toPrettyChars(), smember.visible() smember.semanticRun);
         return true;

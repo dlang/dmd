@@ -1,8 +1,8 @@
 /* REQUIRED_ARGS: -preview=dip1000 -Ifail_compilation/imports
 TEST_OUTPUT:
 ---
-fail_compilation/issue21936.d(15): Error: struct `issue21936s.S` member `field` is not accessible from `@safe` code
-fail_compilation/issue21936.d(15): Error: struct `issue21936s.S` member `field` is not accessible from `@safe` code
+fail_compilation/issue21936.d(15): Error: struct `issue21936s.S` `variable field` is not accessible from `@safe` code
+fail_compilation/issue21936.d(15): Error: struct `issue21936s.S` `variable field` is not accessible from `@safe` code
 fail_compilation/issue21936.d(11): Error: template instance `issue21936.constructImplicit!(S)` error instantiating
 fail_compilation/issue21936.d(7):        instantiated from here: `registerConstructors!(S)`
 fail_compilation/issue21936.d(21):        instantiated from here: `registerType!(S)`
