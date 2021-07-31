@@ -4423,11 +4423,11 @@ debug (MEMSTOMP)
 unittest
 {
     import core.memory;
-    auto p = cast(uint*)GC.malloc(uint.sizeof*5);
-    assert(*p == 0xF0F0F0F0);
+    auto p = cast(size_t*)GC.malloc(size_t.sizeof*3);
+    assert(*p == cast(size_t)0xF0F0F0F0F0F0F0F0);
     p[2] = 0; // First two will be used for free list
     GC.free(p);
-    assert(p[4] == 0xF2F2F2F2); // skip List usage, for both 64-bit and 32-bit
+    assert(p[2] == cast(size_t)0xF2F2F2F2F2F2F2F2);
 }
 
 debug (SENTINEL)
