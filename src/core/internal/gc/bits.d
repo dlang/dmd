@@ -7,6 +7,7 @@
  */
 module core.internal.gc.bits;
 
+import core.internal.gc.os : os_mem_map, os_mem_unmap, HaveFork;
 
 import core.bitop;
 import core.stdc.string;
@@ -32,19 +33,29 @@ struct GCBits
     wordtype* data;
     size_t nbits;
 
-    void Dtor() nothrow
+    void Dtor(bool share = false) nothrow
     {
         if (data)
         {
-            free(data);
+            static if (!HaveFork)
+                free(data);
+            else if (share)
+                os_mem_unmap(data, nwords * data[0].sizeof);
+            else
+                free(data);
             data = null;
         }
     }
 
-    void alloc(size_t nbits) nothrow
+    void alloc(size_t nbits, bool share = false) nothrow
     {
         this.nbits = nbits;
-        data = cast(typeof(data[0])*)calloc(nwords, data[0].sizeof);
+        static if (!HaveFork)
+            data = cast(typeof(data[0])*)calloc(nwords, data[0].sizeof);
+        else if (share)
+            data = cast(typeof(data[0])*)os_mem_map(nwords * data[0].sizeof, true); // Allocate as MAP_SHARED
+        else
+            data = cast(typeof(data[0])*)calloc(nwords, data[0].sizeof);
         if (!data)
             onOutOfMemoryError();
     }
@@ -429,6 +440,11 @@ struct GCBits
     void zero() nothrow
     {
         memset(data, 0, nwords * wordtype.sizeof);
+    }
+
+    void setAll() nothrow
+    {
+        memset(data, 0xFF, nwords * wordtype.sizeof);
     }
 
     void copy(GCBits *f) nothrow
