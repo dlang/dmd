@@ -730,7 +730,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 {   /* v is scope, and va is not scope, so va needs to
                      * infer scope
                      */
-                    //printf("inferring scope for %s\n", va.toChars());
+                    if (log) printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
                     /* v returns, and va does not return, so va needs
                      * to infer return
@@ -738,7 +738,12 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                     if (v.storage_class & STC.return_ &&
                         !(va.storage_class & STC.return_))
                     {
+                        if (log) printf("infer return for %s\n", va.toChars());
                         va.storage_class |= STC.return_ | STC.returninferred;
+
+                        // Added "return scope" so don't confuse it with "return ref"
+                        if (isRefReturnScope(va.storage_class))
+                            va.storage_class |= STC.returnScope;
                     }
                 }
                 continue;
