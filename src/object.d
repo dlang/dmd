@@ -418,7 +418,7 @@ struct OffsetTypeInfo
  */
 class TypeInfo
 {
-    override string toString() const pure @safe nothrow
+    override string toString() const @safe nothrow
     {
         return typeid(this).name;
     }
@@ -665,7 +665,7 @@ class TypeInfo
 
 class TypeInfo_Enum : TypeInfo
 {
-    override string toString() const { return name; }
+    override string toString() const pure { return name; }
 
     override bool opEquals(Object o)
     {
@@ -977,7 +977,9 @@ class TypeInfo_StaticArray : TypeInfo
         import core.internal.string : unsignedToTempString;
 
         char[20] tmpBuff = void;
-        return value.toString() ~ "[" ~ unsignedToTempString(len, tmpBuff) ~ "]";
+        const lenString = unsignedToTempString(len, tmpBuff);
+
+        return (() @trusted => cast(string) (value.toString() ~ "[" ~ lenString ~ "]"))();
     }
 
     override bool opEquals(Object o)
@@ -1202,7 +1204,7 @@ class TypeInfo_Vector : TypeInfo
 
 class TypeInfo_Function : TypeInfo
 {
-    override string toString() const @trusted
+    override string toString() const pure @trusted
     {
         import core.demangle : demangleType;
 
@@ -1279,7 +1281,7 @@ class TypeInfo_Function : TypeInfo
 
 class TypeInfo_Delegate : TypeInfo
 {
-    override string toString() const @trusted
+    override string toString() const pure @trusted
     {
         import core.demangle : demangleType;
 
@@ -1399,7 +1401,7 @@ private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
  */
 class TypeInfo_Class : TypeInfo
 {
-    override string toString() const { return info.name; }
+    override string toString() const pure { return info.name; }
 
     override bool opEquals(Object o)
     {
@@ -1584,7 +1586,7 @@ alias ClassInfo = TypeInfo_Class;
 
 class TypeInfo_Interface : TypeInfo
 {
-    override string toString() const { return info.name; }
+    override string toString() const pure { return info.name; }
 
     override bool opEquals(Object o)
     {
@@ -1703,13 +1705,17 @@ class TypeInfo_Struct : TypeInfo
 {
     override string toString() const { return name; }
 
+    override size_t toHash() const
+    {
+        return hashOf(this.mangledName);
+    }
+
     override bool opEquals(Object o)
     {
         if (this is o)
             return true;
         auto s = cast(const TypeInfo_Struct)o;
-        return s && this.name == s.name &&
-                    this.initializer().length == s.initializer().length;
+        return s && this.mangledName == s.mangledName;
     }
 
     override size_t getHash(scope const void* p) @trusted pure nothrow const
@@ -1794,7 +1800,29 @@ class TypeInfo_Struct : TypeInfo
             (*xpostblit)(p);
     }
 
-    string name;
+    string mangledName;
+
+    final @property string name() nothrow const @trusted
+    {
+        import core.demangle : demangleType;
+
+        if (mangledName is null) // e.g., opaque structs
+            return null;
+
+        const key = cast(const void*) this; // faster lookup than TypeInfo_Struct, at the cost of potential duplicates per binary
+        static string[typeof(key)] demangledNamesCache; // per thread
+
+        // not nothrow:
+        //return demangledNamesCache.require(key, cast(string) demangleType(mangledName));
+
+        if (auto pDemangled = key in demangledNamesCache)
+            return *pDemangled;
+
+        const demangled = cast(string) demangleType(mangledName);
+        demangledNamesCache[key] = demangled;
+        return demangled;
+    }
+
     void[] m_init;      // initializer; m_init.ptr == null if 0 initialize
 
     @safe pure nothrow
