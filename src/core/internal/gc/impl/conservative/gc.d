@@ -25,6 +25,7 @@ module core.internal.gc.impl.conservative.gc;
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = INVARIANT;            // enable invariants
 //debug = PROFILE_API;          // profile API calls for config.profile > 1
+//debug = GC_RECURSIVE_LOCK;    // check for recursive locking on the same thread
 
 /***************************************************/
 version = COLLECT_PARALLEL;  // parallel scanning
@@ -207,10 +208,17 @@ class ConservativeGC : GC
         runLocked!(go, otherTime, numOthers)(gcx);
     }
 
+    debug (GC_RECURSIVE_LOCK) static bool lockedOnThisThread;
 
     auto runLocked(alias func, Args...)(auto ref Args args)
     {
         debug(PROFILE_API) immutable tm = (config.profile > 1 ? currTime.ticks : 0);
+        debug(GC_RECURSIVE_LOCK)
+        {
+            if (lockedOnThisThread)
+                onInvalidMemoryOperationError();
+            lockedOnThisThread = true;
+        }
         lockNR();
         scope (failure) gcLock.unlock();
         debug(PROFILE_API) immutable tm2 = (config.profile > 1 ? currTime.ticks : 0);
@@ -223,6 +231,12 @@ class ConservativeGC : GC
         debug(PROFILE_API) if (config.profile > 1)
             lockTime += tm2 - tm;
         gcLock.unlock();
+        debug(GC_RECURSIVE_LOCK)
+        {
+            if (!lockedOnThisThread)
+                onInvalidMemoryOperationError();
+            lockedOnThisThread = false;
+        }
 
         static if (!is(typeof(func(args)) == void))
             return res;
@@ -232,6 +246,12 @@ class ConservativeGC : GC
     auto runLocked(alias func, alias time, alias count, Args...)(auto ref Args args)
     {
         debug(PROFILE_API) immutable tm = (config.profile > 1 ? currTime.ticks : 0);
+        debug(GC_RECURSIVE_LOCK)
+        {
+            if (lockedOnThisThread)
+                onInvalidMemoryOperationError();
+            lockedOnThisThread = true;
+        }
         lockNR();
         scope (failure) gcLock.unlock();
         debug(PROFILE_API) immutable tm2 = (config.profile > 1 ? currTime.ticks : 0);
@@ -249,6 +269,12 @@ class ConservativeGC : GC
             time += now - tm2;
         }
         gcLock.unlock();
+        debug(GC_RECURSIVE_LOCK)
+        {
+            if (!lockedOnThisThread)
+                onInvalidMemoryOperationError();
+            lockedOnThisThread = false;
+        }
 
         static if (!is(typeof(func(args)) == void))
             return res;
@@ -715,7 +741,9 @@ class ConservativeGC : GC
             return;
 
         sentinel_Invariant(p);
+        auto q = p;
         p = sentinel_sub(p);
+        size_t ssize;
 
         if (pool.isLargeObject)              // if large alloc
         {
@@ -725,7 +753,9 @@ class ConservativeGC : GC
 
             // Free pages
             size_t npages = lpool.bPageOffsets[pagenum];
-            debug (MEMSTOMP) memset(p, 0xF2, npages * PAGESIZE);
+            auto size = npages * PAGESIZE;
+            ssize = sentinel_size(q, size);
+            debug (MEMSTOMP) memset(p, 0xF2, size);
             lpool.freePages(pagenum, npages);
             lpool.mergeFreePageOffsets!(true, true)(pagenum, npages);
         }
@@ -737,7 +767,9 @@ class ConservativeGC : GC
             // Add to free list
             List *list = cast(List*)p;
 
-            debug (MEMSTOMP) memset(p, 0xF2, binsize[bin]);
+            auto size = binsize[bin];
+            ssize = sentinel_size(q, size);
+            debug (MEMSTOMP) memset(p, 0xF2, size);
 
             // in case the page hasn't been recovered yet, don't add the object to the free list
             if (!gcx.recoverPool[bin] || pool.binPageChain[pagenum] == Pool.PageRecovered)
@@ -750,7 +782,7 @@ class ConservativeGC : GC
         }
         pool.clrBits(biti, ~BlkAttr.NONE);
 
-        gcx.leakDetector.log_free(sentinel_add(p));
+        gcx.leakDetector.log_free(sentinel_add(p), ssize);
     }
 
 
@@ -2350,7 +2382,7 @@ struct Gcx
                         pool.clrBits(biti, ~BlkAttr.NONE ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
-                        leakDetector.log_free(q);
+                        leakDetector.log_free(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA));
                         pool.pagetable[pn..pn+npages] = B_FREE;
                         if (pn < pool.searchStart) pool.searchStart = pn;
                         freedLargePages += npages;
@@ -2424,22 +2456,28 @@ struct Gcx
                         static foreach (w; 0 .. PageBits.length)
                             recoverPage = recoverPage && (~freebitsdata[w] == toFree[w]);
 
-                        bool hasFinalizer = false;
-                        debug(COLLECT_PRINTF) // need output for each onject
-                            hasFinalizer = true;
-                        else debug(LOGGING)
-                            hasFinalizer = true;
-                        else debug(MEMSTOMP)
-                            hasFinalizer = true;
-                        if (pool.finals.data)
+                        // We need to loop through each object if any have a finalizer,
+                        // or, if any of the debug hooks are enabled.
+                        bool doLoop = false;
+                        debug (SENTINEL)
+                            doLoop = true;
+                        else version (assert)
+                            doLoop = true;
+                        else debug (COLLECT_PRINTF) // need output for each object
+                            doLoop = true;
+                        else debug (LOGGING)
+                            doLoop = true;
+                        else debug (MEMSTOMP)
+                            doLoop = true;
+                        else if (pool.finals.data)
                         {
                             // finalizers must be called on objects that are about to be freed
                             auto finalsdata = pool.finals.data + pn * PageBits.length;
                             static foreach (w; 0 .. PageBits.length)
-                                hasFinalizer = hasFinalizer || (toFree[w] & finalsdata[w]) != 0;
+                                doLoop = doLoop || (toFree[w] & finalsdata[w]) != 0;
                         }
 
-                        if (hasFinalizer)
+                        if (doLoop)
                         {
                             immutable size = binsize[bin];
                             void *p = pool.baseAddr + pn * PAGESIZE;
@@ -2464,7 +2502,7 @@ struct Gcx
                                     assert(core.bitop.bt(toFree.ptr, i));
 
                                     debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
-                                    leakDetector.log_free(sentinel_add(p));
+                                    leakDetector.log_free(q, sentinel_size(q, size));
 
                                     debug (MEMSTOMP) memset(p, 0xF3, size);
                                 }
@@ -2717,6 +2755,49 @@ struct Gcx
         return IsMarked.unknown;
     }
 
+    version (Posix)
+    {
+        // A fork might happen while GC code is running in a different thread.
+        // Because that would leave the GC in an inconsistent state,
+        // make sure no GC code is running by acquiring the lock here,
+        // before a fork.
+
+        extern(C) static void _d_gcx_atfork_prepare()
+        {
+            if (instance)
+                ConservativeGC.lockNR();
+        }
+
+        extern(C) static void _d_gcx_atfork_parent()
+        {
+            if (instance)
+                ConservativeGC.gcLock.unlock();
+        }
+
+        extern(C) static void _d_gcx_atfork_child()
+        {
+            if (instance)
+            {
+                ConservativeGC.gcLock.unlock();
+
+                // make sure the threads and event handles are reinitialized in a fork
+                version (COLLECT_PARALLEL)
+                {
+                    if (Gcx.instance.scanThreadData)
+                    {
+                        cstdlib.free(Gcx.instance.scanThreadData);
+                        Gcx.instance.numScanThreads = 0;
+                        Gcx.instance.scanThreadData = null;
+                        Gcx.instance.busyThreads = 0;
+
+                        memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
+                        memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
+                    }
+                }
+            }
+        }
+    }
+
     /* ============================ Parallel scanning =============================== */
     version (COLLECT_PARALLEL):
     import core.sync.event;
@@ -2948,46 +3029,6 @@ struct Gcx
             busyThreads.atomicOp!"-="(1);
         }
         debug(PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
-    }
-
-    version (Posix)
-    {
-        // A fork might happen while GC code is running in a different thread.
-        // Because that would leave the GC in an inconsistent state,
-        // make sure no GC code is running by acquiring the lock here,
-        // before a fork.
-
-        extern(C) static void _d_gcx_atfork_prepare()
-        {
-            if (instance)
-                ConservativeGC.lockNR();
-        }
-
-        extern(C) static void _d_gcx_atfork_parent()
-        {
-            if (instance)
-                ConservativeGC.gcLock.unlock();
-        }
-
-        extern(C) static void _d_gcx_atfork_child()
-        {
-            if (instance)
-            {
-                ConservativeGC.gcLock.unlock();
-
-                // make sure the threads and event handles are reinitialized in a fork
-                if (Gcx.instance.scanThreadData)
-                {
-                    cstdlib.free(Gcx.instance.scanThreadData);
-                    Gcx.instance.numScanThreads = 0;
-                    Gcx.instance.scanThreadData = null;
-                    Gcx.instance.busyThreads = 0;
-
-                    memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
-                    memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
-                }
-            }
-        }
     }
 }
 
@@ -4202,13 +4243,13 @@ debug (LOGGING)
         }
 
 
-        private void log_free(void *p) nothrow @nogc
+        private void log_free(void *p, size_t size) nothrow @nogc
         {
             //debug(PRINTF) printf("+log_free(%p)\n", p);
             auto i = current.find(p);
             if (i == OPFAIL)
             {
-                debug(PRINTF) printf("free'ing unallocated memory %p\n", p);
+                debug(PRINTF) printf("free'ing unallocated memory %p (size %zu)\n", p, size);
             }
             else
                 current.remove(i);
@@ -4282,7 +4323,7 @@ else
     {
         static void initialize(Gcx* gcx) nothrow { }
         static void log_malloc(void *p, size_t size) nothrow { }
-        static void log_free(void *p) nothrow @nogc { }
+        static void log_free(void *p, size_t size) nothrow @nogc {}
         static void log_collect() nothrow { }
         static void log_parent(void *p, void *parent) nothrow { }
     }
@@ -4376,11 +4417,11 @@ debug (MEMSTOMP)
 unittest
 {
     import core.memory;
-    auto p = cast(uint*)GC.malloc(uint.sizeof*5);
-    assert(*p == 0xF0F0F0F0);
+    auto p = cast(size_t*)GC.malloc(size_t.sizeof*3);
+    assert(*p == cast(size_t)0xF0F0F0F0F0F0F0F0);
     p[2] = 0; // First two will be used for free list
     GC.free(p);
-    assert(p[4] == 0xF2F2F2F2); // skip List usage, for both 64-bit and 32-bit
+    assert(p[2] == cast(size_t)0xF2F2F2F2F2F2F2F2);
 }
 
 debug (SENTINEL)
@@ -4390,16 +4431,8 @@ unittest
     auto p = cast(ubyte*)GC.malloc(1);
     assert(p[-1] == 0xF4);
     assert(p[ 1] == 0xF5);
-/*
-    p[1] = 0;
-    bool thrown;
-    try
-        GC.free(p);
-    catch (Error e)
-        thrown = true;
-    p[1] = 0xF5;
-    assert(thrown);
-*/
+
+    // See also stand-alone tests in test/gc
 }
 
 unittest

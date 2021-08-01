@@ -1,6 +1,7 @@
 include ../common.mak
 
-TESTS := attributes sentinel printf memstomp invariant logging precise precisegc forkgc forkgc2 \
+TESTS := attributes sentinel sentinel1 sentinel2 printf memstomp invariant logging \
+		 precise precisegc forkgc forkgc2 \
 		 sigmaskgc startbackgc recoverfree nocollect
 
 SRC_GC = ../../src/core/internal/gc/impl/conservative/gc.d
@@ -19,6 +20,12 @@ $(ROOT)/%.done: $(ROOT)/%
 $(ROOT)/sentinel: $(SRC)
 	$(DMD) -debug=SENTINEL $(UDFLAGS) -main -of$@ $(SRC)
 
+$(ROOT)/sentinel1: $(SRC) sentinel1.d
+	$(DMD) -debug=SENTINEL -debug=GC_RECURSIVE_LOCK $(DFLAGS) sentinel1.d -of$@ $(SRC)
+
+$(ROOT)/sentinel2: $(SRC) sentinel2.d
+	$(DMD) -debug=SENTINEL -debug=GC_RECURSIVE_LOCK $(DFLAGS) sentinel2.d -gx -of$@ $(SRC)
+
 $(ROOT)/printf: $(SRC)
 	$(DMD) -debug=PRINTF -debug=PRINTF_TO_FILE -debug=COLLECT_PRINTF $(UDFLAGS) -main -of$@ $(SRC_GC)
 
@@ -35,7 +42,7 @@ $(ROOT)/precise: $(SRC)
 	$(DMD) -debug -debug=INVARIANT -debug=MEMSTOMP $(UDFLAGS) -main -of$@ $(SRC)
 $(ROOT)/precise.done: RUN_ARGS += --DRT-gcopt=gc:precise
 
-$(ROOT)/precisegc: $(SRC)
+$(ROOT)/precisegc: $(SRC) precisegc.d
 	$(DMD) $(UDFLAGS) -gx -of$@ $(SRC) precisegc.d
 
 $(ROOT)/attributes: attributes.d
