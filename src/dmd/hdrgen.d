@@ -2766,11 +2766,39 @@ void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 
 bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
+    //printf("stc: %llx\n", stc);
     bool result = false;
-    if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
-        stc &= ~STC.scope_;
+
     if (stc & STC.scopeinferred)
         stc &= ~(STC.scope_ | STC.scopeinferred);
+    if (stc & STC.returninferred)
+        stc &= ~(STC.return_ | STC.returninferred);
+
+    /* Put scope ref return into a standard order
+     */
+    string rrs;
+    const isout = (stc & STC.out_) != 0;
+    //printf("bsr = %d %llx\n", buildScopeRef(stc), stc);
+    final switch (buildScopeRef(stc))
+    {
+        case ScopeRef.None:
+        case ScopeRef.Scope:
+        case ScopeRef.Ref:
+        case ScopeRef.Return:
+            break;
+
+        case ScopeRef.ReturnScope:      rrs = "return scope"; goto L1;
+        case ScopeRef.ReturnRef:        rrs = isout ? "return out"       : "return ref";       goto L1;
+        case ScopeRef.RefScope:         rrs = isout ? "out scope"        : "ref scope";        goto L1;
+        case ScopeRef.ReturnRef_Scope:  rrs = isout ? "return out scope" : "return ref scope"; goto L1;
+        case ScopeRef.Ref_ReturnScope:  rrs = isout ? "out return scope" : "ref return scope"; goto L1;
+        L1:
+            buf.writestring(rrs);
+            result = true;
+            stc &= ~(STC.out_ | STC.scope_ | STC.ref_ | STC.return_);
+            break;
+    }
+
     while (stc)
     {
         const s = stcToString(stc);
@@ -2781,6 +2809,7 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc)
         result = true;
         buf.writestring(s);
     }
+
     return result;
 }
 
@@ -3102,28 +3131,24 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     }
     if (p.storageClass & STC.auto_)
         buf.writestring("auto ");
-    if (p.storageClass & STC.return_)
-        buf.writestring("return ");
 
+    StorageClass stc = p.storageClass;
     if (p.storageClass & STC.in_)
+    {
         buf.writestring("in ");
-    else if (global.params.previewIn && p.storageClass & STC.ref_)
-        buf.writestring("ref ");
-    else if (p.storageClass & STC.out_)
-        buf.writestring("out ");
+        if (global.params.previewIn && p.storageClass & STC.ref_)
+            stc &= ~STC.ref_;
+    }
     else if (p.storageClass & STC.lazy_)
         buf.writestring("lazy ");
     else if (p.storageClass & STC.alias_)
         buf.writestring("alias ");
 
-    if (!global.params.previewIn && p.storageClass & STC.ref_)
-        buf.writestring("ref ");
-
-    StorageClass stc = p.storageClass;
     if (p.type && p.type.mod & MODFlags.shared_)
         stc &= ~STC.shared_;
 
-    if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.scope_ | STC.scopeinferred)))
+    if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ |
+        STC.return_ | STC.returninferred | STC.scope_ | STC.scopeinferred | STC.out_ | STC.ref_ | STC.returnScope)))
         buf.writeByte(' ');
 
     if (p.storageClass & STC.alias_)
