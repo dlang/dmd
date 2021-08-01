@@ -7298,4 +7298,29 @@ enum ScopeRef
     Return,
 }
 
-
+/*********************************
+ * Give us a nice string for debugging purposes.
+ * Params:
+ *      sr = value
+ * Returns:
+ *      corresponding string
+ */
+const(char)* toChars(ScopeRef sr) pure nothrow @nogc @safe
+{
+    with (ScopeRef)
+    {
+        static immutable char*[ScopeRef.max + 1] names =
+        [
+            None:            "None",
+            Scope:           "Scope",
+            ReturnScope:     "ReturnScope",
+            Ref:             "Ref",
+            ReturnRef:       "ReturnRef",
+            RefScope:        "RefScope",
+            ReturnRef_Scope: "ReturnRef_Scope",
+            Ref_ReturnScope: "Ref_ReturnScope",
+            Return:          "Return",
+        ];
+        return names[sr];
+    }
+}
