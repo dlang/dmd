@@ -15,7 +15,7 @@ if [ ! -z ${HOST_DC+x} ] ; then HOST_DMD=${HOST_DC}; fi
 if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit 1; fi
 
 if [ "$OS_NAME" == "linux" ]; then
-  packages="git-core make g++ gdb curl libcurl3 tzdata zip unzip xz-utils"
+  packages="git-core make g++ gdb curl libcurl4 tzdata zip unzip xz-utils"
   if [ "$MODEL" == "32" ]; then
     dpkg --add-architecture i386
     packages="$packages g++-multilib libcurl3-gnutls:i386"
