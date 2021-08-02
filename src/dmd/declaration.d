@@ -344,7 +344,9 @@ extern (C++) abstract class Declaration : Dsymbol
      *  loc  = location for error messages
      *  e1   = `null` or `this` expression when this declaration is a field
      *  sc   = context
-     *  flag = !=0 means do not issue error message for invalid modification
+     *  flag = if the first bit is set it means do not issue error message for
+     *         invalid modification; if the second bit is set, it means that
+               this declaration is a field and a subfield of it is modified.
      * Returns:
      *  Modifiable.yes or Modifiable.initialization
      */
@@ -361,7 +363,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 if (scx.func == parent && (scx.flags & SCOPE.contract))
                 {
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
-                    if (!flag)
+                    if (!(flag & 1))
                         error(loc, "cannot modify %s `%s` in contract", s, toChars());
                     return Modifiable.initialization; // do not report type related errors
                 }
@@ -375,7 +377,7 @@ extern (C++) abstract class Declaration : Dsymbol
             {
                 if (scx.func == vthis.parent && (scx.flags & SCOPE.contract))
                 {
-                    if (!flag)
+                    if (!(flag & 1))
                         error(loc, "cannot modify parameter `this` in contract");
                     return Modifiable.initialization; // do not report type related errors
                 }
@@ -387,8 +389,9 @@ extern (C++) abstract class Declaration : Dsymbol
             // It's only modifiable if inside the right constructor
             if ((storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
                 return Modifiable.initialization;
-            return modifyFieldVar(loc, sc, v, e1)
-                ? Modifiable.initialization : Modifiable.yes;
+            if (flag & 2)
+                return Modifiable.yes;
+            return modifyFieldVar(loc, sc, v, e1) ? Modifiable.initialization : Modifiable.yes;
         }
         return Modifiable.yes;
     }
