@@ -2838,7 +2838,7 @@ string stcToString(ref StorageClass stc)
     foreach (ref entry; table)
     {
         const StorageClass tbl = entry.stc;
-        assert(tbl & STCStorageClass);
+        assert(tbl & STC.visibleStorageClasses);
         if (stc & tbl)
         {
             stc &= ~tbl;

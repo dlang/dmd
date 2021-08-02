@@ -55,14 +55,6 @@ struct ASTBase
     alias Designators           = Array!(Designator);
     alias DesigInits            = Array!(DesigInit);
 
-    extern (C++) __gshared const(StorageClass) STCStorageClass =
-        (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ |
-         STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ |
-         STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ |
-         STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls |
-         STC.gshared | STC.property | STC.future | STC.local | STC.live |
-         STC.safeGroup | STC.disable);
-
     alias Visitor = ParseTimeVisitor!ASTBase;
 
     extern (C++) abstract class ASTNode : RootObject
@@ -6533,7 +6525,7 @@ struct ASTBase
         foreach (ref entry; table)
         {
             const StorageClass tbl = entry.stc;
-            assert(tbl & STCStorageClass);
+            assert(tbl & STC.visibleStorageClasses);
             if (stc & tbl)
             {
                 stc &= ~tbl;
