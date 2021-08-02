@@ -308,20 +308,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
     ScopeRef psr;
     if (par && fdc && fdc.type.isTypeFunction())
-    {
-        if (isRefReturnScope(par.storageClass))
-        {
-            const scr = (par.storageClass & STC.returnScope) != 0;
-            if (fdc.type.isTypeFunction().isref == scr)
-            {
-                /* Match the old behavior, where being a constructor is sometimes ignored.
-                 * Figure out how to fix it later
-                 */
-                par.storageClass ^= STC.returnScope;
-            }
-        }
         psr = buildScopeRef(par.storageClass);
-    }
     else
         psr = ScopeRef.None;
 
