@@ -2,7 +2,7 @@
 EXTRA_FILES: imports/imp18554.d
 TEST_OUTPUT:
 ---
-fail_compilation/test18554.d(16): Error: struct `imp18554.S` member `i` is not accessible from `@safe` code
+fail_compilation/test18554.d(16): Error: struct `imp18554.S` variable `i` is not accessible from `@safe` code
 ---
 */
 
