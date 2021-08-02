@@ -5786,11 +5786,8 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
         uint fsize = cast(uint)tfrom.nextOf().size();
         uint tsize = cast(uint)tto.nextOf().size();
 
-        if ((dim * fsize) % tsize != 0)
-        {
-            // have to change to Internal Compiler Error?
-            error(loc, "cannot cast %s to %s since sizes don't line up", tfrom.toChars(), tto.toChars());
-        }
+        // Should have been caught by Expression::castTo
+        assert(tsize != 0 && (dim * fsize) % tsize == 0);
         dim = (dim * fsize) / tsize;
     }
     elem *elen = el_long(TYsize_t, dim);

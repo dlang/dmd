@@ -744,6 +744,8 @@ class DotTemplateExp : public UnaExp
 public:
     TemplateDeclaration *td;
 
+    bool checkType();
+    bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
 };
 

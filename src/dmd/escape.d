@@ -880,7 +880,7 @@ ByRef:
          * then uncount that address of. This is so it won't cause a
          * closure to be allocated.
          */
-        if (va && va.isScope() && func.tookAddressOf)
+        if (va && va.isScope() && !(va.storage_class & STC.return_) && func.tookAddressOf)
             --func.tookAddressOf;
 
         foreach (v; vars)
