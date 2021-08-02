@@ -116,6 +116,22 @@ enum STC : ulong  // transfer changes to declaration.h
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                 safeGroup),
+
+    /* These are visible to the user, i.e. are expressed by the user
+     */
+    visibleStorageClasses =
+        (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
+         STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
+         STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
+         STC.property | STC.safeGroup | STC.disable | STC.local | STC.live),
+
+    /* These storage classes "flow through" to the inner scope of a Dsymbol
+     */
+    flowThruAggregate = STC.safeGroup,    /// for an AggregateDeclaration
+    flowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
+                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
+
 }
 
 /********

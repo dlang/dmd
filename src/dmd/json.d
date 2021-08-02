@@ -333,7 +333,7 @@ public:
 
     extern(D) void propertyStorageClass(const char[] name, StorageClass stc)
     {
-        stc &= STCStorageClass;
+        stc &= STC.visibleStorageClasses;
         if (stc)
         {
             propertyStart(name);

@@ -140,7 +140,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     Scope* newScope(Scope* sc)
     {
         auto sc2 = sc.push(this);
-        sc2.stc &= STCFlowThruAggregate;
+        sc2.stc &= STC.flowThruAggregate;
         sc2.parent = this;
         sc2.inunion = isUnionDeclaration();
         sc2.visibility = Visibility(Visibility.Kind.public_);
