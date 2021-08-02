@@ -1347,6 +1347,33 @@ void test()
         specialized than a function without.
         )
 
+        $(P A static member function can be overloaded with a member
+        function. The struct, class
+        or union of the static member function is inferred from the
+        type of the `this` argument.)
+
+        ---
+        struct S {
+            void eggs(int);
+            static void eggs(long);
+        }
+        S s;
+        s.eggs(0);  // calls void eggs(int);
+        S.eggs(0);  // error: need `this`
+        s.eggs(0L); // calls static void eggs(long);
+        S.eggs(0L); // calls static void eggs(long);
+
+        struct T {
+            void bacon(int);
+            static void bacon(int);
+        }
+        T t;
+        t.bacon(0);  // error: ambiguous
+        T.bacon(0);  // error: ambiguous
+        ---
+
+        $(RATIONALE  A static member function that doesn't need
+        the `this` parameter does not need to pass it.)
 
 $(H3 $(LNAME2 overload-sets, Overload Sets))
 
