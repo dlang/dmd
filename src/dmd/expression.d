@@ -4725,6 +4725,18 @@ extern (C++) final class DotTemplateExp : UnaExp
         this.td = td;
     }
 
+    override bool checkType()
+    {
+        error("%s `%s` has no type", td.kind(), toChars());
+        return true;
+    }
+
+    override bool checkValue()
+    {
+        error("%s `%s` has no value", td.kind(), toChars());
+        return true;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
