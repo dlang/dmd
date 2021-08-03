@@ -22,22 +22,45 @@ struct S
     }
 }
 
-interface I
+// https://issues.dlang.org/show_bug.cgi?id=9729
+interface I9729
 {
-    C foo(I);
+    C9729 foo(I9729);
 
-    export static C create()
+    export static C9729 create()
     {
-        return new C();
+        return new C9729();
     }
 }
 
-class C : I
+class C9729 : I9729
 {
     int x, y;
 
-    export C foo(I i)
+    export C9729 foo(I9729 i)
     {
-        return cast(C) i;
+        return cast(C9729) i;
     }
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=10462
+void call10462(int delegate() dg)
+{
+    assert(dg() == 7);
+}
+
+interface I10462
+{
+    int opCall();
+}
+
+class C10462 : I10462
+{
+    int opCall() { return 7; }
+}
+
+void test10462_dll()
+{
+    I10462 i = new C10462;
+    call10462(&i.opCall);
 }
