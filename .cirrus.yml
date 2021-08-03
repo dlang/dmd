@@ -65,7 +65,9 @@ task:
       - TASK_NAME_SUFFIX: x64, DMD (bootstrap)
         HOST_DMD: dmd-2.079.0
       - TASK_NAME_SUFFIX: x64, LDC
-        HOST_DC: ldc #TODO: Update to HOST_DMD when support for HOST_DC is removed
+        # Starting from LDC v1.27.0, a symbol for GLIBC_2.27 is required,
+        # which doesn't work on 16.04 anymore.
+        HOST_DC: ldc-1.26.0 #TODO: Update to HOST_DMD when support for HOST_DC is removed
       - TASK_NAME_SUFFIX: x64, GDC
         HOST_DMD: gdmd-9
   << : *COMMON_STEPS_TEMPLATE
