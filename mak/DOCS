@@ -202,6 +202,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_linux_fcntl.html \
 	$(DOCDIR)\core_sys_linux_fs.html \
 	$(DOCDIR)\core_sys_linux_ifaddrs.html \
+	$(DOCDIR)\core_sys_linux_io_uring.html \
 	$(DOCDIR)\core_sys_linux_link.html \
 	$(DOCDIR)\core_sys_linux_sched.html \
 	$(DOCDIR)\core_sys_linux_stdio.html \
