@@ -2601,7 +2601,8 @@ unittest
     {
         char[] buf = new char[i];
         auto ds = demangle(s, buf);
-        assert(ds == "pure nothrow @safe char[] core.demangle.demangle(scope return const(char)[], scope return char[])");
+        assert(ds == "pure nothrow @safe char[] core.demangle.demangle(scope return const(char)[], scope return char[])" ||
+               ds == "pure nothrow @safe char[] core.demangle.demangle(return scope const(char)[], return scope char[])");
     }
 }
 
