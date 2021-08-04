@@ -5,9 +5,6 @@ int main()
     version (Windows) if (Vars.MODEL == "32") // Avoid optlink
         return DISABLED;
 
-    version (Posix) if (Vars.PIC_FLAG == "") // Segfaults without PIC
-        return DISABLED;
-
     Vars.set(`SRC`, `$EXTRA_FILES/dll`);
     Vars.set(`EXE_NAME`, `$OUTPUT_BASE/testdll$EXE`);
     Vars.set(`DLL`, `$OUTPUT_BASE/mydll$SOEXT`);
@@ -19,8 +16,10 @@ int main()
     }
     else
     {
-        enum dllExtra = `$PIC_FLAG`;
-        enum mainExtra = `$PIC_FLAG -L-L$OUTPUT_BASE -L$DLL`;
+        // Segfaults without PIC - using hardcoded -fPIC and not $PIC_FLAG as
+        // the latter can be set to an empty string.
+        enum dllExtra = `-fPIC`;
+        enum mainExtra = `-fPIC -L-L$OUTPUT_BASE -L$DLL`;
     }
 
     run(`$DMD -m$MODEL -shared -od=$OUTPUT_BASE -of=$DLL $SRC/mydll.d ` ~ dllExtra);

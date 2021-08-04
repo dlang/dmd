@@ -4876,16 +4876,18 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     }
     else
     {
-static if (0)
-{
-        localgot = null;                // no local variables
-        code *c1 = load_localgot();
-        if (c1)
+        if (config.flags3 & CFG3pic)
         {
-            assignaddrc(c1);
-            cdb.append(c1);
+            localgot = null;                // no local variables
+            CodeBuilder cdbgot; cdbgot.ctor();
+            load_localgot(cdbgot);          // load GOT in EBX
+            code *c1 = cdbgot.finish();
+            if (c1)
+            {
+                assignaddrc(c1);
+                cdb.append(c1);
+            }
         }
-}
         cdb.gencs((LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); // JMP sfunc
         cdb.last().Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
     }
