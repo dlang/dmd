@@ -1458,14 +1458,14 @@ final class CParser(AST) : Parser!AST
             /* `struct tag;` and `struct tag { ... };`
              * always result in a declaration in the current scope
              */
-            // TODO: merge in specifier
             auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
                         (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
                                                   new AST.EnumDeclaration(tt.loc, tt.id, AST.Type.tint32);
             stag.members = tt.members;
             if (!symbols)
                 symbols = new AST.Dsymbols();
-            symbols.push(stag);
+            auto stags = applySpecifier(stag, specifier);
+            symbols.push(stags);
 
             if (tt.tok == TOK.enum_)
             {
@@ -1625,6 +1625,7 @@ final class CParser(AST) : Parser!AST
             }
             if (s !is null)
             {
+                s = applySpecifier(s, specifier);
                 if (level == LVL.local)
                 {
                     // Wrap the declaration in `extern (C) { declaration }`
@@ -2004,16 +2005,21 @@ final class CParser(AST) : Parser!AST
                     nextToken();
                     check(TOK.leftParenthesis);
                     auto tk = &token;
+                    if (specifier.ealign)
+                        error("multiple `_Alignas` not supported yet"); // TODO
                     if (isTypeName(tk))
                     {
-                        cparseTypeName();
+                        auto talign = cparseTypeName();
+                        /* Convert type to expression: `talign.alignof`
+                         */
+                        auto e = new AST.TypeExp(loc, talign);
+                        specifier.ealign = new AST.DotIdExp(loc, e, Id.__xalignof);
                     }
                     else
                     {
-                        cparseConstantExp();
+                        specifier.ealign = cparseConstantExp();
                     }
                     check(TOK.rightParenthesis);
-                    error("`_Alignas` not supported");  // TODO
                     break;
                 }
 
@@ -3019,11 +3025,11 @@ final class CParser(AST) : Parser!AST
                 /* members of anonymous struct are considered members of
                  * the containing struct
                  */
-                // TODO: merge in specifier
                 auto ad = new AST.AnonDeclaration(tt.loc, tt.tok == TOK.union_, tt.members);
                 if (!symbols)
                     symbols = new AST.Dsymbols();
-                symbols.push(ad);
+                auto s = applySpecifier(ad, specifier);
+                symbols.push(s);
                 return;
             }
             if (!tt.id && !tt.members)
@@ -3039,7 +3045,8 @@ final class CParser(AST) : Parser!AST
             stag.members = tt.members;
             if (!symbols)
                 symbols = new AST.Dsymbols();
-            symbols.push(stag);
+            auto s = applySpecifier(stag, specifier);
+            symbols.push(s);
             return;
         }
 
@@ -3098,6 +3105,7 @@ final class CParser(AST) : Parser!AST
                 // Give member variables an implicit void initializer
                 auto initializer = new AST.VoidInitializer(token.loc);
                 s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(LVL.member, specifier));
+                s = applySpecifier(s, specifier);
             }
             if (s !is null)
                 symbols.push(s);
@@ -3965,6 +3973,7 @@ final class CParser(AST) : Parser!AST
     {
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
+        AST.Expression ealign;  /// alignment
     }
 
     /***********************
@@ -4117,6 +4126,26 @@ final class CParser(AST) : Parser!AST
         else
             t = t.addSTC(STC.const_);
         return t;
+    }
+
+    /***************************
+     * Apply specifier to a Dsymbol.
+     * Params:
+     *  s = Dsymbol
+     *  specifier = specifiers to apply
+     * Returns:
+     *  Dsymbol with specifiers applied
+     */
+    private AST.Dsymbol applySpecifier(AST.Dsymbol s, ref Specifier specifier)
+    {
+        if (specifier.ealign)
+        {
+            // Wrap declaration in an AlignDeclaration
+            auto decls = new AST.Dsymbols(1);
+            (*decls)[0] = s;
+            s = new AST.AlignDeclaration(s.loc, specifier.ealign, decls);
+        }
+        return s;
     }
 
     //}
