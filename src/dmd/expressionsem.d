@@ -12168,6 +12168,18 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         e = e.expressionSemantic(sc);
         return e.type.dotExp(sc, e, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
     }
+    else if (exp.ident == Id.__xalignof &&
+             exp.e1.isVarExp() &&
+             exp.e1.isVarExp().var.isVarDeclaration() &&
+             exp.e1.isVarExp().var.isVarDeclaration().alignment)
+    {
+        // For `x.alignof` get the alignment of the variable, not the alignment of its type
+        const explicitAlignment = exp.e1.isVarExp().var.isVarDeclaration().alignment;
+        const naturalAlignment = exp.e1.type.alignsize();
+        const actualAlignment = (explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment);
+        e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
+        return e;
+    }
     else
     {
         if (exp.e1.op == TOK.type || exp.e1.op == TOK.template_)
