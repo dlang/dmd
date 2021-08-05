@@ -48,6 +48,8 @@ class UserAttributeDeclaration;
 class UnitTestDeclaration;
 class Module;
 class TemplateInstance;
+class ScopeDsymbol;
+class AggregateDeclaration;
 class LabelDsymbol;
 class ClassDeclaration;
 class Type;
@@ -212,6 +214,7 @@ class LineInitExp;
 class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
+class ClassReferenceExp;
 class ThrownExceptionExp;
 class BinAssignExp;
 class TypeInfoClassDeclaration;
@@ -266,37 +269,41 @@ class GotoStatement;
 class ReturnStatement;
 class ScopeStatement;
 struct ObjcSelector;
+class PeelStatement;
+class CompoundStatement;
+class CompoundDeclarationStatement;
+class UnrolledLoopStatement;
+class WhileStatement;
+class DoStatement;
+class ForStatement;
+class IfStatement;
+class SwitchStatement;
+class CaseRangeStatement;
+class DefaultStatement;
+class SynchronizedStatement;
+class TryCatchStatement;
+class TryFinallyStatement;
+class DebugStatement;
+class LabelStatement;
 class ErrorInitializer;
 class VoidInitializer;
 class StructInitializer;
+class ArrayInitializer;
 class ExpInitializer;
 class CInitializer;
 class ErrorStatement;
 class ExpStatement;
-class CompoundStatement;
-class IfStatement;
 class ConditionalStatement;
 class StaticForeachStatement;
-class DefaultStatement;
-class LabelStatement;
 class GotoDefaultStatement;
 class BreakStatement;
 class DtorExpStatement;
 class CompileStatement;
 class ForwardingStatement;
-class DoStatement;
-class WhileStatement;
-class ForStatement;
-class SwitchStatement;
 class ContinueStatement;
-class TryCatchStatement;
 class ThrowStatement;
-class DebugStatement;
-class TryFinallyStatement;
 class ScopeGuardStatement;
 class SwitchErrorStatement;
-class UnrolledLoopStatement;
-class CompoundDeclarationStatement;
 struct Token;
 struct code;
 class StaticAssert;
@@ -2833,6 +2840,60 @@ public:
     ~NewDeclaration();
 };
 
+class SemanticTimePermissiveVisitor : public Visitor
+{
+public:
+    using Visitor::visit;
+    void visit(Dsymbol* _param_0);
+    void visit(Parameter* _param_0);
+    void visit(Statement* _param_0);
+    void visit(Type* _param_0);
+    void visit(Expression* _param_0);
+    void visit(TemplateParameter* _param_0);
+    void visit(Condition* _param_0);
+    void visit(Initializer* _param_0);
+};
+
+class StatementRewriteWalker : public SemanticTimePermissiveVisitor
+{
+public:
+    using SemanticTimePermissiveVisitor::visit;
+    Statement** ps;
+    void visitStmt(Statement*& s);
+    void replaceCurrent(Statement* s);
+    void visit(PeelStatement* s);
+    void visit(CompoundStatement* s);
+    void visit(CompoundDeclarationStatement* s);
+    void visit(UnrolledLoopStatement* s);
+    void visit(ScopeStatement* s);
+    void visit(WhileStatement* s);
+    void visit(DoStatement* s);
+    void visit(ForStatement* s);
+    void visit(ForeachStatement* s);
+    void visit(ForeachRangeStatement* s);
+    void visit(IfStatement* s);
+    void visit(SwitchStatement* s);
+    void visit(CaseStatement* s);
+    void visit(CaseRangeStatement* s);
+    void visit(DefaultStatement* s);
+    void visit(SynchronizedStatement* s);
+    void visit(WithStatement* s);
+    void visit(TryCatchStatement* s);
+    void visit(TryFinallyStatement* s);
+    void visit(DebugStatement* s);
+    void visit(LabelStatement* s);
+};
+
+class NrvoWalker final : public StatementRewriteWalker
+{
+public:
+    using StatementRewriteWalker::visit;
+    FuncDeclaration* fd;
+    Scope* sc;
+    void visit(ReturnStatement* s);
+    void visit(TryFinallyStatement* s);
+};
+
 class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
@@ -4748,50 +4809,6 @@ public:
     virtual void visit(ClassReferenceExp* e);
     virtual void visit(VoidInitExp* e);
     virtual void visit(ThrownExceptionExp* e);
-};
-
-class SemanticTimePermissiveVisitor : public Visitor
-{
-public:
-    using Visitor::visit;
-    void visit(Dsymbol* _param_0);
-    void visit(Parameter* _param_0);
-    void visit(Statement* _param_0);
-    void visit(Type* _param_0);
-    void visit(Expression* _param_0);
-    void visit(TemplateParameter* _param_0);
-    void visit(Condition* _param_0);
-    void visit(Initializer* _param_0);
-};
-
-class StatementRewriteWalker : public SemanticTimePermissiveVisitor
-{
-public:
-    using SemanticTimePermissiveVisitor::visit;
-    Statement** ps;
-    void visitStmt(Statement*& s);
-    void replaceCurrent(Statement* s);
-    void visit(PeelStatement* s);
-    void visit(CompoundStatement* s);
-    void visit(CompoundDeclarationStatement* s);
-    void visit(UnrolledLoopStatement* s);
-    void visit(ScopeStatement* s);
-    void visit(WhileStatement* s);
-    void visit(DoStatement* s);
-    void visit(ForStatement* s);
-    void visit(ForeachStatement* s);
-    void visit(ForeachRangeStatement* s);
-    void visit(IfStatement* s);
-    void visit(SwitchStatement* s);
-    void visit(CaseStatement* s);
-    void visit(CaseRangeStatement* s);
-    void visit(DefaultStatement* s);
-    void visit(SynchronizedStatement* s);
-    void visit(WithStatement* s);
-    void visit(TryCatchStatement* s);
-    void visit(TryFinallyStatement* s);
-    void visit(DebugStatement* s);
-    void visit(LabelStatement* s);
 };
 
 class StoppableVisitor : public Visitor
@@ -7382,16 +7399,6 @@ public:
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
-
-class NrvoWalker final : public StatementRewriteWalker
-{
-public:
-    using StatementRewriteWalker::visit;
-    FuncDeclaration* fd;
-    Scope* sc;
-    void visit(ReturnStatement* s);
-    void visit(TryFinallyStatement* s);
-};
 
 extern void json_generate(OutBuffer* buf, Array<Module* >* modules);
 
