@@ -417,8 +417,6 @@ struct Array final
     void shift(T ptr);
     void zero();
     T pop();
-    typedef length opDollar;
-    typedef length dim;
     Array()
     {
     }

@@ -840,7 +840,7 @@ public:
         if (vd.type && vd.type.isTypeTuple())
             return;
 
-        if (vd.type == AST.Type.tsize_t)
+        if (vd.originalType && vd.type == AST.Type.tsize_t)
             origType = &vd.originalType;
         scope(exit) origType = null;
 
@@ -998,14 +998,14 @@ public:
 
         if (auto t = ad.type)
         {
-            if (t.ty == AST.Tdelegate)
+            if (t.ty == AST.Tdelegate || t.ty == AST.Tident)
             {
                 visit(cast(AST.Dsymbol)ad);
                 return;
             }
 
             // for function pointers we need to original type
-            if (ad.type.ty == AST.Tpointer &&
+            if (ad.originalType && ad.type.ty == AST.Tpointer &&
                 (cast(AST.TypePointer)t).nextOf.ty == AST.Tfunction)
             {
                 origType = &ad.originalType;
