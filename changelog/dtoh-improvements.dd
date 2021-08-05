@@ -26,6 +26,7 @@ experimental C++ header generator:
 - No longer omits the parent aggregate when referencing `__gshared` variables
 - No longer uses D syntax for expressions nested in unary / binary expressions
 - Does not emit `public:`, ... inside of anonymous structs/unions
+- Does not emit `typedef` for aliases to declaration symbols
 
 Note: The header generator is still considerer experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
