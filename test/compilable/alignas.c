@@ -2,13 +2,11 @@
 
 int printf(const char *, ...);
 
-_Alignas(2) int x = 5;
-// not working because of https://issues.dlang.org/show_bug.cgi?22180
-//_Static_assert(_Alignof(x) == 4, "in");
+_Alignas(8) int x = 5;
+_Static_assert(_Alignof(x) == 8, "in");
 
-_Alignas(long) int y = 6;
-// not working because of https://issues.dlang.org/show_bug.cgi?22180
-//_Static_assert(_Alignof(x) == 8, "in");
+_Alignas(int) short y = 6;
+_Static_assert(_Alignof(y) == 4, "in");
 
 struct S
 {
