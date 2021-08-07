@@ -121,7 +121,7 @@ public:
 class AlignDeclaration : public AttribDeclaration
 {
 public:
-    Expression *ealign;
+    Expressions *alignExps;
     structalign_t salign;
 
     AlignDeclaration(const Loc &loc, Expression *ealign, Dsymbols *decl);
