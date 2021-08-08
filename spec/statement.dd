@@ -1107,7 +1107,7 @@ $(GNAME StatementNoCaseNoDefault):
 )
 
         $(P $(I Expression) is evaluated.
-        If the type of the $(I Expression) is $(CODE enum),
+        If the type of the $(I Expression) is `enum`,
         it is repeatedly converted
         to its $(GLINK2 enum, EnumBaseType) until it isn't. Then,
         if the type is integral,
