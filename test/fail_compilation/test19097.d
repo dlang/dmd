@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip1000
+/* REQUIRED_ARGS: -preview=dip1000
  * TEST_OUTPUT:
 ---
 fail_compilation/test19097.d(35): Error: scope variable `s` may not be returned
