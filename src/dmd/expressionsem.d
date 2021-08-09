@@ -5067,6 +5067,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 else if (isNeedThisScope(sc, exp.f))
                 {
+                    // At this point it is possible that `exp.f` had an ambiguity error that was
+                    // silenced because the previous call to `resolveFuncCall` was done using
+                    // `FuncResolveFlag.overloadOnly`. To make sure that a proper error message
+                    // is printed, redo the call with `FuncResolveFlag.standard`.
+                    //
+                    // https://issues.dlang.org/show_bug.cgi?id=22157
+                    if (exp.f.overnext)
+                        exp.f = resolveFuncCall(exp.loc, sc, exp.f, tiargs, null, exp.arguments, FuncResolveFlag.standard);
+
+                    if (!exp.f || exp.f.errors)
+                        return setError();
+
+                    // If no error is printed, it means that `f` is the single matching overload
+                    // and it needs `this`.
                     exp.error("need `this` for `%s` of type `%s`", exp.f.toChars(), exp.f.type.toChars());
                     return setError();
                 }

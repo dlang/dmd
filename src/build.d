@@ -316,7 +316,7 @@ DFLAGS=%DFLAGS% -L/OPT:NOICF
     {
         enum confFile = "dmd.conf";
         enum conf = `[Environment32]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic}
+DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic} -fPIC
 
 [Environment64]
 DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC
@@ -1021,14 +1021,9 @@ void parseEnvironment()
     // detect PIC
     version(Posix)
     {
-        // default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+        // default to PIC if the host compiler supports, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.
-        bool pic;
-        if (model == "64")
-            pic = true;
-        else if (model == "32")
-            pic = false;
-
+        bool pic = true;
         const picValue = env.getDefault("PIC", "");
         switch (picValue)
         {
@@ -1037,6 +1032,15 @@ void parseEnvironment()
             case "1": pic = true; break;
             default:
                 throw abortBuild(format("Variable 'PIC' should be '0', '1' or <empty> but got '%s'", picValue));
+        }
+        version (X86)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=20466
+            static if (__VERSION__ < 2090)
+            {
+                pragma(msg, "Warning: PIC will be off by default for this build of DMD because of Issue 20466!");
+                pic = false;
+            }
         }
 
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
