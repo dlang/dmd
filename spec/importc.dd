@@ -173,6 +173,32 @@ $(H2 $(LNAME2 extensions, Extensions))
 
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
+    $(P `gcc` and `clang` are presumed to have the same behavior w.r.t. extensions,
+    so `gcc` as used here refers to both.)
+
+    $(H3 $(LNAME2 noreturn, `__attribute__((noreturn))`))
+
+    $(P `__attribute__((noreturn))` marks a function as never returning.
+    `gcc` set this as an attribute of the function, it is
+    not part of the function's type. In D, a function that never returns
+    has the return type `noreturn`. The difference can be seen with the
+    code:)
+    ---
+    attribute((noreturn)) int foo();
+    size_t x = sizeof(foo());
+    ---
+    $(P This code is accepted by `gcc`, but makes no sense for D. Hence,
+    although it works in ImportC, it is not representable as D code,
+    meaning one must use judgement in creating a .di file to interface
+    with C `noreturn` functions.)
+
+    $(P Furthermore, the D compiler takes advantage of `noreturn` functions
+    by issuing compile time errors for unreachable code. Such unreachable
+    code, however, is valid C11, and the ImportC compiler will accept it.)
+
+    $(BEST_PRACTICE C code that uses the `noreturn` attribute should at the
+    very least set the return type to `void`.)
+
 
 $(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
 
