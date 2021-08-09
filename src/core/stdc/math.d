@@ -738,12 +738,12 @@ else version (CRuntime_Musl)
 
     //int fpclassify(real-floating x);
       ///
-    pragma(mangle, "__fpclassifyf") int fpclassify(float x);
+    pragma(mangle, "__fpclassifyf") pure int fpclassify(float x);
     ///
-    pragma(mangle, "__fpclassify")  int fpclassify(double x);
+    pragma(mangle, "__fpclassify")  pure int fpclassify(double x);
     ///
     pragma(mangle, real.sizeof == double.sizeof ? "__fpclassify" : "__fpclassifyl")
-    int fpclassify(real x);
+    pure int fpclassify(real x);
   extern (D) pure
   {
     private uint __FLOAT_BITS(float __f)
@@ -817,12 +817,12 @@ else version (CRuntime_Musl)
 
     //int signbit(real-floating x);
     ///
-    pragma(mangle, "__signbitf") int signbit(float x);
+    pragma(mangle, "__signbitf") pure int signbit(float x);
     ///
-    pragma(mangle, "__signbit")  int signbit(double x);
+    pragma(mangle, "__signbit")  pure int signbit(double x);
     ///
     pragma(mangle, real.sizeof == double.sizeof ? "__signbit" : "__signbitl")
-    int signbit(real x);
+    pure int signbit(real x);
 }
 else version (CRuntime_UClibc)
 {
