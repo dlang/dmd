@@ -2670,7 +2670,7 @@ public:
     Array<FuncDeclaration* >* inlinedNestedCallees;
     uint32_t flags;
     ObjcFuncDeclaration objc;
-    static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type);
+    static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type, bool noreturn = false);
     FuncDeclaration* syntaxCopy(Dsymbol* s);
     bool functionSemantic();
     bool functionSemantic3();
@@ -2774,6 +2774,7 @@ enum class FUNCFLAG : uint32_t
     compileTimeOnly = 256u,
     printf = 512u,
     scanf = 1024u,
+    noreturn = 2048u,
 };
 
 class FuncAliasDeclaration final : public FuncDeclaration
@@ -8195,6 +8196,7 @@ struct Id final
     static Identifier* dllimport;
     static Identifier* dllexport;
     static Identifier* vector_size;
+    static Identifier* noreturn;
     static void initialize();
     Id()
     {

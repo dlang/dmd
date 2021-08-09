@@ -603,7 +603,7 @@ public:
     // integration.
     ObjcFuncDeclaration objc;
 
-    static FuncDeclaration *create(const Loc &loc, const Loc &endloc, Identifier *id, StorageClass storage_class, Type *type);
+    static FuncDeclaration *create(const Loc &loc, const Loc &endloc, Identifier *id, StorageClass storage_class, Type *type, bool noreturn = false);
     FuncDeclaration *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
