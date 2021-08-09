@@ -832,7 +832,7 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!vd);
 
-        if (!shouldEmit(vd))
+        if (!shouldEmitAndMarkVisited(vd))
             return;
 
         // Tuple field are expanded into multiple VarDeclarations
@@ -991,7 +991,7 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!ad);
 
-        if (!shouldEmit(ad))
+        if (!shouldEmitAndMarkVisited(ad))
             return;
 
         writeProtection(ad.visibility.kind);
@@ -1175,7 +1175,7 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!sd);
 
-        if (!shouldEmit(sd))
+        if (!shouldEmitAndMarkVisited(sd))
             return;
 
         const ignoredStash = this.ignoredCounter;
@@ -1377,7 +1377,10 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!cd);
 
-        if (!shouldEmit(cd))
+        if (cd.baseClass && shouldEmit(cd))
+            includeSymbol(cd.baseClass);
+
+        if (!shouldEmitAndMarkVisited(cd))
             return;
 
         writeProtection(cd.visibility.kind);
@@ -1404,7 +1407,6 @@ public:
             else
             {
                 writeFullName(base.sym);
-                includeSymbol(base.sym);
             }
         }
 
@@ -1441,7 +1443,7 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!ed);
 
-        if (!shouldEmit(ed))
+        if (!shouldEmitAndMarkVisited(ed))
             return;
 
         if (ed.isSpecial())
@@ -2018,7 +2020,7 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!td);
 
-        if (!shouldEmit(td))
+        if (!shouldEmitAndMarkVisited(td))
             return;
 
         if (!td.parameters || !td.onemember || (!td.onemember.isStructDeclaration && !td.onemember.isClassDeclaration && !td.onemember.isFuncDeclaration))
@@ -2729,7 +2731,6 @@ public:
 
     /**
      * Determines whether `s` should be emitted. This requires that `sym`
-     * - was not visited before
      * - is `extern(C[++]`)
      * - is not instantiated from a template (visits the `TemplateDeclaration` instead)
      *
@@ -2737,13 +2738,52 @@ public:
      *   sym = the symbol
      *
      * Returns: whether `sym` should be emitted
-     **/
+     */
     private bool shouldEmit(AST.Dsymbol sym)
+    {
+        import dmd.aggregate : ClassKind;
+        debug (Debug_DtoH)
+        {
+            printf("[shouldEmitAndMarkVisited enter] %s\n", sym.toPrettyChars());
+            scope(exit) printf("[shouldEmitAndMarkVisited exit] %s\n", sym.toPrettyChars());
+        }
+
+        // Template *instances* should not be emitted
+        if (sym.isInstantiated())
+            return false;
+
+        // Matching linkage (except extern(C) classes which don't make sense)
+        if (linkage == LINK.cpp || (linkage == LINK.c && !sym.isClassDeclaration()))
+            return true;
+
+        // Check against the internal information which might be missing, e.g. inside of template declarations
+        if (auto dec = sym.isDeclaration())
+            return dec.linkage == LINK.cpp || dec.linkage == LINK.c;
+
+        if (auto ad = sym.isAggregateDeclaration())
+            return ad.classKind == ClassKind.cpp;
+
+        return false;
+    }
+
+    /**
+     * Determines whether `s` should be emitted. This requires that `sym`
+     * - was not visited before
+     * - is `extern(C[++]`)
+     * - is not instantiated from a template (visits the `TemplateDeclaration` instead)
+     * The result is cached in the visited nodes array.
+     *
+     * Params:
+     *   sym = the symbol
+     *
+     * Returns: whether `sym` should be emitted
+     **/
+    private bool shouldEmitAndMarkVisited(AST.Dsymbol sym)
     {
         debug (Debug_DtoH)
         {
-            printf("[shouldEmit enter] %s\n", sym.toPrettyChars());
-            scope(exit) printf("[shouldEmit exit] %s\n", sym.toPrettyChars());
+            printf("[shouldEmitAndMarkVisited enter] %s\n", sym.toPrettyChars());
+            scope(exit) printf("[shouldEmitAndMarkVisited exit] %s\n", sym.toPrettyChars());
         }
 
         auto statePtr = (cast(void*) sym) in visited;
