@@ -204,6 +204,7 @@ enum FUNCFLAG : uint
     compileTimeOnly  = 0x100,  /// is a compile time only function; no code will be generated for it
     printf           = 0x200,  /// is a printf-like function
     scanf            = 0x400,  /// is a scanf-like function
+    noreturn         = 0x800,  /// the function does not return
 }
 
 /***********************************************************
@@ -351,7 +352,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     ObjcFuncDeclaration objc;
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier ident, StorageClass storage_class, Type type)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier ident, StorageClass storage_class, Type type, bool noreturn = false)
     {
         super(loc, ident);
         //printf("FuncDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
@@ -365,21 +366,25 @@ extern (C++) class FuncDeclaration : Declaration
             this.storage_class &= ~(STC.TYPECTOR | STC.FUNCATTR);
         }
         this.endloc = endloc;
+        if (noreturn)
+            this.flags |= FUNCFLAG.noreturn;
+
         /* The type given for "infer the return type" is a TypeFunction with
          * NULL for the return type.
          */
         inferRetType = (type && type.nextOf() is null);
     }
 
-    static FuncDeclaration create(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type)
+    static FuncDeclaration create(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
     {
-        return new FuncDeclaration(loc, endloc, id, storage_class, type);
+        return new FuncDeclaration(loc, endloc, id, storage_class, type, noreturn);
     }
 
     override FuncDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
-        FuncDeclaration f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
+        FuncDeclaration f = s ? cast(FuncDeclaration)s
+                              : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy(), (flags & FUNCFLAG.noreturn) != 0);
         f.frequires = frequires ? Statement.arraySyntaxCopy(frequires) : null;
         f.fensures = fensures ? Ensure.arraySyntaxCopy(fensures) : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;

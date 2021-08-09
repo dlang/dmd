@@ -517,7 +517,7 @@ struct ASTBase
         ForeachStatement fes;
         FuncDeclaration overnext0;
 
-        final extern (D) this(const ref Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
+        final extern (D) this(const ref Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
         {
             super(id);
             this.storage_class = storage_class;

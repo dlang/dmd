@@ -1514,7 +1514,7 @@ final class CParser(AST) : Parser!AST
                         asmname = cparseSimpleAsmExpr();
                     if (token.value == TOK.__attribute__)
                     {
-                        cparseGnuAttributes();
+                        cparseGnuAttributes(specifier);
                         if (token.value == TOK.leftCurly)
                         {
                             error("attributes should be specified before the function definition");
@@ -1548,7 +1548,7 @@ final class CParser(AST) : Parser!AST
                 level == LVL.global &&     // function definitions only at global scope
                 t.value == TOK.leftCurly)  // start of compound-statement
             {
-                auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), specifier.scw);
+                auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), specifier);
                 symbols = symbolsSave;
                 symbols.push(s);
                 return;
@@ -1612,7 +1612,8 @@ final class CParser(AST) : Parser!AST
                         error("no initializer for function declaration");
                     if (specifier.scw & SCW.x_Thread_local)
                         error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
-                    s = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(level, specifier), dt);
+                    auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, specifiersToSTC(level, specifier), dt, specifier.noreturn);
+                    s = fd;
                 }
                 else
                 {
@@ -1686,11 +1687,11 @@ final class CParser(AST) : Parser!AST
      * Params:
      *    id = function identifier
      *    ft = function type
-     *    scw = function storage classes
+     *    specifier = function specifiers
      * Returns:
      *  Dsymbol for the function
      */
-    AST.Dsymbol cparseFunctionDefinition(Identifier id, AST.TypeFunction ft, SCW scw)
+    AST.Dsymbol cparseFunctionDefinition(Identifier id, AST.TypeFunction ft, ref Specifier specifier)
     {
         if (token.value != TOK.leftCurly)       // if not start of a compound-statement
         {
@@ -1749,9 +1750,7 @@ final class CParser(AST) : Parser!AST
         const locFunc = token.loc;
 
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
-        Specifier specifier;
-        specifier.scw = scw;
-        auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, specifiersToSTC(LVL.global, specifier), ft);
+        auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, specifiersToSTC(LVL.global, specifier), ft, specifier.noreturn);
 
         if (addFuncName)
         {
@@ -1962,7 +1961,7 @@ final class CParser(AST) : Parser!AST
                      *    struct-or-union gnu-attribute (opt) identifier
                      */
                     if (token.value == TOK.__attribute__)
-                        cparseGnuAttributes();
+                        cparseGnuAttributes(specifier);
 
                     t = cparseStruct(sloc, structOrUnion, symbols);
                     tkwx = TKW.xtag;
@@ -2029,7 +2028,7 @@ final class CParser(AST) : Parser!AST
                      * declaration-specifiers:
                      *    gnu-attributes declaration-specifiers (opt)
                      */
-                    cparseGnuAttributes();
+                    cparseGnuAttributes(specifier);
                     break;
                 }
 
@@ -2680,14 +2679,30 @@ final class CParser(AST) : Parser!AST
      * gnu-attribute-list:
      *    gnu-attribute (opt)
      *    gnu-attribute-list , gnu-attribute
+     *
+     * Params:
+     *  specifier = filled in with the attribute(s)
      */
-    private void cparseGnuAttributes()
+    private void cparseGnuAttributes(ref Specifier specifier)
     {
         while (token.value == TOK.__attribute__)
         {
             nextToken();     // move past __attribute__
             check(TOK.leftParenthesis);
-            cparseParens(); // TODO: implement
+            check(TOK.leftParenthesis);
+
+            if (token.value != TOK.rightParenthesis)
+            {
+                while (1)
+                {
+                    cparseGnuAttribute(specifier);
+                    if (token.value != TOK.comma)
+                        break;
+                    nextToken();
+                }
+            }
+
+            check(TOK.rightParenthesis);
             check(TOK.rightParenthesis);
         }
     }
@@ -2707,58 +2722,48 @@ final class CParser(AST) : Parser!AST
      * expression-list:
      *    constant-expression
      *    expression-list , constant-expression
+     *
+     * Params:
+     *  specifier = filled in with the attribute(s)
      */
-    private void cparseGnuAttribute()
+    private void cparseGnuAttribute(ref Specifier specifier)
     {
         /* Check for dllimport, dllexport, vector_size(bytes)
          * Ignore the rest
          */
         bool dllimport;  // TODO implement
         bool dllexport;  // TODO implement
-        nextToken();     // move past __attribute__
-        check(TOK.leftParenthesis);
-        check(TOK.leftParenthesis);
-        while (1)
+
+        if (token.value == TOK.identifier)
         {
-            if (token.value == TOK.rightParenthesis)
+            if (token.ident == Id.dllimport)
+            {
+                dllimport = true;
+                nextToken();
+            }
+            else if (token.ident == Id.dllexport)
+            {
+                dllexport = true;
+                nextToken();
+            }
+            else if (token.ident == Id.noreturn)
+            {
+                specifier.noreturn = true;
+                nextToken();
+            }
+            else if (token.ident == Id.vector_size)
             {
                 nextToken();
+                check(TOK.leftParenthesis);
+                cparseConstantExp();  // TODO implement
                 check(TOK.rightParenthesis);
-                break;
-            }
-            else if (token.value == TOK.endOfFile)
-                break;
-            else if (token.value == TOK.identifier)
-            {
-                if (token.ident == Id.dllimport)
-                {
-                    dllimport = true;
-                    nextToken();
-                }
-                else if (token.ident == Id.dllexport)
-                {
-                    dllexport = true;
-                    nextToken();
-                }
-                else if (token.ident == Id.vector_size)
-                {
-                    nextToken();
-                    check(TOK.leftParenthesis);
-                    cparseConstantExp();  // TODO implement
-                    check(TOK.rightParenthesis);
-                }
-                else
-                {
-                    nextToken();
-                    if (token.value == TOK.leftParenthesis)
-                        cparseParens();
-                }
             }
             else
             {
-                error("extended-decl-modifier expected");
+                nextToken();
+                if (token.value == TOK.leftParenthesis)
+                    cparseParens();
             }
-            break;
         }
     }
 
@@ -2842,8 +2847,9 @@ final class CParser(AST) : Parser!AST
          *    enum gnu-attributes (opt) identifier (opt) { enumerator-list , } gnu-attributes (opt)
          *    enum gnu-attributes (opt) identifier
          */
+        Specifier specifier;
         if (token.value == TOK.__attribute__)
-            cparseGnuAttributes();
+            cparseGnuAttributes(specifier);
 
         Identifier tag;
         if (token.value == TOK.identifier)
@@ -2896,7 +2902,7 @@ final class CParser(AST) : Parser!AST
              * Parse the postfix gnu-attributes (opt)
              */
             if (token.value == TOK.__attribute__)
-                cparseGnuAttributes();
+                cparseGnuAttributes(specifier);
         }
         else if (!tag)
             error("missing `identifier` after `enum`");
@@ -3087,7 +3093,7 @@ final class CParser(AST) : Parser!AST
              *    declarator (opt) : constant-expression gnu-attributes (opt)
              */
             if (token.value == TOK.__attribute__)
-                cparseGnuAttributes();
+                cparseGnuAttributes(specifier);
 
             AST.Dsymbol s = null;
             symbols = symbolsSave;
@@ -3971,6 +3977,7 @@ final class CParser(AST) : Parser!AST
      */
     struct Specifier
     {
+        bool noreturn;  /// noreturn attribute
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
         AST.Expression ealign;  /// alignment
