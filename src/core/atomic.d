@@ -66,7 +66,7 @@ enum MemoryOrder
  * Returns:
  *  The value of 'val'.
  */
-T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(return ref const T val) pure nothrow @nogc @trusted
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(ref return scope const T val) pure nothrow @nogc @trusted
     if (!is(T == shared U, U) && !is(T == shared inout U, U) && !is(T == shared const U, U))
 {
     static if (__traits(isFloating, T))
@@ -80,7 +80,7 @@ T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(return ref const T val) pure n
 }
 
 /// Ditto
-T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(return ref shared const T val) pure nothrow @nogc @trusted
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(ref return scope shared const T val) pure nothrow @nogc @trusted
     if (!hasUnsharedIndirections!T)
 {
     import core.internal.traits : hasUnsharedIndirections;
@@ -162,7 +162,7 @@ void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)(ref shared T val, share
  * Returns:
  *  The value held previously by `val`.
  */
-T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)(return ref T val, size_t mod) pure nothrow @nogc @trusted
+T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)(ref return scope T val, size_t mod) pure nothrow @nogc @trusted
     if ((__traits(isIntegral, T) || is(T == U*, U)) && !is(T == shared))
 in (atomicValueIsProperlyAligned(val))
 {
@@ -173,7 +173,7 @@ in (atomicValueIsProperlyAligned(val))
 }
 
 /// Ditto
-T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)(return ref shared T val, size_t mod) pure nothrow @nogc @trusted
+T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)(ref return scope shared T val, size_t mod) pure nothrow @nogc @trusted
     if (__traits(isIntegral, T) || is(T == U*, U))
 in (atomicValueIsProperlyAligned(val))
 {
@@ -191,7 +191,7 @@ in (atomicValueIsProperlyAligned(val))
  * Returns:
  *  The value held previously by `val`.
  */
-T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)(return ref T val, size_t mod) pure nothrow @nogc @trusted
+T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)(ref return scope T val, size_t mod) pure nothrow @nogc @trusted
     if ((__traits(isIntegral, T) || is(T == U*, U)) && !is(T == shared))
 in (atomicValueIsProperlyAligned(val))
 {
@@ -202,7 +202,7 @@ in (atomicValueIsProperlyAligned(val))
 }
 
 /// Ditto
-T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)(return ref shared T val, size_t mod) pure nothrow @nogc @trusted
+T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)(ref return scope shared T val, size_t mod) pure nothrow @nogc @trusted
     if (__traits(isIntegral, T) || is(T == U*, U))
 in (atomicValueIsProperlyAligned(val))
 {
