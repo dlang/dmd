@@ -208,6 +208,7 @@ class RemoveExp;
 class EqualExp;
 class IdentityExp;
 class CondExp;
+class GenericExp;
 class DefaultInitExp;
 class FileInitExp;
 class LineInitExp;
@@ -1654,6 +1655,7 @@ public:
     EqualExp* isEqualExp();
     IdentityExp* isIdentityExp();
     CondExp* isCondExp();
+    GenericExp* isGenericExp();
     DefaultInitExp* isDefaultInitExp();
     FileInitExp* isFileInitExp();
     LineInitExp* isLineInitExp();
@@ -2235,6 +2237,7 @@ public:
     virtual void visit(typename AST::SymbolExp e);
     virtual void visit(typename AST::TupleExp e);
     virtual void visit(typename AST::ThisExp e);
+    virtual void visit(typename AST::GenericExp e);
     virtual void visit(typename AST::VarExp e);
     virtual void visit(typename AST::DollarExp e);
     virtual void visit(typename AST::SuperExp e);
@@ -4542,6 +4545,7 @@ struct ASTCodegen final
     using FileInitExp = ::FileInitExp;
     using FuncExp = ::FuncExp;
     using FuncInitExp = ::FuncInitExp;
+    using GenericExp = ::GenericExp;
     using HaltExp = ::HaltExp;
     using IdentifierExp = ::IdentifierExp;
     using IdentityExp = ::IdentityExp;
@@ -7397,6 +7401,16 @@ public:
     void accept(Visitor* v);
 };
 
+class GenericExp final : public Expression
+{
+public:
+    Expression* cntlExp;
+    Array<Type* >* types;
+    Array<Expression* >* exps;
+    GenericExp* syntaxCopy();
+    void accept(Visitor* v);
+};
+
 extern Expression* resolveProperties(Scope* sc, Expression* e);
 
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
@@ -7763,6 +7777,7 @@ public:
     void visit(ArrayExp* e);
     void visit(PostExp* e);
     void visit(CondExp* e);
+    void visit(GenericExp* e);
     void visit(TemplateTypeParameter* tp);
     void visit(TemplateThisParameter* tp);
     void visit(TemplateAliasParameter* tp);

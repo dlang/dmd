@@ -1129,6 +1129,18 @@ package mixin template ParseVisitMethods(AST)
         e.e2.accept(this);
     }
 
+    override void visit(AST.GenericExp e)
+    {
+        //printf("Visiting GenericExp\n");
+        e.cntlExp.accept(this);
+        foreach (i; 0 .. (*e.types).length)
+        {
+            if (auto t = (*e.types)[i])  // null means default case
+                t.accept(this);
+            (*e.exps )[i].accept(this);
+        }
+    }
+
 // Template Parameter
 //===========================================================
 

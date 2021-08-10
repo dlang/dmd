@@ -11657,6 +11657,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
+    override void visit(GenericExp exp)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("GenericExp::semantic('%s')\n", exp.toChars());
+        }
+        error(exp.loc, "`_Generic` not supported");  // TODO
+        setError();
+    }
+
     override void visit(FileInitExp e)
     {
         //printf("FileInitExp::semantic()\n");

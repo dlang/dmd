@@ -44,6 +44,7 @@ struct ASTBase
     alias Dsymbols              = Array!(Dsymbol);
     alias Objects               = Array!(RootObject);
     alias Expressions           = Array!(Expression);
+    alias Types                 = Array!(Type);
     alias TemplateParameters    = Array!(TemplateParameter);
     alias BaseClasses           = Array!(BaseClass*);
     alias Parameters            = Array!(Parameter);
@@ -5982,6 +5983,26 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, TOK.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class GenericExp : Expression
+    {
+        Expression cntlExp;
+        Types* types;
+        Expressions* exps;
+
+        extern (D) this(const ref Loc loc, Expression cntlExp, Types* types, Expressions* exps)
+        {
+            super(loc, TOK._Generic, __traits(classInstanceSize, GenericExp));
+            this.cntlExp = cntlExp;
+            this.types = types;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)

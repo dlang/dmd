@@ -2631,6 +2631,20 @@ extern (C++) abstract class Type : ASTNode
             assert(0);
         return cast(TypeFunction)this;
     }
+
+    extern (D) static Types* arraySyntaxCopy(Types* types)
+    {
+        Types* a = null;
+        if (types)
+        {
+            a = new Types(types.length);
+            foreach (i, t; *types)
+            {
+                (*a)[i] = t ? t.syntaxCopy() : null;
+            }
+        }
+        return a;
+    }
 }
 
 /***********************************************************

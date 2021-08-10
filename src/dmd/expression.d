@@ -1730,6 +1730,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(EqualExp)    isEqualExp() { return (op == TOK.equal || op == TOK.notEqual) ? cast(typeof(return))this : null; }
         inout(IdentityExp) isIdentityExp() { return (op == TOK.identity || op == TOK.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == TOK.question ? cast(typeof(return))this : null; }
+        inout(GenericExp)  isGenericExp() { return op == TOK._Generic ? cast(typeof(return))this : null; }
         inout(DefaultInitExp)    isDefaultInitExp() { return isDefaultInitOp(op) ? cast(typeof(return))this: null; }
         inout(FileInitExp)       isFileInitExp() { return (op == TOK.file || op == TOK.fileFullPath) ? cast(typeof(return))this : null; }
         inout(LineInitExp)       isLineInitExp() { return op == TOK.line ? cast(typeof(return))this : null; }
@@ -6934,3 +6935,34 @@ extern (C++) final class ObjcClassReferenceExp : Expression
         v.visit(this);
     }
 }
+
+/*******************
+ * C11 6.5.1.1 Generic Selection
+ * For ImportC
+ */
+extern (C++) final class GenericExp : Expression
+{
+    Expression cntlExp; /// controlling expression of a generic selection (not evaluated)
+    Types* types;       /// type-names for generic associations (null entry for `default`)
+    Expressions* exps;  /// 1:1 mapping of typeNames to exps
+
+    extern (D) this(const ref Loc loc, Expression cntlExp, Types* types, Expressions* exps)
+    {
+        super(loc, TOK._Generic, __traits(classInstanceSize, GenericExp));
+        this.cntlExp = cntlExp;
+        this.types = types;
+        this.exps = exps;
+        assert(types.length == exps.length);  // must be the same and >=1
+    }
+
+    override GenericExp syntaxCopy()
+    {
+        return new GenericExp(loc, cntlExp.syntaxCopy(), Type.arraySyntaxCopy(types), Expression.arraySyntaxCopy(exps));
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
