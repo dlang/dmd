@@ -2,7 +2,7 @@
 
 int printf(const char *, ...);
 
-_Alignas(8) int x = 5;
+_Alignas(4) _Alignas(8) _Alignas(0) int x = 5;
 _Static_assert(_Alignof(x) == 8, "in");
 
 _Alignas(int) short y = 6;

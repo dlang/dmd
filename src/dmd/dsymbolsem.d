@@ -103,33 +103,57 @@ extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+/***************************************************
+ * Determine the numerical value of the AlignmentDeclaration
+ * Params:
+ *      ad = AlignmentDeclaration
+ *      sc = context
+ * Returns:
+ *      alignment as numerical value that is never 0.
+ *      STRUCTALIGN_DEFAULT is used instead.
+ *      STRUCTALIGN_DEFAULT is returned for errors
+ */
 structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
 {
-    if (ad.salign != ad.UNKNOWN)
+    if (ad.salign != ad.UNKNOWN)   // UNKNOWN is 0
         return ad.salign;
 
-    if (!ad.ealign)
+    if (!ad.exps)
         return ad.salign = STRUCTALIGN_DEFAULT;
 
-    sc = sc.startCTFE();
-    ad.ealign = ad.ealign.expressionSemantic(sc);
-    ad.ealign = resolveProperties(sc, ad.ealign);
-    sc = sc.endCTFE();
-    ad.ealign = ad.ealign.ctfeInterpret();
-
-    if (ad.ealign.op == TOK.error)
-        return ad.salign = STRUCTALIGN_DEFAULT;
-
-    Type tb = ad.ealign.type.toBasetype();
-    auto n = ad.ealign.toInteger();
-
-    if (n < 1 || n & (n - 1) || structalign_t.max < n || !tb.isintegral())
+    dinteger_t strictest = 0;   // strictest alignment
+    bool errors;
+    foreach (ref exp; (*ad.exps)[])
     {
-        error(ad.loc, "alignment must be an integer positive power of 2, not %s", ad.ealign.toChars());
-        return ad.salign = STRUCTALIGN_DEFAULT;
+        sc = sc.startCTFE();
+        auto e = exp.expressionSemantic(sc);
+        e = resolveProperties(sc, e);
+        sc = sc.endCTFE();
+        e = e.ctfeInterpret();
+        exp = e;                // could be re-evaluated if exps are assigned to more than one AlignDeclaration by CParser.applySpecifier(),
+                                // e.g. `_Alignas(8) int a, b;`
+        if (e.op == TOK.error)
+            errors = true;
+        else
+        {
+            auto n = e.toInteger();
+            if (sc.flags & SCOPE.Cfile && n == 0)       // C11 6.7.5-6 allows 0 for alignment
+                continue;
+
+            if (n < 1 || n & (n - 1) || structalign_t.max < n || !e.type.isintegral())
+            {
+                error(ad.loc, "alignment must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
+                errors = true;
+            }
+            if (n > strictest)  // C11 6.7.5-6
+                strictest = n;
+        }
     }
 
-    return ad.salign = cast(structalign_t)n;
+    ad.salign = (errors || strictest == 0)  // C11 6.7.5-6 says alignment of 0 means no effect
+                ? STRUCTALIGN_DEFAULT
+                : cast(structalign_t) strictest;
+    return ad.salign;
 }
 
 const(char)* getMessage(DeprecatedDeclaration dd)

@@ -694,7 +694,8 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
  */
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
-    Expression ealign;                              /// expression yielding the actual alignment
+    Expressions* exps;                              /// Expression(s) yielding the desired alignment,
+                                                    /// the largest value wins
     enum structalign_t UNKNOWN = 0;                 /// alignment not yet computed
     static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
 
@@ -703,17 +704,28 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     structalign_t salign = UNKNOWN;
 
 
-    extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
     {
         super(loc, null, decl);
-        this.ealign = ealign;
+        if (exp)
+        {
+            if (!exps)
+                exps = new Expressions();
+            exps.push(exp);
+        }
+    }
+
+    extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl)
+    {
+        super(loc, null, decl);
+        this.exps = exps;
     }
 
     override AlignDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new AlignDeclaration(loc,
-            ealign ? ealign.syntaxCopy() : null,
+            Expression.arraySyntaxCopy(exps),
             Dsymbol.arraySyntaxCopy(decl));
     }
 
