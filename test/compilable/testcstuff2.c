@@ -361,3 +361,18 @@ void testS22106()
 int S22106; // not a redeclaration of 'struct S22106'
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22182
+
+int test22182a(int x)
+{
+    return (int)(x);
+}
+
+typedef struct S22182 { int x; } S22182;
+
+int test22182b(S22182* b)
+{
+  return ((S22182*)(b))->x;
+}
+
+/***************************************************/
