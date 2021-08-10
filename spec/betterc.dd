@@ -63,7 +63,7 @@ Hello betterC
     be tricky, hence removing D's GC from the equation may be worthwhile sometimes.)
     )
 
-    $(P BetterC and $(LINK2 https://dlang.org/spec/importc.html) are very different.
+    $(P BetterC and $(LINK2 https://dlang.org/spec/importc.html, ImportC) are very different.
     ImportC is an actual C compiler. BetterC is a subset of D that relies only on the
     existence of the C Standard library.)
 
