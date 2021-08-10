@@ -66,7 +66,7 @@ $(OL
 )
 
 
-$(H2 Memory Model)
+$(H2 $(LINK2 memory-model, Memory Model))
 
     $(P The $(I byte) is the fundamental unit of storage. Each byte has 8 bits and is stored at
     a unique address. A $(I memory location) is a sequence of one or more bytes of the exact size
@@ -109,7 +109,7 @@ $(H2 Memory Model)
     location during the operation.)
 
 
-$(H2 Object Model)
+$(H2 $(LNAME2 object-model, Object Model))
 
     $(P An $(I object) is created in the following circumstances:
     )
@@ -139,6 +139,20 @@ $(H2 Object Model)
     location for that object. Object addresses are distinct unless one
     object is nested within the other.
     )
+
+$(H2 $(LNAME2 arithmetic, Arithmetic))
+
+    $(H3 Integer Arithmetic)
+
+    $(P Integer arithmetic is performed using
+    $(LINK2 https://en.wikipedia.org/wiki/Two%27s_complement, two's complement) math.
+    Integer overflow is not checked for.
+    )
+
+    $(H3 Floating Point Arithmetic)
+
+    $(P Floating point arithmetic is performed using
+    $(LINK2 https://en.wikipedia.org/wiki/IEEE_754, IEEE-754 floating point math).)
 
 $(SPEC_SUBNAV_NEXT lex, Lexical)
 )
