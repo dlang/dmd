@@ -5091,7 +5091,7 @@ public:
 class AlignDeclaration final : public AttribDeclaration
 {
 public:
-    Array<Expression* >* exps;
+    Expression* ealign;
     enum : uint32_t { UNKNOWN = 0u };
 
     uint32_t salign;

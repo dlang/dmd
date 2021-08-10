@@ -995,21 +995,16 @@ public:
 
     override void visit(AlignDeclaration d)
     {
-        if (d.exps)
+        buf.writestring("align ");
+        if (d.ealign)
         {
-            foreach (i, exp; (*d.exps)[])
-            {
-                if (i)
-                    buf.writeByte(' ');
-                buf.printf("align (%s)", exp.toChars());
-            }
-            if (d.decl && d.decl.dim < 2)
+            buf.printf("(%s)", d.ealign.toChars());
+            AttribDeclaration ad = cast(AttribDeclaration)d;
+            if (ad.decl && ad.decl.dim < 2)
                 buf.writeByte(' ');
         }
-        else
-            buf.writestring("align ");
 
-        visit(d.isAttribDeclaration());
+        visit(cast(AttribDeclaration)d);
     }
 
     override void visit(AnonDeclaration d)

@@ -884,7 +884,7 @@ final class CParser(AST) : Parser!AST
                 {
                     /* Expression may be either be requesting the sizeof a type-name
                      * or a compound literal, which requires checking whether
-                     * the next token is leftCurly
+                     * the next token is `{`
                      */
                     nextToken();
                     auto t = cparseTypeName();
@@ -944,7 +944,7 @@ final class CParser(AST) : Parser!AST
             if (isCastExpression(pt))
             {
                 // Expression may be either a cast or a compound literal, which
-                // requires checking whether the next token is leftCurly
+                // requires checking whether the next token is `{`
                 const loc = token.loc;
                 nextToken();
                 auto t = cparseTypeName();
@@ -2014,25 +2014,21 @@ final class CParser(AST) : Parser!AST
 
                     nextToken();
                     check(TOK.leftParenthesis);
-                    AST.Expression exp;
                     auto tk = &token;
-                    if (isTypeName(tk))  // _Alignas ( type-name )
+                    if (specifier.ealign)
+                        error("multiple `_Alignas` not supported yet"); // TODO
+                    if (isTypeName(tk))
                     {
                         auto talign = cparseTypeName();
                         /* Convert type to expression: `talign.alignof`
                          */
                         auto e = new AST.TypeExp(loc, talign);
-                        exp = new AST.DotIdExp(loc, e, Id.__xalignof);
+                        specifier.ealign = new AST.DotIdExp(loc, e, Id.__xalignof);
                     }
-                    else  // _Alignas ( constant-expression )
+                    else
                     {
-                        exp = cparseConstantExp();
+                        specifier.ealign = cparseConstantExp();
                     }
-
-                    if (!specifier.alignExps)
-                        specifier.alignExps = new AST.Expressions(0);
-                    specifier.alignExps.push(exp);
-
                     check(TOK.rightParenthesis);
                     break;
                 }
@@ -4002,7 +3998,7 @@ final class CParser(AST) : Parser!AST
         bool noreturn;  /// noreturn attribute
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
-        AST.Expressions*  alignExps;  /// alignment
+        AST.Expression ealign;  /// alignment
     }
 
     /***********************
@@ -4167,12 +4163,12 @@ final class CParser(AST) : Parser!AST
      */
     private AST.Dsymbol applySpecifier(AST.Dsymbol s, ref Specifier specifier)
     {
-        if (specifier.alignExps)
+        if (specifier.ealign)
         {
             // Wrap declaration in an AlignDeclaration
             auto decls = new AST.Dsymbols(1);
             (*decls)[0] = s;
-            s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls);
+            s = new AST.AlignDeclaration(s.loc, specifier.ealign, decls);
         }
         return s;
     }
