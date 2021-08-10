@@ -101,6 +101,13 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     $(P and the preprocessed output is written to $(TT file.i).)
 
 
+$(H2 $(LNAME2 predefined-macros, Predefined Macros))
+
+    $(P ImportC does not predefine any macros.)
+
+    $(BEST_PRACTICE To distinguish an ImportC compile vs some other C compiler, define
+    `__IMPORTC__` to be `1` when the preprocessor is run.)
+
 $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
 
     $(P Nevertheless, ImportC supports these preprocessor directives:)
