@@ -1532,9 +1532,9 @@ final class CParser(AST) : Parser!AST
                     break;
             }
 
-            if (specifier.ealign && dt.isTypeFunction())
+            if (specifier.alignExps && dt.isTypeFunction())
                 error("no alignment-specifier for function declaration"); // C11 6.7.5-2
-            if (specifier.ealign && specifier.scw == SCW.xregister)
+            if (specifier.alignExps && specifier.scw == SCW.xregister)
                 error("no alignment-specifier for `register` storage class"); // C11 6.7.5-2
 
             /* C11 6.9.1 Function Definitions
@@ -1569,7 +1569,7 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.value == TOK.assign)
                     error("no initializer for typedef declaration");
-                if (specifier.ealign)
+                if (specifier.alignExps)
                     error("no alignment-specifier for typedef declaration"); // C11 6.7.5-2
 
                 bool isalias = true;
@@ -3078,7 +3078,7 @@ final class CParser(AST) : Parser!AST
             if (token.value == TOK.colon)
             {
                 // C11 6.7.2.1-12 unnamed bit-field
-                if (specifier.ealign)
+                if (specifier.alignExps)
                     error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
                 nextToken();
                 cparseConstantExp();
@@ -3097,7 +3097,7 @@ final class CParser(AST) : Parser!AST
             {
                 // C11 6.7.2.1-10 bit-field
 
-                if (specifier.ealign)
+                if (specifier.alignExps)
                     error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
 
                 nextToken();
