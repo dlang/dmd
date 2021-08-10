@@ -1532,6 +1532,11 @@ final class CParser(AST) : Parser!AST
                     break;
             }
 
+            if (specifier.ealign && dt.isTypeFunction())
+                error("no alignment-specifier for function declaration"); // C11 6.7.5-2
+            if (specifier.ealign && specifier.scw == SCW.xregister)
+                error("no alignment-specifier for `register` storage class"); // C11 6.7.5-2
+
             /* C11 6.9.1 Function Definitions
              * function-definition:
              *   declaration-specifiers declarator declaration-list (opt) compound-statement
@@ -1564,6 +1569,8 @@ final class CParser(AST) : Parser!AST
             {
                 if (token.value == TOK.assign)
                     error("no initializer for typedef declaration");
+                if (specifier.ealign)
+                    error("no alignment-specifier for typedef declaration"); // C11 6.7.5-2
 
                 bool isalias = true;
                 if (auto ts = dt.isTypeStruct())
@@ -1733,7 +1740,7 @@ final class CParser(AST) : Parser!AST
                 foreach (s; (*symbols)[]) // yes, quadratic
                 {
                     auto d = s.isDeclaration();
-                    if (p.ident == d.ident && d.type)
+                    if (d && p.ident == d.ident && d.type)
                     {
                         p.type = d.type;
                         p.storageClass = d.storage_class;
@@ -2001,6 +2008,10 @@ final class CParser(AST) : Parser!AST
                      * _Alignas ( type-name )
                      * _Alignas ( constant-expression )
                      */
+
+                    if (level & (LVL.parameter | LVL.prototype))
+                        error("no alignment-specifier for parameters"); // C11 6.7.5-2
+
                     nextToken();
                     check(TOK.leftParenthesis);
                     auto tk = &token;
@@ -3063,6 +3074,8 @@ final class CParser(AST) : Parser!AST
             if (token.value == TOK.colon)
             {
                 // C11 6.7.2.1-12 unnamed bit-field
+                if (specifier.ealign)
+                    error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
                 nextToken();
                 cparseConstantExp();
                 error("unnamed bit fields are not supported"); // TODO
@@ -3079,8 +3092,13 @@ final class CParser(AST) : Parser!AST
             if (id && token.value == TOK.colon)
             {
                 // C11 6.7.2.1-10 bit-field
+
+                if (specifier.ealign)
+                    error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
+
                 nextToken();
                 cparseConstantExp();
+
                 error("bit fields are not supported"); // TODO
             }
 
