@@ -100,6 +100,7 @@ immutable PREC[TOK.max + 1] precedence =
     TOK.overloadSet : PREC.primary,
     TOK.void_ : PREC.primary,
     TOK.vectorArray : PREC.primary,
+    TOK._Generic : PREC.primary,
 
     // post
     TOK.dotTemplateInstance : PREC.primary,

@@ -1376,28 +1376,33 @@ final class CParser(AST) : Parser!AST
         const loc = token.loc;
         nextToken();
         check(TOK.leftParenthesis);
-        cparseAssignExp();
+        auto cntlExp = cparseAssignExp();
         check(TOK.comma);
+        auto types = new AST.Types();
+        auto exps = new AST.Expressions();
         bool sawDefault;
         while (1)
         {
+            AST.Type t;
             if (token.value == TOK.default_)
             {
                 if (sawDefault)
                     error("only one `default` allowed in generic-assoc-list");
                 sawDefault = true;
+                t = null;
             }
             else
-                cparseTypeName();
+                t = cparseTypeName();
+            types.push(t);
 
             check(TOK.colon);
-            cparseAssignExp();
+            auto e = cparseAssignExp();
+            exps.push(e);
             if (token.value == TOK.rightParenthesis || token.value == TOK.endOfFile)
                 break;
         }
         check(TOK.rightParenthesis);
-        error("`_Generic` not supported");  // TODO
-        return new AST.IntegerExp(loc, 0, AST.Type.tint32);
+        return new AST.GenericExp(loc, cntlExp, types, exps);
     }
 
     /***********************

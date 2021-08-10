@@ -209,6 +209,7 @@ public:
     EqualExp* isEqualExp();
     IdentityExp* isIdentityExp();
     CondExp* isCondExp();
+    GenericExp* isGenericExp();
     DefaultInitExp* isDefaultInitExp();
     FileInitExp* isFileInitExp();
     LineInitExp* isLineInitExp();
@@ -1260,6 +1261,17 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void hookDtors(Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class GenericExp : Expression
+{
+    Expression cntlExp;
+    Types *types;
+    Expressions *exps;
+
+    GenericExp *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };
