@@ -959,7 +959,7 @@ final class CParser(AST) : Parser!AST
                 }
                 else
                 {
-                    // (type-name) cast-expression
+                    // ( type-name ) cast-expression
                     auto ce = cparseCastExp();
                     return new AST.CastExp(loc, ce, t);
                 }
@@ -3806,18 +3806,24 @@ final class CParser(AST) : Parser!AST
                         goto default; // could be ( type-name ) ( unary-expression )
                     return false;
                 }
-                t = peek(tk);  // move past right parenthesis
+                tk = peek(tk);  // move past right parenthesis
 
-                if (t.value == TOK.leftCurly)
+                if (tk.value == TOK.leftCurly)
                 {
                     // ( type-name ) { initializer-list }
-                    if (!isInitializer(t))
+                    if (!isInitializer(tk))
                         return false;
+                    t = tk;
                     break;
                 }
-                if (!isCastExpression(t, true))
+                if (!isCastExpression(tk, true))
+                {
+                    if (afterParenType) // could be ( type-name ) ( unary-expression )
+                        goto default;   // where unary-expression also matched type-name
                     return false;
+                }
                 // ( type-name ) cast-expression
+                t = tk;
                 break;
 
             default:
