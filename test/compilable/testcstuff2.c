@@ -361,6 +361,11 @@ void testS22106()
 int S22106; // not a redeclaration of 'struct S22106'
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22160
+
+typedef struct testcstuff2 testcstuff2;
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22182
 
 int test22182a(int x)

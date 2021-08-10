@@ -2085,7 +2085,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
          */
         Dsymbol scopesym;
         auto s = sc.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors | TagNameSpace);
-        if (!s)
+        if (!s || s.isModule())
         {
             // no pre-existing declaration, so declare it
             if (mtype.tok == TOK.enum_ && !mtype.members)
