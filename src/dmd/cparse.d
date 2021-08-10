@@ -2754,6 +2754,9 @@ final class CParser(AST) : Parser!AST
         bool dllimport;  // TODO implement
         bool dllexport;  // TODO implement
 
+        if (!isGnuAttributeName())
+            return;
+
         if (token.value == TOK.identifier)
         {
             if (token.ident == Id.dllimport)
@@ -2784,6 +2787,53 @@ final class CParser(AST) : Parser!AST
                 if (token.value == TOK.leftParenthesis)
                     cparseParens();
             }
+        }
+        else
+        {
+            nextToken();
+            if (token.value == TOK.leftParenthesis)
+                cparseParens();
+        }
+    }
+
+    /*************************
+     * See if match for GNU attribute name, which may be any identifier,
+     * storage-class-specifier, type-specifier, or type-qualifier.
+     * Returns:
+     *  true if a valid GNU attribute name
+     */
+    private bool isGnuAttributeName()
+    {
+        switch (token.value)
+        {
+            case TOK.identifier:
+            case TOK.static_:
+            case TOK.unsigned:
+            case TOK.int64:
+            case TOK.const_:
+            case TOK.extern_:
+            case TOK.register:
+            case TOK.typedef_:
+            case TOK.int16:
+            case TOK.inline:
+            case TOK._Noreturn:
+            case TOK.volatile:
+            case TOK.signed:
+            case TOK.auto_:
+            case TOK.restrict:
+            case TOK._Complex:
+            case TOK._Thread_local:
+            case TOK.int32:
+            case TOK.char_:
+            case TOK.float32:
+            case TOK.float64:
+            case TOK.void_:
+            case TOK._Bool:
+            case TOK._Atomic:
+                return true;
+
+            default:
+                return false;
         }
     }
 
