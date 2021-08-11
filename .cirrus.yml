@@ -42,9 +42,9 @@ environment:
 
 # Linux
 task:
-  name: Ubuntu 16.04 $TASK_NAME_SUFFIX
+  name: Ubuntu 18.04 $TASK_NAME_SUFFIX
   container:
-    image: ubuntu:16.04
+    image: ubuntu:18.04
     cpu: 4
     memory: 8G
   timeout_in: 60m
