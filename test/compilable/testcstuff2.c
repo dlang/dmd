@@ -381,3 +381,11 @@ int test22182b(S22182* b)
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22196
+
+__attribute__((static, unsigned, long, const, extern, register, typedef, short,
+               inline, _Noreturn, volatile, signed, auto, restrict, _Complex,
+               _Thread_local, int, char, float, double, void, _Bool, _Atomic))
+int test22196();
+
+/***************************************************/
