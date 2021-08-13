@@ -1369,7 +1369,7 @@ auto sourceFiles()
             rootobject.d stringtable.d
         "),
         root: fileArray(env["ROOT"], "
-            aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+            aav.d longdouble.d man.d response.d speller.d string.d strtold.d timeit.d
         "),
         rootHeaders: fileArray(env["ROOT"], "
             array.h bitarray.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
