@@ -65,6 +65,7 @@ class StorageClassDeclaration;
 class ExpressionDsymbol;
 class AliasAssign;
 class ThisDeclaration;
+class BitFieldDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
 class AliasDeclaration;
@@ -1056,6 +1057,7 @@ public:
     virtual ExpressionDsymbol* isExpressionDsymbol();
     virtual AliasAssign* isAliasAssign();
     virtual ThisDeclaration* isThisDeclaration();
+    virtual BitFieldDeclaration* isBitFieldDeclaration();
     virtual TypeInfoDeclaration* isTypeInfoDeclaration();
     virtual TupleDeclaration* isTupleDeclaration();
     virtual AliasDeclaration* isAliasDeclaration();
@@ -2148,6 +2150,7 @@ public:
     virtual void visit(typename AST::ClassDeclaration s);
     virtual void visit(typename AST::InterfaceDeclaration s);
     virtual void visit(typename AST::TemplateMixin s);
+    virtual void visit(typename AST::BitFieldDeclaration s);
     virtual void visit(typename AST::ImportStatement s);
     virtual void visit(typename AST::ScopeStatement s);
     virtual void visit(typename AST::ReturnStatement s);
@@ -2478,12 +2481,24 @@ enum class StructFlags
 struct FieldState final
 {
     uint32_t offset;
+    uint32_t fieldOffset;
+    uint32_t bitOffset;
+    uint32_t fieldSize;
+    bool inFlight;
     FieldState() :
-        offset()
+        offset(),
+        fieldOffset(),
+        bitOffset(),
+        fieldSize(),
+        inFlight()
     {
     }
-    FieldState(uint32_t offset) :
-        offset(offset)
+    FieldState(uint32_t offset, uint32_t fieldOffset = 0u, uint32_t bitOffset = 0u, uint32_t fieldSize = 0u, bool inFlight = false) :
+        offset(offset),
+        fieldOffset(fieldOffset),
+        bitOffset(bitOffset),
+        fieldSize(fieldSize),
+        inFlight(inFlight)
         {}
 };
 
@@ -4448,6 +4463,7 @@ struct ASTCodegen final
     using ClassFlags = ::ClassFlags;
     using InterfaceDeclaration = ::InterfaceDeclaration;
     using AliasDeclaration = ::AliasDeclaration;
+    using BitFieldDeclaration = ::BitFieldDeclaration;
     using Declaration = ::Declaration;
     using MatchAccumulator = ::MatchAccumulator;
     using OverDeclaration = ::OverDeclaration;
@@ -5610,6 +5626,19 @@ public:
     bool enclosesLifetimeOf(VarDeclaration* v) const;
     void addMaybe(VarDeclaration* v);
     ~VarDeclaration();
+};
+
+class BitFieldDeclaration : public VarDeclaration
+{
+public:
+    Expression* width;
+    uint32_t fieldWidth;
+    uint32_t bitOffset;
+    BitFieldDeclaration* syntaxCopy(Dsymbol* s);
+    BitFieldDeclaration* isBitFieldDeclaration();
+    void accept(Visitor* v);
+    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
+    ~BitFieldDeclaration();
 };
 
 class SymbolDeclaration final : public Declaration

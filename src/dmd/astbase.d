@@ -221,6 +221,11 @@ struct ASTBase
             return null;
         }
 
+        inout(BitFieldDeclaration) isBitFieldDeclaration() inout
+        {
+            return null;
+        }
+
         inout(ClassDeclaration) isClassDeclaration() inout
         {
             return null;
@@ -490,6 +495,32 @@ struct ASTBase
         }
 
         override final inout(VarDeclaration) isVarDeclaration() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) class BitFieldDeclaration : VarDeclaration
+    {
+        Expression width;
+
+        uint fieldWidth;
+        uint bitOffset;
+
+        final extern (D) this(const ref Loc loc, Type type, Identifier id, Expression width)
+        {
+            super(loc, type, id, cast(Initializer)null, cast(StorageClass)STC.undefined_);
+
+            this.width = width;
+            this.storage_class |= STC.field;
+        }
+
+        override final inout(BitFieldDeclaration) isBitFieldDeclaration() inout
         {
             return this;
         }

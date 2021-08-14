@@ -139,6 +139,7 @@ class OverDeclaration;
 class VarDeclaration;
 class SymbolDeclaration;
 class ThisDeclaration;
+class BitFieldDeclaration;
 
 class TypeInfoDeclaration;
 class TypeInfoStructDeclaration;
@@ -383,6 +384,7 @@ public:
     virtual void visit(ClassDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(InterfaceDeclaration *s) { visit((ClassDeclaration *)s); }
     virtual void visit(TemplateMixin *s) { visit((TemplateInstance *)s); }
+    virtual void visit(BitFieldDeclaration *s) { visit((VarDeclaration *)s); }
 
     // Statements
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }

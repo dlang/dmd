@@ -2340,7 +2340,7 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         // Create a reference to e1.
-        if (e1.Eoper == OPvar)
+        if (e1.Eoper == OPvar || e1.Eoper == OPbit)
             e1x = el_copytree(e1);
         else
         {
@@ -3059,6 +3059,12 @@ extern (C++) class ToElemVisitor : Visitor
         if (v.storage_class & (STC.out_ | STC.ref_))
             e = el_una(OPind, TYnptr, e);
         e = el_una(OPind, totym(dve.type), e);
+        if (auto bf = v.isBitFieldDeclaration())
+        {
+            // Insert special bitfield operator
+            auto mos = el_long(TYuint, bf.fieldWidth * 256 + bf.bitOffset);
+            e = el_bin(OPbit, e.Ety, e, mos);
+        }
         if (tybasic(e.Ety) == TYstruct)
         {
             e.ET = Type_toCtype(dve.type);

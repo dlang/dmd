@@ -173,7 +173,21 @@ public:
             {
                 foreach (v; sym.fields)
                 {
-                    symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                    if (auto bf = v.isBitFieldDeclaration())
+                        symbol_struct_addBitField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset, bf.fieldWidth, bf.bitOffset);
+                    else
+                        symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                }
+            }
+            else
+            {
+                foreach (v; sym.fields)
+                {
+                    if (auto bf = v.isBitFieldDeclaration())
+                    {
+                        symbol_struct_hasBitFields(cast(Symbol*)t.ctype.Ttag);
+                        break;
+                    }
                 }
             }
 
