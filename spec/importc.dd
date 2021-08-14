@@ -151,6 +151,27 @@ $(H2 $(LNAME2 limitations, Limitations))
     $(P The `_Atomic` type-qualifier (C11 6.7.3) is ignored.
     To do atomic operations, use an externally compiled function for that, or the inline assembler.)
 
+    $(H3 $(LNAME2 compatible_types, Compatible Types))
+
+    $(P $(I Compatible Types) (C11 6.7.2) are identical types in ImportC.)
+
+    $(H3 $(LNAME2 same_only_different, Same only Different Types))
+
+    $(P On some platforms, C `long` and `unsigned long` are the same size as `int` and `unsigned int`, respectively.
+    On other platforms, C `long` and `unsigned long` are the same size as `long long` and `unsigned long long`.
+    `long double` and `long  double _Complex` can be same size as `double` and `double _Complex`.
+    In ImportC, these types that are the same size and signed-ness are treated as the same types.
+    )
+
+    $(H3 $(LNAME2 _generic, _Generic))
+
+    $(P $(B Generic selection) expressions (C11 6.5.1.1) differ from ImportC.
+    The types in $(LINK2 #same_only_different, Same only Different Types) are
+    indistinguishable in the $(I type-name) parts of $(I generic-association).
+    Instead of giving an error for duplicate types per C11 6.5.1.1-2, ImportC
+    will select the first compatible $(I type-name) in the $(I generic-assoc-list).
+    )
+
 
 $(H2 $(LNAME2 extensions, Extensions))
 
@@ -190,10 +211,10 @@ $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
     not part of the function's type. In D, a function that never returns
     has the return type `noreturn`. The difference can be seen with the
     code:)
-    ---
+    $(CCODE
     attribute((noreturn)) int foo();
     size_t x = sizeof(foo());
-    ---
+    )
     $(P This code is accepted by `gcc`, but makes no sense for D. Hence,
     although it works in ImportC, it is not representable as D code,
     meaning one must use judgement in creating a .di file to interface
