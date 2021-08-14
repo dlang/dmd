@@ -11663,8 +11663,89 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("GenericExp::semantic('%s')\n", exp.toChars());
         }
-        error(exp.loc, "`_Generic` not supported");  // TODO
-        setError();
+        // C11 6.5.1.1 Generic Selection
+
+        auto ec = exp.cntlExp.expressionSemantic(sc);
+        bool errors = ec.isErrorExp() !is null;
+        auto tc = ec.type;
+
+        auto types = (*exp.types)[];
+        foreach (i, ref t; types)
+        {
+            if (!t)
+                continue;       // `default:` case
+            t = t.typeSemantic(ec.loc, sc);
+            if (t.isTypeError())
+            {
+                errors = true;
+                continue;
+            }
+
+            /* C11 6.5.1-2 duplicate check
+             */
+            /* C11 distinguishes int, long, and long long. But D doesn't, so depending on the
+             * C target, a long may have the same type as `int` in the D type system.
+             * So, skip checks when this may be the case. Later pick the first match
+             */
+            if (
+                (t.ty == Tint32 || t.ty == Tuns32) && target.c.longsize == 4 ||
+                (t.ty == Tint64 || t.ty == Tuns64) && target.c.longsize == 8 ||
+                (t.ty == Tfloat64 || t.ty == Timaginary64 || t.ty == Tcomplex64) && target.c.long_doublesize == 8
+               )
+                continue;
+
+            foreach (t2; types[0 .. i])
+            {
+                if (t2 && t2.equals(t))
+                {
+                    error(ec.loc, "generic association type `%s` can only appear once", t.toChars());
+                    errors = true;
+                    break;
+                }
+            }
+        }
+
+        auto exps = (*exp.exps)[];
+        foreach (ref e; exps)
+        {
+            e = e.expressionSemantic(sc);
+            if (e.isErrorExp())
+                errors = true;
+        }
+
+        if (errors)
+            return setError();
+
+        enum size_t None = ~0;
+        size_t imatch = None;
+        size_t idefault = None;
+        foreach (const i, t; types)
+        {
+            if (t)
+            {
+                /* if tc is compatible with t, it's a match
+                 * C11 6.2.7 defines a compatible type as being the same type, including qualifiers
+                 */
+                if (tc.equals(t))
+                {
+                    assert(imatch == None);
+                    imatch = i;
+                    break;              // pick first match
+                }
+            }
+            else
+                idefault = i;  // multiple defaults are not allowed, and are caught by cparse
+        }
+
+        if (imatch == None)
+            imatch = idefault;
+        if (imatch == None)
+        {
+            error(exp.loc, "no compatible generic association type for controlling expression type `%s`", tc.toChars());
+            return setError();
+        }
+
+        result = exps[imatch];
     }
 
     override void visit(FileInitExp e)

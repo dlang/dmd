@@ -1386,6 +1386,7 @@ final class CParser(AST) : Parser!AST
             AST.Type t;
             if (token.value == TOK.default_)
             {
+                nextToken();
                 if (sawDefault)
                     error("only one `default` allowed in generic-assoc-list");
                 sawDefault = true;
@@ -1400,6 +1401,7 @@ final class CParser(AST) : Parser!AST
             exps.push(e);
             if (token.value == TOK.rightParenthesis || token.value == TOK.endOfFile)
                 break;
+            check(TOK.comma);
         }
         check(TOK.rightParenthesis);
         return new AST.GenericExp(loc, cntlExp, types, exps);
