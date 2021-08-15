@@ -509,6 +509,25 @@ void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
     list_append(&s.Sstruct.Sfldlst, s2);
 }
 
+/***************************************
+ * Add a base class to a struct s.
+ * Input:
+ *      s       the struct/class symbol
+ *      t       the type of the base class
+ *      offset  offset of the base class in the struct/class
+ */
+
+@trusted
+void symbol_struct_addBaseClass(Symbol *s, type *t, uint offset)
+{
+    assert(t && t.Tty == TYstruct);
+    auto bc = cast(baseclass_t*)mem_fmalloc(baseclass_t.sizeof);
+    bc.BCbase = t.Ttag;
+    bc.BCoffset = offset;
+    bc.BCnext = s.Sstruct.Sbase;
+    s.Sstruct.Sbase = bc;
+}
+
 /********************************
  * Define symbol in specified symbol table.
  * Returns:
