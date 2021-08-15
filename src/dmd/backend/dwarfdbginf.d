@@ -2874,8 +2874,13 @@ static if (1)
                             break;
                     }
                 }
+
+                Outbuffer baseclassidx;
+                for (auto bc = st.Sbase; bc; bc = bc.BCnext)
+                    baseclassidx.write32(dwarf_typidx(bc.BCbase.Stype));
+
                 t.Tflags &= ~TFforward;
-                if (nfields == 0)
+                if (nfields == 0 && !st.Sbase)
                 {
                     abbrevTypeStruct0[0] = dwarf_classify_struct(st.Sflags);
                     abbrevTypeStruct0[1] = DW_CHILDREN_no;
@@ -2919,6 +2924,21 @@ static if (1)
                     abuf.writeByte(0);
                     membercode = dwarf_abbrev_code(abuf.buf, abuf.length());
 
+                    uint baseclasscode;
+                    if (st.Sbase)
+                    {
+                        abuf.reset();
+                        abuf.writeByte(DW_TAG_inheritance);
+                        abuf.writeByte(DW_CHILDREN_no);
+                        abuf.writeByte(DW_AT_type);
+                        abuf.writeByte(DW_FORM_ref4);
+                        abuf.writeByte(DW_AT_data_member_location);
+                        abuf.writeByte(DW_FORM_block1);
+                        abuf.writeByte(0);
+                        abuf.writeByte(0);
+                        baseclasscode = dwarf_abbrev_code(abuf.buf, abuf.length());
+                    }
+
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
                     debug_info.buf.writeString(getSymName(s));      // DW_AT_name
@@ -2929,8 +2949,21 @@ static if (1)
                     else
                         debug_info.buf.write32(cast(uint)sz);       // DW_AT_byte_size
 
-                    s.Stypidx = idx;
                     uint n = 0;
+                    for (auto bc = st.Sbase; bc; bc = bc.BCnext, n++)
+                    {
+                        debug_info.buf.writeuLEB128(baseclasscode);
+                        uint bci = (cast(uint *)baseclassidx.buf)[n];
+                        debug_info.buf.write32(bci);
+                        const soffset = debug_info.buf.length();
+                        debug_info.buf.writeByte(2);
+                        debug_info.buf.writeByte(DW_OP_plus_uconst);
+                        debug_info.buf.writeuLEB128(cast(uint)bc.BCoffset);
+                        debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
+                    }
+
+                    s.Stypidx = idx;
+                    n = 0;
                     foreach (sl; ListRange(st.Sfldlst))
                     {
                         Symbol *sf = list_symbol(sl);

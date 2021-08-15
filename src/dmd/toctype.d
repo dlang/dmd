@@ -264,6 +264,12 @@ public:
                 {
                     symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
+                if (auto bc = t.sym.baseClass)
+                {
+                    auto ptr_to_basetype = Type_toCtype(bc.type);
+                    assert(ptr_to_basetype .Tty == TYnptr);
+                    symbol_struct_addBaseClass(cast(Symbol*)tc.Ttag, ptr_to_basetype.Tnext, 0);
+                }
             }
 
             if (global.params.symdebugref)
