@@ -54,6 +54,7 @@ class LabelDsymbol;
 class ClassDeclaration;
 class Type;
 class Package;
+struct FieldState;
 class EnumMember;
 class TemplateDeclaration;
 class TemplateMixin;
@@ -1033,7 +1034,7 @@ public:
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
     virtual bool oneMember(Dsymbol** ps, Identifier* ident);
-    virtual void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
+    virtual void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(Array<ClassDeclaration* >* _param_0);
@@ -2474,6 +2475,18 @@ enum class StructFlags
     hasPointers = 1,
 };
 
+struct FieldState final
+{
+    uint32_t offset;
+    FieldState() :
+        offset()
+    {
+    }
+    FieldState(uint32_t offset) :
+        offset(offset)
+        {}
+};
+
 enum
 {
     IgnoreNone = 0,
@@ -3675,7 +3688,7 @@ public:
     void setScope(Scope* sc);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     bool hasPointers();
-    void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
     const char* kind() const;
     Nspace* isNspace();
     void accept(Visitor* v);
@@ -4473,6 +4486,7 @@ struct ASTCodegen final
     using Dsymbol = ::Dsymbol;
     using DsymbolTable = ::DsymbolTable;
     using ExpressionDsymbol = ::ExpressionDsymbol;
+    using FieldState = ::FieldState;
     using ForwardingScopeDsymbol = ::ForwardingScopeDsymbol;
     using OverloadSet = ::OverloadSet;
     using PASS = ::PASS;
@@ -5012,7 +5026,7 @@ public:
     void addComment(const char* comment);
     const char* kind() const;
     bool oneMember(Dsymbol** ps, Identifier* ident);
-    void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
     bool hasPointers();
     bool hasStaticCtorOrDtor();
     void checkCtorConstInit();
@@ -5114,7 +5128,7 @@ public:
     uint32_t anonalignsize;
     AnonDeclaration* syntaxCopy(Dsymbol* s);
     void setScope(Scope* sc);
-    void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
     const char* kind() const;
     AnonDeclaration* isAnonDeclaration();
     void accept(Visitor* v);
@@ -5576,7 +5590,7 @@ public:
     bool isArgDtorVar;
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
     VarDeclaration* syntaxCopy(Dsymbol* s);
-    void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
     const char* kind() const;
     AggregateDeclaration* isThis();
     bool needThis();
@@ -6334,7 +6348,7 @@ public:
     const char* kind() const;
     bool oneMember(Dsymbol** ps, Identifier* ident);
     bool hasPointers();
-    void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
     const char* toChars() const;
     TemplateMixin* isTemplateMixin();
     void accept(Visitor* v);

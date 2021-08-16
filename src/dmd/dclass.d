@@ -628,10 +628,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         // to calculate each variable offsets. It can be improved later.
         fields.setDim(0);
 
-        uint offset = structsize;
+        FieldState fieldState;
+        fieldState.offset = structsize;
         foreach (s; *members)
         {
-            s.setFieldOffset(this, &offset, false);
+            s.setFieldOffset(this, fieldState, false);
         }
 
         sizeok = Sizeok.done;
