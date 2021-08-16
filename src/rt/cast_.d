@@ -14,19 +14,19 @@
  */
 module rt.cast_;
 
-// because using == does a dynamic cast, but we
-// are trying to implement dynamic cast.
-bool compareClassInfo(ClassInfo a, ClassInfo b)
-{
-    if (a is b)
-        return true;
-    return (a && b) && a.info.name == b.info.name;
-}
-
 extern (C):
 @nogc:
 nothrow:
 pure:
+
+// because using == does a dynamic cast, but we
+// are trying to implement dynamic cast.
+extern (D) private bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) @safe
+{
+    if (a is b)
+        return true;
+    return (a && b) && a.name == b.name;
+}
 
 /******************************************
  * Given a pointer:
@@ -89,19 +89,19 @@ void* _d_dynamic_cast(Object o, ClassInfo c)
 
 int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t offset) @safe
 {
-    if (oc.compareClassInfo(c))
+    if (areClassInfosEqual(oc, c))
         return true;
 
     do
     {
-        if (oc.base.compareClassInfo(c))
+        if (areClassInfosEqual(oc.base, c))
             return true;
 
         // Bugzilla 2013: Use depth-first search to calculate offset
         // from the derived (oc) to the base (c).
         foreach (iface; oc.interfaces)
         {
-            if (iface.classinfo.compareClassInfo(c) || _d_isbaseof2(iface.classinfo, c, offset))
+            if (areClassInfosEqual(iface.classinfo, c) || _d_isbaseof2(iface.classinfo, c, offset))
             {
                 offset += iface.offset;
                 return true;
@@ -116,17 +116,17 @@ int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t o
 
 int _d_isbaseof(scope ClassInfo oc, scope const ClassInfo c) @safe
 {
-    if (oc.compareClassInfo(c))
+    if (areClassInfosEqual(oc, c))
         return true;
 
     do
     {
-        if (oc.base.compareClassInfo(c))
+        if (areClassInfosEqual(oc.base, c))
             return true;
 
         foreach (iface; oc.interfaces)
         {
-            if (iface.classinfo.compareClassInfo(c) || _d_isbaseof(iface.classinfo, c))
+            if (areClassInfosEqual(iface.classinfo, c) || _d_isbaseof(iface.classinfo, c))
                 return true;
         }
 
