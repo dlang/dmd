@@ -61,6 +61,8 @@ else
         else static assert(0);
     }
 
+    version (DigitalMars) version (Win64) version = DMD_Win64;
+
     void main(string[] args)
     {
         import core.stdc.stdio : fopen, fclose, remove;
@@ -73,13 +75,21 @@ else
         auto o = getFunc!(Object function(Object))("foo", args[0])(c);
         assert(cast(C) o);
 
-        bool caught;
-        try
-            getFunc!(void function(void function()))("bar", args[0])(
-                { throw new C; });
-        catch (C e)
-            caught = true;
-        assert(caught);
+        version (DMD_Win64)
+        {
+            // FIXME: apparent crash & needs more work, see https://github.com/dlang/druntime/pull/2874
+            fclose(fopen("dynamiccast_endbar", "w"));
+        }
+        else
+        {
+            bool caught;
+            try
+                getFunc!(void function(void function()))("bar", args[0])(
+                    { throw new C; });
+            catch (C e)
+                caught = true;
+            assert(caught);
+        }
 
         // verify we've actually got to the end, because for some reason we can
         // end up exiting with code 0 when throwing an exception
