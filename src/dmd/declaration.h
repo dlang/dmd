@@ -260,7 +260,7 @@ public:
 public:
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *);
-    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     const char *kind() const;
     AggregateDeclaration *isThis();
     bool needThis();

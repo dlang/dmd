@@ -32,7 +32,7 @@ public:
     void addComment(const utf8_t *comment);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     bool hasPointers();
     bool hasStaticCtorOrDtor();
     void checkCtorConstInit();
@@ -141,7 +141,7 @@ public:
 
     AnonDeclaration *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
-    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     const char *kind() const;
     AnonDeclaration *isAnonDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

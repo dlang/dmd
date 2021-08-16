@@ -284,12 +284,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         fields.setDim(0);   // workaround
 
         // Set the offsets of the fields and determine the size of the struct
-        uint offset = 0;
+        FieldState fieldState;
         bool isunion = isUnionDeclaration() !is null;
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            s.setFieldOffset(this, &offset, isunion);
+            s.setFieldOffset(this, fieldState, isunion);
         }
         if (type.ty == Terror)
         {

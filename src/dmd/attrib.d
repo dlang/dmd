@@ -174,9 +174,9 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return Dsymbol.oneMembers(d, ps, ident);
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
-        include(null).foreachDsymbol( s => s.setFieldOffset(ad, poffset, isunion) );
+        include(null).foreachDsymbol( s => s.setFieldOffset(ad, fieldState, isunion) );
     }
 
     override final bool hasPointers()
@@ -770,7 +770,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
         //printf("\tAnonDeclaration::setFieldOffset %s %p\n", isunion ? "union" : "struct", this);
         if (decl)
@@ -789,12 +789,12 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
             ad.structsize = 0;
             ad.alignsize = 0;
 
-            uint offset = 0;
+            FieldState fs;
             decl.foreachDsymbol( (s)
             {
-                s.setFieldOffset(ad, &offset, this.isunion);
+                s.setFieldOffset(ad, fs, this.isunion);
                 if (this.isunion)
-                    offset = 0;
+                    fs.offset = 0;
             });
 
             /* https://issues.dlang.org/show_bug.cgi?id=13613
@@ -806,7 +806,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
             {
                 ad.structsize = savestructsize;
                 ad.alignsize = savealignsize;
-                *poffset = ad.structsize;
+                fieldState.offset = ad.structsize;
                 return;
             }
 
@@ -829,7 +829,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
              * go ahead and place it.
              */
             anonoffset = AggregateDeclaration.placeField(
-                poffset,
+                &fieldState.offset,
                 anonstructsize, anonalignsize, alignment,
                 &ad.structsize, &ad.alignsize,
                 isunion);

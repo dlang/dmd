@@ -1113,7 +1113,7 @@ extern (C++) class VarDeclaration : Declaration
         return v;
     }
 
-    override final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override final void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
         //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
 
@@ -1129,7 +1129,7 @@ extern (C++) class VarDeclaration : Declaration
                 Expression e = cast(Expression)o;
                 assert(e.op == TOK.dSymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
-                se.s.setFieldOffset(ad, poffset, isunion);
+                se.s.setFieldOffset(ad, fieldState, isunion);
             }
             return;
         }
@@ -1146,7 +1146,7 @@ extern (C++) class VarDeclaration : Declaration
         if (offset)
         {
             // already a field
-            *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
+            fieldState.offset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
             return;
         }
         for (size_t i = 0; i < ad.fields.dim; i++)
@@ -1154,7 +1154,7 @@ extern (C++) class VarDeclaration : Declaration
             if (ad.fields[i] == this)
             {
                 // already a field
-                *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
+                fieldState.offset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
                 return;
             }
         }
@@ -1191,7 +1191,7 @@ extern (C++) class VarDeclaration : Declaration
         uint memsize = cast(uint)sz;                // size of member
         uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(
-            poffset,
+            &fieldState.offset,
             memsize, memalignsize, alignment,
             &ad.structsize, &ad.alignsize,
             isunion);
