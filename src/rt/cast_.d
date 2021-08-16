@@ -19,13 +19,14 @@ extern (C):
 nothrow:
 pure:
 
-// because using == does a dynamic cast, but we
-// are trying to implement dynamic cast.
+// Needed because ClassInfo.opEquals(Object) does a dynamic cast,
+// but we are trying to implement dynamic cast.
 extern (D) private bool areClassInfosEqual(scope const ClassInfo a, scope const ClassInfo b) @safe
 {
     if (a is b)
         return true;
-    return (a && b) && a.name == b.name;
+    // take care of potential duplicates across binaries
+    return a.name == b.name;
 }
 
 /******************************************
@@ -94,7 +95,7 @@ int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t o
 
     do
     {
-        if (areClassInfosEqual(oc.base, c))
+        if (oc.base && areClassInfosEqual(oc.base, c))
             return true;
 
         // Bugzilla 2013: Use depth-first search to calculate offset
@@ -121,7 +122,7 @@ int _d_isbaseof(scope ClassInfo oc, scope const ClassInfo c) @safe
 
     do
     {
-        if (areClassInfosEqual(oc.base, c))
+        if (oc.base && areClassInfosEqual(oc.base, c))
             return true;
 
         foreach (iface; oc.interfaces)
