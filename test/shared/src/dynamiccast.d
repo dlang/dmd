@@ -1,3 +1,8 @@
+class C : Exception
+{
+    this() { super(""); }
+}
+
 version (DLL)
 {
     version (Windows)
@@ -9,8 +14,6 @@ version (DLL)
     pragma(mangle, "foo")
     export Object foo(Object o)
     {
-        import classdef : C;
-
         assert(cast(C) o);
         return new C;
     }
@@ -19,7 +22,6 @@ version (DLL)
     export void bar(void function() f)
     {
         import core.stdc.stdio : fopen, fclose;
-        import classdef : C;
         bool caught;
         try
             f();
@@ -61,7 +63,6 @@ else
 
     void main(string[] args)
     {
-        import classdef : C;
         import core.stdc.stdio : fopen, fclose, remove;
 
         remove("dynamiccast_endmain");

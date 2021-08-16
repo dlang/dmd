@@ -42,10 +42,10 @@ $(ROOT)/load $(ROOT)/finalize: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO
 $(ROOT)/load_13414: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib_13414.so $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL)
 
-$(ROOT)/dynamiccast: $(SRC)/dynamiccast.d $(SRC)/classdef.d $(ROOT)/dynamiccast.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $(SRC)/dynamiccast.d $(SRC)/classdef.d $(LINKDL)
+$(ROOT)/dynamiccast: $(SRC)/dynamiccast.d $(ROOT)/dynamiccast.so $(DRUNTIMESO)
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $(SRC)/dynamiccast.d $(LINKDL)
 
-$(ROOT)/dynamiccast.so: $(SRC)/dynamiccast.d $(SRC)/classdef.d $(DRUNTIMESO)
+$(ROOT)/dynamiccast.so: $(SRC)/dynamiccast.d $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -version=DLL -fPIC -shared $(LINKDL)
 
 $(ROOT)/linkD: $(SRC)/linkD.c $(ROOT)/lib.so $(DRUNTIMESO)

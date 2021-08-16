@@ -23,9 +23,9 @@ dllgc:
 	del loaddllgc.exe loaddllgc.obj dllgc.dll dllgc.obj
 
 dynamiccast:
-	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -version=DLL -shared -ofdynamiccast.dll test\shared\src\dynamiccast.d test\shared\src\classdef.d
-	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -ofdynamiccast.exe test\shared\src\dynamiccast.d test\shared\src\classdef.d
+	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -version=DLL -shared -ofdynamiccast.dll test\shared\src\dynamiccast.d
+	$(DMD) -g -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -ofdynamiccast.exe test\shared\src\dynamiccast.d
 	dynamiccast.exe
 	cmd /c "if not exist dynamiccast_endbar exit 1"
 	cmd /c "if not exist dynamiccast_endmain exit 1"
-	del dynamiccast.exe dynamiccast.dll classdef.obj dynamiccast.obj dynamiccast_endbar dynamiccast_endmain
+	del dynamiccast.exe dynamiccast.dll dynamiccast.obj dynamiccast_endbar dynamiccast_endmain
