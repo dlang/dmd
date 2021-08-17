@@ -81,3 +81,17 @@ task:
     CI_DFLAGS: -version=TARGET_FREEBSD12
   install_bash_and_git_script: pkg install -y bash git
   << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: FreeBSD 11.4 x64
+  freebsd_instance:
+    image_family: freebsd-11-4
+    cpu: 4
+    memory: 8G
+  timeout_in: 60m
+  environment:
+    OS_NAME: freebsd
+    HOST_DMD: dmd-2.079.0
+    CI_DFLAGS: -version=TARGET_FREEBSD11
+  install_bash_and_git_script: pkg install -y bash git
+  << : *COMMON_STEPS_TEMPLATE

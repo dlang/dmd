@@ -1401,14 +1401,14 @@ private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
  */
 class TypeInfo_Class : TypeInfo
 {
-    override string toString() const pure { return name; }
+    override string toString() const pure { return info.name; }
 
     override bool opEquals(Object o)
     {
         if (this is o)
             return true;
         auto c = cast(const TypeInfo_Class)o;
-        return c && this.name == c.name;
+        return c && this.info.name == c.info.name;
     }
 
     override size_t getHash(scope const void* p) @trusted const
@@ -1464,8 +1464,8 @@ class TypeInfo_Class : TypeInfo
         return m_offTi;
     }
 
-    final @property auto info() @safe @nogc nothrow pure const return { return this; }
-    final @property auto typeinfo() @safe @nogc nothrow pure const return { return this; }
+    @property auto info() @safe nothrow pure const return { return this; }
+    @property auto typeinfo() @safe nothrow pure const return { return this; }
 
     byte[]      m_init;         /** class static initializer
                                  * (init.length gives size in bytes of class)
