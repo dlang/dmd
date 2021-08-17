@@ -70,9 +70,9 @@ task:
 
 # FreeBSD
 task:
-  name: FreeBSD 12.1 x64
+  name: FreeBSD 12.2 x64
   freebsd_instance:
-    image_family: freebsd-12-1
+    image_family: freebsd-12-2
     cpu: 4
     memory: 8G
   timeout_in: 60m
