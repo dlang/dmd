@@ -105,9 +105,9 @@ task:
 
 # FreeBSD
 task:
-  name: FreeBSD 12.1 x64, DMD ($TASK_NAME_TYPE)
+  name: FreeBSD 12.2 x64, DMD ($TASK_NAME_TYPE)
   freebsd_instance:
-    image_family: freebsd-12-1
+    image_family: freebsd-12-2
     cpu: 4
     memory: 8G
   timeout_in: 60m

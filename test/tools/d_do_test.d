@@ -1191,7 +1191,7 @@ string generateDiff(const string expected, string expectedFile,
     scope (exit) if (needTmp)
         tryRemove(expectedFile);
 
-    const cmd = ["diff", "-pu", "--strip-trailing-cr", expectedFile, actualFile];
+    const cmd = ["diff", "-up", "--strip-trailing-cr", expectedFile, actualFile];
     try
     {
         string diff = std.process.execute(cmd).output;
