@@ -1047,11 +1047,27 @@ public:
                 printf("  parent = %s %s", s.parent.kind(), s.parent.toChars());
             printf("\n");
         }
+
+        if (s.mangle.length) // do we have a cached mangle?
+        {
+              buf.write(s.mangle);
+              return;
+        }
+
         mangleParent(s);
         if (s.ident)
             mangleIdentifier(s.ident, s);
         else
             toBuffer(s.toString(), s);
+
+        auto mangleSlice = buf.peekSlice();
+        auto len = mangleSlice.length;
+        import dmd.root.rmem;
+        auto mangleMem = cast(char*)allocmemoryNoFree(len + 1);
+        mangleMem[0 .. len] = mangleSlice[0 .. len];
+        mangleMem[len] = '\0';
+        s.mangle = cast(const(char)[])(mangleMem[0 .. len]);
+
         //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
     }
 

@@ -245,6 +245,7 @@ extern (C++) class Dsymbol : ASTNode
     bool errors;            // this symbol failed to pass semantic()
     PASS semanticRun = PASS.init;
     ushort localNum;        /// perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
+    const(char)[] mangle;   /// cached version of the mangle
 
     DeprecatedDeclaration depdecl;           // customized deprecation message
     UserAttributeDeclaration userAttribDecl;    // user defined attributes

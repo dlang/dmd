@@ -558,6 +558,12 @@ struct OutBuffer
         return extractData()[0 .. length];
     }
 
+    // peek slice is currently only used for mangling
+    extern(D) const(char)[] peekSlice()
+    {
+        return (cast(const(char)*)data.ptr)[0 .. offset];
+    }
+
     // Append terminating null if necessary and get view of internal buffer
     extern (C++) char* peekChars() pure nothrow
     {
