@@ -145,12 +145,12 @@ extern (C++) final class Nspace : ScopeDsymbol
         return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("Nspace::setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
             dsymbolSemantic(this, null); // try to resolve it
-        members.foreachDsymbol( s => s.setFieldOffset(ad, fieldState, isunion) );
+        members.foreachDsymbol( s => s.setFieldOffset(ad, poffset, isunion) );
     }
 
     override const(char)* kind() const

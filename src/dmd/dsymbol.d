@@ -219,16 +219,6 @@ enum : int
 }
 
 /***********************************************************
- * Struct/Class/Union field state.
- * Used for transitory information when setting field offsets, such
- * as bit fields.
- */
-struct FieldState
-{
-    uint offset;        /// offset for next field
-}
-
-/***********************************************************
  */
 extern (C++) class Dsymbol : ASTNode
 {
@@ -1146,7 +1136,7 @@ extern (C++) class Dsymbol : ASTNode
         return true;
     }
 
-    void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
+    void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
     }
 

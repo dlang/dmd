@@ -139,11 +139,6 @@ enum
     TagNameSpace            = 0x100, // search ImportC tag symbol table
 };
 
-struct FieldState
-{
-    unsigned offset;
-};
-
 class Dsymbol : public ASTNode
 {
 public:
@@ -220,7 +215,7 @@ public:
     virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool oneMember(Dsymbol **ps, Identifier *ident);
-    virtual void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
+    virtual void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
