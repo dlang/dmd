@@ -93,6 +93,18 @@ enum Modifiable
     /// Modifiable because it is initialization
     initialization,
 }
+/**
+ * Specifies how the checkModify deals with certain situations
+ */
+enum ModifyFlags
+{
+    /// Issue error messages on invalid modifications of the variable
+    none,
+    /// No errors are emitted for invalid modifications
+    noError = 0x1,
+    /// The modification occurs for a subfield of the current variable
+    fieldAssign = 0x2,
+}
 
 /****************************************
  * Find the first non-comma expression.
@@ -1541,7 +1553,7 @@ extern (C++) abstract class Expression : ASTNode
      * Returns:
      *      Whether the type is modifiable
      */
-    Modifiable checkModifiable(Scope* sc, int flag = 0)
+    Modifiable checkModifiable(Scope* sc, ModifyFlags flag = ModifyFlags.none)
     {
         return type ? Modifiable.yes : Modifiable.no; // default modifiable
     }
@@ -3672,7 +3684,7 @@ extern (C++) final class VarExp : SymbolExp
         return false;
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
     {
         //printf("VarExp::checkModifiable %s", toChars());
         assert(type);
@@ -4762,7 +4774,7 @@ extern (C++) final class DotVarExp : UnaExp
         this.hasOverloads = hasOverloads;
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
     {
         //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type.toChars());
 
@@ -4818,7 +4830,7 @@ extern (C++) final class DotVarExp : UnaExp
                                 /* checkModify will consider that this is an initialization
                                  * of v while it is actually an assignment of a field of v
                                  */
-                                scope modifyLevel = v.checkModify(loc, sc, dve.e1, !onlyUnion ? (flag | 2) : flag);
+                                scope modifyLevel = v.checkModify(loc, sc, dve.e1, !onlyUnion ? (flag | ModifyFlags.fieldAssign) : flag);
                                 if (modifyLevel == Modifiable.initialization)
                                 {
                                     // https://issues.dlang.org/show_bug.cgi?id=22118
@@ -5240,7 +5252,7 @@ extern (C++) final class PtrExp : UnaExp
         type = t;
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
     {
         if (auto se = e1.isSymOffExp())
         {
@@ -5518,7 +5530,7 @@ extern (C++) final class SliceExp : UnaExp
         return se;
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
     {
         //printf("SliceExp::checkModifiable %s\n", toChars());
         if (e1.type.ty == Tsarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
@@ -5663,7 +5675,7 @@ extern (C++) final class CommaExp : BinExp
         allowCommaExp = isGenerated = generated;
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
     {
         return e2.checkModifiable(sc, flag);
     }
@@ -5841,7 +5853,7 @@ extern (C++) final class IndexExp : BinExp
         return ie;
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
     {
         if (e1.type.ty == Tsarray ||
             e1.type.ty == Taarray ||
@@ -6635,7 +6647,7 @@ extern (C++) final class CondExp : BinExp
         return new CondExp(loc, econd.syntaxCopy(), e1.syntaxCopy(), e2.syntaxCopy());
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
     {
         if (e1.checkModifiable(sc, flag) != Modifiable.no
             && e2.checkModifiable(sc, flag) != Modifiable.no)

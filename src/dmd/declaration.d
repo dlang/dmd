@@ -350,7 +350,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Returns:
      *  Modifiable.yes or Modifiable.initialization
      */
-    extern (D) final Modifiable checkModify(Loc loc, Scope* sc, Expression e1, int flag)
+    extern (D) final Modifiable checkModify(Loc loc, Scope* sc, Expression e1, ModifyFlags flag)
     {
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)
@@ -363,7 +363,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 if (scx.func == parent && (scx.flags & SCOPE.contract))
                 {
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
-                    if (!(flag & 1))
+                    if (!(flag & ModifyFlags.noError))
                         error(loc, "cannot modify %s `%s` in contract", s, toChars());
                     return Modifiable.initialization; // do not report type related errors
                 }
@@ -377,7 +377,7 @@ extern (C++) abstract class Declaration : Dsymbol
             {
                 if (scx.func == vthis.parent && (scx.flags & SCOPE.contract))
                 {
-                    if (!(flag & 1))
+                    if (!(flag & ModifyFlags.noError))
                         error(loc, "cannot modify parameter `this` in contract");
                     return Modifiable.initialization; // do not report type related errors
                 }
@@ -389,7 +389,7 @@ extern (C++) abstract class Declaration : Dsymbol
             // It's only modifiable if inside the right constructor
             if ((storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
                 return Modifiable.initialization;
-            if (flag & 2)
+            if (flag & ModifyFlags.fieldAssign)
                 return Modifiable.yes;
             return modifyFieldVar(loc, sc, v, e1) ? Modifiable.initialization : Modifiable.yes;
         }
