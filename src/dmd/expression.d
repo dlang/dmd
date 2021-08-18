@@ -4818,13 +4818,17 @@ extern (C++) final class DotVarExp : UnaExp
                                 /* checkModify will consider that this is an initialization
                                  * of v while it is actually an assignment of a field of v
                                  */
-                                scope modifyLevel = v.checkModify(loc, sc, dve.e1, flag);
-                                // reflect that assigning a field of v is not initialization of v
-                                // unless v is a (potentially nested) union
-                                if (!onlyUnion)
-                                    v.ctorinit = false;
+                                scope modifyLevel = v.checkModify(loc, sc, dve.e1, !onlyUnion ? (flag | 2) : flag);
                                 if (modifyLevel == Modifiable.initialization)
+                                {
+                                    // https://issues.dlang.org/show_bug.cgi?id=22118
+                                    // v is a union type field that was assigned
+                                    // a variable, therefore it counts as initialization
+                                    if (v.ctorinit)
+                                        return Modifiable.initialization;
+
                                     return Modifiable.yes;
+                                }
                                 return modifyLevel;
                             }
                         }
