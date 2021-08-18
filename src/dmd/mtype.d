@@ -4482,7 +4482,7 @@ extern (C++) final class TypeFunction : TypeNext
         {
             // Check escaping through return value
             Type tret = nextOf().toBasetype();
-            if (isref || tret.hasPointers())
+            if (isref || tret.hasPointers() || !isnothrow())
             {
                 return stc;
             }
