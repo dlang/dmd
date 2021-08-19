@@ -3,7 +3,7 @@ REQUIRED_ARGS: -g
 PERMUTE_ARGS:
 GDB_SCRIPT:
 ---
-b 30
+b gdb_baseclass_fields.d:30
 r
 set print pretty off
 echo RESULT=
