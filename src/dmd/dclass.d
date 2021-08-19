@@ -1056,38 +1056,11 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 // printf("\tfound at offset %d\n", b.offset);
                 return true;
             }
-            if (isBaseOf(b, poffset))
+            if (baseClassImplementsInterface(this, b, poffset))
                 return true;
         }
         if (cd.baseClass && isBaseOf(cd.baseClass, poffset))
             return true;
-
-        if (poffset)
-            *poffset = 0;
-        return false;
-    }
-
-    bool isBaseOf(BaseClass* bc, int* poffset)
-    {
-        //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", toChars(), bc.sym.toChars());
-        for (size_t j = 0; j < bc.baseInterfaces.length; j++)
-        {
-            BaseClass* b = &bc.baseInterfaces[j];
-            //printf("\tY base %s\n", b.sym.toChars());
-            if (this == b.sym)
-            {
-                //printf("\tfound at offset %d\n", b.offset);
-                if (poffset)
-                {
-                    *poffset = b.offset;
-                }
-                return true;
-            }
-            if (isBaseOf(b, poffset))
-            {
-                return true;
-            }
-        }
 
         if (poffset)
             *poffset = 0;
@@ -1133,4 +1106,43 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     {
         v.visit(this);
     }
+}
+
+/**
+ * Returns whether `bc` implements `id`, including indirectly (`bc` implements an interfaces
+ * that inherits from `id`)
+ *
+ * Params:
+ *    id = the interface
+ *    bc = the base class
+ *    poffset = out parameter, offset of the interface in an object
+ *
+ * Returns:
+ *    true if the `bc` implements `id`, false otherwise
+ **/
+private bool baseClassImplementsInterface(InterfaceDeclaration id, BaseClass* bc, int* poffset)
+{
+    //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", id.toChars(), bc.sym.toChars());
+    for (size_t j = 0; j < bc.baseInterfaces.length; j++)
+    {
+        BaseClass* b = &bc.baseInterfaces[j];
+        //printf("\tY base %s\n", b.sym.toChars());
+        if (id == b.sym)
+        {
+            //printf("\tfound at offset %d\n", b.offset);
+            if (poffset)
+            {
+                *poffset = b.offset;
+            }
+            return true;
+        }
+        if (baseClassImplementsInterface(id, b, poffset))
+        {
+            return true;
+        }
+    }
+
+    if (poffset)
+        *poffset = 0;
+    return false;
 }

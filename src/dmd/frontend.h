@@ -5475,7 +5475,6 @@ public:
     InterfaceDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
-    bool isBaseOf(BaseClass* bc, int32_t* poffset);
     const char* kind() const;
     int32_t vtblOffset() const;
     bool isCPPinterface() const;
