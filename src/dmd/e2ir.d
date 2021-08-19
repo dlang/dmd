@@ -54,7 +54,6 @@ import dmd.toctype;
 import dmd.toir;
 import dmd.tokens;
 import dmd.toobj;
-import dmd.typesem;
 import dmd.typinf;
 import dmd.visitor;
 

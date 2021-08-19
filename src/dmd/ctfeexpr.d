@@ -33,7 +33,6 @@ import dmd.root.ctfloat;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.tokens;
-import dmd.typesem;
 import dmd.visitor;
 
 
