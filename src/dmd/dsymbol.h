@@ -22,6 +22,7 @@ struct Scope;
 class DsymbolTable;
 class Declaration;
 class ThisDeclaration;
+class BitFieldDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
 class AliasDeclaration;
@@ -142,6 +143,11 @@ enum
 struct FieldState
 {
     unsigned offset;
+
+    unsigned fieldOffset;
+    unsigned bitOffset;
+    unsigned fieldSice;
+    bool inFlight;
 };
 
 class Dsymbol : public ASTNode
@@ -245,6 +251,7 @@ public:
     virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
     virtual AliasAssign *isAliasAssign() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
+    virtual BitFieldDeclaration *isBitFieldDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }

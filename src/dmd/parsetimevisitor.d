@@ -90,6 +90,7 @@ public:
     void visit(AST.ClassDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
     void visit(AST.InterfaceDeclaration s) { visit(cast(AST.ClassDeclaration)s); }
     void visit(AST.TemplateMixin s) { visit(cast(AST.TemplateInstance)s); }
+    void visit(AST.BitFieldDeclaration s) { visit(cast(AST.VarDeclaration)s); }
 
     //============================================================================================
     // Statements

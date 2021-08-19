@@ -1169,6 +1169,46 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         assert(dsym.linkage == LINK.c);
     }
 
+    override void visit(BitFieldDeclaration dsym)
+    {
+        //printf("BitField::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+        if (dsym.semanticRun >= PASS.semanticdone)
+            return;
+
+        visit(cast(VarDeclaration)dsym);
+        if (dsym.errors)
+            return;
+
+        sc = sc.startCTFE();
+        auto width = dsym.width.expressionSemantic(sc);
+        sc = sc.endCTFE();
+        width = width.ctfeInterpret();
+        if (!dsym.type.isintegral())
+        {
+            // C11 6.7.2.1-5
+            width.error("bit-field type `%s` is not an integer type", dsym.type.toChars());
+            dsym.errors = true;
+        }
+        if (!width.isIntegerExp())
+        {
+            width.error("bit-field width `%s` is not an integer constant", dsym.width.toChars());
+            dsym.errors = true;
+        }
+        const uwidth = width.toInteger(); // uwidth is unsigned
+        if (uwidth == 0 && !dsym.isAnonymous())
+        {
+            width.error("bit-field `%s` has zero width", dsym.toChars());
+            dsym.errors = true;
+        }
+        const max_width = dsym.type.size() * 8;
+        if (uwidth > max_width)
+        {
+            width.error("width `%lld` of bit-field `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
+            dsym.errors = true;
+        }
+        dsym.fieldWidth = cast(uint)uwidth;
+    }
+
     override void visit(Import imp)
     {
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());

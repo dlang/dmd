@@ -226,6 +226,11 @@ enum : int
 struct FieldState
 {
     uint offset;        /// offset for next field
+
+    uint fieldOffset;   /// offset for the start of the bit field
+    uint bitOffset;     /// bit offset for field
+    uint fieldSize;     /// size of field in bytes
+    bool inFlight;      /// bit field is in flight
 }
 
 /***********************************************************
@@ -1239,6 +1244,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(ExpressionDsymbol)           isExpressionDsymbol()           inout { return null; }
     inout(AliasAssign)                 isAliasAssign()                 inout { return null; }
     inout(ThisDeclaration)             isThisDeclaration()             inout { return null; }
+    inout(BitFieldDeclaration)         isBitFieldDeclaration()         inout { return null; }
     inout(TypeInfoDeclaration)         isTypeInfoDeclaration()         inout { return null; }
     inout(TupleDeclaration)            isTupleDeclaration()            inout { return null; }
     inout(AliasDeclaration)            isAliasDeclaration()            inout { return null; }

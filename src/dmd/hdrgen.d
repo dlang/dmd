@@ -1766,6 +1766,18 @@ public:
         bodyToBuffer(d);
     }
 
+    override void visit(BitFieldDeclaration d)
+    {
+        if (stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
+        Identifier id = d.isAnonymous() ? null : d.ident;
+        typeToBuffer(d.type, id, buf, hgs);
+        buf.writestring(" : ");
+        d.width.expressionToBuffer(buf, hgs);
+        buf.writeByte(';');
+        buf.writenl();
+    }
+
     override void visit(NewDeclaration d)
     {
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))

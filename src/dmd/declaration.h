@@ -283,6 +283,21 @@ public:
 
 /**************************************************************/
 
+class BitFieldDeclaration : public VarDeclaration
+{
+public:
+    Expression *width;
+
+    unsigned fieldWidth;
+    unsigned bitOffset;
+
+    BitFieldDeclaration *syntaxCopy(Dsymbol*);
+    BitFieldDeclaration *isBitFieldDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+/**************************************************************/
+
 // This is a shell around a back end symbol
 
 class SymbolDeclaration : public Declaration

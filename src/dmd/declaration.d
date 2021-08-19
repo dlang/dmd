@@ -1116,7 +1116,7 @@ extern (C++) class VarDeclaration : Declaration
         return v;
     }
 
-    override final void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
         //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
 
@@ -1188,6 +1188,18 @@ extern (C++) class VarDeclaration : Declaration
 
         if (t.ty == Terror)
             return;
+
+        /* If coming after a bit field in progress,
+         * advance past the field
+         */
+        if (fieldState.inFlight)
+        {
+            fieldState.inFlight = false;
+            if (0 && target.os & Target.OS.Posix)
+                fieldState.offset += (fieldState.bitOffset + 7) / 8;
+            else if (0 &&target.os == Target.OS.Windows)
+                fieldState.offset += fieldState.fieldSize;
+        }
 
         const sz = t.size(loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
@@ -1665,6 +1677,123 @@ extern (C++) class VarDeclaration : Declaration
         if (!maybes)
             maybes = new VarDeclarations();
         maybes.push(v);
+    }
+}
+
+/*******************************************************
+ * C11 6.7.2.1-4 bit fields
+ */
+extern (C++) class BitFieldDeclaration : VarDeclaration
+{
+    Expression width;
+
+    uint fieldWidth;
+    uint bitOffset;
+
+    final extern (D) this(const ref Loc loc, Type type, Identifier ident, Expression width)
+    {
+        super(loc, type, ident, null);
+
+        this.width = width;
+        this.storage_class |= STC.field;
+    }
+
+    override BitFieldDeclaration syntaxCopy(Dsymbol s)
+    {
+        //printf("BitFieldDeclaration::syntaxCopy(%s)\n", toChars());
+        assert(!s);
+        auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy());
+        bf.comment = comment;
+        return bf;
+    }
+
+    override final inout(BitFieldDeclaration) isBitFieldDeclaration() inout
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+
+    override final void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
+    {
+        //printf("BitFieldDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
+
+        Type t = type.toBasetype();
+
+        // List in ad.fields. Even if the type is error, it's necessary to avoid
+        // pointless error diagnostic "more initializers than fields" on struct literal.
+        if (!isAnonymous())
+            ad.fields.push(this);
+
+        if (t.ty == Terror)
+            return;
+
+        const sz = t.size(loc);
+        assert(sz != SIZE_INVALID && sz < uint.max);
+        uint memsize = cast(uint)sz;                // size of member
+        uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
+
+        if (fieldWidth == 0 && !isAnonymous())
+            error(loc, "named bit fields cannot have 0 width");
+        if (fieldWidth > memsize * 8)
+            error(loc, "bit field width %d is larger than type", fieldWidth);
+
+        void startNewField()
+        {
+            offset = AggregateDeclaration.placeField(
+                &fieldState.offset,
+                memsize, memalignsize, alignment,
+                &ad.structsize, &ad.alignsize,
+                isunion);
+
+            fieldState.inFlight = true;
+            fieldState.fieldOffset = offset;
+            fieldState.bitOffset = 0;
+            fieldState.fieldSize = memsize;
+        }
+
+        if (!fieldState.inFlight || fieldWidth == 0)
+        {
+            startNewField();
+        }
+
+        if (0 && target.os & Target.OS.Posix)
+        {
+            if ((fieldState.offset%4 * 8) + fieldState.bitOffset + fieldWidth > int.sizeof * 8)
+            {
+                startNewField();
+            }
+        }
+        else if (1 || target.os == Target.OS.Windows)
+        {
+            if (memsize != fieldState.fieldSize ||
+                fieldState.bitOffset + fieldWidth > fieldState.fieldSize * 8)
+            {
+                startNewField();
+            }
+        }
+
+        bitOffset = fieldState.bitOffset;
+        if (0 && target.os & Target.OS.Posix)
+        {
+            while (bitOffset > memsize * 8)
+            {
+                bitOffset -= 8;
+                offset += 1;
+            }
+        }
+
+        //fieldState.fieldSize = memsize;
+        if (!isunion)
+        {
+            fieldState.bitOffset += fieldWidth;
+        }
+
+        //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
+        //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
     }
 }
 

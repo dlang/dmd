@@ -3135,12 +3135,8 @@ final class CParser(AST) : Parser!AST
             if (token.value == TOK.colon)
             {
                 // C11 6.7.2.1-12 unnamed bit-field
-                if (specifier.alignExps)
-                    error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
-                nextToken();
-                cparseConstantExp();
-                error("unnamed bit fields are not supported"); // TODO
-                dt = AST.Type.tuns32;
+                id = Identifier.generateAnonymousId("BitField");
+                dt = tspec;
             }
             else
                 dt = cparseDeclarator(DTR.xdirect, tspec, id);
@@ -3150,17 +3146,13 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 break;          // error recovery
             }
-            if (id && token.value == TOK.colon)
+
+            AST.Expression width;
+            if (token.value == TOK.colon)
             {
                 // C11 6.7.2.1-10 bit-field
-
-                if (specifier.alignExps)
-                    error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
-
                 nextToken();
-                cparseConstantExp();
-
-                error("bit fields are not supported"); // TODO
+                width = cparseConstantExp();
             }
 
             if (specifier.mod & MOD.xconst)
@@ -3181,6 +3173,12 @@ final class CParser(AST) : Parser!AST
 
             if (!tspec && !specifier.scw && !specifier.mod)
                 error("specifier-qualifier-list required");
+            else if (width)
+            {
+                if (specifier.alignExps)
+                    error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
+                s = new AST.BitFieldDeclaration(width.loc, dt, id, width);
+            }
             else if (id)
             {
                 if (dt.ty == AST.Tvoid)

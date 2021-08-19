@@ -7,9 +7,7 @@ fail_compilation/alignas2.c(110): Error: no alignment-specifier for parameters
 fail_compilation/alignas2.c(115): Error: no alignment-specifier for parameters
 fail_compilation/alignas2.c(116): Error: no declaration for identifier `x`
 fail_compilation/alignas2.c(121): Error: no alignment-specifier for bit field declaration
-fail_compilation/alignas2.c(121): Error: bit fields are not supported
 fail_compilation/alignas2.c(122): Error: no alignment-specifier for bit field declaration
-fail_compilation/alignas2.c(122): Error: unnamed bit fields are not supported
 ---
  */
 
