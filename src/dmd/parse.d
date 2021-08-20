@@ -5560,6 +5560,10 @@ LagainStc:
             stc = STC.ref_;
             goto LagainStc;
 
+        case TOK.scope_:
+            stc = STC.scope_;
+            goto LagainStc;
+
         case TOK.auto_:
             stc = STC.auto_;
             goto LagainStc;
