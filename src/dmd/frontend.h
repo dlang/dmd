@@ -1508,20 +1508,6 @@ enum class MATCH
     exact = 3,
 };
 
-enum class Modifiable
-{
-    no = 0,
-    yes = 1,
-    initialization = 2,
-};
-
-enum class ModifyFlags
-{
-    none = 0,
-    noError = 1,
-    fieldAssign = 2,
-};
-
 class Expression : public ASTNode
 {
 public:
@@ -1557,7 +1543,6 @@ public:
     virtual bool checkType();
     virtual bool checkValue();
     bool checkDeprecated(Scope* sc, Dsymbol* s);
-    virtual Modifiable checkModifiable(Scope* sc, ModifyFlags flag = (ModifyFlags)0);
     virtual Expression* addDtorHook(Scope* sc);
     Expression* addressOf();
     Expression* deref();
@@ -2570,6 +2555,20 @@ struct TemplateStats final
 };
 
 enum : bool { LOGSEMANTIC = false };
+
+enum class Modifiable
+{
+    no = 0,
+    yes = 1,
+    initialization = 2,
+};
+
+enum class ModifyFlags
+{
+    none = 0,
+    noError = 1,
+    fieldAssign = 2,
+};
 
 enum : int32_t { WANTexpand = 1 };
 
@@ -6765,7 +6764,6 @@ public:
     bool delegateWasExtracted;
     static VarExp* create(Loc loc, Declaration* var, bool hasOverloads = true);
     bool equals(const RootObject* const o) const;
-    Modifiable checkModifiable(Scope* sc, ModifyFlags flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -6923,7 +6921,6 @@ class DotVarExp final : public UnaExp
 public:
     Declaration* var;
     bool hasOverloads;
-    Modifiable checkModifiable(Scope* sc, ModifyFlags flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -6984,7 +6981,6 @@ public:
 class PtrExp final : public UnaExp
 {
 public:
-    Modifiable checkModifiable(Scope* sc, ModifyFlags flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -7064,7 +7060,6 @@ public:
     bool lowerIsLessThanUpper;
     bool arrayop;
     SliceExp* syntaxCopy();
-    Modifiable checkModifiable(Scope* sc, ModifyFlags flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -7101,7 +7096,6 @@ class CommaExp final : public BinExp
 public:
     const bool isGenerated;
     bool allowCommaExp;
-    Modifiable checkModifiable(Scope* sc, ModifyFlags flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -7145,7 +7139,6 @@ public:
     bool modifiable;
     bool indexIsInBounds;
     IndexExp* syntaxCopy();
-    Modifiable checkModifiable(Scope* sc, ModifyFlags flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -7396,7 +7389,6 @@ class CondExp final : public BinExp
 public:
     Expression* econd;
     CondExp* syntaxCopy();
-    Modifiable checkModifiable(Scope* sc, ModifyFlags flag);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* ex);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
