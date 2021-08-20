@@ -2,7 +2,7 @@ LINK_SHARED:=1
 
 include ../common.mak
 
-TESTS:=link load linkD linkDR loadDR host finalize
+TESTS:=link load linkD linkDR loadDR host finalize dynamiccast
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep load_13414
 
 EXPORT_DYNAMIC=$(if $(findstring $(OS),linux freebsd dragonflybsd),-L--export-dynamic,)
@@ -13,9 +13,12 @@ all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/loadDR.done $(ROOT)/host.done: RUN_ARGS:=$(DRUNTIMESO)
 
+$(ROOT)/dynamiccast.done: CLEANUP:=rm dynamiccast_endmain dynamiccast_endbar
+
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(QUIET)$(TIMELIMIT)$< $(RUN_ARGS)
+	$(CLEANUP)
 	@touch $@
 
 $(ROOT)/link: $(SRC)/link.d $(ROOT)/lib.so $(DRUNTIMESO)
@@ -38,6 +41,12 @@ $(ROOT)/load $(ROOT)/finalize: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO
 
 $(ROOT)/load_13414: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib_13414.so $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL)
+
+$(ROOT)/dynamiccast: $(SRC)/dynamiccast.d $(ROOT)/dynamiccast.so $(DRUNTIMESO)
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $(SRC)/dynamiccast.d $(LINKDL)
+
+$(ROOT)/dynamiccast.so: $(SRC)/dynamiccast.d $(DRUNTIMESO)
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -version=DLL -fPIC -shared $(LINKDL)
 
 $(ROOT)/linkD: $(SRC)/linkD.c $(ROOT)/lib.so $(DRUNTIMESO)
 	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(ROOT)/lib.so $(LDL) -pthread
