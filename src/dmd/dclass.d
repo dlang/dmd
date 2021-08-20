@@ -418,7 +418,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      * Determine if 'this' is a base class of cd.
      * This is used to detect circular inheritance only.
      */
-    final bool isBaseOf2(ClassDeclaration cd)
+    final bool isBaseOf2(ClassDeclaration cd) pure nothrow @nogc
     {
         if (!cd)
             return false;
@@ -438,22 +438,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /*******************************************
      * Determine if 'this' is a base class of cd.
      */
-    bool isBaseOf(ClassDeclaration cd, int* poffset)
+    bool isBaseOf(ClassDeclaration cd, int* poffset) pure nothrow @nogc
     {
         //printf("ClassDeclaration.isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd.toChars());
         if (poffset)
             *poffset = 0;
         while (cd)
         {
-            /* cd.baseClass might not be set if cd is forward referenced.
-             */
-            if (!cd.baseClass && cd.semanticRun < PASS.semanticdone && !cd.isInterfaceDeclaration())
-            {
-                cd.dsymbolSemantic(null);
-                if (!cd.baseClass && cd.semanticRun < PASS.semanticdone)
-                    cd.error("base class is forward referenced by `%s`", toChars());
-            }
-
             if (this == cd.baseClass)
                 return true;
 
@@ -1037,7 +1028,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
      *      false   not a base
      *      true    is a base
      */
-    override bool isBaseOf(ClassDeclaration cd, int* poffset)
+    override bool isBaseOf(ClassDeclaration cd, int* poffset) pure nothrow @nogc
     {
         //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
         assert(!baseClass);
@@ -1120,7 +1111,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
  * Returns:
  *    true if the `bc` implements `id`, false otherwise
  **/
-private bool baseClassImplementsInterface(InterfaceDeclaration id, BaseClass* bc, int* poffset)
+private bool baseClassImplementsInterface(InterfaceDeclaration id, BaseClass* bc, int* poffset) pure nothrow @nogc
 {
     //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", id.toChars(), bc.sym.toChars());
     for (size_t j = 0; j < bc.baseInterfaces.length; j++)
