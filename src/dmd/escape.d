@@ -835,7 +835,7 @@ ByRef:
         if (!(va && va.isScope()))
             notMaybeScope(v);
 
-        if (p != sc.func)
+        if ((global.params.useDIP1000 != FeatureState.enabled && v.isReference()) || p != sc.func)
             continue;
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
