@@ -273,9 +273,29 @@ S s = t;  // s.a is set to 3
 ----
 )
 
-        $(P If $(D opCall) is overridden for the struct, and the struct
-        is initialized with a value that is of a different type,
-        then the $(D opCall) operator is called:)
+        $(P If the struct has a $(LINK2 #struct-constructor, constructor), and
+        the struct is initialized with a value that is of a different type,
+        then the constructor is called:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+----
+struct S
+{
+    int a;
+
+    this(int v)
+    {
+        this.a = v;
+    }
+}
+
+S s = 3; // sets s.a to 3 using S's constructor
+----
+)
+
+        $(P If the struct does not have a constructor but $(D opCall) is
+        overridden for the struct, and the struct is initialized with a value
+        that is of a different type, then the $(D opCall) operator is called:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
