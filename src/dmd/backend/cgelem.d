@@ -5870,6 +5870,7 @@ beg:
                     {
                         e.EV.E2 = el_selecte1(e.EV.E2);
                         e.EV.E2.Ety = e.Ety;
+                        e.EV.E2.ET = e.ET;
                         e.Eoper = OPcomma;
                         goto beg;
                     }
@@ -5877,6 +5878,7 @@ beg:
                     {
                         e.EV.E2 = el_selecte2(e.EV.E2);
                         e.EV.E2.Ety = e.Ety;
+                        e.EV.E2.ET = e.ET;
                         e.Eoper = OPcomma;
                         goto beg;
                     }
