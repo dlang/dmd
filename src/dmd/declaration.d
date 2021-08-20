@@ -1796,6 +1796,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
             }
         }
 
+        offset = fieldState.fieldOffset;
         bitOffset = fieldState.bitOffset;
         if (0 && target.os & Target.OS.Posix)
         {
