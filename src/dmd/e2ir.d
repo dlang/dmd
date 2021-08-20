@@ -6227,6 +6227,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
 
     // CTFE may fill the hidden pointer by NullExp.
     {
+        VarDeclaration vbf;
         foreach (i, el; *sle.elements)
         {
             if (!el)
@@ -6270,6 +6271,27 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
                 e1 = el_una(OPind, ty, e1);
                 if (tybasic(ty) == TYstruct)
                     e1.ET = Type_toCtype(v.type);
+                if (auto bf = v.isBitFieldDeclaration())
+                {
+                    if (!vbf || vbf.offset + vbf.type.size() <= v.offset)
+                    {
+                        /* Initialize entire location the bitfield is in
+                         * ep = (ep & ((1 << bf.fieldWidth) - 1)) << bf.bitOffset
+                         */
+                        tym_t e1ty = e1.Ety;
+                        auto ex = el_bin(OPand, e1ty, ep, el_long(e1ty, (1L << bf.fieldWidth) - 1));
+                        ep = el_bin(OPshl, e1ty, ex, el_long(e1ty, bf.bitOffset));
+                        vbf = v;
+                    }
+                    else
+                    {
+                        // Insert special bitfield operator
+                        auto mos = el_long(TYuint, bf.fieldWidth * 256 + bf.bitOffset);
+                        e1 = el_bin(OPbit, e1.Ety, e1, mos);
+                    }
+                }
+                else
+                    vbf = null;
                 e1 = elAssign(e1, ep, v.type, e1.ET);
             }
             e = el_combine(e, e1);
