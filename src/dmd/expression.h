@@ -108,7 +108,6 @@ public:
     virtual bool checkType();
     virtual bool checkValue();
     bool checkDeprecated(Scope *sc, Dsymbol *s);
-    virtual int checkModifiable(Scope *sc, ModifyFlags flag = ModifyFlags::none);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *addressOf();
     Expression *deref();
@@ -579,7 +578,6 @@ public:
     bool delegateWasExtracted;
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(const RootObject *o) const;
-    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -769,7 +767,6 @@ public:
     Declaration *var;
     bool hasOverloads;
 
-    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -837,7 +834,6 @@ public:
 class PtrExp : public UnaExp
 {
 public:
-    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -922,7 +918,6 @@ public:
     bool arrayop;               // an array operation, rather than a slice
 
     SliceExp *syntaxCopy();
-    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -994,7 +989,6 @@ class CommaExp : public BinExp
 public:
     bool isGenerated;
     bool allowCommaExp;
-    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1011,7 +1005,6 @@ public:
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
     IndexExp *syntaxCopy();
-    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1269,7 +1262,6 @@ public:
     Expression *econd;
 
     CondExp *syntaxCopy();
-    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);

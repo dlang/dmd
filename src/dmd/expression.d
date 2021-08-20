@@ -988,7 +988,7 @@ extern (C++) abstract class Expression : ASTNode
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type.toChars());
         // See if this expression is a modifiable lvalue (i.e. not const)
-        if (checkModifiable(sc) == Modifiable.yes)
+        if (checkModifiable(this, sc) == Modifiable.yes)
         {
             assert(type);
             if (!type.isMutable())
@@ -1546,19 +1546,7 @@ extern (C++) abstract class Expression : ASTNode
         return true;
     }
 
-    /***************************************
-     * Parameters:
-     *      sc:     scope
-     *      flag:   1: do not issue error message for invalid modification
-     * Returns:
-     *      Whether the type is modifiable
-     */
-    Modifiable checkModifiable(Scope* sc, ModifyFlags flag = ModifyFlags.none)
-    {
-        return type ? Modifiable.yes : Modifiable.no; // default modifiable
-    }
-
-   /************************************************
+    /************************************************
      * Destructors are attached to VarDeclarations.
      * Hence, if expression returns a temp that needs a destructor,
      * make sure and create a VarDeclaration for that temp.
@@ -3684,13 +3672,6 @@ extern (C++) final class VarExp : SymbolExp
         return false;
     }
 
-    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
-    {
-        //printf("VarExp::checkModifiable %s", toChars());
-        assert(type);
-        return var.checkModify(loc, sc, null, flag);
-    }
-
     override bool isLvalue()
     {
         if (var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest))
@@ -4774,85 +4755,6 @@ extern (C++) final class DotVarExp : UnaExp
         this.hasOverloads = hasOverloads;
     }
 
-    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
-    {
-        //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type.toChars());
-
-        if (e1.op == TOK.this_)
-            return var.checkModify(loc, sc, e1, flag);
-
-        /* https://issues.dlang.org/show_bug.cgi?id=12764
-         * If inside a constructor and an expression of type `this.field.var`
-         * is encountered, where `field` is a struct declaration with
-         * default construction disabled, we must make sure that
-         * assigning to `var` does not imply that `field` was initialized
-         */
-        if (sc.func && sc.func.isCtorDeclaration())
-        {
-            // if inside a constructor scope and e1 of this DotVarExp
-            // is another DotVarExp, then check if the leftmost expression is a `this` identifier
-            if (auto dve = e1.isDotVarExp())
-            {
-                // Iterate the chain of DotVarExp to find `this`
-                // Keep track whether access to fields was limited to union members
-                // s.t. one can initialize an entire struct inside nested unions
-                // (but not its members)
-                bool onlyUnion = true;
-                while (true)
-                {
-                    auto v = dve.var.isVarDeclaration();
-                    assert(v);
-
-                    // Accessing union member?
-                    auto t = v.type.isTypeStruct();
-                    if (!t || !t.sym.isUnionDeclaration())
-                        onlyUnion = false;
-
-                    // Another DotVarExp left?
-                    if (!dve.e1 || dve.e1.op != TOK.dotVariable)
-                        break;
-
-                    dve = cast(DotVarExp) dve.e1;
-                }
-
-                if (dve.e1.op == TOK.this_)
-                {
-                    scope v = dve.var.isVarDeclaration();
-                    /* if v is a struct member field with no initializer, no default construction
-                     * and v wasn't intialized before
-                     */
-                    if (v && v.isField() && !v._init && !v.ctorinit)
-                    {
-                        if (auto ts = v.type.isTypeStruct())
-                        {
-                            if (ts.sym.noDefaultCtor)
-                            {
-                                /* checkModify will consider that this is an initialization
-                                 * of v while it is actually an assignment of a field of v
-                                 */
-                                scope modifyLevel = v.checkModify(loc, sc, dve.e1, !onlyUnion ? (flag | ModifyFlags.fieldAssign) : flag);
-                                if (modifyLevel == Modifiable.initialization)
-                                {
-                                    // https://issues.dlang.org/show_bug.cgi?id=22118
-                                    // v is a union type field that was assigned
-                                    // a variable, therefore it counts as initialization
-                                    if (v.ctorinit)
-                                        return Modifiable.initialization;
-
-                                    return Modifiable.yes;
-                                }
-                                return modifyLevel;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        //printf("\te1 = %s\n", e1.toChars());
-        return e1.checkModifiable(sc, flag);
-    }
-
     override bool isLvalue()
     {
         if (e1.op != TOK.structLiteral)
@@ -5252,19 +5154,6 @@ extern (C++) final class PtrExp : UnaExp
         type = t;
     }
 
-    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
-    {
-        if (auto se = e1.isSymOffExp())
-        {
-            return se.var.checkModify(loc, sc, null, flag);
-        }
-        else if (auto ae = e1.isAddrExp())
-        {
-            return ae.e1.checkModifiable(sc, flag);
-        }
-        return Modifiable.yes;
-    }
-
     override bool isLvalue()
     {
         return true;
@@ -5530,16 +5419,6 @@ extern (C++) final class SliceExp : UnaExp
         return se;
     }
 
-    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
-    {
-        //printf("SliceExp::checkModifiable %s\n", toChars());
-        if (e1.type.ty == Tsarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
-        {
-            return e1.checkModifiable(sc, flag);
-        }
-        return Modifiable.yes;
-    }
-
     override bool isLvalue()
     {
         /* slice expression is rvalue in default, but
@@ -5673,11 +5552,6 @@ extern (C++) final class CommaExp : BinExp
     {
         super(loc, TOK.comma, __traits(classInstanceSize, CommaExp), e1, e2);
         allowCommaExp = isGenerated = generated;
-    }
-
-    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
-    {
-        return e2.checkModifiable(sc, flag);
     }
 
     override bool isLvalue()
@@ -5851,18 +5725,6 @@ extern (C++) final class IndexExp : BinExp
         auto ie = new IndexExp(loc, e1.syntaxCopy(), e2.syntaxCopy());
         ie.lengthVar = this.lengthVar; // bug7871
         return ie;
-    }
-
-    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
-    {
-        if (e1.type.ty == Tsarray ||
-            e1.type.ty == Taarray ||
-            (e1.op == TOK.index && e1.type.ty != Tarray) ||
-            e1.op == TOK.slice)
-        {
-            return e1.checkModifiable(sc, flag);
-        }
-        return Modifiable.yes;
     }
 
     override bool isLvalue()
@@ -6647,14 +6509,6 @@ extern (C++) final class CondExp : BinExp
         return new CondExp(loc, econd.syntaxCopy(), e1.syntaxCopy(), e2.syntaxCopy());
     }
 
-    override Modifiable checkModifiable(Scope* sc, ModifyFlags flag)
-    {
-        if (e1.checkModifiable(sc, flag) != Modifiable.no
-            && e2.checkModifiable(sc, flag) != Modifiable.no)
-            return Modifiable.yes;
-        return Modifiable.no;
-    }
-
     override bool isLvalue()
     {
         return e1.isLvalue() && e2.isLvalue();
@@ -6982,3 +6836,150 @@ extern (C++) final class GenericExp : Expression
     }
 }
 
+/***************************************
+ * Parameters:
+ *      sc:     scope
+ *      flag:   1: do not issue error message for invalid modification
+                2: the exp is a DotVarExp and a subfield of the leftmost
+                   variable is modified
+ * Returns:
+ *      Whether the type is modifiable
+ */
+extern(D) Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyFlags.none)
+{
+    switch(exp.op)
+    {
+        case TOK.variable:
+            auto varExp = cast(VarExp)exp;
+
+            //printf("VarExp::checkModifiable %s", varExp.toChars());
+            assert(varExp.type);
+            return varExp.var.checkModify(varExp.loc, sc, null, flag);
+
+        case TOK.dotVariable:
+            auto dotVarExp = cast(DotVarExp)exp;
+
+            //printf("DotVarExp::checkModifiable %s %s\n", dotVarExp.toChars(), dotVarExp.type.toChars());
+            if (dotVarExp.e1.op == TOK.this_)
+                return dotVarExp.var.checkModify(dotVarExp.loc, sc, dotVarExp.e1, flag);
+
+            /* https://issues.dlang.org/show_bug.cgi?id=12764
+             * If inside a constructor and an expression of type `this.field.var`
+             * is encountered, where `field` is a struct declaration with
+             * default construction disabled, we must make sure that
+             * assigning to `var` does not imply that `field` was initialized
+             */
+            if (sc.func && sc.func.isCtorDeclaration())
+            {
+                // if inside a constructor scope and e1 of this DotVarExp
+                // is another DotVarExp, then check if the leftmost expression is a `this` identifier
+                if (auto dve = dotVarExp.e1.isDotVarExp())
+                {
+                    // Iterate the chain of DotVarExp to find `this`
+                    // Keep track whether access to fields was limited to union members
+                    // s.t. one can initialize an entire struct inside nested unions
+                    // (but not its members)
+                    bool onlyUnion = true;
+                    while (true)
+                    {
+                        auto v = dve.var.isVarDeclaration();
+                        assert(v);
+
+                        // Accessing union member?
+                        auto t = v.type.isTypeStruct();
+                        if (!t || !t.sym.isUnionDeclaration())
+                            onlyUnion = false;
+
+                        // Another DotVarExp left?
+                        if (!dve.e1 || dve.e1.op != TOK.dotVariable)
+                            break;
+
+                        dve = cast(DotVarExp) dve.e1;
+                    }
+
+                    if (dve.e1.op == TOK.this_)
+                    {
+                        scope v = dve.var.isVarDeclaration();
+                        /* if v is a struct member field with no initializer, no default construction
+                         * and v wasn't intialized before
+                         */
+                        if (v && v.isField() && !v._init && !v.ctorinit)
+                        {
+                            if (auto ts = v.type.isTypeStruct())
+                            {
+                                if (ts.sym.noDefaultCtor)
+                                {
+                                    /* checkModify will consider that this is an initialization
+                                     * of v while it is actually an assignment of a field of v
+                                     */
+                                    scope modifyLevel = v.checkModify(dotVarExp.loc, sc, dve.e1, !onlyUnion ? (flag | ModifyFlags.fieldAssign) : flag);
+                                    if (modifyLevel == Modifiable.initialization)
+                                    {
+                                        // https://issues.dlang.org/show_bug.cgi?id=22118
+                                        // v is a union type field that was assigned
+                                        // a variable, therefore it counts as initialization
+                                        if (v.ctorinit)
+                                            return Modifiable.initialization;
+
+                                        return Modifiable.yes;
+                                    }
+                                    return modifyLevel;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            //printf("\te1 = %s\n", e1.toChars());
+            return dotVarExp.e1.checkModifiable(sc, flag);
+
+        case TOK.star:
+            auto ptrExp = cast(PtrExp)exp;
+            if (auto se = ptrExp.e1.isSymOffExp())
+            {
+                return se.var.checkModify(ptrExp.loc, sc, null, flag);
+            }
+            else if (auto ae = ptrExp.e1.isAddrExp())
+            {
+                return ae.e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case TOK.slice:
+            auto sliceExp = cast(SliceExp)exp;
+
+            //printf("SliceExp::checkModifiable %s\n", sliceExp.toChars());
+            auto e1 = sliceExp.e1;
+            if (e1.type.ty == Tsarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
+            {
+                return e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case TOK.comma:
+            return (cast(CommaExp)exp).e2.checkModifiable(sc, flag);
+
+        case TOK.index:
+            auto indexExp = cast(IndexExp)exp;
+            auto e1 = indexExp.e1;
+            if (e1.type.ty == Tsarray ||
+                e1.type.ty == Taarray ||
+                (e1.op == TOK.index && e1.type.ty != Tarray) ||
+                e1.op == TOK.slice)
+            {
+                return e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case TOK.question:
+            auto condExp = cast(CondExp)exp;
+            if (condExp.e1.checkModifiable(sc, flag) != Modifiable.no
+                && condExp.e2.checkModifiable(sc, flag) != Modifiable.no)
+                return Modifiable.yes;
+            return Modifiable.no;
+
+        default:
+            return exp.type ? Modifiable.yes : Modifiable.no; // default modifiable
+    }
+}
