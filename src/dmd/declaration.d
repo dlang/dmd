@@ -1319,11 +1319,31 @@ extern (C++) class VarDeclaration : Declaration
 
     final bool isOverlappedWith(VarDeclaration v)
     {
-        const vsz = v.type.size();
-        const tsz = type.size();
+        auto vsz = v.type.size();
+        auto tsz = type.size();
         assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
-        return    offset < v.offset + vsz &&
-                v.offset <   offset + tsz;
+
+        auto off  =   offset * 8;
+        auto voff = v.offset * 8;
+
+        if (auto bf = isBitFieldDeclaration())
+        {
+            off += bf.bitOffset;
+            tsz = bf.fieldWidth;
+        }
+        else
+            tsz *= 8;
+
+        if (auto bf = v.isBitFieldDeclaration())
+        {
+            voff += bf.bitOffset;
+            vsz = bf.fieldWidth;
+        }
+        else
+            vsz *= 8;
+
+        return   off < voff + vsz &&
+                voff <  off + tsz;
     }
 
     override final bool hasPointers()
