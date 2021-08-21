@@ -209,6 +209,23 @@ nothrow:
         pTail = &head;
     }
 
+    /************************************
+     * Useful for checking if DtBuilder got initialized.
+     */
+    void checkInitialized()
+    {
+        if (!head)
+            assert(pTail == &head);
+    }
+
+    /************************************
+     * Print state of DtBuilder for debugging.
+     */
+    void print()
+    {
+        debug printf("DtBuilder: %p head: %p, pTail: %p\n", &head, head, pTail);
+    }
+
     /*************************
      * Finish and return completed data structure.
      */
@@ -478,10 +495,13 @@ nothrow:
      */
     void cat(ref DtBuilder dtb)
     {
-        assert(!*pTail);
-        *pTail = dtb.head;
-        pTail = dtb.pTail;
-        assert(!*pTail);
+        if (dtb.head) // if non-zero length
+        {
+            assert(!*pTail);
+            *pTail = dtb.head;
+            pTail = dtb.pTail; // if dtb is zero length, this will point pTail to dtb.head, oops
+            assert(!*pTail);
+        }
     }
 
     /**************************************
