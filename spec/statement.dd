@@ -243,6 +243,7 @@ $(GNAME IfStatement):
 $(GNAME IfCondition):
     $(EXPRESSION)
     $(D auto) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
+    $(D scope) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
     $(GLINK2 type, TypeCtors) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
     $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(EXPRESSION)
 
