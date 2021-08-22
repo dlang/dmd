@@ -12,6 +12,7 @@
 
 module rt.lifetime;
 
+import core.attribute : weak;
 import core.memory;
 debug(PRINTF) import core.stdc.stdio;
 static import rt.tlsgc;
@@ -47,7 +48,7 @@ extern (C) void lifetime_init()
 /**
  *
  */
-extern (C) void* _d_allocmemory(size_t sz)
+extern (C) void* _d_allocmemory(size_t sz) @weak
 {
     return GC.malloc(sz);
 }
@@ -55,7 +56,7 @@ extern (C) void* _d_allocmemory(size_t sz)
 /**
  *
  */
-extern (C) Object _d_newclass(const ClassInfo ci)
+extern (C) Object _d_newclass(const ClassInfo ci) @weak
 {
     import core.stdc.stdlib;
     import core.exception : onOutOfMemoryError;
@@ -132,7 +133,7 @@ private extern (D) alias void function (Object) fp_t;
 /**
  *
  */
-extern (C) void _d_delclass(Object* p)
+extern (C) void _d_delclass(Object* p) @weak
 {
     if (*p)
     {
@@ -167,7 +168,7 @@ extern (C) void _d_delclass(Object* p)
  * being deleted is a pointer to a struct with a destructor
  * but doesn't have an overloaded delete operator.
  */
-extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
+extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf) @weak
 {
     if (*p)
     {
@@ -746,7 +747,7 @@ void __doPostblit(void *ptr, size_t len, const TypeInfo ti)
  * of 0 to get the current capacity.  Returns the number of elements that can
  * actually be stored once the resizing is done.
  */
-extern(C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* p)
+extern(C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* p) @weak
 in
 {
     assert(ti);
@@ -919,7 +920,7 @@ Lcontinue:
  * Allocate a new uninitialized array of length elements.
  * ti is the type of the resulting array, or pointer to element.
  */
-extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length) pure nothrow
+extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length) pure nothrow @weak
 {
     import core.exception : onOutOfMemoryError;
 
@@ -980,7 +981,7 @@ Lcontinue:
  * ti is the type of the resulting array, or pointer to element.
  * (For when the array is initialized to 0)
  */
-extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length) pure nothrow
+extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length) pure nothrow @weak
 {
     import core.stdc.string;
 
@@ -995,7 +996,7 @@ extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length) pure nothrow
 /**
  * For when the array has a non-zero initializer.
  */
-extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow
+extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow @weak
 {
     import core.internal.traits : AliasSeq;
 
@@ -1070,7 +1071,7 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t[] dims)
 /**
  *
  */
-extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims)
+extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims) @weak
 {
     debug(PRINTF) printf("_d_newarraymT(dims.length = %d)\n", dims.length);
 
@@ -1086,7 +1087,7 @@ extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims)
 /**
  *
  */
-extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims)
+extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims) @weak
 {
     debug(PRINTF) printf("_d_newarraymiT(dims.length = %d)\n", dims.length);
 
@@ -1102,7 +1103,7 @@ extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims)
  * Allocate an uninitialized non-array item.
  * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
  */
-extern (C) void* _d_newitemU(scope const TypeInfo _ti) pure nothrow
+extern (C) void* _d_newitemU(scope const TypeInfo _ti) pure nothrow @weak
 {
     auto ti = unqualify(_ti);
     auto flags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
@@ -1125,7 +1126,7 @@ extern (C) void* _d_newitemU(scope const TypeInfo _ti) pure nothrow
 }
 
 /// Same as above, zero initializes the item.
-extern (C) void* _d_newitemT(in TypeInfo _ti) pure nothrow
+extern (C) void* _d_newitemT(in TypeInfo _ti) pure nothrow @weak
 {
     import core.stdc.string;
     auto p = _d_newitemU(_ti);
@@ -1134,7 +1135,7 @@ extern (C) void* _d_newitemT(in TypeInfo _ti) pure nothrow
 }
 
 /// Same as above, for item with non-zero initializer.
-extern (C) void* _d_newitemiT(in TypeInfo _ti) pure nothrow
+extern (C) void* _d_newitemiT(in TypeInfo _ti) pure nothrow @weak
 {
     import core.stdc.string;
     auto p = _d_newitemU(_ti);
@@ -1169,7 +1170,7 @@ debug(PRINTF)
 /**
  *
  */
-extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
+extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti) @weak
 {
     if (p)
     {
@@ -1224,7 +1225,7 @@ deprecated unittest
 /**
  *
  */
-extern (C) void _d_delmemory(void* *p)
+extern (C) void _d_delmemory(void* *p) @weak
 {
     if (*p)
     {
@@ -1237,7 +1238,7 @@ extern (C) void _d_delmemory(void* *p)
 /**
  *
  */
-extern (C) void _d_callinterfacefinalizer(void *p)
+extern (C) void _d_callinterfacefinalizer(void *p) @weak
 {
     if (p)
     {
@@ -1251,7 +1252,7 @@ extern (C) void _d_callinterfacefinalizer(void *p)
 /**
  *
  */
-extern (C) void _d_callfinalizer(void* p)
+extern (C) void _d_callfinalizer(void* p) @weak
 {
     rt_finalize( p );
 }
@@ -1455,7 +1456,7 @@ extern (C) void rt_finalizeFromGC(void* p, size_t size, uint attr) nothrow
 /**
  * Resize dynamic arrays with 0 initializers.
  */
-extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p)
+extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p) @weak
 in
 {
     assert(ti);
@@ -1657,7 +1658,7 @@ do
  *      initsize        size of initializer
  *      ...             initializer
  */
-extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p)
+extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p) @weak
 in
 {
     assert(!(*p).length || (*p).ptr);
@@ -1869,7 +1870,7 @@ do
 /**
  * Append y[] to array x[]
  */
-extern (C) void[] _d_arrayappendT(const TypeInfo ti, ref byte[] x, byte[] y)
+extern (C) void[] _d_arrayappendT(const TypeInfo ti, ref byte[] x, byte[] y) @weak
 {
     import core.stdc.string;
     auto length = x.length;
@@ -1971,7 +1972,7 @@ size_t newCapacity(size_t newlength, size_t size)
  * Caller must initialize those elements.
  */
 extern (C)
-byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n)
+byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n) @weak
 {
     import core.stdc.string;
     // This is a cut&paste job from _d_arrayappendT(). Should be refactored.
@@ -2075,7 +2076,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n
 /**
  * Append dchar to char[]
  */
-extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
+extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c) @weak
 {
     // c could encode into from 1 to 4 characters
     char[4] buf = void;
@@ -2157,7 +2158,7 @@ unittest
 /**
  * Append dchar to wchar[]
  */
-extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
+extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c) @weak
 {
     // c could encode into from 1 to 2 w characters
     wchar[2] buf = void;
@@ -2190,7 +2191,7 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
 /**
  *
  */
-extern (C) byte[] _d_arraycatT(const TypeInfo ti, byte[] x, byte[] y)
+extern (C) byte[] _d_arraycatT(const TypeInfo ti, byte[] x, byte[] y) @weak
 out (result)
 {
     auto tinext = unqualify(ti.next);
@@ -2256,7 +2257,7 @@ do
 /**
  *
  */
-extern (C) void[] _d_arraycatnTX(const TypeInfo ti, scope byte[][] arrs)
+extern (C) void[] _d_arraycatnTX(const TypeInfo ti, scope byte[][] arrs) @weak
 {
     import core.stdc.string;
 
@@ -2297,7 +2298,7 @@ extern (C) void[] _d_arraycatnTX(const TypeInfo ti, scope byte[][] arrs)
  * Allocate the array, rely on the caller to do the initialization of the array.
  */
 extern (C)
-void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
+void* _d_arrayliteralTX(const TypeInfo ti, size_t length) @weak
 {
     auto tinext = unqualify(ti.next);
     auto sizeelem = tinext.tsize;              // array element size

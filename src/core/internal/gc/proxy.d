@@ -32,12 +32,14 @@ private
 
 extern (C)
 {
+    import core.attribute : weak;
+
     // do not import GC modules, they might add a dependency to this whole module
     void _d_register_conservative_gc();
     void _d_register_manual_gc();
 
     // if you don't want to include the default GCs, replace during link by another implementation
-    void* register_default_gcs()
+    void* register_default_gcs() @weak
     {
         pragma(inline, false);
         // do not call, they register implicitly through pragma(crt_constructor)

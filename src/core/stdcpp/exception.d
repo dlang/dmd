@@ -13,6 +13,7 @@
 module core.stdcpp.exception;
 
 import core.stdcpp.xutility : __cplusplus, CppStdRevision;
+import core.attribute : weak;
 
 version (CppRuntime_DigitalMars)
     version = GenericBaseException;
@@ -70,10 +71,10 @@ version (GenericBaseException)
         ///
         this() nothrow {}
         ///
-        ~this() nothrow {} // HACK: this should extern, but then we have link errors!
+        @weak ~this() nothrow {} // HACK: this should extern, but then we have link errors!
 
         ///
-        const(char)* what() const nothrow { return "unknown"; } // HACK: this should extern, but then we have link errors!
+        @weak const(char)* what() const nothrow { return "unknown"; } // HACK: this should extern, but then we have link errors!
 
     protected:
         this(const(char)*, int = 1) nothrow { this(); } // compat with MS derived classes
@@ -97,7 +98,7 @@ else version (CppRuntime_Microsoft)
 //        final ref exception opAssign(ref const(exception) e) nothrow { msg = e.msg; return this; }
 
     protected:
-        void _Doraise() const {}
+        @weak void _Doraise() const {}
 
     protected:
         const(char)* msg;
