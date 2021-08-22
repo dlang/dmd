@@ -835,7 +835,7 @@ ByRef:
         if (!(va && va.isScope()))
             notMaybeScope(v);
 
-        if (v.isReference() || p != sc.func)
+        if ((global.params.useDIP1000 != FeatureState.enabled && v.isReference()) || p != sc.func)
             continue;
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
@@ -844,6 +844,8 @@ ByRef:
             {   //printf("inferring scope for %s\n", va.toChars());
                 va.storage_class |= STC.scope_ | STC.scopeinferred;
             }
+            if (v.storage_class & STC.return_ && !(va.storage_class & STC.return_))
+                va.storage_class |= STC.return_ | STC.returninferred;
             continue;
         }
         if (e1.op == TOK.structLiteral)
