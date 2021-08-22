@@ -22,6 +22,7 @@ struct Scope;
 class DsymbolTable;
 class Declaration;
 class ThisDeclaration;
+class BitFieldDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
 class AliasDeclaration;
@@ -135,7 +136,18 @@ enum
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
-    IgnoreSymbolVisibility  = 0x80  // also find private and package protected symbols
+    IgnoreSymbolVisibility  = 0x80,  // also find private and package protected symbols
+    TagNameSpace            = 0x100, // search ImportC tag symbol table
+};
+
+struct FieldState
+{
+    unsigned offset;
+
+    unsigned fieldOffset;
+    unsigned bitOffset;
+    unsigned fieldSice;
+    bool inFlight;
 };
 
 class Dsymbol : public ASTNode
@@ -214,7 +226,7 @@ public:
     virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool oneMember(Dsymbol **ps, Identifier *ident);
-    virtual void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
+    virtual void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
@@ -239,6 +251,7 @@ public:
     virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
     virtual AliasAssign *isAliasAssign() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
+    virtual BitFieldDeclaration *isBitFieldDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
@@ -387,7 +400,7 @@ public:
     Dsymbol *lookup(Identifier const * const ident);
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
-    Dsymbol *update(Dsymbol *s);
+    void update(Dsymbol *s);
 
     // Insert Dsymbol in table. Return NULL if already there.
     Dsymbol *insert(Dsymbol *s);

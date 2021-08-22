@@ -19,6 +19,7 @@ import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;
@@ -354,7 +355,7 @@ Symbol *toSymbol(Dsymbol s)
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
-            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn())
+            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.flags & FUNCFLAG.noreturn)
                 s.Sflags |= SFLexit;    // the function never returns
 
             f.Fstartline.set(fd.loc.filename, fd.loc.linnum, fd.loc.charnum);
@@ -636,7 +637,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             ad.sinit = s;
         }
     }
-    return ad.sinit;
+    return cast(Symbol*)ad.sinit;
 }
 
 Symbol *toInitializer(EnumDeclaration ed)

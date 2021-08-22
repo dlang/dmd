@@ -84,6 +84,7 @@ class TypeNull;
 class TypeNoreturn;
 class TypeTraits;
 class TypeMixin;
+class TypeTag;
 
 class Dsymbol;
 
@@ -138,6 +139,7 @@ class OverDeclaration;
 class VarDeclaration;
 class SymbolDeclaration;
 class ThisDeclaration;
+class BitFieldDeclaration;
 
 class TypeInfoDeclaration;
 class TypeInfoStructDeclaration;
@@ -177,6 +179,7 @@ class ErrorInitializer;
 class StructInitializer;
 class ArrayInitializer;
 class ExpInitializer;
+class CInitializer;
 
 class Expression;
 class IntegerExp;
@@ -194,6 +197,7 @@ class TupleExp;
 class ArrayLiteralExp;
 class AssocArrayLiteralExp;
 class StructLiteralExp;
+class CompoundLiteralExp;
 class ObjcClassReferenceExp;
 class TypeExp;
 class ScopeExp;
@@ -289,6 +293,7 @@ class PrettyFuncInitExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
+class GenericExp;
 
 class TemplateParameter;
 class TemplateTypeParameter;
@@ -379,6 +384,7 @@ public:
     virtual void visit(ClassDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(InterfaceDeclaration *s) { visit((ClassDeclaration *)s); }
     virtual void visit(TemplateMixin *s) { visit((TemplateInstance *)s); }
+    virtual void visit(BitFieldDeclaration *s) { visit((VarDeclaration *)s); }
 
     // Statements
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
@@ -437,6 +443,7 @@ public:
     virtual void visit(TypeQualified *t) { visit((Type *)t); }
     virtual void visit(TypeTraits *t) { visit((Type *)t); }
     virtual void visit(TypeMixin *t) { visit((Type *)t); }
+    virtual void visit(TypeTag *t) { visit((Type *)t); }
 
     // TypeNext
     virtual void visit(TypeReference *t) { visit((TypeNext *)t); }
@@ -484,6 +491,7 @@ public:
     virtual void visit(SymbolExp *e) { visit((Expression *)e); }
     virtual void visit(TupleExp *e) { visit((Expression *)e); }
     virtual void visit(ThisExp *e) { visit((Expression *)e); }
+    virtual void visit(GenericExp *e) { visit((Expression *)e); }
 
     // Miscellaneous
     virtual void visit(VarExp *e) { visit((SymbolExp *)e); }
@@ -573,6 +581,7 @@ public:
     virtual void visit(StructInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
+    virtual void visit(CInitializer *i) { visit((Initializer *)i); }
 };
 
 class Visitor : public ParseTimeVisitor
@@ -618,6 +627,7 @@ public:
     virtual void visit(ErrorExp *e) { visit((Expression *)e); }
     virtual void visit(ComplexExp *e) { visit((Expression *)e); }
     virtual void visit(StructLiteralExp *e) { visit((Expression *)e); }
+    virtual void visit(CompoundLiteralExp *e) { visit((Expression *)e); }
     virtual void visit(ObjcClassReferenceExp *e) { visit((Expression *)e); }
     virtual void visit(SymOffExp *e) { visit((SymbolExp *)e); }
     virtual void visit(OverExp *e) { visit((Expression *)e); }

@@ -15,6 +15,7 @@ module dmd.objc;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.cond;
 import dmd.dclass;

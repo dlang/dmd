@@ -1,0 +1,340 @@
+# Github Action to build nightly releases
+#
+# This script builds and packages a release for Linux, Windows, OSX and FreeBSD
+# using current master. The generated archives are published as the current
+# nightly build on the Gitbub release page.
+#
+# Job overview:
+# 1. Generates the documentation included in each release
+# 2. Builds the actual release (using a matrix over all targets)
+# 3. Publishes all artifacts from (2) to the release page on GitHub
+
+name: build-nightly
+
+on:
+  # Rebuild every day
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  # Build the documentation used by all releases
+  build-docs:
+    name: Build documentation for all repos
+    if: github.repository == 'dlang/dmd'
+
+    outputs:
+      dmd-revision: ${{ steps.get-revisions.outputs.dmd-revision }}
+      druntime-revision: ${{ steps.get-revisions.outputs.druntime-revision }}
+      phobos-revision: ${{ steps.get-revisions.outputs.phobos-revision }}
+
+    steps:
+      # Clone all required repos
+      - name: Clone dmd
+        uses: actions/checkout@v2
+        with:
+          repository: 'dlang/dmd'
+          path: 'dmd'
+
+      - name: Clone druntime
+        uses: actions/checkout@v2
+        with:
+          repository: 'dlang/druntime'
+          path: 'druntime'
+
+      - name: Clone phobos
+        uses: actions/checkout@v2
+        with:
+          repository: 'dlang/phobos'
+          path: 'phobos'
+
+      - name: Clone dlang.org
+        uses: actions/checkout@v2
+        with:
+          repository: 'dlang/dlang.org'
+          path: 'dlang.org'
+
+      # Fetch host compiler
+      - uses: dlang-community/setup-dlang@v1
+        name: Install host DMD
+
+      # Actually build the docs
+      - name: Build docs and man pages
+        shell: bash
+        run: |
+          set -euox pipefail
+
+          # Build minimal host compiler (sometimes not triggered by dlang.org/posix.mak)
+          make -f posix.mak -j2 -C druntime
+
+          # Build docs and include the man pages
+          make -f posix.mak -j2 -C dlang.org release
+          cp -r dmd/generated/docs/man dlang.org/web/
+
+      # Save the generated documentation for the target-specific builds
+      - name: Upload generated docs as a temporary artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: dmd-nightly-docs
+          path: dlang.org/web
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Determine revisions
+        id: get-revisions
+        shell: bash
+        run: |
+          set -euox pipefail
+
+          for REPO in dmd druntime phobos
+          do
+            REV=$( git -C $REPO rev-parse HEAD )
+            echo "::set-output name=$REPO-revision::$REV"
+          done
+
+    runs-on: ubuntu-latest
+
+  # Build and package a new release for each platform
+  build-all-releases:
+    name: Build nightly for ${{ matrix.target }}  on ${{ matrix.os }}
+    if: github.repository == 'dlang/dmd'
+    needs: build-docs
+    timeout-minutes: 60
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-20.04
+            target: linux
+          - os: macos-10.15
+            target: osx
+          - os: windows-2019
+            target: windows
+          # FreeBSD is built on an additional VM
+          - os: macos-10.15
+            target: freebsd
+
+    steps:
+
+      #################################################################
+      # Install the system dependencies required to build and run
+      # the actual release scripts
+      #
+      # Linux implementation based on `linux_both` in build_all.d and
+      # some additional experimentation to get curl working
+      #
+      - name: Install dependencies for linux
+        if: matrix.target == 'linux'
+        shell: bash
+        run: |
+          set -euox pipefail
+
+          # Install base dependencies (including multlib support)
+          sudo dpkg --add-architecture i386
+          sudo apt -y update
+          sudo apt -y install --no-install-recommends \
+              build-essential \
+              ca-certificates \
+              curl \
+              dpkg-dev \
+              fakeroot \
+              g++ \
+              g++-multilib \
+              gcc \
+              git \
+              gpg \
+              gpg-agent \
+              libcurl4 \
+              libcurl4-openssl-dev \
+              libcurl4:i386 \
+              libxml2 \
+              make \
+              p7zip-full \
+              rpm \
+              rsync \
+              unzip \
+              xz-utils
+
+          # Save some space
+          sudo apt clean
+
+      #################################################################
+      # Install latest LDC used to compile the release scripts and to
+      # determine the currently available version number
+      #
+      - uses: dlang-community/setup-dlang@v1
+        name: Install latest LDC
+        if: matrix.target != 'freebsd'
+        with:
+          compiler: ldc-latest
+
+      #################################################################
+      # Clone dlang/installer which provides the actual build scripts
+      #
+      - name: Clone installer repo
+        uses: actions/checkout@v2
+        with:
+          repository: 'dlang/installer'
+
+      #################################################################
+      # Load the generated documentation in the create_dmd_release folder
+      #
+      - name: Download docs generated by the previous job
+        uses: actions/download-artifact@v2
+        with:
+          name: dmd-nightly-docs
+          path: create_dmd_release/docs
+
+      #################################################################
+      # Build for the current target using build_all.d from installer
+      #
+      - name: Fetch common resources and run build_all.d for ${{ matrix.target }}
+        id: build
+        if: matrix.target != 'freebsd'
+        shell: bash
+        run: |
+          set -euox pipefail
+
+          # Fetch GPG key used to sign the generated binaries
+          curl https://dlang.org/d-keyring.gpg -o d-keyring.gpg
+          gpg --import d-keyring.gpg
+
+          # Compile release builder
+          cd create_dmd_release
+          ldmd2 -g -m64 --link-defaultlib-debug -version=NoVagrant -i build_all.d
+
+          # Determine installed LDC version
+          LDC=$(ldc2 --version | head -n 1 | cut -d'(' -f2 | cut -d')' -f1)
+          echo "::set-output name=host_ldc::$LDC"
+
+          # WINDOWS: Fetch additional DM tools
+          if [[ "${{ matrix.target }}" == "windows" ]]
+          then
+
+            # Fetch DM make
+            curl http://downloads.dlang.org/other/dm857c.zip -o dmc.zip
+            7z x dmc.zip
+
+            # Fetch implib
+            curl http://ftp.digitalmars.com/bup.zip -o bup.zip
+            7z x bup.zip dm/bin/implib.exe
+
+            # Add DM binaries to the path
+            export PATH="$PWD/dm/bin;$PATH"
+
+            # Export VS dir
+            export LDC_VSDIR='C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise'
+          fi
+
+          # Build the release
+          ./build_all --targets=${{ matrix.target }} "v$LDC" master
+
+      #################################################################
+      # FREEBSD: Build for the current target using build_all.d from installer
+      #
+      - name: Run build_all.d for FreeBSD in a dedicated VM
+        if: matrix.target == 'freebsd'
+        uses: vmactions/freebsd-vm@v0.1.3
+        with:
+          usesh: true
+          # Need more RAM than the default 1G
+          mem: 4096
+          prepare: pkg install -y bash curl curlpp git gmake pkgconf gnupg rsync llvm90
+          run: |
+            set -eux
+
+            # Import key used to sign binaries
+            curl https://dlang.org/d-keyring.gpg -o d-keyring.gpg
+            gpg d-keyring.gpg
+
+            # Install ldc
+            curl https://dlang.org/install.sh -o install.sh
+            bash install.sh ldc -p .
+
+            # Use absolute paths because activate doesn't work correctly
+            LDC_BIN=$PWD/ldc-*/bin
+
+            # Determine installed LDC version
+            LDC=$($LDC_BIN/ldc2 --version | head -n 1 | cut -d'(' -f2 | cut -d')' -f1)
+
+            # Determine additional linker flags to make -lcurl work
+            EXTRA_FLAGS="-L$(pkg-config --libs-only-L libcurl)"
+
+            # Actually build the release
+            cd create_dmd_release
+            $LDC_BIN/ldmd2 -g -m64 --link-defaultlib-debug -version=NoVagrant -i build_all.d $EXTRA_FLAGS
+            ./build_all --targets=${{ matrix.target }} "v$LDC" master
+
+      #################################################################
+      # Save the target-specific release as a artifact s.t. the next
+      # job can bundle the entire release for all supported targets
+      #
+      - name: Upload generated release as a temporary artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: dmd-nightly
+          path: |
+            ${{ github.workspace }}/create_dmd_release/build/*
+            !${{ github.workspace }}/create_dmd_release/build/*.zip
+          retention-days: 1
+          if-no-files-found: error
+
+    runs-on: ${{ matrix.os }}
+
+  # Bundles and publishes the entire release
+  generate_release:
+    name: "Publish artifacts on the release page"
+    if: github.repository == 'dlang/dmd'
+    needs:
+      - build-docs
+      - build-all-releases
+    steps:
+      #################################################################
+      # Fetch all artifacts from the jobs defined above
+      #
+      - name: Download generated releases from the artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: dmd-nightly
+          path: ~/artifacts/
+
+      #################################################################
+      # Debug: Check that all required artifacts are present
+      #
+      - name: Display all files included in the artifacts
+        id: list-artifacts
+        shell: bash
+        run: |
+          set -euox pipefail
+          ls -aul ~ ~/artifacts
+          echo "::set-output name=artifacts_directory::$HOME/artifacts"
+
+      #################################################################
+      # Create the new release using the downloaded artifacts
+      #
+      - name: Create the nightly release
+        uses: ncipollo/release-action@v1.8.6
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          name: DMD nightly
+          prerelease: true
+          body: |
+            Nightly build of the reference D compiler (incl. Druntime and Phobos)
+
+            Note that the official date and commit will be outdated because this
+            release is continuously updated. The actually built revisions are:
+
+            | Component | Revision                                                         |
+            | --------- | ---------------------------------------------------------------- |
+            | DMD       | dlang/dmd@${{ needs.build-docs.outputs.dmd-revision }}           |
+            | DRuntime  | dlang/druntime@${{ needs.build-docs.outputs.druntime-revision }} |
+            | Phobos    | dlang/phobos@${{ needs.build-docs.outputs.phobos-revision }}     |
+
+          artifacts:  ${{ steps.list-artifacts.outputs.artifacts_directory }}/*
+          artifactErrorsFailBuild: true
+
+          # Always tag the same commit to only update the body + assets
+          tag: nightly
+          commit: f01bc99e87ad9d04b47a5323f6ccb1fd728eae8c
+          allowUpdates: true
+
+    runs-on: ubuntu-latest

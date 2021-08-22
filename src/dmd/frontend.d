@@ -448,7 +448,8 @@ string prettyPrint(Module m)
     import dmd.root.outbuffer: OutBuffer;
     import dmd.hdrgen : HdrGenState, moduleToBuffer2;
 
-    OutBuffer buf = { doindent: 1 };
+    auto buf = OutBuffer();
+    buf.doindent = 1;
     HdrGenState hgs = { fullDump: 1 };
     moduleToBuffer2(m, &buf, &hgs);
 

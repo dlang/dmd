@@ -122,8 +122,6 @@ public:
     bool usesEH();
     bool comeFrom();
     bool hasCode();
-    virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
-    virtual Statements *flatten(Scope *sc);
     virtual Statement *last();
 
     virtual ReturnStatement *endsWithReturnStatement() { return NULL; }
@@ -134,6 +132,8 @@ public:
     CompoundStatement    *isCompoundStatement()    { return stmt == STMTcompound    ? (CompoundStatement*)this    : NULL; }
     ReturnStatement      *isReturnStatement()      { return stmt == STMTreturn      ? (ReturnStatement*)this      : NULL; }
     IfStatement          *isIfStatement()          { return stmt == STMTif          ? (IfStatement*)this          : NULL; }
+    ConditionalStatement *isConditionalStatement() { return stmt == STMTconditional ? (ConditionalStatement*)this : NULL; }
+    StaticForeachStatement *isStaticForeachStatement() { return stmt == STMTstaticForeach ? (StaticForeachStatement*)this : NULL; }
     CaseStatement        *isCaseStatement()        { return stmt == STMTcase        ? (CaseStatement*)this        : NULL; }
     DefaultStatement     *isDefaultStatement()     { return stmt == STMTdefault     ? (DefaultStatement*)this     : NULL; }
     LabelStatement       *isLabelStatement()       { return stmt == STMTlabel       ? (LabelStatement*)this       : NULL; }
@@ -141,6 +141,7 @@ public:
     GotoCaseStatement    *isGotoCaseStatement()    { return stmt == STMTgotoCase    ? (GotoCaseStatement*)this    : NULL; }
     BreakStatement       *isBreakStatement()       { return stmt == STMTbreak       ? (BreakStatement*)this       : NULL; }
     DtorExpStatement     *isDtorExpStatement()     { return stmt == STMTdtorExp     ? (DtorExpStatement*)this     : NULL; }
+    CompileStatement     *isCompileStatement()     { return stmt == STMTcompile     ? (CompileStatement*)this     : NULL; }
     ForwardingStatement  *isForwardingStatement()  { return stmt == STMTforwarding  ? (ForwardingStatement*)this  : NULL; }
     DoStatement          *isDoStatement()          { return stmt == STMTdo          ? (DoStatement*)this          : NULL; }
     ForStatement         *isForStatement()         { return stmt == STMTfor         ? (ForStatement*)this         : NULL; }
@@ -150,7 +151,9 @@ public:
     WithStatement        *isWithStatement()        { return stmt == STMTwith        ? (WithStatement*)this        : NULL; }
     TryCatchStatement    *isTryCatchStatement()    { return stmt == STMTtryCatch    ? (TryCatchStatement*)this    : NULL; }
     ThrowStatement       *isThrowStatement()       { return stmt == STMTthrow       ? (ThrowStatement*)this       : NULL; }
+    DebugStatement       *isDebugStatement()       { return stmt == STMTdebug       ? (DebugStatement*)this       : NULL; }
     TryFinallyStatement  *isTryFinallyStatement()  { return stmt == STMTtryFinally  ? (TryFinallyStatement*)this  : NULL; }
+    ScopeGuardStatement  *isScopeGuardStatement()  { return stmt == STMTscopeGuard  ? (ScopeGuardStatement*)this  : NULL; }
     SwitchErrorStatement  *isSwitchErrorStatement()  { return stmt == STMTswitchError  ? (SwitchErrorStatement*)this  : NULL; }
     UnrolledLoopStatement *isUnrolledLoopStatement() { return stmt == STMTunrolledLoop ? (UnrolledLoopStatement*)this : NULL; }
     ForeachRangeStatement *isForeachRangeStatement() { return stmt == STMTforeachRange ? (ForeachRangeStatement*)this : NULL; }
@@ -185,8 +188,6 @@ public:
 
     static ExpStatement *create(Loc loc, Expression *exp);
     ExpStatement *syntaxCopy();
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
-    Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -209,7 +210,6 @@ public:
     Expressions *exps;
 
     CompileStatement *syntaxCopy();
-    Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -220,7 +220,6 @@ public:
 
     static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     CompoundStatement *syntaxCopy();
-    Statements *flatten(Scope *sc);
     ReturnStatement *endsWithReturnStatement();
     Statement *last();
 
@@ -270,7 +269,6 @@ public:
     Statement *statement;
 
     ForwardingStatement *syntaxCopy();
-    Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -318,7 +316,6 @@ public:
     Statement *relatedLabeled;
 
     ForStatement *syntaxCopy();
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
     bool hasBreak() const;
     bool hasContinue() const;
@@ -392,7 +389,6 @@ public:
     Statement *elsebody;
 
     ConditionalStatement *syntaxCopy();
-    Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -403,7 +399,6 @@ public:
     StaticForeach *sfe;
 
     StaticForeachStatement *syntaxCopy();
-    Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -635,7 +630,6 @@ public:
     Statement *statement;
 
     ScopeGuardStatement *syntaxCopy();
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -659,7 +653,6 @@ public:
     Statement *statement;
 
     DebugStatement *syntaxCopy();
-    Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -692,8 +685,6 @@ public:
     bool breaks;                // someone did a 'break ident'
 
     LabelStatement *syntaxCopy();
-    Statements *flatten(Scope *sc);
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -760,7 +751,6 @@ public:
     StorageClass stc; // postfix attributes like nothrow/pure/@trusted
 
     CompoundAsmStatement *syntaxCopy();
-    Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag_class_alloc.d(13): Error: class allocators are obsolete, consider moving the allocation strategy outside of the class
+fail_compilation/diag_class_alloc.d(15): Error: `new` allocator must be annotated with `@disabled`
+fail_compilation/diag_class_alloc.d(16): Deprecation: `new` allocator with non-empty parameter list is deprecated
+fail_compilation/diag_class_alloc.d(16): Deprecation: `new` allocator with function definition is deprecated
 ---
 */
 

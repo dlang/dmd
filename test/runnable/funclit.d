@@ -412,7 +412,7 @@ void test7288()
     auto foo()
     {
         int x;
-        return () => { return x; };
+        return () { return () => x; };
     }
     pragma(msg, typeof(&foo));
     alias int delegate() pure nothrow @nogc @safe delegate() pure nothrow @nogc @safe delegate() pure nothrow @safe Dg;

@@ -24,7 +24,7 @@ struct Matrix(T, int R, int C)
         {
             try
                 return format("%s", v);
-            catch
+            catch (Throwable)
                 assert(false); // should not happen since format is right
         }
 }
@@ -67,7 +67,7 @@ struct Vector(T, int N)
     {
         try
             return format("%s", v);
-        catch
+        catch (Throwable)
             assert(false);
     }
 }

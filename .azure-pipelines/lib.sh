@@ -77,8 +77,13 @@ install_grep() {
 
 clone_repos() {
     if [ -z ${SYSTEM_PULLREQUEST_TARGETBRANCH+x} ]; then
+        # no PR
         local REPO_BRANCH="$BUILD_SOURCEBRANCHNAME"
+    elif [ ${SYSTEM_PULLREQUEST_ISFORK} == False ]; then
+        # PR originating from the official dlang repo
+        local REPO_BRANCH="$SYSTEM_PULLREQUEST_SOURCEBRANCH"
     else
+        # PR from a fork
         local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
     fi
 

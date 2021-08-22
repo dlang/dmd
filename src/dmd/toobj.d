@@ -23,6 +23,7 @@ import dmd.root.rootobject;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
@@ -1258,7 +1259,7 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
     size_t namelen = strlen(name);
     if (!(namelen > 9 && memcmp(name, "TypeInfo_".ptr, 9) == 0))
     {
-        name = cd.toPrettyChars();
+        name = cd.toPrettyChars(/*QualifyTypes=*/ true);
         namelen = strlen(name);
     }
     dtb.size(namelen);
@@ -1485,7 +1486,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     dtb.size(0);                        // initializer
 
     // name[]
-    const(char) *name = id.toPrettyChars();
+    const(char) *name = id.toPrettyChars(/*QualifyTypes=*/ true);
     size_t namelen = strlen(name);
     dtb.size(namelen);
     dt_t *pdtname = dtb.xoffpatch(id.csym, 0, TYnptr);

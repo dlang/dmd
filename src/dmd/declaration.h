@@ -29,64 +29,81 @@ class FuncDeclaration;
 class StructDeclaration;
 struct IntRange;
 
-#define STCundefined    0ULL
-#define STCstatic       1ULL
-#define STCextern       2ULL
-#define STCconst        4ULL
-#define STCfinal        8ULL
-#define STCabstract     0x10ULL
-#define STCparameter    0x20ULL
-#define STCfield        0x40ULL
-#define STCoverride     0x80ULL
-#define STCauto         0x100ULL
-#define STCsynchronized 0x200ULL
-#define STCdeprecated   0x400ULL
-#define STCin           0x800ULL         // in parameter
-#define STCout          0x1000ULL        // out parameter
-#define STClazy         0x2000ULL        // lazy parameter
-#define STCforeach      0x4000ULL        // variable for foreach loop
-#define STCvariadic     0x10000ULL       // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
-#define STCctorinit     0x20000ULL       // can only be set inside constructor
-#define STCtemplateparameter  0x40000ULL // template parameter
-#define STCscope        0x80000ULL
-#define STCimmutable    0x100000ULL
-#define STCref          0x200000ULL
-#define STCinit         0x400000ULL      // has explicit initializer
-#define STCmanifest     0x800000ULL      // manifest constant
-#define STCnodtor       0x1000000ULL     // don't run destructor
-#define STCnothrow      0x2000000ULL     // never throws exceptions
-#define STCpure         0x4000000ULL     // pure function
-#define STCtls          0x8000000ULL     // thread local
-#define STCalias        0x10000000ULL    // alias parameter
-#define STCshared       0x20000000ULL    // accessible from multiple threads
-// accessible from multiple threads
-// but not typed as "shared"
-#define STCgshared      0x40000000ULL
-#define STCwild         0x80000000ULL    // for "wild" type constructor
+//enum STC : ulong from astenums.d:
+
+    #define STCundefined          0ULL
+
+    #define STCstatic             1ULL    /// `static`
+    #define STCextern             2ULL    /// `extern`
+    #define STCconst              4ULL    /// `const`
+    #define STCfinal              8ULL    /// `final`
+
+    #define STCabstract           0x10ULL    /// `abstract`
+    #define STCparameter          0x20ULL    /// is function parameter
+    #define STCfield              0x40ULL    /// is field of struct, union or class
+    #define STCoverride           0x80ULL    /// `override`
+
+    #define STCauto               0x100ULL    /// `auto`
+    #define STCsynchronized       0x200ULL    /// `synchronized`
+    #define STCdeprecated         0x400ULL    /// `deprecated`
+    #define STCin                 0x800ULL    /// `in` parameter
+
+    #define STCout                0x1000ULL    /// `out` parameter
+    #define STClazy               0x2000ULL    /// `lazy` parameter
+    #define STCforeach            0x4000ULL    /// variable for foreach loop
+    #define STCvariadic           0x8000ULL    /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
+
+    #define STCctorinit           0x10000ULL    /// can only be set inside constructor
+    #define STCtemplateparameter  0x20000ULL    /// template parameter
+    #define STCref                0x40000ULL    /// `ref`
+    #define STCscope              0x80000ULL    /// `scope`
+
+    #define STCmaybescope         0x100000ULL    /// parameter might be `scope`
+    #define STCscopeinferred      0x200000ULL    /// `scope` has been inferred and should not be part of mangling, `scope` must also be set
+    #define STCreturn             0x400000ULL    /// 'return ref' or 'return scope' for function parameters
+    #define STCreturnScope        0x800000ULL    /// if `ref return scope` then resolve to `ref` and `return scope`
+
+    #define STCreturninferred     0x1000000ULL    /// `return` has been inferred and should not be part of mangling, `return` must also be set
+    #define STCimmutable          0x2000000ULL    /// `immutable`
+    #define STCinit               0x4000000ULL    /// has explicit initializer
+    #define STCmanifest           0x8000000ULL    /// manifest constant
+
+    #define STCnodtor             0x10000000ULL    /// do not run destructor
+    #define STCnothrow            0x20000000ULL    /// `nothrow` meaning never throws exceptions
+    #define STCpure               0x40000000ULL    /// `pure` function
+    #define STCtls                0x80000000ULL    /// thread local
+
+    #define STCalias              0x100000000ULL    /// `alias` parameter
+    #define STCshared             0x200000000ULL    /// accessible from multiple threads
+    #define STCgshared            0x400000000ULL    /// accessible from multiple threads, but not typed as `shared`
+    #define STCwild               0x800000000ULL    /// for wild type constructor
+
+    #define STCproperty           0x1000000000ULL    /// `@property`
+    #define STCsafe               0x2000000000ULL    /// `@safe`
+    #define STCtrusted            0x4000000000ULL    /// `@trusted`
+    #define STCsystem             0x8000000000ULL    /// `@system`
+
+    #define STCctfe               0x10000000000ULL    /// can be used in CTFE, even if it is static
+    #define STCdisable            0x20000000000ULL    /// for functions that are not callable
+    #define STCresult             0x40000000000ULL    /// for result variables passed to out contracts
+    #define STCnodefaultctor      0x80000000000ULL    /// must be set inside constructor
+
+    #define STCtemp               0x100000000000ULL    /// temporary variable
+    #define STCrvalue             0x200000000000ULL    /// force rvalue for variables
+    #define STCnogc               0x400000000000ULL    /// `@nogc`
+    #define STCautoref            0x800000000000ULL    /// Mark for the already deduced `auto ref` parameter
+
+    #define STCinference          0x1000000000000ULL    /// do attribute inference
+    #define STCexptemp            0x2000000000000ULL    /// temporary variable that has lifetime restricted to an expression
+    #define STCfuture             0x4000000000000ULL    /// introducing new base class function
+    #define STClocal              0x8000000000000ULL    /// do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+
+    #define STClive               0x10000000000000ULL    /// function `@live` attribute
+    #define STCregister           0x20000000000000ULL    /// `register` storage class (ImportC)
+    #define STCvolatile           0x40000000000000ULL    /// destined for volatile in the back end
+
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
 #define STC_FUNCATTR    (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
-
-#define STCproperty      0x100000000ULL
-#define STCsafe          0x200000000ULL
-#define STCtrusted       0x400000000ULL
-#define STCsystem        0x800000000ULL
-#define STCctfe          0x1000000000ULL  // can be used in CTFE, even if it is static
-#define STCdisable       0x2000000000ULL  // for functions that are not callable
-#define STCresult        0x4000000000ULL  // for result variables passed to out contracts
-#define STCnodefaultctor 0x8000000000ULL  // must be set inside constructor
-#define STCtemp          0x10000000000ULL // temporary variable
-#define STCrvalue        0x20000000000ULL // force rvalue for variables
-#define STCnogc          0x40000000000ULL // @nogc
-#define STCvolatile      0x80000000000ULL // destined for volatile in the back end
-#define STCreturn        0x100000000000ULL // 'return ref' or 'return scope' for function parameters
-#define STCautoref       0x200000000000ULL // Mark for the already deduced 'auto ref' parameter
-#define STCinference     0x400000000000ULL // do attribute inference
-#define STCexptemp       0x800000000000ULL // temporary variable that has lifetime restricted to an expression
-#define STCmaybescope    0x1000000000000ULL // parameter might be 'scope'
-#define STCscopeinferred 0x2000000000000ULL // 'scope' has been inferred and should not be part of mangling
-#define STCfuture        0x4000000000000ULL // introducing new base class function
-#define STClocal         0x8000000000000ULL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
-#define STCreturninferred 0x10000000000000ULL   // 'return' has been inferred and should not be part of mangling
 
 void ObjectNotFound(Identifier *id);
 
@@ -132,6 +149,7 @@ public:
     bool isIn()  const  { return (storage_class & STCin) != 0; }
     bool isOut() const  { return (storage_class & STCout) != 0; }
     bool isRef() const  { return (storage_class & STCref) != 0; }
+    bool isReference() const { return (storage_class & (STCref | STCout)) != 0; }
 
     bool isFuture() const { return (storage_class & STCfuture) != 0; }
 
@@ -242,7 +260,7 @@ public:
 public:
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *);
-    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     const char *kind() const;
     AggregateDeclaration *isThis();
     bool needThis();
@@ -260,6 +278,21 @@ public:
     Dsymbol *toAlias();
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+/**************************************************************/
+
+class BitFieldDeclaration : public VarDeclaration
+{
+public:
+    Expression *width;
+
+    unsigned fieldWidth;
+    unsigned bitOffset;
+
+    BitFieldDeclaration *syntaxCopy(Dsymbol*);
+    BitFieldDeclaration *isBitFieldDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -585,7 +618,7 @@ public:
     // integration.
     ObjcFuncDeclaration objc;
 
-    static FuncDeclaration *create(const Loc &loc, const Loc &endloc, Identifier *id, StorageClass storage_class, Type *type);
+    static FuncDeclaration *create(const Loc &loc, const Loc &endloc, Identifier *id, StorageClass storage_class, Type *type, bool noreturn = false);
     FuncDeclaration *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
@@ -597,7 +630,7 @@ public:
     bool overloadInsert(Dsymbol *s);
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g);
-    LabelDsymbol *searchLabel(Identifier *ident);
+    LabelDsymbol *searchLabel(Identifier *ident, const Loc &loc);
     int getLevel(FuncDeclaration *fd, int intypeof); // lexical nesting level difference
     int getLevelAndCheck(const Loc &loc, Scope *sc, FuncDeclaration *fd);
     const char *toPrettyChars(bool QualifyTypes = false);

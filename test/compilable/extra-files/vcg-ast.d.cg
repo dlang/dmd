@@ -1,0 +1,152 @@
+=== compilable/vcg-ast.d.cg
+module vcg;
+import object;
+template Seq(A...)
+{
+	alias Seq = A;
+}
+(int, int, int) a = tuple(1, 2, 3);
+template R(T)
+{
+	struct _R
+	{
+		T elem;
+	}
+}
+int x;
+static foreach (enum i; tuple(0, 1, 2))
+{
+	mixin("int a" ~ i.stringof ~ " = 1;");
+}
+void foo()
+{
+	int a0 = 1;
+	int a1 = 1;
+	int a2 = 1;
+}
+class C : Object
+{
+	invariant
+	{
+	}
+	invariant
+	{
+		assert(true);
+	}
+	int foo()
+	in
+	{
+	}
+	in (true)
+	out
+	{
+	}
+	out(r)
+	{
+	}
+	out (; true)
+	out (r; true)
+	{
+		pure nothrow @nogc @safe void __require()
+		{
+			{
+				{
+				}
+			}
+			{
+				assert(true);
+			}
+		}
+		__require();
+		this.__invariant();
+		__result = 2;
+		goto __returnLabel;
+		__returnLabel:
+		this.__invariant();
+		pure nothrow @nogc @safe void __ensure(ref const(int) __result)
+		{
+			{
+			}
+			{
+				const ref const(int) r = __result;
+				{
+				}
+			}
+			assert(true);
+			{
+				const ref const(int) r = __result;
+				assert(true);
+			}
+		}
+		__ensure(__result);
+		return __result;
+	}
+	invariant
+	{
+		this.__invariant1() , this.__invariant2();
+	}
+}
+enum __c_wchar_t : dchar;
+alias wchar_t = __c_wchar_t;
+T[] values(T)()
+{
+	T[] values;
+	values ~= T();
+	return values;
+}
+void main()
+{
+	values();
+	return 0;
+}
+R!int
+{
+	struct _R
+	{
+		int elem;
+	}
+}
+mixin _d_cmain!();
+{
+	extern (C) 
+	{
+		extern (C) int _d_run_main(int argc, char** argv, void* mainFunc);
+		extern (C) int _Dmain(char[][] args);
+		extern (C) int main(int argc, char** argv)
+		{
+			return _d_run_main(argc, argv, & _Dmain);
+		}
+		version (Solaris)
+		{
+			extern (C) int _main(int argc, char** argv)
+			{
+				return main(argc, argv);
+			}
+		}
+	}
+}
+RTInfo!(C)
+{
+	enum immutable(void)* RTInfo = null;
+
+}
+NoPointersBitmapPayload!1$?:32=u|64=LU$
+{
+	enum $?:32=uint|64=ulong$[1] NoPointersBitmapPayload = 0$?:32=u|64=LU$;
+
+}
+values!(__c_wchar_t)
+{
+	pure nothrow @safe __c_wchar_t[] values()
+	{
+		__c_wchar_t[] values = null;
+		values ~= cast(__c_wchar_t)'\U0000ffff';
+		return values;
+	}
+
+}
+RTInfo!(_R)
+{
+	enum immutable(void)* RTInfo = null;
+
+}

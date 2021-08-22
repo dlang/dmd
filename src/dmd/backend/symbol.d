@@ -494,11 +494,11 @@ void symbol_func(Symbol *s)
 
 /***************************************
  * Add a field to a struct s.
- * Input:
- *      s       the struct symbol
- *      name    field name
- *      t       the type of the field
- *      offset  offset of the field
+ * Params:
+ *      s      = the struct symbol
+ *      name   = field name
+ *      t      = the type of the field
+ *      offset = offset of the field
  */
 
 @trusted
@@ -507,6 +507,59 @@ void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
     Symbol *s2 = symbol_name(name, SCmember, t);
     s2.Smemoff = offset;
     list_append(&s.Sstruct.Sfldlst, s2);
+}
+
+/***************************************
+ * Add a bit field to a struct s.
+ * Params:
+ *      s      = the struct symbol
+ *      name   = field name
+ *      t      = the type of the field
+ *      offset = offset of the field
+ *      fieldWidth = width of bit field
+ *      bitOffset  = bit number of start of field
+ */
+
+@trusted
+void symbol_struct_addBitField(Symbol *s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
+{
+    //printf("symbol_struct_addBitField() s: %s\n", s.Sident.ptr);
+    Symbol *s2 = symbol_name(name, SCfield, t);
+    s2.Smemoff = offset;
+    s2.Swidth = cast(ubyte)fieldWidth;
+    s2.Sbit = cast(ubyte)bitOffset;
+    list_append(&s.Sstruct.Sfldlst, s2);
+    symbol_struct_hasBitFields(s);
+}
+
+/***************************************
+ * Mark struct s as having bit fields
+ * Params:
+ *      s      = the struct symbol
+ */
+@trusted
+void symbol_struct_hasBitFields(Symbol *s)
+{
+    s.Sstruct.Sflags |= STRbitfields;
+}
+
+/***************************************
+ * Add a base class to a struct s.
+ * Input:
+ *      s       the struct/class symbol
+ *      t       the type of the base class
+ *      offset  offset of the base class in the struct/class
+ */
+
+@trusted
+void symbol_struct_addBaseClass(Symbol *s, type *t, uint offset)
+{
+    assert(t && t.Tty == TYstruct);
+    auto bc = cast(baseclass_t*)mem_fmalloc(baseclass_t.sizeof);
+    bc.BCbase = t.Ttag;
+    bc.BCoffset = offset;
+    bc.BCnext = s.Sstruct.Sbase;
+    s.Sstruct.Sbase = bc;
 }
 
 /********************************

@@ -15,6 +15,7 @@ module dmd.nogc;
 
 import dmd.aggregate;
 import dmd.apply;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.expression;
@@ -120,8 +121,6 @@ public:
             return;
         }
         if (e.onstack)
-            return;
-        if (e.allocator)
             return;
         if (global.params.ehnogc && e.thrownew)
             return;                     // separate allocator is called for this, not the GC

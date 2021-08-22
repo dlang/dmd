@@ -15,6 +15,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.complex;
 import dmd.constfold;
 import dmd.compiler;
@@ -686,7 +687,7 @@ bool isSafePointerCast(Type srcPointee, Type destPointee)
         return true;
     // It's OK if function pointers differ only in safe/pure/nothrow
     if (srcPointee.ty == Tfunction && destPointee.ty == Tfunction)
-        return srcPointee.covariant(destPointee) == 1;
+        return srcPointee.covariant(destPointee) == 1 || destPointee.covariant(srcPointee) == 1;
     // it's OK to cast to void*
     if (destPointee.ty == Tvoid)
         return true;
@@ -1510,7 +1511,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         ue = paintTypeOntoLiteralCopy(type, copyLiteral(e2).copy());
         return ue;
     }
-    ue = Cat(type, e1, e2);
+    ue = Cat(loc, type, e1, e2);
     return ue;
 }
 

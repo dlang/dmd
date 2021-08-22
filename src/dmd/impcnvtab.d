@@ -16,19 +16,48 @@
 
 module dmd.impcnvtab;
 
+import dmd.astenums;
 import dmd.mtype;
 
-immutable ENUMTY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;
-immutable ENUMTY[TMAX][TMAX] impcnvType1 = impCnvTab.impcnvType1Tab;
-immutable ENUMTY[TMAX][TMAX] impcnvType2 = impCnvTab.impcnvType2Tab;
+pure @nogc nothrow @safe:
+
+/*************************************************
+ * If ty1 and ty2 are basic types, return the TY that both can
+ * be implicitly converted to.
+ * Params:
+ *      ty1 = first operand type
+ *      ty2 = second operand type
+ * Returns:
+ *      ty = common type, else Terror
+ */
+TY implicitConvCommonTy(TY ty1, TY ty2)
+{
+    return impCnvTab.impcnvResultTab[ty1][ty2];
+}
+
+/*************************************************
+ * If ty1 and ty2 are basic types, return the TY that ty1 can
+ * be implicitly converted to to bring them to a common ty.
+ * It's symmetric, i.e. the operands can be swapped.
+ * Params:
+ *      ty1 = first operand type
+ *      ty2 = second operand type
+ * Returns:
+ *      ty = what ty1 should be converted to, else Terror
+ */
+TY implicitConvTy1(TY ty1, TY ty2)
+{
+    return impCnvTab.impcnvType1Tab[ty1][ty2];
+}
+
+/******************************************************************************/
 
 private:
 
 struct ImpCnvTab
 {
-    ENUMTY[TMAX][TMAX] impcnvResultTab;
-    ENUMTY[TMAX][TMAX] impcnvType1Tab;
-    ENUMTY[TMAX][TMAX] impcnvType2Tab;
+    TY[TMAX][TMAX] impcnvResultTab;
+    TY[TMAX][TMAX] impcnvType1Tab;
 }
 
 enum ImpCnvTab impCnvTab = generateImpCnvTab();
@@ -44,15 +73,16 @@ ImpCnvTab generateImpCnvTab()
         {
             impCnvTab.impcnvResultTab[i][j] = Terror;
             impCnvTab.impcnvType1Tab[i][j] = Terror;
-            impCnvTab.impcnvType2Tab[i][j] = Terror;
         }
     }
 
-    void X(ENUMTY t1, ENUMTY t2, ENUMTY nt1, ENUMTY nt2, ENUMTY rt)
+    void X(TY t1, TY t2, TY nt1, TY nt2, TY rt)
     {
         impCnvTab.impcnvResultTab[t1][t2] = rt;
+        impCnvTab.impcnvResultTab[t2][t1] = rt;
+
         impCnvTab.impcnvType1Tab[t1][t2] = nt1;
-        impCnvTab.impcnvType2Tab[t1][t2] = nt2;
+        impCnvTab.impcnvType1Tab[t2][t1] = nt2;
     }
 
     /* ======================= */
@@ -344,19 +374,6 @@ ImpCnvTab generateImpCnvTab()
     /* ======================= */
 
     X(Tcomplex80,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80);
-
-    foreach (i; 0 .. cast(size_t)TMAX)
-    {
-        foreach (j; 0 .. cast(size_t)TMAX)
-        {
-            if (impCnvTab.impcnvResultTab[i][j] == Terror)
-            {
-                impCnvTab.impcnvResultTab[i][j] = impCnvTab.impcnvResultTab[j][i];
-                impCnvTab.impcnvType1Tab[i][j] = impCnvTab.impcnvType2Tab[j][i];
-                impCnvTab.impcnvType2Tab[i][j] = impCnvTab.impcnvType1Tab[j][i];
-            }
-        }
-    }
 
     return impCnvTab;
 }

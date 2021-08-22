@@ -9,8 +9,10 @@
  */
 
 #include "root/array.h"
+#include "root/bitarray.h"
 #include "root/ctfloat.h"
 #include "root/dcompat.h"
+#include "root/dsystem.h"
 #include "root/file.h"
 #include "root/filename.h"
 #include "root/longdouble.h"
@@ -18,7 +20,6 @@
 #include "root/outbuffer.h"
 #include "root/port.h"
 #include "root/rmem.h"
-#include "root/root.h"
 
 #include "aggregate.h"
 #include "aliasthis.h"
@@ -103,7 +104,7 @@ void test_tokens()
     assert(strcmp(Token::toChars(TOKlparen), "(") == 0);
 
     // Last valid TOK value
-    assert(TOKcolonColon == TOKMAX - 1);
+    assert(TOK__attribute__ == TOKMAX - 1);
     assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
 }
 
@@ -537,6 +538,14 @@ void test_cppmangle()
     assert(!global.endGagging(errors));
 }
 
+void test_module()
+{
+    unsigned errors = global.startGagging();
+    Module *mod = Module::load(Loc(), NULL, Identifier::idPool("doesnotexist.d"));
+    assert(mod == NULL);
+    assert(global.endGagging(errors));
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -557,6 +566,7 @@ int main(int argc, char **argv)
     test_array();
     test_outbuffer();
     test_cppmangle();
+    test_module();
 
     frontend_term();
 

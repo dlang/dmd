@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-# We never use ANSI codes on Windows, so, we can't test them.
-if [[ $OS = *"win"* ]]; then exit 0; fi
-
 compare()
 {
     local actual="$1"

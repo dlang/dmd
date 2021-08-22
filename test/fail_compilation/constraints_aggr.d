@@ -2,13 +2,13 @@
 EXTRA_FILES: imports/constraints.d
 TEST_OUTPUT:
 ---
-fail_compilation/constraints_aggr.d(32): Error: template `imports.constraints.C.f` cannot deduce function from argument types `!()(int)`, candidates are:
-fail_compilation/imports/constraints.d(60):        `f(T)(T v)`
+fail_compilation/constraints_aggr.d(32): Error: template `imports.constraints.C.f` cannot deduce function from argument types `!()(int)`
+fail_compilation/imports/constraints.d(60):        Candidate is: `f(T)(T v)`
   with `T = int`
   must satisfy the following constraint:
 `       !P!T`
-fail_compilation/constraints_aggr.d(33): Error: template `imports.constraints.C.g` cannot deduce function from argument types `!()()`, candidates are:
-fail_compilation/imports/constraints.d(63):        `g(this T)()`
+fail_compilation/constraints_aggr.d(33): Error: template `imports.constraints.C.g` cannot deduce function from argument types `!()()`
+fail_compilation/imports/constraints.d(63):        Candidate is: `g(this T)()`
   with `T = imports.constraints.C`
   must satisfy the following constraint:
 `       N!T`

@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -39,10 +39,29 @@ struct _d_dynamicArray
 };
 #endif
 
-struct S;
-struct W1;
-struct W2;
-struct S2;
+struct S final
+{
+    int32_t i;
+    int32_t get(int32_t , int32_t );
+    static int32_t get();
+    static const int32_t staticVar;
+    void useVars(int32_t pi = i, int32_t psv = staticVar);
+    struct Nested final
+    {
+        void useStaticVar(int32_t i = staticVar);
+        Nested()
+        {
+        }
+    };
+
+    S() :
+        i()
+    {
+    }
+    S(int32_t i) :
+        i(i)
+        {}
+};
 
 extern "C" int32_t bar(int32_t x);
 
@@ -75,7 +94,7 @@ namespace MSN
     static S const s = S(42);
 };
 
-struct W1
+struct W1 final
 {
     MS ms;
     /* MSN */ S msn;
@@ -88,7 +107,7 @@ struct W1
         {}
 };
 
-struct W2
+struct W2 final
 {
     W1 w1;
     W2() :
@@ -104,29 +123,14 @@ extern W2 w2;
 
 extern void enums(uint64_t e = $?:32=1LLU|64=static_cast<uint64_t>(E::m)$, uint8_t e2 = static_cast<uint8_t>(w2.w1.ms), S s = static_cast<S>(w2.w1.msn));
 
-struct S
-{
-    int32_t i;
-    int32_t get(int32_t , int32_t );
-    static int32_t get();
-    static const int32_t staticVar;
-    S() :
-        i()
-    {
-    }
-    S(int32_t i) :
-        i(i)
-        {}
-};
-
 extern S s;
 
 extern void aggregates(int32_t a = s.i, int32_t b = s.get(1, 2), int32_t c = S::get(), int32_t d = S::staticVar);
 
-struct S2
+struct S2 final
 {
     S s;
-    struct S3
+    struct S3 final
     {
         static int32_t i;
         S3()
@@ -226,7 +230,7 @@ enum MS : ubyte { dm }
 enum MSN : S { s = S(42) }
 struct W1 { MS ms; MSN msn; }
 struct W2 { W1 w1; }
-W2 w2;
+__gshared W2 w2;
 
 void enums(ulong e = E.m, ubyte e2 = w2.w1.ms, S s = w2.w1.msn) {}
 
@@ -235,10 +239,17 @@ struct S
     int i;
     int get(int, int);
     static int get();
-    static const int staticVar;
+    __gshared const int staticVar;
+
+    void useVars(int pi = i, int psv = staticVar) {}
+
+    struct Nested
+    {
+        void useStaticVar(int i = staticVar) {}
+    }
 }
 
-S s;
+__gshared S s;
 
 void aggregates(int a = s.i, int b = s.get(1, 2), int c = S.get(), int d = S.staticVar) {}
 
@@ -248,16 +259,16 @@ struct S2
     S s;
     static struct S3
     {
-        static int i = 3;
+        __gshared int i = 3;
     }
 }
 
-S2 s2;
+__gshared S2 s2;
 
 void chains(int a = s2.s.i, int b = S2.S3.i) {}
 
-S* ptr;
-int function(int) f;
+__gshared S* ptr;
+__gshared int function(int) f;
 
 void special(int a = ptr.i, int b = ptr.get(1, 2), int j = f(1)) {}
 

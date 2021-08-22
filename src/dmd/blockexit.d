@@ -14,6 +14,7 @@ module dmd.blockexit;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
@@ -155,7 +156,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
                     if (!(result & BE.fallthru) && !s.comeFrom())
                     {
-                        if (blockExit(s, func, mustNotThrow) != BE.halt && s.hasCode())
+                        if (blockExit(s, func, mustNotThrow) != BE.halt && s.hasCode() &&
+                            s.loc != Loc.initial) // don't emit warning for generated code
                             s.warning("statement is not reachable");
                     }
                     else

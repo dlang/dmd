@@ -1,5 +1,5 @@
 // https://issues.dlang.org/show_bug.cgi?id=20868
-// REQUIRED_ARGS: -dip1000
+// REQUIRED_ARGS: -preview=dip1000
 
 void scoped (scope void delegate() dg)
 {

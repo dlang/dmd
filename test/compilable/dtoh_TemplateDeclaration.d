@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -39,18 +39,66 @@ struct _d_dynamicArray
 };
 #endif
 
+typedef uint$?:32=32|64=64$_t size_t;
+
+struct Outer final
+{
+    int32_t a;
+    struct Member final
+    {
+        typedef int32_t Nested;
+        Member()
+        {
+        }
+    };
+
+    Outer() :
+        a()
+    {
+    }
+    Outer(int32_t a) :
+        a(a)
+        {}
+};
+
+enum : int32_t { SomeOtherLength = 1 };
+
+struct ActualBuffer final
+{
+    ActualBuffer()
+    {
+    }
+};
+
 template <typename T>
-struct A
+struct A final
 {
     // Ignoring var x alignment 0
     T x;
+    // Ignoring var Enum alignment 0
+    enum : int32_t { Enum = 42 };
+
+    // Ignoring var GsharedNum alignment 0
+    static int32_t GsharedNum;
+    // Ignoring var MemNum alignment 0
+    const int32_t MemNum;
     void foo();
     A()
     {
     }
 };
 
-struct B
+template <typename T>
+struct NotInstantiated final
+{
+    // Ignoring var noInit alignment 0
+    // Ignoring var missingSem alignment 0
+    NotInstantiated()
+    {
+    }
+};
+
+struct B final
 {
     A<int32_t > x;
     B() :
@@ -63,7 +111,7 @@ struct B
 };
 
 template <typename T>
-struct Foo
+struct Foo final
 {
     // Ignoring var val alignment 0
     T val;
@@ -73,7 +121,7 @@ struct Foo
 };
 
 template <typename T>
-struct Bar
+struct Bar final
 {
     // Ignoring var v alignment 0
     Foo<T > v;
@@ -83,7 +131,7 @@ struct Bar
 };
 
 template <typename T>
-struct Array
+struct Array final
 {
     typedef Array This;
     typedef typeof(1 + 2) Int;
@@ -128,13 +176,70 @@ public:
     T childFinal();
 };
 
-extern void withDefTempl(A<int32_t > a = A<int32_t >(2));
+extern void withDefTempl(A<int32_t > a = A<int32_t >(2, 13));
 
 template <typename T>
-extern void withDefTempl2(A<T > a = static_cast<A<T >>(A!T(2)));
+extern void withDefTempl2(A<T > a = static_cast<A<T >>(A<T >(2)));
 
 class ChildInt : public Parent<int32_t >
 {
+};
+
+struct HasMixins final
+{
+    void foo(int32_t t);
+    HasMixins()
+    {
+    }
+};
+
+template <typename T>
+struct HasMixinsTemplate final
+{
+    void foo(T t);
+    HasMixinsTemplate()
+    {
+    }
+};
+
+extern HasMixinsTemplate<bool > hmti;
+
+template <typename T>
+struct NotAA final
+{
+    // Ignoring var length alignment 0
+    enum : int32_t { length = 12 };
+
+    // Ignoring var buffer alignment 0
+    T buffer[length];
+    // Ignoring var otherBuffer alignment 0
+    T otherBuffer[SomeOtherLength];
+    // Ignoring var calcBuffer alignment 0
+    T calcBuffer[foo(1)];
+    NotAA()
+    {
+    }
+};
+
+template <typename Buffer>
+struct BufferTmpl final
+{
+    // Ignoring var buffer alignment 0
+    Buffer buffer;
+    // Ignoring var buffer2 alignment 0
+    Buffer buffer2;
+    BufferTmpl()
+    {
+    }
+};
+
+struct ImportedBuffer final
+{
+    typedef ActualBuffer Buffer;
+    ActualBuffer buffer2;
+    ImportedBuffer()
+    {
+    }
 };
 ---
 */
@@ -142,9 +247,17 @@ class ChildInt : public Parent<int32_t >
 extern (C++) struct A(T)
 {
     T x;
-    // enum Num = 42; // dtoh segfaults at enum
-
+    enum Enum = 42;
+    __gshared GsharedNum = 43;
+    immutable MemNum = 13;
     void foo() {}
+}
+
+// Invalid declarations accepted because it's not instantiated
+extern (C++) struct NotInstantiated(T)
+{
+    enum T noInit;
+    enum missingSem = T.init;
 }
 
 extern (C++) struct B
@@ -188,7 +301,6 @@ extern (C++) struct Array(T)
     void visit(T.Member.Nested i) {}
 }
 
-// Not emitted yet even though it is used above
 struct Outer
 {
     int a;
@@ -202,7 +314,7 @@ struct Outer
 
 extern(C++) T foo(T, U)(U u) { return T.init; }
 
-extern(C++) A!(A!int) aaint;
+extern(C++) __gshared A!(A!int) aaint;
 
 extern(C++) class Parent(T)
 {
@@ -225,3 +337,65 @@ extern(C++) void withDefTempl2(T)(A!T a = A!T(2)) {}
 extern(C++) alias withDefTempl2Inst = withDefTempl2!int;
 
 extern(C++) class ChildInt : Parent!int {}
+
+/******************************************************
+ * Mixins
+ */
+
+extern (C++):
+
+mixin template MixinA(T)
+{
+    void foo(T t) {}
+}
+
+mixin template MixinB() {}
+
+struct HasMixins
+{
+    mixin MixinA!int;
+    mixin MixinB;
+}
+
+struct HasMixinsTemplate(T)
+{
+    mixin MixinA!T;
+    mixin MixinB;
+}
+
+__gshared HasMixinsTemplate!bool hmti;
+
+/// Declarations that look like associative arrays
+
+extern(D) enum SomeOtherLength = 1;
+
+struct NotAA(T)
+{
+    private:
+    enum length = 12;
+    public:
+    T[length] buffer;
+    T[SomeOtherLength] otherBuffer;
+    T[foo(1)] calcBuffer;
+}
+
+// Same name but hidden by the template paramter
+extern (D) struct Buffer {}
+extern (D) struct ActualBuffer {}
+
+struct BufferTmpl(Buffer)
+{
+    Buffer buffer;
+    mixin BufferMixin!();
+}
+
+struct ImportedBuffer
+{
+    alias Buffer = ActualBuffer;
+    mixin BufferMixin!();
+}
+
+mixin template BufferMixin()
+{
+    Buffer buffer2;
+}

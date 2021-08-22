@@ -32,7 +32,7 @@ class Identifier;
         ?       &&      ||
  */
 
-typedef unsigned char TOK;
+typedef unsigned short TOK;
 enum
 {
         TOKreserved,
@@ -186,6 +186,30 @@ enum
 
         TOKarrow,
         TOKcolonColon,
+        TOKwchar_tLiteral,
+
+        TOKinline,
+        TOKregister,
+        TOKrestrict,
+        TOKsigned,
+        TOKsizeof_,
+        TOKtypedef_,
+        TOKunsigned,
+        TOKvolatile,
+        TOK_Alignas,
+        TOK_Alignof,
+        TOK_Atomic,
+        TOK_Bool,
+        TOK_Complex,
+        TOK_Generic,
+        TOK_Imaginary,
+        TOK_Noreturn,
+        TOK_Static_assert,
+        TOK_Thread_local,
+
+        TOK__cdecl,
+        TOK__declspec,
+        TOK__attribute__,
 
         TOKMAX
 };
@@ -230,7 +254,7 @@ struct Token
     int isKeyword();
     const char *toChars() const;
 
-    static const char *toChars(unsigned char value);
+    static const char *toChars(unsigned value);
 };
 
 #if defined(__GNUC__)

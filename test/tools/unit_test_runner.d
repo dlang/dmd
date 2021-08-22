@@ -260,6 +260,10 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
         "-m" ~ model
     ] ~ testFiles ~ runnerPath;
 
+    // Generate coverage reports if requested
+    if (environment.get("DMD_TEST_COVERAGE", "0") == "1")
+        flags ~= "-cov";
+
     // older versions of Optlink causes: "Error 45: Too Much DEBUG Data for Old CodeView format"
     if (!usesOptlink)
         flags ~= "-g";

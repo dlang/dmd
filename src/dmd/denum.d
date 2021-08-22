@@ -23,7 +23,6 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -86,29 +85,12 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 printf("    member %s\n", em.toChars());
             }
         }
-
-        /* Anonymous enum members get added to enclosing scope.
-         */
-        ScopeDsymbol scopesym = isAnonymous() ? sds : this;
-
         if (!isAnonymous())
         {
             ScopeDsymbol.addMember(sc, sds);
-            if (!symtab)
-                symtab = new DsymbolTable();
         }
 
-        if (members)
-        {
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                EnumMember em = (*members)[i].isEnumMember();
-                em.ed = this;
-                //printf("add %s to scope %s\n", em.toChars(), scopesym.toChars());
-                em.addMember(sc, isAnonymous() ? scopesym : this);
-            }
-        }
-        added = true;
+        addEnumMembers(this, sc, sds);
     }
 
     override void setScope(Scope* sc)
@@ -159,121 +141,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return visibility;
     }
 
-    /******************************
-     * Get the value of the .max/.min property as an Expression.
-     * Lazily computes the value and caches it in maxval/minval.
-     * Reports any errors.
-     * Params:
-     *      loc = location to use for error messages
-     *      id = Id::max or Id::min
-     * Returns:
-     *      corresponding value of .max/.min
-     */
-    Expression getMaxMinValue(const ref Loc loc, Identifier id)
-    {
-        //printf("EnumDeclaration::getMaxValue()\n");
-
-        static Expression pvalToResult(Expression e, const ref Loc loc)
-        {
-            if (e.op != TOK.error)
-            {
-                e = e.copy();
-                e.loc = loc;
-            }
-            return e;
-        }
-
-        Expression* pval = (id == Id.max) ? &maxval : &minval;
-
-        Expression errorReturn()
-        {
-            *pval = ErrorExp.get();
-            return *pval;
-        }
-
-        if (inuse)
-        {
-            error(loc, "recursive definition of `.%s` property", id.toChars());
-            return errorReturn();
-        }
-        if (*pval)
-            return pvalToResult(*pval, loc);
-
-        if (_scope)
-            dsymbolSemantic(this, _scope);
-        if (errors)
-            return errorReturn();
-        if (!members)
-        {
-            if (isSpecial())
-            {
-                /* Allow these special enums to not need a member list
-                 */
-                return memtype.getProperty(_scope, loc, id, 0);
-            }
-
-            error(loc, "is opaque and has no `.%s`", id.toChars());
-            return errorReturn();
-        }
-        if (!(memtype && memtype.isintegral()))
-        {
-            error(loc, "has no `.%s` property because base type `%s` is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
-            return errorReturn();
-        }
-
-        bool first = true;
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            EnumMember em = (*members)[i].isEnumMember();
-            if (!em)
-                continue;
-            if (em.errors)
-            {
-                errors = true;
-                continue;
-            }
-
-            if (em.semanticRun < PASS.semanticdone)
-            {
-                em.error("is forward referenced looking for `.%s`", id.toChars());
-                errors = true;
-                continue;
-            }
-
-            if (first)
-            {
-                *pval = em.value;
-                first = false;
-            }
-            else
-            {
-                /* In order to work successfully with UDTs,
-                 * build expressions to do the comparisons,
-                 * and let the semantic analyzer and constant
-                 * folder give us the result.
-                 */
-
-                /* Compute:
-                 *   if (e > maxval)
-                 *      maxval = e;
-                 */
-                Expression e = em.value;
-                Expression ec = new CmpExp(id == Id.max ? TOK.greaterThan : TOK.lessThan, em.loc, e, *pval);
-                inuse++;
-                ec = ec.expressionSemantic(em._scope);
-                inuse--;
-                ec = ec.ctfeInterpret();
-                if (ec.op == TOK.error)
-                {
-                    errors = true;
-                    continue;
-                }
-                if (ec.toInteger())
-                    *pval = e;
-            }
-        }
-        return errors ? errorReturn() : pvalToResult(*pval, loc);
-    }
 
     /****************
      * Determine if enum is a special one.
@@ -429,23 +296,6 @@ extern (C++) final class EnumMember : VarDeclaration
     override const(char)* kind() const
     {
         return "enum member";
-    }
-
-    Expression getVarExp(const ref Loc loc, Scope* sc)
-    {
-        dsymbolSemantic(this, sc);
-        if (errors)
-            return ErrorExp.get();
-        checkDisabled(loc, sc);
-
-        if (depdecl && !depdecl._scope)
-            depdecl._scope = sc;
-        checkDeprecated(loc, sc);
-
-        if (errors)
-            return ErrorExp.get();
-        Expression e = new VarExp(loc, this);
-        return e.expressionSemantic(sc);
     }
 
     override inout(EnumMember) isEnumMember() inout

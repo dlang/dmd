@@ -15,6 +15,7 @@ module dmd.parse;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import dmd.astenums;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -88,6 +89,7 @@ immutable PREC[TOK.max + 1] precedence =
     TOK.variable : PREC.primary,
     TOK.symbolOffset : PREC.primary,
     TOK.structLiteral : PREC.primary,
+    TOK.compoundLiteral : PREC.primary,
     TOK.arrayLength : PREC.primary,
     TOK.delegatePointer : PREC.primary,
     TOK.delegateFunctionPointer : PREC.primary,
@@ -98,6 +100,7 @@ immutable PREC[TOK.max + 1] precedence =
     TOK.overloadSet : PREC.primary,
     TOK.void_ : PREC.primary,
     TOK.vectorArray : PREC.primary,
+    TOK._Generic : PREC.primary,
 
     // post
     TOK.dotTemplateInstance : PREC.primary,
@@ -198,7 +201,7 @@ enum ParseStatementFlags : int
     semiOk        = 0x10,     // empty ';' are really ok
 }
 
-private struct PrefixAttributes(AST)
+struct PrefixAttributes(AST)
 {
     StorageClass storageClass;
     AST.Expression depmsg;
@@ -210,16 +213,29 @@ private struct PrefixAttributes(AST)
     const(char)* comment;
 }
 
+/// The result of the `ParseLinkage` function
+struct ParsedLinkage(AST)
+{
+    /// What linkage was specified
+    LINK link;
+    /// If `extern(C++, class|struct)`, contains the `class|struct`
+    CPPMANGLE cppmangle;
+    /// If `extern(C++, some.identifier)`, will be the identifiers
+    AST.Identifiers* idents;
+    /// If `extern(C++, (some_tuple_expression)|"string"), will be the expressions
+    AST.Expressions* identExps;
+}
+
 /*****************************
  * Destructively extract storage class from pAttrs.
  */
 private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
 {
-    StorageClass stc = AST.STC.undefined_;
+    StorageClass stc = STC.undefined_;
     if (pAttrs)
     {
         stc = pAttrs.storageClass;
-        pAttrs.storageClass = AST.STC.undefined_;
+        pAttrs.storageClass = STC.undefined_;
     }
     return stc;
 }
@@ -275,12 +291,11 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 
 /***********************************************************
  */
-final class Parser(AST) : Lexer
+class Parser(AST) : Lexer
 {
     AST.ModuleDeclaration* md;
-    alias STC = AST.STC;
 
-    private
+    protected
     {
         AST.Module mod;
         LINK linkage;
@@ -441,6 +456,8 @@ final class Parser(AST) : Lexer
         nextToken();
         return new AST.Dsymbols();
     }
+
+  final:
 
     /**
      * Parses a `deprecated` declaration
@@ -720,7 +737,7 @@ final class Parser(AST) : Lexer
                     }
                     else if (next == TOK.foreach_ || next == TOK.foreach_reverse_)
                     {
-                        s = parseForeach!(true,true)(token.loc, pLastDecl);
+                        s = parseForeach!(AST.StaticForeachDeclaration)(token.loc, pLastDecl);
                     }
                     else
                     {
@@ -924,18 +941,14 @@ final class Parser(AST) : Lexer
                     }
 
                     const linkLoc = token.loc;
-                    AST.Identifiers* idents = null;
-                    AST.Expressions* identExps = null;
-                    CPPMANGLE cppmangle;
-                    bool cppMangleOnly = false;
-                    const link = parseLinkage(&idents, &identExps, cppmangle, cppMangleOnly);
+                    auto res = parseLinkage();
                     if (pAttrs.link != LINK.default_)
                     {
-                        if (pAttrs.link != link)
+                        if (pAttrs.link != res.link)
                         {
-                            error("conflicting linkage `extern (%s)` and `extern (%s)`", AST.linkageToChars(pAttrs.link), AST.linkageToChars(link));
+                            error("conflicting linkage `extern (%s)` and `extern (%s)`", AST.linkageToChars(pAttrs.link), AST.linkageToChars(res.link));
                         }
-                        else if (idents || identExps || cppmangle != CPPMANGLE.def)
+                        else if (res.idents || res.identExps || res.cppmangle != CPPMANGLE.def)
                         {
                             // Allow:
                             //      extern(C++, foo) extern(C++, bar) void foo();
@@ -948,52 +961,46 @@ final class Parser(AST) : Lexer
                         else
                             error("redundant linkage `extern (%s)`", AST.linkageToChars(pAttrs.link));
                     }
-                    pAttrs.link = link;
-                    this.linkage = link;
+                    pAttrs.link = res.link;
+                    this.linkage = res.link;
                     this.linkLoc = linkLoc;
                     a = parseBlock(pLastDecl, pAttrs);
-                    if (idents)
+                    if (res.idents)
                     {
-                        assert(link == LINK.cpp);
-                        assert(idents.dim);
-                        for (size_t i = idents.dim; i;)
+                        assert(res.link == LINK.cpp);
+                        assert(res.idents.dim);
+                        for (size_t i = res.idents.dim; i;)
                         {
-                            Identifier id = (*idents)[--i];
+                            Identifier id = (*res.idents)[--i];
                             if (s)
                             {
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            if (cppMangleOnly)
-                                s = new AST.CPPNamespaceDeclaration(linkLoc, id, a);
-                            else
-                                s = new AST.Nspace(linkLoc, id, null, a);
+                            s = new AST.Nspace(linkLoc, id, null, a);
                         }
                         pAttrs.link = LINK.default_;
                     }
-                    else if (identExps)
+                    else if (res.identExps)
                     {
-                        assert(link == LINK.cpp);
-                        assert(identExps.dim);
-                        for (size_t i = identExps.dim; i;)
+                        assert(res.link == LINK.cpp);
+                        assert(res.identExps.dim);
+                        for (size_t i = res.identExps.dim; i;)
                         {
-                            AST.Expression exp = (*identExps)[--i];
+                            AST.Expression exp = (*res.identExps)[--i];
                             if (s)
                             {
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            if (cppMangleOnly)
-                                s = new AST.CPPNamespaceDeclaration(linkLoc, exp, a);
-                            else
-                                s = new AST.Nspace(linkLoc, null, exp, a);
+                            s = new AST.CPPNamespaceDeclaration(linkLoc, exp, a);
                         }
                         pAttrs.link = LINK.default_;
                     }
-                    else if (cppmangle != CPPMANGLE.def)
+                    else if (res.cppmangle != CPPMANGLE.def)
                     {
-                        assert(link == LINK.cpp);
-                        s = new AST.CPPMangleDeclaration(linkLoc, cppmangle, a);
+                        assert(res.link == LINK.cpp);
+                        s = new AST.CPPMangleDeclaration(linkLoc, res.cppmangle, a);
                     }
                     else if (pAttrs.link != LINK.default_)
                     {
@@ -1476,7 +1483,11 @@ final class Parser(AST) : Lexer
             return 0;
         }
 
-        error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
+        if (token.isKeyword())
+            error("`%s` is a keyword, not an `@` attribute", token.toChars());
+        else
+            error("`@identifier` or `@(ArgumentList)` expected, not `@%s`", token.toChars());
+
         return 0;
     }
 
@@ -2221,22 +2232,19 @@ final class Parser(AST) : Lexer
      *      extern (C++, (StringExp))
      * The parser is on the 'extern' token.
      */
-    private LINK parseLinkage(AST.Identifiers** pidents, AST.Expressions** pIdentExps, out CPPMANGLE cppmangle, out bool cppMangleOnly)
+    private ParsedLinkage!(AST) parseLinkage()
     {
-        AST.Identifiers* idents = null;
-        AST.Expressions* identExps = null;
-        cppmangle = CPPMANGLE.def;
+        ParsedLinkage!(AST) result;
         nextToken();
         assert(token.value == TOK.leftParenthesis);
         nextToken();
-        LINK returnLinkage(LINK link)
+        ParsedLinkage!(AST) returnLinkage(LINK link)
         {
             check(TOK.rightParenthesis);
-            *pidents = idents;
-            *pIdentExps = identExps;
-            return link;
+            result.link = link;
+            return result;
         }
-        LINK invalidLinkage()
+        ParsedLinkage!(AST) invalidLinkage()
         {
             error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Windows`, `System`");
             return returnLinkage(LINK.d);
@@ -2282,16 +2290,16 @@ final class Parser(AST) : Lexer
 
         if (token.value == TOK.class_ || token.value == TOK.struct_)
         {
-            cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
+            result.cppmangle = token.value == TOK.class_ ? CPPMANGLE.asClass : CPPMANGLE.asStruct;
             nextToken();
         }
         else if (token.value == TOK.identifier) // named scope namespace
         {
-            idents = new AST.Identifiers();
+            result.idents = new AST.Identifiers();
             while (1)
             {
                 Identifier idn = token.ident;
-                idents.push(idn);
+                result.idents.push(idn);
                 nextToken();
                 if (token.value == TOK.dot)
                 {
@@ -2299,18 +2307,17 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.identifier)
                         continue;
                     error("identifier expected for C++ namespace");
-                    idents = null;  // error occurred, invalidate list of elements.
+                    result.idents = null;  // error occurred, invalidate list of elements.
                 }
                 break;
             }
         }
         else // non-scoped StringExp namespace
         {
-            cppMangleOnly = true;
-            identExps = new AST.Expressions();
+            result.identExps = new AST.Expressions();
             while (1)
             {
-                identExps.push(parseCondExp());
+                result.identExps.push(parseCondExp());
                 if (token.value != TOK.comma)
                     break;
                 nextToken();
@@ -2506,7 +2513,7 @@ final class Parser(AST) : Lexer
         auto parameterList = parseParameterList(null);
         stc = parsePostfix(stc, &udas);
 
-        if (parameterList.varargs != AST.VarArg.none || AST.Parameter.dim(parameterList.parameters) != 0)
+        if (parameterList.varargs != VarArg.none || AST.Parameter.dim(parameterList.parameters) != 0)
         {
             if (stc & STC.static_)
                 error(loc, "constructor cannot be static");
@@ -2816,20 +2823,47 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parse a new definition:
-     *      new(parameters) { body }
+     *      @disable new();
      * Current token is 'new'.
      */
     private AST.Dsymbol parseNew(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
-
+        if (!(stc & STC.disable))
+        {
+            error("`new` allocator must be annotated with `@disabled`");
+        }
         nextToken();
 
-        auto parameterList = parseParameterList(null);
-        auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameterList);
-        AST.Dsymbol s = parseContracts(f);
-        return s;
+        /* @@@DEPRECATED_2.098@@@
+         * After deprecation period (2.108), remove all code in the version(all) block.
+         */
+        version (all)
+        {
+            auto parameterList = parseParameterList(null);  // parameterList ignored
+            if (parameterList.parameters.length > 0 || parameterList.varargs != VarArg.none)
+                deprecation("`new` allocator with non-empty parameter list is deprecated");
+            auto f = new AST.NewDeclaration(loc, stc);
+            if (token.value != TOK.semicolon)
+            {
+                deprecation("`new` allocator with function definition is deprecated");
+                parseContracts(f);  // body ignored
+                f.fbody = null;
+                f.fensures = null;
+                f.frequires = null;
+            }
+            else
+                nextToken();
+            return f;
+        }
+        else
+        {
+            check(TOK.leftParenthesis);
+            check(TOK.rightParenthesis);
+            check(TOK.semicolon);
+            return new AST.NewDeclaration(loc, stc);
+        }
     }
 
     /**********************************************
@@ -2838,7 +2872,7 @@ final class Parser(AST) : Lexer
     private AST.ParameterList parseParameterList(AST.TemplateParameters** tpl)
     {
         auto parameters = new AST.Parameters();
-        AST.VarArg varargs = AST.VarArg.none;
+        VarArg varargs = VarArg.none;
         int hasdefault = 0;
         StorageClass varargsStc;
 
@@ -2865,7 +2899,7 @@ final class Parser(AST) : Lexer
                     break;
 
                 case TOK.dotDotDot:
-                    varargs = AST.VarArg.variadic;
+                    varargs = VarArg.variadic;
                     varargsStc = storageClass;
                     if (varargsStc & ~VarArgsStc)
                     {
@@ -3064,7 +3098,7 @@ final class Parser(AST) : Lexer
                              */
                             if (storageClass & (STC.out_ | STC.ref_))
                                 error("variadic argument cannot be `out` or `ref`");
-                            varargs = AST.VarArg.typesafe;
+                            varargs = VarArg.typesafe;
                             parameters.push(param);
                             nextToken();
                             break;
@@ -3757,7 +3791,7 @@ final class Parser(AST) : Lexer
             loc = token.loc;
             nextToken();
             if (token.value != TOK.leftParenthesis)
-                error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParenthesis), "`mixin`".ptr);
+                error("found `%s` when expecting `%s` following `mixin`", token.toChars(), Token.toChars(TOK.leftParenthesis));
             auto exps = parseArguments();
             t = new AST.TypeMixin(loc, exps);
             break;
@@ -3859,14 +3893,14 @@ final class Parser(AST) : Lexer
                         AST.Type t = maybeArray;
                         while (true)
                         {
-                            if (t.ty == AST.Tsarray)
+                            if (t.ty == Tsarray)
                             {
                                 // The index expression is an Expression.
                                 AST.TypeSArray a = cast(AST.TypeSArray)t;
                                 dimStack.push(a.dim.syntaxCopy());
                                 t = a.next.syntaxCopy();
                             }
-                            else if (t.ty == AST.Taarray)
+                            else if (t.ty == Taarray)
                             {
                                 // The index expression is a Type. It will be interpreted as an expression at semantic time.
                                 AST.TypeAArray a = cast(AST.TypeAArray)t;
@@ -4372,17 +4406,14 @@ final class Parser(AST) : Lexer
                     if (sawLinkage)
                         error("redundant linkage declaration");
                     sawLinkage = true;
-                    AST.Identifiers* idents = null;
-                    AST.Expressions* identExps = null;
-                    CPPMANGLE cppmangle;
-                    bool cppMangleOnly = false;
                     linkloc = token.loc;
-                    link = parseLinkage(&idents, &identExps, cppmangle, cppMangleOnly);
-                    if (idents || identExps)
+                    auto res = parseLinkage();
+                    link = res.link;
+                    if (res.idents || res.identExps)
                     {
                         error("C++ name spaces not allowed here");
                     }
-                    if (cppmangle != CPPMANGLE.def)
+                    if (res.cppmangle != CPPMANGLE.def)
                     {
                         error("C++ mangle declaration not allowed here");
                     }
@@ -4797,7 +4828,7 @@ final class Parser(AST) : Lexer
             else if (t != tfirst)
                 error("multiple declarations must have the same type, not `%s` and `%s`", tfirst.toChars(), t.toChars());
 
-            bool isThis = (t.ty == AST.Tident && (cast(AST.TypeIdentifier)t).ident == Id.This && token.value == TOK.assign);
+            bool isThis = (t.ty == Tident && (cast(AST.TypeIdentifier)t).ident == Id.This && token.value == TOK.assign);
             if (ident)
                 checkCstyleTypeSyntax(loc, t, alt, ident);
             else if (!isThis && (t != AST.Type.terror))
@@ -4869,7 +4900,7 @@ final class Parser(AST) : Lexer
                     break;
                 }
             }
-            else if (t.ty == AST.Tfunction)
+            else if (t.ty == Tfunction)
             {
                 AST.Expression constraint = null;
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
@@ -5091,6 +5122,11 @@ final class Parser(AST) : Lexer
         if (token.value == TOK.goesTo)
         {
             check(TOK.goesTo);
+            if (token.value == TOK.leftCurly)
+            {
+                deprecation("Using `(args) => { ... }` to create a delegate that returns a delegate is error-prone.");
+                deprecationSupplemental(token.loc, "Use `(args) { ... }` for a multi-statement function literal or use `(args) => () { }` if you intended for the lambda to return a delegate.");
+            }
             const returnloc = token.loc;
             AST.Expression ae = parseAssignExp();
             fd.fbody = new AST.ReturnStatement(returnloc, ae);
@@ -5327,55 +5363,20 @@ final class Parser(AST) : Lexer
     }
 
     /*****************************************
-     * Determines additional argument types for parseForeach.
-     */
-    private template ParseForeachArgs(bool isStatic, bool isDecl)
-    {
-        static alias Seq(T...) = T;
-        static if(isDecl)
-        {
-            alias ParseForeachArgs = Seq!(AST.Dsymbol*);
-        }
-        else
-        {
-            alias ParseForeachArgs = Seq!();
-        }
-    }
-    /*****************************************
-     * Determines the result type for parseForeach.
-     */
-    private template ParseForeachRet(bool isStatic, bool isDecl)
-    {
-        static if(!isStatic)
-        {
-            alias ParseForeachRet = AST.Statement;
-        }
-        else static if(isDecl)
-        {
-            alias ParseForeachRet = AST.StaticForeachDeclaration;
-        }
-        else
-        {
-            alias ParseForeachRet = AST.StaticForeachStatement;
-        }
-    }
-    /*****************************************
      * Parses `foreach` statements, `static foreach` statements and
-     * `static foreach` declarations.  The template parameter
-     * `isStatic` is true, iff a `static foreach` should be parsed.
-     * If `isStatic` is true, `isDecl` can be true to indicate that a
-     * `static foreach` declaration should be parsed.
+     * `static foreach` declarations.
+     * Params:
+     *  Foreach = one of Statement, StaticForeachStatement, StaticForeachDeclaration
+     *  loc = location of foreach
+     *  pLastDecl = non-null for StaticForeachDeclaration
+     * Returns:
+     *  the Foreach generated
      */
-    private ParseForeachRet!(isStatic, isDecl) parseForeach(bool isStatic, bool isDecl)(Loc loc, ParseForeachArgs!(isStatic, isDecl) args)
+    private Foreach parseForeach(alias Foreach)(Loc loc, AST.Dsymbol* pLastDecl)
     {
-        static if(isDecl)
-        {
-            static assert(isStatic);
-        }
-        static if(isStatic)
+        static if (is(Foreach == AST.StaticForeachStatement) || is(Foreach == AST.StaticForeachDeclaration))
         {
             nextToken();
-            static if(isDecl) auto pLastDecl = args[0];
         }
 
         TOK op = token.value;
@@ -5401,6 +5402,10 @@ final class Parser(AST) : Lexer
             {
                 case TOK.ref_:
                     stc = STC.ref_;
+                    goto Lagain;
+
+                case TOK.scope_:
+                    stc = STC.scope_;
                     goto Lagain;
 
                 case TOK.enum_:
@@ -5481,7 +5486,7 @@ final class Parser(AST) : Lexer
             AST.Expression upr = parseExpression();
             check(TOK.rightParenthesis);
             Loc endloc;
-            static if (!isDecl)
+            static if (is(Foreach == AST.Statement) || is(Foreach == AST.StaticForeachStatement))
             {
                 AST.Statement _body = parseStatement(0, null, &endloc);
             }
@@ -5490,15 +5495,15 @@ final class Parser(AST) : Lexer
                 AST.Statement _body = null;
             }
             auto rangefe = new AST.ForeachRangeStatement(loc, op, p, aggr, upr, _body, endloc);
-            static if (!isStatic)
+            static if (is(Foreach == AST.Statement))
             {
                 return rangefe;
             }
-            else static if(isDecl)
+            else static if(is(Foreach == AST.StaticForeachDeclaration))
             {
                 return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc, null, rangefe), parseBlock(pLastDecl));
             }
-            else
+            else static if (is(Foreach == AST.StaticForeachStatement))
             {
                 return new AST.StaticForeachStatement(loc, new AST.StaticForeach(loc, null, rangefe));
             }
@@ -5507,7 +5512,7 @@ final class Parser(AST) : Lexer
         {
             check(TOK.rightParenthesis);
             Loc endloc;
-            static if (!isDecl)
+            static if (is(Foreach == AST.Statement) || is(Foreach == AST.StaticForeachStatement))
             {
                 AST.Statement _body = parseStatement(0, null, &endloc);
             }
@@ -5516,15 +5521,15 @@ final class Parser(AST) : Lexer
                 AST.Statement _body = null;
             }
             auto aggrfe = new AST.ForeachStatement(loc, op, parameters, aggr, _body, endloc);
-            static if(!isStatic)
+            static if (is(Foreach == AST.Statement))
             {
                 return aggrfe;
             }
-            else static if(isDecl)
+            else static if(is(Foreach == AST.StaticForeachDeclaration))
             {
                 return new AST.StaticForeachDeclaration(new AST.StaticForeach(loc, aggrfe, null), parseBlock(pLastDecl));
             }
-            else
+            else static if (is(Foreach == AST.StaticForeachStatement))
             {
                 return new AST.StaticForeachStatement(loc, new AST.StaticForeach(loc, aggrfe, null));
             }
@@ -5553,6 +5558,10 @@ LagainStc:
         {
         case TOK.ref_:
             stc = STC.ref_;
+            goto LagainStc;
+
+        case TOK.scope_:
+            stc = STC.scope_;
             goto LagainStc;
 
         case TOK.auto_:
@@ -5759,7 +5768,7 @@ LagainStc:
                 }
                 if (tv == TOK.foreach_ || tv == TOK.foreach_reverse_)
                 {
-                    s = parseForeach!(true,false)(loc);
+                    s = parseForeach!(AST.StaticForeachStatement)(loc, null);
                     if (flags & ParseStatementFlags.scope_)
                         s = new AST.ScopeStatement(loc, s, token.loc);
                     break;
@@ -6031,7 +6040,7 @@ LagainStc:
         case TOK.foreach_:
         case TOK.foreach_reverse_:
             {
-                s = parseForeach!(false,false)(loc);
+                s = parseForeach!(AST.Statement)(loc, null);
                 break;
             }
         case TOK.if_:
@@ -6192,14 +6201,16 @@ LagainStc:
                 AST.Expressions cases; // array of Expression's
                 AST.Expression last = null;
 
-                while (1)
+                nextToken();
+                do
                 {
-                    nextToken();
                     exp = parseAssignExp();
                     cases.push(exp);
                     if (token.value != TOK.comma)
                         break;
+                    nextToken(); //comma
                 }
+                while (token.value != TOK.colon && token.value != TOK.endOfFile);
                 check(TOK.colon);
 
                 /* case exp: .. case last:
@@ -6400,8 +6411,10 @@ LagainStc:
                     const catchloc = token.loc;
 
                     nextToken();
-                    if (token.value == TOK.leftCurly || token.value != TOK.leftParenthesis)
+                    if (token.value != TOK.leftParenthesis)
                     {
+                        deprecation("`catch` statement without an exception specification is deprecated");
+                        deprecationSupplemental(token.loc, "use `catch(Throwable)` for old behavior");
                         t = null;
                         id = null;
                     }
@@ -6448,116 +6461,9 @@ LagainStc:
             }
 
         case TOK.asm_:
-            {
-                // Parse the asm block into a sequence of AsmStatements,
-                // each AsmStatement is one instruction.
-                // Separate out labels.
-                // Defer parsing of AsmStatements until semantic processing.
+            s = parseAsm();
+            break;
 
-                Loc labelloc;
-
-                nextToken();
-                StorageClass stc = parsePostfix(STC.undefined_, null);
-                if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild))
-                    error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
-
-                check(TOK.leftCurly);
-                Token* toklist = null;
-                Token** ptoklist = &toklist;
-                Identifier label = null;
-                auto statements = new AST.Statements();
-                size_t nestlevel = 0;
-                while (1)
-                {
-                    switch (token.value)
-                    {
-                    case TOK.identifier:
-                        if (!toklist)
-                        {
-                            // Look ahead to see if it is a label
-                            if (peekNext() == TOK.colon)
-                            {
-                                // It's a label
-                                label = token.ident;
-                                labelloc = token.loc;
-                                nextToken();
-                                nextToken();
-                                continue;
-                            }
-                        }
-                        goto default;
-
-                    case TOK.leftCurly:
-                        ++nestlevel;
-                        goto default;
-
-                    case TOK.rightCurly:
-                        if (nestlevel > 0)
-                        {
-                            --nestlevel;
-                            goto default;
-                        }
-                        if (toklist || label)
-                        {
-                            error("`asm` statements must end in `;`");
-                        }
-                        break;
-
-                    case TOK.semicolon:
-                        if (nestlevel != 0)
-                            error("mismatched number of curly brackets");
-
-                        s = null;
-                        if (toklist || label)
-                        {
-                            // Create AsmStatement from list of tokens we've saved
-                            s = new AST.AsmStatement(token.loc, toklist);
-                            toklist = null;
-                            ptoklist = &toklist;
-                            if (label)
-                            {
-                                s = new AST.LabelStatement(labelloc, label, s);
-                                label = null;
-                            }
-                            statements.push(s);
-                        }
-                        nextToken();
-                        continue;
-
-                    case TOK.endOfFile:
-                        /* { */
-                        error("matching `}` expected, not end of file");
-                        goto Lerror;
-
-                    case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
-                        *ptoklist = allocateToken();
-                        memcpy(*ptoklist, &token, Token.sizeof);
-                        (*ptoklist).value = TOK.colon;
-                        ptoklist = &(*ptoklist).next;
-
-                        *ptoklist = allocateToken();
-                        memcpy(*ptoklist, &token, Token.sizeof);
-                        (*ptoklist).value = TOK.colon;
-                        ptoklist = &(*ptoklist).next;
-
-                        *ptoklist = null;
-                        nextToken();
-                        continue;
-
-                    default:
-                        *ptoklist = allocateToken();
-                        memcpy(*ptoklist, &token, Token.sizeof);
-                        ptoklist = &(*ptoklist).next;
-                        *ptoklist = null;
-                        nextToken();
-                        continue;
-                    }
-                    break;
-                }
-                s = new AST.CompoundAsmStatement(loc, statements, stc);
-                nextToken();
-                break;
-            }
         case TOK.import_:
             {
                 /* https://issues.dlang.org/show_bug.cgi?id=16088
@@ -6915,19 +6821,156 @@ LagainStc:
         return parseAssignExp();
     }
 
-    private void check(Loc loc, TOK value)
+    /********************
+     * Parse inline assembler block.
+     * Returns:
+     *   inline assembler block as a Statement
+     */
+    AST.Statement parseAsm()
+    {
+        // Parse the asm block into a sequence of AsmStatements,
+        // each AsmStatement is one instruction.
+        // Separate out labels.
+        // Defer parsing of AsmStatements until semantic processing.
+
+        const loc = token.loc;
+        Loc labelloc;
+
+        nextToken();
+        StorageClass stc = parsePostfix(STC.undefined_, null);
+        if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild))
+            error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
+
+        check(TOK.leftCurly);
+        Token* toklist = null;
+        Token** ptoklist = &toklist;
+        Identifier label = null;
+        auto statements = new AST.Statements();
+        size_t nestlevel = 0;
+        while (1)
+        {
+            switch (token.value)
+            {
+            case TOK.identifier:
+                if (!toklist)
+                {
+                    // Look ahead to see if it is a label
+                    if (peekNext() == TOK.colon)
+                    {
+                        // It's a label
+                        label = token.ident;
+                        labelloc = token.loc;
+                        nextToken();
+                        nextToken();
+                        continue;
+                    }
+                }
+                goto default;
+
+            case TOK.leftCurly:
+                ++nestlevel;
+                goto default;
+
+            case TOK.rightCurly:
+                if (nestlevel > 0)
+                {
+                    --nestlevel;
+                    goto default;
+                }
+                if (toklist || label)
+                {
+                    error("`asm` statements must end in `;`");
+                }
+                break;
+
+            case TOK.semicolon:
+                if (nestlevel != 0)
+                    error("mismatched number of curly brackets");
+
+                if (toklist || label)
+                {
+                    // Create AsmStatement from list of tokens we've saved
+                    AST.Statement s = new AST.AsmStatement(token.loc, toklist);
+                    toklist = null;
+                    ptoklist = &toklist;
+                    if (label)
+                    {
+                        s = new AST.LabelStatement(labelloc, label, s);
+                        label = null;
+                    }
+                    statements.push(s);
+                }
+                nextToken();
+                continue;
+
+            case TOK.endOfFile:
+                /* { */
+                error("matching `}` expected, not end of file");
+                break;
+
+            case TOK.colonColon:  // treat as two separate : tokens for iasmgcc
+                *ptoklist = allocateToken();
+                memcpy(*ptoklist, &token, Token.sizeof);
+                (*ptoklist).value = TOK.colon;
+                ptoklist = &(*ptoklist).next;
+
+                *ptoklist = allocateToken();
+                memcpy(*ptoklist, &token, Token.sizeof);
+                (*ptoklist).value = TOK.colon;
+                ptoklist = &(*ptoklist).next;
+
+                *ptoklist = null;
+                nextToken();
+                continue;
+
+            default:
+                *ptoklist = allocateToken();
+                memcpy(*ptoklist, &token, Token.sizeof);
+                ptoklist = &(*ptoklist).next;
+                *ptoklist = null;
+                nextToken();
+                continue;
+            }
+            break;
+        }
+        nextToken();
+        auto s = new AST.CompoundAsmStatement(loc, statements, stc);
+        return s;
+    }
+
+    /**********************************
+     * Issue error if the current token is not `value`,
+     * advance to next token.
+     * Params:
+     *  loc = location for error message
+     *  value = token value to compare with
+     */
+    void check(Loc loc, TOK value)
     {
         if (token.value != value)
             error(loc, "found `%s` when expecting `%s`", token.toChars(), Token.toChars(value));
         nextToken();
     }
 
+    /**********************************
+     * Issue error if the current token is not `value`,
+     * advance to next token.
+     * Params:
+     *  value = token value to compare with
+     */
     void check(TOK value)
     {
         check(token.loc, value);
     }
 
-    private void check(TOK value, const(char)* string)
+    /**********************************
+     * Issue error if the current token is not `value`,
+     * advance to next token.
+     * Params:
+     *  value = token value to compare with
+     *  string = for error message
+     */
+    void check(TOK value, const(char)* string)
     {
         if (token.value != value)
             error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(value), string);
@@ -6941,7 +6984,7 @@ LagainStc:
     }
 
     ///
-    private enum NeedDeclaratorId
+    enum NeedDeclaratorId
     {
         no,             // Declarator part must have no identifier
         opt,            // Declarator part identifier is optional
@@ -7620,16 +7663,15 @@ LagainStc:
     }
 
     /*******************************************
-     * Skip parens, brackets.
-     * Input:
-     *      t is on opening $(LPAREN)
-     * Output:
-     *      *pt is set to closing token, which is '$(RPAREN)' on success
+     * Skip parentheses.
+     * Params:
+     *      t = on opening $(LPAREN)
+     *      pt = *pt is set to token past '$(RPAREN)' on true
      * Returns:
      *      true    successful
      *      false   some parsing error
      */
-    private bool skipParens(Token* t, Token** pt)
+    bool skipParens(Token* t, Token** pt)
     {
         if (t.value != TOK.leftParenthesis)
             return false;
@@ -8291,7 +8333,7 @@ LagainStc:
                 // https://dlang.org/spec/expression.html#mixin_expressions
                 nextToken();
                 if (token.value != TOK.leftParenthesis)
-                    error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParenthesis), "`mixin`".ptr);
+                    error("found `%s` when expecting `%s` following `mixin`", token.toChars(), Token.toChars(TOK.leftParenthesis));
                 auto exps = parseArguments();
                 e = new AST.MixinExp(loc, exps);
                 break;
@@ -8479,28 +8521,28 @@ LagainStc:
                     case TOK.const_:
                         if (peekNext() == TOK.leftParenthesis)
                             break; // const as type constructor
-                        m |= AST.MODFlags.const_; // const as storage class
+                        m |= MODFlags.const_; // const as storage class
                         nextToken();
                         continue;
 
                     case TOK.immutable_:
                         if (peekNext() == TOK.leftParenthesis)
                             break;
-                        m |= AST.MODFlags.immutable_;
+                        m |= MODFlags.immutable_;
                         nextToken();
                         continue;
 
                     case TOK.shared_:
                         if (peekNext() == TOK.leftParenthesis)
                             break;
-                        m |= AST.MODFlags.shared_;
+                        m |= MODFlags.shared_;
                         nextToken();
                         continue;
 
                     case TOK.inout_:
                         if (peekNext() == TOK.leftParenthesis)
                             break;
-                        m |= AST.MODFlags.wild;
+                        m |= MODFlags.wild;
                         nextToken();
                         continue;
 
@@ -9232,7 +9274,7 @@ LagainStc:
         auto t = parseBasicType(true);
         t = parseTypeSuffixes(t);
         t = t.addSTC(stc);
-        if (t.ty == AST.Taarray)
+        if (t.ty == Taarray)
         {
             AST.TypeAArray taa = cast(AST.TypeAArray)t;
             AST.Type index = taa.index;
@@ -9244,7 +9286,7 @@ LagainStc:
             }
             t = new AST.TypeSArray(taa.next, edim);
         }
-        else if (token.value == TOK.leftParenthesis && t.ty != AST.Tsarray)
+        else if (token.value == TOK.leftParenthesis && t.ty != Tsarray)
         {
             arguments = parseArguments();
         }
@@ -9279,26 +9321,26 @@ LagainStc:
      */
     static StorageClass isBuiltinAtAttribute(Identifier ident)
     {
-        return (ident == Id.property) ? AST.STC.property :
-               (ident == Id.nogc)     ? AST.STC.nogc     :
-               (ident == Id.safe)     ? AST.STC.safe     :
-               (ident == Id.trusted)  ? AST.STC.trusted  :
-               (ident == Id.system)   ? AST.STC.system   :
-               (ident == Id.live)     ? AST.STC.live     :
-               (ident == Id.future)   ? AST.STC.future   :
-               (ident == Id.disable)  ? AST.STC.disable  :
+        return (ident == Id.property) ? STC.property :
+               (ident == Id.nogc)     ? STC.nogc     :
+               (ident == Id.safe)     ? STC.safe     :
+               (ident == Id.trusted)  ? STC.trusted  :
+               (ident == Id.system)   ? STC.system   :
+               (ident == Id.live)     ? STC.live     :
+               (ident == Id.future)   ? STC.future   :
+               (ident == Id.disable)  ? STC.disable  :
                0;
     }
 
     enum StorageClass atAttrGroup =
-                AST.STC.property |
-                AST.STC.nogc     |
-                AST.STC.safe     |
-                AST.STC.trusted  |
-                AST.STC.system   |
-                AST.STC.live     |
-                /*AST.STC.future   |*/ // probably should be included
-                AST.STC.disable;
+                STC.property |
+                STC.nogc     |
+                STC.safe     |
+                STC.trusted  |
+                STC.system   |
+                STC.live     |
+                /*STC.future   |*/ // probably should be included
+                STC.disable;
     }
 
 enum PREC : int

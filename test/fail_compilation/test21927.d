@@ -2,10 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21927.d(19): Error: invalid `foreach` aggregate `this.T2(Args2...)`
-fail_compilation/test21927.d(19): Error: invalid `foreach` aggregate `this.T2(Args2...)`
-fail_compilation/test21927.d(20): Error: invalid `foreach` aggregate `this.T2!()`
-fail_compilation/test21927.d(20): Error: invalid `foreach` aggregate `this.T2!()`
+fail_compilation/test21927.d(17): Error: invalid `foreach` aggregate `this.T2(Args2...)`
+fail_compilation/test21927.d(18): Error: invalid `foreach` aggregate `this.T2!()`
 ---
 */
 

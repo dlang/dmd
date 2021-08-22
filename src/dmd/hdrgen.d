@@ -19,6 +19,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.complex;
 import dmd.cond;
@@ -994,16 +995,21 @@ public:
 
     override void visit(AlignDeclaration d)
     {
-        buf.writestring("align ");
-        if (d.ealign)
+        if (d.exps)
         {
-            buf.printf("(%s)", d.ealign.toChars());
-            AttribDeclaration ad = cast(AttribDeclaration)d;
-            if (ad.decl && ad.decl.dim < 2)
+            foreach (i, exp; (*d.exps)[])
+            {
+                if (i)
+                    buf.writeByte(' ');
+                buf.printf("align (%s)", exp.toChars());
+            }
+            if (d.decl && d.decl.dim < 2)
                 buf.writeByte(' ');
         }
+        else
+            buf.writestring("align ");
 
-        visit(cast(AttribDeclaration)d);
+        visit(d.isAttribDeclaration());
     }
 
     override void visit(AnonDeclaration d)
@@ -1760,13 +1766,23 @@ public:
         bodyToBuffer(d);
     }
 
+    override void visit(BitFieldDeclaration d)
+    {
+        if (stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
+        Identifier id = d.isAnonymous() ? null : d.ident;
+        typeToBuffer(d.type, id, buf, hgs);
+        buf.writestring(" : ");
+        d.width.expressionToBuffer(buf, hgs);
+        buf.writeByte(';');
+        buf.writenl();
+    }
+
     override void visit(NewDeclaration d)
     {
         if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
-        buf.writestring("new");
-        parametersToBuffer(d.parameterList, buf, hgs);
-        bodyToBuffer(d);
+        buf.writestring("new();");
     }
 
     override void visit(Module m)
@@ -2042,6 +2058,14 @@ public:
             e.stageflags = old;
         }
         buf.writeByte(')');
+    }
+
+    override void visit(CompoundLiteralExp e)
+    {
+        buf.writeByte('(');
+        typeToBuffer(e.type, null, buf, hgs);
+        buf.writeByte(')');
+        e.initializer.initializerToBuffer(buf, hgs);
     }
 
     override void visit(TypeExp e)
@@ -2759,11 +2783,39 @@ void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 
 bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
+    //printf("stc: %llx\n", stc);
     bool result = false;
-    if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
-        stc &= ~STC.scope_;
+
     if (stc & STC.scopeinferred)
         stc &= ~(STC.scope_ | STC.scopeinferred);
+    if (stc & STC.returninferred)
+        stc &= ~(STC.return_ | STC.returninferred);
+
+    /* Put scope ref return into a standard order
+     */
+    string rrs;
+    const isout = (stc & STC.out_) != 0;
+    //printf("bsr = %d %llx\n", buildScopeRef(stc), stc);
+    final switch (buildScopeRef(stc))
+    {
+        case ScopeRef.None:
+        case ScopeRef.Scope:
+        case ScopeRef.Ref:
+        case ScopeRef.Return:
+            break;
+
+        case ScopeRef.ReturnScope:      rrs = "return scope"; goto L1;
+        case ScopeRef.ReturnRef:        rrs = isout ? "return out"       : "return ref";       goto L1;
+        case ScopeRef.RefScope:         rrs = isout ? "out scope"        : "ref scope";        goto L1;
+        case ScopeRef.ReturnRef_Scope:  rrs = isout ? "return out scope" : "return ref scope"; goto L1;
+        case ScopeRef.Ref_ReturnScope:  rrs = isout ? "out return scope" : "ref return scope"; goto L1;
+        L1:
+            buf.writestring(rrs);
+            result = true;
+            stc &= ~(STC.out_ | STC.scope_ | STC.ref_ | STC.return_);
+            break;
+    }
+
     while (stc)
     {
         const s = stcToString(stc);
@@ -2774,6 +2826,7 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc)
         result = true;
         buf.writestring(s);
     }
+
     return result;
 }
 
@@ -2831,7 +2884,7 @@ string stcToString(ref StorageClass stc)
     foreach (ref entry; table)
     {
         const StorageClass tbl = entry.stc;
-        assert(tbl & STCStorageClass);
+        assert(tbl & STC.visibleStorageClasses);
         if (stc & tbl)
         {
             stc &= ~tbl;
@@ -3095,28 +3148,24 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     }
     if (p.storageClass & STC.auto_)
         buf.writestring("auto ");
-    if (p.storageClass & STC.return_)
-        buf.writestring("return ");
 
+    StorageClass stc = p.storageClass;
     if (p.storageClass & STC.in_)
+    {
         buf.writestring("in ");
-    else if (global.params.previewIn && p.storageClass & STC.ref_)
-        buf.writestring("ref ");
-    else if (p.storageClass & STC.out_)
-        buf.writestring("out ");
+        if (global.params.previewIn && p.storageClass & STC.ref_)
+            stc &= ~STC.ref_;
+    }
     else if (p.storageClass & STC.lazy_)
         buf.writestring("lazy ");
     else if (p.storageClass & STC.alias_)
         buf.writestring("alias ");
 
-    if (!global.params.previewIn && p.storageClass & STC.ref_)
-        buf.writestring("ref ");
-
-    StorageClass stc = p.storageClass;
     if (p.type && p.type.mod & MODFlags.shared_)
         stc &= ~STC.shared_;
 
-    if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.scope_ | STC.scopeinferred)))
+    if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ |
+        STC.return_ | STC.returninferred | STC.scope_ | STC.scopeinferred | STC.out_ | STC.ref_ | STC.returnScope)))
         buf.writeByte(' ');
 
     if (p.storageClass & STC.alias_)
@@ -3609,6 +3658,36 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
         ei.exp.expressionToBuffer(buf, hgs);
     }
 
+    void visitC(CInitializer ci)
+    {
+        buf.writeByte('{');
+        foreach (i, ref DesigInit di; ci.initializerList)
+        {
+            if (i)
+                buf.writestring(", ");
+            if (di.designatorList)
+            {
+                foreach (ref Designator d; (*di.designatorList)[])
+                {
+                    if (d.exp)
+                    {
+                        buf.writeByte('[');
+                        toCBuffer(d.exp, buf, hgs);
+                        buf.writeByte(']');
+                    }
+                    else
+                    {
+                        buf.writeByte('.');
+                        buf.writestring(d.ident.toString());
+                    }
+                }
+                buf.writeByte('=');
+            }
+            initializerToBuffer(di.initializer, buf, hgs);
+        }
+        buf.writeByte('}');
+    }
+
     final switch (inx.kind)
     {
         case InitKind.error:   return visitError (inx.isErrorInitializer ());
@@ -3616,6 +3695,7 @@ private void initializerToBuffer(Initializer inx, OutBuffer* buf, HdrGenState* h
         case InitKind.struct_: return visitStruct(inx.isStructInitializer());
         case InitKind.array:   return visitArray (inx.isArrayInitializer ());
         case InitKind.exp:     return visitExp   (inx.isExpInitializer   ());
+        case InitKind.C_:      return visitC     (inx.isCInitializer     ());
     }
 }
 
@@ -3795,11 +3875,19 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         // https://issues.dlang.org/show_bug.cgi?id=13776
         // Don't use ti.toAlias() to avoid forward reference error
         // while printing messages.
-        TemplateInstance ti = t.sym.parent.isTemplateInstance();
+        TemplateInstance ti = t.sym.parent ? t.sym.parent.isTemplateInstance() : null;
         if (ti && ti.aliasdecl == t.sym)
             buf.writestring(hgs.fullQual ? ti.toPrettyChars() : ti.toChars());
         else
             buf.writestring(hgs.fullQual ? t.sym.toPrettyChars() : t.sym.toChars());
+    }
+
+    void visitTag(TypeTag t)
+    {
+        buf.writestring(Token.toChars(t.tok));
+        buf.writeByte(' ');
+        if (t.id)
+            buf.writestring(t.id.toChars());
     }
 
     void visitTuple(TypeTuple t)
@@ -3863,5 +3951,6 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tnull:      return visitNull(cast(TypeNull)t);
         case Tmixin:     return visitMixin(cast(TypeMixin)t);
         case Tnoreturn:  return visitNoreturn(cast(TypeNoreturn)t);
+        case Ttag:       return visitTag(cast(TypeTag)t);
     }
 }

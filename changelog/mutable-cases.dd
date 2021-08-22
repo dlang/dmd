@@ -1,0 +1,16 @@
+Using a mutable variable as a switch case now triggers an error
+
+Variables that are `const` or `immutable` can be used as switch cases even if they are initialized at run-time, but using variables that are mutable has been deprecated since dmd 2.073.2.
+This deprecation has now been turned into an error:
+-------
+void foo(int s, int x, const int y, immutable int z) {
+    switch (s) {
+        case x: // error
+        case y: // allowed
+        case z: // allowed
+        default:
+    }
+}
+-------
+It is advised to only use compile-time known values in `case` statements, because the presence of any run-time variable (even a `const` or `immutable` one) results in the entire switch being lowered to a series of if-else statements before code generation, instead of an efficient jump table.
+Prefer regular if-statements for comparing pairs of run-time known variables.

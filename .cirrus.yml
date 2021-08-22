@@ -5,13 +5,24 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../dmd
 
-    # for PRs - merge with target branch first
-    if [ ! -z ${CIRRUS_PR+x} ] ; then
-      git fetch origin "+refs/pull/$CIRRUS_PR/merge:";
-      git checkout -f FETCH_HEAD;
+    if [ -z ${CIRRUS_PR+x} ] ; then
+      # not a PR
+      REPO_BRANCH="$CIRRUS_BRANCH"
+    else
+      # PR - merge with target branch first
+      git fetch origin "+refs/pull/$CIRRUS_PR/merge:"
+      git checkout -f FETCH_HEAD
+
+      if [[ ! "$CIRRUS_BRANCH" =~ ^pull/ ]]; then
+        # PR originating from the official dlang repo
+        REPO_BRANCH="$CIRRUS_BRANCH"
+      else
+        # PR from a fork
+        REPO_BRANCH="$CIRRUS_BASE_BRANCH"
+      fi
     fi
 
-    ./ci.sh setup_repos "${CIRRUS_BASE_BRANCH:-$CIRRUS_BRANCH}"
+    ./ci.sh setup_repos "$REPO_BRANCH"
   build_script: ./ci.sh build
 
   test_dmd_script: |
@@ -94,9 +105,9 @@ task:
 
 # FreeBSD
 task:
-  name: FreeBSD 12.1 x64, DMD ($TASK_NAME_TYPE)
+  name: FreeBSD 12.2 x64, DMD ($TASK_NAME_TYPE)
   freebsd_instance:
-    image_family: freebsd-12-1
+    image_family: freebsd-12-2
     cpu: 4
     memory: 8G
   timeout_in: 60m

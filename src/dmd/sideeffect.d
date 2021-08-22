@@ -12,6 +12,7 @@
 module dmd.sideeffect;
 
 import dmd.apply;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.expression;

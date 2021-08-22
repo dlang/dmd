@@ -30,81 +30,28 @@ import dmd.utils;
 
 //debug = Debug_DtoH;
 
-private struct DMDType
-{
-    __gshared Identifier c_long;
-    __gshared Identifier c_ulong;
-    __gshared Identifier c_longlong;
-    __gshared Identifier c_ulonglong;
-    __gshared Identifier c_long_double;
-    __gshared Identifier c_wchar_t;
-    __gshared Identifier c_complex_float;
-    __gshared Identifier c_complex_double;
-    __gshared Identifier c_complex_real;
+// Generate asserts to validate the header
+//debug = Debug_DtoH_Checks;
 
-    static void _init()
-    {
-        c_long          = Identifier.idPool("__c_long");
-        c_ulong         = Identifier.idPool("__c_ulong");
-        c_longlong      = Identifier.idPool("__c_longlong");
-        c_ulonglong     = Identifier.idPool("__c_ulonglong");
-        c_long_double   = Identifier.idPool("__c_long_double");
-        c_wchar_t       = Identifier.idPool("__c_wchar_t");
-        c_complex_float  = Identifier.idPool("__c_complex_float");
-        c_complex_double = Identifier.idPool("__c_complex_double");
-        c_complex_real = Identifier.idPool("__c_complex_real");
-    }
-}
-
-private void initialize()
-{
-    __gshared bool initialized;
-
-    if (!initialized)
-    {
-        initialized = true;
-
-        DMDType._init();
-    }
-}
-
-void hashIf(ref OutBuffer buf, string content)
-{
-    buf.writestring("#if ");
-    buf.writestringln(content);
-}
-
-void hashElIf(ref OutBuffer buf, string content)
-{
-    buf.writestring("#elif ");
-    buf.writestringln(content);
-}
-
-void hashEndIf(ref OutBuffer buf)
-{
-    buf.writestringln("#endif");
-}
-
-void hashDefine(ref OutBuffer buf, string content)
-{
-    buf.writestring("# define ");
-    buf.writestringln(content);
-}
-
-void hashInclude(ref OutBuffer buf, string content)
-{
-    buf.writestring("#include ");
-    buf.writestringln(content);
-}
-
-
-
+/**
+ * Generates a C++ header containing bindings for all `extern(C[++])` declarations
+ * found in the supplied modules.
+ *
+ * Params:
+ *   ms = the modules
+ *
+ * Notes:
+ *  - the header is written to `<global.params.cxxhdrdir>/<global.params.cxxhdrfile>`
+ *    or `stdout` if no explicit file was specified
+ *  - bindings conform to the C++ standard defined in `global.params.cplusplus`
+ *  - ignored declarations are mentioned in a comment if `global.params.doCxxHdrGeneration`
+ *    is set to `CxxHeaderMode.verbose`
+ */
 extern(C++) void genCppHdrFiles(ref Modules ms)
 {
     initialize();
 
     OutBuffer fwd;
-    OutBuffer check;
     OutBuffer done;
     OutBuffer decl;
 
@@ -113,10 +60,17 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     fwd.spaces = true;
     decl.doindent = true;
     decl.spaces = true;
-    check.doindent = true;
-    check.spaces = true;
 
-    scope v = new ToCppBuffer(&check, &fwd, &done, &decl);
+    scope v = new ToCppBuffer(&fwd, &done, &decl);
+
+    // Conditionally include another buffer for sanity checks
+    debug (Debug_DtoH_Checks)
+    {
+        OutBuffer check;
+        check.doindent = true;
+        check.spaces = true;
+        v.checkbuf = &check;
+    }
 
     OutBuffer buf;
     buf.doindent = true;
@@ -149,7 +103,7 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -192,7 +146,7 @@ struct _d_dynamicArray
     // buf.writestringln("// decl:");
     buf.write(&decl);
 
-    debug (Debug_DtoH)
+    debug (Debug_DtoH_Checks)
     {
         // buf.writestringln("// check:");
         buf.writestring(`
@@ -236,7 +190,10 @@ struct _d_dynamicArray
     }
 }
 
+private:
+
 /****************************************************
+ * Visitor that writes bindings for `extern(C[++]` declarations.
  */
 extern(C++) final class ToCppBuffer : Visitor
 {
@@ -251,60 +208,124 @@ public:
         Other
     }
 
+    /// Namespace providing the actual AST nodes
     alias AST = ASTCodegen;
 
+    /// Visited nodes
     bool[void*] visited;
-    bool[void*] forwarded;
-    OutBuffer* fwdbuf;
-    OutBuffer* checkbuf;
-    OutBuffer* donebuf;
-    OutBuffer* buf;
-    AST.AggregateDeclaration adparent;
-    AST.TemplateDeclaration tdparent;
-    Identifier ident;
-    LINK linkage = LINK.d;
-    bool forwardedAA;
-    AST.Type* origType;
-    /// Last written visibility level
-    AST.Visibility.Kind currentVisibility;
-    AST.STC storageClass; /// Currently applicable storage classes
 
-    int ignoredCounter; /// How many symbols were ignored
+    /// Forward declared nodes (which might not be emitted yet)
+    bool[void*] forwarded;
+
+    /// Buffer for forward declarations
+    OutBuffer* fwdbuf;
+
+    /// Buffer for integrity checks
+    debug (Debug_DtoH_Checks) OutBuffer* checkbuf;
+
+    /// Buffer for declarations that must emitted before the currently
+    /// visited node but can't be forward declared (see `includeSymbol`)
+    OutBuffer* donebuf;
+
+    /// Default buffer for the currently visited declaration
+    OutBuffer* buf;
+
+    /// The generated header uses `real` emitted as `_d_real`?
     bool hasReal;
+
+    /// The generated header should contain comments for skipped declarations?
     const bool printIgnored;
 
-    this(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
+    /// State specific to the current context which depends
+    /// on the currently visited node and it's parents
+    static struct Context
     {
-        this.checkbuf = checkbuf;
+        /// Default linkage in the current scope (e.g. LINK.c inside `extern(C) { ... }`)
+        LINK linkage = LINK.d;
+
+        /// Enclosing class / struct / union
+        AST.AggregateDeclaration adparent;
+
+        /// Enclosing template declaration
+        AST.TemplateDeclaration tdparent;
+
+        /// Identifier of the currently visited `VarDeclaration`
+        /// (required to write variables of funtion pointers)
+        Identifier ident;
+
+        /// Original type of the currently visited declaration
+        AST.Type* origType;
+
+        /// Last written visibility level applying to the current scope
+        AST.Visibility.Kind currentVisibility;
+
+        /// Currently applicable storage classes
+        AST.STC storageClass;
+
+         /// How many symbols were ignored
+        int ignoredCounter;
+
+        /// Currently visited types are required by another declaration
+        /// and hence must be emitted
+        bool mustEmit;
+
+        /// Processing a type that can be forward referenced
+        bool forwarding;
+
+        /// Inside of an anonymous struct/union (AnonDeclaration)
+        bool inAnonymousDecl;
+    }
+
+    /// Informations about the current context in the AST
+    Context context;
+    alias context this;
+
+    this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
+    {
         this.fwdbuf = fwdbuf;
         this.donebuf = donebuf;
         this.buf = buf;
         this.printIgnored = global.params.doCxxHdrGeneration == CxxHeaderMode.verbose;
     }
 
-    /// Visit `dsym` with `buf` while temporarily clearing **parent fields
-    private void visitAsRoot(AST.Dsymbol dsym, OutBuffer* buf)
+    /**
+     * Emits `dsym` into `donebuf` s.t. it is declared before the currently
+     * visited symbol that written to `buf`.
+     *
+     * Temporarily clears `context` to behave as if it was visited normally.
+     */
+    private void includeSymbol(AST.Dsymbol dsym)
     {
-        const stcStash = this.storageClass;
-        auto adStash = this.adparent;
-        auto tdStash = this.tdparent;
-        auto bufStash = this.buf;
-        auto countStash = this.ignoredCounter;
+        debug (Debug_DtoH)
+        {
+            printf("[includeSymbol(AST.Dsymbol) enter] %s\n", dsym.toChars());
+            scope(exit) printf("[includeSymbol(AST.Dsymbol) exit] %s\n", dsym.toChars());
+        }
 
-        this.storageClass = AST.STC.undefined_;
-        this.adparent = null;
-        this.tdparent = null;
-        this.buf = buf;
+        auto ptr = cast(void*) dsym in visited;
+        if (ptr && *ptr)
+            return;
+
+        // Temporary replacement for `buf` which is appended to `donebuf`
+        OutBuffer decl;
+        decl.doindent = true;
+        decl.spaces = true;
+        scope (exit) donebuf.write(&decl);
+
+        auto ctxStash = this.context;
+        auto bufStash = this.buf;
+
+        this.context = Context.init;
+        this.buf = &decl;
+        this.mustEmit = true;
 
         dsym.accept(this);
 
-        this.storageClass = stcStash;
-        this.adparent = adStash;
-        this.tdparent = tdStash;
+        this.context = ctxStash;
         this.buf = bufStash;
-        this.ignoredCounter = countStash;
     }
 
+    /// Determines what kind of enum `type` is (see `EnumKind`)
     private EnumKind getEnumKind(AST.Type type)
     {
         if (type) switch (type.ty)
@@ -330,6 +351,8 @@ public:
         return EnumKind.Other;
     }
 
+    /// Determines the type used to represent `type` in C++.
+    /// Returns: `const [w,d]char*` for `[w,d]string` or `type`
     private AST.Type determineEnumType(AST.Type type)
     {
         if (auto arr = type.isTypeDArray())
@@ -345,7 +368,8 @@ public:
         return type;
     }
 
-    void writeDeclEnd()
+    /// Writes a final `;` and insert an empty line outside of aggregates
+    private void writeDeclEnd()
     {
         buf.writestringln(";");
 
@@ -357,7 +381,7 @@ public:
     private void writeProtection(const AST.Visibility.Kind kind)
     {
         // Don't write visibility for global declarations
-        if (!adparent)
+        if (!adparent || inAnonymousDecl)
             return;
 
         string token;
@@ -425,7 +449,7 @@ public:
                 return;
             }
 
-            static bool warned = false;
+            __gshared bool warned = false;
             warning(loc, "%s `%s` is a %s", kind, ident.toChars(), reason);
 
             if (!warned)
@@ -439,112 +463,187 @@ public:
         if (global.params.warnings != DiagnosticReporting.off || canFix)
         {
             // Warn about identifiers that are keywords in C++.
-            switch (ident.toString())
-            {
-                // C++ operators
-                case "and":
-                case "and_eq":
-                case "bitand":
-                case "bitor":
-                case "compl":
-                case "not":
-                case "not_eq":
-                case "or":
-                case "or_eq":
-                case "xor":
-                case "xor_eq":
-                    warnCxxCompat("special operator in C++");
-                    break;
-
-                // C++ keywords
-                case "const_cast":
-                case "delete":
-                case "dynamic_cast":
-                case "explicit":
-                case "friend":
-                case "inline":
-                case "mutable":
-                case "namespace":
-                case "operator":
-                case "register":
-                case "reinterpret_cast":
-                case "signed":
-                case "static_cast":
-                case "typedef":
-                case "typename":
-                case "unsigned":
-                case "using":
-                case "virtual":
-                case "volatile":
-                    warnCxxCompat("keyword in C++");
-                    break;
-
-                // C++11 keywords
-                case "alignas":
-                case "alignof":
-                case "char16_t":
-                case "char32_t":
-                case "constexpr":
-                case "decltype":
-                case "noexcept":
-                case "nullptr":
-                case "static_assert":
-                case "thread_local":
-                    if (global.params.cplusplus >= CppStdRevision.cpp11)
-                        warnCxxCompat("keyword in C++11");
-                    break;
-
-                // C++20 keywords
-                case "char8_t":
-                case "consteval":
-                case "constinit":
-                // Concepts-related keywords
-                case "concept":
-                case "requires":
-                // Coroutines-related keywords
-                case "co_await":
-                case "co_yield":
-                case "co_return":
-                    if (global.params.cplusplus >= CppStdRevision.cpp20)
-                        warnCxxCompat("keyword in C++20");
-                    break;
-
-                default:
-                    break;
-            }
+            if (auto kc = keywordClass(ident))
+                warnCxxCompat(kc);
         }
         buf.writestring(ident.toString());
         if (needsFix)
             buf.writeByte('_');
     }
 
+    /// Checks whether `t` is a type that can be exported to C++
+    private bool isSupportedType(AST.Type t)
+    {
+        if (!t)
+        {
+            assert(tdparent);
+            return true;
+        }
+
+        switch (t.ty)
+        {
+            // Nested types
+            case AST.Tarray:
+            case AST.Tsarray:
+            case AST.Tpointer:
+            case AST.Treference:
+            case AST.Tdelegate:
+                return isSupportedType((cast(AST.TypeNext) t).next);
+
+            // Function pointers
+            case AST.Tfunction:
+            {
+                auto tf = cast(AST.TypeFunction) t;
+                if (!isSupportedType(tf.next))
+                    return false;
+                foreach (_, param; tf.parameterList)
+                {
+                    if (!isSupportedType(param.type))
+                        return false;
+                }
+                return true;
+            }
+
+            // Noreturn has a different mangling
+            case AST.Tnoreturn:
+
+            // _Imaginary is C only.
+            case AST.Timaginary32:
+            case AST.Timaginary64:
+            case AST.Timaginary80:
+                return false;
+            default:
+                return true;
+        }
+    }
+
     override void visit(AST.Dsymbol s)
     {
         debug (Debug_DtoH)
         {
-            printf("[AST.Dsymbol enter] %s\n", s.toChars());
+            mixin(traceVisit!s);
             import dmd.asttypename;
             printf("[AST.Dsymbol enter] %s\n", s.astTypeName().ptr);
-            scope(exit) printf("[AST.Dsymbol exit] %s\n", s.toChars());
         }
     }
 
     override void visit(AST.Import i)
     {
-        debug (Debug_DtoH)
+        debug (Debug_DtoH) mixin(traceVisit!i);
+
+        /// Writes `using <alias_> = <sym.ident>` into `buf`
+        const(char*) writeImport(AST.Dsymbol sym, const Identifier alias_)
         {
-            printf("[AST.Import enter] %s\n", i.toChars());
-            scope(exit) printf("[AST.Import exit] %s\n", i.toChars());
+            /// `using` was introduced in C++ 11 and only works for types...
+            if (global.params.cplusplus < CppStdRevision.cpp11)
+                return "requires C++11";
+
+            if (auto ad = sym.isAliasDeclaration())
+            {
+                sym = ad.toAlias();
+                ad = sym.isAliasDeclaration();
+
+                // Might be an alias to a basic type
+                if (ad && !ad.aliassym && ad.type)
+                    goto Emit;
+            }
+
+            // Restricted to types and other aliases
+            if (!sym.isScopeDsymbol() && !sym.isAggregateDeclaration())
+                return "only supports types";
+
+            // Write `using <alias_> = `<sym>`
+            Emit:
+            buf.writestring("using ");
+            writeIdentifier(alias_, i.loc, "renamed import");
+            buf.writestring(" = ");
+            // Start at module scope to avoid collisions with local symbols
+            if (this.context.adparent)
+                buf.writestring("::");
+            buf.writestring(sym.ident.toString());
+            writeDeclEnd();
+            return null;
+        }
+
+        // Only missing without semantic analysis
+        // FIXME: Templates need work due to missing parent & imported module
+        if (!i.parent)
+        {
+            assert(tdparent);
+            ignored("`%s` because it's inside of a template declaration", i.toChars());
+            return;
+        }
+
+        // Non-public imports don't create new symbols, include as needed
+        if (i.visibility.kind < AST.Visibility.Kind.public_)
+            return;
+
+        // Symbols from static imports should be emitted inline
+        if (i.isstatic)
+            return;
+
+        const isLocal = !i.parent.isModule();
+
+        // Need module for symbol lookup
+        assert(i.mod);
+
+        // Emit an alias for each public module member
+        if (isLocal && i.names.length == 0)
+        {
+            assert(i.mod.symtab);
+
+            // Sort alphabetically s.t. slight changes in semantic don't cause
+            // massive changes in the order of declarations
+            AST.Dsymbols entries;
+            entries.reserve(i.mod.symtab.length);
+
+            foreach (entry; i.mod.symtab.tab.asRange)
+            {
+                // Skip anonymous / invisible members
+                import dmd.access : symbolIsVisible;
+                if (!entry.key.isAnonymous() && symbolIsVisible(i, entry.value))
+                    entries.push(entry.value);
+            }
+
+            // Seperate function because of a spurious dual-context deprecation
+            static int compare(const AST.Dsymbol* a, const AST.Dsymbol* b)
+            {
+                return strcmp(a.ident.toChars(), b.ident.toChars());
+            }
+            entries.sort!compare();
+
+            foreach (sym; entries)
+            {
+                includeSymbol(sym);
+                if (auto err = writeImport(sym, sym.ident))
+                    ignored("public import for `%s` because `using` %s", sym.ident.toChars(), err);
+            }
+            return;
+        }
+
+        // Include all public imports and emit using declarations for each alias
+        foreach (const idx, name; i.names)
+        {
+            // Search the imported symbol
+            auto sym = i.mod.search(Loc.initial, name);
+            assert(sym); // Missing imports should error during semantic
+
+            includeSymbol(sym);
+
+            // Detect the assigned name for renamed import
+            auto alias_ = i.aliases[idx];
+            if (!alias_)
+                continue;
+
+            if (auto err = writeImport(sym, alias_))
+                ignored("renamed import `%s = %s` because `using` %s", alias_.toChars(), name.toChars(), err);
         }
     }
 
     override void visit(AST.AttribDeclaration pd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.AttribDeclaration enter] %s\n", pd.toChars());
-            scope(exit) printf("[AST.AttribDeclaration exit] %s\n", pd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!pd);
+
         Dsymbols* decl = pd.include(null);
         if (!decl)
             return;
@@ -558,11 +657,8 @@ public:
 
     override void visit(AST.StorageClassDeclaration scd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.StorageClassDeclaration enter] %s\n", scd.toChars());
-            scope(exit) printf("[AST.StorageClassDeclaration exit] %s\n", scd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!scd);
+
         const stcStash = this.storageClass;
         this.storageClass |= scd.stc;
         visit(cast(AST.AttribDeclaration) scd);
@@ -571,11 +667,8 @@ public:
 
     override void visit(AST.LinkDeclaration ld)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.LinkDeclaration enter] %s\n", ld.toChars());
-            scope(exit) printf("[AST.LinkDeclaration exit] %s\n", ld.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ld);
+
         auto save = linkage;
         linkage = ld.linkage;
         visit(cast(AST.AttribDeclaration)ld);
@@ -584,6 +677,8 @@ public:
 
     override void visit(AST.CPPMangleDeclaration md)
     {
+        debug (Debug_DtoH) mixin(traceVisit!md);
+
         const oldLinkage = this.linkage;
         this.linkage = LINK.cpp;
         visit(cast(AST.AttribDeclaration) md);
@@ -592,11 +687,8 @@ public:
 
     override void visit(AST.Module m)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Module enter] %s\n", m.toChars());
-            scope(exit) printf("[AST.Module exit] %s\n", m.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!m);
+
         foreach (s; *m.members)
         {
             if (s.visible().kind < AST.Visibility.Kind.public_)
@@ -607,11 +699,8 @@ public:
 
     override void visit(AST.FuncDeclaration fd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.FuncDeclaration enter] %s\n", fd.toChars());
-            scope(exit) printf("[AST.FuncDeclaration exit] %s\n", fd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!fd);
+
         if (cast(void*)fd in visited)
             return;
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
@@ -622,20 +711,7 @@ public:
         if ((tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))
         {
             ignored("function %s because of linkage", fd.toPrettyChars());
-
-            // Virtual extern(D) functions require a dummy declaration to ensure proper
-            // vtable layout - but omit redundant declarations - the slot was already
-            // reserved  in the base class
-            if (fd.isVirtual() && fd.introducing)
-            {
-                // Hide placeholders because they are not ABI compatible
-                writeProtection(AST.Visibility.Kind.private_);
-
-                __gshared int counter; // Ensure unique names in all cases
-                buf.printf("virtual void __vtable_slot_%u();", counter++);
-                buf.writenl();
-            }
-            return;
+            return checkVirtualFunction(fd);
         }
         if (!adparent && !fd.fbody)
         {
@@ -646,6 +722,20 @@ public:
         {
             ignored("function %s because it is private", fd.toPrettyChars());
             return;
+        }
+        if (tf && !isSupportedType(tf.next))
+        {
+            ignored("function %s because its return type cannot be mapped to C++", fd.toPrettyChars());
+            return checkVirtualFunction(fd);
+        }
+        if (tf) foreach (i, fparam; tf.parameterList)
+        {
+            if (!isSupportedType(fparam.type))
+            {
+                ignored("function %s because one of its parameters has type `%s` which cannot be mapped to C++",
+                        fd.toPrettyChars(), fparam.type.toChars());
+                return checkVirtualFunction(fd);
+            }
         }
 
         writeProtection(fd.visibility.kind);
@@ -664,6 +754,7 @@ public:
             (tdparent && adparent.isClassDeclaration() && !(this.storageClass & AST.STC.final_ || fd.isFinal))))
                 buf.writestring("virtual ");
 
+        debug (Debug_DtoH_Checks)
         if (adparent && !tdparent)
         {
             auto s = adparent.search(Loc.initial, fd.ident);
@@ -715,32 +806,41 @@ public:
 
     }
 
+    /// Checks whether `fd` is a virtual function and emits a dummy declaration
+    /// if required to ensure proper vtable layout
+    private void checkVirtualFunction(AST.FuncDeclaration fd)
+    {
+        // Omit redundant declarations - the slot was already
+        // reserved in the base class
+        if (fd.isVirtual() && fd.introducing)
+        {
+            // Hide placeholders because they are not ABI compatible
+            writeProtection(AST.Visibility.Kind.private_);
+
+            __gshared int counter; // Ensure unique names in all cases
+            buf.printf("virtual void __vtable_slot_%u();", counter++);
+            buf.writenl();
+        }
+    }
+
     override void visit(AST.UnitTestDeclaration utd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.UnitTestDeclaration enter] %s\n", utd.toChars());
-            scope(exit) printf("[AST.UnitTestDeclaration exit] %s\n", utd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!utd);
     }
 
     override void visit(AST.VarDeclaration vd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.VarDeclaration enter] %s\n", vd.toChars());
-            scope(exit) printf("[AST.VarDeclaration exit] %s\n", vd.toChars());
-        }
-        if (cast(void*)vd in visited)
+        debug (Debug_DtoH) mixin(traceVisit!vd);
+
+        if (!shouldEmitAndMarkVisited(vd))
             return;
-        visited[cast(void*)vd] = true;
 
         // Tuple field are expanded into multiple VarDeclarations
         // (we'll visit them later)
         if (vd.type && vd.type.isTypeTuple())
             return;
 
-        if (vd.type == AST.Type.tsize_t)
+        if (vd.originalType && vd.type == AST.Type.tsize_t)
             origType = &vd.originalType;
         scope(exit) origType = null;
 
@@ -750,15 +850,34 @@ public:
             buf.writenl();
         }
 
-        if (vd.storage_class & AST.STC.manifest &&
-            vd._init && vd._init.isExpInitializer() && vd.type !is null)
+        // Determine the variable type which might be missing inside of
+        // template declarations. Infer the type from the initializer then
+        AST.Type type = vd.type;
+        if (!type)
         {
-            if (linkage != LINK.c && linkage != LINK.cpp)
+            assert(tdparent);
+
+            // Just a precaution, implicit type without initializer should be rejected
+            if (!vd._init)
+                return;
+
+            if (auto ei = vd._init.isExpInitializer())
+                type = ei.exp.type;
+
+            // Can happen if the expression needs further semantic
+            if (!type)
             {
-                ignored("variable %s because of linkage", vd.toPrettyChars());
+                ignored("%s because the type could not be determined", vd.toPrettyChars());
                 return;
             }
-            AST.Type type = vd.type;
+
+            // Apply const/immutable to the inferred type
+            if (vd.storage_class & (AST.STC.const_ | AST.STC.immutable_))
+                type = type.constOf();
+        }
+
+        if (vd.storage_class & AST.STC.manifest)
+        {
             EnumKind kind = getEnumKind(type);
 
             if (vd.visibility.kind == AST.Visibility.Kind.none || vd.visibility.kind == AST.Visibility.Kind.private_) {
@@ -805,23 +924,10 @@ public:
             return;
         }
 
-        if (tdparent && vd.type && !vd.type.deco)
-        {
-            if (linkage != LINK.c && linkage != LINK.cpp)
-            {
-                ignored("variable %s because of linkage", vd.toPrettyChars());
-                return;
-            }
-            writeProtection(vd.visibility.kind);
-            typeToBuffer(vd.type, vd, adparent && !(vd.storage_class & (AST.STC.static_ | AST.STC.gshared)));
-            buf.writestringln(";");
-            return;
-        }
-
         if (vd.storage_class & (AST.STC.static_ | AST.STC.extern_ | AST.STC.tls | AST.STC.gshared) ||
         vd.parent && vd.parent.isModule())
         {
-            if (vd.linkage != LINK.c && vd.linkage != LINK.cpp)
+            if (vd.linkage != LINK.c && vd.linkage != LINK.cpp && !(tdparent && (this.linkage == LINK.c || this.linkage == LINK.cpp)))
             {
                 ignored("variable %s because of linkage", vd.toPrettyChars());
                 return;
@@ -831,6 +937,16 @@ public:
                 ignored("variable %s because of thread-local storage", vd.toPrettyChars());
                 return;
             }
+            if (!isSupportedType(type))
+            {
+                ignored("variable %s because its type cannot be mapped to C++", vd.toPrettyChars());
+                return;
+            }
+            if (auto kc = keywordClass(vd.ident))
+            {
+                ignored("variable %s because its name is a %s", vd.toPrettyChars(), kc);
+                return;
+            }
             writeProtection(vd.visibility.kind);
             if (vd.linkage == LINK.c)
                 buf.writestring("extern \"C\" ");
@@ -838,28 +954,28 @@ public:
                 buf.writestring("extern ");
             if (adparent)
                 buf.writestring("static ");
-            typeToBuffer(vd.type, vd);
+            typeToBuffer(type, vd);
             writeDeclEnd();
             return;
         }
 
-        if (adparent && vd.type && vd.type.deco)
+        if (adparent)
         {
             writeProtection(vd.visibility.kind);
-            typeToBuffer(vd.type, vd, true);
+            typeToBuffer(type, vd, true);
             buf.writestringln(";");
 
-            if (auto t = vd.type.isTypeStruct())
-                includeSymbol(t.sym);
-
-            checkbuf.level++;
-            const pn = adparent.ident.toChars();
-            const vn = vd.ident.toChars();
-            const vo = vd.offset;
-            checkbuf.printf("assert(offsetof(%s, %s) == %d);",
-                                             pn, vn,    vo);
-            checkbuf.writenl();
-            checkbuf.level--;
+            debug (Debug_DtoH_Checks)
+            {
+                checkbuf.level++;
+                const pn = adparent.ident.toChars();
+                const vn = vd.ident.toChars();
+                const vo = vd.offset;
+                checkbuf.printf("assert(offsetof(%s, %s) == %d);",
+                                                pn, vn,    vo);
+                checkbuf.writenl();
+                checkbuf.level--;
+            }
             return;
         }
 
@@ -868,32 +984,28 @@ public:
 
     override void visit(AST.TypeInfoDeclaration tid)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeInfoDeclaration enter] %s\n", tid.toChars());
-            scope(exit) printf("[AST.TypeInfoDeclaration exit] %s\n", tid.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!tid);
     }
 
     override void visit(AST.AliasDeclaration ad)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.AliasDeclaration enter] %s\n", ad.toChars());
-            scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ad);
+
+        if (!shouldEmitAndMarkVisited(ad))
+            return;
+
         writeProtection(ad.visibility.kind);
 
         if (auto t = ad.type)
         {
-            if (t.ty == AST.Tdelegate)
+            if (t.ty == AST.Tdelegate || t.ty == AST.Tident)
             {
                 visit(cast(AST.Dsymbol)ad);
                 return;
             }
 
             // for function pointers we need to original type
-            if (ad.type.ty == AST.Tpointer &&
+            if (ad.originalType && ad.type.ty == AST.Tpointer &&
                 (cast(AST.TypePointer)t).nextOf.ty == AST.Tfunction)
             {
                 origType = &ad.originalType;
@@ -934,7 +1046,9 @@ public:
             printTemplateParams(td);
             buf.writestring("using ");
             writeIdentifier(ad);
-            buf.printf(" = %s<", td.ident.toChars());
+            buf.writestring(" = ");
+            writeFullName(td);
+            buf.writeByte('<');
 
             foreach (const idx, const p; *td.parameters)
             {
@@ -946,9 +1060,49 @@ public:
             return;
         }
 
-        if (ad.aliassym.isDtorDeclaration())
+        auto fd = ad.aliassym.isFuncDeclaration();
+
+        if (fd && (fd.generated || fd.isDtorDeclaration()))
         {
             // Ignore. It's taken care of while visiting FuncDeclaration
+            return;
+        }
+
+        // Recognize member function aliases, e.g. alias visit = Parent.visit;
+        if (adparent && fd)
+        {
+            auto pd = fd.isMember();
+            if (!pd)
+            {
+                ignored("%s because free functions cannot be aliased in C++", ad.toPrettyChars());
+            }
+            else if (global.params.cplusplus < CppStdRevision.cpp11)
+            {
+                ignored("%s because `using` declarations require C++ 11", ad.toPrettyChars());
+            }
+            else if (ad.ident != fd.ident)
+            {
+                ignored("%s because `using` cannot rename functions in aggregates", ad.toPrettyChars());
+            }
+            else if (fd.toAliasFunc().parent.isTemplateMixin())
+            {
+                // Member's of template mixins are directly emitted into the aggregate
+            }
+            else
+            {
+                buf.writestring("using ");
+
+                // Print prefix of the base class if this function originates from a superclass
+                // because alias might be resolved through multiple classes, e.g.
+                // e.g. for alias visit = typeof(super).visit in the visitors
+                if (!fd.introducing)
+                    printPrefix(ad.toParent().isClassDeclaration().baseClass);
+                else
+                    printPrefix(pd);
+
+                buf.writestring(fd.ident.toChars());
+                buf.writestringln(";");
+            }
             return;
         }
 
@@ -957,15 +1111,18 @@ public:
 
     override void visit(AST.Nspace ns)
     {
+        debug (Debug_DtoH) mixin(traceVisit!ns);
         handleNspace(ns, ns.members);
     }
 
     override void visit(AST.CPPNamespaceDeclaration ns)
     {
+        debug (Debug_DtoH) mixin(traceVisit!ns);
         handleNspace(ns, ns.decl);
     }
 
-    void handleNspace(AST.Dsymbol namespace, Dsymbols* members)
+    /// Writes the namespace declaration and visits all members
+    private void handleNspace(AST.Dsymbol namespace, Dsymbols* members)
     {
         buf.writestring("namespace ");
         writeIdentifier(namespace);
@@ -984,11 +1141,11 @@ public:
 
     override void visit(AST.AnonDeclaration ad)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.AnonDeclaration enter] %s\n", ad.toChars());
-            scope(exit) printf("[AST.AnonDeclaration exit] %s\n", ad.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ad);
+
+        const anonStash = inAnonymousDecl;
+        inAnonymousDecl = true;
+        scope (exit) inAnonymousDecl = anonStash;
 
         buf.writestringln(ad.isunion ? "union" : "struct");
         buf.writestringln("{");
@@ -1016,24 +1173,10 @@ public:
 
     override void visit(AST.StructDeclaration sd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.StructDeclaration enter] %s\n", sd.toChars());
-            scope(exit) printf("[AST.StructDeclaration exit] %s\n", sd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!sd);
 
-        if (isSkippableTemplateInstance(sd))
+        if (!shouldEmitAndMarkVisited(sd))
             return;
-
-        if (cast(void*)sd in visited)
-            return;
-
-        visited[cast(void*)sd] = true;
-        if (linkage != LINK.c && linkage != LINK.cpp)
-        {
-            ignored("non-cpp struct %s because of linkage", sd.toChars());
-            return;
-        }
 
         const ignoredStash = this.ignoredCounter;
         scope (exit) this.ignoredCounter = ignoredStash;
@@ -1055,6 +1198,10 @@ public:
             buf.writenl();
             return;
         }
+
+        // D structs are always final
+        if (!sd.isUnionDeclaration())
+            buf.writestring(" final");
 
         buf.writenl();
         buf.writestring("{");
@@ -1141,10 +1288,7 @@ public:
                         if (!first)
                         {
                             buf.writestring(" = ");
-                            if (vd._init && !vd._init.isVoidInitializer())
-                                printExpressionFor(vd.type, AST.initializerToExpression(vd._init));
-                            else
-                                printExpressionFor(vd.type, vd.type.defaultInitLiteral(Loc.initial));
+                            printExpressionFor(vd.type, findDefaultInitializer(vd));
                         }
                         first = false;
                     }
@@ -1188,6 +1332,7 @@ public:
         // Workaround because size triggers a forward-reference error
         // for struct templates (the size is undetermined even if the
         // size doesn't depend on the parameters)
+        debug (Debug_DtoH_Checks)
         if (!tdparent)
         {
             checkbuf.level++;
@@ -1199,6 +1344,8 @@ public:
         }
     }
 
+    /// Starts a custom alignment section using `#pragma pack` if
+    /// `alignment` specifies a custom alignment
     private void pushAlignToBuffer(uint alignment)
     {
         // DMD ensures alignment is a power of two
@@ -1216,6 +1363,8 @@ public:
         buf.writenl();
     }
 
+    /// Ends a custom alignment section using `#pragma pack` if
+    /// `alignment` specifies a custom alignment
     private void popAlignToBuffer(uint alignment)
     {
         if (alignment == STRUCTALIGN_DEFAULT || (tdparent && alignment == 0))
@@ -1224,42 +1373,15 @@ public:
         buf.writestringln("#pragma pack(pop)");
     }
 
-    private void includeSymbol(AST.Dsymbol ds)
-    {
-        debug (Debug_DtoH)
-        {
-            printf("[includeSymbol(AST.Dsymbol) enter] %s\n", ds.toChars());
-            scope(exit) printf("[includeSymbol(AST.Dsymbol) exit] %s\n", ds.toChars());
-        }
-        if (cast(void*) ds in visited)
-            return;
-
-        OutBuffer decl;
-        decl.doindent = true;
-        decl.spaces = true;
-        visitAsRoot(ds, &decl);
-        donebuf.writestring(decl.peekChars());
-    }
-
     override void visit(AST.ClassDeclaration cd)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.ClassDeclaration enter] %s\n", cd.toChars());
-            scope(exit) printf("[AST.ClassDeclaration exit] %s\n", cd.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!cd);
 
-        if (isSkippableTemplateInstance(cd))
-            return;
+        if (cd.baseClass && shouldEmit(cd))
+            includeSymbol(cd.baseClass);
 
-        if (cast(void*)cd in visited)
+        if (!shouldEmitAndMarkVisited(cd))
             return;
-        visited[cast(void*)cd] = true;
-        if (!cd.isCPPclass() && !(tdparent && linkage == LINK.cpp)) // FIXME: ClassKind not set for templated classes?
-        {
-            ignored("non-cpp class %s", cd.toChars());
-            return;
-        }
 
         writeProtection(cd.visibility.kind);
 
@@ -1282,16 +1404,9 @@ public:
             {
                 base.type.accept(this);
             }
-            // base.type references onemember for template instances
-            // and hence skips the TypeInstance...
-            else if (auto ti = base.sym.isInstantiated())
-            {
-                visitTi(ti);
-            }
             else
             {
-                buf.writestring(base.sym.toChars());
-                includeSymbol(base.sym);
+                writeFullName(base.sym);
             }
         }
 
@@ -1326,21 +1441,10 @@ public:
 
     override void visit(AST.EnumDeclaration ed)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.EnumDeclaration enter] %s\n", ed.toChars());
-            scope(exit) printf("[AST.EnumDeclaration exit] %s\n", ed.toChars());
-        }
-        if (cast(void*)ed in visited)
+        debug (Debug_DtoH) mixin(traceVisit!ed);
+
+        if (!shouldEmitAndMarkVisited(ed))
             return;
-
-        visited[cast(void*)ed] = true;
-
-        //if (linkage != LINK.c && linkage != LINK.cpp)
-        //{
-            //ignored("non-cpp enum %s because of linkage\n", ed.toChars());
-            //return;
-        //}
 
         if (ed.isSpecial())
         {
@@ -1510,6 +1614,16 @@ public:
 
     override void visit(AST.EnumMember em)
     {
+        assert(em.ed);
+
+        // Members of anonymous members are reachable without referencing the
+        // EnumDeclaration, e.g. public import foo : someEnumMember;
+        if (em.ed.isAnonymous())
+        {
+            visit(em.ed);
+            return;
+        }
+
         assert(false, "This node type should be handled in the EnumDeclaration");
     }
 
@@ -1531,39 +1645,93 @@ public:
         }
 
         this.ident = s.ident;
-        origType ? origType.accept(this) : t.accept(this);
+        auto type = origType ? *origType : t;
+        AST.Dsymbol customLength;
+
+        // Check for quirks that are usually resolved during semantic
+        if (tdparent)
+        {
+            // Declarations within template declarations might use TypeAArray
+            // instead of TypeSArray when the length is not an IntegerExp,
+            // e.g. int[SOME_CONSTANT]
+            if (auto taa = type.isTypeAArray())
+            {
+                // Try to resolve the symbol from the key if it's not an actual type
+                Identifier id;
+                if (auto ti = taa.index.isTypeIdentifier())
+                    id = ti.ident;
+
+                if (id)
+                {
+                    auto sym = findSymbol(id, adparent ? adparent : tdparent);
+                    if (!sym)
+                    {
+                        // Couldn't resolve, assume actual AA
+                    }
+                    else if (AST.isType(sym))
+                    {
+                        // a real associative array, forward to visit
+                    }
+                    else if (auto vd = sym.isVarDeclaration())
+                    {
+                        // Actually a static array with length symbol
+                        customLength = sym;
+                        type = taa.next; // visit the element type, length is written below
+                    }
+                    else
+                    {
+                        printf("Resolved unexpected symbol while determining static array length: %s\n", sym.toChars());
+                        fflush(stdout);
+                        fatal();
+                    }
+                }
+            }
+        }
+        type.accept(this);
         if (this.ident)
         {
             buf.writeByte(' ');
             writeIdentifier(s, canFixup);
         }
         this.ident = null;
-        if (auto tsa = t.isTypeSArray())
+
+        // Size is either taken from the type or resolved above
+        auto tsa = t.isTypeSArray();
+        if (tsa || customLength)
         {
             buf.writeByte('[');
-            tsa.dim.accept(this);
+            if (tsa)
+                tsa.dim.accept(this);
+            else
+                writeFullName(customLength);
             buf.writeByte(']');
         }
+        else if (t.isTypeNoreturn())
+            buf.writestring("[0]");
     }
 
     override void visit(AST.Type t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Type enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.Type exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
         printf("Invalid type: %s\n", t.toPrettyChars());
         assert(0);
     }
 
+    override void visit(AST.TypeNoreturn t)
+    {
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
+        buf.writestring("/* noreturn */ char");
+    }
+
     override void visit(AST.TypeIdentifier t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeIdentifier enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeIdentifier exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
+        // Try to resolve the referenced symbol
+        if (auto sym = findSymbol(t.ident))
+            ensureDeclared(outermostSymbol(sym));
+
         if (t.idents.length)
             buf.writestring("typename ");
 
@@ -1586,11 +1754,8 @@ public:
 
     override void visit(AST.TypeNull t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeNull enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeNull exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         if (global.params.cplusplus >= CppStdRevision.cpp11)
             buf.writestring("nullptr_t");
         else
@@ -1600,11 +1765,8 @@ public:
 
     override void visit(AST.TypeTypeof t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeInstance enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeInstance exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         assert(t.exp);
 
         if (t.exp.type)
@@ -1629,11 +1791,8 @@ public:
 
     override void visit(AST.TypeBasic t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeBasic enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeBasic exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         string typeName;
@@ -1658,6 +1817,20 @@ public:
                 typeName = "_d_real";
                 hasReal = true;
                 break;
+            case AST.Tcomplex32:  typeName = "_Complex float";  break;
+            case AST.Tcomplex64:  typeName = "_Complex double"; break;
+            case AST.Tcomplex80:
+                typeName = "_Complex _d_real";
+                hasReal = true;
+                break;
+            // ???: This is not strictly correct, but it should be ignored
+            // in all places where it matters most (variables, functions, ...).
+            case AST.Timaginary32: typeName = "float";  break;
+            case AST.Timaginary64: typeName = "double"; break;
+            case AST.Timaginary80:
+                typeName = "_d_real";
+                hasReal = true;
+                break;
             default:
                 //t.print();
                 assert(0);
@@ -1667,17 +1840,20 @@ public:
 
     override void visit(AST.TypePointer t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypePointer enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypePointer exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         auto ts = t.next.isTypeStruct();
         if (ts && !strcmp(ts.sym.ident.toChars(), "__va_list_tag"))
         {
             buf.writestring("va_list");
             return;
         }
+
+        // Pointer targets can be forward referenced
+        const fwdSave = forwarding;
+        forwarding = true;
+        scope (exit) forwarding = fwdSave;
+
         t.next.accept(this);
         if (t.next.ty != AST.Tfunction)
             buf.writeByte('*');
@@ -1687,31 +1863,20 @@ public:
 
     override void visit(AST.TypeSArray t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeSArray enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeSArray exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
         t.next.accept(this);
     }
 
     override void visit(AST.TypeAArray t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeAArray enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeAArray exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
         AST.Type.tvoidptr.accept(this);
     }
 
     override void visit(AST.TypeFunction tf)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeFunction enter] %s\n", tf.toChars());
-            scope(exit) printf("[AST.TypeFunction exit] %s\n", tf.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!tf);
+
         tf.next.accept(this);
         buf.writeByte('(');
         buf.writeByte('*');
@@ -1735,13 +1900,12 @@ public:
         buf.writeByte(')');
     }
 
+    ///  Writes the type that represents `ed` into `buf`.
+    /// (Might not be `ed` for special enums or enums that were emitted as namespaces)
     private void enumToBuffer(AST.EnumDeclaration ed)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[enumToBuffer(AST.EnumDeclaration) enter] %s\n", ed.toChars());
-            scope(exit) printf("[enumToBuffer(AST.EnumDeclaration) exit] %s\n", ed.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ed);
+
         if (ed.isSpecial())
         {
             if (ed.ident == DMDType.c_long)
@@ -1774,7 +1938,9 @@ public:
 
         // Check if the enum was emitted as a real enum
         if (kind == EnumKind.Int || kind == EnumKind.Numeric)
-            buf.writestring(ed.toChars());
+        {
+            writeFullName(ed);
+        }
         else
         {
             // Use the base type if the enum was emitted as a namespace
@@ -1785,17 +1951,8 @@ public:
 
     override void visit(AST.TypeEnum t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeEnum enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeEnum exit] %s\n", t.toChars());
-        }
-        if (cast(void*)t.sym !in forwarded)
-        {
-            forwarded[cast(void*)t.sym] = true;
-            //printf("Visiting enum %s from module %s %s\n", t.sym.toPrettyChars(), t.toChars(), t.sym.loc.toChars());
-            visitAsRoot(t.sym, fwdbuf);
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         enumToBuffer(t.sym);
@@ -1803,36 +1960,17 @@ public:
 
     override void visit(AST.TypeStruct t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeStruct enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeStruct exit] %s\n", t.toChars());
-        }
-        if (cast(void*)t.sym !in forwarded && !t.sym.parent.isTemplateInstance())
-        {
-            forwarded[cast(void*)t.sym] = true;
-            fwdbuf.writestring(t.sym.isUnionDeclaration() ? "union " : "struct ");
-            fwdbuf.writestring(t.sym.toChars());
-            fwdbuf.writestringln(";");
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
 
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
-        if (auto ti = t.sym.parent.isTemplateInstance())
-        {
-            visitTi(ti);
-            return;
-        }
-        buf.writestring(t.sym.toChars());
+        writeFullName(t.sym);
     }
 
     override void visit(AST.TypeDArray t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeDArray enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeDArray exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
         buf.writestring("_d_dynamicArray< ");
@@ -1842,22 +1980,16 @@ public:
 
     override void visit(AST.TypeInstance t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeInstance enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeInstance exit] %s\n", t.toChars());
-        }
         visitTi(t.tempinst);
     }
 
     private void visitTi(AST.TemplateInstance ti)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[visitTi(AST.TemplateInstance) enter] %s\n", ti.toChars());
-            scope(exit) printf("[visitTi(AST.TemplateInstance) exit] %s\n", ti.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!ti);
 
+        // Ensure that the TD appears before the instance
+        if (auto td = findTemplateDeclaration(ti))
+            ensureDeclared(td);
 
         foreach (o; *ti.tiargs)
         {
@@ -1886,14 +2018,10 @@ public:
 
     override void visit(AST.TemplateDeclaration td)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TemplateDeclaration enter] %s\n", td.toChars());
-            scope(exit) printf("[AST.TemplateDeclaration exit] %s\n", td.toChars());
-        }
-        if (cast(void*)td in visited)
+        debug (Debug_DtoH) mixin(traceVisit!td);
+
+        if (!shouldEmitAndMarkVisited(td))
             return;
-        visited[cast(void*)td] = true;
 
         if (!td.parameters || !td.onemember || (!td.onemember.isStructDeclaration && !td.onemember.isClassDeclaration && !td.onemember.isFuncDeclaration))
         {
@@ -1911,12 +2039,6 @@ public:
             }
         }
 
-        if (linkage != LINK.c && linkage != LINK.cpp)
-        {
-            ignored("template %s because of linkage", td.toPrettyChars());
-            return;
-        }
-
         auto save = tdparent;
         tdparent = td;
         const bookmark = buf.length;
@@ -1932,6 +2054,7 @@ public:
         tdparent = save;
     }
 
+    /// Writes the template<...> header for the supplied template declaration
     private void printTemplateParams(const AST.TemplateDeclaration td)
     {
         buf.writestring("template <");
@@ -1948,24 +2071,100 @@ public:
         buf.writestringln(">");
     }
 
+    /// Emit declarations of the TemplateMixin in the current scope
+    override void visit(AST.TemplateMixin tm)
+    {
+        debug (Debug_DtoH) mixin(traceVisit!tm);
+
+        auto members = tm.members;
+
+        // members are missing for instances inside of TemplateDeclarations, e.g.
+        // template Foo(T) { mixin Bar!T; }
+        if (!members)
+        {
+            if (auto td = findTemplateDeclaration(tm))
+                members = td.members; // Emit members of the template
+            else
+                return; // Cannot emit mixin
+        }
+
+        foreach (s; *members)
+        {
+            // kind is undefined without semantic
+            const kind = s.visible().kind;
+            if (kind == AST.Visibility.Kind.public_ || kind == AST.Visibility.Kind.undefined)
+                s.accept(this);
+        }
+    }
+
+    /**
+     * Finds a symbol with the identifier `name` by iterating the linked list of parent
+     * symbols, starting from `context`.
+     *
+     * Returns: the symbol or `null` if missing
+     */
+    private AST.Dsymbol findSymbol(Identifier name, AST.Dsymbol context)
+    {
+        // Follow the declaration context
+        for (auto par = context; par; par = par.toParentDecl())
+        {
+            // Check that `name` doesn't refer to a template parameter
+            if (auto td = par.isTemplateDeclaration())
+            {
+                foreach (const p; *td.parameters)
+                {
+                    if (p.ident == name)
+                        return null;
+                }
+            }
+
+            if (auto mem = findMember(par, name))
+            {
+                return mem;
+            }
+        }
+        return null;
+    }
+
+    /// ditto
+    private AST.Dsymbol findSymbol(Identifier name)
+    {
+        AST.Dsymbol sym;
+        if (adparent)
+            sym = findSymbol(name, adparent);
+
+        if (!sym && tdparent)
+            sym = findSymbol(name, tdparent);
+
+        return sym;
+    }
+
+    /// Finds the template declaration for instance `ti`
+    private AST.TemplateDeclaration findTemplateDeclaration(AST.TemplateInstance ti)
+    {
+        if (ti.tempdecl)
+            return ti.tempdecl.isTemplateDeclaration();
+
+        assert(tdparent); // Only missing inside of templates
+
+        // Search for the TemplateDeclaration, starting from the enclosing scope
+        // if known or the enclosing template.
+        auto sym = findSymbol(ti.name, ti.parent ? ti.parent : tdparent);
+        return sym ? sym.isTemplateDeclaration() : null;
+    }
+
     override void visit(AST.TypeClass t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.TypeClass enter] %s\n", t.toChars());
-            scope(exit) printf("[AST.TypeClass exit] %s\n", t.toChars());
-        }
-        if (cast(void*)t.sym !in forwarded)
-        {
-            forwarded[cast(void*)t.sym] = true;
-            fwdbuf.writestring("class ");
-            fwdbuf.writestring(t.sym.toChars());
-            fwdbuf.writestringln(";");
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
+        // Classes are emitted as pointer and hence can be forwarded
+        const fwdSave = forwarding;
+        forwarding = true;
+        scope (exit) forwarding = fwdSave;
 
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
-        buf.writestring(t.sym.toChars());
+        writeFullName(t.sym);
         buf.writeByte('*');
         if (t.isConst() || t.isImmutable())
             buf.writestring(" const");
@@ -2036,13 +2235,18 @@ public:
 
     override void visit(AST.Parameter p)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Parameter enter] %s\n", p.toChars());
-            scope(exit) printf("[AST.Parameter exit] %s\n", p.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!p);
+
         ident = p.ident;
-        p.type.accept(this);
+
+        {
+            // Reference parameters can be forwarded
+            const fwdStash = this.forwarding;
+            this.forwarding = !!(p.storageClass & AST.STC.ref_);
+            p.type.accept(this);
+            this.forwarding = fwdStash;
+        }
+
         if (p.storageClass & AST.STC.ref_)
             buf.writeByte('&');
         buf.writeByte(' ');
@@ -2145,6 +2349,20 @@ public:
                 return;
             }
         }
+        else if (auto ce = exp.isCastExp())
+        {
+            buf.writeByte('(');
+            if (ce.to)
+                ce.to.accept(this);
+            else if (ce.e1.type)
+                // Try the expression type with modifiers in case of cast(const) in templates
+                ce.e1.type.castMod(ce.mod).accept(this);
+            else
+                // Fallback, not necessarily correct but the best we've got here
+                target.accept(this);
+            buf.writestring(") ");
+            ce.e1.accept(this);
+        }
         else if (needsCast(target, exp))
         {
             buf.writestring("static_cast<");
@@ -2161,59 +2379,78 @@ public:
 
     override void visit(AST.Expression e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.Expression enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.Expression exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
         // Valid in most cases, others should be overriden below
         // to use the appropriate operators  (:: and ->)
         buf.writestring(e.toString());
     }
 
+    override void visit(AST.UnaExp e)
+    {
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
+        buf.writestring(tokToString(e.op));
+        e.e1.accept(this);
+    }
+
+    override void visit(AST.BinExp e)
+    {
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
+        e.e1.accept(this);
+        buf.writeByte(' ');
+        buf.writestring(tokToString(e.op));
+        buf.writeByte(' ');
+        e.e2.accept(this);
+    }
+
+    /// Translates operator `op` into the C++ representation
+    private extern(D) static string tokToString(const TOK op)
+    {
+        switch (op) with (TOK)
+        {
+            case identity:      return "==";
+            case notIdentity:   return "!=";
+            default:
+                return Token.toString(op);
+        }
+    }
+
     override void visit(AST.VarExp e)
     {
-        debug (Debug_DtoH)
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
+        // Local members don't need another prefix and might've been renamed
+        if (e.var.isThis())
         {
-            printf("[AST.VarExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.VarExp exit] %s\n", e.toChars());
+            includeSymbol(e.var);
+            writeIdentifier(e.var, true);
         }
+        else
+            writeFullName(e.var);
+    }
 
-        /// Partially prints the FQN including parent aggregates
-        void printPrefix(AST.Dsymbol var)
-        {
-            if (!var || !var.isAggregateDeclaration())
-                return;
-            printPrefix(var.parent);
-            includeSymbol(var);
+    /// Partially prints the FQN including parent aggregates
+    private void printPrefix(AST.Dsymbol var)
+    {
+        if (!var || var is adparent || var.isModule())
+            return;
 
-            buf.writestring(var.toString());
-            buf.writestring("::");
-        }
-
-        // Static members are not represented as DotVarExp, hence
-        // manually print the full name here
-        if (e.var.storage_class & AST.STC.static_)
-            printPrefix(e.var.parent);
-
-        includeSymbol(e.var);
-        writeIdentifier(e.var, !!e.var.isThis());
+        writeFullName(var);
+        buf.writestring("::");
     }
 
     override void visit(AST.CallExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.CallExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.CallExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         // Dereferencing function pointers requires additional braces: (*f)(args)
         const isFp = e.e1.isPtrExp();
         if (isFp)
             buf.writeByte('(');
         else if (e.f)
-            includeSymbol(e.f);
+            includeSymbol(outermostSymbol(e.f));
 
         e.e1.accept(this);
 
@@ -2232,11 +2469,10 @@ public:
 
     override void visit(AST.DotVarExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.DotVarExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.DotVarExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
+        if (auto sym = symbolFromType(e.e1.type))
+            includeSymbol(outermostSymbol(sym));
 
         // Accessing members through a pointer?
         if (auto pe = e.e1.isPtrExp)
@@ -2258,24 +2494,28 @@ public:
 
     override void visit(AST.DotIdExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.DotIdExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.DotIdExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         e.e1.accept(this);
         buf.writestring("::");
         buf.writestring(e.ident.toChars());
     }
 
+    override void visit(AST.ScopeExp e)
+    {
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
+        // Usually a template instance in a TemplateDeclaration
+        if (auto ti = e.sds.isTemplateInstance())
+            visitTi(ti);
+        else
+            writeFullName(e.sds);
+    }
+
     override void visit(AST.NullExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.NullExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.NullExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
+
         if (global.params.cplusplus >= CppStdRevision.cpp11)
             buf.writestring("nullptr");
         else
@@ -2284,21 +2524,13 @@ public:
 
     override void visit(AST.ArrayLiteralExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.ArrayLiteralExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.ArrayLiteralExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
         buf.writestring("arrayliteral");
     }
 
     override void visit(AST.StringExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.StringExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.StringExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         if (e.sz == 2)
             buf.writeByte('u');
@@ -2335,11 +2567,7 @@ public:
 
     override void visit(AST.RealExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.RealExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.RealExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
 
         import dmd.root.ctfloat : CTFloat;
 
@@ -2366,21 +2594,15 @@ public:
 
     override void visit(AST.IntegerExp e)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.IntegerExp enter] %s\n", e.toChars());
-            scope(exit) printf("[AST.IntegerExp exit] %s\n", e.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!e);
         visitInteger(e.toInteger, e.type);
     }
 
+    /// Writes `v` as type `t` into `buf`
     private void visitInteger(dinteger_t v, AST.Type t)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[visitInteger(AST.Type) enter] %s\n", t.toChars());
-            scope(exit) printf("[visitInteger(AST.Type) exit] %s\n", t.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!t);
+
         switch (t.ty)
         {
             case AST.Tenum:
@@ -2433,20 +2655,38 @@ public:
 
     override void visit(AST.StructLiteralExp sle)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.StructLiteralExp enter] %s\n", sle.toChars());
-            scope(exit) printf("[AST.StructLiteralExp exit] %s\n", sle.toChars());
-        }
+        debug (Debug_DtoH) mixin(traceVisit!sle);
+
+        const isUnion = sle.sd.isUnionDeclaration();
         sle.sd.type.accept(this);
         buf.writeByte('(');
         foreach(i, e; *sle.elements)
         {
             if (i)
                 buf.writestring(", ");
-            printExpressionFor(sle.sd.fields[i].type, e);
+
+            auto vd = sle.sd.fields[i];
+
+            // Expression may be null for unspecified elements
+            if (!e)
+                e = findDefaultInitializer(vd);
+
+            printExpressionFor(vd.type, e);
+
+            // Only emit the initializer of the first union member
+            if (isUnion)
+                break;
         }
         buf.writeByte(')');
+    }
+
+    /// Finds the default initializer for the given VarDeclaration
+    private static AST.Expression findDefaultInitializer(AST.VarDeclaration vd)
+    {
+        if (vd._init && !vd._init.isVoidInitializer())
+            return AST.initializerToExpression(vd._init);
+        else
+            return vd.type.defaultInitLiteral(Loc.initial);
     }
 
     static if (__VERSION__ < 2092)
@@ -2469,7 +2709,8 @@ public:
     }
     else
     {
-        // Writes a formatted message into `buf` if `printIgnored` is true.
+        /// Writes a formatted message into `buf` if `printIgnored` is true
+        /// and increments `ignoredCounter`
         pragma(printf)
         private void ignored(const char* format, ...) nothrow
         {
@@ -2488,10 +2729,497 @@ public:
         }
     }
 
-    /** Checks whether s is a template instance that should not be emitted **/
-    private bool isSkippableTemplateInstance(AST.Dsymbol s)
+    /**
+     * Determines whether `s` should be emitted. This requires that `sym`
+     * - is `extern(C[++]`)
+     * - is not instantiated from a template (visits the `TemplateDeclaration` instead)
+     *
+     * Params:
+     *   sym = the symbol
+     *
+     * Returns: whether `sym` should be emitted
+     */
+    private bool shouldEmit(AST.Dsymbol sym)
     {
-        auto td = s.isInstantiated();
-        return td && td !is tdparent;
+        import dmd.aggregate : ClassKind;
+        debug (Debug_DtoH)
+        {
+            printf("[shouldEmitAndMarkVisited enter] %s\n", sym.toPrettyChars());
+            scope(exit) printf("[shouldEmitAndMarkVisited exit] %s\n", sym.toPrettyChars());
+        }
+
+        // Template *instances* should not be emitted
+        if (sym.isInstantiated())
+            return false;
+
+        // Matching linkage (except extern(C) classes which don't make sense)
+        if (linkage == LINK.cpp || (linkage == LINK.c && !sym.isClassDeclaration()))
+            return true;
+
+        // Check against the internal information which might be missing, e.g. inside of template declarations
+        if (auto dec = sym.isDeclaration())
+            return dec.linkage == LINK.cpp || dec.linkage == LINK.c;
+
+        if (auto ad = sym.isAggregateDeclaration())
+            return ad.classKind == ClassKind.cpp;
+
+        return false;
+    }
+
+    /**
+     * Determines whether `s` should be emitted. This requires that `sym`
+     * - was not visited before
+     * - is `extern(C[++]`)
+     * - is not instantiated from a template (visits the `TemplateDeclaration` instead)
+     * The result is cached in the visited nodes array.
+     *
+     * Params:
+     *   sym = the symbol
+     *
+     * Returns: whether `sym` should be emitted
+     **/
+    private bool shouldEmitAndMarkVisited(AST.Dsymbol sym)
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[shouldEmitAndMarkVisited enter] %s\n", sym.toPrettyChars());
+            scope(exit) printf("[shouldEmitAndMarkVisited exit] %s\n", sym.toPrettyChars());
+        }
+
+        auto statePtr = (cast(void*) sym) in visited;
+
+         // `sym` was already emitted or skipped and isn't required
+        if (statePtr && (*statePtr || !mustEmit))
+            return false;
+
+        // Template *instances* should not be emitted, forward to the declaration
+        if (auto ti = sym.isInstantiated())
+        {
+            auto td = findTemplateDeclaration(ti);
+            assert(td);
+            visit(td);
+            return false;
+        }
+
+        // Required or matching linkage (except extern(C) classes which don't make sense)
+        bool res = mustEmit || linkage == LINK.cpp || (linkage == LINK.c && !sym.isClassDeclaration());
+        if (!res)
+        {
+            // Check against the internal information which might be missing, e.g. inside of template declarations
+            auto dec = sym.isDeclaration();
+            res = dec && (dec.linkage == LINK.cpp || dec.linkage == LINK.c);
+        }
+
+        // Remember result for later calls
+        if (statePtr)
+            *statePtr = res;
+        else
+            visited[(cast(void*) sym)] = res;
+
+        // Print a warning when the symbol is ignored for the first time
+        // Might not be correct if it is required by symbol the is visited
+        // AFTER the current node
+        if (!statePtr && !res)
+            ignored("%s %s because of linkage", sym.kind(), sym.toPrettyChars());
+
+        return res;
+    }
+
+    /**
+     * Ensures that `sym` is declared before the current position in `buf` by
+     * either creating a forward reference in `fwdbuf` if possible or
+     * calling `includeSymbol` to emit the entire declaration into `donebuf`.
+     */
+    private void ensureDeclared(AST.Dsymbol sym)
+    {
+        auto par = sym.toParent2();
+        auto ed = sym.isEnumDeclaration();
+
+        // Eagerly include the symbol if we cannot create a valid forward declaration
+        // Forwarding of scoped enums requires C++11 or above
+        if (!forwarding || (par && !par.isModule()) || (ed && global.params.cplusplus < CppStdRevision.cpp11))
+        {
+            // Emit the entire enclosing declaration if any
+            includeSymbol(outermostSymbol(sym));
+            return;
+        }
+
+        auto ti = sym.isInstantiated();
+        auto td = ti ? findTemplateDeclaration(ti) : null;
+        auto check = cast(void*) (td ? td : sym);
+
+        // Omit redundant fwd-declaration if we already emitted the entire declaration
+        if (visited.get(check, false))
+            return;
+
+        // Already created a fwd-declaration?
+        if (check in forwarded)
+            return;
+        forwarded[check] = true;
+
+        // Print template<...>
+        if (ti)
+        {
+            auto bufSave = buf;
+            buf = fwdbuf;
+            printTemplateParams(td);
+            buf = bufSave;
+        }
+
+        // Determine the kind of symbol that is forwared: struct, ...
+        const(char)* kind;
+
+        if (auto ad = sym.isAggregateDeclaration())
+        {
+            // Look for extern(C++, class) <some aggregate>
+            if (ad.cppmangle == CPPMANGLE.def)
+                kind = ad.kind();
+            else if (ad.cppmangle == CPPMANGLE.asStruct)
+                kind =  "struct";
+            else
+                kind = "class";
+        }
+        else if (ed)
+        {
+            // Only called from enumToBuffer, so should always be emitted as an actual enum
+            kind = "enum class";
+        }
+        else
+            kind = sym.kind(); // Should be unreachable but just to be sure
+
+        fwdbuf.writestring(kind);
+        fwdbuf.writeByte(' ');
+        fwdbuf.writestring(sym.toChars());
+        fwdbuf.writestringln(";");
+    }
+
+    /**
+     * Writes the qualified name of `sym` into `buf` including parent
+     * symbols and template parameters.
+     *
+     * Params:
+     *   sym         = the symbol
+     *   mustInclude = whether sym may not be forward declared
+     */
+    private void writeFullName(AST.Dsymbol sym, const bool mustInclude = false)
+    in
+    {
+        assert(sym);
+        assert(sym.ident, sym.toString());
+        // Should never be called directly with a TI, only onemember
+        assert(!sym.isTemplateInstance(), sym.toString());
+    }
+    do
+    {
+        debug (Debug_DtoH)
+        {
+            printf("[writeFullName enter] %s\n", sym.toPrettyChars());
+            scope(exit) printf("[writeFullName exit] %s\n", sym.toPrettyChars());
+        }
+
+        /// Checks whether `sym` is nested in `par` and hence doesn't need the FQN
+        static bool isNestedIn(AST.Dsymbol sym, AST.Dsymbol par)
+        {
+            while (par)
+            {
+                if (sym is par)
+                    return true;
+                par = par.toParent();
+            }
+            return false;
+        }
+        AST.TemplateInstance ti;
+        bool nested;
+
+        // Check if the `sym` is nested into another symbol and hence requires `Parent::sym`
+        if (auto par = sym.toParent())
+        {
+            // toParent() yields the template instance if `sym` is the onemember of a TI
+            ti = par.isTemplateInstance();
+
+            // Skip the TI because Foo!int.Foo is folded into Foo<int>
+            if (ti) par = ti.toParent();
+
+            // Prefix the name with any enclosing declaration
+            // Stop at either module or enclosing aggregate
+            nested = !par.isModule();
+            if (nested && !isNestedIn(par, adparent))
+            {
+                writeFullName(par, true);
+                buf.writestring("::");
+            }
+        }
+
+        if (!nested)
+        {
+            // Cannot forward the symbol when called recursively
+            // for a nested symbol
+            if (mustInclude)
+                includeSymbol(sym);
+            else
+                ensureDeclared(sym);
+        }
+
+        if (ti)
+            visitTi(ti);
+        else
+            buf.writestring(sym.ident.toString());
+    }
+}
+
+/// Namespace for identifiers used to represent special enums in C++
+struct DMDType
+{
+    __gshared Identifier c_long;
+    __gshared Identifier c_ulong;
+    __gshared Identifier c_longlong;
+    __gshared Identifier c_ulonglong;
+    __gshared Identifier c_long_double;
+    __gshared Identifier c_wchar_t;
+    __gshared Identifier c_complex_float;
+    __gshared Identifier c_complex_double;
+    __gshared Identifier c_complex_real;
+
+    static void _init()
+    {
+        c_long          = Identifier.idPool("__c_long");
+        c_ulong         = Identifier.idPool("__c_ulong");
+        c_longlong      = Identifier.idPool("__c_longlong");
+        c_ulonglong     = Identifier.idPool("__c_ulonglong");
+        c_long_double   = Identifier.idPool("__c_long_double");
+        c_wchar_t       = Identifier.idPool("__c_wchar_t");
+        c_complex_float  = Identifier.idPool("__c_complex_float");
+        c_complex_double = Identifier.idPool("__c_complex_double");
+        c_complex_real = Identifier.idPool("__c_complex_real");
+    }
+}
+
+/// Initializes all data structures used by the header generator
+void initialize()
+{
+    __gshared bool initialized;
+
+    if (!initialized)
+    {
+        initialized = true;
+
+        DMDType._init();
+    }
+}
+
+/// Writes `#if <content>` into the supplied buffer
+void hashIf(ref OutBuffer buf, string content)
+{
+    buf.writestring("#if ");
+    buf.writestringln(content);
+}
+
+/// Writes `#elif <content>` into the supplied buffer
+void hashElIf(ref OutBuffer buf, string content)
+{
+    buf.writestring("#elif ");
+    buf.writestringln(content);
+}
+
+/// Writes `#endif` into the supplied buffer
+void hashEndIf(ref OutBuffer buf)
+{
+    buf.writestringln("#endif");
+}
+
+/// Writes `#define <content>` into the supplied buffer
+void hashDefine(ref OutBuffer buf, string content)
+{
+    buf.writestring("# define ");
+    buf.writestringln(content);
+}
+
+/// Writes `#include <content>` into the supplied buffer
+void hashInclude(ref OutBuffer buf, string content)
+{
+    buf.writestring("#include ");
+    buf.writestringln(content);
+}
+
+/// Determines whether `ident` is a reserved keyword in C++
+/// Returns: the kind of keyword or `null`
+const(char*) keywordClass(const Identifier ident)
+{
+    if (!ident)
+        return null;
+
+    const name = ident.toString();
+    switch (name)
+    {
+        // C++ operators
+        case "and":
+        case "and_eq":
+        case "bitand":
+        case "bitor":
+        case "compl":
+        case "not":
+        case "not_eq":
+        case "or":
+        case "or_eq":
+        case "xor":
+        case "xor_eq":
+            return "special operator in C++";
+
+        // C++ keywords
+        case "_Complex":
+        case "const_cast":
+        case "delete":
+        case "dynamic_cast":
+        case "explicit":
+        case "friend":
+        case "inline":
+        case "mutable":
+        case "namespace":
+        case "operator":
+        case "register":
+        case "reinterpret_cast":
+        case "signed":
+        case "static_cast":
+        case "typedef":
+        case "typename":
+        case "unsigned":
+        case "using":
+        case "virtual":
+        case "volatile":
+            return "keyword in C++";
+
+        // Common macros imported by this header
+        // stddef.h
+        case "offsetof":
+        case "NULL":
+            return "default macro in C++";
+
+        // C++11 keywords
+        case "alignas":
+        case "alignof":
+        case "char16_t":
+        case "char32_t":
+        case "constexpr":
+        case "decltype":
+        case "noexcept":
+        case "nullptr":
+        case "static_assert":
+        case "thread_local":
+        case "wchar_t":
+            if (global.params.cplusplus >= CppStdRevision.cpp11)
+                return "keyword in C++11";
+            return null;
+
+        // C++20 keywords
+        case "char8_t":
+        case "consteval":
+        case "constinit":
+        // Concepts-related keywords
+        case "concept":
+        case "requires":
+        // Coroutines-related keywords
+        case "co_await":
+        case "co_yield":
+        case "co_return":
+            if (global.params.cplusplus >= CppStdRevision.cpp20)
+                return "keyword in C++20";
+            return null;
+
+        default:
+            // Identifiers starting with __ are reserved
+            if (name.length >= 2 && name[0..2] == "__")
+                return "reserved identifier in C++";
+
+            return null;
+    }
+}
+
+/// Finds the outermost symbol if `sym` is nested.
+/// Returns `sym` if it appears at module scope
+ASTCodegen.Dsymbol outermostSymbol(ASTCodegen.Dsymbol sym)
+{
+    assert(sym);
+    while (true)
+    {
+        auto par = sym.toParent();
+        if (!par || par.isModule())
+            return sym;
+        sym = par;
+    }
+}
+
+/// Fetches the symbol for user-defined types from the type `t`
+/// if `t` is either `TypeClass`, `TypeStruct` or `TypeEnum`
+ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t)
+{
+    if (auto tc = t.isTypeClass())
+        return tc.sym;
+    if (auto ts = t.isTypeStruct())
+        return ts.sym;
+    if (auto te = t.isTypeEnum())
+        return te.sym;
+    return null;
+}
+
+/**
+ * Searches `sym` for a member with the given name.
+ *
+ * This method usually delegates to `Dsymbol.search` but might also
+ * manually check the members if the symbol did not receive semantic
+ * analysis.
+ *
+ * Params:
+ *   sym  = symbol to search
+ *   name = identifier of the requested symbol
+ *
+ * Returns: the symbol or `null` if not found
+ */
+ASTCodegen.Dsymbol findMember(ASTCodegen.Dsymbol sym, Identifier name)
+{
+    if (auto mem = sym.search(Loc.initial, name, ASTCodegen.IgnoreErrors))
+        return mem;
+
+    // search doesn't work for declarations inside of uninstantiated
+    // `TemplateDeclaration`s due to the missing symtab.
+    if (sym.semanticRun >= ASTCodegen.PASS.semanticdone)
+        return null;
+
+    // Manually check the members if present
+    auto sds = sym.isScopeDsymbol();
+    if (!sds || !sds.members)
+        return null;
+
+    /// Recursively searches for `name` without entering nested aggregates, ...
+    static ASTCodegen.Dsymbol search(ASTCodegen.Dsymbols* members, Identifier name)
+    {
+        foreach (mem; *members)
+        {
+            if (mem.ident == name)
+                return mem;
+
+            // Look inside of private:, ...
+            if (auto ad = mem.isAttribDeclaration())
+            {
+                if (auto s = search(ad.decl, name))
+                    return s;
+            }
+        }
+        return null;
+    }
+
+    return search(sds.members, name);
+}
+
+debug (Debug_DtoH)
+{
+    /// Generates code to trace the entry and exit of the enclosing `visit` function
+    string traceVisit(alias node)()
+    {
+        const type = typeof(node).stringof;
+        const method = __traits(hasMember, node, "toPrettyChars") ? "toPrettyChars" : "toChars";
+        const arg = __traits(identifier, node) ~ '.' ~ method;
+
+        return `printf("[` ~ type ~  ` enter] %s\n", ` ~ arg ~ `());
+                scope(exit) printf("[` ~ type ~ ` exit] %s\n", ` ~ arg ~ `());`;
     }
 }

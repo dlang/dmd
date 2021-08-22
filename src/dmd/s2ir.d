@@ -22,6 +22,7 @@ import dmd.root.rmem;
 import dmd.root.rootobject;
 
 import dmd.aggregate;
+import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;

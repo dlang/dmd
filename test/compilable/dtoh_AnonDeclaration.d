@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -39,7 +39,7 @@ struct _d_dynamicArray
 };
 #endif
 
-struct S
+struct S final
 {
     union
     {
@@ -52,6 +52,15 @@ struct S
         double z;
         extern "C" void foo();
         void bar();
+    };
+    struct
+    {
+        int32_t outerPrivate;
+    };
+    struct
+    {
+        int32_t innerPrivate;
+        int32_t innerBar;
     };
     S()
     {
@@ -76,6 +85,18 @@ extern (C++) struct S
         double z;
         extern(C) void foo() {}
         extern(C++) void bar() {}
+    }
+
+    // Private not emitted because AnonDeclaration has no protection
+    private struct
+    {
+        int outerPrivate;
+    }
+
+    public struct {
+        // Private cannot be exported to C++
+        private int innerPrivate;
+        int innerBar;
     }
 }
 

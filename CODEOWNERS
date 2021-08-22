@@ -19,10 +19,14 @@ src/dmd/builtin.d @klickvebot @WalterBright
 src/dmd/cond.d @Geod24
 src/dmd/console.d @CyberShadow
 src/dmd/cppmangle.d @ibuclaw @Geod24
+src/dmd/cparse.d @ibuclaw @WalterBright
 src/dmd/ctfeexpr.d @UplinkCoder
 src/dmd/doc.d @andralex @jacob-carlborg
 src/dmd/dscope.d @Geod24
 src/dmd/hdrgen.d @UplinkCoder @WalterBright
+src/dmd/iasm.d @ibuclaw @WalterBright
+src/dmd/iasmdmd.d @WalterBright
+src/dmd/iasmgcc.d @ibuclaw
 src/dmd/mars.d @MartinNowak @Geod24 @rainers @UplinkCoder @WalterBright
 src/dmd/objc* @jacob-carlborg
 src/dmd/permissivevisitor.d @RazvanN7
@@ -31,7 +35,7 @@ src/dmd/transitivevisitor.d @RazvanN7
 src/dmd/vcbuild @rainers
 
 # GitHub's implementation of the CODEOWNERS format is buggy, it doesn't allow src/dmd/*.h
-*.h @ibuclaw @kinke @klickverbot
+*.h @ibuclaw @klickverbot
 
 # CI & automation
 posix.mak @MartinNowak @wilzbach

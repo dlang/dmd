@@ -10,7 +10,7 @@ int delegate() foo()
 {
     // returns "int function() pure nothrow @safe function() pure nothrow @safe"
     // and it mismatches to "int delegate()"
-    return () => {
+    return () => () {
         return 1;
     };
 }

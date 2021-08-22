@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -38,9 +38,6 @@ struct _d_dynamicArray
     }
 };
 #endif
-
-struct Foo;
-struct FooCpp;
 
 enum : int32_t { Anon = 10 };
 
@@ -121,6 +118,18 @@ enum class STC
 
 static STC const STC_D = (STC)3;
 
+struct Foo final
+{
+    int32_t i;
+    Foo() :
+        i()
+    {
+    }
+    Foo(int32_t i) :
+        i(i)
+        {}
+};
+
 namespace MyEnum
 {
     static Foo const A = Foo(42);
@@ -129,7 +138,7 @@ namespace MyEnum
 
 static /* MyEnum */ Foo const test = Foo(42);
 
-struct FooCpp
+struct FooCpp final
 {
     int32_t i;
     FooCpp() :
@@ -149,12 +158,16 @@ namespace MyEnumCpp
 
 static /* MyEnum */ Foo const testCpp = Foo(42);
 
+extern const bool e_b;
+
 enum class opaque;
 enum class typedOpaque : int64_t;
 ---
 +/
 
-extern(C++) enum Anon = 10;
+extern(C++):
+
+enum Anon = 10;
 extern(C++) enum Anon2 = true;
 extern(C++) enum Anon3 = "wow";
 
@@ -248,7 +261,7 @@ extern(C++) enum c = [2: 3];
 extern(C) void foo();
 extern(C++) enum d = &foo;
 
-immutable bool e_b;
+__gshared immutable bool e_b;
 extern(C++) enum e = &e_b;
 
 enum opaque;

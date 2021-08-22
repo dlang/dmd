@@ -20,6 +20,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.apply;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.declaration;
 import dmd.dmodule;
@@ -2058,7 +2059,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
              * any calls to the fp or dg can be inlined.
              */
             if (vfrom.type.ty == Tdelegate ||
-                vfrom.type.ty == Tpointer && vfrom.type.nextOf().ty == Tfunction)
+                vfrom.type.isPtrToFunction())
             {
                 if (auto ve = arg.isVarExp())
                 {

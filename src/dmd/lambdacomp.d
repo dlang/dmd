@@ -18,6 +18,7 @@ module dmd.lambdacomp;
 import core.stdc.stdio;
 import core.stdc.string;
 
+import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dsymbol;

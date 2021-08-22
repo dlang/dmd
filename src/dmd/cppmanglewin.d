@@ -15,6 +15,7 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
 import dmd.dclass;
 import dmd.declaration;
@@ -1241,18 +1242,7 @@ extern(D):
         {
             foreach (n, p; type.parameterList)
             {
-                Type t = p.type;
-                if (p.isReference())
-                {
-                    t = t.referenceTo();
-                }
-                else if (p.storageClass & STC.lazy_)
-                {
-                    // Mangle as delegate
-                    Type td = new TypeFunction(ParameterList(), t, LINK.d);
-                    td = new TypeDelegate(td);
-                    t = merge(t);
-                }
+                Type t = target.cpp.parameterType(p);
                 if (t.ty == Tsarray)
                 {
                     error(Loc.initial, "Internal Compiler Error: unable to pass static array to `extern(C++)` function.");

@@ -15,6 +15,7 @@ module dmd.dstruct;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
@@ -23,14 +24,12 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.opover;
-import dmd.semantic3;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
@@ -187,13 +186,6 @@ enum StructFlags : int
     hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
 }
 
-enum StructPOD : int
-{
-    no,    // struct is not POD
-    yes,   // struct is POD
-    fwd,   // POD not yet computed
-}
-
 /***********************************************************
  * All `struct` declarations are an instance of this.
  */
@@ -220,7 +212,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     extern (C++) __gshared FuncDeclaration xerrcmp;  // object.xopCmp
 
     structalign_t alignment;    // alignment applied outside of the struct
-    StructPOD ispod;            // if struct is POD
+    ThreeState ispod;           // if struct is POD
 
     // ABI-specific type(s) if the struct can be passed in registers
     TypeTuple argTypes;
@@ -229,7 +221,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     {
         super(loc, id);
         zeroInit = false; // assume false until we do semantic processing
-        ispod = StructPOD.fwd;
+        ispod = ThreeState.none;
         // For forward references
         type = new TypeStruct(this);
 
@@ -254,58 +246,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return sd;
     }
 
-    final void semanticTypeInfoMembers()
-    {
-        if (xeq &&
-            xeq._scope &&
-            xeq.semanticRun < PASS.semantic3done)
-        {
-            uint errors = global.startGagging();
-            xeq.semantic3(xeq._scope);
-            if (global.endGagging(errors))
-                xeq = xerreq;
-        }
-
-        if (xcmp &&
-            xcmp._scope &&
-            xcmp.semanticRun < PASS.semantic3done)
-        {
-            uint errors = global.startGagging();
-            xcmp.semantic3(xcmp._scope);
-            if (global.endGagging(errors))
-                xcmp = xerrcmp;
-        }
-
-        FuncDeclaration ftostr = search_toString(this);
-        if (ftostr &&
-            ftostr._scope &&
-            ftostr.semanticRun < PASS.semantic3done)
-        {
-            ftostr.semantic3(ftostr._scope);
-        }
-
-        if (xhash &&
-            xhash._scope &&
-            xhash.semanticRun < PASS.semantic3done)
-        {
-            xhash.semantic3(xhash._scope);
-        }
-
-        if (postblit &&
-            postblit._scope &&
-            postblit.semanticRun < PASS.semantic3done)
-        {
-            postblit.semantic3(postblit._scope);
-        }
-
-        if (dtor &&
-            dtor._scope &&
-            dtor.semanticRun < PASS.semantic3done)
-        {
-            dtor.semantic3(dtor._scope);
-        }
-    }
-
     override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
@@ -315,7 +255,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
             // .stringof is always defined (but may be hidden by some other symbol)
-            if(ident != Id.stringof)
+            if(ident != Id.stringof && !(flags & IgnoreErrors) && semanticRun < PASS.semanticdone)
                 error("is forward referenced when looking for `%s`", ident.toChars());
             return null;
         }
@@ -344,12 +284,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         fields.setDim(0);   // workaround
 
         // Set the offsets of the fields and determine the size of the struct
-        uint offset = 0;
+        FieldState fieldState;
         bool isunion = isUnionDeclaration() !is null;
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            s.setFieldOffset(this, &offset, isunion);
+            s.setFieldOffset(this, fieldState, isunion);
         }
         if (type.ty == Terror)
         {
@@ -422,117 +362,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     }
 
     /***************************************
-     * Fit elements[] to the corresponding types of the struct's fields.
-     *
-     * Params:
-     *      loc = location to use for error messages
-     *      sc = context
-     *      elements = explicit arguments used to construct object
-     *      stype = the constructed object type.
-     * Returns:
-     *      false if any errors occur,
-     *      otherwise true and elements[] are rewritten for the output.
-     */
-    final bool fit(const ref Loc loc, Scope* sc, Expressions* elements, Type stype)
-    {
-        if (!elements)
-            return true;
-
-        const nfields = nonHiddenFields();
-        size_t offset = 0;
-        for (size_t i = 0; i < elements.dim; i++)
-        {
-            Expression e = (*elements)[i];
-            if (!e)
-                continue;
-
-            e = resolveProperties(sc, e);
-            if (i >= nfields)
-            {
-                if (i <= fields.dim && e.op == TOK.null_)
-                {
-                    // CTFE sometimes creates null as hidden pointer; we'll allow this.
-                    continue;
-                }
-                .error(loc, "more initializers than fields (%zu) of `%s`", nfields, toChars());
-                return false;
-            }
-            VarDeclaration v = fields[i];
-            if (v.offset < offset)
-            {
-                .error(loc, "overlapping initialization for `%s`", v.toChars());
-                if (!isUnionDeclaration())
-                {
-                    enum errorMsg = "`struct` initializers that contain anonymous unions" ~
-                                        " must initialize only the first member of a `union`. All subsequent" ~
-                                        " non-overlapping fields are default initialized";
-                    .errorSupplemental(loc, errorMsg);
-                }
-                return false;
-            }
-            offset = cast(uint)(v.offset + v.type.size());
-
-            Type t = v.type;
-            if (stype)
-                t = t.addMod(stype.mod);
-            Type origType = t;
-            Type tb = t.toBasetype();
-
-            const hasPointers = tb.hasPointers();
-            if (hasPointers)
-            {
-                if ((stype.alignment() < target.ptrsize ||
-                     (v.offset & (target.ptrsize - 1))) &&
-                    (sc.func && sc.func.setUnsafe()))
-                {
-                    .error(loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
-                        toChars(), v.toChars());
-                    return false;
-                }
-            }
-
-            /* Look for case of initializing a static array with a too-short
-             * string literal, such as:
-             *  char[5] foo = "abc";
-             * Allow this by doing an explicit cast, which will lengthen the string
-             * literal.
-             */
-            if (e.op == TOK.string_ && tb.ty == Tsarray)
-            {
-                StringExp se = cast(StringExp)e;
-                Type typeb = se.type.toBasetype();
-                TY tynto = tb.nextOf().ty;
-                if (!se.committed &&
-                    (typeb.ty == Tarray || typeb.ty == Tsarray) && tynto.isSomeChar &&
-                    se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
-                {
-                    e = se.castTo(sc, t);
-                    goto L1;
-                }
-            }
-
-            while (!e.implicitConvTo(t) && tb.ty == Tsarray)
-            {
-                /* Static array initialization, as in:
-                 *  T[3][5] = e;
-                 */
-                t = tb.nextOf();
-                tb = t.toBasetype();
-            }
-            if (!e.implicitConvTo(t))
-                t = origType; // restore type for better diagnostic
-
-            e = e.implicitCastTo(sc, t);
-        L1:
-            if (e.op == TOK.error)
-                return false;
-
-            (*elements)[i] = doCopyOrMove(sc, e);
-        }
-        return true;
-    }
-
-    /***************************************
      * Determine if struct is POD (Plain Old Data).
      *
      * POD is defined as:
@@ -549,14 +378,14 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     final bool isPOD()
     {
         // If we've already determined whether this struct is POD.
-        if (ispod != StructPOD.fwd)
-            return (ispod == StructPOD.yes);
+        if (ispod != ThreeState.none)
+            return (ispod == ThreeState.yes);
 
-        ispod = StructPOD.yes;
+        ispod = ThreeState.yes;
 
         if (enclosing || postblit || dtor || hasCopyCtor)
         {
-            ispod = StructPOD.no;
+            ispod = ThreeState.no;
             return false;
         }
 
@@ -566,7 +395,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             VarDeclaration v = fields[i];
             if (v.storage_class & STC.ref_)
             {
-                ispod = StructPOD.no;
+                ispod = ThreeState.no;
                 return false;
             }
 
@@ -577,16 +406,16 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 StructDeclaration sd = ts.sym;
                 if (!sd.isPOD())
                 {
-                    ispod = StructPOD.no;
+                    ispod = ThreeState.no;
                     return false;
                 }
             }
         }
 
-        return (ispod == StructPOD.yes);
+        return (ispod == ThreeState.yes);
     }
 
-    override final inout(StructDeclaration) isStructDeclaration() inout
+    override final inout(StructDeclaration) isStructDeclaration() inout @nogc nothrow pure @safe
     {
         return this;
     }

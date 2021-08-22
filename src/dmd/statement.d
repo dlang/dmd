@@ -18,8 +18,7 @@ import core.stdc.stdio;
 
 import dmd.aggregate;
 import dmd.arraytypes;
-import dmd.attrib;
-import dmd.astcodegen;
+import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.canthrow;
@@ -30,11 +29,9 @@ import dmd.denum;
 import dmd.dimport;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -42,7 +39,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.dinterpret;
 import dmd.mtype;
-import dmd.parse;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.sapply;
@@ -74,55 +70,6 @@ TypeIdentifier getException()
     tid.addIdent(Id.Exception);
     return tid;
 }
-
-/********************************
- * Identify Statement types with this enum rather than
- * virtual functions.
- */
-
-enum STMT : ubyte
-{
-    Error,
-    Peel,
-    Exp, DtorExp,
-    Compile,
-    Compound, CompoundDeclaration, CompoundAsm,
-    UnrolledLoop,
-    Scope,
-    Forwarding,
-    While,
-    Do,
-    For,
-    Foreach,
-    ForeachRange,
-    If,
-    Conditional,
-    StaticForeach,
-    Pragma,
-    StaticAssert,
-    Switch,
-    Case,
-    CaseRange,
-    Default,
-    GotoDefault,
-    GotoCase,
-    SwitchError,
-    Return,
-    Break,
-    Continue,
-    Synchronized,
-    With,
-    TryCatch,
-    TryFinally,
-    ScopeGuard,
-    Throw,
-    Debug,
-    Goto,
-    Label,
-    Asm, InlineAsm, GccAsm,
-    Import,
-}
-
 
 /***********************************************************
  * Specification: http://dlang.org/spec/statement.html
@@ -375,40 +322,6 @@ extern (C++) abstract class Statement : ASTNode
         return walkPostorder(this, hc);
     }
 
-    /****************************************
-     * If this statement has code that needs to run in a finally clause
-     * at the end of the current scope, return that code in the form of
-     * a Statement.
-     * Params:
-     *     sc = context
-     *     sentry     = set to code executed upon entry to the scope
-     *     sexception = set to code executed upon exit from the scope via exception
-     *     sfinally   = set to code executed in finally block
-     * Returns:
-     *    code to be run in the finally clause
-     */
-    Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        //printf("Statement::scopeCode()\n");
-        *sentry = null;
-        *sexception = null;
-        *sfinally = null;
-        return this;
-    }
-
-    /*********************************
-     * Flatten out the scope by presenting the statement
-     * as an array of statements.
-     * Params:
-     *     sc = context
-     * Returns:
-     *     The array of `Statements`, or `null` if no flattening necessary
-     */
-    Statements* flatten(Scope* sc)
-    {
-        return null;
-    }
-
     /*******************************
      * Find last statement in a sequence of statements.
      * Returns:
@@ -440,7 +353,7 @@ extern (C++) abstract class Statement : ASTNode
     pure nothrow @nogc
     inout(ReturnStatement) endsWithReturnStatement() inout { return null; }
 
-  final pure inout nothrow @nogc:
+    final pure inout nothrow @nogc @safe:
 
     /********************
      * A cheaper method of doing downcasting of Statements.
@@ -453,6 +366,8 @@ extern (C++) abstract class Statement : ASTNode
     inout(CompoundStatement)    isCompoundStatement()    { return stmt == STMT.Compound    ? cast(typeof(return))this : null; }
     inout(ReturnStatement)      isReturnStatement()      { return stmt == STMT.Return      ? cast(typeof(return))this : null; }
     inout(IfStatement)          isIfStatement()          { return stmt == STMT.If          ? cast(typeof(return))this : null; }
+    inout(ConditionalStatement) isConditionalStatement() { return stmt == STMT.Conditional ? cast(typeof(return))this : null; }
+    inout(StaticForeachStatement) isStaticForeachStatement() { return stmt == STMT.StaticForeach ? cast(typeof(return))this : null; }
     inout(CaseStatement)        isCaseStatement()        { return stmt == STMT.Case        ? cast(typeof(return))this : null; }
     inout(DefaultStatement)     isDefaultStatement()     { return stmt == STMT.Default     ? cast(typeof(return))this : null; }
     inout(LabelStatement)       isLabelStatement()       { return stmt == STMT.Label       ? cast(typeof(return))this : null; }
@@ -461,6 +376,7 @@ extern (C++) abstract class Statement : ASTNode
     inout(GotoCaseStatement)    isGotoCaseStatement()    { return stmt == STMT.GotoCase    ? cast(typeof(return))this : null; }
     inout(BreakStatement)       isBreakStatement()       { return stmt == STMT.Break       ? cast(typeof(return))this : null; }
     inout(DtorExpStatement)     isDtorExpStatement()     { return stmt == STMT.DtorExp     ? cast(typeof(return))this : null; }
+    inout(CompileStatement)     isCompileStatement()     { return stmt == STMT.Compile     ? cast(typeof(return))this : null; }
     inout(ForwardingStatement)  isForwardingStatement()  { return stmt == STMT.Forwarding  ? cast(typeof(return))this : null; }
     inout(DoStatement)          isDoStatement()          { return stmt == STMT.Do          ? cast(typeof(return))this : null; }
     inout(WhileStatement)       isWhileStatement()       { return stmt == STMT.While       ? cast(typeof(return))this : null; }
@@ -471,7 +387,9 @@ extern (C++) abstract class Statement : ASTNode
     inout(WithStatement)        isWithStatement()        { return stmt == STMT.With        ? cast(typeof(return))this : null; }
     inout(TryCatchStatement)    isTryCatchStatement()    { return stmt == STMT.TryCatch    ? cast(typeof(return))this : null; }
     inout(ThrowStatement)       isThrowStatement()       { return stmt == STMT.Throw       ? cast(typeof(return))this : null; }
+    inout(DebugStatement)       isDebugStatement()       { return stmt == STMT.Debug       ? cast(typeof(return))this : null; }
     inout(TryFinallyStatement)  isTryFinallyStatement()  { return stmt == STMT.TryFinally  ? cast(typeof(return))this : null; }
+    inout(ScopeGuardStatement)  isScopeGuardStatement()  { return stmt == STMT.ScopeGuard  ? cast(typeof(return))this : null; }
     inout(SwitchErrorStatement)  isSwitchErrorStatement()  { return stmt == STMT.SwitchError  ? cast(typeof(return))this : null; }
     inout(UnrolledLoopStatement) isUnrolledLoopStatement() { return stmt == STMT.UnrolledLoop ? cast(typeof(return))this : null; }
     inout(ForeachRangeStatement) isForeachRangeStatement() { return stmt == STMT.ForeachRange ? cast(typeof(return))this : null; }
@@ -519,163 +437,6 @@ extern (C++) final class PeelStatement : Statement
     }
 }
 
-/***********************************************************
- * Convert TemplateMixin members (== Dsymbols) to Statements.
- */
-private Statement toStatement(Dsymbol s)
-{
-    extern (C++) final class ToStmt : Visitor
-    {
-        alias visit = Visitor.visit;
-    public:
-        Statement result;
-
-        Statement visitMembers(Loc loc, Dsymbols* a)
-        {
-            if (!a)
-                return null;
-
-            auto statements = new Statements();
-            foreach (s; *a)
-            {
-                statements.push(toStatement(s));
-            }
-            return new CompoundStatement(loc, statements);
-        }
-
-        override void visit(Dsymbol s)
-        {
-            .error(Loc.initial, "Internal Compiler Error: cannot mixin %s `%s`\n", s.kind(), s.toChars());
-            result = new ErrorStatement();
-        }
-
-        override void visit(TemplateMixin tm)
-        {
-            auto a = new Statements();
-            foreach (m; *tm.members)
-            {
-                Statement s = toStatement(m);
-                if (s)
-                    a.push(s);
-            }
-            result = new CompoundStatement(tm.loc, a);
-        }
-
-        /* An actual declaration symbol will be converted to DeclarationExp
-         * with ExpStatement.
-         */
-        Statement declStmt(Dsymbol s)
-        {
-            auto de = new DeclarationExp(s.loc, s);
-            de.type = Type.tvoid; // avoid repeated semantic
-            return new ExpStatement(s.loc, de);
-        }
-
-        override void visit(VarDeclaration d)
-        {
-            result = declStmt(d);
-        }
-
-        override void visit(AggregateDeclaration d)
-        {
-            result = declStmt(d);
-        }
-
-        override void visit(FuncDeclaration d)
-        {
-            result = declStmt(d);
-        }
-
-        override void visit(EnumDeclaration d)
-        {
-            result = declStmt(d);
-        }
-
-        override void visit(AliasDeclaration d)
-        {
-            result = declStmt(d);
-        }
-
-        override void visit(TemplateDeclaration d)
-        {
-            result = declStmt(d);
-        }
-
-        /* All attributes have been already picked by the semantic analysis of
-         * 'bottom' declarations (function, struct, class, etc).
-         * So we don't have to copy them.
-         */
-        override void visit(StorageClassDeclaration d)
-        {
-            result = visitMembers(d.loc, d.decl);
-        }
-
-        override void visit(DeprecatedDeclaration d)
-        {
-            result = visitMembers(d.loc, d.decl);
-        }
-
-        override void visit(LinkDeclaration d)
-        {
-            result = visitMembers(d.loc, d.decl);
-        }
-
-        override void visit(VisibilityDeclaration d)
-        {
-            result = visitMembers(d.loc, d.decl);
-        }
-
-        override void visit(AlignDeclaration d)
-        {
-            result = visitMembers(d.loc, d.decl);
-        }
-
-        override void visit(UserAttributeDeclaration d)
-        {
-            result = visitMembers(d.loc, d.decl);
-        }
-
-        override void visit(ForwardingAttribDeclaration d)
-        {
-            result = visitMembers(d.loc, d.decl);
-        }
-
-        override void visit(StaticAssert s)
-        {
-        }
-
-        override void visit(Import s)
-        {
-        }
-
-        override void visit(PragmaDeclaration d)
-        {
-        }
-
-        override void visit(ConditionalDeclaration d)
-        {
-            result = visitMembers(d.loc, d.include(null));
-        }
-
-        override void visit(StaticForeachDeclaration d)
-        {
-            assert(d.sfe && !!d.sfe.aggrfe ^ !!d.sfe.rangefe);
-            result = visitMembers(d.loc, d.include(null));
-        }
-
-        override void visit(CompileDeclaration d)
-        {
-            result = visitMembers(d.loc, d.include(null));
-        }
-    }
-
-    if (!s)
-        return null;
-
-    scope ToStmt v = new ToStmt();
-    s.accept(v);
-    return v.result;
-}
 
 /***********************************************************
  * https://dlang.org/spec/statement.html#ExpressionStatement
@@ -710,68 +471,6 @@ extern (C++) class ExpStatement : Statement
     override ExpStatement syntaxCopy()
     {
         return new ExpStatement(loc, exp ? exp.syntaxCopy() : null);
-    }
-
-    override final Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        //printf("ExpStatement::scopeCode()\n");
-
-        *sentry = null;
-        *sexception = null;
-        *sfinally = null;
-
-        if (exp && exp.op == TOK.declaration)
-        {
-            auto de = cast(DeclarationExp)exp;
-            auto v = de.declaration.isVarDeclaration();
-            if (v && !v.isDataseg())
-            {
-                if (v.needsScopeDtor())
-                {
-                    *sfinally = new DtorExpStatement(loc, v.edtor, v);
-                    v.storage_class |= STC.nodtor; // don't add in dtor again
-                }
-            }
-        }
-        return this;
-    }
-
-    override final Statements* flatten(Scope* sc)
-    {
-        /* https://issues.dlang.org/show_bug.cgi?id=14243
-         * expand template mixin in statement scope
-         * to handle variable destructors.
-         */
-        if (exp && exp.op == TOK.declaration)
-        {
-            Dsymbol d = (cast(DeclarationExp)exp).declaration;
-            if (TemplateMixin tm = d.isTemplateMixin())
-            {
-                Expression e = exp.expressionSemantic(sc);
-                if (e.op == TOK.error || tm.errors)
-                {
-                    auto a = new Statements();
-                    a.push(new ErrorStatement());
-                    return a;
-                }
-                assert(tm.members);
-
-                Statement s = toStatement(tm);
-                version (none)
-                {
-                    OutBuffer buf;
-                    buf.doindent = 1;
-                    HdrGenState hgs;
-                    hgs.hdrgen = true;
-                    toCBuffer(s, &buf, &hgs);
-                    printf("tm ==> s = %s\n", buf.peekChars());
-                }
-                auto a = new Statements();
-                a.push(s);
-                return a;
-            }
-        }
-        return null;
     }
 
     override void accept(Visitor v)
@@ -827,46 +526,6 @@ extern (C++) final class CompileStatement : Statement
     override CompileStatement syntaxCopy()
     {
         return new CompileStatement(loc, Expression.arraySyntaxCopy(exps));
-    }
-
-    private Statements* compileIt(Scope* sc)
-    {
-        //printf("CompileStatement::compileIt() %s\n", exp.toChars());
-
-        auto errorStatements()
-        {
-            auto a = new Statements();
-            a.push(new ErrorStatement());
-            return a;
-        }
-
-
-        OutBuffer buf;
-        if (expressionsToString(buf, sc, exps))
-            return errorStatements();
-
-        const errors = global.errors;
-        const len = buf.length;
-        buf.writeByte(0);
-        const str = buf.extractSlice()[0 .. len];
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
-        p.nextToken();
-
-        auto a = new Statements();
-        while (p.token.value != TOK.endOfFile)
-        {
-            Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
-            if (!s || global.errors != errors)
-                return errorStatements();
-            a.push(s);
-        }
-        return a;
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        //printf("CompileStatement::flatten() %s\n", exp.toChars());
-        return compileIt(sc);
     }
 
     override void accept(Visitor v)
@@ -926,11 +585,6 @@ extern (C++) class CompoundStatement : Statement
     override CompoundStatement syntaxCopy()
     {
         return new CompoundStatement(loc, Statement.arraySyntaxCopy(statements));
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        return statements;
     }
 
     override final inout(ReturnStatement) endsWithReturnStatement() inout nothrow pure
@@ -1110,39 +764,6 @@ extern (C++) final class ForwardingStatement : Statement
         return new ForwardingStatement(loc, statement.syntaxCopy());
     }
 
-    /***********************
-     * ForwardingStatements are distributed over the flattened
-     * sequence of statements. This prevents flattening to be
-     * "blocked" by a ForwardingStatement and is necessary, for
-     * example, to support generating scope guards with `static
-     * foreach`:
-     *
-     *     static foreach(i; 0 .. 10) scope(exit) writeln(i);
-     *     writeln("this is printed first");
-     *     // then, it prints 10, 9, 8, 7, ...
-     */
-
-    override Statements* flatten(Scope* sc)
-    {
-        if (!statement)
-        {
-            return null;
-        }
-        sc = sc.push(sym);
-        auto a = statement.flatten(sc);
-        sc = sc.pop();
-        if (!a)
-        {
-            return a;
-        }
-        auto b = new Statements(a.dim);
-        foreach (i, s; *a)
-        {
-            (*b)[i] = s ? new ForwardingStatement(s.loc, sym, s) : null;
-        }
-        return b;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1268,13 +889,6 @@ extern (C++) final class ForStatement : Statement
             increment ? increment.syntaxCopy() : null,
             _body.syntaxCopy(),
             endloc);
-    }
-
-    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        //printf("ForStatement::scopeCode()\n");
-        Statement.scopeCode(sc, sentry, sexception, sfinally);
-        return this;
     }
 
     override Statement getRelatedLabeled()
@@ -1459,66 +1073,12 @@ extern (C++) final class ConditionalStatement : Statement
         return new ConditionalStatement(loc, condition.syntaxCopy(), ifbody.syntaxCopy(), elsebody ? elsebody.syntaxCopy() : null);
     }
 
-    override Statements* flatten(Scope* sc)
-    {
-        Statement s;
-
-        //printf("ConditionalStatement::flatten()\n");
-        if (condition.include(sc))
-        {
-            DebugCondition dc = condition.isDebugCondition();
-            if (dc)
-            {
-                s = new DebugStatement(loc, ifbody);
-                debugThrowWalker(ifbody);
-            }
-            else
-                s = ifbody;
-        }
-        else
-            s = elsebody;
-
-        auto a = new Statements();
-        a.push(s);
-        return a;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
     }
 }
 
-/**
-Marks all occurring ThrowStatements as internalThrows.
-This is intended to be called from a DebugStatement as it allows
-to mark all its nodes as nothrow.
-
-Params:
-    s = AST Node to traverse
-*/
-private void debugThrowWalker(Statement s)
-{
-
-    extern(C++) final class DebugWalker : SemanticTimeTransitiveVisitor
-    {
-        alias visit = SemanticTimeTransitiveVisitor.visit;
-    public:
-
-        override void visit(ThrowStatement s)
-        {
-            s.internalThrow = true;
-        }
-
-        override void visit(CallExp s)
-        {
-            s.inDebugStatement = true;
-        }
-    }
-
-    scope walker = new DebugWalker();
-    s.accept(walker);
-}
 
 /***********************************************************
  * https://dlang.org/spec/version.html#StaticForeachStatement
@@ -1544,30 +1104,6 @@ extern (C++) final class StaticForeachStatement : Statement
     override StaticForeachStatement syntaxCopy()
     {
         return new StaticForeachStatement(loc, sfe.syntaxCopy());
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        sfe.prepare(sc);
-        if (sfe.ready())
-        {
-            import dmd.statementsem;
-            auto s = makeTupleForeach!(true, false)(sc, sfe.aggrfe, sfe.needExpansion);
-            auto result = s.flatten(sc);
-            if (result)
-            {
-                return result;
-            }
-            result = new Statements();
-            result.push(s);
-            return result;
-        }
-        else
-        {
-            auto result = new Statements();
-            result.push(new ErrorStatement());
-            return result;
-        }
     }
 
     override void accept(Visitor v)
@@ -2145,52 +1681,6 @@ extern (C++) final class ScopeGuardStatement : Statement
         return new ScopeGuardStatement(loc, tok, statement.syntaxCopy());
     }
 
-    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        //printf("ScopeGuardStatement::scopeCode()\n");
-        *sentry = null;
-        *sexception = null;
-        *sfinally = null;
-
-        Statement s = new PeelStatement(statement);
-
-        switch (tok)
-        {
-        case TOK.onScopeExit:
-            *sfinally = s;
-            break;
-
-        case TOK.onScopeFailure:
-            *sexception = s;
-            break;
-
-        case TOK.onScopeSuccess:
-            {
-                /* Create:
-                 *  sentry:   bool x = false;
-                 *  sexception:    x = true;
-                 *  sfinally: if (!x) statement;
-                 */
-                auto v = copyToTemp(0, "__os", IntegerExp.createBool(false));
-                v.dsymbolSemantic(sc);
-                *sentry = new ExpStatement(loc, v);
-
-                Expression e = IntegerExp.createBool(true);
-                e = new AssignExp(Loc.initial, new VarExp(Loc.initial, v), e);
-                *sexception = new ExpStatement(Loc.initial, e);
-
-                e = new VarExp(Loc.initial, v);
-                e = new NotExp(Loc.initial, e);
-                *sfinally = new IfStatement(Loc.initial, null, e, s, null, Loc.initial);
-
-                break;
-            }
-        default:
-            assert(0);
-        }
-        return null;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2241,19 +1731,6 @@ extern (C++) final class DebugStatement : Statement
     override DebugStatement syntaxCopy()
     {
         return new DebugStatement(loc, statement ? statement.syntaxCopy() : null);
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        Statements* a = statement ? statement.flatten(sc) : null;
-        if (a)
-        {
-            foreach (ref s; *a)
-            {
-                s = new DebugStatement(loc, s);
-            }
-        }
-        return a;
     }
 
     override void accept(Visitor v)
@@ -2391,41 +1868,6 @@ extern (C++) final class LabelStatement : Statement
         return new LabelStatement(loc, ident, statement ? statement.syntaxCopy() : null);
     }
 
-    override Statements* flatten(Scope* sc)
-    {
-        Statements* a = null;
-        if (statement)
-        {
-            a = statement.flatten(sc);
-            if (a)
-            {
-                if (!a.dim)
-                {
-                    a.push(new ExpStatement(loc, cast(Expression)null));
-                }
-
-                // reuse 'this' LabelStatement
-                this.statement = (*a)[0];
-                (*a)[0] = this;
-            }
-        }
-        return a;
-    }
-
-    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexit, Statement* sfinally)
-    {
-        //printf("LabelStatement::scopeCode()\n");
-        if (statement)
-            statement = statement.scopeCode(sc, sentry, sexit, sfinally);
-        else
-        {
-            *sentry = null;
-            *sexit = null;
-            *sfinally = null;
-        }
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2441,9 +1883,9 @@ extern (C++) final class LabelDsymbol : Dsymbol
     bool deleted;           // set if rewritten to return in foreach delegate
     bool iasm;              // set if used by inline assembler
 
-    extern (D) this(Identifier ident)
+    extern (D) this(Identifier ident, const ref Loc loc = Loc.initial)
     {
-        super(ident);
+        super(loc, ident);
     }
 
     static LabelDsymbol create(Identifier ident)
@@ -2573,11 +2015,6 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
             (*a)[i] = s ? s.syntaxCopy() : null;
         }
         return new CompoundAsmStatement(loc, a, stc);
-    }
-
-    override Statements* flatten(Scope* sc)
-    {
-        return null;
     }
 
     override void accept(Visitor v)

@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
@@ -739,7 +740,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     // Error, ambiguous
                     e.error("overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                 }
-                else if (m.last <= MATCH.nomatch)
+                else if (m.last == MATCH.nomatch)
                 {
                     if (tiargs)
                         goto L1;
@@ -753,7 +754,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     // Rewrite (e1 -- e2) as e1.postdec()
                     result = build_overload(e.loc, sc, e.e1, null, m.lastf ? m.lastf : s);
                 }
-                else if (lastf && m.lastf == lastf || !s_r && m.last <= MATCH.nomatch)
+                else if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
                 {
                     // Rewrite (e1 op e2) as e1.opfunc(e2)
                     result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
@@ -824,12 +825,12 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                             // Error, ambiguous
                             e.error("overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                         }
-                        else if (m.last <= MATCH.nomatch)
+                        else if (m.last == MATCH.nomatch)
                         {
                             m.lastf = null;
                         }
 
-                        if (lastf && m.lastf == lastf || !s && m.last <= MATCH.nomatch)
+                        if (lastf && m.lastf == lastf || !s && m.last == MATCH.nomatch)
                         {
                             // Rewrite (e1 op e2) as e1.opfunc_r(e2)
                             result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s_r);
@@ -1284,7 +1285,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     // Error, ambiguous
                     e.error("overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                 }
-                else if (m.last <= MATCH.nomatch)
+                else if (m.last == MATCH.nomatch)
                 {
                     if (tiargs)
                         goto L1;
@@ -1383,12 +1384,12 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop
                 e.error("overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
             }
         }
-        else if (m.last <= MATCH.nomatch)
+        else if (m.last == MATCH.nomatch)
         {
             m.lastf = null;
         }
         Expression result;
-        if (lastf && m.lastf == lastf || !s_r && m.last <= MATCH.nomatch)
+        if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
         {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);

@@ -22,6 +22,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.blockexit;
 import dmd.gluelayer;
 import dmd.dclass;
@@ -202,6 +203,7 @@ enum FUNCFLAG : uint
     compileTimeOnly  = 0x100,  /// is a compile time only function; no code will be generated for it
     printf           = 0x200,  /// is a printf-like function
     scanf            = 0x400,  /// is a scanf-like function
+    noreturn         = 0x800,  /// the function does not return
 }
 
 /***********************************************************
@@ -349,7 +351,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     ObjcFuncDeclaration objc;
 
-    extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier ident, StorageClass storage_class, Type type)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier ident, StorageClass storage_class, Type type, bool noreturn = false)
     {
         super(loc, ident);
         //printf("FuncDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
@@ -363,21 +365,25 @@ extern (C++) class FuncDeclaration : Declaration
             this.storage_class &= ~(STC.TYPECTOR | STC.FUNCATTR);
         }
         this.endloc = endloc;
+        if (noreturn)
+            this.flags |= FUNCFLAG.noreturn;
+
         /* The type given for "infer the return type" is a TypeFunction with
          * NULL for the return type.
          */
         inferRetType = (type && type.nextOf() is null);
     }
 
-    static FuncDeclaration create(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type)
+    static FuncDeclaration create(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
     {
-        return new FuncDeclaration(loc, endloc, id, storage_class, type);
+        return new FuncDeclaration(loc, endloc, id, storage_class, type, noreturn);
     }
 
     override FuncDeclaration syntaxCopy(Dsymbol s)
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
-        FuncDeclaration f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
+        FuncDeclaration f = s ? cast(FuncDeclaration)s
+                              : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy(), (flags & FUNCFLAG.noreturn) != 0);
         f.frequires = frequires ? Statement.arraySyntaxCopy(frequires) : null;
         f.fensures = fensures ? Ensure.arraySyntaxCopy(fensures) : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;
@@ -546,13 +552,24 @@ extern (C++) class FuncDeclaration : Declaration
             }
         }
 
-        if (type.ty == Tfunction)
+        if (auto tf = type.isTypeFunction())
         {
-            TypeFunction tf = cast(TypeFunction)type;
             if (tf.isreturn)
                 vthis.storage_class |= STC.return_;
             if (tf.isScopeQual)
                 vthis.storage_class |= STC.scope_;
+
+            /* Add STC.returnScope like typesem.d does for TypeFunction parameters,
+             * at least it should be the same. At the moment, we'll just
+             * do existing practice. But we should examine how TypeFunction does
+             * it, for consistency.
+             */
+            if (!tf.isref && isRefReturnScope(vthis.storage_class))
+            {
+                /* if `ref return scope`, evaluate to `ref` `return scope`
+                 */
+                vthis.storage_class |= STC.returnScope;
+            }
         }
         if (flags & FUNCFLAG.inferScope && !(vthis.storage_class & STC.scope_))
             vthis.storage_class |= STC.maybescope;
@@ -1063,9 +1080,16 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /********************************
-     * Labels are in a separate scope, one per function.
+     * Searches for a label with the given identifier. This function will insert a new
+     * `LabelDsymbol` into `labtab` if it does not contain a mapping for `ident`.
+     *
+     * Params:
+     *   ident = identifier of the requested label
+     *   loc   = location used when creating a new `LabelDsymbol`
+     *
+     * Returns: the `LabelDsymbol` for `ident`
      */
-    final LabelDsymbol searchLabel(Identifier ident)
+    final LabelDsymbol searchLabel(Identifier ident, const ref Loc loc = Loc.initial)
     {
         Dsymbol s;
         if (!labtab)
@@ -1074,7 +1098,7 @@ extern (C++) class FuncDeclaration : Declaration
         s = labtab.lookup(ident);
         if (!s)
         {
-            s = new LabelDsymbol(ident);
+            s = new LabelDsymbol(ident, loc);
             labtab.insert(s);
         }
         return cast(LabelDsymbol)s;
@@ -1328,7 +1352,7 @@ extern (C++) class FuncDeclaration : Declaration
             flags |= FUNCFLAG.returnInprocess;
 
         // Initialize for inferring STC.scope_
-        if (global.params.vsafe)
+        if (global.params.useDIP1000 == FeatureState.enabled)
             flags |= FUNCFLAG.inferScope;
     }
 
@@ -2608,6 +2632,9 @@ extern (C++) class FuncDeclaration : Declaration
                     // parameters and closure variables cannot be NRVOed.
                     if (v.isDataseg() || v.isParameter() || v.toParent2() != this)
                         return false;
+                    // The variable type needs to be equivalent to the return type.
+                    if (!v.type.equivalent(tf.next))
+                        return false;
                     //printf("Setting nrvo to %s\n", v.toChars());
                     nrvo_var = v;
                 }
@@ -2948,7 +2975,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last <= MATCH.nomatch)
+    if (m.last == MATCH.nomatch)
     {
         // error was caused on matched function, not on the matching itself,
         // so return the function to produce a better diagnostic
@@ -3002,7 +3029,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         // all of overloads are templates
         if (td)
         {
-            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
+            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`",
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
@@ -3038,7 +3065,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
         if (hasOverloads)
         {
-            .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
+            .error(loc, "none of the overloads of `%s` are callable using a %sobject",
                    fd.ident.toChars(), thisBuf.peekChars());
             printCandidates(loc, fd, sc.isDeprecated());
             return null;
@@ -3068,7 +3095,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
     if (hasOverloads)
     {
-        .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
+        .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toChars(), fargsBuf.peekChars());
         printCandidates(loc, fd, sc.isDeprecated());
         return null;
@@ -3100,6 +3127,9 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
     int displayed;
     const(char)* constraintsTip;
 
+    // determine if the first candidate was printed
+    bool printed = false;
+
     overloadApply(declaration, (Dsymbol s)
     {
         Dsymbol nextOverload;
@@ -3115,9 +3145,14 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
                 return 0;
 
+            const single_candidate = fd.overnext is null;
             auto tf = cast(TypeFunction) fd.type;
-            .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
+            .errorSupplemental(fd.loc,
+                    printed ? "                `%s%s`" :
+                    single_candidate ? "Candidate is: `%s%s`" : "Candidates are: `%s%s`",
+                    fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList));
+            printed = true;
             nextOverload = fd.overnext;
         }
         else if (auto td = s.isTemplateDeclaration())
@@ -3126,10 +3161,28 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             const tmsg = td.toCharsNoConstraints();
             const cmsg = td.getConstraintEvalError(constraintsTip);
+
+            const single_candidate = td.overnext is null;
+
+            // add blank space if there are multiple candidates
+            // the length of the blank space is `strlen("Candidates are: ")`
+
             if (cmsg)
-                .errorSupplemental(td.loc, "`%s`\n%s", tmsg, cmsg);
+            {
+                .errorSupplemental(td.loc,
+                        printed ? "                `%s`\n%s" :
+                        single_candidate ? "Candidate is: `%s`\n%s" : "Candidates are: `%s`\n%s",
+                        tmsg, cmsg);
+                printed = true;
+            }
             else
-                .errorSupplemental(td.loc, "`%s`", tmsg);
+            {
+                .errorSupplemental(td.loc,
+                        printed ? "                `%s`" :
+                        single_candidate ? "Candidate is: `%s`" : "Candidates are: `%s`",
+                        tmsg);
+                printed = true;
+            }
             nextOverload = td.overnext;
         }
 
@@ -3752,32 +3805,32 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         return scd;
     }
 
-    override final inout(AggregateDeclaration) isThis() inout
+    override final inout(AggregateDeclaration) isThis() inout @nogc nothrow pure @safe
     {
         return null;
     }
 
-    override final bool isVirtual() const
+    override final bool isVirtual() const @nogc nothrow pure @safe
     {
         return false;
     }
 
-    override final bool addPreInvariant()
+    override final bool addPreInvariant() @nogc nothrow pure @safe
     {
         return false;
     }
 
-    override final bool addPostInvariant()
+    override final bool addPostInvariant() @nogc nothrow pure @safe
     {
         return false;
     }
 
-    override final bool hasStaticCtorOrDtor()
+    override final bool hasStaticCtorOrDtor() @nogc nothrow pure @safe
     {
         return true;
     }
 
-    override final inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout
+    override final inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout @nogc nothrow pure @safe
     {
         return this;
     }
@@ -4007,19 +4060,15 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
  */
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
-    ParameterList parameterList;
-
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, ref ParameterList parameterList)
+    extern (D) this(const ref Loc loc, StorageClass stc)
     {
-        super(loc, endloc, Id.classNew, STC.static_ | stc, null);
-        this.parameterList = parameterList;
+        super(loc, Loc.initial, Id.classNew, STC.static_ | stc, null);
     }
 
     override NewDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        auto parameterList = parameterList.syntaxCopy();
-        auto f = new NewDeclaration(loc, endloc, storage_class, parameterList);
+        auto f = new NewDeclaration(loc, storage_class);
         FuncDeclaration.syntaxCopy(f);
         return f;
     }

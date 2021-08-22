@@ -25,7 +25,20 @@ int main()
     Vars.set("CPP_OBJ",     "$OUTPUT_BASE/cpp$OBJ");
     Vars.set("HEADER_EXE",  "$OUTPUT_BASE/test$EXE");
 
-    run("$DMD -m$MODEL -c -lib -of=$LIB -HCf=$OUTPUT_BASE/library.h $SOURCE_DIR/library.d");
+    run("$DMD -m$MODEL -c -lib -of=$LIB -HC=verbose -HCf=$OUTPUT_BASE/library.h $SOURCE_DIR/library.d");
+
+    // Dump header if any of the following step fails
+    scope (failure)
+    {
+        const file = buildPath(Vars.OUTPUT_BASE, "library.h");
+        const header = (cast(string) read(file)).ifThrown("<Could not read file>\n");
+
+        stderr.flush();
+        writeln("========================= library.h ==================================\n");
+        write(header);
+        writeln("======================================================================\n");
+        stdout.flush();
+    }
 
     version (Windows)
         run([CC, "/c", "/Fo" ~ Vars.CPP_OBJ, "/I" ~ OUTPUT_BASE, "/I" ~ EXTRA_FILES ~"/../../../src/dmd/root", Vars.SOURCE_DIR ~ "/app.cpp"]);

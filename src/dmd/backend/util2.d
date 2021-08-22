@@ -35,26 +35,8 @@ void *ph_calloc(size_t nbytes);
 void ph_free(void *p);
 void *ph_realloc(void *p , size_t nbytes);
 
-extern (C) void printInternalFailure(FILE* stream); // from dmd/mars.d
-
-
 void file_progress()
 {
-}
-
-/*******************************
- * Alternative assert failure.
- */
-@trusted
-void util_assert(const(char)* file, int line)
-{
-    fflush(stdout);
-    printInternalFailure(stdout);
-    printf("Internal error: %s %d\n",file,line);
-    err_exit();
-//#if __clang__
-//    __builtin_unreachable();
-//#endif
 }
 
 /****************************

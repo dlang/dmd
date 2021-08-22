@@ -13,6 +13,7 @@ module dmd.chkformat;
 //import core.stdc.stdio : printf, scanf;
 import core.stdc.ctype : isdigit;
 
+import dmd.astenums;
 import dmd.cond;
 import dmd.errors;
 import dmd.expression;
@@ -1174,7 +1175,6 @@ unittest
          {
              idx = 0;
              assert(parsePrintfFormatSpecifier(s, idx, widthStar, precisionStar) == Format.error);
-             import std.stdio;
              assert(idx == s.length);
          }
      }

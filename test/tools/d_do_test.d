@@ -561,6 +561,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         testArgs.compileOutput = readText(testArgs.compileOutputFile)
                                     .unifyNewLine() // Avoid CRLF issues
                                     .strip();
+
+        // Only sanitize directory separators from file types that support standalone \
+        if (!testArgs.compileOutputFile.endsWith(".json"))
+            testArgs.compileOutput = testArgs.compileOutput.unifyDirSep(envData.sep);
     }
     else
         findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
@@ -610,11 +614,11 @@ string[] combinations(string argstr)
     return results;
 }
 
-/// Removes the file identified by `filename` if it exists
-void removeIfExists(in char[] filename)
+/// Tries to remove the file identified by `filename` and prints warning on failure
+void tryRemove(in char[] filename)
 {
-    if (std.file.exists(filename))
-        std.file.remove(filename);
+    if (auto ex = std.file.remove(filename).collectException())
+        debug writeln("WARNING: Failed to remove ", filename);
 }
 
 /**
@@ -698,7 +702,7 @@ string unifyDirSep(string str, string sep)
     }
     auto mStr = str.dup;
     auto remaining = mStr;
-    alias needles = AliasSeq!(".d", ".di", ".mixin");
+    alias needles = AliasSeq!(".d", ".di", ".mixin", ".c");
     enum needlesArray = [needles];
     // simple multi-delimiter word identification
     while (!remaining.empty)
@@ -763,6 +767,7 @@ unittest
     assert("fail_compilation\\foo.d\r\n".unifyDirSep("/") == "fail_compilation/foo.d\r\n");
     assert("\nfail_compilation\\foo.d".unifyDirSep("/") == "\nfail_compilation/foo.d");
     assert("\r\nfail_compilation\\foo.d".unifyDirSep("/") == "\r\nfail_compilation/foo.d");
+    assert("fail_compilation\\imports\\cfoo.c. A".unifyDirSep("/") == "fail_compilation/imports/cfoo.c. A");
     assert(("runnable\\xtest46_gc.d-mixin-37(220): Deprecation: `opDot` is deprecated. Use `alias this`\n"~
             "runnable\\xtest46_gc.d-mixin-37(222): Deprecation: `opDot` is deprecated. Use `alias this`").unifyDirSep("/") ==
            "runnable/xtest46_gc.d-mixin-37(220): Deprecation: `opDot` is deprecated. Use `alias this`\n"~
@@ -1174,7 +1179,7 @@ string generateDiff(const string expected, string expectedFile,
 {
     string actualFile = tempDir.buildPath("actual_" ~ name);
     File(actualFile, "w").writeln(actual); // Append \n
-    scope (exit) remove(actualFile);
+    scope (exit) tryRemove(actualFile);
 
     const needTmp = !expectedFile;
     if (needTmp) // Create a temporary file
@@ -1184,9 +1189,9 @@ string generateDiff(const string expected, string expectedFile,
     }
     // Remove temporary file
     scope (exit) if (needTmp)
-        remove(expectedFile);
+        tryRemove(expectedFile);
 
-    const cmd = ["diff", "-pu", "--strip-trailing-cr", expectedFile, actualFile];
+    const cmd = ["diff", "-up", "--strip-trailing-cr", expectedFile, actualFile];
     try
     {
         string diff = std.process.execute(cmd).output;
@@ -1226,10 +1231,31 @@ class CompareException : Exception
     }
 }
 
+/// Return code indicating that the test should be restarted.
+/// Issued when an OUTPUT section was changed due to AUTO_UPDATE=1.
+enum RERUN_TEST = 2;
+
 version(unittest) void main(){} else
 int main(string[] args)
 {
-    try { return tryMain(args); }
+    try
+    {
+        // Test may be run multiple times with AUTO_UPDATE=1 because updates
+        // to output sections may change line numbers.
+        // Set a hard limit to avoid infinite loops in fringe cases
+        foreach (_; 0 .. 10)
+        {
+            const res = tryMain(args);
+            if (res == RERUN_TEST)
+                writeln("==> Restarting test to verify new output section(s)...\n");
+            else
+                return res;
+        }
+
+        // Should never happen, but just to be sure
+        writeln("Output sections changed too many times, please update manually.");
+        return RERUN_TEST;
+    }
     catch(SilentQuit) { return 1; }
 }
 
@@ -1361,7 +1387,7 @@ int tryMain(string[] args)
         return 1;
     }
 
-    enum Result { continue_, return0, return1 }
+    enum Result { continue_, return0, return1, returnRerun }
 
     // Runs the test with a specific combination of arguments
     Result testCombination(bool autoCompileImports, string argSet, size_t permuteIndex, string permutedArgs)
@@ -1379,7 +1405,7 @@ int tryMain(string[] args)
                 fThisRun.close();
                 f.write(readText(thisRunName));
                 f.writeln();
-                std.file.remove(thisRunName); // Never reached unless file is present
+                tryRemove(thisRunName); // Never reached unless file is present
             }
 
             string compile_output;
@@ -1544,7 +1570,8 @@ int tryMain(string[] args)
                 execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true);
             }
 
-            foreach (file; toCleanup) collectException(std.file.remove(file));
+            foreach (file; chain(toCleanup, testArgs.outputFiles))
+                tryRemove(file);
             return Result.continue_;
         }
         catch(Exception e)
@@ -1576,21 +1603,23 @@ int tryMain(string[] args)
                 {
                     std.file.write(testArgs.compileOutputFile, ce.actual);
                     writefln("\n==> `TEST_OUTPUT_FILE` `%s` has been updated", testArgs.compileOutputFile);
-                    return Result.return0;
+                    return Result.returnRerun;
                 }
 
                 auto existingText = input_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
+                const type = ce.fromRun ? `RUN`:  `TEST`;
                 if (existingText != updatedText)
                 {
                     std.file.write(input_file, updatedText);
-                    writefln("\n==> `TEST_OUTPUT` of %s has been updated", input_file);
+                    writefln("\n==> `%s_OUTPUT` of %s has been updated", type, input_file);
+                    return Result.returnRerun;
                 }
                 else
                 {
-                    writefln("\nWARNING: %s has multiple `TEST_OUTPUT` blocks and can't be auto-updated", input_file);
+                    writefln("\nWARNING: %s has multiple `%s_OUTPUT` blocks and can't be auto-updated", input_file, type);
+                    return Result.return0;
                 }
-                return Result.return0;
             }
 
             const outputText = printTestFailure(input_file, f, e.msg);
@@ -1632,6 +1661,7 @@ int tryMain(string[] args)
                     case Result.continue_: break;
                     case Result.return0: return 0;
                     case Result.return1: return 1;
+                    case Result.returnRerun: return RERUN_TEST;
                 }
                 index++;
             }
@@ -1827,7 +1857,7 @@ string printTestFailure(string testLogName, scope ref File outfile, string extra
     if (extra)
         writefln("Test '%s' failed: %s\n", testLogName, extra);
 
-    remove(output_file_temp);
+    tryRemove(output_file_temp);
     return output;
 }
 

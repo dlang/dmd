@@ -2072,6 +2072,8 @@ private elem * elcom(elem *e, goal_t goal)
 @trusted
 private elem * elcond(elem *e, goal_t goal)
 {
+    //printf("elcond() goal = %d\n", goal);
+    //elem_print(e);
     elem *e1 = e.EV.E1;
     switch (e1.Eoper)
     {
@@ -2320,10 +2322,58 @@ private elem * elcond(elem *e, goal_t goal)
                 e.EV.E1.EV.E1 = e1;
             }
 
+            /* Replace:
+             *   *p op e ? p : false
+             * with:
+             *   bool
+             */
+            else if (goal == GOALflags &&
+                ec2.Eoper == OPconst && !boolres(ec2) &&
+                typtr(ec1.Ety) &&
+                ec1.Eoper == OPvar &&
+                OTbinary(e1.Eoper) &&
+                !OTsideff(e1.Eoper) &&
+                e1.EV.E1.Eoper == OPind &&
+                el_match(findPointer(e1.EV.E1.EV.E1), ec1) &&
+                !el_sideeffect(e))
+            {
+                /* NOTE: should optimize other cases of this
+                 */
+                el_free(e.EV.E2);
+                e.EV.E2 = null;
+                e.Eoper = OPbool;
+                e.Ety = TYint;
+            }
             break;
         }
     }
     return e;
+}
+
+/******************************
+ * Given an elem that is the operand to OPind,
+ * find the expression representing the pointer.
+ * Params:
+ *      e = operand to OPind
+ * Returns:
+ *      expression that represents the pointer
+ */
+@trusted
+private elem* findPointer(elem* e)
+{
+    if (e.Eoper == OPvar)
+        return e;
+    if (OTleaf(e.Eoper) || !(e.Eoper == OPadd || e.Eoper == OPmin))
+        return null;
+
+    if (typtr(e.EV.E1.Ety))
+        return findPointer(e.EV.E1);
+    if (OTbinary(e.Eoper))
+    {
+        if (typtr(e.EV.E2.Ety))
+            return findPointer(e.EV.E2);
+    }
+    return null;
 }
 
 
@@ -3150,7 +3200,7 @@ private elem * elbit(elem *e, goal_t goal)
             e.Eoper = OPu8_16;
             e.EV.E2 = null;
             el_free(e2);
-            goto L1;
+            return optelem(e,GOALvalue);         // optimize result
         }
 
         if (w + b == sz)                // if field is left-justified
@@ -3164,7 +3214,7 @@ private elem * elbit(elem *e, goal_t goal)
             e.Eoper = OPs8_16;
             e.EV.E2 = null;
             el_free(e2);
-            goto L1;
+            return optelem(e,GOALvalue);         // optimize result
         }
         m = ~cast(targ_ullong)0;
         c = sz - (w + b);
@@ -3176,10 +3226,15 @@ private elem * elbit(elem *e, goal_t goal)
     e2.EV.Vullong = m;                   // mask w bits wide
     e2.Ety = e.Ety;
 
-    e.EV.E1 = el_bin(OPshr,tym1,
+    OPER shift = OPshr;
+    version (MARS)
+    {
+        if (!tyuns(tym1))
+            shift = OPashr;
+    }
+    e.EV.E1 = el_bin(shift,tym1,
                 el_bin(OPshl,tym1,e.EV.E1,el_long(TYint,c)),
                 el_long(TYint,b));
-L1:
     return optelem(e,GOALvalue);         // optimize result
 }
 
@@ -3937,13 +3992,6 @@ static if (0)
 
    if (e1.Eoper == OPcomma)
         return cgel_lvalue(e);
-version (MARS)
-{
-    // No bit fields to deal with
-    return e;
-}
-else
-{
   if (e1.Eoper != OPbit)
         return e;
   if (e1.EV.E1.Eoper == OPcomma || OTassign(e1.EV.E1.Eoper))
@@ -3990,8 +4038,13 @@ else
         }
         else                            /* signed bit field             */
         {
+            OPER shift = OPshr;
+            version (MARS)
+            {
+                shift = OPashr;
+            }
             c = sz - w;                 /* e2 = (r << c) >> c           */
-            e2 = el_bin(OPshr,t,el_bin(OPshl,tyl,r,el_long(TYint,c)),el_long(TYint,c));
+            e2 = el_bin(shift,t,el_bin(OPshl,tyl,r,el_long(TYint,c)),el_long(TYint,c));
             pe = &e2.EV.E1.EV.E1;
         }
         eres = el_bin(OPcomma,t,eres,e2);
@@ -4004,7 +4057,6 @@ else
     e1.EV.E1 = e.EV.E2 = null;
     el_free(e);
     return optelem(eres,GOALvalue);
-}
 }
 
 /**********************************
@@ -4052,8 +4104,7 @@ private elem * elopass(elem *e, goal_t goal)
     {   e = fixconvop(e);
         return optelem(e,GOALvalue);
     }
-version (SCPP)   // have bit fields to worry about?
-{
+
     goal_t wantres = goal;
     if (e1.Eoper == OPbit)
     {
@@ -4132,7 +4183,7 @@ version (SCPP)   // have bit fields to worry about?
         e = optelem(eres,GOALvalue);
         return e;
     }
-}
+
     {
         if (e1.Eoper == OPcomma || OTassign(e1.Eoper))
             e = cgel_lvalue(e);    // replace (e,v)op=e2 with e,(v op= e2)

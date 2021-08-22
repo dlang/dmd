@@ -28,9 +28,9 @@ struct Outbuffer
 {
   @safe:
 
-    ubyte *buf;         // the buffer itself
-    ubyte *pend;        // pointer past the end of the buffer
-    private ubyte *p;   // current position in buffer
+    ubyte *buf;           // the buffer itself
+    private ubyte *pend;  // pointer past the end of the buffer
+    private ubyte *p;     // current position in buffer
 
   nothrow:
     this(size_t initialSize)
@@ -43,8 +43,8 @@ struct Outbuffer
     @trusted
     void dtor()
     {
-        if (auto slice = this.extractSlice())
-            free(slice.ptr);
+        free(buf);
+        buf = p = pend = null;
     }
 
     void reset()
@@ -52,8 +52,7 @@ struct Outbuffer
         p = buf;
     }
 
-    // Returns: A slice to the data written so far
-    extern(D) inout(ubyte)[] opSlice(size_t from, size_t to) inout
+    private extern(D) inout(ubyte)[] opSlice(size_t from, size_t to) inout
         @trusted pure nothrow @nogc
     {
         assert(this.buf, "Attempt to dereference a null pointer");
@@ -62,10 +61,10 @@ struct Outbuffer
         return this.buf[from .. to];
     }
 
-    /// Ditto
+    // Returns: A slice to the data written so far
     extern(D) inout(ubyte)[] opSlice() inout @trusted pure nothrow @nogc
     {
-        return this.buf[0 .. this.p - this.buf];
+        return this.buf[0 .. length];
     }
 
     extern(D) ubyte[] extractSlice() @safe pure nothrow @nogc
@@ -83,37 +82,45 @@ struct Outbuffer
      */
     void reserve(size_t nbytes)
     {
+        // non-inline function for the heavy/infrequent reallocation case
+        @trusted static void enlarge(ref Outbuffer b, size_t nbytes)
+        {
+            pragma(inline, false);  // do not inline slow path
+
+            if (b.buf is null)
+            {
+                // Special-case the overwhelmingly most frequent situation
+                if (nbytes < 64)
+                    nbytes = 64;
+                b.p = b.buf = cast(ubyte*) malloc(nbytes);
+                b.pend = b.buf + nbytes;
+            }
+            else
+            {
+                const size_t used = b.p - b.buf;
+                const size_t oldlen = b.pend - b.buf;
+                // Ensure exponential growth, oldlen * 2 for small sizes, oldlen * 1.5 for big sizes
+                const size_t minlen = oldlen + (oldlen >> (oldlen > 1024 * 64));
+
+                size_t len = used + nbytes;
+                if (len < minlen)
+                    len = minlen;
+                // Round up to cache line size
+                len = (len + 63) & ~63;
+
+                b.buf = cast(ubyte*) realloc(b.buf, len);
+
+                b.pend = b.buf + len;
+                b.p = b.buf + used;
+            }
+            if (!b.buf)
+                err_nomem();
+        }
+
         // Keep small so it is inlined
         if (pend - p < nbytes)
-            enlarge(nbytes);
+            enlarge(this, nbytes);
     }
-
-    // Reserve nbytes in buffer
-    @trusted
-    void enlarge(size_t nbytes)
-    {
-        pragma(inline, false);  // do not inline slow path
-        const size_t oldlen = pend - buf;
-        const size_t used = p - buf;
-
-        size_t len = used + nbytes;
-        // No need to reallocate
-        if (nbytes < (pend - p))
-            return;
-
-        const size_t newlen = oldlen + (oldlen >> 1);   // oldlen * 1.5
-        if (len < newlen)
-            len = newlen;
-        len = (len + 15) & ~15;
-
-        buf = cast(ubyte*) realloc(buf,len);
-        if (!buf)
-            err_nomem();
-
-        pend = buf + len;
-        p = buf + used;
-    }
-
 
     // Write n zeros; return pointer to start of zeros
     @trusted
@@ -204,63 +211,23 @@ struct Outbuffer
     }
 
     /**
-     * Writes a 32 bit int, no reserve check.
+     * Writes a 32 bit int.
      */
-    @trusted
-    void write32n(int v)
+    @trusted void write32(int v)
     {
+        reserve(4);
         *cast(int *)p = v;
         p += 4;
     }
 
     /**
-     * Writes a 32 bit int.
-     */
-    void write32(int v)
-    {
-        reserve(4);
-        write32n(v);
-    }
-
-    /**
-     * Writes a 64 bit long, no reserve check
-     */
-    @trusted
-    void write64n(long v)
-    {
-        *cast(long *)p = v;
-        p += 8;
-    }
-
-    /**
      * Writes a 64 bit long.
      */
-    void write64(long v)
+    @trusted void write64(long v)
     {
         reserve(8);
-        write64n(v);
-    }
-
-    /**
-     * Writes a 32 bit float.
-     */
-    @trusted
-    void writeFloat(float v)
-    {
-        reserve(float.sizeof);
-        *cast(float *)p = v;
-        p += float.sizeof;
-    }
-
-    /**
-     * Writes a 64 bit double.
-     */
-    @trusted
-    void writeDouble(double v)
-    {
-        reserve(double.sizeof);
-        *cast(double *)p = v;
-        p += double.sizeof;
+        *cast(long *)p = v;
+        p += 8;
     }
 
     /**

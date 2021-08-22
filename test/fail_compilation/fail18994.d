@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18994.d(19): Error: struct `fail18994.Type1` is not copyable because it is annotated with `@disable`
+fail_compilation/fail18994.d(19): Error: struct `fail18994.Type1` is not copyable because it has a disabled postblit
 ---
 */
 struct Type2

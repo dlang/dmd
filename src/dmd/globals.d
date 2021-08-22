@@ -17,35 +17,40 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.identifier;
 
+/// Defines a setting for how compiler warnings and deprecations are handled
 enum DiagnosticReporting : ubyte
 {
-    error,        // generate an error
-    inform,       // generate a warning
-    off,          // disable diagnostic
+    error,        /// generate an error
+    inform,       /// generate a warning
+    off,          /// disable diagnostic
 }
 
+/// How code locations are formatted for diagnostic reporting
 enum MessageStyle : ubyte
 {
-    digitalmars,  // filename.d(line): message
-    gnu,          // filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
+    digitalmars,  /// filename.d(line): message
+    gnu,          /// filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
 }
 
+/// In which context checks for assertions, contracts, bounds checks etc. are enabled
 enum CHECKENABLE : ubyte
 {
-    _default,     // initial value
-    off,          // never do checking
-    on,           // always do checking
-    safeonly,     // do checking only in @safe functions
+    _default,     /// initial value
+    off,          /// never do checking
+    on,           /// always do checking
+    safeonly,     /// do checking only in @safe functions
 }
 
+/// What should happend when an assertion fails
 enum CHECKACTION : ubyte
 {
-    D,            // call D assert on failure
-    C,            // call C assert on failure
-    halt,         // cause program halt on failure
-    context,      // call D assert with the error context on failure
+    D,            /// call D assert on failure
+    C,            /// call C assert on failure
+    halt,         /// cause program halt on failure
+    context,      /// call D assert with the error context on failure
 }
 
+/// Position Indepent Code setting
 enum PIC : ubyte
 {
     fixed,              /// located at a specific address
@@ -67,6 +72,7 @@ enum JsonFieldFlags : uint
     semantics    = (1 << 3),
 }
 
+/// Version of C++ standard to support
 enum CppStdRevision : uint
 {
     cpp98 = 1997_11,
@@ -92,7 +98,7 @@ enum FeatureState : byte
     enabled = 1    /// Specified as `-preview=`
 }
 
-// Put command line switches in here
+/// Put command line switches in here
 extern (C++) struct Param
 {
     bool obj = true;        // write object file
@@ -120,6 +126,7 @@ extern (C++) struct Param
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     FeatureState useDIP25;  // implement http://wiki.dlang.org/DIP25
+    FeatureState useDIP1000; // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
     bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
@@ -149,7 +156,6 @@ extern (C++) struct Param
      * used to hide a feature that will have to go through deprecate-then-error
      * before becoming default.
      */
-    bool vsafe;             // use enhanced @safe checking
     bool ehnogc;            // use @nogc exception handling
     FeatureState dtorFields; // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
@@ -261,46 +267,60 @@ alias structalign_t = uint;
 // other values are all powers of 2
 enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 
-enum mars_ext = "d";
+enum mars_ext = "d";        // for D source files
 enum doc_ext  = "html";     // for Ddoc generated files
 enum ddoc_ext = "ddoc";     // for Ddoc macro include files
 enum dd_ext   = "dd";       // for Ddoc source files
 enum hdr_ext  = "di";       // for D 'header' import files
 enum json_ext = "json";     // for JSON files
 enum map_ext  = "map";      // for .map files
+enum c_ext    = "c";        // for C source files
+enum i_ext    = "i";        // for preprocessed C source file
 
+/**
+ * Collection of global compiler settings and global state used by the frontend
+ */
 extern (C++) struct Global
 {
-    const(char)[] inifilename;
+    const(char)[] inifilename; /// filename of configuration file as given by `-conf=`, or default value
 
     string copyright = "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
-    Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
-    Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
+    Array!(const(char)*)* path;         /// Array of char*'s which form the import lookup path
+    Array!(const(char)*)* filePath;     /// Array of char*'s which form the file import lookup path
 
     private enum string _version = import("VERSION");
     private enum uint _versionNumber = parseVersionNumber(_version);
 
-    const(char)[] vendor;    // Compiler backend name
+    const(char)[] vendor;   /// Compiler backend name
 
-    Param params;
-    uint errors;            // number of errors reported so far
-    uint warnings;          // number of warnings reported so far
-    uint gag;               // !=0 means gag reporting of errors & warnings
-    uint gaggedErrors;      // number of errors reported while gagged
-    uint gaggedWarnings;    // number of warnings reported while gagged
+    Param params;           /// command line parameters
+    uint errors;            /// number of errors reported so far
+    uint warnings;          /// number of warnings reported so far
+    uint gag;               /// !=0 means gag reporting of errors & warnings
+    uint gaggedErrors;      /// number of errors reported while gagged
+    uint gaggedWarnings;    /// number of warnings reported while gagged
 
-    void* console;         // opaque pointer to console for controlling text attributes
+    void* console;         /// opaque pointer to console for controlling text attributes
 
-    Array!Identifier* versionids;    // command line versions and predefined versions
-    Array!Identifier* debugids;      // command line debug versions and predefined versions
+    Array!Identifier* versionids; /// command line versions and predefined versions
+    Array!Identifier* debugids;   /// command line debug versions and predefined versions
 
-    enum recursionLimit = 500; // number of recursive template expansions before abort
+    enum recursionLimit = 500; /// number of recursive template expansions before abort
 
   nothrow:
 
-    /* Start gagging. Return the current number of gagged errors
+    /**
+     * Start ignoring compile errors instead of reporting them.
+     *
+     * Used for speculative compilation like `__traits(compiles, XXX)`, but also internally
+     * to e.g. try out an `alias this` rewrite without comitting to it.
+     *
+     * Works like a stack, so N calls to `startGagging` should be paired with N
+     * calls to `endGagging`.
+     *
+     * Returns: the current number of gagged errors, which should later be passed to `endGagging`
      */
     extern (C++) uint startGagging()
     {
@@ -309,8 +329,12 @@ extern (C++) struct Global
         return gaggedErrors;
     }
 
-    /* End gagging, restoring the old gagged state.
-     * Return true if errors occurred while gagged.
+    /**
+     * Stop gagging, restoring the old gagged state before the most recent call to `startGagging`.
+     *
+     * Params:
+     *   oldGagged = the previous number of errors, as returned by `startGagging`
+     * Returns: true if errors occurred while gagged.
      */
     extern (C++) bool endGagging(uint oldGagged)
     {
@@ -323,9 +347,10 @@ extern (C++) struct Global
         return anyErrs;
     }
 
-    /*  Increment the error count to record that an error
-     *  has occurred in the current context. An error message
-     *  may or may not have been printed.
+    /**
+     * Increment the error count to record that an error has occurred in the current context.
+     *
+     * An error message may or may not have been printed.
      */
     extern (C++) void increaseErrorCount()
     {
@@ -341,8 +366,8 @@ extern (C++) struct Global
             vendor = "Digital Mars D";
 
             // -color=auto is the default value
-            import dmd.console : Console;
-            params.color = Console.detectTerminal();
+            import dmd.console : detectTerminal;
+            params.color = detectTerminal();
         }
         else version (IN_GCC)
         {
@@ -453,16 +478,22 @@ version (DMDLIB)
     version = LocOffset;
 }
 
-// file location
+/**
+A source code location
+
+Used for error messages, `__FILE__` and `__LINE__` tokens, `__traits(getLocation, XXX)`,
+debug info etc.
+*/
 struct Loc
 {
-    const(char)* filename; // either absolute or relative to cwd
-    uint linnum;
-    uint charnum;
+    /// zero-terminated filename string, either absolute or relative to cwd
+    const(char)* filename;
+    uint linnum; /// line number, starting from 1
+    uint charnum; /// utf8 code unit index relative to start of line, starting from 1
     version (LocOffset)
-        uint fileOffset;
+        uint fileOffset; /// utf8 code unit index relative to start of file, starting from 0
 
-    static immutable Loc initial;       /// use for default initialization of const ref Loc's
+    static immutable Loc initial; /// use for default initialization of const ref Loc's
 
 nothrow:
     extern (D) this(const(char)* filename, uint linnum, uint charnum) pure
@@ -509,10 +540,12 @@ nothrow:
         return buf.extractChars();
     }
 
-    /* Checks for equivalence,
-     * a) comparing the filename contents (not the pointer), case-
-     *    insensitively on Windows, and
-     * b) ignoring charnum if `global.params.showColumns` is false.
+    /**
+     * Checks for equivalence by comparing the filename contents (not the pointer) and character location.
+     *
+     * Note:
+     *  - Uses case-insensitive comparison on Windows
+     *  - Ignores `charnum` if `global.params.showColumns` is false.
      */
     extern (C++) bool equals(ref const(Loc) loc) const
     {
@@ -521,7 +554,8 @@ nothrow:
                FileName.equals(filename, loc.filename);
     }
 
-    /* opEquals() / toHash() for AA key usage:
+    /**
+     * `opEquals()` / `toHash()` for AA key usage
      *
      * Compare filename contents (case-sensitively on Windows too), not
      * the pointer - a static foreach loop repeatedly mixing in a mixin
@@ -538,6 +572,7 @@ nothrow:
                 (filename && loc.filename && strcmp(filename, loc.filename) == 0));
     }
 
+    /// ditto
     extern (D) size_t toHash() const @trusted pure nothrow
     {
         import dmd.root.string : toDString;
@@ -558,6 +593,9 @@ nothrow:
     }
 }
 
+/// A linkage attribute as defined by `extern(XXX)`
+///
+/// https://dlang.org/spec/attribute.html#linkage
 enum LINK : ubyte
 {
     default_,
@@ -569,28 +607,34 @@ enum LINK : ubyte
     system,
 }
 
+/// Whether to mangle an external aggregate as a struct or class, as set by `extern(C++, struct)`
 enum CPPMANGLE : ubyte
 {
-    def,
-    asStruct,
-    asClass,
+    def,      /// default
+    asStruct, /// `extern(C++, struct)`
+    asClass,  /// `extern(C++, class)`
 }
 
+/// Function match levels
+///
+/// https://dlang.org/spec/function.html#function-overloading
 enum MATCH : int
 {
-    nomatch,   // no match
-    convert,   // match with conversions
-    constant,  // match with conversion to const
-    exact,     // exact match
+    nomatch,   /// no match
+    convert,   /// match with conversions
+    constant,  /// match with conversion to const
+    exact,     /// exact match
 }
 
+/// Inline setting as defined by `pragma(inline, XXX)`
 enum PINLINE : ubyte
 {
-    default_,     // as specified on the command line
-    never,   // never inline
-    always,  // always inline
+    default_, /// as specified on the command line
+    never,    /// never inline
+    always,   /// always inline
 }
 
 alias StorageClass = uinteger_t;
 
+/// Collection of global state
 extern (C++) __gshared Global global;

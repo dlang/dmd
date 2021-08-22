@@ -20,6 +20,7 @@ import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.backend.type;
 import dmd.complex;
 import dmd.ctfeexpr;
@@ -79,6 +80,9 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
     void visitStruct(StructInitializer si)
     {
+        /* The StructInitializer was converted to a StructLiteralExp,
+         * which is converted to dtb by membersToDt()
+         */
         //printf("StructInitializer.toDt('%s')\n", si.toChars());
         assert(0);
     }
@@ -197,6 +201,56 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         Expression_toDt(ei.exp, dtb);
     }
 
+    void visitC(CInitializer ci)
+    {
+        //printf("CInitializer.toDt() (%s) %s\n", ci.type.toChars(), ci.toChars());
+
+        /* append all initializers to dtb
+         */
+        auto dil = ci.initializerList[];
+        size_t i = 0;
+
+        /* Support recursion to handle un-braced array initializers
+         * Params:
+         *    t = element type
+         *    dim = number of elements
+         */
+        void array(Type t, size_t dim)
+        {
+            //printf(" type %s i %d dim %d dil.length = %d\n", t.toChars(), cast(int)i, cast(int)dim, cast(int)dil.length);
+            auto tn = t.nextOf().toBasetype();
+            auto tnsa = tn.isTypeSArray();
+            const nelems = tnsa ? cast(size_t)tnsa.dim.toInteger() : 0;
+
+            foreach (j; 0 .. dim)
+            {
+                if (i == dil.length)
+                {
+                    if (j < dim)
+                    {   // Not enough initializers, fill in with 0
+                        const size = cast(uint)tn.size();
+                        dtb.nzeros(cast(uint)(size * (dim - j)));
+                    }
+                    break;
+                }
+                auto di = dil[i];
+                assert(!di.designatorList);
+                if (tnsa && di.initializer.isExpInitializer())
+                {
+                    // no braces enclosing array initializer, so recurse
+                    array(tnsa, nelems);
+                }
+                else
+                {
+                    ++i;
+                    Initializer_toDt(di.initializer, dtb);
+                }
+            }
+        }
+
+        array(ci.type, cast(size_t)ci.type.isTypeSArray().dim.toInteger());
+    }
+
     final switch (init.kind)
     {
         case InitKind.void_:   return visitVoid  (cast(  VoidInitializer)init);
@@ -204,6 +258,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         case InitKind.struct_: return visitStruct(cast(StructInitializer)init);
         case InitKind.array:   return visitArray (cast( ArrayInitializer)init);
         case InitKind.exp:     return visitExp   (cast(   ExpInitializer)init);
+        case InitKind.C_:      return visitC     (cast(     CInitializer)init);
     }
 }
 
@@ -1238,7 +1293,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         /* Put out:
-         *  char[] name;
+         *  char[] mangledName;
          *  void[] init;
          *  hash_t function(in void*) xtoHash;
          *  bool function(in void*, in void*) xopEquals;
@@ -1255,9 +1310,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
          *  xgetRTInfo
          */
 
-        const name = sd.toPrettyChars();
-        const namelen = strlen(name);
-        dtb.size(namelen);
+        const mangledName = tc.deco;
+        const mangledNameLen = strlen(mangledName);
+        dtb.size(mangledNameLen);
         dtb.xoff(d.csym, Type.typeinfostruct.structsize);
 
         // void[] init;
@@ -1355,8 +1410,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         else
             dtb.size(0);
 
-        // Put out name[] immediately following TypeInfo_Struct
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        // Put out mangledName[] immediately following TypeInfo_Struct
+        dtb.nbytes(cast(uint)(mangledNameLen + 1), mangledName);
     }
 
     override void visit(TypeInfoClassDeclaration d)

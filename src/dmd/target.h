@@ -59,9 +59,9 @@ struct TargetC
         UClibc,
         WASI,
     };
-    unsigned longsize;            // size of a C 'long' or 'unsigned long' type
-    unsigned long_doublesize;     // size of a C 'long double'
-    unsigned wchar_tsize;         // size of a C 'wchar_t' type
+    uint8_t longsize;            // size of a C 'long' or 'unsigned long' type
+    uint8_t long_doublesize;     // size of a C 'long double'
+    uint8_t wchar_tsize;         // size of a C 'wchar_t' type
     Runtime runtime;
 };
 
@@ -119,13 +119,14 @@ struct Target
     };
 
     OS os;
+    uint8_t osMajor;
     // D ABI
-    unsigned ptrsize;
-    unsigned realsize;           // size a real consumes in memory
-    unsigned realpad;            // 'padding' added to the CPU real size to bring it up to realsize
-    unsigned realalignsize;      // alignment for reals
-    unsigned classinfosize;      // size of 'ClassInfo'
-    unsigned long long maxStaticDataSize;  // maximum size of static data
+    uint8_t ptrsize;
+    uint8_t realsize;           // size a real consumes in memory
+    uint8_t realpad;            // 'padding' added to the CPU real size to bring it up to realsize
+    uint8_t realalignsize;      // alignment for reals
+    uint8_t classinfosize;      // size of 'ClassInfo'
+    uint64_t maxStaticDataSize; // maximum size of static data
 
     // C ABI
     TargetC c;
@@ -176,11 +177,12 @@ private:
 public:
     void _init(const Param& params);
     // Type sizes and support.
+    void setTriple(const char* _triple);
     unsigned alignsize(Type *type);
     unsigned fieldalign(Type *type);
     Type *va_listType(const Loc &loc, Scope *sc);  // get type of va_list
     int isVectorTypeSupported(int sz, Type *type);
-    bool isVectorOpSupported(Type *type, TOK op, Type *t2 = NULL);
+    bool isVectorOpSupported(Type *type, unsigned op, Type *t2 = NULL);
     // ABI and backend.
     LINK systemLinkage();
     TypeTuple *toArgTypes(Type *t);

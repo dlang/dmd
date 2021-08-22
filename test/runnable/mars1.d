@@ -2091,6 +2091,37 @@ void testsbbrex()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=19846
+
+alias Void = byte[0];
+static immutable Void VOID; // = [];
+
+__gshared int x19846;
+
+Void print19846()
+{
+    //printf("This should print\n");
+    x19846 = 3;
+    return VOID;
+}
+
+Void identity19846(Void value, out int i)
+{
+    i = 7;
+    return value;
+}
+
+void test19846()
+{
+    int i;
+    identity19846(print19846(), i);
+    //printf("i = %d\n", i);
+    assert(x19846 == 3);
+    assert(i == 7);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 // Some tests for OPmemcpy
 
 enum N = 128;
@@ -2207,7 +2238,6 @@ void test21038()
 }
 
 ////////////////////////////////////////////////////////////////////////
-
 // https://issues.dlang.org/show_bug.cgi?id=21325
 
 real f21325(const real x) pure @safe nothrow @nogc
@@ -2230,34 +2260,30 @@ void test21325() @safe
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=16274
 
-// https://issues.dlang.org/show_bug.cgi?id=19846
+extern(C) int pair(short a, ushort b, byte c, ubyte d);
 
-alias Void = byte[0];
-static immutable Void VOID; // = [];
-
-__gshared int x19846;
-
-Void print19846()
+struct S
 {
-    //printf("This should print\n");
-    x19846 = 3;
-    return VOID;
+    // provide alternate implementation of .pair()
+    pragma(mangle, "pair")
+    extern(C) static void pair(int a, int b, int c, int d)
+    {
+        //printf("%d %d %d %d\n", a, b, c, d);
+        assert(a == -1);
+        assert(b == 2);
+        assert(c == -3);
+        assert(d == 4);
+    }
 }
 
-Void identity19846(Void value, out int i)
+void test16274()
 {
-    i = 7;
-    return value;
-}
-
-void test19846()
-{
-    int i;
-    identity19846(print19846(), i);
-    //printf("i = %d\n", i);
-    assert(x19846 == 3);
-    assert(i == 7);
+    version (X86_64)
+        pair(-1, 2, -3, 4);
+    version (X86)
+        pair(-1, 2, -3, 4);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -2526,12 +2552,13 @@ int main()
     test20162();
     test3713();
     testsbbrex();
+    test19846();
     testmemcpy();
     testMulLea();
     testMulAssPair();
     test21038();
     test21325();
-    test19846();
+    test16274();
     test16268();
     test11435a();
     test11435b();

@@ -47,6 +47,8 @@ on:
 jobs:
   main:
     name: Run
+    if: github.repository == 'dlang/dmd'
+
     strategy:
       # Since those tests takes very little time, don't use `fail-fast`.
       # If runtime expand, we might want to comment this out,

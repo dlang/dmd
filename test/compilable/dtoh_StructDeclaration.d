@@ -17,7 +17,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -39,10 +39,7 @@ struct _d_dynamicArray
 };
 #endif
 
-struct S;
-struct Inner;
-
-struct S
+struct S final
 {
     int8_t a;
     int32_t b;
@@ -63,7 +60,7 @@ struct S
         {}
 };
 
-struct S2
+struct S2 final
 {
     int32_t a;
     int32_t b;
@@ -79,7 +76,7 @@ struct S2
     }
 };
 
-struct S3
+struct S3 final
 {
     int32_t a;
     int32_t b;
@@ -93,7 +90,7 @@ struct S3
     }
 };
 
-struct S4
+struct S4 final
 {
     int32_t a;
     int64_t b;
@@ -115,7 +112,7 @@ struct S4
 };
 
 #pragma pack(push, 1)
-struct Aligned
+struct Aligned final
 {
     int8_t a;
     int32_t b;
@@ -130,7 +127,7 @@ struct Aligned
 };
 #pragma pack(pop)
 
-struct Null
+struct Null final
 {
     void* field;
     Null() :
@@ -142,7 +139,7 @@ struct Null
         {}
 };
 
-struct A
+struct A final
 {
     int32_t a;
     S s;
@@ -158,7 +155,7 @@ struct A
         int32_t u1;
         char u2[4$?:32=u|64=LLU$];
     };
-    struct Inner
+    struct Inner final
     {
         int32_t x;
         Inner() :

@@ -18,6 +18,7 @@ module dmd.constfold;
 import core.stdc.string;
 import core.stdc.stdio;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;
@@ -1497,11 +1498,10 @@ private Expressions* copyElements(Expression e1, Expression e2 = null)
 
 /* Also return TOK.cantExpression if this fails
  */
-UnionExp Cat(Type type, Expression e1, Expression e2)
+UnionExp Cat(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
     Expression e = CTFEExp.cantexp;
-    Loc loc = e1.loc;
     Type t;
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
@@ -1731,7 +1731,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
                 ? copyElements(e1) : new Expressions();
         elems.push(e2);
 
-        emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, cast(Type)null, elems);
+        emplaceExp!(ArrayLiteralExp)(&ue, loc, cast(Type)null, elems);
 
         e = ue.exp();
         if (type.toBasetype().ty == Tsarray)
@@ -1747,7 +1747,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
     {
         auto elems = copyElements(e1, e2);
 
-        emplaceExp!(ArrayLiteralExp)(&ue, e2.loc, cast(Type)null, elems);
+        emplaceExp!(ArrayLiteralExp)(&ue, loc, cast(Type)null, elems);
 
         e = ue.exp();
         if (type.toBasetype().ty == Tsarray)

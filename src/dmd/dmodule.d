@@ -19,6 +19,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.compiler;
 import dmd.gluelayer;
 import dmd.dimport;
@@ -34,6 +35,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.parse;
+import dmd.cparse;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
@@ -47,14 +49,6 @@ import dmd.semantic3;
 import dmd.target;
 import dmd.utils;
 import dmd.visitor;
-
-version(Windows) {
-    extern (C) char* getcwd(char* buffer, size_t maxlen);
-} else {
-    import core.sys.posix.unistd : getcwd;
-}
-
-/* ===========================  ===================== */
 
 enum package_d  = "package." ~ mars_ext;
 enum package_di = "package." ~ hdr_ext;
@@ -72,16 +66,29 @@ enum package_di = "package." ~ hdr_ext;
  */
 private const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
 {
-    /* Search along path[] for .di file, then .d file.
+    //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
+    /* Search along path[] for .di file, then .d file, then .i file, then .c file.
      */
     const sdi = FileName.forceExt(filename, hdr_ext);
     if (FileName.exists(sdi) == 1)
         return sdi;
     scope(exit) FileName.free(sdi.ptr);
+
     const sd = FileName.forceExt(filename, mars_ext);
     if (FileName.exists(sd) == 1)
         return sd;
     scope(exit) FileName.free(sd.ptr);
+
+    const si = FileName.forceExt(filename, i_ext);
+    if (FileName.exists(si) == 1)
+        return si;
+    scope(exit) FileName.free(si.ptr);
+
+    const sc = FileName.forceExt(filename, c_ext);
+    if (FileName.exists(sc) == 1)
+        return sc;
+    scope(exit) FileName.free(sc.ptr);
+
     if (FileName.exists(filename) == 2)
     {
         /* The filename exists and it's a directory.
@@ -92,6 +99,7 @@ private const(char)[] lookForSourceFile(const char[] filename, const char*[] pat
         if (FileName.exists(ni) == 1)
             return ni;
         FileName.free(ni.ptr);
+
         const n = FileName.combine(filename, package_d);
         if (FileName.exists(n) == 1)
             return n;
@@ -104,16 +112,31 @@ private const(char)[] lookForSourceFile(const char[] filename, const char*[] pat
     foreach (entry; path)
     {
         const p = entry.toDString();
+
         const(char)[] n = FileName.combine(p, sdi);
         if (FileName.exists(n) == 1) {
             return n;
         }
         FileName.free(n.ptr);
+
         n = FileName.combine(p, sd);
         if (FileName.exists(n) == 1) {
             return n;
         }
         FileName.free(n.ptr);
+
+        n = FileName.combine(p, si);
+        if (FileName.exists(n) == 1) {
+            return n;
+        }
+        FileName.free(n.ptr);
+
+        n = FileName.combine(p, sc);
+        if (FileName.exists(n) == 1) {
+            return n;
+        }
+        FileName.free(n.ptr);
+
         const b = FileName.removeExt(filename);
         n = FileName.combine(p, b);
         FileName.free(b.ptr);
@@ -230,13 +253,6 @@ private const(char)[] getFilename(Identifier[] packages, Identifier ident)
     filename = buf.extractSlice()[0 .. $ - 1];
 
     return filename;
-}
-
-enum PKG : int
-{
-    unknown,     // not yet determined whether it's a package.d or not
-    module_,      // already determined that's an actual package.d
-    package_,     // already determined that's an actual package
 }
 
 /***********************************************************
@@ -445,6 +461,7 @@ extern (C++) final class Module : Package
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
     bool isHdrFile;             // if it is a header (.di) file
+    bool isCFile;               // if it is a C (.c) file
     bool isDocFile;             // if it is a documentation input file, not D source
     bool hasAlwaysInlines;      // contains references to functions that must be inlined
     bool isPackageFile;         // if it is a package.d
@@ -452,6 +469,7 @@ extern (C++) final class Module : Package
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
+    Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
 
     /*************************************
      * Return true if module imports itself.
@@ -461,11 +479,11 @@ extern (C++) final class Module : Package
         //printf("Module::selfImports() %s\n", toChars());
         if (selfimports == 0)
         {
-            for (size_t i = 0; i < amodules.dim; i++)
-                amodules[i].insearch = 0;
+            foreach (Module m; amodules)
+                m.insearch = 0;
             selfimports = imports(this) + 1;
-            for (size_t i = 0; i < amodules.dim; i++)
-                amodules[i].insearch = 0;
+            foreach (Module m; amodules)
+                m.insearch = 0;
         }
         return selfimports == 2;
     }
@@ -480,20 +498,19 @@ extern (C++) final class Module : Package
         //printf("Module::rootImports() %s\n", toChars());
         if (rootimports == 0)
         {
-            for (size_t i = 0; i < amodules.dim; i++)
-                amodules[i].insearch = 0;
+            foreach (Module m; amodules)
+                m.insearch = 0;
             rootimports = 1;
-            for (size_t i = 0; i < amodules.dim; ++i)
+            foreach (Module m; amodules)
             {
-                Module m = amodules[i];
                 if (m.isRoot() && imports(m))
                 {
                     rootimports = 2;
                     break;
                 }
             }
-            for (size_t i = 0; i < amodules.dim; i++)
-                amodules[i].insearch = 0;
+            foreach (Module m; amodules)
+                m.insearch = 0;
         }
         return rootimports == 2;
     }
@@ -525,7 +542,7 @@ extern (C++) final class Module : Package
     Identifiers* versionidsNot; // forward referenced version identifiers
 
     MacroTable macrotable;      // document comment macros
-    Escape* escapetable;        // document comment escapes
+    Escape* _escapetable;       // document comment escapes
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -534,7 +551,7 @@ extern (C++) final class Module : Package
     {
         super(loc, ident);
         const(char)[] srcfilename;
-        //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident.toChars());
+        //printf("Module::Module(filename = '%.*s', ident = '%s')\n", cast(int)filename.length, filename.ptr, ident.toChars());
         this.arg = filename;
         srcfilename = FileName.defaultExt(filename, mars_ext);
         if (target.run_noext && global.params.run &&
@@ -547,6 +564,8 @@ extern (C++) final class Module : Package
         }
         else if (!FileName.equalsExt(srcfilename, mars_ext) &&
                  !FileName.equalsExt(srcfilename, hdr_ext) &&
+                 !FileName.equalsExt(srcfilename, c_ext) &&
+                 !FileName.equalsExt(srcfilename, i_ext) &&
                  !FileName.equalsExt(srcfilename, dd_ext))
         {
 
@@ -562,7 +581,6 @@ extern (C++) final class Module : Package
             setDocfile();
         if (doHdrGen)
             hdrfile = setOutfilename(global.params.hdrname, global.params.hdrdir, arg, hdr_ext);
-        escapetable = new Escape();
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
@@ -582,7 +600,7 @@ extern (C++) final class Module : Package
 
     extern (C++) static Module load(Loc loc, Identifiers* packages, Identifier ident)
     {
-        return load(loc, (*packages)[], ident);
+        return load(loc, packages ? (*packages)[] : null, ident);
     }
 
     extern (D) static Module load(Loc loc, Identifier[] packages, Identifier ident)
@@ -777,8 +795,6 @@ extern (C++) final class Module : Package
     /// ditto
     extern (D) Module parseModule(AST)()
     {
-
-
         enum Endian { little, big}
         enum SourceEncoding { utf16, utf32}
 
@@ -1035,6 +1051,21 @@ extern (C++) final class Module : Package
         {
             isHdrFile = true;
         }
+
+        /* If it has the extension ".c", it is a "C" file.
+         * If it has the extension ".i", it is a preprocessed "C" file.
+         */
+        if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext))
+        {
+            isCFile = true;
+
+            scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c);
+            p.nextToken();
+            members = p.parseModule();
+            md = p.md;
+            numlines = p.scanloc.linnum;
+        }
+        else
         {
             scope p = new Parser!AST(this, buf, cast(bool) docfile);
             p.nextToken();
@@ -1392,7 +1423,7 @@ extern (C++) final class Module : Package
             memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
             deferred.setDim(0);
 
-            for (size_t i = 0; i < len; i++)
+            foreach (i; 0..len)
             {
                 Dsymbol s = todo[i];
                 s.dsymbolSemantic(null);
@@ -1443,11 +1474,8 @@ extern (C++) final class Module : Package
 
     extern (D) static void clearCache()
     {
-        for (size_t i = 0; i < amodules.dim; i++)
-        {
-            Module m = amodules[i];
+        foreach (Module m; amodules)
             m.searchCacheIdent = null;
-        }
     }
 
     /************************************
@@ -1460,15 +1488,11 @@ extern (C++) final class Module : Package
         //printf("%s Module::imports(%s)\n", toChars(), m.toChars());
         version (none)
         {
-            for (size_t i = 0; i < aimports.dim; i++)
-            {
-                Module mi = cast(Module)aimports.data[i];
-                printf("\t[%d] %s\n", i, mi.toChars());
-            }
+            foreach (i, Module mi; aimports)
+                printf("\t[%d] %s\n", cast(int) i, mi.toChars());
         }
-        for (size_t i = 0; i < aimports.dim; i++)
+        foreach (Module mi; aimports)
         {
-            Module mi = aimports[i];
             if (mi == m)
                 return true;
             if (!mi.insearch)
@@ -1532,6 +1556,16 @@ extern (C++) final class Module : Package
             buf.prependstring(".");
             buf.prependstring(package_.ident.toChars());
         }
+    }
+
+    /** Lazily initializes and returns the escape table.
+    Turns out it eats a lot of memory.
+    */
+    extern(D) Escape* escapetable()
+    {
+        if (!_escapetable)
+            _escapetable = new Escape();
+        return _escapetable;
     }
 }
 

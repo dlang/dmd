@@ -18,7 +18,7 @@ TEST_OUTPUT:
 #else
 /// Represents a D [] array
 template<typename T>
-struct _d_dynamicArray
+struct _d_dynamicArray final
 {
     size_t length;
     T *ptr;
@@ -40,7 +40,7 @@ struct _d_dynamicArray
 };
 #endif
 
-struct S1
+struct S1 final
 {
     int32_t a;
 protected:
@@ -55,7 +55,7 @@ public:
     }
 };
 
-class S2
+class S2 final
 {
 public:
     int32_t af();
@@ -90,12 +90,12 @@ protected:
     int32_t df();
 };
 
-struct Outer
+struct Outer final
 {
 private:
     int32_t privateOuter;
 public:
-    struct PublicInnerStruct
+    struct PublicInnerStruct final
     {
     private:
         int32_t privateInner;
@@ -111,7 +111,7 @@ public:
     };
 
 private:
-    struct PrivateInnerClass
+    struct PrivateInnerClass final
     {
     private:
         int32_t privateInner;

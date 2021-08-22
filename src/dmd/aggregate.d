@@ -20,7 +20,7 @@ import core.checkedint;
 import dmd.aliasthis;
 import dmd.apply;
 import dmd.arraytypes;
-import dmd.gluelayer : Symbol;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
@@ -37,22 +37,6 @@ import dmd.mtype;
 import dmd.tokens;
 import dmd.typesem : defaultInit;
 import dmd.visitor;
-
-enum Sizeok : ubyte
-{
-    none,           /// size of aggregate is not yet able to compute
-    fwd,            /// size of aggregate is ready to compute
-    inProcess,      /// in the midst of computing the size
-    done,           /// size of aggregate is set correctly
-}
-
-enum Baseok : ubyte
-{
-    none,             /// base classes not computed yet
-    start,            /// in process of resolving base classes
-    done,             /// all base classes are resolved
-    semanticdone,     /// all base classes semantic done
-}
 
 /**
  * The ClassKind enum is used in AggregateDeclaration AST nodes to
@@ -119,7 +103,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     // Special member functions
     FuncDeclarations invs;  /// Array of invariants
     FuncDeclaration inv;    /// Merged invariant calling all members of invs
-    NewDeclaration aggNew;  /// allocator
 
     /// CtorDeclaration or TemplateDeclaration
     Dsymbol ctor;
@@ -141,6 +124,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     ///
     Visibility visibility;
     bool noDefaultCtor;             /// no default construction
+    bool disableNew;                /// disallow allocations using `new`
     Sizeok sizeok = Sizeok.none;    /// set when structsize contains valid data
 
     final extern (D) this(const ref Loc loc, Identifier id)
@@ -156,7 +140,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     Scope* newScope(Scope* sc)
     {
         auto sc2 = sc.push(this);
-        sc2.stc &= STCFlowThruAggregate;
+        sc2.stc &= STC.flowThruAggregate;
         sc2.parent = this;
         sc2.inunion = isUnionDeclaration();
         sc2.visibility = Visibility(Visibility.Kind.public_);
@@ -175,91 +159,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // See https://issues.dlang.org/show_bug.cgi?id=16607
         if (semanticRun < PASS.semanticdone)
             ScopeDsymbol.setScope(sc);
-    }
-
-    /***************************************
-     * Find all instance fields, then push them into `fields`.
-     *
-     * Runs semantic() for all instance field variables, but also
-     * the field types can remain yet not resolved forward references,
-     * except direct recursive definitions.
-     * After the process sizeok is set to Sizeok.fwd.
-     *
-     * Returns:
-     *      false if any errors occur.
-     */
-    final bool determineFields()
-    {
-        if (_scope)
-            dsymbolSemantic(this, null);
-        if (sizeok != Sizeok.none)
-            return true;
-
-        //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
-        // determineFields can be called recursively from one of the fields's v.semantic
-        fields.setDim(0);
-
-        static int func(Dsymbol s, AggregateDeclaration ad)
-        {
-            auto v = s.isVarDeclaration();
-            if (!v)
-                return 0;
-            if (v.storage_class & STC.manifest)
-                return 0;
-
-            if (v.semanticRun < PASS.semanticdone)
-                v.dsymbolSemantic(null);
-            // Return in case a recursive determineFields triggered by v.semantic already finished
-            if (ad.sizeok != Sizeok.none)
-                return 1;
-
-            if (v.aliassym)
-                return 0;   // If this variable was really a tuple, skip it.
-
-            if (v.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.ctfe | STC.templateparameter))
-                return 0;
-            if (!v.isField() || v.semanticRun < PASS.semanticdone)
-                return 1;   // unresolvable forward reference
-
-            ad.fields.push(v);
-
-            if (v.storage_class & STC.ref_)
-                return 0;
-            auto tv = v.type.baseElemOf();
-            if (tv.ty != Tstruct)
-                return 0;
-            if (ad == (cast(TypeStruct)tv).sym)
-            {
-                const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
-                ad.error("cannot have field `%s` with %ssame struct type", v.toChars(), psz);
-                ad.type = Type.terror;
-                ad.errors = true;
-                return 1;
-            }
-            return 0;
-        }
-
-        if (members)
-        {
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                if (s.apply(&func, this))
-                {
-                    if (sizeok != Sizeok.none)
-                    {
-                        // recursive determineFields already finished
-                        return true;
-                    }
-                    return false;
-                }
-            }
-        }
-
-        if (sizeok != Sizeok.done)
-            sizeok = Sizeok.fwd;
-
-        return true;
     }
 
     /***************************************
@@ -304,7 +203,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
 
         // Determine instance fields when sizeok == Sizeok.none
-        if (!determineFields())
+        if (!this.determineFields())
             goto Lfail;
         if (sizeok != Sizeok.done)
             finalizeSize();
@@ -411,10 +310,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 }
                 else if (v2._init && i < j)
                 {
-                    // @@@DEPRECATED_v2.086@@@.
-                    .deprecation(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
+                    .error(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
                         v2.toChars(), v2._init.toChars(), vd.toChars());
-                    //errors = true;
+                    errors = true;
                 }
             }
         }
@@ -554,8 +452,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                          * will return the base of the enum, and its default initializer
                          * would be different from the enum's.
                          */
-                        while (telem.toBasetype().ty == Tsarray)
-                            telem = (cast(TypeSArray)telem.toBasetype()).next;
+                        TypeSArray tsa;
+                        while ((tsa = telem.toBasetype().isTypeSArray()) !is null)
+                            telem = tsa.next;
                         if (telem.ty == Tvoid)
                             telem = Type.tuns8.addMod(telem.mod);
                     }
@@ -854,8 +753,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     // Back end
-    Symbol* stag;   /// tag symbol for debug data
-    Symbol* sinit;  /// initializer symbol
+    void* sinit;  /// initializer symbol
 
     override final inout(AggregateDeclaration) isAggregateDeclaration() inout
     {

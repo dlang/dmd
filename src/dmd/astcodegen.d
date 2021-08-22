@@ -34,12 +34,14 @@ struct ASTCodegen
     public import dmd.staticassert;
     public import dmd.typesem;
     public import dmd.ctfeexpr;
+    public import dmd.init : Designator;
 
 
     alias initializerToExpression   = dmd.initsem.initializerToExpression;
     alias typeToExpression          = dmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
     alias Ensure                    = dmd.func.Ensure; // workaround for bug in older DMD frontends
+    alias ErrorExp                  = dmd.expression.ErrorExp;
 
     alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;
@@ -57,6 +59,7 @@ struct ASTCodegen
     alias Tfloat80                  = dmd.mtype.Tfloat80;
     alias Tfunction                 = dmd.mtype.Tfunction;
     alias Tpointer                  = dmd.mtype.Tpointer;
+    alias Treference                = dmd.mtype.Treference;
     alias Tident                    = dmd.mtype.Tident;
     alias Tint8                     = dmd.mtype.Tint8;
     alias Tint16                    = dmd.mtype.Tint16;
@@ -70,6 +73,14 @@ struct ASTCodegen
     alias Tuns64                    = dmd.mtype.Tuns64;
     alias Tvoid                     = dmd.mtype.Tvoid;
     alias Twchar                    = dmd.mtype.Twchar;
+    alias Tnoreturn                 = dmd.mtype.Tnoreturn;
+
+    alias Timaginary32              = dmd.mtype.Timaginary32;
+    alias Timaginary64              = dmd.mtype.Timaginary64;
+    alias Timaginary80              = dmd.mtype.Timaginary80;
+    alias Tcomplex32                = dmd.mtype.Tcomplex32;
+    alias Tcomplex64                = dmd.mtype.Tcomplex64;
+    alias Tcomplex80                = dmd.mtype.Tcomplex80;
 
     alias ParameterList             = dmd.mtype.ParameterList;
     alias VarArg                    = dmd.mtype.VarArg;
@@ -86,4 +97,6 @@ struct ASTCodegen
     alias isExpression              = dmd.dtemplate.isExpression;
     alias isTuple                   = dmd.dtemplate.isTuple;
 
+    alias IgnoreErrors              = dmd.dsymbol.IgnoreErrors;
+    alias PASS                      = dmd.dsymbol.PASS;
 }

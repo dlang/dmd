@@ -23,23 +23,59 @@ debug
     debug = stomp; // flush out dangling pointer problems by stomping on unused memory
 }
 
+/**
+`OutBuffer` is a write-only output stream of untyped data. It is backed up by
+a contiguous array or a memory-mapped file.
+*/
 struct OutBuffer
 {
+    import dmd.root.file : FileMapping;
+
+    // IMPORTANT: PLEASE KEEP STATE AND DESTRUCTOR IN SYNC WITH DEFINITION IN ./outbuffer.h.
+    // state {
     private ubyte[] data;
     private size_t offset;
     private bool notlinehead;
-
+    /// File mapping, if any. Use a pointer for ABI compatibility with the C++ counterpart.
+    /// If the pointer is non-null the store is a memory-mapped file, otherwise the store is RAM.
+    private FileMapping!ubyte* fileMapping;
     /// Whether to indent
     bool doindent;
     /// Whether to indent by 4 spaces or by tabs;
     bool spaces;
     /// Current indent level
     int level;
+    // state }
 
+    /**
+    Construct from filename. Will map the file into memory (or create it anew
+    if necessary) and start writing at the beginning of it.
+
+    Params:
+    filename = zero-terminated name of file to map into memory
+    */
+    @trusted this(const(char)* filename)
+    {
+        fileMapping = new FileMapping!ubyte(filename);
+        data = (*fileMapping)[];
+    }
+
+    /**
+    Frees resources associated automatically.
+    */
     extern (C++) ~this() pure nothrow
     {
-        debug (stomp) memset(data.ptr, 0xFF, data.length);
-        mem.xfree(data.ptr);
+        if (fileMapping)
+        {
+            if (fileMapping.active)
+                fileMapping.close();
+            fileMapping = null;
+        }
+        else
+        {
+            debug (stomp) memset(data.ptr, 0xFF, data.length);
+            mem.xfree(data.ptr);
+        }
     }
 
     extern (C++) size_t length() const pure @nogc @safe nothrow { return offset; }
@@ -57,22 +93,52 @@ struct OutBuffer
         return p;
     }
 
+    /**
+    Releases all resources associated with `this` and resets it as an empty
+    memory buffer. The config variables `notlinehead`, `doindent` etc. are
+    not changed.
+    */
     extern (C++) void destroy() pure nothrow @trusted
     {
-        debug (stomp) memset(data.ptr, 0xFF, data.length);
-        mem.xfree(extractData());
+        if (fileMapping && fileMapping.active)
+        {
+            fileMapping.close();
+            data = null;
+            offset = 0;
+        }
+        else
+        {
+            debug (stomp) memset(data.ptr, 0xFF, data.length);
+            mem.xfree(extractData());
+        }
     }
 
+    /**
+    Reserves `nbytes` bytes of additional memory (or file space) in advance.
+    The resulting capacity is at least the previous length plus `nbytes`.
+
+    Params:
+    nbytes = the number of additional bytes to reserve
+    */
     extern (C++) void reserve(size_t nbytes) pure nothrow
     {
         //debug (stomp) printf("OutBuffer::reserve: size = %lld, offset = %lld, nbytes = %lld\n", data.length, offset, nbytes);
-        if (data.length - offset < nbytes)
-        {
-            /* Increase by factor of 1.5; round up to 16 bytes.
-             * The odd formulation is so it will map onto single x86 LEA instruction.
-             */
-            const size = (((offset + nbytes) * 3 + 30) / 2) & ~15;
+        const minSize = offset + nbytes;
+        if (data.length >= minSize)
+            return;
 
+        /* Increase by factor of 1.5; round up to 16 bytes.
+            * The odd formulation is so it will map onto single x86 LEA instruction.
+            */
+        const size = ((minSize * 3 + 30) / 2) & ~15;
+
+        if (fileMapping && fileMapping.active)
+        {
+            fileMapping.resize(size);
+            data = (*fileMapping)[];
+        }
+        else
+        {
             debug (stomp)
             {
                 auto p = cast(ubyte*)mem.xmalloc(size);
@@ -148,7 +214,7 @@ struct OutBuffer
         write(s);
     }
 
-    void writestringln(const(char)[] s)
+    void writestringln(const(char)[] s) pure nothrow
     {
         writestring(s);
         writenl();
@@ -454,17 +520,17 @@ struct OutBuffer
      * Returns:
      *   a non-owning const slice of the buffer contents
      */
-    extern (D) const(char)[] opSlice() const pure nothrow @nogc
+    extern (D) const(char)[] opSlice() const pure nothrow @nogc @safe
     {
         return cast(const(char)[])data[0 .. offset];
     }
 
-    extern (D) const(char)[] opSlice(size_t lwr, size_t upr) const pure nothrow @nogc
+    extern (D) const(char)[] opSlice(size_t lwr, size_t upr) const pure nothrow @nogc @safe
     {
         return cast(const(char)[])data[lwr .. upr];
     }
 
-    extern (D) char opIndex(size_t i) const pure nothrow @nogc
+    extern (D) char opIndex(size_t i) const pure nothrow @nogc @safe
     {
         return cast(char)data[i];
     }
@@ -509,6 +575,53 @@ struct OutBuffer
         if (!offset || data[offset - 1] != '\0')
             writeByte(0);
         return extractData();
+    }
+
+    /**
+    Destructively saves the contents of `this` to `filename`. As an
+    optimization, if the file already has identical contents with the buffer,
+    no copying is done. This is because on SSD drives reading is often much
+    faster than writing and because there's a high likelihood an identical
+    file is written during the build process.
+
+    Params:
+    filename = the name of the file to receive the contents
+
+    Returns: `true` iff the operation succeeded.
+    */
+    extern(D) bool moveToFile(const char* filename)
+    {
+        import dmd.root.file;
+        bool result = true;
+        const bool identical = this[] == FileMapping!(const ubyte)(filename)[];
+
+        if (fileMapping && fileMapping.active)
+        {
+            // Defer to corresponding functions in FileMapping.
+            if (identical)
+            {
+                result = fileMapping.discard();
+            }
+            else
+            {
+                // Resize to fit to get rid of the slack bytes at the end
+                fileMapping.resize(offset);
+                result = fileMapping.moveToFile(filename);
+            }
+            // Can't call destroy() here because the file mapping is already closed.
+            data = null;
+            offset = 0;
+        }
+        else
+        {
+            if (!identical)
+                File.write(filename, this[]);
+            destroy();
+        }
+
+        return identical
+            ? result && File.touch(filename)
+            : result;
     }
 }
 

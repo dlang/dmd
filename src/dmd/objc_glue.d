@@ -17,6 +17,7 @@ import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
@@ -757,7 +758,7 @@ static:
     {
         enum assertMessage = "imaginary types are not supported by Objective-C";
 
-        with (ENUMTY) switch (type.ty)
+        with (TY) switch (type.ty)
         {
             case Tvoid: return "v";
             case Tbool: return "B";

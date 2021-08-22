@@ -17,6 +17,7 @@ import dmd.aggregate;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.astenums;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.expression;
@@ -114,10 +115,6 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
         {
             if (ne.member)
             {
-                if (ne.allocator)
-                    // https://issues.dlang.org/show_bug.cgi?id=14407
-                    checkFuncThrows(ne, ne.allocator);
-
                 // See if constructor call can throw
                 checkFuncThrows(ne, ne.member);
             }

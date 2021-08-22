@@ -18,6 +18,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.apply;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.builtin;
 import dmd.constfold;
@@ -350,7 +351,7 @@ public:
     extern (C++) void pop(VarDeclaration v)
     {
         assert(!v.isDataseg() || v.isCTFE());
-        assert(!(v.storage_class & (STC.ref_ | STC.out_)));
+        assert(!v.isReference());
         const oldid = v.ctfeAdrOnStack;
         v.ctfeAdrOnStack = cast(uint)cast(size_t)savedId[oldid];
         if (v.ctfeAdrOnStack == values.dim - 1)
@@ -2131,7 +2132,7 @@ public:
                     errorSupplemental(vie.var.loc, "`%s` was uninitialized and used before set", vie.var.toChars());
                     return CTFEExp.cantexp;
                 }
-                if (goal != CTFEGoal.LValue && (v.isRef() || v.isOut()))
+                if (goal != CTFEGoal.LValue && v.isReference())
                     e = interpret(e, istate, goal);
             }
             if (!e)
@@ -2740,12 +2741,6 @@ public:
         debug (LOG)
         {
             printf("%s NewExp::interpret() %s\n", e.loc.toChars(), e.toChars());
-        }
-        if (e.allocator)
-        {
-            e.error("member allocators not supported by CTFE");
-            result = CTFEExp.cantexp;
-            return;
         }
 
         Expression epre = interpret(pue, e.argprefix, istate, CTFEGoal.Nothing);
@@ -6137,6 +6132,9 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
+
+        if (result.isStringExp())
+            return;
 
         if (result.op != TOK.address)
         {

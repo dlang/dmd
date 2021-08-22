@@ -15,6 +15,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.ast_node;
 import dmd.dsymbol;
 import dmd.expression;
@@ -36,24 +37,17 @@ enum NeedInterpret : int
 alias INITnointerpret = NeedInterpret.INITnointerpret;
 alias INITinterpret = NeedInterpret.INITinterpret;
 
-/*************
- * Discriminant for which kind of initializer
- */
-enum InitKind : ubyte
-{
-    void_,
-    error,
-    struct_,
-    array,
-    exp,
-}
-
 /***********************************************************
  */
 extern (C++) class Initializer : ASTNode
 {
     Loc loc;
     InitKind kind;
+
+    override DYNCAST dyncast() const nothrow pure
+    {
+        return DYNCAST.initializer;
+    }
 
 
     extern (D) this(const ref Loc loc, InitKind kind)
@@ -70,30 +64,35 @@ extern (C++) class Initializer : ASTNode
         return buf.extractChars();
     }
 
-    final inout(ErrorInitializer) isErrorInitializer() inout pure
+    final inout(ErrorInitializer) isErrorInitializer() inout @nogc nothrow pure
     {
         // Use void* cast to skip dynamic casting call
         return kind == InitKind.error ? cast(inout ErrorInitializer)cast(void*)this : null;
     }
 
-    final inout(VoidInitializer) isVoidInitializer() inout pure
+    final inout(VoidInitializer) isVoidInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.void_ ? cast(inout VoidInitializer)cast(void*)this : null;
     }
 
-    final inout(StructInitializer) isStructInitializer() inout pure
+    final inout(StructInitializer) isStructInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.struct_ ? cast(inout StructInitializer)cast(void*)this : null;
     }
 
-    final inout(ArrayInitializer) isArrayInitializer() inout pure
+    final inout(ArrayInitializer) isArrayInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.array ? cast(inout ArrayInitializer)cast(void*)this : null;
     }
 
-    final inout(ExpInitializer) isExpInitializer() inout pure
+    final inout(ExpInitializer) isExpInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
+    }
+
+    final inout(CInitializer) isCInitializer() inout @nogc nothrow pure
+    {
+        return kind == InitKind.C_ ? cast(inout CInitializer)cast(void*)this : null;
     }
 
     override void accept(Visitor v)
@@ -217,75 +216,47 @@ extern (C++) final class ExpInitializer : Initializer
     }
 }
 
-version (all)
+/*********************************************
+ * Holds the `designator` for C initializers
+ */
+struct Designator
 {
-    extern (C++) bool hasNonConstPointers(Expression e)
-    {
-        static bool checkArray(Expressions* elems)
-        {
-            foreach (e; *elems)
-            {
-                if (e && hasNonConstPointers(e))
-                    return true;
-            }
-            return false;
-        }
+    Expression exp;     /// [ constant-expression ]
+    Identifier ident;   /// . identifier
 
-        if (e.type.ty == Terror)
-            return false;
-        if (e.op == TOK.null_)
-            return false;
-        if (auto se = e.isStructLiteralExp())
-        {
-            return checkArray(se.elements);
-        }
-        if (auto ae = e.isArrayLiteralExp())
-        {
-            if (!ae.type.nextOf().hasPointers())
-                return false;
-            return checkArray(ae.elements);
-        }
-        if (auto ae = e.isAssocArrayLiteralExp())
-        {
-            if (ae.type.nextOf().hasPointers() && checkArray(ae.values))
-                return true;
-            if ((cast(TypeAArray)ae.type).index.hasPointers())
-                return checkArray(ae.keys);
-            return false;
-        }
-        if (auto ae = e.isAddrExp())
-        {
-            if (auto se = ae.e1.isStructLiteralExp())
-            {
-                if (!(se.stageflags & stageSearchPointers))
-                {
-                    const old = se.stageflags;
-                    se.stageflags |= stageSearchPointers;
-                    bool ret = checkArray(se.elements);
-                    se.stageflags = old;
-                    return ret;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-        if (e.type.ty == Tpointer && e.type.nextOf().ty != Tfunction)
-        {
-            if (e.op == TOK.symbolOffset) // address of a global is OK
-                return false;
-            if (e.op == TOK.int64) // cast(void *)int is OK
-                return false;
-            if (e.op == TOK.string_) // "abc".ptr is OK
-                return false;
-            return true;
-        }
-        return false;
-    }
+    this(Expression exp) { this.exp = exp; }
+    this(Identifier ident) { this.ident = ident; }
 }
 
+/*********************************************
+ * Holds the `designation (opt) initializer` for C initializers
+ */
+struct DesigInit
+{
+    Designators* designatorList; /// designation (opt)
+    Initializer initializer;     /// initializer
+}
+
+/********************************
+ * C11 6.7.9 Initialization
+ * Represents the C initializer-list
+ */
+extern (C++) final class CInitializer : Initializer
+{
+    DesigInits initializerList; /// initializer-list
+    Type type;              /// type that array will be used to initialize
+    bool sem;               /// true if semantic() is run
+
+    extern (D) this(const ref Loc loc)
+    {
+        super(loc, InitKind.C_);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
 
 /****************************************
  * Copy the AST for Initializer.
@@ -324,6 +295,31 @@ Initializer syntaxCopy(Initializer inx)
         return ai;
     }
 
+    static Initializer copyC(CInitializer vi)
+    {
+        auto ci = new CInitializer(vi.loc);
+        ci.initializerList.setDim(vi.initializerList.length);
+        foreach (const i; 0 .. vi.initializerList.length)
+        {
+            DesigInit* cdi = &ci.initializerList[i];
+            DesigInit* vdi = &ci.initializerList[i];
+            cdi.initializer = vdi.initializer.syntaxCopy();
+            if (vdi.designatorList)
+            {
+                cdi.designatorList = new Designators();
+                cdi.designatorList.setDim(vdi.designatorList.length);
+                foreach (const j; 0 .. vdi.designatorList.length)
+                {
+                    Designator* cdid = &(*cdi.designatorList)[j];
+                    Designator* vdid = &(*vdi.designatorList)[j];
+                    cdid.exp = vdid.exp ? vdid.exp.syntaxCopy() : null;
+                    cdid.ident = vdid.ident;
+                }
+            }
+        }
+        return ci;
+    }
+
     final switch (inx.kind)
     {
         case InitKind.void_:   return new VoidInitializer(inx.loc);
@@ -331,5 +327,6 @@ Initializer syntaxCopy(Initializer inx)
         case InitKind.struct_: return copyStruct(cast(StructInitializer)inx);
         case InitKind.array:   return copyArray(cast(ArrayInitializer)inx);
         case InitKind.exp:     return new ExpInitializer(inx.loc, (cast(ExpInitializer)inx).exp.syntaxCopy());
+        case InitKind.C_:      return copyC(cast(CInitializer)inx);
     }
 }

@@ -38,11 +38,13 @@ import dmd.backend.type;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.blockexit;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmangle;
 import dmd.dmodule;
+import dmd.dmsc;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
@@ -66,17 +68,91 @@ import dmd.toobj;
 import dmd.typesem;
 import dmd.utils;
 
-extern (C++):
-
 alias symbols = Array!(Symbol*);
 alias toSymbol = dmd.tocsym.toSymbol;
 
+/**
+ * Generate code for `modules` and write objects/libraries
+ *
+ * Params:
+ *  modules = array of `Module`s to generate code for
+ *  libmodules = array of objects/libraries already generated (passed on command line)
+ *  libname = {.lib,.a} file output name
+ *  objdir = directory to write object files to
+ *  lib = write library file instead of object file(s)
+ *  obj = generate object files
+ *  oneobj = write one object file instead of multiple ones
+ *  multiobj = break one object file into multiple ones
+ *  verbose = print progress message when generatig code
+ */
+void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
+                          const(char)[] libname, const(char)[] objdir,
+                          bool lib, bool obj, bool oneobj, bool multiobj,
+                          bool verbose)
+{
+    Library library = null;
+    if (lib)
+    {
+        library = Library.factory();
+        library.setFilename(objdir, libname);
+        // Add input object and input library files to output library
+        foreach (p; libmodules)
+            library.addObject(p.toDString(), null);
+    }
+
+    if (!obj)
+    {
+    }
+    else if (oneobj)
+    {
+        Module firstm;    // first module we generate code for
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            if (!firstm)
+            {
+                firstm = m;
+                obj_start(m.srcfile.toChars());
+            }
+            if (verbose)
+                message("code      %s", m.toChars());
+            genObjFile(m, false);
+        }
+        if (!global.errors && firstm)
+        {
+            obj_end(library, firstm.objfile.toChars());
+        }
+    }
+    else
+    {
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            if (verbose)
+                message("code      %s", m.toChars());
+            obj_start(m.srcfile.toChars());
+            genObjFile(m, multiobj);
+            obj_end(library, m.objfile.toChars());
+            obj_write_deferred(library);
+            if (global.errors && !lib)
+                m.deleteObjFile();
+        }
+    }
+    if (lib && !global.errors)
+        library.write();
+}
+
+extern (C++):
+
 //extern
-__gshared
+__gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
+private __gshared
 {
     elem *eictor;
     Symbol *ictorlocalgot;
-    Symbol* bzeroSymbol;        /// common location for immutable zeros
+
     symbols sctors;
     StaticDtorDeclarations ectorgates;
     symbols sdtors;
@@ -87,6 +163,7 @@ __gshared
     symbols sshareddtors;
 
     const(char)* lastmname;
+    Dsymbols obj_symbols_towrite;
 }
 
 
@@ -94,15 +171,13 @@ __gshared
  * Append s to list of object files to generate later.
  */
 
-__gshared Dsymbols obj_symbols_towrite;
-
 void obj_append(Dsymbol s)
 {
     //printf("deferred: %s\n", s.toChars());
     obj_symbols_towrite.push(s);
 }
 
-void obj_write_deferred(Library library)
+private void obj_write_deferred(Library library)
 {
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
     {
@@ -243,9 +318,9 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
  * Prepare for generating obj file.
  */
 
-__gshared Outbuffer objbuf;
+private __gshared Outbuffer objbuf;
 
-void obj_start(const(char)* srcfile)
+private void obj_start(const(char)* srcfile)
 {
     //printf("obj_start()\n");
 
@@ -280,7 +355,7 @@ void obj_start(const(char)* srcfile)
  *      objfilename = what to call the object module
  *      library = if non-null, add object module to this library
  */
-void obj_end(Library library, const(char)* objfilename)
+private void obj_end(Library library, const(char)* objfilename)
 {
     objmod.term(objfilename);
     //delete objmod;
@@ -324,7 +399,7 @@ bool obj_linkerdirective(const(char)* directive)
  * Generate .obj file for Module.
  */
 
-void genObjFile(Module m, bool multiobj)
+private void genObjFile(Module m, bool multiobj)
 {
     //EEcontext *ee = env.getEEcontext();
 
@@ -525,8 +600,9 @@ void genObjFile(Module m, bool multiobj)
      /* Generate module info for templates and -cov.
      *  Don't generate ModuleInfo if `object.ModuleInfo` is not declared or
      *  explicitly disabled through compiler switches such as `-betterC`.
+     *  Don't generate ModuleInfo for C files.
      */
-    if (global.params.useModuleInfo && Module.moduleinfo /*|| needModuleInfo()*/)
+    if (global.params.useModuleInfo && Module.moduleinfo && !m.isCFile /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
     objmod.termfile();

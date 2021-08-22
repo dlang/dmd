@@ -27,7 +27,6 @@ class VarDeclaration;
 class FuncDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
-class NewDeclaration;
 class Dsymbol;
 class ScopeDsymbol;
 class Expression;
@@ -56,6 +55,19 @@ enum
     OWNEDcode,      // normal code expression in AST
     OWNEDctfe,      // value expression for CTFE
     OWNEDcache      // constant value cached for CTFE
+};
+
+/**
+ * Specifies how the checkModify deals with certain situations
+ */
+enum class ModifyFlags
+{
+    /// Issue error messages on invalid modifications of the variable
+    none,
+    /// No errors are emitted for invalid modifications
+    noError = 0x1,
+    /// The modification occurs for a subfield of the current variable
+    fieldAssign = 0x2,
 };
 
 class Expression : public ASTNode
@@ -96,8 +108,7 @@ public:
     virtual bool checkType();
     virtual bool checkValue();
     bool checkDeprecated(Scope *sc, Dsymbol *s);
-    virtual int checkModifiable(Scope *sc, int flag = 0);
-    virtual Expression *toBoolean(Scope *sc);
+    virtual int checkModifiable(Scope *sc, ModifyFlags flag = ModifyFlags::none);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *addressOf();
     Expression *deref();
@@ -211,6 +222,7 @@ public:
     EqualExp* isEqualExp();
     IdentityExp* isIdentityExp();
     CondExp* isCondExp();
+    GenericExp* isGenericExp();
     DefaultInitExp* isDefaultInitExp();
     FileInitExp* isFileInitExp();
     LineInitExp* isLineInitExp();
@@ -463,6 +475,7 @@ public:
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
     Expression *addDtorHook(Scope *sc);
+    Expression *toLvalue(Scope *sc, Expression *e);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -513,7 +526,6 @@ public:
     Expression *argprefix;      // expression to be evaluated just before arguments[]
 
     CtorDeclaration *member;    // constructor function
-    NewDeclaration *allocator;  // allocator function
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
@@ -567,7 +579,7 @@ public:
     bool delegateWasExtracted;
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(const RootObject *o) const;
-    int checkModifiable(Scope *sc, int flag);
+    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -757,7 +769,7 @@ public:
     Declaration *var;
     bool hasOverloads;
 
-    int checkModifiable(Scope *sc, int flag);
+    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -825,7 +837,7 @@ public:
 class PtrExp : public UnaExp
 {
 public:
-    int checkModifiable(Scope *sc, int flag);
+    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -861,7 +873,6 @@ class DeleteExp : public UnaExp
 {
 public:
     bool isRAII;
-    Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -911,7 +922,7 @@ public:
     bool arrayop;               // an array operation, rather than a slice
 
     SliceExp *syntaxCopy();
-    int checkModifiable(Scope *sc, int flag);
+    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -983,12 +994,11 @@ class CommaExp : public BinExp
 public:
     bool isGenerated;
     bool allowCommaExp;
-    int checkModifiable(Scope *sc, int flag);
+    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     bool isBool(bool result);
-    Expression *toBoolean(Scope *sc);
     Expression *addDtorHook(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1001,7 +1011,7 @@ public:
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
     IndexExp *syntaxCopy();
-    int checkModifiable(Scope *sc, int flag);
+    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1039,7 +1049,6 @@ public:
 
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
-    Expression *toBoolean(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1215,7 +1224,6 @@ public:
 class LogicalExp : public BinExp
 {
 public:
-    Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1261,12 +1269,22 @@ public:
     Expression *econd;
 
     CondExp *syntaxCopy();
-    int checkModifiable(Scope *sc, int flag);
+    int checkModifiable(Scope *sc, ModifyFlags flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *toBoolean(Scope *sc);
     void hookDtors(Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class GenericExp : Expression
+{
+    Expression cntlExp;
+    Types *types;
+    Expressions *exps;
+
+    GenericExp *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
 };

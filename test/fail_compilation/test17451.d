@@ -20,7 +20,7 @@ struct ArraySet(Key)
         ~this()
     {
                 try allocator;
-                catch false; // should never happen
+                catch (Exception e) false; // should never happen
         }
 }
 

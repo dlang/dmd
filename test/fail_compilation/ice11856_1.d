@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11856_1.d(13): Error: template `ice11856_1.g` cannot deduce function from argument types `!()(A)`, candidates are:
-fail_compilation/ice11856_1.d(11):        `g(T)(T x)`
+fail_compilation/ice11856_1.d(13): Error: template `ice11856_1.g` cannot deduce function from argument types `!()(A)`
+fail_compilation/ice11856_1.d(11):        Candidate is: `g(T)(T x)`
 ---
 */
 struct A {}

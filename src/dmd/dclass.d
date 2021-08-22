@@ -19,6 +19,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.apply;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
@@ -33,13 +34,6 @@ import dmd.objc;
 import dmd.root.rmem;
 import dmd.target;
 import dmd.visitor;
-
-enum Abstract : ubyte
-{
-    fwdref = 0,      // whether an abstract class is not yet computed
-    yes,             // is abstract class
-    no,              // is not abstract class
-}
 
 /***********************************************************
  */
@@ -188,7 +182,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /// to prevent recursive attempts
     private bool inuse;
 
-    Abstract isabstract;
+    ThreeState isabstract;
 
     /// set the progress of base classes resolving
     Baseok baseok;
@@ -227,151 +221,149 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         // For forward references
         type = new TypeClass(this);
 
-        if (id)
+        // Look for special class names
+        if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
+            error("illegal class name");
+
+        // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
+        if (id.toChars()[0] == 'T')
         {
-            // Look for special class names
-            if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
-                error("illegal class name");
-
-            // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
-            if (id.toChars()[0] == 'T')
-            {
-                if (id == Id.TypeInfo)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.dtypeinfo = this;
-                }
-                if (id == Id.TypeInfo_Class)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoclass = this;
-                }
-                if (id == Id.TypeInfo_Interface)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfointerface = this;
-                }
-                if (id == Id.TypeInfo_Struct)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfostruct = this;
-                }
-                if (id == Id.TypeInfo_Pointer)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfopointer = this;
-                }
-                if (id == Id.TypeInfo_Array)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoarray = this;
-                }
-                if (id == Id.TypeInfo_StaticArray)
-                {
-                    //if (!inObject)
-                    //    Type.typeinfostaticarray.error("%s", msg);
-                    Type.typeinfostaticarray = this;
-                }
-                if (id == Id.TypeInfo_AssociativeArray)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoassociativearray = this;
-                }
-                if (id == Id.TypeInfo_Enum)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoenum = this;
-                }
-                if (id == Id.TypeInfo_Function)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfofunction = this;
-                }
-                if (id == Id.TypeInfo_Delegate)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfodelegate = this;
-                }
-                if (id == Id.TypeInfo_Tuple)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfotypelist = this;
-                }
-                if (id == Id.TypeInfo_Const)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoconst = this;
-                }
-                if (id == Id.TypeInfo_Invariant)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoinvariant = this;
-                }
-                if (id == Id.TypeInfo_Shared)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfoshared = this;
-                }
-                if (id == Id.TypeInfo_Wild)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfowild = this;
-                }
-                if (id == Id.TypeInfo_Vector)
-                {
-                    if (!inObject)
-                        error("%s", msg);
-                    Type.typeinfovector = this;
-                }
-            }
-
-            if (id == Id.Object)
+            if (id == Id.TypeInfo)
             {
                 if (!inObject)
                     error("%s", msg);
-                object = this;
+                Type.dtypeinfo = this;
             }
-
-            if (id == Id.Throwable)
+            if (id == Id.TypeInfo_Class)
             {
                 if (!inObject)
                     error("%s", msg);
-                throwable = this;
+                Type.typeinfoclass = this;
             }
-            if (id == Id.Exception)
+            if (id == Id.TypeInfo_Interface)
             {
                 if (!inObject)
                     error("%s", msg);
-                exception = this;
+                Type.typeinfointerface = this;
             }
-            if (id == Id.Error)
+            if (id == Id.TypeInfo_Struct)
             {
                 if (!inObject)
                     error("%s", msg);
-                errorException = this;
+                Type.typeinfostruct = this;
             }
-            if (id == Id.cpp_type_info_ptr)
+            if (id == Id.TypeInfo_Pointer)
             {
                 if (!inObject)
                     error("%s", msg);
-                cpp_type_info_ptr = this;
+                Type.typeinfopointer = this;
+            }
+            if (id == Id.TypeInfo_Array)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoarray = this;
+            }
+            if (id == Id.TypeInfo_StaticArray)
+            {
+                //if (!inObject)
+                //    Type.typeinfostaticarray.error("%s", msg);
+                Type.typeinfostaticarray = this;
+            }
+            if (id == Id.TypeInfo_AssociativeArray)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoassociativearray = this;
+            }
+            if (id == Id.TypeInfo_Enum)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoenum = this;
+            }
+            if (id == Id.TypeInfo_Function)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfofunction = this;
+            }
+            if (id == Id.TypeInfo_Delegate)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfodelegate = this;
+            }
+            if (id == Id.TypeInfo_Tuple)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfotypelist = this;
+            }
+            if (id == Id.TypeInfo_Const)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoconst = this;
+            }
+            if (id == Id.TypeInfo_Invariant)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoinvariant = this;
+            }
+            if (id == Id.TypeInfo_Shared)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfoshared = this;
+            }
+            if (id == Id.TypeInfo_Wild)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfowild = this;
+            }
+            if (id == Id.TypeInfo_Vector)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.typeinfovector = this;
             }
         }
+
+        if (id == Id.Object)
+        {
+            if (!inObject)
+                error("%s", msg);
+            object = this;
+        }
+
+        if (id == Id.Throwable)
+        {
+            if (!inObject)
+                error("%s", msg);
+            throwable = this;
+        }
+        if (id == Id.Exception)
+        {
+            if (!inObject)
+                error("%s", msg);
+            exception = this;
+        }
+        if (id == Id.Error)
+        {
+            if (!inObject)
+                error("%s", msg);
+            errorException = this;
+        }
+        if (id == Id.cpp_type_info_ptr)
+        {
+            if (!inObject)
+                error("%s", msg);
+            cpp_type_info_ptr = this;
+        }
+
         baseok = Baseok.none;
     }
 
@@ -426,7 +418,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      * Determine if 'this' is a base class of cd.
      * This is used to detect circular inheritance only.
      */
-    final bool isBaseOf2(ClassDeclaration cd)
+    final bool isBaseOf2(ClassDeclaration cd) pure nothrow @nogc
     {
         if (!cd)
             return false;
@@ -446,22 +438,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /*******************************************
      * Determine if 'this' is a base class of cd.
      */
-    bool isBaseOf(ClassDeclaration cd, int* poffset)
+    bool isBaseOf(ClassDeclaration cd, int* poffset) pure nothrow @nogc
     {
         //printf("ClassDeclaration.isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd.toChars());
         if (poffset)
             *poffset = 0;
         while (cd)
         {
-            /* cd.baseClass might not be set if cd is forward referenced.
-             */
-            if (!cd.baseClass && cd.semanticRun < PASS.semanticdone && !cd.isInterfaceDeclaration())
-            {
-                cd.dsymbolSemantic(null);
-                if (!cd.baseClass && cd.semanticRun < PASS.semanticdone)
-                    cd.error("base class is forward referenced by `%s`", toChars());
-            }
-
             if (this == cd.baseClass)
                 return true;
 
@@ -497,7 +480,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (!members || !symtab) // opaque or addMember is not yet done
         {
             // .stringof is always defined (but may be hidden by some other symbol)
-            if (ident != Id.stringof)
+            if (ident != Id.stringof && !(flags & IgnoreErrors) && semanticRun < PASS.semanticdone)
                 error("is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
             return null;
@@ -509,33 +492,34 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (flags & SearchImportsOnly)
             return s;
 
-        if (!s)
-        {
-            // Search bases classes in depth-first, left to right order
-            for (size_t i = 0; i < baseclasses.dim; i++)
-            {
-                BaseClass* b = (*baseclasses)[i];
-                if (b.sym)
-                {
-                    if (!b.sym.symtab)
-                        error("base `%s` is forward referenced", b.sym.ident.toChars());
-                    else
-                    {
-                        import dmd.access : symbolIsVisible;
+        if (s)
+            return s;
 
-                        s = b.sym.search(loc, ident, flags);
-                        if (!s)
-                            continue;
-                        else if (s == this) // happens if s is nested in this and derives from this
-                            s = null;
-                        else if (!(flags & IgnoreSymbolVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(this, s))
-                            s = null;
-                        else
-                            break;
-                    }
-                }
+        // Search bases classes in depth-first, left to right order
+        foreach (b; (*baseclasses)[])
+        {
+            if (!b.sym)
+                continue;
+
+            if (!b.sym.symtab)
+            {
+                error("base `%s` is forward referenced", b.sym.ident.toChars());
+                continue;
             }
+
+            import dmd.access : symbolIsVisible;
+
+            s = b.sym.search(loc, ident, flags);
+            if (!s)
+                continue;
+            else if (s == this) // happens if s is nested in this and derives from this
+                s = null;
+            else if (!(flags & IgnoreSymbolVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(this, s))
+                s = null;
+            else
+                break;
         }
+
         return s;
     }
 
@@ -661,10 +645,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         // to calculate each variable offsets. It can be improved later.
         fields.setDim(0);
 
-        uint offset = structsize;
+        FieldState fieldState;
+        fieldState.offset = structsize;
         foreach (s; *members)
         {
-            s.setFieldOffset(this, &offset, false);
+            s.setFieldOffset(this, fieldState, false);
         }
 
         sizeok = Sizeok.done;
@@ -748,57 +733,59 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 // the first entry might be a ClassInfo
                 //printf("\t[%d] = %s\n", i, fd.toChars());
-                if (ident == fd.ident && fd.type.covariant(tf) == 1)
+                if (ident != fd.ident || fd.type.covariant(tf) != 1)
                 {
-                    //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
-                    if (!fdmatch)
-                    {
-                        updateBestMatch(fd);
-                        continue;
-                    }
-                    if (fd == fdmatch)
-                        continue;
-
-                    {
-                    // Function type matching: exact > covariant
-                    MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
-                    MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
-                    if (m1 > m2)
-                    {
-                        updateBestMatch(fd);
-                        continue;
-                    }
-                    else if (m1 < m2)
-                        continue;
-                    }
-                    {
-                    MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
-                    MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
-                    if (m1 > m2)
-                    {
-                        updateBestMatch(fd);
-                        continue;
-                    }
-                    else if (m1 < m2)
-                        continue;
-                    }
-                    {
-                    // The way of definition: non-mixin > mixin
-                    MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
-                    MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
-                    if (m1 > m2)
-                    {
-                        updateBestMatch(fd);
-                        continue;
-                    }
-                    else if (m1 < m2)
-                        continue;
-                    }
-
-                    fdambig = fd;
-                    //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
+                    //printf("\t\t%d\n", fd.type.covariant(tf));
+                    continue;
                 }
-                //else printf("\t\t%d\n", fd.type.covariant(tf));
+
+                //printf("fd.parent.isClassDeclaration() = %p\n", fd.parent.isClassDeclaration());
+                if (!fdmatch)
+                {
+                    updateBestMatch(fd);
+                    continue;
+                }
+                if (fd == fdmatch)
+                    continue;
+
+                {
+                // Function type matching: exact > covariant
+                MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
+                MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
+                if (m1 > m2)
+                {
+                    updateBestMatch(fd);
+                    continue;
+                }
+                else if (m1 < m2)
+                    continue;
+                }
+                {
+                MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
+                MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
+                if (m1 > m2)
+                {
+                    updateBestMatch(fd);
+                    continue;
+                }
+                else if (m1 < m2)
+                    continue;
+                }
+                {
+                // The way of definition: non-mixin > mixin
+                MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+                MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+                if (m1 > m2)
+                {
+                    updateBestMatch(fd);
+                    continue;
+                }
+                else if (m1 < m2)
+                    continue;
+                }
+
+                fdambig = fd;
+                //printf("Lambig fdambig = %s %s [%s]\n", fdambig.toChars(), fdambig.type.toChars(), fdambig.loc.toChars());
             }
         }
 
@@ -841,13 +828,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     final bool isAbstract()
     {
         enum log = false;
-        if (isabstract != Abstract.fwdref)
-            return isabstract == Abstract.yes;
+        if (isabstract != ThreeState.none)
+            return isabstract == ThreeState.yes;
 
         if (log) printf("isAbstract(%s)\n", toChars());
 
-        bool no()  { if (log) printf("no\n");  isabstract = Abstract.no;  return false; }
-        bool yes() { if (log) printf("yes\n"); isabstract = Abstract.yes; return true;  }
+        bool no()  { if (log) printf("no\n");  isabstract = ThreeState.no;  return false; }
+        bool yes() { if (log) printf("yes\n"); isabstract = ThreeState.yes; return true;  }
 
         if (storage_class & STC.abstract_ || _scope && _scope.stc & STC.abstract_)
             return yes();
@@ -984,7 +971,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return vtblsym;
     }
 
-    override final inout(ClassDeclaration) isClassDeclaration() inout
+    override final inout(ClassDeclaration) isClassDeclaration() inout @nogc nothrow pure @safe
     {
         return this;
     }
@@ -1041,7 +1028,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
      *      false   not a base
      *      true    is a base
      */
-    override bool isBaseOf(ClassDeclaration cd, int* poffset)
+    override bool isBaseOf(ClassDeclaration cd, int* poffset) pure nothrow @nogc
     {
         //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
         assert(!baseClass);
@@ -1060,38 +1047,11 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 // printf("\tfound at offset %d\n", b.offset);
                 return true;
             }
-            if (isBaseOf(b, poffset))
+            if (baseClassImplementsInterface(this, b, poffset))
                 return true;
         }
         if (cd.baseClass && isBaseOf(cd.baseClass, poffset))
             return true;
-
-        if (poffset)
-            *poffset = 0;
-        return false;
-    }
-
-    bool isBaseOf(BaseClass* bc, int* poffset)
-    {
-        //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", toChars(), bc.sym.toChars());
-        for (size_t j = 0; j < bc.baseInterfaces.length; j++)
-        {
-            BaseClass* b = &bc.baseInterfaces[j];
-            //printf("\tY base %s\n", b.sym.toChars());
-            if (this == b.sym)
-            {
-                //printf("\tfound at offset %d\n", b.offset);
-                if (poffset)
-                {
-                    *poffset = b.offset;
-                }
-                return true;
-            }
-            if (isBaseOf(b, poffset))
-            {
-                return true;
-            }
-        }
 
         if (poffset)
             *poffset = 0;
@@ -1137,4 +1097,43 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     {
         v.visit(this);
     }
+}
+
+/**
+ * Returns whether `bc` implements `id`, including indirectly (`bc` implements an interfaces
+ * that inherits from `id`)
+ *
+ * Params:
+ *    id = the interface
+ *    bc = the base class
+ *    poffset = out parameter, offset of the interface in an object
+ *
+ * Returns:
+ *    true if the `bc` implements `id`, false otherwise
+ **/
+private bool baseClassImplementsInterface(InterfaceDeclaration id, BaseClass* bc, int* poffset) pure nothrow @nogc
+{
+    //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", id.toChars(), bc.sym.toChars());
+    for (size_t j = 0; j < bc.baseInterfaces.length; j++)
+    {
+        BaseClass* b = &bc.baseInterfaces[j];
+        //printf("\tY base %s\n", b.sym.toChars());
+        if (id == b.sym)
+        {
+            //printf("\tfound at offset %d\n", b.offset);
+            if (poffset)
+            {
+                *poffset = b.offset;
+            }
+            return true;
+        }
+        if (baseClassImplementsInterface(id, b, poffset))
+        {
+            return true;
+        }
+    }
+
+    if (poffset)
+        *poffset = 0;
+    return false;
 }

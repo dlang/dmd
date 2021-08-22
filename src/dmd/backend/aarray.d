@@ -334,7 +334,7 @@ nothrow:
         {
             while (e)
             {
-                auto result = dg(cast(Key*)(e + 1), cast(Value*)(e + 1) + aligned_keysize);
+                auto result = dg(cast(Key*)(e + 1), cast(Value*)(cast(void*)(e + 1) + aligned_keysize));
                 if (result)
                     return result;
                 e = e.next;
@@ -591,23 +591,7 @@ nothrow:
 
 /*************************************************************/
 
-version (none)
-{
-
-/* Since -betterC doesn't support unittests, do it this way
- * for the time being.
- * This is a stand-alone file anyway.
- */
-
-int main()
-{
-    testAArray();
-    testAApair();
-
-    return 0;
-}
-
-void testAArray()
+@system unittest
 {
     int dg(int* pk, bool* pv) { return 3; }
     int dgz(int* pk, bool* pv) { return 0; }
@@ -649,9 +633,17 @@ void testAArray()
     auto values = aa.values();
     assert(values.length == 1);
     assert(values[0] == false);
+
+    AArray!(Tinfo!int, bool) aa2;
+    int key = 10;
+    bool* getpv = aa2.get(&key);
+    aa2.apply(delegate(int* pk, bool* pv) @trusted {
+        assert(pv is getpv);
+        return 0;
+    });
 }
 
-void testAApair()
+@system unittest
 {
     const(char)* buf = "abcb";
     auto aap = AApair.create(cast(ubyte**)&buf);
@@ -661,6 +653,4 @@ void testAApair()
     pu = aap.get(3,4);
     assert(*pu == 10);
     AApair.destroy(aap);
-}
-
 }
