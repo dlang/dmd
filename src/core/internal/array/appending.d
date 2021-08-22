@@ -10,7 +10,7 @@
 module core.internal.array.appending;
 
 /// See $(REF _d_arrayappendcTX, rt,lifetime,_d_arrayappendcTX)
-private extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n) @trusted pure nothrow;
+private extern (C) byte[] _d_arrayappendcTX(const TypeInfo ti, ref return scope byte[] px, size_t n) @trusted pure nothrow;
 
 private enum isCopyingNothrow(T) = __traits(compiles, (ref T rhs) nothrow { T lhs = rhs; });
 

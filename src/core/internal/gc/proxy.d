@@ -32,12 +32,14 @@ private
 
 extern (C)
 {
+    import core.attribute : weak;
+
     // do not import GC modules, they might add a dependency to this whole module
     void _d_register_conservative_gc();
     void _d_register_manual_gc();
 
     // if you don't want to include the default GCs, replace during link by another implementation
-    void* register_default_gcs()
+    void* register_default_gcs() @weak
     {
         pragma(inline, false);
         // do not call, they register implicitly through pragma(crt_constructor)
@@ -157,27 +159,27 @@ extern (C)
         return instance.clrAttr(p, a);
     }
 
-    void* gc_malloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
+    void* gc_malloc( size_t sz, uint ba = 0, const scope TypeInfo ti = null ) nothrow
     {
         return instance.malloc(sz, ba, ti);
     }
 
-    BlkInfo gc_qalloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
+    BlkInfo gc_qalloc( size_t sz, uint ba = 0, const scope TypeInfo ti = null ) nothrow
     {
         return instance.qalloc( sz, ba, ti );
     }
 
-    void* gc_calloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
+    void* gc_calloc( size_t sz, uint ba = 0, const scope TypeInfo ti = null ) nothrow
     {
         return instance.calloc( sz, ba, ti );
     }
 
-    void* gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
+    void* gc_realloc( void* p, size_t sz, uint ba = 0, const scope TypeInfo ti = null ) nothrow
     {
         return instance.realloc( p, sz, ba, ti );
     }
 
-    size_t gc_extend( void* p, size_t mx, size_t sz, const TypeInfo ti = null ) nothrow
+    size_t gc_extend( void* p, size_t mx, size_t sz, const scope TypeInfo ti = null ) nothrow
     {
         return instance.extend( p, mx, sz,ti );
     }

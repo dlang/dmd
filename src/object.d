@@ -418,7 +418,7 @@ struct OffsetTypeInfo
  */
 class TypeInfo
 {
-    override string toString() const pure @safe nothrow
+    override string toString() const @safe nothrow
     {
         return typeid(this).name;
     }
@@ -665,7 +665,7 @@ class TypeInfo
 
 class TypeInfo_Enum : TypeInfo
 {
-    override string toString() const { return name; }
+    override string toString() const pure { return name; }
 
     override bool opEquals(Object o)
     {
@@ -977,7 +977,9 @@ class TypeInfo_StaticArray : TypeInfo
         import core.internal.string : unsignedToTempString;
 
         char[20] tmpBuff = void;
-        return value.toString() ~ "[" ~ unsignedToTempString(len, tmpBuff) ~ "]";
+        const lenString = unsignedToTempString(len, tmpBuff);
+
+        return (() @trusted => cast(string) (value.toString() ~ "[" ~ lenString ~ "]"))();
     }
 
     override bool opEquals(Object o)
@@ -1202,7 +1204,7 @@ class TypeInfo_Vector : TypeInfo
 
 class TypeInfo_Function : TypeInfo
 {
-    override string toString() const @trusted
+    override string toString() const pure @trusted
     {
         import core.demangle : demangleType;
 
@@ -1279,7 +1281,7 @@ class TypeInfo_Function : TypeInfo
 
 class TypeInfo_Delegate : TypeInfo
 {
-    override string toString() const @trusted
+    override string toString() const pure @trusted
     {
         import core.demangle : demangleType;
 
@@ -1399,14 +1401,14 @@ private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
  */
 class TypeInfo_Class : TypeInfo
 {
-    override string toString() const { return info.name; }
+    override string toString() const pure { return name; }
 
     override bool opEquals(Object o)
     {
         if (this is o)
             return true;
         auto c = cast(const TypeInfo_Class)o;
-        return c && this.info.name == c.info.name;
+        return c && this.name == c.name;
     }
 
     override size_t getHash(scope const void* p) @trusted const
@@ -1462,8 +1464,8 @@ class TypeInfo_Class : TypeInfo
         return m_offTi;
     }
 
-    @property auto info() @safe nothrow pure const return { return this; }
-    @property auto typeinfo() @safe nothrow pure const return { return this; }
+    final @property auto info() @safe @nogc nothrow pure const return { return this; }
+    final @property auto typeinfo() @safe @nogc nothrow pure const return { return this; }
 
     byte[]      m_init;         /** class static initializer
                                  * (init.length gives size in bytes of class)
@@ -1584,7 +1586,7 @@ alias ClassInfo = TypeInfo_Class;
 
 class TypeInfo_Interface : TypeInfo
 {
-    override string toString() const { return info.name; }
+    override string toString() const pure { return info.name; }
 
     override bool opEquals(Object o)
     {
@@ -1703,13 +1705,17 @@ class TypeInfo_Struct : TypeInfo
 {
     override string toString() const { return name; }
 
+    override size_t toHash() const
+    {
+        return hashOf(this.mangledName);
+    }
+
     override bool opEquals(Object o)
     {
         if (this is o)
             return true;
         auto s = cast(const TypeInfo_Struct)o;
-        return s && this.name == s.name &&
-                    this.initializer().length == s.initializer().length;
+        return s && this.mangledName == s.mangledName;
     }
 
     override size_t getHash(scope const void* p) @trusted pure nothrow const
@@ -1794,7 +1800,29 @@ class TypeInfo_Struct : TypeInfo
             (*xpostblit)(p);
     }
 
-    string name;
+    string mangledName;
+
+    final @property string name() nothrow const @trusted
+    {
+        import core.demangle : demangleType;
+
+        if (mangledName is null) // e.g., opaque structs
+            return null;
+
+        const key = cast(const void*) this; // faster lookup than TypeInfo_Struct, at the cost of potential duplicates per binary
+        static string[typeof(key)] demangledNamesCache; // per thread
+
+        // not nothrow:
+        //return demangledNamesCache.require(key, cast(string) demangleType(mangledName));
+
+        if (auto pDemangled = key in demangledNamesCache)
+            return *pDemangled;
+
+        const demangled = cast(string) demangleType(mangledName);
+        demangledNamesCache[key] = demangled;
+        return demangled;
+    }
+
     void[] m_init;      // initializer; m_init.ptr == null if 0 initialize
 
     @safe pure nothrow
@@ -2044,7 +2072,7 @@ struct ModuleInfo
     }
 
 const:
-    private void* addrOf(int flag) nothrow pure @nogc
+    private void* addrOf(int flag) return nothrow pure @nogc
     in
     {
         assert(flag >= MItlsctor && flag <= MIname);
@@ -2180,7 +2208,7 @@ const:
      * Returns:
      *  array of pointers to the ModuleInfo's of modules imported by this one
      */
-    @property immutable(ModuleInfo*)[] importedModules() nothrow pure @nogc
+    @property immutable(ModuleInfo*)[] importedModules() return nothrow pure @nogc
     {
         if (flags & MIimportedModules)
         {
@@ -2194,7 +2222,7 @@ const:
      * Returns:
      *  array of TypeInfo_Class references for classes defined in this module
      */
-    @property TypeInfo_Class[] localClasses() nothrow pure @nogc
+    @property TypeInfo_Class[] localClasses() return nothrow pure @nogc
     {
         if (flags & MIlocalClasses)
         {
@@ -2208,7 +2236,7 @@ const:
      * Returns:
      *  name of module, `null` if no name
      */
-    @property string name() nothrow pure @nogc
+    @property string name() return nothrow pure @nogc
     {
         import core.stdc.string : strlen;
 
@@ -2377,6 +2405,8 @@ class Throwable : Object
     {
         this.msg = msg;
         this.nextInChain = nextInChain;
+        if (nextInChain && nextInChain._refcount)
+            ++nextInChain._refcount;
         //this.info = _d_traceContext();
     }
 
@@ -2975,8 +3005,10 @@ Key[] keys(T : Value[Key], Value, Key)(T aa) @property
         alias realAA = aa;
     else
         const(Value[Key]) realAA = aa;
-    auto a = cast(void[])_aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
-    auto res = *cast(Key[]*)&a;
+    auto res = () @trusted {
+        auto a = cast(void[])_aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
+        return *cast(Key[]*)&a;
+    }();
     static if (__traits(hasPostblit, Key))
         _doPostblit(res);
     return res;
@@ -2989,7 +3021,7 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 }
 
 ///
-@system unittest
+@safe unittest
 {
     auto aa = [1: "v1", 2: "v2"];
     int sum;
@@ -2999,7 +3031,7 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
     assert(sum == 3);
 }
 
-@system unittest
+@safe unittest
 {
     static struct S
     {
@@ -3010,6 +3042,36 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 
     auto s = S("a");
     assert(s.keys.length == 0);
+}
+
+@safe unittest
+{
+    @safe static struct Key
+    {
+         string str;
+         this(this) @safe {}
+    }
+    string[Key] aa;
+    static assert(__traits(compiles, {
+                void test() @safe {
+                    const _ = aa.keys;
+                }
+            }));
+}
+
+@safe unittest
+{
+    static struct Key
+    {
+        string str;
+        this(this) @system {}
+    }
+    string[Key] aa;
+    static assert(!__traits(compiles, {
+                void test() @safe {
+                    const _ = aa.keys;
+                }
+            }));
 }
 
 /***********************************
@@ -3027,8 +3089,10 @@ Value[] values(T : Value[Key], Value, Key)(T aa) @property
         alias realAA = aa;
     else
         const(Value[Key]) realAA = aa;
-    auto a = cast(void[])_aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
-    auto res = *cast(Value[]*)&a;
+    auto res = () @trusted {
+        auto a = cast(void[])_aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
+        return *cast(Value[]*)&a;
+    }();
     static if (__traits(hasPostblit, Value))
         _doPostblit(res);
     return res;
@@ -3041,7 +3105,7 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 }
 
 ///
-@system unittest
+@safe unittest
 {
     auto aa = ["k1": 1, "k2": 2];
     int sum;
@@ -3051,7 +3115,7 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
     assert(sum == 3);
 }
 
-@system unittest
+@safe unittest
 {
     static struct S
     {
@@ -3062,6 +3126,36 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 
     auto s = S("a");
     assert(s.values.length == 0);
+}
+
+@safe unittest
+{
+    @safe static struct Value
+    {
+        string str;
+        this(this) @safe {}
+    }
+    Value[string] aa;
+    static assert(__traits(compiles, {
+                void test() @safe {
+                    const _ = aa.values;
+                }
+            }));
+}
+
+@safe unittest
+{
+    static struct Value
+    {
+        string str;
+        this(this) @system {}
+    }
+    Value[string] aa;
+    static assert(!__traits(compiles, {
+                void test() @safe {
+                    const _ = aa.values;
+                }
+            }));
 }
 
 /***********************************
@@ -3377,7 +3471,7 @@ enum immutable(void)* rtinfoHasPointers = cast(void*)1;
 
 // Helper functions
 
-private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
+private inout(TypeInfo) getElement(return inout TypeInfo value) @trusted pure nothrow
 {
     TypeInfo element = cast() value;
     for (;;)
@@ -3435,11 +3529,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     static assert(is(T : Unconst!T), "Cannot implicitly convert type "~T.stringof~
                   " to "~Unconst!T.stringof~" in dup.");
 
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(T, Unconst!T)(a);
-    else
-        return _dup!(T, Unconst!T)(a);
+    return _dup!(T, Unconst!T)(a);
 }
 
 ///
@@ -3457,11 +3547,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 @property T[] dup(T)(const(T)[] a)
     if (is(const(T) : T))
 {
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(const(T), T)(a);
-    else
-        return _dup!(const(T), T)(a);
+    return _dup!(const(T), T)(a);
 }
 
 
@@ -3470,12 +3556,7 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
 {
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
                   " to immutable in idup.");
-
-    // wrap unsafe _dup in @trusted to preserve @safe postblit
-    static if (__traits(compiles, (T b) @safe { T a = b; }))
-        return _trustedDup!(T, immutable(T))(a);
-    else
-        return _dup!(T, immutable(T))(a);
+    return _dup!(T, immutable(T))(a);
 }
 
 /// ditto
@@ -3493,35 +3574,71 @@ private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr,
     assert(s == "abc");
 }
 
-private U[] _trustedDup(T, U)(T[] a) @trusted
-{
-    return _dup!(T, U)(a);
-}
-
-private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
+private U[] _dup(T, U)(scope T[] a) pure nothrow @trusted if (__traits(isPOD, T))
 {
     if (__ctfe)
-    {
-        static if (is(T : void))
-            assert(0, "Cannot dup a void[] array at compile time.");
-        else
-        {
-            U[] res;
-            foreach (ref e; a)
-                res ~= e;
-            return res;
-        }
-    }
+        return _dupCtfe!(T, U)(a);
 
     import core.stdc.string : memcpy;
+    auto arr = _d_newarrayU(typeid(T[]), a.length);
+    memcpy(arr.ptr, cast(const(void)*) a.ptr, T.sizeof * a.length);
+    return *cast(U[]*) &arr;
+}
 
-    void[] arr = _d_newarrayU(typeid(T[]), a.length);
-    memcpy(arr.ptr, cast(const(void)*)a.ptr, T.sizeof * a.length);
-    auto res = *cast(U[]*)&arr;
+private U[] _dupCtfe(T, U)(scope T[] a)
+{
+    static if (is(T : void))
+        assert(0, "Cannot dup a void[] array at compile time.");
+    else
+    {
+        U[] res;
+        foreach (ref e; a)
+            res ~= e;
+        return res;
+    }
+}
 
-    static if (__traits(hasPostblit, T))
-        _doPostblit(res);
+private U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
+{
+    // note: copyEmplace is `@system` inside a `@trusted` block, so the __ctfe branch
+    // has the extra duty to infer _dup `@system` when the copy-constructor is `@system`.
+    if (__ctfe)
+        return _dupCtfe!(T, U)(a);
+
+    import core.lifetime: copyEmplace;
+    U[] res = () @trusted {
+        auto arr = cast(U*) _d_newarrayU(typeid(T[]), a.length);
+        size_t i;
+        scope (failure)
+        {
+            import core.internal.lifetime: emplaceInitializer;
+            // Initialize all remaining elements to not destruct garbage
+            foreach (j; i .. a.length)
+                emplaceInitializer(cast() arr[j]);
+        }
+        for (; i < a.length; i++)
+        {
+            copyEmplace(a.ptr[i], arr[i]);
+        }
+        return cast(U[])(arr[0..a.length]);
+    } ();
+
     return res;
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=22107
+@safe unittest
+{
+    static int i;
+    @safe struct S
+    {
+        this(this) { i++; }
+    }
+
+    void fun(scope S[] values...) @safe
+    {
+        values.dup;
+    }
 }
 
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
@@ -3711,7 +3828,7 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     assert(is(typeof(b3) == immutable(int[])));
 }
 
-private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
+private extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length) pure nothrow;
 
 private void _doPostblit(T)(T[] arr)
 {
@@ -3794,20 +3911,77 @@ private void _doPostblit(T)(T[] arr)
     static struct Sunpure { this(this) @safe nothrow {} }
     static struct Sthrow { this(this) @safe pure {} }
     static struct Sunsafe { this(this) @system pure nothrow {} }
+    static struct Snocopy { @disable this(this); }
 
-    static assert( __traits(compiles, ()         { [].dup!Sunpure; }));
+    [].dup!Sunpure;
+    [].dup!Sthrow;
+    cast(void) [].dup!Sunsafe;
     static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
-    static assert( __traits(compiles, ()         { [].dup!Sthrow; }));
     static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
-    static assert( __traits(compiles, ()         { [].dup!Sunsafe; }));
+    static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
+    static assert(!__traits(compiles, ()         { [].dup!Snocopy; }));
+
+    [].idup!Sunpure;
+    [].idup!Sthrow;
+    [].idup!Sunsafe;
+    static assert(!__traits(compiles, () pure    { [].idup!Sunpure; }));
+    static assert(!__traits(compiles, () nothrow { [].idup!Sthrow; }));
+    static assert(!__traits(compiles, () @safe   { [].idup!Sunsafe; }));
+    static assert(!__traits(compiles, ()         { [].idup!Snocopy; }));
+}
+
+@safe unittest
+{
+    // test that the copy-constructor is called with .dup
+    static struct ArrElem
+    {
+        int a;
+        this(int a)
+        {
+            this.a = a;
+        }
+        this(ref const ArrElem)
+        {
+            a = 2;
+        }
+        this(ref ArrElem) immutable
+        {
+            a = 3;
+        }
+    }
+
+    auto arr = [ArrElem(1), ArrElem(1)];
+
+    ArrElem[] b = arr.dup;
+    assert(b[0].a == 2 && b[1].a == 2);
+
+    immutable ArrElem[] c = arr.idup;
+    assert(c[0].a == 3 && c[1].a == 3);
+}
+
+@system unittest
+{
+    static struct Sunpure { this(ref const typeof(this)) @safe nothrow {} }
+    static struct Sthrow { this(ref const typeof(this)) @safe pure {} }
+    static struct Sunsafe { this(ref const typeof(this)) @system pure nothrow {} }
+    [].dup!Sunpure;
+    [].dup!Sthrow;
+    cast(void) [].dup!Sunsafe;
+    static assert(!__traits(compiles, () pure    { [].dup!Sunpure; }));
+    static assert(!__traits(compiles, () nothrow { [].dup!Sthrow; }));
     static assert(!__traits(compiles, () @safe   { [].dup!Sunsafe; }));
 
-    static assert( __traits(compiles, ()         { [].idup!Sunpure; }));
-    static assert(!__traits(compiles, () pure    { [].idup!Sunpure; }));
-    static assert( __traits(compiles, ()         { [].idup!Sthrow; }));
-    static assert(!__traits(compiles, () nothrow { [].idup!Sthrow; }));
-    static assert( __traits(compiles, ()         { [].idup!Sunsafe; }));
-    static assert(!__traits(compiles, () @safe   { [].idup!Sunsafe; }));
+    // for idup to work on structs that have copy constructors, it is necessary
+    // that the struct defines a copy constructor that creates immutable objects
+    static struct ISunpure { this(ref const typeof(this)) immutable @safe nothrow {} }
+    static struct ISthrow { this(ref const typeof(this)) immutable @safe pure {} }
+    static struct ISunsafe { this(ref const typeof(this)) immutable @system pure nothrow {} }
+    [].idup!ISunpure;
+    [].idup!ISthrow;
+    [].idup!ISunsafe;
+    static assert(!__traits(compiles, () pure    { [].idup!ISunpure; }));
+    static assert(!__traits(compiles, () nothrow { [].idup!ISthrow; }));
+    static assert(!__traits(compiles, () @safe   { [].idup!ISunsafe; }));
 }
 
 @safe unittest
@@ -3873,6 +4047,71 @@ private void _doPostblit(T)(T[] arr)
     int p;
     scope S[1] arr = [S(&p)];
     auto a = arr.dup; // dup does escape
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=21983
+// dup/idup destroys partially constructed arrays on failure
+@safe unittest
+{
+    static struct SImpl(bool postblit)
+    {
+        int num;
+        long l = 0xDEADBEEF;
+
+        static if (postblit)
+        {
+            this(this)
+            {
+                if (this.num == 3)
+                    throw new Exception("");
+            }
+        }
+        else
+        {
+            this(scope ref const SImpl other)
+            {
+                if (other.num == 3)
+                    throw new Exception("");
+
+                this.num = other.num;
+                this.l = other.l;
+            }
+        }
+
+        ~this() @trusted
+        {
+            if (l != 0xDEADBEEF)
+            {
+                import core.stdc.stdio;
+                printf("Unexpected value: %lld\n", l);
+                fflush(stdout);
+                assert(false);
+            }
+        }
+    }
+
+    alias Postblit = SImpl!true;
+    alias Copy = SImpl!false;
+
+    static int test(S)()
+    {
+        S[4] arr = [ S(1), S(2), S(3), S(4) ];
+        try
+        {
+            arr.dup();
+            assert(false);
+        }
+        catch (Exception)
+        {
+            return 1;
+        }
+    }
+
+    static assert(test!Postblit());
+    assert(test!Postblit());
+
+    static assert(test!Copy());
+    assert(test!Copy());
 }
 
 /**

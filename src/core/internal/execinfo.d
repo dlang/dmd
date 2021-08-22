@@ -62,6 +62,8 @@ else version (FreeBSD)
     import _execinfo = core.sys.freebsd.execinfo;
 else version (NetBSD)
     import _execinfo = core.sys.netbsd.execinfo;
+else version (OpenBSD)
+    import _execinfo = core.sys.openbsd.execinfo;
 else version (DragonFlyBSD)
     import _execinfo = core.sys.dragonflybsd.execinfo;
 else version (Solaris)
@@ -92,6 +94,8 @@ private
     else version (DragonFlyBSD)
         enum _BTFmt_BSD = true;
     else version (NetBSD)
+        enum _BTFmt_BSD = true;
+    else version (OpenBSD)
         enum _BTFmt_BSD = true;
     else version (ExtExecinfo_BSDFmt)
         enum _BTFmt_BSD = true;

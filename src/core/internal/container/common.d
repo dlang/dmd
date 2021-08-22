@@ -44,13 +44,8 @@ void destroy(T)(ref T t) if (!is(T == struct))
 
 void initialize(T)(ref T t) if (is(T == struct))
 {
-    import core.stdc.string;
-    static if (__traits(isPOD, T)) // implies !hasElaborateAssign!T && !hasElaborateDestructor!T
-        t = T.init;
-    else static if (__traits(isZeroInit, T))
-        memset(&t, 0, T.sizeof);
-    else
-        memcpy(&t, typeid(T).initializer().ptr, T.sizeof);
+    import core.internal.lifetime : emplaceInitializer;
+    emplaceInitializer(t);
 }
 
 void initialize(T)(ref T t) if (!is(T == struct))

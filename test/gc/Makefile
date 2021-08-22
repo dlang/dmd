@@ -1,7 +1,8 @@
 include ../common.mak
 
-TESTS := attributes sentinel printf memstomp invariant logging precise precisegc forkgc forkgc2 \
-		 sigmaskgc startbackgc recoverfree nocollect
+TESTS := attributes sentinel sentinel1 sentinel2 printf memstomp invariant logging \
+		 precise precisegc forkgc forkgc2 \
+		 sigmaskgc startbackgc recoverfree nocollect concurrent precise_concurrent hospital
 
 SRC_GC = ../../src/core/internal/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) ../../src/rt/lifetime.d
@@ -19,6 +20,12 @@ $(ROOT)/%.done: $(ROOT)/%
 $(ROOT)/sentinel: $(SRC)
 	$(DMD) -debug=SENTINEL $(UDFLAGS) -main -of$@ $(SRC)
 
+$(ROOT)/sentinel1: $(SRC) sentinel1.d
+	$(DMD) -debug=SENTINEL -debug=GC_RECURSIVE_LOCK $(DFLAGS) sentinel1.d -of$@ $(SRC)
+
+$(ROOT)/sentinel2: $(SRC) sentinel2.d
+	$(DMD) -debug=SENTINEL -debug=GC_RECURSIVE_LOCK $(DFLAGS) sentinel2.d -gx -of$@ $(SRC)
+
 $(ROOT)/printf: $(SRC)
 	$(DMD) -debug=PRINTF -debug=PRINTF_TO_FILE -debug=COLLECT_PRINTF $(UDFLAGS) -main -of$@ $(SRC_GC)
 
@@ -35,8 +42,16 @@ $(ROOT)/precise: $(SRC)
 	$(DMD) -debug -debug=INVARIANT -debug=MEMSTOMP $(UDFLAGS) -main -of$@ $(SRC)
 $(ROOT)/precise.done: RUN_ARGS += --DRT-gcopt=gc:precise
 
-$(ROOT)/precisegc: $(SRC)
+$(ROOT)/precisegc: $(SRC) precisegc.d
 	$(DMD) $(UDFLAGS) -gx -of$@ $(SRC) precisegc.d
+
+$(ROOT)/concurrent: $(SRC)
+	$(DMD) $(UDFLAGS) -main -of$@ $(SRC)
+$(ROOT)/concurrent.done: RUN_ARGS += --DRT-gcopt=fork:1
+
+$(ROOT)/precise_concurrent: $(SRC)
+	$(DMD) $(UDFLAGS) -main -of$@ $(SRC)
+$(ROOT)/precise_concurrent.done: RUN_ARGS += "--DRT-gcopt=gc:precise fork:1"
 
 $(ROOT)/attributes: attributes.d
 	$(DMD) $(UDFLAGS) -of$@ attributes.d
@@ -58,6 +73,10 @@ $(ROOT)/recoverfree: recoverfree.d
 
 $(ROOT)/nocollect: nocollect.d
 	$(DMD) $(DFLAGS) -of$@ nocollect.d
+
+$(ROOT)/hospital: hospital.d
+	$(DMD) $(DFLAGS) -d -of$@ hospital.d
+$(ROOT)/hospital.done: RUN_ARGS += --DRT-gcopt=fork:1
 
 clean:
 	rm -rf $(ROOT)

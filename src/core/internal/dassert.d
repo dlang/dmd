@@ -5,7 +5,7 @@
  * by the compiler whenever `-checkaction=context` is used.
  * There are two hooks, one for unary expressions, and one for binary.
  * When used, the compiler will rewrite `assert(a >= b)` as
- * `assert(a >= b, _d_assert_fail!">="(a, b))`.
+ * `assert(a >= b, _d_assert_fail!(typeof(a))(">=", a, b))`.
  * Temporaries will be created to avoid side effects if deemed necessary
  * by the compiler.
  *
@@ -80,7 +80,7 @@ template _d_assert_fail(A...)
     }
 }
 
-/// Combines the supplied arguments into one string "valA token valB"
+/// Combines the supplied arguments into one string `"valA token valB"`
 private string combine(const scope string[] valA, const scope string token,
     const scope string[] valB) pure nothrow @nogc @safe
 {
@@ -127,8 +127,7 @@ private string combine(const scope string[] valA, const scope string token,
     return (() @trusted => cast(string) buffer)();
 }
 
-// Yields the appropriate printf format token for a type T
-// Indended to be used by miniFormat
+/// Yields the appropriate `printf` format token for a type `T`
 private template getPrintfFormat(T)
 {
     static if (is(T == long))
@@ -157,27 +156,42 @@ private template getPrintfFormat(T)
 }
 
 /**
-Minimalistic formatting for use in _d_assert_fail to keep the compilation
-overhead small and avoid the use of Phobos.
-*/
+ * Generates a textual representation of `v` without relying on Phobos.
+ * The value is formatted as follows:
+ *
+ *  - primitive types and arrays yield their respective literals
+ *  - pointers are printed as hexadecimal numbers
+ *  - enum members are represented by their name
+ *  - user-defined types are formatted by either calling `toString`
+ *    if defined or printing all members, e.g. `S(1, 2)`
+ *
+ * Note that unions are rejected because this method cannot determine which
+ * member is valid when calling this method.
+ *
+ * Params:
+ *   v = the value to print
+ *
+ * Returns: a string respresenting `v` or `V.stringof` if `V` is not supported
+ */
 private string miniFormat(V)(const scope ref V v)
 {
     import core.internal.traits: isAggregateType;
-    import core.stdc.stdio : sprintf;
-    import core.stdc.string : strlen;
 
+    /// `shared` values are formatted as their base type
     static if (is(V == shared T, T))
     {
         // Use atomics to avoid race conditions whenever possible
         static if (__traits(compiles, atomicLoad(v)))
         {
-            T tmp = cast(T) atomicLoad(v);
-            return miniFormat(tmp);
+            if (!__ctfe)
+            {
+                T tmp = cast(T) atomicLoad(v);
+                return miniFormat(tmp);
+            }
         }
-        else
-        {   // Fall back to a simple cast - we're violating the type system anyways
-            return miniFormat(*cast(T*) &v);
-        }
+
+        // Fall back to a simple cast - we're violating the type system anyways
+        return miniFormat(__ctfe ? cast(const T) v : *cast(const T*) &v);
     }
     // Format enum members using their name
     else static if (is(V BaseType == enum))
@@ -192,13 +206,14 @@ private string miniFormat(V)(const scope ref V v)
 
         // Format invalid enum values as their base type
         enum cast_ = "cast(" ~ V.stringof ~ ")";
-        const val = miniFormat(*(cast(BaseType*) &v));
+        const val = miniFormat(__ctfe ? cast(const BaseType) v : *cast(const BaseType*) &v);
         return combine([ cast_ ], "", [ val ]);
     }
     else static if (is(V == bool))
     {
         return v ? "true" : "false";
     }
+    // Detect vectors which match isIntegral / isFloating
     else static if (is(V == __vector(ET[N]), ET, size_t N))
     {
         string msg = "[";
@@ -236,15 +251,23 @@ private string miniFormat(V)(const scope ref V v)
         }
         else
         {
-            enum printfFormat = getPrintfFormat!V;
-            char[20] val;
-            const len = sprintf(&val[0], printfFormat, v);
-            return val.idup[0 .. len];
+            import core.internal.string;
+            static if (__traits(isUnsigned, V))
+                const val = unsignedToTempString(v);
+            else
+                const val = signedToTempString(v);
+            return val.get().idup();
         }
     }
     else static if (__traits(isFloating, V))
     {
+        import core.stdc.stdio : sprintf;
         import core.stdc.config : LD = c_long_double;
+
+        // No suitable replacement for sprintf in druntime ATM
+        if (__ctfe)
+            return '<' ~ V.stringof ~ " not supported>";
+
         // Workaround for https://issues.dlang.org/show_bug.cgi?id=20759
         static if (is(LD == real))
             enum realFmt = "%Lg";
@@ -281,11 +304,9 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (is(V == U*, U))
     {
-        // Format as ulong because not all sprintf implementations
-        // prepend a 0x for pointers
-        char[20] val;
-        const len = sprintf(&val[0], "0x%llX", cast(ulong) v);
-        return val.idup[0 .. len];
+        // Format as ulong and prepend a 0x for pointers
+        import core.internal.string;
+        return cast(immutable) ("0x" ~ unsignedToTempString!16(cast(ulong) v));
     }
     // toString() isn't always const, e.g. classes inheriting from Object
     else static if (__traits(compiles, { string s = V.init.toString(); }))
@@ -297,11 +318,18 @@ private string miniFormat(V)(const scope ref V v)
                 return "`null`";
         }
 
-        // Prefer const overload of toString
-        static if (__traits(compiles, { string s = v.toString(); }))
-            return v.toString();
-        else
-            return (cast() v).toString();
+        try
+        {
+            // Prefer const overload of toString
+            static if (__traits(compiles, { string s = v.toString(); }))
+                return v.toString();
+            else
+                return (cast() v).toString();
+        }
+        catch (Exception e)
+        {
+            return `<toString() failed: "` ~ e.msg ~ `", called on ` ~ formatMembers(v) ~`>`;
+        }
     }
     // Static arrays or slices (but not aggregates with `alias this`)
     else static if (is(V : U[], U) && !isAggregateType!V)
@@ -312,6 +340,9 @@ private string miniFormat(V)(const scope ref V v)
         // special-handling for void-arrays
         static if (is(E == void))
         {
+            if (__ctfe)
+                return "<void[] not supported>";
+
             const bytes = cast(byte[]) v;
             return miniFormat(bytes);
         }
@@ -370,21 +401,19 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (is(V == struct))
     {
-        enum ctxPtr = __traits(isNested, V);
-        string msg = V.stringof ~ "(";
-        foreach (i, ref field; v.tupleof)
-        {
-            if (i > 0)
-                msg ~= ", ";
+        return formatMembers(v);
+    }
+    // Extern C++ classes don't have a toString by default
+    else static if (is(V == class) || is(V == interface))
+    {
+        if (v is null)
+            return "null";
 
-            // Mark context pointer
-            static if (ctxPtr && i == v.tupleof.length - 1)
-                msg ~= "<context>: ";
-
-            msg ~= miniFormat(field);
-        }
-        msg ~= ")";
-        return msg;
+        // Extern classes might be opaque
+        static if (is(typeof(v.tupleof)))
+            return formatMembers(v);
+        else
+            return '<' ~ V.stringof ~ '>';
     }
     else
     {
@@ -392,12 +421,63 @@ private string miniFormat(V)(const scope ref V v)
     }
 }
 
+/// Formats `v`'s members as `V(<member 1>, <member 2>, ...)`
+private string formatMembers(V)(const scope ref V v)
+{
+    enum ctxPtr = __traits(isNested, V);
+    enum isOverlapped = calcFieldOverlap([ v.tupleof.offsetof ]);
+
+    string msg = V.stringof ~ "(";
+    foreach (i, ref field; v.tupleof)
+    {
+        if (i > 0)
+            msg ~= ", ";
+
+        static if (isOverlapped[i])
+        {
+            msg ~= "<overlapped field>";
+        }
+        else
+        {
+            // Mark context pointer
+            static if (ctxPtr && i == v.tupleof.length - 1)
+                msg ~= "<context>: ";
+
+            msg ~= miniFormat(field);
+        }
+    }
+    msg ~= ")";
+    return msg;
+}
+
+/**
+ * Calculates whether fields are overlapped based on the passed offsets.
+ *
+ * Params:
+ *   offsets = offsets of all fields matching the order of `.tupleof`
+ *
+ * Returns: an array such that arr[n] = true indicates that the n'th field
+ *          overlaps with an adjacent field
+ **/
+private bool[] calcFieldOverlap(const scope size_t[] offsets)
+{
+    bool[] overlaps = new bool[](offsets.length);
+
+    foreach (const idx; 1 .. overlaps.length)
+    {
+        if (offsets[idx - 1] == offsets[idx])
+            overlaps[idx - 1] = overlaps[idx] = true;
+    }
+
+    return overlaps;
+}
+
 // This should be a local import in miniFormat but fails with a cyclic dependency error
 // core.thread.osthread -> core.time -> object -> core.internal.array.capacity
 // -> core.atomic -> core.thread -> core.thread.osthread
 import core.atomic : atomicLoad;
 
-// Inverts a comparison token for use in _d_assert_fail
+/// Negates a comparison token, e.g. `==` is mapped to `!=`
 private string invertCompToken(scope string comp) pure nothrow @nogc @safe
 {
     switch (comp)
@@ -427,6 +507,7 @@ private string invertCompToken(scope string comp) pure nothrow @nogc @safe
     }
 }
 
+/// Casts the function pointer to include `@safe`, `@nogc`, ...
 private auto assumeFakeAttributes(T)(T t) @trusted
 {
     import core.internal.traits : Parameters, ReturnType;
@@ -436,12 +517,15 @@ private auto assumeFakeAttributes(T)(T t) @trusted
     return cast(type) t;
 }
 
+/// Wrapper for `miniFormat` which assumes that the implementation is `@safe`, `@nogc`, ...
+/// s.t. it does not violate the constraints of the the function containing the `assert`.
 private string miniFormatFakeAttributes(T)(const scope ref T t)
 {
     alias miniT = miniFormat!T;
     return assumeFakeAttributes(&miniT)(t);
 }
 
+/// Allocates an array of `t` bytes while pretending to be `@safe`, `@nogc`, ...
 private auto pureAlloc(size_t t)
 {
     static auto alloc(size_t len)

@@ -17,6 +17,8 @@ version (CRuntime_Microsoft):
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
+import core.sys.windows.winbase : FreeLibrary, GetProcAddress, LoadLibraryA, LoadLibraryW;
+import core.sys.windows.winnt : WCHAR;
 import rt.deh, rt.minfo;
 
 struct SectionGroup
@@ -62,6 +64,9 @@ private:
 
 shared(bool) conservative;
 
+/****
+ * Gets called on program startup just before GC is initialized.
+ */
 void initSections() nothrow @nogc
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
@@ -103,12 +108,18 @@ void initSections() nothrow @nogc
     }
 }
 
+/***
+ * Gets called on program shutdown just after GC is terminated.
+ */
 void finiSections() nothrow @nogc
 {
     .free(cast(void*)_sections.modules.ptr);
     .free(_sections._gcRanges.ptr);
 }
 
+/***
+ * Called once per thread; returns array of thread local storage ranges
+ */
 void[] initTLSRanges() nothrow @nogc
 {
     void* pbeg;
@@ -179,6 +190,11 @@ void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothr
 }
 
 private:
+
+///////////////////////////////////////////////////////////////////////////////
+// Compiler to runtime interface.
+///////////////////////////////////////////////////////////////////////////////
+
 __gshared SectionGroup _sections;
 
 extern(C)
@@ -241,7 +257,73 @@ extern(C)
     }
 }
 
-/////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// dynamic loading
+///////////////////////////////////////////////////////////////////////////////
+
+/***********************************
+ * These are a temporary means of providing a GC hook for DLL use.  They may be
+ * replaced with some other similar functionality later.
+ */
+extern (C)
+{
+    void* gc_getProxy();
+    void  gc_setProxy(void* p);
+    void  gc_clrProxy();
+
+    alias void  function(void*) gcSetFn;
+    alias void  function()      gcClrFn;
+}
+
+/*******************************************
+ * Loads a DLL written in D with the name 'name'.
+ * Returns:
+ *      opaque handle to the DLL if successfully loaded
+ *      null if failure
+ */
+extern (C) void* rt_loadLibrary(const char* name)
+{
+    return initLibrary(.LoadLibraryA(name));
+}
+
+extern (C) void* rt_loadLibraryW(const WCHAR* name)
+{
+    return initLibrary(.LoadLibraryW(name));
+}
+
+void* initLibrary(void* mod)
+{
+    // BUG: LoadLibrary() call calls rt_init(), which fails if proxy is not set!
+    // (What? LoadLibrary() is a Windows API call, it shouldn't call rt_init().)
+    if (mod is null)
+        return mod;
+    gcSetFn gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy");
+    if (gcSet !is null)
+    {   // BUG: Set proxy, but too late
+        gcSet(gc_getProxy());
+    }
+    return mod;
+}
+
+/*************************************
+ * Unloads DLL that was previously loaded by rt_loadLibrary().
+ * Input:
+ *      ptr     the handle returned by rt_loadLibrary()
+ * Returns:
+ *      1   succeeded
+ *      0   some failure happened
+ */
+extern (C) int rt_unloadLibrary(void* ptr)
+{
+    gcClrFn gcClr  = cast(gcClrFn) GetProcAddress(ptr, "gc_clrProxy");
+    if (gcClr !is null)
+        gcClr();
+    return FreeLibrary(ptr) != 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// PE/COFF program header iteration
+///////////////////////////////////////////////////////////////////////////////
 
 enum IMAGE_DOS_SIGNATURE = 0x5A4D;      // MZ
 

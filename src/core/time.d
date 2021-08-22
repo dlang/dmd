@@ -161,7 +161,7 @@ version (CoreDdoc) enum ClockType
 
         On systems which do not support a coarser clock,
         $(D MonoTimeImpl!(ClockType.coarse)) will internally use the same clock
-        as $(D Monotime) does, and $(D Clock.currTime!(ClockType.coarse)) will
+        as $(D MonoTime) does, and $(D Clock.currTime!(ClockType.coarse)) will
         use the same clock as $(D Clock.currTime). This is because the coarse
         clock is doing the same thing as the normal clock (just at lower
         precision), whereas some of the other clock types

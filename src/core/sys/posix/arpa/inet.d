@@ -68,8 +68,6 @@ version (CRuntime_Glibc)
         in_addr_t s_addr;
     }
 
-    enum INET_ADDRSTRLEN = 16;
-
     @trusted pure
     {
     uint32_t htonl(uint32_t);
@@ -92,8 +90,6 @@ else version (Darwin)
     {
         in_addr_t s_addr;
     }
-
-    enum INET_ADDRSTRLEN = 16;
 
     @trusted pure
     {
@@ -118,8 +114,6 @@ else version (FreeBSD)
         in_addr_t s_addr;
     }
 
-    enum INET_ADDRSTRLEN = 16;
-
     @trusted pure
     {
     uint32_t htonl(uint32_t);
@@ -143,8 +137,6 @@ else version (NetBSD)
         in_addr_t s_addr;
     }
 
-    enum INET_ADDRSTRLEN = 16;
-
     @trusted pure
     {
     uint32_t htonl(uint32_t);
@@ -167,8 +159,6 @@ else version (OpenBSD)
     {
         in_addr_t s_addr;
     }
-
-    enum INET_ADDRSTRLEN = 16;
 
     @safe pure extern (D)
     {
@@ -203,8 +193,6 @@ else version (DragonFlyBSD)
         in_addr_t s_addr;
     }
 
-    enum INET_ADDRSTRLEN = 16;
-
     @trusted pure
     {
     uint32_t htonl(uint32_t);
@@ -227,7 +215,6 @@ else version (Solaris)
     {
         in_addr_t s_addr;
     }
-    enum INET_ADDRSTRLEN = 16;
 
     @trusted pure
     {
@@ -250,8 +237,6 @@ else version (CRuntime_Bionic)
     {
         in_addr_t s_addr;
     }
-
-    enum INET_ADDRSTRLEN = 16;
 
     @safe pure extern (D)
     {
@@ -286,8 +271,6 @@ else version (CRuntime_Musl)
         in_addr_t s_addr;
     }
 
-    enum INET_ADDRSTRLEN = 16;
-
     @trusted pure
     {
     uint32_t htonl(uint32_t);
@@ -311,8 +294,6 @@ else version (CRuntime_UClibc)
         in_addr_t s_addr;
     }
 
-    enum INET_ADDRSTRLEN = 16;
-
     @trusted pure
     {
     uint32_t htonl(uint32_t);
@@ -327,9 +308,6 @@ else version (CRuntime_UClibc)
     int             inet_pton(int, const scope char*, void*);
 }
 
-//
-// IPV6 (IP6)
-//
 /*
 NOTE: The following must must be defined in core.sys.posix.arpa.inet to break
       a circular import: INET6_ADDRSTRLEN.
@@ -337,39 +315,5 @@ NOTE: The following must must be defined in core.sys.posix.arpa.inet to break
 INET6_ADDRSTRLEN // from core.sys.posix.netinet.in_
 */
 
-version (CRuntime_Glibc)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
-else version (Darwin)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
-else version (FreeBSD)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
-else version (NetBSD)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
-else version (OpenBSD)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
-else version (DragonFlyBSD)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
-else version (Solaris)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
-else version (CRuntime_Bionic)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
-else version (CRuntime_UClibc)
-{
-    enum INET6_ADDRSTRLEN = 46;
-}
+enum INET_ADDRSTRLEN  = 16;
+enum INET6_ADDRSTRLEN = 46;

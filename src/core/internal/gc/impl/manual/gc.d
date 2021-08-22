@@ -37,18 +37,13 @@ extern(C) pragma(crt_constructor) void _d_register_manual_gc()
 
 private GC initialize()
 {
-    import core.stdc.string: memcpy;
+    import core.lifetime : emplace;
 
-    auto p = cstdlib.malloc(__traits(classInstanceSize, ManualGC));
-    if (!p)
+    auto gc = cast(ManualGC) cstdlib.malloc(__traits(classInstanceSize, ManualGC));
+    if (!gc)
         onOutOfMemoryError();
 
-    auto init = typeid(ManualGC).initializer();
-    assert(init.length == __traits(classInstanceSize, ManualGC));
-    auto instance = cast(ManualGC) memcpy(p, init.ptr, init.length);
-    instance.__ctor();
-
-    return instance;
+    return emplace(gc);
 }
 
 class ManualGC : GC
@@ -111,7 +106,7 @@ class ManualGC : GC
         return p;
     }
 
-    BlkInfo qalloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    BlkInfo qalloc(size_t size, uint bits, const scope TypeInfo ti) nothrow
     {
         BlkInfo retval;
         retval.base = malloc(size, bits, ti);

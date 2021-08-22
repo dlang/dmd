@@ -1764,7 +1764,7 @@ Params:
 */
 void move(T)(ref T source, ref T target)
 {
-    moveImpl(source, target);
+    moveImpl(target, source);
 }
 
 /// For non-struct types, `move` just performs `target = source`:
@@ -1915,7 +1915,7 @@ pure nothrow @safe @nogc unittest
     static assert(is(typeof({ S s; move(s, s); }) == T));
 }
 
-private void moveImpl(T)(ref T source, ref T target)
+private void moveImpl(T)(scope ref T target, return scope ref T source)
 {
     import core.internal.traits : hasElaborateDestructor;
 
@@ -1927,10 +1927,10 @@ private void moveImpl(T)(ref T source, ref T target)
         static if (hasElaborateDestructor!T) target.__xdtor();
     }
     // move and emplace source into target
-    moveEmplaceImpl(source, target);
+    moveEmplaceImpl(target, source);
 }
 
-private T moveImpl(T)(ref T source)
+private T moveImpl(T)(return scope ref T source)
 {
     // Properly infer safety from moveEmplaceImpl as the implementation below
     // might void-initialize pointers in result and hence needs to be @trusted
@@ -1939,10 +1939,10 @@ private T moveImpl(T)(ref T source)
     return trustedMoveImpl(source);
 }
 
-private T trustedMoveImpl(T)(ref T source) @trusted
+private T trustedMoveImpl(T)(return scope ref T source) @trusted
 {
     T result = void;
-    moveEmplaceImpl(source, result);
+    moveEmplaceImpl(result, source);
     return result;
 }
 
@@ -2083,7 +2083,8 @@ private T trustedMoveImpl(T)(ref T source) @trusted
     move(x, x);
 }
 
-private void moveEmplaceImpl(T)(ref T source, ref T target)
+// target must be first-parameter, because in void-functions DMD + dip1000 allows it to take the place of a return-scope
+private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
 {
     import core.stdc.string : memcpy, memset;
     import core.internal.traits;
@@ -2152,7 +2153,7 @@ private void moveEmplaceImpl(T)(ref T source, ref T target)
  */
 void moveEmplace(T)(ref T source, ref T target) @system
 {
-    moveEmplaceImpl(source, target);
+    moveEmplaceImpl(target, source);
 }
 
 ///

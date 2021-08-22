@@ -219,8 +219,7 @@ void issue19582()
         }
     }
     enum b2 = () {
-            S[10] a;
-            return ((const S[] a) @nogc nothrow pure @safe => toUbyte(a))(a);
+            return ((const S[] a) @nogc nothrow pure @safe => toUbyte(a))(new S[10]);
         }();
 }
 

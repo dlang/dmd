@@ -33,7 +33,7 @@ private ubyte[] ctfe_alloc(size_t n)
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isFloating, T) && (is(T : real) || is(T : ireal)))
+const(ubyte)[] toUbyte(T)(const scope ref T val) if (__traits(isFloating, T) && (is(T : real) || is(T : ireal)))
 {
     if (__ctfe)
     {
@@ -645,13 +645,13 @@ package template floatSize(T) if (is(T:real) || is(T:ireal))
 
 //  all toUbyte functions must be evaluable at compile time
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const T[] arr) if (T.sizeof == 1)
+const(ubyte)[] toUbyte(T)(return scope const T[] arr) if (T.sizeof == 1)
 {
     return cast(const(ubyte)[])arr;
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const T[] arr) if (T.sizeof > 1)
+const(ubyte)[] toUbyte(T)(return scope const T[] arr) if (T.sizeof > 1)
 {
     if (__ctfe)
     {
@@ -683,7 +683,7 @@ const(ubyte)[] toUbyte(T)(const T[] arr) if (T.sizeof > 1)
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isIntegral, T) && !is(T == enum) && !is(T == __vector))
+const(ubyte)[] toUbyte(T)(const ref scope T val) if (__traits(isIntegral, T) && !is(T == enum) && !is(T == __vector))
 {
     static if (T.sizeof == 1)
     {
@@ -720,7 +720,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isIntegral, T) && !is(T 
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == __vector))
+const(ubyte)[] toUbyte(T)(const ref scope T val) if (is(T == __vector))
 {
     if (!__ctfe)
         return (cast(const ubyte*) &val)[0 .. T.sizeof];
@@ -744,7 +744,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == __vector))
 // @@@DEPRECATED_2022-02@@@
 deprecated
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isFloating, T) && is(T : creal))
+const(ubyte)[] toUbyte(T)(const ref return scope T val) if (__traits(isFloating, T) && is(T : creal))
 {
     if (__ctfe)
     {
@@ -764,7 +764,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (__traits(isFloating, T) && is(T :
 }
 
 @trusted pure nothrow @nogc
-const(ubyte)[] toUbyte(T)(const ref T val) if (is(T == enum))
+const(ubyte)[] toUbyte(T)(const ref return scope T val) if (is(T == enum))
 {
     if (__ctfe)
     {
@@ -783,7 +783,7 @@ nothrow pure @safe unittest
     enum Month : uint { jan = 1}
     Month m = Month.jan;
     const bytes = toUbyte(m);
-    enum ctfe_works = (() => { Month x = Month.jan; return toUbyte(x).length > 0; })();
+    enum ctfe_works = (() { Month x = Month.jan; return toUbyte(x).length > 0; })();
 }
 
 @trusted pure nothrow @nogc

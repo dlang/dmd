@@ -38,6 +38,34 @@ version (CoreDdoc)
 }
 
 /**
+ * Use this attribute to specify that a global symbol should be emitted with
+ * weak linkage. This is primarily useful in defining library functions that
+ * can be overridden by user code, though it can also be used with shared and
+ * static variables too.
+ *
+ * The overriding symbol must have the same type as the weak symbol. In
+ * addition, if it designates a variable it must also have the same size and
+ * alignment as the weak symbol.
+ *
+ * Quote from the LLVM manual: "Note that weak linkage does not actually allow
+ * the optimizer to inline the body of this function into callers because it
+ * doesn’t know if this definition of the function is the definitive definition
+ * within the program or whether it will be overridden by a stronger
+ * definition."
+ *
+ * This attribute is only meaningful to the GNU and LLVM D compilers. The
+ * Digital Mars D compiler emits all symbols with weak linkage by default.
+ */
+version (DigitalMars)
+{
+    enum weak;
+}
+else
+{
+    // GDC and LDC declare this attribute in their own modules.
+}
+
+/**
  * Use this attribute to attach an Objective-C selector to a method.
  *
  * This is a special compiler recognized attribute, it has several

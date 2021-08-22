@@ -11,6 +11,8 @@
 
 module core.stdcpp.typeinfo;
 
+import core.attribute : weak;
+
 version (CppRuntime_DigitalMars)
 {
     import core.stdcpp.exception;
@@ -110,10 +112,10 @@ else version (CppRuntime_Gcc)
     {
         void dtor1();                           // consume destructor slot in vtbl[]
         void dtor2();                           // consume destructor slot in vtbl[]
-        final const(char)* name()() const nothrow {
+        @weak final const(char)* name()() const nothrow {
             return _name[0] == '*' ? _name + 1 : _name;
         }
-        final bool before()(const type_info _arg) const {
+        @weak final bool before()(const type_info _arg) const {
             import core.stdc.string : strcmp;
             return (_name[0] == '*' && _arg._name[0] == '*')
                 ? _name < _arg._name
@@ -133,14 +135,14 @@ else version (CppRuntime_Gcc)
     {
         this();
         //~this();
-        override const(char)* what() const;
+        @weak override const(char)* what() const;
     }
 
     class bad_typeid : exception
     {
         this();
         //~this();
-        override const(char)* what() const;
+        @weak override const(char)* what() const;
     }
 }
 else

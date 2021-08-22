@@ -86,7 +86,7 @@ interface GC
     /*
      *
      */
-    BlkInfo qalloc(size_t size, uint bits, const TypeInfo ti) nothrow;
+    BlkInfo qalloc(size_t size, uint bits, const scope TypeInfo ti) nothrow;
 
     /*
      *

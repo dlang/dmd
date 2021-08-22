@@ -18,13 +18,13 @@ private
     extern (C) void gc_enable() nothrow;
     extern (C) void gc_disable() nothrow;
 
-    extern (C) void*    gc_malloc( size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
-    extern (C) void*    gc_calloc( size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
-    extern (C) BlkInfo gc_qalloc( size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
-    extern (C) void*    gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
+    extern (C) void*    gc_malloc( size_t sz, uint ba = 0, const scope TypeInfo = null ) pure nothrow;
+    extern (C) void*    gc_calloc( size_t sz, uint ba = 0, const scope TypeInfo = null ) pure nothrow;
+    extern (C) BlkInfo  gc_qalloc( size_t sz, uint ba = 0, const scope TypeInfo = null ) pure nothrow;
+    extern (C) void*    gc_realloc(return scope void* p, size_t sz, uint ba = 0, const scope TypeInfo = null ) pure nothrow;
     extern (C) size_t   gc_reserve( size_t sz ) nothrow;
 
-    extern (C) void gc_addRange(const void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
+    extern (C) void gc_addRange(const void* p, size_t sz, const scope TypeInfo ti = null ) nothrow @nogc;
     extern (C) void gc_addRoot(const void* p ) nothrow @nogc;
 }
 
@@ -99,31 +99,31 @@ class ProtoGC : GC
         return 0;
     }
 
-    void* malloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    void* malloc(size_t size, uint bits, const scope TypeInfo ti) nothrow
     {
         .gc_init_nothrow();
         return .gc_malloc(size, bits, ti);
     }
 
-    BlkInfo qalloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    BlkInfo qalloc(size_t size, uint bits, const scope TypeInfo ti) nothrow
     {
         .gc_init_nothrow();
         return .gc_qalloc(size, bits, ti);
     }
 
-    void* calloc(size_t size, uint bits, const TypeInfo ti) nothrow
+    void* calloc(size_t size, uint bits, const scope TypeInfo ti) nothrow
     {
         .gc_init_nothrow();
         return .gc_calloc(size, bits, ti);
     }
 
-    void* realloc(void* p, size_t size, uint bits, const TypeInfo ti) nothrow
+    void* realloc(void* p, size_t size, uint bits, const scope TypeInfo ti) nothrow
     {
         .gc_init_nothrow();
         return .gc_realloc(p, size, bits, ti);
     }
 
-    size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti) nothrow
+    size_t extend(void* p, size_t minsize, size_t maxsize, const scope TypeInfo ti) nothrow
     {
         return 0;
     }
