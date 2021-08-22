@@ -780,8 +780,6 @@ extern (C) void onHiddenFuncError(Object o);
 
 extern (C)
 {
-    // Use ModuleInfo to get file name for "m" versions
-
     /* One of these three is called upon an assert() fail.
      */
     void _d_assertp(immutable(char)* file, uint line)
