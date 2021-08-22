@@ -32,12 +32,12 @@ $(H2 $(LNAME2 asmstatements, Asm statement))
 
 $(GRAMMAR
 $(GNAME AsmStatement):
-    $(D asm) $(GLINK FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
+    $(D asm) $(GLINK2 function, FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
 
-    $(GNAME AsmInstructionList):
-        $(GLINK AsmInstruction) $(D ;)
-        $(GLINK AsmInstruction) $(D ;) $(I AsmInstructionList)
-    )
+$(GNAME AsmInstructionList):
+    $(GLINK AsmInstruction) $(D ;)
+    $(GLINK AsmInstruction) $(D ;) $(GSELF AsmInstructionList)
+)
 
     $(P Assembler instructions must be located inside an `asm` block.
         Like functions, `asm` statements must be anotated with adequate function attributes to be compatible with the caller.
@@ -62,29 +62,32 @@ $(H2 $(LNAME2 asminstruction, Asm instruction))
 
 $(GRAMMAR
 $(GNAME AsmInstruction):
-    $(GLINK_LEX Identifier) $(D :) $(I AsmInstruction)
+    $(GLINK_LEX Identifier) $(D :) $(GSELF AsmInstruction)
     $(D align) $(GLINK IntegerExpression)
     $(D even)
     $(D naked)
-    $(D db) $(I Operands)
-    $(D ds) $(I Operands)
-    $(D di) $(I Operands)
-    $(D dl) $(I Operands)
-    $(D df) $(I Operands)
-    $(D dd) $(I Operands)
-    $(D de) $(I Operands)
+    $(D db) $(GLINK Operands)
+    $(D ds) $(GLINK Operands)
+    $(D di) $(GLINK Operands)
+    $(D dl) $(GLINK Operands)
+    $(D df) $(GLINK Operands)
+    $(D dd) $(GLINK Operands)
+    $(D de) $(GLINK Operands)
     $(D db) $(GLINK_LEX StringLiteral)
     $(D ds) $(GLINK_LEX StringLiteral)
     $(D di) $(GLINK_LEX StringLiteral)
     $(D dl) $(GLINK_LEX StringLiteral)
     $(D dw) $(GLINK_LEX StringLiteral)
     $(D dq) $(GLINK_LEX StringLiteral)
-    $(I Opcode)
-    $(I Opcode Operands)
+    $(GLINK Opcode)
+    $(GLINK Opcode) $(GLINK Operands)
+
+$(GNAME Opcode):
+    $(GLINK_LEX Identifier)
 
 $(GNAME Operands):
-    $(I Operand)
-    $(I Operand) $(D ,) $(I Operands)
+    $(GLINK Operand)
+    $(GLINK Operand) $(D ,) $(GSELF Operands)
 )
 
 $(H2 $(LNAME2 labels, Labels))
@@ -180,44 +183,180 @@ $(H2 $(LNAME2 opcodes, Opcodes))
 
 $(GRAMMAR
 $(GNAME Register):
-    $(D AL) $(D AH) $(D AX) $(D EAX)
-    $(D BL) $(D BH) $(D BX) $(D EBX)
-    $(D CL) $(D CH) $(D CX) $(D ECX)
-    $(D DL) $(D DH) $(D DX) $(D EDX)
-    $(D BP) $(D EBP)
-    $(D SP) $(D ESP)
-    $(D DI) $(D EDI)
-    $(D SI) $(D ESI)
-    $(D ES) $(D CS) $(D SS) $(D DS) $(D GS) $(D FS)
-    $(D CR0) $(D CR2) $(D CR3) $(D CR4)
-    $(D DR0) $(D DR1) $(D DR2) $(D DR3) $(D DR6) $(D DR7)
-    $(D TR3) $(D TR4) $(D TR5) $(D TR6) $(D TR7)
+    $(D AL)
+    $(D AH)
+    $(D AX)
+    $(D EAX)
+
+    $(D BL)
+    $(D BH)
+    $(D BX)
+    $(D EBX)
+
+    $(D CL)
+    $(D CH)
+    $(D CX)
+    $(D ECX)
+
+    $(D DL)
+    $(D DH)
+    $(D DX)
+    $(D EDX)
+
+    $(D BP)
+    $(D EBP)
+
+    $(D SP)
+    $(D ESP)
+
+    $(D DI)
+    $(D EDI)
+
+    $(D SI)
+    $(D ESI)
+
+    $(D ES)
+    $(D CS)
+    $(D SS)
+    $(D DS)
+    $(D GS)
+    $(D FS)
+
+    $(D CR0)
+    $(D CR2)
+    $(D CR3)
+    $(D CR4)
+
+    $(D DR0)
+    $(D DR1)
+    $(D DR2)
+    $(D DR3)
+    $(D DR6)
+    $(D DR7)
+
+    $(D TR3)
+    $(D TR4)
+    $(D TR5)
+    $(D TR6)
+    $(D TR7)
+
     $(D ST)
-    $(D ST(0)) $(D ST(1)) $(D ST(2)) $(D ST(3)) $(D ST(4)) $(D ST(5)) $(D ST(6)) $(D ST(7))
-    $(D MM0)  $(D MM1)  $(D MM2)  $(D MM3)  $(D MM4)  $(D MM5)  $(D MM6)  $(D MM7)
-    $(D XMM0) $(D XMM1) $(D XMM2) $(D XMM3) $(D XMM4) $(D XMM5) $(D XMM6) $(D XMM7)
+
+    $(D ST(0))
+    $(D ST(1))
+    $(D ST(2))
+    $(D ST(3))
+    $(D ST(4))
+    $(D ST(5))
+    $(D ST(6))
+    $(D ST(7))
+
+    $(D MM0)
+    $(D MM1)
+    $(D MM2)
+    $(D MM3)
+    $(D MM4)
+    $(D MM5)
+    $(D MM6)
+    $(D MM7)
+
+    $(D XMM0)
+    $(D XMM1)
+    $(D XMM2)
+    $(D XMM3)
+    $(D XMM4)
+    $(D XMM5)
+    $(D XMM6)
+    $(D XMM7)
 )
 
     $(P $(D x86_64) adds these additional registers.)
 
 $(GRAMMAR
 $(GNAME Register64):
-    $(D RAX)  $(D RBX)  $(D RCX)  $(D RDX)
-    $(D BPL)  $(D RBP)
-    $(D SPL)  $(D RSP)
-    $(D DIL)  $(D RDI)
-    $(D SIL)  $(D RSI)
-    $(D R8B)  $(D R8W)  $(D R8D)  $(D R8)
-    $(D R9B)  $(D R9W)  $(D R9D)  $(D R9)
-    $(D R10B) $(D R10W) $(D R10D) $(D R10)
-    $(D R11B) $(D R11W) $(D R11D) $(D R11)
-    $(D R12B) $(D R12W) $(D R12D) $(D R12)
-    $(D R13B) $(D R13W) $(D R13D) $(D R13)
-    $(D R14B) $(D R14W) $(D R14D) $(D R14)
-    $(D R15B) $(D R15W) $(D R15D) $(D R15)
-    $(D XMM8) $(D XMM9) $(D XMM10) $(D XMM11) $(D XMM12) $(D XMM13) $(D XMM14) $(D XMM15)
-    $(D YMM0) $(D YMM1) $(D YMM2)  $(D YMM3)  $(D YMM4)  $(D YMM5)  $(D YMM6)  $(D YMM7)
-    $(D YMM8) $(D YMM9) $(D YMM10) $(D YMM11) $(D YMM12) $(D YMM13) $(D YMM14) $(D YMM15)
+    $(D RAX)
+    $(D RBX)
+    $(D RCX)
+    $(D RDX)
+
+    $(D BPL)
+    $(D RBP)
+
+    $(D SPL)
+    $(D RSP)
+
+    $(D DIL)
+    $(D RDI)
+
+    $(D SIL)
+    $(D RSI)
+
+    $(D R8B)
+    $(D R8W)
+    $(D R8D)
+    $(D R8)
+
+    $(D R9B)
+    $(D R9W)
+    $(D R9D)
+    $(D R9)
+
+    $(D R10B)
+    $(D R10W)
+    $(D R10D)
+    $(D R10)
+
+    $(D R11B)
+    $(D R11W)
+    $(D R11D)
+    $(D R11)
+
+    $(D R12B)
+    $(D R12W)
+    $(D R12D)
+    $(D R12)
+
+    $(D R13B)
+    $(D R13W)
+    $(D R13D)
+    $(D R13)
+
+    $(D R14B)
+    $(D R14W)
+    $(D R14D)
+    $(D R14)
+
+    $(D R15B)
+    $(D R15W)
+    $(D R15D)
+    $(D R15)
+
+    $(D XMM8)
+    $(D XMM9)
+    $(D XMM10)
+    $(D XMM11)
+    $(D XMM12)
+    $(D XMM13)
+    $(D XMM14)
+    $(D XMM15)
+
+    $(D YMM0)
+    $(D YMM1)
+    $(D YMM2)
+    $(D YMM3)
+    $(D YMM4)
+    $(D YMM5)
+    $(D YMM6)
+    $(D YMM7)
+
+    $(D YMM8)
+    $(D YMM9)
+    $(D YMM10)
+    $(D YMM11)
+    $(D YMM12)
+    $(D YMM13)
+    $(D YMM14)
+    $(D YMM15)
 )
 
 $(H3 $(LNAME2 special_cases, Special Cases))
@@ -266,74 +405,74 @@ $(H2 $(LNAME2 operands, Operands))
 
 $(GRAMMAR
 $(GNAME Operand):
-    $(I AsmExp)
+    $(GLINK AsmExp)
 
 $(GNAME AsmExp):
-    $(I AsmLogOrExp)
-    $(I AsmLogOrExp) $(D ?) $(I AsmExp) $(D :) $(I AsmExp)
+    $(GLINK AsmLogOrExp)
+    $(GLINK AsmLogOrExp) $(D ?) $(GSELF AsmExp) $(D :) $(GSELF AsmExp)
 
 $(GNAME AsmLogOrExp):
-    $(I AsmLogAndExp)
-    $(I AsmLogOrExp) $(D ||) $(I AsmLogAndExp)
+    $(GLINK AsmLogAndExp)
+    $(GSELF AsmLogOrExp) $(D ||) $(GLINK AsmLogAndExp)
 
 $(GNAME AsmLogAndExp):
-    $(I AsmOrExp)
-    $(I AsmLogAndExp) $(D &&) $(I AsmOrExp)
+    $(GLINK AsmOrExp)
+    $(GSELF AsmLogAndExp) $(D &&) $(GLINK AsmOrExp)
 
 $(GNAME AsmOrExp):
-    $(I AsmXorExp)
-    $(I AsmOrExp) $(D |) $(I AsmXorExp)
+    $(GLINK AsmXorExp)
+    $(GSELF AsmOrExp) $(D |) $(GLINK AsmXorExp)
 
 $(GNAME AsmXorExp):
-    $(I AsmAndExp)
-    $(I AsmXorExp) $(D ^) $(I AsmAndExp)
+    $(GLINK AsmAndExp)
+    $(GSELF AsmXorExp) $(D ^) $(GLINK AsmAndExp)
 
 $(GNAME AsmAndExp):
-    $(I AsmEqualExp)
-    $(I AsmAndExp) $(D &) $(I AsmEqualExp)
+    $(GLINK AsmEqualExp)
+    $(GSELF AsmAndExp) $(D &) $(GLINK AsmEqualExp)
 
 $(GNAME AsmEqualExp):
-    $(I AsmRelExp)
-    $(I AsmEqualExp) $(D ==) $(I AsmRelExp)
-    $(I AsmEqualExp) $(D !=) $(I AsmRelExp)
+    $(GLINK AsmRelExp)
+    $(GSELF AsmEqualExp) $(D ==) $(GLINK AsmRelExp)
+    $(GSELF AsmEqualExp) $(D !=) $(GLINK AsmRelExp)
 
 $(GNAME AsmRelExp):
-    $(I AsmShiftExp)
-    $(I AsmRelExp) $(D <) $(I AsmShiftExp)
-    $(I AsmRelExp) $(D <)$(D =) $(I AsmShiftExp)
-    $(I AsmRelExp) $(D >) $(I AsmShiftExp)
-    $(I AsmRelExp) $(D >=) $(I AsmShiftExp)
+    $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D <) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D <=) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D >) $(GLINK AsmShiftExp)
+    $(GSELF AsmRelExp) $(D >=) $(GLINK AsmShiftExp)
 
 $(GNAME AsmShiftExp):
-    $(I AsmAddExp)
-    $(I AsmShiftExp) $(D <)$(D <) $(I AsmAddExp)
-    $(I AsmShiftExp) $(D >>) $(I AsmAddExp)
-    $(I AsmShiftExp) $(D >>>) $(I AsmAddExp)
+    $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D <<) $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D >>) $(GLINK AsmAddExp)
+    $(GSELF AsmShiftExp) $(D >>>) $(GLINK AsmAddExp)
 
 $(GNAME AsmAddExp):
-    $(I AsmMulExp)
-    $(I AsmAddExp) $(D +) $(I AsmMulExp)
-    $(I AsmAddExp) $(D -) $(I AsmMulExp)
+    $(GLINK AsmMulExp)
+    $(GSELF AsmAddExp) $(D +) $(GLINK AsmMulExp)
+    $(GSELF AsmAddExp) $(D -) $(GLINK AsmMulExp)
 
 $(GNAME AsmMulExp):
-    $(I AsmBrExp)
-    $(I AsmMulExp) $(D *) $(I AsmBrExp)
-    $(I AsmMulExp) $(D /) $(I AsmBrExp)
-    $(I AsmMulExp) $(D %) $(I AsmBrExp)
+    $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D *) $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D /) $(GLINK AsmBrExp)
+    $(GSELF AsmMulExp) $(D %) $(GLINK AsmBrExp)
 
 $(GNAME AsmBrExp):
-    $(I AsmUnaExp)
-    $(I AsmBrExp) $(D [) $(I AsmExp) $(D ])
+    $(GLINK AsmUnaExp)
+    $(GSELF AsmBrExp) $(D [) $(GLINK AsmExp) $(D ])
 
 $(GNAME AsmUnaExp):
-    $(GLINK AsmTypePrefix) $(I AsmExp)
-    $(D offsetof) $(I AsmExp)
-    $(D seg) $(I AsmExp)
-    $(D +) $(I AsmUnaExp)
-    $(D -) $(I AsmUnaExp)
-    $(D !) $(I AsmUnaExp)
-    $(D ~) $(I AsmUnaExp)
-    $(I AsmPrimaryExp)
+    $(GLINK AsmTypePrefix) $(GLINK AsmExp)
+    $(D offsetof) $(GLINK AsmExp)
+    $(D seg) $(GLINK AsmExp)
+    $(D +) $(GSELF AsmUnaExp)
+    $(D -) $(GSELF AsmUnaExp)
+    $(D !) $(GSELF AsmUnaExp)
+    $(D ~) $(GSELF AsmUnaExp)
+    $(GLINK AsmPrimaryExp)
 
 $(GNAME AsmPrimaryExp):
     $(GLINK_LEX IntegerLiteral)
@@ -341,16 +480,16 @@ $(GNAME AsmPrimaryExp):
     $(D __LOCAL_SIZE)
     $(D $)
     $(GLINK Register)
-    $(GLINK Register) $(D :) $(I AsmExp)
+    $(GLINK Register) $(D :) $(GLINK AsmExp)
     $(GLINK Register64)
-    $(GLINK Register64) $(D :) $(I AsmExp)
-    $(I DotIdentifier)
+    $(GLINK Register64) $(D :) $(GLINK AsmExp)
+    $(GLINK DotIdentifier)
     $(D this)
 
 $(GNAME DotIdentifier):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(D .) $(I DotIdentifier)
-    $(GLINK2 declaration, FundamentalType) $(D .) $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF DotIdentifier)
+    $(GLINK2 type, FundamentalType) $(D .) $(GLINK_LEX Identifier)
 )
 
     $(P The operand syntax more or less follows the Intel CPU documentation
@@ -381,7 +520,7 @@ $(GNAME AsmTypePrefix):
     $(D word ptr)
     $(D dword ptr)
     $(D qword ptr)
-    $(GLINK2 declaration, FundamentalType) $(D ptr)
+    $(GLINK2 type, FundamentalType) $(D ptr)
 )
 
     $(P In cases where the operand size is ambiguous, as in:)
@@ -1099,6 +1238,50 @@ $(H3 $(LNAME2 amd_opcode_support, AMD Opcodes Supported))
 $(H3 $(LNAME2 simd, SIMD))
 
     $(P SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2 and AVX are supported.)
+
+$(H2 $(LNAME2 gcc, GCC syntax))
+
+$(P The $(LINK2 https://gdcproject.org/, GNU D Compiler) uses an alternative, GCC-based syntax for inline assembler:)
+
+$(GRAMMAR
+$(GNAME GccAsmStatement):
+    $(D asm) $(GLINK2 function, FunctionAttributes)$(OPT) $(D {) $(GLINK GccAsmInstructionList) $(D })
+
+$(GNAME GccAsmInstructionList):
+    $(GLINK GccAsmInstruction) $(D ;)
+    $(GLINK GccAsmInstruction) $(D ;) $(GSELF GccAsmInstructionList)
+
+$(GNAME GccAsmInstruction):
+    $(GLINK GccBasicAsmInstruction)
+    $(GLINK GccExtAsmInstruction)
+    $(GLINK GccGotoAsmInstruction)
+
+$(GNAME GccBasicAsmInstruction):
+    $(GLINK2 expression, AssignExpression)
+
+$(GNAME GccExtAsmInstruction):
+    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT)
+    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT)
+    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT)
+
+$(GNAME GccGotoAsmInstruction):
+    $(GLINK2 expression, AssignExpression) $(D :) $(D :) $(GLINK GccAsmOperands)$(OPT) $(D :) $(GLINK GccAsmClobbers)$(OPT) $(D :) $(GLINK GccAsmGotoLabels)$(OPT)
+
+$(GNAME GccAsmOperands):
+    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX StringLiteral) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
+    $(GLINK GccSymbolicName)$(OPT) $(GLINK_LEX StringLiteral) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN)) $(D ,) $(GSELF GccAsmOperands)
+
+$(GNAME GccSymbolicName):
+    $(D [) $(GLINK_LEX Identifier) $(D ])
+
+$(GNAME GccAsmClobbers):
+    $(GLINK_LEX StringLiteral)
+    $(GLINK_LEX StringLiteral) $(D ,) $(GSELF GccAsmClobbers)
+
+$(GNAME GccAsmGotoLabels):
+    $(GLINK_LEX Identifier)
+    $(GLINK_LEX Identifier) $(D ,) $(GSELF GccAsmGotoLabels)
+)
 
 $(COMMENT
 $(H3 $(LNAME2 other, Other))

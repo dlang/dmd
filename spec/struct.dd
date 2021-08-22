@@ -204,14 +204,12 @@ $(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
         ---
         union U { int a = 4; long b; }
         U x; // x.a is set to 4, x.b to an implementation-defined value
-
-        union V { int a; long b = 4; }
-        V y; // y.a is set to 0, y.b to an implementation-defined value
         ---
         )
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
+        union V { int a; long b = 4; }     // error: union field `b` with default initialization `4` must be before field `a`
         union W { int a = 4; long b = 5; } // error: overlapping default initialization for `a` and `b`
         ---
         )
@@ -275,9 +273,29 @@ S s = t;  // s.a is set to 3
 ----
 )
 
-        $(P If $(D opCall) is overridden for the struct, and the struct
-        is initialized with a value that is of a different type,
-        then the $(D opCall) operator is called:)
+        $(P If the struct has a $(LINK2 #struct-constructor, constructor), and
+        the struct is initialized with a value that is of a different type,
+        then the constructor is called:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+----
+struct S
+{
+    int a;
+
+    this(int v)
+    {
+        this.a = v;
+    }
+}
+
+S s = 3; // sets s.a to 3 using S's constructor
+----
+)
+
+        $(P If the struct does not have a constructor but $(D opCall) is
+        overridden for the struct, and the struct is initialized with a value
+        that is of a different type, then the $(D opCall) operator is called:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
@@ -482,12 +500,13 @@ $(H3 $(LNAME2 delegating-constructor, Delegating Constructors))
 
             this(char c)
             {
-                c || this(1); // error, not on all paths
+                c || this(1);  // error, not on all paths
             }
 
             this(wchar w)
             {
-                (w) ? this(1) : this('c'); } // ok
+                (w) ? this(1) : this('c');  // ok
+            }
 
             this(byte b)
             {
@@ -1499,16 +1518,16 @@ void main()
 ---
 )
 
-$(H2 $(LNAME2 StructInvariant, Struct Invariants))
+$(H2 $(LNAME2 Invariant, Struct Invariants))
 
 $(GRAMMAR
-$(GNAME StructInvariant):
+$(GNAME Invariant):
     $(D invariant $(LPAREN) $(RPAREN)) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
     $(D invariant $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN) ;)
 )
 
-    $(P $(I StructInvariant)s specify the relationships among the members of a struct instance.
+    $(P Struct $(I Invariant)s specify the relationships among the members of a struct instance.
     Those relationships must hold for any interactions with the instance from its
     public interface.
     )
@@ -1524,10 +1543,10 @@ $(GNAME StructInvariant):
 
     $(P There may be multiple invariants in a struct. They are applied in lexical order.)
 
-    $(P $(I StructInvariant)s must hold at the exit of the struct constructor (if any),
+    $(P Struct $(I Invariant)s must hold at the exit of the struct constructor (if any),
     and at the entry of the struct destructor (if any).)
 
-    $(P $(I StructInvariant)s must hold
+    $(P Struct $(I Invariant)s must hold
     at the entry and exit of all public or exported non-static member functions.
     The order of application of invariants is:
     $(OL
@@ -1587,7 +1606,7 @@ $(GNAME StructInvariant):
 
     $(IMPLEMENTATION_DEFINED
     $(OL
-    $(LI Whether the $(I StructInvariant) is executed at runtime or not. This is typically
+    $(LI Whether the struct $(I Invariant) is executed at runtime or not. This is typically
     controlled with a compiler switch.)
     $(LI The behavior when the invariant does not hold is typically the same as
     for when $(GLINK2 expression, AssertExpression)s fail.)
@@ -1693,12 +1712,17 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
 
 $(H2 $(LNAME2 nested, Nested Structs))
 
-    $(P A $(I nested struct) is a struct that is declared inside the scope
-        of a function or a templated struct that has aliases to local
-        functions as a template argument.
-        Nested structs have member functions.
+    $(P A struct is a $(I nested struct) if)
+
+        $(OL
+        $(LI it is declared inside the scope of a function, or)
+        $(LI it is a templated struct with one or more template arguments
+             that alias local functions.)
+        )
+
+    $(P A nested struct can have member functions.
         It has access to the context of its enclosing scope
-        (via an added hidden field).)
+        via a hidden field.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -1717,10 +1741,8 @@ $(H2 $(LNAME2 nested, Nested Structs))
         ---
         )
 
-    $(P A struct can be prevented from being nested by
-        using the static attribute, but then of course it
-        will not be able to access variables from its enclosing
-        scope.)
+    $(P The static attribute will prevent a struct from being nested. As such,
+        the struct will not have access to its enclosing scope.)
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---

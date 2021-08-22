@@ -9,6 +9,7 @@ $(GNAME Declaration):
     $(GLINK2 function, FuncDeclaration)
     $(GLINK VarDeclarations)
     $(GLINK AliasDeclaration)
+    $(GLINK AliasAssign)
     $(GLINK2 struct, AggregateDeclaration)
     $(GLINK2 enum, EnumDeclaration)
     $(GLINK2 module, ImportDeclaration)
@@ -23,8 +24,8 @@ $(GNAME VarDeclarations):
     $(GLINK AutoDeclaration)
 
 $(GNAME Declarators):
-    $(I DeclaratorInitializer)
-    $(I DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
+    $(GLINK DeclaratorInitializer)
+    $(GLINK DeclaratorInitializer) $(D ,) $(GLINK DeclaratorIdentifierList)
 
 $(GNAME DeclaratorInitializer):
     $(GLINK VarDeclarator)
@@ -34,7 +35,7 @@ $(GNAME DeclaratorInitializer):
 
 $(GNAME DeclaratorIdentifierList):
     $(GLINK DeclaratorIdentifier)
-    $(GLINK DeclaratorIdentifier) $(D ,) $(I DeclaratorIdentifierList)
+    $(GLINK DeclaratorIdentifier) $(D ,) $(GSELF DeclaratorIdentifierList)
 
 $(GNAME DeclaratorIdentifier):
     $(GLINK VarDeclaratorIdentifier)
@@ -59,9 +60,9 @@ $(GNAME VarDeclarator):
 
 $(GNAME AltDeclarator):
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN))
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(I AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN))
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
 
 $(GNAME AltDeclaratorInner):
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
@@ -70,7 +71,7 @@ $(GNAME AltDeclaratorInner):
 
 $(GNAME AltDeclaratorSuffixes):
     $(GLINK AltDeclaratorSuffix)
-    $(GLINK AltDeclaratorSuffix) $(I AltDeclaratorSuffixes)
+    $(GLINK AltDeclaratorSuffix) $(GSELF AltDeclaratorSuffixes)
 
 $(GNAME AltDeclaratorSuffix):
     $(D [ ])
@@ -84,11 +85,12 @@ $(GNAME AltFuncDeclaratorSuffix):
 $(GRAMMAR
 $(GNAME StorageClasses):
     $(GLINK StorageClass)
-    $(GLINK StorageClass) $(I StorageClasses)
+    $(GLINK StorageClass) $(GSELF StorageClasses)
 
 $(GNAME StorageClass):
 $(MULTICOLS 5,     $(GLINK2 attribute, LinkageAttribute)
     $(GLINK2 attribute, AlignAttribute)
+    $(GLINK2 attribute, AtAttribute)
     $(D deprecated)
     $(D enum)
     $(D static)
@@ -129,7 +131,7 @@ $(GNAME ArrayInitializer):
 $(GNAME ArrayMemberInitializations):
     $(GLINK ArrayMemberInitialization)
     $(GLINK ArrayMemberInitialization) $(D ,)
-    $(GLINK ArrayMemberInitialization) $(D ,) $(I ArrayMemberInitializations)
+    $(GLINK ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
 
 $(GNAME ArrayMemberInitialization):
     $(GLINK NonVoidInitializer)
@@ -141,7 +143,7 @@ $(GNAME StructInitializer):
 $(GNAME StructMemberInitializers):
     $(GLINK StructMemberInitializer)
     $(GLINK StructMemberInitializer) $(D ,)
-    $(GLINK StructMemberInitializer) $(D ,) $(I StructMemberInitializers)
+    $(GLINK StructMemberInitializer) $(D ,) $(GSELF StructMemberInitializers)
 
 $(GNAME StructMemberInitializer):
     $(GLINK NonVoidInitializer)
@@ -220,11 +222,11 @@ $(H2 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference)
 
 $(GRAMMAR
 $(GNAME AutoDeclaration):
-    $(GLINK StorageClasses) $(I AutoAssignments) $(D ;)
+    $(GLINK StorageClasses) $(GLINK AutoAssignments) $(D ;)
 
 $(GNAME AutoAssignments):
     $(GLINK AutoAssignment)
-    $(I AutoAssignments) $(D ,) $(GLINK AutoAssignment)
+    $(GSELF AutoAssignments) $(D ,) $(GLINK AutoAssignment)
 
 $(GNAME AutoAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
@@ -267,11 +269,11 @@ $(GRAMMAR
 $(GNAME AliasDeclaration):
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK Declarators) $(D ;)
     $(D alias) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, FuncDeclarator) $(D ;)
-    $(D alias) $(I AliasAssignments) $(D ;)
+    $(D alias) $(GLINK AliasAssignments) $(D ;)
 
 $(GNAME AliasAssignments):
     $(GLINK AliasAssignment)
-    $(I AliasAssignments) $(D ,) $(GLINK AliasAssignment)
+    $(GSELF AliasAssignments) $(D ,) $(GLINK AliasAssignment)
 
 $(GNAME AliasAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, Type)
@@ -428,6 +430,113 @@ alias c = a + b; // illegal, `a + b` is an expression
 a = 2;         // sets `S.i` to `2`
 b = 4;         // sets `S.j` to `4`
 -----------
+
+$(H2 $(LNAME2 AliasAssign, Alias Assign))
+
+$(GRAMMAR
+$(GNAME AliasAssign):
+    $(GLINK_LEX Identifier) $(D =) $(GLINK2 type, Type)
+)
+
+        $(P An $(GLINK AliasDeclaration) can have a new value assigned to it with an
+        $(I AliasAssign):)
+
+---
+template Gorgon(T)
+{
+    alias A = long;
+    A = T; // assign new value to A
+    alias Gorgon = A;
+}
+pragma(msg, Gorgon!int); // prints int
+---
+
+$(UL
+$(LI The $(I AliasAssign) and its corresponding $(I AliasDeclaration) must both be
+declared in the same $(GLINK2 template, TemplateDeclaration).)
+
+$(LI The corresponding $(I AliasDeclaration) must appear lexically before the
+$(I AliasAssign).)
+
+$(LI The corresponding $(I AliasDeclaration) may not refer to overloaded symbols.)
+
+$(LI The value of an $(I AliasDeclaration) or left hand side (lvalue) of an $(I AliasAssign) may not be used prior
+to another $(I AliasAssign) to the same lvalue other than in the right hand side of that $(I AliasAssign).)
+
+)
+
+        $(BEST_PRACTICE
+        $(I AliasAssign) is particularly useful when using an iterative
+        computation rather than a recursive one, as it avoids creating
+        the large number of intermediate templates that the recursive one
+        engenders.
+---
+template AliasSeq(T...) { alias AliasSeq = T; }
+
+static if (0) // recursive method for comparison
+{
+    template Reverse(T...)
+    {
+        static if (T.length == 0)
+            alias Reverse = AliasSeq!();
+        else
+            alias Reverse = AliasSeq!(Reverse!(T[1 .. T.length]), T[0]);
+    }
+}
+else // iterative method minimizes template instantiations
+{
+    template Reverse(T...)
+    {
+        alias A = AliasSeq!();
+        static foreach (t; T)
+            A = AliasSeq!(t, A); // Alias Assign
+        alias Reverse = A;
+    }
+}
+
+enum X = 3;
+alias TK = Reverse!(int, const uint, X);
+pragma(msg, TK); // prints tuple(3, (const(uint)), (int))
+---
+        )
+
+$(H2 $(LNAME2 alias-reassignment, Alias Reassignment))
+
+$(GRAMMAR
+$(GNAME AliasReassignment):
+    $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, Type)
+    $(GLINK_LEX Identifier) $(D =) $(GLINK2 expression, FunctionLiteral)
+    $(GLINK_LEX Identifier) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+)
+
+        $(P An alias declaration inside a template can be reassigned a new value.)
+
+        ---
+        template staticMap(alias F, T...)
+        {
+            alias A = AliasSeq!();
+            static foreach (t; T)
+                A = AliasSeq!(A, F!T); // alias reassignment
+            alias staticMap = A;
+        }
+        ---
+
+        $(P The $(I Identifier) must resolve to a lexically preceding $(GLINK AliasDeclaration).
+        Both must be members of the same $(GLINK2 template, TemplateDeclaration).
+        )
+
+        $(P The right hand side of the $(I AliasReassignment) replaces the right hand side of the
+        $(I AliasDeclaration).
+        )
+
+        $(P Once the $(I AliasDeclaration) has been referred to in any context other than the
+        right hand side of an $(I AliasReassignment) it can no longer be reassigned.
+        )
+
+        $(RATIONALE Alias reassignment can result in faster compile times and lowered memory consumption,
+        and requires significantly simpler code than the alternative recursive method.)
+
+
 
 $(H2 $(LNAME2 extern, Extern Declarations))
 

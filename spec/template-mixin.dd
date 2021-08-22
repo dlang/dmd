@@ -22,8 +22,8 @@ $(GNAME MixinTemplateName):
 
 $(GNAME MixinQualifiedIdentifier):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(D .) $(I MixinQualifiedIdentifier)
-    $(GLINK2 template, TemplateInstance) $(D .) $(I MixinQualifiedIdentifier)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF MixinQualifiedIdentifier)
+    $(GLINK2 template, TemplateInstance) $(D .) $(GSELF MixinQualifiedIdentifier)
 )
 
         $(P A $(I TemplateMixin) can occur in declaration lists of modules,

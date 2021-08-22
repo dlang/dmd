@@ -1,0 +1,365 @@
+Ddoc
+
+$(SPEC_S ImportC,
+
+$(HEADERNAV_TOC)
+
+    $(NOTE This document is under construction. Please excuse the dust and noise.)
+
+    $(P ImportC is a C compiler embedded into the D implementation.
+    Its purpose is to enable direct importation of C files, without
+    needing to manually prepare a D file corresponding to the the declarations
+    in the C file. It enables directly compiling C files into modules, and
+    linking them in with D code to form an executable. It can be used
+    as a C compiler to compile and link 100% C programs.
+    )
+
+    $(P This is not a C reference manual nor programming tutorial.
+    It describes the specifics of the dialect of C that
+    ImportC is, and how to use it effectively.)
+
+    $(P ImportC and $(LINK2 https://dlang.org/spec/betterc.html, BetterC) are very different.
+    ImportC is an actual C compiler. BetterC is a subset of D that relies only on the
+    existence of the C Standard library.)
+
+$(H2 $(LNAME2 dialect, ImportC Dialect))
+
+    $(P There are many versions of C. ImportC is designed to be an
+    implementation of $(LINK2 https://en.wikipedia.org/wiki/C11_(C_standard_revision), ISO/IEC 9899:2011),
+    which will hereafter be referred to as $(B C11).
+    References to the C11 Standard will be C11 followed by the paragraph number.
+    Prior versions, such as C99, C89, and K+R C, are not supported.
+    )
+
+    $(P Adjustment to the ImportC dialect is made to match the
+    behavior of the C compiler that the D compiler is matched to. For
+    example, on Win32 D is matched to the Digital Mars C compiler,
+    and can be matched to the Visual C compiler using the $(TT -m32mscoff)
+    switch. Win64 D is matched to the Visual C compiler.
+    On Posix targets, the matching C compiler is Gnu C or Clang C.
+    )
+
+    $(P Further adjustment is made to take advantage of some of the D
+    implementation's capabilities.)
+
+    $(P This is all covered in the rest of this document.)
+
+
+$(H2 $(LNAME2 command-line, Invoking ImportC))
+
+    $(P The ImportC compiler can be invoked in two ways:)
+
+    $(UL
+    $(LI directly via the command line)
+    $(LI indirectly via importing a C file)
+    )
+
+    $(H3 $(LNAME2 command-line, ImportC Files on the Command Line))
+
+    $(H3 $(LNAME2 importing, Importing C Files))
+
+
+$(H2 $(LNAME2 preprocessor, Preprocessor))
+
+    $(P ImportC does not have a preprocessor. It is designed to compile C
+    files after they have been first run through the C preprocessor.)
+
+    $(H3 $(LNAME2 spp,Digital Mars C Preprocessor sppn.exe))
+
+    $(P $(LINK2 https://www.digitalmars.com/ctg/sc.html, $(TT sppn.exe)) runs on Win32 and is invoked as:)
+
+    $(CONSOLE
+    sppn file.c
+    )
+
+    $(P and the preprocessed output is written to $(TT file.i).)
+
+    $(H3 $(LNAME2 gcc-preprocessor, Gnu C Preprocessor))
+
+    $(P The $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/Preprocessor-Options.html, Gnu C Preprocessor) can be invoked as:)
+
+    $(CONSOLE
+    gcc -E file.c > file.i
+    )
+
+    $(H3 $(LNAME2 clang-preprocessor, Clang C Preprocessor))
+
+    $(P The $(LINK2 https://freecompilercamp.org/clang-basics/, Clang Preprocessor) can be invoked as:)
+
+    $(CONSOLE
+    clang -E file.c > file.i
+    )
+
+    $(H3 $(LNAME2 dmpp, dmpp C Preprocessor))
+
+    $(P The $(LINK2 https://www.DigitalMars/dmpp, dmpp C Preprocessor) can be invoked as:)
+
+    $(CONSOLE
+    dmpp file.c
+    )
+
+    $(P and the preprocessed output is written to $(TT file.i).)
+
+
+$(H2 $(LNAME2 predefined-macros, Predefined Macros))
+
+    $(P ImportC does not predefine any macros.)
+
+    $(BEST_PRACTICE To distinguish an ImportC compile vs some other C compiler, define
+    `__IMPORTC__` to be `1` when the preprocessor is run.)
+
+$(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
+
+    $(P Nevertheless, ImportC supports these preprocessor directives:)
+
+    $(H3 $(LNAME2 line-control, Line control))
+
+    $(P C11 6.10.4)
+
+    $(H3 $(LNAME2 linemarker, Linemarker))
+
+    $(P $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-11.1.0/cpp/Preprocessor-Output.html, linemarker)
+    directives are normally embedded in the output of C preprocessors.)
+
+
+$(H2 $(LNAME2 limitations, Limitations))
+
+    $(H3 $(LNAME2 exceptions, Exception Handling))
+
+    $(P ImportC is assumed to never throw exceptions. `setjmp` and `longjmp` are not supported.)
+
+    $(H3 $(LNAME2 const, Const))
+
+    $(P C11 specifies that `const` only applies locally. `const` in ImportC applies transitively,
+    meaning that although $(CCODE int *const p;) means in C11 that p is a const pointer to int,
+    in ImportC it means p is a const pointer to a const int.)
+
+    $(H3 $(LNAME2 volatile, Volatile))
+
+    $(P The `volatile` type-qualifier (C11 6.7.3) is ignored. Use of `volatile` to implement shared
+    memory access is unlikely to work anyway, $(LINK2 #_atomic, _Atomic) is for that.
+    To use `volatile` as a device register, call a function to do it that is compiled separately,
+    or use inline assembler.
+    )
+
+    $(H3 $(LNAME2 restrict, Restrict))
+
+    $(P The `restrict` type-qualifier (C11 6.7.3) is ignored.)
+
+    $(H3 $(LNAME2 _atomic, _Atomic))
+
+    $(P The `_Atomic` type-qualifier (C11 6.7.3) is ignored.
+    To do atomic operations, use an externally compiled function for that, or the inline assembler.)
+
+    $(H3 $(LNAME2 compatible_types, Compatible Types))
+
+    $(P $(I Compatible Types) (C11 6.7.2) are identical types in ImportC.)
+
+    $(H3 $(LNAME2 same_only_different, Same only Different Types))
+
+    $(P On some platforms, C `long` and `unsigned long` are the same size as `int` and `unsigned int`, respectively.
+    On other platforms, C `long` and `unsigned long` are the same size as `long long` and `unsigned long long`.
+    `long double` and `long  double _Complex` can be same size as `double` and `double _Complex`.
+    In ImportC, these types that are the same size and signed-ness are treated as the same types.
+    )
+
+    $(H3 $(LNAME2 _generic, _Generic))
+
+    $(P $(B Generic selection) expressions (C11 6.5.1.1) differ from ImportC.
+    The types in $(LINK2 #same_only_different, Same only Different Types) are
+    indistinguishable in the $(I type-name) parts of $(I generic-association).
+    Instead of giving an error for duplicate types per C11 6.5.1.1-2, ImportC
+    will select the first compatible $(I type-name) in the $(I generic-assoc-list).
+    )
+
+
+$(H2 $(LNAME2 extensions, Extensions))
+
+    $(H3 $(LNAME2 forward-references, Forward References))
+
+    $(P Any declarations in scope can be accessed, not just
+    declarations that lexically precede a reference.)
+
+    $(H3 $(LNAME2 ctfe, Compile Time Function Execution))
+
+    $(P Evaluating constant expressions includes executing functions in the
+    same manner as D's CTFE can.)
+
+    $(H3 $(LNAME2 inlining, Function Inlining))
+
+    $(P Functions for which the function body is present can
+    be inlined by ImportC as well as by the D code that calls them.)
+
+    $(H3 $(LNAME2 register, Register Storage Class))
+
+    $(P Objects with `register` storage class are treated as `auto` declarations.)
+
+    $(P Objects with `register` storage class may have their address taken. C11 6.3.2.1-2)
+
+    $(P Arrays can have `register` storage class, and may be enregistered by the compiler. C11 6.3.2.1-3)
+
+
+$(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
+
+    $(P `gcc` and `clang` are presumed to have the same behavior w.r.t. extensions,
+    so `gcc` as used here refers to both.)
+
+    $(H3 $(LNAME2 noreturn, `__attribute__((noreturn))`))
+
+    $(P `__attribute__((noreturn))` marks a function as never returning.
+    `gcc` set this as an attribute of the function, it is
+    not part of the function's type. In D, a function that never returns
+    has the return type `noreturn`. The difference can be seen with the
+    code:)
+    $(CCODE
+    attribute((noreturn)) int foo();
+    size_t x = sizeof(foo());
+    )
+    $(P This code is accepted by `gcc`, but makes no sense for D. Hence,
+    although it works in ImportC, it is not representable as D code,
+    meaning one must use judgement in creating a .di file to interface
+    with C `noreturn` functions.)
+
+    $(P Furthermore, the D compiler takes advantage of `noreturn` functions
+    by issuing compile time errors for unreachable code. Such unreachable
+    code, however, is valid C11, and the ImportC compiler will accept it.)
+
+    $(BEST_PRACTICE C code that uses the `noreturn` attribute should at the
+    very least set the return type to `void`.)
+
+
+$(H2 $(LNAME2 visualc-extensions, Visual C Extensions))
+
+
+$(H2 $(LNAME2 digital-mars-extensions, Digital Mars C Extensions))
+
+
+$(H2 $(LNAME2 d-side, ImportC from D's Point of View))
+
+    $(P There is no one-to-one mapping of C constructs to D constructs, although
+    it is very close. What follows is a description of how the D side views
+    the C declarations that are imported.)
+
+    $(H3 $(LNAME2 module-name, Module Name))
+
+    $(P The module name assigned to the ImportC file is the filename stripped
+    of its path and extension. This is just like the default module name assigned
+    to a D module that does not have a module declaration.)
+
+    $(H3 $(LNAME2 extern-C, `extern (C)`))
+
+    $(P All C symbols are `extern (C)`.)
+
+    $(H3 $(LNAME2 enums, Enums))
+
+    $(P The C enum:)
+
+    $(CCODE enum E { A, B = 2 };)
+
+    $(P appears to D code as:)
+
+    ---
+    enum E : int { A, B = 2 }
+    alias A = E.A;
+    alias B = E.B;
+    ---
+
+    $(P The `.min` and `.max` properties are available:)
+
+    ---
+    static assert(E.min == 0 && E.max == 2);
+    ---
+
+$(H2 $(LNAME2 wrapping, Wrapping C Code))
+
+    $(P Many difficulties with adapting C code to ImportC can be done without
+    editing the C code itself. Wrap the C code in another C file and then
+    $(CCODE #include) it. Consider the following problematic C file $(TT file.c):)
+
+    $(CCODE
+    void func(int *__restrict p);
+    int S;
+    struct S { int a, b; };
+    )
+
+    $(P The problems are that $(CCODE __restrict) is not a type qualifier recognized by ImportC
+    (or C11),
+    and the struct `S` is hidden from D by the declaration $(CCODE int S;).
+    To wrap $(TT file.c) with a fix, create the file $(TT file_ic.c) with the contents:)
+
+    $(CCODE
+    #define __restrict restrict
+    #include "file.c"
+    typedef struct S S_t;
+    )
+
+    $(P Then, `import file_ic;` instead of `import file;`, and use `S_t` when $(CCODE struct S) is desired.)
+
+$(H2 $(LNAME2 warnings, Warnings))
+
+    $(P Many suspicious C constructs normally cause warnings to be emitted by default by
+    typical compilers, such as:)
+
+    $(CCODE int *p = 3; // Warning: integer implicitly converted to pointer)
+
+    $(P ImportC does not emit warnings. The presumption is the user will be importing existing C
+    code developed using another C compiler, and it is written as intended.
+    If C11 says it is legal, ImportC accepts it.)
+
+$(H2 $(LNAME2 importcpp, ImportC++))
+
+    $(P ImportC will not compile C++ code. For that, use $(TT dpp).)
+
+
+$(H2 $(LNAME2 other-solutions, Other Solutions))
+
+    $(H3 $(LNAME2 dpp, dpp by Atila Neves))
+
+    $(P $(LINK2 https://code.dlang.org/packages/dpp/0.2.1, dpp code))
+
+    $(P $(LINK2 https://dlang.org/blog/2019/04/08/project-highlight-dpp/, dpp Article))
+
+    $(P From the Article:)
+
+    $(BLOCKQUOTE dpp is a compiler wrapper that will parse a D source
+    file with the .dpp extension and expand in place any #include directives
+    it encounters, translating all of the C or C++ symbols to D, and then
+    pass the result to a D compiler (DMD by default).)
+
+    $(P Like DStep, dpp relies on libclang.)
+
+
+    $(H3 $(LNAME2 dstep, DStep by Jacob Carlborg))
+
+    $(P $(LINK2 https://code.dlang.org/packages/dstep, DStep code))
+
+    $(P $(LINK2 https://dlang.org/blog/2019/04/22/dstep-1-0-0/, DStep Article))
+
+    $(P From the Article:)
+
+    $(BLOCKQUOTE DStep is a tool for automatically generating D
+    bindings for C and Objective-C libraries. This is implemented by
+    processing C or Objective-C header files and outputting D modules.
+    DStep uses the Clang compiler as a library (libclang) to process the header files.)
+
+
+    $(H3 $(LNAME2 htod, htod by Walter Bright))
+
+    $(P $(LINK2 https://dlang.org/htod.html, htod) converts a C $(TT .h) file
+    to a D source file, suitable for importing into D code.
+    $(B htod) is built from the front end of the Digital Mars C and C++ compiler.
+    It works just like a C or C++ compiler except that its output is source
+    code for a D module rather than object code.)
+
+
+$(H2 $(LNAME2 internals, How ImportC Works))
+
+    $(P This is a description of how ImportC is implemented, intended
+    to remove the mystery of various design choices.)
+
+$(SPEC_SUBNAV_PREV_NEXT betterc, Better C, ob, Live Functions)
+)
+
+Macros:
+    CHAPTER=41
+    TITLE=ImportC

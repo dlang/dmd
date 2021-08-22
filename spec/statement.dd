@@ -12,16 +12,19 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME Statement):
-    $(D ;)
+    $(GLINK EmptyStatement)
     $(GLINK NonEmptyStatement)
     $(GLINK ScopeBlockStatement)
+
+$(GNAME EmptyStatement):
+    $(D ;)
 
 $(GNAME NoScopeNonEmptyStatement):
     $(GLINK NonEmptyStatement)
     $(GLINK BlockStatement)
 
 $(GNAME NoScopeStatement):
-    $(D ;)
+    $(GLINK EmptyStatement)
     $(GLINK NonEmptyStatement)
     $(GLINK BlockStatement)
 
@@ -142,7 +145,6 @@ $(P     Statements can be labeled. A label is an identifier that
 $(GRAMMAR
 $(GNAME LabeledStatement):
     $(GLINK_LEX Identifier) $(D :)
-    $(GLINK_LEX Identifier) $(D :) $(PSSEMI)
     $(GLINK_LEX Identifier) $(D :) $(PSSEMI_PSCURLYSCOPE)
 )
 
@@ -177,7 +179,7 @@ $(GNAME BlockStatement):
 
 $(GNAME StatementList):
     $(PSSEMI_PSCURLYSCOPE)
-    $(PSSEMI_PSCURLYSCOPE) $(I StatementList)
+    $(PSSEMI_PSCURLYSCOPE) $(GSELF StatementList)
 )
 
     $(P A block statement is a sequence of statements enclosed by `{ }`.
@@ -241,6 +243,7 @@ $(GNAME IfStatement):
 $(GNAME IfCondition):
     $(EXPRESSION)
     $(D auto) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
+    $(D scope) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
     $(GLINK2 type, TypeCtors) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
     $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(EXPRESSION)
 
@@ -367,7 +370,7 @@ clauses.)
 
 $(GRAMMAR
 $(GNAME ForStatement):
-    $(D for $(LPAREN)) $(GLINK Initialize) $(I Test)$(OPT) $(D ;) $(GLINK Increment)$(OPT) $(D $(RPAREN)) $(PSSCOPE)
+    $(D for $(LPAREN)) $(GLINK Initialize) $(GLINK Test)$(OPT) $(D ;) $(GLINK Increment)$(OPT) $(D $(RPAREN)) $(PSSCOPE)
 
 $(GNAME Initialize):
     $(D ;)
@@ -446,7 +449,7 @@ $(P A `foreach` statement loops over the contents of an aggregate.)
 
 $(GRAMMAR
 $(GNAME AggregateForeach):
-    $(I Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
+    $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
 
 $(GNAME ForeachStatement):
     $(GLINK AggregateForeach) $(PS0)
@@ -457,21 +460,22 @@ $(GNAME Foreach):
 
 $(GNAME ForeachTypeList):
     $(GLINK ForeachType)
-    $(GLINK ForeachType) , $(I ForeachTypeList)
+    $(GLINK ForeachType) $(D ,) $(GSELF ForeachTypeList)
 
 $(GNAME ForeachType):
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
     $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK_LEX Identifier)
     $(GLINK ForeachTypeAttributes)$(OPT) $(D alias) $(GLINK_LEX Identifier)
 
-$(GNAME ForeachTypeAttributes)
+$(GNAME ForeachTypeAttributes):
     $(GLINK ForeachTypeAttribute)
-    $(GLINK ForeachTypeAttribute) $(GLINK ForeachTypeAttributes)$(OPT)
+    $(GLINK ForeachTypeAttribute) $(GSELF ForeachTypeAttributes)
 
 $(GNAME ForeachTypeAttribute):
-    $(D ref)
-    $(GLINK2 type, TypeCtor)
     $(D enum)
+    $(D ref)
+    $(D scope)
+    $(GLINK2 type, TypeCtor)
 
 $(GNAME ForeachAggregate):
     $(EXPRESSION)
@@ -486,8 +490,10 @@ $(P
         At the start of each iteration, the variables declared by
         the $(I ForeachTypeList)
         are set to be a copy of the elements of the aggregate.
-        If the variable is $(D ref), it is a reference to the
+        If the $(I ForeachTypeAttribute) is $(D ref), it is a reference to the
         contents of that aggregate.
+        If the $(I ForeachTypeAttribute) is $(D scope), the $(I ForeachType) declaration
+        will have $(D scope) semantics.
 )
 $(P
         The aggregate must be loop invariant, meaning that
@@ -1074,10 +1080,10 @@ $(GNAME SwitchStatement):
     $(D switch $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
 
 $(GNAME CaseStatement):
-    $(D case) $(GLINK2 expression, ArgumentList) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)
+    $(D case) $(GLINK2 expression, ArgumentList) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
 
 $(GNAME CaseRangeStatement):
-    $(D case) $(GLINK FirstExp) $(D : .. case) $(GLINK LastExp) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)
+    $(D case) $(GLINK FirstExp) $(D : .. case) $(GLINK LastExp) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
 
 $(GNAME FirstExp):
     $(ASSIGNEXPRESSION)
@@ -1086,24 +1092,32 @@ $(GNAME LastExp):
     $(ASSIGNEXPRESSION)
 
 $(GNAME DefaultStatement):
-    $(D default :) $(PSSEMI_PSCURLYSCOPE_LIST)
+    $(D default :) $(PSSEMI_PSCURLYSCOPE_LIST)$(OPT)
 
 $(GNAME ScopeStatementList):
     $(GLINK StatementListNoCaseNoDefault)
 
 $(GNAME StatementListNoCaseNoDefault):
     $(GLINK StatementNoCaseNoDefault)
-    $(GLINK StatementNoCaseNoDefault) $(I StatementListNoCaseNoDefault)
+    $(GLINK StatementNoCaseNoDefault) $(GSELF StatementListNoCaseNoDefault)
 
 $(GNAME StatementNoCaseNoDefault):
-    $(D ;)
+    $(GLINK EmptyStatement)
     $(GLINK NonEmptyStatementNoCaseNoDefault)
     $(GLINK ScopeBlockStatement)
 )
 
-        $(P $(EXPRESSION) is evaluated. The result type T must be
-        of integral type or $(CODE char[]), $(CODE wchar[]) or $(CODE dchar[]).
-        The result is
+        $(P $(I Expression) is evaluated.
+        If the type of the $(I Expression) is `enum`,
+        it is repeatedly converted
+        to its $(GLINK2 enum, EnumBaseType) until it isn't. Then,
+        if the type is integral,
+        the $(I Expression) undergoes $(DDSUBLINK spec/type, integer-promotions, Integer Promotions).
+        Then, the type of the $(I Expression) must be either integral or
+        a static or dynamic array of $(CODE char), $(CODE wchar), or $(CODE dchar).
+        )
+
+        $(P The result is
         compared against each of the case expressions. If there is
         a match, the corresponding case statement is transferred to.
         )
@@ -1621,7 +1635,7 @@ $(GNAME TryStatement):
 
 $(GNAME Catches):
     $(GLINK Catch)
-    $(GLINK Catch) $(I Catches)
+    $(GLINK Catch) $(GSELF Catches)
 
 $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
@@ -1663,7 +1677,7 @@ $(GNAME FinallyStatement):
         the capture of the entire chain.
         )
 
-        $(P Thrown objects derived from $(LINK2 https://dlang.org/phobos/object.html#.Error, $(D class $Error)) are treated differently. They
+        $(P Thrown objects derived from the $(LINK2 https://dlang.org/phobos/object.html#.Error, $(D Error)) class are treated differently. They
         bypass the normal chaining mechanism, such that the chain can only be
         caught by catching the first $(D Error). In addition to the list of
         subsequent exceptions, $(D Error) also contains a pointer that points
@@ -1689,7 +1703,7 @@ int main()
     }
     catch (Exception e)
     {
-        writeln("catch %s", e.msg);
+        writefln("catch %s", e.msg);
     }
     writeln("done");
     return 0;
@@ -1738,9 +1752,9 @@ $(H2 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Sta
 
 $(GRAMMAR
 $(GNAME ScopeGuardStatement):
-    $(D scope(exit)) $(PSCURLYSCOPE)
-    $(D scope(success)) $(PSCURLYSCOPE)
-    $(D scope(failure)) $(PSCURLYSCOPE)
+    $(D scope ( exit )) $(PSCURLYSCOPE)
+    $(D scope ( success )) $(PSCURLYSCOPE)
+    $(D scope ( failure )) $(PSCURLYSCOPE)
 )
 
 $(P The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close of the
@@ -1847,7 +1861,7 @@ $(GNAME AsmStatement):
 
 $(GNAME AsmInstructionList):
     $(GLINK2 iasm, AsmInstruction) $(D ;)
-    $(GLINK2 iasm, AsmInstruction) $(D ;) $(I AsmInstructionList)
+    $(GLINK2 iasm, AsmInstruction) $(D ;) $(GSELF AsmInstructionList)
 )
 
 $(P An asm statement enables the direct use of assembly language instructions.
@@ -1918,9 +1932,7 @@ else
 
 $(H2 $(LEGACY_LNAME2 PragmaStatement, pragma-statement, Pragma Statement))
 
-$(GRAMMAR
-$(GLINK2 pragma, PragmaStatement)
-)
+$(P See $(GLINK2 pragma, PragmaStatement)).
 
 $(H2 $(LEGACY_LNAME2 MixinStatement, mixin-statement, Mixin Statement))
 

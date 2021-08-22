@@ -17,8 +17,8 @@ $(GNAME TemplateParameters):
 
 $(GNAME TemplateParameterList):
     $(GLINK TemplateParameter)
-    $(GLINK TemplateParameter) ,
-    $(GLINK TemplateParameter) , $(I TemplateParameterList)
+    $(GLINK TemplateParameter) $(D ,)
+    $(GLINK TemplateParameter) $(D ,) $(GSELF TemplateParameterList)
 
 $(GNAME TemplateParameter):
     $(GLINK TemplateTypeParameter)
@@ -68,8 +68,8 @@ $(GNAME TemplateArguments):
 
 $(GNAME TemplateArgumentList):
     $(GLINK TemplateArgument)
-    $(GLINK TemplateArgument) ,
-    $(GLINK TemplateArgument) , $(I TemplateArgumentList)
+    $(GLINK TemplateArgument) $(D ,)
+    $(GLINK TemplateArgument) $(D ,) $(GSELF TemplateArgumentList)
 
 $(GNAME TemplateArgument):
     $(GLINK2 type, Type)
@@ -82,13 +82,13 @@ $(GNAME Symbol):
 
 $(GNAME SymbolTail):
     $(GLINK_LEX Identifier)
-    $(GLINK_LEX Identifier) $(D .) $(I SymbolTail)
+    $(GLINK_LEX Identifier) $(D .) $(GSELF SymbolTail)
     $(GLINK TemplateInstance)
-    $(GLINK TemplateInstance) $(D .) $(I SymbolTail)
+    $(GLINK TemplateInstance) $(D .) $(GSELF SymbolTail)
 
 $(GNAME TemplateSingleArgument):
     $(GLINK_LEX Identifier)
-    $(GLINK2 declaration, FundamentalType)
+    $(GLINK2 type, FundamentalType)
     $(GLINK_LEX CharacterLiteral)
     $(GLINK_LEX StringLiteral)
     $(GLINK_LEX IntegerLiteral)
@@ -97,7 +97,7 @@ $(GNAME TemplateSingleArgument):
     $(D false)
     $(D null)
     $(D this)
-    $(GLINK2 grammar, SpecialKeyword)
+    $(GLINK2 expression, SpecialKeyword)
 )
 
     $(P Once instantiated, the declarations inside the template, called
@@ -352,7 +352,7 @@ $(H2 $(LNAME2 template_this_parameter, Template This Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateThisParameter):
-    $(D this) $(I TemplateTypeParameter)
+    $(D this) $(GLINK TemplateTypeParameter)
 )
 
     $(P $(I TemplateThisParameter)s are used in member function templates
@@ -460,7 +460,7 @@ $(GNAME TemplateValueParameterSpecialization):
 
 $(GNAME TemplateValueParameterDefault):
     $(D =) $(ASSIGNEXPRESSION)
-    $(D =) $(GLINK2 traits, SpecialKeyword)
+    $(D =) $(GLINK2 expression, SpecialKeyword)
 )
 
     $(P Template value parameter types can be any type which can
@@ -964,8 +964,8 @@ $(H2 $(LNAME2 template_ctors, Template Constructors))
 
 $(GRAMMAR
 $(GNAME ConstructorTemplate):
-    $(D this) $(GLINK2 template, TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(D :)
-    $(D this) $(GLINK2 template, TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 function, FunctionBody)
+    $(D this) $(GLINK TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(D :)
+    $(D this) $(GLINK TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
     $(P Templates can be used to form constructors for classes  and structs.

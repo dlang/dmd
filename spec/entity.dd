@@ -4,9 +4,9 @@ $(SPEC_S Named Character Entities,
 
 $(HEADERNAV_TOC)
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME NamedCharacterEntity):
-    $(CODE_AMP) $(GLINK_LEX Identifier) $(D ;)
+    $(B $(AMP)) $(GLINK_LEX Identifier) $(B ;)
 )
 
         $(P The full list of named character entities from the

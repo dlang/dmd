@@ -63,6 +63,10 @@ Hello betterC
     be tricky, hence removing D's GC from the equation may be worthwhile sometimes.)
     )
 
+    $(P BetterC and $(LINK2 https://dlang.org/spec/importc.html, ImportC) are very different.
+    ImportC is an actual C compiler. BetterC is a subset of D that relies only on the
+    existence of the C Standard library.)
+
 
 $(H2 $(LNAME2 retained, Retained Features))
 
@@ -128,7 +132,7 @@ $(OL
 )
 
 
-$(SPEC_SUBNAV_PREV_NEXT simd, Vector Extensions, ob, Live Functions)
+$(SPEC_SUBNAV_PREV_NEXT simd, Vector Extensions, importc, ImportC)
 
 )
 

@@ -17,7 +17,7 @@ $(GNAME AutoFuncDeclaration):
     $(GLINK2 declaration, StorageClasses) $(GLINK_LEX Identifier) $(GLINK FuncDeclaratorSuffix) $(GLINK FunctionBody)
 
 $(GNAME FuncDeclarator):
-    $(GLINK2 declaration, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK FuncDeclaratorSuffix)
+    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK FuncDeclaratorSuffix)
 
 $(GNAME FuncDeclaratorSuffix):
     $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT)
@@ -32,22 +32,23 @@ $(GNAME Parameters):
 
 $(GNAME ParameterList):
     $(GLINK Parameter)
-    $(GLINK Parameter) $(D ,) $(I ParameterList)
-    $(I VariadicArgumentsAttributes) $(D ...)
+    $(GLINK Parameter) $(D ,)
+    $(GLINK Parameter) $(D ,) $(GSELF ParameterList)
+    $(GLINK VariadicArgumentsAttributes)$(OPT) $(D ...)
 
 $(GNAME Parameter):
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) = $(ASSIGNEXPRESSION)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, Type)
-    $(I ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(ASSIGNEXPRESSION)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
+    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D =) $(ASSIGNEXPRESSION)
 
 $(GNAME ParameterAttributes):
     $(GLINK InOut)
     $(GLINK2 attribute, UserDefinedAttribute)
-    $(I ParameterAttributes) $(GLINK InOut)
-    $(I ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
-    $(I ParameterAttributes)
+    $(GSELF ParameterAttributes) $(GLINK InOut)
+    $(GSELF ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
 
 $(GNAME InOut):
     $(D auto)
@@ -57,12 +58,12 @@ $(GNAME InOut):
     $(D lazy)
     $(D out)
     $(D ref)
-    $(RELATIVE_LINK2 return-ref-parameters, $(D return ref))
+    $(D return)
     $(D scope)
 
 $(GNAME VariadicArgumentsAttributes):
     $(GLINK VariadicArgumentsAttribute)
-    $(GLINK VariadicArgumentsAttribute) $(GLINK VariadicArgumentsAttributes)
+    $(GLINK VariadicArgumentsAttribute) $(GSELF VariadicArgumentsAttributes)
 
 $(GNAME VariadicArgumentsAttribute):
     $(D const)
@@ -77,21 +78,23 @@ $(H3 Function attributes)
 $(GRAMMAR
 $(GNAME FunctionAttributes):
     $(GLINK FunctionAttribute)
-    $(GLINK FunctionAttribute) $(I FunctionAttributes)
+    $(GLINK FunctionAttribute) $(GSELF FunctionAttributes)
 
 $(GNAME FunctionAttribute):
     $(GLINK2 attribute, FunctionAttributeKwd)
     $(GLINK2 attribute, Property)
+    $(GLINK2 attribute, AtAttribute)
 
 $(GNAME MemberFunctionAttributes):
     $(GLINK MemberFunctionAttribute)
-    $(GLINK MemberFunctionAttribute) $(I MemberFunctionAttributes)
+    $(GLINK MemberFunctionAttribute) $(GSELF MemberFunctionAttributes)
 
 $(GNAME MemberFunctionAttribute):
     $(D const)
     $(D immutable)
     $(D inout)
     $(D return)
+    $(D scope)
     $(D shared)
     $(GLINK FunctionAttribute)
 )
@@ -118,7 +121,7 @@ $(GNAME MissingFunctionBody):
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
 
 $(GNAME ShortenedFunctionBody):
-    $(D =>) $(GLINK AssignExpression) $(D ;)
+    $(D =>) $(GLINK2 expression, AssignExpression) $(D ;)
 )
 
         $(P Examples:)
@@ -137,7 +140,7 @@ $(H2 $(LNAME2 contracts, Function Contracts))
 $(GRAMMAR
 $(GNAME FunctionContracts):
     $(GLINK FunctionContract)
-    $(GLINK FunctionContract) $(I FunctionContracts)
+    $(GLINK FunctionContract) $(GSELF FunctionContracts)
 
 $(GNAME FunctionContract):
     $(GLINK InOutContractExpression)
@@ -1344,6 +1347,33 @@ void test()
         specialized than a function without.
         )
 
+        $(P A static member function can be overloaded with a member
+        function. The struct, class
+        or union of the static member function is inferred from the
+        type of the `this` argument.)
+
+        ---
+        struct S {
+            void eggs(int);
+            static void eggs(long);
+        }
+        S s;
+        s.eggs(0);  // calls void eggs(int);
+        S.eggs(0);  // error: need `this`
+        s.eggs(0L); // calls static void eggs(long);
+        S.eggs(0L); // calls static void eggs(long);
+
+        struct T {
+            void bacon(int);
+            static void bacon(int);
+        }
+        T t;
+        t.bacon(0);  // error: ambiguous
+        T.bacon(0);  // error: ambiguous
+        ---
+
+        $(RATIONALE  A static member function that doesn't need
+        the `this` parameter does not need to pass it.)
 
 $(H3 $(LNAME2 overload-sets, Overload Sets))
 
@@ -2105,7 +2135,7 @@ void test()
 }
 ------
 
-        $(D _arguments) gives the number of arguments and the `typeid`
+        $(P $(D _arguments) gives the number of arguments and the `typeid`
         of each, enabling type safety to be checked at run time.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -3095,7 +3125,7 @@ static assert(countTen(12) == 12);  // invalid, modifies y.
     $(NOTE `__ctfe` can be used to provide
         an alternative execution path to avoid operations which are forbidden
         in CTFE. Every usage of $(D __ctfe) is statically evaluated
-        and has no run-time cost.)
+        and has no run-time cost.
     )
 
     $(P Non-recoverable errors (such as $(D_KEYWORD assert) failures) are illegal.
@@ -3250,7 +3280,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         )
 
         $(P When indexing or slicing an array, an out of bounds access
-            will cause a runtime error.)
+            will cause a runtime error.
         )
 
         $(P Functions nested inside safe functions default to being
@@ -3646,7 +3676,7 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         $(P is the equivalent of:)
 
         ---
-        copy(sort(array(map!(a => a.idup)(byLine(stdin, KeepTerminator.yes))), lockingTextWriter(stdout));
+        copy(sort(array(map!(a => a.idup)(byLine(stdin, KeepTerminator.yes)))), lockingTextWriter(stdout));
         ---
 
         $(P UFCS works with $(D @property) functions:)

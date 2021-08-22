@@ -32,16 +32,15 @@ $(GNAME ClassDeclaration):
     $(GLINK2 template, ClassTemplateDeclaration)
 
 $(GNAME BaseClassList):
-    $(D :) $(GLINK SuperClass)
-    $(D :) $(GLINK SuperClass) $(D ,) $(GLINK Interfaces)
-    $(D :) $(GLINK Interfaces)
+    $(D :) $(GLINK SuperClassOrInterface)
+    $(D :) $(GLINK SuperClassOrInterface) $(D ,) $(GLINK Interfaces)
 
-$(GNAME SuperClass):
+$(GNAME SuperClassOrInterface):
     $(GLINK2 type, BasicType)
 
 $(GNAME Interfaces):
     $(GLINK Interface)
-    $(GLINK Interface) $(D ,) $(I Interfaces)
+    $(GLINK Interface) $(D ,) $(GSELF Interfaces)
 
 $(GNAME Interface):
     $(GLINK2 type, BasicType)
@@ -70,7 +69,6 @@ $(UL
             $(LI $(RELATIVE_LINK2 invariants, Class Invariants))
             $(LI $(DDSUBLINK spec/unittest, unittest, Unit Tests))
             $(LI $(RELATIVE_LINK2 allocators, Class Allocators))
-            $(LI $(RELATIVE_LINK2 deallocators, Class Deallocators))
             $(LI $(RELATIVE_LINK2 alias-this, Alias This))
         )
         )
@@ -315,7 +313,6 @@ $(H2 $(LNAME2 constructors, Constructors))
 
 $(GRAMMAR
 $(GNAME Constructor):
-    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
     $(GLINK2 template, ConstructorTemplate)
 )
@@ -678,7 +675,6 @@ $(H2 $(LNAME2 destructors, Destructors))
 
 $(GRAMMAR
 $(GNAME Destructor):
-    $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
     $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
@@ -905,13 +901,13 @@ $(GNAME SharedStaticDestructor):
 $(H2 $(LNAME2 invariants, Class Invariants))
 
 $(GRAMMAR
-$(GNAME ClassInvariant):
+$(GNAME Invariant):
     $(D invariant $(LPAREN) $(RPAREN)) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
     $(D invariant $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN) ;)
 )
 
-    $(P $(I ClassInvariant) specify the relationships among the members of a class instance.
+    $(P Class $(I Invariant)s specify the relationships among the members of a class instance.
     Those relationships must hold for any interactions with the instance from its
     public interface.
     )
@@ -927,10 +923,10 @@ $(GNAME ClassInvariant):
 
     $(P There may be multiple invariants in a class. They are applied in lexical order.)
 
-    $(P $(I ClassInvariant)s must hold at the exit of the class constructor (if any),
+    $(P Class $(I Invariant)s must hold at the exit of the class constructor (if any),
     at the entry of the class destructor (if any).)
 
-    $(P $(I ClassInvariant)s must hold
+    $(P Class $(I Invariant)s must hold
     at the entry and exit of all public or exported non-static member functions.
     The order of application of invariants is:
     $(OL
@@ -986,7 +982,7 @@ $(GNAME ClassInvariant):
 
     $(IMPLEMENTATION_DEFINED
     $(OL
-    $(LI Whether the $(I Class Invariant) is executed at runtime or not. This is typically
+    $(LI Whether the class $(I Invariant) is executed at runtime or not. This is typically
     controlled with a compiler switch.)
     $(LI The behavior when the invariant does not hold is typically the same as
     for when $(GLINK2 expression, AssertExpression)s fail.)
@@ -1009,7 +1005,6 @@ $(H2 $(LNAME2 allocators, Class Allocators))
 $(B Note): Class allocators are deprecated in D2.
 $(GRAMMAR
 $(GNAME Allocator):
-    $(D new) $(GLINK2 function, Parameters) $(D ;)
     $(D new) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
 )
 
@@ -1062,61 +1057,6 @@ new(1,2) Foo(a);        // calls new(Foo.sizeof,1,2)
 ------
 
         $(P Derived classes inherit any allocator from their base class,
-        if one is not specified.
-        )
-
-        $(P The class allocator is not called if the instance is created
-        on the stack.
-        )
-
-        $(P See also
-        $(LINK2 https://wiki.dlang.org/Memory_Management#Explicit_Class_Instance_Allocation,
-        Explicit Class Instance Allocation).
-        )
-
-$(H2 $(LNAME2 deallocators, Class Deallocators))
-$(B Note): Class deallocators and the delete operator are deprecated in D2.
-Use the $(D destroy) function to finalize an object by calling its destructor.
-The memory of the object is $(B not) immediately deallocated, instead the GC
-will collect the memory of the object at an undetermined point after finalization:
-
-------
-class Foo { int x; this() { x = 1; } }
-Foo foo = new Foo;
-destroy(foo);
-assert(foo.x == int.init);  // object is still accessible
-------
-
-$(GRAMMAR
-$(GNAME Deallocator):
-    $(D delete) $(GLINK2 function, Parameters) $(D ;)
-    $(D delete) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
-)
-
-$(P A class member function of the form:)
-
-------
-delete(void *p)
-{
-    ...
-}
-------
-
-        is called a class deallocator.
-        The deallocator must have exactly one parameter of type $(D void*).
-        Only one can be specified for a class.
-        When a delete expression:
-
-------
-delete f;
-------
-
-is executed, and f is a reference to a class instance that has a deallocator,
-the deallocator is called with a pointer to the class instance after the
-destructor (if any) for the class is called. It is the responsibility of the
-deallocator to free the memory.
-
-        $(P Derived classes inherit any deallocator from their base class,
         if one is not specified.
         )
 
@@ -1534,7 +1474,7 @@ $(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
 
 $(GRAMMAR
 $(GNAME NewAnonClassExpression):
-    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(I ConstructorArgs)$(OPT) $(GLINK SuperClass)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK SuperClassOrInterface)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME ConstructorArgs):
     $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
@@ -1542,8 +1482,8 @@ $(GNAME ConstructorArgs):
 
 which is equivalent to:
 
-$(GRAMMAR
-$(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateBody)
+$(GRAMMAR_INFORMATIVE
+$(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClassOrInterface) $(I Interfaces) $(I AggregateBody)
 // ...
 $(D new) $(I AllocatorArguments) $(I Identifier) $(I ConstructorArgs)
 )
