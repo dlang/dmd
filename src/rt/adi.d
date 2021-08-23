@@ -54,3 +54,23 @@ extern (C) int _adEq2(void[] a1, void[] a2, TypeInfo ti)
     Float[1] fa = [Float(float.nan)];
     assert(fa != fa);
 }
+
+unittest
+{
+    debug(adi) printf("struct.Eq unittest\n");
+
+    static struct TestStruct
+    {
+        int value;
+
+        bool opEquals(const TestStruct rhs) const
+        {
+            return value == rhs.value;
+        }
+    }
+
+    TestStruct[] b = [TestStruct(5)];
+    TestStruct[] c = [TestStruct(6)];
+    assert(_adEq2(*cast(void[]*)&b, *cast(void[]*)&c, typeid(TestStruct[])) == false);
+    assert(_adEq2(*cast(void[]*)&b, *cast(void[]*)&b, typeid(TestStruct[])) == true);
+}
