@@ -7287,7 +7287,20 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 TemplateInstance ti = sa.isTemplateInstance();
                 Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
+                /* Have nested arguments when the `alias` parameter...
+                 * 1. `td` is a template function literal
+                 * 2. `ti` is a nested template instantiation
+                 *    (See https://issues.dlang.org/show_bug.cgi?id=9578)
+                 * 3. `d` is a local variable or nested function
+                 * 4. `td` is a nested template function
+                 *    (See https://issues.dlang.org/show_bug.cgi?id=15298)
+                 */
+                if ((td && td.literal) ||
+                    (ti && ti.enclosing) ||
+                    (d && !d.isDataseg() && !(d.storage_class & STC.manifest) &&
+                     (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) &&
+                     !isTemplateMixin()) ||
+                    (td && !td.isstatic && td.onemember && td.onemember.isFuncDeclaration()))
                 {
                     Dsymbol dparent = sa.toParent2();
                     if (!dparent)
