@@ -1176,10 +1176,20 @@ struct TargetC
         WASI,
     }
 
+    enum BitFieldStyle : ubyte
+    {
+        Unspecified,
+        Dm_Ms,                /// Digital Mars and Microsoft C compilers
+                              /// https://docs.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-160
+                              /// https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
+        Gcc_Clang,            /// gcc and clang
+    }
+
     ubyte longsize;           /// size of a C `long` or `unsigned long` type
     ubyte long_doublesize;    /// size of a C `long double`
     ubyte wchar_tsize;        /// size of a C `wchar_t` type
     Runtime runtime;          /// vendor of the C runtime to link against
+    BitFieldStyle bitFieldStyle; /// different C compilers do it differently
 
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
@@ -1219,6 +1229,14 @@ struct TargetC
             else
                 runtime = Runtime.Glibc;
         }
+
+        if (os == Target.OS.Windows)
+            bitFieldStyle = BitFieldStyle.Dm_Ms;
+        else if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OSX |
+                       Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
+            bitFieldStyle = BitFieldStyle.Gcc_Clang;
+        else
+            assert(0);
     }
 
     void addRuntimePredefinedGlobalIdent() const
