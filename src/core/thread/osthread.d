@@ -1143,6 +1143,18 @@ unittest
     thr.join();
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=22124
+unittest
+{
+    Thread thread = new Thread({});
+    auto fun(Thread t, int x)
+    {
+        t.__ctor({x = 3;});
+        return t;
+    }
+    static assert(!__traits(compiles, () @nogc => fun(thread, 3) ));
+}
+
 unittest
 {
     import core.sync.semaphore;
