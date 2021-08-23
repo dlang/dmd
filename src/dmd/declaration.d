@@ -1192,14 +1192,7 @@ extern (C++) class VarDeclaration : Declaration
         /* If coming after a bit field in progress,
          * advance past the field
          */
-        if (fieldState.inFlight)
-        {
-            fieldState.inFlight = false;
-            if (0 && target.os & Target.OS.Posix)
-                fieldState.offset += (fieldState.bitOffset + 7) / 8;
-            else if (0 &&target.os == Target.OS.Windows)
-                fieldState.offset += fieldState.fieldSize;
-        }
+	fieldState.inFlight = false;
 
         const sz = t.size(loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
@@ -1783,15 +1776,19 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         {
             startNewField();
         }
-
-        if (0 && target.os & Target.OS.Posix)
+        else if (target.os & Target.OS.Posix)
         {
-            if ((fieldState.offset%4 * 8) + fieldState.bitOffset + fieldWidth > int.sizeof * 8)
+	    if (fieldState.fieldSize == 8 &&
+                fieldState.bitOffset + fieldWidth > 64)
+            {
+                startNewField();
+            }
+            else if (fieldState.bitOffset + fieldWidth > int.sizeof * 8)
             {
                 startNewField();
             }
         }
-        else if (1 || target.os == Target.OS.Windows)
+        else if (target.os == Target.OS.Windows)
         {
             if (memsize != fieldState.fieldSize ||
                 fieldState.bitOffset + fieldWidth > fieldState.fieldSize * 8)
@@ -1799,22 +1796,23 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                 startNewField();
             }
         }
+	else
+	    assert(0);
 
         offset = fieldState.fieldOffset;
         bitOffset = fieldState.bitOffset;
-        if (0 && target.os & Target.OS.Posix)
-        {
-            while (bitOffset > memsize * 8)
-            {
-                bitOffset -= 8;
-                offset += 1;
-            }
-        }
+
+	const pastField = bitOffset + fieldWidth;
+	if (target.os & Target.OS.Posix)
+	{
+	    fieldState.fieldSize = (pastField + 7) / 8;
+	    ad.structsize = offset + fieldState.fieldSize;
+	}
 
         //fieldState.fieldSize = memsize;
         if (!isunion)
         {
-            fieldState.bitOffset += fieldWidth;
+            fieldState.bitOffset = pastField;
         }
 
         //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
