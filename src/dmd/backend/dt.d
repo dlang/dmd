@@ -221,7 +221,7 @@ nothrow:
     /************************************
      * Print state of DtBuilder for debugging.
      */
-    void print()
+    void print() @trusted
     {
         debug printf("DtBuilder: %p head: %p, pTail: %p\n", &head, head, pTail);
     }
