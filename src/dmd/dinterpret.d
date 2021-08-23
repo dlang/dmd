@@ -2213,6 +2213,16 @@ public:
             return;
         }
         result = getVarExp(e.loc, istate, e.var, goal);
+        /*
+         * https://issues.dlang.org/show_bug.cgi?id=22228
+         *
+         * getVarExp may return an expression that is an
+         * rvalue even if the goal is LValue. This is problematic
+         * for parent AST nodes such as AddrExp that explicitly
+         * expect an lvalue from interpretation
+         */
+        if (goal == CTFEGoal.LValue && !result.isLvalue())
+            result = e;
         if (exceptionOrCant(result))
             return;
 
