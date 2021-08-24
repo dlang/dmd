@@ -156,7 +156,7 @@ uint dt_size(const(dt_t)* dtstart)
 
 bool dtallzeros(const(dt_t)* dt)
 {
-    return dt.dt == DT_azeros && !dt.DTnext;
+    return dt && dt.dt == DT_azeros && !dt.DTnext;
 }
 
 /************************************
