@@ -105,16 +105,16 @@ else version (CppRuntime_Microsoft)
         ///
         this(const(char)* message = "unknown", int = 1) nothrow { msg = message; }
         ///
-        extern(D) ~this() nothrow {}
+        @weak ~this() nothrow {}
 
         ///
-        extern(D) const(char)* what() const nothrow { return msg != null ? msg : "unknown exception"; }
+        @weak const(char)* what() const nothrow { return msg != null ? msg : "unknown exception"; }
 
         // TODO: do we want this? exceptions are classes... ref types.
 //        final ref exception opAssign(ref const(exception) e) nothrow { msg = e.msg; return this; }
 
     protected:
-        @weak void _Doraise() const {}
+        @weak void _Doraise() const { assert(0); }
 
     protected:
         const(char)* msg;
@@ -130,4 +130,10 @@ class bad_exception : exception
 @nogc:
     ///
     this(const(char)* message = "bad exception") { super(message); }
+
+    version (GenericBaseException)
+    {
+        ///
+        @weak override const(char)* what() const nothrow { return "bad exception"; }
+    }
 }

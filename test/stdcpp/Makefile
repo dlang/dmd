@@ -13,6 +13,8 @@ ifeq (osx,$(OS))
 #	TESTS+=vector
 endif
 ifeq (linux,$(OS))
+	TESTS11+=exception typeinfo
+	TESTS+=typeinfo
 #	TESTS+=string
 #	TESTS+=vector
 	OLDABITESTS+=string

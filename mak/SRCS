@@ -110,6 +110,7 @@ SRCS=\
 	src\core\stdcpp\new_.d \
 	src\core\stdcpp\string.d \
 	src\core\stdcpp\string_view.d \
+	src\core\stdcpp\typeinfo.d \
 	src\core\stdcpp\type_traits.d \
 	src\core\stdcpp\utility.d \
 	src\core\stdcpp\vector.d \
