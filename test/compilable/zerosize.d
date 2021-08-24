@@ -8,5 +8,3 @@ extern (C++) struct T { }
 
 static assert(T.sizeof == 1);
 static assert(T.alignof == 1);
-
-

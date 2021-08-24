@@ -1192,7 +1192,7 @@ extern (C++) class VarDeclaration : Declaration
         /* If coming after a bit field in progress,
          * advance past the field
          */
-	fieldState.inFlight = false;
+        fieldState.inFlight = false;
 
         const sz = t.size(loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
@@ -1778,7 +1778,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         }
         else if (target.os & Target.OS.Posix)
         {
-	    if (fieldState.fieldSize == 8 &&
+            if (fieldState.fieldSize == 8 &&
                 fieldState.bitOffset + fieldWidth > 64)
             {
                 startNewField();
@@ -1796,18 +1796,18 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                 startNewField();
             }
         }
-	else
-	    assert(0);
+        else
+            assert(0);
 
         offset = fieldState.fieldOffset;
         bitOffset = fieldState.bitOffset;
 
-	const pastField = bitOffset + fieldWidth;
-	if (target.os & Target.OS.Posix)
-	{
-	    fieldState.fieldSize = (pastField + 7) / 8;
-	    ad.structsize = offset + fieldState.fieldSize;
-	}
+        const pastField = bitOffset + fieldWidth;
+        if (target.os & Target.OS.Posix)
+        {
+            fieldState.fieldSize = (pastField + 7) / 8;
+            ad.structsize = offset + fieldState.fieldSize;
+        }
 
         //fieldState.fieldSize = memsize;
         if (!isunion)
