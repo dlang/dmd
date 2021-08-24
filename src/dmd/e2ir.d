@@ -2245,7 +2245,7 @@ extern (C++) class ToElemVisitor : Visitor
                         }
 
                         // Construct: (c || arrayBoundsError)
-                        echeck = el_bin(OPoror, TYvoid, c, buildArrayIndexError(irs, ae.loc, el_copytree(eleny), el_copytree(elen)));
+                        echeck = el_bin(OPoror, TYvoid, c, buildRangeError(irs, ae.loc));
                     }
                     else
                     {
