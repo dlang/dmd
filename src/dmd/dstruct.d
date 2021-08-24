@@ -301,8 +301,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (structsize == 0)
         {
             hasNoFields = true;
-            structsize = 1;
             alignsize = 1;
+            if (classKind != classKind.c) // C gets a struct size of 0
+                structsize = 1;
         }
 
         // Round struct size up to next alignsize boundary.

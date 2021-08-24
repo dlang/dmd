@@ -57,7 +57,9 @@ enum class ClassKind : uint8_t
   /// the aggregate is a C++ struct/class/interface
   cpp,
   /// the aggregate is an Objective-C class/interface
-  objc
+  objc,
+  /// the aggregate is a C struct
+  c,
 };
 
 struct MangleOverride

@@ -4342,6 +4342,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 sd.classKind = ClassKind.cpp;
+            else if (sc.linkage == LINK.c)
+                sd.classKind = ClassKind.c;
             sd.cppnamespace = sc.namespace;
             sd.cppmangle = sc.cppmangle;
         }
