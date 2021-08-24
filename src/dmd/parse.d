@@ -967,7 +967,6 @@ class Parser(AST) : Lexer
                     a = parseBlock(pLastDecl, pAttrs);
                     if (res.idents)
                     {
-                        assert(res.link == LINK.cpp);
                         assert(res.idents.dim);
                         for (size_t i = res.idents.dim; i;)
                         {
@@ -977,7 +976,12 @@ class Parser(AST) : Lexer
                                 a = new AST.Dsymbols();
                                 a.push(s);
                             }
-                            s = new AST.Nspace(linkLoc, id, null, a);
+                            if (res.link == LINK.cpp)
+                                s = new AST.Nspace(linkLoc, id, null, a);
+                            else if (res.link == LINK.d)
+                                s = new AST.LinkDeclaration(linkLoc, LINK.d, a, id);
+                            else
+                                assert(0);
                         }
                         pAttrs.link = LINK.default_;
                     }
@@ -2258,7 +2262,33 @@ class Parser(AST) : Lexer
         if (id == Id.Windows)
             return returnLinkage(LINK.windows);
         else if (id == Id.D)
+        {
+            if (token.value != TOK.comma) // Simple `extern(D)` without module decl
+                return returnLinkage(LINK.d);
+            nextToken();
+            // `extern(D,)`
+            if (token.value == TOK.rightParenthesis)
+                return returnLinkage(LINK.d);
+
+            result.idents = new AST.Identifiers();
+            while (1)
+            {
+                if (token.value != TOK.identifier)
+                {
+                    error("fully-qualified module name expected for `extern(D)` declaration, not `%s`",
+                          token.toChars());
+                    result.idents = null;
+                    break;
+                }
+                result.idents.push(token.ident);
+                nextToken();
+                if (token.value == TOK.rightParenthesis)
+                    break;
+                if (token.value == TOK.dot)
+                    nextToken();
+            }
             return returnLinkage(LINK.d);
+        }
         else if (id == Id.System)
             return returnLinkage(LINK.system);
         else if (id == Id.Objective) // Looking for tokens "Objective-C"

@@ -147,7 +147,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.explicitVisibility = 0;
         sc2.aligndecl = null;
         sc2.userAttribDecl = null;
-        sc2.namespace = null;
+        sc2.mangleParent = typeof(Scope.mangleParent).init;
         return sc2;
     }
 

@@ -39,7 +39,9 @@ struct _d_dynamicArray final
 
 class Visitor;
 class Identifier;
+class LinkDeclaration;
 class CPPNamespaceDeclaration;
+class AttribDeclaration;
 struct Symbol;
 struct OutBuffer;
 struct Scope;
@@ -94,7 +96,6 @@ class ArrayScopeSymbol;
 class Import;
 class EnumDeclaration;
 class SymbolDeclaration;
-class AttribDeclaration;
 class AnonDeclaration;
 class VisibilityDeclaration;
 class OverloadSet;
@@ -347,6 +348,27 @@ class ASTNode : public RootObject
 public:
     virtual void accept(Visitor* v) = 0;
     ASTNode();
+};
+
+struct ParentSymbolAttribute final
+{
+    union
+    {
+        LinkDeclaration* link;
+        CPPNamespaceDeclaration* cpp;
+    };
+private:
+    bool isLinkDecl;
+public:
+    void accept(Visitor* v);
+    ParentSymbolAttribute& opAssign(CPPNamespaceDeclaration* cpp);
+    ParentSymbolAttribute& opAssign(LinkDeclaration* link);
+    CPPNamespaceDeclaration* hasCPPNamespace();
+    LinkDeclaration* hasLink();
+    AttribDeclaration* asAttribute();
+    ParentSymbolAttribute()
+    {
+    }
 };
 
 enum class DiagnosticReporting : uint8_t
@@ -969,7 +991,7 @@ class Dsymbol : public ASTNode
 public:
     Identifier* ident;
     Dsymbol* parent;
-    CPPNamespaceDeclaration* cppnamespace;
+    ParentSymbolAttribute mangleParent;
     Symbol* csym;
     Symbol* isym;
     const char* comment;
@@ -4449,6 +4471,7 @@ struct ASTCodegen final
     using DeprecatedDeclaration = ::DeprecatedDeclaration;
     using ForwardingAttribDeclaration = ::ForwardingAttribDeclaration;
     using LinkDeclaration = ::LinkDeclaration;
+    using ParentSymbolAttribute = ::ParentSymbolAttribute;
     using PragmaDeclaration = ::PragmaDeclaration;
     using StaticForeachDeclaration = ::StaticForeachDeclaration;
     using StaticIfDeclaration = ::StaticIfDeclaration;

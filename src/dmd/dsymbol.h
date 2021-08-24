@@ -17,6 +17,7 @@
 #include "visitor.h"
 
 class CPPNamespaceDeclaration;
+class LinkDeclaration;
 class Identifier;
 struct Scope;
 class DsymbolTable;
@@ -90,6 +91,21 @@ void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
 void semantic2(Dsymbol *dsym, Scope *sc);
 void semantic3(Dsymbol *dsym, Scope* sc);
 
+struct ParentSymbolAttribute
+{
+private:
+    union {
+        LinkDeclaration *link;
+        CPPNamespaceDeclaration *cpp;
+    };
+    bool isLinkDecl;
+
+    void accept(Visitor* v);
+    CPPNamespaceDeclaration* hasCPPNamespace();
+    LinkDeclaration* hasLink();
+    AttribDeclaration* asAttribute();
+};
+
 struct Visibility
 {
     enum Kind
@@ -155,8 +171,8 @@ class Dsymbol : public ASTNode
 public:
     Identifier *ident;
     Dsymbol *parent;
-    /// C++ namespace this symbol belongs to
-    CPPNamespaceDeclaration *namespace_;
+    /// C++ namespace or `extern(D, module)` this symbol belongs to
+    ParentSymbolAttribute mangleParent;
     Symbol *csym;               // symbol for code generator
     Symbol *isym;               // import version of csym
     const utf8_t *comment;      // documentation comment for this Dsymbol
