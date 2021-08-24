@@ -15,8 +15,6 @@ module core.stdcpp.exception;
 import core.stdcpp.xutility : __cplusplus, CppStdRevision;
 import core.attribute : weak;
 
-version (CppRuntime_DigitalMars)
-    version = GenericBaseException;
 version (CppRuntime_Gcc)
     version = GenericBaseException;
 version (CppRuntime_Clang)
@@ -75,6 +73,24 @@ version (GenericBaseException)
 
         ///
         @weak const(char)* what() const nothrow { return "unknown"; } // HACK: this should extern, but then we have link errors!
+
+    protected:
+        this(const(char)*, int = 1) nothrow { this(); } // compat with MS derived classes
+    }
+}
+else version (CppRuntime_DigitalMars)
+{
+    ///
+    class exception
+    {
+    @nogc:
+        ///
+        this() nothrow {}
+        //virtual ~this();
+        void dtor() { }     // reserve slot in vtbl[]
+
+        ///
+        const(char)* what() const nothrow;
 
     protected:
         this(const(char)*, int = 1) nothrow { this(); } // compat with MS derived classes
