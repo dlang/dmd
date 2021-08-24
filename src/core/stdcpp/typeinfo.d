@@ -145,5 +145,44 @@ else version (CppRuntime_Gcc)
         @weak override const(char)* what() const;
     }
 }
+else version (CppRuntime_Clang)
+{
+    import core.stdcpp.exception;
+
+    extern (C++, "std"):
+
+    abstract class type_info
+    {
+        @weak ~this() {}
+        @weak final const(char)* name() const nothrow
+        {
+            return __type_name;
+        }
+        @weak final bool before(const type_info __arg) const nothrow
+        {
+            return __type_name < __arg.__type_name;
+        }
+        //bool operator==(const type_info) const;
+
+    protected:
+        const(char)* __type_name;
+
+        extern(D) this(const(char)* __n) { __type_name = __n; }
+    }
+
+    class bad_cast : exception
+    {
+        this();
+        //~this();
+        @weak override const(char)* what() const;
+    }
+
+    class bad_typeid : exception
+    {
+        this();
+        //~this();
+        @weak override const(char)* what() const;
+    }
+}
 else
     static assert(0, "Missing std::type_info binding for this platform");
