@@ -1543,6 +1543,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     case ClassKind.objc:
                         link = LINK.objc;
                         break;
+                    case ClassKind.c:
+                        link = LINK.c;
+                        break;
                 }
             }
         }

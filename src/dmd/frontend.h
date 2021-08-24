@@ -1149,6 +1149,7 @@ enum class ClassKind : uint8_t
     d = 0u,
     cpp = 1u,
     objc = 2u,
+    c = 3u,
 };
 
 enum class CPPMANGLE : uint8_t
