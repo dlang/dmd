@@ -3037,14 +3037,9 @@ final class CParser(AST) : Parser!AST
             check(TOK.rightCurly);
 
             if ((*members).length == 0) // C11 6.7.2.1-8
-                /* TODO: not strict enough, should really be contains "no named members",
-                 * not just "no members".
-                 * I.e. an unnamed bit field, _Static_assert, etc, are not named members,
-                 * but will pass this check.
-                 * Be careful to detect named members that come anonymous structs.
-                 * Correctly doing this will likely mean moving it to typesem.d.
-                 */
-                error("empty struct-declaration-list for `%s %s`", Token.toChars(structOrUnion), tag ? tag.toChars() : "Anonymous".ptr);
+            {
+                // allow empty structs as an extension
+            }
         }
         else if (!tag)
             error("missing tag `identifier` after `%s`", Token.toChars(structOrUnion));
@@ -3139,12 +3134,14 @@ final class CParser(AST) : Parser!AST
                 dt = tspec;
             }
             else
-                dt = cparseDeclarator(DTR.xdirect, tspec, id);
-            if (!dt)
             {
-                panic();
-                nextToken();
-                break;          // error recovery
+                dt = cparseDeclarator(DTR.xdirect, tspec, id);
+                if (!dt)
+                {
+                    panic();
+                    nextToken();
+                    break;          // error recovery
+                }
             }
 
             AST.Expression width;
