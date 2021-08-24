@@ -103,7 +103,7 @@ else version (CppRuntime_Gcc)
 
     extern (C++, "__cxxabiv1")
     {
-        class __class_type_info;
+        extern(C++, class) struct __class_type_info;
     }
 
     extern (C++, "std"):
@@ -125,7 +125,7 @@ else version (CppRuntime_Gcc)
         bool __is_pointer_p() const;
         bool __is_function_p() const;
         bool __do_catch(const type_info, void**, uint) const;
-        bool __do_upcast(const __class_type_info, void**) const;
+        bool __do_upcast(const __class_type_info*, void**) const;
 
         const(char)* _name;
         this(const(char)*);
