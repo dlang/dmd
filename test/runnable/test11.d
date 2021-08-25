@@ -1,4 +1,5 @@
 // REQUIRED_ARGS:
+// EXTRA_SOURCES: imports/std11file.d
 
 extern(C) int printf(const char*, ...);
 extern(C) size_t strlen(const char*);
@@ -1181,8 +1182,8 @@ void test62()
 
 class A63
 {
-     private import std.file;
-     alias std.file.getcwd getcwd;
+     private import imports.std11file;
+     alias imports.std11file.getcwd getcwd;
 }
 
 void test63()

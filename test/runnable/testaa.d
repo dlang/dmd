@@ -6,7 +6,6 @@ extern(C) int printf(const char*, ...);
 extern(C) int memcmp(const void *s1, const void *s2, size_t n);
 
 import core.memory;  // for GC.collect
-import std.random;   // for uniform random numbers
 
 /************************************************/
 
@@ -423,13 +422,9 @@ void test16()
 {
     int[int] aa;
 
-    Random gen;
     for (int i = 0; i < 50000; i++)
     {
-        int key = uniform(0, int.max, gen);
-        int value = uniform(0, int.max, gen);
-
-        aa[key] = value;
+        aa[i] = i;
     }
 
     int[] keys = aa.keys;
@@ -441,7 +436,7 @@ void test16()
         assert(k in aa);
         j += aa[k];
     }
-    printf("test16 = %d\n", j);
+    assert(j == 1249975000);
 
     int m;
     foreach (k, v; aa)
@@ -470,10 +465,7 @@ void test16()
 
     for (int i = 0; i < 1000; i++)
     {
-        int key2 = uniform(0, int.max, gen);
-        int value2 = uniform(0, int.max, gen);
-
-        aa[key2] = value2;
+        aa[i] = i;
     }
     foreach(k; aa)
     {

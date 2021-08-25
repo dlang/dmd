@@ -1,4 +1,4 @@
-import std.math;
+import core.math;
 import core.bitop;
 
 version (DigitalMars)
@@ -7,6 +7,20 @@ version (DigitalMars)
         version = AnyX86;
     else version (X86)
         version = AnyX86;
+}
+
+bool isClose(real lhs, real rhs, real maxRelDiff = 1e-09L, real maxAbsDiff = 0.0)
+{
+    if (lhs == rhs)
+        return true;
+    if (lhs == lhs.infinity || rhs == rhs.infinity ||
+        lhs == -lhs.infinity || rhs == -rhs.infinity)
+        return false;
+
+    auto diff = fabs(lhs - rhs);
+    return diff <= maxRelDiff*fabs(lhs)
+        || diff <= maxRelDiff*fabs(rhs)
+        || diff <= maxAbsDiff;
 }
 
 /*******************************************/
@@ -20,13 +34,6 @@ void test1()
     f = 6.8L;
     assert(cos(f) == cos(6.8L));
     static assert(isClose(cos(6.8L), 0x1.bd21aaf88dcfa13ap-1));
-
-    f = 6.8L;
-    version (Win64)
-    { }
-    else
-        assert(tan(f) == tan(6.8L));
-    static assert(isClose(tan(6.8L), 0x1.22fd752af75cd08cp-1));
 }
 
 /*******************************************/
