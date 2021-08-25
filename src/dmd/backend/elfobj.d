@@ -1195,18 +1195,49 @@ void ElfObj_term(const(char)* objfilename)
             sechdr = &SecHdrTab[seg.SDrelidx];
             sechdr.sh_size = cast(uint)seg.SDrel.length();
             sechdr.sh_offset = foffset;
+
+            // sort the relocations by offset
             if (I64)
             {
                 assert(seg.SDrelcnt == seg.SDrel.length() / Elf64_Rela.sizeof);
-                debug for (size_t j = 0; j < seg.SDrelcnt; ++j)
-                {
-                    Elf64_Rela *p = (cast(Elf64_Rela *)seg.SDrel.buf) + j;
-                    if (ELF64_R_TYPE(p.r_info) == R_X86_64_64)
-                        assert(*cast(Elf64_Xword *)(seg.SDbuf.buf + p.r_offset) == 0);
-                }
+                extern (C) @trusted nothrow
+                    static int elf64_rel_fp(scope const(void*) e1,
+                                            scope const(void*) e2)
+                    {
+                        Elf64_Rela *r1 = cast(Elf64_Rela *)e1;
+                        Elf64_Rela *r2 = cast(Elf64_Rela *)e2;
+
+                        return (r1.r_offset > r2.r_offset)
+                             - (r1.r_offset < r2.r_offset);
+                    }
+                qsort(
+                    seg.SDrel.buf,
+                    seg.SDrel.length() / Elf64_Rela.sizeof,
+                    Elf64_Rela.sizeof,
+                    &elf64_rel_fp
+                );
             }
             else
+            {
                 assert(seg.SDrelcnt == seg.SDrel.length() / Elf32_Rel.sizeof);
+                extern (C) @trusted nothrow
+                    static int elf32_rel_fp(scope const(void*) e1,
+                                            scope const(void*) e2)
+                    {
+                        Elf32_Rel *r1 = cast(Elf32_Rel *)e1;
+                        Elf32_Rel *r2 = cast(Elf32_Rel *)e2;
+
+                        return (r1.r_offset > r2.r_offset)
+                             - (r1.r_offset < r2.r_offset);
+                    }
+                qsort(
+                    seg.SDrel.buf,
+                    seg.SDrel.length() / Elf32_Rel.sizeof,
+                    Elf32_Rel.sizeof,
+                    &elf32_rel_fp
+                );
+            }
+
             fobjbuf.write(seg.SDrel.buf, sechdr.sh_size);
             foffset += sechdr.sh_size;
         }
@@ -1863,8 +1894,6 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
         pseg.SDrel.reset();
     pseg.SDsymidx = symidx;
     pseg.SDrelidx = relidx;
-    pseg.SDrelmaxoff = 0;
-    pseg.SDrelindex = 0;
     pseg.SDrelcnt = 0;
     pseg.SDshtidxout = 0;
     pseg.SDsym = null;
@@ -2694,24 +2723,6 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
         buf = segdata.SDrel;
         buf.write(&rel,(rel).sizeof);
         segdata.SDrelcnt++;
-
-        if (offset >= segdata.SDrelmaxoff)
-            segdata.SDrelmaxoff = offset;
-        else
-        {   // insert numerically
-            Elf64_Rela *relbuf = cast(Elf64_Rela *)buf.buf;
-            int i = relbuf[segdata.SDrelindex].r_offset > offset ? 0 : segdata.SDrelindex;
-            while (i < segdata.SDrelcnt)
-            {
-                if (relbuf[i].r_offset > offset)
-                    break;
-                i++;
-            }
-            assert(i != segdata.SDrelcnt);     // slide greater offsets down
-            memmove(relbuf+i+1,relbuf+i,Elf64_Rela.sizeof * (segdata.SDrelcnt - i - 1));
-            *(relbuf+i) = rel;          // copy to correct location
-            segdata.SDrelindex = i;    // next entry usually greater
-        }
     }
     else
     {
@@ -2721,24 +2732,6 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
         buf = segdata.SDrel;
         buf.write(&rel,rel.sizeof);
         segdata.SDrelcnt++;
-
-        if (offset >= segdata.SDrelmaxoff)
-            segdata.SDrelmaxoff = offset;
-        else
-        {   // insert numerically
-            Elf32_Rel *relbuf = cast(Elf32_Rel *)buf.buf;
-            int i = relbuf[segdata.SDrelindex].r_offset > offset ? 0 : segdata.SDrelindex;
-            while (i < segdata.SDrelcnt)
-            {
-                if (relbuf[i].r_offset > offset)
-                    break;
-                i++;
-            }
-            assert(i != segdata.SDrelcnt);     // slide greater offsets down
-            memmove(relbuf+i+1,relbuf+i,Elf32_Rel.sizeof * (segdata.SDrelcnt - i - 1));
-            *(relbuf+i) = rel;          // copy to correct location
-            segdata.SDrelindex = i;    // next entry usually greater
-        }
     }
 }
 
