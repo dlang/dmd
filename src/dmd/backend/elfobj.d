@@ -28,6 +28,9 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+// qsort is only nothrow in newer versions of druntime (since 2.081.0)
+private extern(C) void qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar) nothrow @nogc;
+
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
