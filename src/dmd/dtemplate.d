@@ -2742,17 +2742,17 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         if (!m.lastf.type.equals(fd.type))
         {
             //printf("cov: %d %d\n", m.lastf.type.covariant(fd.type), fd.type.covariant(m.lastf.type));
-            const int lastCovariant = m.lastf.type.covariant(fd.type);
-            const int firstCovariant = fd.type.covariant(m.lastf.type);
+            const lastCovariant = m.lastf.type.covariant(fd.type);
+            const firstCovariant = fd.type.covariant(m.lastf.type);
 
-            if (lastCovariant == 1 || lastCovariant == 2)
+            if (lastCovariant == Covariant.yes || lastCovariant == Covariant.no)
             {
-                if (firstCovariant != 1 && firstCovariant != 2)
+                if (firstCovariant != Covariant.yes && firstCovariant != Covariant.no)
                 {
                     goto LlastIsBetter;
                 }
             }
-            else if (firstCovariant == 1 || firstCovariant == 2)
+            else if (firstCovariant == Covariant.yes || firstCovariant == Covariant.no)
             {
                 goto LfIsBetter;
             }

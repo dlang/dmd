@@ -632,8 +632,8 @@ extern (C++) class FuncDeclaration : Declaration
         int result = 0;
         if (fd.ident == ident)
         {
-            int cov = type.covariant(fd.type);
-            if (cov)
+            const cov = type.covariant(fd.type);
+            if (cov != Covariant.distinct)
             {
                 ClassDeclaration cd1 = toParent().isClassDeclaration();
                 ClassDeclaration cd2 = fd.toParent().isClassDeclaration();
@@ -691,31 +691,28 @@ extern (C++) class FuncDeclaration : Declaration
                 }
 
                 StorageClass stc = 0;
-                int cov = type.covariant(fdv.type, &stc);
+                const cov = type.covariant(fdv.type, &stc);
                 //printf("\tbaseclass cov = %d\n", cov);
-                switch (cov)
+                final switch (cov)
                 {
-                case 0:
+                case Covariant.distinct:
                     // types are distinct
                     break;
 
-                case 1:
+                case Covariant.yes:
                     bestvi = vi; // covariant, but not identical
                     break;
                     // keep looking for an exact match
 
-                case 2:
+                case Covariant.no:
                     mismatchvi = vi;
                     mismatchstc = stc;
                     mismatch = fdv; // overrides, but is not covariant
                     break;
                     // keep looking for an exact match
 
-                case 3:
+                case Covariant.fwdref:
                     return -2; // forward references
-
-                default:
-                    assert(0);
                 }
             }
         }
@@ -848,7 +845,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (t.ty == Tfunction)
             {
                 auto tf = cast(TypeFunction)f.type;
-                if (tf.covariant(t) == 1 &&
+                if (tf.covariant(t) == Covariant.yes &&
                     tf.nextOf().implicitConvTo(t.nextOf()) >= MATCH.constant)
                 {
                     fd = f;

@@ -733,7 +733,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 // the first entry might be a ClassInfo
                 //printf("\t[%d] = %s\n", i, fd.toChars());
-                if (ident != fd.ident || fd.type.covariant(tf) != 1)
+                if (ident != fd.ident || fd.type.covariant(tf) != Covariant.yes)
                 {
                     //printf("\t\t%d\n", fd.type.covariant(tf));
                     continue;

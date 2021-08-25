@@ -239,6 +239,15 @@ enum DotExpFlag
     noDeref = 2,    // the use of the expression will not attempt a dereference
 }
 
+/// Result of a check whether two types are covariant
+enum Covariant
+{
+    distinct = 0, /// types are distinct
+    yes = 1, /// types are covariant
+    no = 2, /// arguments match as far as overloading goes, but types are not covariant
+    fwdref = 3, /// cannot determine covariance because of forward references
+}
+
 /***********************************************************
  */
 extern (C++) abstract class Type : ASTNode
@@ -432,14 +441,9 @@ extern (C++) abstract class Type : ASTNode
      *      t = type 'this' is covariant with
      *      pstc = if not null, store STCxxxx which would make it covariant
      * Returns:
-     *      0       types are distinct
-     *      1       this is covariant with t
-     *      2       arguments match as far as overloading goes,
-     *              but types are not covariant
-     *      3       cannot determine covariance because of forward references
-     *      *pstc   STCxxxx which would make it covariant
+     *     An enum value of either `Covariant.yes` or a reason it's not covariant.
      */
-    final int covariant(Type t, StorageClass* pstc = null)
+    final Covariant covariant(Type t, StorageClass* pstc = null)
     {
         version (none)
         {
@@ -455,7 +459,7 @@ extern (C++) abstract class Type : ASTNode
         bool notcovariant = false;
 
         if (equals(t))
-            return 1; // covariant
+            return Covariant.yes;
 
         TypeFunction t1 = this.isTypeFunction();
         TypeFunction t2 = t.isTypeFunction();
@@ -550,7 +554,7 @@ extern (C++) abstract class Type : ASTNode
                     cd.dsymbolSemantic(null);
                 if (!cd.isBaseInfoComplete())
                 {
-                    return 3; // forward references
+                    return Covariant.fwdref;
                 }
             }
             if (t1n.ty == Tstruct && t2n.ty == Tstruct)
@@ -650,15 +654,15 @@ extern (C++) abstract class Type : ASTNode
         }
 
         //printf("\tcovaraint: 1\n");
-        return 1;
+        return Covariant.yes;
 
     Ldistinct:
         //printf("\tcovaraint: 0\n");
-        return 0;
+        return Covariant.distinct;
 
     Lnotcovariant:
         //printf("\tcovaraint: 2\n");
-        return 2;
+        return Covariant.no;
     }
 
     /********************************
@@ -3957,7 +3961,7 @@ extern (C++) final class TypePointer : TypeNext
                     if (next.equals(tp.next))
                         return MATCH.constant;
 
-                    if (next.covariant(tp.next) == 1)
+                    if (next.covariant(tp.next) == Covariant.yes)
                     {
                         Type tret = this.next.nextOf();
                         Type toret = tp.next.nextOf();
@@ -5261,7 +5265,7 @@ extern (C++) final class TypeDelegate : TypeNext
         version (all)
         {
             // not allowing covariant conversions because it interferes with overriding
-            if (to.ty == Tdelegate && this.nextOf().covariant(to.nextOf()) == 1)
+            if (to.ty == Tdelegate && this.nextOf().covariant(to.nextOf()) == Covariant.yes)
             {
                 Type tret = this.next.nextOf();
                 Type toret = (cast(TypeDelegate)to).next.nextOf();
