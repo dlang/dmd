@@ -1853,6 +1853,14 @@ enum class TY : uint8_t
     TMAX = 48u,
 };
 
+enum class Covariant
+{
+    distinct = 0,
+    yes = 1,
+    no = 2,
+    fwdref = 3,
+};
+
 class Type : public ASTNode
 {
 public:
@@ -1960,7 +1968,7 @@ public:
     bool equals(const RootObject* const o) const;
     bool equivalent(Type* t);
     DYNCAST dyncast() const;
-    int32_t covariant(Type* t, uint64_t* pstc = nullptr);
+    Covariant covariant(Type* t, uint64_t* pstc = nullptr);
     const char* toChars() const;
     char* toPrettyChars(bool QualifyTypes = false);
     static void _init();
@@ -4682,6 +4690,7 @@ struct ASTCodegen final
     using NeedInterpret = ::NeedInterpret;
     using StructInitializer = ::StructInitializer;
     using VoidInitializer = ::VoidInitializer;
+    using Covariant = ::Covariant;
     using DotExpFlag = ::DotExpFlag;
     using Parameter = ::Parameter;
     using ParameterList = ::ParameterList;

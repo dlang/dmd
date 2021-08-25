@@ -1747,8 +1747,8 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
             /* Ignore covariant matches, as later on it can be redone
              * after the opApply delegate has its attributes inferred.
              */
-            if (tf.covariant(fd_best.type) != 1 &&
-                fd_best.type.covariant(tf) != 1)
+            if (tf.covariant(fd_best.type) != Covariant.yes &&
+                fd_best.type.covariant(tf) != Covariant.yes)
                 fd_ambig = f;                           // not covariant, so ambiguous
         }
         return 0;               // continue
