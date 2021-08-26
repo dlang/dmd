@@ -1038,7 +1038,7 @@ struct perf_event_attr
         }
 
         union
-        {       
+        {
                 ///
                 ulong bp_len;
                 ulong config2; /** extension of config1 */
@@ -1725,7 +1725,7 @@ enum perf_event_type
         PERF_RECORD_LOST_SAMPLES = 13,
 
         /**
-        * 
+        *
         * Records a context switch in or out (flagged by
         * PERF_RECORD_MISC_SWITCH_OUT). See also
         * PERF_RECORD_SWITCH_CPU_WIDE.
