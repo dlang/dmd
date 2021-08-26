@@ -352,21 +352,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.path = buildPath(params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
-    if (params.addMain)
-        files.push("__main.d");
     // Create Modules
     Modules modules = createModules(files, libmodules);
     // Read files
-    // Start by "reading" the special files (__main.d, __stdin.d)
+    // Start by "reading" the special file __stdin.d
     foreach (m; modules)
     {
-        if (params.addMain && m.srcfile.toString() == "__main.d")
-        {
-            // need 2 trailing nulls for sentinel and 2 for lexer
-            auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
-            m.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-4]);
-        }
-        else if (m.srcfile.toString() == "__stdin.d")
+        if (m.srcfile.toString() == "__stdin.d")
         {
             auto buffer = readFromStdin();
             m.srcBuffer = new FileBuffer(buffer.extractSlice());
@@ -598,6 +590,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         error(Loc.initial, "no input files");
         return EXIT_FAILURE;
     }
+
+    if (params.addMain)
+        modules.push(moduleWithEmptyMain());
 
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
                          params.lib, params.obj, params.oneobj, params.multiobj,
@@ -2800,4 +2795,20 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         }
     }
     return modules;
+}
+
+/// Returns: a compiled module (semantic3) containing an empty main() function, for the -main flag
+Module moduleWithEmptyMain()
+{
+    auto result = new Module("__main.d", Identifier.idPool("__main"), false, false);
+    // need 2 trailing nulls for sentinel and 2 for lexer
+    auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
+    result.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-4]);
+    result.parse();
+    result.importedFrom = result;
+    result.importAll(null);
+    result.dsymbolSemantic(null);
+    result.semantic2(null);
+    result.semantic3(null);
+    return result;
 }
