@@ -363,7 +363,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (params.addMain && m.srcfile.toString() == "__main.d")
         {
             // need 2 trailing nulls for sentinel and 2 for lexer
-            auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;} else int main(){return 0;}\0\0\0\0");
+            auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
             m.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-4]);
         }
         else if (m.srcfile.toString() == "__stdin.d")
