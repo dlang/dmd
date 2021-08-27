@@ -2490,22 +2490,25 @@ struct FieldState final
 {
     uint32_t offset;
     uint32_t fieldOffset;
-    uint32_t bitOffset;
     uint32_t fieldSize;
+    uint32_t fieldAlign;
+    uint32_t bitOffset;
     bool inFlight;
     FieldState() :
         offset(),
         fieldOffset(),
-        bitOffset(),
         fieldSize(),
+        fieldAlign(),
+        bitOffset(),
         inFlight()
     {
     }
-    FieldState(uint32_t offset, uint32_t fieldOffset = 0u, uint32_t bitOffset = 0u, uint32_t fieldSize = 0u, bool inFlight = false) :
+    FieldState(uint32_t offset, uint32_t fieldOffset = 0u, uint32_t fieldSize = 0u, uint32_t fieldAlign = 0u, uint32_t bitOffset = 0u, bool inFlight = false) :
         offset(offset),
         fieldOffset(fieldOffset),
-        bitOffset(bitOffset),
         fieldSize(fieldSize),
+        fieldAlign(fieldAlign),
+        bitOffset(bitOffset),
         inFlight(inFlight)
         {}
 };

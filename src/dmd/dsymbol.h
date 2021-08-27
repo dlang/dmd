@@ -145,8 +145,10 @@ struct FieldState
     unsigned offset;
 
     unsigned fieldOffset;
+    unsigned fieldSize;
+    unsigned fieldAlign;
     unsigned bitOffset;
-    unsigned fieldSice;
+
     bool inFlight;
 };
 

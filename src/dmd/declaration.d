@@ -1736,13 +1736,23 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
 
     override final void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
-        //printf("BitFieldDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
+        //printf("BitFieldDeclaration::setFieldOffset(ad: %s, field: %s)\n", ad.toChars(), toChars());
+        static void print(const ref FieldState fieldState)
+        {
+            printf("FieldState.offset      = %d bytes\n",   fieldState.offset);
+            printf("          .fieldOffset = %d bytes\n",   fieldState.fieldOffset);
+            printf("          .bitOffset   = %d bits\n",    fieldState.bitOffset);
+            printf("          .fieldSize   = %d bytes\n",   fieldState.fieldSize);
+            printf("          .inFlight    = %d\n\n", fieldState.inFlight);
+        }
+        //print(fieldState);
 
         Type t = type.toBasetype();
+        const bool anon = isAnonymous();
 
         // List in ad.fields. Even if the type is error, it's necessary to avoid
         // pointless error diagnostic "more initializers than fields" on struct literal.
-        if (!isAnonymous())
+        if (!anon)
             ad.fields.push(this);
 
         if (t.ty == Terror)
@@ -1753,17 +1763,34 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         uint memsize = cast(uint)sz;                // size of member
         uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
 
-        if (fieldWidth == 0 && !isAnonymous())
+        if (fieldWidth == 0 && !anon)
             error(loc, "named bit fields cannot have 0 width");
         if (fieldWidth > memsize * 8)
             error(loc, "bit field width %d is larger than type", fieldWidth);
 
         void startNewField()
         {
+            uint alignsize;
+            if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
+            {
+                if (fieldWidth > 32)
+                    alignsize = memalignsize;
+                else if (fieldWidth > 16)
+                    alignsize = 4;
+                else if (fieldWidth > 8)
+                    alignsize = 2;
+                else
+                    alignsize = 1;
+            }
+            else
+                alignsize = memalignsize;
+
+            uint dummy;
             offset = AggregateDeclaration.placeField(
                 &fieldState.offset,
-                memsize, memalignsize, alignment,
-                &ad.structsize, &ad.alignsize,
+                memsize, alignsize, alignment,
+                &ad.structsize,
+                anon ? &dummy : &ad.alignsize,
                 isunion);
 
             fieldState.inFlight = true;
@@ -1772,23 +1799,58 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
             fieldState.fieldSize = memsize;
         }
 
-        if (!fieldState.inFlight || fieldWidth == 0)
+        if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
+        {
+            if (fieldWidth == 0)
+            {
+                if (!isunion)
+                {
+                    // Use type of zero width field to align to next field
+                    fieldState.offset = (fieldState.offset + memalignsize - 1) & ~(memalignsize - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (!anon &&
+                  ad.alignsize < memalignsize)
+                ad.alignsize = memalignsize;
+        }
+
+        if (fieldWidth == 0)
+        {
+            fieldState.inFlight = false;
+            return;
+        }
+        else if (!fieldState.inFlight)
         {
             startNewField();
         }
-        else if (target.os & Target.OS.Posix)
+        else if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
         {
-            if (fieldState.fieldSize == 8 &&
-                fieldState.bitOffset + fieldWidth > 64)
+            if (fieldState.bitOffset + fieldWidth > memsize * 8)
             {
+                //printf("start1 fieldState.bitOffset:%u fieldWidth:%u memsize:%u\n", fieldState.bitOffset, fieldWidth, memsize);
                 startNewField();
             }
-            else if (fieldState.bitOffset + fieldWidth > int.sizeof * 8)
+            else
             {
-                startNewField();
+                // if alignment boundary is crossed
+                uint start = fieldState.fieldOffset * 8 + fieldState.bitOffset;
+                uint end   = start + fieldWidth;
+                //printf("%s start: %d end: %d memalignsize: %d\n", ad.toChars(), start, end, memalignsize);
+                if (start / (memalignsize * 8) != (end - 1) / (memalignsize * 8))
+                {
+                    //printf("alignment is crossed\n");
+                    startNewField();
+                }
             }
         }
-        else if (target.os == Target.OS.Windows)
+        else if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Dm_Ms)
         {
             if (memsize != fieldState.fieldSize ||
                 fieldState.bitOffset + fieldWidth > fieldState.fieldSize * 8)
@@ -1803,13 +1865,18 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         bitOffset = fieldState.bitOffset;
 
         const pastField = bitOffset + fieldWidth;
-        if (target.os & Target.OS.Posix)
+        if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
         {
-            fieldState.fieldSize = (pastField + 7) / 8;
-            ad.structsize = offset + fieldState.fieldSize;
+            auto size = (pastField + 7) / 8;
+            fieldState.fieldSize = size;
+            //printf(" offset: %d, size: %d\n", offset, size);
+            ad.structsize = offset + size;
         }
+        else
+            fieldState.fieldSize = memsize;
+        //printf("at end: ad.structsize = %d\n", cast(int)ad.structsize);
+        //print(fieldState);
 
-        //fieldState.fieldSize = memsize;
         if (!isunion)
         {
             fieldState.bitOffset = pastField;
