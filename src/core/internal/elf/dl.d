@@ -26,9 +26,19 @@ else version (DragonFlyBSD)
     import core.sys.dragonflybsd.sys.link_elf;
     version = LinuxOrBSD;
 }
+else version (NetBSD)
+{
+    import core.sys.netbsd.sys.link_elf;
+    version = LinuxOrBSD;
+}
 else version (OpenBSD)
 {
     import core.sys.openbsd.sys.link_elf;
+    version = LinuxOrBSD;
+}
+else version (Solaris)
+{
+    import core.sys.solaris.link;
     version = LinuxOrBSD;
 }
 
@@ -82,6 +92,7 @@ struct SharedObject
         version (linux)        enum IterateManually = true;
         else version (NetBSD)  enum IterateManually = true;
         else version (OpenBSD) enum IterateManually = true;
+        else version (Solaris) enum IterateManually = true;
         else                   enum IterateManually = false;
 
         static if (IterateManually)
