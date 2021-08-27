@@ -389,3 +389,14 @@ __attribute__((static, unsigned, long, const, extern, register, typedef, short,
 int test22196();
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22245
+
+struct S22245 { int i; };
+
+int test22245()
+{
+    struct S22245 s;
+    return sizeof(s.i);
+}
+
+/***************************************************/

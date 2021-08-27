@@ -3688,15 +3688,20 @@ final class CParser(AST) : Parser!AST
             return false;
         }
 
-        if (t.value == TOK.leftBracket)
+        while (1)
         {
-            if (!skipBrackets(t))
-                return false;
-        }
-        else if (t.value == TOK.leftParenthesis)
-        {
-            if (!skipParens(t, &t))
-                 return false;
+            if (t.value == TOK.leftBracket)
+            {
+                if (!skipBrackets(t))
+                    return false;
+            }
+            else if (t.value == TOK.leftParenthesis)
+            {
+                if (!skipParens(t, &t))
+                    return false;
+            }
+            else
+                break;
         }
         pt = t;
         return true;
@@ -3747,6 +3752,8 @@ final class CParser(AST) : Parser!AST
         if (!isSpecifierQualifierList(t))
             return false;
         if (!isCDeclarator(t, DTR.xabstract))
+            return false;
+        if (t.value != TOK.rightParenthesis)
             return false;
         pt = t;
         return true;
