@@ -3038,7 +3038,10 @@ final class CParser(AST) : Parser!AST
 
             if ((*members).length == 0) // C11 6.7.2.1-8
             {
-                // allow empty structs as an extension
+                /* allow empty structs as an extension
+                 *  struct-declarator-list:
+                 *    struct-declarator (opt)
+                 */
             }
         }
         else if (!tag)
