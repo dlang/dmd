@@ -195,6 +195,7 @@ extern (C++) struct Param
 
     CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 
+    uint recursionLimit = 500; /// number of recursive template expansions before abort
     uint errorLimit = 20;
 
     const(char)[] argv0;                // program name
@@ -306,8 +307,6 @@ extern (C++) struct Global
 
     Array!Identifier* versionids; /// command line versions and predefined versions
     Array!Identifier* debugids;   /// command line debug versions and predefined versions
-
-    enum recursionLimit = 500; /// number of recursive template expansions before abort
 
   nothrow:
 

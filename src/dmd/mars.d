@@ -1777,6 +1777,23 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
             params.vgc = true;
+	else if (startsWith(p + 1, "vrecursion-limit"))
+	{
+	    enum STRING_SIZE = "-vrecursion-limit".length;
+	    if (p[STRING_SIZE] != '=')
+	    {
+		errorInvalidSwitch(p, "Expected argument following `-vrecursion-limit , e.g. `-vrecursion-limit=1000`");
+		return true;
+	    }
+	    if (!params.recursionLimit.parseDigits(p.toDString()[STRING_SIZE + 1 .. $]))
+	    {
+                errorInvalidSwitch(p, "Only numbers are allowed for -vrecursion-limit`");
+	    }
+	    if( params.recursionLimit == 0)
+            {
+		params.recursionLimit = 500;
+	    }
+	}
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
             if (p[8] != '=')

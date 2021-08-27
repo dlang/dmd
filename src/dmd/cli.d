@@ -750,6 +750,9 @@ dmd -cov -unittest myprog.d
             $(DT list-instances)$(DD Also shows all instantiation contexts for each template.)
             )`,
         ),
+	Option("vrecursion-limit=<num>",
+	    "sets the template recursion limit to num (default 500)"
+        ),
         Option("w",
             "warnings as errors (compilation will halt)",
             `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, warnings)`

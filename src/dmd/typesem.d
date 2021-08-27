@@ -1151,7 +1151,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
         bool errors = false;
 
-        if (mtype.inuse > global.recursionLimit)
+        if (mtype.inuse > global.params.recursionLimit)
         {
             mtype.inuse = 0;
             .error(loc, "recursive type");
@@ -3753,7 +3753,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             return e;
         }
 
-        if (++nest > global.recursionLimit)
+        if (++nest > global.params.recursionLimit)
         {
             .error(e.loc, "cannot resolve identifier `%s`", ident.toChars());
             return returnExp(gagError ? null : ErrorExp.get());
