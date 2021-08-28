@@ -1787,7 +1787,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             if (!params.recursionLimit.parseDigits(p.toDString()[STRING_SIZE + 1 .. $]))
             {
-                errorInvalidSwitch(p, "Only numbers are allowed for -recursion-limit`");
+                errorInvalidSwitch(p, "Only numbers are allowed for `-recursion-limit`");
                 return true;
             }
             if( params.recursionLimit == 0)
