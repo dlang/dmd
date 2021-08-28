@@ -1782,7 +1782,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum STRING_SIZE = "-recursion-limit".length;
             if (p[STRING_SIZE] != '=')
             {
-                errorInvalidSwitch(p, "Expected argument following `-recursion-limit , e.g. `-recursion-limit=1000`");
+                errorInvalidSwitch(p, "Expected argument following `-recursion-limit` , e.g. `-recursion-limit=1000`");
                 return true;
             }
             if (!params.recursionLimit.parseDigits(p.toDString()[STRING_SIZE + 1 .. $]))
