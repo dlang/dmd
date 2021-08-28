@@ -645,6 +645,9 @@ dmd -cov -unittest myprog.d
                 to the file $(TT profilegc.log) upon program termination.)
             )`,
         ),
+	Option("recursion-limit=<num>",
+	    "sets the template recursion limit to num (default 500)"
+        ),
         Option("release",
             "compile release version",
             `Compile release version, which means not emitting run-time
@@ -749,9 +752,6 @@ dmd -cov -unittest myprog.d
             $(DL
             $(DT list-instances)$(DD Also shows all instantiation contexts for each template.)
             )`,
-        ),
-	Option("vrecursion-limit=<num>",
-	    "sets the template recursion limit to num (default 500)"
         ),
         Option("w",
             "warnings as errors (compilation will halt)",
