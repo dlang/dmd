@@ -8722,7 +8722,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 e2x = resolveAliasThis(sc, e2x); //https://issues.dlang.org/show_bug.cgi?id=17684
             if (e2x.op == TOK.error)
                 return setResult(e2x);
-            // We skip checking the value for structs/classes as these might have
+            // We delay checking the value for structs/classes as these might have
             // an opAssign defined.
             if ((t1.ty != Tstruct && t1.ty != Tclass && e2x.checkValue()) ||
                 e2x.checkSharedAccess(sc))
@@ -9208,6 +9208,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
                 assert(exp.op == TOK.blit);
 
+            if (e2x.checkValue())
+                return setError();
+
             exp.e1 = e1x;
             exp.e2 = e2x;
         }
@@ -9223,6 +9226,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return;
                 }
             }
+            if (exp.e2.checkValue())
+                return setError();
         }
         else if (t1.ty == Tsarray)
         {
