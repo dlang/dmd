@@ -646,7 +646,7 @@ dmd -cov -unittest myprog.d
             )`,
         ),
 	Option("recursion-limit=<num>",
-	    "sets the template recursion limit to num (default 500)"
+	    "sets the recursion limit to num (default 500)"
         ),
         Option("release",
             "compile release version",
