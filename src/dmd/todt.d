@@ -900,7 +900,13 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             finishInFlightBitField();
         }
         // This relies on all bit fields in the same storage location have the same type
-        bitFieldSize = cast(uint)vd.type.size();
+        if (bf)
+        {
+            if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
+                bitFieldSize = (bitOffset + bf.fieldWidth + 7) / 8;
+            else
+                bitFieldSize = cast(uint)vd.type.size();
+        }
 
         assert(offset <= vd.offset);
         if (offset < vd.offset)
