@@ -645,8 +645,8 @@ dmd -cov -unittest myprog.d
                 to the file $(TT profilegc.log) upon program termination.)
             )`,
         ),
-	Option("recursion-limit=<num>",
-	    "sets the template recursion limit to num (default 500)"
+        Option("recursion-limit=<num>",
+            "sets the template recursion limit to num (default 500)"
         ),
         Option("release",
             "compile release version",
