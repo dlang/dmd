@@ -257,8 +257,6 @@ struct seg_data
     //ELFOBJ
     IDXSYM           SDsymidx;          // each section is in the symbol table
     IDXSEC           SDrelidx;          // section header for relocation info
-    targ_size_t      SDrelmaxoff;       // maximum offset encountered
-    int              SDrelindex;        // maximum offset encountered
     int              SDrelcnt;          // number of relocations added
     IDXSEC           SDshtidxout;       // final section header table index
     Symbol          *SDsym;             // if !=NULL, comdat symbol
