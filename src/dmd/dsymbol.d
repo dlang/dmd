@@ -225,11 +225,13 @@ enum : int
  */
 struct FieldState
 {
-    uint offset;        /// offset for next field
+    uint offset;        /// byte offset for next field
 
-    uint fieldOffset;   /// offset for the start of the bit field
+    uint fieldOffset;   /// byte offset for the start of the bit field
+    uint fieldSize;     /// byte size of field
+    uint fieldAlign;    /// byte alignment of field
     uint bitOffset;     /// bit offset for field
-    uint fieldSize;     /// size of field in bytes
+
     bool inFlight;      /// bit field is in flight
 }
 

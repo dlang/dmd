@@ -8,7 +8,6 @@ fail_compilation/failcstuff1.c(152): Error: `;` or `,` expected
 fail_compilation/failcstuff1.c(153): Error: `void` has no value
 fail_compilation/failcstuff1.c(153): Error: missing comma
 fail_compilation/failcstuff1.c(153): Error: `;` or `,` expected
-fail_compilation/failcstuff1.c(154): Error: empty struct-declaration-list for `struct Anonymous`
 fail_compilation/failcstuff1.c(157): Error: identifier not allowed in abstract-declarator
 fail_compilation/failcstuff1.c(203): Error: storage class not allowed in specifier-qualified-list
 fail_compilation/failcstuff1.c(204): Error: storage class not allowed in specifier-qualified-list
