@@ -4881,8 +4881,9 @@ struct TargetC final
     enum class BitFieldStyle : uint8_t
     {
         Unspecified = 0u,
-        Dm_Ms = 1u,
-        Gcc_Clang = 2u,
+        DM = 1u,
+        MS = 2u,
+        Gcc_Clang = 3u,
     };
 
     uint8_t longsize;

@@ -1179,7 +1179,8 @@ struct TargetC
     enum BitFieldStyle : ubyte
     {
         Unspecified,
-        Dm_Ms,                /// Digital Mars and Microsoft C compilers
+        DM,                   /// Digital Mars 32 bit C compiler
+        MS,                   /// Microsoft 32 and 64 bit C compilers
                               /// https://docs.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-160
                               /// https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
         Gcc_Clang,            /// gcc and clang
@@ -1231,7 +1232,7 @@ struct TargetC
         }
 
         if (os == Target.OS.Windows)
-            bitFieldStyle = BitFieldStyle.Dm_Ms;
+            bitFieldStyle = target.mscoff ? BitFieldStyle.MS : BitFieldStyle.DM;
         else if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OSX |
                        Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             bitFieldStyle = BitFieldStyle.Gcc_Clang;
