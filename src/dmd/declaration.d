@@ -1896,6 +1896,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
 
         if (!isunion)
         {
+            fieldState.offset = offset + fieldState.fieldSize;
             fieldState.bitOffset = pastField;
         }
 
