@@ -297,13 +297,32 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             return;
         }
 
-        // 0 sized struct's are set to 1 byte
         if (structsize == 0)
         {
             hasNoFields = true;
             alignsize = 1;
-            if (classKind != classKind.c) // C gets a struct size of 0
-                structsize = 1;
+
+            // A fine mess of what size a zero sized struct should be
+            final switch (classKind)
+            {
+                case ClassKind.d:
+                case ClassKind.cpp:
+                    structsize = 1;
+                    break;
+
+                case ClassKind.c:
+                case ClassKind.objc:
+                    if (target.c.bitFieldStyle == TargetC.BitFieldStyle.MS)
+                    {
+                        /* Undocumented MS behavior for:
+                         *   struct S { int :0; };
+                         */
+                        structsize = 4;
+                    }
+                    else
+                        structsize = 0;
+                    break;
+            }
         }
 
         // Round struct size up to next alignsize boundary.
