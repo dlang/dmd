@@ -307,6 +307,8 @@ extern (C++) struct Global
     Array!Identifier* versionids; /// command line versions and predefined versions
     Array!Identifier* debugids;   /// command line debug versions and predefined versions
 
+    bool hasMainFunction; /// Whether a main function has already been compiled in (for -main switch)
+
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
   nothrow:

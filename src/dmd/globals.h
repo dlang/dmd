@@ -274,6 +274,8 @@ struct Global
     Array<class Identifier*>* versionids; // command line versions and predefined versions
     Array<class Identifier*>* debugids;   // command line debug versions and predefined versions
 
+    bool hasMainFunction;
+
     /* Start gagging. Return the current number of gagged errors
      */
     unsigned startGagging();
