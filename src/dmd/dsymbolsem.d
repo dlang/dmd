@@ -3799,6 +3799,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
+        if (funcdecl.fbody && sc._module.isRoot() &&
+            (funcdecl.isMain() || funcdecl.isWinMain() || funcdecl.isDllMain() || funcdecl.isCMain()))
+            global.hasMainFunction = true;
+
         if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
         {
             // check if `_d_cmain` is defined

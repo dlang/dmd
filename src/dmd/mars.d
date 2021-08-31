@@ -591,7 +591,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
     }
 
-    if (params.addMain)
+    if (params.addMain && !global.hasMainFunction)
         modules.push(moduleWithEmptyMain());
 
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
