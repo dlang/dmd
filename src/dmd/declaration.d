@@ -1822,7 +1822,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                   ad.alignsize < memalignsize)
                 ad.alignsize = memalignsize;
         }
-        else
+        else if (style == TargetC.BitFieldStyle.MS)
         {
             if (ad.alignsize == 0)
                 ad.alignsize = 1;
@@ -1833,6 +1833,25 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                     // documentation says align to next int
                     //const alsz = cast(uint)Type.tint32.size();
                     const alsz = memsize; // but it really does this
+                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+        }
+        else if (style == TargetC.BitFieldStyle.DM)
+        {
+            if (anon && fieldWidth && (!fieldState.inFlight || fieldState.bitOffset == 0))
+                return;  // this probably should be a bug in DMC
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (fieldWidth == 0)
+            {
+                if (fieldState.inFlight && !isunion)
+                {
+                    const alsz = memsize;
                     fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
                     ad.structsize = fieldState.offset;
                 }
