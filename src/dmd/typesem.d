@@ -1336,6 +1336,29 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
                 Type t = fparam.type.toBasetype();
 
+                if (sc.flags & SCOPE.Cfile)
+                {
+                    /* C11 6.7.6.3-7 array of T is converted to pointer to T
+                     */
+                    if (auto ta = t.isTypeDArray())
+                    {
+                        t = ta.next.pointerTo();
+                        fparam.type = t;
+                    }
+                    else if (auto ts = t.isTypeSArray())
+                    {
+                        t = ts.next.pointerTo();
+                        fparam.type = t;
+                    }
+                    /* C11 6.7.6.3-8 function is converted to pointer to function
+                     */
+                    else if (t.isTypeFunction())
+                    {
+                        t = t.pointerTo();
+                        fparam.type = t;
+                    }
+                }
+
                 /* If fparam after semantic() turns out to be a tuple, the number of parameters may
                  * change.
                  */
