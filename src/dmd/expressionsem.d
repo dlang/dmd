@@ -1240,7 +1240,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         tthis = dve.e1.type;
         goto Lfd;
     }
-    else if (sc.flags & SCOPE.Cfile && e1.op == TOK.variable && !e2)
+    else if (sc && sc.flags & SCOPE.Cfile && e1.op == TOK.variable && !e2)
     {
         // ImportC: do not implicitly call function if no ( ) are present
     }
@@ -8726,7 +8726,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
         {
             Expression e2x = inferType(exp.e2, t1.baseElemOf());
-            e2x = e2x.expressionSemantic(sc).arrayFuncConv(sc);
+            e2x = e2x.expressionSemantic(sc);
+            if (!t1.isTypeSArray())
+                e2x = e2x.arrayFuncConv(sc);
             e2x = resolveProperties(sc, e2x);
             if (e2x.op == TOK.type)
                 e2x = resolveAliasThis(sc, e2x); //https://issues.dlang.org/show_bug.cgi?id=17684
