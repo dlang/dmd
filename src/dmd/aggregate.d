@@ -52,6 +52,8 @@ enum ClassKind : ubyte
     cpp,
     /// the aggregate is an Objective-C class/interface
     objc,
+    /// the aggregate is a C struct
+    c,
 }
 
 /**

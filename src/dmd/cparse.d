@@ -3037,14 +3037,12 @@ final class CParser(AST) : Parser!AST
             check(TOK.rightCurly);
 
             if ((*members).length == 0) // C11 6.7.2.1-8
-                /* TODO: not strict enough, should really be contains "no named members",
-                 * not just "no members".
-                 * I.e. an unnamed bit field, _Static_assert, etc, are not named members,
-                 * but will pass this check.
-                 * Be careful to detect named members that come anonymous structs.
-                 * Correctly doing this will likely mean moving it to typesem.d.
+            {
+                /* allow empty structs as an extension
+                 *  struct-declarator-list:
+                 *    struct-declarator (opt)
                  */
-                error("empty struct-declaration-list for `%s %s`", Token.toChars(structOrUnion), tag ? tag.toChars() : "Anonymous".ptr);
+            }
         }
         else if (!tag)
             error("missing tag `identifier` after `%s`", Token.toChars(structOrUnion));
@@ -3139,12 +3137,14 @@ final class CParser(AST) : Parser!AST
                 dt = tspec;
             }
             else
-                dt = cparseDeclarator(DTR.xdirect, tspec, id);
-            if (!dt)
             {
-                panic();
-                nextToken();
-                break;          // error recovery
+                dt = cparseDeclarator(DTR.xdirect, tspec, id);
+                if (!dt)
+                {
+                    panic();
+                    nextToken();
+                    break;          // error recovery
+                }
             }
 
             AST.Expression width;
@@ -3691,15 +3691,20 @@ final class CParser(AST) : Parser!AST
             return false;
         }
 
-        if (t.value == TOK.leftBracket)
+        while (1)
         {
-            if (!skipBrackets(t))
-                return false;
-        }
-        else if (t.value == TOK.leftParenthesis)
-        {
-            if (!skipParens(t, &t))
-                 return false;
+            if (t.value == TOK.leftBracket)
+            {
+                if (!skipBrackets(t))
+                    return false;
+            }
+            else if (t.value == TOK.leftParenthesis)
+            {
+                if (!skipParens(t, &t))
+                    return false;
+            }
+            else
+                break;
         }
         pt = t;
         return true;
@@ -3750,6 +3755,8 @@ final class CParser(AST) : Parser!AST
         if (!isSpecifierQualifierList(t))
             return false;
         if (!isCDeclarator(t, DTR.xabstract))
+            return false;
+        if (t.value != TOK.rightParenthesis)
             return false;
         pt = t;
         return true;
