@@ -17,6 +17,9 @@ void test_hasAliasing()
     struct S4 { float[3] vals; }
     struct S41 { int*[3] vals; }
     struct S42 { immutable(int)*[3] vals; }
+    struct S5 { int[int] vals; } // not in std.traits
+    struct S6 { const int[int] vals; } // not in std.traits
+    struct S7 { immutable int[int] vals; } // not in std.traits
 
     static assert( __traits(hasAliasing, S1));
     static assert(!__traits(hasAliasing, S2));
@@ -24,6 +27,9 @@ void test_hasAliasing()
     static assert(!__traits(hasAliasing, S4));
     static assert( __traits(hasAliasing, S41));
     static assert(!__traits(hasAliasing, S42));
+    static assert( __traits(hasAliasing, S5));
+    static assert( __traits(hasAliasing, S6));
+    static assert(!__traits(hasAliasing, S7));
 
     static assert( __traits(hasAliasing, S1, S41)); // multiple arguments, all have aliasing
     static assert( __traits(hasAliasing, S1, S2)); // multiple arguments, some have aliasing
