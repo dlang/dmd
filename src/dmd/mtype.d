@@ -7354,13 +7354,15 @@ const(char)* toChars(ScopeRef sr) pure nothrow @nogc @safe
     }
 }
 
-/** Returns: `true` iff `t` has any non-`immutable` (mutable or const) indirections.
+/** Aliasing happens when there exists another mutable reference to the same
+ * memory object.  The other references can change the contents of the memory
+ * object.  Immutable references may exist, but cannot change the contents. This
+ * function determines if such aliasing of a type `t` is possible.
  *
- * In other words, if other references to `t` may be able to change it.
  * Params:
  *      t = type to check
  * Returns:
- *      true iff `t` contain non-`immutable` indirections.
+ *      `true` iff `t` contains any non-`immutable` (mutable or const) indirections.
  */
 bool hasAliasing(scope Type t)
 {
