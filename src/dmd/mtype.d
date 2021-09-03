@@ -7353,3 +7353,49 @@ const(char)* toChars(ScopeRef sr) pure nothrow @nogc @safe
         return names[sr];
     }
 }
+
+/** Returns: `true` iff `t` has any non-`immutable` (mutable or const) indirections.
+ *
+ * In other words, if other references to `t` may be able to change it.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true iff `t` contain non-`immutable` indirections.
+ */
+bool hasAliasing(scope Type t)
+{
+    t = t.toBasetype();
+    if (t.isImmutable)
+        return false;
+    else if (auto ts = t.isTypeStruct)
+    {
+        if (auto ti = ts.sym.isInstantiated())
+            if (ti.name.toString == "Rebindable" && // TODO: verify namespace std.typecons?
+                ti.tiargs &&
+                (*ti.tiargs).length == 1)
+                if (auto at = (*ti.tiargs)[0].isType)
+                    return !at.isImmutable;
+        foreach (vd; ts.sym.fields)
+            if (hasAliasing(vd.type))
+                return true;
+    }
+    else if (auto tc = t.isTypeClass)
+        return !tc.isImmutable;
+    else if (auto tp = t.isTypePointer)
+    {
+        if (tp.next.isTypeFunction)
+            return false;
+        return !tp.next.isImmutable;
+    }
+    else if (auto td = t.isTypeDelegate)
+        return !td.next.isImmutable;
+    else if (auto ta = t.isTypeDArray)
+        return !ta.next.isImmutable;
+    else if (auto ta = t.isTypeAArray)
+        return !ta.next.isImmutable;
+    else if (auto ts = t.isTypeSArray)
+        return hasAliasing(ts.next);
+    else if (auto tf = t.isTypeFunction)
+        return false;
+    return false;
+}

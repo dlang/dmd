@@ -1,0 +1,20 @@
+Add new `__traits(hasAliasing, T)`.
+
+A call `__traits(hasAliasing, T)` is `true` if and only if the type `T` has any
+non-`immutable` indirections.
+
+Specifically `__traits(hasAliasing, T)` is `true` if and only if `T`'s
+representation includes at least one of the following:
+
+1. a raw pointer `U*` and `U` is not immutable;
+2. an array `U[]` and `U` is not immutable;
+3. a reference to a class or interface type `C` and `C` is not immutable.
+4. an associative array that is not immutable.
+5. a delegate.
+
+The call errors if `T` is not a type.
+
+The behaviour of a call `__traits(hasAliasing, T)` for any type `T` exactly
+mimics that of a call `std.traits.hasAliasing!(T)`.
+
+See also: https://dlang.org/phobos/std_traits.html#hasAliasing.
