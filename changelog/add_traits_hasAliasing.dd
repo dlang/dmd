@@ -14,7 +14,7 @@ representation includes at least one of the following:
 
 The call errors if `T` is not a type.
 
-The behaviour of a call `__traits(hasAliasing, T)` for any type `T` exactly
+The behavior of a call `__traits(hasAliasing, T)` for any type `T` exactly
 mimics that of a call `std.traits.hasAliasing!(T)`.
 
 See also: https://dlang.org/phobos/std_traits.html#hasAliasing.
