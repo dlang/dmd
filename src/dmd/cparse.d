@@ -3382,8 +3382,22 @@ final class CParser(AST) : Parser!AST
                     break;
 
                 case TOK.leftParenthesis:
-                    if (!skipParens(t, &t))
+                    if (!skipParens(t, &t)) {
                         return false;
+                    } else {
+                        /*
+                            Fix issue 22267: If the parser encounters the following
+                                `identifier variableName = (expression);`
+                            the initializer is not identified as as the parentheses 
+                            mislead the parser into thinking this is not an assignExpression.
+
+                            As such, we just tell the rest of this function to assume 
+                            we are in An AssignExpression. This function is ad-hoc as-is so
+                            fuggedaboutit.
+                        */
+                        any = true;
+                    }
+                        
                     continue;
 
                 case TOK.leftBracket:
