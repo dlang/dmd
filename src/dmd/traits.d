@@ -676,15 +676,17 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         foreach (o; *e.args)
         {
-            auto t = isType(o);
-            if (!t)
+            if (auto t = isType(o))
+            {
+                if (t.hasAliasing)
+                    return True();
+            }
+            else
             {
                 e.error("type expected as non-first argument of __traits `%s` instead of `%s`",
                         e.ident.toChars(), o.toChars());
                 return ErrorExp.get();
             }
-            if (t.hasAliasing)
-                return True();
         }
         return False();
     }
