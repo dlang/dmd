@@ -7370,7 +7370,7 @@ bool hasAliasing(scope Type t)
     else if (auto ts = t.isTypeStruct())
     {
         if (auto ti = ts.sym.isInstantiated())
-            if (ti.name.toString == "Rebindable" && // TODO: verify namespace std.typecons?
+            if (ti.name == Id.Rebindable &&
                 ti.tiargs &&
                 (*ti.tiargs).length == 1)
                 if (auto at = (*ti.tiargs)[0].isType())
