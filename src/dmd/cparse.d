@@ -3388,8 +3388,8 @@ final class CParser(AST) : Parser!AST
                         /*
                             Fix issue 22267: If the parser encounters the following
                                 `identifier variableName = (expression);`
-                            the initializer is not identified as as the parentheses 
-                            mislead the parser into thinking this is not an assignExpression.
+                            the initializer is not identified as such since the parentheses
+                            confuses the parser.
 
                             As such, we just tell the rest of this function to assume 
                             we are in An AssignExpression. This function is ad-hoc as-is so
