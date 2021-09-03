@@ -2,7 +2,7 @@ module traits_hasAliasing;
 
 @safe pure nothrow @nogc:
 
-/** Verify behaviour of `__traits(hasAliasing, void*)` being same as `std.traits.hasAliasing`.
+/** Verify behavior of `__traits(hasAliasing, void*)` being same as `std.traits.hasAliasing`.
  *
  * Copied from Phobos `std.traits`.
  */
