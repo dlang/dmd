@@ -3391,13 +3391,12 @@ final class CParser(AST) : Parser!AST
                             the initializer is not identified as such since the parentheses
                             confuses the parser.
 
-                            As such, we just tell the rest of this function to assume 
+                            As such, we just tell the rest of this function to assume
                             we are in An AssignExpression. This function is ad-hoc as-is so
                             fuggedaboutit.
                         */
                         any = true;
                     }
-                        
                     continue;
 
                 case TOK.leftBracket:
