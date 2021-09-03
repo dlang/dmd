@@ -8263,6 +8263,7 @@ struct Id final
     static Identifier* hasCopyConstructor;
     static Identifier* isCopyable;
     static Identifier* hasAliasing;
+    static Identifier* Rebindable;
     static Identifier* toType;
     static Identifier* allocator;
     static Identifier* basic_string;
@@ -8444,4 +8445,3 @@ extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
-
