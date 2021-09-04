@@ -411,3 +411,12 @@ void test22262(unsigned char *buf)
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22274
+
+void test22274(compr, comprLen, uncompr, uncomprLen)
+    unsigned *compr, *uncompr;
+    signed comprLen, uncomprLen;
+{
+}
+
+/***************************************************/
