@@ -559,6 +559,18 @@ a.dup;    // creates an array of a.length elements, copies
 
 $(H3 $(LNAME2 resize, Setting Dynamic Array Length))
 
+        $(P The $(D new) expresson can be used to start a dynamic array
+        with a specified length by specifying its type and then using the
+        () syntax:
+        )
+        
+---------
+int[] i = new int[](5); //i.length == 5
+int[][] j = new int[][](10, 5); //j.length == 10, j[0].length == 5
+---------   
+        
+
+
         $(P The $(D .length) property of a dynamic array can be set
         as the left-hand side of an = operator:
         )
