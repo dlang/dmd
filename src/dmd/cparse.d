@@ -3382,21 +3382,17 @@ final class CParser(AST) : Parser!AST
                     break;
 
                 case TOK.leftParenthesis:
-                    if (!skipParens(t, &t)) {
+                    if (!skipParens(t, &t))
                         return false;
-                    } else {
-                        /*
-                            Fix issue 22267: If the parser encounters the following
-                                `identifier variableName = (expression);`
-                            the initializer is not identified as such since the parentheses
-                            confuses the parser.
-
-                            As such, we just tell the rest of this function to assume
-                            we are in An AssignExpression. This function is ad-hoc as-is so
-                            fuggedaboutit.
-                        */
-                        any = true;
-                    }
+                    /*
+                        https://issues.dlang.org/show_bug.cgi?id=22267
+                        Fix issue 22267: If the parser encounters the following
+                            `identifier variableName = (expression);`
+                        the initializer is not identified as such since the parentheses
+                        cause the parser to keep walking indefinitely
+                        (whereas `(1) + 1` would not be affected.).
+                    */
+                    any = true;
                     continue;
 
                 case TOK.leftBracket:

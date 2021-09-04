@@ -1,3 +1,4 @@
+//https://issues.dlang.org/show_bug.cgi?id=22267
 typedef signed int int32_t;
 void exit(int);
 int printf(const char *fmt, ...);
