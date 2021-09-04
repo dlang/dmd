@@ -5491,23 +5491,13 @@ elem *callfunc(const ref Loc loc,
     }
     else
     {
-        /* Do not do "no side effect" calls if a hidden parameter is passed,
-         * as the return value is stored through the hidden parameter, which
-         * is a side effect.
-         */
-        //printf("1: fd = %p prity = %d, nothrow = %d, retmethod = %d, use-assert = %d\n",
-        //       fd, (fd ? fd.isPure() : tf.purity), tf.isnothrow, retmethod, irs.params.useAssert);
-        //printf("\tfd = %s, tf = %s\n", fd.toChars(), tf.toChars());
-        /* assert() has 'implicit side effect' so disable this optimization.
-         */
-        int ns = ((fd ? callSideEffectLevel(fd)
-                      : callSideEffectLevel(t)) == 2 &&
-                  retmethod != RET.stack &&
-                  irs.params.useAssert == CHECKENABLE.off && irs.params.optimize);
+        // `OPcallns` used to be passed here for certain pure functions,
+        // but optimizations based on pure have to be retought, see:
+        // http://issues.dlang.org/show_bug.cgi?id=22277
         if (ep)
-            e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
+            e = el_bin(OPcall, tyret, ec, ep);
         else
-            e = el_una(ns ? OPucallns : OPucall, tyret, ec);
+            e = el_una(OPucall, tyret, ec);
 
         if (tf.parameterList.varargs != VarArg.none)
             e.Eflags |= EFLAGS_variadic;
