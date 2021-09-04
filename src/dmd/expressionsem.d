@@ -6380,7 +6380,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("DotIdExp::semantic(this = %p, '%s')\n", exp, exp.toChars());
             //printf("e1.op = %d, '%s'\n", e1.op, Token::toChars(e1.op));
         }
+        if (exp.arrow) // ImportC only
+            exp.e1 = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
         Expression e = exp.semanticY(sc, 1);
+
         if (e && isDotOpDispatch(e))
         {
             uint errors = global.startGagging();

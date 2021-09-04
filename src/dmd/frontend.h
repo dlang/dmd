@@ -6919,6 +6919,7 @@ public:
     Identifier* ident;
     bool noderef;
     bool wantsym;
+    bool arrow;
     static DotIdExp* create(Loc loc, Expression* e, Identifier* ident);
     void accept(Visitor* v);
 };

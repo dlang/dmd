@@ -59,5 +59,13 @@ void testComma()
     _Static_assert(sizeof((1, a)) == sizeof(int*), "testComma");
 }
 
+int testArrow()
+{
+    struct S { int m, n; };
+
+    struct S a[3];
+    return a->m;
+}
+
 
 
