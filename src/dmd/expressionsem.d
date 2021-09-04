@@ -11397,6 +11397,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return false;
         }
 
+        if (sc && sc.flags & SCOPE.Cfile)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=22262
+            // In C11, zero implicitly casts to a null pointer.
+            if ((t1.ty == Tpointer) != (t2.ty == Tpointer))
+            {
+                if (auto ie = exp.e1.isIntegerExp())
+                {
+                    if (ie.toInteger() == 0)
+                        exp.e1 = new NullExp(ie.loc, t2);
+                }
+                else if (auto ie = exp.e2.isIntegerExp())
+                {
+                    if (ie.toInteger() == 0)
+                        exp.e2 = new NullExp(ie.loc, t1);
+                }
+            }
+        }
+
         if (auto e = exp.op_overload(sc))
         {
             result = e;
