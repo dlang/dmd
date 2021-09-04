@@ -46,6 +46,13 @@ void testCond()
     int* p = i ? a : b;
 }
 
+int testIndexing2()
+{
+    int *p;
+    int i = p[1];
+    i = 2[p];
+}
+
 void testAssign()
 {
     int a[3];
