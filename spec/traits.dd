@@ -1089,7 +1089,7 @@ $(H2 $(GNAME getParameterStorageClasses))
 
     $(P
         Takes two arguments.
-        The first must either be a function symbol, or a type
+        The first must either be a function symbol, a function call, or a type
         that is a function, delegate or a function pointer.
         The second is an integer identifying which parameter, where the first parameter is
         0.
@@ -1106,6 +1106,13 @@ static assert(__traits(getParameterStorageClasses, foo, 0)[1] == "ref");
 static assert(__traits(getParameterStorageClasses, foo, 1)[0] == "scope");
 static assert(__traits(getParameterStorageClasses, foo, 2)[0] == "out");
 static assert(__traits(getParameterStorageClasses, typeof(&foo), 3)[0] == "lazy");
+
+int* p, a;
+int b, c;
+
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 1)[0] == "scope");
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 2)[0] == "out");
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "lazy");
 ---
 )
 
