@@ -1243,6 +1243,8 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
         VersionCondition.addPredefinedGlobalIdent("assert");
     if (params.useIn == CHECKENABLE.on)
         VersionCondition.addPredefinedGlobalIdent("D_PreConditions");
+    if (params.useOut == CHECKENABLE.on)
+        VersionCondition.addPredefinedGlobalIdent("D_PostConditions");
     if (params.useArrayBounds == CHECKENABLE.off)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     if (params.betterC)
