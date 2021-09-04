@@ -89,3 +89,45 @@ Expression arrayFuncConv(Expression e, Scope* sc)
     return e.expressionSemantic(sc);
 }
 
+/****************************************
+ * C11 6.5.2.1-2
+ * Apply C semantics to `E[I]` expression.
+ * E1[E2] is lowered to *(E1 + E2)
+ * Params:
+ *      ae = ArrayExp to run semantics on
+ *      sc = context
+ * Returns:
+ *      Expression if this was a C expression with completed semantic, null if not
+ */
+Expression carraySemantic(ArrayExp ae, Scope* sc)
+{
+    if (!(sc.flags & SCOPE.Cfile))
+        return null;
+
+    auto e1 = ae.e1.expressionSemantic(sc);
+
+    assert(ae.arguments.length == 1);
+    Expression e2 = (*ae.arguments)[0];
+
+    /* CTFE cannot do pointer arithmetic, but it can index arrays.
+     * So, rewrite as an IndexExp if we can.
+     */
+    auto t1 = e1.type.toBasetype();
+    if (t1.isTypeDArray() || t1.isTypeSArray())
+    {
+        e2 = e2.expressionSemantic(sc).arrayFuncConv(sc);
+        return new IndexExp(ae.loc, e1, e2).expressionSemantic(sc);
+    }
+
+    e1 = e1.arrayFuncConv(sc);   // e1 might still be a function call
+    e2 = e2.expressionSemantic(sc);
+    auto t2 = e2.type.toBasetype();
+    if (t2.isTypeDArray() || t2.isTypeSArray())
+    {
+        return new IndexExp(ae.loc, e2, e1).expressionSemantic(sc); // swap operands
+    }
+
+    e2 = e2.arrayFuncConv(sc);
+    auto ep = new PtrExp(ae.loc, new AddExp(ae.loc, e1, e2));
+    return ep.expressionSemantic(sc);
+}

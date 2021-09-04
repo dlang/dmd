@@ -8004,6 +8004,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("ArrayExp::semantic('%s')\n", exp.toChars());
         }
         assert(!exp.type);
+
+        result = exp.carraySemantic(sc);  // C semantics
+        if (result)
+            return;
+
         Expression e = exp.op_overload(sc);
         if (e)
         {
