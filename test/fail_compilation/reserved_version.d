@@ -114,6 +114,7 @@ fail_compilation/reserved_version.d(215): Error: version identifier `CppRuntime_
 fail_compilation/reserved_version.d(216): Error: version identifier `D_PIE` is reserved and cannot be set
 fail_compilation/reserved_version.d(217): Error: version identifier `AVR` is reserved and cannot be set
 fail_compilation/reserved_version.d(218): Error: version identifier `D_PreConditions` is reserved and cannot be set
+fail_compilation/reserved_version.d(219): Error: version identifier `D_PostConditions` is reserved and cannot be set
 ---
 */
 
@@ -234,6 +235,7 @@ version = CppRuntime_Sun;
 version = D_PIE;
 version = AVR;
 version = D_PreConditions;
+version = D_PostConditions;
 
 // This should work though
 debug = DigitalMars;
@@ -343,3 +345,4 @@ debug = D_P16;
 debug = MSP430;
 debug = AVR;
 debug = D_PreConditions;
+debug = D_PostConditions;
