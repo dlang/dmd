@@ -32,8 +32,9 @@ $(H2 $(LNAME2 dialect, ImportC Dialect))
     )
 
     $(P Adjustment to the ImportC dialect is made to match the
-    behavior of the C compiler that the D compiler is matched to. For
-    example, on Win32 D is matched to the Digital Mars C compiler,
+    behavior of the C compiler that the D compiler is matched to
+    i.e. the $(I associated C compiler).
+    For example, on Win32 D is matched to the Digital Mars C compiler,
     and can be matched to the Visual C compiler using the $(TT -m32mscoff)
     switch. Win64 D is matched to the Visual C compiler.
     On Posix targets, the matching C compiler is Gnu C or Clang C.
@@ -140,6 +141,14 @@ $(H2 $(LNAME2 implementation, Implementation))
     ---
 
     $(P The enumerated type is `int`.)
+
+
+    $(H3 $(LNAME2 bitfields, Bit Fields))
+
+    $(P There are many implementation defined aspects of C11 bit fields.
+    ImportC's behavior adjusts to match the behavior of the $(I associated
+    C compiler) on the target platform.
+    )
 
 
 $(H2 $(LNAME2 limitations, Limitations))
