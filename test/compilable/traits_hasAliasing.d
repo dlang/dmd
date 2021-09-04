@@ -62,6 +62,11 @@ void test_hasAliasing()
 
     interface I;
     static assert( __traits(hasAliasing, I));
+    struct T1 { int a; I b; }
+    struct T2 { int a; immutable I b; }
+
+    static assert( __traits(hasAliasing, T1));
+    static assert(!__traits(hasAliasing, T2));
 
     import std.typecons : Rebindable;
     static assert( __traits(hasAliasing, Rebindable!(const Object)));
