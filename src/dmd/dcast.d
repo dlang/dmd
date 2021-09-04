@@ -3453,6 +3453,40 @@ Expression typeCombine(BinExp be, Scope* sc)
             return errorReturn();
     }
 
+    if (sc && sc.flags & SCOPE.Cfile)
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=22275
+        // Static arrays saturate to pointers 
+        if (t1.ty == Tsarray || t1.ty == Tarray)
+        {
+            be.e1 = new DotIdExp(be.loc, be.e1, Id.ptr).expressionSemantic(sc);
+            t1 = be.e1.type.toBasetype();
+        }
+        if (t2.ty == Tsarray || t2.ty == Tarray)
+        {
+            be.e2 = new DotIdExp(be.loc, be.e2, Id.ptr).expressionSemantic(sc);
+            t2 = be.e2.type.toBasetype();
+        }
+
+        if ((t1.ty == Tpointer) != (t2.ty == Tpointer))
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=22262
+            // If one operand is a pointer and the other is a null pointer
+            // constant, the null pointer constant is converted to the type of
+            // the pointer.
+            if (auto ie = be.e1.isIntegerExp())
+            {
+                if (ie.toInteger() == 0)
+                    be.e1 = new NullExp(ie.loc, t2);
+            }
+            else if (auto ie = be.e2.isIntegerExp())
+            {
+                if (ie.toInteger() == 0)
+                    be.e2 = new NullExp(ie.loc, t1);
+            }
+        }
+    }
+
     if (auto result = typeMerge(sc, be.op, be.e1, be.e2))
     {
         if (be.type is null)
