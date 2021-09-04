@@ -30,6 +30,7 @@ fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
 fail_compilation/failcstuff2.c(203):        variable `var` is declared here
 fail_compilation/failcstuff2.c(254): Error: identifier or `(` expected before `)`
 fail_compilation/failcstuff2.c(255): Error: identifier or `(` expected
+fail_compilation/failcstuff2.c(302): Error: cannot modify `const` expression `buf`
 ---
 */
 
@@ -109,4 +110,12 @@ void test22102()
 {
     int22102();
     int22102(0);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22265
+#line 300
+int test22265(char *const buf)
+{
+    return *buf++;
 }

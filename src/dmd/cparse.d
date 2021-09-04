@@ -2549,11 +2549,11 @@ final class CParser(AST) : Parser!AST
 
             Specifier specifier;
             auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier);
+            if (specifier.mod & MOD.xconst)
+                tspec = toConst(tspec);
 
             Identifier id;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id);
-            if (specifier.mod & MOD.xconst)
-                t = toConst(t);
             auto param = new AST.Parameter(STC.parameter, t, id, null, null);
             parameters.push(param);
             if (token.value == TOK.rightParenthesis)
