@@ -411,6 +411,19 @@ void test22262(unsigned char *buf)
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22264
+
+typedef int T22264;
+
+unsigned long test22264(crc, buf, len)
+    unsigned long crc;
+    const T22264 *buf;
+    T22264 len;
+{
+    return len;
+}
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22274
 
 void test22274(compr, comprLen, uncompr, uncomprLen)
