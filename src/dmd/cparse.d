@@ -1686,6 +1686,8 @@ final class CParser(AST) : Parser!AST
                     return;
 
                 case TOK.comma:
+                    if (!symbolsSave)
+                        symbolsSave = symbols;
                     nextToken();
                     break;
 
@@ -1768,7 +1770,10 @@ final class CParser(AST) : Parser!AST
                     }
                 }
                 if (!p.type)
+                {
                     error("no declaration for identifier `%s`", p.ident.toChars());
+                    p.type = AST.Type.terror;
+                }
             }
         }
 
