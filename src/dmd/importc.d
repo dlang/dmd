@@ -21,6 +21,41 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.mtype;
 
+/**************************************
+ * C11 does not allow array or function parameters.
+ * Hence, adjust those types per C11 6.7.6.3 rules.
+ * Params:
+ *      t = parameter type to adjust
+ *      sc = context
+ * Returns:
+ *      adjusted type
+ */
+Type cAdjustParamType(Type t, Scope* sc)
+{
+    if (!(sc.flags & SCOPE.Cfile))
+        return t;
+
+    Type tb = t.toBasetype();
+
+    /* C11 6.7.6.3-7 array of T is converted to pointer to T
+     */
+    if (auto ta = tb.isTypeDArray())
+    {
+        t = ta.next.pointerTo();
+    }
+    else if (auto ts = tb.isTypeSArray())
+    {
+        t = ts.next.pointerTo();
+    }
+    /* C11 6.7.6.3-8 function is converted to pointer to function
+     */
+    else if (tb.isTypeFunction())
+    {
+        t = tb.pointerTo();
+    }
+    return t;
+}
+
 /***********************************************
  * C11 6.3.2.1-3 Convert expression that is an array of type to a pointer to type.
  * C11 6.3.2.1-4 Convert expression that is a function to a pointer to a function.
@@ -53,3 +88,4 @@ Expression arrayFuncConv(Expression e, Scope* sc)
         return e;
     return e.expressionSemantic(sc);
 }
+
