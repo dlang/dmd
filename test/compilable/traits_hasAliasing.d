@@ -4,12 +4,15 @@ module traits_hasAliasing;
 
 /** Verify behavior of `__traits(hasAliasing, void*)` being same as `std.traits.hasAliasing`.
  *
- * Copied from Phobos `std.traits`.
+ * Copied from Phobos `std.traits` and extended.
  */
-void test_hasAliasing()
+private static void test1()
 {
     static assert(__traits(hasAliasing, void*));
     static assert(!__traits(hasAliasing, void function()));
+
+    class C { int a; }
+    static assert(__traits(hasAliasing, C));
 
     struct S1 { int a; Object b; }
     struct S2 { string a; }
@@ -58,7 +61,7 @@ void test_hasAliasing()
     static assert(!__traits(hasAliasing, shared(const(void delegate() immutable))));
     static assert( __traits(hasAliasing, shared(const(void delegate() shared))));
     static assert( __traits(hasAliasing, shared(const(void delegate() shared const))));
-    static assert(!hasAliasing!(void function()));
+    static assert(!__traits(hasAliasing, void function()));
 
     interface I;
     static assert( __traits(hasAliasing, I));
@@ -68,12 +71,24 @@ void test_hasAliasing()
     static assert( __traits(hasAliasing, T1));
     static assert(!__traits(hasAliasing, T2));
 
+    struct ST(T) { T a; }
+    class CT(T) { T a; }
+    static assert( __traits(hasAliasing, ST!C));
+    static assert( __traits(hasAliasing, ST!I));
+    static assert(!__traits(hasAliasing, ST!int));
+    static assert( __traits(hasAliasing, CT!C));
+    static assert( __traits(hasAliasing, CT!I));
+    static assert( __traits(hasAliasing, CT!int));
+
     import std.typecons : Rebindable;
     static assert( __traits(hasAliasing, Rebindable!(const Object)));
     static assert(!__traits(hasAliasing, Rebindable!(immutable Object)));
     static assert( __traits(hasAliasing, Rebindable!(shared Object)));
     static assert( __traits(hasAliasing, Rebindable!Object));
+}
 
+private static test2()
+{
     struct S5
     {
         void delegate() immutable b;
@@ -107,7 +122,7 @@ void test_hasAliasing()
     static assert(!__traits(hasAliasing, immutable(S15)));
 }
 
-void test_hasAliasing_enums()
+private static test3()
 {
     enum Ei : string { a = "a", b = "b" }
     enum Ec : const(char)[] { a = "a", b = "b" }
