@@ -781,7 +781,6 @@ $(H3 $(LNAME2 default-initialization, Default Initialization))
         )
 
 $(H3 $(LNAME2 length-initialization, Length Initialization))
-        
         $(P The $(D new) expression can be used to start a dynamic array
         with a specified length by specifying its type and then using the
         () syntax:
