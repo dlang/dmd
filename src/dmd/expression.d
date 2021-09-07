@@ -4688,6 +4688,7 @@ extern (C++) final class DotIdExp : UnaExp
     Identifier ident;
     bool noderef;       // true if the result of the expression will never be dereferenced
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
+    bool arrow;         // ImportC: if -> instead of .
 
     extern (D) this(const ref Loc loc, Expression e, Identifier ident)
     {

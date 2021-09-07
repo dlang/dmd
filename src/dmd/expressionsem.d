@@ -49,6 +49,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.imphint;
+import dmd.importc;
 import dmd.init;
 import dmd.initsem;
 import dmd.inline;
@@ -1239,6 +1240,10 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         tthis = dve.e1.type;
         goto Lfd;
     }
+    else if (sc && sc.flags & SCOPE.Cfile && e1.op == TOK.variable && !e2)
+    {
+        // ImportC: do not implicitly call function if no ( ) are present
+    }
     else if (e1.op == TOK.variable && e1.type && (e1.type.toBasetype().ty == Tfunction || (cast(VarExp)e1).var.isOverDeclaration()))
     {
         s = (cast(VarExp)e1).var;
@@ -1599,6 +1604,7 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
         {
             Expression arg = (*exps)[i];
             arg = resolveProperties(sc, arg);
+            arg = arg.arrayFuncConv(sc);
             if (arg.op == TOK.type)
             {
                 // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
@@ -6374,7 +6380,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("DotIdExp::semantic(this = %p, '%s')\n", exp, exp.toChars());
             //printf("e1.op = %d, '%s'\n", e1.op, Token::toChars(e1.op));
         }
+        if (exp.arrow) // ImportC only
+            exp.e1 = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
         Expression e = exp.semanticY(sc, 1);
+
         if (e && isDotOpDispatch(e))
         {
             uint errors = global.startGagging();
@@ -8019,6 +8028,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CommaExp e)
     {
+        //printf("Semantic.CommaExp() %s\n", e.toChars());
         if (e.type)
         {
             result = e;
@@ -8042,10 +8052,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (checkNonAssignmentArrayOp(e.e1))
             return setError();
 
+        // Comma expressions trigger this conversion
+        e.e2 = e.e2.arrayFuncConv(sc);
+
         e.type = e.e2.type;
         if (e.type is Type.tvoid)
             discardValue(e.e1);
-        else if (!e.allowCommaExp && !e.isGenerated)
+        else if (!e.allowCommaExp && !e.isGenerated && !(sc.flags & SCOPE.Cfile))
             e.error("Using the result of a comma expression is not allowed");
         result = e;
     }
@@ -8143,7 +8156,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // operator overloading should be handled in ArrayExp already.
         if (!exp.e1.type)
-            exp.e1 = exp.e1.expressionSemantic(sc);
+            exp.e1 = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
         assert(exp.e1.type); // semantic() should already be run on it
         if (exp.e1.op == TOK.type && exp.e1.type.ty != Ttuple)
         {
@@ -8191,7 +8204,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (t1b.ty == Ttuple)
             sc = sc.startCTFE();
-        exp.e2 = exp.e2.expressionSemantic(sc);
+        exp.e2 = exp.e2.expressionSemantic(sc).arrayFuncConv(sc);
         exp.e2 = resolveProperties(sc, exp.e2);
         if (t1b.ty == Ttuple)
             sc = sc.endCTFE();
@@ -8515,7 +8528,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (auto e2comma = exp.e2.isCommaExp())
         {
-            if (!e2comma.isGenerated)
+            if (!e2comma.isGenerated && !(sc.flags & SCOPE.Cfile))
                 exp.error("Using the result of a comma expression is not allowed");
 
             /* Rewrite to get rid of the comma from rvalue
@@ -8717,12 +8730,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Expression e2x = inferType(exp.e2, t1.baseElemOf());
             e2x = e2x.expressionSemantic(sc);
+            if (!t1.isTypeSArray())
+                e2x = e2x.arrayFuncConv(sc);
             e2x = resolveProperties(sc, e2x);
             if (e2x.op == TOK.type)
                 e2x = resolveAliasThis(sc, e2x); //https://issues.dlang.org/show_bug.cgi?id=17684
             if (e2x.op == TOK.error)
                 return setResult(e2x);
-            // We skip checking the value for structs/classes as these might have
+            // We delay checking the value for structs/classes as these might have
             // an opAssign defined.
             if ((t1.ty != Tstruct && t1.ty != Tclass && e2x.checkValue()) ||
                 e2x.checkSharedAccess(sc))
@@ -9208,6 +9223,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
                 assert(exp.op == TOK.blit);
 
+            if (e2x.checkValue())
+                return setError();
+
             exp.e1 = e1x;
             exp.e2 = e2x;
         }
@@ -9223,6 +9241,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return;
                 }
             }
+            if (exp.e2.checkValue())
+                return setError();
         }
         else if (t1.ty == Tsarray)
         {
@@ -9944,6 +9964,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        /* ImportC: convert arrays to pointers, functions to pointers to functions
+         */
+        exp.e1 = exp.e1.arrayFuncConv(sc);
+        exp.e2 = exp.e2.arrayFuncConv(sc);
+
         Type tb1 = exp.e1.type.toBasetype();
         Type tb2 = exp.e2.type.toBasetype();
 
@@ -10044,6 +10069,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
+
+        /* ImportC: convert arrays to pointers, functions to pointers to functions
+         */
+        exp.e1 = exp.e1.arrayFuncConv(sc);
 
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
@@ -11371,6 +11400,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return false;
         }
 
+        if (sc && sc.flags & SCOPE.Cfile)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=22262
+            // In C11, zero implicitly casts to a null pointer.
+            if ((t1.ty == Tpointer) != (t2.ty == Tpointer))
+            {
+                if (auto ie = exp.e1.isIntegerExp())
+                {
+                    if (ie.toInteger() == 0)
+                        exp.e1 = new NullExp(ie.loc, t2);
+                }
+                else if (auto ie = exp.e2.isIntegerExp())
+                {
+                    if (ie.toInteger() == 0)
+                        exp.e2 = new NullExp(ie.loc, t1);
+                }
+            }
+        }
+
         if (auto e = exp.op_overload(sc))
         {
             result = e;
@@ -11539,12 +11587,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ec = ec.toBoolean(sc);
 
         CtorFlow ctorflow_root = sc.ctorflow.clone();
-        Expression e1x = exp.e1.expressionSemantic(sc);
+        Expression e1x = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
         e1x = resolveProperties(sc, e1x);
 
         CtorFlow ctorflow1 = sc.ctorflow;
         sc.ctorflow = ctorflow_root;
-        Expression e2x = exp.e2.expressionSemantic(sc);
+        Expression e2x = exp.e2.expressionSemantic(sc).arrayFuncConv(sc);
         e2x = resolveProperties(sc, e2x);
 
         sc.merge(exp.loc, ctorflow1);

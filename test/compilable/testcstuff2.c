@@ -400,3 +400,23 @@ int test22245()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22262
+
+void test22262(unsigned char *buf)
+{
+  if (buf == 0)
+    return;
+  if (0 == buf)
+    return;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22274
+
+void test22274(compr, comprLen, uncompr, uncomprLen)
+    unsigned *compr, *uncompr;
+    signed comprLen, uncomprLen;
+{
+}
+
+/***************************************************/

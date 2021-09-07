@@ -44,6 +44,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.imphint;
+import dmd.importc;
 import dmd.init;
 import dmd.initsem;
 import dmd.visitor;
@@ -1333,6 +1334,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     if (!fparam.type)
                         continue;
                 }
+
+                fparam.type = fparam.type.cAdjustParamType(sc); // adjust C array and function parameter types
 
                 Type t = fparam.type.toBasetype();
 
