@@ -17,7 +17,7 @@ void main()
 Previously this would yield the following error when compiled and run:
 
 $(CONSOLE
-> dmd -run main.d
+dmd -run main.d
 core.exception.RangeError@main.d(4): Range violation
 $(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
 ??:? _d_arrayboundsp [0x555765c167f9]
@@ -27,7 +27,7 @@ $(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
 It now yields:
 
 $(CONSOLE
-> dmd -run main.d
+dmd -run main.d
 core.exception.ArrayIndexError@main.d(4): index [7] exceeds array of length 3
 $(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
 ??:? _d_arraybounds_indexp [0x5647250b980d]
@@ -44,7 +44,7 @@ void main()
 ---
 
 $(CONSOLE
-> dmd -run main.d
+dmd -run main.d
 core.exception.ArraySliceError@main.d(4): slice [2 .. 4] extends past array of length 3
 $(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
 ??:? _d_arraybounds_slicep [0x5647250b980d]
