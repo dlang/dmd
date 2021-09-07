@@ -3887,6 +3887,10 @@ final class CParser(AST) : Parser!AST
                     t = tk;
                     break;
                 }
+
+                if (tk.value == TOK.leftParenthesis && peek(tk).value == TOK.rightParenthesis)
+                    return false;    // (type-name)() is not a cast (it might be a function call)
+
                 if (!isCastExpression(tk, true))
                 {
                     if (afterParenType) // could be ( type-name ) ( unary-expression )
