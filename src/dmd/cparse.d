@@ -756,7 +756,6 @@ final class CParser(AST) : Parser!AST
             switch (token.value)
             {
             case TOK.dot:
-            case TOK.arrow:
                 nextToken();
                 if (token.value == TOK.identifier)
                 {
@@ -765,6 +764,19 @@ final class CParser(AST) : Parser!AST
                     break;
                 }
                 error("identifier expected following `.`, not `%s`", token.toChars());
+                break;
+
+            case TOK.arrow:
+                nextToken();
+                if (token.value == TOK.identifier)
+                {
+                    Identifier id = token.ident;
+                    auto die = new AST.DotIdExp(loc, e, id);
+                    die.arrow = true;
+                    e = die;
+                    break;
+                }
+                error("identifier expected following `->`, not `%s`", token.toChars());
                 break;
 
             case TOK.plusPlus:
@@ -1674,6 +1686,8 @@ final class CParser(AST) : Parser!AST
                     return;
 
                 case TOK.comma:
+                    if (!symbolsSave)
+                        symbolsSave = symbols;
                     nextToken();
                     break;
 
@@ -1756,7 +1770,10 @@ final class CParser(AST) : Parser!AST
                     }
                 }
                 if (!p.type)
+                {
                     error("no declaration for identifier `%s`", p.ident.toChars());
+                    p.type = AST.Type.terror;
+                }
             }
         }
 
