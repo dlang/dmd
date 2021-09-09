@@ -748,6 +748,7 @@ public:
     Identifier *ident;
     bool noderef;       // true if the result of the expression will never be dereferenced
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
+    bool arrow;         // ImportC: if -> instead of .
 
     static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);
     void accept(Visitor *v) { v->visit(this); }
@@ -1280,7 +1281,7 @@ public:
 
 class GenericExp : Expression
 {
-    Expression cntlExp;
+    Expression *cntlExp;
     Types *types;
     Expressions *exps;
 
