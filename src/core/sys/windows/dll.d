@@ -6,7 +6,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Rainer Schuetze
- * Source: $(DRUNTIMESRC src/core/sys/windows/_dll.d)
+ * Source: $(DRUNTIMESRC core/sys/windows/_dll.d)
  */
 
 module core.sys.windows.dll;
