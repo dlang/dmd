@@ -12033,8 +12033,15 @@ Expression semanticX(DotIdExp exp, Scope* sc)
     return exp;
 }
 
-// Resolve e1.ident without seeing UFCS.
-// If flag == 1, stop "not a property" error and return NULL.
+/******************************
+ * Resolve properties, i.e. `e1.ident`, without seeing UFCS.
+ * Params:
+ *      exp = expression to resolve
+ *      sc = context
+ *      flag = if 1 then do not emit error messages, just return null
+ * Returns:
+ *      resolved expression, null if error
+ */
 Expression semanticY(DotIdExp exp, Scope* sc, int flag)
 {
     //printf("DotIdExp::semanticY(this = %p, '%s')\n", exp, exp.toChars());

@@ -72,6 +72,15 @@ extern (C++) final class AliasThis : Dsymbol
     }
 }
 
+/*************************************
+ * Find the `alias this` symbol of e's type.
+ * Params:
+ *      sc = context
+ *      e = expression forming the `this`
+ *      gag = if true do not print errors, return null instead
+ * Returns:
+ *      Expression that is `e.aliasthis`
+ */
 Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
 {
     for (AggregateDeclaration ad = isAggregate(e.type); ad;)
