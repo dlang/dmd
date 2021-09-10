@@ -12056,32 +12056,35 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
      * to be classtype.id and baseclasstype.id
      * if we have no this pointer.
      */
-    if ((exp.e1.op == TOK.this_ || exp.e1.op == TOK.super_) && !hasThis(sc))
+    if ((exp.e1.isThisExp() || exp.e1.isSuperExp()) && !hasThis(sc))
     {
         if (AggregateDeclaration ad = sc.getStructClassScope())
         {
-            if (exp.e1.op == TOK.this_)
+            if (exp.e1.isThisExp())
             {
                 exp.e1 = new TypeExp(exp.e1.loc, ad.type);
             }
             else
             {
-                ClassDeclaration cd = ad.isClassDeclaration();
-                if (cd && cd.baseClass)
-                    exp.e1 = new TypeExp(exp.e1.loc, cd.baseClass.type);
+                if (auto cd = ad.isClassDeclaration())
+                {
+                    if (cd.baseClass)
+                        exp.e1 = new TypeExp(exp.e1.loc, cd.baseClass.type);
+                }
             }
         }
     }
 
-    Expression e = semanticX(exp, sc);
-    if (e != exp)
-        return e;
+    {
+        Expression e = semanticX(exp, sc);
+        if (e != exp)
+            return e;
+    }
 
     Expression eleft;
     Expression eright;
-    if (exp.e1.op == TOK.dot)
+    if (auto de = exp.e1.isDotExp())
     {
-        DotExp de = cast(DotExp)exp.e1;
         eleft = de.e1;
         eright = de.e2;
     }
@@ -12093,11 +12096,9 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
 
     Type t1b = exp.e1.type.toBasetype();
 
-    if (eright.op == TOK.scope_) // also used for template alias's
+    if (auto ie = eright.isScopeExp()) // also used for template alias's
     {
-        ScopeExp ie = cast(ScopeExp)eright;
-
-        int flags = SearchLocalsOnly;
+        auto flags = SearchLocalsOnly;
         /* Disable access to another module's private imports.
          * The check for 'is sds our current module' is because
          * the current module should have access to its own imports.
@@ -12130,13 +12131,11 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             exp.checkDeprecated(sc, s);
             exp.checkDisabled(sc, s);
 
-            EnumMember em = s.isEnumMember();
-            if (em)
+            if (auto em = s.isEnumMember())
             {
                 return em.getVarExp(exp.loc, sc);
             }
-            VarDeclaration v = s.isVarDeclaration();
-            if (v)
+            if (auto v = s.isVarDeclaration())
             {
                 //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v.type.toChars());
                 if (!v.type ||
@@ -12148,7 +12147,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                         exp.error("forward reference to %s `%s`", v.kind(), v.toPrettyChars());
                     return ErrorExp.get();
                 }
-                if (v.type.ty == Terror)
+                if (v.type.isTypeError())
                     return ErrorExp.get();
 
                 if ((v.storage_class & STC.manifest) && v._init && !exp.wantsym)
@@ -12162,13 +12161,14 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                         error(exp.loc, "circular initialization of %s `%s`", v.kind(), v.toPrettyChars());
                         return ErrorExp.get();
                     }
-                    e = v.expandInitializer(exp.loc);
+                    auto e = v.expandInitializer(exp.loc);
                     v.inuse++;
                     e = e.expressionSemantic(sc);
                     v.inuse--;
                     return e;
                 }
 
+                Expression e;
                 if (v.needThis())
                 {
                     if (!eleft)
@@ -12189,12 +12189,12 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                 return e.expressionSemantic(sc);
             }
 
-            FuncDeclaration f = s.isFuncDeclaration();
-            if (f)
+            if (auto f = s.isFuncDeclaration())
             {
                 //printf("it's a function\n");
                 if (!f.functionSemantic())
                     return ErrorExp.get();
+                Expression e;
                 if (f.needThis())
                 {
                     if (!eleft)
@@ -12215,6 +12215,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             }
             if (auto td = s.isTemplateDeclaration())
             {
+                Expression e;
                 if (eleft)
                     e = new DotTemplateExp(exp.loc, eleft, td);
                 else
@@ -12224,7 +12225,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             }
             if (OverDeclaration od = s.isOverDeclaration())
             {
-                e = new VarExp(exp.loc, od, true);
+                Expression e = new VarExp(exp.loc, od, true);
                 if (eleft)
                 {
                     e = new CommaExp(exp.loc, eleft, e);
@@ -12232,8 +12233,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                 }
                 return e;
             }
-            OverloadSet o = s.isOverloadSet();
-            if (o)
+            if (auto o = s.isOverloadSet())
             {
                 //printf("'%s' is an overload set\n", o.toChars());
                 return new OverExp(exp.loc, o);
@@ -12244,36 +12244,33 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                 return (new TypeExp(exp.loc, t)).expressionSemantic(sc);
             }
 
-            TupleDeclaration tup = s.isTupleDeclaration();
-            if (tup)
+            if (auto tup = s.isTupleDeclaration())
             {
                 if (eleft)
                 {
-                    e = new DotVarExp(exp.loc, eleft, tup);
+                    Expression e = new DotVarExp(exp.loc, eleft, tup);
                     e = e.expressionSemantic(sc);
                     return e;
                 }
-                e = new TupleExp(exp.loc, tup);
+                Expression e = new TupleExp(exp.loc, tup);
                 e = e.expressionSemantic(sc);
                 return e;
             }
 
-            ScopeDsymbol sds = s.isScopeDsymbol();
-            if (sds)
+            if (auto sds = s.isScopeDsymbol())
             {
                 //printf("it's a ScopeDsymbol %s\n", ident.toChars());
-                e = new ScopeExp(exp.loc, sds);
+                Expression e = new ScopeExp(exp.loc, sds);
                 e = e.expressionSemantic(sc);
                 if (eleft)
                     e = new DotExp(exp.loc, eleft, e);
                 return e;
             }
 
-            Import imp = s.isImport();
-            if (imp)
+            if (auto imp = s.isImport())
             {
-                ie = new ScopeExp(exp.loc, imp.pkg);
-                return ie.expressionSemantic(sc);
+                Expression se = new ScopeExp(exp.loc, imp.pkg);
+                return se.expressionSemantic(sc);
             }
             // BUG: handle other cases like in IdentifierExp::semantic()
             debug
@@ -12284,7 +12281,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         }
         else if (exp.ident == Id.stringof)
         {
-            e = new StringExp(exp.loc, ie.toString());
+            Expression e = new StringExp(exp.loc, ie.toString());
             e = e.expressionSemantic(sc);
             return e;
         }
@@ -12311,9 +12308,11 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         Type t1bn = t1b.nextOf();
         if (flag)
         {
-            AggregateDeclaration ad = isAggregate(t1bn);
-            if (ad && !ad.members) // https://issues.dlang.org/show_bug.cgi?id=11312
-                return null;
+            if (AggregateDeclaration ad = isAggregate(t1bn))
+            {
+                if (!ad.members) // https://issues.dlang.org/show_bug.cgi?id=11312
+                    return null;
+            }
         }
 
         /* Rewrite:
@@ -12323,7 +12322,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
          */
         if (flag && t1bn.ty == Tvoid)
             return null;
-        e = new PtrExp(exp.loc, exp.e1);
+        Expression e = new PtrExp(exp.loc, exp.e1);
         e = e.expressionSemantic(sc);
         return e.type.dotExp(sc, e, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
     }
@@ -12336,14 +12335,14 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         const explicitAlignment = exp.e1.isVarExp().var.isVarDeclaration().alignment;
         const naturalAlignment = exp.e1.type.alignsize();
         const actualAlignment = (explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment);
-        e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
+        Expression e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
         return e;
     }
     else
     {
-        if (exp.e1.op == TOK.type || exp.e1.op == TOK.template_)
+        if (exp.e1.isTypeExp() || exp.e1.isTemplateExp())
             flag = 0;
-        e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
+        Expression e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
         if (e)
             e = e.expressionSemantic(sc);
         return e;
