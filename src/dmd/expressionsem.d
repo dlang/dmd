@@ -11942,95 +11942,84 @@ Expression semanticX(DotIdExp exp, Scope* sc)
     if (exp.ident == Id._mangleof)
     {
         // symbol.mangleof
+
+        // return mangleof as an Expression
+        static Expression dotMangleof(const ref Loc loc, Scope* sc, Dsymbol ds)
+        {
+            assert(ds);
+            if (auto f = ds.isFuncDeclaration())
+            {
+                if (f.checkForwardRef(loc))
+                    return ErrorExp.get();
+
+                if (f.flags & (FUNCFLAG.purityInprocess | FUNCFLAG.safetyInprocess |
+                               FUNCFLAG.nothrowInprocess | FUNCFLAG.nogcInprocess))
+                {
+                    f.error(loc, "cannot retrieve its `.mangleof` while inferring attributes");
+                    return ErrorExp.get();
+                }
+            }
+            OutBuffer buf;
+            mangleToBuffer(ds, &buf);
+            Expression e = new StringExp(loc, buf.extractSlice());
+            return e.expressionSemantic(sc);
+        }
+
         Dsymbol ds;
         switch (exp.e1.op)
         {
-        case TOK.scope_:
-            ds = (cast(ScopeExp)exp.e1).sds;
-            goto L1;
-        case TOK.variable:
-            ds = (cast(VarExp)exp.e1).var;
-            goto L1;
-        case TOK.dotVariable:
-            ds = (cast(DotVarExp)exp.e1).var;
-            goto L1;
-        case TOK.overloadSet:
-            ds = (cast(OverExp)exp.e1).vars;
-            goto L1;
-        case TOK.template_:
+            case TOK.scope_:      return dotMangleof(exp.loc, sc, exp.e1.isScopeExp().sds);
+            case TOK.variable:    return dotMangleof(exp.loc, sc, exp.e1.isVarExp().var);
+            case TOK.dotVariable: return dotMangleof(exp.loc, sc, exp.e1.isDotVarExp().var);
+            case TOK.overloadSet: return dotMangleof(exp.loc, sc, exp.e1.isOverExp().vars);
+            case TOK.template_:
             {
-                TemplateExp te = cast(TemplateExp)exp.e1;
-                ds = te.fd ? cast(Dsymbol)te.fd : te.td;
+                TemplateExp te = exp.e1.isTemplateExp();
+                return dotMangleof(exp.loc, sc, ds = te.fd ? te.fd.isDsymbol() : te.td);
             }
-        L1:
-            {
-                assert(ds);
-                if (auto f = ds.isFuncDeclaration())
-                {
-                    if (f.checkForwardRef(exp.loc))
-                    {
-                        return ErrorExp.get();
-                    }
-                    if (f.flags & (FUNCFLAG.purityInprocess | FUNCFLAG.safetyInprocess |
-                                   FUNCFLAG.nothrowInprocess | FUNCFLAG.nogcInprocess))
-                    {
-                        f.error(exp.loc, "cannot retrieve its `.mangleof` while inferring attributes");
-                        return ErrorExp.get();
-                    }
-                }
-                OutBuffer buf;
-                mangleToBuffer(ds, &buf);
-                Expression e = new StringExp(exp.loc, buf.extractSlice());
-                e = e.expressionSemantic(sc);
-                return e;
-            }
-        default:
-            break;
+
+            default:
+                break;
         }
     }
 
-    if (exp.e1.op == TOK.variable && exp.e1.type.toBasetype().ty == Tsarray && exp.ident == Id.length)
+    if (exp.e1.isVarExp() && exp.e1.type.toBasetype().isTypeSArray() && exp.ident == Id.length)
     {
         // bypass checkPurity
         return exp.e1.type.dotExp(sc, exp.e1, exp.ident, exp.noderef ? DotExpFlag.noDeref : 0);
     }
 
-    if (exp.e1.op == TOK.dot)
-    {
-    }
-    else
+    if (!exp.e1.isDotExp())
     {
         exp.e1 = resolvePropertiesX(sc, exp.e1);
     }
-    if (exp.e1.op == TOK.tuple && exp.ident == Id.offsetof)
+
+    if (auto te = exp.e1.isTupleExp())
     {
-        /* 'distribute' the .offsetof to each of the tuple elements.
-         */
-        TupleExp te = cast(TupleExp)exp.e1;
-        auto exps = new Expressions(te.exps.dim);
-        for (size_t i = 0; i < exps.dim; i++)
+        if (exp.ident == Id.offsetof)
         {
-            Expression e = (*te.exps)[i];
+            /* 'distribute' the .offsetof to each of the tuple elements.
+             */
+            auto exps = new Expressions(te.exps.dim);
+            foreach (i, e; (*te.exps)[])
+            {
+                (*exps)[i] = new DotIdExp(e.loc, e, Id.offsetof);
+            }
+            // Don't evaluate te.e0 in runtime
+            Expression e = new TupleExp(exp.loc, null, exps);
             e = e.expressionSemantic(sc);
-            e = new DotIdExp(e.loc, e, Id.offsetof);
-            (*exps)[i] = e;
+            return e;
         }
-        // Don't evaluate te.e0 in runtime
-        Expression e = new TupleExp(exp.loc, null, exps);
-        e = e.expressionSemantic(sc);
-        return e;
-    }
-    if (exp.e1.op == TOK.tuple && exp.ident == Id.length)
-    {
-        TupleExp te = cast(TupleExp)exp.e1;
-        // Don't evaluate te.e0 in runtime
-        Expression e = new IntegerExp(exp.loc, te.exps.dim, Type.tsize_t);
-        return e;
+        if (exp.ident == Id.length)
+        {
+            // Don't evaluate te.e0 in runtime
+            return new IntegerExp(exp.loc, te.exps.dim, Type.tsize_t);
+        }
     }
 
     // https://issues.dlang.org/show_bug.cgi?id=14416
     // Template has no built-in properties except for 'stringof'.
-    if ((exp.e1.op == TOK.dotTemplateDeclaration || exp.e1.op == TOK.template_) && exp.ident != Id.stringof)
+    if ((exp.e1.isDotTemplateExp() || exp.e1.isTemplateExp()) && exp.ident != Id.stringof)
     {
         exp.error("template `%s` does not have property `%s`", exp.e1.toChars(), exp.ident.toChars());
         return ErrorExp.get();
