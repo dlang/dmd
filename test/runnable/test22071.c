@@ -9,7 +9,7 @@ struct S *abc = &(struct S){ 1, 2 };
 int test()
 {
     struct S *var = &(struct S){ 1, 2 };
-    return var.b;
+    return var->b;
 }
 
 _Static_assert(test() == 2, "in");

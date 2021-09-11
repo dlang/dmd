@@ -17,8 +17,10 @@ import core.stdc.stdio;
 
 import dmd.dcast;
 import dmd.dscope;
+import dmd.dsymbol;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.identifier;
 import dmd.mtype;
 
 /**************************************
@@ -87,6 +89,42 @@ Expression arrayFuncConv(Expression e, Scope* sc)
     else
         return e;
     return e.expressionSemantic(sc);
+}
+
+/****************************************
+ * Run semantic on `e`.
+ * Expression `e` evaluates to an instance of a struct.
+ * Look up `ident` as a field of that struct.
+ * Params:
+ *   e = evaluates to an instance of a struct
+ *   sc = context
+ *   id = identifier of a field in that struct
+ * Returns:
+ *   if successful `e.ident`
+ *   if not then `ErrorExp` and message is printed
+ */
+Expression fieldLookup(Expression e, Scope* sc, Identifier id)
+{
+    e = e.expressionSemantic(sc);
+    if (e.isErrorExp())
+        return e;
+
+    Dsymbol s;
+    auto t = e.type;
+    if (t.isTypePointer())
+    {
+        t = t.isTypePointer().next;
+        e = new PtrExp(e.loc, e);
+    }
+    if (auto ts = t.isTypeStruct())
+        s = ts.sym.search(e.loc, id, 0);
+    if (!s)
+    {
+        e.error("`%s` is not a member of `%s`", id.toChars(), t.toChars());
+        return ErrorExp.get();
+    }
+    Expression ef = new DotVarExp(e.loc, e, s.isDeclaration());
+    return ef.expressionSemantic(sc);
 }
 
 /****************************************
