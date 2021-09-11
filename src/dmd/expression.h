@@ -57,6 +57,9 @@ enum
     OWNEDcache      // constant value cached for CTFE
 };
 
+#define WANTvalue  0 // default
+#define WANTexpand 1 // expand const/immutable variables if possible
+
 /**
  * Specifies how the checkModify deals with certain situations
  */

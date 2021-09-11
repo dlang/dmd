@@ -15,11 +15,12 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.unistd;
-import core.sys.windows.shellapi;
-import core.sys.windows.winuser;
 
 version (Windows)
 {
+    import core.sys.windows.shellapi;
+    import core.sys.windows.winuser;
+
     extern (C++) void browse(const(char)* url) nothrow @nogc
     in
     {
