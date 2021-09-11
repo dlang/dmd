@@ -38,6 +38,8 @@ import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.root.longdouble;
+
 version (SCPP)
 {
 import msgs2;

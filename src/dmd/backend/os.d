@@ -951,7 +951,7 @@ else version (OSX)
 {
 int os_critsecsize32()
 {
-    version(X86_64)
+    version(D_LP64)
     {
         assert(pthread_mutex_t.sizeof == 64);
     }

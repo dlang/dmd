@@ -14,7 +14,7 @@ import dmd.root.longdouble;
 import core.stdc.ctype;
 import core.stdc.errno;
 
-version(CRuntime_Microsoft):
+static if (real.sizeof == double.sizeof):
 @nogc:
 nothrow:
 
