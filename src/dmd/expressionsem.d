@@ -6412,6 +6412,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        if (sc.flags & SCOPE.Cfile && exp.ident != Id.__sizeof)
+        {
+            result = fieldLookup(exp.e1, sc, exp.ident);
+            return;
+        }
+
         Expression e = exp.semanticY(sc, 1);
 
         if (e && isDotOpDispatch(e))
@@ -8706,6 +8712,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 e1x = e;
+            }
+            else if (sc.flags & SCOPE.Cfile && e1x.isDotIdExp())
+            {
+                auto die = e1x.isDotIdExp();
+                e1x = fieldLookup(die.e1, sc, die.ident);
             }
             else if (auto die = e1x.isDotIdExp())
             {
