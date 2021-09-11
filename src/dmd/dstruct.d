@@ -232,7 +232,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
     }
 
-    static StructDeclaration create(Loc loc, Identifier id, bool inObject)
+    static StructDeclaration create(const ref Loc loc, Identifier id, bool inObject)
     {
         return new StructDeclaration(loc, id, inObject);
     }

@@ -184,7 +184,7 @@ public:
     // ABI-specific type(s) if the struct can be passed in registers
     TypeTuple *argTypes;
 
-    static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
+    static StructDeclaration *create(const Loc &loc, Identifier *id, bool inObject);
     StructDeclaration *syntaxCopy(Dsymbol *s);
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     const char *kind() const;
@@ -277,7 +277,7 @@ public:
     ObjcClassDeclaration objc;          // Data for a class declaration that is needed for the Objective-C integration
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
-    static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
+    static ClassDeclaration *create(const Loc &loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
     const char *toPrettyChars(bool QualifyTypes = false);
     ClassDeclaration *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);

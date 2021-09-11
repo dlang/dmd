@@ -705,7 +705,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(s);
     }
 
-    static AliasDeclaration create(Loc loc, Identifier id, Type type)
+    static AliasDeclaration create(const ref Loc loc, Identifier id, Type type)
     {
         return new AliasDeclaration(loc, id, type);
     }
