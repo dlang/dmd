@@ -2267,7 +2267,7 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
  * Returns:
  *      the type that was merged
  */
-Type merge(Type type)
+extern (C++) Type merge(Type type)
 {
     switch (type.ty)
     {
@@ -4614,7 +4614,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
  * Returns:
  *  The initialization expression for the type.
  */
-Expression defaultInit(Type mt, const ref Loc loc)
+extern (C++) Expression defaultInit(Type mt, const ref Loc loc)
 {
     Expression visitBasic(TypeBasic mt)
     {

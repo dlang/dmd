@@ -3486,6 +3486,7 @@ class TypeIdentifier final : public TypeQualified
 public:
     Identifier* ident;
     Dsymbol* originalSymbol;
+    static TypeIdentifier* create(const Loc& loc, Identifier* ident);
     const char* kind() const;
     TypeIdentifier* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -4339,6 +4340,10 @@ public:
     const char* kind() const;
     void accept(Visitor* v);
 };
+
+extern Expression* defaultInit(Type* mt, const Loc& loc);
+
+extern Type* merge(Type* type);
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 
@@ -7555,6 +7560,8 @@ extern void semantic2(Dsymbol* dsym, Scope* sc);
 
 extern void semantic3(Dsymbol* dsym, Scope* sc);
 
+extern void semanticTypeInfoMembers(StructDeclaration* sd);
+
 extern bool isTrivialExp(Expression* e);
 
 extern bool hasSideEffect(Expression* e, bool assumeImpureCalls = false);
@@ -7719,7 +7726,11 @@ extern Target target;
 
 extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter* >* parameters);
 
+extern void genTypeInfo(Loc loc, Type* torig, Scope* sc);
+
 extern Type* getTypeInfoType(Loc loc, Type* t, Scope* sc);
+
+extern bool builtinTypeInfo(Type* t);
 
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {
