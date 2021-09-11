@@ -61,17 +61,19 @@ $(ROOT)/unittest_assert.done: STDERR_EXP="unittest_assert msg"
 $(ROOT)/invalid_memory_operation.done: STDERR_EXP="InvalidMemoryOperationError"
 $(ROOT)/unknown_gc.done: STDERR_EXP="'unknowngc'"
 $(ROOT)/static_dtor.done: STDERR_EXP="dtor_called_more_than_once"
-$(ROOT)/future_message.done: STDERR_EXP="exception I have a custom message. exception exception "
 $(ROOT)/static_dtor.done: NEGATE=!
+$(ROOT)/future_message.done: STDERR_EXP="exception I have a custom message. exception exception "
 $(ROOT)/catch_in_finally.done: STDERR_EXP="success."
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP="object.Exception@src/rt_trap_exceptions.d(12): this will abort"
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP2="src/rt_trap_exceptions.d:8 main"
 $(ROOT)/assert_fail.done: STDERR_EXP="success."
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
+	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>$(ROOT)/$*.stderr || true
+	cat $(ROOT)/$*.stderr
+	$(NEGATE) grep -qF $(STDERR_EXP) < $(ROOT)/$*.stderr
 	if [ ! -z $(STDERR_EXP2) ] ; then \
-		$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP2); \
+		$(NEGATE) grep -qF $(STDERR_EXP2) < $(ROOT)/$*.stderr; \
 	fi
 	@touch $@
 
@@ -94,12 +96,14 @@ $(ROOT)/refcounted.done: $(ROOT)/refcounted
 	$(QUIET) $<
 	@touch $@
 
-ifeq (ldmd,$(findstring ldmd,$(HOST_DC)))
+ifeq (ldmd,$(findstring ldmd,$(DMD)))
 # LDC: Make sure allocation intended to provoke exception is not elided.
 $(ROOT)/invalid_memory_operation: DFLAGS+=-disable-gc2stack
 endif
 $(ROOT)/unittest_assert: DFLAGS+=-unittest -version=CoreUnittest
 $(ROOT)/line_trace: DFLAGS+=$(LINE_TRACE_DFLAGS)
+$(ROOT)/long_backtrace_trunc: DFLAGS+=$(LINE_TRACE_DFLAGS)
+$(ROOT)/rt_trap_exceptions: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/rt_trap_exceptions_drt: DFLAGS+=-g
 $(ROOT)/refcounted: DFLAGS+=-dip1008
 
