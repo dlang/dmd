@@ -177,7 +177,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Returns:
      *      false if failed to determine the size.
      */
-    final bool determineSize(Loc loc)
+    final bool determineSize(const ref Loc loc)
     {
         //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
 
@@ -331,7 +331,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      *      false if any errors occur.
      *      Otherwise, returns true and the missing arguments will be pushed in elements[].
      */
-    final bool fill(Loc loc, Expressions* elements, bool ctorinit)
+    final bool fill(const ref Loc loc, Expressions* elements, bool ctorinit)
     {
         //printf("AggregateDeclaration::fill() %s\n", toChars());
         assert(sizeok == Sizeok.done);

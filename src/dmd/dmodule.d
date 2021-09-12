@@ -415,7 +415,7 @@ extern (C++) class Package : ScopeDsymbol
         reverse(packages);
 
         if (lookForSourceFile(getFilename(packages, ident), global.path ? (*global.path)[] : null))
-            Module.load(Loc(), packages, this.ident);
+            Module.load(Loc.initial, packages, this.ident);
         else
             isPkgMod = PKG.package_;
     }
@@ -598,12 +598,12 @@ extern (C++) final class Module : Package
         return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
     }
 
-    extern (C++) static Module load(Loc loc, Identifiers* packages, Identifier ident)
+    extern (C++) static Module load(const ref Loc loc, Identifiers* packages, Identifier ident)
     {
         return load(loc, packages ? (*packages)[] : null, ident);
     }
 
-    extern (D) static Module load(Loc loc, Identifier[] packages, Identifier ident)
+    extern (D) static Module load(const ref Loc loc, Identifier[] packages, Identifier ident)
     {
         //printf("Module::load(ident = '%s')\n", ident.toChars());
         // Build module filename by turning:
