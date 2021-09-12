@@ -98,9 +98,9 @@ $(H2 $(LNAME2 storage_allocation, Storage Allocation))
         )
 
         $(P If pointers to D garbage collector allocated memory are passed to
-        C functions, it's critical to ensure that that memory will not
-        be collected by the garbage collector before the C function is
-        done with it. This is accomplished by:
+        C functions, it's critical to ensure that the memory will not be
+        collected by the garbage collector before the C function is done with
+        it. This is accomplished by:
         )
 
         $(UL

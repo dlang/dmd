@@ -1869,7 +1869,7 @@ $(GNAME FunctionLiteralBody2):
         ---
         )
 
-    $(NOTE The syntax `Identifier { statement; }` is not supported because because it is
+    $(NOTE The syntax `Identifier { statement; }` is not supported because it is
         easily confused with statements `x = Identifier; { statement; };`
         if the semicolons were accidentally omitted.
         )

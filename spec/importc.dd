@@ -8,7 +8,7 @@ $(HEADERNAV_TOC)
 
     $(P ImportC is a C compiler embedded into the D implementation.
     Its purpose is to enable direct importation of C files, without
-    needing to manually prepare a D file corresponding to the the declarations
+    needing to manually prepare a D file corresponding to the declarations
     in the C file. It enables directly compiling C files into modules, and
     linking them in with D code to form an executable. It can be used
     as a C compiler to compile and link 100% C programs.

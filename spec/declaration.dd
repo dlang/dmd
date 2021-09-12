@@ -604,7 +604,7 @@ $(GNAME VoidInitializer):
         $(BEST_PRACTICE
         $(OL
         $(LI Void initializers are useful when a static array is on the stack,
-        but may only be partially used, such as as a temporary buffer.
+        but may only be partially used, such as a temporary buffer.
         Void initializers will potentially speed up the code, but they introduce risk, since one must ensure
         that array elements are always set before read.)
         $(LI The same is true for structs.)
