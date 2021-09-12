@@ -1,0 +1,3 @@
+Add support for OpenBSD ioctls
+
+Support OpenBSD ioctls as found in OpenBSD's $(LINK2 https://github.com/openbsd/src/blob/master/sys/sys/filio.h, /usr/include/sys/filio.h), $(LINK2 https://github.com/openbsd/src/blob/master/sys/sys/ioccom.h, /usr/include/sys/ioccom.h), $(LINK2 https://github.com/openbsd/src/blob/master/sys/sys/ioctl.h, /usr/include/sys/ioctl.h), and $(LINK2 https://github.com/openbsd/src/blob/master/sys/sys/ttycom.h, /usr/include/sys/ttycom.h).
