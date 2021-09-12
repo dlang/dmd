@@ -511,7 +511,7 @@ enum class BUILTIN : unsigned char
     toPrecReal
 };
 
-Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
+Expression *eval_builtin(const Loc &loc, FuncDeclaration *fd, Expressions *arguments);
 BUILTIN isBuiltin(FuncDeclaration *fd);
 
 class FuncDeclaration : public Declaration

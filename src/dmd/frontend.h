@@ -5026,10 +5026,10 @@ public:
     virtual Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     size_t nonHiddenFields();
-    bool determineSize(Loc loc);
+    bool determineSize(const Loc& loc);
     virtual void finalizeSize() = 0;
     d_uns64 size(const Loc& loc);
-    bool fill(Loc loc, Array<Expression* >* elements, bool ctorinit);
+    bool fill(const Loc& loc, Array<Expression* >* elements, bool ctorinit);
     Type* getType();
     bool isDeprecated() const;
     void setDeprecated();
@@ -5287,7 +5287,7 @@ public:
 
 extern BUILTIN isBuiltin(FuncDeclaration* fd);
 
-extern Expression* eval_builtin(Loc loc, FuncDeclaration* fd, Array<Expression* >* arguments);
+extern Expression* eval_builtin(const Loc& loc, FuncDeclaration* fd, Array<Expression* >* arguments);
 
 extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
 
@@ -6002,7 +6002,7 @@ public:
     size_t nameoffset;
     size_t namelen;
     static Module* create(const char* filename, Identifier* ident, int32_t doDocComment, int32_t doHdrGen);
-    static Module* load(Loc loc, Array<Identifier* >* packages, Identifier* ident);
+    static Module* load(const Loc& loc, Array<Identifier* >* packages, Identifier* ident);
     const char* kind() const;
     bool loadSourceBuffer(const Loc& loc, File::ReadResult& readResult);
     bool read(const Loc& loc);
@@ -6278,7 +6278,7 @@ public:
     virtual bool declareParameter(Scope* sc) = 0;
     virtual void print(RootObject* oarg, RootObject* oded) = 0;
     virtual RootObject* specialization() = 0;
-    virtual RootObject* defaultArg(Loc instLoc, Scope* sc) = 0;
+    virtual RootObject* defaultArg(const Loc& instLoc, Scope* sc) = 0;
     virtual bool hasDefaultArg() = 0;
     const char* toChars() const;
     DYNCAST dyncast() const;
@@ -6296,7 +6296,7 @@ public:
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
-    RootObject* defaultArg(Loc instLoc, Scope* sc);
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc);
     bool hasDefaultArg();
     RootObject* dummyArg();
     void accept(Visitor* v);
@@ -6321,7 +6321,7 @@ public:
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
-    RootObject* defaultArg(Loc instLoc, Scope* sc);
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc);
     bool hasDefaultArg();
     RootObject* dummyArg();
     void accept(Visitor* v);
@@ -6338,7 +6338,7 @@ public:
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
-    RootObject* defaultArg(Loc instLoc, Scope* sc);
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc);
     bool hasDefaultArg();
     RootObject* dummyArg();
     void accept(Visitor* v);
@@ -6352,7 +6352,7 @@ public:
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
-    RootObject* defaultArg(Loc instLoc, Scope* sc);
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc);
     bool hasDefaultArg();
     RootObject* dummyArg();
     void accept(Visitor* v);
@@ -7726,9 +7726,9 @@ extern Target target;
 
 extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter* >* parameters);
 
-extern void genTypeInfo(Loc loc, Type* torig, Scope* sc);
+extern void genTypeInfo(const Loc& loc, Type* torig, Scope* sc);
 
-extern Type* getTypeInfoType(Loc loc, Type* t, Scope* sc);
+extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc);
 
 extern bool builtinTypeInfo(Type* t);
 

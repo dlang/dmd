@@ -32,7 +32,7 @@ import core.stdc.stdio;
  *      torig = the type to generate the `TypeInfo` object for
  *      sc    = the scope
  */
-extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
+extern (C++) void genTypeInfo(const ref Loc loc, Type torig, Scope* sc)
 {
     // printf("genTypeInfo() %s\n", torig.toChars());
 
@@ -102,7 +102,7 @@ extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
  * Returns:
  *      The type of the `TypeInfo` object associated with `t`
  */
-extern (C++) Type getTypeInfoType(Loc loc, Type t, Scope* sc)
+extern (C++) Type getTypeInfoType(const ref Loc loc, Type t, Scope* sc)
 {
     assert(t.ty != Terror);
     genTypeInfo(loc, t, sc);
