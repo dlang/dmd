@@ -1471,7 +1471,8 @@ final class CParser(AST) : Parser!AST
         {
             nextToken();
             auto tt = tspec.isTypeTag();
-            if (!tt || !tt.id)
+            if (!tt ||
+                !tt.id && (tt.tok == TOK.struct_ || tt.tok == TOK.union_))
                 return; // legal but meaningless empty declaration, ignore it
 
             /* `struct tag;` and `struct tag { ... };`
