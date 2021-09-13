@@ -1,15 +1,16 @@
 //https://issues.dlang.org/show_bug.cgi?id=22291
 
 alias AliasSeq(T...) = T;
-class Test
-{
-    static assert(!__traits(compiles, __traits(arguments)));
-    void handle(int x)
-    {
-        static assert(typeof(__traits(arguments)).length == 1);
-    }
-}
 void noParameters()
+{
+    static assert(typeof(__traits(arguments)).length == 0);
+}
+void noArgs()
+{
+    //Arguments are not valid, this should not compile
+    static assert(!__traits(compiles, __traits(arguments, 456)));
+}
+shared static this()
 {
     static assert(typeof(__traits(arguments)).length == 0);
 }
@@ -19,6 +20,32 @@ int echoPlusOne(int x)
     return x;
 }
 static assert(echoPlusOne(1) == 2);
+class Tree {
+    int opApply(int delegate(size_t, Tree) dg) {
+        if (dg(0, this)) return 1;
+        return 0;
+    }
+}
+void useOpApply(Tree top, int x)
+{
+    foreach(idx; 0..5)
+    {
+        static assert(is(typeof(__traits(arguments)) == AliasSeq!(Tree, int)));
+    }
+    foreach(idx, elem; top)
+    {
+        static assert(is(typeof(__traits(arguments)) == AliasSeq!(size_t, Tree)));
+    }
+}
+class Test
+{
+    static assert(!__traits(compiles, __traits(arguments)));
+    void handle(int x)
+    {
+        static assert(typeof(__traits(arguments)).length == 1);
+    }
+}
+
 int add(int x, int y)
 {
 	return x + y;
@@ -81,7 +108,10 @@ int refTest()
     testRefness(45, x);
     return x;
 }
+alias lambda = (x) => typeof(__traits(arguments)).stringof;
+static assert(lambda(1) == "(int)");
 static assert(refTest() == 45);
+
 T testTemplate(T)(scope T input)
 {
     void chimpInASuit(float set)

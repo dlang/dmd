@@ -2103,6 +2103,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("`__traits(arguments)` cannot have arguments, but `%s` was supplied", contents.ptr);
             return ErrorExp.get();
         }
+
         if(sc.func is null)
         {
             e.error("`__traits(arguments)` may only be used inside a function");

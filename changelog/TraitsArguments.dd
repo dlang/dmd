@@ -38,3 +38,44 @@ auto forwardToAdd(int x, int y)
 	return add(__traits(arguments));
 }
 ---
+
+When used inside a nested function or lambda, the trait gets the arguments
+of that and only that nested function or lambda, not what they are contained in.
+
+For example, these assertions hold:
+---
+int testNested(int x)
+{
+    static assert(typeof(__traits(arguments)).length == 1);
+    int add(int x, int y)
+    {
+        static assert(typeof(__traits(arguments)).length == 2);
+        return x + y;
+    }
+    return add(x + 2, x + 3);
+}
+---
+
+When used inside a `foreach` utilizing an overloaded `opApply`, the trait yields
+the arguments to the delegate and not the function the foreach appears within.
+
+---
+class Tree {
+    int opApply(int delegate(size_t, Tree) dg) {
+        if (dg(0, this)) return 1;
+        return 0;
+    }
+}
+void useOpApply(Tree top, int x)
+{
+    foreach(idx; 0..5)
+    {
+        static assert(is(typeof(__traits(arguments)) == AliasSeq!(Tree, int)));
+    }
+    foreach(idx, elem; top)
+    {
+        static assert(is(typeof(__traits(arguments)) == AliasSeq!(size_t, Tree)));
+    }
+}
+---
+
