@@ -2112,7 +2112,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tf = sc.parent.isFuncDeclaration.type.isTypeFunction();
         assert(tf);
         auto exps = new Expressions(0);
-        int dg(size_t idx, Parameter x)
+        int addParameterDG(size_t idx, Parameter x)
         {
             assert(x.ident);
             exps.push(new IdentifierExp(e.loc, x.ident));
@@ -2123,7 +2123,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             until they (tuples) are expanded e.g. an anonymous tuple parameter's
             contents get given names but not the tuple itself.
         */
-        Parameter._foreach(tf.parameterList.parameters, &dg);
+        Parameter._foreach(tf.parameterList.parameters, &addParameterDG);
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
