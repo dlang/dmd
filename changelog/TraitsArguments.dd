@@ -1,0 +1,40 @@
+Add `__traits(arguments)`
+
+When used inside and only inside a function, this trait yields a 
+tuple of the arguments to that function for example:
+
+---
+int echoPlusOne(int x)
+{
+    __traits(arguments)[0] += 1;
+    return x;
+}
+---
+
+This can be used to simply forward a functions arguments, in effect
+unifying functions with variadic parameters and normal functions 
+i.e. the following pattern is now possible without use of variadics:
+
+---
+int add(int x, int y)
+{
+	return x + y;
+}
+
+auto forwardToAdd(Pack...)(Pack xy)
+{
+	return add(xy);
+}
+---
+would become
+---
+int add(int x, int y)
+{
+	return x + y;
+}
+
+auto forwardToAdd(int x, int y)
+{
+	return add(__traits(arguments));
+}
+---

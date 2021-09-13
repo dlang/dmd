@@ -13,6 +13,22 @@ void noParameters()
 {
     static assert(typeof(__traits(arguments)).length == 0);
 }
+int echoPlusOne(int x)
+{
+    __traits(arguments)[0] += 1;
+    return x;
+}
+static assert(echoPlusOne(1) == 2);
+int add(int x, int y)
+{
+	return x + y;
+}
+
+auto forwardToAdd(int x, int y)
+{
+	return add(__traits(arguments));
+}
+static assert(forwardToAdd(2, 3) == 5);
 struct TestConstructor
 {
     int x;
