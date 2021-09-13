@@ -3737,10 +3737,17 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     }
 
     /***************************************
-     * Figures out what to do with an undefined member reference
-     * for classes and structs.
-     *
-     * If flag & 1, don't report "not a property" error and just return NULL.
+     * `ident` was not found as a member of `mt`.
+     * Attempt to use overloaded opDot(), overloaded opDispatch(), or `alias this`.
+     * If that fails, forward to visitType().
+     * Params:
+     *  mt = class or struct
+     *  sc = context
+     *  e = `this` for `ident`
+     *  ident = name of member
+     *  flag = if flag & 1, don't report "not a property" error and just return NULL.
+     * Returns:
+     *  resolved expression if found, otherwise null
      */
     Expression noMember(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     {
