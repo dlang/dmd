@@ -1,4 +1,4 @@
-# Add Alias Assignment
+Add Alias Assignment
 
 This adds the ability for an alias declaration inside a template to be
 assigned a new value. For example, the recursive template:

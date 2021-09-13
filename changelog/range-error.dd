@@ -51,4 +51,4 @@ $(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)$(NDASH)
 ??:? _Dmain [0x5647250b9751]
 )
 
-The error message for indexing a non-existent key in an Associative Array has not been updated.
+The error messages for an out of bounds slice copy (`arr[a..b] = arr[c..d]`) or indexing a non-existent key in an Associative Array (`table["bad"]`) have not been updated.
