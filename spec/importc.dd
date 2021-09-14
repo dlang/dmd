@@ -122,6 +122,9 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(P $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-11.1.0/cpp/Preprocessor-Output.html, linemarker)
     directives are normally embedded in the output of C preprocessors.)
 
+    $(H3 $(LNAME2 pragma, pragma))
+
+    $(P Pragma directives are ignored.)
 
 $(H2 $(LNAME2 implementation, Implementation))
 
