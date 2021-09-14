@@ -674,19 +674,19 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.hasAliasing)
     {
-        foreach (o; *e.args)
+        if (dim != 1)
+            return dimError(1);
+        auto o = (*e.args)[0];
+        if (auto t = isType(o))
         {
-            if (auto t = isType(o))
-            {
-                if (t.hasAliasing)
-                    return True();
-            }
-            else
-            {
-                e.error("type expected as non-first argument of __traits `%s` instead of `%s`",
-                        e.ident.toChars(), o.toChars());
-                return ErrorExp.get();
-            }
+            if (t.hasAliasing)
+                return True();
+        }
+        else
+        {
+            e.error("type expected as non-first argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), o.toChars());
+            return ErrorExp.get();
         }
         return False();
     }

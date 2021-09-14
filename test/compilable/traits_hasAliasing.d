@@ -34,11 +34,6 @@ private static void test1()
     static assert( __traits(hasAliasing, S6));
     static assert(!__traits(hasAliasing, S7));
 
-    static assert( __traits(hasAliasing, S1, S41)); // multiple arguments, all have aliasing
-    static assert( __traits(hasAliasing, S1, S2)); // multiple arguments, some have aliasing
-    static assert( __traits(hasAliasing, S2, S1)); // multiple arguments, some have aliasing
-    static assert(!__traits(hasAliasing, S2, S4)); // multiple arguments, none have aliasing
-
     static assert( __traits(hasAliasing, uint[uint]));
     static assert(!__traits(hasAliasing, immutable(uint[uint])));
     static assert( __traits(hasAliasing, void delegate()));
