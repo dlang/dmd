@@ -1026,9 +1026,11 @@ class Bar : Foo
 ------
 )
 
-        $(P Virtual functions all have a hidden parameter called the
-        $(I this) reference, which refers to the class object instance for which
-        the function is called.
+        $(P
+            Non-static (i.e., virtual functions and `final` member
+            functions) all have a hidden parameter called the
+            `this` reference, which refers to the class object for which
+            the function is called.
         )
 
         $(P
@@ -1036,8 +1038,9 @@ class Bar : Foo
             unnamed, parameter which is the selector it was called with.
         )
 
-        $(P To directly call a base member function, insert
-        base class name before the member function name. For example:
+        $(P To directly call a base member function (i.e., avoid dynamic
+        binding on member function call), insert the base class name before
+        the member function name. For example:
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
