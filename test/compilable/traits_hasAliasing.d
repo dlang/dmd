@@ -79,12 +79,6 @@ private static void test1()
     static assert( __traits(hasAliasing, CT!C));
     static assert( __traits(hasAliasing, CT!I));
     static assert( __traits(hasAliasing, CT!int));
-
-    import std.typecons : Rebindable;
-    static assert( __traits(hasAliasing, Rebindable!(const Object)));
-    static assert(!__traits(hasAliasing, Rebindable!(immutable Object)));
-    static assert( __traits(hasAliasing, Rebindable!(shared Object)));
-    static assert( __traits(hasAliasing, Rebindable!Object));
 }
 
 private static test2()

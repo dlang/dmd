@@ -8263,7 +8263,6 @@ struct Id final
     static Identifier* hasCopyConstructor;
     static Identifier* isCopyable;
     static Identifier* hasAliasing;
-    static Identifier* Rebindable;
     static Identifier* toType;
     static Identifier* allocator;
     static Identifier* basic_string;

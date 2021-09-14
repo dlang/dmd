@@ -7371,12 +7371,6 @@ bool hasAliasing(scope Type t)
         return false;
     else if (auto ts = t.isTypeStruct())
     {
-        if (auto ti = ts.sym.isInstantiated())
-            if (ti.name == Id.Rebindable &&
-                ti.tiargs &&
-                (*ti.tiargs).length == 1)
-                if (auto at = (*ti.tiargs)[0].isType())
-                    return !at.isImmutable();
         foreach (vd; ts.sym.fields)
             if (hasAliasing(vd.type))
                 return true;
