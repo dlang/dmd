@@ -8259,6 +8259,7 @@ struct Id final
     static Identifier* allMembers;
     static Identifier* derivedMembers;
     static Identifier* isSame;
+    static Identifier* isSame2;
     static Identifier* compiles;
     static Identifier* getAliasThis;
     static Identifier* getAttributes;
