@@ -6952,7 +6952,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
         }
-        else if ((exp.e1.op == TOK.this_ || exp.e1.op == TOK.super_) && global.params.useDIP1000 == FeatureState.enabled)
+        else if (exp.e1.op == TOK.this_ || exp.e1.op == TOK.super_)
         {
             if (VarDeclaration v = expToVariable(exp.e1))
             {
