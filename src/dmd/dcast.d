@@ -840,9 +840,10 @@ MATCH implicitConvTo(Expression e, Type t)
             }
         }
 
+        /** Checks whether or not a `CatExp e` can be implicitly converted to type `t`.
+         */
         override void visit(CatExp e)
         {
-            enum LOG = false;
             static if (LOG)
             {
                 printf("CatExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
