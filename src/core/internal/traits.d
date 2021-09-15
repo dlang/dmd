@@ -14,7 +14,7 @@ template Fields(T)
 {
     static if (is(T == struct) || is(T == union))
         alias Fields = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
-    else static if (is(T == class))
+    else static if (is(T == class) || is(T == interface))
         alias Fields = typeof(T.tupleof);
     else
         alias Fields = AliasSeq!T;
