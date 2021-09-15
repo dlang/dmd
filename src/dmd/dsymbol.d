@@ -595,7 +595,7 @@ extern (C++) class Dsymbol : ASTNode
         return followInstantiationContext(p1, p2) ? toParent2() : toParentLocal();
     }
 
-    final inout(TemplateInstance) isInstantiated() inout pure nothrow
+    final inout(TemplateInstance) isInstantiated() inout
     {
         if (!parent)
             return null;
@@ -2384,5 +2384,3 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
     if (log) printf(" collision\n");
     return null;
 }
-
-
