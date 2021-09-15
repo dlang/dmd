@@ -14,9 +14,16 @@ module dmd.common.outbuffer;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
-import dmd.root.rmem;
-import dmd.root.rootobject;
-import dmd.root.string;
+import core.stdc.stdlib;
+
+// In theory these functions should also restore errno, but we don't care because
+// we abort application on error anyway.
+extern (C) private pure @system @nogc nothrow
+{
+    pragma(mangle, "malloc") void* pureMalloc(size_t);
+    pragma(mangle, "realloc") void* pureRealloc(void* ptr, size_t size);
+    pragma(mangle, "free") void pureFree(void* ptr);
+}
 
 debug
 {
@@ -29,7 +36,7 @@ a contiguous array or a memory-mapped file.
 */
 struct OutBuffer
 {
-    import dmd.root.file : FileMapping;
+    import dmd.common.file : FileMapping, touchFile, writeFile;
 
     // IMPORTANT: PLEASE KEEP STATE AND DESTRUCTOR IN SYNC WITH DEFINITION IN ./outbuffer.h.
     // state {
@@ -48,6 +55,14 @@ struct OutBuffer
     // state }
 
     /**
+    Construct given size.
+    */
+    this(size_t initialSize) nothrow
+    {
+        reserve(initialSize);
+    }
+
+    /**
     Construct from filename. Will map the file into memory (or create it anew
     if necessary) and start writing at the beginning of it.
 
@@ -56,8 +71,30 @@ struct OutBuffer
     */
     @trusted this(const(char)* filename)
     {
-        fileMapping = new FileMapping!ubyte(filename);
+        FileMapping!ubyte model;
+        fileMapping = cast(FileMapping!ubyte*) malloc(model.sizeof);
+        memcpy(fileMapping, &model, model.sizeof);
+        fileMapping.__ctor(filename);
+        //fileMapping = new FileMapping!ubyte(filename);
         data = (*fileMapping)[];
+    }
+
+    /**
+    Frees resources associated.
+    */
+    extern (C++) void dtor() nothrow @trusted
+    {
+        if (fileMapping)
+        {
+            if (fileMapping.active)
+                fileMapping.close();
+            fileMapping = null;
+        }
+        else
+        {
+            debug (stomp) memset(data.ptr, 0xFF, data.length);
+            free(data.ptr);
+        }
     }
 
     /**
@@ -74,8 +111,21 @@ struct OutBuffer
         else
         {
             debug (stomp) memset(data.ptr, 0xFF, data.length);
-            mem.xfree(data.ptr);
+            pureFree(data.ptr);
         }
+    }
+
+    /// For porting with ease from dmd.backend.outbuf.Outbuffer
+    ubyte* buf() nothrow {
+        return data.ptr;
+    }
+
+    /// For porting with ease from dmd.backend.outbuf.Outbuffer
+    ubyte** bufptr() nothrow {
+        static struct Array { size_t length; ubyte* ptr; }
+        auto a = cast(Array*) &data;
+        assert(a.length == data.length && a.ptr == data.ptr);
+        return &a.ptr;
     }
 
     extern (C++) size_t length() const pure @nogc @safe nothrow { return offset; }
@@ -109,7 +159,7 @@ struct OutBuffer
         else
         {
             debug (stomp) memset(data.ptr, 0xFF, data.length);
-            mem.xfree(extractData());
+            pureFree(extractData());
         }
     }
 
@@ -141,17 +191,17 @@ struct OutBuffer
         {
             debug (stomp)
             {
-                auto p = cast(ubyte*)mem.xmalloc(size);
+                auto p = cast(ubyte*) pureMalloc(size);
                 memcpy(p, data.ptr, offset);
                 memset(data.ptr, 0xFF, data.length);  // stomp old location
-                mem.xfree(data.ptr);
+                pureFree(data.ptr);
                 memset(p + offset, 0xff, size - offset); // stomp unused data
             }
             else
             {
-                auto p = cast(ubyte*)mem.xrealloc(data.ptr, size);
-                if (mem.isGCEnabled) // clear currently unused data to avoid false pointers
-                    memset(p + offset + nbytes, 0xff, size - offset - nbytes);
+                auto p = cast(ubyte*) pureRealloc(data.ptr, size);
+                // if (mem.isGCEnabled) // clear currently unused data to avoid false pointers
+                     memset(p + offset + nbytes, 0xff, size - offset - nbytes);
             }
             data = p[0 .. size];
         }
@@ -164,7 +214,7 @@ struct OutBuffer
      */
     extern (C++) void setsize(size_t size) pure nothrow @nogc @safe
     {
-        assert(size <= offset);
+        assert(size <= data.length);
         offset = size;
     }
 
@@ -185,6 +235,14 @@ struct OutBuffer
         notlinehead = true;
     }
 
+    // Write an array to the buffer, no reserve check
+    @trusted nothrow
+    void writen(const void *b, size_t len)
+    {
+        memcpy(data.ptr + offset, b, len);
+        offset += len;
+    }
+
     extern (C++) void write(const(void)* data, size_t nbytes) pure nothrow
     {
         write(data[0 .. nbytes]);
@@ -202,11 +260,14 @@ struct OutBuffer
     /**
      * Writes a 16 bit value, no reserve check.
      */
-    // @trusted
-    // void write16n(int v)
-    // {
-    //     assert(0);
-    // }
+    @trusted nothrow
+    void write16n(int v)
+    {
+        auto x = cast(ushort) v;
+        data[offset] = x & 0x00FF;
+        data[offset + 1] = x >> 8u;
+        offset += 2;
+    }
 
     /**
      * Writes a 16 bit value.
@@ -225,25 +286,59 @@ struct OutBuffer
         write(&v, v.sizeof);
     }
 
-    extern (C++) void writestring(const(char)* string) pure nothrow
+    /**
+     * Writes a 64 bit int.
+     */
+    @trusted void write64(long v) nothrow
     {
-        write(string.toDString);
+        write(&v, v.sizeof);
     }
 
+    /// NOT zero-terminated
+    extern (C++) void writestring(const(char)* s) pure nothrow
+    {
+        if (!s)
+            return;
+        import core.stdc.string : strlen;
+        write(s[0 .. strlen(s)]);
+    }
+
+    /// ditto
     void writestring(const(char)[] s) pure nothrow
     {
         write(s);
     }
 
+    /// ditto
     void writestring(string s) pure nothrow
     {
         write(s);
     }
 
+    /// NOT zero-terminated, followed by newline
     void writestringln(const(char)[] s) pure nothrow
     {
         writestring(s);
         writenl();
+    }
+
+    // Zero-terminated
+    void writeString(const(char)* s) pure nothrow @trusted
+    {
+        write(s[0 .. strlen(s)+1]);
+    }
+
+    /// ditto
+    void writeString(const(char)[] s) pure nothrow
+    {
+        write(s);
+        writeByte(0);
+    }
+
+    /// ditto
+    void writeString(string s) pure nothrow
+    {
+        writeString(cast(const(char)[])(s));
     }
 
     extern (C++) void prependstring(const(char)* string) pure nothrow
@@ -268,6 +363,38 @@ struct OutBuffer
         }
         if (doindent)
             notlinehead = false;
+    }
+
+    // Write n zeros; return pointer to start of zeros
+    @trusted
+    void *writezeros(size_t n) nothrow
+    {
+        reserve(n);
+        auto result = memset(data.ptr + offset, 0, n);
+        offset += n;
+        return result;
+    }
+
+    // Position buffer to accept the specified number of bytes at offset
+    @trusted
+    void position(size_t where, size_t nbytes) nothrow
+    {
+        if (where + nbytes > data.length)
+        {
+            reserve(where + nbytes - offset);
+        }
+        offset = where;
+
+        debug assert(offset + nbytes <= data.length);
+    }
+
+    /**
+     * Writes an 8 bit byte, no reserve check.
+     */
+    extern (C++) @trusted nothrow
+    void writeByten(int b)
+    {
+        this.data[offset++] = cast(ubyte) b;
     }
 
     extern (C++) void writeByte(uint b) pure nothrow
@@ -395,14 +522,6 @@ struct OutBuffer
         }
     }
 
-    extern (C++) void write(RootObject obj) /*nothrow*/
-    {
-        if (obj)
-        {
-            writestring(obj.toChars());
-        }
-    }
-
     extern (C++) void fill0(size_t nbytes) pure nothrow
     {
         reserve(nbytes);
@@ -454,8 +573,8 @@ struct OutBuffer
                 break;
         }
         offset += count;
-        if (mem.isGCEnabled)
-            memset(data.ptr + offset, 0xff, psize - count);
+        // if (mem.isGCEnabled)
+             memset(data.ptr + offset, 0xff, psize - count);
     }
 
     static if (__VERSION__ < 2092)
@@ -486,7 +605,6 @@ struct OutBuffer
      */
     extern (C++) void print(ulong u) pure nothrow
     {
-        //import core.internal.string;  // not available
         UnsignedStringBuf buf = void;
         writestring(unsignedToTempString(u, buf));
     }
@@ -584,6 +702,11 @@ struct OutBuffer
         return extractData()[0 .. length];
     }
 
+    extern (D) byte[] extractUbyteSlice(bool nullTerminate = false) pure nothrow
+    {
+        return cast(byte[]) extractSlice(nullTerminate);
+    }
+
     // Append terminating null if necessary and get view of internal buffer
     extern (C++) char* peekChars() pure nothrow
     {
@@ -603,6 +726,36 @@ struct OutBuffer
         return extractData();
     }
 
+    void writesLEB128(int value) nothrow
+    {
+        while (1)
+        {
+            ubyte b = value & 0x7F;
+
+            value >>= 7;            // arithmetic right shift
+            if (value == 0 && !(b & 0x40) ||
+                value == -1 && (b & 0x40))
+            {
+                 writeByte(b);
+                 break;
+            }
+            writeByte(b | 0x80);
+        }
+    }
+
+    void writeuLEB128(uint value) nothrow
+    {
+        do
+        {
+            ubyte b = value & 0x7F;
+
+            value >>= 7;
+            if (value)
+                b |= 0x80;
+            writeByte(b);
+        } while (value);
+    }
+
     /**
     Destructively saves the contents of `this` to `filename`. As an
     optimization, if the file already has identical contents with the buffer,
@@ -617,7 +770,6 @@ struct OutBuffer
     */
     extern(D) bool moveToFile(const char* filename)
     {
-        import dmd.root.file;
         bool result = true;
         const bool identical = this[] == FileMapping!(const ubyte)(filename)[];
 
@@ -641,12 +793,12 @@ struct OutBuffer
         else
         {
             if (!identical)
-                File.write(filename, this[]);
+                writeFile(filename, this[]);
             destroy();
         }
 
         return identical
-            ? result && File.touch(filename)
+            ? result && touchFile(filename)
             : result;
     }
 }
