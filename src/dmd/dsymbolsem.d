@@ -5633,16 +5633,17 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
      * implements the typeargs. If so, just refer to that one instead.
      */
     tempinst.inst = tempdecl.findExistingInstance(tempinst, fargs);
-    TemplateInstance errinst = null;
     if (!tempinst.inst)
     {
         // So, we need to implement 'this' instance.
     }
     else if (tempinst.inst.gagged && !tempinst.gagged && tempinst.inst.errors)
     {
-        // If the first instantiation had failed, re-run semantic,
-        // so that error messages are shown.
-        errinst = tempinst.inst;
+        // If the first instantiation had failed, re-run semantic
+        // so that error messages are shown, and replace the cached
+        // instantiation with this one.
+        tempdecl.removeInstance(tempinst.inst);
+        tempinst.inst = null;
     }
     else
     {
@@ -6100,10 +6101,8 @@ Laftersemantic:
         if (tempinst.gagged)
         {
             // Errors are gagged, so remove the template instance from the
-            // instance/symbol lists we added it to and reset our state to
-            // finish clean and so we can try to instantiate it again later
+            // symbol list we added it to
             // (see https://issues.dlang.org/show_bug.cgi?id=4302 and https://issues.dlang.org/show_bug.cgi?id=6602).
-            tempdecl.removeInstance(tempdecl_instance_idx);
             if (target_symbol_list)
             {
                 // Because we added 'this' in the last position above, we
@@ -6112,27 +6111,7 @@ Laftersemantic:
                 target_symbol_list.remove(target_symbol_list_idx);
                 tempinst.memberOf = null;                    // no longer a member
             }
-            tempinst.semanticRun = PASS.init;
-            tempinst.inst = null;
-            tempinst.symtab = null;
         }
-    }
-    else if (errinst)
-    {
-        /* https://issues.dlang.org/show_bug.cgi?id=14541
-         * If the previous gagged instance had failed by
-         * circular references, currrent "error reproduction instantiation"
-         * might succeed, because of the difference of instantiated context.
-         * On such case, the cached error instance needs to be overridden by the
-         * succeeded instance.
-         */
-        //printf("replaceInstance()\n");
-        assert(errinst.errors);
-        auto ti1 = TemplateInstanceBox(errinst);
-        tempdecl.instances.remove(ti1);
-
-        auto ti2 = TemplateInstanceBox(tempinst);
-        tempdecl.instances[ti2] = tempinst;
     }
 
     static if (LOG)
