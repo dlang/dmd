@@ -7,7 +7,7 @@ assigned a new value. For example, the recursive template:
 template staticMap(alias F, T...)
 {
     static if (T.length == 0)
-    alias staticMap = AliasSym!();
+        alias staticMap = AliasSym!();
     else
         alias staticMap = AliasSym!(F!(T[0]), staticMap!(T[0 .. T.length]));
 }
@@ -20,7 +20,7 @@ template staticMap(alias F, T...)
 {
     alias A = AliasSeq!();
     static foreach (t; T)
-    A = AliasSeq!(A, F!t); // alias assignment here
+        A = AliasSeq!(A, F!t); // alias assignment here
     alias staticMap = A;
 }
 ---
