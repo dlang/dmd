@@ -179,5 +179,4 @@ void test1654_fail()
     test!(char[]);              // fail, non-immutable indirections
     test!(S2);                  // fail, non-immutable indirections
     test!(S3);                  // fail, non-immutable indirections
-    _;                          // to always trigger an error during development
 }
