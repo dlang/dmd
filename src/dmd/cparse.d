@@ -1506,7 +1506,7 @@ final class CParser(AST) : Parser!AST
         {
             Identifier id;
             AST.Expression asmname;
-            auto dt = cparseDeclarator(DTR.xdirect, tspec, id);
+            auto dt = cparseDeclarator(DTR.xdirect, tspec, id, specifier);
             if (!dt)
             {
                 panic();
@@ -2258,14 +2258,14 @@ final class CParser(AST) : Parser!AST
      *  declarator   = declarator kind
      *  t            = base type to start with
      *  pident       = set to Identifier if there is one, null if not
-     *  storageClass = any storage classes seen so far that apply to a function
+     *  specifier    = specifiers in and out
      * Returns:
      *  type declared. If a TypeFunction is returned, this.symbols is the
      *  symbol table for the parameter-type-list, which will contain any
      *  declared struct, union or enum tags.
      */
     private AST.Type cparseDeclarator(DTR declarator, AST.Type t,
-        out Identifier pident, StorageClass storageClass = 0)
+        out Identifier pident, ref Specifier specifier)
     {
         //printf("cparseDeclarator(%d)\n", declarator);
         AST.Types constTypes; // all the Types that will need `const` applied to them
@@ -2303,6 +2303,8 @@ final class CParser(AST) : Parser!AST
                     const mod = cparseTypeQualifierList();
                     if (mod & MOD.xconst)
                         constTypes.push(t);
+                    if (token.value == TOK.__attribute__)
+                        cparseGnuAttributes(specifier);
                     continue;
 
                 default:
@@ -2509,7 +2511,7 @@ final class CParser(AST) : Parser!AST
         Specifier specifier;
         auto tspec = cparseSpecifierQualifierList(LVL.global, specifier);
         Identifier id;
-        return cparseDeclarator(DTR.xabstract, tspec, id);
+        return cparseDeclarator(DTR.xabstract, tspec, id, specifier);
     }
 
     /***********************************
@@ -2569,7 +2571,7 @@ final class CParser(AST) : Parser!AST
             auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier);
 
             Identifier id;
-            auto t = cparseDeclarator(DTR.xparameter, tspec, id);
+            auto t = cparseDeclarator(DTR.xparameter, tspec, id, specifier);
             if (specifier.mod & MOD.xconst)
                 t = toConst(t);
             auto param = new AST.Parameter(STC.parameter, t, id, null, null);
@@ -3156,7 +3158,7 @@ final class CParser(AST) : Parser!AST
             }
             else
             {
-                dt = cparseDeclarator(DTR.xdirect, tspec, id);
+                dt = cparseDeclarator(DTR.xdirect, tspec, id, specifier);
                 if (!dt)
                 {
                     panic();
