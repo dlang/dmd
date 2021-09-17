@@ -150,7 +150,7 @@ shared static this()
         "hasPostblit",
         "hasCopyConstructor",
         "isCopyable",
-        "arguments"
+        "parameters"
     ];
 
     StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
@@ -2092,7 +2092,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return tup.expressionSemantic(sc);
     }
     //https://issues.dlang.org/show_bug.cgi?id=22291
-    if(e.ident == Id.arguments)
+    if(e.ident == Id.parameters)
     {
         //No args are valid
         if(e.args)
@@ -2100,13 +2100,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             char[] contents = cast(char[]) e.args.toString();
             contents = contents[1..$];
             contents[$-1] = '\0';
-            e.error("`__traits(arguments)` cannot have arguments, but `%s` was supplied", contents.ptr);
+            e.error("`__traits(parameters)` cannot have arguments, but `%s` was supplied", contents.ptr);
             return ErrorExp.get();
         }
 
         if(sc.func is null)
         {
-            e.error("`__traits(arguments)` may only be used inside a function");
+            e.error("`__traits(parameters)` may only be used inside a function");
             return ErrorExp.get();
         }
         assert(sc.func && sc.parent.isFuncDeclaration());

@@ -1,18 +1,18 @@
-Add `__traits(arguments)`
+Add `__traits(parameters)`
 
-When used inside and only inside a function, this trait yields a 
-tuple of the arguments to that function for example:
+If used inside a function, this trait yields a
+tuple of the parameters to that function for example:
 
 ---
 int echoPlusOne(int x)
 {
-    __traits(arguments)[0] += 1;
+    __traits(parameters)[0] += 1;
     return x;
 }
 ---
 
-This can be used to simply forward a functions arguments, in effect
-unifying functions with variadic parameters and normal functions 
+This can be used to simply forward a functions parameters (becoming arguments of another),
+in effect unifying functions with variadic parameters and normal functions
 i.e. the following pattern is now possible without use of variadics:
 
 ---
@@ -35,7 +35,7 @@ int add(int x, int y)
 
 auto forwardToAdd(int x, int y)
 {
-	return add(__traits(arguments));
+	return add(__traits(parameters));
 }
 ---
 
@@ -46,10 +46,10 @@ For example, these assertions hold:
 ---
 int testNested(int x)
 {
-    static assert(typeof(__traits(arguments)).length == 1);
+    static assert(typeof(__traits(parameters)).length == 1);
     int add(int x, int y)
     {
-        static assert(typeof(__traits(arguments)).length == 2);
+        static assert(typeof(__traits(parameters)).length == 2);
         return x + y;
     }
     return add(x + 2, x + 3);
@@ -57,7 +57,7 @@ int testNested(int x)
 ---
 
 When used inside a `foreach` utilizing an overloaded `opApply`, the trait yields
-the arguments to the delegate and not the function the foreach appears within.
+the parameters to the delegate and not the function the foreach appears within.
 
 ---
 class Tree {
@@ -70,11 +70,11 @@ void useOpApply(Tree top, int x)
 {
     foreach(idx; 0..5)
     {
-        static assert(is(typeof(__traits(arguments)) == AliasSeq!(Tree, int)));
+        static assert(is(typeof(__traits(parameters)) == AliasSeq!(Tree, int)));
     }
     foreach(idx, elem; top)
     {
-        static assert(is(typeof(__traits(arguments)) == AliasSeq!(size_t, Tree)));
+        static assert(is(typeof(__traits(parameters)) == AliasSeq!(size_t, Tree)));
     }
 }
 ---

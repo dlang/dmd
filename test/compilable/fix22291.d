@@ -3,20 +3,20 @@
 alias AliasSeq(T...) = T;
 void noParameters()
 {
-    static assert(typeof(__traits(arguments)).length == 0);
+    static assert(typeof(__traits(parameters)).length == 0);
 }
 void noArgs()
 {
     //Arguments are not valid, this should not compile
-    static assert(!__traits(compiles, __traits(arguments, 456)));
+    static assert(!__traits(compiles, __traits(parameters, 456)));
 }
 shared static this()
 {
-    static assert(typeof(__traits(arguments)).length == 0);
+    static assert(typeof(__traits(parameters)).length == 0);
 }
 int echoPlusOne(int x)
 {
-    __traits(arguments)[0] += 1;
+    __traits(parameters)[0] += 1;
     return x;
 }
 static assert(echoPlusOne(1) == 2);
@@ -30,19 +30,19 @@ void useOpApply(Tree top, int x)
 {
     foreach(idx; 0..5)
     {
-        static assert(is(typeof(__traits(arguments)) == AliasSeq!(Tree, int)));
+        static assert(is(typeof(__traits(parameters)) == AliasSeq!(Tree, int)));
     }
     foreach(idx, elem; top)
     {
-        static assert(is(typeof(__traits(arguments)) == AliasSeq!(size_t, Tree)));
+        static assert(is(typeof(__traits(parameters)) == AliasSeq!(size_t, Tree)));
     }
 }
 class Test
 {
-    static assert(!__traits(compiles, __traits(arguments)));
+    static assert(!__traits(compiles, __traits(parameters)));
     void handle(int x)
     {
-        static assert(typeof(__traits(arguments)).length == 1);
+        static assert(typeof(__traits(parameters)).length == 1);
     }
 }
 
@@ -53,7 +53,7 @@ int add(int x, int y)
 
 auto forwardToAdd(int x, int y)
 {
-	return add(__traits(arguments));
+	return add(__traits(parameters));
 }
 static assert(forwardToAdd(2, 3) == 5);
 struct TestConstructor
@@ -64,7 +64,7 @@ struct TestConstructor
     //will
     this(typeof(this.tupleof))
     {
-        this.tupleof = __traits(arguments);
+        this.tupleof = __traits(parameters);
     }
 }
 bool test(int x, string y)
@@ -75,22 +75,22 @@ bool test(int x, string y)
 static assert(test(2, "pi"));
 int testNested(int x)
 {
-    static assert(typeof(__traits(arguments)).length == 1);
+    static assert(typeof(__traits(parameters)).length == 1);
     int add(int x, int y)
     {
-        static assert(typeof(__traits(arguments)).length == 2);
+        static assert(typeof(__traits(parameters)).length == 2);
         return x + y;
     }
     return add(x + 2, x + 3);
 }
 void testPack(Pack...)(Pack x)
 {
-    static assert(is(typeof(__traits(arguments)) == typeof(AliasSeq!(x))));
+    static assert(is(typeof(__traits(parameters)) == typeof(AliasSeq!(x))));
 }
 
 ref int forwardTest(return ref int x)
 {
-    static assert(__traits(isRef, x) == __traits(isRef, __traits(arguments)[0]));
+    static assert(__traits(isRef, x) == __traits(isRef, __traits(parameters)[0]));
     return x;
 }
 
@@ -98,7 +98,7 @@ int testRefness(int x, ref int monkey)
 {
     {
         //monkey = x;
-        __traits(arguments)[1] = __traits(arguments)[0];
+        __traits(parameters)[1] = __traits(parameters)[0];
     }
     return x;
 }
@@ -108,7 +108,12 @@ int refTest()
     testRefness(45, x);
     return x;
 }
-alias lambda = (x) => typeof(__traits(arguments)).stringof;
+auto packLength(Pack...)(Pack x)
+{
+    return typeof(__traits(parameters)).length;
+}
+static assert(packLength(2, 3) == 2);
+alias lambda = (x) => typeof(__traits(parameters)).stringof;
 static assert(lambda(1) == "(int)");
 static assert(refTest() == 45);
 
@@ -116,12 +121,12 @@ T testTemplate(T)(scope T input)
 {
     void chimpInASuit(float set)
     {
-        static assert(is(typeof(__traits(arguments)) == AliasSeq!(float)));
+        static assert(is(typeof(__traits(parameters)) == AliasSeq!(float)));
     }
     {
-        __traits(arguments) = AliasSeq!(T.max);
+        __traits(parameters) = AliasSeq!(T.max);
     }
-    __traits(arguments) = AliasSeq!(T.init);
+    __traits(parameters) = AliasSeq!(T.init);
     return input;
 }
 
