@@ -756,7 +756,7 @@ struct Array2D(E)
     int[2] opSlice(size_t dim)(int start, int end)
         if (dim >= 0 && dim < 2)
     in { assert(start >= 0 && end <= this.opDollar!dim); }
-    body
+    do
     {
         return [start, end];
     }
