@@ -1,0 +1,10 @@
+Function calls can now be used in `__traits(getParameterStorageClasses)`
+
+Parameter storage classes can now be obtained from function calls, which is useful when they depend on the arguments being passed:
+
+```d
+void func()(auto ref float t) {}
+float f;
+pragma(msg, __traits(getParameterStorageClasses, func(f), 0)); // tuple("ref")
+pragma(msg, __traits(getParameterStorageClasses, func(1.0f), 0)); // tuple()
+```

@@ -705,7 +705,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(s);
     }
 
-    static AliasDeclaration create(Loc loc, Identifier id, Type type)
+    static AliasDeclaration create(const ref Loc loc, Identifier id, Type type)
     {
         return new AliasDeclaration(loc, id, type);
     }
@@ -1768,10 +1768,12 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         if (fieldWidth > memsize * 8)
             error(loc, "bit field width %d is larger than type", fieldWidth);
 
+        const style = target.c.bitFieldStyle;
+
         void startNewField()
         {
             uint alignsize;
-            if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
+            if (style == TargetC.BitFieldStyle.Gcc_Clang)
             {
                 if (fieldWidth > 32)
                     alignsize = memalignsize;
@@ -1783,14 +1785,14 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                     alignsize = 1;
             }
             else
-                alignsize = memalignsize;
+                alignsize = memsize; // not memalignsize
 
             uint dummy;
             offset = AggregateDeclaration.placeField(
                 &fieldState.offset,
                 memsize, alignsize, alignment,
                 &ad.structsize,
-                anon ? &dummy : &ad.alignsize,
+                (anon && style == TargetC.BitFieldStyle.Gcc_Clang) ? &dummy : &ad.alignsize,
                 isunion);
 
             fieldState.inFlight = true;
@@ -1799,7 +1801,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
             fieldState.fieldSize = memsize;
         }
 
-        if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
+        if (style == TargetC.BitFieldStyle.Gcc_Clang)
         {
             if (fieldWidth == 0)
             {
@@ -1820,17 +1822,50 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                   ad.alignsize < memalignsize)
                 ad.alignsize = memalignsize;
         }
-
-        if (fieldWidth == 0)
+        else if (style == TargetC.BitFieldStyle.MS)
         {
-            fieldState.inFlight = false;
-            return;
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (fieldWidth == 0)
+            {
+                if (fieldState.inFlight && !isunion)
+                {
+                    // documentation says align to next int
+                    //const alsz = cast(uint)Type.tint32.size();
+                    const alsz = memsize; // but it really does this
+                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
         }
-        else if (!fieldState.inFlight)
+        else if (style == TargetC.BitFieldStyle.DM)
+        {
+            if (anon && fieldWidth && (!fieldState.inFlight || fieldState.bitOffset == 0))
+                return;  // this probably should be a bug in DMC
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (fieldWidth == 0)
+            {
+                if (fieldState.inFlight && !isunion)
+                {
+                    const alsz = memsize;
+                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+        }
+
+        if (!fieldState.inFlight)
         {
             startNewField();
         }
-        else if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
+        else if (style == TargetC.BitFieldStyle.Gcc_Clang)
         {
             if (fieldState.bitOffset + fieldWidth > memsize * 8)
             {
@@ -1850,7 +1885,8 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                 }
             }
         }
-        else if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Dm_Ms)
+        else if (style == TargetC.BitFieldStyle.DM ||
+                 style == TargetC.BitFieldStyle.MS)
         {
             if (memsize != fieldState.fieldSize ||
                 fieldState.bitOffset + fieldWidth > fieldState.fieldSize * 8)
@@ -1865,7 +1901,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
         bitOffset = fieldState.bitOffset;
 
         const pastField = bitOffset + fieldWidth;
-        if (target.c.bitFieldStyle == TargetC.BitFieldStyle.Gcc_Clang)
+        if (style == TargetC.BitFieldStyle.Gcc_Clang)
         {
             auto size = (pastField + 7) / 8;
             fieldState.fieldSize = size;
@@ -1879,6 +1915,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
 
         if (!isunion)
         {
+            fieldState.offset = offset + fieldState.fieldSize;
             fieldState.bitOffset = pastField;
         }
 

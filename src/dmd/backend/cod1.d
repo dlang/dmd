@@ -1,4 +1,8 @@
 /**
+ * Code generation 1
+ *
+ * Handles function calls: putting arguments in registers / on the stack, and jumping to the function.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

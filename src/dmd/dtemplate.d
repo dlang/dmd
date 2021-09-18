@@ -5340,7 +5340,7 @@ extern (C++) class TemplateParameter : ASTNode
 
     abstract RootObject specialization();
 
-    abstract RootObject defaultArg(Loc instLoc, Scope* sc);
+    abstract RootObject defaultArg(const ref Loc instLoc, Scope* sc);
 
     abstract bool hasDefaultArg();
 
@@ -5422,7 +5422,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         return specType;
     }
 
-    override final RootObject defaultArg(Loc instLoc, Scope* sc)
+    override final RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         Type t = defaultType;
         if (t)
@@ -5541,7 +5541,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return specValue;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         Expression e = defaultValue;
         if (e)
@@ -5640,7 +5640,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return specAlias;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
         Type ta = isType(defaultAlias);
@@ -5741,7 +5741,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         return null;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         return null;
     }

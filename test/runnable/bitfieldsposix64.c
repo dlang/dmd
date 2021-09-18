@@ -30,6 +30,17 @@ S16 = 4 1 | 4 1
 S17 = 4 4 | 4 4
 S18 = 9 1 | 9 1
 A0  = 16 8 | 16 8
+A1  = 12 4 | 12 4
+A2  = 12 4 | 12 4
+A3  = 16 4 | 16 4
+A4  = 8 4 | 8 4
+A5  = 2 1 | 2 1
+A6  = 2 2 | 2 2
+A7  = 16 8 | 16 8
+A8  = 8 8 | 8 8
+A9  = 16 8 | 16 8
+A10 = 2 2 | 2 2
+A11 = 12 4 | 12 4
 S9 = x30200
 S14 = x300000201
 S15 = xe01
@@ -57,16 +68,16 @@ int is64bit() { return sizeof(long) == 8; }  // otherwise assume 32 bit
 struct T0  { char x:1; };                            // 1 1
 struct T1  { short x:1; };                           // 2 2
 struct T2  { int x:1; };                             // 4 4
-struct T3  { char a,b,c,d; long long x:1; };         // 8 8
-struct T4  { char a,b,c,d,e,f,g,h; long long x:1; }; // 16 8
-struct T5  { char a,b,c,d,e,f,g; long long x:1; };   // 8 8
-struct S1  { long long int f:1; };                   // 8 8
+struct T3  { char a,b,c,d; long long x:1; };         // 8 4 (32 bit) 8 8 (64 bit)
+struct T4  { char a,b,c,d,e,f,g,h; long long x:1; }; // 12 4 (32 bit) 16 8 (64 bit)
+struct T5  { char a,b,c,d,e,f,g; long long x:1; };   // 8 4 (32 bit) 8 8 (64 bit)
+struct S1  { long long int f:1; };                   // 4 4 (32 bit) 8 8 (64 bit)
 struct S2  { int x:1; int y:1; };                    // 4 4
 struct S3  { short c; int x:1; unsigned y:1; };      // 4 4
 struct S4  { int x:1; short y:1; };                  // 4 4
 struct S5  { short x:1; int y:1; };                  // 4 4
 struct S6  { short x:1; short y:1; };                // 2 2
-struct S7  { short x:1; int y:1; long long z:1; };   // 8 8
+struct S7  { short x:1; int y:1; long long z:1; };   // 4 4 (32 bit) 8 8 (64 bit)
 struct S8  { char a; char b:1; short c:2; };         // 2 2
 struct S8A { char b:1; short c:2; };                 // 2 2
 struct S8B { char a; short b:1; char c:2; };         // 2 2
@@ -82,6 +93,25 @@ struct S16 { int :32; };                             // 4 1
 struct S17 { int a:32; };                            // 4 4
 struct S18 { char a; long long :0; char b; };        // 5 1 (32 bit) 9 1 (64 bit)
 struct A0  { int a; long long b:34, c:4; };          // 12 4 (32 bit) 16 8 (64 bit)
+struct A1  { int a; unsigned b:11; int c; };         // 12 4
+struct A2  { int a; unsigned b:11, c:5, d:16;        // 12 4
+             int e; };
+struct A3  { int a; unsigned b:11, c:5, :0, d:16;    // 16 4
+             int e; };
+struct A4  { int a:8; short b:7;                     // 8 4
+             unsigned int c:29; };
+struct A5  { char a:7, b:2; };                       // 2 1
+struct A6  { char a:7; short b:2; };                 // 2 2
+struct A7  { short a:8; long b:16; int c;            // 12 4 (32 bit) 16 8 (64 bit)
+             char d:7; };
+struct A8  { short a:8; long b:16; int :0;           // 8 4 (32 bit) 8 8 (64 bit)
+             char c:7; };
+struct A9  { unsigned short a:8; long b:16;          // 16 4 (32 bit) 16 8 (64 bit)
+             unsigned long c:29; long long d:9;
+             unsigned long e:2, f:31; };
+struct A10 { unsigned short a:8; char b; };          // 2 2
+struct A11 { char a; int b:5, c:11, :0, d:8;         // 12 4
+             struct { int ee:8; } e; };
 
 int main()
 {
@@ -112,7 +142,18 @@ int main()
     printf("S16 = %d %d | 4 1\n", (int)sizeof(struct S16), (int)_Alignof(struct S16));
     printf("S17 = %d %d | 4 4\n", (int)sizeof(struct S17), (int)_Alignof(struct S17));
     printf("S18 = %d %d | 9 1\n", (int)sizeof(struct S18), (int)_Alignof(struct S18));
-    printf("A0  = %d %d | 16 8\n", (int)sizeof(struct A0),  (int)_Alignof(struct A0));
+    printf("A0  = %d %d | 16 8\n", (int)sizeof(struct A0), (int)_Alignof(struct A0));
+    printf("A1  = %d %d | 12 4\n", (int)sizeof(struct A1), (int)_Alignof(struct A1));
+    printf("A2  = %d %d | 12 4\n", (int)sizeof(struct A2), (int)_Alignof(struct A2));
+    printf("A3  = %d %d | 16 4\n", (int)sizeof(struct A3), (int)_Alignof(struct A3));
+    printf("A4  = %d %d | 8 4\n", (int)sizeof(struct A4), (int)_Alignof(struct A4));
+    printf("A5  = %d %d | 2 1\n", (int)sizeof(struct A5), (int)_Alignof(struct A5));
+    printf("A6  = %d %d | 2 2\n", (int)sizeof(struct A6), (int)_Alignof(struct A6));
+    printf("A7  = %d %d | 16 8\n", (int)sizeof(struct A7), (int)_Alignof(struct A7));
+    printf("A8  = %d %d | 8 8\n", (int)sizeof(struct A8), (int)_Alignof(struct A8));
+    printf("A9  = %d %d | 16 8\n", (int)sizeof(struct A9), (int)_Alignof(struct A9));
+    printf("A10 = %d %d | 2 2\n", (int)sizeof(struct A10), (int)_Alignof(struct A10));
+    printf("A11 = %d %d | 12 4\n", (int)sizeof(struct A11), (int)_Alignof(struct A11));
 
     {
         struct S9 s;

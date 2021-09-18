@@ -1,4 +1,6 @@
 /**
+ * Output buffer
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -16,7 +18,6 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-// Output buffer
 
 // (This used to be called OutBuffer, renamed to avoid name conflicts with Mars.)
 

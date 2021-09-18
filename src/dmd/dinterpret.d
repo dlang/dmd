@@ -2167,26 +2167,20 @@ public:
             return;
         }
 
-        // Note: This is a workaround for
-        // https://issues.dlang.org/show_bug.cgi?id=17351
-        // The aforementioned bug triggers when passing manifest constant by `ref`.
-        // If there was not a previous reference to them, they are
-        // not cached and trigger a "cannot be read at compile time".
-        // This fix is a crude solution to get it to work. A more proper
-        // approach would be to resolve the forward reference, but that is
-        // much more involved.
-        if (goal == CTFEGoal.LValue && e.var.type.isMutable())
+        if (goal == CTFEGoal.LValue)
         {
             if (auto v = e.var.isVarDeclaration())
             {
-                if (!v.isDataseg() && !v.isCTFE() && !istate)
-                {
-                    e.error("variable `%s` cannot be read at compile time", v.toChars());
-                    result = CTFEExp.cantexp;
-                    return;
-                }
                 if (!hasValue(v))
                 {
+                    // Compile-time known non-CTFE variable from an outer context
+                    // e.g. global or from a ref argument
+                    if (v.isConst() || v.isImmutable())
+                    {
+                        result = getVarExp(e.loc, istate, v, goal);
+                        return;
+                    }
+
                     if (!v.isCTFE() && v.isDataseg())
                         e.error("static variable `%s` cannot be read at compile time", v.toChars());
                     else // CTFE initiated from inside a function

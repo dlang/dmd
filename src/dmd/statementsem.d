@@ -3061,7 +3061,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (lval - fval > 256)
         {
-            crs.error("had %llu cases which is more than 256 cases in case range", lval - fval);
+            crs.error("had %llu cases which is more than 257 cases in case range", 1 + lval - fval);
             errors = true;
             lval = fval + 256;
         }

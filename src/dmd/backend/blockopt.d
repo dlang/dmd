@@ -12,10 +12,6 @@
 
 module dmd.backend.blockopt;
 
-/****************************************************************
- * Handle basic blocks.
- */
-
 version (SPP) {} else
 {
 

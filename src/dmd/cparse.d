@@ -756,7 +756,6 @@ final class CParser(AST) : Parser!AST
             switch (token.value)
             {
             case TOK.dot:
-            case TOK.arrow:
                 nextToken();
                 if (token.value == TOK.identifier)
                 {
@@ -765,6 +764,19 @@ final class CParser(AST) : Parser!AST
                     break;
                 }
                 error("identifier expected following `.`, not `%s`", token.toChars());
+                break;
+
+            case TOK.arrow:
+                nextToken();
+                if (token.value == TOK.identifier)
+                {
+                    Identifier id = token.ident;
+                    auto die = new AST.DotIdExp(loc, e, id);
+                    die.arrow = true;
+                    e = die;
+                    break;
+                }
+                error("identifier expected following `->`, not `%s`", token.toChars());
                 break;
 
             case TOK.plusPlus:
@@ -1674,6 +1686,8 @@ final class CParser(AST) : Parser!AST
                     return;
 
                 case TOK.comma:
+                    if (!symbolsSave)
+                        symbolsSave = symbols;
                     nextToken();
                     break;
 
@@ -1756,7 +1770,10 @@ final class CParser(AST) : Parser!AST
                     }
                 }
                 if (!p.type)
+                {
                     error("no declaration for identifier `%s`", p.ident.toChars());
+                    p.type = AST.Type.terror;
+                }
             }
         }
 
@@ -3384,6 +3401,15 @@ final class CParser(AST) : Parser!AST
                 case TOK.leftParenthesis:
                     if (!skipParens(t, &t))
                         return false;
+                    /*
+                        https://issues.dlang.org/show_bug.cgi?id=22267
+                        Fix issue 22267: If the parser encounters the following
+                            `identifier variableName = (expression);`
+                        the initializer is not identified as such since the parentheses
+                        cause the parser to keep walking indefinitely
+                        (whereas `(1) + 1` would not be affected.).
+                    */
+                    any = true;
                     continue;
 
                 case TOK.leftBracket:
@@ -3878,6 +3904,10 @@ final class CParser(AST) : Parser!AST
                     t = tk;
                     break;
                 }
+
+                if (tk.value == TOK.leftParenthesis && peek(tk).value == TOK.rightParenthesis)
+                    return false;    // (type-name)() is not a cast (it might be a function call)
+
                 if (!isCastExpression(tk, true))
                 {
                     if (afterParenType) // could be ( type-name ) ( unary-expression )

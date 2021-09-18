@@ -857,6 +857,8 @@ struct Global final
     void* console;
     Array<Identifier* >* versionids;
     Array<Identifier* >* debugids;
+    bool hasMainFunction;
+    enum : int32_t { recursionLimit = 500 };
     uint32_t startGagging();
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
@@ -879,10 +881,11 @@ struct Global final
         gaggedWarnings(),
         console(),
         versionids(),
-        debugids()
+        debugids(),
+        hasMainFunction()
     {
     }
-    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, 0u, false, false, (DiagnosticReporting)1u, false, false, false, (FeatureState)-1, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, (FeatureState)-1, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 500u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, false, {}, Array<const char* >(0LLU, {}, arrayliteral), (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr) :
+    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, 0u, false, false, (DiagnosticReporting)1u, false, false, false, (FeatureState)-1, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, (FeatureState)-1, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 500u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, false, {}, Array<const char* >(0LLU, {}, arrayliteral), (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false) :
         inifilename(inifilename),
         copyright(copyright),
         written(written),
@@ -897,7 +900,8 @@ struct Global final
         gaggedWarnings(gaggedWarnings),
         console(console),
         versionids(versionids),
-        debugids(debugids)
+        debugids(debugids),
+        hasMainFunction(hasMainFunction)
         {}
 };
 
@@ -3484,6 +3488,7 @@ class TypeIdentifier final : public TypeQualified
 public:
     Identifier* ident;
     Dsymbol* originalSymbol;
+    static TypeIdentifier* create(const Loc& loc, Identifier* ident);
     const char* kind() const;
     TypeIdentifier* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -3897,7 +3902,7 @@ class CompoundStatement : public Statement
 {
 public:
     Array<Statement* >* statements;
-    static CompoundStatement* create(Loc loc, Statement* s1, Statement* s2);
+    static CompoundStatement* create(const Loc& loc, Statement* s1, Statement* s2);
     CompoundStatement* syntaxCopy();
     ReturnStatement* endsWithReturnStatement();
     Statement* last();
@@ -3970,7 +3975,7 @@ class ExpStatement : public Statement
 {
 public:
     Expression* exp;
-    static ExpStatement* create(Loc loc, Expression* exp);
+    static ExpStatement* create(const Loc& loc, Expression* exp);
     ExpStatement* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -4285,7 +4290,7 @@ public:
     Statement* finalbody;
     Statement* tryBody;
     bool bodyFallsThru;
-    static TryFinallyStatement* create(Loc loc, Statement* _body, Statement* finalbody);
+    static TryFinallyStatement* create(const Loc& loc, Statement* _body, Statement* finalbody);
     TryFinallyStatement* syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;
@@ -4337,6 +4342,10 @@ public:
     const char* kind() const;
     void accept(Visitor* v);
 };
+
+extern Expression* defaultInit(Type* mt, const Loc& loc);
+
+extern Type* merge(Type* type);
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 
@@ -4890,8 +4899,9 @@ struct TargetC final
     enum class BitFieldStyle : uint8_t
     {
         Unspecified = 0u,
-        Dm_Ms = 1u,
-        Gcc_Clang = 2u,
+        DM = 1u,
+        MS = 2u,
+        Gcc_Clang = 3u,
     };
 
     uint8_t longsize;
@@ -5018,10 +5028,10 @@ public:
     virtual Scope* newScope(Scope* sc);
     void setScope(Scope* sc);
     size_t nonHiddenFields();
-    bool determineSize(Loc loc);
+    bool determineSize(const Loc& loc);
     virtual void finalizeSize() = 0;
     d_uns64 size(const Loc& loc);
-    bool fill(Loc loc, Array<Expression* >* elements, bool ctorinit);
+    bool fill(const Loc& loc, Array<Expression* >* elements, bool ctorinit);
     Type* getType();
     bool isDeprecated() const;
     void setDeprecated();
@@ -5279,7 +5289,7 @@ public:
 
 extern BUILTIN isBuiltin(FuncDeclaration* fd);
 
-extern Expression* eval_builtin(Loc loc, FuncDeclaration* fd, Array<Expression* >* arguments);
+extern Expression* eval_builtin(const Loc& loc, FuncDeclaration* fd, Array<Expression* >* arguments);
 
 extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
 
@@ -5458,7 +5468,7 @@ public:
     Baseok baseok;
     ObjcClassDeclaration objc;
     Symbol* cpp_type_info_ptr_sym;
-    static ClassDeclaration* create(Loc loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
+    static ClassDeclaration* create(const Loc& loc, Identifier* id, Array<BaseClass* >* baseclasses, Array<Dsymbol* >* members, bool inObject);
     const char* toPrettyChars(bool qualifyTypes = false);
     ClassDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
@@ -5577,7 +5587,7 @@ public:
     Dsymbol* aliassym;
     Dsymbol* overnext;
     Dsymbol* _import;
-    static AliasDeclaration* create(Loc loc, Identifier* id, Type* type);
+    static AliasDeclaration* create(const Loc& loc, Identifier* id, Type* type);
     AliasDeclaration* syntaxCopy(Dsymbol* s);
     bool overloadInsert(Dsymbol* s);
     const char* kind() const;
@@ -5994,7 +6004,7 @@ public:
     size_t nameoffset;
     size_t namelen;
     static Module* create(const char* filename, Identifier* ident, int32_t doDocComment, int32_t doHdrGen);
-    static Module* load(Loc loc, Array<Identifier* >* packages, Identifier* ident);
+    static Module* load(const Loc& loc, Array<Identifier* >* packages, Identifier* ident);
     const char* kind() const;
     bool loadSourceBuffer(const Loc& loc, File::ReadResult& readResult);
     bool read(const Loc& loc);
@@ -6073,7 +6083,7 @@ public:
     uint32_t alignment;
     ThreeState ispod;
     TypeTuple* argTypes;
-    static StructDeclaration* create(Loc loc, Identifier* id, bool inObject);
+    static StructDeclaration* create(const Loc& loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     const char* kind() const;
@@ -6270,7 +6280,7 @@ public:
     virtual bool declareParameter(Scope* sc) = 0;
     virtual void print(RootObject* oarg, RootObject* oded) = 0;
     virtual RootObject* specialization() = 0;
-    virtual RootObject* defaultArg(Loc instLoc, Scope* sc) = 0;
+    virtual RootObject* defaultArg(const Loc& instLoc, Scope* sc) = 0;
     virtual bool hasDefaultArg() = 0;
     const char* toChars() const;
     DYNCAST dyncast() const;
@@ -6288,7 +6298,7 @@ public:
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
-    RootObject* defaultArg(Loc instLoc, Scope* sc);
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc);
     bool hasDefaultArg();
     RootObject* dummyArg();
     void accept(Visitor* v);
@@ -6313,7 +6323,7 @@ public:
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
-    RootObject* defaultArg(Loc instLoc, Scope* sc);
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc);
     bool hasDefaultArg();
     RootObject* dummyArg();
     void accept(Visitor* v);
@@ -6330,7 +6340,7 @@ public:
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
-    RootObject* defaultArg(Loc instLoc, Scope* sc);
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc);
     bool hasDefaultArg();
     RootObject* dummyArg();
     void accept(Visitor* v);
@@ -6344,7 +6354,7 @@ public:
     bool declareParameter(Scope* sc);
     void print(RootObject* oarg, RootObject* oded);
     RootObject* specialization();
-    RootObject* defaultArg(Loc instLoc, Scope* sc);
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc);
     bool hasDefaultArg();
     RootObject* dummyArg();
     void accept(Visitor* v);
@@ -6482,8 +6492,8 @@ class IntegerExp final : public Expression
 {
     dinteger_t value;
 public:
-    static IntegerExp* create(Loc loc, dinteger_t value, Type* type);
-    static void emplace(UnionExp* pue, Loc loc, dinteger_t value, Type* type);
+    static IntegerExp* create(const Loc& loc, dinteger_t value, Type* type);
+    static void emplace(UnionExp* pue, const Loc& loc, dinteger_t value, Type* type);
     bool equals(const RootObject* const o) const;
     dinteger_t toInteger();
     _d_real toReal();
@@ -6519,8 +6529,8 @@ class RealExp final : public Expression
 {
 public:
     _d_real value;
-    static RealExp* create(Loc loc, _d_real value, Type* type);
-    static void emplace(UnionExp* pue, Loc loc, _d_real value, Type* type);
+    static RealExp* create(const Loc& loc, _d_real value, Type* type);
+    static void emplace(UnionExp* pue, const Loc& loc, _d_real value, Type* type);
     bool equals(const RootObject* const o) const;
     dinteger_t toInteger();
     uinteger_t toUInteger();
@@ -6535,8 +6545,8 @@ class ComplexExp final : public Expression
 {
 public:
     complex_t value;
-    static ComplexExp* create(Loc loc, complex_t value, Type* type);
-    static void emplace(UnionExp* pue, Loc loc, complex_t value, Type* type);
+    static ComplexExp* create(const Loc& loc, complex_t value, Type* type);
+    static void emplace(UnionExp* pue, const Loc& loc, complex_t value, Type* type);
     bool equals(const RootObject* const o) const;
     dinteger_t toInteger();
     uinteger_t toUInteger();
@@ -6551,7 +6561,7 @@ class IdentifierExp : public Expression
 {
 public:
     Identifier* ident;
-    static IdentifierExp* create(Loc loc, Identifier* ident);
+    static IdentifierExp* create(const Loc& loc, Identifier* ident);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
@@ -6616,9 +6626,9 @@ public:
 
     char postfix;
     OwnedBy ownedByCtfe;
-    static StringExp* create(Loc loc, char* s);
-    static StringExp* create(Loc loc, void* string, size_t len);
-    static void emplace(UnionExp* pue, Loc loc, char* s);
+    static StringExp* create(const Loc& loc, const char* s);
+    static StringExp* create(const Loc& loc, const void* string, size_t len);
+    static void emplace(UnionExp* pue, const Loc& loc, const char* s);
     bool equals(const RootObject* const o) const;
     size_t numberOfCodeUnits(int32_t tynto = 0) const;
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
@@ -6640,7 +6650,7 @@ class TupleExp final : public Expression
 public:
     Expression* e0;
     Array<Expression* >* exps;
-    static TupleExp* create(Loc loc, Array<Expression* >* exps);
+    static TupleExp* create(const Loc& loc, Array<Expression* >* exps);
     TupleExp* toTupleExp();
     TupleExp* syntaxCopy();
     bool equals(const RootObject* const o) const;
@@ -6653,8 +6663,8 @@ public:
     Expression* basis;
     Array<Expression* >* elements;
     OwnedBy ownedByCtfe;
-    static ArrayLiteralExp* create(Loc loc, Array<Expression* >* elements);
-    static void emplace(UnionExp* pue, Loc loc, Array<Expression* >* elements);
+    static ArrayLiteralExp* create(const Loc& loc, Array<Expression* >* elements);
+    static void emplace(UnionExp* pue, const Loc& loc, Array<Expression* >* elements);
     ArrayLiteralExp* syntaxCopy();
     bool equals(const RootObject* const o) const;
     Expression* getElement(size_t i);
@@ -6689,7 +6699,7 @@ public:
     bool useStaticInit;
     bool isOriginal;
     OwnedBy ownedByCtfe;
-    static StructLiteralExp* create(Loc loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
+    static StructLiteralExp* create(const Loc& loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
     bool equals(const RootObject* const o) const;
     StructLiteralExp* syntaxCopy();
     Expression* getField(Type* type, uint32_t offset);
@@ -6748,7 +6758,7 @@ public:
     CtorDeclaration* member;
     bool onstack;
     bool thrownew;
-    static NewExp* create(Loc loc, Expression* thisexp, Array<Expression* >* newargs, Type* newtype, Array<Expression* >* arguments);
+    static NewExp* create(const Loc& loc, Expression* thisexp, Array<Expression* >* newargs, Type* newtype, Array<Expression* >* arguments);
     NewExp* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -6785,7 +6795,7 @@ class VarExp final : public SymbolExp
 {
 public:
     bool delegateWasExtracted;
-    static VarExp* create(Loc loc, Declaration* var, bool hasOverloads = true);
+    static VarExp* create(const Loc& loc, Declaration* var, bool hasOverloads = true);
     bool equals(const RootObject* const o) const;
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -6926,7 +6936,8 @@ public:
     Identifier* ident;
     bool noderef;
     bool wantsym;
-    static DotIdExp* create(Loc loc, Expression* e, Identifier* ident);
+    bool arrow;
+    static DotIdExp* create(const Loc& loc, Expression* e, Identifier* ident);
     void accept(Visitor* v);
 };
 
@@ -6984,10 +6995,10 @@ public:
     bool inDebugStatement;
     bool ignoreAttributes;
     VarDeclaration* vthis2;
-    static CallExp* create(Loc loc, Expression* e, Array<Expression* >* exps);
-    static CallExp* create(Loc loc, Expression* e);
-    static CallExp* create(Loc loc, Expression* e, Expression* earg1);
-    static CallExp* create(Loc loc, FuncDeclaration* fd, Expression* earg1);
+    static CallExp* create(const Loc& loc, Expression* e, Array<Expression* >* exps);
+    static CallExp* create(const Loc& loc, Expression* e);
+    static CallExp* create(const Loc& loc, Expression* e, Expression* earg1);
+    static CallExp* create(const Loc& loc, FuncDeclaration* fd, Expression* earg1);
     CallExp* syntaxCopy();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
@@ -7059,8 +7070,8 @@ public:
     TypeVector* to;
     uint32_t dim;
     OwnedBy ownedByCtfe;
-    static VectorExp* create(Loc loc, Expression* e, Type* t);
-    static void emplace(UnionExp* pue, Loc loc, Expression* e, Type* type);
+    static VectorExp* create(const Loc& loc, Expression* e, Type* t);
+    static void emplace(UnionExp* pue, const Loc& loc, Expression* e, Type* type);
     VectorExp* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -7551,6 +7562,8 @@ extern void semantic2(Dsymbol* dsym, Scope* sc);
 
 extern void semantic3(Dsymbol* dsym, Scope* sc);
 
+extern void semanticTypeInfoMembers(StructDeclaration* sd);
+
 extern bool isTrivialExp(Expression* e);
 
 extern bool hasSideEffect(Expression* e, bool assumeImpureCalls = false);
@@ -7715,7 +7728,11 @@ extern Target target;
 
 extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter* >* parameters);
 
-extern Type* getTypeInfoType(Loc loc, Type* t, Scope* sc);
+extern void genTypeInfo(const Loc& loc, Type* torig, Scope* sc);
+
+extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc);
+
+extern bool builtinTypeInfo(Type* t);
 
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {
