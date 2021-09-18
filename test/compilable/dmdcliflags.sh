@@ -174,3 +174,6 @@ output="$(! $DMD -recursion-limit=foo 2>&1)"
 echo "$output" | grep "Error: Switch \`-recursion-limit=foo\` is invalid"
 echo "$output" | grep "Only numbers are allowed for \`-recursion-limit\`"
 
+output="$(! $DMD -recursion-limit 2>&1)"
+echo "$output" | grep "Error: Switch \`-recursion-limit\` is invalid"
+echo "$output" | grep "Expected argument following \`-recursion-limit\` , e.g. \`-recursion-limit=1000\`"
