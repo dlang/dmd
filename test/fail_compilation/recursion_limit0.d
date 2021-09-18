@@ -13,3 +13,10 @@ struct Struct(uint N: 0) {
 void main() {
     pragma(msg, Struct!NUMBER_OF_STRUCTS.value);
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/recursion_limit0.d(6): Error: template instance `recursion_limit0.Struct!300u` recursive expansion exceeded allowed nesting limit
+---
+*/
