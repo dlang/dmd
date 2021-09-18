@@ -961,6 +961,7 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 auto t = cparseTypeName();
                 check(TOK.rightParenthesis);
+                pt = &token;
 
                 if (token.value == TOK.leftCurly)
                 {
@@ -968,6 +969,17 @@ final class CParser(AST) : Parser!AST
                     auto ci = cparseInitializer();
                     auto ce = new AST.CompoundLiteralExp(loc, t, ci);
                     return cparsePostfixOperators(ce);
+                }
+                else if (t.isTypeIdentifier() &&
+                         token.value == TOK.leftParenthesis &&
+                         !isCastExpression(pt))
+                {
+                    /* this might actually be a function
+                     * call that looks like `(a)(b)` or even `(a)(b,c)`
+                     */
+                    auto ie = new AST.IdentifierExp(loc, t.isTypeIdentifier().ident);
+                    ie.parens = true;    // disambiguate it from being a declaration
+                    return new AST.CallExp(loc, ie, cparseArguments());
                 }
                 else
                 {
