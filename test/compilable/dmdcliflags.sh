@@ -164,3 +164,13 @@ echo "$output" | grep "Only a number between 0 and 100 can be passed to \`-cov=<
 output="$(! $DMD -verrors=foo 2>&1)"
 echo "$output" | grep "Error: Switch \`-verrors=foo\` is invalid"
 echo "$output" | grep "Only number, \`spec\`, or \`context\` are allowed for \`-verrors\`"
+
+
+################################################################################
+# -recursion-limit
+################################################################################
+
+output="$(! $DMD -recursion-limit=foo 2>&1)"
+echo "$output" | grep "Error: Switch \`-recursion-limit=foo\` is invalid"
+echo "$output" | grep "Only numbers are allowed for \`-recursion-limit\`"
+
