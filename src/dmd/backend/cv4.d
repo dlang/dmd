@@ -1,5 +1,6 @@
 /**
- * Codeview 4 stuff
+ * CodeView 4 symbolic debug info declarations
+ *
  * See "Microsoft Symbol and Type OMF" document
  *
  * Compiler implementation of the

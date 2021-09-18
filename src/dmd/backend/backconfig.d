@@ -1,4 +1,6 @@
 /**
+ * Configure the back end (optimizer and code generator)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -7,8 +9,6 @@
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.d, backend/backconfig.d)
  */
-
-// Configure the back end (optimizer and code generator)
 
 module dmd.backend.backconfig;
 

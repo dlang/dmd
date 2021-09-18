@@ -1,4 +1,6 @@
 /**
+ * Support for NT exception handling
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -9,8 +11,6 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/nteh.d, backend/nteh.d)
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/nteh.d
  */
-
-// Support for NT exception handling
 
 module dmd.backend.nteh;
 

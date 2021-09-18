@@ -2362,7 +2362,10 @@ public:
     override void visit(DotIdExp e)
     {
         expToBuffer(e.e1, PREC.primary, buf, hgs);
-        buf.writeByte('.');
+        if (e.arrow)
+            buf.writestring("->");
+        else
+            buf.writeByte('.');
         buf.writestring(e.ident.toString());
     }
 

@@ -1,4 +1,6 @@
 /**
+ * Emit Dwarf symbolic debug info
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -9,7 +11,6 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/dwarfdbginf.d
  */
 
-// Emit Dwarf symbolic debug info
 
 /*
 Some generic information for debug info on macOS:

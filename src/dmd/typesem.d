@@ -44,6 +44,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.imphint;
+import dmd.importc;
 import dmd.init;
 import dmd.initsem;
 import dmd.visitor;
@@ -1334,6 +1335,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                         continue;
                 }
 
+                fparam.type = fparam.type.cAdjustParamType(sc); // adjust C array and function parameter types
+
                 Type t = fparam.type.toBasetype();
 
                 /* If fparam after semantic() turns out to be a tuple, the number of parameters may
@@ -2264,7 +2267,7 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
  * Returns:
  *      the type that was merged
  */
-Type merge(Type type)
+extern (C++) Type merge(Type type)
 {
     switch (type.ty)
     {
@@ -3734,10 +3737,17 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     }
 
     /***************************************
-     * Figures out what to do with an undefined member reference
-     * for classes and structs.
-     *
-     * If flag & 1, don't report "not a property" error and just return NULL.
+     * `ident` was not found as a member of `mt`.
+     * Attempt to use overloaded opDot(), overloaded opDispatch(), or `alias this`.
+     * If that fails, forward to visitType().
+     * Params:
+     *  mt = class or struct
+     *  sc = context
+     *  e = `this` for `ident`
+     *  ident = name of member
+     *  flag = if flag & 1, don't report "not a property" error and just return NULL.
+     * Returns:
+     *  resolved expression if found, otherwise null
      */
     Expression noMember(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     {
@@ -4611,7 +4621,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
  * Returns:
  *  The initialization expression for the type.
  */
-Expression defaultInit(Type mt, const ref Loc loc)
+extern (C++) Expression defaultInit(Type mt, const ref Loc loc)
 {
     Expression visitBasic(TypeBasic mt)
     {

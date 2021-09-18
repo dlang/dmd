@@ -1289,14 +1289,11 @@ private bool onlyOneMain(Loc loc)
     __gshared bool hasMain = false;
     if (hasMain)
     {
-        const(char)* msg = "";
-        if (global.params.addMain)
-            msg = ", -main switch added another `main()`";
         const(char)* otherMainNames = "";
         if (target.os == Target.OS.Windows)
             otherMainNames = ", `WinMain`, or `DllMain`";
-        error(loc, "only one `main`%s allowed%s. Previously found `main` at %s",
-            otherMainNames, msg, lastLoc.toChars());
+        error(loc, "only one `main`%s allowed. Previously found `main` at %s",
+            otherMainNames, lastLoc.toChars());
         return false;
     }
     lastLoc = loc;

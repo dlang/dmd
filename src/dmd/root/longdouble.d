@@ -11,15 +11,20 @@
 
 module dmd.root.longdouble;
 
-static if (real.sizeof > 8)
-    alias longdouble = real;
+version (CRuntime_Microsoft)
+{
+    static if (real.sizeof > 8)
+        alias longdouble = real;
+    else
+        alias longdouble = longdouble_soft;
+}
 else
-    alias longdouble = longdouble_soft;
+    alias longdouble = real;
 
 // longdouble_soft needed when building the backend with
 // Visual C or the frontend with LDC on Windows
-version(CRuntime_Microsoft):
-extern(C++):
+version (CRuntime_Microsoft):
+extern (C++):
 nothrow:
 @nogc:
 

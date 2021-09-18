@@ -1,4 +1,8 @@
 /**
+ * Output to ELF object files
+ *
+ * http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -10,11 +14,6 @@
  */
 
 module dmd.backend.elfobj;
-
-/****
- * Output to ELF object files
- * http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html
- */
 
 version (SCPP)
     version = COMPILE;

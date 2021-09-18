@@ -126,6 +126,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [optimize.d](https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d)     | Do constant folding more generally                                                         |
 | [dcast.d](https://github.com/dlang/dmd/blob/master/src/dmd/dcast.d)           | Implicit or explicit cast(), finding common types e.g. in `x ? a : b`, integral promotions |
 | [impcnvtab.d](https://github.com/dlang/dmd/blob/master/src/dmd/impcnvtab.d)   | Define an implicit conversion table for basic types                                        |
+| [importc.d](https://github.com/dlang/dmd/blob/master/src/dmd/importc.d)       | Helpers specific to ImportC
 | [sideeffect.d](https://github.com/dlang/dmd/blob/master/src/dmd/sideeffect.d) | Extract side-effects of expressions for certain lowerings.                                 |
 
 **Compile Time Function Execution (CTFE)**

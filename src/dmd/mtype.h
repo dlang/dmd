@@ -711,6 +711,7 @@ public:
     Identifier *ident;
     Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
 
+    static TypeIdentifier *create(const Loc &loc, Identifier *ident);
     const char *kind();
     TypeIdentifier *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);

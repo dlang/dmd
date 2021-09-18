@@ -1,5 +1,5 @@
 /**
- * Other data flow analysis based optimizations.
+ * Other global optimizations
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
  *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
