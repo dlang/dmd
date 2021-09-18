@@ -4,7 +4,6 @@ REQUIRED_ARGS: -g -c -m64
 GDB_SCRIPT:
 ---
 print sizeof(_Array_int::length)
-
 ---
 GDB_MATCH: \$1 = 8
 */
