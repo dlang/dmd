@@ -1146,6 +1146,11 @@ class Lexer
                             poundLine(n, false);
                             continue;
                         }
+                        else if (n.ident == Id.__pragma && Ccompile)
+                        {
+                            pragmaDirective();
+                            continue;
+                        }
                         else
                         {
                             const locx = loc();
@@ -2911,6 +2916,51 @@ class Lexer
             error(loc, "#line integer [\"filespec\"]\\n expected");
     }
 
+    /*********************************************
+     * C11 6.10.6 Pragma directive
+     * # pragma pp-tokens(opt) new-line
+     * The C preprocessor sometimes leaves pragma directives in
+     * the preprocessed output. Ignore them.
+     * Upon return, p is at start of next line.
+     */
+    private void pragmaDirective()
+    {
+        while (1)
+        {
+            switch (*p)
+            {
+            case 0:
+            case 0x1A:
+                return; // do not advance p
+
+            case '\n':
+                ++p;
+                break;
+
+            case '\r':
+                ++p;
+                if (p[0] == '\n')
+                   ++p;
+                break;
+
+            default:
+                if (*p & 0x80)
+                {
+                    const u = decodeUTF();
+                    if (u == PS || u == LS)
+                    {
+                        ++p;
+                        break;
+                    }
+                }
+                ++p;
+                continue;
+            }
+            break;
+        }
+        endOfLine();
+    }
+
     /********************************************
      * Decode UTF character.
      * Issue error messages for invalid sequences.
@@ -3106,8 +3156,10 @@ class Lexer
         return p;
     }
 
-private:
-    void endOfLine() pure @nogc @safe
+    /**************************
+     * `p` should be at start of next line
+     */
+    private void endOfLine() pure @nogc @safe
     {
         scanloc.linnum++;
         line = p;
