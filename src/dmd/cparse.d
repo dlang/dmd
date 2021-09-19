@@ -2990,6 +2990,15 @@ final class CParser(AST) : Parser!AST
                     // TODO C11 6.7.2.2-2 value must fit into an int
                 }
 
+                if (token.value == TOK.__attribute__)
+                {
+                    /* gnu-attributes can appear here, but just scan and ignore them
+                     * https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html
+                     */
+                    Specifier specifierx;
+                    cparseGnuAttributes(specifierx);
+                }
+
                 auto em = new AST.EnumMember(mloc, ident, value, null, 0, null, null);
                 members.push(em);
 
