@@ -3266,8 +3266,8 @@ final class CParser(AST) : Parser!AST
      */
     private bool isCDeclaration(ref Token* pt)
     {
-        //printf("isCDeclaration()\n");
         auto t = pt;
+        //printf("isCDeclaration() %s\n", t.toChars());
         if (!isDeclarationSpecifiers(t))
             return false;
 
@@ -3392,8 +3392,8 @@ final class CParser(AST) : Parser!AST
      */
     private bool isAssignmentExpression(ref Token* pt)
     {
-        //printf("isAssignmentExpression()\n");
         auto t = pt;
+        //printf("isAssignmentExpression() %s\n", t.toChars());
 
         /* This doesn't actually check for grammar matching an
          * assignment-expression. It just matches ( ) [ ] looking for
@@ -3416,6 +3416,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.leftParenthesis:
                     if (!skipParens(t, &t))
                         return false;
+                    any = true;
                     continue;
 
                 case TOK.leftBracket:
