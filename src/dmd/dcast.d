@@ -2830,7 +2830,7 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
         return result;
     }
 
-    /// Converts one of the expression too the other
+    /// Converts one of the expression to the other
     Type convert(ref Expression from, Type to)
     {
         from = from.castTo(sc, to);
@@ -2847,6 +2847,22 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
 
     Type t1b = e1.type.toBasetype();
     Type t2b = e2.type.toBasetype();
+
+    if (sc && sc.flags & SCOPE.Cfile)
+    {
+        // Integral types can be implicitly converted to pointers
+        if ((t1b.ty == Tpointer) != (t2b.ty == Tpointer))
+        {
+            if (t1b.isintegral())
+            {
+                return convert(e1, t2b);
+            }
+            else if (t2b.isintegral())
+            {
+                return convert(e2, t1b);
+            }
+        }
+    }
 
     if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
