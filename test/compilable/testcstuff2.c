@@ -433,3 +433,12 @@ void test22274(compr, comprLen, uncompr, uncomprLen)
 }
 
 /***************************************************/
+
+int test(char *dest)
+{
+    int x;
+    return dest == x;
+}
+
+/***************************************************/
+

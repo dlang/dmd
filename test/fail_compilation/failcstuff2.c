@@ -30,8 +30,6 @@ fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
 fail_compilation/failcstuff2.c(203):        variable `var` is declared here
 fail_compilation/failcstuff2.c(254): Error: identifier or `(` expected before `)`
 fail_compilation/failcstuff2.c(255): Error: identifier or `(` expected
-fail_compilation/failcstuff2.c(302): Error: incompatible types for `(buf) is (1)`: `ubyte*` and `int`
-fail_compilation/failcstuff2.c(304): Error: incompatible types for `(2) is (buf)`: `int` and `ubyte*`
 ---
 */
 
