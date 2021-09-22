@@ -985,9 +985,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 buf.writenl();
                 buf.writestring("       ");
             }
-            buf.write((*parameters)[i]);
+            write(buf, (*parameters)[i]);
             buf.writestring(" = ");
-            buf.write(tiargs[i]);
+            write(buf, tiargs[i]);
         }
         // write remaining variadic arguments on the last line
         if (variadic)
@@ -998,16 +998,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 buf.writenl();
                 buf.writestring("       ");
             }
-            buf.write((*parameters)[end]);
+            write(buf, (*parameters)[end]);
             buf.writestring(" = ");
             buf.writeByte('(');
             if (cast(int)tiargs.length - end > 0)
             {
-                buf.write(tiargs[end]);
+                write(buf, tiargs[end]);
                 foreach (j; parameters.length .. tiargs.length)
                 {
                     buf.writestring(", ");
-                    buf.write(tiargs[j]);
+                    write(buf, tiargs[j]);
                 }
             }
             buf.writeByte(')');
@@ -8411,5 +8411,13 @@ private struct MATCHpair
         assert(MATCH.min <= mfa && mfa <= MATCH.max);
         this.mta = mta;
         this.mfa = mfa;
+    }
+}
+
+private void write(ref OutBuffer buf, RootObject obj)
+{
+    if (obj)
+    {
+        buf.writestring(obj.toChars());
     }
 }

@@ -19,6 +19,7 @@ import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 import core.sys.windows.winbase;
 import core.sys.windows.winnt;
+import dmd.common.file;
 import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.root.string;
@@ -180,58 +181,8 @@ nothrow:
     /// Write a file, returning `true` on success.
     extern (D) static bool write(const(char)* name, const void[] data)
     {
-        version (Posix)
-        {
-            ssize_t numwritten;
-            int fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, (6 << 6) | (4 << 3) | 4);
-            if (fd == -1)
-                goto err;
-            numwritten = .write(fd, data.ptr, data.length);
-            if (numwritten != data.length)
-                goto err2;
-            if (close(fd) == -1)
-                goto err;
-            return true;
-        err2:
-            close(fd);
-            .remove(name);
-        err:
-            return false;
-        }
-        else version (Windows)
-        {
-            DWORD numwritten; // here because of the gotos
-            const nameStr = name.toDString;
-            // work around Windows file path length limitation
-            // (see documentation for extendedPathThen).
-            HANDLE h = nameStr.extendedPathThen!
-                (p => CreateFileW(p.ptr,
-                                  GENERIC_WRITE,
-                                  0,
-                                  null,
-                                  CREATE_ALWAYS,
-                                  FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-                                  null));
-            if (h == INVALID_HANDLE_VALUE)
-                goto err;
-
-            if (WriteFile(h, data.ptr, cast(DWORD)data.length, &numwritten, null) != TRUE)
-                goto err2;
-            if (numwritten != data.length)
-                goto err2;
-            if (!CloseHandle(h))
-                goto err;
-            return true;
-        err2:
-            CloseHandle(h);
-            nameStr.extendedPathThen!(p => DeleteFileW(p.ptr));
-        err:
-            return false;
-        }
-        else
-        {
-            static assert(0);
-        }
+        import dmd.common.file : writeFile;
+        return writeFile(name, data);
     }
 
     ///ditto
@@ -310,42 +261,6 @@ nothrow:
     extern (C++) static bool update(const(char)* name, const(void)* data, size_t size)
     {
         return update(name, data[0 .. size]);
-    }
-
-    /// Touch a file to current date
-    static bool touch(const char* namez)
-    {
-        version (Windows)
-        {
-            FILETIME ft = void;
-            SYSTEMTIME st = void;
-            GetSystemTime(&st);
-            SystemTimeToFileTime(&st, &ft);
-
-            import core.stdc.string : strlen;
-
-            // get handle to file
-            HANDLE h = namez[0 .. namez.strlen()].extendedPathThen!(p => CreateFile(p.ptr,
-                FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                null, OPEN_EXISTING,
-                FILE_ATTRIBUTE_NORMAL, null));
-            if (h == INVALID_HANDLE_VALUE)
-                return false;
-
-            const f = SetFileTime(h, null, null, &ft); // set last write time
-
-            if (!CloseHandle(h))
-                return false;
-
-            return f != 0;
-        }
-        else version (Posix)
-        {
-            import core.sys.posix.utime;
-            return utime(namez, null) == 0;
-        }
-        else
-            static assert(0);
     }
 
     /// Size of a file in bytes.
