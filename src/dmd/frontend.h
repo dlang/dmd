@@ -859,6 +859,7 @@ struct Global final
     Array<Identifier* >* debugids;
     bool hasMainFunction;
     enum : int32_t { recursionLimit = 500 };
+
     uint32_t startGagging();
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
