@@ -2400,7 +2400,11 @@ static if (1)
                  * element type
                  */
                 {
-                    uint lenidx = I64 ? dwarf_typidx(tstypes[TYulong]) : dwarf_typidx(tstypes[TYuint]);
+                    /*
+                        https://issues.dlang.org/show_bug.cgi?id=22311
+                        Must be unsigned long long, not ulong as the backend thinks ulong is from C.
+                    */
+                    uint lenidx = I64 ? dwarf_typidx(tstypes[TYullong]) : dwarf_typidx(tstypes[TYuint]);
 
                     {
                         type *tdata = type_alloc(TYnptr);
