@@ -876,7 +876,7 @@ Expression pointerArithmetic(UnionExp* pue, const ref Loc loc, EXP op, Type type
     }
     // We allow indx to be equal to the len: one position below the right bound.
     // So we do for the left bound for backward iteration algorithms.
-    if (ptrdiff_t(indx) < -1 || ptrdiff_t(indx) > ptrdiff_t(len))
+    if (indx < -1 || indx > sinteger_t(len))
     {
         error(loc, "cannot assign pointer to index %lld inside memory block `[0..%lld]`", indx, len);
         goto Lcant;
