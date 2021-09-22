@@ -873,7 +873,9 @@ UnionExp pointerArithmetic(const ref Loc loc, TOK op, Type type, Expression eptr
         error(loc, "CTFE internal error: bad pointer operation");
         goto Lcant;
     }
-    if (indx < 0 || len < indx)
+    // We allow indx to be equal to the len: one position below the right bound.
+    // So we do for the left bound for backward iteration algorithms.
+    if (!(-1 <= indx && indx <= len))
     {
         error(loc, "cannot assign pointer to index %lld inside memory block `[0..%lld]`", indx, len);
         goto Lcant;
