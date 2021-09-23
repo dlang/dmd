@@ -601,20 +601,33 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     /// this piece of code has to be kept in line with druntime
     /// look for mix
     @("druntime", "abi")
-    static hash_t hashFinalize(hash_t hash) @safe pure @nogc nothrow
+    static ulong hashFinalize(ulong hash) @nogc nothrow
     {
         // -------- copy and paste from druntime beg ----------
-        static size_t mix(size_t h) @safe pure nothrow @nogc
+        static ulong mix(ulong h_in) nothrow @nogc
         {
             // final mix function of MurmurHash2
             enum m = 0x5bd1e995;
-            h ^= h >> 13;
-            h *= m;
-            h ^= h >> 15;
-            return h;
+            if (target.ptrsize == 4)
+            {
+                uint h = cast(uint) h_in;
+                h ^= h >> 13;
+                h *= m;
+                h ^= h >> 15;
+                h_in = h;
+            }
+            else
+            {
+                ulong h = h_in;
+                h ^= h >> 13;
+                h *= m;
+                h ^= h >> 15;
+                h_in = h;
+            }
+            return h_in;
         }
 
-        enum HASH_FILLED_MARK = size_t(1) << 8 * size_t.sizeof - 1;
+        const HASH_FILLED_MARK = (ulong(1) << 8 * target.ptrsize - 1);
 
         return mix(hash) | HASH_FILLED_MARK;
         // -------- copy and paste from druntime end ----------
@@ -722,12 +735,12 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
         struct AABucket
         {
-            hash_t hash;
-            size_t elementIndex;
+            ulong hash;
+            uint elementIndex;
         }
 
 
-        hash_t[] key_hashes = (cast(hash_t*)mem.xmalloc(length * hash_t.sizeof))[0 .. length];
+        ulong[] key_hashes = (cast(ulong*)mem.xmalloc(length * ulong.sizeof))[0 .. length];
         scope(exit) mem.xfree(key_hashes.ptr);
         {
             scope Expression key;
@@ -737,7 +750,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
                 scope Expression hash_result;
                 evalHash(key, keyType, hash_result);
-                hash_t hash = cast(hash_t)hash_result.toUInteger();
+                ulong hash = hash_result.toUInteger();
                 hash = hashFinalize(hash);
                 key_hashes[i] = hash;
             }
@@ -766,7 +779,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             // this is why the init_size has to be a power of 2
             // otherwise we couldn't optimize % to &
 
-            auto elementIndex = i;
+            uint elementIndex = cast(uint)i;
             const hash = key_hashes[i];
 
             auto key = (*aale.keys)[elementIndex];
@@ -774,8 +787,8 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             for(size_t idx = hash & mask, j = 1;;++j)
             {
                 auto bucket = buckets[idx];
-                if (bucket.hash == hash_t.max
-                    && bucket.elementIndex == size_t.max)
+                if (bucket.hash == ulong.max
+                    && bucket.elementIndex == uint.max)
                 {
                     buckets[idx].hash = hash;
                     buckets[idx].elementIndex = elementIndex;
