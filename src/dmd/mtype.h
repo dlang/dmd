@@ -438,6 +438,7 @@ public:
 
     const char *kind();
     TypeSArray *syntaxCopy();
+    bool isIncomplete();
     d_uns64 size(const Loc &loc);
     unsigned alignsize();
     bool isString();

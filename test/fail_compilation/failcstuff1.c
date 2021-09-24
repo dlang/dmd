@@ -28,16 +28,16 @@ fail_compilation/failcstuff1.c(400): Error: `enum ENUM` has no members
 fail_compilation/failcstuff1.c(450): Error: static array parameters are not supported
 fail_compilation/failcstuff1.c(450): Error: static or type qualifier used in non-outermost array type derivation
 fail_compilation/failcstuff1.c(451): Error: static or type qualifier used in non-outermost array type derivation
-fail_compilation/failcstuff1.c(451): Error: array type has incomplete element type `int[]`
-fail_compilation/failcstuff1.c(452): Error: array type has incomplete element type `int[]`
-fail_compilation/failcstuff1.c(453): Error: array type has incomplete element type `int[]`
+fail_compilation/failcstuff1.c(451): Error: array type has incomplete element type `int[0]`
+fail_compilation/failcstuff1.c(452): Error: array type has incomplete element type `int[0]`
+fail_compilation/failcstuff1.c(453): Error: array type has incomplete element type `int[0]`
 fail_compilation/failcstuff1.c(454): Error: found `const` when expecting `,`
 fail_compilation/failcstuff1.c(458): Error: static array parameters are not supported
 fail_compilation/failcstuff1.c(458): Error: static or type qualifier used outside of function prototype
 fail_compilation/failcstuff1.c(459): Error: static or type qualifier used outside of function prototype
 fail_compilation/failcstuff1.c(460): Error: variable length arrays are not supported
 fail_compilation/failcstuff1.c(460): Error: variable length array used outside of function prototype
-fail_compilation/failcstuff1.c(461): Error: array type has incomplete element type `int[]`
+fail_compilation/failcstuff1.c(461): Error: array type has incomplete element type `int[0]`
 fail_compilation/failcstuff1.c(462): Error: `=`, `;` or `,` expected
 fail_compilation/failcstuff1.c(502): Error: identifier or `(` expected
 fail_compilation/failcstuff1.c(502): Error: found `;` when expecting `)`

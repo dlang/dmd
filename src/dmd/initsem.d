@@ -408,7 +408,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             // If the result will be implicitly cast, move the cast into CTFE
             // to avoid premature truncation of polysemous types.
             // eg real [] x = [1.1, 2.2]; should use real precision.
-            if (i.exp.implicitConvTo(t))
+            if (i.exp.implicitConvTo(t) && !(sc.flags & SCOPE.Cfile))
             {
                 i.exp = i.exp.implicitCastTo(sc, t);
             }
@@ -424,6 +424,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         {
             i.exp = i.exp.optimize(WANTvalue);
         }
+
         if (!global.gag && olderrors != global.errors)
         {
             return i; // Failed, suppress duplicate error messages
@@ -470,13 +471,12 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 goto L1;
             }
         }
-
         /* C11 6.7.9-14..15
          * Initialize an array of unknown size with a string.
-         * ImportC regards Tarray as an array of unknown size.
          * Change to static array of known size
          */
-        if (sc.flags & SCOPE.Cfile && i.exp.op == TOK.string_ && tb.ty == Tarray)
+        if (sc.flags & SCOPE.Cfile && i.exp.isStringExp() &&
+            tb.isTypeSArray() && tb.isTypeSArray().isIncomplete())
         {
             StringExp se = i.exp.isStringExp();
             auto ts = new TypeSArray(tb.nextOf(), new IntegerExp(Loc.initial, se.len + 1, Type.tsize_t));
@@ -683,8 +683,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
 
         auto tsa = t.isTypeSArray();
-        auto ta = t.isTypeDArray();
-        if (!(tsa || ta))
+        if (!tsa)
         {
             /* Not an array. See if it is `{ exp }` which can be
              * converted to an ExpInitializer
@@ -770,13 +769,13 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             return n;
         }
 
-        size_t dim = ta ? dil.length : cast(size_t)tsa.dim.toInteger();
+        size_t dim = tsa.isIncomplete() ? dil.length : cast(size_t)tsa.dim.toInteger();
         auto n = array(t, dim);
 
         if (errors)
             return err();
 
-        if (ta) // array of unknown length
+        if (tsa.isIncomplete()) // array of unknown length
         {
             // Change to array of known length
             tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, n, Type.tsize_t));

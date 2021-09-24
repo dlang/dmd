@@ -2384,8 +2384,9 @@ final class CParser(AST) : Parser!AST
                         }
                         else
                         {
-                            // An array of unknown size, fake it with a DArray
-                            ta = new AST.TypeDArray(t); // []
+                            /* C11 6.7.6.2-4 An [ ] array is an incomplete array type
+                             */
+                            ta = new AST.TypeSArray(t);
                         }
                         check(TOK.rightBracket);
 
@@ -2420,7 +2421,7 @@ final class CParser(AST) : Parser!AST
                             /* C11 6.7.6.2-1: the element type shall not be an incomplete or
                              * function type.
                              */
-                            if (ta.isTypeDArray() && !isVLA)
+                            if (ta.isTypeSArray() && ta.isTypeSArray().isIncomplete() && !isVLA)
                                 error("array type has incomplete element type `%s`", ta.toChars());
                         }
 
