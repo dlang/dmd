@@ -107,7 +107,7 @@ class ArrayIndexError : RangeError
         sink.rangeMsgPut("index [");
         sink.rangeMsgPut(unsignedToTempString!10(index, tmpBuf));
         sink.rangeMsgPut("]");
-        sink.rangeMsgPut(" exceeds array of length ");
+        sink.rangeMsgPut(" too large for array of length ");
         sink.rangeMsgPut(unsignedToTempString!10(length, tmpBuf));
         this.msgBuf = buf;
         super(msgBuf[0..$-sink.length], file, line, next);
@@ -116,7 +116,7 @@ class ArrayIndexError : RangeError
 
 @safe pure unittest
 {
-    assert(new ArrayIndexError(900, 700).msg == "index [900] exceeds array of length 700");
+    assert(new ArrayIndexError(900, 700).msg == "index [900] too large for array of length 700");
     // Ensure msg buffer doesn't overflow on large numbers
     assert(new ArrayIndexError(size_t.max, size_t.max-1).msg);
 }
