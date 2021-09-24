@@ -556,10 +556,10 @@ bool dll_thread_detach( bool detach_thread = true, bool exitTls = true )
 /// ---
 mixin template SimpleDllMain()
 {
-    import core.sys.windows.windef : HINSTANCE;
+    import core.sys.windows.windef : HINSTANCE, BOOL, DWORD, LPVOID;
 
     extern(Windows)
-    bool DllMain(HINSTANCE hInstance, uint ulReason, void* reserved)
+    BOOL DllMain(HINSTANCE hInstance, DWORD ulReason, LPVOID reserved)
     {
         import core.sys.windows.winnt;
         import core.sys.windows.dll :
