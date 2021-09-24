@@ -764,12 +764,12 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         AABucket[] buckets = (cast(AABucket*)bucketMem)[0 .. aaLayout.init_size];
         memset(buckets.ptr, 0xFF, aaLayout.init_size * AABucket.sizeof);
 
-        size_t first_used = uint.max;
-        size_t last_used = 0;
+        uint first_used = uint.max;
+        uint last_used = 0;
         uint actualLength = 0;
 
-        static min = (size_t a, size_t b) { auto min = a; if (a > b) min = b; return min; };
-        static max = (size_t a, size_t b) { auto max = a; if (a < b) max = b; return max; };
+        uint min (uint a, uint b) { auto min = a; if (a > b) min = b; return min; }
+        uint max (uint a, uint b) { auto max = a; if (a < b) max = b; return max; }
 
         // this is the meat ... computing which element(Index) goes into which bucket
 
@@ -792,8 +792,8 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                 {
                     buckets[idx].hash = hash;
                     buckets[idx].elementIndex = elementIndex;
-                    first_used = min(first_used, idx);
-                    last_used = max(last_used, idx);
+                    first_used = min(first_used, cast(uint)idx);
+                    last_used = max(last_used, cast(uint)idx);
                     actualLength++;
                     break;
                 }
@@ -832,7 +832,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             foreach(bucketIdx; first_used .. last_used + 1)
             {
                 auto elementIndex = buckets[bucketIdx].elementIndex;
-                if (elementIndex == size_t.max)
+                if (elementIndex == ulong.max)
                 {
                     dtBuckets.nzeros(cast(uint) bucketSize);
                     continue;
@@ -884,7 +884,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             // deleted -- should be 0
             AAImpl.dword(entires.deleted);
             // typeinfo struct ... let's nullptr it
-            AAImpl.size(cast(size_t)entires.fakeTIEntry);
+            AAImpl.size(0 /*cast(size_t)entires.fakeTIEntry*/);
             // first used.
             AAImpl.dword(entires.first_used);
             // keysize
