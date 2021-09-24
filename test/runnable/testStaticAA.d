@@ -56,7 +56,7 @@ void main()
         "Error: order of iteration differs between compile-time and run-time. " ~
         "This indicates that the hash-table algorithms diverged. Check that " ~
         "`_d_assocarrayliteralTX` in `druntime/src/rt/aaA.d` and " ~
-        "`visitAALiteral(AssocArrayLiteralExp aale)` in `dmd/src/dmd/todt.d` " ~
+        "`computeBucketOrder` in `dmd/src/dmd/aa.d` " ~
         "are equivalent algorithmically."
     );
 }

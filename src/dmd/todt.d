@@ -514,213 +514,6 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
     }
 
-    /// Describes the layout of an entry in the array
-    /// it's essentailly struct { KeyType key; ValueType val;
-    /// needs to be in sync with druntime
-    @("druntime", "abi")
-    static struct AALayout
-    {
-        /// number of inital buckts
-        /// (also the final number since it's immutable)
-        const uint init_size;
-
-        /// sizeof keyType
-        const uint keysz;
-        /// sizeof valueType
-        const uint valsz;
-        /// align requirement of valueType
-        const uint valalign;
-        /// offset of the value from the beginning of the entry
-        const uint valoff;
-        /// padding between value and key, if any.
-        const uint padSize;
-        /// size of the entry. padding included
-        const uint entrySize;
-    }
-
-    @("druntime", "abi")
-    AALayout computeAALayout(Type keyType, Type valueType, size_t length)
-    {
-        // from aaA.d
-        @("druntime", "abi")
-        static size_t nextpow2(const size_t n) pure nothrow @nogc
-        {
-            import core.bitop : bsr;
-
-            if (!n)
-                return 1;
-
-            const isPowerOf2 = !((n - 1) & n);
-            return 1 << (bsr(n) + !isPowerOf2);
-        }
-
-        // from aaA.d
-        @("druntime", "abi")
-        static uint talign(uint tsize, uint algn) @safe pure nothrow @nogc
-        {
-            immutable mask = algn - 1;
-            assert(!(mask & algn));
-            return (tsize + mask) & ~mask;
-        }
-
-        assert(length <= uint.max, "aa literal length must not be greater than uint.max");
-
-        @("druntime", "abi") enum GROW_NUM = 4;
-        @("druntime", "abi") enum GROW_DEN = 5;
-        // shrink threshold
-        @("druntime", "abi") enum SHRINK_NUM = 1;
-        @("druntime", "abi") enum SHRINK_DEN = 8;
-        // grow factor
-        @("druntime", "abi") enum GROW_FAC = 4;
-        // growing the AA doubles it's size, so the shrink threshold must be
-        // smaller than half the grow threshold to have a hysteresis
-        static assert(GROW_FAC * SHRINK_NUM * GROW_DEN < GROW_NUM * SHRINK_DEN);
-        // initial load factor (for literals), mean of both thresholds
-        @("druntime", "abi") enum INIT_NUM = (GROW_DEN * SHRINK_NUM + GROW_NUM * SHRINK_DEN) / 2;
-        @("druntime", "abi") enum INIT_DEN = SHRINK_DEN * GROW_DEN;
-
-        const valsz = cast(uint)valueType.size(Loc.initial);
-        const valalign = cast(uint)valueType.alignsize();
-        const keysz = cast(uint) keyType.size(Loc.initial);
-        const valoff = cast(uint)talign(keysz, valalign);
-
-        AALayout aaLayout =
-        {
-            init_size : cast(uint)nextpow2(INIT_DEN * length / INIT_NUM),
-            keysz : keysz,
-            valsz : valsz,
-            valalign : valalign,
-            valoff : valoff,
-            padSize : cast(uint)(keysz - valoff),
-            entrySize : valoff + valsz,
-        };
-
-        return aaLayout;
-    }
-
-    /// this piece of code has to be kept in line with druntime
-    /// look for mix
-    @("druntime", "abi")
-    static ulong hashFinalize(ulong hash) @nogc nothrow
-    {
-        // -------- copy and paste from druntime beg ----------
-        static ulong mix(ulong h_in) nothrow @nogc
-        {
-            // final mix function of MurmurHash2
-            enum m = 0x5bd1e995;
-            if (target.ptrsize == 4)
-            {
-                uint h = cast(uint) h_in;
-                h ^= h >> 13;
-                h *= m;
-                h ^= h >> 15;
-                h_in = h;
-            }
-            else
-            {
-                ulong h = h_in;
-                h ^= h >> 13;
-                h *= m;
-                h ^= h >> 15;
-                h_in = h;
-            }
-            return h_in;
-        }
-
-        const HASH_FILLED_MARK = (ulong(1) << 8 * target.ptrsize - 1);
-
-        return mix(hash) | HASH_FILLED_MARK;
-        // -------- copy and paste from druntime end ----------
-
-    }
-
-    static void evalHash(scope Expression key, scope Type keyType, scope out Expression hash_result)
-    {
-        scope Expression call;
-        // need to get the key-type hash function.
-        FuncDeclaration fd_tohash = null;
-
-        // if it's a struct search for the toHash()
-        // this is an optimisation as it means cheap expressionSemantic
-        if (auto st = keyType.isTypeStruct())
-        {
-            import dmd.id;
-            auto keyTypeStructDecl = st.sym;
-            assert(keyTypeStructDecl);
-            auto toHash = keyTypeStructDecl.search(key.loc, Id.tohash);
-            fd_tohash  = toHash ? toHash.isFuncDeclaration() : null;
-        }
-
-        if (fd_tohash)
-        {
-            scope dotvar = new DotVarExp(key.loc, key, fd_tohash);
-            call = new CallExp(key.loc, dotvar);
-        }
-        else
-        {
-            // didn't find a to-hash let's use hashOf from druntime.internal.hash
-            auto loadCoreInternalHash()
-            {
-                // TODO factor this with expressionsem.d into load runtime module
-                import dmd.dmodule;
-                import dmd.dimport;
-                import dmd.id;
-                import dmd.identifier;
-                import dmd.dsymbolsem;
-                __gshared Import impCoreInternalHash = null;
-                __gshared Identifier[2] coreInternalID;
-                if (!impCoreInternalHash)
-                {
-                    coreInternalID[0] = Id.core;
-                    coreInternalID[1] = Identifier.idPool("internal");
-                    auto s = new Import(key.loc, coreInternalID[], Identifier.idPool("hash"), null, false);
-                    // Module.load will call fatal() if there's no std.math available.
-                    // Gag the error here, pushing the error handling to the caller.
-                    uint errors = global.startGagging();
-                    s.load(null);
-                    if (s.mod)
-                    {
-                        s.mod.importAll(null);
-                        s.mod.dsymbolSemantic(null);
-                    }
-                    global.endGagging(errors);
-                    impCoreInternalHash = s;
-                }
-                return impCoreInternalHash.mod;
-            }
-
-            auto se = new ScopeExp(key.loc, loadCoreInternalHash());
-            import dmd.identifier;
-            scope dotid = new DotIdExp(key.loc, se, Identifier.idPool("hashOf"));
-            call = new CallExp(key.loc, dotid, key);
-        }
-        {
-            import dmd.expressionsem;
-            import dmd.dinterpret;
-
-            import dmd.dscope;
-            scope Scope* _scope = new Scope();
-            call.expressionSemantic(_scope);
-            hash_result = call.ctfeInterpret();
-        }
-
-        import dmd.ctfeexpr : exceptionOrCantInterpret;
-
-        if (!hash_result || hash_result.exceptionOrCantInterpret())
-        {
-            key.loc.errorSupplemental("Only types with CTFEable toHash are supported as AA initializers");
-            if (fd_tohash)
-            {
-                key.loc.errorSupplemental("`%s.toHash` errored during CTFE or didn't compile", keyType.toPrettyChars());
-            }
-            else
-            {
-                key.loc.errorSupplemental("hashOf(`%s`) didn't compile or errored during CTFE", keyType.toPrettyChars());
-            }
-        }
-    }
-
-
     void visitAALiteral(AssocArrayLiteralExp aale)
     {
         auto length = aale.keys.length;
@@ -732,94 +525,11 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             aale.error("only `const` or `immutable` `static` AAs are supported for now");
         }
-
-        struct AABucket
-        {
-            ulong hash;
-            uint elementIndex;
-        }
-
-
-        ulong[] key_hashes = (cast(ulong*)mem.xmalloc(length * ulong.sizeof))[0 .. length];
-        scope(exit) mem.xfree(key_hashes.ptr);
-        {
-            scope Expression key;
-            foreach(i; 0 .. length)
-            {
-                key = (*aale.keys)[i];
-
-                scope Expression hash_result;
-                evalHash(key, keyType, hash_result);
-                ulong hash = hash_result.toUInteger();
-                hash = hashFinalize(hash);
-                key_hashes[i] = hash;
-            }
-        }
-
-        auto valueType = aale.type.nextOf().toBasetype();
-        AALayout aaLayout = computeAALayout(keyType, valueType, length);
-
-        void* bucketMem = mem.xmalloc_noscan(aaLayout.init_size * AABucket.sizeof);
-        scope(exit) mem.xfree(bucketMem);
-        AABucket[] buckets = (cast(AABucket*)bucketMem)[0 .. aaLayout.init_size];
-        memset(buckets.ptr, 0xFF, aaLayout.init_size * AABucket.sizeof);
-
-        uint first_used = uint.max;
-        uint last_used = 0;
-        uint actualLength = 0;
-
-        uint min (uint a, uint b) { auto min = a; if (a > b) min = b; return min; }
-        uint max (uint a, uint b) { auto max = a; if (a < b) max = b; return max; }
-
-        // this is the meat ... computing which element(Index) goes into which bucket
-
-        foreach (i; 0 .. length)
-        {
-            size_t mask = (aaLayout.init_size - 1);
-            // this is why the init_size has to be a power of 2
-            // otherwise we couldn't optimize % to &
-
-            uint elementIndex = cast(uint)i;
-            const hash = key_hashes[i];
-
-            auto key = (*aale.keys)[elementIndex];
-            // inlined find lookup slot if it's empty we insert ourselves here
-            for(size_t idx = hash & mask, j = 1;;++j)
-            {
-                auto bucket = buckets[idx];
-                if (bucket.hash == ulong.max
-                    && bucket.elementIndex == uint.max)
-                {
-                    buckets[idx].hash = hash;
-                    buckets[idx].elementIndex = elementIndex;
-                    first_used = min(first_used, cast(uint)idx);
-                    last_used = max(last_used, cast(uint)idx);
-                    actualLength++;
-                    break;
-                }
-                else if (bucket.hash == hash)
-                    //hashes equal are we overriding an element
-                {
-                    // it seems like we deduplicate the AssocArrayLiteral somewhere.
-                    // so this code-path is not strictly needed ...
-                    // let's leave it in just to be safe
-                    auto key2 = (*aale.keys)[bucket.elementIndex];
-                    scope eq_expr = new EqualExp(TOK.equal, aale.loc, key, key2);
-                    eq_expr.ctfeInterpret();
-                    if (eq_expr.isBool(true))
-                    {
-                        // if they're the same we override.
-                        buckets[idx].elementIndex = elementIndex;
-                        break;
-                    }
-                }
-                idx = (idx + j) & mask;
-                // we look for the next slot and continue
-            }
-            // insertion of elementIndex complete
-        }
-        // now the insertion process is finished.
-        // the elementIndicies are in the same order they would be in the runtime array
+        import dmd.aa;
+        AALayout layout = computeLayout(aale);
+        auto buckets = cast(AABucket*) mem.xcalloc_noscan(AABucket.sizeof, layout.init_size);
+        scope(exit) mem.xfree(buckets);
+        BucketUsageInfo bucketUsage = MakeAALiteralInfo(aale, layout, buckets);
 
         // now we do the make the buckets
         @("druntime", "abi")
@@ -829,16 +539,17 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             auto bucketSize = (target.ptrsize + Type.thash_t.size(Loc.initial));
             // now that we did that. let's write the bucket array.
 
-            foreach(bucketIdx; first_used .. last_used + 1)
+            foreach(bucketIdx; bucketUsage.first_used .. bucketUsage.last_used + 1)
             {
                 auto elementIndex = buckets[bucketIdx].elementIndex;
+                auto hash = buckets[bucketIdx].hash;
                 if (elementIndex == ulong.max)
                 {
                     dtBuckets.nzeros(cast(uint) bucketSize);
                     continue;
                 }
                 // first the hash
-                dtBuckets.size(key_hashes[elementIndex]);
+                dtBuckets.size(hash);
                 // now make the entry
                 auto dtbEntries = DtBuilder(0);
                 {
@@ -847,7 +558,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                     auto keyExp = (*aale.keys)[elementIndex];
                     auto valueExp = (*aale.values)[elementIndex];
                     Expression_toDt(keyExp, dtbEntries);
-                    dtbEntries.nzeros(aaLayout.padSize);
+                    dtbEntries.nzeros(layout.padSize);
                     Expression_toDt(valueExp, dtbEntries);
                 }
                 // now the ref to the element we just wrote.
@@ -902,18 +613,17 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         @("druntime", "abi")
         AAImplEntries aaImplEntires =
         {
-            buckets_length : cast(uint)buckets.length,
+            buckets_length : layout.init_size,
             buckets_ptr : buildBucketArray(),
-            used : actualLength,
+            used : bucketUsage.used,
             deleted : 0,
             fakeTIEntry : null,
-            first_used : cast(uint)first_used,
-            keysz : aaLayout.keysz,
-            valsz : aaLayout.valsz,
-            valoff : aaLayout.valoff,
+            first_used : bucketUsage.first_used,
+            keysz : layout.keysz,
+            valsz : layout.valsz,
+            valoff : layout.valoff,
             flags : 0
         };
-
 
         dt_t* ImplStructRef = buildImplStruct(aaImplEntires);
         // we are done with the Impl struct ... now all that's left

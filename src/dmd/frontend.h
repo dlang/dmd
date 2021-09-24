@@ -4991,6 +4991,24 @@ enum class CPU
     native = 12,
 };
 
+struct BucketUsageInfo final
+{
+    uint32_t used;
+    uint32_t first_used;
+    uint32_t last_used;
+    BucketUsageInfo() :
+        used(),
+        first_used(),
+        last_used()
+    {
+    }
+    BucketUsageInfo(uint32_t used, uint32_t first_used = 0u, uint32_t last_used = 0u) :
+        used(used),
+        first_used(first_used),
+        last_used(last_used)
+        {}
+};
+
 typedef _d_real longdouble;
 
 class AggregateDeclaration : public ScopeDsymbol
@@ -7886,6 +7904,55 @@ public:
     void visit(IndexExp* e);
     void visit(RemoveExp* e);
 };
+
+struct AALayout final
+{
+    const uint32_t init_size;
+    const uint32_t keysz;
+    const uint32_t valsz;
+    const uint32_t valalign;
+    const uint32_t valoff;
+    const uint32_t padSize;
+    const uint32_t entrySize;
+    AALayout() :
+        init_size(),
+        keysz(),
+        valsz(),
+        valalign(),
+        valoff(),
+        padSize(),
+        entrySize()
+    {
+    }
+    AALayout(const uint32_t init_size, const uint32_t keysz = 0u, const uint32_t valsz = 0u, const uint32_t valalign = 0u, const uint32_t valoff = 0u, const uint32_t padSize = 0u, const uint32_t entrySize = 0u) :
+        init_size(init_size),
+        keysz(keysz),
+        valsz(valsz),
+        valalign(valalign),
+        valoff(valoff),
+        padSize(padSize),
+        entrySize(entrySize)
+        {}
+};
+
+struct AABucket final
+{
+    uint64_t hash;
+    uint32_t elementIndex;
+    AABucket() :
+        hash(),
+        elementIndex()
+    {
+    }
+    AABucket(uint64_t hash, uint32_t elementIndex = 0u) :
+        hash(hash),
+        elementIndex(elementIndex)
+        {}
+};
+
+extern AALayout computeLayout(AssocArrayLiteralExp* aale);
+
+extern BucketUsageInfo MakeAALiteralInfo(AssocArrayLiteralExp* aale, AALayout aaLayout, AABucket* bucketMem);
 
 extern void browse(const char* url);
 
