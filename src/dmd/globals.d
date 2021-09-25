@@ -310,8 +310,6 @@ extern (C++) struct Global
 
     bool hasMainFunction; /// Whether a main function has already been compiled in (for -main switch)
 
-    enum recursionLimit = 500; /// number of recursive template expansions before abort
-
   nothrow:
 
     /**
