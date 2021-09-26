@@ -1776,6 +1776,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
             params.vgc = true;
+        else if (arg == "-cmemoize")
+            params.cmemoize = true;
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
             if (p[8] != '=')

@@ -518,6 +518,7 @@ extern (C++) struct Token
     Loc loc;
     const(char)* ptr; // pointer to first character of this token within buffer
     TOK value;
+    bool isTimeDependent;
     const(char)[] blockComment; // doc comment string prior to this token
     const(char)[] lineComment; // doc comment for previous token
 
@@ -531,12 +532,22 @@ extern (C++) struct Token
 
         struct
         {
-            const(char)* ustring; // UTF8 string
+            const(char)* _ustring; // UTF8 string
             uint len;
             ubyte postfix; // 'c', 'w', 'd'
         }
 
         Identifier ident;
+    }
+
+    @property const(char)* ustring() const @system pure nothrow @nogc
+    {
+        return _ustring;
+    }
+
+    @property void ustring(const(char)* ustring_) @system pure nothrow @nogc
+    {
+        _ustring = ustring_;
     }
 
     extern (D) private static immutable string[TOK.max + 1] tochars =
@@ -845,7 +856,7 @@ nothrow:
         auto s = cast(char*)mem.xmalloc_noscan(length + 1);
         memcpy(s, ptr, length);
         s[length] = 0;
-        ustring = s;
+        _ustring = s;
         len = cast(uint)length;
         postfix = 0;
     }
@@ -865,7 +876,7 @@ nothrow:
      */
     void setString()
     {
-        ustring = "";
+        _ustring = "";
         len = 0;
         postfix = 0;
     }

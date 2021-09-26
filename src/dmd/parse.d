@@ -8082,7 +8082,7 @@ LagainStc:
                     else
                         break;
                 }
-                e = new AST.StringExp(loc, s[0 .. len], len, 1, postfix);
+                e = new AST.StringExp(loc, s[0 .. len], len, 1, postfix, token.isTimeDependent);
                 break;
             }
         case TOK.void_:

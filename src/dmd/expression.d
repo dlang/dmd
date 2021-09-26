@@ -2386,6 +2386,12 @@ extern (C++) final class NullExp : Expression
     }
 }
 
+private auto ref fakePure(F)(scope F fun) pure
+{
+    mixin("alias PureFun = " ~ F.stringof ~ " pure;");
+    return (cast(PureFun) fun)();
+}
+
 /***********************************************************
  * http://dlang.org/spec/expression.html#string_literals
  */
@@ -2393,16 +2399,33 @@ extern (C++) final class StringExp : Expression
 {
     private union
     {
-        char* string;   // if sz == 1
+        char* _string;   // if sz == 1
         wchar* wstring; // if sz == 2
         dchar* dstring; // if sz == 4
     }                   // (const if ownedByCtfe == OwnedBy.code)
     size_t len;         // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
     ubyte committed;    // !=0 if type is committed
+    const bool isTimeDependent;
     enum char NoPostfix = 0;
     char postfix = NoPostfix;   // 'c', 'w', 'd'
     OwnedBy ownedByCtfe = OwnedBy.code;
+
+    @property inout(char)* string() inout @system pure nothrow @nogc
+    {
+        if (isTimeDependent)
+        {
+            // TODO: ok to fake purity and set global.params.isTimeDependent = true;
+            // TODO: issue a warning "Warning: Cannot cache compilation that reads time-dependent token %s." if cmemoize is set
+            // TODO: why doesn’t this work? fakePure( { global.params.isTimeDependent = true; } );
+        }
+        return _string;
+    }
+
+    @property string(char* string_) @system pure nothrow @nogc
+    {
+        _string = string_;
+    }
 
     extern (D) this(const ref Loc loc, const(void)[] string)
     {
@@ -2410,15 +2433,17 @@ extern (C++) final class StringExp : Expression
         this.string = cast(char*)string.ptr; // note that this.string should be const
         this.len = string.length;
         this.sz = 1;                    // work around LDC bug #1286
+        this.isTimeDependent = false;
     }
 
-    extern (D) this(const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix)
+    extern (D) this(const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix, bool isTimeDependent = false)
     {
         super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
         this.string = cast(char*)string.ptr; // note that this.string should be const
         this.len = len;
         this.sz = sz;
         this.postfix = postfix;
+        this.isTimeDependent = isTimeDependent;
     }
 
     static StringExp create(const ref Loc loc, const(char)* s)

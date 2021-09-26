@@ -604,11 +604,13 @@ class Lexer
 
                         if (id == Id.DATE)
                         {
+                            t.isTimeDependent = true;
                             t.ustring = TimeStampInfo.date.ptr;
                             goto Lstr;
                         }
                         else if (id == Id.TIME)
                         {
+                            t.isTimeDependent = true;
                             t.ustring = TimeStampInfo.time.ptr;
                             goto Lstr;
                         }
@@ -619,6 +621,7 @@ class Lexer
                         }
                         else if (id == Id.TIMESTAMP)
                         {
+                            t.isTimeDependent = true;
                             t.ustring = TimeStampInfo.timestamp.ptr;
                         Lstr:
                             t.value = TOK.string_;

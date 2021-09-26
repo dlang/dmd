@@ -413,6 +413,7 @@ extern(C++) void gendocfile(Module m)
         time(&t);
         char* p = ctime(&t);
         p = mem.xstrdup(p);
+        // TODO: included in g_buildHash when fetched from m.macrotable
         m.macrotable.define("DATETIME", p.toDString());
         m.macrotable.define("YEAR", p[20 .. 20 + 4]);
     }
