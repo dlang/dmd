@@ -12,7 +12,7 @@ fi
 script_file="$1"
 shift
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 # export common variables
 source "$DIR/exported_vars.sh"
