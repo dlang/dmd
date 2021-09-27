@@ -640,6 +640,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors || global.warnings)
         removeHdrFilesAndFail(params, modules);
 
+    if (g_countAliasSeq)
+        printf("Found %llu number of AliasSeq\n", g_countAliasSeq);
+
     return status;
 }
 

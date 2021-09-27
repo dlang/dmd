@@ -6145,6 +6145,8 @@ Laftersemantic:
     }
 }
 
+__gshared size_t g_countAliasSeq;
+
 /******************************************************
  * Do template instance semantic for isAliasSeq templates.
  * This is a greatly simplified version of templateInstanceSemantic().
@@ -6152,6 +6154,7 @@ Laftersemantic:
 private
 void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclaration tempdecl)
 {
+    g_countAliasSeq += 1;
     //printf("[%s] aliasSeqInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
     paramscope.stc = 0;
