@@ -2983,6 +2983,15 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 auto mloc = token.loc;
 
+                if (token.value == TOK.__attribute__)
+                {
+                    /* gnu-attributes can appear here, but just scan and ignore them
+                     * https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html
+                     */
+                    Specifier specifierx;
+                    cparseGnuAttributes(specifierx);
+                }
+
                 AST.Expression value;
                 if (token.value == TOK.assign)
                 {
