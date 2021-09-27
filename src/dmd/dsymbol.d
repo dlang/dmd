@@ -2395,7 +2395,7 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
 
 
 /**********************************************
- * ImportC allows redeclarations of variables and functions.
+ * ImportC allows redeclarations of C variables, functions and typedefs.
  *    extern int x;
  *    int x = 3;
  * and:
@@ -2468,6 +2468,16 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
          * FuncDeclaration::semantic2() can detect this, but it relies overnext being set.
          */
         return fd2;
+    }
+
+    auto td  = s.isAliasDeclaration();  // new declaration
+    auto td2 = s2.isAliasDeclaration(); // existing declaration
+    if (td && td2)
+    {
+        /* BUG: just like with variables and functions, the types should match, which needs semantic() to be run on it.
+         * FuncDeclaration::semantic2() can detect this, but it relies overnext being set.
+         */
+        return td2;
     }
 
     return collision();
