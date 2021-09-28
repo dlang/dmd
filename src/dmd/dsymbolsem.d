@@ -2728,7 +2728,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         __gshared int nest;
         //printf("%d\n", nest);
-        if (++nest > global.recursionLimit)
+        if (++nest > global.params.recursionLimit)
         {
             global.gag = 0; // ensure error message gets printed
             tm.error("recursive expansion");
@@ -6049,7 +6049,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         while (ti && !ti.deferred && ti.tinst)
         {
             ti = ti.tinst;
-            if (++nest > global.recursionLimit)
+            if (++nest > global.params.recursionLimit)
             {
                 global.gag = 0; // ensure error message gets printed
                 tempinst.error("recursive expansion");
