@@ -58,10 +58,10 @@ extern (C++) struct MacroTable
         }
         // limit recursive expansion
         __gshared int nest;
-        if (nest > global.params.recursionLimit)
+        if (nest > global.recursionLimit)
         {
             error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.",
-                  global.params.recursionLimit);
+                  global.recursionLimit);
             return;
         }
         nest++;

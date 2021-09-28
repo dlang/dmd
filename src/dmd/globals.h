@@ -172,7 +172,6 @@ struct Param
 
     CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
 
-    unsigned recursionLimit;
     unsigned errorLimit;
 
     DString  argv0;    // program name
