@@ -3003,6 +3003,16 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
             error(loc, "variable `__ctfe` cannot be read at compile time");
             return returnError();
         }
+        if (mt.ident == Id.builtin_va_list) // gcc has __builtin_va_xxxx for stdarg.h
+        {
+            /* Since we don't support __builtin_va_start, -arg, -end, we don't
+             * have to actually care what -list is. A void* will do.
+             * If we ever do care, import core.stdc.stdarg and pull
+             * the definition out of that, similarly to how std.math is handled for PowExp
+             */
+            pt = Type.tvoidptr;
+            return;
+        }
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(loc, mt.ident, &scopesym);

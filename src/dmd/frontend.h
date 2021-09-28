@@ -8279,6 +8279,7 @@ struct Id final
     static Identifier* dllexport;
     static Identifier* vector_size;
     static Identifier* noreturn;
+    static Identifier* builtin_va_list;
     static void initialize();
     Id()
     {
