@@ -4991,24 +4991,6 @@ enum class CPU
     native = 12,
 };
 
-struct BucketUsageInfo final
-{
-    uint32_t used;
-    uint32_t first_used;
-    uint32_t last_used;
-    BucketUsageInfo() :
-        used(),
-        first_used(),
-        last_used()
-    {
-    }
-    BucketUsageInfo(uint32_t used, uint32_t first_used = 0u, uint32_t last_used = 0u) :
-        used(used),
-        first_used(first_used),
-        last_used(last_used)
-        {}
-};
-
 typedef _d_real longdouble;
 
 class AggregateDeclaration : public ScopeDsymbol
@@ -7947,6 +7929,24 @@ struct AABucket final
     AABucket(uint64_t hash, uint32_t elementIndex = 0u) :
         hash(hash),
         elementIndex(elementIndex)
+        {}
+};
+
+struct BucketUsageInfo final
+{
+    uint32_t used;
+    uint32_t first_used;
+    uint32_t last_used;
+    BucketUsageInfo() :
+        used(),
+        first_used(),
+        last_used()
+    {
+    }
+    BucketUsageInfo(uint32_t used, uint32_t first_used = 0u, uint32_t last_used = 0u) :
+        used(used),
+        first_used(first_used),
+        last_used(last_used)
         {}
 };
 
