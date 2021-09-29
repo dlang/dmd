@@ -106,8 +106,7 @@ class ArrayIndexError : RangeError
         char[] sink = buf[];
         sink.rangeMsgPut("index [");
         sink.rangeMsgPut(unsignedToTempString!10(index, tmpBuf));
-        sink.rangeMsgPut("]");
-        sink.rangeMsgPut(" is out of bounds for array of length ");
+        sink.rangeMsgPut("] is out of bounds for array of length ");
         sink.rangeMsgPut(unsignedToTempString!10(length, tmpBuf));
         this.msgBuf = buf;
         super(msgBuf[0..$-sink.length], file, line, next);
