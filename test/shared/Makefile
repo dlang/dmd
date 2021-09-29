@@ -13,7 +13,7 @@ all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/loadDR.done $(ROOT)/host.done: RUN_ARGS:=$(DRUNTIMESO)
 
-$(ROOT)/dynamiccast.done: CLEANUP:=rm dynamiccast_endmain dynamiccast_endbar
+$(ROOT)/dynamiccast.done: CLEANUP:=rm $(ROOT)/dynamiccast_endmain $(ROOT)/dynamiccast_endbar
 
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*

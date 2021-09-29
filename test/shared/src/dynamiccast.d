@@ -37,7 +37,7 @@ version (DLL)
 }
 else
 {
-    T getFunc(T)(const(char)* sym, string thisExePath)
+    T getFunc(T)(const(char)* sym)
     {
         import core.runtime : Runtime;
 
@@ -50,15 +50,26 @@ else
         else version (Posix)
         {
             import core.sys.posix.dlfcn : dlsym;
-            import core.stdc.string : strrchr;
-
-            auto name = thisExePath ~ '\0';
-            const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
-            name = name[0 .. pathlen] ~ "dynamiccast.so";
-            return cast(T) Runtime.loadLibrary(name)
+            return cast(T) Runtime.loadLibrary("./dynamiccast.so")
                 .dlsym(sym);
         }
         else static assert(0);
+    }
+
+    // Returns the path to the executable's directory (null-terminated).
+    string getThisExeDir(string arg0)
+    {
+        char[] buffer = arg0.dup;
+        assert(buffer.length);
+        for (size_t i = buffer.length - 1; i > 0; --i)
+        {
+            if (buffer[i] == '/' || buffer[i] == '\\')
+            {
+                buffer[i] = 0;
+                return cast(string) buffer[0 .. i];
+            }
+        }
+        return null;
     }
 
     version (DigitalMars) version (Win64) version = DMD_Win64;
@@ -67,12 +78,27 @@ else
     {
         import core.stdc.stdio : fopen, fclose, remove;
 
+        const exeDir = getThisExeDir(args[0]);
+        if (exeDir.length)
+        {
+            version (Windows)
+            {
+                import core.sys.windows.winbase : SetCurrentDirectoryA;
+                SetCurrentDirectoryA(exeDir.ptr);
+            }
+            else
+            {
+                import core.sys.posix.unistd : chdir;
+                chdir(exeDir.ptr);
+            }
+        }
+
         remove("dynamiccast_endmain");
         remove("dynamiccast_endbar");
 
         C c = new C;
 
-        auto o = getFunc!(Object function(Object))("foo", args[0])(c);
+        auto o = getFunc!(Object function(Object))("foo")(c);
         assert(cast(C) o);
 
         version (DMD_Win64)
@@ -84,7 +110,7 @@ else
         {
             bool caught;
             try
-                getFunc!(void function(void function()))("bar", args[0])(
+                getFunc!(void function(void function()))("bar")(
                     { throw new C; });
             catch (C e)
                 caught = true;
