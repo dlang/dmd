@@ -21,6 +21,7 @@
 #include "root/port.h"
 #include "root/rmem.h"
 
+#include "aa.h"
 #include "aggregate.h"
 #include "aliasthis.h"
 #include "arraytypes.h"

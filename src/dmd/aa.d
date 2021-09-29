@@ -1,4 +1,16 @@
-﻿module dmd.aa;
+/**
+ * Helpers to emit Associative Array Literals.
+ *
+ * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Authors:     Stefan Koch
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aa.d, _aa.d)
+ * Documentation:  https://dlang.org/phobos/dmd_aa.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/aa.d
+ */
+
+
+module dmd.aa;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.declaration;
@@ -10,7 +22,6 @@ import dmd.globals;
 import dmd.errors;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
 import dmd.expression;
