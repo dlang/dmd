@@ -31,6 +31,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.impcnvtab;
 import dmd.id;
+import dmd.importc;
 import dmd.init;
 import dmd.intrange;
 import dmd.mtype;
@@ -2820,6 +2821,13 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
 
     Expression e1 = pe1;
     Expression e2 = pe2;
+
+    // ImportC: do array/function conversions
+    if (sc)
+    {
+        e1 = e1.arrayFuncConv(sc);
+        e2 = e2.arrayFuncConv(sc);
+    }
 
     Type Lret(Type result)
     {

@@ -84,6 +84,7 @@ struct IRState
     const Param* params;            // command line parameters
     const Target* target;           // target
     bool mayThrow;                  // the expression being evaluated may throw
+    bool Cfile;                     // use C semantics
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
         const Param* params, const Target* target)
@@ -111,6 +112,8 @@ struct IRState
      */
     bool arrayBoundsCheck()
     {
+        if (m.isCFile)
+            return false;
         bool result;
         final switch (global.params.useArrayBounds)
         {

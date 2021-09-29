@@ -4014,7 +4014,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 /* If catch exception type is derived from Exception
                  */
                 if (c.type.toBasetype().implicitConvTo(ClassDeclaration.exception.type) &&
-                    (!c.handler || !c.handler.comeFrom()))
+                    (!c.handler || !c.handler.comeFrom()) && !(sc.flags & SCOPE.debug_))
                 {
                     // Remove c from the array of catches
                     tcs.catches.remove(i);

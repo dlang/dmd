@@ -17,8 +17,10 @@ import core.stdc.stdio;
 
 import dmd.dcast;
 import dmd.dscope;
+import dmd.dsymbol;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.identifier;
 import dmd.mtype;
 
 /**************************************
@@ -89,3 +91,81 @@ Expression arrayFuncConv(Expression e, Scope* sc)
     return e.expressionSemantic(sc);
 }
 
+/****************************************
+ * Run semantic on `e`.
+ * Expression `e` evaluates to an instance of a struct.
+ * Look up `ident` as a field of that struct.
+ * Params:
+ *   e = evaluates to an instance of a struct
+ *   sc = context
+ *   id = identifier of a field in that struct
+ * Returns:
+ *   if successful `e.ident`
+ *   if not then `ErrorExp` and message is printed
+ */
+Expression fieldLookup(Expression e, Scope* sc, Identifier id)
+{
+    e = e.expressionSemantic(sc);
+    if (e.isErrorExp())
+        return e;
+
+    Dsymbol s;
+    auto t = e.type;
+    if (t.isTypePointer())
+    {
+        t = t.isTypePointer().next;
+        e = new PtrExp(e.loc, e);
+    }
+    if (auto ts = t.isTypeStruct())
+        s = ts.sym.search(e.loc, id, 0);
+    if (!s)
+    {
+        e.error("`%s` is not a member of `%s`", id.toChars(), t.toChars());
+        return ErrorExp.get();
+    }
+    Expression ef = new DotVarExp(e.loc, e, s.isDeclaration());
+    return ef.expressionSemantic(sc);
+}
+
+/****************************************
+ * C11 6.5.2.1-2
+ * Apply C semantics to `E[I]` expression.
+ * E1[E2] is lowered to *(E1 + E2)
+ * Params:
+ *      ae = ArrayExp to run semantics on
+ *      sc = context
+ * Returns:
+ *      Expression if this was a C expression with completed semantic, null if not
+ */
+Expression carraySemantic(ArrayExp ae, Scope* sc)
+{
+    if (!(sc.flags & SCOPE.Cfile))
+        return null;
+
+    auto e1 = ae.e1.expressionSemantic(sc);
+
+    assert(ae.arguments.length == 1);
+    Expression e2 = (*ae.arguments)[0];
+
+    /* CTFE cannot do pointer arithmetic, but it can index arrays.
+     * So, rewrite as an IndexExp if we can.
+     */
+    auto t1 = e1.type.toBasetype();
+    if (t1.isTypeDArray() || t1.isTypeSArray())
+    {
+        e2 = e2.expressionSemantic(sc).arrayFuncConv(sc);
+        return new IndexExp(ae.loc, e1, e2).expressionSemantic(sc);
+    }
+
+    e1 = e1.arrayFuncConv(sc);   // e1 might still be a function call
+    e2 = e2.expressionSemantic(sc);
+    auto t2 = e2.type.toBasetype();
+    if (t2.isTypeDArray() || t2.isTypeSArray())
+    {
+        return new IndexExp(ae.loc, e2, e1).expressionSemantic(sc); // swap operands
+    }
+
+    e2 = e2.arrayFuncConv(sc);
+    auto ep = new PtrExp(ae.loc, new AddExp(ae.loc, e1, e2));
+    return ep.expressionSemantic(sc);
+}
