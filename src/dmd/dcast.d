@@ -840,6 +840,43 @@ MATCH implicitConvTo(Expression e, Type t)
             }
         }
 
+        /** Checks whether or not a `CatExp e` can be implicitly converted to type `t`.
+         */
+        override void visit(CatExp e)
+        {
+            static if (LOG)
+            {
+                printf("CatExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+            }
+
+            visit(cast(Expression)e);
+            if (result != MATCH.nomatch)
+                return;
+
+            if (TypeDArray da = e.type.isTypeDArray)
+            {
+                auto te = da.next;  // type of element
+                assert(te);         // TODO: always defined right? remove?
+                if (!te.hasAliasing)
+                {
+                    result = da.immutableOf().implicitConvTo(t.constOf()); // t.constOf() to work when `da` is `string`
+                    if (result > MATCH.constant)
+                    {
+                        result = MATCH.constant;
+                        return;
+                    }
+                    // printf("CatExp::implicitConvTo(this=%s, type=%s, t=%s) result:%d\n",
+                    //        e.toChars(), e.type.toChars(), t.toChars(), result);
+                }
+                else
+                {
+                    /* TODO: move this error message to a common place that special
+                     * cases message if (hasAliasing(te)) is non-null */
+                    // printf("TODO: error: cannot implicit convert because %s has non-immutable indirections\n", e.type.toChars());
+                }
+            }
+        }
+
         override void visit(CallExp e)
         {
             enum LOG = false;

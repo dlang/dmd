@@ -2384,5 +2384,3 @@ Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
     if (log) printf(" collision\n");
     return null;
 }
-
-
