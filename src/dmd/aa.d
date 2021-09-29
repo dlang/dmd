@@ -102,7 +102,6 @@ extern (C++)
     // kick off the hashing;
     scope TypeAArray aaType = aale.type.isTypeAArray();
 
-    scope valueType = aaType.nextOf().toBasetype();
     scope keyType = aaType.index;
 
     const length = aale.keys.length;

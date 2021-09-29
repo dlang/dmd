@@ -516,15 +516,11 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
     void visitAALiteral(AssocArrayLiteralExp aale)
     {
-        auto length = aale.keys.length;
-        auto aaType = aale.type.isTypeAArray();
-        assert(aaType);
-        auto keyType = aaType.index;
-
         if (!aale.type.isImmutable() && !aale.type.isConst())
         {
             aale.error("only `const` or `immutable` `static` AAs are supported for now");
         }
+
         import dmd.aa;
         AALayout layout = computeLayout(aale);
         auto buckets = cast(AABucket*) mem.xcalloc_noscan(AABucket.sizeof, layout.init_size);
