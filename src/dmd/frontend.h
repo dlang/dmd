@@ -3583,6 +3583,7 @@ public:
     Expression* dim;
     const char* kind() const;
     TypeSArray* syntaxCopy();
+    bool isIncomplete();
     d_uns64 size(const Loc& loc);
     uint32_t alignsize();
     bool isString();

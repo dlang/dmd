@@ -446,6 +446,7 @@ public:
 
     const char *kind();
     TypeSArray *syntaxCopy();
+    bool isIncomplete();
     d_uns64 size(const Loc &loc);
     unsigned alignsize();
     bool isString();
@@ -582,6 +583,7 @@ struct ParameterList
     Parameters* parameters;
     StorageClass stc;
     VarArg varargs;
+    bool hasIdentifierList; // true if C identifier-list style
 
     size_t length();
     Parameter *operator[](size_t i) { return Parameter::getNth(parameters, i); }

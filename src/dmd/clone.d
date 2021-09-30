@@ -791,6 +791,19 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     if (!needToHash(sd))
         return null;
 
+    /* The trouble is that the following code relies on .tupleof, but .tupleof
+     * is not allowed for C files. If we allow it for C files, then that turns on
+     * the other D properties, too, such as .dup which will then conflict with allowed
+     * field names.
+     * One way to fix it is to replace the following foreach and .tupleof with C
+     * statements and expressions.
+     * But, it's debatable whether C structs should even need toHash().
+     * Note that it would only be necessary if it has floating point fields.
+     * For now, we'll just not generate a toHash() for C files.
+     */
+    if (sc.flags & SCOPE.Cfile)
+        return null;
+
     //printf("StructDeclaration::buildXtoHash() %s\n", sd.toPrettyChars());
     Loc declLoc; // loc is unnecessary so __xtoHash is never called directly
     Loc loc; // internal code should have no loc to prevent coverage
