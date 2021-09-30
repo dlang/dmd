@@ -1,4 +1,4 @@
-# -preview=dtorfields is now enabled by default
+-preview=dtorfields is now enabled by default
 
 This preview ensures that partially constructed objects are properly destroyed
 when an exception is thrown inside of an constructor. It was introduced in
