@@ -408,6 +408,10 @@ void test22262(unsigned char *buf)
     return;
   if (0 == buf)
     return;
+  if (buf == 1)
+    return;
+  if (2 == buf)
+    return;
 }
 
 /***************************************************/

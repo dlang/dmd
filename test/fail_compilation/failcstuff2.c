@@ -112,13 +112,3 @@ void test22102()
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=22262
-#line 300
-void test22262(unsigned char *buf)
-{
-  if (buf == 1)
-    return;
-  if (2 == buf)
-    return;
-}
-
