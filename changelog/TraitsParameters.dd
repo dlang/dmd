@@ -18,24 +18,24 @@ i.e. the following pattern is now possible without use of variadics:
 ---
 int add(int x, int y)
 {
-	return x + y;
+    return x + y;
 }
 
 auto forwardToAdd(Pack...)(Pack xy)
 {
-	return add(xy);
+    return add(xy);
 }
 ---
 would become
 ---
 int add(int x, int y)
 {
-	return x + y;
+    return x + y;
 }
 
 auto forwardToAdd(int x, int y)
 {
-	return add(__traits(parameters));
+    return add(__traits(parameters));
 }
 ---
 
