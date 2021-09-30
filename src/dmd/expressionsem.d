@@ -12380,7 +12380,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         // For `x.alignof` get the alignment of the variable, not the alignment of its type
         const explicitAlignment = exp.e1.isVarExp().var.isVarDeclaration().alignment;
         const naturalAlignment = exp.e1.type.alignsize();
-        const actualAlignment = (explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment);
+        const actualAlignment = explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment;
         e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
         return e;
     }

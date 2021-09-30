@@ -1112,13 +1112,25 @@ struct ASTBase
 
     extern (C++) final class AlignDeclaration : AttribDeclaration
     {
-        Expression ealign;
+        Expressions* exps;
+        structalign_t salign;
 
-        extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
-            this.ealign = ealign;
+            if (exp)
+            {
+                exps = new Expressions();
+                exps.push(exp);
+            }
+        }
+
+        extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl)
+        {
+            super(decl);
+            this.loc = loc;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)

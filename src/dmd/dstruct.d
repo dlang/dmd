@@ -16,6 +16,7 @@ module dmd.dstruct;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;

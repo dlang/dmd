@@ -21,6 +21,7 @@ import dmd.aliasthis;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
