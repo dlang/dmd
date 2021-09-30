@@ -1,4 +1,4 @@
-# Accessing C Declarations From D Via ImportC Compiler
+Accessing C Declarations From D Via ImportC Compiler
 
 One of D's best features is easy integration with C code.
 There's almost a one-to-one mapping between C and a subset
@@ -191,10 +191,6 @@ is advisable.
 * Tag symbols are part of the global symbol table, not the special tag
 symbol table like they are supposed to reside in.
 
-* Octal literals are not supported.
-
-* Integer literal suffixes are not correct.
-
 * Multiple chars in char literal are not supported.
 
 * `_Atomic` as type qualifier is ignored.
@@ -289,3 +285,7 @@ No. Use dpp.
 ### ImportObjective-C ?
 
 No. Use DStep.
+
+### Documentation
+
+More info on ImportC will be written on [its page in the specification](https://dlang.org/spec/importc.html).
