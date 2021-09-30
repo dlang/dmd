@@ -1580,7 +1580,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
-        if (target.mscoff)
+        if (target.os == Target.OS.Windows && !target.omfobj)
         {
             if (pd.ident == Id.linkerDirective)
             {
@@ -3362,8 +3362,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 /* These quirky conditions mimic what VC++ appears to do
                  */
-                if (target.mscoff && cd.classKind == ClassKind.cpp &&
-                    cd.baseClass && cd.baseClass.vtbl.dim)
+                if (target.os == Target.OS.Windows && !target.omfobj &&
+                    cd.classKind == ClassKind.cpp && cd.baseClass && cd.baseClass.vtbl.dim)
                 {
                     /* if overriding an interface function, then this is not
                      * introducing and don't put it in the class vtbl[]

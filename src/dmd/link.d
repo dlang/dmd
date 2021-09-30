@@ -226,7 +226,7 @@ public int runLINK()
         if (phobosLibname)
             global.params.libfiles.push(phobosLibname.xarraydup.ptr);
 
-        if (target.mscoff)
+        if (!target.omfobj)
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
@@ -836,7 +836,7 @@ version (Windows)
         size_t len;
         if (global.params.verbose)
             message("%s %s", cmd, args);
-        if (!target.mscoff)
+        if (target.omfobj)
         {
             if ((len = strlen(args)) > 255)
             {

@@ -330,10 +330,10 @@ private void obj_start(const(char)* srcfile)
 
     version (Windows)
     {
-        // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
+        // Produce Ms COFF files by default, OMF for -m32omf
         assert(objbuf.length() == 0);
-        objmod = target.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
-                               :    OmfObj_init(&objbuf, srcfile, null);
+        objmod = target.omfobj ?    OmfObj_init(&objbuf, srcfile, null)
+                               : MsCoffObj_init(&objbuf, srcfile, null);
     }
     else
     {
@@ -1209,14 +1209,14 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             objmod.external_def("_main");
         }
-        else if (target.mscoff)
-        {
-            objmod.external_def("main");
-        }
-        else if (target.os == Target.OS.Windows && !target.is64bit)
+        else if (target.omfobj)
         {
             objmod.external_def("_main");
             objmod.external_def("__acrtused_con");
+        }
+        else if (target.os == Target.OS.Windows)
+        {
+            objmod.external_def("main");
         }
         if (libname)
             obj_includelib(libname);
@@ -1224,38 +1224,39 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     }
     else if (fd.isRtInit())
     {
-        if (target.isPOSIX || target.mscoff)
+        if (target.isPOSIX || !target.omfobj)
         {
             objmod.ehsections();   // initialize exception handling sections
         }
     }
     else if (fd.isCMain())
     {
-        if (target.mscoff)
+        if (target.omfobj)
+        {
+            objmod.external_def("__acrtused_con"); // bring in C startup code
+            objmod.includelib("snn.lib");          // bring in C runtime library
+
+        }
+        else if (target.os == Target.OS.Windows)
         {
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
-        }
-        else if (target.os == Target.OS.Windows && !target.is64bit)
-        {
-            objmod.external_def("__acrtused_con");        // bring in C startup code
-            objmod.includelib("snn.lib");          // bring in C runtime library
         }
         s.Sclass = SCglobal;
     }
     else if (target.os == Target.OS.Windows && fd.isWinMain() && onlyOneMain(fd.loc))
     {
-        if (target.mscoff)
+        if (target.omfobj)
+        {
+            objmod.external_def("__acrtused");
+        }
+        else
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
-        }
-        else
-        {
-            objmod.external_def("__acrtused");
         }
         if (libname)
             obj_includelib(libname);
@@ -1265,16 +1266,16 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     // Pull in RTL startup code
     else if (target.os == Target.OS.Windows && fd.isDllMain() && onlyOneMain(fd.loc))
     {
-        if (target.mscoff)
+        if (target.omfobj)
+        {
+            objmod.external_def("__acrtused_dll");
+        }
+        else
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
-        }
-        else
-        {
-            objmod.external_def("__acrtused_dll");
         }
         if (libname)
             obj_includelib(libname);

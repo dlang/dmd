@@ -941,8 +941,8 @@ void buildCapture(FuncDeclaration fd)
 {
     if (!global.params.symdebug)
         return;
-    if (!target.mscoff)  // toDebugClosure only implemented for CodeView,
-        return;                 //  but optlink crashes for negative field offsets
+    if (target.omfobj)  // toDebugClosure only implemented for CodeView,
+        return;         //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.dim && !fd.needsClosure)
     {
