@@ -531,7 +531,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      *    aligned offset to place field at
      *
      */
-    extern (D) static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
+    extern (D) static uint placeField(Dsymbol ds, uint* nextoffset, uint memsize, uint memalignsize,
         structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
     {
         uint ofs = *nextoffset;
@@ -548,7 +548,18 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
         // Skip no-op for noreturn without custom aligment
         if (memsize != 0 || !alignment.isDefault())
+        {
+            const pofs = ofs;
             alignmember(alignment, memalignsize, &ofs);
+            if (global.params.vpadding)
+                if (pofs != ofs)
+                {
+                    const pad = ofs - pofs;
+                    // TOOD: warn about field padding at end of `isStructDeclaration`
+                    ds.loc.message("vpadding: Aligning field `%s.%s` to offset %u bytes wastes %u byte%s",
+                                   ds.parent.toChars(), ds.toChars(), ofs, pad, (pad >= 2 ? "s" : "").ptr);
+                }
+        }
 
         uint memoffset = ofs;
         ofs += memsize;

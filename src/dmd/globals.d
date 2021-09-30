@@ -115,6 +115,7 @@ extern (C++) struct Param
     bool vtls;              // identify thread local variables
     bool vtemplates;        // collect and list statistics on template instantiations
     bool vtemplatesListInstances; // collect and list statistics on template instantiations origins. TODO: make this an enum when we want to list other kinds of instances
+    bool vpadding;          // identify aggregate field padding
     bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
     bool vcomplex = true;   // identify complex/imaginary type usage

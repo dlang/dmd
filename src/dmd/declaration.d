@@ -1199,7 +1199,7 @@ extern (C++) class VarDeclaration : Declaration
         assert(sz != SIZE_INVALID && sz < uint.max);
         uint memsize = cast(uint)sz;                // size of member
         uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
-        offset = AggregateDeclaration.placeField(
+        offset = AggregateDeclaration.placeField(this,
             &fieldState.offset,
             memsize, memalignsize, alignment,
             &ad.structsize, &ad.alignsize,
@@ -1789,7 +1789,7 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
                 alignsize = memsize; // not memalignsize
 
             uint dummy;
-            offset = AggregateDeclaration.placeField(
+            offset = AggregateDeclaration.placeField(this,
                 &fieldState.offset,
                 memsize, alignsize, alignment,
                 &ad.structsize,
