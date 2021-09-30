@@ -16,10 +16,6 @@ jobs:
           OS: Win_64
           MODEL: 64
           ARCH: x64
-        x86-OMF:
-          OS: Win_32
-          MODEL: 32omf
-          ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
 
@@ -36,10 +32,6 @@ jobs:
           OS: Win_64
           MODEL: 64
           ARCH: x64
-        x86-OMF:
-          OS: Win_32
-          MODEL: 32omf
-          ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
       - template: .azure-pipelines/windows-artifact.yml
