@@ -835,11 +835,23 @@ extern (C)
         onArraySliceError(lower, upper, length, file[0 .. strlen(file)], line);
     }
 
+    /// ditto
+    void _d_arraybounds_slice(string file, uint line, size_t lower, size_t upper, size_t length)
+    {
+        onArraySliceError(lower, upper, length, file, line);
+    }
+
     /// Called when an out of range array index is accessed
     void _d_arraybounds_indexp(immutable(char*) file, uint line, size_t index, size_t length)
     {
         import core.stdc.string : strlen;
         onArrayIndexError(index, length, file[0 .. strlen(file)], line);
+    }
+
+    /// ditto
+    void _d_arraybounds_index(string file, uint line, size_t index, size_t length)
+    {
+        onArrayIndexError(index, length, file, line);
     }
 }
 
