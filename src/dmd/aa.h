@@ -8,11 +8,11 @@
  * https://github.com/dlang/dmd/blob/master/src/dmd/aa.h
  */
 
-class AssocArrayLiteralExp;
-
 #pragma once
 
 #include "root/dsystem.h"
+
+class AssocArrayLiteralExp;
 
 struct AALayout
 {
