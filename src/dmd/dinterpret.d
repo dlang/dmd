@@ -2830,8 +2830,7 @@ public:
             auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, cast(StructDeclaration)cd, elems, e.newtype);
             se.origin = se;
             se.ownedByCtfe = OwnedBy.ctfe;
-            emplaceExp!(ClassReferenceExp)(pue, e.loc, se, e.type);
-            Expression eref = pue.exp();
+            Expression eref = ctfeEmplaceExp!ClassReferenceExp(e.loc, se, e.type);
             if (e.member)
             {
                 // Call constructor
