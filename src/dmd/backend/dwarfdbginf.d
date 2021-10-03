@@ -2418,19 +2418,12 @@ static if (1)
                     code = dwarf_abbrev_code(abbrevTypeStruct.ptr, (abbrevTypeStruct).sizeof);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);        // abbreviation code
-                    debug_info.buf.write("_Array_".ptr, 7);       // DW_AT_name
-                    // Handles multi-dimensional array
-                    auto lastdim = t.Tnext;
-                    while (lastdim.Tty == TYucent && lastdim.Tnext)
-                    {
-                        debug_info.buf.write("Array_".ptr, 6);
-                        lastdim = lastdim.Tnext;
-                    }
 
-                    if (tybasic(lastdim.Tty))
-                        debug_info.buf.writeString(tystring[tybasic(lastdim.Tty)]);
-                    else
-                        debug_info.buf.writeByte(0);
+                    // FIXME: provide a better way to fetch length of a pretty
+                    // name on the backend API which is dependent on the
+                    // frontend C++ exported API
+                    debug_info.buf.write(t.Tident, strlen(t.Tident));       // DW_AT_name
+                    debug_info.buf.writeByte(0);
                     debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
                     // length
