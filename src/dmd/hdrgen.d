@@ -1324,11 +1324,10 @@ public:
         if (d.ident)
         {
             buf.writestring(d.ident.toString());
-            buf.writeByte(' ');
         }
         if (d.memtype)
         {
-            buf.writestring(": ");
+            buf.writestring(" : ");
             typeToBuffer(d.memtype, null, buf, hgs);
         }
         if (!d.members)
