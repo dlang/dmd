@@ -909,6 +909,12 @@ public:
 
     override void visit(AttribDeclaration d)
     {
+        bool hasSTC;
+        if (auto stcd = d.isStorageClassDeclaration)
+        {
+            hasSTC = stcToBuffer(buf, stcd.stc);
+        }
+
         if (!d.decl)
         {
             buf.writeByte(';');
@@ -918,10 +924,12 @@ public:
         if (d.decl.dim == 0 || (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration()))
         {
             // hack for bugzilla 8081
+            if (hasSTC) buf.writeByte(' ');
             buf.writestring("{}");
         }
         else if (d.decl.dim == 1)
         {
+            if (hasSTC) buf.writeByte(' ');
             (*d.decl)[0].accept(this);
             return;
         }
@@ -941,8 +949,6 @@ public:
 
     override void visit(StorageClassDeclaration d)
     {
-        if (stcToBuffer(buf, d.stc))
-            buf.writeByte(' ');
         visit(cast(AttribDeclaration)d);
     }
 

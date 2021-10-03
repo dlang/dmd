@@ -647,7 +647,7 @@ ref @safe int* foo(return ref scope int* a)
 }
 struct SafeS
 {
-	@safe 
+	@safe
 	{
 		ref SafeS foo() return
 		{
