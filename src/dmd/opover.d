@@ -213,9 +213,13 @@ private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinE
     if (isRecursiveAliasThis(e.att1, e.e1.type))
         return null;
     //printf("att %s e1 = %s\n", Token::toChars(e.op), e.e1.type.toChars());
-    Expression e1 = new DotIdExp(e.loc, e.e1, ad.aliasthis.ident);
     BinExp be = cast(BinExp)e.copy();
-    be.e1 = e1;
+    // Resolve 'alias this' but in case of assigment don't resolve properties yet
+    // because 'e1 = e2' could mean 'e1(e2)' or 'e1() = e2'
+    bool findOnly = (e.op == TOK.assign);
+    be.e1 = resolveAliasThis(sc, e.e1, true, findOnly);
+    if (!be.e1)
+        return null;
 
     Expression result;
     if (be.op == TOK.concatenateAssign)
@@ -237,9 +241,10 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
     if (isRecursiveAliasThis(e.att2, e.e2.type))
         return null;
     //printf("att %s e2 = %s\n", Token::toChars(e.op), e.e2.type.toChars());
-    Expression e2 = new DotIdExp(e.loc, e.e2, ad.aliasthis.ident);
     BinExp be = cast(BinExp)e.copy();
-    be.e2 = e2;
+    be.e2 = resolveAliasThis(sc, e.e2, true);
+    if (!be.e2)
+        return null;
 
     Expression result;
     if (be.op == TOK.concatenateAssign)

@@ -3149,6 +3149,7 @@ enum class DotExpFlag
 {
     gag = 1,
     noDeref = 2,
+    noAliasThis = 4,
 };
 
 enum : int32_t { LOGDEFAULTINIT = 0 };
