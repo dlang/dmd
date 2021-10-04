@@ -31,6 +31,7 @@ elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
   which git
   brew update-reset
+  brew upgrade
   #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/adns.rb
   #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/autoconf.rb
   #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/automake.rb
