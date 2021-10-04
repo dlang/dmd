@@ -54,6 +54,21 @@ extern(C++) struct VSOptions
     }
 
     /**
+     * set all members to null. Used if we detect a VS installation but end up
+     * falling back on lld-link.exe
+     */
+    void uninitialize()
+    {
+        WindowsSdkDir = null;
+        WindowsSdkVersion = null;
+        UCRTSdkDir = null;
+        UCRTVersion = null;
+        VSInstallDir = null;
+        VCInstallDir = null;
+        VCToolsInstallDir = null;
+    }
+
+    /**
      * retrieve the name of the default C runtime library
      * Params:
      *   x64 = target architecture (x86 if false)
