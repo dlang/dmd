@@ -3756,38 +3756,42 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
                 if (fn == skipFn)
                     continue;
 
-                if (fn == nodeFromName)
+                static if (__traits(compiles, { import dmd.reflect; }))
                 {
-                    import dmd.arraytypes : Expressions; 
-                    scope eArgs = new Expressions(call.args.length);
-                    // now we convert our args from bc_values to expressions
-                    import dmd.reflect;
-                    import dmd.mtype;
-                    import dmd.ctfe.ctfe_bc : genArg;
-                    auto tFlags = ReflectionVisitor.getEd("ReflectFlags").type;
-                    auto tScope = ReflectionVisitor.getCd("Scope").type;
-                    Type[3] argTypes = [Type.tstring, tFlags, tScope];
-                    foreach(size_t i, ref arg;call.args)
+
+                    if (fn == nodeFromName)
                     {
-                        BCValue a = arg;
-                        import dmd.ctfe.ctfe_bc : toExpression;
-                        printf("bcArg: %s\n", arg.toString().ptr);
-                        if (arg.vType != BCValueType.Immediate)
+                        import dmd.arraytypes : Expressions; 
+                        scope eArgs = new Expressions(call.args.length);
+                        // now we convert our args from bc_values to expressions
+                        import dmd.reflect;
+                        import dmd.mtype;
+                        import dmd.ctfe.ctfe_bc : genArg;
+                        auto tFlags = ReflectionVisitor.getEd("ReflectFlags").type;
+                        auto tScope = ReflectionVisitor.getCd("Scope").type;
+                        Type[3] argTypes = [Type.tstring, tFlags, tScope];
+                        foreach(size_t i, ref arg;call.args)
                         {
-                            a = imm32(stackP[arg.stackAddr / 4] & uint.max);
+                            BCValue a = arg;
+                            import dmd.ctfe.ctfe_bc : toExpression;
+                            printf("bcArg: %s\n", arg.toString().ptr);
+                            if (arg.vType != BCValueType.Immediate)
+                            {
+                                a = imm32(stackP[arg.stackAddr / 4] & uint.max);
+                            }
+                            (*eArgs)[i] = toExpression(a, argTypes[i]);
+                            printf("eArg: %s\n" ,(*eArgs)[i].toChars());
                         }
-                        (*eArgs)[i] = toExpression(a, argTypes[i]);
-                        printf("eArg: %s\n" ,(*eArgs)[i].toChars());
+                        auto refl_result = eval_reflect(Loc.initial, REFLECT.nodeFromName, eArgs, null);
+                        *lhsRef = genArg(refl_result).imm32;
+                        printf("reflection resulted in: %s\n", refl_result.toChars());
+                        continue;
+                        // assert(0, "got nodeFromName");
                     }
-                    auto refl_result = eval_reflect(Loc.initial, REFLECT.nodeFromName, eArgs, null);
-                    *lhsRef = genArg(refl_result).imm32;
-                    printf("reflection resulted in: %s\n", refl_result.toChars());
-                    continue;
-                    // assert(0, "got nodeFromName");
-                }
-                else if (fn == currentScope)
-                {
-                    assert(0, "got currentScope\n");
+                    else if (fn == currentScope)
+                    {
+                        assert(0, "got currentScope\n");
+                    }
                 }
 
                 if (!__ctfe)

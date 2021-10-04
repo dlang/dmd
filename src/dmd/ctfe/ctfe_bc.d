@@ -9190,22 +9190,23 @@ _sharedCtfeState.typeToString(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~
             {
                 result = DruntimeBultin.setArrayLength;
             }
-            else // TODO use code from core_reflect to translate to the DruntimeBuiltin enum
+            else
             {
-               import dmd.reflect; 
-
-                if (auto rKind = reflectKind(fd))
+                static if (__traits(compiles, { import dmd.reflect; } ))
                 {
-                    import dmd.dinterpret : ctfeGlobals;
-                    if (rKind == REFLECT.nodeFromName)
+                   import dmd.reflect;
+
+                    if (auto rKind = reflectKind(fd))
                     {
-                        return DruntimeBultin.nodeFromName;
+                        import dmd.dinterpret : ctfeGlobals;
+                        if (rKind == REFLECT.nodeFromName)
+                        {
+                            return DruntimeBultin.nodeFromName;
+                        }
+                        else
+                            assert(0, "Unknown reflection builtin");
                     }
-                    else
-                        assert(0, "Unknown reflection builtin");
                 }
-
-
             }
             return result;
         }
