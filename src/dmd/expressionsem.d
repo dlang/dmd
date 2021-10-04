@@ -4663,7 +4663,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             UnaExp ue = cast(UnaExp)exp.e1;
 
-            Expression ue1old = ue.e1; // need for 'right this' check
+            Expression ue1 = ue.e1;
+            Expression ue1old = ue1; // need for 'right this' check
+            VarDeclaration v;
+            if (ue1.op == TOK.variable && (v = (cast(VarExp)ue1).var.isVarDeclaration()) !is null && v.needThis())
+            {
+                ue.e1 = new TypeExp(ue1.loc, ue1.type);
+                ue1 = null;
+            }
+
             DotVarExp dve;
             DotTemplateExp dte;
             Dsymbol s;
@@ -4682,7 +4690,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             // Do overload resolution
-            exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue.e1.type, exp.arguments, FuncResolveFlag.standard);
+            exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue1 ? ue1.type : null, exp.arguments, FuncResolveFlag.standard);
             if (!exp.f || exp.f.errors || exp.f.type.ty == Terror)
                 return setError();
 
@@ -4694,6 +4702,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto ad2 = b.sym;
                 ue.e1 = ue.e1.castTo(sc, ad2.type.addMod(ue.e1.type.mod));
                 ue.e1 = ue.e1.expressionSemantic(sc);
+                ue1 = ue.e1;
                 auto vi = exp.f.findVtblIndex(&ad2.vtbl, cast(int)ad2.vtbl.dim);
                 assert(vi >= 0);
                 exp.f = ad2.vtbl[vi].isFuncDeclaration();
@@ -9802,73 +9811,72 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (t1b.ty != Tsarray && t1b.ty != Tarray)
                 return setResult(res);
 
-            const isArrayCtor = (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray)
-                && (ae.e2.isVarExp || ae.e2.isSliceExp)
-                && ae.e1.type.nextOf
-                && ae.e2.type.nextOf
-                && ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.nextOf.mutableOf);
-            const isArraySetCtor = (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray)
-                && (ae.e2.type.ty == Tstruct || ae.e2.type.ty == Tsarray)
-                && ae.e1.type.nextOf
-                && ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.mutableOf);
+            /* Do not lower Rvalues and references, as they need to be moved,
+             * not copied.
+             * Skip the lowering when the RHS is an array literal, as e2ir
+             * already handles such cases more elegantly. 
+             */ 
+            const isArrayCtor =
+                (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray) &&
+                ae.e2.isLvalue &&
+                !(ae.e1.isVarExp &&
+                    ae.e1.isVarExp.var.isVarDeclaration.isReference) &&
+                (ae.e2.isVarExp ||
+                    ae.e2.isSliceExp ||
+                    (ae.e2.type.ty == Tsarray && !ae.e2.isArrayLiteralExp)) &&
+                ae.e1.type.nextOf &&
+                ae.e2.type.nextOf &&
+                ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.nextOf.mutableOf);
 
-            if (isArrayCtor)
+            const isArraySetCtor =
+                (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray) &&
+                ae.e2.isLvalue &&
+                (ae.e2.type.ty == Tstruct || ae.e2.type.ty == Tsarray) &&
+                ae.e1.type.nextOf &&
+                ae.e1.type.nextOf.equivalent(ae.e2.type);
+
+            if (isArrayCtor || isArraySetCtor)
             {
-                // Skip lowering if type does not have a postblit or destructor
-                auto ts = t1b.nextOf().baseElemOf().isTypeStruct();
+                const ts = t1b.nextOf().baseElemOf().isTypeStruct();
                 if (!ts || (!ts.sym.postblit && !ts.sym.dtor))
                     return setResult(res);
 
-                if (!verifyHookExist(exp.loc, *sc, Id._d_arrayctor, "construct array with other array", Id.object))
+                auto func = isArrayCtor ? Id._d_arrayctor : Id._d_arraysetctor;
+                const other = isArrayCtor ? "other array" : "value";
+                if (!verifyHookExist(exp.loc, *sc, func, "construct array with " ~ other, Id.object))
                     return setError();
 
-                // Lower to object._d_arrayctor(e1, e2)
+                // Lower to object._d_array{,set}ctor(e1, e2)
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
-                id = new DotIdExp(exp.loc, id, Id._d_arrayctor);
+                id = new DotIdExp(exp.loc, id, func);
                 id = id.expressionSemantic(sc);
 
                 auto arguments = new Expressions();
-                arguments.reserve(2);
                 arguments.push(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf).expressionSemantic(sc));
-                arguments.push(new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf).expressionSemantic(sc));
-
-                Expression ce = new CallExp(exp.loc, id, arguments);
-                res = ce.expressionSemantic(sc);
-                if (global.params.verbose)
-                    message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
-            }
-            else if (isArraySetCtor)
-            {
-                // Skip lowering if type does not have a postblit or destructor
-                auto ts = t1b.nextOf().baseElemOf().isTypeStruct();
-                if (!ts || (!ts.sym.postblit && !ts.sym.dtor))
-                    return setResult(res);
-
-                if (!verifyHookExist(exp.loc, *sc, Id._d_arraysetctor, "construct array with value", Id.object))
-                    return setError();
-
-                // Lower to object._d_arraysetctor(e1, e2)
-                Expression id = new IdentifierExp(exp.loc, Id.empty);
-                id = new DotIdExp(exp.loc, id, Id.object);
-                id = new DotIdExp(exp.loc, id, Id._d_arraysetctor);
-                id = id.expressionSemantic(sc);
-
-                Expression e0;
-                auto arguments = new Expressions();
-                arguments.push(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf).expressionSemantic(sc));
-                // If ae.e2 is not a variable, construct a temp variable, as _d_arraysetctor requires `ref` access
-                if (!ae.e2.isVarExp)
+                if (isArrayCtor)
                 {
-                    auto vd = copyToTemp(STC.scope_, "__setctor", ae.e2);
-                    e0 = new DeclarationExp(vd.loc, vd).expressionSemantic(sc);
-                    arguments.push(new VarExp(vd.loc, vd).expressionSemantic(sc));
+                    arguments.push(new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf).expressionSemantic(sc));
+                    Expression ce = new CallExp(exp.loc, id, arguments);
+                    res = ce.expressionSemantic(sc);
                 }
                 else
-                    arguments.push(ae.e2);
+                {
+                    Expression e0;
+                    // If ae.e2 is not a variable, construct a temp variable, as _d_arraysetctor requires `ref` access
+                    if (!ae.e2.isVarExp)
+                    {
+                        auto vd = copyToTemp(STC.scope_, "__setctor", ae.e2);
+                        e0 = new DeclarationExp(vd.loc, vd).expressionSemantic(sc);
+                        arguments.push(new VarExp(vd.loc, vd).expressionSemantic(sc));
+                    }
+                    else
+                        arguments.push(ae.e2);
 
-                Expression ce = new CallExp(exp.loc, id, arguments);
-                res = Expression.combine(e0, ce).expressionSemantic(sc);
+                    Expression ce = new CallExp(exp.loc, id, arguments);
+                    res = Expression.combine(e0, ce).expressionSemantic(sc);
+                }
+
                 if (global.params.verbose)
                     message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
             }
@@ -11582,6 +11590,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             return false;
+        }
+
+        if (sc && sc.flags & SCOPE.Cfile)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=22262
+            // In C11, zero implicitly casts to a null pointer.
+            if ((t1.ty == Tpointer) != (t2.ty == Tpointer))
+            {
+                if (auto ie = exp.e1.isIntegerExp())
+                {
+                    if (ie.toInteger() == 0)
+                        exp.e1 = new NullExp(ie.loc, t2);
+                }
+                else if (auto ie = exp.e2.isIntegerExp())
+                {
+                    if (ie.toInteger() == 0)
+                        exp.e2 = new NullExp(ie.loc, t1);
+                }
+            }
         }
 
         if (auto e = exp.op_overload(sc))

@@ -2840,7 +2840,8 @@ public:
             auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, cast(StructDeclaration)cd, elems, e.newtype);
             se.origin = se;
             se.ownedByCtfe = OwnedBy.ctfe;
-            Expression eref = ctfeEmplaceExp!ClassReferenceExp(e.loc, se, e.type);
+            emplaceExp!(ClassReferenceExp)(pue, e.loc, se, e.type);
+            Expression eref = pue.exp();
             if (e.member)
             {
                 // Call constructor
@@ -4813,32 +4814,17 @@ public:
                 result = interpretRegion(ae, istate);
                 return;
             }
-            else if (fd.ident == Id._d_arrayctor)
+            else if (fd.ident == Id._d_arrayctor || fd.ident == Id._d_arraysetctor)
             {
                 assert(e.arguments.dim == 2);
 
                 Expression ea = (*e.arguments)[0];
-                assert(ea.isCastExp);
-                ea = ea.isCastExp.e1;
+                if (ea.isCastExp)
+                    ea = ea.isCastExp.e1;
+
                 Expression eb = (*e.arguments)[1];
-                assert(eb.isCastExp);
-                eb = eb.isCastExp.e1;
-
-                // Rewrite ea = eb
-                ConstructExp ce = new ConstructExp(e.loc, ea, eb);
-                ce.type = ea.type;
-
-                result = interpret(ce, istate);
-                return;
-            }
-            else if (fd.ident == Id._d_arraysetctor)
-            {
-                assert(e.arguments.dim == 2);
-
-                Expression ea = (*e.arguments)[0];
-                assert(ea.isCastExp);
-                ea = ea.isCastExp.e1;
-                Expression eb = (*e.arguments)[1];
+                if (eb.isCastExp && fd.ident == Id._d_arrayctor)
+                    eb = eb.isCastExp.e1;
 
                 // Rewrite ea = eb
                 ConstructExp ce = new ConstructExp(e.loc, ea, eb);
