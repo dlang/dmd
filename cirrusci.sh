@@ -42,7 +42,7 @@ elif [ "$OS_NAME" == "darwin" ]; then
   #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/pkg-config.rb
   #brew style --fix ...
   #brew update --force --quiet
-  brew install gnupg
+  brew list gnupg || brew install gnupg
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake"
   if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then
