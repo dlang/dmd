@@ -29,7 +29,18 @@ if [ "$OS_NAME" == "linux" ]; then
   apt-get install -yq $packages
 elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
+  which git
   brew update-reset
+  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/adns.rb
+  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/autoconf.rb
+  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/automake.rb
+  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gettext.rb
+  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gmp.rb
+  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gnutls.rb
+  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gnupg.rb
+  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/pkg-config.rb
+  #brew style --fix ...
+  #brew update --force --quiet
   brew install gnupg
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake"
