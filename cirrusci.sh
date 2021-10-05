@@ -30,21 +30,11 @@ if [ "$OS_NAME" == "linux" ]; then
 elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
   which git
+  # run brew update-reset twice, it seems to fix 
+  # https://github.com/Homebrew/brew/pull/12170#issuecomment-933976753
   brew update-reset
   brew update-reset
   brew upgrade
-  git -C `brew --repository` rev-parse HEAD
-  sed -n '90,110 p' /usr/local/Homebrew/Library/Homebrew/brew.sh
-  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/adns.rb
-  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/autoconf.rb
-  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/automake.rb
-  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gettext.rb
-  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gmp.rb
-  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gnutls.rb
-  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/gnupg.rb
-  #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/pkg-config.rb
-  #brew style --fix ...
-  #brew update --force --quiet
   brew list gnupg || brew install gnupg
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake"
