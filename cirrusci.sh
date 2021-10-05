@@ -31,6 +31,7 @@ elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
   which git
   brew update-reset
+  brew update-reset
   brew upgrade
   git -C `brew --repository` rev-parse HEAD
   sed -n '90,110 p' /usr/local/Homebrew/Library/Homebrew/brew.sh
