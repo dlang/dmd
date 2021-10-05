@@ -407,7 +407,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     sc2.insert(_arguments);
                     _arguments.parent = funcdecl;
                 }
-                if (f.linkage == LINK.d || f.parameterList.length)
+                if ((f.linkage == LINK.d || f.parameterList.length) &&
+                    !(sc.flags & SCOPE.Cfile))  // don't want to require importing stdarg for C files
                 {
                     // Declare _argptr
                     Type t = target.va_listType(funcdecl.loc, sc);
