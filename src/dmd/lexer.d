@@ -26,6 +26,7 @@ import dmd.errors;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.port;
@@ -229,6 +230,8 @@ class Lexer
     ubyte long_doublesize;      /// size of C long double, 8 or D real.sizeof
     ubyte wchar_tsize;          /// size of C wchar_t, 2 or 4
 
+    structalign_t packalign;    /// current state of #pragma pack alignment (ImportC)
+
     private
     {
         const(char)* base;      // pointer to start of buffer
@@ -242,6 +245,10 @@ class Lexer
         int lastDocLine;        // last line of previous doc comment
 
         Token* tokenFreelist;
+
+        // ImportC #pragma pack stack
+        Array!Identifier* records;      // identifers (or null)
+        Array!structalign_t* packs;     // parallel alignment values
     }
 
   nothrow:
@@ -273,6 +280,7 @@ class Lexer
         this.commentToken = commentToken;
         this.inTokenStringConstant = 0;
         this.lastDocLine = 0;
+        this.packalign = STRUCTALIGN_DEFAULT;
         //initKeywords();
         /* If first line starts with '#!', ignore the line
          */
@@ -1148,7 +1156,7 @@ class Lexer
                         }
                         else if (n.ident == Id.__pragma && Ccompile)
                         {
-                            pragmaDirective();
+                            pragmaDirective(scanloc);
                             continue;
                         }
                         else
@@ -2923,7 +2931,172 @@ class Lexer
      * the preprocessed output. Ignore them.
      * Upon return, p is at start of next line.
      */
-    private void pragmaDirective()
+    private void pragmaDirective(const ref Loc loc)
+    {
+        Token n;
+        scan(&n);
+        if (n.value == TOK.identifier && n.ident == Id.pack)
+            return pragmaPack(loc);
+        skipToNextLine();
+    }
+
+    /*********
+     * ImportC
+     * # pragma pack
+     * https://gcc.gnu.org/onlinedocs/gcc-4.4.4/gcc/Structure_002dPacking-Pragmas.html
+     * https://docs.microsoft.com/en-us/cpp/preprocessor/pack
+     * Scanner is on the `pack`
+     * Params:
+     *  startloc = location to use for error messages
+     */
+    private void pragmaPack(const ref Loc startloc)
+    {
+        const loc = startloc;
+        Token n;
+        scan(&n);
+        if (n.value != TOK.leftParenthesis)
+        {
+            error(loc, "left parenthesis expected to follow `#pragma pack`");
+            skipToNextLine();
+            return;
+        }
+
+        void closingParen()
+        {
+            if (n.value != TOK.rightParenthesis)
+            {
+                error(loc, "right parenthesis expected to close `#pragma pack(`");
+            }
+            skipToNextLine();
+        }
+
+        void setPackAlign(ref const Token t)
+        {
+            const n = t.unsvalue;
+            if (n < 1 || n & (n - 1) || structalign_t.max < n)
+                error(loc, "pack must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
+            packalign = cast(structalign_t)n;
+        }
+
+        scan(&n);
+
+        if (!records)
+        {
+            records = new Array!Identifier;
+            packs = new Array!structalign_t;
+        }
+
+        /* # pragma pack ( show )
+         */
+        if (n.value == TOK.identifier && n.ident == Id.show)
+        {
+            warning(startloc, "current pack attribute is %d", cast(uint)packalign);
+            scan(&n);
+            return closingParen();
+        }
+        /* # pragma pack ( push )
+         * # pragma pack ( push , identifier )
+         * # pragma pack ( push , integer )
+         * # pragma pack ( push , identifier , integer )
+         */
+        if (n.value == TOK.identifier && n.ident == Id.push)
+        {
+            scan(&n);
+            Identifier record = null;
+            if (n.value == TOK.comma)
+            {
+                scan(&n);
+                if (n.value == TOK.identifier)
+                {
+                    record = n.ident;
+                    scan(&n);
+                    if (n.value == TOK.comma)
+                    {
+                        scan(&n);
+                        if (n.value == TOK.int32Literal)
+                        {
+                            setPackAlign(n);
+                            scan(&n);
+                        }
+                        else
+                            error(loc, "alignment value expected, not `%s`", n.toChars());
+                    }
+                }
+                else if (n.value == TOK.int32Literal)
+                {
+                    setPackAlign(n);
+                    scan(&n);
+                }
+                else
+                    error(loc, "alignment value expected, not `%s`", n.toChars());
+            }
+            this.records.push(record);
+            this.packs.push(packalign);
+            return closingParen();
+        }
+        /* # pragma pack ( pop )
+         * # pragma pack ( pop PopList )
+         * PopList :
+         *    , IdentifierOrInteger
+         *    , IdentifierOrInteger PopList
+         * IdentifierOrInteger:
+         *      identifier
+         *      integer
+         */
+        if (n.value == TOK.identifier && n.ident == Id.pop)
+        {
+            scan(&n);
+            while (n.value == TOK.comma)
+            {
+                scan(&n);
+                if (n.value == TOK.identifier)
+                {
+                    for (size_t len = this.records.length; len; --len)
+                    {
+                        if ((*this.records)[len - 1] == n.ident)
+                        {
+                            packalign = (*this.packs)[len - 1];
+                            this.records.setDim(len - 1);
+                            this.packs.setDim(len - 1);
+                            break;
+                        }
+                    }
+                    scan(&n);
+                }
+                else if (n.value == TOK.int32Literal)
+                {
+                    setPackAlign(n);
+                    this.records.push(null);
+                    this.packs.push(packalign);
+                    scan(&n);
+                }
+            }
+            return closingParen();
+        }
+        /* # pragma pack ( integer )
+         */
+        if (n.value == TOK.int32Literal)
+        {
+            setPackAlign(n);
+            scan(&n);
+            return closingParen();
+        }
+        /* # pragma pack ( )
+         */
+        if (n.value == TOK.rightParenthesis)
+        {
+            packalign = STRUCTALIGN_DEFAULT;
+            return closingParen();
+        }
+
+        error(loc, "unrecognized `#pragma pack(%s)`", n.toChars());
+        skipToNextLine();
+    }
+
+    /***************************************
+     * Scan forward to start of next line.
+     */
+    private void skipToNextLine()
     {
         while (1)
         {

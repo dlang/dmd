@@ -502,6 +502,10 @@ immutable Msgtable[] msgtable =
     { "noreturn" },
     { "__pragma", "pragma" },
     { "builtin_va_list", "__builtin_va_list" },
+    { "pack" },
+    { "show" },
+    { "push" },
+    { "pop" },
 ];
 
 

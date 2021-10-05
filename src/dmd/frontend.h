@@ -8280,6 +8280,10 @@ struct Id final
     static Identifier* vector_size;
     static Identifier* noreturn;
     static Identifier* builtin_va_list;
+    static Identifier* pack;
+    static Identifier* show;
+    static Identifier* push;
+    static Identifier* pop;
     static void initialize();
     Id()
     {
