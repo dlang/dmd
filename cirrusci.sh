@@ -29,8 +29,12 @@ if [ "$OS_NAME" == "linux" ]; then
   apt-get install -yq $packages
 elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
+  # run brew update-reset twice, it seems to fix 
+  # https://github.com/Homebrew/brew/pull/12170#issuecomment-933976753
   brew update-reset
-  brew install gnupg
+  brew update-reset
+  brew upgrade
+  brew list gnupg || brew install gnupg
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake"
   if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then
