@@ -33,6 +33,7 @@ elif [ "$OS_NAME" == "darwin" ]; then
   brew update-reset
   brew upgrade
   git -C `brew --repository` rev-parse HEAD
+  sed '90,110 p' /usr/local/Homebrew/Library/Homebrew/brew.sh
   #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/adns.rb
   #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/autoconf.rb
   #brew style --fix /usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/automake.rb
