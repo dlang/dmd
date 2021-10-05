@@ -556,6 +556,9 @@ class Parser(AST) : Lexer
                     {
                     case TOK.leftParenthesis:
                         {
+                            // MixinType
+                            if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
+                                goto Ldeclaration;
                             // mixin(string)
                             nextToken();
                             auto exps = parseArguments();
