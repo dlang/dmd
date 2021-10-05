@@ -741,7 +741,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final BaseClass* overrideInterface()
     {
-        if (ClassDeclaration cd = toParent2().isClassDeclaration())
+        for (ClassDeclaration cd = toParent2().isClassDeclaration(); cd; cd = cd.baseClass)
         {
             foreach (b; cd.interfaces)
             {

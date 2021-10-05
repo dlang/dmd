@@ -725,6 +725,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         void searchVtbl(ref Dsymbols vtbl)
         {
+            bool seenInterfaceVirtual;
             foreach (s; vtbl)
             {
                 auto fd = s.isFuncDeclaration();
@@ -747,6 +748,23 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 }
                 if (fd == fdmatch)
                     continue;
+
+                /* Functions overriding interface functions for extern(C++) with VC++
+                 * are not in the normal vtbl, but in vtblFinal. If the implementation
+                 * is again overridden in a child class, both would be found here.
+                 * The function in the child class should override the function
+                 * in the base class, which is done here, because searchVtbl is first
+                 * called for the child class. Checking seenInterfaceVirtual makes
+                 * sure, that the compared functions are not in the same vtbl.
+                 */
+                if (fd.interfaceVirtual &&
+                    fd.interfaceVirtual is fdmatch.interfaceVirtual &&
+                    !seenInterfaceVirtual &&
+                    fdmatch.type.covariant(fd.type) == Covariant.yes)
+                {
+                    seenInterfaceVirtual = true;
+                    continue;
+                }
 
                 {
                 // Function type matching: exact > covariant
