@@ -30,7 +30,7 @@ if [ "$OS_NAME" == "linux" ]; then
 elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
   brew update-reset
-  brew install gnupg
+  brew install gnupg libarchive xz
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake"
   if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then
