@@ -83,9 +83,9 @@ task:
 
 # Mac
 task:
-  name: macOS 10.15 x64, $TASK_NAME_SUFFIX
+  name: macOS 11.x x64, $TASK_NAME_SUFFIX
   osx_instance:
-    image: catalina-xcode
+    image: big-sur-xcode
   timeout_in: 60m
   environment:
     OS_NAME: darwin
@@ -97,10 +97,22 @@ task:
       - TASK_NAME_SUFFIX: DMD (latest)
       - TASK_NAME_SUFFIX: DMD (coverage)
         << : *COVERAGE_ENVIRONMENT_TEMPLATE
-      - TASK_NAME_SUFFIX: DMD (bootstrap)
-        # de-facto bootstrap version on OSX
-        # See: https://forum.dlang.org/post/qfsgt2$1goc$1@digitalmars.com
-        HOST_DMD: dmd-2.088.0
+  << : *COMMON_STEPS_TEMPLATE
+
+task:
+  name: macOS 10.15 x64, DMD (bootstrap)
+  osx_instance:
+    image: big-sur-xcode
+  timeout_in: 60m
+  environment:
+    OS_NAME: darwin
+    # override Cirrus default OS (`darwin`)
+    OS: osx
+    # 12 CPU cores and 24 GB of memory are available
+    N: 12
+    # de-facto bootstrap version on OSX
+    # See: https://forum.dlang.org/post/qfsgt2$1goc$1@digitalmars.com
+    HOST_DMD: dmd-2.088.0
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
