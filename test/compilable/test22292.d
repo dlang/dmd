@@ -89,3 +89,67 @@ template Test3()
 }
 
 alias test3 = Test3!();
+
+// From https://issues.dlang.org/show_bug.cgi?id=22114
+
+template Test4()
+{
+    public class Test1(T)
+    {
+        private Test2!T val;
+
+        this()
+        {
+            val = new Test2!T(this);
+        }
+
+        private class Test2(T)
+        {
+            private Test1!(T) m_source;
+
+            this(Test1!T source)
+            {
+                m_source = source;
+            }
+        }
+    }
+
+    public class Demo
+    {
+        auto val = new Test1!int();
+    }
+}
+
+alias test4 = Test4!();
+
+// ditto
+
+template Test5()
+{
+    public @nogc class TestA(T)
+    {
+        private TestB!T valA;
+        private TestB!T valB;
+        this()
+        {
+            valB = valA = new TestB!T(this);
+        }
+
+        private @nogc class TestB(T)
+        {
+            private TestA!(T) m_source;
+
+            this(TestA!T source)
+            {
+                m_source = source;
+            }
+        }
+    }
+
+    public class Demo
+    {
+        auto val = new TestA!int();
+    }
+}
+
+alias test5 = Test5!();
