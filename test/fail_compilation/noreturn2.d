@@ -17,3 +17,22 @@ noreturn returnVoid()
 {
     return doStuff();
 }
+
+
+/+
+TEST_OUTPUT:
+---
+fail_compilation/noreturn2.d(37): Error: Expected return type of `int`, not `string`:
+fail_compilation/noreturn2.d(35):        Return type of `int` inferred here.
+---
++/
+
+auto missmatch(int i)
+{
+    if (i < 0)
+        return assert(false);
+    if (i == 0)
+        return i;
+    if (i > 0)
+        return "";
+}
