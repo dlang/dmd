@@ -408,6 +408,10 @@ void test22262(unsigned char *buf)
     return;
   if (0 == buf)
     return;
+  if (buf == 1)
+    return;
+  if (2 == buf)
+    return;
 }
 
 /***************************************************/
@@ -433,3 +437,12 @@ void test22274(compr, comprLen, uncompr, uncomprLen)
 }
 
 /***************************************************/
+
+int test(char *dest)
+{
+    int x;
+    return dest == x;
+}
+
+/***************************************************/
+

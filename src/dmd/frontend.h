@@ -3159,6 +3159,7 @@ enum class DotExpFlag
 {
     gag = 1,
     noDeref = 2,
+    noAliasThis = 4,
 };
 
 enum : int32_t { LOGDEFAULTINIT = 0 };
@@ -8294,6 +8295,11 @@ struct Id final
     static Identifier* dllexport;
     static Identifier* vector_size;
     static Identifier* noreturn;
+    static Identifier* builtin_va_list;
+    static Identifier* pack;
+    static Identifier* show;
+    static Identifier* push;
+    static Identifier* pop;
     static void initialize();
     Id()
     {
