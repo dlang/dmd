@@ -740,7 +740,11 @@ struct Scope
             return ad.salign;
         }
         else
-            return STRUCTALIGN_DEFAULT;
+        {
+            structalign_t sa;
+            sa.setDefault();
+            return sa;
+        }
     }
 
     /**********************************

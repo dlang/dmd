@@ -2364,7 +2364,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
         {
             const explicitAlignment = mt.alignment();
             const naturalAlignment = mt.alignsize();
-            const actualAlignment = (explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment);
+            const actualAlignment = (explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get());
             e = new IntegerExp(loc, actualAlignment, Type.tsize_t);
         }
         else if (ident == Id._init)

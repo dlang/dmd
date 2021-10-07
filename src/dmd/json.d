@@ -794,8 +794,8 @@ public:
             property("init", d._init.toString());
         if (d.isField())
             property("offset", d.offset);
-        if (d.alignment && d.alignment != STRUCTALIGN_DEFAULT)
-            property("align", d.alignment);
+        if (!d.alignment.isUnknown() && !d.alignment.isDefault())
+            property("align", d.alignment.get());
         objectEnd();
     }
 

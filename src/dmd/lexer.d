@@ -280,7 +280,7 @@ class Lexer
         this.commentToken = commentToken;
         this.inTokenStringConstant = 0;
         this.lastDocLine = 0;
-        this.packalign = STRUCTALIGN_DEFAULT;
+        this.packalign.setDefault();
         //initKeywords();
         /* If first line starts with '#!', ignore the line
          */
@@ -2973,9 +2973,9 @@ class Lexer
         void setPackAlign(ref const Token t)
         {
             const n = t.unsvalue;
-            if (n < 1 || n & (n - 1) || structalign_t.max < n)
+            if (n < 1 || n & (n - 1) || uint.max < n)
                 error(loc, "pack must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
-            packalign = cast(structalign_t)n;
+            packalign.set(cast(uint)n);
         }
 
         scan(&n);
@@ -2990,7 +2990,7 @@ class Lexer
          */
         if (n.value == TOK.identifier && n.ident == Id.show)
         {
-            warning(startloc, "current pack attribute is %d", cast(uint)packalign);
+            warning(startloc, "current pack attribute is %d", packalign.get());
             scan(&n);
             return closingParen();
         }
@@ -3085,7 +3085,7 @@ class Lexer
          */
         if (n.value == TOK.rightParenthesis)
         {
-            packalign = STRUCTALIGN_DEFAULT;
+            packalign.setDefault();
             return closingParen();
         }
 
