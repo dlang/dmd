@@ -1747,8 +1747,9 @@ final class CParser(AST) : Parser!AST
              */
             auto pl = ft.parameterList;
             pl.hasIdentifierList = true;        // semantic needs to know to adjust parameter types
-            if (pl.varargs != AST.VarArg.none)
+            if (pl.varargs != AST.VarArg.none && pl.length)
                 error("function identifier-list cannot end with `...`");
+            ft.parameterList.varargs = AST.VarArg.variadic;     // but C11 allows extra arguments
             auto plLength = pl.length;
             if (symbols.length != plLength)
                 error("%d identifiers does not match %d declarations", cast(int)plLength, cast(int)symbols.length);
@@ -2558,11 +2559,17 @@ final class CParser(AST) : Parser!AST
         StorageClass varargsStc;
 
         check(TOK.leftParenthesis);
-        if (token.value == TOK.void_ && peekNext() == TOK.rightParenthesis)
+        if (token.value == TOK.void_ && peekNext() == TOK.rightParenthesis) // func(void)
         {
             nextToken();
             nextToken();
             return AST.ParameterList(parameters, varargs, varargsStc);
+        }
+
+        if (token.value == TOK.rightParenthesis)        // func()
+        {
+            nextToken();
+            return AST.ParameterList(parameters, AST.VarArg.variadic, varargsStc);
         }
 
         /* The check for identifier-list comes later,
@@ -2574,6 +2581,8 @@ final class CParser(AST) : Parser!AST
                 break;
             if (token.value == TOK.dotDotDot)
             {
+                if (parameters.length == 0)     // func(...)
+                    error("named parameter required before `...`");
                 varargs = AST.VarArg.variadic;  // C-style variadics
                 nextToken();
                 check(TOK.rightParenthesis);

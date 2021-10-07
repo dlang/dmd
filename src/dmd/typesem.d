@@ -1630,7 +1630,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             errors = true;
         }
 
-        if (tf.parameterList.varargs == VarArg.variadic && tf.linkage != LINK.d && tf.parameterList.length == 0)
+        if (tf.parameterList.varargs == VarArg.variadic && tf.linkage != LINK.d && tf.parameterList.length == 0 &&
+            !(sc.flags & SCOPE.Cfile))
         {
             .error(loc, "variadic functions with non-D linkage must have at least one parameter");
             errors = true;

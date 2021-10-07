@@ -5216,7 +5216,9 @@ elem *callfunc(const ref Loc loc,
 
             elems[i] = ea;
         }
-        if (!left_to_right)
+        if (!left_to_right &&
+            !irs.m.isCFile) // C11 leaves evaluation order implementation-defined, but
+                            // try to match evaluation order of other C compilers
         {
             eside = fixArgumentEvaluationOrder(elems);
         }
