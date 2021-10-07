@@ -2594,9 +2594,9 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         if (!tf.nextOf())
-            error("must return `int` or `void`");
-        else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid)
-            error("must return `int` or `void`, not `%s`", tf.nextOf().toChars());
+            error("must return `int`, `void` or `noreturn`");
+        else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid && tf.nextOf().ty != Tnoreturn)
+            error("must return `int`, `void` or `noreturn`, not `%s`", tf.nextOf().toChars());
         else if (tf.parameterList.varargs || nparams >= 2 || argerr)
             error("parameters must be `main()` or `main(string[] args)`");
     }
