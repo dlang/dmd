@@ -150,6 +150,23 @@ $(H2 $(LNAME2 implementation, Implementation))
     C compiler) on the target platform.
     )
 
+    $(H3 $(LNAME2 implicit-function-declaration, Implicit Function Declarations))
+
+    $(P Implicit function declarations:)
+
+    $(CCODE
+    int main()
+    {
+        func();  // implicit declaration of func()
+    }
+    )
+
+    $(P were allowed in K+R C and C89, but were invalidated in C99 and C11. Although many
+    C compilers still support them, ImportC does not.
+    )
+
+    $(RATIONALE Implicit function declarations are very error-prone and cause hard
+    to find bugs.)
 
 $(H2 $(LNAME2 limitations, Limitations))
 
