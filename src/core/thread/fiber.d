@@ -1762,7 +1762,7 @@ unittest
 
     try
     {
-        (new Fiber({
+        (new Fiber(function() {
             throw new Exception( MSG );
         })).call();
         assert( false, "Expected rethrown exception." );

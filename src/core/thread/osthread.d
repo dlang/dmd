@@ -1043,6 +1043,7 @@ unittest
     try
     {
         new Thread(
+        function()
         {
             throw new Exception( MSG );
         }).start().join();
