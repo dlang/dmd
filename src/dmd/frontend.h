@@ -1178,6 +1178,22 @@ enum class LINK : uint8_t
     system = 6u,
 };
 
+struct structalign_t final
+{
+private:
+    uint32_t value;
+public:
+    bool isDefault() const;
+    void setDefault();
+    bool isUnknown() const;
+    void setUnknown();
+    void set(uint32_t value);
+    uint32_t get() const;
+    structalign_t()
+    {
+    }
+};
+
 enum class PINLINE : uint8_t
 {
     default_ = 0u,
@@ -2036,7 +2052,7 @@ public:
     Type* unqualify(uint32_t m);
     virtual Type* toHeadMutable();
     virtual ClassDeclaration* isClassHandle();
-    virtual uint32_t alignment();
+    virtual structalign_t alignment();
     virtual Expression* defaultInitLiteral(const Loc& loc);
     virtual bool isZeroInit(const Loc& loc);
     Identifier* getTypeInfoIdent();
@@ -3578,7 +3594,7 @@ public:
     uint32_t alignsize();
     bool isString();
     bool isZeroInit(const Loc& loc);
-    uint32_t alignment();
+    structalign_t alignment();
     MATCH constConv(Type* to);
     MATCH implicitConvTo(Type* to);
     Expression* defaultInitLiteral(const Loc& loc);
@@ -3612,7 +3628,7 @@ public:
     uint32_t alignsize();
     TypeStruct* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
-    uint32_t alignment();
+    structalign_t alignment();
     Expression* defaultInitLiteral(const Loc& loc);
     bool isZeroInit(const Loc& loc);
     bool isAssignable();
@@ -5148,9 +5164,7 @@ class AlignDeclaration final : public AttribDeclaration
 {
 public:
     Array<Expression* >* exps;
-    enum : uint32_t { UNKNOWN = 0u };
-
-    uint32_t salign;
+    structalign_t salign;
     AlignDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void accept(Visitor* v);
@@ -5611,7 +5625,7 @@ public:
     uint32_t offset;
     uint32_t sequenceNumber;
     static uint32_t nextSequenceNumber;
-    uint32_t alignment;
+    structalign_t alignment;
     enum : uint32_t { AdrOnStackNone = 4294967295u };
 
     uint32_t ctfeAdrOnStack;
@@ -6064,7 +6078,7 @@ public:
     FuncDeclaration* xhash;
     static FuncDeclaration* xerreq;
     static FuncDeclaration* xerrcmp;
-    uint32_t alignment;
+    structalign_t alignment;
     ThreeState ispod;
     TypeTuple* argTypes;
     static StructDeclaration* create(Loc loc, Identifier* id, bool inObject);

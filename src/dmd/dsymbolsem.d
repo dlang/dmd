@@ -113,12 +113,12 @@ extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
  */
 AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
 {
-    if (ad.salign != ad.UNKNOWN)   // UNKNOWN is 0
+    if (!ad.salign.isUnknown())   // UNKNOWN is 0
         return ad;
 
     if (!ad.exps)
     {
-        ad.salign = STRUCTALIGN_DEFAULT;
+        ad.salign.setDefault();
         return ad;
     }
 
@@ -141,7 +141,7 @@ AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
             if (sc.flags & SCOPE.Cfile && n == 0)       // C11 6.7.5-6 allows 0 for alignment
                 continue;
 
-            if (n < 1 || n & (n - 1) || structalign_t.max < n || !e.type.isintegral())
+            if (n < 1 || n & (n - 1) || uint.max < n || !e.type.isintegral())
             {
                 error(ad.loc, "alignment must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
                 errors = true;
@@ -151,9 +151,11 @@ AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
         }
     }
 
-    ad.salign = (errors || strictest == 0)  // C11 6.7.5-6 says alignment of 0 means no effect
-                ? STRUCTALIGN_DEFAULT
-                : cast(structalign_t) strictest;
+    if (errors || strictest == 0)  // C11 6.7.5-6 says alignment of 0 means no effect
+        ad.salign.setDefault();
+    else
+        ad.salign.set(cast(uint) strictest);
+
     return ad;
 }
 
@@ -441,7 +443,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          * otherwise the scope overrrides.
          */
         dsym.alignment = sc.alignment();
-        if (dsym.alignment == STRUCTALIGN_DEFAULT)
+        if (dsym.alignment.isDefault())
             dsym.alignment = dsym.type.alignment(); // use type's alignment
 
         //printf("sc.stc = %x\n", sc.stc);
