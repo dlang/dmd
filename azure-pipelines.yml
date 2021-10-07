@@ -52,7 +52,7 @@ jobs:
       D_COMPILER: dmd
       HOST_DMD_VERSION: LATEST
       # Disable actual coverage because of issues with the codecov uploader
-      # DMD_TEST_COVERAGE: 1
+      DMD_TEST_COVERAGE: 1
     strategy:
       matrix:
         x64:
