@@ -1920,7 +1920,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                              * eg purity(https://issues.dlang.org/show_bug.cgi?id=7295),
                              * just regard it as not a match.
                              */
-                            if (auto e = resolveAliasThis(sc, farg, true))
+                            if (auto e = resolveAliasThis(paramscope, farg, true))
                             {
                                 farg = e;
                                 goto Lretry;
