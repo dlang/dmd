@@ -213,12 +213,7 @@ install_host_compiler() {
 # Upload coverage reports
 codecov()
 {
-    # CodeCov gets confused by lst files which it can't match
-    rm -rf test/runnable/extra-files test/*.lst
-    curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 \
-        --retry 5 --retry-delay 5 "https://codecov.io/bash" -o "codecov.sh"
-    bash ./codecov.sh -p . -Z
-    rm codecov.sh
+    source ci/codecov.sh
 }
 
 # Define commands
