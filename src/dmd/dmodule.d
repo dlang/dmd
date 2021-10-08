@@ -737,7 +737,12 @@ extern (C++) final class Module : Package
             if (isPackageMod)
                 .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
             else
-                error(loc, "is in file '%s' which cannot be read", srcfile.toChars());
+            {
+                .error(loc, "unable to read module `%s`", toChars());
+                const pkgfile = FileName.combine(FileName.removeExt(srcfile.toString()), package_d);
+                .errorSupplemental(loc, "Expected '%s' or '%s' in one of the following import paths:",
+                    srcfile.toChars(), pkgfile.ptr);
+            }
         }
         if (!global.gag)
         {
