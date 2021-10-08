@@ -635,12 +635,9 @@ auto i = 6.8;   // declare i as a double
 $(H2 $(LNAME2 scope, $(D scope) Attribute))
 
 $(P
-        The $(D scope) attribute is used for local variables and for class
-        declarations. For class declarations, the $(D scope) attribute creates
-        a $(I scope) class.
-        For local declarations, $(D scope) implements the RAII (Resource
-        Acquisition Is Initialization) protocol. This means that the
-        destructor for an object is automatically called when the
+        The $(D scope) attribute is used for local variables and implements the 
+        RAII (Resource Acquisition Is Initialization) protocol. 
+        This means that the destructor for an object is automatically called when the
         reference to it goes out of scope. The destructor is called even
         if the scope is exited via a thrown exception, thus $(D scope)
         is used to guarantee cleanup.
