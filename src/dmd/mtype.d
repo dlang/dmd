@@ -237,6 +237,7 @@ enum DotExpFlag
 {
     gag     = 1,    // don't report "not a property" error and just return null
     noDeref = 2,    // the use of the expression will not attempt a dereference
+    noAliasThis = 4, // don't do 'alias this' resolution
 }
 
 /// Result of a check whether two types are covariant

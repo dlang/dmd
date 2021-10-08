@@ -363,10 +363,10 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             if (length > i.dim)
                 i.dim = length;
         }
-        if (t.ty == Tsarray)
+        if (auto tsa = t.isTypeSArray())
         {
-            uinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
-            if (i.dim > edim)
+            uinteger_t edim = tsa.dim.toInteger();
+            if (i.dim > edim && !(tsa.isIncomplete() && (sc.flags & SCOPE.Cfile)))
             {
                 error(i.loc, "array initializer has %u elements, but array length is %llu", i.dim, edim);
                 return err();
@@ -721,17 +721,17 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         {
             //printf(" type %s i %d dim %d dil.length = %d\n", t.toChars(), cast(int)i, cast(int)dim, cast(int)dil.length);
             auto tn = t.nextOf().toBasetype();
-            if (auto tna = tn.isTypeDArray())
+            auto tnsa = tn.isTypeSArray();
+            if (tnsa && tnsa.isIncomplete())
             {
                 // C11 6.2.5-20 "element type shall be complete whenever the array type is specified"
-                error(ci.loc, "incomplete element type `%s` not allowed", tna.toChars());
+                error(ci.loc, "incomplete element type `%s` not allowed", tnsa.toChars());
                 errors = true;
                 return 1;
             }
             if (i == dil.length)
                 return 0;
             size_t n;
-            auto tnsa = tn.isTypeSArray();
             const nelems = tnsa ? cast(size_t)tnsa.dim.toInteger() : 0;
 
             foreach (j; 0 .. dim)
@@ -796,6 +796,24 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         {
             error(ci.loc, "array dimension %llu exceeds max of %llu", ulong(edim), ulong(amax / sz));
             return err();
+        }
+
+        /* If an array of simple elements, replace with an ArrayInitializer
+         */
+        auto tnb = tn.toBasetype();
+        if (!(tnb.isTypeSArray() || tnb.isTypeStruct()))
+        {
+            auto ai = new ArrayInitializer(ci.loc);
+            ai.dim = cast(uint) dil.length;
+            ai.index.setDim(dil.length);
+            ai.value.setDim(dil.length);
+            foreach (const j; 0 .. dil.length)
+            {
+                ai.index[j] = null;
+                ai.value[j] = dil[j].initializer;
+            }
+            auto ty = tx;
+            return ai.initializerSemantic(sc, ty, needInterpret);
         }
 
         return ci;

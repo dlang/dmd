@@ -3004,6 +3004,16 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
             error(loc, "variable `__ctfe` cannot be read at compile time");
             return returnError();
         }
+        if (mt.ident == Id.builtin_va_list) // gcc has __builtin_va_xxxx for stdarg.h
+        {
+            /* Since we don't support __builtin_va_start, -arg, -end, we don't
+             * have to actually care what -list is. A void* will do.
+             * If we ever do care, import core.stdc.stdarg and pull
+             * the definition out of that, similarly to how std.math is handled for PowExp
+             */
+            pt = Type.tvoidptr;
+            return;
+        }
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(loc, mt.ident, &scopesym);
@@ -3746,7 +3756,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
      *  sc = context
      *  e = `this` for `ident`
      *  ident = name of member
-     *  flag = if flag & 1, don't report "not a property" error and just return NULL.
+     *  flag = flag & 1, don't report "not a property" error and just return NULL.
+     *         flag & DotExpFlag.noAliasThis, don't do 'alias this' resolution.
      * Returns:
      *  resolved expression if found, otherwise null
      */
@@ -3839,7 +3850,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             /* See if we should forward to the alias this.
              */
-            auto alias_e = resolveAliasThis(sc, e, gagError);
+            auto alias_e = flag & DotExpFlag.noAliasThis ? null
+                                                         : resolveAliasThis(sc, e, gagError);
             if (alias_e && alias_e != e)
             {
                 /* Rewrite e.ident as:

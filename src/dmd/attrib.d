@@ -709,8 +709,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         super(loc, null, decl);
         if (exp)
         {
-            if (!exps)
-                exps = new Expressions();
+            exps = new Expressions();
             exps.push(exp);
         }
     }
@@ -719,6 +718,12 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     {
         super(loc, null, decl);
         this.exps = exps;
+    }
+
+    extern (D) this(const ref Loc loc, structalign_t salign, Dsymbols* decl)
+    {
+        super(loc, null, decl);
+        this.salign = salign;
     }
 
     override AlignDeclaration syntaxCopy(Dsymbol s)

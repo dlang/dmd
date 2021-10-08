@@ -17,6 +17,7 @@ import core.stdc.ctype;
 
 import dmd.astcodegen;
 import dmd.arraytypes;
+import dmd.attrib;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.globals;
