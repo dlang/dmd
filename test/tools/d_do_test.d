@@ -580,6 +580,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
+    // Commenting these out because WSL2 under Windows interprets backslash as an escape char.
     // if (findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript))
     //     testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
 
