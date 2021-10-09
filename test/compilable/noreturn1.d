@@ -73,6 +73,12 @@ int thisAlsoExits()
     return assert(0);
 }
 
+void cast_()
+{
+    noreturn n;
+    int i = n;
+}
+
 int test1(int i)
 {
     if (exit())
