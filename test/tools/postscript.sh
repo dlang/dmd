@@ -6,7 +6,7 @@ set -euo pipefail
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 if [ -z ${RESULTS_DIR+x} ]; then
-    RESULTS_DIR="$DIR/../results_dir"
+    RESULTS_DIR="$DIR/../test_results"
     echo >&2 Warning [$0]: RESULTS_DIR not set, this run will use RESULTS_DIR="$RESULTS_DIR"
 fi
 
