@@ -1,5 +1,18 @@
 # Common bash variables exported to the bash script and bash post script of DMD's testsuite
 
+if [ "${RESULTS_DIR+x}" == "" ]; then
+    VARS_FILE="$DIR/../test_results/setup_env.sh"
+
+    if [ -f "$VARS_FILE" ]
+    then
+        source "$VARS_FILE"
+    else
+        echo Note: this program is normally called through the Makefile, it
+        echo is not meant to be called directly by the user.
+        exit 1
+    fi
+fi
+
 export TEST_DIR=$1 # TEST_DIR should be one of compilable, fail_compilation or runnable
 export TEST_NAME=$2 # name of the test, e.g. test12345
 
