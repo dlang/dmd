@@ -3295,12 +3295,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (e0)
                 e0 = e0.optimize(WANTvalue);
 
-            /* Void-return function can have void typed expression
+            /* Void-return function can have void / noreturn typed expression
              * on return statement.
              */
-            if (tbret && tbret.ty == Tvoid || rs.exp.type.ty == Tvoid)
+            const convToVoid = rs.exp.type.ty == Tvoid || rs.exp.type.ty == Tnoreturn;
+
+            if (tbret && tbret.ty == Tvoid || convToVoid)
             {
-                if (rs.exp.type.ty != Tvoid)
+                if (!convToVoid)
                 {
                     rs.error("cannot return non-void from `void` function");
                     errors = true;
@@ -3409,6 +3411,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
         else
         {
+            // Type of the returned expression (if any), might've been moved to e0
+            auto resType = e0 ? e0.type : Type.tvoid;
+
             // infer return type
             if (fd.inferRetType)
             {
@@ -3431,7 +3436,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (inferRef) // deduce 'auto ref'
                 tf.isref = false;
 
-            if (tbret.ty != Tvoid) // if non-void return
+            if (tbret.ty != Tvoid && !resType.isTypeNoreturn()) // if non-void return
             {
                 if (tbret.ty != Terror)
                     rs.error("`return` expression expected");
@@ -3522,7 +3527,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else
             {
-                result = new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs);
+                auto es = new ExpStatement(rs.loc, e0);
+                if (e0.type.isTypeNoreturn())
+                    result = es; // Omit unreachable return;
+                else
+                    result = new CompoundStatement(rs.loc, es, rs);
+
                 return;
             }
         }

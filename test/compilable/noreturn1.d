@@ -58,6 +58,27 @@ noreturn pureexits() @nogc nothrow pure @safe { assert(0); }
 
 noreturn callpureexits() { pureexits(); }
 
+noreturn returnExits()
+{
+    return pureexits();
+}
+
+void alsoExits()
+{
+    return assert(0);
+}
+
+int thisAlsoExits()
+{
+    return assert(0);
+}
+
+void cast_()
+{
+    noreturn n;
+    int i = n;
+}
+
 int test1(int i)
 {
     if (exit())

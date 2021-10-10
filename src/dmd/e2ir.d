@@ -3902,6 +3902,11 @@ extern (C++) class ToElemVisitor : Visitor
             case Twchar:    fty = Tuns16;   break;
             case Tdchar:    fty = Tuns32;   break;
 
+            // noreturn expression will throw/abort and never produce a
+            //  value to cast, hence we discard the cast
+            case Tnoreturn:
+                return Lret(ce, e);
+
             default:
                 break;
         }
