@@ -2583,6 +2583,11 @@ final class CParser(AST) : Parser!AST
 
             Specifier specifier;
             auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier);
+            if (tspec && specifier.mod & MOD.xconst)
+            {
+                tspec = toConst(tspec);
+                specifier.mod = MOD.xnone;      // 'used' it
+            }
 
             Identifier id;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id, specifier);
