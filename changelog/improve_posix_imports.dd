@@ -1,4 +1,0 @@
-Improve POSIX imports
-
-The `lwpid_t` symbol was added to `core/sys/linux/sys/procfs.d`.
-The `O_CLOEXEC` symbol was added to `core/sys/posix/fcntl.d`.
