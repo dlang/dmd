@@ -61,21 +61,32 @@ extern (C++) final class ClassReferenceExp : Expression
     private int getFieldIndex(Type fieldtype, uint fieldoffset)
     {
         ClassDeclaration cd = originalClass();
-        uint fieldsSoFar = 0;
-        for (size_t j = 0; j < value.elements.dim; j++)
+        ptrdiff_t elementIndex = -1;
+
+        // the offset from the last index
+        size_t derivedFieldsVisited = 0;
+
+        // since we are searching from the end of the struct
+        // we need this as a reference to find the index
+        // from the beginning
+        const lastFieldIndex = value.elements.dim - 1;
+        // when there is a class to search
+    outer: while(cd)
         {
-            while (j - fieldsSoFar >= cd.fields.dim)
+            size_t fieldIndexInCurrentBaseClass = cd.fields.length;
+            while (fieldIndexInCurrentBaseClass-- > 0)
             {
-                fieldsSoFar += cd.fields.dim;
-                cd = cd.baseClass;
+                VarDeclaration v2 = cd.fields[fieldIndexInCurrentBaseClass];
+                if (fieldoffset == v2.offset && fieldtype.size() == v2.type.size())
+                {
+                    elementIndex = lastFieldIndex - derivedFieldsVisited;
+                    break outer;
+                }
+                derivedFieldsVisited++;
             }
-            VarDeclaration v2 = cd.fields[j - fieldsSoFar];
-            if (fieldoffset == v2.offset && fieldtype.size() == v2.type.size())
-            {
-                return cast(int)(value.elements.dim - fieldsSoFar - cd.fields.dim + (j - fieldsSoFar));
-            }
+            cd = cd.baseClass;
         }
-        return -1;
+        return cast(int)elementIndex;
     }
 
     // Return index of the field, or -1 if not found
@@ -83,21 +94,32 @@ extern (C++) final class ClassReferenceExp : Expression
     int findFieldIndexByName(VarDeclaration v)
     {
         ClassDeclaration cd = originalClass();
-        size_t fieldsSoFar = 0;
-        for (size_t j = 0; j < value.elements.dim; j++)
+        ptrdiff_t elementIndex = -1;
+
+        // the offset from the last index
+        size_t derivedFieldsVisited = 0;
+
+        // since we are searching from the end of the struct
+        // we need this as a reference to find the index
+        // from the beginning
+        const lastFieldIndex = value.elements.dim - 1;
+        // when there is a class to search
+    outer: while(cd)
         {
-            while (j - fieldsSoFar >= cd.fields.dim)
+            size_t fieldIndexInCurrentBaseClass = cd.fields.length;
+            while (fieldIndexInCurrentBaseClass-- > 0)
             {
-                fieldsSoFar += cd.fields.dim;
-                cd = cd.baseClass;
+                VarDeclaration v2 = cd.fields[fieldIndexInCurrentBaseClass];
+                if (v == v2)
+                {
+                    elementIndex = lastFieldIndex - derivedFieldsVisited;
+                    break outer;
+                }
+                derivedFieldsVisited++;
             }
-            VarDeclaration v2 = cd.fields[j - fieldsSoFar];
-            if (v == v2)
-            {
-                return cast(int)(value.elements.dim - fieldsSoFar - cd.fields.dim + (j - fieldsSoFar));
-            }
+            cd = cd.baseClass;
         }
-        return -1;
+        return cast(int)elementIndex;
     }
 
     override void accept(Visitor v)
