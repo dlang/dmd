@@ -3307,29 +3307,26 @@ Lagain:
         }
     }
 
-    if (t1.ty == Tstruct || t2.ty == Tstruct)
+    if (t1.ty == Tstruct && t1.isTypeStruct().sym.aliasthis)
     {
-        if (t1.ty == Tstruct && t1.isTypeStruct().sym.aliasthis)
-        {
-            if (isRecursiveAliasThis(att1, e1.type))
-                return null;
-            //printf("att tmerge(s || s) e1 = %s\n", e1.type.toChars());
-            e1 = resolveAliasThis(sc, e1);
-            t1 = e1.type;
-            t = t1;
-            goto Lagain;
-        }
-        if (t2.ty == Tstruct && t2.isTypeStruct().sym.aliasthis)
-        {
-            if (isRecursiveAliasThis(att2, e2.type))
-                return null;
-            //printf("att tmerge(s || s) e2 = %s\n", e2.type.toChars());
-            e2 = resolveAliasThis(sc, e2);
-            t2 = e2.type;
-            t = t2;
-            goto Lagain;
-        }
-        return null;
+        if (isRecursiveAliasThis(att1, e1.type))
+            return null;
+        //printf("att tmerge(s || s) e1 = %s\n", e1.type.toChars());
+        e1 = resolveAliasThis(sc, e1);
+        t1 = e1.type;
+        t = t1;
+        goto Lagain;
+    }
+
+    if (t2.ty == Tstruct && t2.isTypeStruct().sym.aliasthis)
+    {
+        if (isRecursiveAliasThis(att2, e2.type))
+            return null;
+        //printf("att tmerge(s || s) e2 = %s\n", e2.type.toChars());
+        e2 = resolveAliasThis(sc, e2);
+        t2 = e2.type;
+        t = t2;
+        goto Lagain;
     }
 
     if ((e1.op == TOK.string_ || e1.op == TOK.null_) && e1.implicitConvTo(t2))
