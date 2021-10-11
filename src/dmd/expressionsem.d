@@ -9749,7 +9749,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.type = exp.e1.type;
         assert(exp.type);
         auto res = exp.op == TOK.assign ? exp.reorderSettingAAElem(sc) : exp;
-        checkAssignEscape(sc, res, false);
+        Expression tmp;
+        /* https://issues.dlang.org/show_bug.cgi?id=22366
+         *
+         * `reorderSettingAAElem` creates a tree of comma expressions, however,
+         * `checkAssignExp` expects only AssignExps.
+         */
+        checkAssignEscape(sc, Expression.extractLast(res, tmp), false);
         return setResult(res);
     }
 
