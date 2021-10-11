@@ -11,7 +11,6 @@ Data Structures
 ---------------
 * **aarray.d**        hash table
 * **el.d**            expression trees (intermediate representation)
-* **outbuf.d**        resizable char buffer for writing text to
 * **dlist.d**         linked list
 * **barray.d**        generic resizeable array
 * **dt.d**            intermediate representation for static data
