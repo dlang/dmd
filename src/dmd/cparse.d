@@ -3450,6 +3450,11 @@ final class CParser(AST) : Parser!AST
                         return false;
                     continue;
 
+                case TOK.leftCurly:
+                    if (!skipBraces(t))
+                        return false;
+                    continue;
+
                 default:
                     any = true;   // assume token was part of an a-e
                     t = peek(t);
