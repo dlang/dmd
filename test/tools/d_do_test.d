@@ -580,8 +580,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
-    if (findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript))
-        testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
+    findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript);
 
     return true;
 }

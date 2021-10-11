@@ -229,6 +229,31 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
 {
     resultsDir.mkdirRecurse;
 
+    version (Windows)
+    {{
+        // Environment variables are not properly propagated when using bash from WSL
+        // Create an additional configuration file that exports `env` entries if missing
+
+        File wrapper = File(env["RESULTS_DIR"] ~ "/setup_env.sh", "wb");
+
+        foreach (const key, string value; env)
+        {
+            // Detect windows paths and translate them to POSIX compatible relative paths
+            static immutable PATHS = [
+                "DMD",
+                "HOST_DMD",
+                "LIB",
+                "RESULTS_DIR",
+            ];
+
+            if (PATHS.canFind(key))
+                value = relativePosixPath(value, scriptDir);
+
+            // Export as env. variable if unset
+            wrapper.write(`[ -z "${`, key, `+x}" ] && export `, key, `='`, value, "' ;\n");
+        }
+    }}
+
     shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {

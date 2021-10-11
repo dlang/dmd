@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Windows-WSL: Export DFLAGS s.t. the windows executable sees the required changes
+export WSLENV="DFLAGS"
+
 unset DFLAGS
 
 # Force DMD to print the -v menu by passing an invalid object file
