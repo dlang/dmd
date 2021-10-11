@@ -259,9 +259,11 @@ SRCS=\
 	\
 	src\core\sys\openbsd\dlfcn.d \
 	src\core\sys\openbsd\err.d \
+	src\core\sys\openbsd\execinfo.d \
 	src\core\sys\openbsd\stdlib.d \
 	src\core\sys\openbsd\string.d \
 	src\core\sys\openbsd\time.d \
+	src\core\sys\openbsd\unistd.d \
 	\
 	src\core\sys\openbsd\sys\cdefs.d \
 	src\core\sys\openbsd\sys\elf.d \

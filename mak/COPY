@@ -258,9 +258,11 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\openbsd\dlfcn.d \
 	$(IMPDIR)\core\sys\openbsd\err.d \
+	$(IMPDIR)\core\sys\openbsd\execinfo.d \
 	$(IMPDIR)\core\sys\openbsd\stdlib.d \
 	$(IMPDIR)\core\sys\openbsd\string.d \
 	$(IMPDIR)\core\sys\openbsd\time.d \
+	$(IMPDIR)\core\sys\openbsd\unistd.d \
 	\
 	$(IMPDIR)\core\sys\openbsd\sys\cdefs.d \
 	$(IMPDIR)\core\sys\openbsd\sys\elf.d \
