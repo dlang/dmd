@@ -742,6 +742,14 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class ThrowExp : public UnaExp
+{
+public:
+    ThrowExp *syntaxCopy();
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class DotIdExp : public UnaExp
 {
 public:

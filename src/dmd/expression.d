@@ -4681,6 +4681,31 @@ extern (C++) final class AssertExp : UnaExp
 }
 
 /***********************************************************
+ * `throw <e1>` as proposed by DIP 1034.
+ *
+ * Replacement for the deprecated `ThrowStatement` that can be nested
+ * in other expression.
+ */
+extern (C++) final class ThrowExp : UnaExp
+{
+    extern (D) this(const ref Loc loc, Expression e)
+    {
+        super(loc, EXP.throw_, __traits(classInstanceSize, ThrowExp), e);
+        this.type = Type.tnoreturn;
+    }
+
+    override ThrowExp syntaxCopy()
+    {
+        return new ThrowExp(loc, e1.syntaxCopy());
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
  */
 extern (C++) final class DotIdExp : UnaExp
 {
