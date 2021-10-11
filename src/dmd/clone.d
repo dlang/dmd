@@ -1079,17 +1079,16 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     auto ftype = new TypeFunction(ParameterList(params), Type.tvoidptr, LINK.cpp, dtor.storage_class);
     auto func = new DtorDeclaration(dtor.loc, dtor.loc, dtor.storage_class, Id.cppdtor);
     func.type = ftype;
-    if (dtor.fbody)
-    {
-        const loc = dtor.loc;
-        auto stmts = new Statements;
-        auto call = new CallExp(loc, dtor, null);
-        call.directcall = true;
-        stmts.push(new ExpStatement(loc, call));
-        stmts.push(new ReturnStatement(loc, new CastExp(loc, new ThisExp(loc), Type.tvoidptr)));
-        func.fbody = new CompoundStatement(loc, stmts);
-        func.generated = true;
-    }
+
+    // Always generate the function with body, because it is not exported from DLLs.
+    const loc = dtor.loc;
+    auto stmts = new Statements;
+    auto call = new CallExp(loc, dtor, null);
+    call.directcall = true;
+    stmts.push(new ExpStatement(loc, call));
+    stmts.push(new ReturnStatement(loc, new CastExp(loc, new ThisExp(loc), Type.tvoidptr)));
+    func.fbody = new CompoundStatement(loc, stmts);
+    func.generated = true;
 
     auto sc2 = sc.push();
     sc2.stc &= ~STC.static_; // not a static destructor

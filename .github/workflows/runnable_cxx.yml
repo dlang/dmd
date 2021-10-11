@@ -293,7 +293,7 @@ jobs:
     ########################################
     - name: Run C++ test suite
       run: |
-        ./dmd/test/run.d --environment runnable_cxx MODEL=64
+        ./dmd/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64
         #if [ ${{ matrix.compiler }} == "g++" ]; then
         #  ./dmd/test/run.d clean
         #  ./dmd/test/run.d runnable_cxx MODEL=32
