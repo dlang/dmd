@@ -751,6 +751,8 @@ public int runLINK()
         {
             // Link against -lc++abi for Unwind symbols
             argv.push("-lc++abi");
+            // Link against -lexecinfo for backtrace symbols
+            argv.push("-lexecinfo");
         }
         if (global.params.verbose)
         {
