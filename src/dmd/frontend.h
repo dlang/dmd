@@ -1249,6 +1249,20 @@ enum class BUILTIN : uint8_t
     toPrecReal = 35u,
 };
 
+enum class BE
+{
+    none = 0,
+    fallthru = 1,
+    throw_ = 2,
+    return_ = 4,
+    goto_ = 8,
+    halt = 16,
+    break_ = 32,
+    continue_ = 64,
+    errthrow = 128,
+    any = 31,
+};
+
 enum class Include : uint8_t
 {
     notComputed = 0u,
@@ -5457,7 +5471,7 @@ extern BUILTIN isBuiltin(FuncDeclaration* fd);
 
 extern Expression* eval_builtin(const Loc& loc, FuncDeclaration* fd, Array<Expression* >* arguments);
 
-extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
+extern BE canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
 
 extern bool includeImports;
 

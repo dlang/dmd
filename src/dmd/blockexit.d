@@ -110,8 +110,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 }
                 if (s.exp.type && s.exp.type.toBasetype().isTypeNoreturn())
                     result = BE.halt;
-                if (canThrow(s.exp, func, mustNotThrow))
-                    result |= BE.throw_;
+
+                result |= canThrow(s.exp, func, mustNotThrow);
             }
         }
 
@@ -214,8 +214,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 result = BE.fallthru;
             if (result & BE.fallthru)
             {
-                if (canThrow(s.condition, func, mustNotThrow))
-                    result |= BE.throw_;
+                result |= canThrow(s.condition, func, mustNotThrow);
+
                 if (!(result & BE.break_) && s.condition.toBool().hasValue(true))
                     result &= ~BE.fallthru;
             }
@@ -233,8 +233,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             }
             if (s.condition)
             {
-                if (canThrow(s.condition, func, mustNotThrow))
-                    result |= BE.throw_;
+                result |= canThrow(s.condition, func, mustNotThrow);
+
                 const opt = s.condition.toBool();
                 if (opt.hasValue(true))
                     result &= ~BE.fallthru;
@@ -250,15 +250,15 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                     result |= BE.fallthru;
                 result |= r & ~(BE.fallthru | BE.break_ | BE.continue_);
             }
-            if (s.increment && canThrow(s.increment, func, mustNotThrow))
-                result |= BE.throw_;
+            if (s.increment)
+                result |= canThrow(s.increment, func, mustNotThrow);
         }
 
         override void visit(ForeachStatement s)
         {
             result = BE.fallthru;
-            if (canThrow(s.aggr, func, mustNotThrow))
-                result |= BE.throw_;
+            result |= canThrow(s.aggr, func, mustNotThrow);
+
             if (s._body)
                 result |= blockExit(s._body, func, mustNotThrow) & ~(BE.break_ | BE.continue_);
         }
@@ -273,8 +273,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         {
             //printf("IfStatement::blockExit(%p)\n", s);
             result = BE.none;
-            if (canThrow(s.condition, func, mustNotThrow))
-                result |= BE.throw_;
+            result |= canThrow(s.condition, func, mustNotThrow);
 
             const opt = s.condition.toBool();
             if (opt.hasValue(true))
@@ -313,8 +312,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         override void visit(SwitchStatement s)
         {
             result = BE.none;
-            if (canThrow(s.condition, func, mustNotThrow))
-                result |= BE.throw_;
+            result |= canThrow(s.condition, func, mustNotThrow);
+
             if (s._body)
             {
                 result |= blockExit(s._body, func, mustNotThrow);
@@ -357,8 +356,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         override void visit(ReturnStatement s)
         {
             result = BE.return_;
-            if (s.exp && canThrow(s.exp, func, mustNotThrow))
-                result |= BE.throw_;
+            if (s.exp)
+                result |= canThrow(s.exp, func, mustNotThrow);
         }
 
         override void visit(BreakStatement s)
@@ -380,8 +379,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         override void visit(WithStatement s)
         {
             result = BE.none;
-            if (canThrow(s.exp, func, mustNotThrow))
-                result = BE.throw_;
+            result |= canThrow(s.exp, func, mustNotThrow);
             result |= blockExit(s._body, func, mustNotThrow);
         }
 
