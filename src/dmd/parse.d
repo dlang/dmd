@@ -128,6 +128,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.new_ : PREC.unary,
     EXP.newAnonymousClass : PREC.unary,
     EXP.cast_ : PREC.unary,
+    EXP.throw_ : PREC.unary,
 
     EXP.vector : PREC.unary,
     EXP.pow : PREC.pow,
@@ -8473,6 +8474,7 @@ LagainStc:
                 e = new AST.FuncExp(loc, s);
                 break;
             }
+
         default:
             error("expression expected, not `%s`", token.toChars());
         Lerr:
@@ -8766,6 +8768,17 @@ LagainStc:
                 e = parsePostExp(e);
                 break;
             }
+        case TOK.throw_:
+            {
+                nextToken();
+                // Deviation from the DIP:
+                // Parse AssignExpression instead of Expression to avoid conflicts for comma
+                // separated lists, e.g. function arguments
+                AST.Expression exp = parseAssignExp();
+                e = new AST.ThrowExp(loc, exp);
+                break;
+            }
+
         default:
             e = parsePrimaryExp();
             e = parsePostExp(e);

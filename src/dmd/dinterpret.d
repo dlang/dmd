@@ -99,7 +99,15 @@ public Expression ctfeInterpret(Expression e)
 
     Expression result = interpret(e, null);
 
-    result = copyRegionExp(result);
+    // Report an error if the expression contained a `ThrowException` and
+    // hence generated an uncaught exception
+    if (auto tee = result.isThrownExceptionExp())
+    {
+        tee.generateUncaughtError();
+        result = CTFEExp.cantexp;
+    }
+    else
+        result = copyRegionExp(result);
 
     if (!CTFEExp.isCantExp(result))
         result = scrubReturnValue(e.loc, result);
@@ -6153,6 +6161,15 @@ public:
         }
         result = e1;
         return;
+    }
+
+    override void visit(ThrowExp te)
+    {
+        debug (LOG)
+        {
+            printf("%s ThrowExpression::interpret()\n", e.loc.toChars());
+        }
+        interpretThrow(te.e1, te.loc);
     }
 
     override void visit(PtrExp e)

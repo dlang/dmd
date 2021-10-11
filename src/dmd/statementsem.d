@@ -148,7 +148,7 @@ extern(C++) Statement statementSemantic(Statement s, Scope* sc)
     return v.result;
 }
 
-private extern (C++) final class StatementSemanticVisitor : Visitor
+package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
 
@@ -3763,8 +3763,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             return false;
         }
 
-        FuncDeclaration fd = sc.parent.isFuncDeclaration();
-        fd.hasReturnExp |= 2;
+        if (FuncDeclaration fd = sc.parent.isFuncDeclaration())
+            fd.hasReturnExp |= 2;
 
         if (exp.op == EXP.new_)
         {

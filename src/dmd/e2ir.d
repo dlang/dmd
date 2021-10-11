@@ -1559,6 +1559,16 @@ extern (C++) class ToElemVisitor : Visitor
         result = e;
     }
 
+    override void visit(ThrowExp te)
+    {
+        //printf("ThrowExp.toElem() '%s'\n", te.toChars());
+
+        elem *e = toElemDtor(te.e1, irs);
+        const rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM.THROWDWARF : RTLSYM.THROWC;
+        elem *sym = el_var(getRtlsym(rtlthrow));
+        result = el_bin(OPcall, TYnoreturn, sym, e);
+    }
+
     override void visit(PostExp pe)
     {
         //printf("PostExp.toElem() '%s'\n", pe.toChars());

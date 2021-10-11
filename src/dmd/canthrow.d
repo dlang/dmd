@@ -18,7 +18,7 @@ import dmd.apply;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astenums;
-import dmd.blockexit : BE;
+import dmd.blockexit : BE, checkThrow;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.expression;
@@ -213,6 +213,13 @@ extern (C++) /* CT */ BE canThrow(Expression e, FuncDeclaration func, bool mustN
             if (auto ts = t.baseElemOf().isTypeStruct())
                 if (auto postblit = ts.sym.postblit)
                     checkFuncThrows(ae, postblit);
+        }
+
+        override void visit(ThrowExp te)
+        {
+            const res = checkThrow(te.loc, te.e1, mustNotThrow);
+            assert((res & ~(CT.exception | CT.error)) == 0);
+            result |= res;
         }
 
         override void visit(NewAnonClassExp)

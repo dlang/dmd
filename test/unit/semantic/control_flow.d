@@ -25,6 +25,11 @@ unittest { testStatement(`throw new Exception("");`, BE.throw_); }
 
 unittest { testStatement(`throw new Error("");`, BE.errthrow); }
 
+// ENHANCEMENT: Could detect that this expression always throws
+unittest { testStatement(`false || throw new Exception("");`, BE.throw_ | BE.fallthru); }
+
+unittest { testStatement(`false || throw new Error("");`, BE.errthrow | BE.fallthru); }
+
 unittest { testStatement(`assert(0);`, BE.halt); }
 
 unittest { testStatement(`int i; assert(i);`, BE.fallthru); } // Should this include errthrow?

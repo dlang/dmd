@@ -6396,6 +6396,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             : Expression.combine(temporariesPrefix, exp).expressionSemantic(sc);
     }
 
+    override void visit(ThrowExp te)
+    {
+        import dmd.statementsem;
+
+        if (StatementSemanticVisitor.throwSemantic(te.loc, te.e1, sc))
+            result = te;
+        else
+            setError();
+    }
+
     override void visit(DotIdExp exp)
     {
         static if (LOGSEMANTIC)
