@@ -45,7 +45,9 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
 
     static if (hasElaborateCopyConstructor!T)
     {
-        size_t i;
+        // Use uint instead of size_t as a temporary workaround until this bug is fixed:
+        // https://issues.dlang.org/show_bug.cgi?id=22372
+        uint i;
         try
         {
             for (i = 0; i < to.length; i++)
