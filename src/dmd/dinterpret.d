@@ -1601,14 +1601,20 @@ public:
             istate.start = null;
         }
 
-        incUsageCtfe(istate, s.loc);
+        interpretThrow(s.exp, s.loc);
+    }
 
-        Expression e = interpretRegion(s.exp, istate);
+    /// Interpret `throw <exp>` found at the specified location `loc`
+    private void interpretThrow(Expression exp, const ref Loc loc)
+    {
+        incUsageCtfe(istate, loc);
+
+        Expression e = interpretRegion(exp, istate);
         if (exceptionOrCant(e))
             return;
 
         assert(e.op == EXP.classReference);
-        result = ctfeEmplaceExp!ThrownExceptionExp(s.loc, e.isClassReferenceExp());
+        result = ctfeEmplaceExp!ThrownExceptionExp(loc, e.isClassReferenceExp());
     }
 
     override void visit(ScopeGuardStatement s)
