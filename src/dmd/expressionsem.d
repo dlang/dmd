@@ -7729,6 +7729,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("SliceExp::semantic('%s')\n", exp.toChars());
         }
+
+        if (exp.lwr && exp.lwr.op == TOK.negate)
+        {
+            auto ue = cast(UnaExp) exp.lwr;
+            sinteger_t sliceLen = -1 * ue.e1.toInteger();
+            exp.error("slice lower bound %ld should be greater than or equal to 0", sliceLen);
+            return setError();
+        }
+
+        if (exp.upr)
+        {
+            TypeSArray tsa = cast(TypeSArray)exp.e1.type.toBasetype();
+            uinteger_t arrLen = tsa.dim.toInteger();
+            uinteger_t sliceLen = exp.upr.toInteger();
+            if (sliceLen > arrLen)
+            {
+                exp.error("slice upper bound %llu is greater than array length `%s[0 .. %llu]`", sliceLen, exp.e1.toChars(), arrLen);
+                return setError();
+            }
+        }
+
         if (exp.type)
         {
             result = exp;
