@@ -2,12 +2,11 @@ module mydll;
 
 export:
 
-/// TODO: Accessing this variable causes a segfault on Arch
-version (Windows) __gshared int saved_var;
+__gshared int saved_var;
 
 int multiply10(int x)
 {
-    version (Windows) saved_var = x;
+    saved_var = x;
 
     return x * 10;
 }
@@ -63,4 +62,31 @@ void test10462_dll()
 {
     I10462 i = new C10462;
     call10462(&i.opCall);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=19660
+extern (C)
+{
+    __gshared int someValue19660 = 0xF1234;
+    void setSomeValue19660(int v)
+    {
+        someValue19660 = v;
+    }
+    int getSomeValue19660()
+    {
+        return someValue19660;
+    }
+}
+
+extern (C++)
+{
+    __gshared int someValueCPP19660 = 0xF1234;
+    void setSomeValueCPP19660(int v)
+    {
+        someValueCPP19660 = v;
+    }
+    int getSomeValueCPP19660()
+    {
+        return someValueCPP19660;
+    }
 }
