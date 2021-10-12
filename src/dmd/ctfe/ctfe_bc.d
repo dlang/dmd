@@ -2139,6 +2139,7 @@ extern (C++) final class BCArgumentVisitor : Visitor
             assert(expi, "vd init is: " ~ vd._init.astTypeName());
             expi.exp.accept(this);
         }
+        else assert(0, "TODO Implement varExps that eval to symbols or functions");
 /+
         result = imm32(0);
         result.vType = BCValueType.Immediate;
@@ -3033,6 +3034,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     bool inArgumentProcessing;
     bool processingParameters;
     bool insideArrayLiteralExp;
+    uint baseOffsetCount;
     GenExprFlags exprFlags;
 
     bool IGaveUp;
@@ -3049,6 +3051,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         processedArgs = 0;
         switchStateCount = 0;
         currentFunction = 0;
+        baseOffsetCount = 0;
         lastLine = 0;
         lastFile = "";
         blockExitFlags = 0;
@@ -3103,6 +3106,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     UncompiledFunction[ubyte.max * 8] uncompiledFunctions = void;
     UncompiledCatches[ubyte.max] uncompiledCatches = void;
     SwitchState[16] switchStates = void;
+    BCValue[64] baseOffets = void;
 
     alias visit = typeof(super).visit;
 
