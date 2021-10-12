@@ -600,8 +600,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
             } while (parent);
             s.Sfl = FLdata;
 
-            if (!sz && vd.type.toBasetype().ty != Tsarray)
-                assert(0); // this shouldn't be possible
+            // Size 0 should only be possible for T[0] and noreturn
+            if (!sz)
+            {
+                const ty = vd.type.toBasetype().ty;
+                if (ty != Tsarray && ty != Tnoreturn)
+                    assert(0); // this shouldn't be possible
+            }
 
             auto dtb = DtBuilder(0);
             if (config.objfmt == OBJ_MACH && target.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread)
