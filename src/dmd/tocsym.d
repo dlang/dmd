@@ -501,7 +501,7 @@ Symbol *toImport(Symbol *sym)
     }
     else
     {
-        idlen = sprintf(id,(target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : "_imp__%s",n);
+        idlen = sprintf(id,(target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
