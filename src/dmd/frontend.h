@@ -8190,6 +8190,8 @@ struct Id final
     static Identifier* _d_arraysetlengthTImpl;
     static Identifier* _d_arraysetlengthT;
     static Identifier* _d_arraysetlengthTTrace;
+    static Identifier* _d_arrayctor;
+    static Identifier* _d_arraysetctor;
     static Identifier* stdc;
     static Identifier* stdarg;
     static Identifier* va_start;
