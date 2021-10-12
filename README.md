@@ -25,6 +25,6 @@ wiki, the D forums, etc., please assign copyright to those
 DMD source code changes to the D Language Foundation. Please send
 an email to walter@digitalmars.com with the statement:
 
-"I hereby assign copyright in my contributions to DMD to the D Language Foundation"
+> I hereby assign copyright in my contributions to DMD to the D Language Foundation
 
 and include your name and date.
