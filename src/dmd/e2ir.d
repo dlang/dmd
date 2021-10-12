@@ -682,8 +682,15 @@ extern (C++) class ToElemVisitor : Visitor
         if (se.var.isImportedSymbol())
         {
             assert(se.op == TOK.variable);
-            e = el_var(toImport(se.var));
-            e = el_una(OPind,s.Stype.Tty,e);
+            if (target.os & Target.OS.Posix)
+            {
+                e = el_var(s);
+            }
+            else
+            {
+                e = el_var(toImport(se.var));
+                e = el_una(OPind,s.Stype.Tty,e);
+            }
         }
         else if (ISREF(se.var))
         {

@@ -480,7 +480,7 @@ Symbol *toSymbol(Dsymbol s)
 /*************************************
  */
 
-Symbol *toImport(Symbol *sym)
+Symbol *toImport(Symbol *sym, Loc loc)
 {
     //printf("Dsymbol.toImport('%s')\n", sym.Sident);
     char *n = sym.Sident.ptr;
@@ -489,8 +489,8 @@ Symbol *toImport(Symbol *sym)
     int idlen;
     if (target.os & Target.OS.Posix)
     {
-        id = n;
-        idlen = cast(int)strlen(n);
+        error(loc, "Could not generate import symbol for this platform");
+        fatal();
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
@@ -525,7 +525,7 @@ Symbol *toImport(Dsymbol ds)
     {
         if (!ds.csym)
             ds.csym = toSymbol(ds);
-        ds.isym = toImport(ds.csym);
+        ds.isym = toImport(ds.csym, ds.loc);
     }
     return ds.isym;
 }
