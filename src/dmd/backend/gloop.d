@@ -2846,6 +2846,9 @@ private void elimbasivs(ref loop l)
             if (!biv.IVfamily.length)
                 continue;
 
+            if (catchRef(X, l))
+                continue;
+
             elem* ref_ = *pref;
 
             /* Replace (X) with (X != 0)                            */
@@ -3138,7 +3141,6 @@ private void elimbasivs(ref loop l)
     } /* for */
 }
 
-
 /***********************
  * Eliminate opeq IVs that are not used outside the loop.
  */
@@ -3343,6 +3345,39 @@ private bool flcmp(ref famlist f1, ref famlist f2)
 
 Lf2:
     //printf("picking f2\n");
+    return false;
+}
+
+/*****************************
+ * If loop is in a try block, see if there are references to x in an enclosing
+ * try block. This is because the loop may throw and transfer control
+ * outside the try block, and that will count as a use of x.
+ * Params:
+ *      x = basic induction variable symbol
+ *      l = loop x is in
+ * Returns:
+ *      true if x is used outside the try block
+ */
+@trusted
+private bool catchRef(Symbol* x, ref loop l)
+{
+    block* btry = l.Lhead.Btry;
+    if (!btry)
+        return false;   // not in a try block
+
+    foreach (i, b; dfo[])
+    {
+        if (vec_testbit(b.Bdfoidx, l.Lloop))
+            continue;
+        /* this is conservative, just checking if x is used outside the loop.
+         * A better check would see if the body of the loop throws, and would
+         * check the enclosing catch/finally blocks and their exit blocks.
+         * https://issues.dlang.org/show_bug.cgi?22104
+         */
+        if (vec_testbit(x.Ssymnum, b.Binlv))
+            return true;
+    }
+
     return false;
 }
 
