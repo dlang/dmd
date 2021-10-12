@@ -483,19 +483,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                 return;
             }
 
-            Type t = s.exp.type.toBasetype();
-            ClassDeclaration cd = t.isClassHandle();
-            assert(cd);
-
-            if (cd == ClassDeclaration.errorException || ClassDeclaration.errorException.isBaseOf(cd, null))
-            {
-                result = BE.errthrow;
-                return;
-            }
-            if (mustNotThrow)
-                s.error("`%s` is thrown but not caught", s.exp.type.toChars());
-
-            result = BE.throw_;
+            result = checkThrow(s.loc, s.exp, mustNotThrow);
         }
 
         override void visit(GotoStatement s)
@@ -536,4 +524,33 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
     scope BlockExit be = new BlockExit(func, mustNotThrow);
     s.accept(be);
     return be.result;
+}
+
+/++
+ + Checks whether `throw <exp>` throws an `Exception` or an `Error`
+ + and raises an error if this violates `nothrow`.
+ +
+ + Params:
+ +   loc          = location of the `throw`
+ +   exp          = expression yielding the throwable
+ +   mustNotThrow = inside of a `nothrow` scope?
+ +
+ + Returns: `BE.[err]throw` depending on the type of `exp`
+ +/
+BE checkThrow(ref const Loc loc, Expression exp, const bool mustNotThrow)
+{
+    import dmd.errors : error;
+
+    Type t = exp.type.toBasetype();
+    ClassDeclaration cd = t.isClassHandle();
+    assert(cd);
+
+    if (cd == ClassDeclaration.errorException || ClassDeclaration.errorException.isBaseOf(cd, null))
+    {
+        return BE.errthrow;
+    }
+    if (mustNotThrow)
+        loc.error("`%s` is thrown but not caught", exp.type.toChars());
+
+    return BE.throw_;
 }
