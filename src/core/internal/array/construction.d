@@ -28,20 +28,25 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
     import core.lifetime : copyEmplace;
     import core.stdc.string : memcpy;
     import core.stdc.stdint : uintptr_t;
-    debug(PRINTF) import core.stdc.stdio;
+    debug(PRINTF) import core.stdc.stdio : printf;
 
     debug(PRINTF) printf("_d_arrayctor(to = %p,%d, from = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, T.tsize);
 
-    // Rewrite `enforceRawArraysConformable` manually to allow @nogc.
-    // Use more austere errors because @nogc doesn't allow string concatenation.
     void[] vFrom = (cast(void*)from.ptr)[0..from.length];
     void[] vTo = (cast(void*)to.ptr)[0..to.length];
-    assert(vFrom.length == vTo.length, "Array lengths don't match");
 
-    const ptrTo = cast(uintptr_t)vTo.ptr;
-    const ptrFrom = cast(uintptr_t)vFrom.ptr;
-    const d = ptrTo > ptrFrom ? ptrTo - ptrFrom : ptrFrom - ptrTo;
-    assert(d >= vFrom.length * T.sizeof, "Overlapping arrays");
+    // Force `enforceRawArraysConformable` to be `pure`
+    void enforceRawArraysConformable(const char[] action, const size_t elementSize,
+        const void[] a1, const void[] a2) @trusted
+    {
+        import core.internal.util.array : enforceRawArraysConformableNogc;
+
+        alias Type = void function(const char[] action, const size_t elementSize,
+            const void[] a1, const void[] a2, in bool allowOverlap = false) @nogc pure nothrow;
+        (cast(Type)&enforceRawArraysConformableNogc)(action, elementSize, a1, a2, false);
+    }
+
+    enforceRawArraysConformable("initialization", T.sizeof, vFrom, vTo);
 
     static if (hasElaborateCopyConstructor!T)
     {
