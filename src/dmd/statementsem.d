@@ -3417,7 +3417,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             // infer return type
             if (fd.inferRetType)
             {
-                if (tf.next && tf.next.ty != Tvoid)
+                // 1. First `return <noreturn exp>?`
+                // 2. Potentially found a returning branch, update accordingly
+                if (!tf.next || tf.next.toBasetype().isTypeNoreturn())
+                {
+                    tf.next = resType; // infer void or noreturn
+                }
+                // Found an actual return value before
+                else if (tf.next.ty != Tvoid && !resType.toBasetype().isTypeNoreturn())
                 {
                     if (tf.next.ty != Terror)
                     {
@@ -3426,10 +3433,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     errors = true;
                     tf.next = Type.terror;
                 }
-                else
-                    tf.next = Type.tvoid;
 
-                    tret = tf.next;
+                tret = tf.next;
                 tbret = tret.toBasetype();
             }
 

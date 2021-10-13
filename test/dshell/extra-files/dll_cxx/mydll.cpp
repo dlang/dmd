@@ -49,3 +49,27 @@ S22323::~S22323()
 {
     dtorCount++;
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=19660
+extern "C"
+{
+    EXPORT int someValue19660 = 0xF1234;
+    EXPORT void setSomeValue19660(int v)
+    {
+        someValue19660 = v;
+    }
+    EXPORT int getSomeValue19660(void)
+    {
+        return someValue19660;
+    }
+}
+
+EXPORT int someValueCPP19660 = 0xF1234;
+EXPORT void setSomeValueCPP19660(int v)
+{
+    someValueCPP19660 = v;
+}
+EXPORT int getSomeValueCPP19660(void)
+{
+    return someValueCPP19660;
+}

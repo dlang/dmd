@@ -191,6 +191,12 @@ extern (C++) final class ToClassesVisitor : Visitor
         t.toBasetype().accept(this);
     }
 
+    override void visit(TypeNoreturn t)
+    {
+        // Treat as void
+        return visit(Type.tvoid);
+    }
+
     override void visit(TypeBasic t)
     {
         switch (t.ty)
@@ -329,9 +335,6 @@ extern (C++) final class ToClassesVisitor : Visitor
 
     extern(D) void classifyFields(uint baseOffset, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
     {
-        if (nfields == 0)
-            return memory();
-
         // classify each field (recursively for aggregates) and merge all classes per eightbyte
         foreach (n; 0 .. nfields)
         {
@@ -348,6 +351,13 @@ extern (C++) final class ToClassesVisitor : Visitor
                 classifyStructFields(foffset, ts);
             else if (auto tsa = ftype.isTypeSArray())
                 classifyStaticArrayElements(foffset, tsa);
+            else if (ftype.toBasetype().isTypeNoreturn())
+            {
+                // Ignore noreturn members with sizeof = 0
+                // Potential custom alignment changes are factored in above
+                nfields--;
+                continue;
+            }
             else
             {
                 const fEightbyteStart = foffset / 8;
@@ -373,6 +383,9 @@ extern (C++) final class ToClassesVisitor : Visitor
                 }
             }
         }
+
+        if (nfields == 0)
+            return memory();
     }
 
     void finalizeAggregate()

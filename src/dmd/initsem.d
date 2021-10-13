@@ -734,6 +734,19 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             size_t n;
             const nelems = tnsa ? cast(size_t)tnsa.dim.toInteger() : 0;
 
+            /* Run initializerSemantic on a single element.
+             */
+            Initializer elem(Initializer ie)
+            {
+                ++i;
+                auto tnx = tn; // in case initializerSemantic tries to change it
+                ie = ie.initializerSemantic(sc, tnx, needInterpret);
+                if (ie.isErrorInitializer())
+                    errors = true;
+                assert(tnx == tn); // sub-types should not be modified
+                return ie;
+            }
+
             foreach (j; 0 .. dim)
             {
                 auto di = dil[i];
@@ -750,16 +763,17 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 }
                 else if (auto tns = tn.isTypeStruct())
                 {
-                    dil[n].initializer = structs(tns);
+                    if (di.initializer.isExpInitializer())
+                    {
+                        // no braces enclosing struct initializer
+                        dil[n].initializer = structs(tns);
+                    }
+                    else
+                        dil[n].initializer = elem(di.initializer);
                 }
                 else
                 {
-                    ++i;
-                    auto tnx = tn; // in case initializerSemantic tries to change it
-                    di.initializer = di.initializer.initializerSemantic(sc, tnx, needInterpret);
-                    if (di.initializer.isErrorInitializer())
-                        errors = true;
-                    assert(tnx == tn); // sub-types should not be modified
+                    di.initializer = elem(di.initializer);
                 }
                 ++n;
                 if (i == dil.length)
@@ -770,7 +784,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
 
         size_t dim = tsa.isIncomplete() ? dil.length : cast(size_t)tsa.dim.toInteger();
-        auto n = array(t, dim);
+        auto newdim = array(t, dim);
 
         if (errors)
             return err();
@@ -778,7 +792,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         if (tsa.isIncomplete()) // array of unknown length
         {
             // Change to array of known length
-            tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, n, Type.tsize_t));
+            tsa = new TypeSArray(tn, new IntegerExp(Loc.initial, newdim, Type.tsize_t));
             tx = tsa;       // rewrite caller's type
             ci.type = tsa;  // remember for later passes
         }
@@ -814,6 +828,21 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             }
             auto ty = tx;
             return ai.initializerSemantic(sc, ty, needInterpret);
+        }
+
+        if (newdim < ci.initializerList.length && tnb.isTypeStruct())
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=22375
+            // initializerList can be bigger than the number of actual elements
+            // to initialize for array of structs because it is not required
+            // for values to have proper bracing.
+            // i.e: These are all valid initializers for `struct{int a,b;}[3]`:
+            //      {1,2,3,4}, {{1,2},3,4}, {1,2,{3,4}}, {{1,2},{3,4}}
+            // In all examples above, the new length of the initializer list
+            // has been shortened from four elements to two. This is important,
+            // because `dil` is written back to directly, making the lowered
+            // initializer `{{1,2},{3,4}}` and not `{{1,2},{3,4},3,4}`.
+            ci.initializerList.length = newdim;
         }
 
         return ci;
