@@ -537,7 +537,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         addu(ofs, sz, overflow);
         if (overflow) assert(0);
 
-        alignmember(alignment, memalignsize, &ofs);
+        // Skip no-op for noreturn without custom aligment
+        if (memsize != 0 || alignment != STRUCTALIGN_DEFAULT)
+            alignmember(alignment, memalignsize, &ofs);
+
         uint memoffset = ofs;
         ofs += memsize;
         if (ofs > *paggsize)

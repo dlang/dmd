@@ -169,11 +169,29 @@ void test8b()
 {
     struct S { int a, b; };
     static struct S ax[3] = { 0x11,0x22,0x33,0 };
-    //printf("%x %x %x %x\n", ax[0].a, ax[0].b, ax[1].a, ax[1].b);
+    //printf("%x %x %x %x %x %x\n", ax[0].a, ax[0].b, ax[1].a, ax[1].b, ax[2].a, ax[2].b);
     if (ax[0].a != 0x11 ||
         ax[0].b != 0x22 ||
         ax[1].a != 0x33 ||
-        ax[1].b != 0) { printf("test8b\n"); exit(1); }
+        ax[1].b != 0 ||
+        ax[2].a != 0 ||
+        ax[2].b != 0) { printf("test8b(ax)\n"); exit(1); }
+    static struct S ay[3] = { {0x11,0x22},0x33,0 };
+    //printf("%x %x %x %x %x %x\n", ay[0].a, ay[0].b, ay[1].a, ay[1].b, ay[2].a, ay[2].b);
+    if (ay[0].a != 0x11 ||
+        ay[0].b != 0x22 ||
+        ay[1].a != 0x33 ||
+        ay[1].b != 0 ||
+        ay[2].a != 0 ||
+        ay[2].b != 0) { printf("test8b(ay)\n"); exit(1); }
+    static struct S az[3] = { 0x11,0x22,{0x33,0} };
+    //printf("%x %x %x %x %x %x\n", az[0].a, az[0].b, az[1].a, az[1].b, az[2].a, az[2].b);
+    if (az[0].a != 0x11 ||
+        az[0].b != 0x22 ||
+        az[1].a != 0x33 ||
+        az[1].b != 0 ||
+        az[2].a != 0 ||
+        az[2].b != 0) { printf("test8b(az)\n"); exit(1); }
 }
 
 /*********************************/

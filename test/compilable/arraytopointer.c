@@ -13,7 +13,7 @@ void testFunctionArguments()
     int a[3];
     func(a);
 
-    int b[];
+    int b[] = { 0 };
     func(b);
 
     burg(clog);

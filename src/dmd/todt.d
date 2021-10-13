@@ -620,6 +620,12 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         assert(0);
     }
 
+    void visitNoreturn(Expression e)
+    {
+        // Noreturn field with default initializer
+        assert(e);
+    }
+
     switch (e.op)
     {
         default:                 return nonConstExpError(e);
@@ -638,6 +644,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         case TOK.vector:         return visitVector        (e.isVectorExp());
         case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
         case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
+        case TOK.assert_:        return visitNoreturn      (e);
     }
 }
 
