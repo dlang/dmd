@@ -4,9 +4,10 @@ version (linux):
 extern (C):
 nothrow:
 @system:
+@nogc:
 
 public import core.sys.posix.unistd;
-public import core.sys.linux.syscalls : SYS;
+public import core.sys.linux.syscalls : SystemCall;
 import core.stdc.config : c_long;
 
 // Additional seek constants for sparse file handling
@@ -27,7 +28,7 @@ char* getpass(const(char)* prompt);
 void exit_group(int status);
 
 /**
-Invoke `system call' number SYSNO, passing it the remaining arguments.
+Invoke system call specified by number, passing it the remaining arguments.
 This is completely system-dependent, and not often useful.
 
 In Unix, `syscall' sets `errno' for all errors and most calls return -1
@@ -38,4 +39,4 @@ among them).
 In Mach, all system calls take normal arguments and always return an
 error code (zero for success).
 */
-c_long syscall(c_long SYS, ...) @nogc nothrow;
+c_long syscall(SystemCall number, ...) @nogc nothrow;

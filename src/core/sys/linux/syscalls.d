@@ -4,19 +4,20 @@ version (linux):
 extern (C):
 @system:
 nothrow:
+@nogc:
 
 import core.stdc.config : c_long;
 
 version (CoreDdoc)
 {
     /// Linux system call number from Linux's asm/unistd.h
-    enum SYS : c_long;
+    enum SystemCall : c_long;
 }
 else version (X86_64)
 {
     // https://github.com/torvalds/linux/blob/v4.14/arch/sh/include/uapi/asm/unistd_64.h
     // https://github.com/torvalds/linux/blob/v4.14/arch/x86/entry/syscalls/syscall_64.tbl
-    enum SYS : c_long
+    enum SystemCall : c_long
     {
         read = 0,
         write = 1,
@@ -357,7 +358,7 @@ else version (X86)
 {
     // https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_32.tbl
     // https://github.com/torvalds/linux/blob/v4.14/arch/sh/include/uapi/asm/unistd_32.h
-    enum SYS : c_long
+    enum SystemCall : c_long
     {
         restart_syscall = 0,
         exit = 1,
