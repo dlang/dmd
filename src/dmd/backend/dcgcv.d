@@ -2482,8 +2482,8 @@ version (MARS)
 version (SCPP)
 {
         if (CPP && isclassmember(s))            // if method
-        {   OutBuffer buf2;
-
+        {
+            OutBuffer buf2;
             param_tostring(&buf2,s.Stype);
             buf2.prependBytes(cpp_prettyident(s));
             char* s2 = buf2.toString();

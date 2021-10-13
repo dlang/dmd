@@ -318,8 +318,6 @@ enum
 
 struct Linnum
 {
-    import dmd.common.outbuffer;
-
 version (MARS)
         const(char)* filename;  // source file name
 else

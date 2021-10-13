@@ -200,8 +200,7 @@ struct OutBuffer
             else
             {
                 auto p = cast(ubyte*) pureRealloc(data.ptr, size);
-                // if (mem.isGCEnabled) // clear currently unused data to avoid false pointers
-                     memset(p + offset + nbytes, 0xff, size - offset - nbytes);
+                memset(p + offset + nbytes, 0xff, size - offset - nbytes);
             }
             data = p[0 .. size];
         }
@@ -281,7 +280,7 @@ struct OutBuffer
     /**
      * Writes a 32 bit int.
      */
-    @trusted void write32(int v) nothrow
+    void write32(int v) nothrow @trusted
     {
         write(&v, v.sizeof);
     }

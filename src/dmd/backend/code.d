@@ -236,8 +236,6 @@ alias IDXSYM = uint;
 
 struct seg_data
 {
-    import dmd.common.outbuffer;
-
     segidx_t             SDseg;         // index into SegData[]
     targ_size_t          SDoffset;      // starting offset for data
     int                  SDalignment;   // power of 2
