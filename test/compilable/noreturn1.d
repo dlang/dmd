@@ -49,6 +49,11 @@ static assert(noreturn.alignof == 0);
 static assert((noreturn*).sizeof == (int*).sizeof);
 static assert((noreturn[]).sizeof == (int[]).sizeof);
 
+static assert(is(typeof(noreturn.init) == noreturn));
+static assert(is(typeof((const noreturn).init) == const noreturn));
+static assert(is(typeof((immutable noreturn).init) == immutable noreturn));
+static assert(is(typeof((shared noreturn).init) == shared noreturn));
+
 version (DigitalMars)
     noreturn exits(int* p) { *p = 3; }
 
