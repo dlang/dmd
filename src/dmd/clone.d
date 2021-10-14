@@ -860,12 +860,13 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         return null;                    // unions don't have destructors
 
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-    Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
+    Loc declLoc = ad.userDtors.dim ? ad.userDtors[0].loc : ad.loc;
     Loc loc; // internal code should have no loc to prevent coverage
     FuncDeclaration xdtor_fwd = null;
 
-    // if the dtor is an extern(C++) prototype, then we expect it performs a full-destruction; we don't need to build a full-dtor
-    const bool dtorIsCppPrototype = ad.dtors.dim == 1 && ad.dtors[0].linkage == LINK.cpp && !ad.dtors[0].fbody;
+    // Build the field destructor (`ad.fieldDtor`), if needed.
+    // If the user dtor is an extern(C++) prototype, then we expect it performs a full-destruction and skip building.
+    const bool dtorIsCppPrototype = ad.userDtors.dim && ad.userDtors[0].linkage == LINK.cpp && !ad.userDtors[0].fbody;
     if (!dtorIsCppPrototype)
     {
         Expression e = null;
@@ -946,36 +947,6 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             e = Expression.combine(ex, e); // combine in reverse order
         }
 
-        /* extern(C++) destructors call into super to destruct the full hierarchy
-        */
-        ClassDeclaration cldec = ad.isClassDeclaration();
-        if (cldec && cldec.classKind == ClassKind.cpp && cldec.baseClass && cldec.baseClass.primaryDtor)
-        {
-            // WAIT BUT: do I need to run `cldec.baseClass.dtor` semantic? would it have been run before?
-            cldec.baseClass.dtor.functionSemantic();
-
-            stc = mergeFuncAttrs(stc, cldec.baseClass.primaryDtor);
-            if (!(stc & STC.disable))
-            {
-                // super.__xdtor()
-
-                Expression ex = new SuperExp(loc);
-
-                // This is a hack so we can call destructors on const/immutable objects.
-                // Do it as a type 'paint'.
-                ex = new CastExp(loc, ex, cldec.baseClass.type.mutableOf());
-                if (stc & STC.safe)
-                    stc = (stc & ~STC.safe) | STC.trusted;
-
-                ex = new DotVarExp(loc, ex, cldec.baseClass.primaryDtor, false);
-                ex = new CallExp(loc, ex);
-
-                e = Expression.combine(e, ex); // super dtor last
-            }
-        }
-
-        /* Build our own "destructor" which executes e
-         */
         if (e || (stc & STC.disable))
         {
             //printf("Building __fieldDtor(), %s\n", e.toChars());
@@ -983,29 +954,42 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             dd.generated = true;
             dd.storage_class |= STC.inference;
             dd.fbody = new ExpStatement(loc, e);
-            ad.dtors.shift(dd);
             ad.members.push(dd);
             dd.dsymbolSemantic(sc);
             ad.fieldDtor = dd;
         }
     }
 
+    DtorDeclarations dtors;
+    foreach_reverse (userDtor; ad.userDtors[])
+        dtors.push(userDtor);
+    if (ad.fieldDtor)
+        dtors.push(ad.fieldDtor);
+    if (!dtorIsCppPrototype)
+    {
+        // extern(C++) destructors call into super to destruct the full hierarchy
+        ClassDeclaration cldec = ad.isClassDeclaration();
+        if (cldec && cldec.classKind == ClassKind.cpp && cldec.baseClass && cldec.baseClass.dtor)
+            dtors.push(cldec.baseClass.dtor);
+    }
+
     DtorDeclaration xdtor = null;
-    switch (ad.dtors.dim)
+    switch (dtors.dim)
     {
     case 0:
         break;
 
     case 1:
-        xdtor = ad.dtors[0];
+        xdtor = dtors[0];
         break;
 
     default:
+        // Build the full destructor, calling all dtors in order.
         assert(!dtorIsCppPrototype);
         Expression e = null;
         e = null;
         stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-        foreach (FuncDeclaration fd; ad.dtors)
+        foreach (FuncDeclaration fd; dtors)
         {
             stc = mergeFuncAttrs(stc, fd);
             if (stc & STC.disable)
@@ -1015,8 +999,9 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             }
             Expression ex = new ThisExp(loc);
             ex = new DotVarExp(loc, ex, fd, false);
-            ex = new CallExp(loc, ex);
-            e = Expression.combine(ex, e);
+            CallExp ce = new CallExp(loc, ex);
+            ce.directcall = true;
+            e = Expression.combine(e, ce);
         }
         auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__aggrDtor);
         dd.generated = true;
@@ -1028,10 +1013,8 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         break;
     }
 
-    ad.primaryDtor = xdtor;
-
     if (xdtor && xdtor.linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
-        xdtor = buildWindowsCppDtor(ad, xdtor, sc);
+        buildWindowsCppDtor(ad, xdtor, sc);
 
     // Add an __xdtor alias to make the inclusive dtor accessible
     if (xdtor)
@@ -1115,7 +1098,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
  */
 DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
 {
-    auto dtor = ad.primaryDtor;
+    auto dtor = ad.dtor;
     if (!dtor)
         return null;
 

@@ -1201,20 +1201,14 @@ extern (C++) abstract class Expression : ASTNode
         // DtorDeclaration without parents should fail at an earlier stage
         auto ad = cast(AggregateDeclaration) f.toParent2();
         assert(ad);
-        assert(ad.dtors.length);
 
-        // Search for the user-defined destructor (if any)
-        foreach(dtor; ad.dtors)
+        if (ad.userDtors.dim)
         {
-            if (dtor.generated)
-                continue;
-
-            if (!check(dtor)) // doesn't match check (e.g. is impure as well)
+            if (!check(ad.userDtors[0])) // doesn't match check (e.g. is impure as well)
                 return;
 
             // Sanity check
-            assert(!check(cast(DtorDeclaration) ad.fieldDtor));
-            break;
+            assert(!check(ad.fieldDtor));
         }
 
         dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",

@@ -112,7 +112,7 @@ bool isPrimaryDtor(const Dsymbol sym)
         return false;
     const ad = dtor.isMember();
     assert(ad);
-    return dtor == ad.primaryDtor;
+    return dtor == ad.dtor;
 }
 
 /// Context used when processing pre-semantic AST

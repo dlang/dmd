@@ -622,7 +622,7 @@ void toDebug(ClassDeclaration cd)
 
     if (cd.parent.isAggregateDeclaration()) // if class is nested
         property |= 8;
-    if (cd.ctor || cd.dtors.dim)
+    if (cd.ctor || cd.dtor)
         property |= 2;          // class has ctors and/or dtors
 //    if (st.Sopoverload)
 //      property |= 4;          // class has overloaded operators
