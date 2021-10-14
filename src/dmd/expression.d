@@ -1239,14 +1239,14 @@ extern (C++) abstract class Expression : ASTNode
             auto fieldSd = fieldSym.isStructDeclaration();
             assert(fieldSd); // ts is a TypeStruct, this would imply a malformed ASR
 
-            if (fieldSd.xdtor && !check(fieldSd.xdtor))
+            if (fieldSd.dtor && !check(fieldSd.dtor))
             {
                 field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
 
-                if (fieldSd.xdtor.generated)
-                    checkOverridenDtor(sc, fieldSd.xdtor, check, checkName);
+                if (fieldSd.dtor.generated)
+                    checkOverridenDtor(sc, fieldSd.dtor, check, checkName);
                 else
-                    fieldSd.xdtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
+                    fieldSd.dtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
                                             cast(int) checkName.length, checkName.ptr, fieldSd.toChars());
             }
         }
@@ -3302,7 +3302,7 @@ extern (C++) final class StructLiteralExp : Expression
          *    (S tmp = S()),tmp
          * so that the destructor can be hung on tmp.
          */
-        if (sd.xdtor && sc.func)
+        if (sd.dtor && sc.func)
         {
             /* Make an identifier for the temporary of the form:
              *   __sl%s%d, where %s is the struct name
@@ -5053,7 +5053,7 @@ extern (C++) final class CallExp : UnaExp
         if (auto ts = tv.isTypeStruct())
         {
             StructDeclaration sd = ts.sym;
-            if (sd.xdtor)
+            if (sd.dtor)
             {
                 /* Type needs destruction, so declare a tmp
                  * which the back end will recognize and call dtor on

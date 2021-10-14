@@ -3480,7 +3480,7 @@ extern (C++) class ToElemVisitor : Visitor
                 {
                     // FIXME: ts can be non-mutable, but _d_delarray_t requests TypeInfo_Struct.
                     StructDeclaration sd = ts.sym;
-                    if (sd.xdtor)
+                    if (sd.dtor)
                         et = getTypeInfo(de.e1.loc, tb.nextOf(), irs);
                 }
                 if (!et)                            // if no destructors needed
@@ -3514,7 +3514,7 @@ extern (C++) class ToElemVisitor : Visitor
                 tb = (cast(TypePointer)tb).next.toBasetype();
                 if (auto ts = tb.isTypeStruct())
                 {
-                    if (ts.sym.xdtor)
+                    if (ts.sym.dtor)
                     {
                         rtl = RTLSYM_DELSTRUCT;
                         elem *et = getTypeInfo(de.e1.loc, tb, irs);
@@ -5850,7 +5850,7 @@ StructDeclaration needsDtor(Type t)
     if (auto ts = t.baseElemOf().isTypeStruct())
     {
         StructDeclaration sd = ts.sym;
-        if (sd.xdtor)
+        if (sd.dtor)
             return sd;
     }
     return null;

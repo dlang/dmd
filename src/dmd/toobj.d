@@ -1312,7 +1312,7 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         flags |= ClassFlags.hasCtor;
     for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
     {
-        if (pc.xdtor)
+        if (pc.dtor)
         {
             flags |= ClassFlags.hasDtor;
             break;

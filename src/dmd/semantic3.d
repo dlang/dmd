@@ -1616,10 +1616,10 @@ extern (C++) void semanticTypeInfoMembers(StructDeclaration sd)
         sd.postblit.semantic3(sd.postblit._scope);
     }
 
-    if (sd.xdtor &&
-        sd.xdtor._scope &&
-        sd.xdtor.semanticRun < PASS.semantic3done)
+    if (sd.dtor &&
+        sd.dtor._scope &&
+        sd.dtor.semanticRun < PASS.semantic3done)
     {
-        sd.xdtor.semantic3(sd.xdtor._scope);
+        sd.dtor.semantic3(sd.dtor._scope);
     }
 }

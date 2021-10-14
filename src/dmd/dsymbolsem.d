@@ -1142,7 +1142,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 auto tv = dsym.type.baseElemOf();
                 if (tv.ty == Tstruct &&
-                    tv.isTypeStruct().sym.xdtor.storage_class & STC.scope_)
+                    tv.isTypeStruct().sym.dtor.storage_class & STC.scope_)
                 {
                     dsym.storage_class |= STC.scope_;
                 }
@@ -5076,14 +5076,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
         {
             // now we've built the aggregate destructor, we'll make it virtual and assign it to the reserved vtable slot
-            cldec.xdtor.vtblIndex = cldec.cppDtorVtblIndex;
-            cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.xdtor;
+            cldec.dtor.vtblIndex = cldec.cppDtorVtblIndex;
+            cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.dtor;
 
             if (target.cpp.twoDtorInVtable)
             {
                 // TODO: create a C++ compatible deleting destructor (call out to `operator delete`)
                 //       for the moment, we'll call the non-deleting destructor and leak
-                cldec.vtbl[cldec.cppDtorVtblIndex + 1] = cldec.xdtor;
+                cldec.vtbl[cldec.cppDtorVtblIndex + 1] = cldec.dtor;
             }
         }
 

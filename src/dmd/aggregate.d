@@ -118,7 +118,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     DtorDeclarations userDtors; /// user-defined destructors (`~this()`) - mixins can yield multiple ones
     DtorDeclaration aggrDtor;   /// aggregate destructor calling userDtors and fieldDtor (and base class aggregate dtor for C++ classes)
-    DtorDeclaration xdtor;      /// the aggregate destructor exposed as `__xdtor` alias - same as aggrDtor for non-Windows
+    DtorDeclaration dtor;       /// the aggregate destructor exposed as `__xdtor` alias
+                                /// (same as aggrDtor, except for C++ classes with virtual dtor on Windows)
     DtorDeclaration tidtor;     /// aggregate destructor used in TypeInfo (must have extern(D) ABI)
     DtorDeclaration fieldDtor;  /// function destructing (non-inherited) fields
 

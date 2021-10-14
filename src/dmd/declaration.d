@@ -1390,7 +1390,7 @@ extern (C++) class VarDeclaration : Declaration
         if (tv.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tv).sym;
-            if (!sd.xdtor || sd.errors)
+            if (!sd.dtor || sd.errors)
                 return null;
 
             const sz = type.size();
@@ -1414,7 +1414,7 @@ extern (C++) class VarDeclaration : Declaration
                 // and must serve both shared and non-shared objects.
                 e.type = e.type.unSharedOf;
 
-                e = new DotVarExp(loc, e, sd.xdtor, false);
+                e = new DotVarExp(loc, e, sd.dtor, false);
                 e = new CallExp(loc, e);
             }
             else
@@ -1456,12 +1456,12 @@ extern (C++) class VarDeclaration : Declaration
                     if (cd.classKind == ClassKind.cpp)
                     {
                         // Don't call non-existant dtor
-                        if (!cd.xdtor)
+                        if (!cd.dtor)
                             break;
 
                         e = new VarExp(loc, this);
                         e.type = e.type.mutableOf().unSharedOf(); // Hack for mutable ctor on immutable instances
-                        e = new DotVarExp(loc, e, cd.xdtor, false);
+                        e = new DotVarExp(loc, e, cd.dtor, false);
                         e = new CallExp(loc, e);
                         break;
                     }

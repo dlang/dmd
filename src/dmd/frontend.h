@@ -4991,7 +4991,7 @@ public:
     AliasThis* aliasthis;
     Array<DtorDeclaration* > userDtors;
     DtorDeclaration* aggrDtor;
-    DtorDeclaration* xdtor;
+    DtorDeclaration* dtor;
     DtorDeclaration* tidtor;
     DtorDeclaration* fieldDtor;
     Expression* getRTInfo;

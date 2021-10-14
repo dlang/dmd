@@ -5871,7 +5871,7 @@ extern (C++) final class TypeStruct : Type
 
     override bool needsDestruction() const
     {
-        return sym.xdtor !is null;
+        return sym.dtor !is null;
     }
 
     override bool needsCopyOrPostblit()

@@ -143,8 +143,8 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 assert(0);  // error should have been detected by semantic()
             }
 
-            if (ad.xdtor)
-                checkFuncThrows(de, ad.xdtor);
+            if (ad.dtor)
+                checkFuncThrows(de, ad.dtor);
         }
 
         override void visit(AssignExp ae)
