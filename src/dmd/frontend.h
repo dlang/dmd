@@ -1182,6 +1182,7 @@ struct structalign_t final
 {
 private:
     uint32_t value;
+    bool pack;
 public:
     bool isDefault() const;
     void setDefault();
@@ -1189,6 +1190,8 @@ public:
     void setUnknown();
     void set(uint32_t value);
     uint32_t get() const;
+    bool isPack() const;
+    void setPack(bool pack);
     structalign_t()
     {
     }

@@ -12966,7 +12966,7 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
         const hasPointers = tb.hasPointers();
         if (hasPointers)
         {
-            if ((stype.alignment.get() < target.ptrsize ||
+            if ((!stype.alignment.isDefault() && stype.alignment.get() < target.ptrsize ||
                  (v.offset & (target.ptrsize - 1))) &&
                 (sc.func && sc.func.setUnsafe()))
             {

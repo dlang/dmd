@@ -265,15 +265,19 @@ extern (C++) struct structalign_t
 {
   private:
     uint value = 0;  // unknown
+    enum STRUCTALIGN_DEFAULT = ~0;   // default = match whatever the corresponding C compiler does
+    bool pack;         // use #pragma pack semantics
 
   public:
   pure @safe @nogc nothrow:
-    bool isDefault() const { return value == ~0; }
-    void setDefault()      { value = ~0; }   // default = match whatever the corresponding C compiler does
+    bool isDefault() const { return value == STRUCTALIGN_DEFAULT; }
+    void setDefault()      { value = STRUCTALIGN_DEFAULT; }
     bool isUnknown() const { return value == 0; }  // value is not set
     void setUnknown()      { value = 0; }
     void set(uint value)   { this.value = value; }
     uint get() const       { return value; }
+    bool isPack() const    { return pack; }
+    void setPack(bool pack) { this.pack = pack; }
 }
 //alias structalign_t = uint;
 
