@@ -54,14 +54,14 @@ extern (C++):
 
 bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc);
 
-alias Loops = Rarray!loop;
+alias Loops = Rarray!Loop;
 
 
 /*********************************
  * Loop data structure.
  */
 
-struct loop
+struct Loop
 {
 nothrow:
     vec_t Lloop;        // Vector of blocks in this loop
@@ -102,7 +102,7 @@ nothrow:
     {
         debug
         {
-            loop *l = &this;
+            Loop *l = &this;
             printf("loop %p\n", l);
             printf("\thead: B%d, tail: B%d, prehead: B%d\n",l.Lhead.Bdfoidx,
                 l.Ltail.Bdfoidx,(l.Lpreheader ) ? l.Lpreheader.Bdfoidx
@@ -392,7 +392,7 @@ private uint loop_weight(uint weight, int factor) pure
 @trusted
 private void buildloop(ref Loops ploops,block *head,block *tail)
 {
-    loop *l;
+    Loop *l;
 
     //printf("buildloop()\n");
     /* See if this is part of an existing loop. If so, merge the two.     */
@@ -555,7 +555,7 @@ private void insert(block *b, vec_t lv)
  */
 
 @trusted
-private int looprotate(ref loop l)
+private int looprotate(ref Loop l)
 {
     block *tail = l.Ltail;
     block *head = l.Lhead;
@@ -1508,7 +1508,7 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
  */
 
 @trusted
-private void movelis(elem* n, block* b, ref loop l, ref uint pdomexit)
+private void movelis(elem* n, block* b, ref Loop l, ref uint pdomexit)
 {
     vec_t tmp;
     elem *ne;
@@ -2004,7 +2004,7 @@ private void newfamlist(famlist* fl, tym_t ty)
  */
 
 @trusted
-private void loopiv(ref loop l)
+private void loopiv(ref Loop l)
 {
     if (debugc) printf("loopiv(%p)\n", &l);
     assert(l.Livlist.length == 0 && l.Lopeqlist.length == 0);
@@ -2048,7 +2048,7 @@ private void loopiv(ref loop l)
  */
 
 @trusted
-private void findbasivs(ref loop l)
+private void findbasivs(ref Loop l)
 {
     vec_t poss,notposs;
     elem *n;
@@ -2188,7 +2188,7 @@ private void findbasivs(ref loop l)
  */
 
 @trusted
-private void findopeqs(ref loop l)
+private void findopeqs(ref Loop l)
 {
     vec_t poss,notposs;
     elem *n;
@@ -2323,7 +2323,7 @@ private void findopeqs(ref loop l)
  */
 
 @trusted
-private void findivfams(ref loop l)
+private void findivfams(ref Loop l)
 {
     if (debugc) printf("findivfams(%p)\n", &l);
     foreach (ref biv; l.Livlist)
@@ -2534,7 +2534,7 @@ private void ivfamelems(Iv *biv,elem **pn)
  */
 
 @trusted
-private void elimfrivivs(ref loop l)
+private void elimfrivivs(ref Loop l)
 {
     foreach (ref biv; l.Livlist)
     {
@@ -2588,7 +2588,7 @@ private void elimfrivivs(ref loop l)
  */
 
 @trusted
-private void intronvars(ref loop l)
+private void intronvars(ref Loop l)
 {
     elem *T;
     elem *ne;
@@ -2822,7 +2822,7 @@ private bool funcprev(ref Iv biv, ref famlist fl)
  */
 
 @trusted
-private void elimbasivs(ref loop l)
+private void elimbasivs(ref Loop l)
 {
     if (debugc) printf("elimbasivs(%p)\n", &l);
     foreach (ref biv; l.Livlist)
@@ -3146,7 +3146,7 @@ private void elimbasivs(ref loop l)
  */
 
 @trusted
-private void elimopeqs(ref loop l)
+private void elimopeqs(ref Loop l)
 {
     elem **pref;
     Symbol *X;
@@ -3359,7 +3359,7 @@ Lf2:
  *      true if x is used outside the try block
  */
 @trusted
-private bool catchRef(Symbol* x, ref loop l)
+private bool catchRef(Symbol* x, ref Loop l)
 {
     block* btry = l.Lhead.Btry;
     if (!btry)
@@ -3403,7 +3403,7 @@ private __gshared
 }
 
 @trusted
-private elem ** onlyref(Symbol *x, ref loop l,elem *incn,int *prefcount)
+private elem ** onlyref(Symbol *x, ref Loop l,elem *incn,int *prefcount)
 {
     uint i;
 
@@ -3514,7 +3514,7 @@ private int countrefs2(elem *e)
  */
 
 @trusted
-private void elimspec(ref loop l)
+private void elimspec(ref Loop l)
 {
     uint i;
 
@@ -3715,7 +3715,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
  *      true if loop was unrolled
  */
 @trusted
-bool loopunroll(ref loop l)
+bool loopunroll(ref Loop l)
 {
     const bool log = false;
     if (log) printf("loopunroll(%p)\n", &l);
