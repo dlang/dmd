@@ -3984,6 +3984,7 @@ extern (C++) final class FuncExp : Expression
             auto tfy = new TypeFunction(tfx.parameterList, tof.next,
                         tfx.linkage, STC.undefined_);
             tfy.mod = tfx.mod;
+            tfy.trust = tfx.trust;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;
             tfy.purity = tfx.purity;
