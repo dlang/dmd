@@ -582,7 +582,6 @@ struct Param final
     _d_dynamicArray< const char > resfile;
     _d_dynamicArray< const char > exefile;
     _d_dynamicArray< const char > mapfile;
-    ~Param();
     Param() :
         obj(true),
         link(true),
@@ -863,7 +862,6 @@ struct Global final
     void _init();
     uint32_t versionNumber();
     const char* const versionChars();
-    ~Global();
     Global() :
         inifilename(),
         copyright(73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved"),
@@ -1142,7 +1140,6 @@ public:
     bool hasStaticCtorOrDtor();
     ScopeDsymbol* isScopeDsymbol();
     void accept(Visitor* v);
-    ~ScopeDsymbol();
 };
 
 typedef uint64_t StorageClass;
@@ -2780,7 +2777,6 @@ public:
     FuncDeclaration* isFuncDeclaration();
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v);
-    ~FuncDeclaration();
 };
 
 class CtorDeclaration final : public FuncDeclaration
@@ -3008,8 +3004,6 @@ public:
     bool addPostInvariant();
     UnitTestDeclaration* isUnitTestDeclaration();
     void accept(Visitor* v);
-    ~UnitTestDeclaration();
-    ~UnitTestDeclaration();
 };
 
 struct HdrGenState final
@@ -3092,7 +3086,6 @@ public:
     bool sem;
     bool isAssociativeArray() const;
     void accept(Visitor* v);
-    ~ArrayInitializer();
 };
 
 class CInitializer final : public Initializer
@@ -3102,7 +3095,6 @@ public:
     Type* type;
     bool sem;
     void accept(Visitor* v);
-    ~CInitializer();
 };
 
 class ErrorInitializer final : public Initializer
@@ -3131,7 +3123,6 @@ public:
     Array<Identifier* > field;
     Array<Initializer* > value;
     void accept(Visitor* v);
-    ~StructInitializer();
 };
 
 class VoidInitializer final : public Initializer
@@ -3469,7 +3460,6 @@ public:
     void addIndex(RootObject* e);
     d_uns64 size(const Loc& loc);
     void accept(Visitor* v);
-    ~TypeQualified();
 };
 
 class TypeIdentifier final : public TypeQualified
@@ -4234,7 +4224,6 @@ public:
     SwitchStatement* syntaxCopy();
     bool hasBreak() const;
     void accept(Visitor* v);
-    ~SwitchStatement();
 };
 
 class SynchronizedStatement final : public Statement
@@ -5028,8 +5017,6 @@ public:
     void* sinit;
     AggregateDeclaration* isAggregateDeclaration();
     void accept(Visitor* v);
-    ~AggregateDeclaration();
-    ~AggregateDeclaration();
 };
 
 class AliasThis final : public Dsymbol
@@ -5415,7 +5402,6 @@ struct BaseClass final
     Array<FuncDeclaration* > vtbl;
     _d_dynamicArray< BaseClass > baseInterfaces;
     bool fillVtbl(ClassDeclaration* cd, Array<FuncDeclaration* >* vtbl, int32_t newinstance);
-    ~BaseClass();
     BaseClass() :
         type(),
         sym(),
@@ -5483,8 +5469,6 @@ public:
     Dsymbol* vtblSymbol();
     ClassDeclaration* isClassDeclaration();
     void accept(Visitor* v);
-    ~ClassDeclaration();
-    ~ClassDeclaration();
 };
 
 class InterfaceDeclaration final : public ClassDeclaration
@@ -5650,7 +5634,6 @@ public:
     void accept(Visitor* v);
     bool enclosesLifetimeOf(VarDeclaration* v) const;
     void addMaybe(VarDeclaration* v);
-    ~VarDeclaration();
 };
 
 class BitFieldDeclaration : public VarDeclaration
@@ -5871,7 +5854,6 @@ public:
     bool overloadInsert(Dsymbol* s);
     Import* isImport();
     void accept(Visitor* v);
-    ~Import();
 };
 
 extern Expression* getValue(VarDeclaration* vd);
@@ -5999,8 +5981,6 @@ public:
     Module* isModule();
     void accept(Visitor* v);
     void fullyQualifiedName(OutBuffer& buf);
-    ~Module();
-    ~Module();
 };
 
 struct ModuleDeclaration final
@@ -6058,8 +6038,6 @@ public:
     uint32_t numArgTypes() const;
     Type* argType(uint32_t index);
     bool hasRegularCtor(bool checkDisabled = false);
-    ~StructDeclaration();
-    ~StructDeclaration();
 };
 
 class UnionDeclaration final : public StructDeclaration
@@ -6098,7 +6076,6 @@ public:
     OverloadSet* isOverloadSet();
     const char* kind() const;
     void accept(Visitor* v);
-    ~OverloadSet();
 };
 
 class ForwardingScopeDsymbol final : public ScopeDsymbol
@@ -6166,7 +6143,6 @@ public:
     Array<RootObject* > objects;
     DYNCAST dyncast() const;
     const char* toChars() const;
-    ~Tuple();
 };
 
 class TemplateDeclaration final : public ScopeDsymbol
@@ -6211,8 +6187,6 @@ public:
     bool isDeprecated() const;
     bool isOverloadable() const;
     void accept(Visitor* v);
-    ~TemplateDeclaration();
-    ~TemplateDeclaration();
 };
 
 class TypeDeduced final : public Type
@@ -6224,7 +6198,6 @@ public:
     void update(Expression* e, Type* tparam);
     void update(Type* tt, Expression* e, Type* tparam);
     MATCH matchAll(Type* tt);
-    ~TypeDeduced();
 };
 
 class TemplateParameter : public ASTNode
@@ -6368,8 +6341,6 @@ public:
     bool needsCodegen();
     TemplateInstance* isTemplateInstance();
     void accept(Visitor* v);
-    ~TemplateInstance();
-    ~TemplateInstance();
 };
 
 class TemplateMixin final : public TemplateInstance
