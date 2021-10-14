@@ -241,6 +241,7 @@ struct Param
 struct structalign_t
 {
     unsigned value;
+    bool pack;
 
     bool isDefault() const;
     void setDefault();
@@ -248,6 +249,8 @@ struct structalign_t
     void setUnknown();
     void set(unsigned value);
     unsigned get() const;
+    bool isPack() const;
+    void setPack(bool pack);
 };
 
 // magic value means "match whatever the underlying C compiler does"

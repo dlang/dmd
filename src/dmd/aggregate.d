@@ -483,19 +483,25 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Align sizes of 0, as we may not know array sizes yet.
      * Params:
      *   alignment = struct alignment that is in effect
-     *   size = alignment requirement of field
+     *   memalignsize = natural alignment of field
      *   poffset = pointer to offset to be aligned
      */
-    extern (D) static void alignmember(structalign_t alignment, uint size, uint* poffset) pure nothrow @safe
+    extern (D) static void alignmember(structalign_t alignment, uint memalignsize, uint* poffset) pure nothrow @safe
     {
-        //printf("alignment = %u, size = %u, offset = %u\n",alignment.get(), size, offset);
+        //debug printf("alignment = %u %d, size = %u, offset = %u\n", alignment.get(), alignment.isPack(), memalignsize, *poffset);
         uint alignvalue;
 
         if (alignment.isDefault())
         {
             // Alignment in Target::fieldalignsize must match what the
             // corresponding C compiler's default alignment behavior is.
-            alignvalue = size;
+            alignvalue = memalignsize;
+        }
+        else if (alignment.isPack())    // #pragma pack semantics
+        {
+            alignvalue = alignment.get();
+            if (memalignsize < alignvalue)
+                alignvalue = memalignsize;      // align to min(memalignsize, alignment)
         }
         else if (alignment.get() > 1)
         {
@@ -528,7 +534,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         uint ofs = *nextoffset;
 
         const uint actualAlignment =
-            alignment.isDefault() ? memalignsize : alignment.get();
+            alignment.isDefault() || alignment.isPack() && memalignsize < alignment.get()
+                        ? memalignsize : alignment.get();
 
         // Ensure no overflow
         bool overflow;

@@ -2976,6 +2976,7 @@ class Lexer
             if (n < 1 || n & (n - 1) || uint.max < n)
                 error(loc, "pack must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
             packalign.set(cast(uint)n);
+            packalign.setPack(true);
         }
 
         scan(&n);

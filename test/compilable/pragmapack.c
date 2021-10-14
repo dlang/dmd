@@ -18,7 +18,17 @@ struct S2
 };
 #pragma pack(pop)
 
-_Static_assert(sizeof(struct S2) == 8 + 8, "2");
+_Static_assert(sizeof(struct S2) == 1 + 1, "2");
+
+#pragma pack(push, 8)
+struct S3
+{
+    unsigned short u;
+    char a;
+};
+#pragma pack(pop)
+
+_Static_assert(sizeof(struct S3) == 4, "3");
 
 #pragma pack()
 #pragma pack(show)

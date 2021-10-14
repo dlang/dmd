@@ -193,7 +193,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 // Check for @safe violations
                 if (vd.type.hasPointers)
                 {
-                    if ((t.alignment.get() < target.ptrsize ||
+                    if ((!t.alignment.isDefault() && t.alignment.get() < target.ptrsize ||
                          (vd.offset & (target.ptrsize - 1))) &&
                         sc.func && sc.func.setUnsafe())
                     {

@@ -334,7 +334,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         // Round struct size up to next alignsize boundary.
         // This will ensure that arrays of structs will get their internals
         // aligned properly.
-        if (alignment.isDefault())
+        if (alignment.isDefault() || alignment.isPack())
             structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
         else
             structsize = (structsize + alignment.get() - 1) & ~(alignment.get() - 1);
