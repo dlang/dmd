@@ -1158,33 +1158,6 @@ version(Windows)
     }
 
     /**********************************
-     * Converts a narrow string to a (null-terminated) UTF-16 string.
-     * Returns:
-     *  If `buffer` is specified and the result fits, a slice of that buffer,
-     *  otherwise a new buffer which can be released via `mem.xfree()`.
-     *  Nulls are propagated, i.e., if `narrow` is null, the returned slice is
-     *  null too.
-     */
-    wchar[] toWStringz(const(char)[] narrow, wchar[] buffer = null) nothrow
-    {
-        if (narrow is null)
-            return null;
-
-        const requiredLength = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, buffer.ptr, cast(int) buffer.length);
-        if (requiredLength < buffer.length)
-        {
-            buffer[requiredLength] = 0;
-            return buffer[0 .. requiredLength];
-        }
-
-        wchar* newBuffer = cast(wchar*) mem.xmalloc_noscan((requiredLength + 1) * wchar.sizeof);
-        const length = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, newBuffer, requiredLength);
-        assert(length == requiredLength);
-        newBuffer[length] = 0;
-        return newBuffer[0 .. length];
-    }
-
-    /**********************************
      * Converts a slice of UTF-8 characters to an array of wchar that's null
      * terminated so it can be passed to Win32 APIs then calls the supplied
      * function on it.
@@ -1197,9 +1170,12 @@ version(Windows)
      */
     private auto toWStringzThen(alias F)(const(char)[] str) nothrow
     {
+        import dmd.common.file : SmallBuffer, toWStringz;
+
         if (!str.length) return F(""w.ptr);
 
-        wchar[1024] buf = void;
+        wchar[1024] support = void;
+        auto buf = SmallBuffer!wchar(support.length, support);
         wchar[] wide = toWStringz(str, buf);
         scope(exit) wide.ptr != buf.ptr && mem.xfree(wide.ptr);
 
