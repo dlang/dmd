@@ -636,6 +636,7 @@ pure @safe:
         TypeDelegate
         TypeNone
         TypeVoid
+        TypeNoreturn
         TypeByte
         TypeUbyte
         TypeShort
@@ -714,6 +715,9 @@ pure @safe:
 
     TypeVoid:
         v
+
+    TypeNoreturn
+        Nn
 
     TypeByte:
         g
@@ -873,6 +877,10 @@ pure @safe:
             popFront();
             switch ( front )
             {
+            case 'n': // Noreturn
+                popFront();
+                put("noreturn");
+                return dst[beg .. len];
             case 'g': // Wild (Ng Type)
                 popFront();
                 // TODO: Anything needed here?
@@ -1164,9 +1172,11 @@ pure @safe:
             case 'g':
             case 'h':
             case 'k':
+            case 'n':
                 // NOTE: The inout parameter type is represented as "Ng".
                 //       The vector parameter type is represented as "Nh".
                 //       The return parameter type is represented as "Nk".
+                //       The noreturn parameter type is represented as "Nn".
                 //       These make it look like a FuncAttr, but infact
                 //       if we see these, then we know we're really in
                 //       the parameter list.  Rewind and break.
@@ -2619,6 +2629,25 @@ unittest
     s ~= "FiZi";
     expected ~= "F";
     assert(s.demangle == expected);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=22235
+unittest
+{
+    enum parent = __MODULE__ ~ '.' ~ __traits(identifier, __traits(parent, {}));
+
+    static noreturn abort() { assert(false); }
+    assert(demangle(abort.mangleof) == "pure nothrow @nogc @safe noreturn " ~ parent ~ "().abort()");
+
+    static void accept(noreturn) {}
+    assert(demangle(accept.mangleof) == "pure nothrow @nogc @safe void " ~ parent ~ "().accept(noreturn)");
+
+    static void templ(T)(T, T) {}
+    assert(demangle(templ!noreturn.mangleof) == "pure nothrow @nogc @safe void " ~ parent ~ "().templ!(noreturn).templ(noreturn, noreturn)");
+
+    static struct S(T) {}
+    static void aggr(S!noreturn) { assert(0); }
+    assert(demangle(aggr.mangleof) == "pure nothrow @nogc @safe void " ~ parent ~ "().aggr(" ~ parent ~ "().S!(noreturn).S)");
 }
 
 /*
