@@ -7332,7 +7332,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (tv.ty == Tstruct)
                 {
                     ad = (cast(TypeStruct)tv).sym;
-                    if (ad.dtor)
+                    if (ad.xdtor)
                         semanticTypeInfo(sc, ad.type);
                 }
                 break;
@@ -7345,12 +7345,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         bool err = false;
         if (ad)
         {
-            if (ad.dtor)
+            if (ad.xdtor)
             {
-                err |= !ad.dtor.functionSemantic();
-                err |= exp.checkPurity(sc, ad.dtor);
-                err |= exp.checkSafety(sc, ad.dtor);
-                err |= exp.checkNogc(sc, ad.dtor);
+                err |= !ad.xdtor.functionSemantic();
+                err |= exp.checkPurity(sc, ad.xdtor);
+                err |= exp.checkSafety(sc, ad.xdtor);
+                err |= exp.checkNogc(sc, ad.xdtor);
             }
             if (err)
                 return setError();

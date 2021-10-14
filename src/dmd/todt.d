@@ -1401,8 +1401,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                     toObjFile(sd.xhash, global.params.multiobj);
                 if (sd.postblit)
                     toObjFile(sd.postblit, global.params.multiobj);
-                if (sd.dtor)
-                    toObjFile(sd.dtor, global.params.multiobj);
+                if (sd.xdtor)
+                    toObjFile(sd.xdtor, global.params.multiobj);
             }
         }
 

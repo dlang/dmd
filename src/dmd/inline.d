@@ -740,7 +740,7 @@ public:
                 if (auto ts = tv.isTypeStruct())
                 {
                     auto sd = ts.sym;
-                    if (sd.dtor)
+                    if (sd.xdtor)
                         semanticTypeInfo(null, ts);
                 }
             }

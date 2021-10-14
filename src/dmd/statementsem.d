@@ -1118,7 +1118,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             return setError();
         Expression oaggr = fs.aggr;     // remember original for error messages
         if (fs.aggr.type && fs.aggr.type.toBasetype().ty == Tstruct &&
-            (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
+            (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.xdtor &&
             fs.aggr.op != TOK.type && !fs.aggr.isLvalue())
         {
             // https://issues.dlang.org/show_bug.cgi?id=14653

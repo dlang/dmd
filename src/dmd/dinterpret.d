@@ -4310,7 +4310,7 @@ public:
             rb.newval = newval;
             rb.refCopy = wantRef || cow;
             rb.needsPostblit = sd && sd.postblit && e.op != TOK.blit && e.e2.isLvalue();
-            rb.needsDtor = sd && sd.dtor && e.op == TOK.assign;
+            rb.needsDtor = sd && sd.xdtor && e.op == TOK.assign;
             if (Expression ex = rb.assignTo(existingAE, cast(size_t)lowerbound, cast(size_t)upperbound))
                 return ex;
 
@@ -5727,9 +5727,9 @@ public:
             // Find dtor(s) in inheritance chain
             do
             {
-                if (cd.dtor)
+                if (cd.xdtor)
                 {
-                    result = interpretFunction(pue, cd.dtor, istate, null, cre);
+                    result = interpretFunction(pue, cd.xdtor, istate, null, cre);
                     if (exceptionOrCant(result))
                         return;
 
@@ -5761,9 +5761,9 @@ public:
                 auto sd = (cast(TypeStruct)tb).sym;
                 auto sle = cast(StructLiteralExp)(cast(AddrExp)result).e1;
 
-                if (sd.dtor)
+                if (sd.xdtor)
                 {
-                    result = interpretFunction(pue, sd.dtor, istate, null, sle);
+                    result = interpretFunction(pue, sd.xdtor, istate, null, sle);
                     if (exceptionOrCant(result))
                         return;
                 }
@@ -5783,12 +5783,12 @@ public:
 
                 auto sd = (cast(TypeStruct)tv).sym;
 
-                if (sd.dtor)
+                if (sd.xdtor)
                 {
                     auto ale = cast(ArrayLiteralExp)result;
                     foreach (el; *ale.elements)
                     {
-                        result = interpretFunction(pue, sd.dtor, istate, null, el);
+                        result = interpretFunction(pue, sd.xdtor, istate, null, el);
                         if (exceptionOrCant(result))
                             return;
                     }
@@ -7390,7 +7390,7 @@ private Expression evaluateDtor(InterState* istate, Expression e)
     if (!ts)
         return null;
     StructDeclaration sd = ts.sym;
-    if (!sd.dtor)
+    if (!sd.xdtor)
         return null;
 
     UnionExp ue = void;
@@ -7402,7 +7402,7 @@ private Expression evaluateDtor(InterState* istate, Expression e)
     else if (e.op == TOK.structLiteral)
     {
         // e.__dtor()
-        e = interpretFunction(&ue, sd.dtor, istate, null, e);
+        e = interpretFunction(&ue, sd.xdtor, istate, null, e);
     }
     else
         assert(0);

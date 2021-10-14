@@ -128,7 +128,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
          */
         if (!sd.members)
             return; // opaque struct
-        if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.dtor && !sd.xhash && !search_toString(sd))
+        if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.tidtor && !sd.xhash && !search_toString(sd))
             return; // none of TypeInfo-specific members
 
         // If the struct is in a non-root module, run semantic3 to get
@@ -409,7 +409,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         ispod = ThreeState.yes;
 
-        if (enclosing || postblit || dtor || hasCopyCtor)
+        if (enclosing || postblit || xdtor || hasCopyCtor)
         {
             ispod = ThreeState.no;
             return false;

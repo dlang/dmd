@@ -160,7 +160,7 @@ private bool needOpAssign(StructDeclaration sd)
         return !isNeeded();
 
     if (sd.hasIdentityAssign || // because has identity==elaborate opAssign
-        sd.dtor ||
+        sd.xdtor ||
         sd.postblit)
         return isNeeded();
 
@@ -286,12 +286,12 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
     }
 
-    if (sd.dtor || sd.postblit)
+    if (sd.xdtor || sd.postblit)
     {
         // if the type is not assignable, we cannot generate opAssign
         if (!sd.type.isAssignable()) // https://issues.dlang.org/show_bug.cgi?id=13044
             return null;
-        stc = mergeFuncAttrs(stc, sd.dtor);
+        stc = mergeFuncAttrs(stc, sd.xdtor);
         if (stc & STC.safe)
             stc = (stc & ~STC.safe) | STC.trusted;
     }
@@ -310,10 +310,10 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     /* Do swap this and rhs.
      *    __swap = this; this = s; __swap.dtor();
      */
-    else if (sd.dtor)
+    else if (sd.xdtor)
     {
         //printf("\tswap copy\n");
-        TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
+        TypeFunction tdtor = cast(TypeFunction)sd.xdtor.type;
         assert(tdtor.ty == Tfunction);
 
         auto idswap = Identifier.generateId("__swap");
@@ -329,7 +329,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         /* Instead of running the destructor on s, run it
          * on swap. This avoids needing to copy swap back in to s.
          */
-        auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.dtor, false));
+        auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.xdtor, false));
 
         e = Expression.combine(e1, e2, e3, e4);
     }
@@ -841,23 +841,22 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 }
 
 /*****************************************
- * Create inclusive destructor for struct/class by aggregating
- * all the destructors in dtors[] with the destructors for
+ * Create aggregate destructor for struct/class by aggregating
+ * all the destructors in userDtors[] with the destructors for
  * all the members.
+ * Sets ad's fieldDtor, aggrDtor, xdtor and tidtor fields.
  * Params:
  *      ad = struct or class to build destructor for
  *      sc = context
- * Returns:
- *      generated function, null if none needed
  * Note:
  * Close similarity with StructDeclaration::buildPostBlit(),
  * and the ordering changes (runs backward instead of forwards).
  */
-DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
+void buildDtors(AggregateDeclaration ad, Scope* sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad.toChars());
     if (ad.isUnionDeclaration())
-        return null;                    // unions don't have destructors
+        return;                    // unions don't have destructors
 
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = ad.userDtors.dim ? ad.userDtors[0].loc : ad.loc;
@@ -881,20 +880,20 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             if (tv.ty != Tstruct)
                 continue;
             auto sdv = (cast(TypeStruct)tv).sym;
-            if (!sdv.dtor)
+            if (!sdv.xdtor)
                 continue;
 
             // fix: https://issues.dlang.org/show_bug.cgi?id=17257
             // braces for shrink wrapping scope of a
             {
-                xdtor_fwd = sdv.dtor; // this dtor is temporary it could be anything
+                xdtor_fwd = sdv.xdtor; // this dtor is temporary it could be anything
                 auto a = new AliasDeclaration(Loc.initial, Id.__xdtor, xdtor_fwd);
                 a.addMember(sc, ad); // temporarily add to symbol table
             }
 
-            sdv.dtor.functionSemantic();
+            sdv.xdtor.functionSemantic();
 
-            stc = mergeFuncAttrs(stc, sdv.dtor);
+            stc = mergeFuncAttrs(stc, sdv.xdtor);
             if (stc & STC.disable)
             {
                 e = null;
@@ -916,7 +915,7 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
                 if (stc & STC.safe)
                     stc = (stc & ~STC.safe) | STC.trusted;
 
-                ex = new DotVarExp(loc, ex, sdv.dtor, false);
+                ex = new DotVarExp(loc, ex, sdv.xdtor, false);
                 ex = new CallExp(loc, ex);
             }
             else
@@ -960,6 +959,7 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         }
     }
 
+    // Generate list of dtors to call in that order
     DtorDeclarations dtors;
     foreach_reverse (userDtor; ad.userDtors[])
         dtors.push(userDtor);
@@ -969,22 +969,24 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     {
         // extern(C++) destructors call into super to destruct the full hierarchy
         ClassDeclaration cldec = ad.isClassDeclaration();
-        if (cldec && cldec.classKind == ClassKind.cpp && cldec.baseClass && cldec.baseClass.dtor)
-            dtors.push(cldec.baseClass.dtor);
+        if (cldec && cldec.classKind == ClassKind.cpp && cldec.baseClass && cldec.baseClass.aggrDtor)
+            dtors.push(cldec.baseClass.aggrDtor);
     }
 
-    DtorDeclaration xdtor = null;
+    // Set/build `ad.aggrDtor`
     switch (dtors.dim)
     {
     case 0:
         break;
 
     case 1:
-        xdtor = dtors[0];
+        // Use the single existing dtor directly as aggregate dtor.
+        // Note that this might be `cldec.baseClass.aggrDtor`.
+        ad.aggrDtor = dtors[0];
         break;
 
     default:
-        // Build the full destructor, calling all dtors in order.
+        // Build the aggregate destructor, calling all dtors in order.
         assert(!dtorIsCppPrototype);
         Expression e = null;
         e = null;
@@ -1009,17 +1011,20 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         dd.fbody = new ExpStatement(loc, e);
         ad.members.push(dd);
         dd.dsymbolSemantic(sc);
-        xdtor = dd;
+        ad.aggrDtor = dd;
         break;
     }
 
-    if (xdtor && xdtor.linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
-        buildWindowsCppDtor(ad, xdtor, sc);
+    // Set/build `ad.xdtor`.
+    // On Windows, the dtor in the vtable is a shim with different signature.
+    ad.xdtor = (ad.aggrDtor && ad.aggrDtor.linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
+        ? buildWindowsCppDtor(ad, ad.aggrDtor, sc)
+        : ad.aggrDtor;
 
-    // Add an __xdtor alias to make the inclusive dtor accessible
-    if (xdtor)
+    // Add an __xdtor alias to make `ad.dtor` accessible
+    if (ad.xdtor)
     {
-        auto _alias = new AliasDeclaration(Loc.initial, Id.__xdtor, xdtor);
+        auto _alias = new AliasDeclaration(Loc.initial, Id.__xdtor, ad.xdtor);
         _alias.dsymbolSemantic(sc);
         ad.members.push(_alias);
         if (xdtor_fwd)
@@ -1028,7 +1033,8 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             _alias.addMember(sc, ad); // add to symbol table
     }
 
-    return xdtor;
+    // Set/build `ad.tidtor`
+    ad.tidtor = buildExternDDtor(ad, sc);
 }
 
 /**
@@ -1086,7 +1092,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
 }
 
 /**
- * build a shim function around the compound dtor that translates
+ * build a shim function around the aggregate dtor that translates
  *  a C++ destructor to a destructor with extern(D) calling convention
  *
  * Params:
@@ -1096,9 +1102,9 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
  * Returns:
  *  the shim destructor, semantically analyzed and added to the class as a member
  */
-DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
+private DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
 {
-    auto dtor = ad.dtor;
+    auto dtor = ad.aggrDtor;
     if (!dtor)
         return null;
 
@@ -1263,7 +1269,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 
                     auto sfv = (cast(TypeStruct)sf.type.baseElemOf()).sym;
 
-                    ex = new DotVarExp(loc, ex, sfv.dtor, false);
+                    ex = new DotVarExp(loc, ex, sfv.xdtor, false);
                     ex = new CallExp(loc, ex);
 
                     dtorCalls ~= ex;
@@ -1313,7 +1319,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         sdv.postblit.functionSemantic();
 
         stc = mergeFuncAttrs(stc, sdv.postblit);
-        stc = mergeFuncAttrs(stc, sdv.dtor);
+        stc = mergeFuncAttrs(stc, sdv.xdtor);
 
         // if any of the struct member fields has disabled
         // its postblit, then `sd` is not copyable, so no
@@ -1373,9 +1379,9 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
          * When subsequent field postblit calls fail,
          * this field should be destructed for Exception Safety.
          */
-        if (sdv.dtor)
+        if (sdv.xdtor)
         {
-            sdv.dtor.functionSemantic();
+            sdv.xdtor.functionSemantic();
 
             // keep a list of fields that need to be destroyed in case
             // of a future postblit failure

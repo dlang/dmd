@@ -115,7 +115,7 @@ AggregateDeclaration isInlinableNestedAggregate(DeclarationExp e)
                     return null;
                 // if it's a struct: must not have dtor
                 StructDeclaration sdecl = result.isStructDeclaration;
-                if (sdecl && (sdecl.fieldDtor || sdecl.dtor))
+                if (sdecl && (sdecl.fieldDtor || sdecl.xdtor))
                     return null;
                 // the aggregate must be static
                 UnionDeclaration udecl = result.isUnionDeclaration;

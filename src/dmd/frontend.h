@@ -4990,7 +4990,8 @@ public:
     CtorDeclaration* defaultCtor;
     AliasThis* aliasthis;
     Array<DtorDeclaration* > userDtors;
-    DtorDeclaration* dtor;
+    DtorDeclaration* aggrDtor;
+    DtorDeclaration* xdtor;
     DtorDeclaration* tidtor;
     DtorDeclaration* fieldDtor;
     Expression* getRTInfo;
