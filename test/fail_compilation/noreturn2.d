@@ -36,3 +36,30 @@ auto missmatch(int i)
     if (i > 0)
         return "";
 }
+
+/+
+TEST_OUTPUT:
+---
+fail_compilation/noreturn2.d(50): Error: function `noreturn2.returns` is typed as `NR` but does return
+fail_compilation/noreturn2.d(50):        `noreturn` functions must either throw, abort or loop indefinitely
+---
++/
+
+enum NR : noreturn;
+
+NR returns()
+{
+    // Fallthrough despite noreturn
+}
+
+/+
+TEST_OUTPUT:
+---
+fail_compilation/noreturn2.d(64): Error: cannot implicitly convert expression `1` of type `int` to `noreturn`
+---
++/
+
+noreturn returnsValue()
+{
+    return 1;
+}

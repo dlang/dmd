@@ -50,7 +50,11 @@ static assert((noreturn*).sizeof == (int*).sizeof);
 static assert((noreturn[]).sizeof == (int[]).sizeof);
 
 version (DigitalMars)
-    noreturn exits(int* p) { *p = 3; }
+    noreturn exits(int* p)
+    {
+        *p = 3;
+        assert(false); // *p could be valid
+    }
 
 noreturn exit();
 
