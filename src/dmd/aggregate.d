@@ -511,17 +511,19 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     /****************************************
-     * Place a member (mem) into an aggregate (agg), which can be a struct, union or class
+     * Place a field (mem) into an aggregate (agg), which can be a struct, union or class
+     * Params:
+     *    nextoffset    = location just past the end of the previous field in the aggregate.
+     *                    Updated to be just past the end of this field to be placed, i.e. the future nextoffset
+     *    memsize       = size of field
+     *    memalignsize  = natural alignment of field
+     *    alignment     = alignment in effect for this field
+     *    paggsize      = size of aggregate (updated)
+     *    paggalignsize = alignment of aggregate (updated)
+     *    isunion       = the aggregate is a union
      * Returns:
-     *      offset to place field at
+     *    aligned offset to place field at
      *
-     * nextoffset:    next location in aggregate
-     * memsize:       size of member
-     * memalignsize:  natural alignment of member
-     * alignment:     alignment in effect for this member
-     * paggsize:      size of aggregate (updated)
-     * paggalignsize: alignment of aggregate (updated)
-     * isunion:       the aggregate is a union
      */
     extern (D) static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
         structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
