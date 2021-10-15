@@ -172,7 +172,7 @@ extern (C++) struct Param
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool showGaggedErrors;  // print gagged errors anyway
-    bool printErrorContext;  // print errors with the error context (the error line in the source file)
+    bool printErrorContext = true;  // print errors with the error context (the error line in the source file)
     bool manual;            // open browser on compiler manual
     bool usage;             // print usage and exit
     bool mcpuUsage;         // print help on -mcpu switch

@@ -1789,11 +1789,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             else if (startsWith(p + 9, "context"))
             {
-                params.printErrorContext = true;
+                // Allow a user to temporarily specify -verrors=context, but throw a warning that the
+                // flag is deprecated.
+                dmd.errors.deprecation(Loc.initial, "-verrors=context is redundant, and will be removed in future DMD versions.");
             }
             else if (!params.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
-                errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
+                errorInvalidSwitch(p, "Only a number, or `spec` are allowed for `-verrors`");
                 return true;
             }
         }
