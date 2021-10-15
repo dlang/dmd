@@ -264,8 +264,8 @@ extern (C++) struct Param
 extern (C++) struct structalign_t
 {
   private:
-    uint value = 0;  // unknown
-    enum STRUCTALIGN_DEFAULT = ~0;   // default = match whatever the corresponding C compiler does
+    ushort value = 0;  // unknown
+    enum STRUCTALIGN_DEFAULT = 1234;   // default = match whatever the corresponding C compiler does
     bool pack;         // use #pragma pack semantics
 
   public:
@@ -274,7 +274,7 @@ extern (C++) struct structalign_t
     void setDefault()      { value = STRUCTALIGN_DEFAULT; }
     bool isUnknown() const { return value == 0; }  // value is not set
     void setUnknown()      { value = 0; }
-    void set(uint value)   { this.value = value; }
+    void set(uint value)   { this.value = cast(ushort)value; }
     uint get() const       { return value; }
     bool isPack() const    { return pack; }
     void setPack(bool pack) { this.pack = pack; }

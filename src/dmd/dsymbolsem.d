@@ -141,7 +141,7 @@ AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
             if (sc.flags & SCOPE.Cfile && n == 0)       // C11 6.7.5-6 allows 0 for alignment
                 continue;
 
-            if (n < 1 || n & (n - 1) || uint.max < n || !e.type.isintegral())
+            if (n < 1 || n & (n - 1) || ushort.max < n || !e.type.isintegral())
             {
                 error(ad.loc, "alignment must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
                 errors = true;

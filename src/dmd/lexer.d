@@ -2973,7 +2973,7 @@ class Lexer
         void setPackAlign(ref const Token t)
         {
             const n = t.unsvalue;
-            if (n < 1 || n & (n - 1) || uint.max < n)
+            if (n < 1 || n & (n - 1) || ushort.max < n)
                 error(loc, "pack must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
             packalign.set(cast(uint)n);
             packalign.setPack(true);
@@ -2991,7 +2991,10 @@ class Lexer
          */
         if (n.value == TOK.identifier && n.ident == Id.show)
         {
-            warning(startloc, "current pack attribute is %d", packalign.get());
+            if (packalign.isDefault())
+                warning(startloc, "current pack attribute is default");
+            else
+                warning(startloc, "current pack attribute is %d", packalign.get());
             scan(&n);
             return closingParen();
         }

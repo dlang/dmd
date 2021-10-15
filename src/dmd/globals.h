@@ -240,7 +240,7 @@ struct Param
 
 struct structalign_t
 {
-    unsigned value;
+    unsigned short value;
     bool pack;
 
     bool isDefault() const;
