@@ -218,6 +218,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sched.d \
 	$(IMPDIR)\core\sys\linux\stdio.d \
 	$(IMPDIR)\core\sys\linux\string.d \
+	$(IMPDIR)\core\sys\linux\syscalls.d \
 	$(IMPDIR)\core\sys\linux\termios.d \
 	$(IMPDIR)\core\sys\linux\time.d \
 	$(IMPDIR)\core\sys\linux\timerfd.d \
