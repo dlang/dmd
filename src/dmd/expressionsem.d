@@ -7730,20 +7730,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("SliceExp::semantic('%s')\n", exp.toChars());
         }
 
-        if (exp.lwr && exp.upr)
+        if (exp.e1.type.ty != Tsarray)
         {
-            if (exp.lwr.op == TOK.negate || exp.upr.op == TOK.negate)
-            {
-                exp.error("slice index should be greater than or equal to 0");
-                return setError();
-            }
+            exp.error("trying to slice non-static array %s[]", exp.e1.toChars());
+            return setError();
+        }
 
+        if (exp.lwr && exp.upr && exp.lwr.isIntegerExp() && exp.upr.isIntegerExp())
+        {
             uinteger_t lwrSliceLen = exp.lwr.toInteger();
             uinteger_t uprSliceLen = exp.upr.toInteger();
 
             if (lwrSliceLen > uprSliceLen)
             {
-                exp.error("slice lower bound can't be greater than upper bound");
+                exp.error("slice lower bound %llu can't be greater than upper bound %llu", lwrSliceLen, uprSliceLen);
                 return setError();
             }
 
