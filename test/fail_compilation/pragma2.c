@@ -1,7 +1,7 @@
 /* REQUIRED_ARGS: -w
 TEST_OUTPUT:
 ---
-fail_compilation/pragma2.c(11): Warning: current pack attribute is -1
+fail_compilation/pragma2.c(11): Warning: current pack attribute is default
 fail_compilation/pragma2.c(14): Error: unrecognized `#pragma pack(&)`
 fail_compilation/pragma2.c(13): Error: right parenthesis expected to close `#pragma pack(`
 fail_compilation/pragma2.c(12): Error: left parenthesis expected to follow `#pragma pack`

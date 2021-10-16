@@ -1181,7 +1181,7 @@ enum class LINK : uint8_t
 struct structalign_t final
 {
 private:
-    uint32_t value;
+    uint16_t value;
     bool pack;
 public:
     bool isDefault() const;
