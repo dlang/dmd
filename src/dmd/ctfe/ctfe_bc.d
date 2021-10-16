@@ -6142,6 +6142,17 @@ static if (is(BCGen))
             retval = genArg(ale);
             return ;
         }
+        auto oldAssignTo = assignTo;
+        scope(exit) assignTo = oldAssignTo;
+        if (assignTo)
+        {
+            retval = assignTo;
+        }
+        else
+        {
+            retval = genTemporary(toBCType(ale.type));
+        }
+
         // not a constant array literal so now need to generate the expression at runtime
         // first we allocate the memory.
         //[[1,2],[3, 4], [a,b] ,[d, e]];
@@ -6149,14 +6160,12 @@ static if (is(BCGen))
         auto size = SliceDescriptor.Size + (arrayLength * elemSize);
         auto elemDest = genTemporary(i32Type);
         scope (exit) destroyTemporary(elemDest);
-        {
-            auto allocPtr = genTemporary(i32Type);
-            Alloc(allocPtr, imm32(size));
-            setLength(allocPtr, imm32(arrayLength));
-            Add3(elemDest, allocPtr, imm32(SliceDescriptor.Size));
-            setBase(allocPtr, elemDest);
-            destroyTemporary(allocPtr);
-        }
+
+        Alloc(retval, imm32(size));
+        setLength(retval, imm32(arrayLength));
+        Add3(elemDest, retval, imm32(SliceDescriptor.Size));
+        setBase(retval, elemDest);
+
         // we need to keep track of the current offset in the array literal
         // array literals can be nested in other array literals or structs
         // which is why need to keep an offset stack.
@@ -6175,6 +6184,7 @@ static if (is(BCGen))
             if (elem)
             {
                 auto elemValue = genExpr(elem);
+                SetMem(elemDest, elemValue);
             }
             else
             {
@@ -6183,7 +6193,6 @@ static if (is(BCGen))
             }
             Add3(elemDest, elemDest, imm32(elemSize));
         }
-
     }
 
     BCValue AllocSlice(BCValue sliceDescAddr, BCValue desired_length, BCType slice_type)
