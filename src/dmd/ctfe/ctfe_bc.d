@@ -368,7 +368,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args)
     static if (perf)
     {
         hiw.stop();
-        writeln("Initializing heap took " ~ (cast(int)hiw.peek.total!"usecs").itos ~ " usecs");
+        printf("Initializing heap took %d usecs", (cast(int)hiw.peek.total!"usecs"));
         isw.start();
     }
     __gshared static bcv = new BCV!BCGenT;
@@ -425,9 +425,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args)
     static if (perf)
     {
         csw.stop;
-        writeln("Creating and Initializing bcGen took " ~ itos(cast(int)isw.peek.total!"usecs")~ " usecs");
-        writeln("Generating bc for ", fd.ident.toString ~ " took " ~
-            itos(cast(int)csw.peek.total!"usecs") ~ " usecs");
+        printf("Creating and Initializing bcGen took %d usecs\n", (cast(int)isw.peek.total!"usecs"));
+        printf("Generating bc for %s took %d usecs\n", fd.ident.toChars(), (cast(int)csw.peek.total!"usecs"));
     }
 
     debug (ctfe)
@@ -545,10 +544,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args)
 
         static if (perf)
         {
-            import std.stdio;
-            writeln("Executing bc for " ~ fd.ident.toString ~ " took " ~ itos(cast(int)sw.peek().total!"usecs") ~ " us");
-            writeln(itos(cast(int)asw.peek().total!"usecs") ~ " us were spent doing argument processing");
-            writeln(itos(cast(int)asw2.peek().total!"usecs") ~ " us were spent doing argument re-processing");
+            import core.stdc.stdio;
+            printf("Executing bc for %s took %d usecs\n", fd.ident.toChars(), (cast(int)sw.peek().total!"usecs"));
+            printf("%d us were spent doing argument processing\n", (cast(int)asw.peek().total!"usecs"));
+            printf("%d us were spent doing argument re-processing\n", cast(int)asw2.peek().total!"usecs");
         }
         {
             static if (perf)
