@@ -416,6 +416,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             {
                 return i;
             }
+            if (sc.flags & SCOPE.Cfile)
+                /* the interpreter turns (char*)"string" into &"string"[0] which then
+                 * it cannot interpret. Resolve that case by doing optimize() first
+                 */
+                i.exp = i.exp.optimize(WANTvalue);
             i.exp = i.exp.ctfeInterpret();
             if (i.exp.op == TOK.voidExpression)
                 error(i.loc, "variables cannot be initialized with an expression of type `void`. Use `void` initialization instead.");
