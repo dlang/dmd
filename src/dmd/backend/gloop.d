@@ -2008,7 +2008,7 @@ private void loopiv(ref Loop l)
 {
     if (debugc) printf("loopiv(%p)\n", &l);
     assert(l.Livlist.length == 0 && l.Lopeqlist.length == 0);
-    elimspec(l);
+    elimspec(l, dfo);
     if (doflow)
     {
         flowrd();               /* compute reaching defs                */
@@ -3477,8 +3477,8 @@ private void countrefs(elem **pn,bool flag)
             /* Check both subtrees to see if n is the comparison node,
              * that is, if X is a leaf of the comparison.
              */
-            if (e1.Eoper == OPvar && e1.EV.Vsym == X && !countrefs2(n.EV.E2) ||
-                n.EV.E2.Eoper == OPvar && n.EV.E2.EV.Vsym == X && !countrefs2(e1))
+            if (e1.Eoper == OPvar && e1.EV.Vsym == X && !countrefs2(n.EV.E2, X) ||
+                n.EV.E2.Eoper == OPvar && n.EV.E2.EV.Vsym == X && !countrefs2(e1, X))
                 nd = pn;                /* found the relop node */
         }
     L1:
@@ -3498,15 +3498,15 @@ private void countrefs(elem **pn,bool flag)
  */
 
 @trusted
-private int countrefs2(elem *e)
+private int countrefs2(const(elem)* e, const Symbol* s)
 {
-    elem_debug(e);
+    debug elem_debug(e);
     while (OTunary(e.Eoper))
         e = e.EV.E1;
     if (OTbinary(e.Eoper))
-        return countrefs2(e.EV.E1) + countrefs2(e.EV.E2);
+        return countrefs2(e.EV.E1, s) + countrefs2(e.EV.E2, s);
     return ((e.Eoper == OPvar || e.Eoper == OPrelconst) &&
-            e.EV.Vsym == X);
+            e.EV.Vsym == s);
 }
 
 /****************************
@@ -3514,15 +3514,13 @@ private int countrefs2(elem *e)
  */
 
 @trusted
-private void elimspec(ref Loop l)
+private
+extern(D) void elimspec(const ref Loop loop, block*[] dfo)
 {
-    uint i;
-
-    for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
+    // Visit each block in loop
+    for (size_t i = 0; (i = vec_index(i, loop.Lloop)) < dfo.length; ++i)
     {
-        block *b;
-
-        b = dfo[i];
+        auto b = dfo[i];
         if (b.Belem)
             elimspecwalk(&b.Belem);
     }
