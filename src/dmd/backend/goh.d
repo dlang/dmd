@@ -117,7 +117,7 @@ int ae_field_affect(elem *lvalue,elem *e);
 void localize();
 
 /* gloop.c */
-int blockinit();
+bool blockinit();
 void compdom();
 void loopopt();
 extern (C) void updaterd(elem *n,vec_t GEN,vec_t KILL);
