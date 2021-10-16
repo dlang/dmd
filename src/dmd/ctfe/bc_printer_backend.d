@@ -369,7 +369,7 @@ struct Print_BCGen
             sp -= sz;
         }
 
-        result ~= indent ~ "destroyTemporary(" ~ print(tmp) ~ ")\n";
+        result ~= indent ~ "destroyTemporary(" ~ print(tmp) ~ ");\n";
     }
 
     BCValue genLocal(BCType bct, string name)
