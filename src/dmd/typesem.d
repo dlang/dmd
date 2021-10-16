@@ -4766,6 +4766,7 @@ Expression defaultInit(Type mt, const ref Loc loc)
         }
         auto cond = IntegerExp.createBool(false);
         auto msg = new StringExp(loc, "Accessed expression of type `noreturn`");
+        msg.type = Type.tstring;
         auto ae = new AssertExp(loc, cond, msg);
         ae.type = mt;
         return ae;
