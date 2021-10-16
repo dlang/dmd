@@ -608,7 +608,7 @@ struct BCGen
         return sp;
     }
 
-    void loadFramePointerPlusOffsetInto(BCValue intoHere, int offset)
+    void LoadFramePointer(BCValue intoHere, int offset)
     {
         emitLongInst(LongInst.LoadFramePointer, intoHere.stackAddr, imm32(offset).imm32);
     }
@@ -2258,7 +2258,7 @@ string printInstructions(const uint* startInstructions, uint length, const strin
             break;
         case LongInst.LoadFramePointer:
             {
-                result ~= "LoadFramePointer " ~ localName(stackMap, hi & 0xFFFF) ~ " +#" ~ itos(hi) ~ "\n";
+                result ~= "LoadFramePointer " ~ localName(stackMap, lw >> 16) ~ " +#" ~ itos(hi) ~ "\n";
             }
             break;
         case LongInst.MemCpy:
@@ -2391,7 +2391,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
         {
             printf("before pushing args");
         }
-    long* stackP = &stack[0] + (stackOffset / 4);
+    long* framePtr = &stack[0] + (stackOffset / 4);
 /+
     struct Stack
     {
@@ -2411,32 +2411,32 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
         {
             case BCTypeEnum.i32, BCTypeEnum.i16, BCTypeEnum.i8:
             {
-                (stackP[argOffset++]) = cast(int)arg.imm32;
+                (framePtr[argOffset++]) = cast(int)arg.imm32;
             }
             break;
 
             case BCTypeEnum.u32, BCTypeEnum.f23, BCTypeEnum.c8, BCTypeEnum.u16, BCTypeEnum.u8, BCTypeEnum.c16, BCTypeEnum.c32:
             {
-                (stackP[argOffset++]) = cast(uint)arg.imm32;
+                (framePtr[argOffset++]) = cast(uint)arg.imm32;
             }
             break;
 
         case BCTypeEnum.i64:
             {
-                (stackP[argOffset++]) = arg.imm64;
+                (framePtr[argOffset++]) = arg.imm64;
             }
             break;
 
         case BCTypeEnum.u64, BCTypeEnum.f52:
         {
-            (stackP[argOffset++]) = arg.imm64;
+            (framePtr[argOffset++]) = arg.imm64;
         }
         break;
 
         case BCTypeEnum.Struct, BCTypeEnum.Class, BCTypeEnum.string8, BCTypeEnum.Array, BCTypeEnum.Ptr, BCTypeEnum.Null:
             {
                 // This might need to be removed again?
-                (stackP[argOffset++]) = arg.heapAddr.addr;
+                (framePtr[argOffset++]) = arg.heapAddr.addr;
             }
             break;
         default:
@@ -2519,7 +2519,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
             fnId = returnAddr.fnId;
             ip = returnAddr.ip;
 
-            stackP = stackP - (returnAddr.stackSize / 4);
+            framePtr = framePtr - (returnAddr.stackSize / 4);
             callDepth--;
             if (cRetval.vType == BCValueType.Exception)
             {
@@ -2623,10 +2623,10 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
         const uint lhsOffset = hi & 0xFFFF;
         const uint rhsOffset = (hi >> 16) & 0xFFFF;
 
-        auto lhsRef = (&stackP[(lhsOffset / 4)]);
-        auto rhs = (&stackP[(rhsOffset / 4)]);
-        auto lhsStackRef = (&stackP[(opRefOffset / 4)]);
-        auto opRef = &stackP[(opRefOffset / 4)];
+        auto lhsRef = (&framePtr[(lhsOffset / 4)]);
+        auto rhs = (&framePtr[(rhsOffset / 4)]);
+        auto lhsStackRef = (&framePtr[(opRefOffset / 4)]);
+        auto opRef = &framePtr[(opRefOffset / 4)];
 
         if (!lw)
         { // Skip NOPS
@@ -3238,10 +3238,10 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
                         {
                             auto err = errors[cast(uint)(hi - 1)];
 
-                            *ev1 = imm32(stackP[err.v1.addr / 4] & uint.max);
-                            *ev2 = imm32(stackP[err.v2.addr / 4] & uint.max);
-                            *ev3 = imm32(stackP[err.v3.addr / 4] & uint.max);
-                            *ev4 = imm32(stackP[err.v4.addr / 4] & uint.max);
+                            *ev1 = imm32(framePtr[err.v1.addr / 4] & uint.max);
+                            *ev2 = imm32(framePtr[err.v2.addr / 4] & uint.max);
+                            *ev3 = imm32(framePtr[err.v3.addr / 4] & uint.max);
+                            *ev4 = imm32(framePtr[err.v4.addr / 4] & uint.max);
                         }
                     }
                     return retval;
@@ -3467,7 +3467,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
             break;
         case LongInst.HeapStore8:
             {
-                assert(*lhsRef, "trying to deref null pointer SP[" ~ itos(cast(int)((lhsRef - &stackP[0])*4)) ~ "] at : &" ~ itos (ip - 2));
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ itos(cast(int)((lhsRef - &framePtr[0])*4)) ~ "] at : &" ~ itos (ip - 2));
                 heapPtr.heapData[*lhsRef] = ((*rhs) & 0xFF);
                 debug
                 {
@@ -3496,7 +3496,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
             break;
             case LongInst.HeapStore16:
             {
-                assert(*lhsRef, "trying to deref null pointer SP[" ~ itos(cast(int)((lhsRef - &stackP[0])*4)) ~ "] at : &" ~ itos (ip - 2));
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ itos(cast(int)((lhsRef - &framePtr[0])*4)) ~ "] at : &" ~ itos (ip - 2));
                 const addr = *lhsRef;
                 heapPtr.heapData[addr    ] = ((*rhs     ) & 0xFF);
                 heapPtr.heapData[addr + 1] = ((*rhs >> 8) & 0xFF);
@@ -3516,7 +3516,8 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
                 const addr = cast(uint) *rhs;
                 if (isStackAddress(addr))
                 {
-                    (*lhsRef) = stackPtr[toStackOffset(addr)];
+                    auto sAddr = toStackOffset(addr);
+                    (*lhsRef) = stackPtr[sAddr / 4];
                     continue;
                 }
 
@@ -3532,12 +3533,13 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
             break;
         case LongInst.HeapStore32:
             {
-                assert(*lhsRef, "trying to deref null pointer SP[" ~ itos(cast(int)((lhsRef - &stackP[0])*4)) ~ "] at : &" ~ itos (ip - 2));
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ itos(cast(int)((lhsRef - &framePtr[0])*4)) ~ "] at : &" ~ itos (ip - 2));
 
                 const addr = cast(uint) *lhsRef;
                 if (isStackAddress(addr))
                 {
-                    stackPtr[toStackOffset(addr)] = ((*rhs) & uint.max);
+                    auto sAddr = toStackOffset(addr);
+                    stackPtr[sAddr / 4] = ((*rhs) & uint.max);
                     continue;
                 }
 
@@ -3574,7 +3576,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
 
         case LongInst.HeapStore64:
             {
-                assert(*lhsRef, "trying to deref null pointer SP[" ~ itos(cast(int)(lhsRef - &stackP[0])*4) ~ "] at : &" ~ itos (ip - 2));
+                assert(*lhsRef, "trying to deref null pointer SP[" ~ itos(cast(int)(lhsRef - &framePtr[0])*4) ~ "] at : &" ~ itos (ip - 2));
                 const heapOffset = *lhsRef;
                 assert(heapOffset < heapPtr.heapSize, "Store out of range at ip: &" ~ itos(ip - 2) ~ " atLine: " ~ itos(lastLine));
                 auto basePtr = (heapPtr.heapData.ptr + *lhsRef);
@@ -3642,7 +3644,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
                     }
                     else
                     {
-                        printf("Addr: %lu, Value %lx\n", (opRef - stackP) * 4, *opRef);
+                        printf("Addr: %lu, Value %lx\n", (opRef - framePtr) * 4, *opRef);
                     }
                 }
             }
@@ -3745,13 +3747,13 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
 
                 uint fn = (call.fn.vType == BCValueType.Immediate ?
                     call.fn.imm32 :
-                    stackP[call.fn.stackAddr.addr / 4]
+                    framePtr[call.fn.stackAddr.addr / 4]
                 ) & uint.max;
 
                 fnId = fn - 1;
 
                 auto stackOffsetCall = stackOffset + call.callerSp;
-                auto newStack = stackP + (call.callerSp / 4);
+                auto newStack = framePtr + (call.callerSp / 4);
 
                 if (fn == skipFn)
                     continue;
@@ -3777,7 +3779,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
                             printf("bcArg: %s\n", arg.toString().ptr);
                             if (arg.vType != BCValueType.Immediate)
                             {
-                                a = imm32(stackP[arg.stackAddr / 4] & uint.max);
+                                a = imm32(framePtr[arg.stackAddr / 4] & uint.max);
                             }
                             (*eArgs)[i] = toExpression(a, argTypes[i]);
                             printf("eArg: %s\n" ,(*eArgs)[i].toChars());
@@ -3809,7 +3811,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
                     const argOffset_ = (i * 1) + 1;
                     if(isStackValueOrParameter(arg))
                     {
-                            newStack[argOffset_] = stackP[arg.stackAddr.addr / 4];
+                            newStack[argOffset_] = framePtr[arg.stackAddr.addr / 4];
                     }
                     else if (arg.vType == BCValueType.Immediate)
                     {
@@ -3832,7 +3834,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
                 }
                 {
                     returnAddrs[n_return_addrs++] = returnAddr;
-                    stackP = stackP + (call.callerSp / 4);
+                    framePtr = framePtr + (call.callerSp / 4);
                     byteCode = getCodeForId(cast(int)(fn - 1), functions);
                     ip = 4;
                 }
@@ -3896,8 +3898,8 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
             break;
         case LongInst.LoadFramePointer:
             {
-                // lets compute the absolute stackOffset
-                const uint FP = ((stackP - &stack[0]) & uint.max);
+                // lets compute the offset from the beginning of the stack
+                const uint FP = ((framePtr - &stack[0]) & uint.max) | stackAddrMask;
                 (*lhsStackRef) = (FP + imm32c);
             }
             break;

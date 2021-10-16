@@ -265,6 +265,13 @@ struct Print_BCGen
         return BCLabel(BCAddr(labelCount));
     }
 
+    void LoadFramePointer(BCValue to, int offset = 0)
+    {
+        sameLabel = false;
+        result ~= indent ~ "LoadFramePointer(" ~ print(to) ~ ", " ~ itos(offset) ~ ");\n";
+    }
+
+
     void incSp()
     {
         sameLabel = false;

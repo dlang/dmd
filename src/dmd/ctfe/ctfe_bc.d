@@ -5277,6 +5277,20 @@ static if (is(BCGen))
         // so it may be alright to just ignore it
     }
 
+    BCValue getAddressOf(VarDeclaration vd)
+    {
+        if (auto localVar = (cast(void*)vd) in vars)
+        {
+            assert(isStackValueOrParameter(*localVar));
+            auto address = genTemporary(i32Type);
+            printf("Loading Frame Ptr For: %s\n", vd.toChars());
+            LoadFramePointer(address, localVar.stackAddr);
+            Prt(address);
+            return address;
+        }
+        assert(0, "cannot get address of " ~ vd.toString() ~ "for now");
+    }
+
 
     override void visit(SymOffExp se)
     {

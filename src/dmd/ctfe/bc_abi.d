@@ -9,9 +9,9 @@ import dmd.ctfe.bc_common;
 
 enum PtrSize = 4;
 
-enum stackAddrMask = ((1 << 31) |
-                      (1 << 30) |
-                      (1 << 29));
+enum uint stackAddrMask = ((1 << 31) |
+                           (1 << 30) |
+                           (1 << 29));
 
 static bool isStackAddress(uint unrealPointer)
 {
@@ -30,8 +30,11 @@ static bool isHeapAddress (uint unrealPointer)
 static uint toStackOffset(uint unrealPointer)
 {
     assert(isStackAddress(unrealPointer));
-    return (unrealPointer & stackAddrMask);
+    return (unrealPointer & ~stackAddrMask);
 }
+
+static assert(toStackOffset(minStackAddress) == 0);
+static assert(toStackOffset(maxStackAddress) == 0x1fffffff);
 
 enum maxHeapAddress =  0b1101_1111_1111_1111_1111_1111_1111_1111;
 enum minHeapAddress =  0b0000_0000_0000_0000_0000_0000_0000_0000;

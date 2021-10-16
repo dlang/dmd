@@ -1056,9 +1056,8 @@ template ensureIsBCGen(BCGenT)
             BCGenT.stringof ~ " is missing BCAddr beginJmp()");
     static assert(is(typeof(BCGenT.endJmp(BCAddr.init, BCLabel.init)) == void),
             BCGenT.stringof ~ " is missing void endJmp(BCAddr atIp, BCLabel target)");
-    static assert(is(typeof(BCGenT.incSp()) == void), BCGenT.stringof ~ " is missing void incSp()");
-    static assert(is(typeof(BCGenT.currSp()) == StackAddr),
-            BCGenT.stringof ~ " is missing StackAddr currSp()");
+    static assert(is(typeof(BCGenT.LoadFramePointer(BCValue.init, int.init))),
+            BCGenT.stringof ~ " is missing void LoadFramePointer(BCValue _to, int offset = 0)");
     static assert(is(typeof(BCGenT.genLabel()) == BCLabel),
             BCGenT.stringof ~ " is missing BCLabel genLabel()");
     static assert(is(typeof(BCGenT.beginCndJmp(BCValue.init, bool.init)) == CndJmpBegin),
