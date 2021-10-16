@@ -217,16 +217,15 @@ private void freeloop(ref Loops loops)
 /**********************************
  * Initialize block information.
  * Returns:
- *      !=0     contains BCasm block
+ *      true if there is a BCasm block
  */
 
 @trusted
-int blockinit()
+bool blockinit()
 {
     bool hasasm = false;
 
     assert(dfo);
-    uint i = 0;
     foreach (b; BlockRange(startblock))
     {
         debug                   /* check integrity of Bpred and Bsucc   */
@@ -239,10 +238,7 @@ int blockinit()
                 assert(0);
             }
 
-        ++i;
-        if (b.BC == BCasm)
-            hasasm = true;
-                                        /* compute number of blocks     */
+        hasasm |= (b.BC == BCasm);
     }
     foreach (j, b; dfo[])
     {
@@ -258,10 +254,9 @@ int blockinit()
  * See Aho & Ullman Fig. 13.5.
  * Note that flow graph is reducible if there is only one
  * pass through the loop.
- * Input:
- *      dfo[]
- * Output:
- *      fills in the Bdom vector for each block
+ * Params:
+ *   dfo = depth first order array of blocks,
+ *         Bdom vector is filled in for each block
  */
 
 @trusted
@@ -285,11 +280,11 @@ private extern (D) void compdom(block*[] dfo)
     }
 
     vec_t t1 = vec_calloc(vec_numbits(sb.Bdom));       // allocate a temporary
-    uint cntr = 0;                       // # of times thru loop
-    bool chgs;
+    uint counter = 0;                    // # of times thru loop
+    bool changes;
     do
     {
-        chgs = false;
+        changes = false;
         foreach (i, b; dfo)              // for each block in dfo[]
         {
             if (i == 0)
@@ -305,27 +300,32 @@ private extern (D) void compdom(block*[] dfo)
             else
                 vec_clear(t1);      // no predecessors to dominate
             vec_setbit(i,t1);       // each block doms itself
-            if (chgs)
+            if (changes)
                 vec_copy(b.Bdom,t1);
             else if (!vec_equal(b.Bdom,t1))   // if any changes
             {
                 vec_copy(b.Bdom,t1);
-                chgs = true;
+                changes = true;
             }
         }
-        cntr++;
-        assert(cntr < 50);              // should have converged by now
-    } while (chgs);
+        counter++;
+        assert(counter < 50);              // should have converged by now
+    } while (changes);
     vec_free(t1);
 
     debug if (debugc)
     {
-        printf("Flow graph is%s reducible\n", cntr <= 2 ? "".ptr : " not".ptr);
+        printf("Flow graph is%s reducible\n", counter <= 2 ? "".ptr : " not".ptr);
     }
 }
 
 /***************************
- * Return !=0 if block A dominates block B.
+ * Test if block A dominates block B.
+ * Params:
+ *      A = block
+ *      B = another block
+ * Returns:
+ *      true if A dominates B.
  */
 
 @trusted
@@ -368,6 +368,12 @@ private extern (D) void findloops(block*[] dfo, ref Loops loops)
 }
 
 /********************************
+ * Increase weight of a variable by a factor.
+ * Params:
+ *      weight = how important a variable is
+ *      factor = loops scale the importance
+ * Returns:
+ *      new weight
  */
 
 private uint loop_weight(uint weight, int factor) pure
@@ -379,7 +385,7 @@ private uint loop_weight(uint weight, int factor) pure
         weight *= 2 * factor;
     else
         weight += factor;
-    assert(cast(int)weight > 0);
+    assert(cast(int)weight > 0); // overflow check
     return weight;
 }
 
@@ -387,24 +393,41 @@ private uint loop_weight(uint weight, int factor) pure
  * Construct natural loop.
  * Algorithm 13.1 from Aho & Ullman.
  * Note that head dom tail.
+ * Params:
+ *      ploops = collection of existing loops to add to
+ *      head = head of loop; head dominates tail
+ *      tail = tail of loop
  */
 
 @trusted
 private void buildloop(ref Loops ploops,block *head,block *tail)
 {
-    Loop *l;
-
     //printf("buildloop()\n");
+
+     /* Add a block b and all its predecessors to vector v.
+      */
+    static void insert(block *b, vec_t v)
+    {
+        assert(b && v);
+        if (!vec_testbit(b.Bdfoidx,v))      // if block is not in loop
+        {
+            vec_setbit(b.Bdfoidx,v);        // add block to loop
+            b.Bweight = loop_weight(b.Bweight,1);   // *10 usage count
+            foreach (bl; ListRange(b.Bpred))
+                insert(list_block(bl), v);  // insert all its predecessors
+        }
+    }
+
+    Loop* l;
+
     /* See if this is part of an existing loop. If so, merge the two.     */
     foreach (ref lp; ploops)
         if (lp.Lhead == head)           /* two loops with same header   */
         {
-            vec_t v;
-
             // Calculate loop contents separately so we get the Bweights
             // done accurately.
 
-            v = vec_calloc(dfo.length);
+            vec_t v = vec_calloc(dfo.length);
             vec_setbit(head.Bdfoidx,v);
             head.Bweight = loop_weight(head.Bweight, 1);
             insert(tail,v);
@@ -478,23 +501,6 @@ L1:
     }
 }
 
-/********************************
- * Support routine for buildloop().
- * Add a block b and all its predecessors to loop lv.
- */
-
-private void insert(block *b, vec_t lv)
-{
-    assert(b && lv);
-    if (!vec_testbit(b.Bdfoidx,lv))     /* if block is not in loop      */
-    {
-        vec_setbit(b.Bdfoidx,lv);       /* add block to loop            */
-        b.Bweight = loop_weight(b.Bweight,1);   // *10 usage count
-        foreach (bl; ListRange(b.Bpred))
-            insert(list_block(bl),lv);  /* insert all its predecessors  */
-    }
-}
-
 /**************************************
  * Perform loop rotations.
  * Loop starts as:
@@ -555,7 +561,7 @@ private void insert(block *b, vec_t lv)
  */
 
 @trusted
-private int looprotate(ref Loop l)
+private bool looprotate(ref Loop l)
 {
     block *tail = l.Ltail;
     block *head = l.Lhead;
@@ -737,13 +743,10 @@ restart:
 
         if (!l.Lpreheader)             /* if no preheader               */
         {
-            block *h;
-            block *p;
-
             if (debugc) printf("Generating preheader for loop\n");
-            addblk = true;              /* add one                       */
-            p = block_calloc();         // the preheader
-            h = l.Lhead;               /* loop header                   */
+            addblk = true;              // add one
+            block* p = block_calloc();  // the preheader
+            block* h = l.Lhead;         // loop header
 
             /* Find parent of h */
             if (h == startblock)
@@ -2546,7 +2549,7 @@ private void elimfrivivs(ref Loop l)
         if (debugc) printf("nfams = %d\n", cast(int)nfams);
 
         /* Compute number of references to biv  */
-        if (onlyref(biv.IVbasic,l,*biv.IVincr,&nrefs))
+        if (onlyref(biv.IVbasic,l,*biv.IVincr,nrefs))
                 nrefs--;
         if (debugc) printf("nrefs = %d\n",nrefs);
         assert(nrefs + 1 >= nfams);
@@ -2838,7 +2841,7 @@ private void elimbasivs(ref Loop l)
         assert(symbol_isintab(X));
         tym_t ty = X.ty();
         int refcount;
-        elem** pref = onlyref(X,l,einc,&refcount);
+        elem** pref = onlyref(X,l,einc,refcount);
 
         /* if only ref of X is of the form (X) or (X relop e) or (e relop X) */
         if (pref != null && refcount <= 1)
@@ -3165,7 +3168,7 @@ private void elimopeqs(ref Loop l)
 
         X = biv.IVbasic;
         assert(symbol_isintab(X));
-        pref = onlyref(X,l,*biv.IVincr,&refcount);
+        pref = onlyref(X,l,*biv.IVincr,refcount);
 
         // if only ref of X is of the form (X) or (X relop e) or (e relop X)
         if (pref != null && refcount <= 1)
@@ -3246,7 +3249,7 @@ private size_t simfl(famlist[] fams, tym_t tym)
  */
 
 @trusted
-private bool flcmp(ref famlist f1, ref famlist f2)
+private bool flcmp(const ref famlist f1, const ref famlist f2)
 {
     auto t1 = &(f1.c1.EV);
     auto t2 = &(f2.c1.EV);
@@ -3382,11 +3385,10 @@ private bool catchRef(Symbol* x, ref Loop l)
 }
 
 /************************************
- * Input:
- *      x       basic IV symbol
- *      incn    increment elem for basic IV X.
- * Output:
- *      *prefcount      # of references to X other than the increment elem
+ * Params:
+ *      x    = basic IV symbol
+ *      incn = increment elem for basic IV X.
+ *      refcount = set to # of references to X other than the increment elem
  * Returns:
  *      If ref of X in loop l is of the form (X relop e) or (e relop X)
  *              Return the relop elem
@@ -3402,7 +3404,7 @@ private __gshared
 }
 
 @trusted
-private elem ** onlyref(Symbol *x, ref Loop l,elem *incn,int *prefcount)
+private elem ** onlyref(Symbol *x, ref Loop l,elem *incn, out int refcount)
 {
     uint i;
 
@@ -3434,7 +3436,7 @@ private elem ** onlyref(Symbol *x, ref Loop l,elem *incn,int *prefcount)
         printf(")\n");
     }
 
-    *prefcount = count;
+    refcount = count;
     return nd;
 }
 
