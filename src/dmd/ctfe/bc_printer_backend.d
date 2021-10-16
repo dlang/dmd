@@ -619,9 +619,11 @@ struct Print_BCGen
             {
                 if (fn.imm32 == uint.max - 1)
                     funcName = "NodeFromName";
+                else goto LsetFuncName;
             }
             else
             {
+        LsetFuncName:
                 funcName = print(fn);
             }
             sameLabel = false;

@@ -24,8 +24,8 @@ import dmd.dinterpret;
 import core.stdc.stdio : printf;
 import std.string : fromStringz;
 
-enum perf = 0;
-enum bailoutMessages = 1;
+enum perf = 1;
+enum bailoutMessages = 0;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -257,6 +257,7 @@ outer: while(fd)
             }
         }
 
+        // Shouldn't this be toParent2 ???
         fd = fd.parent.isFuncDeclaration();
     }
 
@@ -4378,11 +4379,6 @@ public:
 
             me.fbody.accept(this);
 
-            static if (is(BCGen))
-            {
-                auto osp = sp;
-            }
-
             if (fd.type.nextOf.ty == Tvoid)
             {
                 // insert a dummy return after void functions because they can omit a returnStatement
@@ -4415,7 +4411,7 @@ public:
             {
                 _sharedCtfeState.functions[fnIdx - 1] = BCFunction(cast(void*) fd,
                     fnIdx, BCFunctionTypeEnum.Bytecode,
-                    cast(ushort) (parameters ? parameters.dim : 0), osp.addr);
+                    cast(ushort) (parameters ? parameters.dim : 0), sp.addr);
                 _sharedCtfeState.functions[fnIdx - 1].byteCode.length = ip;
                 _sharedCtfeState.functions[fnIdx - 1].byteCode[0 .. ip]
                     = byteCodeArray[0 .. ip];
@@ -5283,9 +5279,8 @@ static if (is(BCGen))
         {
             assert(isStackValueOrParameter(*localVar));
             auto address = genTemporary(i32Type);
-            printf("Loading Frame Ptr For: %s\n", vd.toChars());
+            // printf("Loading Frame Ptr For: %s\n", vd.toChars());
             LoadFramePointer(address, localVar.stackAddr);
-            Prt(address);
             return address;
         }
         assert(0, "cannot get address of " ~ vd.toString() ~ "for now");
@@ -5301,21 +5296,40 @@ static if (is(BCGen))
         auto var = se.var;
         auto vd = se.var.isVarDeclaration();
         auto fd = se.var.isFuncDeclaration();
+
         if (vd)
         {
             auto v = getVariable(vd);
 
             if (v)
             {
-                long index = -1;
+                int index = -1;
 
                 if (var.type.ty == Tarray || var.type.ty == Tsarray)
                 {
-                    const elemSize = var.type.nextOf().size();
-                    index = elemSize ? se.offset / elemSize : -1;
-                }
+                    if (assignTo)
+                    {
+                        retval = assignTo;
+                    }
+                    else
+                    {
+                        retval = genTemporary(toBCType(se.type));
+                    }
+                    const dmdElemSize = var.type.nextOf().size();
+                    const elemSize = _sharedCtfeState.size(toBCType(var.type.nextOf()), true);
+                    if (dmdElemSize != 0)
+                    {
+                        index = cast(int) (se.offset / dmdElemSize);
+                    }
 
-                if (isBasicBCType(v.type))
+                    auto addr = getBase(v);
+                    int offset = elemSize * index;
+                    Add3(addr, addr, imm32(offset));
+                    Set(retval, addr);
+                    destroyTemporary(addr);
+                    return ;
+                }
+                else if (isBasicBCType(v.type))
                 {
                     // if we have a basic integral type here
                     // then we can just take the address of it at offset zero
@@ -5324,8 +5338,9 @@ static if (is(BCGen))
                 }
                 else
                 {
-                    //if (var.type.ty == Tclass || var.type.ty == Tstruct)
+                    if (var.type.ty == Tclass || var.type.ty == Tstruct)
                     {
+                        printf("We think %s is struct/class\n", vd.toChars());
                         if (se.offset == 0)
                         {
                             // this is the same as a ref ...
@@ -5343,31 +5358,21 @@ static if (is(BCGen))
                             enumToString(cast(TY)var.type.ty)
                         );
                     }
-         +/           
+         +/
                     return ;
                 }
 
                 if (index == -1)
+                {
                     bailout("could not compute index");
+                    return ;
+                }
 
+                BCValue addr = getAddressOf(vd);
 
-                // Everything in here is highly suspicious!
-                // FIXME Design!
-                // Things that are already heapValues
-                // don't need to be stored ((or do they ??) ... do we need to copy) ?
-
-                auto addr = genTemporary(i32Type);
-                Alloc(addr, imm32(align4(_sharedCtfeState.size(v.type))));
-                v.heapRef = BCHeapRef(addr);
-                StoreToHeapRef(v);
-
-                setVariable(vd, v);
-                // register as pointer and set the variable to pointer as well;
-                // since it has to be promoted to heap value now.
+                Comment("Returning addr ... ");
                 retval = addr;
                 retval.type = _sharedCtfeState.pointerOf(v.type);
-
-
             }
             else
             {
@@ -5384,10 +5389,18 @@ static if (is(BCGen))
             bailout(!fnIdx, "Function could not be generated: -- " ~ fd.toString);
 
             assert(!inArgumentProcessing);
-            auto fnPtr = genTemporary(i32Type);
-            Alloc(fnPtr, imm32(4));
-            Store32(fnPtr, imm32(fnIdx));
-            retval = fnPtr;
+            auto fnVar = genTemporary(i32Type);
+            Set(fnVar, imm32(fnIdx));
+            if (assignTo)
+            {
+                retval = assignTo;
+                assignTo = BCValue.init;
+            }
+            else
+            {
+                retval = genTemporary(i32Type);
+            }
+            LoadFramePointer(retval, fnVar.stackAddr);
             //retval.type.type = BCTypeEnum.Function; // ?
         }
         else
@@ -5485,8 +5498,20 @@ static if (is(BCGen))
         scope(exit) destroyTemporary(offset);
 
         auto oldRetval = retval;
-        //retval = assignTo ? assignTo : genTemporary(elemType);
-        retval = genTemporary(elemType);
+        auto oldAssignTo = assignTo;
+        scope(exit)
+            assignTo = oldAssignTo;
+
+        if (assignTo)
+        {
+            retval = assignTo;
+            assignTo = BCValue.init;
+        }
+        else
+        {
+            retval = genTemporary(elemType);
+        }
+
         {
             debug (ctfe)
             {
@@ -5996,11 +6021,14 @@ static if (is(BCGen))
                         structDeclPtr.toString, " BCStruct ", _struct);
                     writeln(varType);
                 }
-                retval = (assignTo && assignTo.vType == BCValueType.StackValue) ? assignTo : genTemporary(
-                    toBCType(dve.type));
+
+                auto oldAssignTo = assignTo;
+                if (assignTo)
+                {
+                    assignTo = BCValue.init;
+                }
 
                 auto lhs = genExpr(dve.e1, "DotVarExp: dve.e1");
-                Comment("We should now have lhs");
                 if (lhs.type.type != BCTypeEnum.Struct)
                 {
                     bailout(
@@ -6014,8 +6042,29 @@ static if (is(BCGen))
                     return ;
                 }
 
-                getField(lhs, fInfo, &retval);
+                auto type = cast()toBCType(dve.type);
+                if (exprFlags & GenExprFlags.asAddress)
+                {
+                    type = _sharedCtfeState.pointerOf(type);
+                }
 
+                if (oldAssignTo)
+                {
+                    retval = oldAssignTo;
+                }
+                else
+                {
+                    retval = genTemporary(type);
+                }
+
+                if (exprFlags & GenExprFlags.asAddress)
+                {
+                    Add3(retval, lhs.i32, imm32(fInfo.offset));
+                }
+                else
+                {
+                    retval = getField(lhs, fInfo, false);
+                }
                 debug (ctfe)
                 {
                     import std.stdio;
@@ -6044,8 +6093,11 @@ static if (is(BCGen))
                 return ;
             }
 
-            retval = (assignTo && assignTo.vType == BCValueType.StackValue) ? assignTo : genTemporary(
-                toBCType(dve.type));
+            auto oldAssignTo = assignTo;
+            if (assignTo)
+            {
+                assignTo = BCValue.init;
+            }
 
             auto lhs = genExpr(dve.e1, "DotVarExp: dve.e1");
 
@@ -6055,7 +6107,31 @@ static if (is(BCGen))
                 return ;
             }
 
-            getField(lhs, fInfo, &retval);
+
+            auto type = cast()toBCType(dve.type);
+            if (exprFlags & GenExprFlags.asAddress)
+            {
+                type = _sharedCtfeState.pointerOf(type);
+            }
+            
+            if (oldAssignTo)
+            {
+                retval = oldAssignTo;
+            }
+            else
+            {
+                retval = genTemporary(type);
+            }
+            
+            if (exprFlags & GenExprFlags.asAddress)
+            {
+                Add3(retval, lhs.i32, imm32(fInfo.offset));
+            }
+            else
+            {
+                retval = getField(lhs, fInfo, false);
+            }
+
 
             //bailout("Class.field still has to be implemented fi:" ~ itos(fieldIndex) ~ " lvl:" ~ itos(level));
         }
@@ -6066,17 +6142,26 @@ static if (is(BCGen))
 
     }
 
-    void getField(BCValue lhs, FieldInfo fInfo, BCValue* retvalp)
+    BCValue getField(BCValue lhs, FieldInfo fInfo, bool asRef = false)
     {
         // import std.stdio;
         // writeln("lhs: ", lhs, " FieldInfo: ", fInfo, "retvalP:", retvalp);
-        auto ptr = genTemporary(fInfo.type);
+        auto ptr = genTemporary(i32Type);
         // this temporary survives as a heapRef DO NOT DESTORY
 
         Add3(ptr.i32, lhs.i32, imm32(fInfo.offset));
-        auto rv = *retvalp;
+        BCValue rv;
+        if (assignTo)
+        {
+            rv = assignTo;
+            assignTo = BCValue.init;
+        }
+        else
+        {
+            rv = genTemporary(fInfo.type);
+        }
 
-        if (isPassedByPointer(ptr.type.type))
+        if (isPassedByPointer(rv.type.type))
         {
             Comment("getField");
             Set(rv.i32, ptr);
@@ -6091,9 +6176,10 @@ static if (is(BCGen))
         if (!ptr)
         {
             bailout("could not access field: " ~ itos(fInfo.index));
-            return ;
+            return BCValue.init;
         }
-        (*retvalp).heapRef = BCHeapRef(ptr);
+
+        return rv;
     }
 
     override void visit(CommaExp ce)
@@ -6506,7 +6592,8 @@ static if (is(BCGen))
         Line(ae.loc.linnum);
         //bailout("We don't handle AddrExp");
         auto e1 = genExpr(ae.e1, GenExprFlags.asAddress, "AddrExp");
-
+        retval = e1;
+/+
         if (e1.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64]))
         {
             BCValue heapPtr = genTemporary(i32Type);
@@ -6529,6 +6616,7 @@ static if (is(BCGen))
         retval = BCValue(e1.heapRef).i32; // hack this is a ptr not an i32;
         // import std.stdio; writeln(ae.toString ~ " --  " ~ "retval: " ~ retval.toString); //debugline
         //assert(0, "Dieng on Addr ?");
++/        
     }
 
     override void visit(ThisExp te)
@@ -7336,7 +7424,7 @@ static if (is(BCGen))
             {
                 LoadFromHeapRef(sv);
             }
-
+            // printf("vd: %s\n -- sv: %s", vd.toChars(), sv.toString().ptr);
             retval = sv;
         }
         else if (symd)
@@ -9705,7 +9793,9 @@ _sharedCtfeState.typeToString(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~
             } ();
             pragma(msg, typeof(acceptedReturnTypes));
             if (retval.type.type.anyOf(acceptedReturnTypes))
+            {
                 Ret(retval);
+            }
             else
             {
                 bailout(
