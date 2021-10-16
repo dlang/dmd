@@ -13,5 +13,6 @@ extern (C):
 nothrow:
 @nogc:
 
+int getentropy(void*, size_t);
 int pledge(const scope char*, const scope char*);
 int unveil(const scope char*, const scope char*);
