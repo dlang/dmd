@@ -3396,7 +3396,6 @@ private bool catchRef(Symbol* x, ref Loop l)
 
 private __gshared
 {
-    int count;
     elem **nd;
     elem *sincn;
     Symbol *X;
@@ -3417,22 +3416,20 @@ private elem ** onlyref(Symbol *x, ref Loop l,elem *incn,int *prefcount)
           printf("X = %d, globsym.length = %d, l = %p, incn = %p\n",cast(int) X.Ssymnum,cast(int) globsym.length,&l,incn);
 
     assert(X.Ssymnum < globsym.length && incn);
-    count = 0;
+    int count = 0;
     nd = null;
     for (i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
     {
-        block *b;
-
-        b = dfo[i];
+        block* b = dfo[i];
         if (b.Belem)
         {
-            countrefs(&b.Belem,b.BC == BCiftrue);
+            count += countrefs(&b.Belem,b.BC == BCiftrue);
         }
     }
 
     static if (0)
     {
-        printf("count = %d, nd = (");
+        printf("count = %d, nd = (", count);
         if (nd) WReqn(*nd);
         printf(")\n");
     }
@@ -3445,24 +3442,27 @@ private elem ** onlyref(Symbol *x, ref Loop l,elem *incn,int *prefcount)
 /******************************
  * Count elems of the form (X relop e) or (e relop X).
  * Do not count the node if it is the increment node (sincn).
- * Input:
- *      flag:   true if block wants to test the elem
+ * Params:
+ *      pn = pointer to start of elem tree
+ *      flag = true if block wants to test the elem
+ * Returns:
+ *      number of elems of the form
  */
 
 @trusted
-private void countrefs(elem **pn,bool flag)
+private int countrefs(elem **pn,bool flag)
 {
     elem *n = *pn;
 
     assert(n);
     if (n == sincn)                       /* if it is the increment elem  */
     {
-        if (OTbinary(n.Eoper))
-            countrefs(&n.EV.E2, false);
-        return;                         // don't count lvalue
+        return OTbinary(n.Eoper)
+            ? countrefs(&n.EV.E2, false)
+            : 0;                          // don't count lvalue
     }
     if (OTunary(n.Eoper))
-        countrefs(&n.EV.E1,false);
+        return countrefs(&n.EV.E1,false);
     else if (OTbinary(n.Eoper))
     {
         if (OTrel(n.Eoper))
@@ -3482,15 +3482,16 @@ private void countrefs(elem **pn,bool flag)
                 nd = pn;                /* found the relop node */
         }
     L1:
-        countrefs(&n.EV.E1,false);
-        countrefs(&n.EV.E2,(flag && n.Eoper == OPcomma));
+        return countrefs(&n.EV.E1,false) +
+               countrefs(&n.EV.E2,(flag && n.Eoper == OPcomma));
     }
     else if ((n.Eoper == OPvar || n.Eoper == OPrelconst) && n.EV.Vsym == X)
     {
         if (flag)
             nd = pn;                    /* comparing it with 0          */
-        count++;                        /* found another reference      */
+        return 1;                       // found another reference
     }
+    return 0;
 }
 
 /*******************************
