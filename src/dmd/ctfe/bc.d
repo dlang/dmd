@@ -592,7 +592,19 @@ struct BCGen
     {
         auto p = BCValue(BCParameter(++parameterCount, bct, sp));
         p.name = name;
-        sp += 4;
+        // everything that's not a basic type is a pointer
+        // and therefore has size 4
+        auto pSize = 4;
+
+        if (isBasicBCType(bct))
+        {
+            pSize = align4(basicTypeSize(bct.type));
+        }
+
+        assert(pSize == 4 || pSize == 8, "we only support 4byte and 8byte params");
+
+        sp += pSize;
+
         return p;
     }
 
@@ -2409,37 +2421,28 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
     {
         switch (arg.type.type)
         {
+            case BCTypeEnum.u32, BCTypeEnum.f23, BCTypeEnum.c8:
+            case BCTypeEnum.u16, BCTypeEnum.u8, BCTypeEnum.c16, BCTypeEnum.c32:
             case BCTypeEnum.i32, BCTypeEnum.i16, BCTypeEnum.i8:
-            {
-                (framePtr[argOffset++]) = cast(int)arg.imm32;
-            }
-            break;
-
-            case BCTypeEnum.u32, BCTypeEnum.f23, BCTypeEnum.c8, BCTypeEnum.u16, BCTypeEnum.u8, BCTypeEnum.c16, BCTypeEnum.c32:
             {
                 (framePtr[argOffset++]) = cast(uint)arg.imm32;
             }
             break;
 
-        case BCTypeEnum.i64:
+            case BCTypeEnum.i64, BCTypeEnum.u64, BCTypeEnum.f52:
             {
-                (framePtr[argOffset++]) = arg.imm64;
+                (framePtr[argOffset]) = arg.imm64;
+                argOffset += 2;
             }
             break;
-
-        case BCTypeEnum.u64, BCTypeEnum.f52:
-        {
-            (framePtr[argOffset++]) = arg.imm64;
-        }
-        break;
-
-        case BCTypeEnum.Struct, BCTypeEnum.Class, BCTypeEnum.string8, BCTypeEnum.Array, BCTypeEnum.Ptr, BCTypeEnum.Null:
-            {
-                // This might need to be removed again?
-                (framePtr[argOffset++]) = arg.heapAddr.addr;
-            }
-            break;
-        default:
+            // all of thsose get passed by pointer and therefore just take one stack slot
+            case BCTypeEnum.Struct, BCTypeEnum.Class, BCTypeEnum.string8, BCTypeEnum.Array, BCTypeEnum.Ptr, BCTypeEnum.Null:
+                {
+                    // This might need to be removed again?
+                    (framePtr[argOffset++]) = arg.heapAddr.addr;
+                }
+                break;
+            default:
             //return -1;
                    assert(0, "unsupported Type " ~ enumToString(arg.type.type));
         }
