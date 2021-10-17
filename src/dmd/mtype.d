@@ -4777,9 +4777,7 @@ extern (C++) final class TypeFunction : TypeNext
                         else
                         {
                             import dmd.dcast : cimplicitConvTo;
-                            m = (sc && sc.flags & SCOPE.Cfile)
-                                ? arg.cimplicitConvTo(tprm)
-                                : arg.implicitConvTo(tprm);
+                            m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
                         }
                     }
                     //printf("match %d\n", m);

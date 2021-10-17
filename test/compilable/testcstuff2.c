@@ -529,6 +529,21 @@ void test22403()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22404
+
+typedef enum
+{
+    E22404_FLAG
+} E22404;
+
+int test22404a(E22404 e);
+
+int test22404()
+{
+    test22404a(E22404_FLAG);
+}
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22405
 
 struct S22405
