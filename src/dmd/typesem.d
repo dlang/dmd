@@ -1381,6 +1381,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                                 stc, narg.type, narg.ident, narg.defaultArg, narg.userAttribDecl);
                         }
                         fparam.type = new TypeTuple(newparams);
+                        fparam.type = fparam.type.typeSemantic(loc, argsc);
                     }
                     fparam.storageClass = STC.parameter;
 

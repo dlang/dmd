@@ -1446,6 +1446,29 @@ MATCH implicitConvTo(Expression e, Type t)
             if (tb.ty == Tpointer && e.e1.op == TOK.string_)
                 e.e1.accept(this);
         }
+
+        override void visit(TupleExp e)
+        {
+            result = e.type.implicitConvTo(t);
+            if (result != MATCH.nomatch)
+                return;
+
+            /* If target type is a tuple of same length, test conversion of
+             * each expression to the corresponding type in the tuple.
+             */
+            TypeTuple totuple = t.isTypeTuple();
+            if (totuple && e.exps.length == totuple.arguments.length)
+            {
+                result = MATCH.exact;
+                foreach (i, ex; *e.exps)
+                {
+                    auto to = (*totuple.arguments)[i].type;
+                    MATCH mi = ex.implicitConvTo(to);
+                    if (mi < result)
+                        result = mi;
+                }
+            }
+        }
     }
 
     scope ImplicitConvTo v = new ImplicitConvTo(t);
@@ -2182,13 +2205,20 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 return;
             }
 
+            /* If target type is a tuple of same length, cast each expression to
+             * the corresponding type in the tuple.
+             */
+            TypeTuple totuple;
+            if (auto tt = t.isTypeTuple())
+                totuple = e.exps.length == tt.arguments.length ? tt : null;
+
             TupleExp te = e.copy().isTupleExp();
             te.e0 = e.e0 ? e.e0.copy() : null;
             te.exps = e.exps.copy();
             for (size_t i = 0; i < te.exps.dim; i++)
             {
                 Expression ex = (*te.exps)[i];
-                ex = ex.castTo(sc, t);
+                ex = ex.castTo(sc, totuple ? (*totuple.arguments)[i].type : t);
                 (*te.exps)[i] = ex;
             }
             result = te;

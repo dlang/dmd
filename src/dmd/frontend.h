@@ -3687,6 +3687,7 @@ public:
     const char* kind() const;
     TypeTuple* syntaxCopy();
     bool equals(const RootObject* const o) const;
+    MATCH implicitConvTo(Type* to);
     void accept(Visitor* v);
 };
 
