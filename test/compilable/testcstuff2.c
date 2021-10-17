@@ -459,6 +459,20 @@ static const S22375 s22375[10] =
 };
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22406
+
+int test22406(int a)
+{
+  switch (a)
+  {
+      case 1: return -1;
+      case 2: return -2;
+      case 3: return -3;
+  }
+  return 0;
+}
+
+/***************************************************/
 
 int test(char *dest)
 {
