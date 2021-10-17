@@ -491,6 +491,20 @@ const S22400_t C22400[1] = { {12} };
 const struct S22400b C22400b = {C22400};
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22405
+
+struct S22405
+{
+    int const * p;
+    int *q;
+};
+
+void test22405(struct S22405 *s)
+{
+    s->p = (const int *)(s->q);
+}
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22406
 
 int test22406(int a)
