@@ -514,6 +514,16 @@ int test22407(int a);
 T22407 table22407[1] = { test22407 };
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22409
+
+struct S22409;
+
+typedef struct S22409
+{
+    int f1;
+} S22409_t;
+
+/***************************************************/
 
 int test(char *dest)
 {
