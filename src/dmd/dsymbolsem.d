@@ -983,6 +983,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ei = new ExpInitializer(dsym._init.loc, e);
                         dsym._init = ei;
                     }
+                    else if (sc.flags & SCOPE.Cfile && dsym.type.isTypeSArray() &&
+                             dsym.type.isTypeSArray().isIncomplete())
+                    {
+                        // C11 6.7.9-22 determine the size of the incomplete array,
+                        // or issue an error that the initializer is invalid.
+                        dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
+                    }
 
                     Expression exp = ei.exp;
                     Expression e1 = new VarExp(dsym.loc, dsym);

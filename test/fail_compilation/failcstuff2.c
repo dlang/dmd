@@ -30,6 +30,8 @@ fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
 fail_compilation/failcstuff2.c(203):        variable `var` is declared here
 fail_compilation/failcstuff2.c(254): Error: identifier or `(` expected before `)`
 fail_compilation/failcstuff2.c(255): Error: identifier or `(` expected
+fail_compilation/failcstuff2.c(354): Error: variable `arr` cannot be read at compile time
+fail_compilation/failcstuff2.c(360): Error: variable `str` cannot be read at compile time
 ---
 */
 
@@ -109,6 +111,22 @@ void test22102()
 {
     int22102();
     int22102(0);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22413
+#line 350
+
+void test22413a()
+{
+    int arr[6] = {1,2,3,4,5,6};
+    int arr2[] = arr;
+}
+
+void test22413b()
+{
+    const char *str = "hello";
+    char msg[] = str;
 }
 
 /***************************************************/
