@@ -10130,6 +10130,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* ImportC: convert arrays to pointers, functions to pointers to functions
          */
         exp.e1 = exp.e1.arrayFuncConv(sc);
+        exp.e2 = exp.e2.arrayFuncConv(sc);
 
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();

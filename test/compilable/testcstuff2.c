@@ -491,6 +491,34 @@ const S22400_t C22400[1] = { {12} };
 const struct S22400b C22400b = {C22400};
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22402
+
+typedef struct {
+    short c;
+} S22402a;
+
+typedef struct {
+    S22402a *a;
+    S22402a b[1];
+} S22402b;
+
+int test22402a(S22402a *a, S22402a b[1])
+{
+    return a - b;
+}
+
+int test22402b(S22402b *s)
+{
+    return s->a - s->b;
+}
+
+int test22402c(S22402a *a)
+{
+    S22402a b[1];
+    return a - b;
+}
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22405
 
 struct S22405
