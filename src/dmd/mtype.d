@@ -6534,6 +6534,29 @@ extern (C++) final class TypeTuple : Type
         return false;
     }
 
+    override MATCH implicitConvTo(Type to)
+    {
+        if (this == to)
+            return MATCH.exact;
+        if (auto tt = to.isTypeTuple())
+        {
+            if (arguments.dim == tt.arguments.dim)
+            {
+                MATCH m = MATCH.exact;
+                for (size_t i = 0; i < tt.arguments.dim; i++)
+                {
+                    Parameter arg1 = (*arguments)[i];
+                    Parameter arg2 = (*tt.arguments)[i];
+                    MATCH mi = arg1.type.implicitConvTo(arg2.type);
+                    if (mi < m)
+                        m = mi;
+                }
+                return m;
+            }
+        }
+        return MATCH.nomatch;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
