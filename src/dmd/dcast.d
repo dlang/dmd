@@ -1500,12 +1500,8 @@ MATCH cimplicitConvTo(Expression e, Type t)
         return MATCH.convert;
     if (tb.isintegral() && typeb.ty == Tpointer) // C11 6.3.2.3-6
         return MATCH.convert;
-    if (tb.ty == Tpointer && typeb.ty == Tpointer)
-    {
-        if (tb.isTypePointer().next.ty == Tvoid ||
-            typeb.isTypePointer().next.ty == Tvoid)
-            return MATCH.convert;       // convert to/from void* C11 6.3.2.3-1
-    }
+    if (tb.ty == Tpointer && typeb.ty == Tpointer) // C11 6.3.2.3-7
+        return MATCH.convert;
 
     return implicitConvTo(e, t);
 }
