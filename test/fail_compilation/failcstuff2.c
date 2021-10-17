@@ -30,6 +30,7 @@ fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
 fail_compilation/failcstuff2.c(203):        variable `var` is declared here
 fail_compilation/failcstuff2.c(254): Error: identifier or `(` expected before `)`
 fail_compilation/failcstuff2.c(255): Error: identifier or `(` expected
+fail_compilation/failcstuff2.c(308): Error: cannot modify `const` expression `(*s).p`
 fail_compilation/failcstuff2.c(354): Error: variable `arr` cannot be read at compile time
 fail_compilation/failcstuff2.c(360): Error: variable `str` cannot be read at compile time
 ---
@@ -111,6 +112,20 @@ void test22102()
 {
     int22102();
     int22102(0);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22405
+#line 300
+struct S22405
+{
+    int * const p;
+    int *q;
+};
+
+void test22405(struct S22405 *s)
+{
+    s->p = (const int *)(s->q);
 }
 
 /***************************************************/
