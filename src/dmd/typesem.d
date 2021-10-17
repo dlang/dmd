@@ -2137,6 +2137,15 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                      * struct S { int a; } *s;
                      */
                     sd.members = mtype.members;
+                    if (sd.semanticRun == PASS.semanticdone)
+                    {
+                        /* The first semantic pass marked `sd` as an opaque struct.
+                         * Re-run semantic so that all newly assigned members are
+                         * picked up and added to the symtab.
+                         */
+                        sd.semanticRun = PASS.semantic;
+                        sd.dsymbolSemantic(sc);
+                    }
                 }
                 else
                 {
