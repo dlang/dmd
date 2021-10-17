@@ -519,6 +519,16 @@ int test22402c(S22402a *a)
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22403
+
+extern unsigned test22403a(const char *p);
+
+void test22403()
+{
+    test22403a(0);
+}
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22405
 
 struct S22405
