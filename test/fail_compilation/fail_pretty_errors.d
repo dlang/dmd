@@ -2,16 +2,11 @@
 REQUIRED_ARGS: -verrors=context
 TEST_OUTPUT:
 ---
-fail_compilation/fail_pretty_errors.d(20): Error: undefined identifier `a`
-    a = 1;
-    ^
-fail_compilation/fail_pretty_errors.d-mixin-25(25): Error: undefined identifier `b`
-fail_compilation/fail_pretty_errors.d(30): Error: cannot implicitly convert expression `5` of type `int` to `string`
-    string x = 5;
-               ^
-fail_compilation/fail_pretty_errors.d(35): Error: mixin `fail_pretty_errors.testMixin2.mixinTemplate!()` error instantiating
-    mixin mixinTemplate;
-    ^
+Deprecation: -verrors=context is redundant, and will be removed in future DMD versions.
+fail_compilation/fail_pretty_errors.d(15): Error: undefined identifier `a`
+fail_compilation/fail_pretty_errors.d-mixin-20(20): Error: undefined identifier `b`
+fail_compilation/fail_pretty_errors.d(25): Error: cannot implicitly convert expression `5` of type `int` to `string`
+fail_compilation/fail_pretty_errors.d(30): Error: mixin `fail_pretty_errors.testMixin2.mixinTemplate!()` error instantiating
 ---
 */
 

@@ -2,12 +2,9 @@
 REQUIRED_ARGS: -verrors=context
 TEST_OUTPUT:
 ---
-fail_compilation/staticforeach4.d(16): Error: index type `byte` cannot cover index range 0..257
-static foreach (byte a, int b; data) { }
-                               ^
-fail_compilation/staticforeach4.d(17): Error: index type `byte` cannot cover index range 0..257
-static foreach (byte a, int b; fn()) { }
-                                 ^
+Deprecation: -verrors=context is redundant, and will be removed in future DMD versions.
+fail_compilation/staticforeach4.d(13): Error: index type `byte` cannot cover index range 0..257
+fail_compilation/staticforeach4.d(14): Error: index type `byte` cannot cover index range 0..257
 ---
 */
 immutable int[257] data = 1;
