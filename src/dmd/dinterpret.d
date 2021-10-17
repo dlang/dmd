@@ -6311,7 +6311,7 @@ public:
             auto tsa = cast(TypeSArray)v.type;
             auto len = cast(size_t)tsa.dim.toInteger();
             UnionExp ue = void;
-            result = createBlockDuplicatedArrayLiteral(&ue, ex.loc, v.type, ex, len);
+            result = createBlockDuplicatedArrayLiteral(&ue, e.loc, v.type, result, len);
             if (result == ue.exp())
                 result = ue.copy();
             (*se.elements)[i] = result;
