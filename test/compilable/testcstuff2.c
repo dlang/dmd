@@ -473,6 +473,15 @@ int test22406(int a)
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22407
+
+typedef int (*T22407) (int a);
+
+int test22407(int a);
+
+T22407 table22407[1] = { test22407 };
+
+/***************************************************/
 
 int test(char *dest)
 {
