@@ -459,6 +459,22 @@ static const S22375 s22375[10] =
 };
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22399
+
+struct S22399a
+{
+    unsigned short f1;
+};
+
+struct S22399b
+{
+    const struct S22399a *f1;
+};
+
+const struct S22399a C22399[1] = { {12} };
+const struct S22399b C22399b = {C22399};
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22400
 
 typedef struct S22400
