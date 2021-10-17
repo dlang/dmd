@@ -377,7 +377,7 @@ typedef struct S22182 { int x; } S22182;
 
 int test22182b(S22182* b)
 {
-  return ((S22182*)(b))->x;
+    return ((S22182*)(b))->x;
 }
 
 /***************************************************/
@@ -404,14 +404,14 @@ int test22245()
 
 void test22262(unsigned char *buf)
 {
-  if (buf == 0)
-    return;
-  if (0 == buf)
-    return;
-  if (buf == 1)
-    return;
-  if (2 == buf)
-    return;
+    if (buf == 0)
+        return;
+    if (0 == buf)
+        return;
+    if (buf == 1)
+        return;
+    if (2 == buf)
+        return;
 }
 
 /***************************************************/
@@ -495,13 +495,13 @@ const struct S22400b C22400b = {C22400};
 
 int test22406(int a)
 {
-  switch (a)
-  {
-      case 1: return -1;
-      case 2: return -2;
-      case 3: return -3;
-  }
-  return 0;
+    switch (a)
+    {
+        case 1: return -1;
+        case 2: return -2;
+        case 3: return -3;
+    }
+    return 0;
 }
 
 /***************************************************/
@@ -522,6 +522,15 @@ typedef struct S22409
 {
     int f1;
 } S22409_t;
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22413
+
+int test22413(void)
+{
+    char msg[] = "ok";
+    return msg[0] | msg[1];
+}
 
 /***************************************************/
 
