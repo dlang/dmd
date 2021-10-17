@@ -448,6 +448,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         testArgs.permuteArgs = newPermuteArgs;
     }
 
+    // tests can't override this, but the implementation for adding detailed information
+    // seems to be non-deterministic (and as such, updating tests does not work...)
+    testArgs.requiredArgs = "-verrors=basic " ~ testArgs.requiredArgs;
+
     // tests can override -verrors by using REQUIRED_ARGS
     if (testArgs.mode == TestMode.FAIL_COMPILE)
         testArgs.requiredArgs = "-verrors=0 " ~ testArgs.requiredArgs;
