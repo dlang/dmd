@@ -719,6 +719,9 @@ dmd -cov -unittest myprog.d
         Option("verrors=<num>",
             "limit the number of error messages (0 means unlimited)"
         ),
+        Option("verrors=basic",
+            "only show basic information about errors"
+        ),
         Option("verrors=spec",
             "show errors from speculative compiles such as __traits(compiles,...)"
         ),

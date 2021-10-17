@@ -1793,9 +1793,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 // flag is deprecated.
                 dmd.errors.deprecation(Loc.initial, "-verrors=context is redundant, and will be removed in future DMD versions.");
             }
+            else if (startsWith(p + 9, "basic"))
+            {
+                params.printErrorContext = false;
+            }
             else if (!params.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
-                errorInvalidSwitch(p, "Only a number, or `spec` are allowed for `-verrors`");
+                errorInvalidSwitch(p, "Only a number, `basic`, or `spec` are allowed for `-verrors`");
                 return true;
             }
         }
