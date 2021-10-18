@@ -1919,8 +1919,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             /* If a semantic error occurs while doing alias this,
                              * eg purity(https://issues.dlang.org/show_bug.cgi?id=7295),
                              * just regard it as not a match.
-                             */
-                            if (auto e = resolveAliasThis(paramscope, farg, true))
+                             *
+                             * We also save/restore sc.func.flags to avoid messing up
+                             * attribute inference in the evaluation.
+                            */
+                            const oldflags = sc.func ? sc.func.flags : 0;
+                            auto e = resolveAliasThis(sc, farg, true);
+                            if (sc.func)
+                                sc.func.flags = oldflags;
+                            if (e)
                             {
                                 farg = e;
                                 goto Lretry;
