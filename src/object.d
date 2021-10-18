@@ -2432,7 +2432,7 @@ class Throwable : Object
     override string toString()
     {
         string s;
-        toString((buf) { s ~= buf; });
+        toString((in buf) { s ~= buf; });
         return s;
     }
 
