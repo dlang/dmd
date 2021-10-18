@@ -261,7 +261,7 @@ bool isBasicBCType(BCType bct) @safe pure
 {
     return !(bct.type == BCTypeEnum.Struct || bct.type == BCTypeEnum.Array || bct.type == BCTypeEnum.Class
             || bct.type == BCTypeEnum.Slice || bct.type == BCTypeEnum.Undef || bct.type == BCTypeEnum.Ptr
-            || bct.type == BCTypeEnum.AArray);
+            || bct.type == BCTypeEnum.AArray || bct.type == BCTypeEnum.string8);
 }
 
 const(bool) isStackValueOrParameter(const BCValue val) pure @safe nothrow

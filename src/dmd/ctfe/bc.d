@@ -392,7 +392,7 @@ struct BCFunction
 enum max_call_depth = 2000;
 struct BCGen
 {
-    uint[ushort.max] byteCodeArray;
+    uint[ushort.max * 16] byteCodeArray;
 
     /// ip starts at 4 because 0 should be an invalid address;
     BCAddr ip = BCAddr(4);
@@ -406,7 +406,7 @@ struct BCGen
 
     BCLocal[bc_max_locals] locals;
 
-    RetainedCall[ubyte.max * 6] calls;
+    RetainedCall[ubyte.max * 255] calls;
     uint callCount;
     auto interpret(BCValue[] args, BCHeap* heapPtr = null) const @trusted
     {
@@ -601,7 +601,7 @@ struct BCGen
             pSize = align4(basicTypeSize(bct.type));
         }
 
-        assert(pSize == 4 || pSize == 8, "we only support 4byte and 8byte params");
+        assert(pSize == 4 || pSize == 8, "we only support 4byte and 8byte params: " ~ enumToString(bct.type));
 
         sp += pSize;
 
@@ -773,9 +773,9 @@ struct BCGen
                 goto case;
             case 1 :
                 lastField |= bytes[idx+0] << 0;
-                byteCodeArray[ip++] = lastField;
                 goto case;
             case 0 :
+                byteCodeArray[ip++] = lastField;
                 break;
         }
     }
@@ -794,13 +794,13 @@ struct BCGen
          emitLongInst(LongInst.Line, StackAddr(0), Imm32(line));
     }
 
-    void Comment(lazy const (char)[] comment)
+    @trusted void Comment(lazy const (char)[] comment)
     {
-        debug
+        //debug
         {
-            uint commentLength = cast(uint) comment.length;
+            uint commentLength = cast(uint) comment.length + 1;
 
-            emitLongInst(LongInst.Comment, StackAddr.init, Imm32(commentLength));
+            emitLongInst(LongInst.Comment, StackAddr(0), Imm32(commentLength));
 
             outputBytes(comment);
         }
@@ -2387,6 +2387,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
 
     uint[] breakLines = [];
     uint lastLine;
+    const char* lastComment;
     BCValue cRetval;
     ReturnAddr[max_call_depth] returnAddrs;
     Catch[] catches;
@@ -3931,6 +3932,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
 
         case LongInst.Comment:
             {
+                if (!__ctfe) lastComment = cast(const char*) (byteCode.ptr + ip);
                 ip += align4(hi) / 4;
             }
             break;
