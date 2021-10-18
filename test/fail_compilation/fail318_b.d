@@ -5,4 +5,7 @@ fail_compilation/fail318_b.d(8): Error: function `D main` must return `int`, `vo
 ---
 */
 
-string main() { }
+auto main()
+{
+    return "";
+}

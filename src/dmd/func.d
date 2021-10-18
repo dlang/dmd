@@ -2594,7 +2594,8 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         if (!tf.nextOf())
-            error("must return `int`, `void` or `noreturn`");
+            // auto main(), check after semantic
+            assert(this.inferRetType);
         else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid && tf.nextOf().ty != Tnoreturn)
             error("must return `int`, `void` or `noreturn`, not `%s`", tf.nextOf().toChars());
         else if (tf.parameterList.varargs || nparams >= 2 || argerr)
