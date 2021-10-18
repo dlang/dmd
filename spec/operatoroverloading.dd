@@ -602,7 +602,7 @@ $(H3 $(LNAME2 slice_assignment_operator, Slice Assignment Operator Overloading))
         `opIndexAssign` member function that takes the return value of the
         `opSlice` function as parameter(s).
         Expressions of the form $(CODE a[)$(SLICE)$(D ] = c) are rewritten as
-        $(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN)),
+        $(CODE a.opIndexAssign$(LPAREN)c,) $(D a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN)),
         and $(CODE a[] = c) as $(CODE a.opIndexAssign(c)).
         )
 
@@ -613,9 +613,9 @@ $(H3 $(LNAME2 slice_assignment_operator, Slice Assignment Operator Overloading))
 -------
 struct A
 {
-    int $(CODE_HIGHLIGHT opIndexAssign)(int v);  // overloads a[] = v
-    int $(CODE_HIGHLIGHT opIndexAssign)(int v, size_t[2] x);  // overloads a[i .. j] = v
-    int[2] $(CODE_HIGHLIGHT opSlice)(size_t x, size_t y);     // overloads i .. j
+    int opIndexAssign(int v);  // overloads a[] = v
+    int opIndexAssign(int v, size_t[2] slice);  // overloads a[i .. j] = v
+    size_t[2] opSlice(size_t dim)(size_t i, size_t j);  // overloads i .. j
 }
 
 void test()
@@ -623,13 +623,13 @@ void test()
     A a;
     int v;
 
-    a$(CODE_HIGHLIGHT []) = v;  // same as a.opIndexAssign(v);
-    a$(CODE_HIGHLIGHT [)3..4$(CODE_HIGHLIGHT ]) = v;  // same as a.opIndexAssign(v, a.opSlice(3,4));
+    a[] = v;  // same as a.opIndexAssign(v);
+    a[3..4] = v;  // same as a.opIndexAssign(v, a.opSlice!0(3,4));
 }
 -------
 
         $(P For backward compatibility, if rewriting $(D a[)$(SLICE)$(D ]) as
-        $(D a.opIndexAssign$(LPAREN)a.opSlice$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
+        $(D a.opIndexAssign$(LPAREN)a.opSlice!0$(LPAREN))$(SLICE2)$(D $(RPAREN)$(RPAREN))
         fails to compile, the legacy rewrite
         $(D opSliceAssign$(LPAREN)c,) $(SLICE2)$(D $(RPAREN)) is used instead.
         )
