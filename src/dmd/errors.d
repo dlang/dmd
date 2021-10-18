@@ -385,6 +385,8 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         loc != Loc.initial &&
         // ignore mixins for now
         !loc.filename.strstr(".d-mixin-") &&
+        // ignore stdin for now
+        !loc.filename.strstr("__stdin") &&
         !global.params.mixinOut)
     {
         import dmd.filecache : FileCache;
