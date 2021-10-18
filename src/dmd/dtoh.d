@@ -255,7 +255,7 @@ public:
         Identifier ident;
 
         /// Original type of the currently visited declaration
-        AST.Type* origType;
+        AST.Type origType;
 
         /// Last written visibility level applying to the current scope
         AST.Visibility.Kind currentVisibility;
@@ -842,7 +842,7 @@ public:
             return;
 
         if (vd.originalType && vd.type == AST.Type.tsize_t)
-            origType = &vd.originalType;
+            origType = vd.originalType;
         scope(exit) origType = null;
 
         if (vd.alignment != STRUCTALIGN_DEFAULT)
@@ -1009,12 +1009,12 @@ public:
             if (ad.originalType && ad.type.ty == AST.Tpointer &&
                 (cast(AST.TypePointer)t).nextOf.ty == AST.Tfunction)
             {
-                origType = &ad.originalType;
+                origType = ad.originalType;
             }
             scope(exit) origType = null;
 
             buf.writestring("typedef ");
-            typeToBuffer(origType ? *origType : t, ad);
+            typeToBuffer(origType !is null ? origType : t, ad);
             writeDeclEnd();
             return;
         }
@@ -1646,7 +1646,7 @@ public:
         }
 
         this.ident = s.ident;
-        auto type = origType ? *origType : t;
+        auto type = origType !is null ? origType : t;
         AST.Dsymbol customLength;
 
         // Check for quirks that are usually resolved during semantic
