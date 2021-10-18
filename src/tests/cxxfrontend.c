@@ -36,6 +36,7 @@
 #include "enum.h"
 #include "errors.h"
 #include "expression.h"
+#include "filecache.h"
 #include "globals.h"
 #include "hdrgen.h"
 #include "identifier.h"
@@ -81,6 +82,7 @@ static void frontend_init()
     Module::_init();
     Expression::_init();
     Objc::_init();
+    FileCache::_init();
     CTFloat::initialize();
 }
 

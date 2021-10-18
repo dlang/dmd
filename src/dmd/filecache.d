@@ -86,7 +86,7 @@ class FileAndLines
 A simple file cache that can be used to avoid reading the same file multiple times.
 It stores its cached files as $(LREF FileAndLines)
 */
-struct FileCache
+extern(C++) struct FileCache
 {
     private StringTable!(FileAndLines) files;
 
@@ -102,7 +102,7 @@ struct FileCache
 
     Returns: a $(LREF FileAndLines) object containing a line-by-line representation of the requested file
     */
-    FileAndLines addOrGetFile(const(char)[] file)
+    extern(D) FileAndLines addOrGetFile(const(char)[] file)
     {
         if (auto payload = files.lookup(file))
         {
@@ -118,17 +118,17 @@ struct FileCache
     __gshared fileCache = FileCache();
 
     // Initializes the global FileCache singleton
-    static __gshared void _init()
+    extern(C++) static __gshared void _init()
     {
         fileCache.initialize();
     }
 
-    void initialize()
+    extern(D) void initialize()
     {
         files._init();
     }
 
-    void deinitialize()
+    extern(D) void deinitialize()
     {
         foreach (sv; files)
             sv.destroy();
