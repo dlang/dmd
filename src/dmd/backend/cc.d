@@ -750,7 +750,7 @@ enum
     Fjmonitor        = 0x100,   // Mars synchronized function
     Fnosideeff       = 0x200,   // function has no side effects
     F3badoparrow     = 0x400,   // bad operator->()
-    Fmain            = 0x800,   // function is main() or wmain()
+    Fmain            = 0x800,   // function is D main
     Fnested          = 0x1000,  // D nested function with 'this'
     Fmember          = 0x2000,  // D member function with 'this'
     Fnotailrecursion = 0x4000,  // no tail recursion optimizations

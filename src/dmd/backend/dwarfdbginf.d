@@ -1903,6 +1903,12 @@ static if (1)
                 abuf.writeByte(DW_FORM_flag);
         }
 
+        if (config.dwarf >= 4 && sfunc.Sfunc.Fflags3 & Fmain)
+        {
+            abuf.writeByte(DW_AT_main_subprogram);
+            abuf.writeByte(DW_FORM_flag_present);
+        }
+
         abuf.writeByte(DW_AT_low_pc);     abuf.writeByte(DW_FORM_addr);
         abuf.writeByte(DW_AT_high_pc);    abuf.writeByte(DW_FORM_addr);
         abuf.writeByte(DW_AT_frame_base); abuf.writeByte(DW_FORM_data4);
