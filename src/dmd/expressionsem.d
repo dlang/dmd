@@ -7730,28 +7730,35 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("SliceExp::semantic('%s')\n", exp.toChars());
         }
 
-        if (exp.e1.type.ty != Tsarray)
+        if (exp.e1.type.ty == Tsarray)
         {
-            exp.error("trying to slice non-static array %s[]", exp.e1.toChars());
-            return setError();
-        }
-
-        if (exp.lwr && exp.upr && exp.lwr.isIntegerExp() && exp.upr.isIntegerExp())
-        {
-            uinteger_t lwrSliceLen = exp.lwr.toInteger();
-            uinteger_t uprSliceLen = exp.upr.toInteger();
-
-            if (lwrSliceLen > uprSliceLen)
-            {
-                exp.error("slice lower bound %llu can't be greater than upper bound %llu", lwrSliceLen, uprSliceLen);
-                return setError();
-            }
-
+            uinteger_t lwrSliceLen, uprSliceLen;
             TypeSArray tsa = cast(TypeSArray)exp.e1.type.toBasetype();
             uinteger_t arrLen = tsa.dim.toInteger();
-            if (uprSliceLen > arrLen)
+
+            if (exp.lwr && exp.lwr.isIntegerExp())
             {
-                exp.error("slice upper bound %llu is greater than array length `%s[0 .. %llu]`", uprSliceLen, exp.e1.toChars(), arrLen);
+                lwrSliceLen = exp.lwr.toInteger();
+
+                if (lwrSliceLen > arrLen)
+                {
+                    exp.error("slice lower index %llu out of bounds `%s[0 .. %llu]`", lwrSliceLen, exp.e1.toChars(), arrLen);
+                    return setError();
+                }
+            }
+            if (exp.upr && exp.upr.isIntegerExp())
+            {
+                uprSliceLen = exp.upr.toInteger();
+
+                if (uprSliceLen > arrLen)
+                {
+                    exp.error("slice lower index %llu out of bounds `%s[0 .. %llu]`", uprSliceLen, exp.e1.toChars(), arrLen);
+                    return setError();
+                }
+            }
+            if (exp.lwr && exp.upr && exp.lwr.isIntegerExp() && exp.upr.isIntegerExp() && lwrSliceLen > uprSliceLen)
+            {
+                exp.error("slice lower bound %llu can't be greater than upper bound %llu", lwrSliceLen, uprSliceLen);
                 return setError();
             }
         }
