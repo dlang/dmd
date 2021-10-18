@@ -374,6 +374,7 @@ Symbol *toSymbol(Dsymbol s)
             {
                 t.Tty = TYnfunc;
                 t.Tmangle = mTYman_c;
+                f.Fflags3 |= Fmain;
             }
             else
             {
