@@ -1882,6 +1882,7 @@ static if (1)
 
         abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
         abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_data2);
+        abuf.writeByte(DW_AT_decl_column); abuf.writeByte(DW_FORM_data2);
         if (ret_type)
         {
             abuf.writeByte(DW_AT_type);  abuf.writeByte(DW_FORM_ref4);
@@ -1923,6 +1924,7 @@ static if (1)
         debug_info.buf.writeString(sfunc.Sident.ptr);    // DW_AT_MIPS_linkage_name
         debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
         debug_info.buf.write16(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
+        debug_info.buf.write16(sfunc.Sfunc.Fstartline.Scharnum);   // DW_AT_decl_column
         if (ret_type)
             debug_info.buf.write32(ret_type);         // DW_AT_type
 

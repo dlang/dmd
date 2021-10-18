@@ -180,7 +180,7 @@ struct Srcpos
 {
 nothrow:
     uint Slinnum;           // 0 means no info available
-    uint Scharnum;
+    uint Scharnum;          // 0 means no info available
     version (SCPP)
     {
         Sfile **Sfilptr;            // file
@@ -203,7 +203,7 @@ nothrow:
 
         const(char*) name() const { return Sfilename; }
 
-        static Srcpos create(const(char)* filename, uint linnum, int charnum)
+        static Srcpos create(const(char)* filename, uint linnum, uint charnum)
         {
             // Cannot have constructor because Srcpos is used in a union
             Srcpos sp;
