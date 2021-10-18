@@ -71,32 +71,3 @@ install_grep() {
     export PATH="${tools_dir}:$PATH"
 }
 
-################################################################################
-# Checkout other repositories
-################################################################################
-
-clone_repos() {
-    if [ -z ${SYSTEM_PULLREQUEST_TARGETBRANCH+x} ]; then
-        # no PR
-        local REPO_BRANCH="$BUILD_SOURCEBRANCHNAME"
-    elif [ ${SYSTEM_PULLREQUEST_ISFORK} == False ]; then
-        # PR originating from the official dlang repo
-        local REPO_BRANCH="$SYSTEM_PULLREQUEST_SOURCEBRANCH"
-    else
-        # PR from a fork
-        local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
-    fi
-
-    for proj in druntime phobos; do
-        if [ "$REPO_BRANCH" != master ] && [ "$REPO_BRANCH" != stable ] &&
-                ! git ls-remote --exit-code --heads "https://github.com/dlang/$proj.git" "$REPO_BRANCH" > /dev/null; then
-            # use master as fallback for other repos to test feature branches
-            clone "https://github.com/dlang/$proj.git" "${DMD_DIR}/../$proj" master
-            echo "[GIT_CLONE] Switched $proj to branch master \$(REPO_BRANCH=$REPO_BRANCH)"
-        else
-            clone "https://github.com/dlang/$proj.git" "${DMD_DIR}/../$proj" "$REPO_BRANCH"
-            echo "[GIT_CLONE] Switched $proj to branch $REPO_BRANCH"
-        fi
-    done
-}
-

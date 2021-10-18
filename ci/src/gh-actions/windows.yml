@@ -1,0 +1,180 @@
+name: Windows CI
+
+x-meta-anchors-remove:
+  # Optimizing CI:
+  # Only run if the:
+  # repository == 'dlang/dmd'
+  # if the event is a pull request, run only:
+  # - if the pull request labels contains a label named 'windows'
+  # - if the pull request is not a draft
+  # if the event is a push
+  - &cond
+    if: github.repository == 'dlang/dmd'
+        && ((github.event_name == 'pull_request'
+          && (contains(github.event.pull_request.labels.*.name, 'windows')
+              || github.event.pull_request.draft))
+        || github.event_name == 'push')
+
+"on":
+  pull_request:
+    # Only automatically run when:
+    # this PR has had a commit pushed to it,
+    # or this PR has been labeled with a tag (typically one that will allow this workflow to run)
+    branches:
+      - master
+      - stable
+    types: [synchronize, labeled]
+  push:
+    branches:
+      - master
+      - stable
+
+concurrency:
+  # TODO: figure out a better solution for this
+  group: ci-windows-${{ github.actor }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    <<: *cond
+    name: Windows CI (${{ matrix.d_compiler }}/${{ matrix.d_version }}/${{ matrix.name }})
+    runs-on: windows-2016
+    env:
+      VISUALD_VER: v0.49.0
+    strategy:
+      matrix:
+        include:
+        #################
+        # DMD Bootstrap #
+        #################
+        - name: x64
+          os: Win_64
+          model: 64
+          arch: x64
+          d_compiler: dmd
+          d_version: 2.079.0
+          msbuild: false
+        - name: x86-OMF
+          os: Win_32
+          model: 32
+          arch: x86
+          d_compiler: dmd
+          d_version: 2.079.0
+          msbuild: false
+        ##############
+        # DMD Latest #
+        ##############
+        - name: x64
+          os: Win_64
+          model: 64
+          arch: x64
+          d_compiler: dmd
+          d_version: LATEST
+          msbuild: false
+        - name: x86-OMF
+          os: Win_32
+          model: 32
+          arch: x86
+          d_compiler: dmd
+          d_version: LATEST
+          msbuild: false
+        ##################
+        # LDC / Visual D #
+        ##################
+        - name: x64_Debug
+          model: 64
+          arch: x64
+          d_compiler: ldc
+          d_version: 1.23.0
+          msbuild: true
+          configuration: Debug
+        - name: x86-mscoff
+          model: 32mscoff
+          arch: x86
+          d_compiler: ldc
+          d_version: 1.23.0
+          msbuild: true
+        - name: x86-mscoff_MinGW
+          model: 32mscoff
+          arch: x86
+          d_compiler: ldc
+          d_version: 1.23.0
+          msbuild: true
+          c_runtime: mingw
+    steps:
+      - id: fix_crlf
+        name: Set line endings to CRLF
+        shell: bash
+        run: |
+          git config --global core.autocrlf true
+      - name: Checkout DMD
+        uses: actions/checkout@v2
+        with:
+          path: dmd
+          persist-credentials: false
+      - name: Checkout DRuntime / Phobos
+        uses: ./dmd/.github/actions/checkout-druntime-phobos
+      - name: Set up Visual Studio shell
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: ${{ matrix.arch }}
+      - name: Set up environment variables
+        shell: bash
+        run: |
+          ls
+          echo "ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
+          echo "MODEL=${{ matrix.model }}" >> $GITHUB_ENV
+          if [[ "${{ matrix.arch }}" = "x86" ]]; then
+            echo "OS=Win_32" >> $GITHUB_ENV
+          else
+            echo "OS=Win_64" >> $GITHUB_ENV
+          fi
+          echo "D_COMPILER=${{ matrix.d_compiler }}" >> $GITHUB_ENV
+          echo "N=$NUMBER_OF_PROCESSORS" >> $GITHUB_ENV
+
+          if [[ "${{ matrix.msbuild }}" = "true" ]]; then
+            echo "CONFIGURATION=${{ matrix.configuration }}" >> $GITHUB_ENV
+          fi
+
+          if [[ "${{ matrix.d_compiler }}" = "dmd" ]]; then
+            echo "HOST_DMD_VERSION=${{ matrix.d_version }}" >> $GITHUB_ENV
+          else
+            echo "LDC_VERSION=${{ matrix.d_version }}" >> $GITHUB_ENV
+          fi
+
+          if [[ ! -z "${{ matrix.c_runtime }}" ]]; then
+            echo "C_RUNTIME=${{ matrix.c_runtime }}" >> $GITHUB_ENV
+          fi
+
+          if [[ ! -z "${{ matrix.configuration }}" ]]; then
+            echo "CONFIGURATION=${{ matrix.configuration }}" >> $GITHUB_ENV
+          fi
+
+          # Define some variables that Azure Pipelines used to define
+          echo "SYSTEM_PULLREQUEST_TARGETBRANCH=${{ github.base_ref }}" >> $GITHUB_ENV
+          echo "SYSTEM_PULLREQUEST_SOURCEBRANCH=${{ github.head_ref }}" >> $GITHUB_ENV
+          echo "SYSTEM_PULLREQUEST_ISFORK=${{ github.event.pull_request.head.repo.full_name != 'dlang/dmd' }}" >> $GITHUB_ENV
+          # Now change directory into the dmd directory
+      - id: build
+        if: matrix.msbuild == false
+        name: Build and test
+        shell: bash
+        run: |
+          cd dmd
+          ci/windows.sh
+      # MSBuild specific options down here
+      - id: fetch_msbuild
+        if: matrix.msbuild == true
+        name: Fetch required MSBuild binaries
+        shell: bash
+        run: |
+          cd dmd
+          ci/windows-visual-studio.sh
+      - id: build_msbuild
+        if: matrix.msbuild == true
+        name: Build and test with MSBuild
+        shell: bash
+        run: |
+          cd dmd
+          cmd.exe /c "call ci/windows-msbuild.bat"
+

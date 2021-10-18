@@ -1,0 +1,84 @@
+name: macOS CI
+
+x-meta-anchors-remove:
+  # Optimizing CI:
+  # Only run if the:
+  # repository == 'dlang/dmd'
+  # if the event is a pull request, run only:
+  # - if the pull request labels contains a label named 'windows'
+  # - if the pull request is not a draft
+  # if the event is a push
+  - &cond
+    if: github.repository == 'dlang/dmd'
+        && ((github.event_name == 'pull_request'
+          && (contains(github.event.pull_request.labels.*.name, 'macos')
+              || !github.event.pull_request.draft))
+        || github.event_name == 'push')
+
+"on":
+  pull_request:
+    # Only automatically run when:
+    # this PR has had a commit pushed to it,
+    # or this PR has been labeled with a tag (typically one that will allow this workflow to run)
+    branches:
+      - master
+      - stable
+    types: [synchronize, labeled]
+  push:
+    branches:
+      - master
+      - stable
+
+concurrency:
+  # TODO: figure out a better solution for this
+  # We ideally don't want one user to have multiple runs of this action
+  # within e.g. one PR. So, we define a concurrency group which will
+  # automatically terminate the old jobs if a new run has been started.
+  group: ci-macos-${{ github.actor }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    <<: *cond
+    name: "Test and run macOS 10.15 (DMD ${{ matrix.name }}"
+    runs-on: macos-10.15
+    timeout-minutes: 60
+    env:
+      MODEL: 64
+      FULL_BUILD: true
+      OS_NAME: darwin
+      OS: osx
+      N: 3
+      HOST_DMD: ${{ matrix.HOST_DMD }}
+    strategy:
+      matrix:
+        include:
+        - name: latest
+          HOST_DMD: dmd-latest
+        - name: coverage
+          HOST_DMD: dmd-latest
+        - name: bootstrap
+          HOST_DMD: dmd-2.088.0
+    steps:
+      - name: Prepare host compiler
+        uses: dlang-community/setup-dlang@v1
+        with:
+          compiler: ${{ matrix.HOST_DMD }}
+      # These steps have been directly lifted from the runnable_cxx GH action,
+      # as they're good defaults and work.
+      ######################################
+      # Checking out DMD, druntime, Phobos #
+      ######################################
+      - name: Checkout DMD
+        uses: actions/checkout@v2
+        with:
+          path: dmd
+          persist-credentials: false
+      - name: Checkout DRuntime / Phobos
+        uses: ./dmd/.github/actions/checkout-druntime-phobos
+      - name: Run CI script
+        shell: bash
+        run: |
+          cd dmd
+          ./ci.sh build
+

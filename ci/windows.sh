@@ -29,7 +29,7 @@ echo "GREP_VERSION: $(grep --version)"
 install_host_dmc
 DM_MAKE="$PWD/dm/bin/make.exe"
 
-if [ "$MODEL" == "32" ] ; then
+if [ "$ARCH" == "x86" ] ; then
     CC="$PWD/dm/bin/dmc.exe"
     AR="$PWD/dm/bin/lib.exe"
 else
@@ -47,12 +47,6 @@ else
     echo 'Invalid $D_COMPILER provided'.
     exit 1
 fi
-
-################################################################################
-# Checkout other repositories
-################################################################################
-
-clone_repos
 
 ################################################################################
 # Prepare build flags
@@ -77,7 +71,11 @@ fi
 DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
 
 cd "$DMD_DIR/src"
+START=$(date +%s)
 "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" BUILD=debug unittest
+END=$(date +%s)
+awk "BEGIN {print ($END-$START)}"
+
 DFLAGS="-L-LARGEADDRESSAWARE" "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" reldmd-asserts
 
 ################################################################################
@@ -104,7 +102,6 @@ cd ../test
 
 # Rebuild dmd with ENABLE_COVERAGE for coverage tests
 if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
-
     # Recompile debug dmd + unittests
     rm -rf "$DMD_DIR/generated/windows"
     DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 dmd
@@ -126,7 +123,10 @@ if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
     targets=("runnable" "compilable" "fail_compilation" "dshell")
     args=() # use default set of args
 fi
+START=$(date +%s)
 CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
+END=$(date +%s)
+awk "BEGIN {print ($END-$START)}"
 
 ###############################################################################
 # Upload coverage reports and exit if ENABLE_COVERAGE is specified
@@ -145,7 +145,10 @@ fi
 ################################################################################
 
 cd "$DMD_DIR/../druntime"
+START=$(date +%s)
 "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
+END=$(date +%s)
+awk "BEGIN {print ($END-$START)}"
 
 ################################################################################
 # Build and run Phobos unittests
@@ -160,7 +163,7 @@ else
     else
         cp "$DMD_DIR/tools/dmd2/windows/bin/libcurl.dll" .
     fi
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest
+    time "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest
 fi
 
 ################################################################################

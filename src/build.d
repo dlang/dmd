@@ -37,7 +37,7 @@ __gshared TaskPool taskPool;
 /// Array of build rules through which all other build rules can be reached
 immutable rootRules = [
     &dmdDefault,
-    &autoTesterBuild,
+//    &autoTesterBuild,
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
@@ -252,6 +252,7 @@ will trigger a full rebuild.
 */
 
 /// Returns: The rule that runs the autotester build
+/+
 alias autoTesterBuild = makeRule!((builder, rule) {
     builder
     .name("auto-tester-build")
@@ -268,6 +269,7 @@ alias autoTesterBuild = makeRule!((builder, rule) {
     version (Windows)
         rule.deps ~= runDmdUnittest;
 });
++/
 
 /// Returns: the rule that builds the lexer object file
 alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,

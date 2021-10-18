@@ -6,6 +6,9 @@
 
 set -uexo pipefail
 
+# Temporarily disable CI to not be a bad neighbor
+exit 1
+
 # OS_NAME: linux|darwin|freebsd
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 # MODEL: 32|64
