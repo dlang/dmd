@@ -2488,10 +2488,6 @@ struct MatchAccumulator final
         {}
 };
 
-static const char* const package_d = "package.d";
-
-static const char* const package_di = "package.di";
-
 enum class StructFlags
 {
     none = 0,
@@ -4985,6 +4981,40 @@ enum class CPU
     avx512 = 10,
     baseline = 11,
     native = 12,
+};
+
+struct StringEntry final
+{
+    uint32_t hash;
+    uint32_t vptr;
+    StringEntry() :
+        hash(),
+        vptr()
+    {
+    }
+    StringEntry(uint32_t hash, uint32_t vptr = 0u) :
+        hash(hash),
+        vptr(vptr)
+        {}
+};
+
+template <typename T>
+struct StringTable final
+{
+    // Ignoring var table alignment 0
+    _d_dynamicArray< StringEntry > table;
+    // Ignoring var pools alignment 0
+    _d_dynamicArray< uint8_t* > pools;
+    // Ignoring var nfill alignment 0
+    size_t nfill;
+    // Ignoring var count alignment 0
+    size_t count;
+    // Ignoring var countTrigger alignment 0
+    size_t countTrigger;
+    ~StringTable();
+    StringTable()
+    {
+    }
 };
 
 typedef _d_real longdouble;
@@ -7882,6 +7912,22 @@ extern void vdeprecationSupplemental(const Loc& loc, const char* format, va_list
 extern void fatal();
 
 extern void halt();
+
+struct FileManager final
+{
+private:
+    StringTable<FileBuffer* > files;
+    static bool initialized;
+public:
+    FileBuffer* lookup(const char* filename);
+    FileBuffer* add(const char* filename, FileBuffer* filebuffer);
+    static FileManager fileManager;
+    static void _init();
+    void initialize();
+    FileManager()
+    {
+    }
+};
 
 struct Id final
 {

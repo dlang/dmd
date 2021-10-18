@@ -43,6 +43,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
+import dmd.file_manager;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -6051,17 +6052,29 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         {
-            auto readResult = File.read(name);
-            if (!readResult.success)
+            auto fileName = FileName(name.toDString);
+            if (auto fmResult = FileManager.fileManager.lookup(fileName))
             {
-                e.error("cannot read file `%s`", name);
-                return setError();
+                se = new StringExp(e.loc, fmResult.data);
             }
             else
             {
-                // take ownership of buffer (probably leaking)
-                auto data = readResult.extractSlice();
-                se = new StringExp(e.loc, data);
+                auto readResult = File.read(name);
+                if (!readResult.success)
+                {
+                    e.error("cannot read file `%s`", name);
+                    return setError();
+                }
+                else
+                {
+                    // take ownership of buffer (probably leaking)
+                    auto data = readResult.extractSlice();
+                    se = new StringExp(e.loc, data);
+
+                    FileBuffer* fileBuffer = FileBuffer.create();
+                    fileBuffer.data = data;
+                    FileManager.fileManager.add(fileName, fileBuffer);
+                }
             }
         }
         result = se.expressionSemantic(sc);
