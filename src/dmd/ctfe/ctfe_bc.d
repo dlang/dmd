@@ -7737,7 +7737,8 @@ static if (is(BCGen))
                 {
                     auto allocSize = genTemporary(i32Type);
                     scope(exit) destroyTemporary(allocSize);
-                    Mul3(allocSize, rhs_length, imm32(elemSize * 32));
+                    Mul3(allocSize, neededSize, imm32(3));
+                    Div3(allocSize, allocSize, imm32(2));
                     Add3(allocSize, allocSize, neededSize);
 
                     Alloc(sliceDescPtr.i32, allocSize, lhs.type);
@@ -7805,7 +7806,9 @@ static if (is(BCGen))
                         auto ifRet = If(newSize, &Gt3, capa);
                         {
                             auto allocSize = genTemporary(i32Type);
-                            Add3(allocSize, newSize, imm32(elemSize * 32));
+                            Mul3(allocSize, newSize, imm32(3));
+                            Div3(allocSize, allocSize, imm32(2));
+                            Add3(allocSize, allocSize, newSize);
 
                             Alloc(sliceDescPtr.i32, allocSize, lhs.type);
 

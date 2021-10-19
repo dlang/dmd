@@ -2387,7 +2387,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
 
     uint[] breakLines = [];
     uint lastLine;
-    const char* lastComment;
+    const (char)* lastComment;
     BCValue cRetval;
     ReturnAddr[max_call_depth] returnAddrs;
     Catch[] catches;
