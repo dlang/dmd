@@ -1826,14 +1826,17 @@ static if (1)
             version (MARS)
                 if (sa.Sflags & SFLnodebug) continue;
 
-            __gshared ubyte[12] formal =
+            __gshared ubyte[18] formal =
             [
                 DW_TAG_formal_parameter,
                 0,
-                DW_AT_name,       DW_FORM_string,
-                DW_AT_type,       DW_FORM_ref4,
-                DW_AT_artificial, DW_FORM_flag,
-                DW_AT_location,   DW_FORM_block1,
+                DW_AT_name,        DW_FORM_string,
+                DW_AT_type,        DW_FORM_ref4,
+                DW_AT_artificial,  DW_FORM_flag,
+                DW_AT_decl_file,   DW_FORM_data1,
+                DW_AT_decl_line,   DW_FORM_data2,
+                DW_AT_decl_column, DW_FORM_data2,
+                DW_AT_location,    DW_FORM_block1,
                 0,                0,
             ];
 
@@ -1978,6 +1981,9 @@ static if (1)
                         debug_info.buf.writeString(getSymName(sa));   // DW_AT_name
                         debug_info.buf.write32(tidx);                 // DW_AT_type
                         debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
+                        debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
+                        debug_info.buf.write16(sa.lposscopestart.Slinnum);   // DW_AT_decl_line
+                        debug_info.buf.write16(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
                         soffset = cast(uint)debug_info.buf.length();
                         debug_info.buf.writeByte(2);                  // DW_FORM_block1
                         if (sa.Sfl == FLreg || sa.Sclass == SCpseudo)
