@@ -283,16 +283,13 @@ Expression SemanticProp(PostExp e, Scope* sc)
             eb = SemanticProp(new MinAssignExp(e.loc, e.e1, IntegerExp.literal!1), sc);
         //printf("eb: %s \n", eb.toChars());
 
-        Expression ec = new VarExp(e.loc, tmp);
-
-        // Combine de,ea,eb,ec
-        Expression e1;
-        e1 = new CommaExp(e.loc, ea, eb);
-        e1 = new CommaExp(e.loc, e1, ec);
+        Expression e1 = new CommaExp(e.loc, ea, new VarExp(e.loc, tmp));
         //printf("%s", e1.toChars());
-        e1 = e1.expressionSemantic(sc);
+        Expression e2 = new CommaExp(e.loc, e1, eb);
         //printf("%s", e1.toChars());
-        result = e1;
+        e2 = e2.expressionSemantic(sc);
+        printf("%s", e1.toChars());
+        result = e2;
         return result;
     }
 
