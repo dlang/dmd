@@ -288,7 +288,7 @@ Expression SemanticProp(PostExp e, Scope* sc)
         Expression e2 = new CommaExp(e.loc, e1, eb);
         //printf("%s", e1.toChars());
         e2 = e2.expressionSemantic(sc);
-        printf("%s", e1.toChars());
+        //printf("%s", e1.toChars());
         result = e2;
         return result;
     }
