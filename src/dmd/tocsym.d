@@ -314,7 +314,7 @@ Symbol *toSymbol(Dsymbol s)
             type_setmangle(&t, m);
             s.Stype = t;
 
-            s.lnoscopestart = vd.loc.linnum;
+            s.lposscopestart = toSrcpos(vd.loc);
             s.lnoscopeend = vd.endlinnum;
             result = s;
         }
@@ -358,15 +358,8 @@ Symbol *toSymbol(Dsymbol s)
             if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.flags & FUNCFLAG.noreturn)
                 s.Sflags |= SFLexit;    // the function never returns
 
-            f.Fstartline.set(fd.loc.filename, fd.loc.linnum, fd.loc.charnum);
-            if (fd.endloc.linnum)
-            {
-                f.Fendline.set(fd.endloc.filename, fd.endloc.linnum, fd.endloc.charnum);
-            }
-            else
-            {
-                f.Fendline = f.Fstartline;
-            }
+            f.Fstartline = toSrcpos(fd.loc);
+            f.Fendline = fd.endloc.linnum ? toSrcpos(fd.endloc) : f.Fstartline;
 
             auto t = Type_toCtype(fd.type);
             const msave = t.Tmangle;
@@ -793,4 +786,16 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
     t.Tcount++;
     s.Stype = t;
     return s;
+}
+
+/**********************************
+ * Converts a Loc to backend Srcpos
+ * Params:
+ *      loc = Source code location
+ * Returns:
+ *      Srcpos backend struct corresponding to the given location
+ */
+Srcpos toSrcpos(Loc loc)
+{
+    return Srcpos.create(loc.filename, loc.linnum, loc.charnum);
 }
