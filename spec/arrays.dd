@@ -1115,6 +1115,14 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
         $(LI $(D void[]))
         )
 
+        $(P Array literals can also be implicitly converted to static array
+        types. See $(DDSUBLINK spec/expression, array_literals, Array Literals)
+        for details.)
+
+        $(P String literals can also be implicitly converted to static array
+        types and character pointer types. See $(DDSUBLINK spec/expression, string_literals,
+        String Literals) for details.)
+
 $(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
 )
 
