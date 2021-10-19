@@ -1436,7 +1436,7 @@ struct Symbol
     }
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
-    uint lnoscopestart;         // life time of var
+    Srcpos lposscopestart;        // life time of var
     uint lnoscopeend;           // the line after the scope
 
     /**

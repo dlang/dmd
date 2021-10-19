@@ -95,11 +95,11 @@ public void startFunction()
 //  no support for gathering stats from different files)
 private bool isLexicalScopeVar(Symbol* sa)
 {
-    if (sa.lnoscopestart <= 0 || sa.lnoscopestart > sa.lnoscopeend)
+    if (sa.lposscopestart.Slinnum <= 0 || sa.lposscopestart.Slinnum > sa.lnoscopeend)
         return false;
 
     // is it inside the function? Unfortunately we cannot verify the source file in case of inlining
-    if (sa.lnoscopestart < funcsym_p.Sfunc.Fstartline.Slinnum)
+    if (sa.lposscopestart.Slinnum < funcsym_p.Sfunc.Fstartline.Slinnum)
         return false;
     if (sa.lnoscopeend > funcsym_p.Sfunc.Fendline.Slinnum)
         return false;
@@ -236,7 +236,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     for (SYMIDX si = 0; si < dupcnt; si++)
     {
         lifeTimes[si].sym = sortedSymtab[uniquecnt + si];
-        lifeTimes[si].offCreate = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopestart);
+        lifeTimes[si].offCreate = cast(int)getLineOffset(lifeTimes[si].sym.lposscopestart.Slinnum);
         lifeTimes[si].offDestroy = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopeend);
     }
     qsort(lifeTimes[].ptr, dupcnt, (lifeTimes[0]).sizeof, &cmpLifeTime);
