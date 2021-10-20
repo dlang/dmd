@@ -16,7 +16,7 @@ import core.stdc.stdio;
 
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
+import dmd.cppmangle : isAggregateDtor, isCppOperator, CppOperator;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum : isSpecialEnumIdent;
@@ -562,7 +562,7 @@ extern(D):
             // <flags> ::= Y <calling convention flag>
             buf.writeByte('Y');
         }
-        const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || isPrimaryDtor(d));
+        const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || isAggregateDtor(d));
         buf.writestring(args);
     }
 
@@ -621,7 +621,7 @@ extern(D):
         string mangle;
         if (sym.isCtorDeclaration())
             mangle = "?0";
-        else if (sym.isPrimaryDtor())
+        else if (sym.isAggregateDtor())
             mangle = "?1";
         else if (!sym.ident)
             return null;

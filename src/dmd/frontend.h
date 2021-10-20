@@ -582,7 +582,6 @@ struct Param final
     _d_dynamicArray< const char > resfile;
     _d_dynamicArray< const char > exefile;
     _d_dynamicArray< const char > mapfile;
-    ~Param();
     Param() :
         obj(true),
         link(true),
@@ -863,7 +862,6 @@ struct Global final
     void _init();
     uint32_t versionNumber();
     const char* const versionChars();
-    ~Global();
     Global() :
         inifilename(),
         copyright(73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved"),
@@ -1142,7 +1140,6 @@ public:
     bool hasStaticCtorOrDtor();
     ScopeDsymbol* isScopeDsymbol();
     void accept(Visitor* v);
-    ~ScopeDsymbol();
 };
 
 typedef uint64_t StorageClass;
@@ -2780,7 +2777,6 @@ public:
     FuncDeclaration* isFuncDeclaration();
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v);
-    ~FuncDeclaration();
 };
 
 class CtorDeclaration final : public FuncDeclaration
@@ -2795,7 +2791,6 @@ public:
     bool addPostInvariant();
     CtorDeclaration* isCtorDeclaration();
     void accept(Visitor* v);
-    ~CtorDeclaration();
 };
 
 class DtorDeclaration final : public FuncDeclaration
@@ -2810,7 +2805,6 @@ public:
     bool overloadInsert(Dsymbol* s);
     DtorDeclaration* isDtorDeclaration();
     void accept(Visitor* v);
-    ~DtorDeclaration();
 };
 
 enum class FUNCFLAG : uint32_t
@@ -2838,7 +2832,6 @@ public:
     const char* kind() const;
     FuncDeclaration* toAliasFunc();
     void accept(Visitor* v);
-    ~FuncAliasDeclaration();
 };
 
 class FuncLiteralDeclaration final : public FuncDeclaration
@@ -2858,7 +2851,6 @@ public:
     const char* kind() const;
     const char* toPrettyChars(bool QualifyTypes = false);
     void accept(Visitor* v);
-    ~FuncLiteralDeclaration();
 };
 
 enum class FuncResolveFlag : uint8_t
@@ -2877,7 +2869,6 @@ public:
     bool addPostInvariant();
     InvariantDeclaration* isInvariantDeclaration();
     void accept(Visitor* v);
-    ~InvariantDeclaration();
 };
 
 class NewDeclaration final : public FuncDeclaration
@@ -2890,7 +2881,6 @@ public:
     bool addPostInvariant();
     NewDeclaration* isNewDeclaration();
     void accept(Visitor* v);
-    ~NewDeclaration();
 };
 
 class SemanticTimePermissiveVisitor : public Visitor
@@ -2957,7 +2947,6 @@ public:
     bool overloadInsert(Dsymbol* s);
     PostBlitDeclaration* isPostBlitDeclaration();
     void accept(Visitor* v);
-    ~PostBlitDeclaration();
 };
 
 class StaticCtorDeclaration : public FuncDeclaration
@@ -2971,7 +2960,6 @@ public:
     bool hasStaticCtorOrDtor();
     StaticCtorDeclaration* isStaticCtorDeclaration();
     void accept(Visitor* v);
-    ~StaticCtorDeclaration();
 };
 
 class SharedStaticCtorDeclaration final : public StaticCtorDeclaration
@@ -2980,7 +2968,6 @@ public:
     SharedStaticCtorDeclaration* syntaxCopy(Dsymbol* s);
     SharedStaticCtorDeclaration* isSharedStaticCtorDeclaration();
     void accept(Visitor* v);
-    ~SharedStaticCtorDeclaration();
 };
 
 class StaticDtorDeclaration : public FuncDeclaration
@@ -2995,7 +2982,6 @@ public:
     bool addPostInvariant();
     StaticDtorDeclaration* isStaticDtorDeclaration();
     void accept(Visitor* v);
-    ~StaticDtorDeclaration();
 };
 
 class SharedStaticDtorDeclaration final : public StaticDtorDeclaration
@@ -3004,7 +2990,6 @@ public:
     SharedStaticDtorDeclaration* syntaxCopy(Dsymbol* s);
     SharedStaticDtorDeclaration* isSharedStaticDtorDeclaration();
     void accept(Visitor* v);
-    ~SharedStaticDtorDeclaration();
 };
 
 class UnitTestDeclaration final : public FuncDeclaration
@@ -3019,7 +3004,6 @@ public:
     bool addPostInvariant();
     UnitTestDeclaration* isUnitTestDeclaration();
     void accept(Visitor* v);
-    ~UnitTestDeclaration();
 };
 
 struct HdrGenState final
@@ -3102,7 +3086,6 @@ public:
     bool sem;
     bool isAssociativeArray() const;
     void accept(Visitor* v);
-    ~ArrayInitializer();
 };
 
 class CInitializer final : public Initializer
@@ -3112,7 +3095,6 @@ public:
     Type* type;
     bool sem;
     void accept(Visitor* v);
-    ~CInitializer();
 };
 
 class ErrorInitializer final : public Initializer
@@ -3141,7 +3123,6 @@ public:
     Array<Identifier* > field;
     Array<Initializer* > value;
     void accept(Visitor* v);
-    ~StructInitializer();
 };
 
 class VoidInitializer final : public Initializer
@@ -3479,7 +3460,6 @@ public:
     void addIndex(RootObject* e);
     d_uns64 size(const Loc& loc);
     void accept(Visitor* v);
-    ~TypeQualified();
 };
 
 class TypeIdentifier final : public TypeQualified
@@ -3492,7 +3472,6 @@ public:
     TypeIdentifier* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
-    ~TypeIdentifier();
 };
 
 class TypeInstance final : public TypeQualified
@@ -3503,7 +3482,6 @@ public:
     TypeInstance* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
-    ~TypeInstance();
 };
 
 class TypeMixin final : public Type
@@ -3575,7 +3553,6 @@ public:
     TypeReturn* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
-    ~TypeReturn();
 };
 
 class TypeSArray final : public TypeArray
@@ -3692,7 +3669,6 @@ public:
     Dsymbol* toDsymbol(Scope* sc);
     d_uns64 size(const Loc& loc);
     void accept(Visitor* v);
-    ~TypeTypeof();
 };
 
 class TypeVector final : public Type
@@ -3731,7 +3707,6 @@ public:
     const char* kind() const;
     Nspace* isNspace();
     void accept(Visitor* v);
-    ~Nspace();
 };
 
 enum class STMT : uint8_t
@@ -4249,7 +4224,6 @@ public:
     SwitchStatement* syntaxCopy();
     bool hasBreak() const;
     void accept(Visitor* v);
-    ~SwitchStatement();
 };
 
 class SynchronizedStatement final : public Statement
@@ -5015,11 +4989,11 @@ public:
     Dsymbol* ctor;
     CtorDeclaration* defaultCtor;
     AliasThis* aliasthis;
-    Array<DtorDeclaration* > dtors;
+    Array<DtorDeclaration* > userDtors;
+    DtorDeclaration* aggrDtor;
     DtorDeclaration* dtor;
-    DtorDeclaration* primaryDtor;
     DtorDeclaration* tidtor;
-    FuncDeclaration* fieldDtor;
+    DtorDeclaration* fieldDtor;
     Expression* getRTInfo;
     Visibility visibility;
     bool noDefaultCtor;
@@ -5044,7 +5018,6 @@ public:
     void* sinit;
     AggregateDeclaration* isAggregateDeclaration();
     void accept(Visitor* v);
-    ~AggregateDeclaration();
 };
 
 class AliasThis final : public Dsymbol
@@ -5430,7 +5403,6 @@ struct BaseClass final
     Array<FuncDeclaration* > vtbl;
     _d_dynamicArray< BaseClass > baseInterfaces;
     bool fillVtbl(ClassDeclaration* cd, Array<FuncDeclaration* >* vtbl, int32_t newinstance);
-    ~BaseClass();
     BaseClass() :
         type(),
         sym(),
@@ -5498,7 +5470,6 @@ public:
     Dsymbol* vtblSymbol();
     ClassDeclaration* isClassDeclaration();
     void accept(Visitor* v);
-    ~ClassDeclaration();
 };
 
 class InterfaceDeclaration final : public ClassDeclaration
@@ -5513,7 +5484,6 @@ public:
     bool isCOMinterface() const;
     InterfaceDeclaration* isInterfaceDeclaration();
     void accept(Visitor* v);
-    ~InterfaceDeclaration();
 };
 
 extern void ObjectNotFound(Identifier* id);
@@ -5665,7 +5635,6 @@ public:
     void accept(Visitor* v);
     bool enclosesLifetimeOf(VarDeclaration* v) const;
     void addMaybe(VarDeclaration* v);
-    ~VarDeclaration();
 };
 
 class BitFieldDeclaration : public VarDeclaration
@@ -5678,7 +5647,6 @@ public:
     BitFieldDeclaration* isBitFieldDeclaration();
     void accept(Visitor* v);
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
-    ~BitFieldDeclaration();
 };
 
 class SymbolDeclaration final : public Declaration
@@ -5698,7 +5666,6 @@ public:
     const char* toChars() const;
     TypeInfoDeclaration* isTypeInfoDeclaration();
     void accept(Visitor* v);
-    ~TypeInfoDeclaration();
 };
 
 class TypeInfoStructDeclaration final : public TypeInfoDeclaration
@@ -5706,7 +5673,6 @@ class TypeInfoStructDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoStructDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoStructDeclaration();
 };
 
 class TypeInfoClassDeclaration final : public TypeInfoDeclaration
@@ -5714,7 +5680,6 @@ class TypeInfoClassDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoClassDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoClassDeclaration();
 };
 
 class TypeInfoInterfaceDeclaration final : public TypeInfoDeclaration
@@ -5722,7 +5687,6 @@ class TypeInfoInterfaceDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoInterfaceDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoInterfaceDeclaration();
 };
 
 class TypeInfoPointerDeclaration final : public TypeInfoDeclaration
@@ -5730,7 +5694,6 @@ class TypeInfoPointerDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoPointerDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoPointerDeclaration();
 };
 
 class TypeInfoArrayDeclaration final : public TypeInfoDeclaration
@@ -5738,7 +5701,6 @@ class TypeInfoArrayDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoArrayDeclaration();
 };
 
 class TypeInfoStaticArrayDeclaration final : public TypeInfoDeclaration
@@ -5746,7 +5708,6 @@ class TypeInfoStaticArrayDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoStaticArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoStaticArrayDeclaration();
 };
 
 class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
@@ -5754,7 +5715,6 @@ class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoAssociativeArrayDeclaration();
 };
 
 class TypeInfoEnumDeclaration final : public TypeInfoDeclaration
@@ -5762,7 +5722,6 @@ class TypeInfoEnumDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoEnumDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoEnumDeclaration();
 };
 
 class TypeInfoFunctionDeclaration final : public TypeInfoDeclaration
@@ -5770,7 +5729,6 @@ class TypeInfoFunctionDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoFunctionDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoFunctionDeclaration();
 };
 
 class TypeInfoDelegateDeclaration final : public TypeInfoDeclaration
@@ -5778,7 +5736,6 @@ class TypeInfoDelegateDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoDelegateDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoDelegateDeclaration();
 };
 
 class TypeInfoTupleDeclaration final : public TypeInfoDeclaration
@@ -5786,7 +5743,6 @@ class TypeInfoTupleDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoTupleDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoTupleDeclaration();
 };
 
 class TypeInfoConstDeclaration final : public TypeInfoDeclaration
@@ -5794,7 +5750,6 @@ class TypeInfoConstDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoConstDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoConstDeclaration();
 };
 
 class TypeInfoInvariantDeclaration final : public TypeInfoDeclaration
@@ -5802,7 +5757,6 @@ class TypeInfoInvariantDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoInvariantDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoInvariantDeclaration();
 };
 
 class TypeInfoSharedDeclaration final : public TypeInfoDeclaration
@@ -5810,7 +5764,6 @@ class TypeInfoSharedDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoSharedDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoSharedDeclaration();
 };
 
 class TypeInfoWildDeclaration final : public TypeInfoDeclaration
@@ -5818,7 +5771,6 @@ class TypeInfoWildDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoWildDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoWildDeclaration();
 };
 
 class TypeInfoVectorDeclaration final : public TypeInfoDeclaration
@@ -5826,7 +5778,6 @@ class TypeInfoVectorDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoVectorDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoVectorDeclaration();
 };
 
 class ThisDeclaration final : public VarDeclaration
@@ -5835,7 +5786,6 @@ public:
     ThisDeclaration* syntaxCopy(Dsymbol* s);
     ThisDeclaration* isThisDeclaration();
     void accept(Visitor* v);
-    ~ThisDeclaration();
 };
 
 class EnumDeclaration final : public ScopeDsymbol
@@ -5865,7 +5815,6 @@ public:
     EnumDeclaration* isEnumDeclaration();
     Symbol* sinit;
     void accept(Visitor* v);
-    ~EnumDeclaration();
 };
 
 class EnumMember final : public VarDeclaration
@@ -5879,7 +5828,6 @@ public:
     const char* kind() const;
     EnumMember* isEnumMember();
     void accept(Visitor* v);
-    ~EnumMember();
 };
 
 class Import final : public Dsymbol
@@ -5907,7 +5855,6 @@ public:
     bool overloadInsert(Dsymbol* s);
     Import* isImport();
     void accept(Visitor* v);
-    ~Import();
 };
 
 extern Expression* getValue(VarDeclaration* vd);
@@ -5948,7 +5895,6 @@ public:
     void accept(Visitor* v);
     Module* isPackageMod();
     void resolvePKGunknown();
-    ~Package();
 };
 
 class Module final : public Package
@@ -6036,7 +5982,6 @@ public:
     Module* isModule();
     void accept(Visitor* v);
     void fullyQualifiedName(OutBuffer& buf);
-    ~Module();
 };
 
 struct ModuleDeclaration final
@@ -6094,7 +6039,6 @@ public:
     uint32_t numArgTypes() const;
     Type* argType(uint32_t index);
     bool hasRegularCtor(bool checkDisabled = false);
-    ~StructDeclaration();
 };
 
 class UnionDeclaration final : public StructDeclaration
@@ -6104,7 +6048,6 @@ public:
     const char* kind() const;
     UnionDeclaration* isUnionDeclaration();
     void accept(Visitor* v);
-    ~UnionDeclaration();
 };
 
 class WithScopeSymbol final : public ScopeDsymbol
@@ -6114,7 +6057,6 @@ public:
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     WithScopeSymbol* isWithScopeSymbol();
     void accept(Visitor* v);
-    ~WithScopeSymbol();
 };
 
 class ArrayScopeSymbol final : public ScopeDsymbol
@@ -6125,7 +6067,6 @@ public:
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
     ArrayScopeSymbol* isArrayScopeSymbol();
     void accept(Visitor* v);
-    ~ArrayScopeSymbol();
 };
 
 class OverloadSet final : public Dsymbol
@@ -6136,7 +6077,6 @@ public:
     OverloadSet* isOverloadSet();
     const char* kind() const;
     void accept(Visitor* v);
-    ~OverloadSet();
 };
 
 class ForwardingScopeDsymbol final : public ScopeDsymbol
@@ -6148,7 +6088,6 @@ public:
     void importScope(Dsymbol* s, Visibility visibility);
     const char* kind() const;
     ForwardingScopeDsymbol* isForwardingScopeDsymbol();
-    ~ForwardingScopeDsymbol();
 };
 
 class ExpressionDsymbol final : public Dsymbol
@@ -6205,7 +6144,6 @@ public:
     Array<RootObject* > objects;
     DYNCAST dyncast() const;
     const char* toChars() const;
-    ~Tuple();
 };
 
 class TemplateDeclaration final : public ScopeDsymbol
@@ -6250,7 +6188,6 @@ public:
     bool isDeprecated() const;
     bool isOverloadable() const;
     void accept(Visitor* v);
-    ~TemplateDeclaration();
 };
 
 class TypeDeduced final : public Type
@@ -6262,7 +6199,6 @@ public:
     void update(Expression* e, Type* tparam);
     void update(Type* tt, Expression* e, Type* tparam);
     MATCH matchAll(Type* tt);
-    ~TypeDeduced();
 };
 
 class TemplateParameter : public ASTNode
@@ -6406,7 +6342,6 @@ public:
     bool needsCodegen();
     TemplateInstance* isTemplateInstance();
     void accept(Visitor* v);
-    ~TemplateInstance();
 };
 
 class TemplateMixin final : public TemplateInstance
@@ -6421,7 +6356,6 @@ public:
     const char* toChars() const;
     TemplateMixin* isTemplateMixin();
     void accept(Visitor* v);
-    ~TemplateMixin();
 };
 
 extern void genCppHdrFiles(Array<Module* >& ms);

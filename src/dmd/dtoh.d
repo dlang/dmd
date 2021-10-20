@@ -707,6 +707,10 @@ public:
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
         visited[cast(void*)fd] = true;
 
+        // silently ignore non-user-defined destructors
+        if (fd.generated && fd.isDtorDeclaration())
+            return;
+
         // Note that tf might be null for templated (member) functions
         auto tf = cast(AST.TypeFunction)fd.type;
         if ((tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))

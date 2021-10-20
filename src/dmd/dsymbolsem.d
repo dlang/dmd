@@ -4009,7 +4009,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (dd.ident == Id.dtor && dd.semanticRun < PASS.semantic)
-            ad.dtors.push(dd);
+            ad.userDtors.push(dd);
         if (!dd.type)
         {
             dd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, dd.storage_class);
@@ -4431,8 +4431,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Look for the constructor
         sd.ctor = sd.searchCtor();
 
-        sd.dtor = buildDtor(sd, sc2);
-        sd.tidtor = buildExternDDtor(sd, sc2);
+        buildDtors(sd, sc2);
+
         sd.hasCopyCtor = buildCopyCtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
 
@@ -5071,8 +5071,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        cldec.dtor = buildDtor(cldec, sc2);
-        cldec.tidtor = buildExternDDtor(cldec, sc2);
+        buildDtors(cldec, sc2);
 
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
         {
