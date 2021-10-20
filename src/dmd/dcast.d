@@ -857,7 +857,7 @@ MATCH implicitConvTo(Expression e, Type t)
              * convert to immutable
              */
             if (e.f &&
-                (global.params.useDIP1000 != FeatureState.enabled ||        // lots of legacy code breaks with the following purity check
+                (global.params.useDIP1000 != FeatureState.enabled &&        // lots of legacy code breaks with the following purity check
                  e.f.isPure() >= PURE.strong ||
                  // Special case exemption for Object.dup() which we assume is implemented correctly
                  e.f.ident == Id.dup &&

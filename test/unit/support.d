@@ -140,7 +140,7 @@ const struct Diagnostic
         buffer.printf("%s: %.*s", location.toChars(true),
             cast(int) message.length, message.ptr);
 
-        return buffer.extractSlice;
+        return buffer.extractSlice.idup;
     }
 }
 
@@ -190,7 +190,8 @@ struct DiagnosticCollector
         const string message = buffer
             .extractSlice
             .replace("`", "")
-            .strip;
+            .strip
+            .idup;
 
         diagnostics_ ~= Diagnostic(location, message);
 

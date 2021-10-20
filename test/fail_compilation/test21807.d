@@ -52,3 +52,21 @@ class Foo2
 		ptr = addr(S().i);  // struct temporary
 	}
 }
+
+#line 200
+/*
+TEST_OUTPUT:
+---
+fail_compilation/test21807.d(208): Error: cannot implicitly convert expression `bb()` of type `char[12]` to `string`
+---
+*/
+void fun()
+{
+    string a = bb();
+}
+
+char[12] bb()
+{
+    char[12] b;
+    return b;
+}
