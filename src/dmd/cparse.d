@@ -72,6 +72,7 @@ final class CParser(AST) : Parser!AST
     {
         //printf("cparseTranslationUnit()\n");
         symbols = new AST.Dsymbols();
+        addBuiltinDeclarations();
         while (1)
         {
             if (token.value == TOK.endOfFile)
@@ -4336,6 +4337,40 @@ final class CParser(AST) : Parser!AST
             s = new AST.AlignDeclaration(s.loc, specifier.packalign, decls);
         }
         return s;
+    }
+
+    /***********************************
+     * Add global target-dependent builtin declarations.
+     */
+    private void addBuiltinDeclarations()
+    {
+        void genBuiltinFunc(Identifier id, AST.VarArg va)
+        {
+            auto tva_list = new AST.TypeIdentifier(Loc.initial, Id.builtin_va_list);
+            auto parameters = new AST.Parameters();
+            parameters.push(new AST.Parameter(STC.parameter | STC.ref_, tva_list, null, null, null));
+            auto pl = AST.ParameterList(parameters, va, 0);
+            auto tf = new AST.TypeFunction(pl, AST.Type.tvoid, LINK.c, 0);
+            auto s = new AST.FuncDeclaration(Loc.initial, Loc.initial, id, AST.STC.static_, tf, false);
+            symbols.push(s);
+        }
+
+        /* void __builtin_va_start(__builtin_va_list, ...);
+         * The second argument is supposed to be of any type, so fake it with the ...
+         */
+        genBuiltinFunc(Id.builtin_va_start, AST.VarArg.variadic);
+
+        /* void __builtin_va_end(__builtin_va_list);
+         */
+        genBuiltinFunc(Id.builtin_va_end, AST.VarArg.none);
+
+        /* struct __va_list_tag
+         * {
+         *    uint, uint, void*, void*
+         * }
+         */
+        auto s = new AST.StructDeclaration(Loc.initial, Id.va_list_tag, false);
+        symbols.push(s);
     }
 
     //}
