@@ -535,7 +535,8 @@ static if (1)
          */
         uint abbrevcode = 1;
         AApair *abbrev_table;
-        int hasModname;    // 1 if has DW_TAG_module
+        uint currentModuleCode;            // Last DW_TAG_module abbrev code
+        char* currentModuleName;           // Name of the current module
 
         // .debug_info
         AAchars *infoFileName_table;
@@ -1423,25 +1424,38 @@ static if (1)
         {
             static immutable ubyte[6] abbrevModule =
             [
-                DW_TAG_module, DW_CHILDREN_no,
-                DW_AT_name,    DW_FORM_string, // module name
-                0,             0,
+                DW_TAG_module,      DW_CHILDREN_yes,
+                DW_AT_name,         DW_FORM_string,     // module name
+                0,                  0,
             ];
-            abbrevcode++;
-            debug_abbrev.buf.writeuLEB128(abbrevcode);
-            debug_abbrev.buf.write(abbrevModule.ptr, abbrevModule.sizeof);
-            debug_info.buf.writeuLEB128(abbrevcode);      // abbreviation code
-            debug_info.buf.writeString(modname);          // DW_AT_name
-            //hasModname = 1;
+            currentModuleCode = dwarf_abbrev_code(abbrevModule);
+
+            debug_info.buf.writeuLEB128(currentModuleCode);  // abbreviation code
+            debug_info.buf.writeString(modname);             // DW_AT_name
+            currentModuleName = cast(char*) mem_malloc(modname.length + 1);
+            if (currentModuleName)
+                strcpy(currentModuleName, modname.ptr);
         }
         else
-            hasModname = 0;
+        {
+            assert(currentModuleCode == 0);
+            assert(!currentModuleName);
+        }
+
+
+        dwarf_line_addfile(filename.ptr);
     }
 
     void dwarf_termmodule()
     {
-        if (hasModname)
+        if (currentModuleCode)
+        {
             debug_info.buf.writeByte(0);  // end of DW_TAG_module's children
+
+            currentModuleCode = 0;
+            mem_free(currentModuleName);
+            currentModuleName = null;
+        }
     }
 
     /*************************************
@@ -2424,7 +2438,8 @@ static if (1)
                     // FIXME: provide a better way to fetch length of a pretty
                     // name on the backend API which is dependent on the
                     // frontend C++ exported API
-                    debug_info.buf.write(t.Tident, strlen(t.Tident));       // DW_AT_name
+                    const(char)* name = getNameWithoutModule(t.Tident[0 .. strlen(t.Tident)]).ptr;
+                    debug_info.buf.write(name, strlen(name));// DW_AT_name
                     debug_info.buf.writeByte(0);
                     debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
@@ -3118,13 +3133,54 @@ static if (1)
      *  Returns:
      *      The identifier name
      */
-    const(char)* getSymName(Symbol* sym)
+    extern(D) const(char)* getSymName(Symbol* sym)
     {
         version (MARS)
-            return sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
+            const(char)* ident = sym.prettyIdent ? sym.prettyIdent : sym.Sident.ptr;
         else
-            return sym.Sident.ptr;
+            const(char)* ident = sym.Sident.ptr;
+
+        if (currentModuleName)
+            return getNameWithoutModule(ident[0 .. strlen(ident)]).ptr;
+        return ident;
     }
+
+    /**
+     *  Returns the correct name of a symbol.
+     *
+     *  Params:
+     *      ident = name of the symbol
+     *
+     *  Returns:
+     *      The symbol's name without the module's name as prefix
+     */
+    extern(D) const(char)[] getNameWithoutModule(const(char)[] ident, const(char)[] lastModName)
+    {
+        const len = ident.length;
+        const mlen = lastModName.length;
+
+        if (mlen < len && ident[mlen] == '.' && ident[0 .. mlen] == lastModName)
+            return ident[mlen + 1 .. len];  // Don't include the dot
+        return ident;
+    }
+
+    /*
+     * Shortcut which uses the current module name
+     */
+    extern(D) const(char)[] getNameWithoutModule(const(char)[] ident)
+    {
+        return getNameWithoutModule(ident, currentModuleName[0 .. strlen(currentModuleName)]);
+    }
+
+    extern(D) unittest
+    {
+        immutable string modulename = "bar.foo";
+        assert(getNameWithoutModule("bar.foo.Foo", modulename) ==  "Foo");
+        assert(getNameWithoutModule("D main", modulename) == "D main");
+        assert(getNameWithoutModule("gar.foo", modulename) == "gar.foo");
+        assert(getNameWithoutModule("bar.foz", modulename) == "bar.foz");
+    }
+
 
     /* ======================= Abbreviation Codes ====================== */
 

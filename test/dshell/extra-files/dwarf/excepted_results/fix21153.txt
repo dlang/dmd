@@ -1,4 +1,4 @@
-DW_AT_name        : fix21153.i
+DW_AT_name        : i
 D main
-fix21153._d_cmain!().main
+_d_cmain!().main
 
