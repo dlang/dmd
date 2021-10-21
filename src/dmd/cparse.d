@@ -4193,19 +4193,19 @@ final class CParser(AST) : Parser!AST
             if (level == LVL.global)
             {
                 if (specifier.scw & SCW.xextern)
-                   stc = AST.STC.extern_;
+                    stc = AST.STC.extern_;
             }
             else if (level == LVL.local)
             {
                 if (specifier.scw & SCW.xextern)
-                   stc = AST.STC.extern_;
+                    stc = AST.STC.extern_;
                 else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.static_;
             }
             else if (level == LVL.member)
             {
                 if (specifier.scw & SCW.xextern)
-                   stc = AST.STC.extern_;
+                    stc = AST.STC.extern_;
                 else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.static_;
             }
@@ -4215,23 +4215,23 @@ final class CParser(AST) : Parser!AST
             if (level == LVL.global)
             {
                 if (specifier.scw & SCW.xextern)
-                   stc = AST.STC.extern_ | AST.STC.gshared;
+                    stc = AST.STC.extern_ | AST.STC.gshared;
                 else if (specifier.scw & SCW.xstatic)
-                   stc = AST.STC.gshared | AST.STC.static_;
+                    stc = AST.STC.gshared | AST.STC.static_;
                 else
-                   stc = AST.STC.gshared;
+                    stc = AST.STC.gshared;
             }
             else if (level == LVL.local)
             {
                 if (specifier.scw & SCW.xextern)
-                   stc = AST.STC.extern_ | AST.STC.gshared;
+                    stc = AST.STC.extern_ | AST.STC.gshared;
                 else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.gshared;
             }
             else if (level == LVL.member)
             {
                 if (specifier.scw & SCW.xextern)
-                   stc = AST.STC.extern_ | AST.STC.gshared;
+                    stc = AST.STC.extern_ | AST.STC.gshared;
                 else if (specifier.scw & SCW.xstatic)
                     stc = AST.STC.gshared;
             }

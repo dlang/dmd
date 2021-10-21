@@ -414,7 +414,7 @@ void ecom(ref CGCS cgcs, ref elem* pe)
 
         default:                            /* other operators */
             if (!OTbinary(e.Eoper))
-               WROP(e.Eoper);
+                WROP(e.Eoper);
             assert(OTbinary(e.Eoper));
             goto case OPadd;
 
