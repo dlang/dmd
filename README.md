@@ -1,5 +1,6 @@
-DMD
-===
+<div align="center">
+<img align="center" src="dlogo.png" alt="dlang logo"/>
+<h1 id="#dmd">DMD</h1>
 
 [![GitHub tag](https://img.shields.io/github/tag-date/dlang/dmd.svg?maxAge=86400&style=flat)](https://github.com/dlang/dmd/releases)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400&style=flat)](https://codecov.io/gh/dlang/dmd)
@@ -10,8 +11,11 @@ DMD
 [![CircleCI](https://img.shields.io/circleci/project/github/dlang/dmd/master.svg?style=flat&label=circleci&logo=circleci)](https://circleci.com/gh/dlang/dmd/tree/master)
 [![Build Status](https://dev.azure.com/dlanguage/dmd/_apis/build/status/Azure%20pipelines?branchName=master)](https://dev.azure.com/dlanguage/dmd/_build/latest?definitionId=1&branchName=master)
 [![Buildkite](https://img.shields.io/buildkite/01239dde8424d69809d08769015bbdb9b90d05082e534d2f82/master.svg?style=flat&logo=dependabot&label=buildkite)](https://buildkite.com/dlang/dmd)
+<hr/>
+</div>
 
-DMD is the reference compiler for the D programming language.
+
+DMD is the reference compiler for [the D programming language](https://dlang.org).
 
 To report a problem or browse the list of open bugs, please visit the
 [bug tracker](http://issues.dlang.org/).
