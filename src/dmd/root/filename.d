@@ -1124,6 +1124,7 @@ version(Windows)
      */
     private int _mkdir(const(char)[] path) nothrow
     {
+        import dmd.common.string : extendedPathThen;
         const createRet = path.extendedPathThen!(
             p => CreateDirectoryW(&p[0], null /*securityAttributes*/));
         // different conventions for CreateDirectory and mkdir
@@ -1170,7 +1171,7 @@ version(Windows)
      */
     private auto toWStringzThen(alias F)(const(char)[] str) nothrow
     {
-        import dmd.common.file : SmallBuffer, toWStringz;
+        import dmd.common.string : SmallBuffer, toWStringz;
 
         if (!str.length) return F(""w.ptr);
 

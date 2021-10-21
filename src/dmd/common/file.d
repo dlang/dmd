@@ -23,6 +23,8 @@ import core.sys.windows.winnt;
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
+import dmd.common.string;
+
 /**
 Encapsulated management of a memory-mapped file.
 
@@ -115,7 +117,7 @@ struct FileMapping(Datum)
                 enum openFlags = CREATE_ALWAYS;
             }
 
-            handle = CreateFileA(filename, createFileMode, 0, null, openFlags, FILE_ATTRIBUTE_NORMAL, null);
+            handle = filename.asDString.extendedPathThen!(p => CreateFileW(p.ptr, createFileMode, 0, null, openFlags, FILE_ATTRIBUTE_NORMAL, null));
             if (handle == invalidHandle)
             {
                 static if (is(Datum == const))
@@ -124,7 +126,7 @@ struct FileMapping(Datum)
                 }
                 else
                 {
-                    fprintf(stderr, "CreateFileA() failed for \"%s\": %d\n", filename, GetLastError());
+                    fprintf(stderr, "CreateFileW() failed for \"%s\": %d\n", filename, GetLastError());
                     exit(1);
                 }
             }
@@ -140,6 +142,7 @@ struct FileMapping(Datum)
         import core.stdc.string : memcpy;
         auto totalNameLength = filename.strlen() + 1;
         name = cast(char*) memcpy(malloc(totalNameLength), filename, totalNameLength);
+        name || assert(0, "FileMapping: Out of memory.");
     }
 
     /**
@@ -172,10 +175,10 @@ struct FileMapping(Datum)
             enum mapViewFlags = FILE_MAP_WRITE;
         }
 
-        fileMappingObject = CreateFileMappingA(handle, null, fileMappingFlags, 0, 0, null);
+        fileMappingObject = CreateFileMappingW(handle, null, fileMappingFlags, 0, 0, null);
         if (!fileMappingObject)
         {
-            fprintf(stderr, "CreateFileMappingA(%p) failed for %llu bytes of \"%s\": %d\n",
+            fprintf(stderr, "CreateFileMappingW(%p) failed for %llu bytes of \"%s\": %d\n",
                 handle, size, filename, GetLastError());
             fileMappingObject = invalidHandle;  // by convention always use invalidHandle, not null
             exit(1);
@@ -292,9 +295,9 @@ struct FileMapping(Datum)
         else version(Windows)
         {
             import core.sys.windows.winbase;
-            if (DeleteFileA(deleteme) == 0)
+            if (deleteme.asDString.extendedPathThen!(p => DeleteFileW(p.ptr)) == 0)
             {
-                fprintf(stderr, "DeleteFileA error %d\n", GetLastError());
+                fprintf(stderr, "DeleteFileW error %d\n", GetLastError());
                 return false;
             }
         }
@@ -397,7 +400,7 @@ struct FileMapping(Datum)
 
     /**
     Unconditionally and destructively moves the underlying file to `filename`.
-    If the operation succeds, returns true. Upon failure, prints a message to
+    If the operation succeeds, returns true. Upon failure, prints a message to
     `stderr` and returns `false`. In all cases it closes the underlying file.
 
     Params: filename = zero-terminated name of the file to move to.
@@ -427,9 +430,12 @@ struct FileMapping(Datum)
         else version(Windows)
         {
             import core.sys.windows.winbase;
-            if (MoveFileExA(oldname, filename, MOVEFILE_REPLACE_EXISTING) == 0)
+            auto r = oldname.asDString.extendedPathThen!(
+                p1 => filename.asDString.extendedPathThen!(p2 => MoveFileExW(p1.ptr, p2.ptr, MOVEFILE_REPLACE_EXISTING))
+            );
+            if (r == 0)
             {
-                fprintf(stderr, "MoveFileExA(\"%s\", \"%s\") failed: %d\n", oldname, filename, GetLastError());
+                fprintf(stderr, "MoveFileExW(\"%s\", \"%s\") failed: %d\n", oldname, filename, GetLastError());
                 return false;
             }
         }
@@ -460,8 +466,7 @@ extern(D) static bool writeFile(const(char)* name, const void[] data) nothrow
     else version (Windows)
     {
         DWORD numwritten; // here because of the gotos
-        import core.stdc.string : strlen;
-        const nameStr = name[0 .. strlen(name)];
+        const nameStr = name.asDString;
         // work around Windows file path length limitation
         // (see documentation for extendedPathThen).
         HANDLE h = nameStr.extendedPathThen!
@@ -556,73 +561,6 @@ private ulong fileSize(HANDLE fd)
     return ulong.max;
 }
 
-/**************************************
-* Converts a path to one suitable to be passed to Win32 API
-* functions that can deal with paths longer than 248
-* characters then calls the supplied function on it.
-*
-* Params:
-*  path = The Path to call F on.
-*
-* Returns:
-*  The result of calling F on path.
-*
-* References:
-*  https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
-*/
-version(Windows) auto extendedPathThen(alias F)(const(char)[] path)
-{
-    if (!path.length)
-        return F((wchar[]).init);
-
-    wchar[1024] buf = void;
-    auto store = SmallBuffer!wchar(buf.length, buf);
-    auto wpath = toWStringz(path, store);
-
-    // GetFullPathNameW expects a sized buffer to store the result in. Since we don't
-    // know how large it has to be, we pass in null and get the needed buffer length
-    // as the return code.
-    const pathLength = GetFullPathNameW(&wpath[0],
-                                        0 /*length8*/,
-                                        null /*output buffer*/,
-                                        null /*filePartBuffer*/);
-    if (pathLength == 0)
-    {
-        return F((wchar[]).init);
-    }
-
-    // wpath is the UTF16 version of path, but to be able to use
-    // extended paths, we need to prefix with `\\?\` and the absolute
-    // path.
-    static immutable prefix = `\\?\`w;
-
-    // prefix only needed for long names and non-UNC names
-    const needsPrefix = pathLength >= MAX_PATH && (wpath[0] != '\\' || wpath[1] != '\\');
-    const prefixLength = needsPrefix ? prefix.length : 0;
-
-    // +1 for the null terminator
-    const bufferLength = pathLength + prefixLength + 1;
-
-    wchar[1024] absBuf = void;
-    auto absPath = SmallBuffer!wchar(bufferLength, absBuf);
-
-    absPath[0 .. prefixLength] = prefix[0 .. prefixLength];
-
-    const absPathRet = GetFullPathNameW(&wpath[0],
-        cast(uint)(absPath.length - prefixLength - 1),
-        &absPath[prefixLength],
-        null /*filePartBuffer*/);
-
-    if (absPathRet == 0 || absPathRet > absPath.length - prefixLength)
-    {
-        return F((wchar[]).init);
-    }
-
-    absPath[$ - 1] = '\0';
-    // Strip null terminator from the slice
-    return F(absPath[0 .. $ - 1]);
-}
-
 /**
 Runs a non-pure function or delegate as pure code. Use with caution.
 
@@ -635,103 +573,4 @@ private auto ref fakePure(F)(scope F fun) pure
 {
     mixin("alias PureFun = " ~ F.stringof ~ " pure;");
     return (cast(PureFun) fun)();
-}
-
-/**
-Defines a temporary array using a fixed-length buffer as backend. If the length
-of the buffer suffices, it is readily used. Otherwise, `malloc` is used to
-allocate memory for the array and `free` is used for deallocation in the
-destructor.
-
-This type is meant to use exclusively as an automatic variable. It is not
-default constructible or copyable.
-*/
-struct SmallBuffer(T)
-{
-    import core.stdc.stdlib : malloc, realloc, free;
-
-    private T[] _extent;
-    private bool needsFree;
-
-    @disable this(); // no default ctor
-    @disable this(ref const SmallBuffer!T); // noncopyable, nonassignable
-
-    this(size_t len, T[] buffer)
-    {
-        if (len <= buffer.length)
-        {
-            _extent = buffer[0 .. len];
-        }
-        else
-        {
-            _extent = (cast(typeof(_extent.ptr)) malloc(len * _extent[0].sizeof))[0 .. len];
-            _extent.ptr || assert(0, "Out of memory.");
-            needsFree = true;
-        }
-        assert(this.length == len);
-    }
-
-    ~this()
-    {
-        if (needsFree)
-            free(_extent.ptr);
-    }
-
-    void create(size_t len)
-    {
-        if (len <= _extent.length)
-        {
-            _extent = _extent[0 .. len];
-        }
-        else
-        {
-            __dtor();
-            _extent = (cast(typeof(_extent.ptr)) malloc(len * _extent[0].sizeof))[0 .. len];
-            _extent.ptr || assert(0, "Out of memory.");
-            needsFree = true;
-        }
-        assert(this.length == len);
-    }
-
-    // Force accesses to extent to be scoped.
-    scope inout extent()
-    {
-        return _extent;
-    }
-
-    alias extent this;
-}
-
-/// ditto
-unittest
-{
-    char[230] buf = void;
-    auto a = SmallBuffer!char(10, buf);
-    assert(a[] is buf[0 .. 10]);
-    auto b = SmallBuffer!char(1000, buf);
-    assert(b[] !is buf[]);
-}
-
-
-version(Windows) wchar[] toWStringz(const(char)[] narrow, ref SmallBuffer!wchar buffer) nothrow
-{
-    import core.sys.windows.winnls : CP_ACP, MultiByteToWideChar;
-    // assume filenames encoded in system default Windows ANSI code page
-    enum CodePage = CP_ACP;
-
-    if (narrow is null)
-        return null;
-
-    const requiredLength = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, buffer.ptr, cast(int) buffer.length);
-    if (requiredLength < cast(int) buffer.length)
-    {
-        buffer[requiredLength] = 0;
-        return buffer[0 .. requiredLength];
-    }
-
-    buffer.create(requiredLength + 1);
-    const length = MultiByteToWideChar(CodePage, 0, narrow.ptr, cast(int) narrow.length, buffer.ptr, requiredLength);
-    assert(length == requiredLength);
-    buffer[length] = 0;
-    return buffer[0 .. length];
 }

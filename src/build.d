@@ -1412,7 +1412,7 @@ auto sourceFiles()
             rootobject.d stringtable.d
         "),
         common: fileArray(env["COMMON"], "
-            outbuffer.d file.d
+            file.d outbuffer.d string.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h

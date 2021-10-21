@@ -192,6 +192,7 @@ struct OutBuffer
             debug (stomp)
             {
                 auto p = cast(ubyte*) pureMalloc(size);
+                p || assert(0, "OutBuffer: out of memory.");
                 memcpy(p, data.ptr, offset);
                 memset(data.ptr, 0xFF, data.length);  // stomp old location
                 pureFree(data.ptr);
@@ -200,6 +201,7 @@ struct OutBuffer
             else
             {
                 auto p = cast(ubyte*) pureRealloc(data.ptr, size);
+                p || assert(0, "OutBuffer: out of memory.");
                 memset(p + offset + nbytes, 0xff, size - offset - nbytes);
             }
             data = p[0 .. size];
@@ -822,7 +824,7 @@ char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe pure
         else
         {
             ubyte x = cast(ubyte)(value % radix);
-            value = value / radix;
+            value /= radix;
             buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
         }
     } while (value);

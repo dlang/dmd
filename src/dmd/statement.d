@@ -39,7 +39,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.dinterpret;
 import dmd.mtype;
-import dmd.parse;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.sapply;

@@ -509,7 +509,7 @@ extern(D):
     //  one with the largest version that also contains the test file
     static const(char)* findLatestSDKDir(const(char)* baseDir, string testfile)
     {
-        import dmd.common.file : SmallBuffer, toWStringz;
+        import dmd.common.string : SmallBuffer, toWStringz;
 
         const(char)* pattern = FileName.combine(baseDir, "*");
         wchar[1024] support = void;

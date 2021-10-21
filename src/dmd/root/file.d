@@ -19,10 +19,12 @@ import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 import core.sys.windows.winbase;
 import core.sys.windows.winnt;
-import dmd.common.file;
 import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.root.string;
+
+import dmd.common.file;
+import dmd.common.string;
 
 /// Owns a (rmem-managed) file buffer.
 struct FileBuffer
