@@ -42,11 +42,7 @@ if [[ "$(script --version)" == script\ from\ util-linux\ * ]]
 then
     actual="$(SHELL="$(command -v bash)" TERM="faketerm" script -q -c "echo test | ( $DMD -c -o- -)" /dev/null | normalize)" || true
 
-    # Weird results for WSL, probably some environmental issue
-    if uname -a | grep -i linux | grep -i microsoft &> /dev/null
-    then
-        compare "$actual" "$expectedWithColor"
-    elif [[ "$actual" != '^@^@'* ]] # 'script' weirdness on CircleCI
+    if [[ "$actual" != '^@^@'* ]] # 'script' weirdness on CircleCI
     then
         compare "$actual" "$expectedWithColor"
     fi
