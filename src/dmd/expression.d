@@ -3959,6 +3959,7 @@ extern (C++) final class FuncExp : Expression
             auto tfy = new TypeFunction(tfx.parameterList, tof.next,
                         tfx.linkage, STC.undefined_);
             tfy.mod = tfx.mod;
+            tfy.trust = tfx.trust;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;
             tfy.purity = tfx.purity;
@@ -5162,6 +5163,19 @@ extern (C++) final class PtrExp : UnaExp
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type.toChars());
+        Declaration var;
+        if (auto se = e1.isSymOffExp())
+            var = se.var;
+        else if (auto ve = e1.isVarExp())
+            var = ve.var;
+        if (var && var.type.isFunction_Delegate_PtrToFunction())
+        {
+            if (var.type.isTypeFunction())
+                error("function `%s` is not an lvalue and cannot be modified", var.toChars());
+            else
+                error("function pointed to by `%s` is not an lvalue and cannot be modified", var.toChars());
+            return ErrorExp.get();
+        }
         return Expression.modifiableLvalue(sc, e);
     }
 

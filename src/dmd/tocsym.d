@@ -162,7 +162,7 @@ Symbol *toSymbol(Dsymbol s)
                 }
             }
             Symbol *s = symbol_calloc(id.ptr, cast(uint)id.length);
-            s.Salignment = vd.alignment;
+            s.Salignment = vd.alignment.isDefault() ? -1 : vd.alignment.get();
             if (vd.storage_class & STC.temp)
                 s.Sflags |= SFLartifical;
             if (isNRVO)
@@ -601,12 +601,18 @@ Symbol *toInitializer(AggregateDeclaration ad)
         static structalign_t alignOf(Type t)
         {
             const explicitAlignment = t.alignment();
-            return explicitAlignment == STRUCTALIGN_DEFAULT ? t.alignsize() : explicitAlignment;
+            if (!explicitAlignment.isDefault()) // if overriding default alignment
+                return explicitAlignment;
+
+            // Use the default alignment for type t
+            structalign_t sa;
+            sa.set(t.alignsize());
+            return sa;
         }
 
         auto sd = ad.isStructDeclaration();
         if (sd &&
-            alignOf(sd.type) <= 16 &&
+            alignOf(sd.type).get() <= 16 &&
             sd.type.size() <= 128 &&
             sd.zeroInit &&
             config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
@@ -626,7 +632,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             if (sd)
-                s.Salignment = sd.alignment;
+                s.Salignment = sd.alignment.isDefault() ? -1 : sd.alignment.get();
             ad.sinit = s;
         }
     }

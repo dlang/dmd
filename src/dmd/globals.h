@@ -238,10 +238,24 @@ struct Param
     DString mapfile;
 };
 
-typedef unsigned structalign_t;
+struct structalign_t
+{
+    unsigned short value;
+    bool pack;
+
+    bool isDefault() const;
+    void setDefault();
+    bool isUnknown() const;
+    void setUnknown();
+    void set(unsigned value);
+    unsigned get() const;
+    bool isPack() const;
+    void setPack(bool pack);
+};
+
 // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
-#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)
+//#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)
 
 const DString mars_ext = "d";
 const DString doc_ext  = "html";     // for Ddoc generated files

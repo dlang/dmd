@@ -93,11 +93,11 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
             Loc loc = e.loc;
             Type tthis = (e.op == TOK.type ? e.type : null);
             const flags = DotExpFlag.noAliasThis | (gag ? DotExpFlag.gag : 0);
+            uint olderrors = gag ? global.startGagging() : 0;
             e = dotExp(e.type, sc, e, ad.aliasthis.ident, flags);
             if (!e || findOnly)
-                return e;
+                return gag && global.endGagging(olderrors) ? null : e;
 
-            uint olderrors = gag ? global.startGagging() : 0;
             if (tthis && ad.aliasthis.sym.needThis())
             {
                 if (e.op == TOK.variable)

@@ -781,8 +781,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     assert(!funcdecl.returnLabel);
                 }
-                else if (f.next.ty == Tnoreturn)
+                else if (f.next.toBasetype().ty == Tnoreturn)
                 {
+                    // Fallthrough despite being declared as noreturn? return is already rejected when evaluating the ReturnStatement
+                    if (blockexit & BE.fallthru)
+                    {
+                        funcdecl.error("is typed as `%s` but does return", f.next.toChars());
+                        funcdecl.loc.errorSupplemental("`noreturn` functions must either throw, abort or loop indefinitely");
+                    }
                 }
                 else
                 {

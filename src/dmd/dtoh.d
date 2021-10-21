@@ -849,9 +849,9 @@ public:
             origType = vd.originalType;
         scope(exit) origType = null;
 
-        if (vd.alignment != STRUCTALIGN_DEFAULT)
+        if (!vd.alignment.isDefault())
         {
-            buf.printf("// Ignoring var %s alignment %u", vd.toChars(), vd.alignment);
+            buf.printf("// Ignoring var %s alignment %d", vd.toChars(), vd.alignment.get());
             buf.writenl();
         }
 
@@ -1351,7 +1351,7 @@ public:
 
     /// Starts a custom alignment section using `#pragma pack` if
     /// `alignment` specifies a custom alignment
-    private void pushAlignToBuffer(uint alignment)
+    private void pushAlignToBuffer(structalign_t alignment)
     {
         // DMD ensures alignment is a power of two
         //assert(alignment > 0 && ((alignment & (alignment - 1)) == 0),
@@ -1359,20 +1359,20 @@ public:
 
         // When no alignment is specified, `uint.max` is the default
         // FIXME: alignment is 0 for structs templated members
-        if (alignment == STRUCTALIGN_DEFAULT || (tdparent && alignment == 0))
+        if (alignment.isDefault() || (tdparent && alignment.isUnknown()))
         {
             return;
         }
 
-        buf.printf("#pragma pack(push, %d)", alignment);
+        buf.printf("#pragma pack(push, %d)", alignment.get());
         buf.writenl();
     }
 
     /// Ends a custom alignment section using `#pragma pack` if
     /// `alignment` specifies a custom alignment
-    private void popAlignToBuffer(uint alignment)
+    private void popAlignToBuffer(structalign_t alignment)
     {
-        if (alignment == STRUCTALIGN_DEFAULT || (tdparent && alignment == 0))
+        if (alignment.isDefault() || (tdparent && alignment.isUnknown()))
             return;
 
         buf.writestringln("#pragma pack(pop)");

@@ -261,11 +261,29 @@ extern (C++) struct Param
     const(char)[] mapfile;
 }
 
-alias structalign_t = uint;
+extern (C++) struct structalign_t
+{
+  private:
+    ushort value = 0;  // unknown
+    enum STRUCTALIGN_DEFAULT = 1234;   // default = match whatever the corresponding C compiler does
+    bool pack;         // use #pragma pack semantics
+
+  public:
+  pure @safe @nogc nothrow:
+    bool isDefault() const { return value == STRUCTALIGN_DEFAULT; }
+    void setDefault()      { value = STRUCTALIGN_DEFAULT; }
+    bool isUnknown() const { return value == 0; }  // value is not set
+    void setUnknown()      { value = 0; }
+    void set(uint value)   { this.value = cast(ushort)value; }
+    uint get() const       { return value; }
+    bool isPack() const    { return pack; }
+    void setPack(bool pack) { this.pack = pack; }
+}
+//alias structalign_t = uint;
 
 // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
-enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
+//enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 
 enum mars_ext = "d";        // for D source files
 enum doc_ext  = "html";     // for Ddoc generated files

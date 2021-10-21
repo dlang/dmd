@@ -1185,7 +1185,7 @@ private:
             dtb.xoff(Symbols.getIVarOffset(classDeclaration, var, true), 0); // pointer to ivar offset
             dtb.xoff(Symbols.getMethVarName(var.ident), 0); // name
             dtb.xoff(Symbols.getMethVarType(var.type), 0); // type string
-            dtb.dword(var.alignment);
+            dtb.dword(var.alignment.isDefault() ? -1 : var.alignment.get());
             dtb.dword(cast(int) var.size(var.loc));
         }
 

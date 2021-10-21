@@ -31,6 +31,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.importc;
 import dmd.init;
 import dmd.mtype;
 import dmd.opover;
@@ -193,7 +194,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 // Check for @safe violations
                 if (vd.type.hasPointers)
                 {
-                    if ((t.alignment() < target.ptrsize ||
+                    if ((!t.alignment.isDefault() && t.alignment.get() < target.ptrsize ||
                          (vd.offset & (target.ptrsize - 1))) &&
                         sc.func && sc.func.setUnsafe())
                     {
@@ -398,6 +399,13 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         if (i.exp.op == TOK.error)
             return err();
         uint olderrors = global.errors;
+
+        /* ImportC: convert arrays to pointers, functions to pointers to functions
+         */
+        Type tb = t.toBasetype();
+        if (tb.isTypePointer())
+            i.exp = i.exp.arrayFuncConv(sc);
+
         /* Save the expression before ctfe
          * Otherwise the error message would contain for example "&[0][0]" instead of "new int"
          * Regression: https://issues.dlang.org/show_bug.cgi?id=21687
@@ -416,6 +424,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             {
                 return i;
             }
+            if (sc.flags & SCOPE.Cfile)
+                /* the interpreter turns (char*)"string" into &"string"[0] which then
+                 * it cannot interpret. Resolve that case by doing optimize() first
+                 */
+                i.exp = i.exp.optimize(WANTvalue);
             i.exp = i.exp.ctfeInterpret();
             if (i.exp.op == TOK.voidExpression)
                 error(i.loc, "variables cannot be initialized with an expression of type `void`. Use `void` initialization instead.");
@@ -446,7 +459,6 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
             i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", currExp.toChars());
             return err();
         }
-        Type tb = t.toBasetype();
         Type ti = i.exp.type.toBasetype();
         if (i.exp.op == TOK.tuple && i.expandTuples && !i.exp.implicitConvTo(t))
         {

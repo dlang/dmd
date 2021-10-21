@@ -484,31 +484,36 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Align sizes of 0, as we may not know array sizes yet.
      * Params:
      *   alignment = struct alignment that is in effect
-     *   size = alignment requirement of field
+     *   memalignsize = natural alignment of field
      *   poffset = pointer to offset to be aligned
      */
-    extern (D) static void alignmember(structalign_t alignment, uint size, uint* poffset) pure nothrow @safe
+    extern (D) static void alignmember(structalign_t alignment, uint memalignsize, uint* poffset) pure nothrow @safe
     {
-        //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
-        switch (alignment)
-        {
-        case cast(structalign_t)1:
-            // No alignment
-            break;
+        //debug printf("alignment = %u %d, size = %u, offset = %u\n", alignment.get(), alignment.isPack(), memalignsize, *poffset);
+        uint alignvalue;
 
-        case cast(structalign_t)STRUCTALIGN_DEFAULT:
+        if (alignment.isDefault())
+        {
             // Alignment in Target::fieldalignsize must match what the
             // corresponding C compiler's default alignment behavior is.
-            assert(size > 0 && !(size & (size - 1)));
-            *poffset = (*poffset + size - 1) & ~(size - 1);
-            break;
-
-        default:
-            // Align on alignment boundary, which must be a positive power of 2
-            assert(alignment > 0 && !(alignment & (alignment - 1)));
-            *poffset = (*poffset + alignment - 1) & ~(alignment - 1);
-            break;
+            alignvalue = memalignsize;
         }
+        else if (alignment.isPack())    // #pragma pack semantics
+        {
+            alignvalue = alignment.get();
+            if (memalignsize < alignvalue)
+                alignvalue = memalignsize;      // align to min(memalignsize, alignment)
+        }
+        else if (alignment.get() > 1)
+        {
+            // Align on alignment boundary, which must be a positive power of 2
+            alignvalue = alignment.get();
+        }
+        else
+            return;
+
+        assert(alignvalue > 0 && !(alignvalue & (alignvalue - 1)));
+        *poffset = (*poffset + alignvalue - 1) & ~(alignvalue - 1);
     }
 
     /****************************************
@@ -532,7 +537,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         uint ofs = *nextoffset;
 
         const uint actualAlignment =
-            alignment == STRUCTALIGN_DEFAULT ? memalignsize : alignment;
+            alignment.isDefault() || alignment.isPack() && memalignsize < alignment.get()
+                        ? memalignsize : alignment.get();
 
         // Ensure no overflow
         bool overflow;
@@ -541,7 +547,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (overflow) assert(0);
 
         // Skip no-op for noreturn without custom aligment
-        if (memsize != 0 || alignment != STRUCTALIGN_DEFAULT)
+        if (memsize != 0 || !alignment.isDefault())
             alignmember(alignment, memalignsize, &ofs);
 
         uint memoffset = ofs;
