@@ -10138,6 +10138,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* ImportC: convert arrays to pointers, functions to pointers to functions
          */
         exp.e1 = exp.e1.arrayFuncConv(sc);
+        exp.e2 = exp.e2.arrayFuncConv(sc);
 
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
@@ -12371,12 +12372,12 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
     else if (exp.ident == Id.__xalignof &&
              exp.e1.isVarExp() &&
              exp.e1.isVarExp().var.isVarDeclaration() &&
-             exp.e1.isVarExp().var.isVarDeclaration().alignment)
+             !exp.e1.isVarExp().var.isVarDeclaration().alignment.isUnknown())
     {
         // For `x.alignof` get the alignment of the variable, not the alignment of its type
         const explicitAlignment = exp.e1.isVarExp().var.isVarDeclaration().alignment;
         const naturalAlignment = exp.e1.type.alignsize();
-        const actualAlignment = explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment;
+        const actualAlignment = explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get();
         Expression e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
         return e;
     }
@@ -12964,7 +12965,7 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
         const hasPointers = tb.hasPointers();
         if (hasPointers)
         {
-            if ((stype.alignment() < target.ptrsize ||
+            if ((!stype.alignment.isDefault() && stype.alignment.get() < target.ptrsize ||
                  (v.offset & (target.ptrsize - 1))) &&
                 (sc.func && sc.func.setUnsafe()))
             {

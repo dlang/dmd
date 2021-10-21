@@ -5114,6 +5114,13 @@ elem *callfunc(const ref Loc loc,
                                            // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
     elem* ep = null;
     const op = fd ? intrinsic_op(fd) : NotIntrinsic;
+
+    // Check for noreturn expression pretending to yield function/delegate pointers
+    if (tybasic(ec.Ety) == TYnoreturn)
+    {
+        // Discard unreachable argument evaluation + function call
+        return ec;
+    }
     if (arguments && arguments.dim)
     {
         if (op == OPvector)
@@ -5135,6 +5142,8 @@ elem *callfunc(const ref Loc loc,
                   ? elems_array.ptr
                   : cast(elem**)Mem.check(malloc(arguments.dim * (elem*).sizeof));
         elem*[] elems = pe[0 .. n];
+        scope (exit) if (elems.ptr != elems_array.ptr)
+            free(elems.ptr);
 
         /* Fill elems[] with arguments converted to elems
          */
@@ -5227,6 +5236,15 @@ elem *callfunc(const ref Loc loc,
             }
 
             elems[i] = ea;
+
+            // Passing an expression of noreturn, meaning that the argument
+            // evaluation will throw / abort / loop indefinetly. Hence skip the
+            // call and only evaluate up to the current argument
+            if (tybasic(ea.Ety) == TYnoreturn)
+            {
+                return el_combines(cast(void**) elems.ptr, cast(int) i + 1);
+            }
+
         }
         if (!left_to_right &&
             !irs.m.isCFile) // C11 leaves evaluation order implementation-defined, but
@@ -5244,9 +5262,6 @@ elem *callfunc(const ref Loc loc,
             reverse(elems);
 
         ep = el_params(cast(void**)elems.ptr, cast(int)n);
-
-        if (elems.ptr != elems_array.ptr)
-            free(elems.ptr);
     }
 
     objc.setupMethodSelector(fd, &esel);

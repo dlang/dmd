@@ -55,7 +55,11 @@ static assert(is(typeof((immutable noreturn).init) == immutable noreturn));
 static assert(is(typeof((shared noreturn).init) == shared noreturn));
 
 version (DigitalMars)
-    noreturn exits(int* p) { *p = 3; }
+    noreturn exits(int* p)
+    {
+        *p = 3;
+        assert(false); // *p could be valid
+    }
 
 noreturn exit();
 

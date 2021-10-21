@@ -2524,6 +2524,7 @@ final class CParser(AST) : Parser!AST
     AST.Type cparseTypeName()
     {
         Specifier specifier;
+        specifier.packalign.setDefault();
         auto tspec = cparseSpecifierQualifierList(LVL.global, specifier);
         Identifier id;
         return cparseDeclarator(DTR.xabstract, tspec, id, specifier);
@@ -2591,6 +2592,7 @@ final class CParser(AST) : Parser!AST
             }
 
             Specifier specifier;
+            specifier.packalign.setDefault();
             auto tspec = cparseDeclarationSpecifiers(LVL.prototype, specifier);
             if (tspec && specifier.mod & MOD.xconst)
             {
@@ -2968,6 +2970,7 @@ final class CParser(AST) : Parser!AST
          *    enum gnu-attributes (opt) identifier
          */
         Specifier specifier;
+        specifier.packalign.setDefault();
         if (token.value == TOK.__attribute__)
             cparseGnuAttributes(specifier);
 
@@ -3004,6 +3007,7 @@ final class CParser(AST) : Parser!AST
                      * https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html
                      */
                     Specifier specifierx;
+                    specifierx.packalign.setDefault();
                     cparseGnuAttributes(specifierx);
                 }
 
@@ -3021,6 +3025,7 @@ final class CParser(AST) : Parser!AST
                      * https://gcc.gnu.org/onlinedocs/gcc/Enumerator-Attributes.html
                      */
                     Specifier specifierx;
+                    specifierx.packalign.setDefault();
                     cparseGnuAttributes(specifierx);
                 }
 
@@ -3149,6 +3154,11 @@ final class CParser(AST) : Parser!AST
         Specifier specifier;
         specifier.packalign = this.packalign;
         auto tspec = cparseSpecifierQualifierList(LVL.member, specifier);
+        if (tspec && specifier.mod & MOD.xconst)
+        {
+            tspec = toConst(tspec);
+            specifier.mod = MOD.xnone;          // 'used' it
+        }
 
         /* If a declarator does not follow, it is unnamed
          */
@@ -3221,9 +3231,6 @@ final class CParser(AST) : Parser!AST
                 nextToken();
                 width = cparseConstantExp();
             }
-
-            if (specifier.mod & MOD.xconst)
-                dt = toConst(dt);
 
             /* GNU Extensions
              * struct-declarator:
@@ -4167,7 +4174,7 @@ final class CParser(AST) : Parser!AST
         SCW scw;        /// storage-class specifiers
         MOD mod;        /// type qualifiers
         AST.Expressions*  alignExps;  /// alignment
-        structalign_t packalign = STRUCTALIGN_DEFAULT;  /// #pragma pack alignment value
+        structalign_t packalign;  /// #pragma pack alignment value
     }
 
     /***********************
@@ -4343,7 +4350,7 @@ final class CParser(AST) : Parser!AST
             (*decls)[0] = s;
             s = new AST.AlignDeclaration(s.loc, specifier.alignExps, decls);
         }
-        else if (specifier.packalign != STRUCTALIGN_DEFAULT)
+        else if (!specifier.packalign.isDefault())
         {
             //printf("  applying packalign %d\n", cast(int)specifier.packalign);
             // Wrap #pragma pack in an AlignDeclaration
