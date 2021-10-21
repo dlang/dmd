@@ -1754,10 +1754,10 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             {
                 // if there was an error evaluating the symbol, it might actually
                 // be a type. Avoid misleading error messages.
-               .error(loc, "`%s` had previous errors", mtype.toChars());
+                .error(loc, "`%s` had previous errors", mtype.toChars());
             }
             else
-               .error(loc, "`%s` is used as a type", mtype.toChars());
+                .error(loc, "`%s` is used as a type", mtype.toChars());
             return error();
         }
         return t;

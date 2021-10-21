@@ -2291,9 +2291,9 @@ void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         case TYcdouble:
         case TYcldouble:
             if (e.Eoper == OPmodass)
-               opmod_complex87(cdb, e, pretregs);
+                opmod_complex87(cdb, e, pretregs);
             else
-               opass_complex87(cdb, e, pretregs);
+                opass_complex87(cdb, e, pretregs);
             return;
 
         default:

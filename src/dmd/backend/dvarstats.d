@@ -132,7 +132,7 @@ private static extern(D) SYMIDX findParentScope(ref Barray!LifeTime lifetimes, S
     {
         for(SYMIDX sj = si; sj; --sj)
             if(isParentScope(lifetimes, sj - 1, si))
-               return sj;
+                return sj;
     }
     return SYMIDX.max;
 }
