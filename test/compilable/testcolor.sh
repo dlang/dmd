@@ -46,7 +46,7 @@ then
     if uname -a | grep -i linux | grep -i microsoft &> /dev/null
     then
         echo "Skipping test because of WSL weirdness"
-        compare "$actual" "$expectedWithoutColor"
+        compare "$actual" "$expectedWithColor"
     elif [[ "$actual" != '^@^@'* ]] # 'script' weirdness on CircleCI
     then
         compare "$actual" "$expectedWithColor"
