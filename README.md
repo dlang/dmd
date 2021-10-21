@@ -1,5 +1,5 @@
 <div align="center">
-<img align="center" src="dlogo.png" alt="dlang logo"/>
+<img align="center" src="https://dlang.org/images/dlogo.png" alt="dlang logo"/>
 
 # DMD
 [![GitHub tag](https://img.shields.io/github/tag-date/dlang/dmd.svg?maxAge=86400&style=flat)](https://github.com/dlang/dmd/releases)
