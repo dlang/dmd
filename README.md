@@ -11,10 +11,9 @@
 [![CircleCI](https://img.shields.io/circleci/project/github/dlang/dmd/master.svg?style=flat&label=circleci&logo=circleci)](https://circleci.com/gh/dlang/dmd/tree/master)
 [![Build Status](https://dev.azure.com/dlanguage/dmd/_apis/build/status/Azure%20pipelines?branchName=master)](https://dev.azure.com/dlanguage/dmd/_build/latest?definitionId=1&branchName=master)
 [![Buildkite](https://img.shields.io/buildkite/01239dde8424d69809d08769015bbdb9b90d05082e534d2f82/master.svg?style=flat&logo=dependabot&label=buildkite)](https://buildkite.com/dlang/dmd)
-<hr/>
 </div>
 
-
+---
 **DMD** is the reference compiler for [the D programming language](https://dlang.org).
 
 To report a problem or browse the list of open bugs, please visit the
