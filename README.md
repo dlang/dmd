@@ -15,7 +15,7 @@
 </div>
 
 
-DMD is the reference compiler for [the D programming language](https://dlang.org).
+**DMD** is the reference compiler for [the D programming language](https://dlang.org).
 
 To report a problem or browse the list of open bugs, please visit the
 [bug tracker](http://issues.dlang.org/).
