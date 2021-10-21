@@ -1,6 +1,6 @@
 <div align="center">
-<img align="center" src="https://dlang.org/images/dlogo.png" alt="dlang logo"/>
 
+![dlang logo](https://dlang.org/images/dlogo.png)
 # DMD
 [![GitHub tag](https://img.shields.io/github/tag-date/dlang/dmd.svg?maxAge=86400&style=flat)](https://github.com/dlang/dmd/releases)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400&style=flat)](https://codecov.io/gh/dlang/dmd)
