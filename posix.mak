@@ -329,15 +329,15 @@ copy: $(COPY)
 $(IMPDIR)/object.d : src/object.d
 	@mkdir -p $(dir $@)
 	@rm -f $(IMPDIR)/object.di
-	cp $< $@
+	@cp $< $@
 
 $(IMPDIR)/%.di : src/%.di
 	@mkdir -p $(dir $@)
-	cp $< $@
+	@cp $< $@
 
 $(IMPDIR)/%.d : src/%.d
 	@mkdir -p $(dir $@)
-	cp $< $@
+	@cp $< $@
 
 ######################## Build DMD if non-existent ##############################
 
