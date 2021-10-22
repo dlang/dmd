@@ -3971,65 +3971,64 @@ extern (C++) final class TypePointer : TypeNext
         if (equals(to))
             return MATCH.exact;
 
-        if (next.ty == Tfunction)
-        {
-            if (auto tp = to.isTypePointer())
-            {
-                if (tp.next.ty == Tfunction)
-                {
-                    if (next.equals(tp.next))
-                        return MATCH.constant;
-
-                    if (next.covariant(tp.next) == Covariant.yes)
-                    {
-                        Type tret = this.next.nextOf();
-                        Type toret = tp.next.nextOf();
-                        if (tret.ty == Tclass && toret.ty == Tclass)
-                        {
-                            /* https://issues.dlang.org/show_bug.cgi?id=10219
-                             * Check covariant interface return with offset tweaking.
-                             * interface I {}
-                             * class C : Object, I {}
-                             * I function() dg = function C() {}    // should be error
-                             */
-                            int offset = 0;
-                            if (toret.isBaseOf(tret, &offset) && offset != 0)
-                                return MATCH.nomatch;
-                        }
-                        return MATCH.convert;
-                    }
-                }
-                else if (tp.next.ty == Tvoid)
-                {
-                    // Allow conversions to void*
-                    return MATCH.convert;
-                }
-            }
+        // Only convert between pointers
+        auto tp = to.isTypePointer();
+        if (!tp)
             return MATCH.nomatch;
-        }
-        else if (auto tp = to.isTypePointer())
+
+        assert(this.next);
+        assert(tp.next);
+
+        // Conversion to void*
+        if (tp.next.ty == Tvoid)
         {
-            assert(tp.next);
+            // Function pointer conversion doesn't check constness?
+            if (this.next.ty == Tfunction)
+                return MATCH.convert;
 
             if (!MODimplicitConv(next.mod, tp.next.mod))
                 return MATCH.nomatch; // not const-compatible
 
-            /* Alloc conversion to void*
-             */
-            if (next.ty != Tvoid && tp.next.ty == Tvoid)
+            return this.next.ty == Tvoid ? MATCH.constant : MATCH.convert;
+        }
+
+        // Conversion between function pointers
+        if (next.ty == Tfunction)
+        {
+            if (tp.next.ty == Tfunction)
             {
-                return MATCH.convert;
+                if (next.equals(tp.next))
+                    return MATCH.constant;
+
+                if (next.covariant(tp.next) == Covariant.yes)
+                {
+                    Type tret = this.next.nextOf();
+                    Type toret = tp.next.nextOf();
+                    if (tret.ty == Tclass && toret.ty == Tclass)
+                    {
+                        /* https://issues.dlang.org/show_bug.cgi?id=10219
+                            * Check covariant interface return with offset tweaking.
+                            * interface I {}
+                            * class C : Object, I {}
+                            * I function() dg = function C() {}    // should be error
+                            */
+                        int offset = 0;
+                        if (toret.isBaseOf(tret, &offset) && offset != 0)
+                            return MATCH.nomatch;
+                    }
+                    return MATCH.convert;
+                }
             }
 
-            MATCH m = next.constConv(tp.next);
-            if (m > MATCH.nomatch)
-            {
-                if (m == MATCH.exact && mod != to.mod)
-                    m = MATCH.constant;
-                return m;
-            }
+            return MATCH.nomatch;
         }
-        return MATCH.nomatch;
+
+        // Default, no implicit conversion between the pointer targets
+        MATCH m = next.constConv(tp.next);
+
+        if (m == MATCH.exact && mod != to.mod)
+            m = MATCH.constant;
+        return m;
     }
 
     override MATCH constConv(Type to)
