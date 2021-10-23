@@ -5297,27 +5297,16 @@ extern (C++) final class TypeDelegate : TypeNext
         if (this == to)
             return MATCH.exact;
 
-        version (all)
+        if (auto toDg = to.isTypeDelegate())
         {
-            // not allowing covariant conversions because it interferes with overriding
-            if (to.ty == Tdelegate && this.nextOf().covariant(to.nextOf()) == Covariant.yes)
-            {
-                Type tret = this.next.nextOf();
-                Type toret = (cast(TypeDelegate)to).next.nextOf();
-                if (tret.ty == Tclass && toret.ty == Tclass)
-                {
-                    /* https://issues.dlang.org/show_bug.cgi?id=10219
-                     * Check covariant interface return with offset tweaking.
-                     * interface I {}
-                     * class C : Object, I {}
-                     * I delegate() dg = delegate C() {}    // should be error
-                     */
-                    int offset = 0;
-                    if (toret.isBaseOf(tret, &offset) && offset != 0)
-                        return MATCH.nomatch;
-                }
-                return MATCH.convert;
-            }
+            MATCH m = this.next.isTypeFunction().implicitPointerConv(toDg.next);
+
+            // Retain the old behaviour for this refactoring
+            // Should probably be changed to constant to match function pointers
+            if (m > MATCH.convert)
+                m = MATCH.convert;
+
+            return m;
         }
 
         return MATCH.nomatch;
