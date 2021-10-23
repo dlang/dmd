@@ -293,7 +293,8 @@ jobs:
     ########################################
     - name: Run C++ test suite
       run: |
-        ./dmd/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64
+        # Reset LD_LIBRARY_PATH when running the tests, so they use the newly built libphobos2.so.
+        LD_LIBRARY_PATH= ./dmd/test/run.d --environment runnable_cxx dshell/dll_cxx.d MODEL=64
         #if [ ${{ matrix.compiler }} == "g++" ]; then
         #  ./dmd/test/run.d clean
         #  ./dmd/test/run.d runnable_cxx MODEL=32
