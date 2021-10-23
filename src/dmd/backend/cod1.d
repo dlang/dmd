@@ -24,6 +24,7 @@ version (MARS)
 version (COMPILE)
 {
 
+import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -2820,7 +2821,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         assert(!(cinfo.flags & (INF32 | INF64)));
     getregs(cdb,(~s.Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
     keepmask &= ~s.Sregsaved;
-    int npushed = numbitsset(keepmask);
+    int npushed = popcnt(keepmask);
     CodeBuilder cdbpop;
     cdbpop.ctor();
     gensaverestore(keepmask, cdb, cdbpop);

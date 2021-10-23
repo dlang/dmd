@@ -28,6 +28,7 @@ version (MARS)
 version (COMPILE)
 {
 
+import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -3696,8 +3697,8 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
     if (pushoffuse)
     {
         // Save to preallocated section in the stack frame
-        int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
-        int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
+        int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
         targ_size_t xmmoffset = pushoff + BPoff;
         if (!hasframe || enforcealign)
             xmmoffset += EBPtoESP;
@@ -3799,8 +3800,8 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
     if (pushoffuse)
     {
         // Save to preallocated section in the stack frame
-        int xmmtopop = numbitsset(topop & XMMREGS);   // XMM regs take 16 bytes
-        int gptopop = numbitsset(topop) - xmmtopop;   // general purpose registers to save
+        int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
+        int gptopop = popcnt(topop) - xmmtopop;   // general purpose registers to save
         targ_size_t xmmoffset = pushoff + BPoff;
         if (!hasframe || enforcealign)
             xmmoffset += EBPtoESP;
