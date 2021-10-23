@@ -20,6 +20,7 @@ this license for that file.
 |--------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [dmd/](https://github.com/dlang/dmd/tree/master/src/dmd)                 | The dmd driver and front-end                                                                                                                                                                                  |
 | [dmd/backend/](https://github.com/dlang/dmd/tree/master/src/dmd/backend) | Code generation for x86 or x86-64. Shared by the [Digital Mars C compiler](https://github.com/DigitalMars/Compiler/), but not [LDC](https://github.com/ldc-developers/ldc) or [GDC](https://gdcproject.org/). |
+| [dmd/common/](https://github.com/dlang/dmd/tree/master/src/dmd/common)   | Code shared by the front-end and back-end                                                                                                                                                                     |
 | [dmd/root/](https://github.com/dlang/dmd/tree/master/src/dmd/root)       | Meant as a portable utility library, but ["it wasn't very good and the only project left using it is dmd"](https://github.com/dlang/dmd/pull/9844#issuecomment-498479516).                                    |
 
 DMD has a mostly flat directory structure, so this section aims to divide all source files into logical groups for easier navigation.
@@ -126,7 +127,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [optimize.d](https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d)     | Do constant folding more generally                                                         |
 | [dcast.d](https://github.com/dlang/dmd/blob/master/src/dmd/dcast.d)           | Implicit or explicit cast(), finding common types e.g. in `x ? a : b`, integral promotions |
 | [impcnvtab.d](https://github.com/dlang/dmd/blob/master/src/dmd/impcnvtab.d)   | Define an implicit conversion table for basic types                                        |
-| [importc.d](https://github.com/dlang/dmd/blob/master/src/dmd/importc.d)       | Helpers specific to ImportC
+| [importc.d](https://github.com/dlang/dmd/blob/master/src/dmd/importc.d)       | Helpers specific to ImportC                                                                |
 | [sideeffect.d](https://github.com/dlang/dmd/blob/master/src/dmd/sideeffect.d) | Extract side-effects of expressions for certain lowerings.                                 |
 
 **Compile Time Function Execution (CTFE)**
