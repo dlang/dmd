@@ -3993,35 +3993,8 @@ extern (C++) final class TypePointer : TypeNext
         }
 
         // Conversion between function pointers
-        if (next.ty == Tfunction)
-        {
-            if (tp.next.ty == Tfunction)
-            {
-                if (next.equals(tp.next))
-                    return MATCH.constant;
-
-                if (next.covariant(tp.next) == Covariant.yes)
-                {
-                    Type tret = this.next.nextOf();
-                    Type toret = tp.next.nextOf();
-                    if (tret.ty == Tclass && toret.ty == Tclass)
-                    {
-                        /* https://issues.dlang.org/show_bug.cgi?id=10219
-                            * Check covariant interface return with offset tweaking.
-                            * interface I {}
-                            * class C : Object, I {}
-                            * I function() dg = function C() {}    // should be error
-                            */
-                        int offset = 0;
-                        if (toret.isBaseOf(tret, &offset) && offset != 0)
-                            return MATCH.nomatch;
-                    }
-                    return MATCH.convert;
-                }
-            }
-
-            return MATCH.nomatch;
-        }
+        if (auto thisTf = this.next.isTypeFunction())
+            return thisTf.implicitPointerConv(tp.next);
 
         // Default, no implicit conversion between the pointer targets
         MATCH m = next.constConv(tp.next);
@@ -4989,6 +4962,47 @@ extern (C++) final class TypeFunction : TypeNext
 
     Nomatch:
         //printf("no match\n");
+        return MATCH.nomatch;
+    }
+
+    /+
+     + Checks whether this function type is convertible to ` to`
+     + when used in a function pointer / delegate.
+     +
+     + Params:
+     +   to = target type
+     +
+     + Returns:
+     +   MATCH.nomatch: `to` is not a covaraint function
+     +   MATCH.convert: `to` is a covaraint function
+     +   MATCH.exact:   `to` is identical to this function
+     +/
+    private MATCH implicitPointerConv(Type to)
+    {
+        assert(to);
+
+        if (this == to)
+            return MATCH.constant;
+
+        if (this.covariant(to) == Covariant.yes)
+        {
+            Type tret = this.nextOf();
+            Type toret = to.nextOf();
+            if (tret.ty == Tclass && toret.ty == Tclass)
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=10219
+                 * Check covariant interface return with offset tweaking.
+                 * interface I {}
+                 * class C : Object, I {}
+                 * I function() dg = function C() {}    // should be error
+                 */
+                int offset = 0;
+                if (toret.isBaseOf(tret, &offset) && offset != 0)
+                    return MATCH.nomatch;
+            }
+            return MATCH.convert;
+        }
+
         return MATCH.nomatch;
     }
 
