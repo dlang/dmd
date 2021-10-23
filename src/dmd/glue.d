@@ -18,7 +18,7 @@ import core.stdc.stdlib;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 
@@ -30,7 +30,6 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -318,7 +317,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
  * Prepare for generating obj file.
  */
 
-private __gshared Outbuffer objbuf;
+private __gshared OutBuffer objbuf;
 
 private void obj_start(const(char)* srcfile)
 {
@@ -364,7 +363,7 @@ private void obj_end(Library library, const(char)* objfilename)
     if (library)
     {
         // Transfer ownership of image buffer to library
-        library.addObject(objfilename.toDString(), objbuf.extractSlice[]);
+        library.addObject(objfilename.toDString(), cast(ubyte[]) objbuf.extractSlice[]);
     }
     else
     {

@@ -134,7 +134,7 @@ const struct Diagnostic
 
     string toString() nothrow
     {
-        import dmd.root.outbuffer : OutBuffer;
+        import dmd.common.outbuffer : OutBuffer;
 
         auto buffer = OutBuffer();
         buffer.printf("%s: %.*s", location.toChars(true),
@@ -168,7 +168,7 @@ struct DiagnosticCollector
     {
         import std.array : replace;
         import std.string : strip;
-        import dmd.root.outbuffer : OutBuffer;
+        import dmd.common.outbuffer : OutBuffer;
 
         auto buffer = OutBuffer();
 

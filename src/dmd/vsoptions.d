@@ -23,7 +23,7 @@ import core.sys.windows.winreg;
 import dmd.env;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string : toDString;
 
@@ -509,9 +509,12 @@ extern(D):
     //  one with the largest version that also contains the test file
     static const(char)* findLatestSDKDir(const(char)* baseDir, string testfile)
     {
+        import dmd.common.string : SmallBuffer, toWStringz;
+
         const(char)* pattern = FileName.combine(baseDir, "*");
-        wchar* wpattern = toWStringz(pattern.toDString).ptr;
-        scope(exit) mem.xfree(wpattern);
+        wchar[1024] support = void;
+        auto buf = SmallBuffer!wchar(support.length, support);
+        wchar* wpattern = toWStringz(pattern.toDString, buf).ptr;
         FileName.free(pattern);
 
         WIN32_FIND_DATAW fileinfo;

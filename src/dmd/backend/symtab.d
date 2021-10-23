@@ -19,7 +19,6 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.mem;
 
-
 extern (C++):
 
 nothrow:

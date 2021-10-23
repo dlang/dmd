@@ -38,11 +38,12 @@ import dmd.backend.md5;
 import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.mscoff;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -54,7 +55,7 @@ extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar
 
 extern (C) char* strupr(char*);
 
-private extern (D) __gshared Outbuffer *fobjbuf;
+private extern (D) __gshared OutBuffer *fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
@@ -68,10 +69,10 @@ __gshared private
 {
 
 // String Table  - String table for all other names
-    Outbuffer *string_table;
+    OutBuffer *string_table;
 
 // Section Headers
-    public Outbuffer  *ScnhdrBuf;             // Buffer to build section table in
+    public OutBuffer  *ScnhdrBuf;             // Buffer to build section table in
 
 // The -1 is because it is 1 based indexing
     @trusted
@@ -85,9 +86,9 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER *)ScnhdrBuf
     enum SYM_TAB_INC  = 50;         // Number of symbols to increment buffer by
 
 // The symbol table
-    Outbuffer *symbuf;
+    OutBuffer *symbuf;
 
-    Outbuffer *syment_buf;   // array of struct syment
+    OutBuffer *syment_buf;   // array of struct syment
 
     segidx_t segidx_drectve = UNKNOWN;         // contents of ".drectve" section
     segidx_t segidx_debugS = UNKNOWN;
@@ -96,10 +97,10 @@ IMAGE_SECTION_HEADER* ScnhdrTab() { return cast(IMAGE_SECTION_HEADER *)ScnhdrBuf
 
     extern (D) int jumpTableSeg;     // segment index for __jump_table
 
-    extern (D) Outbuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
+    extern (D) OutBuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
     extern (D) int pointersSeg;      // segment index for __pointers
 
-    Outbuffer *ptrref_buf;           // buffer for pointer references
+    OutBuffer *ptrref_buf;           // buffer for pointer references
 
     int floatused;
 
@@ -172,7 +173,7 @@ struct Relocation
  * Returns offset into the specified string table.
  */
 
-IDXSTR MsCoffObj_addstr(Outbuffer *strtab, const(char)* str)
+IDXSTR MsCoffObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //printf("MsCoffObj_addstr(strtab = %p str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
@@ -255,7 +256,7 @@ int MsCoffObj_string_literal_segment(uint sz)
  */
 
 @trusted
-Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
+Obj MsCoffObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("MsCoffObj_init()\n");
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
@@ -278,7 +279,7 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
 
     if (!string_table)
     {
-        string_table = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        string_table = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(string_table);
         string_table.reserve(2048);
     }
@@ -295,14 +296,14 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
     }
     else
     {
-        symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(symbuf);
         symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (!syment_buf)
     {
-        syment_buf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        syment_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(syment_buf);
         syment_buf.reserve(SymbolTable32.sizeof * SYM_TAB_INIT);
     }
@@ -314,7 +315,7 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
     // Initialize segments for CODE, DATA, UDATA and CDATA
     if (!ScnhdrBuf)
     {
-        ScnhdrBuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        ScnhdrBuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(ScnhdrBuf);
         ScnhdrBuf.reserve(SCNHDR_TAB_INITSIZE * (IMAGE_SECTION_HEADER).sizeof);
     }
@@ -1196,7 +1197,7 @@ void MsCoffObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
                                       align_ |
                                       IMAGE_SCN_MEM_READ);
 
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     if (I64)
     {   MsCoffObj_reftoident(seg, buf.length(), sfunc, 0, CFoff | CFoffset64);
         MsCoffObj_reftoident(seg, buf.length(), ehsym, 0, CFoff | CFoffset64);
@@ -1453,14 +1454,14 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
     seg_data* pseg = *ppseg;
     if (pseg)
     {
-        Outbuffer *b1 = pseg.SDbuf;
-        Outbuffer *b2 = pseg.SDrel;
+        OutBuffer *b1 = pseg.SDbuf;
+        OutBuffer *b2 = pseg.SDrel;
         memset(pseg, 0, (seg_data).sizeof);
         if (b1)
             b1.reset();
         else
         {
-            b1 = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+            b1 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(b1);
             b1.reserve(4096);
         }
@@ -1476,7 +1477,7 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
         if (!(ScnhdrTab[shtidx].Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA))
 
         {
-            pseg.SDbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+            pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(pseg.SDbuf);
             pseg.SDbuf.reserve(4096);
         }
@@ -2071,7 +2072,7 @@ void MsCoffObj_write_byte(seg_data *pseg, uint byte_)
 @trusted
 void MsCoffObj_byte(segidx_t seg,targ_size_t offset,uint byte_)
 {
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     //dbg_printf("MsCoffObj_byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
@@ -2109,7 +2110,7 @@ static if (0)
     }
 }
     assert(seg >= 0 && seg < SegData.length);
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     if (buf == null)
     {
         //printf("MsCoffObj_bytes(seg=%d, offset=x%llx, nbytes=%d, p=x%x)\n", seg, offset, nbytes, p);
@@ -2159,7 +2160,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
     seg_data *pseg = SegData[seg];
     if (!pseg.SDrel)
     {
-        pseg.SDrel = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(pseg.SDrel);
     }
     pseg.SDrel.write((&rel)[0 .. 1]);
@@ -2179,11 +2180,6 @@ private int mscoff_rel_fp(scope const(void*) e1, scope const(void*) e2)
 }
 }
 
-void mscoff_relsort(Outbuffer *buf)
-{
-    qsort(buf.buf, buf.length() / (Relocation).sizeof, (Relocation).sizeof, &mscoff_rel_fp);
-}
-
 /*******************************
  * Refer to address that is in the data segment.
  * Input:
@@ -2201,7 +2197,7 @@ void mscoff_relsort(Outbuffer *buf)
 void MsCoffObj_reftodatseg(segidx_t seg,targ_size_t offset,targ_size_t val,
         uint targetdatum,int flags)
 {
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
 static if (0)
@@ -2245,7 +2241,7 @@ void MsCoffObj_reftocodeseg(segidx_t seg,targ_size_t offset,targ_size_t val)
 {
     //printf("MsCoffObj_reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,cast(uint)offset,cast(uint)val);
     assert(seg > 0);
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
     val -= funcsym_p.Soffset;
@@ -2344,7 +2340,7 @@ static if (0)
 
                 if (!indirectsymbuf2)
                 {
-                    indirectsymbuf2 = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+                    indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
                     assert(indirectsymbuf2);
                 }
                 else
@@ -2376,7 +2372,7 @@ static if (0)
             }
         }
 
-        Outbuffer *buf = SegData[seg].SDbuf;
+        OutBuffer *buf = SegData[seg].SDbuf;
         int save = cast(int)buf.length();
         buf.setsize(cast(uint)offset);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
@@ -2499,7 +2495,7 @@ void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
 {
     if (!ptrref_buf)
     {
-        ptrref_buf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        ptrref_buf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(ptrref_buf);
     }
 
@@ -2525,7 +2521,7 @@ extern (D) private void objflush_pointerRef(Symbol* s, uint soff)
 
     targ_size_t offset = SegData[seg].SDoffset;
     MsCoffObj_addrel(seg, offset, s, cast(uint)offset, RELaddr32, 0);
-    Outbuffer* buf = SegData[seg].SDbuf;
+    OutBuffer* buf = SegData[seg].SDbuf;
     buf.setsize(cast(uint)offset);
     buf.write32(soff);
     SegData[seg].SDoffset = buf.length();

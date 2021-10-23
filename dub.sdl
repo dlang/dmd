@@ -10,7 +10,7 @@ dependency ":frontend" version="*"
 subPackage {
   name "root"
   targetType "library"
-  sourcePaths "src/dmd/root"
+  sourcePaths "src/dmd/common" "src/dmd/root"
 }
 
 subPackage {
@@ -86,6 +86,7 @@ subPackage {
 
   excludedSourceFiles "src/dmd/backend/*"
   excludedSourceFiles "src/dmd/root/*"
+  excludedSourceFiles "src/dmd/common/*"
   excludedSourceFiles "src/dmd/{\
     astbase,\
     console,\

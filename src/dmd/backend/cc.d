@@ -150,7 +150,6 @@ else
 //struct block;
 //struct Classsym;
 //struct Nspacesym;
-//struct Outbuffer;
 //struct Aliassym;
 //struct dt_t;
 //typedef struct TYPE type;

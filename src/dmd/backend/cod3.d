@@ -48,7 +48,6 @@ import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -558,7 +557,7 @@ void cod3_stackalign(ref CodeBuilder cdb, int nbytes)
  */
 static if (0)
 {
-void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
+void cod3_buildmodulector(OutBuffer* buf, int codeOffset, int refOffset)
 {
     /*      ret
      * codeOffset:

@@ -1864,7 +1864,7 @@ debug
 static if (0)
 {
         if (tyfunc(s.Stype.Tty))
-        {   Outbuffer buf;
+        {   OutBuffer buf;
             char *p1;
 
             p1 = param_tostring(&buf,s.Stype);
