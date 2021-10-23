@@ -407,6 +407,11 @@ dmd: $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
 	cp dmd $G/dmd
 else
 dmd: frontend.a root.a glue.a backend.a
+	@echo ===============================================
+	@echo "UNAME: $(uname_A)"
+	@echo ===============================================
+	@echo "RELEASE: $(osversion)"
+	@echo ===============================================
 	$(CXX) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
 	cp dmd $G/dmd
 endif

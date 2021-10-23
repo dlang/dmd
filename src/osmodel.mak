@@ -65,3 +65,16 @@ ifeq (,$(MODEL))
 endif
 
 MODEL_FLAG:=-m$(MODEL)
+
+ifeq (linux,$(OS))
+  uname_A:=$(shell uname -a)
+  osversion:=$(shell lsb_release -a)
+endif
+ifeq (osx,$(OS))
+  uname_A:=$(shell uname -av)
+  osversion:=$(shell sw_vers)
+endif
+ifeq (freebsd,$(OS))
+  uname_A:=$(shell uname -a)
+  osversion:=$(shell freebsd-version -k)
+endif
