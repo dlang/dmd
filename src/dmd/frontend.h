@@ -918,18 +918,18 @@ struct Loc final
     }
 };
 
-enum class PASS
+enum class PASS : uint8_t
 {
-    init = 0,
-    semantic = 1,
-    semanticdone = 2,
-    semantic2 = 3,
-    semantic2done = 4,
-    semantic3 = 5,
-    semantic3done = 6,
-    inline_ = 7,
-    inlinedone = 8,
-    obj = 9,
+    init = 0u,
+    semantic = 1u,
+    semanticdone = 2u,
+    semantic2 = 3u,
+    semantic2done = 4u,
+    semantic3 = 5u,
+    semantic3done = 6u,
+    inline_ = 7u,
+    inlinedone = 8u,
+    obj = 9u,
 };
 
 struct Ungag final
