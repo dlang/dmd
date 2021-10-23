@@ -22,6 +22,7 @@ version (MARS)
 version (COMPILE)
 {
 
+import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -937,8 +938,8 @@ else
         /* Instead of pushing the registers onto the stack one by one,
          * allocate space in the stack frame and copy/restore them there.
          */
-        int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
-        int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
+        int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
         if (NDPoff || xmmtopush || cgstate.funcarg.size)
         {
             pushoff = alignsection(pushoff - (gptopush * REGSIZE + xmmtopush * 16),
@@ -972,8 +973,8 @@ else
     if (!I16 && calledafunc &&
         (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
     {
-        int npush = numbitsset(topush);            // number of registers that need saving
-        npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
+        int npush = popcnt(topush);            // number of registers that need saving
+        npush += popcnt(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
         if (pushoffuse)
             npush = 0;
 
@@ -1818,20 +1819,6 @@ private void cgcod_eh()
         }
 }
 
-}
-
-/******************************
- * Count the number of bits set in a register mask.
- */
-
-int numbitsset(regm_t regm)
-{
-    int n = 0;
-    if (regm)
-        do
-            n++;
-        while ((regm &= regm - 1) != 0);
-    return n;
 }
 
 /******************************
