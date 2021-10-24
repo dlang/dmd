@@ -791,12 +791,40 @@ private elem * elmemset(elem *e, goal_t goal)
                     case SHORTSIZE:     tym = TYshort;  goto L1;
                     case LONGSIZE:      tym = TYlong;   goto L1;
                     case LLONGSIZE:     if (_tysize[TYint] == 2)
-                                            goto Ldefault;
+                                            goto default;
                                         tym = TYllong;  goto L1;
+
+                    case 16:            if (REGSIZE == 8 && e1.Eoper == OPrelconst)
+                                            goto L1;
+                                        goto default;
                     L1:
                     {
                         tym_t ety = e.Ety;
                         memset(&value, value & 0xFF, value.sizeof);
+                        if (nbytes == 2 * REGSIZE && e1.Eoper == OPrelconst)
+                        {
+                            /* Rewrite as:
+                             * (*e1.0 = value),(*e1.4 = value),(e1)
+                             */
+                            tym = REGSIZE == 8 ? TYllong : TYint;
+
+                            auto e1a = el_copytree(e1);
+                            e1a.Eoper = OPvar;
+                            e1a.Ety = tym;
+                            auto ea = el_bin(OPeq,TYint,e1a,el_long(tym,value));
+
+                            auto e1b = el_copytree(e1);
+                            e1b.Eoper = OPvar;
+                            e1b.Ety = tym;
+                            e1b.EV.Voffset += REGSIZE;
+                            auto eb = el_bin(OPeq,tym,e1b,el_long(tym,value));
+
+                            e.EV.E1 = null;
+                            el_free(e);
+                            e = el_combine(el_combine(ea, eb), e1);
+                            e = optelem(e, GOALvalue);
+                            return e;
+                        }
                         evalue.EV.Vullong = value;
                         evalue.Ety = tym;
                         e.Eoper = OPeq;
@@ -811,11 +839,10 @@ private elem * elmemset(elem *e, goal_t goal)
                         e.EV.E2 = el_selecte2(e.EV.E2);
                         e = el_combine(e, tmp);
                         e = optelem(e,GOALvalue);
-                        break;
                     }
+                        break;
 
                     default:
-                    Ldefault:
                         break;
                 }
             }
@@ -3606,7 +3633,9 @@ elem * elstruct(elem *e, goal_t goal)
                     }
                 }
                 else if (I32 && targ1 && targ2)
+                {
                     tym = TYllong;
+                }
                 assert(tym != TYstruct);
             }
             assert(tym != ~0);
@@ -3694,6 +3723,8 @@ elem * elstruct(elem *e, goal_t goal)
             break;
         }
     }
+    //printf("elstruct return\n");
+    //elem_print(e);
     return e;
 }
 

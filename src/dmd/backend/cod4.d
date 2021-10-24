@@ -4591,6 +4591,7 @@ void cdpair(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
 
     //printf("\ncdpair(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //WRTYxx(e.Ety);printf("\n");
     //printf("Ecount = %d\n", e.Ecount);
 
     regm_t retregs = *pretregs;
@@ -4636,7 +4637,6 @@ void cdpair(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
     codelem(cdb,e.EV.E1, &regs1, false);
     scodelem(cdb,e.EV.E2, &regs2, regs1, false);
-    //printf("2: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
 
     if (e.EV.E1.Ecount)
         getregs(cdb,regs1);

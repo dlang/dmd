@@ -5,6 +5,7 @@ version (D_SIMD)
 {
 
 import core.simd;
+import core.stdc.stdio;
 import core.stdc.string;
 
 alias TypeTuple(T...) = T;
@@ -2230,6 +2231,95 @@ void test19443()
 
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22438
+
+struct T22438 { int x; double d; }
+
+T22438 foo22438(int x, double d) { return T22438(x, d); }
+
+struct S22438 { T22438 t; string r; }
+
+void test22438()
+{
+    S22438 s = S22438(foo22438(10, 3.14), "str");
+    assert(s.t.x == 10);
+    assert(s.t.d == 3.14);
+    assert(s.r == "str");
+}
+
+/*****************************************/
+
+__gshared int testsroa_x;
+
+template SROA(T1, T2)
+{
+    struct FPoint
+    {
+        T1 x;
+        T2 y;
+    }
+
+    void sroa(FPoint p1, ref FPoint quad)
+    {
+        quad = FPoint(p1.x, p1.y);
+    }
+
+    void testit()
+    {
+        FPoint p1 = FPoint(1, 2);
+
+        FPoint quad;
+        sroa(p1, quad);
+
+        if (quad != p1)
+        {
+            printf("failing iteration %d\n", testsroa_x);
+            assert(0);
+        }
+        ++testsroa_x;
+    }
+}
+
+void testsroa()
+{
+    SROA!(int,   int  ).testit();
+    SROA!(int,   float).testit();
+    SROA!(float, float).testit();
+    SROA!(float, int  ).testit();
+
+    SROA!(long,   long  ).testit();
+    SROA!(long,   double).testit();
+    SROA!(double, double).testit();
+    SROA!(double, long  ).testit();
+}
+
+/*****************************************/
+
+// https://github.com/AuburnSounds/intel-intrinsics/blob/master/source/inteli/pmmintrin.d
+
+alias __m128 = float4;
+
+__m128 _mm_setr_ps (float e3, float e2, float e1, float e0) pure @trusted
+{
+    float[4] result = [e3, e2, e1, e0];
+    return loadUnaligned!(float4)(cast(float4*)result.ptr);
+}
+
+__m128 _mm_movehdup_ps (__m128 a) pure @trusted
+{
+    a.ptr[0] = a.array[1];
+    a.ptr[2] = a.array[3];
+    return a;
+}
+
+void testshdup()
+{
+    __m128 A = _mm_movehdup_ps(_mm_setr_ps(1, 2, 3, 4));
+    float[4] correct = [2.0f, 2, 4, 4 ];
+    assert(A.array == correct);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -2280,6 +2370,9 @@ int main()
     test19632();
     test19788();
     test19443();
+    test22438();
+    testsroa();
+    testshdup();
 
     return 0;
 }

@@ -2887,7 +2887,7 @@ void elem_print(const elem* e, int nestlevel = 0)
             e.Ety == TYstruct || e.Ety == TYarray)
             if (e.ET)
                 printf("%d ", cast(int)type_size(e.ET));
-        printf("%s\n", tym_str(e.Ety));
+        printf("%s ", tym_str(e.Ety));
     }
     if (OTunary(e.Eoper))
     {
@@ -2922,7 +2922,7 @@ void elem_print(const elem* e, int nestlevel = 0)
 
             case OPasm:
             case OPstring:
-                printf(" '%s',%lld\n",e.EV.Vstring,cast(ulong)e.EV.Voffset);
+                printf(" '%s',%lld",e.EV.Vstring,cast(ulong)e.EV.Voffset);
                 break;
 
             case OPconst:

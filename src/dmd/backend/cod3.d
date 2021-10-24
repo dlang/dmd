@@ -1132,6 +1132,7 @@ static if (NTEXCEPTIONS)
         case BCretexp:
             reg_t reg1, reg2, lreg, mreg;
             retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
+            //printf("allocretregs returns %s\n", regm_str(mask(reg1) | mask(reg2)));
 
             lreg = mreg = NOREG;
             if (reg1 == NOREG)
