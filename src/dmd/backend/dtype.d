@@ -656,6 +656,20 @@ type *type_enum(const(char)* name, type *tbase)
 type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
         type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size)
 {
+    static if (0)
+    {
+        printf("type_struct_class(%s, %p, %p)\n", name, arg1type, arg2type);
+        if (arg1type)
+        {
+            printf("arg1type:\n");
+            type_print(arg1type);
+        }
+        if (arg2type)
+        {
+            printf("arg2type:\n");
+            type_print(arg2type);
+        }
+    }
     Symbol *s = symbol_calloc(name);
     s.Sclass = SCstruct;
     s.Sstruct = struct_calloc();

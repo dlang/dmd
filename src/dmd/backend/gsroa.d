@@ -47,6 +47,8 @@ extern (C++):
 nothrow:
 @safe:
 
+enum log = false;       // print logging info
+
 int REGSIZE();
 
 alias SLICESIZE = REGSIZE;  // slices are all register-sized
@@ -100,20 +102,73 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
                             const t = s.Stype;
                             if (tybasic(t.Tty) == TYstruct)
                             {
+                                if (t.Ttag.Sstruct.Sflags & STRbitfields)
+                                {
+                                    // Can get "used before set" errors from slicing this
+                                    // Would be workable if the symbol was flagged instead of the type
+                                    sia[si].canSlice = false;
+                                    return;
+                                }
+
                                 if (const targ1 = t.Ttag.Sstruct.Sarg1type)
                                     if (const targ2 = t.Ttag.Sstruct.Sarg2type)
                                     {
                                         sia[si].ty[0] = targ1.Tty;
                                         sia[si].ty[1] = targ2.Tty;
+
+                                        if (config.fpxmmregs &&
+                                             tyxmmreg(targ1.Tty) && !tyxmmreg(targ2.Tty) ||
+                                            !tyxmmreg(targ1.Tty) &&  tyxmmreg(targ2.Tty))
+
+                                        {
+                                            /* https://issues.dlang.org/show_bug.cgi?22438
+                                             * disable till fixed
+                                             */
+                                            if (log) printf(" [%d] can't because xmmgpr or gprxmm\n", cast(int)si);
+                                            sia[si].canSlice = false;
+                                            return;
+                                        }
                                     }
+                            }
+                            else if (tybasic(t.Tty) == TYarray)
+                            {
+                                // could be an array of floats, deal with this later
+                                if (log) printf(" [%d] can't because array of floats\n", cast(int)si);
+                                sia[si].canSlice = false;
+                                return;
+                            }
+                        }
+                        if (sz == SLICESIZE)
+                        {
+                            sia[si].ty[n] = tybasic(e.Ety);
+                            if (SLICESIZE == 4 && config.fpxmmregs && tyxmmreg(e.Ety))
+                            {
+                                /* for 32 bits, OPstreq is converted to a TYllong.
+                                 * It needs to be converted to cfloat, otherwise XMM
+                                 * registers cannot be handled. This fails:
+                                 *   struct F { float x, y; }
+                                 *   void foo(F p1, ref F rfp) { rfp = F(p.x, p.y); }
+                                 */
+                                if (log) printf(" [%d] can't because 32 bit XMM\n", cast(int)si);
+                                sia[si].canSlice = false;
+                                return;
+                            }
+                            if (config.fpxmmregs && tyxmmreg(e.Ety))
+                            {
+                                /* Too many issues with mixing XMM with non-XMM
+                                 * One problem is an OPpair with one operand a long, the other XMM.
+                                 * Giving it up for now.
+                                 */
+                                if (log) printf(" [%d] can't because XMM\n", cast(int)si);
+                                sia[si].canSlice = false;
+                                return;
                             }
                         }
                         sia[si].accessSlice = true;
-                        if (sz == SLICESIZE)
-                            sia[si].ty[n] = tybasic(e.Ety);
                     }
                     else
                     {
+                        if (log) printf(" [%d] can't because NOTSLICE 1\n", cast(int)si);
                         sia[si].canSlice = false;
                     }
                 }
@@ -136,6 +191,11 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
                             assert(si < symtab.length);
                             if (nthSlice(e1) == NOTSLICE)
                             {
+                                if (log)
+                                {
+                                    printf(" [%d] can't because NOTSLICE 2\n", cast(int)si);
+                                    elem_print(e);
+                                }
                                 sia[si].canSlice = false;
                             }
                             // Disable SROA on OSX32 (because XMM registers?)
@@ -192,6 +252,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
                     const n = nthSlice(e);
                     if (getSize(e) == 2 * SLICESIZE)
                     {
+                        if (log) { printf("slicing struct before "); elem_print(e); }
                         // Rewrite e as (si0 OPpair si0+1)
                         elem *e1 = el_calloc();
                         el_copy(e1, e);
@@ -228,17 +289,34 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
                             if (!tyfloating(e2.Ety))
                                 e2.Ety = tyop;
                         }
+                        if (log) { printf("slicing struct after\n"); elem_print(e); }
                     }
                     else if (n == 0)  // the first slice of the symbol is the same as the original
                     {
+                        if (log) { printf("slicing slice 0 "); elem_print(e); }
                     }
                     else // the nth slice
                     {
+                        if (log) { printf("slicing slice %d ", n); elem_print(e); }
                         e.EV.Vsym = symtab[sia[si].si0 + n];
                         e.EV.Voffset -= n * SLICESIZE;
                         //printf("replaced with:\n");
                         //elem_print(e);
                     }
+                }
+                return;
+            }
+
+            case OPrelconst:
+            {
+                Symbol *s = e.EV.Vsym;
+                const si = s.Ssymnum;
+                //printf("e: %d %d\n", si, sia[si].canSlice);
+                //elem_print(e);
+                if (si != SYMIDX.max && sia[si].canSlice)
+                {
+                    printf("shouldn't be slicing %s\n", s.Sident.ptr);
+                    assert(0);
                 }
                 return;
             }
@@ -263,7 +341,9 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
 @trusted
 void sliceStructs(ref symtab_t symtab, block* startblock)
 {
-    if (debugc) printf("sliceStructs() %s\n", funcsym_p.Sident.ptr);
+if (1)
+{
+    if (log) printf("\n************ sliceStructs() %s *******************\n", funcsym_p.Sident.ptr);
     const sia_length = symtab.length;
     /* 3 is because it is used for two arrays, sia[] and sia2[].
      * sia2[] can grow to twice the size of sia[], as symbols can get split into two.
@@ -281,10 +361,11 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
         sip = cast(SymInfo *)malloc(3 * sia_length * SymInfo.sizeof);
         assert(sip);
     }
+    memset(sip, 0, 3 * sia_length * SymInfo.sizeof);
     SymInfo[] sia = sip[0 .. sia_length];
     SymInfo[] sia2 = sip[sia_length .. sia_length * 3];
 
-    if (0) foreach (si; 0 .. symtab.length)
+    if (log) foreach (si; 0 .. symtab.length)
     {
         Symbol *s = symtab[si];
         printf("[%d]: %p %d %s\n", cast(int)si, s, cast(int)type_size(s.Stype), s.Sident.ptr);
@@ -294,10 +375,12 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
     foreach (si; 0 .. symtab.length)
     {
         Symbol *s = symtab[si];
-        //printf("slice1: %s\n", s.Sident.ptr);
+        if (log) printf("slice1 [%d]: %s\n", cast(int)si, s.Sident.ptr);
 
+        //if (strcmp(s.Sident.ptr, "__inlineretval3".ptr) == 0) { printf("can't\n"); sia[si].canSlice = false; continue; }
         if (!(s.Sflags & SFLunambig))   // if somebody took the address of s
         {
+            if (log) printf(" can't because SFLunambig\n");
             sia[si].canSlice = false;
             continue;
         }
@@ -306,6 +389,7 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
         if (sz != 2 * SLICESIZE ||
             tyfv(s.Stype.Tty) || tybasic(s.Stype.Tty) == TYhptr)    // because there is no TYseg
         {
+            if (log) printf(" can't because size or pointer type\n");
             sia[si].canSlice = false;
             continue;
         }
@@ -324,6 +408,7 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
                 if (tyxmmreg(s.Stype.Tty) &&
                     isXMMreg(s.Spreg) && s.Spreg2 == NOREG)
                 {
+                    if (log) printf(" can't because XMM reg\n");
                     sia[si].canSlice = false;
                 }
                 break;
@@ -332,6 +417,7 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
             case SCpseudo:
             case SCstatic:
             case SCbprel:
+                if (log) printf(" can't because Sclass\n");
                 sia[si].canSlice = false;
                 break;
 
@@ -363,6 +449,7 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
                 // If never did access it as a slice, don't slice
                 if (!sia[si].accessSlice)
                 {
+                    if (log) printf(" can't slice %s because no accessSlice\n", symtab[si].Sident.ptr);
                     sia[si].canSlice = false;
                     continue;
                 }
@@ -375,8 +462,10 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
                 const idlen = 2 + strlen(sold.Sident.ptr) + 2;
                 char *id = cast(char *)malloc(idlen + 1);
                 assert(id);
-                sprintf(id, "__%s_%d", sold.Sident.ptr, SLICESIZE);
-                if (debugc) printf("creating slice symbol %s\n", id);
+                const len = sprintf(id, "__%s_%d", sold.Sident.ptr, SLICESIZE);
+                assert(len == idlen);
+                if (log) printf("retyping slice symbol %s %s\n", sold.Sident.ptr, tym_str(sia[si].ty[0]));
+                if (log) printf("creating slice symbol %s %s\n", id, tym_str(sia[si].ty[1]));
                 Symbol *snew = symbol_calloc(id, cast(uint)idlen);
                 free(id);
                 snew.Sclass = sold.Sclass;
@@ -420,9 +509,21 @@ void sliceStructs(ref symtab_t symtab, block* startblock)
             sliceStructs_Replace(symtab, sia2, b.Belem);
     }
 
+    static if (0)
+    {
+        printf("after slicing:\n");
+        foreach (b; BlockRange(startblock))
+        {
+            if (b.Belem)
+                elem_print(b.Belem);
+        }
+        printf("after slicing done\n");
+    }
+
 Ldone:
     if (sip != tmp.ptr)
         free(sip);
+}
 }
 
 
@@ -441,13 +542,21 @@ int nthSlice(const(elem)* e)
         return NOTSLICE;
     const sliceSize = SLICESIZE;
 
+    /* if sz is less than sliceSize, this causes problems because if, say,
+     * sz is 4 while sliceSize is 8, and sz gets enregistered, then assigning to
+     * the lower 4 bytes of sz will zero out the upper 4 bytes.
+     * https://github.com/dlang/dmd/pull/13220
+     */
+    if (sz != sliceSize)
+        return NOTSLICE;
+
     /* See if e fits in a slice
      */
     const lwr = e.EV.Voffset;
     const upr = lwr + sz;
     if (0 <= lwr && upr <= sliceSize)
         return 0;
-    if (sliceSize < lwr && upr <= sliceSize * 2)
+    if (sliceSize <= lwr && upr <= sliceSize * 2)
         return 1;
 
     return NOTSLICE;
