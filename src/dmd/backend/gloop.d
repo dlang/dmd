@@ -459,7 +459,7 @@ L1:
      */
 
     // for each block in this loop
-    for (uint i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)
+    foreach (i; VecRange(l.Lloop))
     {
         if (dfo[i].BC == BCret || dfo[i].BC == BCretexp || dfo[i].BC == BCexit)
             vec_setbit(i,l.Lexit); /* ret blocks are exit blocks */

@@ -618,6 +618,26 @@ void vec_clearextrabits(vec_t v)
         v[vec_dim(v) - 1] &= MASK(cast(uint)n) - 1;
 }
 
+/**************************************
+ * Turn a vec_t into an InputRange so we can foreach
+ * over each bit in the bit vector.
+ * Replaces
+ *    for (size_t i = 0; (i = vec_index(i, v)) < vec_numbits(v); ++i) { ... }
+ * With
+ *    foreach (i; VecRange(v)) { ... }
+ */
+struct VecRange
+{
+    size_t i;
+    const vec_t v;
+
+  @nogc @safe nothrow pure:
+    this(const vec_t v) { this.v = v; i = vec_index(0, v); }
+    bool empty() const { return i == vec_numbits(v); }
+    size_t front() const { return i; }
+    void popFront() { i = vec_index(i + 1, v); }
+}
+
 /******************
  * Write out vector.
  */
