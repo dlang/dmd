@@ -3734,9 +3734,14 @@ bool loopunroll(ref Loop l)
     /* For simplification, only unroll loops that consist only
      * of a head and tail, and the tail is the exit block.
      */
-    int numblocks = 0;
+    const numblocks = vec_numBitsSet(l.Lloop);
+{   // Ensure no changes
+    if (dfo.length != vec_numbits(l.Lloop)) assert(0);
+    int n = 0;
     for (int i = 0; (i = cast(uint) vec_index(i, l.Lloop)) < dfo.length; ++i)  // for each block in loop
-        ++numblocks;
+        ++n;
+    if (n != numblocks) assert(0);
+}
     if (numblocks != 2)
     {
         if (log) printf("\tnot 2 blocks, but %d\n", numblocks);
