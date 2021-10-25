@@ -6239,32 +6239,23 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             if (tinst && tinst.needsCodegen())
             {
                 minst = tinst.minst; // cache result
-                if (global.params.allInst && minst)
-                {
-                    return true;
-                }
                 assert(minst);
                 assert(minst.isRoot() || minst.rootImports());
-                return true;
             }
-            if (tnext && (tnext.needsCodegen() || tnext.minst))
+            else if (tnext && (tnext.needsCodegen() || tnext.minst))
             {
                 minst = tnext.minst; // cache result
-                if (global.params.allInst && minst)
-                {
-                    return true;
-                }
                 assert(minst);
-                return minst.isRoot() || minst.rootImports();
+            }
+            else
+            {
+                // Elide codegen because this is really speculative.
+                // Keep chain disconnected => don't attempt to resolve minst again.
+                return false;
             }
 
-            // Elide codegen because this is really speculative.
-            return false;
-        }
-
-        if (global.params.allInst)
-        {
-            return true;
+            this.tnext = tnext;
+            this.tinst = tinst;
         }
 
         if (isDiscardable())
@@ -6291,6 +6282,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 return r;
             }
             return false;
+        }
+
+        if (global.params.allInst)
+        {
+            return true;
         }
 
         {
