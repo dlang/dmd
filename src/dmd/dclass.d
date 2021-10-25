@@ -145,6 +145,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     extern (C++) __gshared
     {
         // Names found by reading object.d in druntime
+        ClassDeclaration protoObject;
         ClassDeclaration object;
         ClassDeclaration throwable;
         ClassDeclaration exception;
@@ -331,6 +332,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                     error("%s", msg);
                 Type.typeinfovector = this;
             }
+        }
+
+        if (id == Id.ProtoObject)
+        {
+            if (!inObject)
+                error("%s", msg);
+            protoObject = this;
         }
 
         if (id == Id.Object)

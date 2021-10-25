@@ -431,7 +431,7 @@ static assert(Error!( const(C), SI )); // should work
 static assert(is( X!( const(SI), const(C) ) == const(I) )); // should work
 static assert(is( X!( const(C), SB ) == const(B)));
 static assert(is( X!( const(C), SD ) == const(B)));
-static assert(is( X!( const(C), SK ) == Object)); // `const`
+static assert(is( X!( const(C), SK ) == const(Object))); // `const`
 
 static assert(is( X!( SiC, SC ) == const(C) ));
 

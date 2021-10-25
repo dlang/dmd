@@ -74,7 +74,11 @@ struct ExternDStructTemplate final
     }
 };
 
-class Object
+class ProtoObject
+{
+};
+
+class Object : public ProtoObject
 {
     virtual void __vtable_slot_0();
     virtual void __vtable_slot_1();

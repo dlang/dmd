@@ -699,8 +699,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 ClassDeclaration cdto = e.type.isClassHandle();
                 if (cdfrom.errors || cdto.errors)
                     return error();
-                if (cdto == ClassDeclaration.object && !cdfrom.isInterfaceDeclaration())
-                    goto L1;    // can always convert a class to Object
+                if (cdto == ClassDeclaration.protoObject && !cdfrom.isInterfaceDeclaration())
+                    goto L1;    // can always convert a class to ProtoObject
                 // Need to determine correct offset before optimizing away the cast.
                 // https://issues.dlang.org/show_bug.cgi?id=16980
                 cdfrom.size(e.loc);

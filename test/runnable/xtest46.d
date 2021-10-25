@@ -7942,7 +7942,7 @@ void test17349()
 
 void test17915()
 {
-    static class MyClass
+    static class MyClass : ProtoObject
     {
         S17915!MyClass m_member;
     }

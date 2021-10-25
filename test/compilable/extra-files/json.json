@@ -123,6 +123,7 @@
                 "protection": "public"
             },
             {
+                "base": "object.Object",
                 "char": 1,
                 "kind": "class",
                 "line": 23,
@@ -707,6 +708,7 @@
                 "protection": "package"
             },
             {
+                "base": "object.Object",
                 "char": 1,
                 "kind": "class",
                 "line": 114,

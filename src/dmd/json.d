@@ -616,7 +616,7 @@ public:
         ClassDeclaration cd = d.isClassDeclaration();
         if (cd)
         {
-            if (cd.baseClass && cd.baseClass.ident != Id.Object)
+            if (cd.baseClass && (cd.baseClass.ident != Id.Object || cd.baseClass.ident != Id.ProtoObject))
             {
                 property("base", cd.baseClass.toPrettyChars(true).toDString);
             }

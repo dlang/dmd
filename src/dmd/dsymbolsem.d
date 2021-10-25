@@ -4827,8 +4827,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (cldec.classKind == ClassKind.objc || (cldec.baseClass && cldec.baseClass.classKind == ClassKind.objc))
                 cldec.classKind = ClassKind.objc; // Objective-C classes do not inherit from Object
 
-            // If no base class, and this is not an Object, use Object as base class
-            if (!cldec.baseClass && cldec.ident != Id.Object && cldec.object && cldec.classKind == ClassKind.d)
+            void setBaseClass(ref ClassDeclaration cldec, ClassDeclaration base)
             {
                 void badObjectDotD()
                 {
@@ -4836,10 +4835,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     fatal();
                 }
 
-                if (!cldec.object || cldec.object.errors)
+                if (!base || base.errors)
                     badObjectDotD();
 
-                Type t = cldec.object.type;
+                Type t = base.type;
                 t = t.typeSemantic(cldec.loc, sc).toBasetype();
                 if (t.ty == Terror)
                     badObjectDotD();
@@ -4852,6 +4851,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 cldec.baseClass = tc.sym;
                 assert(!cldec.baseClass.isInterfaceDeclaration());
                 b.sym = cldec.baseClass;
+            }
+
+            // Object has ProtoObject at its base
+            if (!cldec.baseClass && cldec.ident == Id.Object && cldec.protoObject && cldec.classKind == ClassKind.d)
+            {
+                setBaseClass(cldec, cldec.protoObject);
+            }
+            // If no base class, and this is not an Object, use Object as base class
+            if (!cldec.baseClass && cldec.ident != Id.Object && cldec.ident != Id.ProtoObject && cldec.object && cldec.classKind == ClassKind.d)
+            {
+                setBaseClass(cldec, cldec.object);
             }
             if (cldec.baseClass)
             {

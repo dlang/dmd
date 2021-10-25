@@ -511,6 +511,8 @@ immutable Msgtable[] msgtable =
     { "show" },
     { "push" },
     { "pop" },
+
+    { "ProtoObject" },
 ];
 
 
