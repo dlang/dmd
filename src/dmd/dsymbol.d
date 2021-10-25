@@ -187,7 +187,7 @@ struct Visibility
     }
 }
 
-enum PASS : int
+enum PASS : ubyte
 {
     init,           // initial state
     semantic,       // semantic() started
