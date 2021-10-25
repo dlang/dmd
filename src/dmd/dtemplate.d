@@ -6267,7 +6267,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
          * a non-root nested template should not generate code,
          * due to avoid ODR violation.
          */
-        if (enclosing && enclosing.inNonRoot())
+        version (none) if (enclosing && enclosing.inNonRoot())
         {
             if (tinst)
             {
@@ -6286,9 +6286,34 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         if (global.params.allInst)
         {
-            return true;
-        }
+            // Prefer instantiations from root modules, to maximize link-ability.
+            if (minst.isRoot())
+                return true;
 
+            TemplateInstance tnext = this.tnext;
+            TemplateInstance tinst = this.tinst;
+            this.tnext = null;
+            this.tinst = null;
+
+            if (tinst && tinst.needsCodegen())
+            {
+                minst = tinst.minst; // cache result
+                assert(minst);
+                assert(minst.isRoot());
+                return true;
+            }
+            if (tnext && tnext.needsCodegen())
+            {
+                minst = tnext.minst; // cache result
+                assert(minst);
+                assert(minst.isRoot());
+                return true;
+            }
+
+            // Elide codegen because this is not included in root instances.
+            return false;
+        }
+        else
         {
             // Prefer instantiations from non-root module, to minimize object code size.
 
