@@ -22,8 +22,9 @@ import core.sys.posix.sys.types;
 
 alias MAP_ANONYMOUS = MAP_ANON;
 enum MAP_STACK = 0x4000;
+enum MAP_CONCEAL = 0x8000;
 
-enum MAP_FLAGMASK = 0x7ff7;
+enum MAP_FLAGMASK = 0xfff7;
 
 alias MAP_COPY = MAP_PRIVATE;
 enum MAP_FILE = 0;
@@ -45,7 +46,6 @@ static if (__BSD_VISIBLE)
     enum MADV_FREE = 6;
 
     int madvise(void *, size_t, int);
-    int mincore(const(void) *, size_t, char *);
     int minherit(void *, size_t, int);
     void* mquery(void *, size_t, int, int, int, off_t);
 }
