@@ -1749,11 +1749,31 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
         else if (m == match && m > MATCH.nomatch)
         {
             assert(fd_best);
-            /* Ignore covariant matches, as later on it can be redone
-             * after the opApply delegate has its attributes inferred.
-             */
-            if (tf.covariant(fd_best.type) != Covariant.yes &&
-                fd_best.type.covariant(tf) != Covariant.yes)
+            auto bestTf = fd_best.type.isTypeFunction();
+            assert(bestTf);
+
+            // Found another overload with different attributes?
+            // e.g. @system vs. @safe opApply
+            bool ambig = tf.attributesEqual(bestTf);
+
+            // opApplies with identical attributes could still accept
+            // different function bodies as delegate
+            // => different parameters or attributes
+            if (ambig)
+            {
+                // Fetch the delegates that receive the function body
+                auto tfBody = tf.parameterList[0].type.isTypeDelegate().next;
+                assert(tfBody);
+
+                auto bestBody = bestTf.parameterList[0].type.isTypeDelegate().next;
+                assert(bestBody);
+
+                // Ignore covariant matches, as later on it can be redone
+                // after the opApply delegate has its attributes inferred.
+                ambig = !(tfBody.covariant(bestBody) == Covariant.yes || bestBody.covariant(tfBody) == Covariant.yes);
+            }
+
+            if (ambig)
                 fd_ambig = f;                           // not covariant, so ambiguous
         }
         return 0;               // continue

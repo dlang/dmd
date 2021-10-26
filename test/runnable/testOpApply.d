@@ -49,6 +49,7 @@ int main()
     test();
     testDifferentTypes();
     testSameAttributes();
+    testInverseAttributes();
     return 0;
 }
 
@@ -105,4 +106,37 @@ void testSameAttributes()
         assert(sa.x == 1);
     }
     system();
+}
+
+// Not useful but enabled by the associated patch
+void testInverseAttributes()
+{
+    static struct InverseAttributes
+    {
+        int x;
+        int opApply(int delegate(int) @system dg) @safe {
+            x = 1;
+            return 0;
+        }
+        int opApply(int delegate(int) @safe dg) @system {
+            x = 2;
+            return 0;
+        }
+    }
+
+    static void system() @system
+    {
+        InverseAttributes sa;
+        foreach (i; sa) {}
+        assert(sa.x == 1);
+    }
+    system();
+
+    static void safe() @safe
+    {
+        InverseAttributes sa;
+        (() @trusted { foreach (i; sa) {} })();
+        assert(sa.x == 2);
+    }
+    safe();
 }
