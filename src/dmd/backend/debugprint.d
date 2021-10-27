@@ -56,7 +56,7 @@ void ferr(const(char)* p) { printf("%s", p); }
  */
 
 @trusted
-const(char)* str_class(SC c)
+const(char)* class_str(SC c)
 {
     __gshared const char[10][SCMAX] sc =
     [
@@ -112,12 +112,6 @@ const(char)* str_class(SC c)
   else
         sprintf(buffer.ptr,"SC%u",cast(uint)c);
   return buffer.ptr;
-}
-
-@trusted
-void WRclass(SC c)
-{
-    printf("%11s ",str_class(c));
 }
 
 /***************************

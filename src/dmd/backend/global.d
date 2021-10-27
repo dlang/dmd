@@ -424,7 +424,7 @@ void compdfo();
 /* debug.c */
 extern __gshared const(char)*[32] regstring;
 
-void WRclass(int c);
+@trusted const(char)* class_str(SC c);
 void WRTYxx(tym_t t);
 @trusted const(char)* oper_str(uint oper);
 @trusted const(char)* bc_str(uint bc);

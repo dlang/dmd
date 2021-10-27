@@ -105,7 +105,7 @@ version (COMPILE)
 {
     if (!s) return;
     printf("symbol %p '%s'\n ",s,s.Sident.ptr);
-    printf(" Sclass = "); WRclass(cast(SC) s.Sclass);
+    printf(" Sclass = %s ", class_str(cast(SC) s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = "); WRFL(cast(FL) s.Sfl);
     printf(" Sseg = %d\n",s.Sseg);
