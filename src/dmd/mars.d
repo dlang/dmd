@@ -38,6 +38,7 @@ import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
+import dmd.file_manager;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -300,8 +301,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module._init();
     Expression._init();
     Objc._init();
-    import dmd.filecache : FileCache;
-    FileCache._init();
 
     reconcileLinkRunLib(params, files.dim);
     version(CRuntime_Microsoft)
@@ -362,6 +361,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             auto buffer = readFromStdin();
             m.srcBuffer = new FileBuffer(buffer.extractSlice());
+            FileManager.fileManager.add(m.srcfile, m.srcBuffer);
         }
     }
 
