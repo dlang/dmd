@@ -12,7 +12,7 @@ x-meta-anchors-remove:
     if: github.repository == 'dlang/dmd'
         && ((github.event_name == 'pull_request'
           && (contains(github.event.pull_request.labels.*.name, 'windows')
-              || github.event.pull_request.draft))
+              || !github.event.pull_request.draft))
         || github.event_name == 'push')
 
 "on":

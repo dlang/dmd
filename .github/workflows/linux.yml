@@ -1,0 +1,141 @@
+######################################################################
+#   WARNING: This file was automatically generated. DO NOT MODIFY!   #
+######################################################################
+# This file was automatically generated from 'ci/src/gh-actions/linux.yml'. To modify this file,
+# you should modify the source file, and call 'ci/tools/expand_yaml_anchors.d'.
+# Do not modify this file directly, as changes will most likely be lost.
+name: Linux CI
+"on":
+  pull_request:
+    branches:
+    - master
+    - stable
+    types: [synchronize, labeled]
+  push:
+    branches:
+    - master
+    - stable
+concurrency:
+  group: ci-linux-${{ github.actor }}-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  lint_coverage:
+    name: Lint repo and upload coverage data
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Setup D compiler
+      uses: dlang-community/setup-dlang@v1
+      with:
+        compiler: dmd-2.095.0
+    - name: Checkout DMD
+      uses: actions/checkout@v2
+      with:
+        path: dmd
+        persist-credentials: false
+    - name: Checkout DRuntime / Phobos
+      uses: ./dmd/.github/actions/checkout-druntime-phobos
+    - name: Check D build script
+      shell: bash
+      run: |
+        cd dmd
+        ./src/build.d clean
+        rm -rf generated # just to be sure
+        # TODO: add support for 32-bit builds
+        ./src/build.d MODEL=64
+        ./generated/linux/release/64/dmd --version | grep -v "dirty"
+        ./src/build.d clean
+    - name: Run unit-tests and upload coverage data
+      shell: bash
+      run: |
+        local build_path=generated/linux/$BUILD/$MODEL
+        local builder=generated/build
+        dmd -g -od=generated -of=$builder src/build
+        # build dmd, druntime, and phobos
+        $builder MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
+        make -j$N -C ../druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
+        make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
+
+        # save the built dmd as host compiler this time
+        # `generated` gets removed in 'clean', so we create another _generated
+        mkdir -p _${build_path}
+        cp $build_path/dmd _${build_path}/host_dmd
+        cp $build_path/dmd.conf _${build_path}
+    if: github.repository == 'dlang/dmd'
+  cross-compile:
+    name: Compile and test (${{ matrix.os }}/${{ matrix.arch }}/${{ matrix.dc }})
+    runs-on: "${{ matrix.os }}"
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-18.04]
+        arch: [x86, x64]
+        dc: [dmd-2.097.1, dmd-latest, ldc-latest, gdc]
+    steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get update --quiet=2
+        if [[ "${{ matrix.arch }}" = "x86" ]]; then
+          sudo apt-get install g++-multilib gdb --assume-yes --quiet=2
+        else
+          sudo apt-get install gdb --assume-yes --quiet=2
+        fi
+
+        if [[ "${{ matrix.dc }}" = "gdc" ]]; then
+          sudo apt-get install gdc --assume-yes --quiet=2
+        fi
+    - name: Setup D compiler
+      if: ${{ matrix.dc != 'gdc' }}
+      uses: dlang-community/setup-dlang@v1
+      with:
+        compiler: ${{ matrix.dc }}
+    - name: Setup environment variables
+      shell: bash
+      run: |
+        if [[ "${{ matrix.arch }}" = "x86" ]]; then
+          echo "MODEL=32" >> $GITHUB_ENV
+        else
+          echo "MODEL=64" >> $GITHUB_ENV
+        fi
+
+        if [[ "${{ matrix.dc }}" = "gdc" ]]; then
+          echo "HOST_DMD=gdmd" >> $GITHUB_ENV
+          echo "DMD=gdmd" >> $GITHUB_ENV
+        elif [[ "${DC:0:3}" = "ldc" ]]; then
+          echo "HOST_DMD=$DC" >> $GITHUB_ENV
+          echo "DMD=ldmd2" >> $GITHUB_ENV
+        elif [[ "${DC:0:3}" = "dmd" ]]; then
+          echo "HOST_DMD=$DC" >> $GITHUB_ENV
+          echo "DMD=dmd" >> $GITHUB_ENV
+        fi
+
+        echo "OS_NAME=linux" >> $GITHUB_ENV
+        echo "FULL_BUILD=true" >> $GITHUB_ENV
+        echo "N=$NUMBER_OF_PROCESSORS" >> $GITHUB_ENV
+    - name: Checkout DMD
+      uses: actions/checkout@v2
+      with:
+        path: dmd
+        persist-credentials: false
+    - name: Checkout DRuntime / Phobos
+      uses: ./dmd/.github/actions/checkout-druntime-phobos
+    - name: Build DMD
+      shell: bash
+      run: |
+        cd dmd
+        ./ci.sh build
+    - name: Run DMD test suite
+      shell: bash
+      run: |
+        cd dmd
+        ./ci.sh test_dmd
+    - name: Run DRuntime test suite
+      shell: bash
+      run: |
+        cd dmd
+        ./ci.sh test_druntime
+    - name: Run Phobos test suite
+      shell: bash
+      run: |
+        cd dmd
+        ./ci.sh test_phobos
+    if: github.repository == 'dlang/dmd'

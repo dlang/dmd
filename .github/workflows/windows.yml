@@ -150,4 +150,4 @@ jobs:
       run: |
         cd dmd
         cmd.exe /c "call ci/windows-msbuild.bat"
-    if: github.repository == 'dlang/dmd' && ((github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'windows') || github.event.pull_request.draft)) || github.event_name == 'push')
+    if: github.repository == 'dlang/dmd' && ((github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'windows') || !github.event.pull_request.draft)) || github.event_name == 'push')
