@@ -810,7 +810,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //printf("TemplateInstance.toObjFile(%p, '%s')\n", ti, ti.toChars());
             if (!isError(ti) && ti.members)
             {
-                if (!ti.needsCodegen())
+                if (ti.isDiscardable() || !ti.needsCodegen())
                 {
                     //printf("-speculative (%p, %s)\n", ti, ti.toPrettyChars());
                     return;

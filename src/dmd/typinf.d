@@ -168,7 +168,7 @@ bool isSpeculativeType(Type t)
         StructDeclaration sd = t.sym;
         if (auto ti = sd.isInstantiated())
         {
-            if (!ti.needsCodegen())
+            if (!ti.needsCodegen() || ti.isDiscardable())
             {
                 if (ti.minst || sd.requestTypeInfo)
                     return false;
@@ -200,7 +200,7 @@ bool isSpeculativeType(Type t)
         ClassDeclaration sd = t.sym;
         if (auto ti = sd.isInstantiated())
         {
-            if (!ti.needsCodegen() && !ti.minst)
+            if ((!ti.needsCodegen() || ti.isDiscardable()) && !ti.minst)
             {
                 return true;
             }

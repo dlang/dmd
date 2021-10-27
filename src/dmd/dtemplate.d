@@ -6258,11 +6258,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             this.tinst = tinst;
         }
 
-        if (isDiscardable())
-        {
-            return false;
-        }
-
         /* Even when this is reached to the codegen pass,
          * a non-root nested template should not generate code,
          * due to avoid ODR violation.
@@ -6333,12 +6328,20 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 return false;
 
             TemplateInstance tnext = this.tnext;
+            TemplateInstance tinst = this.tinst;
             this.tnext = null;
+            this.tinst = null;
 
+            if (tinst && !tinst.needsCodegen() && tinst.minst)
+            {
+                minst = tinst.minst; // cache result
+                assert(!minst.isRoot() && !minst.rootImports());
+                return false;
+            }
             if (tnext && !tnext.needsCodegen() && tnext.minst)
             {
                 minst = tnext.minst; // cache result
-                assert(!minst.isRoot());
+                assert(!minst.isRoot() && !minst.rootImports());
                 return false;
             }
 
