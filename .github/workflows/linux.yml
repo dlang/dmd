@@ -69,6 +69,11 @@ jobs:
         os: [ubuntu-latest, ubuntu-18.04]
         arch: [x86, x64]
         dc: [dmd-2.097.1, dmd-latest, ldc-latest, gdc]
+        exclude:
+        - {os: ubuntu-latest, arch: x86, dc: gdc}
+        - {os: ubuntu-18.04, arch: x86, dc: gdc}
+        - {os: ubuntu-latest, arch: x86, dc: ldc-latest}
+        - {os: ubuntu-18.04, arch: x86, dc: ldc-latest}
     steps:
     - name: Install dependencies
       shell: bash
