@@ -371,7 +371,7 @@ elem * evalu8(elem *e, goal_t goal)
     uns = tyuns(tym) | tyuns(tym2);
 
   /*elem_print(e);*/
-  /*dbg_printf("x%lx ",l1); WROP(op); dbg_printf("x%lx = ",l2);*/
+  //dbg_printf("x%lx %s x%lx = ", l1, oper_str(op), l2);
 static if (0)
 {
   if (0 && e2)

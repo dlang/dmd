@@ -604,9 +604,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         debug
         if (_tysize[ty2] != REGSIZE)
         {
-            printf("e = %p, e.Eoper = ",e);
-            WROP(e.Eoper);
-            printf(" e1.Ety = ");
+            printf("e = %p, e.Eoper = %s e1.Ety = ", e, oper_str(e.Eoper));
             WRTYxx(ty1);
             printf(" e2.Ety = ");
             WRTYxx(ty2);
