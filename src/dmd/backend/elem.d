@@ -2420,7 +2420,7 @@ version (SCPP_HTOD)
                 break;
 }
             default:
-                WROP(op);
+                printf("op: %s\n", oper_str(op));
                 assert(0);
         }
 ismatch:
@@ -2866,8 +2866,7 @@ void elem_print(const elem* e, int nestlevel = 0)
         if (!OPTIMIZER)
             printf("cs=%d ",e.Ecomsub);
     }
-    WROP(e.Eoper);
-    printf(" ");
+    printf("%s ", oper_str(e.Eoper));
     version (SCPP_HTOD)
         enum scpp = true;
     else

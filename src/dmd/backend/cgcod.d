@@ -3031,8 +3031,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 
     debug if (debugw)
     {
-        printf("+codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
-        WROP(e.Eoper);
+        printf("+codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs),oper_str(e.Eoper));
         printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
@@ -3170,8 +3169,7 @@ L1:
 
     debug if (debugw)
     {
-        printf("-codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
-        WROP(op);
+        printf("-codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs), oper_str(op));
         printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
     }

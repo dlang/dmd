@@ -4023,8 +4023,7 @@ void cdlngsht(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     debug
     if (!(!*pretregs || retregs))
     {
-        WROP(e.Eoper),
-        printf(" *pretregs = %s, retregs = %s, e = %p\n",regm_str(*pretregs),regm_str(retregs),e);
+        printf("%s *pretregs = %s, retregs = %s, e = %p\n",oper_str(e.Eoper),regm_str(*pretregs),regm_str(retregs),e);
     }
 
     assert(!*pretregs || retregs);
@@ -4058,8 +4057,8 @@ void cdmsw(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     debug
     if (!(!*pretregs || retregs))
-    {   WROP(e.Eoper);
-        printf(" *pretregs = %s, retregs = %s\n",regm_str(*pretregs),regm_str(retregs));
+    {
+        printf("%s *pretregs = %s, retregs = %s\n",oper_str(e.Eoper),regm_str(*pretregs),regm_str(retregs));
         elem_print(e);
     }
 

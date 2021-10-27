@@ -5650,7 +5650,7 @@ private elem * optelem(elem *e, goal_t goal)
 beg:
     //__gshared uint count;
     //printf("count: %u\n", ++count);
-    //{ printf("xoptelem: %p ",e); WROP(e.Eoper); printf(" goal x%x\n", goal); }
+    //{ printf("xoptelem: %p %s goal x%x\n",e, oper_str(e.Eoper), goal); }
     assert(e);
     elem_debug(e);
     assert(e.Ecount == 0);             // no CSEs
@@ -6132,11 +6132,11 @@ beg:
   }
 
 //  if (debugb)
-//  {   print("optelem: %p ",e); WROP(op); print("\n"); }
+//  {   print("optelem: %p %s\n",e, oper_str(op)); }
 
     static if (0)
     {
-        {   print("xoptelem: %p ",e); WROP(e.Eoper); print("\n"); }
+        printf("xoptelem: %p %s\n", e, oper_str(e.Eoper));
         elem_print(e);
         e = (*elxxx[op])(e, goal);
         printf("After:\n");

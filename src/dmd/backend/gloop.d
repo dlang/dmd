@@ -1304,8 +1304,7 @@ private void markinvar(elem *n,vec_t rd)
             break;
 
         default:
-            WROP(n.Eoper);
-            //printf("n.Eoper = %d, OPconst = %d\n", n.Eoper, OPconst);
+            //printf("n.Eoper = %s, OPconst = %d\n", oper_str(n.Eoper), OPconst);
             assert(0);
     }
 

@@ -2421,8 +2421,7 @@ L1:
     debug
     if ((jp & 0xF0) != 0x70)
     {
-        WROP(op);
-        printf("i %d zero %d op x%x jp x%x\n",i,zero,op,jp);
+        printf("%s i %d zero %d op x%x jp x%x\n",oper_str(op),i,zero,op,jp);
     }
 
     assert((jp & 0xF0) == 0x70);

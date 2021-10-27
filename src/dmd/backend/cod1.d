@@ -3945,7 +3945,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         // Function calls may throw Errors
         funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
 
-        if (e1.Eoper != OPind) { WRFL(cast(FL)el_fl(e1)); WROP(e1.Eoper); }
+        if (e1.Eoper != OPind) { WRFL(cast(FL)el_fl(e1)); printf("e1.Eoper: %s\n", oper_str(e1.Eoper)); }
         save87(cdb);                   // assume 8087 regs are all trashed
         assert(e1.Eoper == OPind);
         elem *e11 = e1.EV.E1;
