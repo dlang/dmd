@@ -6223,17 +6223,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
+        TemplateInstance tnext = this.tnext;
+        TemplateInstance tinst = this.tinst;
+        this.tnext = null;
+        this.tinst = null;
+
         if (!minst)
         {
             // If this is a speculative instantiation,
             // 1. do codegen if ancestors really needs codegen.
             // 2. become non-speculative if siblings are not speculative
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            // At first, disconnect chain first to prevent infinite recursion.
-            this.tnext = null;
-            this.tinst = null;
 
             // Determine necessity of tinst before tnext.
             if (tinst && tinst.needsCodegen())
@@ -6250,33 +6249,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             else
             {
                 // Elide codegen because this is really speculative.
-                // Keep chain disconnected => don't attempt to resolve minst again.
                 return false;
             }
-
-            this.tnext = tnext;
-            this.tinst = tinst;
-        }
-
-        /* Even when this is reached to the codegen pass,
-         * a non-root nested template should not generate code,
-         * due to avoid ODR violation.
-         */
-        version (none) if (enclosing && enclosing.inNonRoot())
-        {
-            if (tinst)
-            {
-                auto r = tinst.needsCodegen();
-                minst = tinst.minst; // cache result
-                return r;
-            }
-            if (tnext)
-            {
-                auto r = tnext.needsCodegen();
-                minst = tnext.minst; // cache result
-                return r;
-            }
-            return false;
         }
 
         if (global.params.allInst)
@@ -6284,11 +6258,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // Prefer instantiations from root modules, to maximize link-ability.
             if (minst.isRoot())
                 return true;
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            this.tnext = null;
-            this.tinst = null;
 
             if (tinst && tinst.needsCodegen())
             {
@@ -6326,11 +6295,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              */
             if (!minst.isRoot() && !minst.rootImports())
                 return false;
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            this.tnext = null;
-            this.tinst = null;
 
             if (tinst && !tinst.needsCodegen() && tinst.minst)
             {
