@@ -2196,7 +2196,7 @@ public:
                     Expression ev = getValue(v);
                     if (ev.op == TOK.variable ||
                         ev.op == TOK.index ||
-                        ev.op == TOK.slice ||
+                        (ev.op == TOK.slice && ev.type.toBasetype().ty == Tsarray) ||
                         ev.op == TOK.dotVariable)
                     {
                         result = interpret(pue, ev, istate, goal);
