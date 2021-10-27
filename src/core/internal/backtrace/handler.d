@@ -10,6 +10,11 @@
  * Runtime.traceHandler = &libunwindDefaultTraceHandler;
  * ---
  *
+ * Note that this module uses `dladdr` to retrieve the function's name.
+ * To ensure that local (non-library) functions have their name printed,
+ * the flag `-L--export-dynamic` must be used while compiling,
+ * otherwise only the executable name will be available.
+ *
  * Authors: Mathias 'Geod24' Lang
  * Copyright: D Language Foundation - 2020
  * See_Also: https://www.nongnu.org/libunwind/man/libunwind(3).html
@@ -87,6 +92,7 @@ class LibunwindHandler : Throwable.TraceInfo
         static const(char)[] getFrameName (const(void)* ptr)
         {
             Dl_info info = void;
+            // Note: See the module documentation about `-L--export-dynamic`
             if (dladdr(ptr, &info))
             {
                 // Return symbol name if possible
