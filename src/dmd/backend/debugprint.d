@@ -167,18 +167,17 @@ void WRTYxx(tym_t t)
 }
 
 @trusted
-void WRBC(uint bc)
+const(char)* bc_str(uint bc)
 {
-    __gshared const char[7][BCMAX] bcs =
-        ["unde  ","goto  ","true  ","ret   ","retexp",
-         "exit  ","asm   ","switch","ifthen","jmptab",
-         "try   ","catch ","jump  ",
-         "_try  ","_filte","_final","_ret  ","_excep",
-         "jcatch","_lpad ",
+    __gshared const char[9][BCMAX] bcs =
+        ["BCunde  ","BCgoto  ","BCtrue  ","BCret   ","BCretexp",
+         "BCexit  ","BCasm   ","BCswitch","BCifthen","BCjmptab",
+         "BCtry   ","BCcatch ","BCjump  ",
+         "BC_try  ","BC_filte","BC_final","BC_ret  ","BC_excep",
+         "BCjcatch","BC_lpad ",
         ];
 
-    assert(bc < BCMAX);
-    printf("BC%s",bcs[bc].ptr);
+    return bcs[bc].ptr;
 }
 
 /************************
@@ -371,9 +370,7 @@ void WRblock(block *b)
         }
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
-        printf(" ");
-        WRBC(b.BC);
-        printf(" Btry=%p Bindex=%d",b.Btry,b.Bindex);
+        printf(" %s Btry=%p Bindex=%d",bc_str(b.BC),b.Btry,b.Bindex);
         if (b.BC == BCtry)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
@@ -406,7 +403,7 @@ void WRblock(block *b)
         int ncases;
 
         assert(b);
-        printf("%2d: ", b.Bnumber); WRBC(b.BC);
+        printf("%2d: %s", b.Bnumber, bc_str(b.BC));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
         if (b.Bindex)

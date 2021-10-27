@@ -427,7 +427,7 @@ extern __gshared const(char)*[32] regstring;
 void WRclass(int c);
 void WRTYxx(tym_t t);
 @trusted const(char)* oper_str(uint oper);
-void WRBC(uint bc);
+@trusted const(char)* bc_str(uint bc);
 void WRarglst(list_t a);
 void WRblock(block *b);
 void WRblocklist(list_t bl);
