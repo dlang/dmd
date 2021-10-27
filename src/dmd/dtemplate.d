@@ -6296,11 +6296,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             if (!minst.isRoot() && !minst.rootImports())
                 return false;
 
-            if (tinst && !tinst.needsCodegen() && tinst.minst)
+            version (none) // FIXME
             {
-                minst = tinst.minst; // cache result
-                assert(!minst.isRoot() && !minst.rootImports());
-                return false;
+                if (tinst && !tinst.needsCodegen() && tinst.minst)
+                {
+                    minst = tinst.minst; // cache result
+                    assert(!minst.isRoot() && !minst.rootImports());
+                    return false;
+                }
             }
             if (tnext && !tnext.needsCodegen() && tnext.minst)
             {
