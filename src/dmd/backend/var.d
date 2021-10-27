@@ -75,7 +75,7 @@ int linkage_spec = 0;           /* using the default                    */
 /* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall,Mars */
 static if (MEMMODELS == 1)
 {
-tym_t[LINK_MAXDIM] functypetab =
+immutable tym_t[LINK_MAXDIM] functypetab =
 [
     TYnfunc,
     TYnpfunc,
@@ -85,7 +85,7 @@ tym_t[LINK_MAXDIM] functypetab =
 }
 else
 {
-tym_t[MEMMODELS][LINK_MAXDIM] functypetab =
+immutable tym_t[MEMMODELS][LINK_MAXDIM] functypetab =
 [
     [ TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc  ],
     [ TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc  ],
@@ -99,7 +99,7 @@ tym_t[MEMMODELS][LINK_MAXDIM] functypetab =
 
 /* Function mangling    */
 /* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall */
-mangle_t[LINK_MAXDIM] funcmangletab =
+immutable mangle_t[LINK_MAXDIM] funcmangletab =
 [
     mTYman_c,
     mTYman_cpp,
@@ -111,7 +111,7 @@ mangle_t[LINK_MAXDIM] funcmangletab =
 ];
 
 /* Name mangling for global variables   */
-mangle_t[LINK_MAXDIM] varmangletab =
+immutable mangle_t[LINK_MAXDIM] varmangletab =
 [
     mTYman_c,
     mTYman_cpp,
@@ -195,7 +195,7 @@ tym_t pointertype = TYnptr;     /* default data pointer type            */
 version (SPP) { } else
 {
 
-char[SCMAX] sytab =
+immutable char[SCMAX] sytab =
 [
     /* unde */     SCEXP|SCKEP|SCSCT,      /* undefined                            */
     /* auto */     SCEXP|SCSS|SCRD  ,      /* automatic (stack)                    */
@@ -265,7 +265,7 @@ type *chartype;                 /* default 'char' type                  */
 
 Obj objmod = null;
 
-__gshared uint[256] tytab =
+immutable uint[256] tytab =
 () {
     uint[256] tab;
     foreach (i; TXptr)        { tab[i] |= TYFLptr; }
@@ -295,7 +295,7 @@ __gshared uint[256] tytab =
 } ();
 
 
-extern (C) __gshared const(char)*[TYMAX] tystring =
+extern (C) immutable const(char)*[TYMAX] tystring =
 [
     TYbool    : "bool",
     TYchar    : "char",
@@ -406,7 +406,7 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
 ];
 
 /// Map to unsigned version of type
-__gshared tym_t[256] tytouns =
+immutable tym_t[256] tytouns =
 () {
     tym_t[256] tab;
     foreach (ty; 0 .. TYMAX)
@@ -449,7 +449,7 @@ __gshared tym_t[256] tytouns =
 } ();
 
 /// Map to relaxed version of type
-__gshared ubyte[TYMAX] _tyrelax =
+immutable ubyte[TYMAX] _tyrelax =
 () {
     ubyte[TYMAX] tab;
     foreach (ty; 0 .. TYMAX)
@@ -485,7 +485,7 @@ __gshared ubyte[TYMAX] _tyrelax =
 } ();
 
 /// Map to equivalent version of type
-__gshared ubyte[TYMAX] tyequiv =
+immutable ubyte[TYMAX] tyequiv =
 () {
     ubyte[TYMAX] tab;
     foreach (ty; 0 .. TYMAX)
@@ -505,7 +505,7 @@ __gshared ubyte[TYMAX] tyequiv =
 } ();
 
 /// Map to Codeview 1 type in debugger record
-__gshared ubyte[TYMAX] dttab =
+ubyte[TYMAX] dttab =
 [
     TYbool    : 0x80,
     TYchar    : 0x80,
@@ -616,7 +616,7 @@ __gshared ubyte[TYMAX] dttab =
 ];
 
 /// Map to Codeview 4 type in debugger record
-__gshared ushort[TYMAX] dttab4 =
+ushort[TYMAX] dttab4 =
 [
     TYbool    : 0x30,
     TYchar    : 0x70,
@@ -727,7 +727,7 @@ __gshared ushort[TYMAX] dttab4 =
 ];
 
 /// Size of a type
-__gshared byte[256] _tysize =
+immutable byte[256] _tysize =
 [
     TYbool    : 1,
     TYchar    : 1,
@@ -841,7 +841,7 @@ __gshared byte[256] _tysize =
 enum SET_ALIGN = -1;
 
 /// Size of a type to use for alignment
-__gshared byte[256] _tyalignsize =
+immutable byte[256] _tyalignsize =
 [
     TYbool    : 1,
     TYchar    : 1,
