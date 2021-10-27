@@ -22,6 +22,7 @@ jobs:
   lint_coverage:
     name: Lint repo and upload coverage data
     runs-on: ubuntu-18.04
+    env: null
     steps:
     - name: Setup D compiler
       uses: dlang-community/setup-dlang@v1
@@ -47,7 +48,7 @@ jobs:
     - name: Run unit-tests and upload coverage data
       shell: bash
       run: |
-        local build_path=generated/linux/$BUILD/$MODEL
+        build_path=generated/linux/DEBUG/$MODEL
         local builder=generated/build
         dmd -g -od=generated -of=$builder src/build
         # build dmd, druntime, and phobos
@@ -101,15 +102,15 @@ jobs:
         if [[ "${{ matrix.dc }}" = "gdc" ]]; then
           echo "HOST_DMD=gdmd-9" >> $GITHUB_ENV
         elif [[ "${DC:0:3}" = "ldc" ]]; then
-          echo "HOST_DMD=$DC" >> $GITHUB_ENV
+          echo "HOST_DMD=ldmd2" >> $GITHUB_ENV
           echo "DMD=ldmd2" >> $GITHUB_ENV
         elif [[ "${DC:0:3}" = "dmd" ]]; then
-          echo "HOST_DMD=$DC" >> $GITHUB_ENV
+          echo "HOST_DMD=dmd" >> $GITHUB_ENV
           echo "DMD=dmd" >> $GITHUB_ENV
         fi
 
         echo "OS_NAME=linux" >> $GITHUB_ENV
-        echo "FULL_BUILD=true" >> $GITHUB_ENV
+        echo "FULL_BUILD=false" >> $GITHUB_ENV
         echo "N=$NUMBER_OF_PROCESSORS" >> $GITHUB_ENV
     - name: Checkout DMD
       uses: actions/checkout@v2
