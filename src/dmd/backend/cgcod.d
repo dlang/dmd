@@ -1653,8 +1653,7 @@ private void cgcod_eh()
         debug
         if (debuge)
         {
-            WRBC(b.BC);
-            printf(" block (%p) Btry=%p Bindex=%d\n",b,b.Btry,b.Bindex);
+            printf("%s block (%p) Btry=%p Bindex=%d\n",bc_str(b.BC),b,b.Btry,b.Bindex);
         }
 
         except_index_set(b.Bindex);
