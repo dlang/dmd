@@ -44,7 +44,7 @@ nothrow:
 version (HTOD)
     __gshared uint ALLREGS;
 
-private __gshared Symbol*[RTLSYM.max] rtlsym;
+private __gshared Symbol*[RTLSYM.max + 1] rtlsym;
 
 version (MARS)
     // This varies depending on C ABI
