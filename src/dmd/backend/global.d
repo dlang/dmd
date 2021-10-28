@@ -425,7 +425,7 @@ void compdfo();
 extern __gshared const(char)*[32] regstring;
 
 @trusted const(char)* class_str(SC c);
-void WRTYxx(tym_t t);
+@trusted const(char)* tym_str(tym_t ty);
 @trusted const(char)* oper_str(uint oper);
 @trusted const(char)* bc_str(uint bc);
 void WRarglst(list_t a);

@@ -3363,14 +3363,14 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         uint psize = cast(uint)_align(stackalign, paramsize(ep, tyf));     // align on stack boundary
         if (config.exe == EX_WIN64)
         {
-            //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep.Ety); printf("\n");
+            //printf("[%d] size = %u, numpara = %d ep = %p %s\n", i, psize, numpara, ep, tym_str(ep.Ety));
             debug
             if (psize > REGSIZE) elem_print(e);
 
             assert(psize <= REGSIZE);
             psize = REGSIZE;
         }
-        //printf("[%d] size = %u, numpara = %d ", i, psize, numpara); WRTYxx(ep.Ety); printf("\n");
+        //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
         if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, &parameters[i].reg, &parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
@@ -3839,7 +3839,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
     {   // Call function directly
 
         if (!tyfunc(tym1))
-            WRTYxx(tym1);
+            printf("%s\n", tym_str(tym1));
         assert(tyfunc(tym1));
         s = e1.EV.Vsym;
         if (s.Sflags & SFLexit)
@@ -4215,7 +4215,7 @@ targ_size_t paramsize(elem* e, tym_t tyf)
         szb = type_parameterSize(e.ET, tyf);
     else
     {
-        WRTYxx(tym);
+        printf("%s\n", tym_str(tym));
         assert(0);
     }
     return szb;

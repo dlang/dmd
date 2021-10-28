@@ -106,12 +106,13 @@ const(char)* class_str(SC c)
     ];
     __gshared char[9 + 3] buffer;
 
-  static assert(sc.length == SCMAX);
-  if (cast(uint) c < SCMAX)
+    static assert(sc.length == SCMAX);
+    if (cast(uint) c < SCMAX)
         sprintf(buffer.ptr,"SC%s",sc[c].ptr);
-  else
+    else
         sprintf(buffer.ptr,"SC%u",cast(uint)c);
-  return buffer.ptr;
+    assert(strlen(buffer.ptr) < buffer.length);
+    return buffer.ptr;
 }
 
 /***************************
@@ -130,36 +131,56 @@ const(char)* oper_str(uint oper)
 }
 
 /*******************************
- * Write TYxxxx
+ * Convert tym_t to string.
+ * Params:
+ *      ty = type number
+ * Returns:
+ *      pointer to malloc'd string
  */
-
 @trusted
-void WRTYxx(tym_t t)
+const(char)* tym_str(tym_t ty)
 {
-    if (t & mTYnear)
-        printf("mTYnear|");
-    if (t & mTYfar)
-        printf("mTYfar|");
-    if (t & mTYcs)
-        printf("mTYcs|");
-    if (t & mTYconst)
-        printf("mTYconst|");
-    if (t & mTYvolatile)
-        printf("mTYvolatile|");
-    if (t & mTYshared)
-        printf("mTYshared|");
-//#if !MARS && (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
-//    if (t & mTYtransu)
-//        printf("mTYtransu|");
-//#endif
-    t = tybasic(t);
-    if (t >= TYMAX)
-    {   printf("TY %x\n",cast(int)t);
+    enum MAX = 100;
+    __gshared char[MAX + 1] buf;
+
+    char* pstart = &buf[0];
+    char* p = pstart;
+    *p = 0;
+    if (ty & mTYnear)
+        strcat(p, "mTYnear|");
+    if (ty & mTYfar)
+        strcat(p, "mTYfar|");
+    if (ty & mTYcs)
+        strcat(p, "mTYcs|");
+    if (ty & mTYconst)
+        strcat(p, "mTYconst|");
+    if (ty & mTYvolatile)
+        strcat(p, "mTYvolatile|");
+    if (ty & mTYshared)
+        strcat(p, "mTYshared|");
+    if (ty & mTYxmmgpr)
+        strcat(p, "mTYxmmgpr|");
+    if (ty & mTYgprxmm)
+        strcat(p, "mTYgprxmm|");
+    const tyb = tybasic(ty);
+    if (tyb >= TYMAX)
+    {
+        printf("TY %x\n",cast(int)ty);
         assert(0);
     }
-    printf("TY%s ",tystring[tybasic(t)]);
+    strcat(p, "TY");
+    strcat(p, tystring[tyb]);
+    assert(strlen(p) <= MAX);
+    return strdup(p);
 }
 
+/*******************************
+ * Convert BC to string.
+ * Params:
+ *      bc = block exit code
+ * Returns:
+ *      pointer to string
+ */
 @trusted
 const(char)* bc_str(uint bc)
 {
