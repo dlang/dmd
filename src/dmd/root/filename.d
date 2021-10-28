@@ -872,6 +872,17 @@ nothrow:
         }
     }
 
+    /// Useful when checking if a file resides in a particular directory
+    /// See_Also:
+    ///     FileName.canonicalName, FileName.exists
+    static inout(char)[] ensureDirSeparatorEnding(inout(char)[] path)
+    {
+        version(Windows)
+            return isDirSeparator(path[$ - 1]) ? path : path ~ '\\';
+        else version(Posix)
+            return isDirSeparator(path[$ - 1]) ? path : path ~ '/';
+    }
+
     /**
        Ensure that the provided path exists
 
