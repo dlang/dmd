@@ -2405,7 +2405,7 @@ version (MARS)
 
         default:
             debug
-            WRTYxx(tym);
+            printf("%s\n", tym_str(tym));
 
             assert(0);
     }

@@ -263,7 +263,7 @@ version (SCPP_HTOD)
 }
 
             default:
-                debug WRTYxx(t.Tty);
+                debug printf("%s\n", tym_str(t.Tty));
                 assert(0);
         }
     }
@@ -426,7 +426,7 @@ debug
     if (type_num > type_max)
         type_max = type_num;
 }
-    //printf("type_alloc() = %p ",t); WRTYxx(t.Tty); printf("\n");
+    //printf("type_alloc() = %p %s\n", t, tym_str(t.Tty));
     //if (t == (type*)0xB6B744) *(char*)0=0;
     return t;
 }
@@ -457,7 +457,7 @@ debug
     type_num++;
     if (type_num > type_max)
         type_max = type_num;
-    //printf("Alloc'ing template type %p ",t); WRTYxx(t.Tty); printf("\n");
+    //printf("Alloc'ing template type %p %s", t, tym_str(t.Tty));
 }
     return t;
 }
@@ -742,7 +742,7 @@ version (MARS)
 debug
 {
         type_num--;
-        //printf("Free'ing type %p ",t); WRTYxx(t.Tty); printf("\n");
+        //printf("Free'ing type %p %s\n", t, tym_str(t.Tty));
         t.id = 0;                      /* no longer a valid type       */
 }
 
@@ -1254,7 +1254,7 @@ int type_isvla(type *t)
 void type_print(const type *t)
 {
   type_debug(t);
-  printf("Tty="); WRTYxx(t.Tty);
+  printf("Tty=%s", tym_str(t.Tty));
   printf(" Tmangle=%d",t.Tmangle);
   printf(" Tflags=x%x",t.Tflags);
   printf(" Tcount=%d",t.Tcount);

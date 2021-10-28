@@ -143,9 +143,8 @@ nothrow:
             elem_print(c1);
             printf("c2:");
             elem_print(c2);
-            printf("FLty = "); WRTYxx(FLty);
-            printf("\nFLivty = "); WRTYxx(FLivty);
-            printf("\n");
+            printf("FLty = %s\n", tym_str(FLty));
+            printf("FLivty = %s\n", tym_str(FLivty));
         }
     }
 }
@@ -1861,7 +1860,7 @@ L3:
     debug
     {
         if (debugc) printf("movelis() introduced new variable '%s' of type ",t.EV.Vsym.Sident.ptr);
-        if (debugc) WRTYxx(t.Ety);
+        if (debugc) printf("%s\n", tym_str(t.Ety));
         if (debugc) printf("\n");
     }
 
@@ -2433,10 +2432,9 @@ private void ivfamelems(Iv *biv,elem **pn)
                     {   printf("found (biv op const), elem (");
                             WReqn(n);
                             printf(");\n");
-                            printf("Types: n1="); WRTYxx(n1.Ety);
-                            printf(" ty="); WRTYxx(ty);
-                            printf(" n2="); WRTYxx(n2.Ety);
-                            printf("\n");
+                            printf("Types: n1=%s", tym_str(n1.Ety));
+                            printf(" ty=%s", tym_str(ty));
+                            printf(" n2=%s\n", tym_str(n2.Ety));
                     }
 
                 auto fl = biv.IVfamily.push();
@@ -2620,7 +2618,7 @@ private void intronvars(ref Loop l)
             debug
             {
                 if (debugc) printf("intronvars() introduced new variable '%s' of type ",T.EV.Vsym.Sident.ptr);
-                if (debugc) WRTYxx(ty);
+                if (debugc) printf("%s\n", tym_str(ty));
                 if (debugc) printf("\n");
             }
 
@@ -3257,8 +3255,7 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
     {
         printf("f1: c1 = %d, c2 = %d\n",t1.Vshort,f1.c2.EV.Vshort);
         printf("f2: c1 = %d, c2 = %d\n",t2.Vshort,f2.c2.EV.Vshort);
-        WRTYxx((*f1.FLpelem).Ety);
-        WRTYxx((*f2.FLpelem).Ety);
+        printf("%s %s\n", tym_str((*f1.FLpelem).Ety), tym_str((*f2.FLpelem).Ety));
     }
 
     /* Wimp out and just pick f1 if the types don't match               */

@@ -2878,7 +2878,7 @@ void elem_print(const elem* e, int nestlevel = 0)
             type_debug(e.ET);
             if (tybasic(e.ET.Tty) == TYstruct)
                 printf("%d ", cast(int)type_size(e.ET));
-            WRTYxx(e.ET.Tty);
+            printf("%s\n", tym_str(e.ET.Tty));
         }
     }
     else
@@ -2887,7 +2887,7 @@ void elem_print(const elem* e, int nestlevel = 0)
             e.Ety == TYstruct || e.Ety == TYarray)
             if (e.ET)
                 printf("%d ", cast(int)type_size(e.ET));
-        WRTYxx(e.Ety);
+        printf("%s\n", tym_str(e.Ety));
     }
     if (OTunary(e.Eoper))
     {
@@ -3084,7 +3084,7 @@ version (MARS) { } else
 
         default:
             printf("Invalid type ");
-            WRTYxx(typemask(e));
+            printf("%s\n", tym_str(typemask(e)));
             /*assert(0);*/
     }
 }

@@ -742,7 +742,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mXMM0;
 
         default:
-            debug WRTYxx(tym);
+            debug printf("%s\n", tym_str(tym));
             assert(0);
     }
 }
@@ -1526,7 +1526,7 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
                 return rralloc.xmm();
             }
 
-            debug WRTYxx(tym);
+            debug printf("%s\n", tym_str(tym));
             assert(0);
         }
     }
@@ -2403,7 +2403,7 @@ else
     {
         debug
         elem_print(e);
-        WRTYxx(tym);
+        printf("%s\n", tym_str(tym));
         assert(0);
     }
 

@@ -175,7 +175,7 @@ targ_size_t size(tym_t ty)
     debug
     {
         if (sz == -1)
-            WRTYxx(ty);
+            printf("ty: %s\n", tym_str(ty));
     }
     assert(sz!= -1);
     return sz;

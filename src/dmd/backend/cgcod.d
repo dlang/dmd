@@ -2033,11 +2033,9 @@ static if (0)
 {
         if (pass == PASSfinal)
         {
-            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym ",
+            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
-                regm_str(msavereg),regm_str(*pretregs));
-            WRTYxx(tym);
-            dbg_printf("\n");
+                regm_str(msavereg),regm_str(*pretregs),tym_str(tym));
         }
 }
         tym = tybasic(tym);
@@ -2180,9 +2178,8 @@ L3:
         {
             debug
             {
-                WRTYxx(tym);
-                printf("\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
-                    file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
+                printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
+                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
             }
             assert(0);
         }
