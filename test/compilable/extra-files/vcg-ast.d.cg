@@ -90,8 +90,7 @@ enum __c_wchar_t : dchar;
 alias wchar_t = __c_wchar_t;
 T[] values(T)()
 {
-	T[] values;
-	values ~= T();
+	T[] values = [T()];
 	return values;
 }
 void main()
@@ -139,8 +138,7 @@ values!(__c_wchar_t)
 {
 	pure nothrow @safe __c_wchar_t[] values()
 	{
-		__c_wchar_t[] values = null;
-		values ~= cast(__c_wchar_t)'\uffff';
+		__c_wchar_t[] values = [cast(__c_wchar_t)'\uffff'];
 		return values;
 	}
 
@@ -150,3 +148,4 @@ RTInfo!(_R)
 	enum immutable(void)* RTInfo = null;
 
 }
+
