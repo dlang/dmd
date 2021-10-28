@@ -775,10 +775,10 @@ else
 
 version (MARS)
     // https://github.com/dlang/druntime/blob/master/src/rt/deh_win32.d#L924
-    const int local_unwind = RTLSYM.D_LOCAL_UNWIND2;    // __d_local_unwind2()
+    const local_unwind = RTLSYM.D_LOCAL_UNWIND2;    // __d_local_unwind2()
 else
     // dm/src/win32/ehsup.c
-    const int local_unwind = RTLSYM.LOCAL_UNWIND2;      // __local_unwind2()
+    const local_unwind = RTLSYM.LOCAL_UNWIND2;      // __local_unwind2()
 
     const regm_t desregs = (~getRtlsym(local_unwind).Sregsaved & (ALLREGS)) | (1 << reg);
     CodeBuilder cdbs;

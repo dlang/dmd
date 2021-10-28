@@ -177,5 +177,5 @@ extern (C++):
 nothrow:
 @safe:
 
-Symbol *getRtlsym(int i);
+Symbol *getRtlsym(RTLSYM i);
 Symbol *getRtlsymPersonality();

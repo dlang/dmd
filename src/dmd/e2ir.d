@@ -317,7 +317,7 @@ Symbol *toStringSymbol(StringExp se)
 
 void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
 {
-    static immutable int[2][25] map =
+    static immutable RTLSYM[2][25] map =
     [
         [ RTLSYM.NEWCLASS, RTLSYM.TRACENEWCLASS ],
         [ RTLSYM.NEWITEMT, RTLSYM.TRACENEWITEMT ],
@@ -1180,7 +1180,7 @@ extern (C++) class ToElemVisitor : Visitor
             // call _d_newitemT(ti)
             e = getTypeInfo(ne.loc, ne.newtype, irs);
 
-            int rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
+            const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
             ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
             toTraceGC(irs, ex, ne.loc);
 
@@ -1244,7 +1244,7 @@ extern (C++) class ToElemVisitor : Visitor
 
                 // call _d_newT(ti, arg)
                 e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
-                int rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYT : RTLSYM.NEWARRAYIT;
+                const rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYT : RTLSYM.NEWARRAYIT;
                 e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
             }
@@ -1266,7 +1266,7 @@ extern (C++) class ToElemVisitor : Visitor
                 if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     e = addressElem(e, Type.tsize_t.arrayOf());
                 e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
-                int rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYMTX : RTLSYM.NEWARRAYMITX;
+                const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYMTX : RTLSYM.NEWARRAYMITX;
                 e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
 
@@ -1281,7 +1281,7 @@ extern (C++) class ToElemVisitor : Visitor
             // call _d_newitemT(ti)
             e = getTypeInfo(ne.loc, ne.newtype, irs);
 
-            int rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
+            const rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
             e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
             toTraceGC(irs, e, ne.loc);
 
@@ -1915,7 +1915,7 @@ extern (C++) class ToElemVisitor : Visitor
 
             elem *ep = el_params(getTypeInfo(ee.loc, telement.arrayOf(), irs),
                     ea2, ea1, null);
-            int rtlfunc = RTLSYM.ARRAYEQ2;
+            const rtlfunc = RTLSYM.ARRAYEQ2;
             e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
             if (ee.op == TOK.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
@@ -2289,7 +2289,7 @@ extern (C++) class ToElemVisitor : Visitor
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(eto, efrom, eti, null);
-                    int rtl = (ae.op == TOK.construct) ? RTLSYM.ARRAYCTOR : RTLSYM.ARRAYASSIGN;
+                    const rtl = (ae.op == TOK.construct) ? RTLSYM.ARRAYCTOR : RTLSYM.ARRAYASSIGN;
                     elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
                     return setResult(e);
                 }
@@ -2633,7 +2633,7 @@ extern (C++) class ToElemVisitor : Visitor
                     e2 = addressElem(e2, Type.tvoid.arrayOf());
                 }
                 elem *ep = el_params(etmp, e1, e2, eti, null);
-                int rtl = lvalueElem ? RTLSYM.ARRAYASSIGN_L : RTLSYM.ARRAYASSIGN_R;
+                const rtl = lvalueElem ? RTLSYM.ARRAYASSIGN_L : RTLSYM.ARRAYASSIGN_R;
                 elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
                 return setResult2(e);
             }
@@ -2694,7 +2694,7 @@ extern (C++) class ToElemVisitor : Visitor
                       (tb1n.ty == Tchar || tb1n.ty == Twchar));
 
                 elem *ep = el_params(e2, el_copytree(ev), null);
-                int rtl = (tb1.nextOf().ty == Tchar)
+                const rtl = (tb1.nextOf().ty == Tchar)
                         ? RTLSYM.ARRAYAPPENDCD
                         : RTLSYM.ARRAYAPPENDWD;
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
@@ -3464,7 +3464,7 @@ extern (C++) class ToElemVisitor : Visitor
         //e1.type.print();
         elem *e = toElem(de.e1, irs);
         tb = de.e1.type.toBasetype();
-        int rtl;
+        RTLSYM rtl;
         switch (tb.ty)
         {
             case Tarray:
@@ -3841,7 +3841,7 @@ extern (C++) class ToElemVisitor : Visitor
                  *  - class     => foreign interface (cross cast)
                  *  - interface => base or foreign interface (cross cast)
                  */
-                int rtl = cdfrom.isInterfaceDeclaration()
+                const rtl = cdfrom.isInterfaceDeclaration()
                             ? RTLSYM.INTERFACE_CAST
                             : RTLSYM.DYNAMIC_CAST;
                 elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
@@ -5892,7 +5892,7 @@ elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, IR
     Type tb2 = tb;
 
 Lagain:
-    int r;
+    RTLSYM r;
     switch (tb2.ty)
     {
         case Tfloat80:

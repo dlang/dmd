@@ -68,7 +68,7 @@ Symbol* getRtlsymPersonality() { return getRtlsym(RTLSYM.PERSONALITY); }
  * Returns:
  *      runtime library Symbol
  */
-Symbol *getRtlsym(int i)
+Symbol *getRtlsym(RTLSYM i)
 {
      Symbol** ps = &rtlsym[i];
      if (*ps)
