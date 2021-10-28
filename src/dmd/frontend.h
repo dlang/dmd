@@ -1973,6 +1973,7 @@ public:
     bool equals(const RootObject* const o) const;
     bool equivalent(Type* t);
     DYNCAST dyncast() const;
+    size_t getUniqueID() const;
     Covariant covariant(Type* t, uint64_t* pstc = nullptr);
     const char* toChars() const;
     char* toPrettyChars(bool QualifyTypes = false);
@@ -2692,6 +2693,7 @@ public:
     const char* mangleString;
     VarDeclaration* vresult;
     LabelDsymbol* returnLabel;
+    void* isTypeIsolatedCache;
     DsymbolTable* localsymtab;
     VarDeclaration* vthis;
     bool isThis2;

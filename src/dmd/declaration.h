@@ -535,6 +535,8 @@ public:
     VarDeclaration *vresult;            // result variable for out contracts
     LabelDsymbol *returnLabel;          // where the return goes
 
+    void *isTypeIsolatedCache;          // An AA on the D side to cache an expensive check result
+
     // used to prevent symbols in different
     // scopes from having the same name
     DsymbolTable *localsymtab;

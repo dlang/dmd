@@ -262,6 +262,8 @@ extern (C++) class FuncDeclaration : Declaration
     VarDeclaration vresult;             /// result variable for out contracts
     LabelDsymbol returnLabel;           /// where the return goes
 
+    bool[size_t] isTypeIsolatedCache;   /// cache for the potentially very expensive isTypeIsolated check
+
     // used to prevent symbols in different
     // scopes from having the same name
     DsymbolTable localsymtab;
@@ -1530,8 +1532,23 @@ extern (C++) class FuncDeclaration : Declaration
     extern (D) final bool isTypeIsolated(Type t)
     {
         StringTable!Type parentTypes;
-        parentTypes._init();
-        return isTypeIsolated(t, parentTypes);
+        const uniqueTypeID = t.getUniqueID();
+        if (uniqueTypeID)
+        {
+            const cacheResultPtr = uniqueTypeID in isTypeIsolatedCache;
+            if (cacheResultPtr !is null)
+                return *cacheResultPtr;
+
+            parentTypes._init();
+            const isIsolated = isTypeIsolated(t, parentTypes);
+            isTypeIsolatedCache[uniqueTypeID] = isIsolated;
+            return isIsolated;
+        }
+        else
+        {
+            parentTypes._init();
+            return isTypeIsolated(t, parentTypes);
+        }
     }
 
     ///ditto
