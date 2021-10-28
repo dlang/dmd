@@ -6240,17 +6240,21 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 minst = tinst.minst; // cache result
                 assert(minst);
                 assert(minst.isRoot() || minst.rootImports());
+                return true;
             }
-            else if (tnext && (tnext.needsCodegen() || tnext.minst))
+
+            if (tnext)
             {
-                minst = tnext.minst; // cache result
-                assert(minst);
+                const needsCodegen = tnext.needsCodegen();
+                if (tnext.minst) // not speculative
+                {
+                    minst = tnext.minst; // cache result
+                    return needsCodegen;
+                }
             }
-            else
-            {
-                // Elide codegen because this is really speculative.
-                return false;
-            }
+
+            // Elide codegen because this is really speculative.
+            return false;
         }
 
         if (global.params.allInst)
@@ -6293,18 +6297,21 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              *
              * See https://issues.dlang.org/show_bug.cgi?id=2500.
              */
+
+            if (tinst)
+            {
+                // inherit from tinst parent if it's not speculative
+                const needsCodegen = tinst.needsCodegen();
+                if (tinst.minst) // not speculative
+                {
+                    minst = tinst.minst; // cache result
+                    return needsCodegen;
+                }
+            }
+
             if (!minst.isRoot() && !minst.rootImports())
                 return false;
 
-            version (none) // FIXME
-            {
-                if (tinst && !tinst.needsCodegen() && tinst.minst)
-                {
-                    minst = tinst.minst; // cache result
-                    assert(!minst.isRoot() && !minst.rootImports());
-                    return false;
-                }
-            }
             if (tnext && !tnext.needsCodegen() && tnext.minst)
             {
                 minst = tnext.minst; // cache result
