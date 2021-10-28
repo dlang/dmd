@@ -912,7 +912,7 @@ version (SCPP)
 
             default:
                 symbol_print(s);
-                WRclass(cast(SC) s.Sclass);
+                printf("%s\n", class_str(cast(SC) s.Sclass));
                 assert(0);
 }
 else
