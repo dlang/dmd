@@ -98,6 +98,15 @@ enum FeatureState : byte
     enabled = 1    /// Specified as `-preview=`
 }
 
+extern (C++) struct LocalImport
+{
+    const(char)[] importer; /// Importer
+    int importerType;       /// Whether the importer path points to a file or folder
+    const(char)[] imported; /// Imported
+    int importedType;       /// Whether the imported path points to a file or folder
+    // Normally -I only works with directories but we allow files here in case we wanna support them later
+}
+
 /// Put command line switches in here
 extern (C++) struct Param
 {
@@ -204,6 +213,8 @@ extern (C++) struct Param
     const(char)[] objdir;                // .obj/.lib file output directory
     const(char)[] objname;               // .obj file output name
     const(char)[] libname;               // .lib file output name
+
+    LocalImport[] localImports;         // similar to -I but allows imports for specific files
 
     bool doDocComments;                 // process embedded documentation comments
     const(char)[] docdir;               // write documentation file to docdir directory

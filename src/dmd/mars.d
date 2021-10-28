@@ -2240,6 +2240,88 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.imppath = new Strings();
             params.imppath.push(p + 2 + (p[2] == '='));
         }
+        else if (startsWith(p + 1, "import-local=")) // https://dlang.org/dmd.html#switch-import-local
+        {
+            /* Parse:
+             *    -import-local=importer:imported
+             */
+            bool err = false;
+            bool colonFound = false;
+            enum len = "-import-local=".length;
+            const(char)[] payload = arg[len .. $];
+
+            const(char)[] importer;
+            int importerType;
+            const(char)[] imported;
+            int importedType;
+
+            foreach (j, ch; payload)
+            {
+                if (ch == ':')
+                {
+                    importer = payload[0 .. j];
+                    importerType = FileName.exists(importer);
+                    if (importerType == 0) // Not found
+                    {
+                        error("path `%.*s` passed as `importer` in `-import-local=<importer>:<imported>` does not exist",
+                            cast(int)importer.length, importer.ptr);
+                        err = true;
+                    }
+                    else
+                    {
+                        importer = FileName.canonicalName(importer);
+                        if (importerType == 2) // Folder
+                        {
+                            // Adding the last '/' makes determining if a file is inside a folder easier
+                            importer = FileName.ensureDirSeparatorEnding(importer);
+                        }
+                    }
+
+                    imported = payload[j + 1 .. $];
+                    importedType = FileName.exists(imported);
+                    if (importedType == 0) // Not found
+                    {
+                        error("path `%.*s` passed as `imported` in `-import-local=<importer>:<imported>` does not exist",
+                            cast(int)imported.length, imported.ptr);
+                        err = true;
+                    }
+                    else
+                    {
+                        imported = FileName.canonicalName(imported);
+                        if (importerType == 2) // Folder
+                        {
+                            // Adding the last '/' makes determining if a file is inside a folder easier
+                            imported = FileName.ensureDirSeparatorEnding(imported);
+                        }
+                    }
+
+                    colonFound = true;
+                    break;
+                }
+            }
+            if (colonFound)
+            {
+                if (importer.length == 0)
+                {
+                    error("`-import-local=<importer>:<imported>` is missing an importer path");
+                    err = true;
+                }
+                if (imported.length == 0)
+                {
+                    error("`-import-local=<importer>:<imported>` is missing an imported path");
+                    err = true;
+                }
+            }
+            else
+            {
+                error("incorrect syntax (missing colon) for `-import-local=<importer>:<imported>` switch");
+                err = true;
+            }
+            if (err)
+                break;
+            else
+                params.localImports ~= LocalImport(importer, importerType, imported, importedType);
+        }
         else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
         {
             if (p[4] && strchr(p + 5, '='))
