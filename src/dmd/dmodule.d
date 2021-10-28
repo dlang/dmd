@@ -51,6 +51,122 @@ import dmd.target;
 import dmd.utils;
 import dmd.visitor;
 
+enum package_d  = "package." ~ mars_ext;
+enum package_di = "package." ~ hdr_ext;
+
+/********************************************
+ * Look for the source file if it's different from filename.
+ * Look for .di, .d, directory, and along global.path.
+ * Does not open the file.
+ * Params:
+ *      filename = as supplied by the user
+ *      path = path to look for filename
+ * Returns:
+ *      the found file name or
+ *      `null` if it is not different from filename.
+ */
+private const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
+{
+    const(char)[][] arr;
+    foreach (p; path)
+        arr ~= p.toDString;
+    return lookForSourceFile(filename, arr);
+}
+
+/// ditto
+private const(char)[] lookForSourceFile(const char[] filename, const char[][] path)
+{
+    //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
+    /* Search along path[] for .di file, then .d file, then .i file, then .c file.
+     */
+    const sdi = FileName.forceExt(filename, hdr_ext);
+    if (FileName.exists(sdi) == 1)
+        return sdi;
+    scope(exit) FileName.free(sdi.ptr);
+
+    const sd = FileName.forceExt(filename, mars_ext);
+    if (FileName.exists(sd) == 1)
+        return sd;
+    scope(exit) FileName.free(sd.ptr);
+
+    const si = FileName.forceExt(filename, i_ext);
+    if (FileName.exists(si) == 1)
+        return si;
+    scope(exit) FileName.free(si.ptr);
+
+    const sc = FileName.forceExt(filename, c_ext);
+    if (FileName.exists(sc) == 1)
+        return sc;
+    scope(exit) FileName.free(sc.ptr);
+
+    if (FileName.exists(filename) == 2)
+    {
+        /* The filename exists and it's a directory.
+         * Therefore, the result should be: filename/package.d
+         * iff filename/package.d is a file
+         */
+        const ni = FileName.combine(filename, package_di);
+        if (FileName.exists(ni) == 1)
+            return ni;
+        FileName.free(ni.ptr);
+
+        const n = FileName.combine(filename, package_d);
+        if (FileName.exists(n) == 1)
+            return n;
+        FileName.free(n.ptr);
+    }
+    if (FileName.absolute(filename))
+        return null;
+    if (!path.length)
+        return null;
+    foreach (entry; path)
+    {
+        const p = entry;
+
+        const(char)[] n = FileName.combine(p, sdi);
+        if (FileName.exists(n) == 1) {
+            return n;
+        }
+        FileName.free(n.ptr);
+
+        n = FileName.combine(p, sd);
+        if (FileName.exists(n) == 1) {
+            return n;
+        }
+        FileName.free(n.ptr);
+
+        n = FileName.combine(p, si);
+        if (FileName.exists(n) == 1) {
+            return n;
+        }
+        FileName.free(n.ptr);
+
+        n = FileName.combine(p, sc);
+        if (FileName.exists(n) == 1) {
+            return n;
+        }
+        FileName.free(n.ptr);
+
+        const b = FileName.removeExt(filename);
+        n = FileName.combine(p, b);
+        FileName.free(b.ptr);
+        if (FileName.exists(n) == 2)
+        {
+            const n2i = FileName.combine(n, package_di);
+            if (FileName.exists(n2i) == 1)
+                return n2i;
+            FileName.free(n2i.ptr);
+            const n2 = FileName.combine(n, package_d);
+            if (FileName.exists(n2) == 1) {
+                return n2;
+            }
+            FileName.free(n2.ptr);
+        }
+        FileName.free(n.ptr);
+    }
+    return null;
+}
+
 // function used to call semantic3 on a module's dependencies
 void semantic3OnDependencies(Module m)
 {
@@ -505,10 +621,38 @@ extern (C++) final class Module : Package
         // into:
         //  foo\bar\baz
         const(char)[] filename = getFilename(packages, ident);
-        // Look for the source file
-        if (const result = FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null))
-            filename = result; // leaks
-
+        {
+            // Look for the source file
+            const(char)[][] importList;
+            if (global.path)
+            {
+                foreach (p; *global.path)
+                {
+                    importList ~= p.toDString;
+                }
+            }
+            foreach (localImport; global.params.localImports)
+            {
+                const(char)[] canonicalLoc = FileName.canonicalName(loc.filename.toDString);
+                if (localImport.importerType == 1) // File
+                {
+                    if (canonicalLoc == localImport.importer)
+                        importList ~= localImport.imported;
+                }
+                else if (localImport.importerType == 2 && // Folder
+                         localImport.importedType == 2) // Only support directories for now (similar to -I)
+                {
+                    if (canonicalLoc.length > localImport.importer.length &&
+                        canonicalLoc[0 .. localImport.importer.length] == localImport.importer)
+                        importList ~= localImport.imported;
+                }
+                else
+                    assert(0);
+            }
+            const(char)[] source = lookForSourceFile(filename, importList);
+            if (source)
+                filename = source; // leaks
+        }
         auto m = new Module(loc, filename, ident, 0, 0);
 
         if (!m.read(loc))
