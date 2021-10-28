@@ -4964,7 +4964,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                 }
                 else
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=16215
+                    //
+                    // Previously, enclosing and vthis were set to point to the baseclass
+                    // however, in the case of nested classes they should point to the enclosing
+                    // symbol. `makeNested` will appropriately set these values.
+                    cldec.enclosing = null;
+                    cldec.vthis = null;
                     cldec.makeNested2();
+                }
             }
             else
                 cldec.makeNested();

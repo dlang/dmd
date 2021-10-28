@@ -233,7 +233,7 @@ void testRTInfo()
         _testType!(Large)          ([ 0x4000_0000, 0x1000_0000, 0x0001_0000 ]);
 
     _testType!(N.CNested)     ([ 0b101000 ]);
-    _testType!(N.CNestedDerived) ([ 0b1000101000 ]);
+    _testType!(N.CNestedDerived) ([ 0b11000101000 ]);
 
     testType!(N.Nested)       ([ 0b110 ]);
 
