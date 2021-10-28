@@ -19,9 +19,9 @@ import core.sys.posix.sys.types;
 // enum MAP_PRIVATE = 0x0002;
 // enum MAP_FIXED = 0x0010;
 // enum MAP_ANON = 0x1000;
+// enum MAP_STACK = 0x4000;
 
 alias MAP_ANONYMOUS = MAP_ANON;
-enum MAP_STACK = 0x4000;
 enum MAP_CONCEAL = 0x8000;
 
 enum MAP_FLAGMASK = 0xfff7;

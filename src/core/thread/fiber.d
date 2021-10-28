@@ -982,10 +982,14 @@ private:
                 // Allocate more for the memory guard
                 sz += guardPageSize;
 
+                int mmap_flags = MAP_PRIVATE | MAP_ANON;
+                version (OpenBSD)
+                    mmap_flags |= MAP_STACK;
+
                 m_pmem = mmap( null,
                                sz,
                                PROT_READ | PROT_WRITE,
-                               MAP_PRIVATE | MAP_ANON,
+                               mmap_flags,
                                -1,
                                0 );
                 if ( m_pmem == MAP_FAILED )
