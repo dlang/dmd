@@ -2546,12 +2546,12 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
 
     // Call the validation function
     {
-        makeitextern(getRtlsym(RTLSYM_PTRCHK));
+        makeitextern(getRtlsym(RTLSYM.PTRCHK));
 
         used &= ~(keepmsk | idxregs);           // regs destroyed by this exercise
         getregs(cdb,used);
                                                 // CALL __ptrchk
-        cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_PTRCHK));
+        cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM.PTRCHK));
     }
 
     cdb.append(cs2);
@@ -3020,7 +3020,7 @@ void genshift(ref CodeBuilder cdb)
     {
         // Set up ahshift to trick ourselves into giving the right fixup,
         // which must be seg-relative, external frame, external target.
-        cdb.gencs(0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM_AHSHIFT));
+        cdb.gencs(0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM.AHSHIFT));
         cdb.last().Iflags |= CFoff;
     }
     else
@@ -3591,10 +3591,10 @@ void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter
         {
             // BUG: Won't work if parameter is passed in AX
             movregconst(cdb,AX,xlocalsize,false); // MOV AX,localsize
-            makeitextern(getRtlsym(RTLSYM_CHKSTK));
+            makeitextern(getRtlsym(RTLSYM.CHKSTK));
                                                     // CALL _chkstk
-            cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_CHKSTK));
-            useregs((ALLREGS | mBP | mES) & ~getRtlsym(RTLSYM_CHKSTK).Sregsaved);
+            cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM.CHKSTK));
+            useregs((ALLREGS | mBP | mES) & ~getRtlsym(RTLSYM.CHKSTK).Sregsaved);
         }
         else
         {
@@ -3877,7 +3877,7 @@ version (SCPP)
 @trusted
 void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved)
 {
-    Symbol *s = getRtlsym(farfunc ? RTLSYM_TRACE_PRO_F : RTLSYM_TRACE_PRO_N);
+    Symbol *s = getRtlsym(farfunc ? RTLSYM.TRACE_PRO_F : RTLSYM.TRACE_PRO_N);
     makeitextern(s);
     cdb.gencs(I16 ? 0x9A : CALL,0,FLfunc,s);      // CALL _trace
     if (!I16)
@@ -4437,7 +4437,7 @@ void epilog(block *b)
         )
        )
     {
-        Symbol *s = getRtlsym(farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N);
+        Symbol *s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
         makeitextern(s);
         cdbx.gencs(I16 ? 0x9A : CALL,0,FLfunc,s);      // CALLF _trace
         if (!I16)

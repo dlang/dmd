@@ -885,7 +885,7 @@ private elem * elmemcpy(elem *e, goal_t goal)
         e.EV.E2.EV.E1 = null;
         e.EV.E2.EV.E2 = null;
         el_free(e);
-        e = el_bin(OPcall, ty, el_var(getRtlsym(RTLSYM_MEMCPY)), ep);
+        e = el_bin(OPcall, ty, el_var(getRtlsym(RTLSYM.MEMCPY)), ep);
          +/
     }
     return e;

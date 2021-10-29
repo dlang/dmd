@@ -424,8 +424,8 @@ void nteh_prolog(ref CodeBuilder cdb)
         cdb.gen(&cs);                       // PUSH &scope_table
 
         cs.IFL2 = FLextern;
-        cs.IEV2.Vsym = getRtlsym(RTLSYM_EXCEPT_HANDLER3);
-        makeitextern(getRtlsym(RTLSYM_EXCEPT_HANDLER3));
+        cs.IEV2.Vsym = getRtlsym(RTLSYM.EXCEPT_HANDLER3);
+        makeitextern(getRtlsym(RTLSYM.EXCEPT_HANDLER3));
     }
     }
 
@@ -435,7 +435,7 @@ void nteh_prolog(ref CodeBuilder cdb)
 
     if (config.exe == EX_WIN32)
     {
-        makeitextern(getRtlsym(RTLSYM_EXCEPT_LIST));
+        makeitextern(getRtlsym(RTLSYM.EXCEPT_LIST));
     static if (0)
     {
         cs.Iop = 0xFF;
@@ -443,7 +443,7 @@ void nteh_prolog(ref CodeBuilder cdb)
         cs.Iflags = CFfs;
         cs.Irex = 0;
         cs.IFL1 = FLextern;
-        cs.IEV1.Vsym = getRtlsym(RTLSYM_EXCEPT_LIST);
+        cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
         cs.IEV1.Voffset = 0;
         cdb2.gen(&cs);                             // PUSH FS:__except_list
     }
@@ -455,7 +455,7 @@ void nteh_prolog(ref CodeBuilder cdb)
         cs.Iflags = CFfs;
         cs.Irex = 0;
         cs.IFL1 = FLextern;
-        cs.IEV1.Vsym = getRtlsym(RTLSYM_EXCEPT_LIST);
+        cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
         cs.IEV1.Voffset = 0;
         cdb.gen(&cs);                            // MOV EDX,FS:__except_list
 
@@ -507,7 +507,7 @@ else
     cs.Irm = modregrm(0,reg,BPRM);
     cs.Iflags |= CFfs;
     cs.IFL1 = FLextern;
-    cs.IEV1.Vsym = getRtlsym(RTLSYM_EXCEPT_LIST);
+    cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
     cs.IEV1.Voffset = 0;
     cdb.gen(&cs);
 }
@@ -591,9 +591,9 @@ void nteh_framehandler(Symbol *sfunc, Symbol *scopetable)
         cdb.gencs(0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
 
 version (MARS)
-        cdb.gencs(0xE9,0,FLfunc,getRtlsym(RTLSYM_D_HANDLER));      // JMP _d_framehandler
+        cdb.gencs(0xE9,0,FLfunc,getRtlsym(RTLSYM.D_HANDLER));      // JMP _d_framehandler
 else
-        cdb.gencs(0xE9,0,FLfunc,getRtlsym(RTLSYM_CPP_HANDLER));    // JMP __cpp_framehandler
+        cdb.gencs(0xE9,0,FLfunc,getRtlsym(RTLSYM.CPP_HANDLER));    // JMP __cpp_framehandler
 
         code *c = cdb.finish();
         pinholeopt(c,null);
@@ -674,7 +674,7 @@ version (SCPP)
         cs.Iflags = CFoff;
         cs.Irex = 0;
         cs.IFL2 = FLextern;
-        cs.IEV2.Vsym = getRtlsym(RTLSYM_CPP_LONGJMP);
+        cs.IEV2.Vsym = getRtlsym(RTLSYM.CPP_LONGJMP);
         cs.IEV2.Voffset = 0;
         cdb.gen(&cs);                         // PUSH &_cpp_longjmp_unwind
         stackpush += 4;
@@ -715,7 +715,7 @@ version (SCPP)
         cs.Iflags = CFoff;
         cs.Irex = 0;
         cs.IFL2 = FLextern;
-        cs.IEV2.Vsym = getRtlsym(RTLSYM_LONGJMP);
+        cs.IEV2.Vsym = getRtlsym(RTLSYM.LONGJMP);
         cs.IEV2.Voffset = 0;
         cdb.gen(&cs);                 // PUSH &_seh_longjmp_unwind
         stackpush += 4;
@@ -744,8 +744,8 @@ L2:
 
     pushParams(cdb,e.EV.E1,REGSIZE, TYnfunc);
 
-    getregs(cdb,~getRtlsym(RTLSYM_SETJMP3).Sregsaved & (ALLREGS | mES));
-    cdb.gencs(0xE8,0,FLfunc,getRtlsym(RTLSYM_SETJMP3));      // CALL __setjmp3
+    getregs(cdb,~getRtlsym(RTLSYM.SETJMP3).Sregsaved & (ALLREGS | mES));
+    cdb.gencs(0xE8,0,FLfunc,getRtlsym(RTLSYM.SETJMP3));      // CALL __setjmp3
 
     cod3_stackadj(cdb, -(stackpush - stackpushsave));
     cdb.genadjesp(-(stackpush - stackpushsave));
@@ -775,10 +775,10 @@ else
 
 version (MARS)
     // https://github.com/dlang/druntime/blob/master/src/rt/deh_win32.d#L924
-    const int local_unwind = RTLSYM_D_LOCAL_UNWIND2;    // __d_local_unwind2()
+    const local_unwind = RTLSYM.D_LOCAL_UNWIND2;    // __d_local_unwind2()
 else
     // dm/src/win32/ehsup.c
-    const int local_unwind = RTLSYM_LOCAL_UNWIND2;      // __local_unwind2()
+    const local_unwind = RTLSYM.LOCAL_UNWIND2;      // __local_unwind2()
 
     const regm_t desregs = (~getRtlsym(local_unwind).Sregsaved & (ALLREGS)) | (1 << reg);
     CodeBuilder cdbs;
@@ -861,7 +861,7 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
         cdbx.gen1(0x50 + CX);                      // PUSH ECX
     }
 
-    Symbol *smh = getRtlsym(RTLSYM_MONITOR_HANDLER);
+    Symbol *smh = getRtlsym(RTLSYM.MONITOR_HANDLER);
     cdbx.gencs(0x68,0,FLextern,smh);             // PUSH offset _d_monitor_handler
     makeitextern(smh);
 
@@ -872,13 +872,13 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
     cs.Iflags = CFfs;
     cs.Irex = 0;
     cs.IFL1 = FLextern;
-    cs.IEV1.Vsym = getRtlsym(RTLSYM_EXCEPT_LIST);
+    cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
     cs.IEV1.Voffset = 0;
     cdb.gen(&cs);                   // MOV EDX,FS:__except_list
 
     cdbx.gen1(0x50 + DX);                  // PUSH EDX
 
-    Symbol *s = getRtlsym(RTLSYM_MONITOR_PROLOG);
+    Symbol *s = getRtlsym(RTLSYM.MONITOR_PROLOG);
     regm_t desregs = ~s.Sregsaved & ALLREGS;
     getregs(cdbx,desregs);
     cdbx.gencs(0xE8,0,FLfunc,s);       // CALL _d_monitor_prolog
@@ -911,7 +911,7 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
 
     assert(config.exe == EX_WIN32);    // BUG: figure out how to implement for other EX's
 
-    Symbol *s = getRtlsym(RTLSYM_MONITOR_EPILOG);
+    Symbol *s = getRtlsym(RTLSYM.MONITOR_EPILOG);
     //desregs = ~s.Sregsaved & ALLREGS;
     regm_t desregs = 0;
     CodeBuilder cdbs;
@@ -932,7 +932,7 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
     cs.Iflags = CFfs;
     cs.Irex = 0;
     cs.IFL1 = FLextern;
-    cs.IEV1.Vsym = getRtlsym(RTLSYM_EXCEPT_LIST);
+    cs.IEV1.Vsym = getRtlsym(RTLSYM.EXCEPT_LIST);
     cs.IEV1.Voffset = 0;
     cdb.gen(&cs);                       // POP FS:__except_list
 }

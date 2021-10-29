@@ -557,7 +557,7 @@ private void genObjFile(Module m, bool multiobj)
                       ebcov,
                       efilename,
                       null);
-        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER2)), e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }

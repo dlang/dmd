@@ -2908,8 +2908,8 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
                 (cinfo.flags & (INFfloat | INFwkdone)) == INFfloat)
             {
                 cinfo.flags |= INFwkdone;
-                makeitextern(getRtlsym(RTLSYM_INTONLY));
-                objmod.wkext(s, getRtlsym(RTLSYM_INTONLY));
+                makeitextern(getRtlsym(RTLSYM.INTONLY));
+                objmod.wkext(s, getRtlsym(RTLSYM.INTONLY));
             }
         }
     }
@@ -3863,7 +3863,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             getregs(cdbe,~s.Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
         if (strcmp(s.Sident.ptr, "alloca") == 0)
         {
-            s = getRtlsym(RTLSYM_ALLOCA);
+            s = getRtlsym(RTLSYM.ALLOCA);
             makeitextern(s);
             int areg = CX;
             if (config.exe == EX_WIN64)
