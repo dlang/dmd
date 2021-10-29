@@ -6223,16 +6223,25 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
+        // minst is finalized after the 1st invocation.
+        // tnext and tinst are only needed for the 1st invocation and
+        // cleared for further invocations.
         TemplateInstance tnext = this.tnext;
         TemplateInstance tinst = this.tinst;
         this.tnext = null;
         this.tinst = null;
 
+        if (errors || (inst && inst.isDiscardable()))
+        {
+            minst = null; // mark as speculative
+            return false;
+        }
+
         if (!minst)
         {
             // If this is a speculative instantiation,
-            // 1. do codegen if ancestors really needs codegen.
-            // 2. become non-speculative if siblings are not speculative
+            // 1. do codegen if the ancestor really needs codegen
+            // 2. become non-speculative if a sibling isn't speculative
 
             // Determine necessity of tinst before tnext.
             if (tinst && tinst.needsCodegen())
@@ -6245,7 +6254,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
             if (tnext)
             {
-                const needsCodegen = tnext.needsCodegen();
+                const needsCodegen = tnext.needsCodegen(); // sets tnext.minst
                 if (tnext.minst) // not speculative
                 {
                     minst = tnext.minst; // cache result
@@ -6259,7 +6268,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         if (global.params.allInst)
         {
-            // Prefer instantiations from root modules, to maximize link-ability.
+            // Do codegen if there is an instantiation from a root module, to maximize link-ability.
             if (minst.isRoot())
                 return true;
 
@@ -6278,14 +6287,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 return true;
             }
 
-            // Elide codegen because this is not included in root instances.
+            // Elide codegen because there's no instantiation from any root modules.
             return false;
         }
         else
         {
-            // Prefer instantiations from non-root module, to minimize object code size.
+            // Prefer instantiations from non-root modules, to minimize object code size.
 
-            /* If a TemplateInstance is ever instantiated by non-root modules,
+            /* If a TemplateInstance is ever instantiated from a non-root module,
              * we do not have to generate code for it,
              * because it will be generated when the non-root module is compiled.
              *
@@ -6300,8 +6309,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
             if (tinst)
             {
-                // inherit from tinst parent if it's not speculative
-                const needsCodegen = tinst.needsCodegen();
+                // If the ancestor isn't speculative,
+                // 1. do codegen if the ancestor needs it
+                // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
+                const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
                 if (tinst.minst) // not speculative
                 {
                     minst = tinst.minst; // cache result
@@ -6309,17 +6320,20 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
             }
 
+            // Elide codegen if there is at least one instantiation from a non-root module
+            // which doesn't import any root modules.
             if (!minst.isRoot() && !minst.rootImports())
                 return false;
 
             if (tnext && !tnext.needsCodegen() && tnext.minst)
             {
+                // Elide codegen because at least one non-speculative sibling can.
                 minst = tnext.minst; // cache result
                 assert(!minst.isRoot() && !minst.rootImports());
                 return false;
             }
 
-            // Do codegen because this is not included in non-root instances.
+            // Do codegen because we found no guaranteed-codegen'd non-root instantiation.
             return true;
         }
     }
