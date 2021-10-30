@@ -257,6 +257,7 @@ SRCS=\
 	\
 	src\core\sys\openbsd\dlfcn.d \
 	src\core\sys\openbsd\err.d \
+	src\core\sys\openbsd\pthread_np.d \
 	src\core\sys\openbsd\stdlib.d \
 	src\core\sys\openbsd\string.d \
 	src\core\sys\openbsd\time.d \
