@@ -402,11 +402,7 @@ ifeq ($(OS),linux)
   endif
 endif
 
-ifeq ($(OS),freebsd)
 DISABLED_TESTS =
-else
-DISABLED_TESTS =
-endif
 
 $(addprefix $(ROOT)/unittest/,$(DISABLED_TESTS)) :
 	@echo $@ - disabled
