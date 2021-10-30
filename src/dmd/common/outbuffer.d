@@ -727,15 +727,15 @@ struct OutBuffer
         return extractData();
     }
 
-    void writesLEB128(int value) nothrow
+    void writesLEB128(int value) pure nothrow
     {
         while (1)
         {
             ubyte b = value & 0x7F;
 
             value >>= 7;            // arithmetic right shift
-            if (value == 0 && !(b & 0x40) ||
-                value == -1 && (b & 0x40))
+            if ((value == 0 && !(b & 0x40)) ||
+                (value == -1 && (b & 0x40)))
             {
                  writeByte(b);
                  break;
@@ -744,7 +744,7 @@ struct OutBuffer
         }
     }
 
-    void writeuLEB128(uint value) nothrow
+    void writeuLEB128(uint value) pure nothrow
     {
         do
         {
