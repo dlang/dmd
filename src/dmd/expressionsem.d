@@ -7730,39 +7730,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("SliceExp::semantic('%s')\n", exp.toChars());
         }
 
-        if (exp.e1.type.ty == Tsarray)
-        {
-            uinteger_t lwrSliceLen, uprSliceLen;
-            TypeSArray tsa = cast(TypeSArray)exp.e1.type.toBasetype();
-            uinteger_t arrLen = tsa.dim.toInteger();
-
-            if (exp.lwr && exp.lwr.isIntegerExp())
-            {
-                lwrSliceLen = exp.lwr.toInteger();
-
-                if (lwrSliceLen > arrLen)
-                {
-                    exp.error("slice lower index %llu out of bounds `%s[0 .. %llu]`", lwrSliceLen, exp.e1.toChars(), arrLen);
-                    return setError();
-                }
-            }
-            if (exp.upr && exp.upr.isIntegerExp())
-            {
-                uprSliceLen = exp.upr.toInteger();
-
-                if (uprSliceLen > arrLen)
-                {
-                    exp.error("slice lower index %llu out of bounds `%s[0 .. %llu]`", uprSliceLen, exp.e1.toChars(), arrLen);
-                    return setError();
-                }
-            }
-            if (exp.lwr && exp.upr && exp.lwr.isIntegerExp() && exp.upr.isIntegerExp() && lwrSliceLen > uprSliceLen)
-            {
-                exp.error("slice lower bound %llu can't be greater than upper bound %llu", lwrSliceLen, uprSliceLen);
-                return setError();
-            }
-        }
-
         if (exp.type)
         {
             result = exp;
@@ -8022,6 +7989,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     dinteger_t length = el.toInteger();
                     auto bounds = IntRange(SignExtendedNumber(0), SignExtendedNumber(length));
                     exp.upperIsInBounds = bounds.contains(uprRange);
+
+                    if (exp.lwr.op == TOK.int64)
+                    {
+                       if (exp.upr.op == TOK.int64 && exp.lwr.toInteger() > exp.upr.toInteger())
+                       {
+                           exp.error("in slice `%s[%s...%s]`, lower bound is greater than upper bound", exp.e1.toChars, exp.lwr.toChars, exp.upr.toChars);
+                           return setError();
+                       }
+                    }
+                   if (exp.upr.op == TOK.int64 && exp.upr.toInteger() > length)
+                   {
+                       exp.error("in slice `%s[%s...%s]`, upper bound is greater than array length `%s`", exp.e1.toChars, exp.lwr.toChars, exp.upr.toChars, el.toChars);
+                       return setError();
+                   }
                 }
                 else if (exp.upr.op == TOK.int64 && exp.upr.toInteger() == 0)
                 {
