@@ -7729,7 +7729,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("SliceExp::semantic('%s')\n", exp.toChars());
         }
-
         if (exp.type)
         {
             result = exp;
@@ -7989,18 +7988,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     dinteger_t length = el.toInteger();
                     auto bounds = IntRange(SignExtendedNumber(0), SignExtendedNumber(length));
                     exp.upperIsInBounds = bounds.contains(uprRange);
-
-                    if (exp.lwr.op == TOK.int64)
+                    if (exp.lwr.op == TOK.int64 && exp.upr.op == TOK.int64 && exp.lwr.toInteger() > exp.upr.toInteger())
                     {
-                       if (exp.upr.op == TOK.int64 && exp.lwr.toInteger() > exp.upr.toInteger())
-                       {
-                           exp.error("in slice `%s[%s...%s]`, lower bound is greater than upper bound", exp.e1.toChars, exp.lwr.toChars, exp.upr.toChars);
-                           return setError();
-                       }
+                        exp.error("in slice `%s[%llu .. %llu]`, lower bound is greater than upper bound", exp.e1.toChars, exp.lwr.toInteger(), exp.upr.toInteger());
+                        return setError();
                     }
                    if (exp.upr.op == TOK.int64 && exp.upr.toInteger() > length)
                    {
-                       exp.error("in slice `%s[%s...%s]`, upper bound is greater than array length `%s`", exp.e1.toChars, exp.lwr.toChars, exp.upr.toChars, el.toChars);
+                       exp.error("in slice `%s[%llu .. %llu]`, upper bound is greater than array length `%llu`", exp.e1.toChars, exp.lwr.toInteger(), exp.upr.toInteger(), length);
                        return setError();
                    }
                 }
