@@ -1,0 +1,9 @@
+DW_AT_name        : dg
+DW_AT_name        : void delegate() pure nothrow @nogc @safe
+DW_AT_name        : dg_gc_sys
+DW_AT_name        : void delegate() pure nothrow @system
+DW_AT_name        : dg_lazy
+DW_AT_name        : void delegate(lazy void f) pure nothrow @nogc @safe
+DW_AT_name        : pure nothrow @nogc @safe void(lazy void f)
+DW_AT_name        : ptr
+DW_AT_name        : funcptr

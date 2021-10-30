@@ -143,6 +143,7 @@ public:
                 // Mangle as delegate
                 type* tf = type_function(TYnfunc, null, false, tp);
                 tp = type_delegate(tf);
+                tp.Tident = t.toPrettyChars(true);
             }
             types[i] = tp;
         }
@@ -154,6 +155,7 @@ public:
     override void visit(TypeDelegate t)
     {
         t.ctype = type_delegate(Type_toCtype(t.next));
+        t.ctype.Tident = t.toPrettyChars(true);
     }
 
     override void visit(TypeStruct t)
