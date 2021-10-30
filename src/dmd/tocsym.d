@@ -182,18 +182,10 @@ Symbol *toSymbol(Dsymbol s)
                     t = type_fake(TYdelegate);          // Tdelegate as C type
                 t.Tcount++;
             }
-            else if (vd.isParameter())
+            else if (vd.isParameter() && ISX64REF(vd))
             {
-                if (ISX64REF(vd))
-                {
-                    t = type_allocn(TYnref, Type_toCtype(vd.type));
-                    t.Tcount++;
-                }
-                else
-                {
-                    t = Type_toCtype(vd.type);
-                    t.Tcount++;
-                }
+                t = type_allocn(TYnref, Type_toCtype(vd.type));
+                t.Tcount++;
             }
             else
             {
