@@ -2314,11 +2314,22 @@ static if (1)
             DW_TAG_shared_type,     DW_CHILDREN_no,
             0,                      0,
         ];
+        static immutable ubyte[6] abbrevTypeImmutable =
+        [
+            DW_TAG_immutable_type,  DW_CHILDREN_no,
+            DW_AT_type,             DW_FORM_ref4,
+            0,                      0,
+        ];
+        static immutable ubyte[4] abbrevTypeImmutableVoid =
+        [
+            DW_TAG_immutable_type,  DW_CHILDREN_no,
+            0,                      0,
+        ];
 
         if (!t)
             return 0;
 
-        foreach(mty; [mTYconst, mTYshared, mTYvolatile])
+        foreach(mty; [mTYconst, mTYshared, mTYvolatile, mTYimmutable])
         {
             if (t.Tty & mty)
             {
@@ -2355,8 +2366,14 @@ static if (1)
                         ? dwarf_abbrev_code(abbrevTypeShared)
                         : dwarf_abbrev_code(abbrevTypeSharedVoid);
                 }
+                else if (mty == mTYimmutable && config.dwarf >= 5)
+                {
+                    code = nextidx
+                        ? dwarf_abbrev_code(abbrevTypeImmutable)
+                        : dwarf_abbrev_code(abbrevTypeImmutableVoid);
+                }
                 else
-                    assert(0);
+                    continue;
 
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);    // abbreviation code

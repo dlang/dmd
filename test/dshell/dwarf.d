@@ -3,7 +3,7 @@ import dshell;
 import std.algorithm;
 import std.file;
 import std.process;
-
+import std.regex;
 import std.conv;
 
 int main()
@@ -20,6 +20,11 @@ int main()
         writeln("Skipping dwarf.d for Windows.");
         return DISABLED;
     }
+    version(OSX)
+    {
+        writeln("Skipping dwarf.d for MacOS X.");
+        return DISABLED;
+    }
 
     version(Windows)
         immutable slash = "\\";
@@ -30,17 +35,32 @@ int main()
     auto sysObjdump = executeShell("objdump --version");
     if (sysObjdump.status)
         return DISABLED;
-    // DWARF 3 (and 4) support has been implemented in version 2.20 (2.20.51.0.1)
+
+
+    double objdumpVersion;
     try
     {
-        if(sysObjdump.output.split("\n")[0][$ - 4 .. $].to!double < 2.20)
-            return DISABLED;
+        // output examples :
+        // GNU objdump 2.15
+        // GNU objdump 2.17.50 [FreeBSD] 2007-07-03
+        // GNU objdump (GNU Binutils) 2.36.1
+        string strVer = sysObjdump.output.split("\n")[0];
+        writeln("Objdump version of the machine : ", strVer);
+
+        auto cap = matchFirst(strVer, `[0-9]+\.[0-9]+`);
+        assert(cap);
+        objdumpVersion = cap.hit.to!double;
     }
     catch (ConvException ce)
     {
-        // The conversion failed, then it's definitively an old version (or a too new)
+        // The conversion failed
         return DISABLED;
     }
+    writeln("Parsed objdump version of the machine : ", objdumpVersion);
+
+    // DWARF 3 (and 4) support has been implemented in version 2.20 (2.20.51.0.1)
+    if(objdumpVersion < 2.20)
+        return DISABLED;
 
     immutable extra_dwarf_dir = EXTRA_FILES ~ slash ~ "dwarf" ~ slash;
     bool failed;
@@ -53,10 +73,21 @@ int main()
 
         // retrieve the filename without the extension
         auto filename = baseName(stripExtension(path));
+        string[string] requirements = getRequirements(path);
+
+        try
+        {
+            if (objdumpVersion < requirements["MIN_OBJDUMP_VERSION"].to!double)
+            {
+                writeln("Warning: test " ~ path ~ " skipped.");
+                continue ;
+            }
+        }
+        catch(Exception e) { }
 
 
         string exe = OUTPUT_BASE ~ slash ~ filename;
-        run("$DMD -m$MODEL -of" ~ exe ~ "$EXE -conf= -fPIE -g " ~ getExtraArgs(path)
+        run("$DMD -m$MODEL -of" ~ exe ~ "$EXE -conf= -fPIE -g " ~ requirements["EXTRA_ARGS"]
             ~ " -I" ~ extra_dwarf_dir ~ " " ~ path);
 
         // Write objdump result to a file
@@ -100,16 +131,19 @@ int main()
     return failed;
 }
 
-string getExtraArgs(string dfile)
+string[string] getRequirements(string dfile)
 {
-    string result;
+    string[string] result;
+    // Initialize to an empty string to prevent RangeViolation exceptions.
+    foreach (req; ["EXTRA_ARGS", "MIN_OBJDUMP_VERSION"])
+        result[req] = "";
+
     bool begin;
 
     auto f = File(dfile, "r");
 
     foreach (line; f.byLine)
     {
-
         if (line.length < 2)
             continue;
 
@@ -117,20 +151,13 @@ string getExtraArgs(string dfile)
         {
             begin = true;
         }
-        
+
         if (begin)
         {
             string[] args = line.split(":").to!(string[]);
             if (args.length == 2)
             {
-                switch (args[0])
-                {
-                    case "EXTRA_ARGS":
-                        result ~= args[1];
-                        break;
-                    default:
-                        break;
-                }
+                result[args[0]] = args[1].strip();
             }
 
             if (line.indexOf("*/") != -1)
