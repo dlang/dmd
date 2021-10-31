@@ -2957,6 +2957,8 @@ class Parser(AST) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
+                    if (global.params.vin)
+                        message(scanloc, "Usage of 'in' on parameter");
                     stc = STC.in_;
                     goto L2;
 

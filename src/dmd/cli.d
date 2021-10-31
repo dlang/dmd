@@ -792,6 +792,8 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Feature("in", "vin",
+            "list all usages of 'in' on parameter"),
     ];
 
     /// Returns all available reverts

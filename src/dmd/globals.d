@@ -118,6 +118,7 @@ extern (C++) struct Param
     bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
     bool vcomplex = true;   // identify complex/imaginary type usage
+    bool vin;               // identify 'in' parameters
     ubyte symdebug;         // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too
     bool optimize;          // run optimizer
