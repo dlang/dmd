@@ -105,6 +105,7 @@ struct Param
     bool vtemplates;    // collect and list statistics on template instantiations
     bool vtemplatesListInstances; // collect and list statistics on template instantiations origins
     bool vgc;           // identify gc usage
+    bool cmemoize;      // memoize compilation
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
     unsigned char symdebug;  // insert debug symbolic information

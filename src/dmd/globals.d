@@ -116,6 +116,7 @@ extern (C++) struct Param
     bool vtemplates;        // collect and list statistics on template instantiations
     bool vtemplatesListInstances; // collect and list statistics on template instantiations origins. TODO: make this an enum when we want to list other kinds of instances
     bool vgc;               // identify gc usage
+    bool cmemoize;          // memoize compilation
     bool vfield;            // identify non-mutable field variables
     bool vcomplex = true;   // identify complex/imaginary type usage
     ubyte symdebug;         // insert debug symbolic information
@@ -184,6 +185,7 @@ extern (C++) struct Param
     bool externStdUsage;    // print help on -extern-std switch
     bool hcUsage;           // print help on -HC switch
     bool logo;              // print compiler logo
+    bool isTimeDependent;   // set to true if build is time dependent (making memoization via -cmemoize impossible)
 
     CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
     CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
