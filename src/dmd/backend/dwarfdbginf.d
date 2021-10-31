@@ -1835,8 +1835,8 @@ static if (1)
                 DW_AT_type,        DW_FORM_ref4,
                 DW_AT_artificial,  DW_FORM_flag,
                 DW_AT_decl_file,   DW_FORM_data1,
-                DW_AT_decl_line,   DW_FORM_data2,
-                DW_AT_decl_column, DW_FORM_data2,
+                DW_AT_decl_line,   DW_FORM_udata,
+                DW_AT_decl_column, DW_FORM_udata,
                 DW_AT_location,    DW_FORM_block1,
                 0,                0,
             ];
@@ -1885,8 +1885,8 @@ static if (1)
         abuf.writeByte(DW_FORM_string);
 
         abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
-        abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_data2);
-        abuf.writeByte(DW_AT_decl_column); abuf.writeByte(DW_FORM_data2);
+        abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_udata);
+        abuf.writeByte(DW_AT_decl_column); abuf.writeByte(DW_FORM_udata);
         if (ret_type)
         {
             abuf.writeByte(DW_AT_type);  abuf.writeByte(DW_FORM_ref4);
@@ -1938,8 +1938,8 @@ static if (1)
         debug_info.buf.writeString(name);             // DW_AT_name
         debug_info.buf.writeString(sfunc.Sident.ptr);    // DW_AT_MIPS_linkage_name
         debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
-        debug_info.buf.write16(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
-        debug_info.buf.write16(sfunc.Sfunc.Fstartline.Scharnum);   // DW_AT_decl_column
+        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
+        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum);   // DW_AT_decl_column
         if (ret_type)
             debug_info.buf.write32(ret_type);         // DW_AT_type
 
@@ -1994,8 +1994,8 @@ static if (1)
                         debug_info.buf.write32(tidx);                 // DW_AT_type
                         debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
                         debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
-                        debug_info.buf.write16(sa.lposscopestart.Slinnum);   // DW_AT_decl_line
-                        debug_info.buf.write16(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
+                        debug_info.buf.writeuLEB128(sa.lposscopestart.Slinnum);   // DW_AT_decl_line
+                        debug_info.buf.writeuLEB128(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
                         soffset = cast(uint)debug_info.buf.length();
                         debug_info.buf.writeByte(2);                  // DW_FORM_block1
                         if (sa.Sfl == FLreg || sa.Sclass == SCpseudo)
