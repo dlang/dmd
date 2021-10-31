@@ -1053,7 +1053,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                  */
                 auto id = Identifier.generateId("__r");
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
-                const valueIsRef = cast(bool) ((*fs.parameters)[dim - 1].storageClass & STC.ref_);
+                const valueIsRef = (*fs.parameters)[$ - 1].isReference();
                 VarDeclaration tmp;
                 if (fs.aggr.op == EXP.arrayLiteral && !valueIsRef)
                 {
