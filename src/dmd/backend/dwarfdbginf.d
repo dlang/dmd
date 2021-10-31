@@ -2255,13 +2255,12 @@ static if (1)
             DW_AT_encoding,         DW_FORM_data1,
             0,                      0,
         ];
-        static immutable ubyte[12] abbrevWchar =
+        static immutable ubyte[10] abbrevWchar =
         [
-            DW_TAG_typedef,         DW_CHILDREN_no,
+            DW_TAG_base_type,       DW_CHILDREN_no,
             DW_AT_name,             DW_FORM_string,
-            DW_AT_type,             DW_FORM_ref4,
-            DW_AT_decl_file,        DW_FORM_data1,
-            DW_AT_decl_line,        DW_FORM_data2,
+            DW_AT_byte_size,        DW_FORM_data1,
+            DW_AT_encoding,         DW_FORM_data1,
             0,                      0,
         ];
         static immutable ubyte[6] abbrevTypePointer =
@@ -2844,14 +2843,12 @@ static if (1)
             case TYwchar_t:
             {
                 uint code3 = dwarf_abbrev_code(abbrevWchar.ptr, (abbrevWchar).sizeof);
-                uint typebase = dwarf_typidx(tstypes[TYint]);
                 idx = cast(uint)debug_info.buf.length();
+
                 debug_info.buf.writeuLEB128(code3);       // abbreviation code
                 debug_info.buf.writeString("wchar_t");    // DW_AT_name
-                debug_info.buf.write32(typebase);         // DW_AT_type
-                debug_info.buf.writeByte(1);              // DW_AT_decl_file
-                debug_info.buf.write16(1);                // DW_AT_decl_line
-                typidx_tab[ty] = idx;
+                debug_info.buf.writeByte(tysize(TYint));  // DW_AT_byte_size
+                debug_info.buf.writeByte(DW_ATE_signed);  // DW_AT_encoding
                 break;
             }
 
