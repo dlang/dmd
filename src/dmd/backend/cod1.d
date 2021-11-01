@@ -2152,13 +2152,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.ldiv:
                 cinfo.retregs16 = mDX|mAX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__divdi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2180,13 +2180,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.lmod:
                 cinfo.retregs16 = mCX|mBX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__moddi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2208,13 +2208,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.uldiv:
                 cinfo.retregs16 = mDX|mAX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__udivdi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__ULDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2236,13 +2236,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.ulmod:
                 cinfo.retregs16 = mCX|mBX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__umoddi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
