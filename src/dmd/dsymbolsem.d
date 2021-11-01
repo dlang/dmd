@@ -368,15 +368,30 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         dsym.semanticRun = PASS.semantic;
 
-        /* Pick up storage classes from context, but except synchronized,
-         * override, abstract, and final.
-         */
-        dsym.storage_class |= (sc.stc & ~(STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_));
+        // 'static foreach' variables should not inherit scope properties
+        // https://issues.dlang.org/show_bug.cgi?id=19482
+        if ((dsym.storage_class & (STC.foreach_ | STC.local)) == (STC.foreach_ | STC.local))
+        {
+            dsym.linkage = LINK.d;
+            dsym.visibility = Visibility(Visibility.Kind.public_);
+            dsym.overlapped = false; // unset because it is modified early on this function
+            dsym.userAttribDecl = null; // unset because it is set by Dsymbol.setScope()
+        }
+        else
+        {
+            /* Pick up storage classes from context, but except synchronized,
+             * override, abstract, and final.
+             */
+            dsym.storage_class |= (sc.stc & ~(STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_));
+            dsym.userAttribDecl = sc.userAttribDecl;
+            dsym.cppnamespace = sc.namespace;
+            dsym.linkage = sc.linkage;
+            dsym.visibility = sc.visibility;
+            dsym.alignment = sc.alignment();
+        }
+
         if (dsym.storage_class & STC.extern_ && dsym._init)
             dsym.error("extern symbols cannot have initializers");
-
-        dsym.userAttribDecl = sc.userAttribDecl;
-        dsym.cppnamespace = sc.namespace;
 
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
@@ -434,15 +449,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.errors = true;
 
         dsym.type.checkDeprecated(dsym.loc, sc);
-        dsym.linkage = sc.linkage;
         dsym.parent = sc.parent;
         //printf("this = %p, parent = %p, '%s'\n", dsym, dsym.parent, dsym.parent.toChars());
-        dsym.visibility = sc.visibility;
 
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
-        dsym.alignment = sc.alignment();
         if (dsym.alignment.isDefault())
             dsym.alignment = dsym.type.alignment(); // use type's alignment
 
