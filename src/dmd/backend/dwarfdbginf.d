@@ -2602,7 +2602,7 @@ static if (1)
             case TYuint:        p = "uint";          goto Lsigned;
             case TYlong:        p = "long";          goto Lsigned;
             case TYulong:       p = "ulong";         goto Lsigned;
-            case TYdchar:       p = "dchar";                goto Lsigned;
+            case TYdchar:       p = "dchar";         ate = DW_ATE_UTF;                     goto Lsigned;
             case TYfloat:       p = "float";        ate = DW_ATE_float;     goto Lsigned;
             case TYdouble_alias:
             case TYdouble:      p = "double";       ate = DW_ATE_float;     goto Lsigned;
