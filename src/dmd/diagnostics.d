@@ -1479,8 +1479,8 @@ private void checkUnusedDeclaration(const Declaration dn)
     }
     else if (dn.parent.isModule())
     {
-        if (dn.protection.kind == Prot.Kind.private_ ||
-            dn.protection.kind == Prot.Kind.package_)
+        if (dn.protection.kind == Visibility.Kind.private_ ||
+            dn.protection.kind == Visibility.Kind.package_)
             dn.loc.warning("unused %s %s `%s` of %s `%s`, rename to `_` or prepend `_` to name to silence",
                            dn.protection.kind.toChars(), dn.kind2(), dn.toChars(),
                            dn.parent.kind(), dn.parent.toChars());
@@ -1496,7 +1496,7 @@ private void checkUnmodifiedVarDeclaration(const VarDeclaration vd)
     assert(vd);
 
     if ((vd.storage_class & (STC.manifest | STC.const_ | STC.immutable_)) ||
-        (vd.protection.kind != Prot.Kind.private_ && // private
+        (vd.protection.kind != Visibility.Kind.private_ && // private
          vd.storage_class & STC.field) ||            // field
         vd.isRef ||
         isUnreferencedVarDeclaration(vd) ||
@@ -1647,9 +1647,9 @@ private void checkUnusedFuncDeclaration(FuncDeclaration fd)
 
     if (fd.parent.isModule())
     {
-        if (fd.protection.kind == Prot.Kind.private_)
+        if (fd.protection.kind == Visibility.Kind.private_)
             fd.loc.warning("unused private function `%s` of module", fd.toChars());
-        else if (fd.protection.kind == Prot.Kind.package_)
+        else if (fd.protection.kind == Visibility.Kind.package_)
             fd.loc.warning("unused package function `%s` of module", fd.toChars());
     }
     else if (const pad = fd.parent.isAggregateDeclaration())
@@ -1815,7 +1815,7 @@ private void checkUnusedImport(Import im)
     assert(im);
     if (!im.aliasdecls.length)  // no explicit symbols given
     {
-        if (im.protection.kind == Prot.Kind.public_)
+        if (im.protection.kind == Visibility.Kind.public_)
             return;
         if (im.aliasId)         // Example: `import io = std.stdio;`
         {
@@ -1867,7 +1867,7 @@ private void checkUnusedImport(Import im)
         {
             if (ad.isReferenced)
                 continue;
-            if (ad.protection.kind == Prot.Kind.public_)
+            if (ad.protection.kind == Visibility.Kind.public_)
                 continue;
             // TODO correct `ad.loc` upon its creation
             ad.loc.warning("unused %s imported alias `%s`", im.prot.kind.toChars(), ad.toChars());
@@ -1875,39 +1875,39 @@ private void checkUnusedImport(Import im)
     }
 }
 
-static private immutable(char)* toChars(in Prot.Kind protKind) @safe /* TODO: pure nothrow */ @nogc
+static private immutable(char)* toChars(in Visibility.Kind protKind) @safe /* TODO: pure nothrow */ @nogc
 {
     final switch (protKind)
     {
-    case Prot.Kind.undefined:
+    case Visibility.Kind.undefined:
         return "undefined";
-    case Prot.Kind.none:
+    case Visibility.Kind.none:
         return "none";
-    case Prot.Kind.private_:
+    case Visibility.Kind.private_:
         return "private";
-    case Prot.Kind.package_:
+    case Visibility.Kind.package_:
         return "package";
-    case Prot.Kind.protected_:
+    case Visibility.Kind.protected_:
         return "protected";
-    case Prot.Kind.public_:
+    case Visibility.Kind.public_:
         return "public";
-    case Prot.Kind.export_:
+    case Visibility.Kind.export_:
         return "export";
     }
 }
 
-static private bool shouldWarnUnunsed(in Prot.Kind protKind) @safe /* TODO: pure nothrow */ @nogc
+static private bool shouldWarnUnunsed(in Visibility.Kind protKind) @safe /* TODO: pure nothrow */ @nogc
 {
     final switch (protKind)
     {
-    case Prot.Kind.undefined:   // not semantically analyzed
-    case Prot.Kind.public_:
-    case Prot.Kind.export_:
+    case Visibility.Kind.undefined:   // not semantically analyzed
+    case Visibility.Kind.public_:
+    case Visibility.Kind.export_:
         return false;
-    case Prot.Kind.none:        // unreachable. Voldemort?
-    case Prot.Kind.private_:
-    case Prot.Kind.package_:
-    case Prot.Kind.protected_:
+    case Visibility.Kind.none:        // unreachable. Voldemort?
+    case Visibility.Kind.private_:
+    case Visibility.Kind.package_:
+    case Visibility.Kind.protected_:
         return true;
     }
 }
@@ -1921,21 +1921,21 @@ static private bool isReferencedDeclaration(const Declaration d) @safe /* TODO: 
 {
     assert(d);
     return (d.isReferenced ||
-            d.protection.kind == Prot.Kind.undefined); // has no semantics
+            d.protection.kind == Visibility.Kind.undefined); // has no semantics
 }
 
 static private bool isUnreferencedVarDeclaration(const VarDeclaration vd) @safe /* TODO: pure nothrow */ @nogc
 {
     assert(vd);
     return (!vd.isReferenced ||
-            vd.protection.kind == Prot.Kind.undefined); // has no semantics
+            vd.protection.kind == Visibility.Kind.undefined); // has no semantics
 }
 
 static private bool isUsedEnumDeclaration(const EnumDeclaration ed) @safe /* TODO: pure nothrow */ @nogc
 {
     assert(ed);
     return (ed.isReferenced ||
-            ed.protection.kind == Prot.Kind.undefined); // has no semantics
+            ed.protection.kind == Visibility.Kind.undefined); // has no semantics
 }
 
 static private bool isUsedAggregateDeclaration(const AggregateDeclaration ad) @safe /* TODO: pure nothrow */ @nogc
@@ -1947,7 +1947,7 @@ static private bool isUsedAggregateDeclaration(const AggregateDeclaration ad) @s
     //                ad.storage_class,
     //                (ad.storage_class & STC.extern_) ? 1 : 0);
     return (ad.isReferenced ||
-            ad.protection.kind == Prot.Kind.undefined || // has no semantics
+            ad.protection.kind == Visibility.Kind.undefined || // has no semantics
             ad.classKind == ClassKind.cpp ||
             ad.classKind == ClassKind.objc ||
             (ad.storage_class & STC.extern_) ? 1 : 0);
@@ -1957,7 +1957,7 @@ static private bool isUsedTemplatedDeclaration(const TemplateDeclaration td) @sa
 {
     assert(td);
     return (td.isReferenced ||
-            td.protection.kind == Prot.Kind.undefined); // has no semantics
+            td.protection.kind == Visibility.Kind.undefined); // has no semantics
 }
 
 static private const(char)* kind2(const Declaration dn) @safe /* TODO: pure nothrow */ @nogc
