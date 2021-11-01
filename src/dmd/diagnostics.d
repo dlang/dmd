@@ -1415,9 +1415,9 @@ private void checkUnusedAliasDeclaration(AliasDeclaration ad)
     if (isReferencedDeclaration(ad))
         return;
     if (ad._import &&
-        ad.protection.kind.shouldWarnUnunsed())
+        ad.visibility.kind.shouldWarnUnunsed())
         ad.loc.warning("unused %sly imported alias `%s`",
-                       ad.protection.kind.toChars(),
+                       ad.visibility.kind.toChars(),
                        ad.toChars());
     else
         checkUnusedDeclaration(ad);
@@ -1439,7 +1439,7 @@ private void checkUnusedDeclaration(const Declaration dn)
         // hide because we're most likely not interested in messages such as:
         // `Warning: unused public variable `typeid(const(uint))` of no parent`
         version(none) dn.loc.warning("unused %s %s `%s` of no parent",
-                                     dn.protection.kind.toChars(), dn.kind2(), dn.toChars());
+                                     dn.visibility.kind.toChars(), dn.kind2(), dn.toChars());
         return;
     }
 
@@ -1463,32 +1463,32 @@ private void checkUnusedDeclaration(const Declaration dn)
              pad.classKind == ClassKind.cpp ||
              pad.classKind == ClassKind.objc))
             return;
-        const padUU = pad.protection.kind.shouldWarnUnunsed();
-        const dnUU = dn.protection.kind.shouldWarnUnunsed();
+        const padUU = pad.visibility.kind.shouldWarnUnunsed();
+        const dnUU = dn.visibility.kind.shouldWarnUnunsed();
         if (padUU && dnUU)
             dn.loc.warning("unused %s %s `%s` of %s %s, rename to `_` or prepend `_` to name to silence",
-                           dn.protection.kind.toChars(), dn.kind2(), dn.toChars(),
-                           pad.protection.kind.toChars(), pad.kind());
+                           dn.visibility.kind.toChars(), dn.kind2(), dn.toChars(),
+                           pad.visibility.kind.toChars(), pad.kind());
         else if (padUU)
             dn.loc.warning("unused %s %s `%s` of %s %s, rename to `_` or prepend `_` to name to silence",
-                           dn.protection.kind.toChars(), dn.kind2(), dn.toChars(),
-                           pad.protection.kind.toChars(), pad.kind());
+                           dn.visibility.kind.toChars(), dn.kind2(), dn.toChars(),
+                           pad.visibility.kind.toChars(), pad.kind());
         else if (dnUU)
             dn.loc.warning("unused %s %s `%s` of %s %s, rename to `_` or prepend `_` to name to silence",
-                           dn.protection.kind.toChars(), dn.kind2(), dn.toChars(),
-                           pad.protection.kind.toChars(), pad.kind());
+                           dn.visibility.kind.toChars(), dn.kind2(), dn.toChars(),
+                           pad.visibility.kind.toChars(), pad.kind());
     }
     else if (dn.parent.isModule())
     {
-        if (dn.protection.kind == Visibility.Kind.private_ ||
-            dn.protection.kind == Visibility.Kind.package_)
+        if (dn.visibility.kind == Visibility.Kind.private_ ||
+            dn.visibility.kind == Visibility.Kind.package_)
             dn.loc.warning("unused %s %s `%s` of %s `%s`, rename to `_` or prepend `_` to name to silence",
-                           dn.protection.kind.toChars(), dn.kind2(), dn.toChars(),
+                           dn.visibility.kind.toChars(), dn.kind2(), dn.toChars(),
                            dn.parent.kind(), dn.parent.toChars());
     }
     else
         dn.loc.warning("unused %s %s `%s` of %s `%s`, rename to `_` or prepend `_` to name to silence",
-                       dn.protection.kind.toChars(), dn.kind2(), dn.toChars(),
+                       dn.visibility.kind.toChars(), dn.kind2(), dn.toChars(),
                        dn.parent.kind(), dn.parent.toChars());
 }
 
@@ -1497,7 +1497,7 @@ private void checkUnmodifiedVarDeclaration(const VarDeclaration vd)
     assert(vd);
 
     if ((vd.storage_class & (STC.manifest | STC.const_ | STC.immutable_)) ||
-        (vd.protection.kind != Visibility.Kind.private_ && // private
+        (vd.visibility.kind != Visibility.Kind.private_ && // private
          vd.storage_class & STC.field) ||            // field
         vd.isRef ||
         isUnreferencedVarDeclaration(vd) ||
@@ -1511,7 +1511,7 @@ private void checkUnmodifiedVarDeclaration(const VarDeclaration vd)
         // vd.loc.warning("%p: `%s`", vd, vd.toChars());
         // unfortunately `vd._scope` is `null` here
         vd.loc.warning("unmodified %s %s `%s` of %s should be declared `const` or `immutable`, rename to `_` or prepend `_` to name to silence",
-                       vd.protection.kind.toChars(),
+                       vd.visibility.kind.toChars(),
                        vd.kind2(),
                        vd.toChars(),
                        vd.parentKind().ptr);
@@ -1521,7 +1521,7 @@ private void checkUnmodifiedVarDeclaration(const VarDeclaration vd)
     if (vd.allVarStat.writeAccess &&
         !vd.allVarStat.readAccess)
         vd.loc.warning("unused modified %s %s `%s` of %s, rename to `_` or prepend `_` to name to silence",
-                       vd.protection.kind.toChars(),
+                       vd.visibility.kind.toChars(),
                        vd.kind2(),
                        vd.toChars(),
                        vd.parentKind().ptr);
@@ -1531,7 +1531,7 @@ private void checkUnmodifiedVarDeclaration(const VarDeclaration vd)
     if (vd.lastVarStat.writeAccess &&
         !vd.lastVarStat.aliasedAccess)
         vd.recentExp.warning("value assigned to %s %s `%s` of %s is unused, rename to `_` or prepend `_` to name to silence",
-                             vd.protection.kind.toChars(),
+                             vd.visibility.kind.toChars(),
                              vd.kind2(),
                              vd.toChars(),
                              vd.parentKind().ptr);
@@ -1570,7 +1570,7 @@ private void checkAccessAtEndOfLife(const VarDeclaration vd,
             !vs.allReadAccess)
         {
             vd.loc.warning("unused %s %s `%s` of %s, rename to `_` or prepend `_` to name to silence",
-                           vd.protection.kind.toChars(),
+                           vd.visibility.kind.toChars(),
                            vd.kind2(),
                            vd.toChars(),
                            vd.parentKind().ptr);
@@ -1580,7 +1580,7 @@ private void checkAccessAtEndOfLife(const VarDeclaration vd,
             !vs.allAliasedAccess) // was aliased to mutable variable
         {
             vd.loc.warning("unmodified %s %s `%s` of %s should be declared `const` or `immutable`, rename to `_` or prepend `_` to name to silence",
-                           vd.protection.kind.toChars(),
+                           vd.visibility.kind.toChars(),
                            vd.kind2(),
                            vd.toChars(),
                            vd.parentKind().ptr);
@@ -1593,7 +1593,7 @@ private void checkAccessAtEndOfLife(const VarDeclaration vd,
         if (!vs.recentReadAccess &&
             vs.recentWriteAccess)
             vs.recentExp.warning("value assigned to %s %s `%s` of %s is unused, rename to `_` or prepend `_` to name to silence",
-                                 vd.protection.kind.toChars(),
+                                 vd.visibility.kind.toChars(),
                                  vd.kind2(),
                                  vd.toChars(),
                                  vd.parentKind().ptr);
@@ -1601,7 +1601,7 @@ private void checkAccessAtEndOfLife(const VarDeclaration vd,
             vs.allWriteAccess &&
             !vs.allAliasedAccess)
             vd.loc.warning("unused modified %s %s `%s` of %s, rename to `_` or prepend `_` to name to silence",
-                           vd.protection.kind.toChars(),
+                           vd.visibility.kind.toChars(),
                            vd.kind2(),
                            vd.toChars(),
                            vd.parentKind().ptr);
@@ -1642,15 +1642,15 @@ private void checkUnusedFuncDeclaration(FuncDeclaration fd)
 
     if (!fd.parent)
     {
-        fd.loc.warning("unused %s function `%s` of no parent", fd.prot.kind.toChars(), fd.toChars());
+        fd.loc.warning("unused %s function `%s` of no parent", fd.visibility.kind.toChars(), fd.toChars());
         return;
     }
 
     if (fd.parent.isModule())
     {
-        if (fd.protection.kind == Visibility.Kind.private_)
+        if (fd.visibility.kind == Visibility.Kind.private_)
             fd.loc.warning("unused private function `%s` of module", fd.toChars());
-        else if (fd.protection.kind == Visibility.Kind.package_)
+        else if (fd.visibility.kind == Visibility.Kind.package_)
             fd.loc.warning("unused package function `%s` of module", fd.toChars());
     }
     else if (const pad = fd.parent.isAggregateDeclaration())
@@ -1661,20 +1661,20 @@ private void checkUnusedFuncDeclaration(FuncDeclaration fd)
              pad.classKind == ClassKind.cpp ||
              pad.classKind == ClassKind.objc))
             return;
-        const padUU = pad.protection.kind.shouldWarnUnunsed();
-        const dnUU = fd.protection.kind.shouldWarnUnunsed();
+        const padUU = pad.visibility.kind.shouldWarnUnunsed();
+        const dnUU = fd.visibility.kind.shouldWarnUnunsed();
         if (padUU && dnUU)
             fd.loc.warning("unused %s %s `%s` of %s %s",
-                           fd.protection.kind.toChars(), fd.kind2(), fd.toChars(),
-                           pad.protection.kind.toChars(), pad.kind());
+                           fd.visibility.kind.toChars(), fd.kind2(), fd.toChars(),
+                           pad.visibility.kind.toChars(), pad.kind());
         else if (padUU)
             fd.loc.warning("unused %s %s `%s` of %s %s",
-                           fd.protection.kind.toChars(), fd.kind2(), fd.toChars(),
-                           pad.protection.kind.toChars(), pad.kind());
+                           fd.visibility.kind.toChars(), fd.kind2(), fd.toChars(),
+                           pad.visibility.kind.toChars(), pad.kind());
         else if (dnUU)
             fd.loc.warning("unused %s %s `%s` of %s %s",
-                           fd.protection.kind.toChars(), fd.kind2(), fd.toChars(),
-                           pad.protection.kind.toChars(), pad.kind());
+                           fd.visibility.kind.toChars(), fd.kind2(), fd.toChars(),
+                           pad.visibility.kind.toChars(), pad.kind());
     }
     else if (fd.parent.isFuncDeclaration())
     {
@@ -1685,7 +1685,7 @@ private void checkUnusedFuncDeclaration(FuncDeclaration fd)
                fd.isCMain() ||
                fd.isWinMain() ||
                fd.isDllMain()))
-        fd.loc.warning("unused %s function `%s` of parent:%s", fd.protection.kind.toChars(), fd.toChars(), fd.parent.toChars());
+        fd.loc.warning("unused %s function `%s` of parent:%s", fd.visibility.kind.toChars(), fd.toChars(), fd.parent.toChars());
 
     if (!fd.parameters)
         return;
@@ -1730,8 +1730,8 @@ private void checkUnusedFuncAliasDeclaration(FuncAliasDeclaration fd) // TODO: a
     assert(fd);
     if (isReferencedDeclaration(fd))
         return;
-    if (fd.protection.kind.shouldWarnUnunsed())
-        fd.loc.warning("unused %s function `%s`", fd.prot.kind.toChars(), fd.toChars());
+    if (fd.visibility.kind.shouldWarnUnunsed())
+        fd.loc.warning("unused %s function `%s`", fd.visibility.kind.toChars(), fd.toChars());
 }
 
 private void checkUnusedEnumDeclaration(EnumDeclaration ed)
@@ -1739,8 +1739,8 @@ private void checkUnusedEnumDeclaration(EnumDeclaration ed)
     assert(ed);
     if (isUsedEnumDeclaration(ed))
         return;
-    if (ed.protection.kind.shouldWarnUnunsed())
-        ed.loc.warning("unused %s enum `%s`", ed.prot.kind.toChars(), ed.toChars());
+    if (ed.visibility.kind.shouldWarnUnunsed())
+        ed.loc.warning("unused %s enum `%s`", ed.visibility.kind.toChars(), ed.toChars());
 }
 
 private void checkUnusedEnumMember(EnumMember ed)
@@ -1748,18 +1748,18 @@ private void checkUnusedEnumMember(EnumMember ed)
     assert(ed);
     if (isReferencedDeclaration(ed))
         return;
-    if (ed.parent.prot.kind.shouldWarnUnunsed())
-        ed.loc.warning("unused member (enumerator) `%s` of %s enum `%s`", ed.toChars(), ed.parent.prot.kind.toChars(), ed.parent.toChars());
+    if (ed.visibility.kind.shouldWarnUnunsed())
+        ed.loc.warning("unused member (enumerator) `%s` of %s enum `%s`", ed.toChars(), ed.visibility.kind.toChars(), ed.parent.toChars());
 }
 
 private void checkUnusedStructDeclaration(StructDeclaration sd)
 {
     assert(sd);
-    // sd.loc.warning("unused %s struct `%s` with storage class %d", sd.prot.kind.toChars(), sd.toChars(), sd.storage_class);
+    // sd.loc.warning("unused %s struct `%s` with storage class %d", sd.visibility.kind.toChars(), sd.toChars(), sd.storage_class);
     if (isUsedAggregateDeclaration(sd))
         return;
-    if (sd.protection.kind.shouldWarnUnunsed())
-        sd.loc.warning("unused %s struct `%s`", sd.prot.kind.toChars(), sd.toChars());
+    if (sd.visibility.kind.shouldWarnUnunsed())
+        sd.loc.warning("unused %s struct `%s`", sd.visibility.kind.toChars(), sd.toChars());
 }
 
 private void checkUnusedClassDeclaration(ClassDeclaration cd)
@@ -1767,8 +1767,8 @@ private void checkUnusedClassDeclaration(ClassDeclaration cd)
     assert(cd);
     if (isUsedAggregateDeclaration(cd))
         return;
-    if (cd.protection.kind.shouldWarnUnunsed())
-        cd.loc.warning("unused %s class `%s`", cd.prot.kind.toChars(), cd.toChars());
+    if (cd.visibility.kind.shouldWarnUnunsed())
+        cd.loc.warning("unused %s class `%s`", cd.visibility.kind.toChars(), cd.toChars());
 }
 
 private void checkUnusedInterfaceDeclaration(InterfaceDeclaration id)
@@ -1776,8 +1776,8 @@ private void checkUnusedInterfaceDeclaration(InterfaceDeclaration id)
     assert(id);
     if (isUsedAggregateDeclaration(id))
         return;
-    if (id.protection.kind.shouldWarnUnunsed())
-        id.loc.warning("unused %s interface `%s`", id.prot.kind.toChars(), id.toChars());
+    if (id.visibility.kind.shouldWarnUnunsed())
+        id.loc.warning("unused %s interface `%s`", id.visibility.kind.toChars(), id.toChars());
 }
 
 private void checkUnusedTemplateDeclaration(TemplateDeclaration td)
@@ -1785,8 +1785,8 @@ private void checkUnusedTemplateDeclaration(TemplateDeclaration td)
     assert(td);
     if (isUsedTemplatedDeclaration(td))
         return;
-    if (td.protection.kind.shouldWarnUnunsed())
-        td.loc.warning("unused %s template `%s`", td.prot.kind.toChars(), td.toChars());
+    if (td.visibility.kind.shouldWarnUnunsed())
+        td.loc.warning("unused %s template `%s`", td.visibility.kind.toChars(), td.toChars());
 }
 
 private void checkUnusedTemplateParameter(TemplateParameter tp)
@@ -1794,7 +1794,7 @@ private void checkUnusedTemplateParameter(TemplateParameter tp)
     assert(tp);
     // TODO: uncomment
     // if (tp.vrefByName == VarStat.none)
-    // tp.loc.warning("unused %s template `%s`", tp.prot.kind.toChars(), tp.toChars());
+    // tp.loc.warning("unused %s template `%s`", tp.visibility.kind.toChars(), tp.toChars());
 }
 
 private void checkUnusedLabelDsymbol(LabelDsymbol ls)
@@ -1802,7 +1802,7 @@ private void checkUnusedLabelDsymbol(LabelDsymbol ls)
     assert(ls);
     if (ls.isReferenced)
         return;
-    ls.loc.warning("unused %s label `%s`", ls.prot.kind.toChars(), ls.toChars());
+    ls.loc.warning("unused label `%s`", ls.toChars());
 }
 
 private void checkUnusedLabelStatement(LabelStatement ls)
@@ -1816,12 +1816,12 @@ private void checkUnusedImport(Import im)
     assert(im);
     if (!im.aliasdecls.length)  // no explicit symbols given
     {
-        if (im.protection.kind == Visibility.Kind.public_)
+        if (im.visibility.kind == Visibility.Kind.public_)
             return;
         if (im.aliasId)         // Example: `import io = std.stdio;`
         {
             if (!im.isReferenced)
-                im.loc.warning("unused %s aliased import `%s`", im.protection.kind.toChars(), im.toChars());
+                im.loc.warning("unused %s aliased import `%s`", im.visibility.kind.toChars(), im.toChars());
         }
         else                    // Example: `import std.stdio;`
         {
@@ -1844,12 +1844,12 @@ private void checkUnusedImport(Import im)
                     // TODO: use pkg, pkg.isModule(), pkg.toChars(), pkg.toPrettyChars(), id.toChars()?
                     im.loc.warning("unused module `%s` of %s import `%s`",
                                    im.mod.toChars(),
-                                   im.protection.kind.toChars(),
+                                   im.visibility.kind.toChars(),
                                    im.toChars());
             }
             else
             {
-                // im.loc.warning("no module for import %s `%s`", im.protection.kind.toChars(), im.toChars());
+                // im.loc.warning("no module for import %s `%s`", im.visibility.kind.toChars(), im.toChars());
             }
         }
         // im.loc.warning("unused import im=`%s`-%d id=`%s` aliasId=`%s` static:`%d` toAlias=`%s`-%d pkg:%s-%d mod:%s-%d",
@@ -1868,10 +1868,10 @@ private void checkUnusedImport(Import im)
         {
             if (ad.isReferenced)
                 continue;
-            if (ad.protection.kind == Visibility.Kind.public_)
+            if (ad.visibility.kind == Visibility.Kind.public_)
                 continue;
             // TODO correct `ad.loc` upon its creation
-            ad.loc.warning("unused %s imported alias `%s`", im.prot.kind.toChars(), ad.toChars());
+            ad.loc.warning("unused %s imported alias `%s`", im.visibility.kind.toChars(), ad.toChars());
         }
     }
 }
@@ -1922,21 +1922,21 @@ static private bool isReferencedDeclaration(const Declaration d) @safe /* TODO: 
 {
     assert(d);
     return (d.isReferenced ||
-            d.protection.kind == Visibility.Kind.undefined); // has no semantics
+            d.visibility.kind == Visibility.Kind.undefined); // has no semantics
 }
 
 static private bool isUnreferencedVarDeclaration(const VarDeclaration vd) @safe /* TODO: pure nothrow */ @nogc
 {
     assert(vd);
     return (!vd.isReferenced ||
-            vd.protection.kind == Visibility.Kind.undefined); // has no semantics
+            vd.visibility.kind == Visibility.Kind.undefined); // has no semantics
 }
 
 static private bool isUsedEnumDeclaration(const EnumDeclaration ed) @safe /* TODO: pure nothrow */ @nogc
 {
     assert(ed);
     return (ed.isReferenced ||
-            ed.protection.kind == Visibility.Kind.undefined); // has no semantics
+            ed.visibility.kind == Visibility.Kind.undefined); // has no semantics
 }
 
 static private bool isUsedAggregateDeclaration(const AggregateDeclaration ad) @safe /* TODO: pure nothrow */ @nogc
@@ -1948,7 +1948,7 @@ static private bool isUsedAggregateDeclaration(const AggregateDeclaration ad) @s
     //                ad.storage_class,
     //                (ad.storage_class & STC.extern_) ? 1 : 0);
     return (ad.isReferenced ||
-            ad.protection.kind == Visibility.Kind.undefined || // has no semantics
+            ad.visibility.kind == Visibility.Kind.undefined || // has no semantics
             ad.classKind == ClassKind.cpp ||
             ad.classKind == ClassKind.objc ||
             (ad.storage_class & STC.extern_) ? 1 : 0);
@@ -1958,7 +1958,7 @@ static private bool isUsedTemplatedDeclaration(const TemplateDeclaration td) @sa
 {
     assert(td);
     return (td.isReferenced ||
-            td.protection.kind == Visibility.Kind.undefined); // has no semantics
+            td.visibility.kind == Visibility.Kind.undefined); // has no semantics
 }
 
 static private const(char)* kind2(const Declaration dn) @safe /* TODO: pure nothrow */ @nogc
