@@ -61,6 +61,7 @@
 
 module dmd.diagnostics;
 
+import dmd.astenums;
 import dmd.root.string;
 import dmd.dsymbol;
 import dmd.dmodule;
