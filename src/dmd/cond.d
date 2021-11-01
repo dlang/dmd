@@ -452,7 +452,6 @@ extern (C++) final class StaticForeach : RootObject
             sc = sc.startCTFE();
             aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
             sc = sc.endCTFE();
-            aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
         }
 
         if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
