@@ -827,7 +827,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 Initializer ie = new ExpInitializer(Loc.initial, new IntegerExp(k));
                 auto var = new VarDeclaration(loc, p.type, p.ident, ie);
-                var.storage_class |= STC.manifest;
+                var.storage_class |= STC.foreach_ | STC.manifest;
                 static if(isStatic) var.storage_class |= STC.local;
                 static if(!isDecl)
                 {
@@ -919,8 +919,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         e = resolveProperties(sc, e);
                         Initializer ie = new ExpInitializer(Loc.initial, e);
                         auto v = new VarDeclaration(loc, type, ident, ie, storageClass);
+                        v.storage_class |= STC.foreach_;
                         if (storageClass & STC.ref_)
-                            v.storage_class |= STC.ref_ | STC.foreach_;
+                            v.storage_class |= STC.ref_;
                         if (isStatic || storageClass&STC.manifest || e.isConst() ||
                             e.op == TOK.string_ ||
                             e.op == TOK.structLiteral ||
