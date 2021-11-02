@@ -22,7 +22,7 @@ subPackage {
     "src/dmd/console.d" \
     "src/dmd/entity.d" \
     "src/dmd/errors.d" \
-    "src/dmd/file_manager.d" \
+    "src/dmd/filecache.d" \
     "src/dmd/globals.d" \
     "src/dmd/id.d" \
     "src/dmd/identifier.d" \
@@ -92,7 +92,7 @@ subPackage {
     console,\
     entity,\
     errors,\
-    file_manager,\
+    filecache,\
     globals,\
     id,\
     identifier,\
