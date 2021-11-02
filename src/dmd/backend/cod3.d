@@ -4118,8 +4118,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
         // This logic is same as FuncParamRegs_alloc function at src/dmd/backend/cod1.d
         //
         // Find suitable SROA based on the element type
-        // (Don't put volatile parameters in registers)
-        if (tyb == TYarray && !(t.Tty & mTYvolatile))
+        // (Don't put volatile parameters in registers on Windows)
+        if (tyb == TYarray && (config.exe != EX_WIN64 || !(t.Tty & mTYvolatile)))
         {
             type *targ1;
             argtypes(t, targ1, t2);
