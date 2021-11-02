@@ -245,14 +245,14 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 Note: many other utilities are in [dmd/root](https://github.com/dlang/dmd/tree/master/src/dmd/root).
 
-| File                                                                              | Purpose                                           |
-|-----------------------------------------------------------------------------------|---------------------------------------------------|
-| [env.d](https://github.com/dlang/dmd/blob/master/src/dmd/env.d)                   | Modify environment variables                      |
-| [console.d](https://github.com/dlang/dmd/blob/master/src/dmd/console.d)           | Print error messages in color                     |
-| [utf.d](https://github.com/dlang/dmd/blob/master/src/dmd/utf.d)                   | Encoding/decoding Unicode text                    |
-| [file_manager.d](https://github.com/dlang/dmd/blob/master/src/dmd/file_manager.d) | Keep file contents in memory                      |
-| [utils.d](https://github.com/dlang/dmd/blob/master/src/dmd/utils.d)               | Utility functions related to files and file paths |
-| [complex.d](https://github.com/dlang/dmd/blob/master/src/dmd/complex.d)           | A complex number type                             |
+| File                                                                        | Purpose                                           |
+|-----------------------------------------------------------------------------|---------------------------------------------------|
+| [env.d](https://github.com/dlang/dmd/blob/master/src/dmd/env.d)             | Modify environment variables                      |
+| [console.d](https://github.com/dlang/dmd/blob/master/src/dmd/console.d)     | Print error messages in color                     |
+| [utf.d](https://github.com/dlang/dmd/blob/master/src/dmd/utf.d)             | Encoding/decoding Unicode text                    |
+| [filecache.d](https://github.com/dlang/dmd/blob/master/src/dmd/filecache.d) | Keep file contents in memory                      |
+| [utils.d](https://github.com/dlang/dmd/blob/master/src/dmd/utils.d)         | Utility functions related to files and file paths |
+| [complex.d](https://github.com/dlang/dmd/blob/master/src/dmd/complex.d)     | A complex number type                             |
 
 | File                                                                            | Purpose                                                       |
 |---------------------------------------------------------------------------------|---------------------------------------------------------------|
