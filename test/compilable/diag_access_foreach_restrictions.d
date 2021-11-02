@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -wi -vcolumns -unittest -diagnose=access
+// REQUIRED_ARGS: -wi -vcolumns -unittest -vunused
 // SPEC: https://dlang.org/spec/statement.html#foreach_restrictions
 
 /*

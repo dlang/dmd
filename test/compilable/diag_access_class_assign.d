@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -wi -unittest -diagnose=access -debug
+// REQUIRED_ARGS: -wi -unittest -vunused -debug
 
 /*
 TEST_OUTPUT:

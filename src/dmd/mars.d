@@ -1778,6 +1778,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
             params.vgc = true;
+        else if (arg == "-vunused")
+            params.diagnostics = cast(Diagnostics)(Diagnostics.symbolAccess);
+        else if (arg == "-vunusedimports")
+            params.diagnostics = cast(Diagnostics)(Diagnostics.symbolAccess | Diagnostics.usedImportModuleMembers);
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
             if (p[8] != '=')
@@ -1820,22 +1824,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-target=".length;
             const triple = Triple(p + len);
             target.setTriple(triple);
-        }
-        else if (startsWith(p + 1, "diagnose="))
-        {
-            const(char)[] style = arg["diagnose=".length + 1 .. $];
-
-            switch (style)
-            {
-            case "access":
-                params.diagnostics = cast(Diagnostics)(Diagnostics.symbolAccess);
-                break;
-            case "imports-access":
-                params.diagnostics = cast(Diagnostics)(Diagnostics.symbolAccess | Diagnostics.usedImportModuleMembers);
-                break;
-            default:
-                error("unknown diagnostics type '%.*s', must be 'access' or 'imports-access'", cast(int) style.length, style.ptr);
-            }
         }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {

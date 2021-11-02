@@ -747,6 +747,12 @@ dmd -cov -unittest myprog.d
         Option("vgc",
             "list all gc allocations including hidden ones"
         ),
+        Option("vunused",
+            "list all unused symbols"
+        ),
+        Option("vunusedimports",
+            "list all unused imports"
+        ),
         Option("vtls",
             "list all variables going into thread local storage"
         ),

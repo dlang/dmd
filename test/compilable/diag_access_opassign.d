@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -vcolumns -wi -unittest -diagnose=access -debug
+// REQUIRED_ARGS: -vcolumns -wi -unittest -vunused -debug
 
 /*
 TEST_OUTPUT:
