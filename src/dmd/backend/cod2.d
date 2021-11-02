@@ -4554,8 +4554,7 @@ else
 
         cdb.genc2(0x81,(rex << 16) | modregrm(3,5,DI), type_size(e.ET));   // SUB DI,numbytes
         regm_t retregs = mDI;
-        if (*pretregs & mMSW && !(config.exe & EX_flat))
-            retregs |= mES;
+        if (*pretregs & mMSW) retregs |= mES;
         fixresult(cdb,e,retregs,pretregs);
     }
 }
