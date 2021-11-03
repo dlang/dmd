@@ -5103,7 +5103,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             checkFunctionAttributes(exp, sc, exp.f);
-            checkAccess(exp.loc, sc, null, exp.f);
+            if(!exp.f.isUnitTestDeclaration && !checkSymbolAccess(sc, exp.f))
+            {
+                // @@@DEPRECATED_2021-11@@@
+                // When turning into error, uncomment the return statement
+                deprecation(exp.loc, "Function `%s` of type `%s` is not accessible from module `%s`",
+                            exp.f.toPrettyChars(), exp.f.type.toChars(), sc._module.toChars());
+                //return ErrorExp.get();
+            }
             if (exp.f.checkNestedReference(sc, exp.loc))
                 return setError();
 
