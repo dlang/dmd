@@ -57,7 +57,7 @@ version (PPC_Any)
     //     MCL_FUTURE = 0x4000,
     // }
 }
-// http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/powerpc/bits/mman.h
+// http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/riscv/bits/mman.h
 else version (RISCV_Any)
 {
     static if (__USE_MISC) enum
@@ -138,7 +138,7 @@ else version (SPARC_Any)
     //     MCL_FUTURE = 0x4000,
     // }
 }
-// http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sparc/bits/mman.h
+// http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/x86/bits/mman.h
 else version (X86_Any)
 {
     static if (__USE_MISC) enum MAP_32BIT = 0x40;
