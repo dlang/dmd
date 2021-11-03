@@ -284,7 +284,7 @@ version (MARS)
 void rtlsym_reset()
 {
     clib_inited = 0;            // reset CLIB symbols, too
-    for (size_t i = 0; i < RTLSYM.max; i++)
+    for (size_t i = 0; i <= RTLSYM.max; i++)
     {
         if (rtlsym[i])
         {
