@@ -6971,6 +6971,8 @@ public:
     TemplateInstance* ti;
     DotTemplateInstanceExp* syntaxCopy();
     bool findTempDecl(Scope* sc);
+    bool checkType();
+    bool checkValue();
     void accept(Visitor* v);
 };
 

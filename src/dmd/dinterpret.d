@@ -76,6 +76,7 @@ public Expression ctfeInterpret(Expression e)
         case TOK.template_:              // non-eponymous template/instance
         case TOK.scope_:                 // ditto
         case TOK.dotTemplateDeclaration: // ditto, e.e1 doesn't matter here
+        case TOK.dotTemplateInstance:    // ditto
         case TOK.dot:                    // ditto
              if (e.type.ty == Terror)
                 return ErrorExp.get();

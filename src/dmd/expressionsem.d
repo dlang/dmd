@@ -4303,7 +4303,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          *  expr.foo!(tiargs)(funcargs)
          */
     Ldotti:
-        if (exp.e1.op == TOK.dotTemplateInstance && !exp.e1.type)
+        if (exp.e1.op == TOK.dotTemplateInstance)
         {
             DotTemplateInstanceExp se = cast(DotTemplateInstanceExp)exp.e1;
             TemplateInstance ti = se.ti;
@@ -4358,7 +4358,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  * We handle such earlier, so go back.
                  * Note that in the rewrite, we carefully did not run semantic() on e1
                  */
-                if (exp.e1.op == TOK.dotTemplateInstance && !exp.e1.type)
+                if (exp.e1.op == TOK.dotTemplateInstance)
                 {
                     goto Ldotti;
                 }
@@ -6433,9 +6433,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (e && isDotOpDispatch(e))
         {
+            auto ode = e;
             uint errors = global.startGagging();
             e = resolvePropertiesX(sc, e);
-            if (global.endGagging(errors))
+            // Any error or if 'e' is not resolved, go to UFCS
+            if (global.endGagging(errors) || e is ode)
                 e = null; /* fall down to UFCS */
             else
             {
@@ -6636,10 +6638,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("DotTemplateInstanceExp::semantic('%s')\n", exp.toChars());
         }
+        if (exp.type)
+        {
+            result = exp;
+            return;
+        }
         // Indicate we need to resolve by UFCS.
         Expression e = exp.semanticY(sc, 1);
         if (!e)
             e = resolveUFCSProperties(sc, exp);
+        if (e is exp)
+            e.type = Type.tvoid; // Unresolved type, because it needs inference
         result = e;
     }
 
@@ -8742,10 +8751,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      * In order to make sure that UFCS is tried with correct parameters, e2
                      * needs to have semantic ran on it.
                      */
+                    auto ode = e;
                     exp.e2 = exp.e2.expressionSemantic(sc);
                     uint errors = global.startGagging();
                     e = resolvePropertiesX(sc, e, exp.e2);
-                    if (global.endGagging(errors))
+                    // Any error or if 'e' is not resolved, go to UFCS
+                    if (global.endGagging(errors) || e is ode)
                         e = null; /* fall down to UFCS */
                     else
                         return setResult(e);

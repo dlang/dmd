@@ -784,6 +784,8 @@ public:
 
     DotTemplateInstanceExp *syntaxCopy();
     bool findTempDecl(Scope *sc);
+    bool checkType();
+    bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
 };
 
