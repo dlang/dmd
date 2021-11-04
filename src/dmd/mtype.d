@@ -515,7 +515,7 @@ extern (C++) abstract class Type : ASTNode
                         }
                         else if (tp1.ty == Tdelegate)
                         {
-                            if (tp1.implicitConvTo(tp2))
+                            if (tp2.implicitConvTo(tp1))
                                 goto Lcov;
                         }
                     }
@@ -4988,7 +4988,7 @@ extern (C++) final class TypeFunction : TypeNext
     {
         assert(to);
 
-        if (this == to)
+        if (this.equals(to))
             return MATCH.constant;
 
         if (this.covariant(to) == Covariant.yes)
@@ -5301,7 +5301,7 @@ extern (C++) final class TypeDelegate : TypeNext
         //printf("TypeDelegate.implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
-        if (this == to)
+        if (this.equals(to))
             return MATCH.exact;
 
         if (auto toDg = to.isTypeDelegate())

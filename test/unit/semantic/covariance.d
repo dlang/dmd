@@ -226,8 +226,6 @@ unittest
     runTest(test);
 }
 
-// BUG: Note that the results are reversed when compared to function pointers
-//      in "function-pointer-params". To be fixed soon(TM)
 @("delegate-params")
 unittest
 {
@@ -239,11 +237,11 @@ unittest
         },
 
         baseToTarget: {
-            result: Covariant.distinct,
+            result: Covariant.yes,
         },
 
         targetToBase: {
-            result: Covariant.yes
+            result: Covariant.distinct,
         }
     };
     runTest(test);
@@ -721,7 +719,6 @@ unittest
     runTest(test);
 }
 
-// Another difference between function pointers / delegates as mentioned above
 @("xtest46-delegate")
 unittest
 {
@@ -741,7 +738,7 @@ unittest
         },
 
         targetToBase: {
-            result: Covariant.yes
+            result: Covariant.distinct
         }
     };
     runTest(test);
