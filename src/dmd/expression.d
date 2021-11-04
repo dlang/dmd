@@ -4989,6 +4989,31 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
         return ti.updateTempDecl(sc, s);
     }
 
+    override bool checkType()
+    {
+        // Same logic as ScopeExp.checkType()
+        if (ti.tempdecl &&
+            ti.semantictiargsdone &&
+            ti.semanticRun == PASS.init)
+        {
+            error("partial %s `%s` has no type", ti.kind(), toChars());
+            return true;
+        }
+        return false;
+    }
+
+    override bool checkValue()
+    {
+        if (ti.tempdecl &&
+            ti.semantictiargsdone &&
+            ti.semanticRun == PASS.init)
+
+            error("partial %s `%s` has no value", ti.kind(), toChars());
+        else
+            error("%s `%s` has no value", ti.kind(), ti.toChars());
+        return true;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
