@@ -2302,6 +2302,14 @@ Type merge(Type type)
                 return type;
             goto default;
 
+        case Tdelegate:
+        {
+            // Ensure that the TypeFunction is merged before (if possible)
+            auto td = type.isTypeDelegate();
+            td.next = td.next.merge();
+            goto default;
+        }
+
         default:
             if (type.nextOf() && !type.nextOf().deco)
                 return type;
