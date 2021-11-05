@@ -1385,6 +1385,18 @@ version (MARS)
 
     block_pred();                       // compute predecessors to blocks
     block_compbcount();                 // eliminate unreachable blocks
+
+    debug { } else
+    {
+        if (debugb)
+        {
+            printf("...................%s().............\n", funcsym_p.Sident.ptr);
+            numberBlocks(startblock);
+            for (block *b = startblock; b; b = b.Bnext)
+                WRblock(b);
+        }
+    }
+
     if (go.mfoptim)
     {   OPTIMIZER = 1;
         optfunc();                      /* optimize function            */

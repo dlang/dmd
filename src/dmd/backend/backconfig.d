@@ -351,9 +351,6 @@ static if (0)
 }
 }
 
-debug
-{
-
 /****************************
  * Transmit internal compiler debugging flags.
  */
@@ -375,8 +372,6 @@ void out_config_debug(
     debugw = w;
     debugx = x;
     debugy = y;
-}
-
 }
 
 /*************************************
