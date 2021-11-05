@@ -1075,18 +1075,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // could crash (inf. recursion) on a mod/pkg referencing itself
                     if (ei && (ei.exp.op != TOK.scope_ ? true : !ei.exp.isScopeExp().sds.isPackage()))
                     {
-                        Expression exp = ei.exp.syntaxCopy();
+                        if (ei.exp.type)
+                        {
+                            // If exp is already resolved we are done, our original init exp
+                            // could have a type painting that we need to respect
+                            // e.g.  ['a'] typed as string, or [['z'], ""] as string[]
+                            // See https://issues.dlang.org/show_bug.cgi?id=15711
+                        }
+                        else
+                        {
+                            Expression exp = ei.exp.syntaxCopy();
 
-                        bool needctfe = dsym.isDataseg() || (dsym.storage_class & STC.manifest);
-                        if (needctfe)
-                            sc = sc.startCTFE();
-                        exp = exp.expressionSemantic(sc);
-                        exp = resolveProperties(sc, exp);
-                        if (needctfe)
-                            sc = sc.endCTFE();
+                            bool needctfe = dsym.isDataseg() || (dsym.storage_class & STC.manifest);
+                            if (needctfe)
+                                sc = sc.startCTFE();
+                            exp = exp.expressionSemantic(sc);
+                            exp = resolveProperties(sc, exp);
+                            if (needctfe)
+                                sc = sc.endCTFE();
+                            ei.exp = exp;
+                        }
 
                         Type tb2 = dsym.type.toBasetype();
-                        Type ti = exp.type.toBasetype();
+                        Type ti = ei.exp.type.toBasetype();
 
                         /* The problem is the following code:
                          *  struct CopyTest {
@@ -1110,11 +1121,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             if (sd.postblit && tb2.toDsymbol(null) == sd)
                             {
                                 // The only allowable initializer is a (non-copy) constructor
-                                if (exp.isLvalue())
+                                if (ei.exp.isLvalue())
                                     dsym.error("of type struct `%s` uses `this(this)`, which is not allowed in static initialization", tb2.toChars());
                             }
                         }
-                        ei.exp = exp;
                     }
 
                     dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
