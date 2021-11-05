@@ -177,17 +177,19 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                             break;
                     }
                 }
-                else if (fieldi >= nfields)
+                if (j >= nfields)
                 {
-                    error(i.loc, "too many initializers for `%s`", sd.toChars());
+                    error(i.value[j].loc, "too many initializers for `%s`", sd.toChars());
                     return err();
                 }
 
                 VarDeclaration vd = sd.fields[fieldi];
                 if (elems[fieldi])
                 {
-                    error(i.loc, "duplicate initializer for field `%s`", vd.toChars());
+                    error(i.value[j].loc, "duplicate initializer for field `%s`", vd.toChars());
                     errors = true;
+                    elems[fieldi] = ErrorExp.get(); // for better diagnostics on multiple errors
+                    ++fieldi;
                     continue;
                 }
 
@@ -198,9 +200,12 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                          (vd.offset & (target.ptrsize - 1))) &&
                         sc.func && sc.func.setUnsafe())
                     {
-                        error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
+                        error(i.value[j].loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
                             sd.toChars(), vd.toChars());
                         errors = true;
+                        elems[fieldi] = ErrorExp.get(); // for better diagnostics on multiple errors
+                        ++fieldi;
+                        continue;
                     }
                 }
 
@@ -209,7 +214,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 {
                     if (vd.isOverlappedWith(v2) && elems[k])
                     {
-                        error(i.loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
+                        error(elems[k].loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
                         errors = true;
                         continue;
                     }
@@ -223,6 +228,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 if (ex.op == TOK.error)
                 {
                     errors = true;
+                    elems[fieldi] = ErrorExp.get(); // for better diagnostics on multiple errors
+                    ++fieldi;
                     continue;
                 }
 
@@ -1321,6 +1328,3 @@ private bool hasNonConstPointers(Expression e)
     }
     return false;
 }
-
-
-
