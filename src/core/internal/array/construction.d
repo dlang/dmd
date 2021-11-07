@@ -9,22 +9,24 @@
 */
 module core.internal.array.construction;
 
+import core.internal.traits : Unqual;
+
 /**
  * Does array initialization (not assignment) from another array of the same element type.
  * Params:
- *  to = what array to initialize
  *  from = what data the array should be initialized with
  * Returns:
- *  The constructed `to`
+ *  The crated and initialized array `to`
  * Bugs:
  *  This function template was ported from a much older runtime hook that bypassed safety,
  *  purity, and throwabilty checks. To prevent breaking existing code, this function template
  *  is temporarily declared `@trusted` until the implementation can be brought up to modern D expectations.
  */
 Tarr1 _d_arrayctor(Tarr1 : T1[], Tarr2 : T2[], T1, T2)(scope Tarr2 from) @trusted
+    if (is(Unqual!T1 == Unqual!T2))
 {
     pragma(inline, false);
-    import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+    import core.internal.traits : hasElaborateCopyConstructor;
     import core.lifetime : copyEmplace;
     import core.stdc.string : memcpy;
     import core.stdc.stdint : uintptr_t;
@@ -190,7 +192,6 @@ Tarr1 _d_arrayctor(Tarr1 : T1[], Tarr2 : T2[], T1, T2)(scope Tarr2 from) @truste
 void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
 {
     pragma(inline, false);
-    import core.internal.traits : Unqual;
     import core.lifetime : copyEmplace;
 
     size_t i;
