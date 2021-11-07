@@ -6,7 +6,6 @@
   * Authors: Brian Callahan
   */
 module core.sys.openbsd.unistd;
-public import core.sys.posix.unistd;
 
 version (OpenBSD):
 extern (C):
