@@ -4585,27 +4585,27 @@ Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out St
     return statement;
 }
 
-
 /*******************
  * Determines additional argument types for makeTupleForeach.
  */
 static template TupleForeachArgs(bool isStatic, bool isDecl)
 {
-    alias Seq(T...)=T;
-    static if(isStatic) alias T = Seq!(bool);
-    else alias T = Seq!();
-    static if(!isDecl) alias TupleForeachArgs = T;
-    else alias TupleForeachArgs = Seq!(Dsymbols*,T);
-}
+    alias Seq(T...) = T;
 
-/*******************
- * Determines the return type of makeTupleForeach.
- */
-static template TupleForeachRet(bool isStatic, bool isDecl)
-{
-    alias Seq(T...)=T;
-    static if(!isDecl) alias TupleForeachRet = Statement;
-    else alias TupleForeachRet = Dsymbols*;
+    static if (isStatic)
+    {
+        static if (isDecl)
+            alias TupleForeachArgs = Seq!(Dsymbols*, bool);
+        else
+            alias TupleForeachArgs = Seq!(bool);
+    }
+    else
+    {
+        static if (isDecl)
+            alias TupleForeachArgs = Seq!(Dsymbols*);
+        else
+            alias TupleForeachArgs = Seq!();
+    }
 }
 
 
@@ -4613,17 +4613,41 @@ static template TupleForeachRet(bool isStatic, bool isDecl)
  * See StatementSemanticVisitor.makeTupleForeach.  This is a simple
  * wrapper that returns the generated statements/declarations.
  */
-TupleForeachRet!(isStatic, isDecl) makeTupleForeach(bool isStatic, bool isDecl)(Scope* sc, ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args)
+template makeTupleForeach(bool isStatic, bool isDecl)
 {
-    scope v = new StatementSemanticVisitor(sc);
-    static if(!isDecl)
+    static if (isStatic && isDecl)
     {
-        v.makeTupleForeach!(isStatic, isDecl)(fs, args);
-        return v.result;
+        Dsymbols* makeTupleForeach(Scope* sc, ForeachStatement fs, Dsymbols* arg1, bool arg2)
+        {
+            scope v = new StatementSemanticVisitor(sc);
+            return v.makeTupleForeach!(isStatic, isDecl)(fs, arg1, arg2);
+        }
     }
-    else
+    else static if (isStatic && !isDecl)
     {
-        return v.makeTupleForeach!(isStatic, isDecl)(fs, args);
+        Statement makeTupleForeach(Scope* sc, ForeachStatement fs, bool args)
+        {
+            scope v = new StatementSemanticVisitor(sc);
+            v.makeTupleForeach!(isStatic, isDecl)(fs, args);
+            return v.result;
+        }
+    }
+    else static if (!isStatic && isDecl)
+    {
+        Dsymbols* makeTupleForeach(Scope* sc, ForeachStatement fs, Dsymbols* args)
+        {
+            scope v = new StatementSemanticVisitor(sc);
+            return v.makeTupleForeach!(isStatic, isDecl)(fs, args);
+        }
+    }
+    else // !isStatic && !isDecl
+    {
+        Statement makeTupleForeach(Scope* sc, ForeachStatement fs)
+        {
+            scope v = new StatementSemanticVisitor(sc);
+            v.makeTupleForeach!(isStatic, isDecl)(fs);
+            return v.result;
+        }
     }
 }
 
