@@ -21,7 +21,7 @@ module core.internal.array.construction;
  *  purity, and throwabilty checks. To prevent breaking existing code, this function template
  *  is temporarily declared `@trusted` until the implementation can be brought up to modern D expectations.
  */
-T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
+Tarr1 _d_arrayctor(Tarr1 : T1[], Tarr2 : T2[], T1, T2)(scope Tarr2 from) @trusted
 {
     pragma(inline, false);
     import core.internal.traits : hasElaborateCopyConstructor, Unqual;
@@ -30,10 +30,9 @@ T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
     import core.stdc.stdint : uintptr_t;
     debug(PRINTF) import core.stdc.stdio : printf;
 
-    debug(PRINTF) printf("_d_arrayctor(to = %p,%d, from = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, T.tsize);
+    debug(PRINTF) printf("_d_arrayctor(to = %p,%d, from = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, T1.tsize);
 
-    T[] to;
-    to.length = length;    
+    Tarr1 to = void;
 
     void[] vFrom = (cast(void*)from.ptr)[0..from.length];
     void[] vTo = (cast(void*)to.ptr)[0..to.length];
@@ -49,13 +48,11 @@ T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
         (cast(Type)&enforceRawArraysConformableNogc)(action, elementSize, a1, a2, false);
     }
 
-    enforceRawArraysConformable("initialization", T.sizeof, vFrom, vTo);
+    enforceRawArraysConformable("initialization", T1.sizeof, vFrom, vTo);
 
-    static if (hasElaborateCopyConstructor!T)
+    static if (hasElaborateCopyConstructor!T1)
     {
-        // Use uint instead of size_t as a temporary workaround until this bug is fixed:
-        // https://issues.dlang.org/show_bug.cgi?id=22372
-        uint i;
+        size_t i;
         try
         {
             for (i = 0; i < to.length; i++)
@@ -67,7 +64,7 @@ T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
             */
             while (i--)
             {
-                auto elem = cast(Unqual!T*)&to[i];
+                auto elem = cast(Unqual!T1*)&to[i];
                 destroy(*elem);
             }
 
@@ -77,7 +74,7 @@ T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
     else
     {
         // blit all elements at once
-        memcpy(cast(void*) to.ptr, from.ptr, to.length * T.sizeof);
+        memcpy(cast(void*) to.ptr, from.ptr, to.length * T1.sizeof);
     }
 
     return to;
@@ -95,7 +92,7 @@ T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
 
     S[4] arr1;
     S[4] arr2 = [S(0), S(1), S(2), S(3)];
-    arr1 = _d_arrayctor(arr2[], arr1.length);
+    arr1 = _d_arrayctor!(typeof(arr1))(arr2[]);
 
     assert(counter == 4);
     assert(arr1 == arr2);
@@ -118,7 +115,7 @@ T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
 
     S[4] arr1;
     S[4] arr2 = [S(0), S(1), S(2), S(3)];
-    arr1 = _d_arrayctor(arr2[], arr1.length);
+    arr1 = _d_arrayctor!(typeof(arr1))(arr2[]);
 
     assert(counter == 4);
     assert(arr1 == arr2);
@@ -144,7 +141,7 @@ T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
     {
         Throw[4] a;
         Throw[4] b = [Throw(1), Throw(2), Throw(3), Throw(4)];
-        a = _d_arrayctor(b[], a.length);
+        a = _d_arrayctor!(typeof(a))(b[]);
     }
     catch (Exception)
     {
@@ -169,7 +166,7 @@ T[] _d_arrayctor(Tarr : T[], T)(scope Tarr from, size_t length) @trusted
     {
         NoThrow[4] a;
         NoThrow[4] b = [NoThrow(1), NoThrow(2), NoThrow(3), NoThrow(4)];
-        a = _d_arrayctor(b[], a.length);
+        a = _d_arrayctor!(typeof(a))(b[]);
     }
     catch (Exception)
     {
@@ -276,7 +273,7 @@ void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
     {
         Throw[4] a;
         Throw[4] b = [Throw(1), Throw(2), Throw(3), Throw(4)];
-        a = _d_arrayctor(b[], a.length);
+        a = _d_arrayctor!(typeof(a))(b[]);
     }
     catch (Exception)
     {
