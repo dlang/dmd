@@ -5440,18 +5440,8 @@ elem *callfunc(const ref Loc loc,
         }
         else if (op == OPind)
             e = el_una(op,mTYvolatile | tyret,ep);
-        else if (op == OPva_start && target.is64bit)
-        {
-            // (OPparam &va &arg)
-            // call as (OPva_start &va)
-            ep.Eoper = cast(ubyte)op;
-            ep.Ety = tyret;
-            e = ep;
-
-            elem *earg = e.EV.E2;
-            e.EV.E2 = null;
-            e = el_combine(earg, e);
-        }
+        else if (op == OPva_start)
+            e = constructVa_start(ep);
         else if (op == OPtoPrec)
         {
             static int X(int fty, int tty) { return fty * TMAX + tty; }
@@ -5493,6 +5483,11 @@ elem *callfunc(const ref Loc loc,
         }
         else
             e = el_una(op,tyret,ep);
+    }
+    else if (irs.Cfile && (e = builtinC(fd, ep)) !is null)
+    {
+        // handled magic C builtins
+        el_free(ec);
     }
     else
     {
@@ -6722,4 +6717,63 @@ elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis
     *eside = el_combine(eeq1, *eside);
 
     return ethis2;
+}
+
+/*********************************************
+ * Handle magic C __builtin functions.
+ * Params:
+ *      fd = magic function declaration
+ *      e  = function parameters
+ * Returns:
+ *      if not null, then the rewrite of the magic function call
+ */
+private
+elem* builtinC(FuncDeclaration fd, elem* e)
+{
+    if (!fd)
+        return null;
+    const id = fd.ident;
+    if (id == Id.builtin_va_start)
+    {
+        return constructVa_start(e);
+    }
+    else if (id == Id.builtin_va_end)
+    {
+        assert(e.Eoper != OPparam);       // one parameter only
+        return el_una(OPbool, TYbool, e); // evaluate ep for side effects only
+    }
+    return null;
+}
+
+/*******************************
+ * Construct OPva_start node
+ * Params:
+ *      e = function parameters
+ * Returns:
+ *      OPva_start node
+ */
+private
+elem* constructVa_start(elem* e)
+{
+    assert(e.Eoper == OPparam);
+
+    e.Eoper = OPva_start;
+    e.Ety = TYvoid;
+    if (target.is64bit)
+    {
+        // (OPparam &va &arg)
+        // call as (OPva_start &va)
+        auto earg = e.EV.E2;
+        e.EV.E2 = null;
+        return el_combine(earg, e);
+    }
+    else // 32 bit
+    {
+        // (OPparam &arg &va)  note arguments are swapped from 64 bit path
+        // call as (OPva_start &va)
+        auto earg = e.EV.E1;
+        e.EV.E1 = e.EV.E2;
+        e.EV.E2 = null;
+        return el_combine(earg, e);
+    }
 }

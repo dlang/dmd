@@ -496,8 +496,9 @@ int intrinsic_op(FuncDeclaration fd)
         return op;
     //printf("intrinsic_op(%s)\n", name);
 
-    // Look for [core|std].module.function as id3.id2.id1 ...
     const Identifier id3 = fd.ident;
+
+    // Look for [core|std].module.function as id3.id2.id1 ...
     auto m = fd.getModule();
     if (!m || !m.md)
         return op;

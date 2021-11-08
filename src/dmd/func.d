@@ -3073,7 +3073,11 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         return null;
 
     bool hasOverloads = fd.overnext !is null;
-    auto tf = fd.type.toTypeFunction();
+    auto tf = fd.type.isTypeFunction();
+    // if type is an error, the original type should be there for better diagnostics
+    if (!tf)
+        tf = fd.originalType.toTypeFunction();
+
     if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
     {
         OutBuffer thisBuf, funcBuf;

@@ -1,6 +1,6 @@
 /*
 REQUIRED_ARGS: -Jfail_compilation
-DISABLED: linux osx freebsd dragonflybsd netbsd
+DISABLED: linux osx freebsd dragonflybsd netbsd openbsd
 TEST_OUTPUT:
 ---
 fail_compilation\fail21227_win.d(2): Error: absolute path is not allowed in import expression: `"\\\\UNC\\path\\to\\file.txt"`
