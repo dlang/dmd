@@ -43,10 +43,22 @@ The actual linking is done by running \fBgcc\fR.
 This ensures compatibility with modules compiled with
 \fBgcc\fR.
 .SH FILES
+.TP
 .I /etc/dmd.conf
-dmd will look for the initialization file
+\fBdmd\fR will look for the initialization file
 .I dmd.conf
-in the directory \fI/etc\fR.
+in the following directories:
+.RS
+.IP 1. 3
+The current working directory.
+.IP 2. 3
+\fB$HOME\fR
+.IP 3. 3
+The directory containing the \fBdmd\fR executable.
+.IP 4. 3
+\fI/etc\fR
+.RE
+.IP
 If found, environment variable settings in the file will
 override any existing settings.
 .SH ENVIRONMENT
