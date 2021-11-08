@@ -16,7 +16,7 @@ import core.internal.traits : Unqual;
  * Params:
  *  from = what data the array should be initialized with
  * Returns:
- *  The crated and initialized array `to`
+ *  The created and initialized array `to`
  * Bugs:
  *  This function template was ported from a much older runtime hook that bypassed safety,
  *  purity, and throwabilty checks. To prevent breaking existing code, this function template
