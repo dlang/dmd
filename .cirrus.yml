@@ -58,9 +58,9 @@ task:
 
 # Mac
 task:
-  name: macOS 11.x x64
+  name: macOS 10.15 x64
   osx_instance:
-    image: big-sur-xcode
+    image: catalina-xcode
   timeout_in: 60m
   environment:
     OS_NAME: darwin
