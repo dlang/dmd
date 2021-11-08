@@ -3174,6 +3174,14 @@ Lagain:
     Lcc:
         while (1)
         {
+            MATCH i1woat = MATCH.exact;
+            MATCH i2woat = MATCH.exact;
+
+            if (auto t2c = t2.isTypeClass())
+                i1woat = t2c.implicitConvToWithoutAliasThis(t1);
+            if (auto t1c = t1.isTypeClass())
+                i2woat = t1c.implicitConvToWithoutAliasThis(t2);
+
             MATCH i1 = e2.implicitConvTo(t1);
             MATCH i2 = e1.implicitConvTo(t2);
 
@@ -3186,10 +3194,25 @@ Lagain:
                     i2 = MATCH.nomatch;
             }
 
-            if (i2)
+            // Match but without 'alias this' on classes
+            if (i2 && i2woat)
                 return coerce(t2);
-            if (i1)
+            if (i1 && i1woat)
                 return coerce(t1);
+
+            // Here use implicitCastTo() instead of castTo() to try 'alias this' on classes
+            Type coerceImplicit(Type towards)
+            {
+                e1 = e1.implicitCastTo(sc, towards);
+                e2 = e2.implicitCastTo(sc, towards);
+                return Lret(towards);
+            }
+
+            // Implicit conversion with 'alias this'
+            if (i2)
+                return coerceImplicit(t2);
+            if (i1)
+                return coerceImplicit(t1);
 
             if (t1.ty == Tclass && t2.ty == Tclass)
             {
