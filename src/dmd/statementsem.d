@@ -3339,7 +3339,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     }
                     else if (rs.exp.op != TOK.error)
                     {
-                        rs.error("Expected return type of `%s`, not `%s`:",
+                        rs.error("expected return type of `%s`, not `%s`:",
                                  tret.toChars(),
                                  rs.exp.type.toChars());
                         errorSupplemental((fd.returns) ? (*fd.returns)[0].loc : fd.loc,
@@ -3436,7 +3436,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (tbret.ty != Tvoid && !resType.isTypeNoreturn()) // if non-void return
             {
                 if (tbret.ty != Terror)
-                    rs.error("`return` expression expected");
+                {
+                    if (e0)
+                        rs.error("expected return type of `%s`, not `%s`", tret.toChars(), resType.toChars());
+                    else
+                        rs.error("`return` expression expected");
+                }
                 errors = true;
             }
             else if (fd.isMain())

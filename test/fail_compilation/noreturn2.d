@@ -3,7 +3,7 @@ REQUIRED_ARGS: -w -o-
 
 TEST_OUTPUT:
 ---
-fail_compilation/noreturn2.d(18): Error: `return` expression expected
+fail_compilation/noreturn2.d(18): Error: expected return type of `noreturn`, not `void`
 ---
 
 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1034.md
@@ -22,7 +22,7 @@ noreturn returnVoid()
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/noreturn2.d(37): Error: Expected return type of `int`, not `string`:
+fail_compilation/noreturn2.d(37): Error: expected return type of `int`, not `string`:
 fail_compilation/noreturn2.d(35):        Return type of `int` inferred here.
 ---
 +/
@@ -62,4 +62,29 @@ fail_compilation/noreturn2.d(64): Error: cannot implicitly convert expression `1
 noreturn returnsValue()
 {
     return 1;
+}
+
+/+
+TEST_OUTPUT:
+---
+fail_compilation/noreturn2.d(75): Error: expected return type of `int`, not `void`
+---
++/
+int returnVoid2()
+{
+    return doStuff();
+}
+
+/+
+TEST_OUTPUT:
+---
+fail_compilation/noreturn2.d(89): Error: mismatched function return type inference of `void` and `int`
+---
++/
+auto returnVoid3(int i)
+{
+    if (i > 0)
+        return i;
+    else
+        return doStuff();
 }
