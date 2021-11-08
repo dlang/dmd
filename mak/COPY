@@ -260,6 +260,7 @@ COPY=\
 	$(IMPDIR)\core\sys\openbsd\dlfcn.d \
 	$(IMPDIR)\core\sys\openbsd\err.d \
 	$(IMPDIR)\core\sys\openbsd\execinfo.d \
+	$(IMPDIR)\core\sys\openbsd\pthread_np.d \
 	$(IMPDIR)\core\sys\openbsd\stdlib.d \
 	$(IMPDIR)\core\sys\openbsd\string.d \
 	$(IMPDIR)\core\sys\openbsd\time.d \
