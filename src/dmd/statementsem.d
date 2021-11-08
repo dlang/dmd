@@ -670,7 +670,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
         else
         {
-            alias MakeTupleForeachRet = void;
+            alias MakeTupleForeachRet = Statement;
         }
     }
 
@@ -706,8 +706,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
             else
             {
-                result = new ErrorStatement();
-                return;
+                return new ErrorStatement();
             }
         }
 
@@ -1057,14 +1056,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             auto res = declarations;
         }
-        static if (!isDecl)
-        {
-            result = res;
-        }
-        else
-        {
-            return res;
-        }
+        return res;
     }
 
     override void visit(ForeachStatement fs)
@@ -1193,10 +1185,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (tab.ty == Ttuple) // don't generate new scope for tuple loops
         {
-            makeTupleForeach!(false,false)(fs, null, false);
+            Statement s = makeTupleForeach!(false,false)(fs, null, false);
             if (vinit)
-                result = new CompoundStatement(loc, new ExpStatement(loc, vinit), result);
-            result = result.statementSemantic(sc);
+                s = new CompoundStatement(loc, new ExpStatement(loc, vinit), s);
+            result = s.statementSemantic(sc);
             return;
         }
 
@@ -4600,8 +4592,7 @@ template makeTupleForeach(bool isStatic, bool isDecl)
         Statement makeTupleForeach(Scope* sc, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
         {
             scope v = new StatementSemanticVisitor(sc);
-            v.makeTupleForeach!(isStatic, isDecl)(fs, dbody, needExpansion);
-            return v.result;
+            return v.makeTupleForeach!(isStatic, isDecl)(fs, dbody, needExpansion);
         }
     }
 }
@@ -4727,7 +4718,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             sfs.sfe.prepare(sc);
             if (sfs.sfe.ready())
             {
-                auto s = makeTupleForeach!(true, false)(sc, sfs.sfe.aggrfe, null, sfs.sfe.needExpansion);
+                Statement s = makeTupleForeach!(true, false)(sc, sfs.sfe.aggrfe, null, sfs.sfe.needExpansion);
                 auto result = s.flatten(sc);
                 if (result)
                 {
