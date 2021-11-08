@@ -2,11 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21930.d(26): Error: function `D main` must return `int` or `void`
-fail_compilation/test21930.d(23): Error: variable `string` is used as a type
-fail_compilation/test21930.d(17):        variable `string` is declared here
-fail_compilation/test21930.d(28): Error: constructor `test21930.R.this(string)` is not callable using argument types `()`
-fail_compilation/test21930.d(19): Error: template instance `test21930.TP!(main)` error instantiating
+fail_compilation/test21930.d(21): Error: variable `string` is used as a type
+fail_compilation/test21930.d(15):        variable `string` is declared here
+fail_compilation/test21930.d(26): Error: constructor `test21930.R.this(string)` is not callable using argument types `()`
 ---
 */
 
