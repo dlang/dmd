@@ -545,6 +545,16 @@ class Fiber
         // the existence of debug symbols and other conditions. Avoid causing
         // stack overflows by defaulting to a larger stack size
         enum defaultStackPages = 8;
+    else version (OSX)
+    {
+        version (X86_64)
+            // libunwind on macOS 11 now requires more stack space than 16k, so
+            // default to a larger stack size. This is only applied to X86 as
+            // the PAGESIZE is still 4k, however on AArch64 it is 16k.
+            enum defaultStackPages = 8;
+        else
+            enum defaultStackPages = 4;
+    }
     else
         enum defaultStackPages = 4;
 
@@ -982,10 +992,14 @@ private:
                 // Allocate more for the memory guard
                 sz += guardPageSize;
 
+                int mmap_flags = MAP_PRIVATE | MAP_ANON;
+                version (OpenBSD)
+                    mmap_flags |= MAP_STACK;
+
                 m_pmem = mmap( null,
                                sz,
                                PROT_READ | PROT_WRITE,
-                               MAP_PRIVATE | MAP_ANON,
+                               mmap_flags,
                                -1,
                                0 );
                 if ( m_pmem == MAP_FAILED )
