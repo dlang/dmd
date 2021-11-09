@@ -1185,7 +1185,7 @@ version (CoreDdoc)
 {
     /**
      * Instruct the thread module, when initialized, to use a different set of
-     * signals besides SIGUSR1 and SIGUSR2 for suspension and resumption of threads.
+     * signals besides SIGRTMIN and SIGRTMIN + 1 for suspension and resumption of threads.
      * This function should be called at most once, prior to thread_init().
      * This function is Posix-only.
      */
@@ -1215,8 +1215,8 @@ else version (Posix)
 
 version (Posix)
 {
-    private __gshared int suspendSignalNumber = SIGUSR1;
-    private __gshared int resumeSignalNumber  = SIGUSR2;
+    private __gshared int suspendSignalNumber;
+    private __gshared int resumeSignalNumber;
 }
 
 private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
@@ -1940,7 +1940,8 @@ extern (C) void thread_init() @nogc
     // The Android VM runtime intercepts SIGUSR1 and apparently doesn't allow
     // its signal handler to run, so swap the two signals on Android, since
     // thread_resumeHandler does nothing.
-    version (Android) thread_setGCSignals(SIGUSR2, SIGUSR1);
+    // This hack is no longer needed, as the GC signals now use SIGRTMIN / SIGRTMIN + 1
+    // version (Android) thread_setGCSignals(SIGUSR2, SIGUSR1);
 
     version (Darwin)
     {
@@ -1957,6 +1958,16 @@ extern (C) void thread_init() @nogc
     }
     else version (Posix)
     {
+        if ( suspendSignalNumber == 0 )
+        {
+            suspendSignalNumber = SIGRTMIN;
+        }
+
+        if ( resumeSignalNumber == 0 )
+        {
+            resumeSignalNumber = SIGRTMIN + 1;
+            assert(resumeSignalNumber <= SIGRTMAX);
+        }
         int         status;
         sigaction_t suspend = void;
         sigaction_t resume = void;
