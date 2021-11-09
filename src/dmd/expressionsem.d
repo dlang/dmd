@@ -7993,11 +7993,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         exp.error("in slice `%s[%llu .. %llu]`, lower bound is greater than upper bound", exp.e1.toChars, exp.lwr.toInteger(), exp.upr.toInteger());
                         return setError();
                     }
-                   if (exp.upr.op == TOK.int64 && exp.upr.toInteger() > length)
-                   {
-                       exp.error("in slice `%s[%llu .. %llu]`, upper bound is greater than array length `%llu`", exp.e1.toChars, exp.lwr.toInteger(), exp.upr.toInteger(), length);
-                       return setError();
-                   }
+                    if (exp.upr.op == TOK.int64 && exp.upr.toInteger() > length)
+                    {
+                        exp.error("in slice `%s[%llu .. %llu]`, upper bound is greater than array length `%llu`", exp.e1.toChars, exp.lwr.toInteger(), exp.upr.toInteger(), length);
+                        return setError();
+                    }
                 }
                 else if (exp.upr.op == TOK.int64 && exp.upr.toInteger() == 0)
                 {
