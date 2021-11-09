@@ -45,22 +45,9 @@ This ensures compatibility with modules compiled with
 .SH FILES
 .TP
 .I /etc/dmd.conf
-\fBdmd\fR will look for the initialization file
-.I dmd.conf
-in the following directories:
-.RS
-.IP 1. 3
-The current working directory.
-.IP 2. 3
-\fB$HOME\fR
-.IP 3. 3
-The directory containing the \fBdmd\fR executable.
-.IP 4. 3
-\fI/etc\fR
-.RE
-.IP
-If found, environment variable settings in the file will
-override any existing settings.
+System wide \fBdmd\fR config file. See
+.BR dmd.conf(5)
+for details.
 .SH ENVIRONMENT
 The D compiler dmd uses the following environment
 variables:
