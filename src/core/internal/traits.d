@@ -185,40 +185,54 @@ template dtorIsNothrow(T)
 }
 
 // taken from std.meta.allSatisfy
-template allSatisfy(alias pred, items...)
+template allSatisfy(alias F, T...)
 {
-    enum allSatisfy =
+    static foreach (Ti; T)
     {
-        static foreach (item; items)
-            static if (!pred!item)
-                if (__ctfe) return false;
-        return true;
-    }();
+        static if (!is(typeof(allSatisfy) == bool) && // not yet defined
+                   !F!(Ti))
+        {
+            enum allSatisfy = false;
+        }
+    }
+    static if (!is(typeof(allSatisfy) == bool)) // if not yet defined
+    {
+        enum allSatisfy = true;
+    }
 }
 
 // taken from std.meta.anySatisfy
-template anySatisfy(alias pred, items...)
+template anySatisfy(alias F, Ts...)
 {
-    enum anySatisfy =
+    static foreach (T; Ts)
     {
-        static foreach (item; items)
-            static if (pred!item)
-                if (__ctfe) return true;
-        return false;
-    }();
+        static if (!is(typeof(anySatisfy) == bool) && // not yet defined
+                   F!T)
+        {
+            enum anySatisfy = true;
+        }
+    }
+    static if (!is(typeof(anySatisfy) == bool)) // if not yet defined
+    {
+        enum anySatisfy = false;
+    }
 }
 
 // simplified from std.traits.maxAlignment
-template maxAlignment(Ts...)
-if (Ts.length > 0)
+template maxAlignment(U...)
 {
-    enum maxAlignment =
+    static if (U.length == 0)
+        static assert(0);
+    else static if (U.length == 1)
+        enum maxAlignment = U[0].alignof;
+    else static if (U.length == 2)
+        enum maxAlignment = U[0].alignof > U[1].alignof ? U[0].alignof : U[1].alignof;
+    else
     {
-        size_t result = 0;
-        static foreach (T; Ts)
-            if (T.alignof > result) result = T.alignof;
-        return result;
-    }();
+        enum a = maxAlignment!(U[0 .. ($+1)/2]);
+        enum b = maxAlignment!(U[($+1)/2 .. $]);
+        enum maxAlignment = a > b ? a : b;
+    }
 }
 
 template classInstanceAlignment(T)
