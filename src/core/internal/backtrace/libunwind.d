@@ -27,6 +27,8 @@
  */
 module core.internal.backtrace.libunwind;
 
+version (DRuntime_Use_Libunwind):
+
 // Libunwind supports Windows as well, but we currently use a different
 // mechanism for Windows, so the bindings haven't been brought in yet.
 version (Posix):
