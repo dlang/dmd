@@ -7880,6 +7880,24 @@ public:
 
 extern void browse(const char* url);
 
+template <typename T>
+struct Optional final
+{
+    // Ignoring var value alignment 0
+    T value;
+    // Ignoring var present alignment 0
+    bool present;
+    Optional(T value);
+    static Optional<T > create(T val);
+    bool isPresent() const;
+    bool isEmpty() const;
+    T get();
+    bool hasValue(T exp) const;
+    Optional()
+    {
+    }
+};
+
 extern void error(const Loc& loc, const char* format, ...);
 
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);

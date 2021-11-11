@@ -17,6 +17,7 @@
 #include "root/filename.h"
 #include "root/longdouble.h"
 #include "root/object.h"
+#include "root/optional.h"
 #include "common/outbuffer.h"
 #include "root/port.h"
 #include "root/rmem.h"
@@ -546,6 +547,15 @@ void test_module()
     assert(global.endGagging(errors));
 }
 
+void test_optional()
+{
+    Optional<bool> opt = Optional<bool>::create(true);
+    assert(!opt.isEmpty());
+    assert(opt.isPresent());
+    assert(opt.get() == true);
+    assert(opt.hasValue(true));
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -567,6 +577,7 @@ int main(int argc, char **argv)
     test_outbuffer();
     test_cppmangle();
     test_module();
+    test_optional();
 
     frontend_term();
 
