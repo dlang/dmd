@@ -6369,7 +6369,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (f1 || f2)
             return setError();
 
-        if (exp.e1.isBool(false))
+        if (exp.e1.toBool().hasValue(false))
         {
             /* This is an `assert(0)` which means halt program execution
              */
@@ -11141,7 +11141,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* If in static if, don't evaluate e2 if we don't have to.
              */
             e1x = e1x.optimize(WANTvalue);
-            if (e1x.isBool(exp.op == TOK.orOr))
+            if (e1x.toBool().hasValue(exp.op == TOK.orOr))
             {
                 result = IntegerExp.createBool(exp.op == TOK.orOr);
                 return;

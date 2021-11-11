@@ -1591,7 +1591,6 @@ public:
     Expression* ctfeInterpret();
     int32_t isConst();
     virtual Optional<bool > toBool();
-    bool isBool(bool result);
     virtual bool hasCode();
     IntegerExp* isIntegerExp();
     ErrorExp* isErrorExp();

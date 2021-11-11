@@ -120,7 +120,7 @@ UnionExp Not(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.isBool(false) ? 1 : 0, type);
+    emplaceExp!(IntegerExp)(&ue, loc, e1.toBool().hasValue(false) ? 1 : 0, type);
     return ue;
 }
 
@@ -128,7 +128,7 @@ private UnionExp Bool(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.isBool(true) ? 1 : 0, type);
+    emplaceExp!(IntegerExp)(&ue, loc, e1.toBool().hasValue(true) ? 1 : 0, type);
     return ue;
 }
 
@@ -1303,7 +1303,7 @@ UnionExp Index(Type type, Expression e1, Expression e2)
             ue = Equal(TOK.equal, loc, Type.tbool, ekey, e2);
             if (CTFEExp.isCantExp(ue.exp()))
                 return ue;
-            if (ue.exp().isBool(true))
+            if (ue.exp().toBool().hasValue(true))
             {
                 Expression e = (*ae.values)[i];
                 e.type = type;

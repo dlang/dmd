@@ -6225,7 +6225,7 @@ extern (C++) final class TypeEnum : Type
 
     override bool isZeroInit(const ref Loc loc)
     {
-        return sym.getDefaultValue(loc).isBool(false);
+        return sym.getDefaultValue(loc).toBool().hasValue(false);
     }
 
     override bool hasPointers()

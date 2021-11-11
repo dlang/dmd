@@ -569,7 +569,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         if (global.params.vcomplex)
         {
-            if (isTypeX(t => t.iscomplex() || t.isimaginary()).isBool(true))
+            if (isTypeX(t => t.iscomplex() || t.isimaginary()).toBool().hasValue(true))
                 return True();
         }
         return isDsymX(t => t.isDeprecated());
@@ -998,7 +998,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toChars(), b.type.toChars());
                 return ErrorExp.get();
             }
-            includeTemplates = b.isBool(true);
+            includeTemplates = b.toBool().hasValue(true);
         }
 
         StringExp se = ex.toStringExp();

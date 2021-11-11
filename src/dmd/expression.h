@@ -123,7 +123,6 @@ public:
     Expression *ctfeInterpret();
     int isConst();
     virtual Optional<bool> toBool();
-    bool isBool(bool result);
     virtual bool hasCode()
     {
         return true;

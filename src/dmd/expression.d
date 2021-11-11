@@ -1605,16 +1605,6 @@ extern (C++) abstract class Expression : ASTNode
         return typeof(return)();
     }
 
-    /* LEGACY: To be removed in a seperate commit
-     *
-     * Does this expression statically evaluate to a boolean 'result' (true or false)?
-     */
-    final bool isBool(bool result)
-    {
-        const val = this.toBool();
-        return val.isPresent && val.get() == result;
-    }
-
     bool hasCode()
     {
         return true;
