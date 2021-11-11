@@ -474,13 +474,12 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
     if (findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs))
-    {
         replaceResultsDir(testArgs.executeArgs, envData);
-        // Always run main even if compiled with '-unittest' but let
-        // tests switch to another behaviour if necessary
-        if (!testArgs.executeArgs.canFind("--DRT-testmode"))
-            testArgs.executeArgs ~= " --DRT-testmode=run-main";
-    }
+
+    // Always run main even if compiled with '-unittest' but let
+    // tests switch to another behaviour if necessary
+    if (!testArgs.executeArgs.canFind("--DRT-testmode"))
+        testArgs.executeArgs ~= " --DRT-testmode=run-main";
 
     string extraSourcesStr;
     findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
