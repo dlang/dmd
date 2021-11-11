@@ -84,6 +84,3 @@ extern (C++) struct Optional(T)
         return present && value == exp;
     }
 }
-
-/// To enable C++ tests until Optional is used
-private alias Inst = Optional!bool;

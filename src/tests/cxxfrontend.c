@@ -336,6 +336,9 @@ void test_expression()
 
     assert(e);
     assert(e->isConst());
+
+    Optional<bool> res = e->toBool();
+    assert(res.get());
 }
 
 /**********************************/
