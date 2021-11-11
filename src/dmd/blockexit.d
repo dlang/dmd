@@ -146,7 +146,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                             else if (sd && (!sd.statement.hasCode() || sd.statement.isCaseStatement() || sd.statement.isErrorStatement()))
                             {
                             }
-                            else
+                            else if (!func.getModule().isCFile)
                             {
                                 const(char)* gototype = s.isCaseStatement() ? "case" : "default";
                                 s.deprecation("switch case fallthrough - use 'goto %s;' if intended", gototype);
