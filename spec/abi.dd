@@ -864,7 +864,7 @@ foo(a1, a2, a3, ..., an);
 
 $(H2 $(LNAME2 exception_handling, Exception Handling))
 
-    $(H3 $(LNAME2 windows_eh, Windows))
+    $(H3 $(LNAME2 windows_eh, Windows 32 bit))
 
         $(P Conforms to the Microsoft Windows Structured Exception Handling
         conventions.
@@ -872,8 +872,14 @@ $(H2 $(LNAME2 exception_handling, Exception Handling))
 
     $(H3 $(LNAME2 ninux_fbsd_osx_eh, Linux$(COMMA) FreeBSD and OS X))
 
+    $(P Conforms to the DWARF $(LPAREN)debugging with attributed record
+    formats$(RPAREN) Exception Handling conventions.
+        )
+
+    $(H3 $(LNAME2 win64_eh, Windows 64 bit))
+
         $(P Uses static address range/handler tables.
-        It is not compatible with the ELF/Mach-O exception handling tables.
+        It is not compatible with the MSVC x64 exception handling tables.
         The stack is walked assuming it uses the EBP/RBP stack frame
         convention. The EBP/RBP convention must be used for every
         function that has an associated EH (Exception Handler) table.
@@ -896,7 +902,8 @@ $(H2 $(LNAME2 exception_handling, Exception Handling))
 
         $(TABLE2 EH Table Segment,
         $(THEAD Operating System, Segment Name)
-        $(TROW Windows, $(D FI))
+        $(TROW Win32, $(D FI))
+        $(TROW Win64, $(D ._deh$B))
         $(TROW Linux, $(D .deh_eh))
         $(TROW FreeBSD, $(D .deh_eh))
         $(TROW OS X, $(ARGS $(D __deh_eh), $(D __DATA)))
