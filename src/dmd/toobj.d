@@ -796,38 +796,6 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 obj_linkerdirective(directive);
             }
-            else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
-            {
-                immutable isCtor = pd.ident == Id.crt_constructor;
-
-                static uint recurse(Dsymbol s, bool isCtor)
-                {
-                    if (auto ad = s.isAttribDeclaration())
-                    {
-                        uint nestedCount;
-                        auto decls = ad.include(null);
-                        if (decls)
-                        {
-                            for (size_t i = 0; i < decls.dim; ++i)
-                                nestedCount += recurse((*decls)[i], isCtor);
-                        }
-                        return nestedCount;
-                    }
-                    else if (auto f = s.isFuncDeclaration())
-                    {
-                        f.isCrtCtorDtor |= isCtor ? 1 : 2;
-                        if (f.linkage != LINK.c)
-                            f.error("must be `extern(C)` for `pragma(%s)`", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
-                        return 1;
-                    }
-                    else
-                        return 0;
-                    assert(0);
-                }
-
-                if (recurse(pd, isCtor) > 1)
-                    pd.error("can only apply to a single declaration");
-            }
 
             visit(cast(AttribDeclaration)pd);
         }

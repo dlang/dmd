@@ -1749,6 +1749,36 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");
+            else
+            {
+                immutable isCtor = pd.ident == Id.crt_constructor;
+
+                static uint recurse(Dsymbol s, bool isCtor)
+                {
+                    if (auto ad = s.isAttribDeclaration())
+                    {
+                        uint nestedCount;
+                        auto decls = ad.include(null);
+                        if (decls)
+                        {
+                            for (size_t i = 0; i < decls.dim; ++i)
+                                nestedCount += recurse((*decls)[i], isCtor);
+                        }
+                        return nestedCount;
+                    }
+                    else if (auto f = s.isFuncDeclaration())
+                    {
+                        f.isCrtCtorDtor |= isCtor ? 1 : 2;
+                        return 1;
+                    }
+                    else
+                        return 0;
+                    assert(0);
+                }
+
+                if (recurse(pd, isCtor) > 1)
+                    pd.error("can only apply to a single declaration");
+            }
             return declarations();
         }
         else if (pd.ident == Id.printf || pd.ident == Id.scanf)
@@ -3013,6 +3043,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // evaluate pragma(inline)
         if (auto pragmadecl = sc.inlining)
             funcdecl.inlining = pragmadecl.evalPragmaInline(sc);
+
+        // check pragma(crt_constructor)
+        if (funcdecl.isCrtCtorDtor)
+        {
+            if (funcdecl.linkage != LINK.c)
+            {
+                funcdecl.error("must be `extern(C)` for `pragma(%s)`",
+                    funcdecl.isCrtCtorDtor == 1 ? "crt_constructor".ptr : "crt_destructor".ptr);
+            }
+        }
 
         funcdecl.visibility = sc.visibility;
         funcdecl.userAttribDecl = sc.userAttribDecl;
