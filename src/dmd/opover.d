@@ -596,11 +596,13 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     /* Rewrite op(e1) as:
                      *      op(e1.aliasthis)
                      */
-                    Expression e1 = resolveAliasThis(sc, e.e1);
-                    result = e.copy();
-                    (cast(UnaExp)result).e1 = e1;
-                    result = result.op_overload(sc);
-                    return;
+                    if (auto e1 = resolveAliasThis(sc, e.e1, true))
+                    {
+                        result = e.copy();
+                        (cast(UnaExp)result).e1 = e1;
+                        result = result.op_overload(sc);
+                        return;
+                    }
                 }
             }
         }
