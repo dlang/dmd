@@ -1050,7 +1050,7 @@ static immutable TXfv         = [ TYfptr, TYvptr ];
 static immutable TXfarfunc    = [ TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc ];
 static immutable TXpasfunc    = [ TYnpfunc,TYnsfunc,TYmfunc,TYjfunc ];
 static immutable TXpasfunc_nf = [ TYfpfunc,TYf16func,TYfsfunc, ];
-static immutable TXrevfunc    = [ TYnpfunc,TYjfunc ];
+static immutable TXrevfunc    = [ TYnpfunc ];
 static immutable TXrevfunc_nf = [ TYfpfunc,TYf16func, ];
 static immutable TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
                       TYwchar_t,TYushort,TYchar16 ];
