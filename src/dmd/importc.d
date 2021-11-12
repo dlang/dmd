@@ -25,7 +25,6 @@ import dmd.expressionsem;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
-import dmd.tokens;
 import dmd.typesem;
 
 /**************************************
@@ -181,9 +180,9 @@ Expression carraySemantic(ArrayExp ae, Scope* sc)
 void addDefaultCInitializer(VarDeclaration dsym)
 {
     //printf("addDefaultCInitializer() %s\n", dsym.toChars());
-    if (!(dsym.storage_class & (STC.static_ | STC.gshared)))
+    if (!(dsym.storage_class & (STC.static_ | STC.gshared | STC.extern_)))
         return;
-    if (dsym.storage_class & (STC.extern_ | STC.field | STC.in_ | STC.foreach_ | STC.parameter | STC.result))
+    if (dsym.storage_class & (STC.field | STC.in_ | STC.foreach_ | STC.parameter | STC.result))
         return;
 
     Type t = dsym.type;
@@ -199,6 +198,7 @@ void addDefaultCInitializer(VarDeclaration dsym)
     auto e = dsym.type.defaultInit(dsym.loc, true);
     dsym._init = new ExpInitializer(dsym.loc, e);
 }
+<<<<<<< HEAD
 
 /********************************************
  * Resolve cast/call grammar ambiguity.
@@ -259,4 +259,3 @@ Expression castCallAmbiguity(Expression e, Scope* sc)
         }
     }
 }
-
