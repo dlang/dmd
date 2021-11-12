@@ -220,17 +220,17 @@ template anySatisfy(alias F, Ts...)
 
 // simplified from std.traits.maxAlignment
 template maxAlignment(Ts...)
- if (Ts.length > 0)
- {
-     enum maxAlignment =
-     {
-         size_t result = 0;
-         static foreach (T; Ts)
-             if (T.alignof > result) result = T.alignof;
-         return result;
-     }();
- }
- 
+if (Ts.length > 0)
+{
+    enum maxAlignment =
+    {
+        size_t result = 0;
+        static foreach (T; Ts)
+            if (T.alignof > result) result = T.alignof;
+        return result;
+    }();
+}
+
 template classInstanceAlignment(T)
 if (is(T == class))
 {
