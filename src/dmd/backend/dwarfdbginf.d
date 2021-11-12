@@ -2559,20 +2559,7 @@ static if (1)
                 code = dwarf_abbrev_code(abbrevTypeStruct.ptr, (abbrevTypeStruct).sizeof);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.write("_AArray_".ptr, 8);      // DW_AT_name
-                if (tybasic(t.Tkey.Tty))
-                    p = tystring[tybasic(t.Tkey.Tty)];
-                else
-                    p = "key";
-                debug_info.buf.write(p, cast(uint)strlen(p));
-
-                debug_info.buf.writeByte('_');
-                if (tybasic(t.Tnext.Tty))
-                    p = tystring[tybasic(t.Tnext.Tty)];
-                else
-                    p = "value";
-                debug_info.buf.writeString(p);
-
+                debug_info.buf.writeString(t.Tident);      // DW_AT_name
                 debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
                 // ptr
