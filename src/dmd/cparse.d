@@ -1660,7 +1660,8 @@ final class CParser(AST) : Parser!AST
                 {
                     // Give non-extern variables an implicit void initializer
                     // if one has not been explicitly set.
-                    if (!hasInitializer && !(specifier.scw & SCW.xextern))
+                    if (!hasInitializer &&
+                        !(specifier.scw & (SCW.xextern | SCW.xstatic | SCW.x_Thread_local) || level == LVL.global))
                         initializer = new AST.VoidInitializer(token.loc);
                     s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(level, specifier));
                 }
