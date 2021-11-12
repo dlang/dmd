@@ -1087,7 +1087,18 @@ UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
     }
     else if (tb.ty == Tbool)
     {
-        emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() != 0, type);
+        bool val = void;
+        if (e1.isBool(true))
+            val = true;
+        else if (e1.isBool(false))
+            val = false;
+        else
+        {
+            cantExp(ue);
+            return ue;
+        }
+
+        emplaceExp!(IntegerExp)(&ue, loc, val, type);
     }
     else if (type.isintegral())
     {
