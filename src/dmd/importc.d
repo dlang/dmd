@@ -15,13 +15,17 @@ module dmd.importc;
 
 import core.stdc.stdio;
 
+import dmd.astenums;
 import dmd.dcast;
+import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
+import dmd.init;
 import dmd.mtype;
+import dmd.typesem;
 
 /**************************************
  * C11 does not allow array or function parameters.
@@ -168,4 +172,29 @@ Expression carraySemantic(ArrayExp ae, Scope* sc)
     e2 = e2.arrayFuncConv(sc);
     auto ep = new PtrExp(ae.loc, new AddExp(ae.loc, e1, e2));
     return ep.expressionSemantic(sc);
+}
+
+/******************************************
+ * Determine default initializer for const global symbol.
+ */
+void addDefaultCInitializer(VarDeclaration dsym)
+{
+    //printf("addDefaultCInitializer() %s\n", dsym.toChars());
+    if (!(dsym.storage_class & (STC.static_ | STC.gshared | STC.extern_)))
+        return;
+    if (dsym.storage_class & (STC.field | STC.in_ | STC.foreach_ | STC.parameter | STC.result))
+        return;
+
+    Type t = dsym.type;
+    if (t.isTypeSArray() && t.isTypeSArray().isIncomplete())
+    {
+        dsym._init = new VoidInitializer(dsym.loc);
+        return; // incomplete arrays will be diagnosed later
+    }
+
+    if (t.isMutable())
+        return;
+
+    auto e = dsym.type.defaultInit(dsym.loc, true);
+    dsym._init = new ExpInitializer(dsym.loc, e);
 }
