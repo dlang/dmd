@@ -3293,9 +3293,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (rs.exp.op == TOK.call)
                 rs.exp = valueNoDtor(rs.exp);
 
-            if (e0)
-                e0 = e0.optimize(WANTvalue);
-
             /* Void-return function can have void / noreturn typed expression
              * on return statement.
              */
@@ -3320,7 +3317,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 rs.exp = null;
             }
             if (e0)
+            {
+                e0 = e0.optimize(WANTvalue);
                 e0 = checkGC(sc, e0);
+            }
         }
 
         if (rs.exp)
