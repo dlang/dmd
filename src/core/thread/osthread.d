@@ -653,7 +653,7 @@ class Thread : ThreadBase
                     // the effective maximum.
 
                     // maxupri
-                    result.PRIORITY_MIN = -clinfo[0];
+                    result.PRIORITY_MIN = -cast(int)(clinfo[0]);
                     // by definition
                     result.PRIORITY_DEFAULT = 0;
                 }
