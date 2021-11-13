@@ -1919,6 +1919,25 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         return pointerBitmap(e);
     }
+    if (e.ident == Id.initSymbol)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        Type t = isType(o);
+        AggregateDeclaration ad = t ? isAggregate(t) : null;
+        if (!ad)
+        {
+            e.error("aggregate type expected as argument to __traits(initSymbol)");
+            return ErrorExp.get();
+        }
+
+        Declaration d = new SymbolDeclaration(ad.loc, ad);
+        d.type = Type.tvoid.arrayOf().constOf();
+        d.storage_class |= STC.rvalue;
+        return new VarExp(ad.loc, d);
+    }
     if (e.ident == Id.isZeroInit)
     {
         if (dim != 1)

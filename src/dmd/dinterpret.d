@@ -2142,6 +2142,9 @@ public:
         }
         else if (SymbolDeclaration s = d.isSymbolDeclaration())
         {
+            // exclude void[]-typed `__traits(initSymbol)`
+            if (s.type.toBasetype().ty != Tstruct)
+                return CTFEExp.cantexp;
             // Struct static initializers, for example
             e = s.dsym.type.defaultInitLiteral(loc);
             if (e.op == TOK.error)

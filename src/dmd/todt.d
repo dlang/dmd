@@ -555,7 +555,11 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         if (auto sd = e.var.isSymbolDeclaration())
             if (sd.dsym)
             {
-                StructDeclaration_toDt(sd.dsym, dtb);
+                auto agty = sd.dsym.type.toBasetype().ty;
+                if (agty == Tstruct)
+                    StructDeclaration_toDt(sd.dsym.isStructDeclaration(), dtb);
+                else if (agty == Tclass)
+                    ClassDeclaration_toDt(sd.dsym.isClassDeclaration(), dtb);
                 return;
             }
 

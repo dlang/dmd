@@ -472,6 +472,7 @@ immutable Msgtable[] msgtable =
     { "hasCopyConstructor" },
     { "isCopyable" },
     { "toType" },
+    { "initSymbol" },
 
     // For C++ mangling
     { "allocator" },
