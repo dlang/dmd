@@ -31,6 +31,11 @@ else version (OpenBSD)
     import core.sys.openbsd.sys.elf;
     version = LinuxOrBSD;
 }
+else version (Solaris)
+{
+    import core.sys.solaris.sys.elf;
+    version = LinuxOrBSD;
+}
 
 version (LinuxOrBSD):
 

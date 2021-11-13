@@ -1339,6 +1339,10 @@ else version (Solaris)
         uint[4] __bits;
     }
 
+    enum SIG_BLOCK = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
+
     struct siginfo_t
     {
         int si_signo;

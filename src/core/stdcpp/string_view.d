@@ -123,6 +123,14 @@ private:
         const value_type* __data;
         size_type __size;
     }
+    else version (CppRuntime_Sun)
+    {
+        size_t _M_len;
+        const(T)* _M_str;
+
+        alias __data = _M_str;
+        alias __size = _M_len;
+    }
     else
     {
         static assert(false, "C++ runtime not supported");
