@@ -25,6 +25,7 @@ import dmd.expressionsem;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.tokens;
 import dmd.typesem;
 
 /**************************************
@@ -198,7 +199,6 @@ void addDefaultCInitializer(VarDeclaration dsym)
     auto e = dsym.type.defaultInit(dsym.loc, true);
     dsym._init = new ExpInitializer(dsym.loc, e);
 }
-<<<<<<< HEAD
 
 /********************************************
  * Resolve cast/call grammar ambiguity.
@@ -259,3 +259,4 @@ Expression castCallAmbiguity(Expression e, Scope* sc)
         }
     }
 }
+
