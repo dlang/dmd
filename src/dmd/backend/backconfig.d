@@ -58,7 +58,8 @@ extern (C) void out_config_init(
         bool useExceptions,     // implement exception handling
         ubyte dwarf,            // DWARF version used
         string _version,         // Compiler version
-        exefmt_t exefmt            // Executable file format
+        exefmt_t exefmt,           // Executable file format
+        bool generatedMain      // a main entrypoint is generated
         )
 {
 version (MARS)
@@ -79,6 +80,8 @@ version (MARS)
     tytab[TYchar] |= TYFLuns;
     bool mscoff = model & 1;
     model &= 32 | 64;
+    if (generatedMain)
+        config.flags2 |= CFG2genmain;
 
     if (dwarf < 3 || dwarf > 5)
     {
