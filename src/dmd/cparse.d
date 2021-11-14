@@ -975,12 +975,17 @@ final class CParser(AST) : Parser!AST
                          token.value == TOK.leftParenthesis &&
                          !isCastExpression(pt))
                 {
-                    /* this might actually be a function
-                     * call that looks like `(a)(b)` or even `(a)(b,c)`
+                    /* (t)(...)... might be a cast expression or a function call,
+                     * with different grammars: a cast would be cparseCastExp(),
+                     * a function call would be cparsePostfixExp(CallExp(cparseArguments())).
+                     * We can't know until t is known. So, parse it as a function call
+                     * and let semantic() rewrite the AST as a CastExp if it turns out
+                     * to be a type.
                      */
                     auto ie = new AST.IdentifierExp(loc, t.isTypeIdentifier().ident);
-                    ie.parens = true;    // disambiguate it from being a declaration
-                    return new AST.CallExp(loc, ie, cparseArguments());
+                    ie.parens = true;    // let semantic know it might be a CastExp
+                    AST.Expression e = new AST.CallExp(loc, ie, cparseArguments());
+                    return cparsePostfixOperators(e);
                 }
                 else
                 {

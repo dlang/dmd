@@ -4245,6 +4245,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
         }
+        if (sc.flags & SCOPE.Cfile)
+        {
+            /* See if need to rewrite the AST because of cast/call ambiguity
+             */
+            if (auto e = castCallAmbiguity(exp, sc))
+            {
+                result = expressionSemantic(e, sc);
+                return;
+            }
+        }
 
         if (Expression ex = resolveUFCS(sc, exp))
         {
@@ -4426,24 +4436,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (exp.e1.op == TOK.type && (sc && sc.flags & SCOPE.Cfile))
             {
                 const numArgs = exp.arguments ? exp.arguments.length : 0;
-                if (e1org.parens && numArgs >= 1)
-                {
-                    /* Ambiguous cases arise from CParser where there is not enough
-                     * information to determine if we have a function call or a cast.
-                     *   ( type-name ) ( identifier ) ;
-                     *   ( identifier ) ( identifier ) ;
-                     * If exp.e1 is a type-name, then this is a cast.
-                     */
-                    Expression arg;
-                    foreach (a; (*exp.arguments)[])
-                    {
-                        arg = arg ? new CommaExp(a.loc, arg, a) : a;
-                    }
-                    auto t = exp.e1.isTypeExp().type;
-                    auto e = new CastExp(exp.loc, arg, t);
-                    result = e.expressionSemantic(sc);
-                    return;
-                }
 
                 /* Ambiguous cases arise from CParser where there is not enough
                  * information to determine if we have a function call or declaration.
@@ -6391,6 +6383,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("DotIdExp::semantic(this = %p, '%s')\n", exp, exp.toChars());
             //printf("e1.op = %d, '%s'\n", e1.op, Token::toChars(e1.op));
         }
+
+        if (sc.flags & SCOPE.Cfile)
+        {
+            /* See if need to rewrite the AST because of cast/call ambiguity
+             */
+            if (auto e = castCallAmbiguity(exp, sc))
+            {
+                result = expressionSemantic(e, sc);
+                return;
+            }
+        }
+
         if (exp.arrow) // ImportC only
             exp.e1 = exp.e1.expressionSemantic(sc).arrayFuncConv(sc);
 
@@ -8031,6 +8035,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         assert(!exp.type);
 
+        if (sc.flags & SCOPE.Cfile)
+        {
+            /* See if need to rewrite the AST because of cast/call ambiguity
+             */
+            if (auto e = castCallAmbiguity(exp, sc))
+            {
+                result = expressionSemantic(e, sc);
+                return;
+            }
+        }
+
         result = exp.carraySemantic(sc);  // C semantics
         if (result)
             return;
@@ -8422,6 +8437,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             result = exp;
             return;
+        }
+
+        if (sc.flags & SCOPE.Cfile)
+        {
+            /* See if need to rewrite the AST because of cast/call ambiguity
+             */
+            if (auto e = castCallAmbiguity(exp, sc))
+            {
+                result = expressionSemantic(e, sc);
+                return;
+            }
         }
 
         if (Expression ex = binSemantic(exp, sc))
