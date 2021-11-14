@@ -25,6 +25,7 @@ import dmd.expressionsem;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.tokens;
 import dmd.typesem;
 
 /**************************************
@@ -198,3 +199,64 @@ void addDefaultCInitializer(VarDeclaration dsym)
     auto e = dsym.type.defaultInit(dsym.loc, true);
     dsym._init = new ExpInitializer(dsym.loc, e);
 }
+
+/********************************************
+ * Resolve cast/call grammar ambiguity.
+ * Params:
+ *      e = expression that might be a cast, might be a call
+ *      sc = context
+ * Returns:
+ *      null means leave as is, !=null means rewritten AST
+ */
+Expression castCallAmbiguity(Expression e, Scope* sc)
+{
+    Expression* pe = &e;
+
+    while (1)
+    {
+        // Walk down the postfix expressions till we find a CallExp or something else
+        switch ((*pe).op)
+        {
+            case TOK.dotIdentifier:
+                pe = &(*pe).isDotIdExp().e1;
+                continue;
+
+            case TOK.plusPlus:
+            case TOK.minusMinus:
+                pe = &(*pe).isPostExp().e1;
+                continue;
+
+            case TOK.array:
+                pe = &(*pe).isArrayExp().e1;
+                continue;
+
+            case TOK.call:
+                auto ce = (*pe).isCallExp();
+                if (ce.e1.parens)
+                {
+                    ce.e1 = expressionSemantic(ce.e1, sc);
+                    if (ce.e1.op == TOK.type)
+                    {
+                        const numArgs = ce.arguments ? ce.arguments.length : 0;
+                        if (numArgs >= 1)
+                        {
+                            ce.e1.parens = false;
+                            Expression arg;
+                            foreach (a; (*ce.arguments)[])
+                            {
+                                arg = arg ? new CommaExp(a.loc, arg, a) : a;
+                            }
+                            auto t = ce.e1.isTypeExp().type;
+                            *pe = arg;
+                            return new CastExp(ce.loc, e, t);
+                        }
+                    }
+                }
+                return null;
+
+            default:
+                return null;
+        }
+    }
+}
+
