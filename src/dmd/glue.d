@@ -121,6 +121,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         if (!global.errors && firstm)
         {
             obj_end(library, firstm.objfile.toChars());
+            objbuf.dtor();
         }
     }
     else
@@ -138,6 +139,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (global.errors && !lib)
                 m.deleteObjFile();
         }
+        objbuf.dtor();
     }
     if (lib && !global.errors)
         library.write();
@@ -370,7 +372,6 @@ private void obj_end(Library library, const(char)* objfilename)
         //printf("write obj %s\n", objfilename);
         writeFile(Loc.initial, objfilename.toDString, objbuf[]);
     }
-    objbuf.dtor();
 }
 
 bool obj_includelib(const(char)* name) nothrow
