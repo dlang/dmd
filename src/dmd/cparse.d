@@ -2600,6 +2600,8 @@ final class CParser(AST) : Parser!AST
 
             Identifier id;
             auto t = cparseDeclarator(DTR.xparameter, tspec, id, specifier);
+            if (token.value == TOK.__attribute__)
+                cparseGnuAttributes(specifier);
             if (specifier.mod & MOD.xconst)
                 t = toConst(t);
             auto param = new AST.Parameter(STC.parameter, t, id, null, null);
