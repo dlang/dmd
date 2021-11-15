@@ -3445,6 +3445,69 @@ LmodCompare:
     if (t1.ty == Tnull && (t2.ty == Tpointer || t2.ty == Taarray || t2.ty == Tarray))
         return convert(e1, t2);
 
+    /// Covers array operations for user-defined types
+    Type checkArrayOpType(Expression e1, Expression e2, TOK op, Scope *sc)
+    {
+        // scalar op scalar - we shouldn't be here
+        if (e1.type.ty != Tarray && e1.type.ty != Tsarray && e2.type.ty != Tarray && e2.type.ty != Tsarray)
+            return null;
+
+        // only supporting slices and array literals
+        if (!e1.isSliceExp() && !e1.isArrayLiteralExp() && !e2.isSliceExp() && !e2.isArrayLiteralExp())
+            return null;
+
+        // start with e1 op e2 and if either one of e1 or e2 is a slice or array literal,
+        // replace it with the first element of the array
+        Expression lhs = e1;
+        Expression rhs = e2;
+
+        // T[x .. y] op ?
+        if (e1.isSliceExp())
+            lhs = new IndexExp(Loc.initial, (cast(UnaExp)e1).e1, IntegerExp.literal!0);
+
+        // [t1, t2, .. t3] op ?
+        if (e1.isArrayLiteralExp())
+            lhs = (cast(ArrayLiteralExp)e1).opIndex(0);
+
+        // ? op U[z .. t]
+        if (e2.isSliceExp())
+            rhs = new IndexExp(Loc.initial, (cast(UnaExp)e2).e1, IntegerExp.literal!0);
+
+        // ? op [u1, u2, .. u3]
+        if (e2.isArrayLiteralExp())
+            rhs = (cast(ArrayLiteralExp)e2).opIndex(0);
+
+        // create a new binary expression with the new lhs and rhs (at this stage, at least
+        // one of lhs/rhs has been replaced with the 0'th element of the array it was before)
+        Expression exp;
+        switch (op)
+        {
+            case TOK.add:
+                exp = new AddExp(Loc.initial, lhs, rhs); break;
+            case TOK.min:
+                exp = new MinExp(Loc.initial, lhs, rhs); break;
+            case TOK.mul:
+                exp = new MulExp(Loc.initial, lhs, rhs); break;
+            case TOK.div:
+                exp = new DivExp(Loc.initial, lhs, rhs); break;
+            case TOK.pow:
+                exp = new PowExp(Loc.initial, lhs, rhs); break;
+            default:
+                exp = null;
+        }
+
+        if (exp)
+        {
+            // if T op U is valid and has type V
+            // then T[] op U and T op U[] should be valid and have type V[]
+            Expression e = exp.trySemantic(sc);
+            if (e && e.type)
+                return e.type.arrayOf;
+        }
+
+        return null;
+    }
+
     if (t1.ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e1))
     {
         if (e2.implicitConvTo(t1.nextOf()))
@@ -3481,8 +3544,12 @@ LmodCompare:
                     e2 = e2.castTo(sc, t);
                 return Lret(t);
             }
-            return null;
         }
+
+        t = checkArrayOpType(e1, e2, op, sc);
+        if (t !is null)
+            return Lret(t);
+
         return null;
     }
     else if (t2.ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e2))
@@ -3501,7 +3568,11 @@ LmodCompare:
             t = e1.type.arrayOf();
         }
         else
-            return null;
+        {
+            t = checkArrayOpType(e1, e2, op, sc);
+            if (t is null)
+                return null;
+        }
 
         //printf("test %s\n", Token::toChars(op));
         e1 = e1.optimize(WANTvalue);
