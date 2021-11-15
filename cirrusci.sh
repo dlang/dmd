@@ -15,10 +15,11 @@ if [ ! -z ${HOST_DC+x} ] ; then HOST_DMD=${HOST_DC}; fi
 if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit 1; fi
 
 if [ "$OS_NAME" == "linux" ]; then
-  packages="git-core make g++ gdb curl libcurl3 tzdata zip unzip xz-utils"
+  export DEBIAN_FRONTEND=noninteractive
+  packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils"
   if [ "$MODEL" == "32" ]; then
     dpkg --add-architecture i386
-    packages="$packages g++-multilib libcurl3-gnutls:i386"
+    packages="$packages g++-multilib libcurl4:i386"
   fi
   if [ "${HOST_DMD:0:4}" == "gdmd" ]; then
     # ci.sh uses `sudo add-apt-repository ...` to add a PPA repo
@@ -29,7 +30,7 @@ if [ "$OS_NAME" == "linux" ]; then
 elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
   brew update-reset
-  brew install gnupg
+  brew install gnupg libarchive xz
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake"
   if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then

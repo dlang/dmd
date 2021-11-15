@@ -22,6 +22,7 @@ version (MARS)
 version (COMPILE)
 {
 
+import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -42,7 +43,6 @@ import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -938,8 +938,8 @@ else
         /* Instead of pushing the registers onto the stack one by one,
          * allocate space in the stack frame and copy/restore them there.
          */
-        int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
-        int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
+        int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
         if (NDPoff || xmmtopush || cgstate.funcarg.size)
         {
             pushoff = alignsection(pushoff - (gptopush * REGSIZE + xmmtopush * 16),
@@ -973,8 +973,8 @@ else
     if (!I16 && calledafunc &&
         (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
     {
-        int npush = numbitsset(topush);            // number of registers that need saving
-        npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
+        int npush = popcnt(topush);            // number of registers that need saving
+        npush += popcnt(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
         if (pushoffuse)
             npush = 0;
 
@@ -1653,8 +1653,7 @@ private void cgcod_eh()
         debug
         if (debuge)
         {
-            WRBC(b.BC);
-            printf(" block (%p) Btry=%p Bindex=%d\n",b,b.Btry,b.Bindex);
+            printf("%s block (%p) Btry=%p Bindex=%d\n",bc_str(b.BC),b,b.Btry,b.Bindex);
         }
 
         except_index_set(b.Bindex);
@@ -1819,20 +1818,6 @@ private void cgcod_eh()
         }
 }
 
-}
-
-/******************************
- * Count the number of bits set in a register mask.
- */
-
-int numbitsset(regm_t regm)
-{
-    int n = 0;
-    if (regm)
-        do
-            n++;
-        while ((regm &= regm - 1) != 0);
-    return n;
 }
 
 /******************************
@@ -2048,11 +2033,9 @@ static if (0)
 {
         if (pass == PASSfinal)
         {
-            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym ",
+            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
-                regm_str(msavereg),regm_str(*pretregs));
-            WRTYxx(tym);
-            dbg_printf("\n");
+                regm_str(msavereg),regm_str(*pretregs),tym_str(tym));
         }
 }
         tym = tybasic(tym);
@@ -2195,9 +2178,8 @@ L3:
         {
             debug
             {
-                WRTYxx(tym);
-                printf("\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
-                    file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
+                printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
+                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
             }
             assert(0);
         }
@@ -3045,8 +3027,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 
     debug if (debugw)
     {
-        printf("+codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
-        WROP(e.Eoper);
+        printf("+codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs),oper_str(e.Eoper));
         printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
@@ -3184,8 +3165,7 @@ L1:
 
     debug if (debugw)
     {
-        printf("-codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
-        WROP(op);
+        printf("-codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs), oper_str(op));
         printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
     }

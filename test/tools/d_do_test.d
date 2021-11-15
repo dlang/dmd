@@ -474,13 +474,12 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
     if (findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs))
-    {
         replaceResultsDir(testArgs.executeArgs, envData);
-        // Always run main even if compiled with '-unittest' but let
-        // tests switch to another behaviour if necessary
-        if (!testArgs.executeArgs.canFind("--DRT-testmode"))
-            testArgs.executeArgs ~= " --DRT-testmode=run-main";
-    }
+
+    // Always run main even if compiled with '-unittest' but let
+    // tests switch to another behaviour if necessary
+    if (!testArgs.executeArgs.canFind("--DRT-testmode"))
+        testArgs.executeArgs ~= " --DRT-testmode=run-main";
 
     string extraSourcesStr;
     findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
@@ -580,8 +579,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
-    if (findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript))
-        testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
+    findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript);
 
     return true;
 }
@@ -1191,7 +1189,7 @@ string generateDiff(const string expected, string expectedFile,
     scope (exit) if (needTmp)
         tryRemove(expectedFile);
 
-    const cmd = ["diff", "-pu", "--strip-trailing-cr", expectedFile, actualFile];
+    const cmd = ["diff", "-up", "--strip-trailing-cr", expectedFile, actualFile];
     try
     {
         string diff = std.process.execute(cmd).output;

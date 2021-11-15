@@ -1,4 +1,6 @@
 /**
+ * Common definitions
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -148,7 +150,6 @@ else
 //struct block;
 //struct Classsym;
 //struct Nspacesym;
-//struct Outbuffer;
 //struct Aliassym;
 //struct dt_t;
 //typedef struct TYPE type;
@@ -178,7 +179,7 @@ struct Srcpos
 {
 nothrow:
     uint Slinnum;           // 0 means no info available
-    uint Scharnum;
+    uint Scharnum;          // 0 means no info available
     version (SCPP)
     {
         Sfile **Sfilptr;            // file
@@ -201,7 +202,7 @@ nothrow:
 
         const(char*) name() const { return Sfilename; }
 
-        static Srcpos create(const(char)* filename, uint linnum, int charnum)
+        static Srcpos create(const(char)* filename, uint linnum, uint charnum)
         {
             // Cannot have constructor because Srcpos is used in a union
             Srcpos sp;
@@ -748,7 +749,7 @@ enum
     Fjmonitor        = 0x100,   // Mars synchronized function
     Fnosideeff       = 0x200,   // function has no side effects
     F3badoparrow     = 0x400,   // bad operator->()
-    Fmain            = 0x800,   // function is main() or wmain()
+    Fmain            = 0x800,   // function is D main
     Fnested          = 0x1000,  // D nested function with 'this'
     Fmember          = 0x2000,  // D member function with 'this'
     Fnotailrecursion = 0x4000,  // no tail recursion optimizations
@@ -1434,7 +1435,7 @@ struct Symbol
     }
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
-    uint lnoscopestart;         // life time of var
+    Srcpos lposscopestart;        // life time of var
     uint lnoscopeend;           // the line after the scope
 
     /**

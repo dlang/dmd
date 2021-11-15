@@ -25,7 +25,7 @@ struct ASTBase
     import dmd.root.filename;
     import dmd.root.array;
     import dmd.root.rootobject;
-    import dmd.root.outbuffer;
+    import dmd.common.outbuffer;
     import dmd.root.ctfloat;
     import dmd.root.rmem;
     import dmd.root.string : toDString;
@@ -44,6 +44,7 @@ struct ASTBase
     alias Dsymbols              = Array!(Dsymbol);
     alias Objects               = Array!(RootObject);
     alias Expressions           = Array!(Expression);
+    alias Types                 = Array!(Type);
     alias TemplateParameters    = Array!(TemplateParameter);
     alias BaseClasses           = Array!(BaseClass*);
     alias Parameters            = Array!(Parameter);
@@ -54,14 +55,6 @@ struct ASTBase
     alias Ensures               = Array!(Ensure);
     alias Designators           = Array!(Designator);
     alias DesigInits            = Array!(DesigInit);
-
-    extern (C++) __gshared const(StorageClass) STCStorageClass =
-        (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ |
-         STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ |
-         STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ |
-         STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls |
-         STC.gshared | STC.property | STC.future | STC.local | STC.live |
-         STC.safeGroup | STC.disable);
 
     alias Visitor = ParseTimeVisitor!ASTBase;
 
@@ -224,6 +217,11 @@ struct ASTBase
         }
 
         inout(AliasAssign) isAliasAssign() inout
+        {
+            return null;
+        }
+
+        inout(BitFieldDeclaration) isBitFieldDeclaration() inout
         {
             return null;
         }
@@ -507,6 +505,32 @@ struct ASTBase
         }
     }
 
+    extern (C++) class BitFieldDeclaration : VarDeclaration
+    {
+        Expression width;
+
+        uint fieldWidth;
+        uint bitOffset;
+
+        final extern (D) this(const ref Loc loc, Type type, Identifier id, Expression width)
+        {
+            super(loc, type, id, cast(Initializer)null, cast(StorageClass)STC.undefined_);
+
+            this.width = width;
+            this.storage_class |= STC.field;
+        }
+
+        override final inout(BitFieldDeclaration) isBitFieldDeclaration() inout
+        {
+            return this;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) struct Ensure
     {
         Identifier id;
@@ -525,7 +549,7 @@ struct ASTBase
         ForeachStatement fes;
         FuncDeclaration overnext0;
 
-        final extern (D) this(const ref Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
+        final extern (D) this(const ref Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
         {
             super(id);
             this.storage_class = storage_class;
@@ -1088,13 +1112,25 @@ struct ASTBase
 
     extern (C++) final class AlignDeclaration : AttribDeclaration
     {
-        Expression ealign;
+        Expressions* exps;
+        structalign_t salign;
 
-        extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
+        extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
         {
             super(decl);
             this.loc = loc;
-            this.ealign = ealign;
+            if (exp)
+            {
+                exps = new Expressions();
+                exps.push(exp);
+            }
+        }
+
+        extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl)
+        {
+            super(decl);
+            this.loc = loc;
+            this.exps = exps;
         }
 
         override void accept(Visitor v)
@@ -5998,6 +6034,26 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class GenericExp : Expression
+    {
+        Expression cntlExp;
+        Types* types;
+        Expressions* exps;
+
+        extern (D) this(const ref Loc loc, Expression cntlExp, Types* types, Expressions* exps)
+        {
+            super(loc, TOK._Generic, __traits(classInstanceSize, GenericExp));
+            this.cntlExp = cntlExp;
+            this.types = types;
+            this.exps = exps;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) class TemplateParameter : ASTNode
     {
         Loc loc;
@@ -6533,7 +6589,7 @@ struct ASTBase
         foreach (ref entry; table)
         {
             const StorageClass tbl = entry.stc;
-            assert(tbl & STCStorageClass);
+            assert(tbl & STC.visibleStorageClasses);
             if (stc & tbl)
             {
                 stc &= ~tbl;

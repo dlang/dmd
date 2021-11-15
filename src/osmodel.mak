@@ -54,7 +54,7 @@ ifeq (,$(MODEL))
   else
     uname_M:=$(shell uname -m)
   endif
-  ifneq (,$(findstring $(uname_M),x86_64 amd64))
+  ifneq (,$(findstring $(uname_M),x86_64 amd64 arm64))
     MODEL:=64
   endif
   ifneq (,$(findstring $(uname_M),i386 i586 i686))

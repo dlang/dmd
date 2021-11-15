@@ -43,12 +43,11 @@ The actual linking is done by running \fBgcc\fR.
 This ensures compatibility with modules compiled with
 \fBgcc\fR.
 .SH FILES
+.TP
 .I /etc/dmd.conf
-dmd will look for the initialization file
-.I dmd.conf
-in the directory \fI/etc\fR.
-If found, environment variable settings in the file will
-override any existing settings.
+System wide \fBdmd\fR config file. See
+.BR dmd.conf(5)
+for details.
 .SH ENVIRONMENT
 The D compiler dmd uses the following environment
 variables:

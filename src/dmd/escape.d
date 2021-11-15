@@ -306,6 +306,12 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
     bool result = false;
 
+    ScopeRef psr;
+    if (par && fdc && fdc.type.isTypeFunction())
+        psr = buildScopeRef(par.storageClass);
+    else
+        psr = ScopeRef.None;
+
     /* 'v' is assigned unsafely to 'par'
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
@@ -376,8 +382,12 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
         if (!v.isReference() && p == sc.func)
         {
-            if (par && (par.storageClass & (STC.scope_ | STC.return_)) == STC.scope_)
+            if (psr == ScopeRef.Scope ||
+                psr == ScopeRef.RefScope ||
+                psr == ScopeRef.ReturnRef_Scope)
+            {
                 continue;
+            }
 
             unsafeAssign(v, "reference to local variable");
             continue;
@@ -707,7 +717,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 {   /* v is scope, and va is not scope, so va needs to
                      * infer scope
                      */
-                    //printf("inferring scope for %s\n", va.toChars());
+                    if (log) printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
                     /* v returns, and va does not return, so va needs
                      * to infer return
@@ -715,7 +725,12 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                     if (v.storage_class & STC.return_ &&
                         !(va.storage_class & STC.return_))
                     {
+                        if (log) printf("infer return for %s\n", va.toChars());
                         va.storage_class |= STC.return_ | STC.returninferred;
+
+                        // Added "return scope" so don't confuse it with "return ref"
+                        if (isRefReturnScope(va.storage_class))
+                            va.storage_class |= STC.returnScope;
                     }
                 }
                 continue;
@@ -820,7 +835,7 @@ ByRef:
         if (!(va && va.isScope()))
             notMaybeScope(v);
 
-        if (v.isReference() || p != sc.func)
+        if ((global.params.useDIP1000 != FeatureState.enabled && v.isReference()) || p != sc.func)
             continue;
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
@@ -829,6 +844,8 @@ ByRef:
             {   //printf("inferring scope for %s\n", va.toChars());
                 va.storage_class |= STC.scope_ | STC.scopeinferred;
             }
+            if (v.storage_class & STC.return_ && !(va.storage_class & STC.return_))
+                va.storage_class |= STC.return_ | STC.returninferred;
             continue;
         }
         if (e1.op == TOK.structLiteral)
@@ -852,7 +869,7 @@ ByRef:
          * then uncount that address of. This is so it won't cause a
          * closure to be allocated.
          */
-        if (va && va.isScope() && func.tookAddressOf)
+        if (va && va.isScope() && !(va.storage_class & STC.return_) && func.tookAddressOf)
             --func.tookAddressOf;
 
         foreach (v; vars)
@@ -1336,7 +1353,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if (v.isDataseg())
             continue;
 
-        const vsr = buildScopeRef(refs, v.storage_class);
+        const vsr = buildScopeRef(v.storage_class);
 
         Dsymbol p = v.toParent2();
 

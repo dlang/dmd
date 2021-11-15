@@ -39,7 +39,6 @@ import dmd.backend.cdef;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.mach;
@@ -1185,7 +1184,7 @@ private:
             dtb.xoff(Symbols.getIVarOffset(classDeclaration, var, true), 0); // pointer to ivar offset
             dtb.xoff(Symbols.getMethVarName(var.ident), 0); // name
             dtb.xoff(Symbols.getMethVarType(var.type), 0); // type string
-            dtb.dword(var.alignment);
+            dtb.dword(var.alignment.isDefault() ? -1 : var.alignment.get());
             dtb.dword(cast(int) var.size(var.loc));
         }
 

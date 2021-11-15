@@ -266,6 +266,8 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
 extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 {
+    dtb.checkInitialized();
+
     void nonConstExpError(Expression e)
     {
         version (none)
@@ -618,6 +620,12 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         assert(0);
     }
 
+    void visitNoreturn(Expression e)
+    {
+        // Noreturn field with default initializer
+        assert(e);
+    }
+
     switch (e.op)
     {
         default:                 return nonConstExpError(e);
@@ -636,6 +644,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         case TOK.vector:         return visitVector        (e.isVectorExp());
         case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
         case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
+        case TOK.assert_:        return visitNoreturn      (e);
     }
 }
 
@@ -692,9 +701,9 @@ extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
  * have to use this optimized version to reduce memory footprint.
  * Params:
  *      ad = aggregate with members
- *      pdt = tail of initializer list to start appending initialized data to
+ *      dtb = initializer list to append initialized data to
  *      elements = values to use as initializers, null means use default initializers
- *      firstFieldIndex = starting place is elements[firstFieldIndex]
+ *      firstFieldIndex = starting place in elements[firstFieldIndex]; always 0 for structs
  *      concreteType = structs: null, classes: most derived class
  *      ppb = pointer that moves through BaseClass[] from most derived class
  * Returns:
@@ -706,16 +715,36 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         ClassDeclaration concreteType,
         BaseClass*** ppb = null)
 {
-    //printf("membersToDt(ad = '%s', concrete = '%s', ppb = %p)\n", ad.toChars(), concreteType ? concreteType.toChars() : "null", ppb);
     ClassDeclaration cd = ad.isClassDeclaration();
     version (none)
     {
-        printf(" interfaces.length = %d\n", cast(int)cd.interfaces.length);
-        foreach (i, b; cd.vtblInterfaces[])
+        printf("membersToDt(ad = '%s', concrete = '%s', ppb = %p)\n", ad.toChars(), concreteType ? concreteType.toChars() : "null", ppb);
+        version (none)
         {
-            printf("  vbtblInterfaces[%d] b = %p, b.sym = %s\n", cast(int)i, b, b.sym.toChars());
+            printf(" interfaces.length = %d\n", cast(int)cd.interfaces.length);
+            foreach (i, b; cd.vtblInterfaces[])
+            {
+                printf("  vbtblInterfaces[%d] b = %p, b.sym = %s\n", cast(int)i, b, b.sym.toChars());
+            }
+        }
+        version (all)
+        {
+            foreach (i, field; ad.fields)
+            {
+                printf("  fields[%d]: %s %d\n", cast(int)i, field.toChars(), field.offset);
+            }
+        }
+        version (all)
+        {
+            printf("  firstFieldIndex: %d\n", cast(int)firstFieldIndex);
+            foreach (i; 0 .. elements.length)
+            {
+                auto e = (*elements)[i];
+                printf("  elements[%d]: %s\n", cast(int)i, e ? e.toChars() : "null");
+            }
         }
     }
+    dtb.checkInitialized();
 
     /* Order:
      *  { base class } or { __vptr, __monitor }
@@ -728,6 +757,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     {
         if (ClassDeclaration cdb = cd.baseClass)
         {
+            // Insert { base class }
             size_t index = 0;
             for (ClassDeclaration c = cdb.baseClass; c; c = c.baseClass)
                 index += c.fields.dim;
@@ -758,6 +788,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         }
         else
         {
+            // Insert { __vptr, __monitor }
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
             offset = target.ptrsize;
             if (cd.hasMonitor())
@@ -789,24 +820,49 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     }
     else
         offset = 0;
+    // `offset` now is where the fields start
 
     assert(!elements ||
            firstFieldIndex <= elements.dim &&
            firstFieldIndex + ad.fields.dim <= elements.dim);
 
+    uint bitOffset = 0;         // starting bit number
+    ulong bitFieldValue = 0;    // in-flight bit field value
+    uint bitFieldSize;          // in-flight size in bytes of bit field
+
+    void finishInFlightBitField()
+    {
+        if (bitOffset)
+        {
+            assert(bitFieldSize);
+            dtb.nbytes(bitFieldSize, cast(char*)&bitFieldValue);
+            offset += bitFieldSize;
+            bitOffset = 0;
+            bitFieldValue = 0;
+            bitFieldSize = 0;
+        }
+    }
+
     foreach (i, field; ad.fields)
     {
+        // skip if no element for this field
         if (elements && !(*elements)[firstFieldIndex + i])
             continue;
 
+        // If void initializer
         if (!elements || !(*elements)[firstFieldIndex + i])
         {
             if (field._init && field._init.isVoidInitializer())
                 continue;
         }
 
+        /* This loop finds vd, the closest field that starts at `offset + bitOffset` or later
+         */
         VarDeclaration vd;
-        size_t k;
+        // Cache some extra information about vd
+        BitFieldDeclaration bf; // bit field version of vd
+        size_t k;               // field index of vd
+        uint vdBitOffset;       // starting bit number of vd; 0 if not a bit field
         foreach (j; i .. ad.fields.length)
         {
             VarDeclaration v2 = ad.fields[j];
@@ -821,28 +877,76 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 if (v2._init && v2._init.isVoidInitializer())
                     continue;
             }
+            //printf(" checking v2 %s %d\n", v2.toChars(), v2.offset);
+
+            auto bf2 = v2.isBitFieldDeclaration();
+            uint v2BitOffset = bf2 ? bf2.bitOffset : 0;
+
+            if (v2.offset * 8 + v2BitOffset < offset * 8 + vdBitOffset)
+                continue;
 
             // find the nearest field
-            if (!vd || v2.offset < vd.offset)
+            if (!vd ||
+                v2.offset * 8 + v2BitOffset < vd.offset * 8 + vdBitOffset)
             {
+                // v2 is nearer, so remember the details
+                //printf(" v2 %s is nearer\n", v2.toChars());
                 vd = v2;
+                bf = bf2;
+                vdBitOffset = v2BitOffset;
                 k = j;
-                assert(vd == v2 || !vd.isOverlappedWith(v2));
             }
         }
         if (!vd)
+        {
             continue;
+        }
+
+        if (!bf || bf.offset != offset)
+        {
+            finishInFlightBitField();
+        }
+        if (bf)
+        {
+            switch (target.c.bitFieldStyle)
+            {
+                case TargetC.BitFieldStyle.Gcc_Clang:
+                    bitFieldSize = (bitOffset + bf.fieldWidth + 7) / 8;
+                    break;
+
+                case TargetC.BitFieldStyle.DM:
+                case TargetC.BitFieldStyle.MS:
+                    // This relies on all bit fields in the same storage location have the same type
+                    bitFieldSize = cast(uint)vd.type.size();
+                    break;
+
+                default:
+                    assert(0);
+            }
+        }
 
         assert(offset <= vd.offset);
         if (offset < vd.offset)
             dtb.nzeros(vd.offset - offset);
+        //printf("vd: %s offset: %u, vd.offset: %u\n", vd.toChars(), offset, vd.offset);
 
         auto dtbx = DtBuilder(0);
         if (elements)
         {
             Expression e = (*elements)[firstFieldIndex + k];
+            //printf("elements initializer %s\n", e.toChars());
             if (auto tsa = vd.type.toBasetype().isTypeSArray())
                 toDtElem(tsa, dtbx, e);
+            else if (bf)
+            {
+                auto ie = e.isIntegerExp();
+                assert(ie);
+                auto value = ie.getInteger();
+                const width = bf.fieldWidth;
+                const mask = (1L << width) - 1;
+                bitFieldValue = (bitFieldValue & ~(mask << bitOffset)) | ((value & mask) << bitOffset);
+                //printf("bitFieldValue x%llx\n", bitFieldValue);
+            }
             else
                 Expression_toDt(e, dtbx);    // convert e to an initializer dt
         }
@@ -872,9 +976,19 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 continue;
         }
 
-        dtb.cat(dtbx);
-        offset = cast(uint)(vd.offset + vd.type.size());
+        if (!dtbx.isZeroLength())
+            dtb.cat(dtbx);
+        if (bf)
+        {
+            bitOffset = bf.bitOffset + bf.fieldWidth;
+        }
+        else
+        {
+            offset = cast(uint)(vd.offset + vd.type.size());
+        }
     }
+
+    finishInFlightBitField();
 
     if (offset < ad.structsize)
         dtb.nzeros(ad.structsize - offset);
@@ -1293,7 +1407,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         /* Put out:
-         *  char[] name;
+         *  char[] mangledName;
          *  void[] init;
          *  hash_t function(in void*) xtoHash;
          *  bool function(in void*, in void*) xopEquals;
@@ -1310,9 +1424,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
          *  xgetRTInfo
          */
 
-        const name = sd.toPrettyChars();
-        const namelen = strlen(name);
-        dtb.size(namelen);
+        const mangledName = tc.deco;
+        const mangledNameLen = strlen(mangledName);
+        dtb.size(mangledNameLen);
         dtb.xoff(d.csym, Type.typeinfostruct.structsize);
 
         // void[] init;
@@ -1410,8 +1524,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         else
             dtb.size(0);
 
-        // Put out name[] immediately following TypeInfo_Struct
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        // Put out mangledName[] immediately following TypeInfo_Struct
+        dtb.nbytes(cast(uint)(mangledNameLen + 1), mangledName);
     }
 
     override void visit(TypeInfoClassDeclaration d)

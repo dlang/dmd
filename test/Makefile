@@ -29,6 +29,8 @@ BUILD=release
 
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
+else ifeq (openbsd,$(OS))
+    SHELL=/usr/local/bin/bash
 else ifeq (netbsd,$(OS))
     SHELL=/usr/pkg/bin/bash
 else ifeq (dragonflybsd,$(OS))
@@ -72,14 +74,10 @@ else
     endif
     export DMD=../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
 
-    # default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+    # default to PIC, use PIC=1/0 to en-/disable PIC.
     # Note that shared libraries and C files are always compiled with PIC.
     ifeq ($(PIC),)
-        ifeq ($(MODEL),64) # x86_64
-            PIC:=1
-        else
-            PIC:=0
-        endif
+        PIC:=1
     endif
     ifeq ($(PIC),1)
         export PIC_FLAG:=-fPIC

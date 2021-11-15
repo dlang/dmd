@@ -17,7 +17,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 
 import dmd.backend.cdef;
@@ -34,6 +34,7 @@ import dmd.backend.type;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmangle;
@@ -52,7 +53,6 @@ import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
 import dmd.tocsym;
-import dmd.typesem;
 
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;
@@ -85,6 +85,7 @@ struct IRState
     const Param* params;            // command line parameters
     const Target* target;           // target
     bool mayThrow;                  // the expression being evaluated may throw
+    bool Cfile;                     // use C semantics
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
         const Param* params, const Target* target)
@@ -112,6 +113,8 @@ struct IRState
      */
     bool arrayBoundsCheck()
     {
+        if (m.isCFile)
+            return false;
         bool result;
         final switch (global.params.useArrayBounds)
         {
@@ -493,8 +496,9 @@ int intrinsic_op(FuncDeclaration fd)
         return op;
     //printf("intrinsic_op(%s)\n", name);
 
-    // Look for [core|std].module.function as id3.id2.id1 ...
     const Identifier id3 = fd.ident;
+
+    // Look for [core|std].module.function as id3.id2.id1 ...
     auto m = fd.getModule();
     if (!m || !m.md)
         return op;
@@ -718,14 +722,14 @@ void setClosureVarOffset(FuncDeclaration fd)
              */
             memsize = target.ptrsize * 2;
             memalignsize = memsize;
-            xalign = STRUCTALIGN_DEFAULT;
+            xalign.setDefault();
         }
         else if (v.storage_class & (STC.out_ | STC.ref_))
         {
             // reference parameters are just pointers
             memsize = target.ptrsize;
             memalignsize = memsize;
-            xalign = STRUCTALIGN_DEFAULT;
+            xalign.setDefault();
         }
         else
         {
@@ -867,7 +871,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
-        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_ALLOCMEMORY)), e);
+        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM.ALLOCMEMORY)), e);
         toTraceGC(irs, e, fd.loc);
 
         // Assign block of memory to sclosure

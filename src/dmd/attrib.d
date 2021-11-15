@@ -42,7 +42,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.target; // for target.systemLinkage
 import dmd.tokens;
 import dmd.visitor;
@@ -174,9 +174,9 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return Dsymbol.oneMembers(d, ps, ident);
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
-        include(null).foreachDsymbol( s => s.setFieldOffset(ad, poffset, isunion) );
+        include(null).foreachDsymbol( s => s.setFieldOffset(ad, fieldState, isunion) );
     }
 
     override final bool hasPointers()
@@ -694,26 +694,40 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
  */
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
-    Expression ealign;                              /// expression yielding the actual alignment
-    enum structalign_t UNKNOWN = 0;                 /// alignment not yet computed
-    static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
-
-    /// the actual alignment, `UNKNOWN` until it's either set to the value of `ealign`
-    /// or `STRUCTALIGN_DEFAULT` if `ealign` is null ( / an error ocurred)
-    structalign_t salign = UNKNOWN;
+    Expressions* exps;                              /// Expression(s) yielding the desired alignment,
+                                                    /// the largest value wins
+    /// the actual alignment is Unknown until it's either set to the value of `ealign`
+    /// or the default if `ealign` is null ( / an error ocurred)
+    structalign_t salign;
 
 
-    extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
     {
         super(loc, null, decl);
-        this.ealign = ealign;
+        if (exp)
+        {
+            exps = new Expressions();
+            exps.push(exp);
+        }
+    }
+
+    extern (D) this(const ref Loc loc, Expressions* exps, Dsymbols* decl)
+    {
+        super(loc, null, decl);
+        this.exps = exps;
+    }
+
+    extern (D) this(const ref Loc loc, structalign_t salign, Dsymbols* decl)
+    {
+        super(loc, null, decl);
+        this.salign = salign;
     }
 
     override AlignDeclaration syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new AlignDeclaration(loc,
-            ealign ? ealign.syntaxCopy() : null,
+            Expression.arraySyntaxCopy(exps),
             Dsymbol.arraySyntaxCopy(decl));
     }
 
@@ -758,7 +772,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
         //printf("\tAnonDeclaration::setFieldOffset %s %p\n", isunion ? "union" : "struct", this);
         if (decl)
@@ -777,12 +791,12 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
             ad.structsize = 0;
             ad.alignsize = 0;
 
-            uint offset = 0;
+            FieldState fs;
             decl.foreachDsymbol( (s)
             {
-                s.setFieldOffset(ad, &offset, this.isunion);
+                s.setFieldOffset(ad, fs, this.isunion);
                 if (this.isunion)
-                    offset = 0;
+                    fs.offset = 0;
             });
 
             /* https://issues.dlang.org/show_bug.cgi?id=13613
@@ -794,7 +808,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
             {
                 ad.structsize = savestructsize;
                 ad.alignsize = savealignsize;
-                *poffset = ad.structsize;
+                fieldState.offset = ad.structsize;
                 return;
             }
 
@@ -817,7 +831,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
              * go ahead and place it.
              */
             anonoffset = AggregateDeclaration.placeField(
-                poffset,
+                &fieldState.offset,
                 anonstructsize, anonalignsize, alignment,
                 &ad.structsize, &ad.alignsize,
                 isunion);
@@ -1184,7 +1198,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
         // expand static foreach
         import dmd.statementsem: makeTupleForeach;
-        Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
+        Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion).decl;
         if (d) // process generated declarations
         {
             // Add members lazily.

@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.ctorflow;
 import dmd.dclass;
 import dmd.delegatize;
@@ -34,7 +35,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.intrange;
 import dmd.mtype;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
@@ -201,19 +202,6 @@ extern (C++) void ObjectNotFound(Identifier id)
     fatal();
 }
 
-enum STCStorageClass =
-    (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
-     STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
-     STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
-     STC.property | STC.safeGroup | STC.disable | STC.local | STC.live);
-
-/* These storage classes "flow through" to the inner scope of a Dsymbol
- */
-enum STCFlowThruAggregate = STC.safeGroup;    /// for an AggregateDeclaration
-enum STCFlowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
-                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
-                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system); /// for a FuncDeclaration
-
 /* Accumulator for successive matches.
  */
 struct MatchAccumulator
@@ -357,11 +345,13 @@ extern (C++) abstract class Declaration : Dsymbol
      *  loc  = location for error messages
      *  e1   = `null` or `this` expression when this declaration is a field
      *  sc   = context
-     *  flag = !=0 means do not issue error message for invalid modification
+     *  flag = if the first bit is set it means do not issue error message for
+     *         invalid modification; if the second bit is set, it means that
+               this declaration is a field and a subfield of it is modified.
      * Returns:
      *  Modifiable.yes or Modifiable.initialization
      */
-    extern (D) final Modifiable checkModify(Loc loc, Scope* sc, Expression e1, int flag)
+    extern (D) final Modifiable checkModify(Loc loc, Scope* sc, Expression e1, ModifyFlags flag)
     {
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)
@@ -374,7 +364,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 if (scx.func == parent && (scx.flags & SCOPE.contract))
                 {
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
-                    if (!flag)
+                    if (!(flag & ModifyFlags.noError))
                         error(loc, "cannot modify %s `%s` in contract", s, toChars());
                     return Modifiable.initialization; // do not report type related errors
                 }
@@ -388,7 +378,7 @@ extern (C++) abstract class Declaration : Dsymbol
             {
                 if (scx.func == vthis.parent && (scx.flags & SCOPE.contract))
                 {
-                    if (!flag)
+                    if (!(flag & ModifyFlags.noError))
                         error(loc, "cannot modify parameter `this` in contract");
                     return Modifiable.initialization; // do not report type related errors
                 }
@@ -400,8 +390,9 @@ extern (C++) abstract class Declaration : Dsymbol
             // It's only modifiable if inside the right constructor
             if ((storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
                 return Modifiable.initialization;
-            return modifyFieldVar(loc, sc, v, e1)
-                ? Modifiable.initialization : Modifiable.yes;
+            if (flag & ModifyFlags.fieldAssign)
+                return Modifiable.yes;
+            return modifyFieldVar(loc, sc, v, e1) ? Modifiable.initialization : Modifiable.yes;
         }
         return Modifiable.yes;
     }
@@ -715,7 +706,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(s);
     }
 
-    static AliasDeclaration create(Loc loc, Identifier id, Type type)
+    static AliasDeclaration create(const ref Loc loc, Identifier id, Type type)
     {
         return new AliasDeclaration(loc, id, type);
     }
@@ -1126,7 +1117,7 @@ extern (C++) class VarDeclaration : Declaration
         return v;
     }
 
-    override final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
         //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
 
@@ -1142,7 +1133,7 @@ extern (C++) class VarDeclaration : Declaration
                 Expression e = cast(Expression)o;
                 assert(e.op == TOK.dSymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
-                se.s.setFieldOffset(ad, poffset, isunion);
+                se.s.setFieldOffset(ad, fieldState, isunion);
             }
             return;
         }
@@ -1159,7 +1150,7 @@ extern (C++) class VarDeclaration : Declaration
         if (offset)
         {
             // already a field
-            *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
+            fieldState.offset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
             return;
         }
         for (size_t i = 0; i < ad.fields.dim; i++)
@@ -1167,7 +1158,7 @@ extern (C++) class VarDeclaration : Declaration
             if (ad.fields[i] == this)
             {
                 // already a field
-                *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
+                fieldState.offset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
                 return;
             }
         }
@@ -1199,12 +1190,17 @@ extern (C++) class VarDeclaration : Declaration
         if (t.ty == Terror)
             return;
 
+        /* If coming after a bit field in progress,
+         * advance past the field
+         */
+        fieldState.inFlight = false;
+
         const sz = t.size(loc);
         assert(sz != SIZE_INVALID && sz < uint.max);
         uint memsize = cast(uint)sz;                // size of member
         uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(
-            poffset,
+            &fieldState.offset,
             memsize, memalignsize, alignment,
             &ad.structsize, &ad.alignsize,
             isunion);
@@ -1320,8 +1316,32 @@ extern (C++) class VarDeclaration : Declaration
         const vsz = v.type.size();
         const tsz = type.size();
         assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
-        return    offset < v.offset + vsz &&
-                v.offset <   offset + tsz;
+
+        // Overlap is checked by comparing bit offsets
+        auto bitoffset  =   offset * 8;
+        auto vbitoffset = v.offset * 8;
+
+        // Bitsize of types are overridden by any bit-field widths.
+        ulong tbitsize = void;
+        if (auto bf = isBitFieldDeclaration())
+        {
+            bitoffset += bf.bitOffset;
+            tbitsize = bf.fieldWidth;
+        }
+        else
+            tbitsize = tsz * 8;
+
+        ulong vbitsize = void;
+        if (auto vbf = v.isBitFieldDeclaration())
+        {
+            vbitoffset += vbf.bitOffset;
+            vbitsize = vbf.fieldWidth;
+        }
+        else
+            vbitsize = vsz * 8;
+
+        return   bitoffset < vbitoffset + vbitsize &&
+                vbitoffset <  bitoffset + tbitsize;
     }
 
     override final bool hasPointers()
@@ -1678,6 +1698,233 @@ extern (C++) class VarDeclaration : Declaration
     }
 }
 
+/*******************************************************
+ * C11 6.7.2.1-4 bit fields
+ */
+extern (C++) class BitFieldDeclaration : VarDeclaration
+{
+    Expression width;
+
+    uint fieldWidth;
+    uint bitOffset;
+
+    final extern (D) this(const ref Loc loc, Type type, Identifier ident, Expression width)
+    {
+        super(loc, type, ident, null);
+
+        this.width = width;
+        this.storage_class |= STC.field;
+    }
+
+    override BitFieldDeclaration syntaxCopy(Dsymbol s)
+    {
+        //printf("BitFieldDeclaration::syntaxCopy(%s)\n", toChars());
+        assert(!s);
+        auto bf = new BitFieldDeclaration(loc, type ? type.syntaxCopy() : null, ident, width.syntaxCopy());
+        bf.comment = comment;
+        return bf;
+    }
+
+    override final inout(BitFieldDeclaration) isBitFieldDeclaration() inout
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+
+    override final void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
+    {
+        //printf("BitFieldDeclaration::setFieldOffset(ad: %s, field: %s)\n", ad.toChars(), toChars());
+        static void print(const ref FieldState fieldState)
+        {
+            printf("FieldState.offset      = %d bytes\n",   fieldState.offset);
+            printf("          .fieldOffset = %d bytes\n",   fieldState.fieldOffset);
+            printf("          .bitOffset   = %d bits\n",    fieldState.bitOffset);
+            printf("          .fieldSize   = %d bytes\n",   fieldState.fieldSize);
+            printf("          .inFlight    = %d\n\n", fieldState.inFlight);
+        }
+        //print(fieldState);
+
+        Type t = type.toBasetype();
+        const bool anon = isAnonymous();
+
+        // List in ad.fields. Even if the type is error, it's necessary to avoid
+        // pointless error diagnostic "more initializers than fields" on struct literal.
+        if (!anon)
+            ad.fields.push(this);
+
+        if (t.ty == Terror)
+            return;
+
+        const sz = t.size(loc);
+        assert(sz != SIZE_INVALID && sz < uint.max);
+        uint memsize = cast(uint)sz;                // size of member
+        uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
+
+        if (fieldWidth == 0 && !anon)
+            error(loc, "named bit fields cannot have 0 width");
+        if (fieldWidth > memsize * 8)
+            error(loc, "bit field width %d is larger than type", fieldWidth);
+
+        const style = target.c.bitFieldStyle;
+
+        void startNewField()
+        {
+            uint alignsize;
+            if (style == TargetC.BitFieldStyle.Gcc_Clang)
+            {
+                if (fieldWidth > 32)
+                    alignsize = memalignsize;
+                else if (fieldWidth > 16)
+                    alignsize = 4;
+                else if (fieldWidth > 8)
+                    alignsize = 2;
+                else
+                    alignsize = 1;
+            }
+            else
+                alignsize = memsize; // not memalignsize
+
+            uint dummy;
+            offset = AggregateDeclaration.placeField(
+                &fieldState.offset,
+                memsize, alignsize, alignment,
+                &ad.structsize,
+                (anon && style == TargetC.BitFieldStyle.Gcc_Clang) ? &dummy : &ad.alignsize,
+                isunion);
+
+            fieldState.inFlight = true;
+            fieldState.fieldOffset = offset;
+            fieldState.bitOffset = 0;
+            fieldState.fieldSize = memsize;
+        }
+
+        if (style == TargetC.BitFieldStyle.Gcc_Clang)
+        {
+            if (fieldWidth == 0)
+            {
+                if (!isunion)
+                {
+                    // Use type of zero width field to align to next field
+                    fieldState.offset = (fieldState.offset + memalignsize - 1) & ~(memalignsize - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (!anon &&
+                  ad.alignsize < memalignsize)
+                ad.alignsize = memalignsize;
+        }
+        else if (style == TargetC.BitFieldStyle.MS)
+        {
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (fieldWidth == 0)
+            {
+                if (fieldState.inFlight && !isunion)
+                {
+                    // documentation says align to next int
+                    //const alsz = cast(uint)Type.tint32.size();
+                    const alsz = memsize; // but it really does this
+                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+        }
+        else if (style == TargetC.BitFieldStyle.DM)
+        {
+            if (anon && fieldWidth && (!fieldState.inFlight || fieldState.bitOffset == 0))
+                return;  // this probably should be a bug in DMC
+            if (ad.alignsize == 0)
+                ad.alignsize = 1;
+            if (fieldWidth == 0)
+            {
+                if (fieldState.inFlight && !isunion)
+                {
+                    const alsz = memsize;
+                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
+                    ad.structsize = fieldState.offset;
+                }
+
+                fieldState.inFlight = false;
+                return;
+            }
+        }
+
+        if (!fieldState.inFlight)
+        {
+            startNewField();
+        }
+        else if (style == TargetC.BitFieldStyle.Gcc_Clang)
+        {
+            if (fieldState.bitOffset + fieldWidth > memsize * 8)
+            {
+                //printf("start1 fieldState.bitOffset:%u fieldWidth:%u memsize:%u\n", fieldState.bitOffset, fieldWidth, memsize);
+                startNewField();
+            }
+            else
+            {
+                // if alignment boundary is crossed
+                uint start = fieldState.fieldOffset * 8 + fieldState.bitOffset;
+                uint end   = start + fieldWidth;
+                //printf("%s start: %d end: %d memalignsize: %d\n", ad.toChars(), start, end, memalignsize);
+                if (start / (memalignsize * 8) != (end - 1) / (memalignsize * 8))
+                {
+                    //printf("alignment is crossed\n");
+                    startNewField();
+                }
+            }
+        }
+        else if (style == TargetC.BitFieldStyle.DM ||
+                 style == TargetC.BitFieldStyle.MS)
+        {
+            if (memsize != fieldState.fieldSize ||
+                fieldState.bitOffset + fieldWidth > fieldState.fieldSize * 8)
+            {
+                startNewField();
+            }
+        }
+        else
+            assert(0);
+
+        offset = fieldState.fieldOffset;
+        bitOffset = fieldState.bitOffset;
+
+        const pastField = bitOffset + fieldWidth;
+        if (style == TargetC.BitFieldStyle.Gcc_Clang)
+        {
+            auto size = (pastField + 7) / 8;
+            fieldState.fieldSize = size;
+            //printf(" offset: %d, size: %d\n", offset, size);
+            ad.structsize = offset + size;
+        }
+        else
+            fieldState.fieldSize = memsize;
+        //printf("at end: ad.structsize = %d\n", cast(int)ad.structsize);
+        //print(fieldState);
+
+        if (!isunion)
+        {
+            fieldState.offset = offset + fieldState.fieldSize;
+            fieldState.bitOffset = pastField;
+        }
+
+        //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
+        //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
+    }
+}
+
 /***********************************************************
  * This is a shell around a back end symbol
  */
@@ -1717,7 +1964,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         storage_class = STC.static_ | STC.gshared;
         visibility = Visibility(Visibility.Kind.public_);
         linkage = LINK.c;
-        alignment = target.ptrsize;
+        alignment.set(target.ptrsize);
     }
 
     static TypeInfoDeclaration create(Type tinfo)

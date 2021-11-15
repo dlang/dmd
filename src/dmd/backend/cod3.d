@@ -1,4 +1,11 @@
 /**
+ * Code generation 3
+ *
+ * Includes:
+ * - generating a function prolog (pushing return address, loading paramters)
+ * - generating a function epilog (restoring registers, returning)
+ * - generation / peephole optimizations of jump / branch instructions
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -21,6 +28,7 @@ version (MARS)
 version (COMPILE)
 {
 
+import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -41,7 +49,6 @@ import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -551,7 +558,7 @@ void cod3_stackalign(ref CodeBuilder cdb, int nbytes)
  */
 static if (0)
 {
-void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
+void cod3_buildmodulector(OutBuffer* buf, int codeOffset, int refOffset)
 {
     /*      ret
      * codeOffset:
@@ -735,7 +742,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mXMM0;
 
         default:
-            debug WRTYxx(tym);
+            debug printf("%s\n", tym_str(tym));
             assert(0);
     }
 }
@@ -1125,6 +1132,7 @@ static if (NTEXCEPTIONS)
         case BCretexp:
             reg_t reg1, reg2, lreg, mreg;
             retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
+            //printf("allocretregs returns %s\n", regm_str(mask(reg1) | mask(reg2)));
 
             lreg = mreg = NOREG;
             if (reg1 == NOREG)
@@ -1519,7 +1527,7 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
                 return rralloc.xmm();
             }
 
-            debug WRTYxx(tym);
+            debug printf("%s\n", tym_str(tym));
             assert(0);
         }
     }
@@ -2396,7 +2404,7 @@ else
     {
         debug
         elem_print(e);
-        WRTYxx(tym);
+        printf("%s\n", tym_str(tym));
         assert(0);
     }
 
@@ -2414,8 +2422,7 @@ L1:
     debug
     if ((jp & 0xF0) != 0x70)
     {
-        WROP(op);
-        printf("i %d zero %d op x%x jp x%x\n",i,zero,op,jp);
+        printf("%s i %d zero %d op x%x jp x%x\n",oper_str(op),i,zero,op,jp);
     }
 
     assert((jp & 0xF0) == 0x70);
@@ -2540,12 +2547,12 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
 
     // Call the validation function
     {
-        makeitextern(getRtlsym(RTLSYM_PTRCHK));
+        makeitextern(getRtlsym(RTLSYM.PTRCHK));
 
         used &= ~(keepmsk | idxregs);           // regs destroyed by this exercise
         getregs(cdb,used);
                                                 // CALL __ptrchk
-        cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_PTRCHK));
+        cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM.PTRCHK));
     }
 
     cdb.append(cs2);
@@ -3014,7 +3021,7 @@ void genshift(ref CodeBuilder cdb)
     {
         // Set up ahshift to trick ourselves into giving the right fixup,
         // which must be seg-relative, external frame, external target.
-        cdb.gencs(0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM_AHSHIFT));
+        cdb.gencs(0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM.AHSHIFT));
         cdb.last().Iflags |= CFoff;
     }
     else
@@ -3585,10 +3592,10 @@ void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter
         {
             // BUG: Won't work if parameter is passed in AX
             movregconst(cdb,AX,xlocalsize,false); // MOV AX,localsize
-            makeitextern(getRtlsym(RTLSYM_CHKSTK));
+            makeitextern(getRtlsym(RTLSYM.CHKSTK));
                                                     // CALL _chkstk
-            cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_CHKSTK));
-            useregs((ALLREGS | mBP | mES) & ~getRtlsym(RTLSYM_CHKSTK).Sregsaved);
+            cdb.gencs((LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM.CHKSTK));
+            useregs((ALLREGS | mBP | mES) & ~getRtlsym(RTLSYM.CHKSTK).Sregsaved);
         }
         else
         {
@@ -3690,8 +3697,8 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
     if (pushoffuse)
     {
         // Save to preallocated section in the stack frame
-        int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
-        int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
+        int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
         targ_size_t xmmoffset = pushoff + BPoff;
         if (!hasframe || enforcealign)
             xmmoffset += EBPtoESP;
@@ -3793,8 +3800,8 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
     if (pushoffuse)
     {
         // Save to preallocated section in the stack frame
-        int xmmtopop = numbitsset(topop & XMMREGS);   // XMM regs take 16 bytes
-        int gptopop = numbitsset(topop) - xmmtopop;   // general purpose registers to save
+        int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
+        int gptopop = popcnt(topop) - xmmtopop;   // general purpose registers to save
         targ_size_t xmmoffset = pushoff + BPoff;
         if (!hasframe || enforcealign)
             xmmoffset += EBPtoESP;
@@ -3871,7 +3878,7 @@ version (SCPP)
 @trusted
 void prolog_trace(ref CodeBuilder cdb, bool farfunc, uint* regsaved)
 {
-    Symbol *s = getRtlsym(farfunc ? RTLSYM_TRACE_PRO_F : RTLSYM_TRACE_PRO_N);
+    Symbol *s = getRtlsym(farfunc ? RTLSYM.TRACE_PRO_F : RTLSYM.TRACE_PRO_N);
     makeitextern(s);
     cdb.gencs(I16 ? 0x9A : CALL,0,FLfunc,s);      // CALL _trace
     if (!I16)
@@ -4431,7 +4438,7 @@ void epilog(block *b)
         )
        )
     {
-        Symbol *s = getRtlsym(farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N);
+        Symbol *s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
         makeitextern(s);
         cdbx.gencs(I16 ? 0x9A : CALL,0,FLfunc,s);      // CALLF _trace
         if (!I16)
@@ -4876,16 +4883,18 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     }
     else
     {
-static if (0)
-{
-        localgot = null;                // no local variables
-        code *c1 = load_localgot();
-        if (c1)
+        if (config.flags3 & CFG3pic)
         {
-            assignaddrc(c1);
-            cdb.append(c1);
+            localgot = null;                // no local variables
+            CodeBuilder cdbgot; cdbgot.ctor();
+            load_localgot(cdbgot);          // load GOT in EBX
+            code *c1 = cdbgot.finish();
+            if (c1)
+            {
+                assignaddrc(c1);
+                cdb.append(c1);
+            }
         }
-}
         cdb.gencs((LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); // JMP sfunc
         cdb.last().Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
     }

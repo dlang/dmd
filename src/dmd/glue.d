@@ -18,7 +18,7 @@ import core.stdc.stdlib;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 
@@ -30,7 +30,6 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -122,6 +121,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         if (!global.errors && firstm)
         {
             obj_end(library, firstm.objfile.toChars());
+            objbuf.dtor();
         }
     }
     else
@@ -139,6 +139,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (global.errors && !lib)
                 m.deleteObjFile();
         }
+        objbuf.dtor();
     }
     if (lib && !global.errors)
         library.write();
@@ -318,7 +319,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
  * Prepare for generating obj file.
  */
 
-private __gshared Outbuffer objbuf;
+private __gshared OutBuffer objbuf;
 
 private void obj_start(const(char)* srcfile)
 {
@@ -364,14 +365,13 @@ private void obj_end(Library library, const(char)* objfilename)
     if (library)
     {
         // Transfer ownership of image buffer to library
-        library.addObject(objfilename.toDString(), objbuf.extractSlice[]);
+        library.addObject(objfilename.toDString(), cast(ubyte[]) objbuf.extractSlice[]);
     }
     else
     {
         //printf("write obj %s\n", objfilename);
         writeFile(Loc.initial, objfilename.toDString, objbuf[]);
     }
-    objbuf.dtor();
 }
 
 bool obj_includelib(const(char)* name) nothrow
@@ -558,7 +558,7 @@ private void genObjFile(Module m, bool multiobj)
                       ebcov,
                       efilename,
                       null);
-        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER2)), e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }
@@ -1289,14 +1289,11 @@ private bool onlyOneMain(Loc loc)
     __gshared bool hasMain = false;
     if (hasMain)
     {
-        const(char)* msg = "";
-        if (global.params.addMain)
-            msg = ", -main switch added another `main()`";
         const(char)* otherMainNames = "";
         if (target.os == Target.OS.Windows)
             otherMainNames = ", `WinMain`, or `DllMain`";
-        error(loc, "only one `main`%s allowed%s. Previously found `main` at %s",
-            otherMainNames, msg, lastLoc.toChars());
+        error(loc, "only one `main`%s allowed. Previously found `main` at %s",
+            otherMainNames, lastLoc.toChars());
         return false;
     }
     lastLoc = loc;

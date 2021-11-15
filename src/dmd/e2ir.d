@@ -54,7 +54,6 @@ import dmd.toctype;
 import dmd.toir;
 import dmd.tokens;
 import dmd.toobj;
-import dmd.typesem;
 import dmd.typinf;
 import dmd.visitor;
 
@@ -227,7 +226,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
              * But the checksum algorithm is unknown. Just invent our own.
              */
 
-            import dmd.root.outbuffer : OutBuffer;
+            import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             buf.writestring("__");
 
@@ -318,39 +317,39 @@ Symbol *toStringSymbol(StringExp se)
 
 void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
 {
-    static immutable int[2][25] map =
+    static immutable RTLSYM[2][25] map =
     [
-        [ RTLSYM_NEWCLASS, RTLSYM_TRACENEWCLASS ],
-        [ RTLSYM_NEWITEMT, RTLSYM_TRACENEWITEMT ],
-        [ RTLSYM_NEWITEMIT, RTLSYM_TRACENEWITEMIT ],
-        [ RTLSYM_NEWARRAYT, RTLSYM_TRACENEWARRAYT ],
-        [ RTLSYM_NEWARRAYIT, RTLSYM_TRACENEWARRAYIT ],
-        [ RTLSYM_NEWARRAYMTX, RTLSYM_TRACENEWARRAYMTX ],
-        [ RTLSYM_NEWARRAYMITX, RTLSYM_TRACENEWARRAYMITX ],
+        [ RTLSYM.NEWCLASS, RTLSYM.TRACENEWCLASS ],
+        [ RTLSYM.NEWITEMT, RTLSYM.TRACENEWITEMT ],
+        [ RTLSYM.NEWITEMIT, RTLSYM.TRACENEWITEMIT ],
+        [ RTLSYM.NEWARRAYT, RTLSYM.TRACENEWARRAYT ],
+        [ RTLSYM.NEWARRAYIT, RTLSYM.TRACENEWARRAYIT ],
+        [ RTLSYM.NEWARRAYMTX, RTLSYM.TRACENEWARRAYMTX ],
+        [ RTLSYM.NEWARRAYMITX, RTLSYM.TRACENEWARRAYMITX ],
 
-        [ RTLSYM_DELCLASS, RTLSYM_TRACEDELCLASS ],
-        [ RTLSYM_CALLFINALIZER, RTLSYM_TRACECALLFINALIZER ],
-        [ RTLSYM_CALLINTERFACEFINALIZER, RTLSYM_TRACECALLINTERFACEFINALIZER ],
-        [ RTLSYM_DELINTERFACE, RTLSYM_TRACEDELINTERFACE ],
-        [ RTLSYM_DELARRAYT, RTLSYM_TRACEDELARRAYT ],
-        [ RTLSYM_DELMEMORY, RTLSYM_TRACEDELMEMORY ],
-        [ RTLSYM_DELSTRUCT, RTLSYM_TRACEDELSTRUCT ],
+        [ RTLSYM.DELCLASS, RTLSYM.TRACEDELCLASS ],
+        [ RTLSYM.CALLFINALIZER, RTLSYM.TRACECALLFINALIZER ],
+        [ RTLSYM.CALLINTERFACEFINALIZER, RTLSYM.TRACECALLINTERFACEFINALIZER ],
+        [ RTLSYM.DELINTERFACE, RTLSYM.TRACEDELINTERFACE ],
+        [ RTLSYM.DELARRAYT, RTLSYM.TRACEDELARRAYT ],
+        [ RTLSYM.DELMEMORY, RTLSYM.TRACEDELMEMORY ],
+        [ RTLSYM.DELSTRUCT, RTLSYM.TRACEDELSTRUCT ],
 
-        [ RTLSYM_ARRAYLITERALTX, RTLSYM_TRACEARRAYLITERALTX ],
-        [ RTLSYM_ASSOCARRAYLITERALTX, RTLSYM_TRACEASSOCARRAYLITERALTX ],
+        [ RTLSYM.ARRAYLITERALTX, RTLSYM.TRACEARRAYLITERALTX ],
+        [ RTLSYM.ASSOCARRAYLITERALTX, RTLSYM.TRACEASSOCARRAYLITERALTX ],
 
-        [ RTLSYM_ARRAYCATT, RTLSYM_TRACEARRAYCATT ],
-        [ RTLSYM_ARRAYCATNTX, RTLSYM_TRACEARRAYCATNTX ],
+        [ RTLSYM.ARRAYCATT, RTLSYM.TRACEARRAYCATT ],
+        [ RTLSYM.ARRAYCATNTX, RTLSYM.TRACEARRAYCATNTX ],
 
-        [ RTLSYM_ARRAYAPPENDCD, RTLSYM_TRACEARRAYAPPENDCD ],
-        [ RTLSYM_ARRAYAPPENDWD, RTLSYM_TRACEARRAYAPPENDWD ],
-        [ RTLSYM_ARRAYAPPENDT, RTLSYM_TRACEARRAYAPPENDT ],
-        [ RTLSYM_ARRAYAPPENDCTX, RTLSYM_TRACEARRAYAPPENDCTX ],
+        [ RTLSYM.ARRAYAPPENDCD, RTLSYM.TRACEARRAYAPPENDCD ],
+        [ RTLSYM.ARRAYAPPENDWD, RTLSYM.TRACEARRAYAPPENDWD ],
+        [ RTLSYM.ARRAYAPPENDT, RTLSYM.TRACEARRAYAPPENDT ],
+        [ RTLSYM.ARRAYAPPENDCTX, RTLSYM.TRACEARRAYAPPENDCTX ],
 
-        [ RTLSYM_ARRAYSETLENGTHT, RTLSYM_TRACEARRAYSETLENGTHT ],
-        [ RTLSYM_ARRAYSETLENGTHIT, RTLSYM_TRACEARRAYSETLENGTHIT ],
+        [ RTLSYM.ARRAYSETLENGTHT, RTLSYM.TRACEARRAYSETLENGTHT ],
+        [ RTLSYM.ARRAYSETLENGTHIT, RTLSYM.TRACEARRAYSETLENGTHIT ],
 
-        [ RTLSYM_ALLOCMEMORY, RTLSYM_TRACEALLOCMEMORY ],
+        [ RTLSYM.ALLOCMEMORY, RTLSYM.TRACEALLOCMEMORY ],
     ];
 
     if (irs.params.tracegc && loc.filename)
@@ -364,7 +363,7 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
          * gc, but by a manual reference counting mechanism implementend in druntime.
          * If that is the case, then there is nothing to trace.
          */
-        if (s == getRtlsym(RTLSYM_NEWTHROW))
+        if (s == getRtlsym(RTLSYM.NEWTHROW))
             return;
         foreach (ref m; map)
         {
@@ -683,8 +682,15 @@ extern (C++) class ToElemVisitor : Visitor
         if (se.var.isImportedSymbol())
         {
             assert(se.op == TOK.variable);
-            e = el_var(toImport(se.var));
-            e = el_una(OPind,s.Stype.Tty,e);
+            if (target.os & Target.OS.Posix)
+            {
+                e = el_var(s);
+            }
+            else
+            {
+                e = el_var(toImport(se.var));
+                e = el_una(OPind,s.Stype.Tty,e);
+            }
         }
         else if (ISREF(se.var))
         {
@@ -1067,7 +1073,7 @@ extern (C++) class ToElemVisitor : Visitor
             else
             {
                 Symbol *csym = toSymbol(cd);
-                const rtl = global.params.ehnogc && ne.thrownew ? RTLSYM_NEWTHROW : RTLSYM_NEWCLASS;
+                const rtl = global.params.ehnogc && ne.thrownew ? RTLSYM.NEWTHROW : RTLSYM.NEWCLASS;
                 ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),el_ptr(csym));
                 toTraceGC(irs, ex, ne.loc);
                 ectype = null;
@@ -1174,7 +1180,7 @@ extern (C++) class ToElemVisitor : Visitor
             // call _d_newitemT(ti)
             e = getTypeInfo(ne.loc, ne.newtype, irs);
 
-            int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
+            const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
             ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
             toTraceGC(irs, ex, ne.loc);
 
@@ -1238,7 +1244,7 @@ extern (C++) class ToElemVisitor : Visitor
 
                 // call _d_newT(ti, arg)
                 e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
-                int rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
+                const rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYT : RTLSYM.NEWARRAYIT;
                 e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
             }
@@ -1260,7 +1266,7 @@ extern (C++) class ToElemVisitor : Visitor
                 if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     e = addressElem(e, Type.tsize_t.arrayOf());
                 e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
-                int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
+                const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYMTX : RTLSYM.NEWARRAYMITX;
                 e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
 
@@ -1275,7 +1281,7 @@ extern (C++) class ToElemVisitor : Visitor
             // call _d_newitemT(ti)
             e = getTypeInfo(ne.loc, ne.newtype, irs);
 
-            int rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
+            const rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
             e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
             toTraceGC(irs, e, ne.loc);
 
@@ -1446,7 +1452,7 @@ extern (C++) class ToElemVisitor : Visitor
                 !(cast(TypeClass)t1).sym.isCPPclass())
             {
                 ts = symbol_genauto(Type_toCtype(t1));
-                einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DINVARIANT)), el_var(ts));
+                einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DINVARIANT)), el_var(ts));
             }
             else if (irs.params.useInvariants == CHECKENABLE.on &&
                 t1.ty == Tpointer &&
@@ -1495,18 +1501,18 @@ extern (C++) class ToElemVisitor : Visitor
                     if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                         emsg = addressElem(emsg, Type.tvoid.arrayOf(), false);
 
-                    ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG));
+                    ea = el_var(getRtlsym(ud ? RTLSYM.DUNITTEST_MSG : RTLSYM.DASSERT_MSG));
                     ea = el_bin(OPcall, TYnoreturn, ea, el_params(el_long(TYint, ae.loc.linnum), efilename, emsg, null));
                 }
                 else
                 {
-                    ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT));
+                    ea = el_var(getRtlsym(ud ? RTLSYM.DUNITTEST : RTLSYM.DASSERT));
                     ea = el_bin(OPcall, TYnoreturn, ea, el_param(el_long(TYint, ae.loc.linnum), efilename));
                 }
             }
             else
             {
-                auto eassert = el_var(getRtlsym(ud ? RTLSYM_DUNITTESTP : RTLSYM_DASSERTP));
+                auto eassert = el_var(getRtlsym(ud ? RTLSYM.DUNITTESTP : RTLSYM.DASSERTP));
                 auto efile = toEfilenamePtr(m);
                 auto eline = el_long(TYint, ae.loc.linnum);
                 ea = el_bin(OPcall, TYnoreturn, eassert, el_param(eline, efile));
@@ -1704,7 +1710,7 @@ extern (C++) class ToElemVisitor : Visitor
             if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                 ep = addressElem(ep, Type.tvoid.arrayOf());
             ep = el_param(ep, getTypeInfo(ce.loc, ta, irs));
-            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATNTX)), ep);
+            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCATNTX)), ep);
             toTraceGC(irs, e, ce.loc);
             e = el_combine(earr, e);
         }
@@ -1713,7 +1719,7 @@ extern (C++) class ToElemVisitor : Visitor
             elem *e1 = eval_Darray(ce.e1);
             elem *e2 = eval_Darray(ce.e2);
             elem *ep = el_params(e2, e1, getTypeInfo(ce.loc, ta, irs), null);
-            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATT)), ep);
+            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCATT)), ep);
             toTraceGC(irs, e, ce.loc);
         }
         elem_setLoc(e,ce.loc);
@@ -1909,7 +1915,7 @@ extern (C++) class ToElemVisitor : Visitor
 
             elem *ep = el_params(getTypeInfo(ee.loc, telement.arrayOf(), irs),
                     ea2, ea1, null);
-            int rtlfunc = RTLSYM_ARRAYEQ2;
+            const rtlfunc = RTLSYM.ARRAYEQ2;
             e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
             if (ee.op == TOK.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
@@ -2149,7 +2155,7 @@ extern (C++) class ToElemVisitor : Visitor
                     c1 = el_bin(OPandand, TYint, c1, c2);
 
                     // Construct: (c1 || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, ae.loc, el_copytree(elwr), el_copytree(eupr), el_copytree(enbytesx));
+                    auto ea = buildArraySliceError(irs, ae.loc, el_copytree(elwr), el_copytree(eupr), el_copytree(enbytesx));
                     elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                     einit = el_combine(einit, eb);
                 }
@@ -2246,7 +2252,7 @@ extern (C++) class ToElemVisitor : Visitor
                         }
 
                         // Construct: (c || arrayBoundsError)
-                        echeck = el_bin(OPoror, TYvoid, c, buildArrayBoundsError(irs, ae.loc, null, el_copytree(eleny), el_copytree(elen)));
+                        echeck = el_bin(OPoror, TYvoid, c, buildRangeError(irs, ae.loc));
                     }
                     else
                     {
@@ -2260,7 +2266,7 @@ extern (C++) class ToElemVisitor : Visitor
                      */
                     elem* e = el_bin(OPmemcpy, TYnptr, epto, el_param(epfr, nbytes));
                     //elem* e = el_params(nbytes, epfr, epto, null);
-                    //e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_MEMCPY)),e);
+                    //e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM.MEMCPY)),e);
                     e = el_pair(eto.Ety, el_copytree(elen), e);
 
                     /* Combine: eto, efrom, echeck, e
@@ -2283,7 +2289,7 @@ extern (C++) class ToElemVisitor : Visitor
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(eto, efrom, eti, null);
-                    int rtl = (ae.op == TOK.construct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
+                    const rtl = (ae.op == TOK.construct) ? RTLSYM.ARRAYCTOR : RTLSYM.ARRAYASSIGN;
                     elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
                     return setResult(e);
                 }
@@ -2298,7 +2304,7 @@ extern (C++) class ToElemVisitor : Visitor
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(eto, efrom, esize, null);
-                    elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(RTLSYM_ARRAYCOPY)), ep);
+                    elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(RTLSYM.ARRAYCOPY)), ep);
                     return setResult(e);
                 }
             }
@@ -2340,7 +2346,7 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         // Create a reference to e1.
-        if (e1.Eoper == OPvar)
+        if (e1.Eoper == OPvar || e1.Eoper == OPbit)
             e1x = el_copytree(e1);
         else
         {
@@ -2604,7 +2610,7 @@ extern (C++) class ToElemVisitor : Visitor
                     e2 = addressElem(e2, Type.tvoid.arrayOf());
                 }
                 elem *ep = el_params(e1, e2, eti, null);
-                elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCTOR)), ep);
+                elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCTOR)), ep);
                 return setResult2(e);
             }
             else
@@ -2627,7 +2633,7 @@ extern (C++) class ToElemVisitor : Visitor
                     e2 = addressElem(e2, Type.tvoid.arrayOf());
                 }
                 elem *ep = el_params(etmp, e1, e2, eti, null);
-                int rtl = lvalueElem ? RTLSYM_ARRAYASSIGN_L : RTLSYM_ARRAYASSIGN_R;
+                const rtl = lvalueElem ? RTLSYM.ARRAYASSIGN_L : RTLSYM.ARRAYASSIGN_R;
                 elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
                 return setResult2(e);
             }
@@ -2688,9 +2694,9 @@ extern (C++) class ToElemVisitor : Visitor
                       (tb1n.ty == Tchar || tb1n.ty == Twchar));
 
                 elem *ep = el_params(e2, el_copytree(ev), null);
-                int rtl = (tb1.nextOf().ty == Tchar)
-                        ? RTLSYM_ARRAYAPPENDCD
-                        : RTLSYM_ARRAYAPPENDWD;
+                const rtl = (tb1.nextOf().ty == Tchar)
+                        ? RTLSYM.ARRAYAPPENDCD
+                        : RTLSYM.ARRAYAPPENDWD;
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
                 toTraceGC(irs, e, ce.loc);
                 elem_setLoc(e, ce.loc);
@@ -2713,7 +2719,7 @@ extern (C++) class ToElemVisitor : Visitor
                 else
                     e2 = useOPstrpar(e2);
                 elem *ep = el_params(e2, el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
-                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
+                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYAPPENDT)), ep);
                 toTraceGC(irs, e, ce.loc);
                 break;
             }
@@ -2741,7 +2747,7 @@ extern (C++) class ToElemVisitor : Visitor
                 // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
                 elem *ep = el_param(el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs));
                 ep = el_param(el_long(TYsize_t, 1), ep);
-                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
+                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYAPPENDCTX)), ep);
                 toTraceGC(irs, e, ce.loc);
                 Symbol *stmp = symbol_genauto(Type_toCtype(tb1));
                 e = el_bin(OPeq, TYdarray, el_var(stmp), e);
@@ -3059,6 +3065,12 @@ extern (C++) class ToElemVisitor : Visitor
         if (v.storage_class & (STC.out_ | STC.ref_))
             e = el_una(OPind, TYnptr, e);
         e = el_una(OPind, totym(dve.type), e);
+        if (auto bf = v.isBitFieldDeclaration())
+        {
+            // Insert special bitfield operator
+            auto mos = el_long(TYuint, bf.fieldWidth * 256 + bf.bitOffset);
+            e = el_bin(OPbit, e.Ety, e, mos);
+        }
         if (tybasic(e.Ety) == TYstruct)
         {
             e.ET = Type_toCtype(dve.type);
@@ -3452,13 +3464,13 @@ extern (C++) class ToElemVisitor : Visitor
         //e1.type.print();
         elem *e = toElem(de.e1, irs);
         tb = de.e1.type.toBasetype();
-        int rtl;
+        RTLSYM rtl;
         switch (tb.ty)
         {
             case Tarray:
             {
                 e = addressElem(e, de.e1.type);
-                rtl = RTLSYM_DELARRAYT;
+                rtl = RTLSYM.DELARRAYT;
 
                 /* See if we need to run destructors on the array contents
                  */
@@ -3484,27 +3496,27 @@ extern (C++) class ToElemVisitor : Visitor
                     if (ve.var.isVarDeclaration() &&
                         ve.var.isVarDeclaration().onstack)
                     {
-                        rtl = RTLSYM_CALLFINALIZER;
+                        rtl = RTLSYM.CALLFINALIZER;
                         if (tb.isClassHandle().isInterfaceDeclaration())
-                            rtl = RTLSYM_CALLINTERFACEFINALIZER;
+                            rtl = RTLSYM.CALLINTERFACEFINALIZER;
                         break;
                     }
                 }
                 e = addressElem(e, de.e1.type);
-                rtl = RTLSYM_DELCLASS;
+                rtl = RTLSYM.DELCLASS;
                 if (tb.isClassHandle().isInterfaceDeclaration())
-                    rtl = RTLSYM_DELINTERFACE;
+                    rtl = RTLSYM.DELINTERFACE;
                 break;
 
             case Tpointer:
                 e = addressElem(e, de.e1.type);
-                rtl = RTLSYM_DELMEMORY;
+                rtl = RTLSYM.DELMEMORY;
                 tb = (cast(TypePointer)tb).next.toBasetype();
                 if (auto ts = tb.isTypeStruct())
                 {
                     if (ts.sym.dtor)
                     {
-                        rtl = RTLSYM_DELSTRUCT;
+                        rtl = RTLSYM.DELSTRUCT;
                         elem *et = getTypeInfo(de.e1.loc, tb, irs);
                         e = el_params(et, e, null);
                     }
@@ -3829,9 +3841,9 @@ extern (C++) class ToElemVisitor : Visitor
                  *  - class     => foreign interface (cross cast)
                  *  - interface => base or foreign interface (cross cast)
                  */
-                int rtl = cdfrom.isInterfaceDeclaration()
-                            ? RTLSYM_INTERFACE_CAST
-                            : RTLSYM_DYNAMIC_CAST;
+                const rtl = cdfrom.isInterfaceDeclaration()
+                            ? RTLSYM.INTERFACE_CAST
+                            : RTLSYM.DYNAMIC_CAST;
                 elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
                 e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
             }
@@ -3896,6 +3908,11 @@ extern (C++) class ToElemVisitor : Visitor
             case Tchar:     fty = Tuns8;    break;
             case Twchar:    fty = Tuns16;   break;
             case Tdchar:    fty = Tuns32;   break;
+
+            // noreturn expression will throw/abort and never produce a
+            //  value to cast, hence we discard the cast
+            case Tnoreturn:
+                return Lret(ce, e);
 
             default:
                 break;
@@ -4483,7 +4500,9 @@ extern (C++) class ToElemVisitor : Visitor
                 if (c1)
                 {
                     // Construct: (c1 || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, se.loc, el_copytree(elwr2), el_copytree(eupr2), el_copytree(elen));
+                    // if lowerIsLessThanUpper (e.g. arr[-1..0]), elen is null here
+                    elen = elen ? elen : el_long(TYsize_t, 0);
+                    auto ea = buildArraySliceError(irs, se.loc, el_copytree(elwr2), el_copytree(eupr2), el_copytree(elen));
                     elem *eb = el_bin(OPoror, TYvoid, c1, ea);
 
                     elwr = el_combine(elwr, eb);
@@ -4585,7 +4604,7 @@ extern (C++) class ToElemVisitor : Visitor
                 elem *n = el_same(&e);
 
                 // Construct: ((e || arrayBoundsError), n)
-                auto ea = buildArrayBoundsError(irs, ie.loc, null, null, null); // FIXME
+                auto ea = buildRangeError(irs, ie.loc);
                 e = el_bin(OPoror,TYvoid,e,ea);
                 e = el_bin(OPcomma, TYnptr, e, n);
             }
@@ -4620,7 +4639,7 @@ extern (C++) class ToElemVisitor : Visitor
                     n2x = el_bin(OPlt, TYint, n2x, elength);
 
                     // Construct: (n2x || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, ie.loc, null, el_copytree(n2), el_copytree(elength));
+                    auto ea = buildArrayIndexError(irs, ie.loc, el_copytree(n2), el_copytree(elength));
                     eb = el_bin(OPoror,TYvoid,n2x,ea);
                 }
             }
@@ -4699,7 +4718,7 @@ extern (C++) class ToElemVisitor : Visitor
 
             // call _d_arrayliteralTX(ti, dim)
             e = el_bin(OPcall, TYnptr,
-                el_var(getRtlsym(RTLSYM_ARRAYLITERALTX)),
+                el_var(getRtlsym(RTLSYM.ARRAYLITERALTX)),
                 el_param(el_long(TYsize_t, dim), getTypeInfo(ale.loc, ale.type, irs)));
             toTraceGC(irs, e, ale.loc);
 
@@ -4982,7 +5001,7 @@ extern (C++) class ToElemVisitor : Visitor
                                 null);
 
             // call _d_assocarrayliteralTX(ti, keys, values)
-            e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_ASSOCARRAYLITERALTX)),e);
+            e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM.ASSOCARRAYLITERALTX)),e);
             toTraceGC(irs, e, aale.loc);
             if (t != ta)
                 e = addressElem(e, ta);
@@ -5095,6 +5114,13 @@ elem *callfunc(const ref Loc loc,
                                            // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
     elem* ep = null;
     const op = fd ? intrinsic_op(fd) : NotIntrinsic;
+
+    // Check for noreturn expression pretending to yield function/delegate pointers
+    if (tybasic(ec.Ety) == TYnoreturn)
+    {
+        // Discard unreachable argument evaluation + function call
+        return ec;
+    }
     if (arguments && arguments.dim)
     {
         if (op == OPvector)
@@ -5116,6 +5142,8 @@ elem *callfunc(const ref Loc loc,
                   ? elems_array.ptr
                   : cast(elem**)Mem.check(malloc(arguments.dim * (elem*).sizeof));
         elem*[] elems = pe[0 .. n];
+        scope (exit) if (elems.ptr != elems_array.ptr)
+            free(elems.ptr);
 
         /* Fill elems[] with arguments converted to elems
          */
@@ -5208,8 +5236,19 @@ elem *callfunc(const ref Loc loc,
             }
 
             elems[i] = ea;
+
+            // Passing an expression of noreturn, meaning that the argument
+            // evaluation will throw / abort / loop indefinetly. Hence skip the
+            // call and only evaluate up to the current argument
+            if (tybasic(ea.Ety) == TYnoreturn)
+            {
+                return el_combines(cast(void**) elems.ptr, cast(int) i + 1);
+            }
+
         }
-        if (!left_to_right)
+        if (!left_to_right &&
+            !irs.m.isCFile) // C11 leaves evaluation order implementation-defined, but
+                            // try to match evaluation order of other C compilers
         {
             eside = fixArgumentEvaluationOrder(elems);
         }
@@ -5223,9 +5262,6 @@ elem *callfunc(const ref Loc loc,
             reverse(elems);
 
         ep = el_params(cast(void**)elems.ptr, cast(int)n);
-
-        if (elems.ptr != elems_array.ptr)
-            free(elems.ptr);
     }
 
     objc.setupMethodSelector(fd, &esel);
@@ -5404,18 +5440,8 @@ elem *callfunc(const ref Loc loc,
         }
         else if (op == OPind)
             e = el_una(op,mTYvolatile | tyret,ep);
-        else if (op == OPva_start && target.is64bit)
-        {
-            // (OPparam &va &arg)
-            // call as (OPva_start &va)
-            ep.Eoper = cast(ubyte)op;
-            ep.Ety = tyret;
-            e = ep;
-
-            elem *earg = e.EV.E2;
-            e.EV.E2 = null;
-            e = el_combine(earg, e);
-        }
+        else if (op == OPva_start)
+            e = constructVa_start(ep);
         else if (op == OPtoPrec)
         {
             static int X(int fty, int tty) { return fty * TMAX + tty; }
@@ -5458,25 +5484,20 @@ elem *callfunc(const ref Loc loc,
         else
             e = el_una(op,tyret,ep);
     }
+    else if (irs.Cfile && (e = builtinC(fd, ep)) !is null)
+    {
+        // handled magic C builtins
+        el_free(ec);
+    }
     else
     {
-        /* Do not do "no side effect" calls if a hidden parameter is passed,
-         * as the return value is stored through the hidden parameter, which
-         * is a side effect.
-         */
-        //printf("1: fd = %p prity = %d, nothrow = %d, retmethod = %d, use-assert = %d\n",
-        //       fd, (fd ? fd.isPure() : tf.purity), tf.isnothrow, retmethod, irs.params.useAssert);
-        //printf("\tfd = %s, tf = %s\n", fd.toChars(), tf.toChars());
-        /* assert() has 'implicit side effect' so disable this optimization.
-         */
-        int ns = ((fd ? callSideEffectLevel(fd)
-                      : callSideEffectLevel(t)) == 2 &&
-                  retmethod != RET.stack &&
-                  irs.params.useAssert == CHECKENABLE.off && irs.params.optimize);
+        // `OPcallns` used to be passed here for certain pure functions,
+        // but optimizations based on pure have to be retought, see:
+        // http://issues.dlang.org/show_bug.cgi?id=22277
         if (ep)
-            e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
+            e = el_bin(OPcall, tyret, ec, ep);
         else
-            e = el_una(ns ? OPucallns : OPucall, tyret, ec);
+            e = el_una(OPucall, tyret, ec);
 
         if (tf.parameterList.varargs != VarArg.none)
             e.Eflags |= EFLAGS_variadic;
@@ -5786,11 +5807,8 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
         uint fsize = cast(uint)tfrom.nextOf().size();
         uint tsize = cast(uint)tto.nextOf().size();
 
-        if ((dim * fsize) % tsize != 0)
-        {
-            // have to change to Internal Compiler Error?
-            error(loc, "cannot cast %s to %s since sizes don't line up", tfrom.toChars(), tto.toChars());
-        }
+        // Should have been caught by Expression::castTo
+        assert(tsize != 0 && (dim * fsize) % tsize == 0);
         dim = (dim * fsize) / tsize;
     }
     elem *elen = el_long(TYsize_t, dim);
@@ -5859,30 +5877,30 @@ elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, IR
     Type tb2 = tb;
 
 Lagain:
-    int r;
+    RTLSYM r;
     switch (tb2.ty)
     {
         case Tfloat80:
         case Timaginary80:
-            r = RTLSYM_MEMSET80;
+            r = RTLSYM.MEMSET80;
             break;
         case Tcomplex80:
-            r = RTLSYM_MEMSET160;
+            r = RTLSYM.MEMSET160;
             break;
         case Tcomplex64:
-            r = RTLSYM_MEMSET128;
+            r = RTLSYM.MEMSET128;
             break;
         case Tfloat32:
         case Timaginary32:
             if (!target.is64bit)
                 goto default;          // legacy binary compatibility
-            r = RTLSYM_MEMSETFLOAT;
+            r = RTLSYM.MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
             if (!target.is64bit)
                 goto default;          // legacy binary compatibility
-            r = RTLSYM_MEMSETDOUBLE;
+            r = RTLSYM.MEMSETDOUBLE;
             break;
 
         case Tstruct:
@@ -5901,18 +5919,18 @@ Lagain:
         }
 
         case Tvector:
-            r = RTLSYM_MEMSETSIMD;
+            r = RTLSYM.MEMSETSIMD;
             break;
 
         default:
             switch (sz)
             {
-                case 1:      r = RTLSYM_MEMSET8;    break;
-                case 2:      r = RTLSYM_MEMSET16;   break;
-                case 4:      r = RTLSYM_MEMSET32;   break;
-                case 8:      r = RTLSYM_MEMSET64;   break;
-                case 16:     r = target.is64bit ? RTLSYM_MEMSET128ii : RTLSYM_MEMSET128; break;
-                default:     r = RTLSYM_MEMSETN;    break;
+                case 1:      r = RTLSYM.MEMSET8;    break;
+                case 2:      r = RTLSYM.MEMSET16;   break;
+                case 4:      r = RTLSYM.MEMSET32;   break;
+                case 8:      r = RTLSYM.MEMSET64;   break;
+                case 16:     r = target.is64bit ? RTLSYM.MEMSET128ii : RTLSYM.MEMSET128; break;
+                default:     r = RTLSYM.MEMSETN;    break;
             }
 
             /* Determine if we need to do postblit
@@ -5924,7 +5942,7 @@ Lagain:
                     /* Need to do postblit/destructor.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
-                    r = (op == TOK.construct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
+                    r = (op == TOK.construct) ? RTLSYM.ARRAYSETCTOR : RTLSYM.ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
                     elem *eti = getTypeInfo(exp.loc, tb.unSharedOf().mutableOf(), irs);
@@ -5934,7 +5952,7 @@ Lagain:
                 }
             }
 
-            if (target.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM_MEMSETN)
+            if (target.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM.MEMSETN)
             {
                 /* If this struct is in-memory only, i.e. cannot necessarily be passed as
                  * a gp register parameter.
@@ -5949,17 +5967,17 @@ Lagain:
                     if (!t1 && !t2)
                     {
                         if (irs.target.os & Target.OS.Posix || sz > 8)
-                            r = RTLSYM_MEMSETN;
+                            r = RTLSYM.MEMSETN;
                     }
                     else if (irs.target.os & Target.OS.Posix &&
-                             r == RTLSYM_MEMSET128ii &&
+                             r == RTLSYM.MEMSET128ii &&
                              tyfloating(t1.Tty) &&
                              tyfloating(t2.Tty))
-                        r = RTLSYM_MEMSET128;
+                        r = RTLSYM.MEMSET128;
                 }
             }
 
-            if (r == RTLSYM_MEMSETN)
+            if (r == RTLSYM.MEMSETN)
             {
                 // void *_memsetn(void *p, void *value, int dim, int sizelem)
                 evalue = addressElem(evalue, tb);
@@ -5973,7 +5991,7 @@ Lagain:
     if (sz > 1 && sz <= 8 &&
         evalue.Eoper == OPconst && el_allbits(evalue, 0))
     {
-        r = RTLSYM_MEMSET8;
+        r = RTLSYM.MEMSET8;
         edim = el_bin(OPmul, TYsize_t, edim, el_long(TYsize_t, sz));
     }
 
@@ -5982,22 +6000,22 @@ Lagain:
         evalue = addressElem(evalue, tb);
     }
     // cast to the proper parameter type
-    else if (r != RTLSYM_MEMSETN)
+    else if (r != RTLSYM.MEMSETN)
     {
         tym_t tym;
         switch (r)
         {
-            case RTLSYM_MEMSET8:      tym = TYchar;     break;
-            case RTLSYM_MEMSET16:     tym = TYshort;    break;
-            case RTLSYM_MEMSET32:     tym = TYlong;     break;
-            case RTLSYM_MEMSET64:     tym = TYllong;    break;
-            case RTLSYM_MEMSET80:     tym = TYldouble;  break;
-            case RTLSYM_MEMSET160:    tym = TYcldouble; break;
-            case RTLSYM_MEMSET128:    tym = TYcdouble;  break;
-            case RTLSYM_MEMSET128ii:  tym = TYucent;    break;
-            case RTLSYM_MEMSETFLOAT:  tym = TYfloat;    break;
-            case RTLSYM_MEMSETDOUBLE: tym = TYdouble;   break;
-            case RTLSYM_MEMSETSIMD:   tym = TYfloat4;   break;
+            case RTLSYM.MEMSET8:      tym = TYchar;     break;
+            case RTLSYM.MEMSET16:     tym = TYshort;    break;
+            case RTLSYM.MEMSET32:     tym = TYlong;     break;
+            case RTLSYM.MEMSET64:     tym = TYllong;    break;
+            case RTLSYM.MEMSET80:     tym = TYldouble;  break;
+            case RTLSYM.MEMSET160:    tym = TYcldouble; break;
+            case RTLSYM.MEMSET128:    tym = TYcdouble;  break;
+            case RTLSYM.MEMSET128ii:  tym = TYucent;    break;
+            case RTLSYM.MEMSETFLOAT:  tym = TYfloat;    break;
+            case RTLSYM.MEMSETDOUBLE: tym = TYdouble;   break;
+            case RTLSYM.MEMSETSIMD:   tym = TYfloat4;   break;
             default:
                 assert(0);
         }
@@ -6009,7 +6027,7 @@ Lagain:
     evalue = useOPstrpar(evalue);
 
     // Be careful about parameter side effect ordering
-    if (r == RTLSYM_MEMSET8)
+    if (r == RTLSYM.MEMSET8)
     {
         elem *e = el_param(edim, evalue);
         return el_bin(OPmemset,TYnptr,eptr,e);
@@ -6223,6 +6241,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
 
     // CTFE may fill the hidden pointer by NullExp.
     {
+        VarDeclaration vbf;
         foreach (i, el; *sle.elements)
         {
             if (!el)
@@ -6266,6 +6285,27 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
                 e1 = el_una(OPind, ty, e1);
                 if (tybasic(ty) == TYstruct)
                     e1.ET = Type_toCtype(v.type);
+                if (auto bf = v.isBitFieldDeclaration())
+                {
+                    if (!vbf || vbf.offset + vbf.type.size() <= v.offset)
+                    {
+                        /* Initialize entire location the bitfield is in
+                         * ep = (ep & ((1 << bf.fieldWidth) - 1)) << bf.bitOffset
+                         */
+                        tym_t e1ty = e1.Ety;
+                        auto ex = el_bin(OPand, e1ty, ep, el_long(e1ty, (1L << bf.fieldWidth) - 1));
+                        ep = el_bin(OPshl, e1ty, ex, el_long(e1ty, bf.bitOffset));
+                        vbf = v;
+                    }
+                    else
+                    {
+                        // Insert special bitfield operator
+                        auto mos = el_long(TYuint, bf.fieldWidth * 256 + bf.bitOffset);
+                        e1 = el_bin(OPbit, e1.Ety, e1, mos);
+                    }
+                }
+                else
+                    vbf = null;
                 e1 = elAssign(e1, ep, v.type, e1.ET);
             }
             e = el_combine(e, e1);
@@ -6430,28 +6470,83 @@ elem *filelinefunction(IRState *irs, const ref Loc loc)
 }
 
 /******************************************************
- * Construct elem to run when an array bounds check fails.
+ * Construct elem to run when an array bounds check fails. (Without additional context)
  * Params:
  *      irs = to get function from
  *      loc = to get file/line from
- *      lwr = lower bound passed, if slice (array[lwr .. upr]). null otherwise.
- *      upr = upper bound passed if slice (array[lwr .. upr]), index if not a slice (array[upr])
+ * Returns:
+ *      elem generated
+ */
+elem* buildRangeError(IRState *irs, const ref Loc loc)
+{
+    final switch (irs.params.checkAction)
+    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array overflow");
+    case CHECKACTION.halt:
+        return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DARRAYP)), el_params(el_long(TYint, loc.linnum), efile, null));
+    }
+}
+
+/******************************************************
+ * Construct elem to run when an array slice is created that is out of bounds
+ * Params:
+ *      irs = to get function from
+ *      loc = to get file/line from
+ *      lower = lower bound in slice
+ *      upper = upper bound in slice
  *      elength = length of array
  * Returns:
  *      elem generated
  */
-elem *buildArrayBoundsError(IRState *irs, const ref Loc loc, elem* lwr, elem* upr, elem* elength)
-{
-    if (irs.params.checkAction == CHECKACTION.C)
+elem* buildArraySliceError(IRState *irs, const ref Loc loc, elem* lower, elem* upper, elem* length) {
+    final switch (irs.params.checkAction)
     {
-        return callCAssert(irs, loc, null, null, "array overflow");
-    }
-    if (irs.params.checkAction == CHECKACTION.halt)
-    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array slice out of bounds");
+    case CHECKACTION.halt:
         return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        assert(upper);
+        assert(lower);
+        assert(length);
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DARRAY_SLICEP)), el_params(length, upper, lower, el_long(TYint, loc.linnum), efile, null));
     }
-    auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
+}
 
+/******************************************************
+ * Construct elem to run when an out of bounds array index is accessed
+ * Params:
+ *      irs = to get function from
+ *      loc = to get file/line from
+ *      index = index in the array
+ *      elength = length of array
+ * Returns:
+ *      elem generated
+ */
+elem* buildArrayIndexError(IRState *irs, const ref Loc loc, elem* index, elem* length) {
+    final switch (irs.params.checkAction)
+    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array index out of bounds");
+    case CHECKACTION.halt:
+        return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        assert(length);
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DARRAY_INDEXP)), el_params(length, index, el_long(TYint, loc.linnum), efile, null));
+    }
+}
+
+/// Returns: elem representing a C-string (char*) to the filename
+elem* locToFileElem(const IRState *irs, const ref Loc loc) {
     elem* efile;
     if (loc.filename)
     {
@@ -6461,20 +6556,7 @@ elem *buildArrayBoundsError(IRState *irs, const ref Loc loc, elem* lwr, elem* up
     }
     else
         efile = toEfilenamePtr(cast(Module)irs.blx._module);
-    auto eline = el_long(TYint, loc.linnum);
-    if(upr is null)
-    {
-        upr = el_long(TYsize_t, 0);
-    }
-    if(lwr is null)
-    {
-        lwr = el_long(TYsize_t, 0);
-    }
-    if(elength is null)
-    {
-        elength = el_long(TYsize_t, 0);
-    }
-    return el_bin(OPcall, TYvoid, eassert, el_params(elength, upr, lwr, eline, efile, null));
+    return efile;
 }
 
 /****************************************
@@ -6555,7 +6637,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     {
         // __assert_rtn(func, file, line, msg);
         elem* efunc = getFuncName();
-        auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_RTN));
+        auto eassert = el_var(getRtlsym(RTLSYM.C__ASSERT_RTN));
         ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, eline, efilename, efunc, null));
     }
     else
@@ -6564,13 +6646,13 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
         {
             // __assert_fail(exp, file, line, func);
             elem* efunc = getFuncName();
-            auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_FAIL));
+            auto eassert = el_var(getRtlsym(RTLSYM.C__ASSERT_FAIL));
             ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, efilename, eline, efunc, null));
         }
         else
         {
             // [_]_assert(msg, file, line);
-            const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
+            const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM.C_ASSERT : RTLSYM.C__ASSERT;
             auto eassert = el_var(getRtlsym(rtlsym));
             ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
         }
@@ -6625,4 +6707,63 @@ elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis
     *eside = el_combine(eeq1, *eside);
 
     return ethis2;
+}
+
+/*********************************************
+ * Handle magic C __builtin functions.
+ * Params:
+ *      fd = magic function declaration
+ *      e  = function parameters
+ * Returns:
+ *      if not null, then the rewrite of the magic function call
+ */
+private
+elem* builtinC(FuncDeclaration fd, elem* e)
+{
+    if (!fd)
+        return null;
+    const id = fd.ident;
+    if (id == Id.builtin_va_start)
+    {
+        return constructVa_start(e);
+    }
+    else if (id == Id.builtin_va_end)
+    {
+        assert(e.Eoper != OPparam);       // one parameter only
+        return el_una(OPbool, TYbool, e); // evaluate ep for side effects only
+    }
+    return null;
+}
+
+/*******************************
+ * Construct OPva_start node
+ * Params:
+ *      e = function parameters
+ * Returns:
+ *      OPva_start node
+ */
+private
+elem* constructVa_start(elem* e)
+{
+    assert(e.Eoper == OPparam);
+
+    e.Eoper = OPva_start;
+    e.Ety = TYvoid;
+    if (target.is64bit)
+    {
+        // (OPparam &va &arg)
+        // call as (OPva_start &va)
+        auto earg = e.EV.E2;
+        e.EV.E2 = null;
+        return el_combine(earg, e);
+    }
+    else // 32 bit
+    {
+        // (OPparam &arg &va)  note arguments are swapped from 64 bit path
+        // call as (OPva_start &va)
+        auto earg = e.EV.E1;
+        e.EV.E1 = e.EV.E2;
+        e.EV.E2 = null;
+        return el_combine(earg, e);
+    }
 }

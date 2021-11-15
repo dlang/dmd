@@ -139,6 +139,7 @@ class OverDeclaration;
 class VarDeclaration;
 class SymbolDeclaration;
 class ThisDeclaration;
+class BitFieldDeclaration;
 
 class TypeInfoDeclaration;
 class TypeInfoStructDeclaration;
@@ -292,6 +293,7 @@ class PrettyFuncInitExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
+class GenericExp;
 
 class TemplateParameter;
 class TemplateTypeParameter;
@@ -382,6 +384,7 @@ public:
     virtual void visit(ClassDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(InterfaceDeclaration *s) { visit((ClassDeclaration *)s); }
     virtual void visit(TemplateMixin *s) { visit((TemplateInstance *)s); }
+    virtual void visit(BitFieldDeclaration *s) { visit((VarDeclaration *)s); }
 
     // Statements
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
@@ -488,6 +491,7 @@ public:
     virtual void visit(SymbolExp *e) { visit((Expression *)e); }
     virtual void visit(TupleExp *e) { visit((Expression *)e); }
     virtual void visit(ThisExp *e) { visit((Expression *)e); }
+    virtual void visit(GenericExp *e) { visit((Expression *)e); }
 
     // Miscellaneous
     virtual void visit(VarExp *e) { visit((SymbolExp *)e); }

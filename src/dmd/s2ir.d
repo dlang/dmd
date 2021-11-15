@@ -889,7 +889,7 @@ private extern (C++) class S2irVisitor : Visitor
 
         incUsage(irs, s.loc);
         elem *e = toElemDtor(s.exp, irs);
-        const int rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM_THROWDWARF : RTLSYM_THROWC;
+        const rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM.THROWDWARF : RTLSYM.THROWC;
         e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtlthrow)),e);
         block_appendexp(blx.curblock, e);
         block_next(blx, BCexit, null);          // throw never returns
@@ -991,7 +991,7 @@ private extern (C++) class S2irVisitor : Visitor
             else
             {
                 //  jcatchvar = __dmd_catch_begin(__exception_object);
-                elem *ebegin = el_var(getRtlsym(RTLSYM_BEGIN_CATCH));
+                elem *ebegin = el_var(getRtlsym(RTLSYM.BEGIN_CATCH));
                 elem *e = el_bin(OPcall, TYnptr, ebegin, el_var(seo));
                 elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock.jcatchvar), e);
             }
@@ -1035,7 +1035,7 @@ private extern (C++) class S2irVisitor : Visitor
                     if (i == 0)
                     {
                         // rewrite ebegin to use __cxa_begin_catch
-                        Symbol *s2 = getRtlsym(RTLSYM_CXA_BEGIN_CATCH);
+                        Symbol *s2 = getRtlsym(RTLSYM.CXA_BEGIN_CATCH);
                         ebegin.EV.Vsym = s2;
                     }
                 }
@@ -1275,7 +1275,7 @@ private extern (C++) class S2irVisitor : Visitor
             /* Add code to BC_ret block:
              *  (!_flag && _Unwind_Resume(exception_object));
              */
-            elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_UNWIND_RESUME)), el_var(seo));
+            elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.UNWIND_RESUME)), el_var(seo));
             eu = el_bin(OPandand, TYvoid, el_una(OPnot, TYbool, el_var(sflag)), eu);
             assert(!retblock.Belem);
             retblock.Belem = eu;

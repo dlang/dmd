@@ -134,11 +134,7 @@ CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
 
 if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
     cd $DMD_DIR
-    # CodeCov gets confused by lst files which it can't match
-    rm -rf test/runnable/extra-files test/*.lst
-    download "https://codecov.io/bash" "codecov.sh"
-    bash ./codecov.sh -p . -Z
-    rm codecov.sh
+    OS_NAME=windows source ci/codecov.sh
 
     # Skip druntime & phobos tests
     exit 0

@@ -3,16 +3,10 @@
 
 set -euo pipefail
 
-if [ "${RESULTS_DIR}" == "" ]; then
-    echo Note: this program is normally called through the Makefile, it
-    echo is not meant to be called directly by the user.
-    exit 1
-fi
-
 script_file="$1"
 shift
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 # export common variables
 source "$DIR/exported_vars.sh"

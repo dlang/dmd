@@ -1,4 +1,6 @@
 /**
+ * Types for the back end
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -64,6 +66,9 @@ void type_incCount(type* t);
 void type_setIdent(type* t, char* ident);
 
 void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
+void symbol_struct_addBitField(Symbol* s, const(char)* name, type* t, uint offset, uint fieldWidth, uint bitOffset);
+void symbol_struct_hasBitFields(Symbol* s);
+void symbol_struct_addBaseClass(Symbol* s, type* t, uint offset);
 
 // Return true if type is a struct, class or union
 bool type_struct(const type* t) { return tybasic(t.Tty) == TYstruct; }

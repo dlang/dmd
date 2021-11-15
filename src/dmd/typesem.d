@@ -44,6 +44,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.imphint;
+import dmd.importc;
 import dmd.init;
 import dmd.initsem;
 import dmd.visitor;
@@ -53,7 +54,7 @@ import dmd.opover;
 import dmd.parse;
 import dmd.root.ctfloat;
 import dmd.root.rmem;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.root.stringtable;
@@ -1238,7 +1239,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             tf.next = tf.next.typeSemantic(loc, sc);
             sc = sc.pop();
             errors |= tf.checkRetType(loc);
-            if (tf.next.isscope() && !(sc.flags & SCOPE.ctor))
+            if (tf.next.isscope() && !tf.isctor)
             {
                 .error(loc, "functions cannot return `scope %s`", tf.next.toChars());
                 errors = true;
@@ -1334,6 +1335,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                         continue;
                 }
 
+                fparam.type = fparam.type.cAdjustParamType(sc); // adjust C array and function parameter types
+
                 Type t = fparam.type.toBasetype();
 
                 /* If fparam after semantic() turns out to be a tuple, the number of parameters may
@@ -1378,6 +1381,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                                 stc, narg.type, narg.ident, narg.defaultArg, narg.userAttribDecl);
                         }
                         fparam.type = new TypeTuple(newparams);
+                        fparam.type = fparam.type.typeSemantic(loc, argsc);
                     }
                     fparam.storageClass = STC.parameter;
 
@@ -1482,10 +1486,15 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                  */
                 /* Constructors are treated as if they are being returned through the hidden parameter,
                  * which is by ref, and the ref there is ignored.
-                 * TODO: check buildScopeRef() inconsistent behavior on SCOPE.ctor
                  */
-                const returnByRef = tf.isref && !(sc.flags & SCOPE.ctor);
-                const sr = buildScopeRef(returnByRef, fparam.storageClass);
+                const returnByRef = tf.isref && !tf.isctor;
+                if (!returnByRef && isRefReturnScope(fparam.storageClass))
+                {
+                    /* if `ref return scope`, evaluate to `ref` `return scope`
+                     */
+                    fparam.storageClass |= STC.returnScope;
+                }
+                const sr = buildScopeRef(fparam.storageClass);
                 switch (sr)
                 {
                     case ScopeRef.Scope:
@@ -1498,11 +1507,22 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     case ScopeRef.ReturnScope:
                     case ScopeRef.Ref_ReturnScope:
                         if (!fparam.type.hasPointers())
-                            fparam.storageClass &= ~(STC.return_ | STC.scope_);
+                            fparam.storageClass &= ~(STC.return_ | STC.scope_ | STC.returnScope);
                         break;
 
                     default:
                         break;
+                }
+
+                /* now set STC.returnScope based only on tf.isref. This is inconsistent, as mentioned above,
+                 * but necessary for compatibility for now.
+                 */
+                fparam.storageClass &= ~STC.returnScope;
+                if (!tf.isref && isRefReturnScope(fparam.storageClass))
+                {
+                    /* if `ref return scope`, evaluate to `ref` `return scope`
+                     */
+                    fparam.storageClass |= STC.returnScope;
                 }
 
                 // Remove redundant storage classes for type, they are already applied
@@ -1611,7 +1631,8 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             errors = true;
         }
 
-        if (tf.parameterList.varargs == VarArg.variadic && tf.linkage != LINK.d && tf.parameterList.length == 0)
+        if (tf.parameterList.varargs == VarArg.variadic && tf.linkage != LINK.d && tf.parameterList.length == 0 &&
+            !(sc.flags & SCOPE.Cfile))
         {
             .error(loc, "variadic functions with non-D linkage must have at least one parameter");
             errors = true;
@@ -1734,10 +1755,10 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             {
                 // if there was an error evaluating the symbol, it might actually
                 // be a type. Avoid misleading error messages.
-               .error(loc, "`%s` had previous errors", mtype.toChars());
+                .error(loc, "`%s` had previous errors", mtype.toChars());
             }
             else
-               .error(loc, "`%s` is used as a type", mtype.toChars());
+                .error(loc, "`%s` is used as a type", mtype.toChars());
             return error();
         }
         return t;
@@ -2069,7 +2090,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
          */
         Dsymbol scopesym;
         auto s = sc.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors | TagNameSpace);
-        if (!s)
+        if (!s || s.isModule())
         {
             // no pre-existing declaration, so declare it
             if (mtype.tok == TOK.enum_ && !mtype.members)
@@ -2117,6 +2138,15 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                      * struct S { int a; } *s;
                      */
                     sd.members = mtype.members;
+                    if (sd.semanticRun == PASS.semanticdone)
+                    {
+                        /* The first semantic pass marked `sd` as an opaque struct.
+                         * Re-run semantic so that all newly assigned members are
+                         * picked up and added to the symtab.
+                         */
+                        sd.semanticRun = PASS.semantic;
+                        sd.dsymbolSemantic(sc);
+                    }
                 }
                 else
                 {
@@ -2248,7 +2278,7 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
  * Returns:
  *      the type that was merged
  */
-Type merge(Type type)
+extern (C++) Type merge(Type type)
 {
     switch (type.ty)
     {
@@ -2345,7 +2375,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
         {
             const explicitAlignment = mt.alignment();
             const naturalAlignment = mt.alignsize();
-            const actualAlignment = (explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment);
+            const actualAlignment = (explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get());
             e = new IntegerExp(loc, actualAlignment, Type.tsize_t);
         }
         else if (ident == Id._init)
@@ -2983,6 +3013,16 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         {
             error(loc, "variable `__ctfe` cannot be read at compile time");
             return returnError();
+        }
+        if (mt.ident == Id.builtin_va_list) // gcc has __builtin_va_xxxx for stdarg.h
+        {
+            /* Since we don't support __builtin_va_start, -arg, -end, we don't
+             * have to actually care what -list is. A void* will do.
+             * If we ever do care, import core.stdc.stdarg and pull
+             * the definition out of that, similarly to how std.math is handled for PowExp
+             */
+            pt = Type.tvoidptr;
+            return;
         }
 
         Dsymbol scopesym;
@@ -3718,10 +3758,18 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     }
 
     /***************************************
-     * Figures out what to do with an undefined member reference
-     * for classes and structs.
-     *
-     * If flag & 1, don't report "not a property" error and just return NULL.
+     * `ident` was not found as a member of `mt`.
+     * Attempt to use overloaded opDot(), overloaded opDispatch(), or `alias this`.
+     * If that fails, forward to visitType().
+     * Params:
+     *  mt = class or struct
+     *  sc = context
+     *  e = `this` for `ident`
+     *  ident = name of member
+     *  flag = flag & 1, don't report "not a property" error and just return NULL.
+     *         flag & DotExpFlag.noAliasThis, don't do 'alias this' resolution.
+     * Returns:
+     *  resolved expression if found, otherwise null
      */
     Expression noMember(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
     {
@@ -3812,7 +3860,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             /* See if we should forward to the alias this.
              */
-            auto alias_e = resolveAliasThis(sc, e, gagError);
+            auto alias_e = flag & DotExpFlag.noAliasThis ? null
+                                                         : resolveAliasThis(sc, e, gagError);
             if (alias_e && alias_e != e)
             {
                 /* Rewrite e.ident as:
@@ -4595,7 +4644,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
  * Returns:
  *  The initialization expression for the type.
  */
-Expression defaultInit(Type mt, const ref Loc loc)
+extern (C++) Expression defaultInit(Type mt, const ref Loc loc)
 {
     Expression visitBasic(TypeBasic mt)
     {
@@ -4728,6 +4777,7 @@ Expression defaultInit(Type mt, const ref Loc loc)
         }
         auto cond = IntegerExp.createBool(false);
         auto msg = new StringExp(loc, "Accessed expression of type `noreturn`");
+        msg.type = Type.tstring;
         auto ae = new AssertExp(loc, cond, msg);
         ae.type = mt;
         return ae;
@@ -4877,110 +4927,4 @@ private Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identif
         }
     }
     return ed.errors ? errorReturn() : pvalToResult(*pval, loc);
-}
-
-/**
- * Returns whether `bc` implements `id`, including indirectly (`bc` implements an interfaces
- * that inherits from `id`)
- *
- * Params:
- *    id = the interface
- *    bc = the base class
- *    poffset = out parameter, offset of the interface in an object
- *
- * Returns:
- *    true if the `bc` implements `id`, false otherwise
- **/
-private bool baseClassImplementsInterface(InterfaceDeclaration id, BaseClass* bc, int* poffset)
-{
-    //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", toChars(), bc.sym.toChars());
-    for (size_t j = 0; j < bc.baseInterfaces.length; j++)
-    {
-        BaseClass* b = &bc.baseInterfaces[j];
-        //printf("\tY base %s\n", b.sym.toChars());
-        if (id == b.sym)
-        {
-            //printf("\tfound at offset %d\n", b.offset);
-            if (poffset)
-            {
-                *poffset = b.offset;
-            }
-            return true;
-        }
-        if (baseClassImplementsInterface(id, b, poffset))
-        {
-            return true;
-        }
-    }
-
-    if (poffset)
-        *poffset = 0;
-    return false;
-}
-
-/*******************************************
- * Determine if `derived` is a base class of cd.
- * Or, if `derived` is an interface, is it implemented by `cd`
- * Params:
- *      derived = Potentially derived ClassDeclaration
- *      cd = Potential base class
- *      poffset = out parameter, offset to start of class. OFFSET_RUNTIME  must determine offset at runtime
- * Returns:
- *      false   not a base
- *      true    is a base
- */
-extern(C++) bool isBaseOf(ClassDeclaration derived, ClassDeclaration cd, int* poffset)
-{
-    if (auto id = derived.isInterfaceDeclaration())
-    {
-        //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
-        assert(!id.baseClass);
-        foreach (b; cd.interfaces)
-        {
-            //printf("\tX base %s\n", b.sym.toChars());
-            if (id == b.sym)
-            {
-                //printf("\tfound at offset %d\n", b.offset);
-                if (poffset)
-                {
-                    // don't return incorrect offsets
-                    // https://issues.dlang.org/show_bug.cgi?id=16980
-                    *poffset = cd.sizeok == Sizeok.done ? b.offset : ClassDeclaration.OFFSET_FWDREF;
-                }
-                // printf("\tfound at offset %d\n", b.offset);
-                return true;
-            }
-            if (baseClassImplementsInterface(id, b, poffset))
-            return true;
-        }
-        if (cd.baseClass && id.isBaseOf(cd.baseClass, poffset))
-            return true;
-
-        if (poffset)
-            *poffset = 0;
-        return false;
-    }
-
-    //normal Class decl
-    //printf("ClassDeclaration.isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd.toChars());
-    if (poffset)
-        *poffset = 0;
-    while (cd)
-    {
-        /* cd.baseClass might not be set if cd is forward referenced.
-         */
-        if (!cd.baseClass && cd.semanticRun < PASS.semanticdone && !cd.isInterfaceDeclaration())
-        {
-            cd.dsymbolSemantic(null);
-            if (!cd.baseClass && cd.semanticRun < PASS.semanticdone)
-                cd.error("base class is forward referenced by `%s`", derived.toChars());
-        }
-
-        if (derived == cd.baseClass)
-            return true;
-
-        cd = cd.baseClass;
-    }
-    return false;
-
 }

@@ -20,6 +20,7 @@ import dmd.aggregate;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
@@ -367,7 +368,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         baseok = Baseok.none;
     }
 
-    static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
+    static ClassDeclaration create(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
         return new ClassDeclaration(loc, id, baseclasses, members, inObject);
     }
@@ -418,7 +419,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      * Determine if 'this' is a base class of cd.
      * This is used to detect circular inheritance only.
      */
-    final bool isBaseOf2(ClassDeclaration cd)
+    final bool isBaseOf2(ClassDeclaration cd) pure nothrow @nogc
     {
         if (!cd)
             return false;
@@ -435,6 +436,23 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     enum OFFSET_RUNTIME = 0x76543210;
     enum OFFSET_FWDREF = 0x76543211;
 
+    /*******************************************
+     * Determine if 'this' is a base class of cd.
+     */
+    bool isBaseOf(ClassDeclaration cd, int* poffset) pure nothrow @nogc
+    {
+        //printf("ClassDeclaration.isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd.toChars());
+        if (poffset)
+            *poffset = 0;
+        while (cd)
+        {
+            if (this == cd.baseClass)
+                return true;
+
+            cd = cd.baseClass;
+        }
+        return false;
+    }
 
     /*********************************************
      * Determine if 'this' has complete base class information.
@@ -590,7 +608,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 if (!b.sym.alignsize)
                     b.sym.alignsize = target.ptrsize;
-                alignmember(b.sym.alignsize, b.sym.alignsize, &offset);
+                alignmember(structalign_t(cast(ushort)b.sym.alignsize), b.sym.alignsize, &offset);
                 assert(bi < vtblInterfaces.dim);
 
                 BaseClass* bv = (*vtblInterfaces)[bi];
@@ -628,10 +646,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         // to calculate each variable offsets. It can be improved later.
         fields.setDim(0);
 
-        uint offset = structsize;
+        FieldState fieldState;
+        fieldState.offset = structsize;
         foreach (s; *members)
         {
-            s.setFieldOffset(this, &offset, false);
+            s.setFieldOffset(this, fieldState, false);
         }
 
         sizeok = Sizeok.done;
@@ -707,6 +726,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         void searchVtbl(ref Dsymbols vtbl)
         {
+            bool seenInterfaceVirtual;
             foreach (s; vtbl)
             {
                 auto fd = s.isFuncDeclaration();
@@ -715,7 +735,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 // the first entry might be a ClassInfo
                 //printf("\t[%d] = %s\n", i, fd.toChars());
-                if (ident != fd.ident || fd.type.covariant(tf) != 1)
+                if (ident != fd.ident || fd.type.covariant(tf) != Covariant.yes)
                 {
                     //printf("\t\t%d\n", fd.type.covariant(tf));
                     continue;
@@ -729,6 +749,23 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 }
                 if (fd == fdmatch)
                     continue;
+
+                /* Functions overriding interface functions for extern(C++) with VC++
+                 * are not in the normal vtbl, but in vtblFinal. If the implementation
+                 * is again overridden in a child class, both would be found here.
+                 * The function in the child class should override the function
+                 * in the base class, which is done here, because searchVtbl is first
+                 * called for the child class. Checking seenInterfaceVirtual makes
+                 * sure, that the compared functions are not in the same vtbl.
+                 */
+                if (fd.interfaceVirtual &&
+                    fd.interfaceVirtual is fdmatch.interfaceVirtual &&
+                    !seenInterfaceVirtual &&
+                    fdmatch.type.covariant(fd.type) == Covariant.yes)
+                {
+                    seenInterfaceVirtual = true;
+                    continue;
+                }
 
                 {
                 // Function type matching: exact > covariant
@@ -1001,6 +1038,46 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     }
 
     /*******************************************
+     * Determine if 'this' is a base class of cd.
+     * (Actually, if it is an interface supported by cd)
+     * Output:
+     *      *poffset        offset to start of class
+     *                      OFFSET_RUNTIME  must determine offset at runtime
+     * Returns:
+     *      false   not a base
+     *      true    is a base
+     */
+    override bool isBaseOf(ClassDeclaration cd, int* poffset) pure nothrow @nogc
+    {
+        //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
+        assert(!baseClass);
+        foreach (b; cd.interfaces)
+        {
+            //printf("\tX base %s\n", b.sym.toChars());
+            if (this == b.sym)
+            {
+                //printf("\tfound at offset %d\n", b.offset);
+                if (poffset)
+                {
+                    // don't return incorrect offsets
+                    // https://issues.dlang.org/show_bug.cgi?id=16980
+                    *poffset = cd.sizeok == Sizeok.done ? b.offset : OFFSET_FWDREF;
+                }
+                // printf("\tfound at offset %d\n", b.offset);
+                return true;
+            }
+            if (baseClassImplementsInterface(this, b, poffset))
+                return true;
+        }
+        if (cd.baseClass && isBaseOf(cd.baseClass, poffset))
+            return true;
+
+        if (poffset)
+            *poffset = 0;
+        return false;
+    }
+
+    /*******************************************
      */
     override const(char)* kind() const
     {
@@ -1039,4 +1116,43 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     {
         v.visit(this);
     }
+}
+
+/**
+ * Returns whether `bc` implements `id`, including indirectly (`bc` implements an interfaces
+ * that inherits from `id`)
+ *
+ * Params:
+ *    id = the interface
+ *    bc = the base class
+ *    poffset = out parameter, offset of the interface in an object
+ *
+ * Returns:
+ *    true if the `bc` implements `id`, false otherwise
+ **/
+private bool baseClassImplementsInterface(InterfaceDeclaration id, BaseClass* bc, int* poffset) pure nothrow @nogc
+{
+    //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", id.toChars(), bc.sym.toChars());
+    for (size_t j = 0; j < bc.baseInterfaces.length; j++)
+    {
+        BaseClass* b = &bc.baseInterfaces[j];
+        //printf("\tY base %s\n", b.sym.toChars());
+        if (id == b.sym)
+        {
+            //printf("\tfound at offset %d\n", b.offset);
+            if (poffset)
+            {
+                *poffset = b.offset;
+            }
+            return true;
+        }
+        if (baseClassImplementsInterface(id, b, poffset))
+        {
+            return true;
+        }
+    }
+
+    if (poffset)
+        *poffset = 0;
+    return false;
 }

@@ -1,4 +1,12 @@
 /**
+ * Code generation 4
+ *
+ * Includes:
+ * - assignemt variations of operators (+= -= *= /= %= <<= >>=)
+ * - integer comparison (< > <= >=)
+ * - converting integers to a different size (e.g. short to int)
+ * - bit instructions (bit scan, population count)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -4015,8 +4023,7 @@ void cdlngsht(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     debug
     if (!(!*pretregs || retregs))
     {
-        WROP(e.Eoper),
-        printf(" *pretregs = %s, retregs = %s, e = %p\n",regm_str(*pretregs),regm_str(retregs),e);
+        printf("%s *pretregs = %s, retregs = %s, e = %p\n",oper_str(e.Eoper),regm_str(*pretregs),regm_str(retregs),e);
     }
 
     assert(!*pretregs || retregs);
@@ -4050,8 +4057,8 @@ void cdmsw(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     debug
     if (!(!*pretregs || retregs))
-    {   WROP(e.Eoper);
-        printf(" *pretregs = %s, retregs = %s\n",regm_str(*pretregs),regm_str(retregs));
+    {
+        printf("%s *pretregs = %s, retregs = %s\n",oper_str(e.Eoper),regm_str(*pretregs),regm_str(retregs));
         elem_print(e);
     }
 
@@ -4584,6 +4591,7 @@ void cdpair(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
 
     //printf("\ncdpair(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //WRTYxx(e.Ety);printf("\n");
     //printf("Ecount = %d\n", e.Ecount);
 
     regm_t retregs = *pretregs;
@@ -4629,7 +4637,6 @@ void cdpair(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
     codelem(cdb,e.EV.E1, &regs1, false);
     scodelem(cdb,e.EV.E2, &regs2, regs1, false);
-    //printf("2: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
 
     if (e.EV.E1.Ecount)
         getregs(cdb,regs1);

@@ -1,4 +1,6 @@
 /**
+ * Global optimizer main loop
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -71,7 +73,7 @@ int ae_field_affect(elem *lvalue,elem *e);
 void localize();
 
 /* gloop.c */
-int blockinit();
+bool blockinit();
 void compdom();
 void loopopt();
 void fillInDNunambig(vec_t v, elem *e);

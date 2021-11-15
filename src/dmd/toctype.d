@@ -143,6 +143,7 @@ public:
                 // Mangle as delegate
                 type* tf = type_function(TYnfunc, null, false, tp);
                 tp = type_delegate(tf);
+                tp.Tident = t.toPrettyChars(true);
             }
             types[i] = tp;
         }
@@ -154,6 +155,7 @@ public:
     override void visit(TypeDelegate t)
     {
         t.ctype = type_delegate(Type_toCtype(t.next));
+        t.ctype.Tident = t.toPrettyChars(true);
     }
 
     override void visit(TypeStruct t)
@@ -173,7 +175,21 @@ public:
             {
                 foreach (v; sym.fields)
                 {
-                    symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                    if (auto bf = v.isBitFieldDeclaration())
+                        symbol_struct_addBitField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset, bf.fieldWidth, bf.bitOffset);
+                    else
+                        symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                }
+            }
+            else
+            {
+                foreach (v; sym.fields)
+                {
+                    if (auto bf = v.isBitFieldDeclaration())
+                    {
+                        symbol_struct_hasBitFields(cast(Symbol*)t.ctype.Ttag);
+                        break;
+                    }
                 }
             }
 
@@ -263,6 +279,12 @@ public:
                 foreach (v; t.sym.fields)
                 {
                     symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                }
+                if (auto bc = t.sym.baseClass)
+                {
+                    auto ptr_to_basetype = Type_toCtype(bc.type);
+                    assert(ptr_to_basetype .Tty == TYnptr);
+                    symbol_struct_addBaseClass(cast(Symbol*)tc.Ttag, ptr_to_basetype.Tnext, 0);
                 }
             }
 

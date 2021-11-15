@@ -116,7 +116,6 @@ void initDMD(
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
-    import dmd.filecache : FileCache;
     import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
@@ -148,7 +147,6 @@ void initDMD(
     Module._init();
     Expression._init();
     Objc._init();
-    FileCache._init();
 
     addDefaultVersionIdentifiers(global.params, target);
 
@@ -401,7 +399,12 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
             buffer: FileBuffer(cast(ubyte[]) code.dup ~ '\0')
         };
 
-        m.loadSourceBuffer(Loc.initial, readResult);
+        if (m.loadSourceBuffer(Loc.initial, readResult))
+        {
+            import dmd.file_manager : FileManager;
+            import dmd.root.filename : FileName;
+            FileManager.fileManager.add(FileName(fileName), m.srcBuffer);
+        }
     }
 
     m.parseModule!AST();
@@ -445,7 +448,7 @@ Returns:
 */
 string prettyPrint(Module m)
 {
-    import dmd.root.outbuffer: OutBuffer;
+    import dmd.common.outbuffer: OutBuffer;
     import dmd.hdrgen : HdrGenState, moduleToBuffer2;
 
     auto buf = OutBuffer();

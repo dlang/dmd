@@ -361,3 +361,277 @@ void testS22106()
 int S22106; // not a redeclaration of 'struct S22106'
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22160
+
+typedef struct testcstuff2 testcstuff2;
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22182
+
+int test22182a(int x)
+{
+    return (int)(x);
+}
+
+typedef struct S22182 { int x; } S22182;
+
+int test22182b(S22182* b)
+{
+    return ((S22182*)(b))->x;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22196
+
+__attribute__((static, unsigned, long, const, extern, register, typedef, short,
+               inline, _Noreturn, volatile, signed, auto, restrict, _Complex,
+               _Thread_local, int, char, float, double, void, _Bool, _Atomic))
+int test22196();
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22245
+
+struct S22245 { int i; };
+
+int test22245()
+{
+    struct S22245 s;
+    return sizeof(s.i);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22262
+
+void test22262(unsigned char *buf)
+{
+    if (buf == 0)
+        return;
+    if (0 == buf)
+        return;
+    if (buf == 1)
+        return;
+    if (2 == buf)
+        return;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22264
+
+typedef int T22264;
+
+unsigned long test22264(crc, buf, len)
+    unsigned long crc;
+    const T22264 *buf;
+    T22264 len;
+{
+    return len;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22274
+
+void test22274(compr, comprLen, uncompr, uncomprLen)
+    unsigned *compr, *uncompr;
+    signed comprLen, uncomprLen;
+{
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22375
+
+typedef struct S22375S
+{
+    unsigned short a, b, c, d;
+} S22375;
+
+static const S22375 s22375[10] =
+{
+    {0, 0, 0, 0},
+    {4, 4, 8, 4},
+    {4, 5, 16, 8},
+    {4, 6, 32, 32},
+    {4, 4, 16, 16},
+    {8, 16, 32, 32},
+    {8, 16, 128, 128},
+    {8, 32, 128, 256},
+    {32, 128, 258, 1024},
+    {32, 258, 258, 4096}
+};
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22399
+
+struct S22399a
+{
+    unsigned short f1;
+};
+
+struct S22399b
+{
+    const struct S22399a *f1;
+};
+
+const struct S22399a C22399[1] = { {12} };
+const struct S22399b C22399b = {C22399};
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22400
+
+typedef struct S22400
+{
+    unsigned short f1;
+} S22400_t;
+
+struct S22400b
+{
+    const S22400_t *f1;
+};
+
+const S22400_t C22400[1] = { {12} };
+const struct S22400b C22400b = {C22400};
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22402
+
+typedef struct {
+    short c;
+} S22402a;
+
+typedef struct {
+    S22402a *a;
+    S22402a b[1];
+} S22402b;
+
+int test22402a(S22402a *a, S22402a b[1])
+{
+    return a - b;
+}
+
+int test22402b(S22402b *s)
+{
+    return s->a - s->b;
+}
+
+int test22402c(S22402a *a)
+{
+    S22402a b[1];
+    return a - b;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22403
+
+extern unsigned test22403a(const char *p);
+
+void test22403()
+{
+    test22403a(0);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22404
+
+typedef enum
+{
+    E22404_FLAG
+} E22404;
+
+int test22404a(E22404 e);
+
+int test22404()
+{
+    test22404a(E22404_FLAG);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22405
+
+struct S22405
+{
+    int const * p;
+    int *q;
+};
+
+void test22405(struct S22405 *s)
+{
+    s->p = (const int *)(s->q);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22406
+
+int test22406(int a)
+{
+    switch (a)
+    {
+        case 1: return -1;
+        case 2: return -2;
+        case 3: return -3;
+    }
+    return 0;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22407
+
+typedef int (*T22407) (int a);
+
+int test22407(int a);
+
+T22407 table22407[1] = { test22407 };
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22409
+
+struct S22409;
+
+typedef struct S22409
+{
+    int f1;
+} S22409_t;
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22411
+
+extern char * const var22411[10];
+
+void test22411()
+{
+    char *cptr;
+    int *iptr;
+    float *fptr;
+    struct { int f1; int f2; } *sptr;
+    void (*fnptr)(void);
+
+    cptr = var22411[0];
+    iptr = var22411[1];
+    fptr = var22411[2];
+    sptr = var22411[3];
+    fnptr = var22411[4];
+
+    iptr = cptr;
+    fptr = sptr;
+    fnptr = iptr;
+    cptr = fptr;
+    sptr = fnptr;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22413
+
+int test22413(void)
+{
+    char msg[] = "ok";
+    return msg[0] | msg[1];
+}
+
+/***************************************************/
+
+int test(char *dest)
+{
+    int x;
+    return dest == x;
+}
+
+/***************************************************/
+

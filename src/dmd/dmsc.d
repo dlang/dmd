@@ -121,18 +121,15 @@ void backend_init()
         exfmt
     );
 
-    debug
-    {
-        out_config_debug(
-            dmdParams.debugb,
-            dmdParams.debugc,
-            dmdParams.debugf,
-            dmdParams.debugr,
-            false,
-            dmdParams.debugx,
-            dmdParams.debugy
-        );
-    }
+    out_config_debug(
+        dmdParams.debugb,
+        dmdParams.debugc,
+        dmdParams.debugf,
+        dmdParams.debugr,
+        false,
+        dmdParams.debugx,
+        dmdParams.debugy
+    );
 }
 
 
@@ -175,7 +172,7 @@ targ_size_t size(tym_t ty)
     debug
     {
         if (sz == -1)
-            WRTYxx(ty);
+            printf("ty: %s\n", tym_str(ty));
     }
     assert(sz!= -1);
     return sz;

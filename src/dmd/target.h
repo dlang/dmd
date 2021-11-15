@@ -59,10 +59,22 @@ struct TargetC
         UClibc,
         WASI,
     };
+
+    enum class BitFieldStyle : unsigned char
+    {
+        Unspecified,
+        DM,                   // Digital Mars 32 bit C compiler
+        MS,                   // Microsoft 32 and 64 bit C compilers
+                              // https://docs.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-160
+                              // https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
+        Gcc_Clang,            // gcc and clang
+    };
+
     uint8_t longsize;            // size of a C 'long' or 'unsigned long' type
     uint8_t long_doublesize;     // size of a C 'long double'
     uint8_t wchar_tsize;         // size of a C 'wchar_t' type
     Runtime runtime;
+    BitFieldStyle bitFieldStyle; // different C compilers do it differently
 };
 
 struct TargetCPP

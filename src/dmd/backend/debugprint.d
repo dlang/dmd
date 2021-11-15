@@ -1,4 +1,6 @@
 /**
+ * Pretty print data structures
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -54,7 +56,7 @@ void ferr(const(char)* p) { printf("%s", p); }
  */
 
 @trusted
-const(char)* str_class(SC c)
+const(char)* class_str(SC c)
 {
     __gshared const char[10][SCMAX] sc =
     [
@@ -104,79 +106,93 @@ const(char)* str_class(SC c)
     ];
     __gshared char[9 + 3] buffer;
 
-  static assert(sc.length == SCMAX);
-  if (cast(uint) c < SCMAX)
+    static assert(sc.length == SCMAX);
+    if (cast(uint) c < SCMAX)
         sprintf(buffer.ptr,"SC%s",sc[c].ptr);
-  else
+    else
         sprintf(buffer.ptr,"SC%u",cast(uint)c);
-  return buffer.ptr;
-}
-
-@trusted
-void WRclass(SC c)
-{
-    printf("%11s ",str_class(c));
+    assert(strlen(buffer.ptr) < buffer.length);
+    return buffer.ptr;
 }
 
 /***************************
- * Write out oper numbers.
+ * Convert OPER to string.
+ * Params:
+ *      oper = operator number
+ * Returns:
+ *      pointer to string
  */
 
 @trusted
-void WROP(uint oper)
+const(char)* oper_str(uint oper)
 {
-  if (oper >= OPMAX)
-  {     printf("op = x%x, OPMAX = %d\n",oper,OPMAX);
-        assert(0);
-  }
-  ferr(debtab[oper]);
-  ferr(" ");
+    assert(oper < OPMAX);
+    return debtab[oper];
 }
 
 /*******************************
- * Write TYxxxx
+ * Convert tym_t to string.
+ * Params:
+ *      ty = type number
+ * Returns:
+ *      pointer to malloc'd string
  */
-
 @trusted
-void WRTYxx(tym_t t)
+const(char)* tym_str(tym_t ty)
 {
-    if (t & mTYnear)
-        printf("mTYnear|");
-    if (t & mTYfar)
-        printf("mTYfar|");
-    if (t & mTYcs)
-        printf("mTYcs|");
-    if (t & mTYconst)
-        printf("mTYconst|");
-    if (t & mTYvolatile)
-        printf("mTYvolatile|");
-    if (t & mTYshared)
-        printf("mTYshared|");
-//#if !MARS && (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
-//    if (t & mTYtransu)
-//        printf("mTYtransu|");
-//#endif
-    t = tybasic(t);
-    if (t >= TYMAX)
-    {   printf("TY %x\n",cast(int)t);
+    enum MAX = 100;
+    __gshared char[MAX + 1] buf;
+
+    char* pstart = &buf[0];
+    char* p = pstart;
+    *p = 0;
+    if (ty & mTYnear)
+        strcat(p, "mTYnear|");
+    if (ty & mTYfar)
+        strcat(p, "mTYfar|");
+    if (ty & mTYcs)
+        strcat(p, "mTYcs|");
+    if (ty & mTYconst)
+        strcat(p, "mTYconst|");
+    if (ty & mTYvolatile)
+        strcat(p, "mTYvolatile|");
+    if (ty & mTYshared)
+        strcat(p, "mTYshared|");
+    if (ty & mTYxmmgpr)
+        strcat(p, "mTYxmmgpr|");
+    if (ty & mTYgprxmm)
+        strcat(p, "mTYgprxmm|");
+    const tyb = tybasic(ty);
+    if (tyb >= TYMAX)
+    {
+        printf("TY %x\n",cast(int)ty);
         assert(0);
     }
-    printf("TY%s ",tystring[tybasic(t)]);
+    strcat(p, "TY");
+    strcat(p, tystring[tyb]);
+    assert(strlen(p) <= MAX);
+    return strdup(p);
 }
 
+/*******************************
+ * Convert BC to string.
+ * Params:
+ *      bc = block exit code
+ * Returns:
+ *      pointer to string
+ */
 @trusted
-void WRBC(uint bc)
+const(char)* bc_str(uint bc)
 {
-    __gshared const char[7][BCMAX] bcs =
-        ["unde  ","goto  ","true  ","ret   ","retexp",
-         "exit  ","asm   ","switch","ifthen","jmptab",
-         "try   ","catch ","jump  ",
-         "_try  ","_filte","_final","_ret  ","_excep",
-         "jcatch","_lpad ",
+    __gshared const char[9][BCMAX] bcs =
+        ["BCunde  ","BCgoto  ","BCtrue  ","BCret   ","BCretexp",
+         "BCexit  ","BCasm   ","BCswitch","BCifthen","BCjmptab",
+         "BCtry   ","BCcatch ","BCjump  ",
+         "BC_try  ","BC_filte","BC_final","BC_ret  ","BC_excep",
+         "BCjcatch","BC_lpad ",
         ];
 
-    assert(bc < BCMAX);
-    printf("BC%s",bcs[bc].ptr);
+    return bcs[bc].ptr;
 }
 
 /************************
@@ -208,7 +224,8 @@ void WReqn(elem *e)
         return;
   if (OTunary(e.Eoper))
   {
-        WROP(e.Eoper);
+        ferr(oper_str(e.Eoper));
+        ferr(" ");
         if (OTbinary(e.EV.E1.Eoper))
         {       nest++;
                 ferr("(");
@@ -236,7 +253,8 @@ void WReqn(elem *e)
         else
                 WReqn(e.EV.E1);
         ferr(" ");
-        WROP(e.Eoper);
+        ferr(oper_str(e.Eoper));
+        ferr(" ");
         if (e.Eoper == OPstreq)
             printf("%d", cast(int)type_size(e.ET));
         ferr(" ");
@@ -284,12 +302,13 @@ void WReqn(elem *e)
             case OPhalt:
             case OPdctor:
             case OPddtor:
-                WROP(e.Eoper);
+                ferr(oper_str(e.Eoper));
+                ferr(" ");
                 break;
             case OPstrthis:
                 break;
             default:
-                WROP(e.Eoper);
+                ferr(oper_str(e.Eoper));
                 assert(0);
         }
   }
@@ -366,9 +385,7 @@ void WRblock(block *b)
         }
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
-        printf(" ");
-        WRBC(b.BC);
-        printf(" Btry=%p Bindex=%d",b.Btry,b.Bindex);
+        printf(" %s Btry=%p Bindex=%d",bc_str(b.BC),b.Btry,b.Bindex);
         if (b.BC == BCtry)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
@@ -401,7 +418,7 @@ void WRblock(block *b)
         int ncases;
 
         assert(b);
-        printf("%2d: ", b.Bnumber); WRBC(b.BC);
+        printf("%2d: %s", b.Bnumber, bc_str(b.BC));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
         if (b.Bindex)

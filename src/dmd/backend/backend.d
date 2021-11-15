@@ -1,4 +1,6 @@
 /**
+ * Internal header file for the backend
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

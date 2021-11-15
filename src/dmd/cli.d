@@ -506,7 +506,7 @@ dmd -cov -unittest myprog.d
             or later compiler.`,
         ),
         Option("main",
-            "add default main() (e.g. for unittesting)",
+            "add default main() if not present already (e.g. for unittesting)",
             `Add a default $(D main()) function when compiling. This is useful when
             unittesting a library, as it enables running the unittests
             in a library without having to manually define an entry-point function.`,
@@ -795,6 +795,8 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Feature("in", "vin",
+            "list all usages of 'in' on parameter"),
     ];
 
     /// Returns all available reverts

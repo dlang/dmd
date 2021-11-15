@@ -118,6 +118,14 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
+enum class Covariant
+{
+    distinct = 0,
+    yes = 1,
+    no = 2,
+    fwdref = 3,
+};
+
 enum VarArgValues
 {
     VARARGnone     = 0,  /// fixed number of arguments
@@ -216,7 +224,8 @@ public:
     bool equivalent(Type *t);
     // kludge for template.isType()
     DYNCAST dyncast() const { return DYNCAST_TYPE; }
-    int covariant(Type *t, StorageClass *pstc = NULL);
+    size_t getUniqueID() const;
+    Covariant covariant(Type *t, StorageClass *pstc = NULL);
     const char *toChars() const;
     char *toPrettyChars(bool QualifyTypes = false);
     static void _init();
@@ -438,6 +447,7 @@ public:
 
     const char *kind();
     TypeSArray *syntaxCopy();
+    bool isIncomplete();
     d_uns64 size(const Loc &loc);
     unsigned alignsize();
     bool isString();
@@ -574,6 +584,7 @@ struct ParameterList
     Parameters* parameters;
     StorageClass stc;
     VarArg varargs;
+    bool hasIdentifierList; // true if C identifier-list style
 
     size_t length();
     Parameter *operator[](size_t i) { return Parameter::getNth(parameters, i); }
@@ -703,6 +714,7 @@ public:
     Identifier *ident;
     Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
 
+    static TypeIdentifier *create(const Loc &loc, Identifier *ident);
     const char *kind();
     TypeIdentifier *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);

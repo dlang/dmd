@@ -1,4 +1,6 @@
 /**
+ * Compute common subexpressions for non-optimized code generation
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -412,7 +414,7 @@ void ecom(ref CGCS cgcs, ref elem* pe)
 
         default:                            /* other operators */
             if (!OTbinary(e.Eoper))
-               WROP(e.Eoper);
+                printf("e.Eoper: '%s'\n", oper_str(e.Eoper));
             assert(OTbinary(e.Eoper));
             goto case OPadd;
 
@@ -435,7 +437,7 @@ void ecom(ref CGCS cgcs, ref elem* pe)
         case OPstring:
         case OPaddr:
         case OPbit:
-            WROP(e.Eoper);
+            printf("e.Eoper: '%s'\n", oper_str(e.Eoper));
             elem_print(e);
             assert(0);              /* optelem() should have removed these  */
 

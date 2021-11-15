@@ -39,6 +39,14 @@ struct _d_dynamicArray final
 };
 #endif
 
+class ForwardClass;
+
+class BaseClass
+{
+public:
+    virtual void memberFun(ForwardClass* sds);
+};
+
 class C
 {
 public:
@@ -173,6 +181,10 @@ public:
     using VisitorInter::stat;
     virtual void vir(bool b);
     virtual void vir(char d);
+};
+
+class ForwardClass : public BaseClass
+{
 };
 ---
 +/
@@ -323,4 +335,13 @@ mixin template Methods()
     extern(C++) void vir(bool b) {}
 
     extern(C++) void vir(char d) {}
+}
+
+class ForwardClass : BaseClass
+{
+}
+
+class BaseClass
+{
+    void memberFun(ForwardClass sds);
 }

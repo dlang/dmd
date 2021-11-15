@@ -132,7 +132,7 @@ template Foo(T, int V)
 				break;
 			}
 		}
-		enum Label 
+		enum Label
 		{
 			A,
 			B,
@@ -647,7 +647,7 @@ ref @safe int* foo(return ref scope int* a)
 }
 struct SafeS
 {
-	@safe 
+	@safe
 	{
 		ref SafeS foo() return
 		{
@@ -667,7 +667,7 @@ struct SafeS
 void test13x(@(10) int a, @(20) int, @(tuple(30), tuple(40)) int[] arr...)
 {
 }
-enum Test14UDA1 ;
+enum Test14UDA1;
 struct Test14UDA2
 {
 	string str;

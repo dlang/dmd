@@ -22,13 +22,15 @@ if [ -z ${CI_DFLAGS+x} ] ; then CI_DFLAGS=""; fi
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 build_path=generated/$OS_NAME/release/$MODEL
 
-# use faster ld.gold linker on linux
 if [ "$OS_NAME" == "linux" ]; then
-    mkdir -p linker
-    rm -f linker/ld
-    ln -s /usr/bin/ld.gold linker/ld
+    # use faster ld.gold linker on x86_64-linux
+    if [ "$MODEL" == "64" ]; then
+        mkdir -p linker
+        rm -f linker/ld
+        ln -s /usr/bin/ld.gold linker/ld
+        export PATH="$PWD/linker:$PATH"
+    fi
     NM="nm --print-size"
-    export PATH="$PWD/linker:$PATH"
 else
     NM=nm
 fi
@@ -211,12 +213,7 @@ install_host_compiler() {
 # Upload coverage reports
 codecov()
 {
-    # CodeCov gets confused by lst files which it can't match
-    rm -rf test/runnable/extra-files test/*.lst
-    curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 \
-        --retry 5 --retry-delay 5 "https://codecov.io/bash" -o "codecov.sh"
-    bash ./codecov.sh -p . -Z
-    rm codecov.sh
+    source ci/codecov.sh
 }
 
 # Define commands

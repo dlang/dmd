@@ -56,7 +56,7 @@ import dmd.objc;
 import dmd.opover;
 import dmd.parse;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.semantic2;
@@ -103,33 +103,60 @@ extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
-structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
+/***************************************************
+ * Determine the numerical value of the AlignmentDeclaration
+ * Params:
+ *      ad = AlignmentDeclaration
+ *      sc = context
+ * Returns:
+ *      ad with alignment value determined
+ */
+AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
 {
-    if (ad.salign != ad.UNKNOWN)
-        return ad.salign;
+    if (!ad.salign.isUnknown())   // UNKNOWN is 0
+        return ad;
 
-    if (!ad.ealign)
-        return ad.salign = STRUCTALIGN_DEFAULT;
-
-    sc = sc.startCTFE();
-    ad.ealign = ad.ealign.expressionSemantic(sc);
-    ad.ealign = resolveProperties(sc, ad.ealign);
-    sc = sc.endCTFE();
-    ad.ealign = ad.ealign.ctfeInterpret();
-
-    if (ad.ealign.op == TOK.error)
-        return ad.salign = STRUCTALIGN_DEFAULT;
-
-    Type tb = ad.ealign.type.toBasetype();
-    auto n = ad.ealign.toInteger();
-
-    if (n < 1 || n & (n - 1) || structalign_t.max < n || !tb.isintegral())
+    if (!ad.exps)
     {
-        error(ad.loc, "alignment must be an integer positive power of 2, not %s", ad.ealign.toChars());
-        return ad.salign = STRUCTALIGN_DEFAULT;
+        ad.salign.setDefault();
+        return ad;
     }
 
-    return ad.salign = cast(structalign_t)n;
+    dinteger_t strictest = 0;   // strictest alignment
+    bool errors;
+    foreach (ref exp; (*ad.exps)[])
+    {
+        sc = sc.startCTFE();
+        auto e = exp.expressionSemantic(sc);
+        e = resolveProperties(sc, e);
+        sc = sc.endCTFE();
+        e = e.ctfeInterpret();
+        exp = e;                // could be re-evaluated if exps are assigned to more than one AlignDeclaration by CParser.applySpecifier(),
+                                // e.g. `_Alignas(8) int a, b;`
+        if (e.op == TOK.error)
+            errors = true;
+        else
+        {
+            auto n = e.toInteger();
+            if (sc.flags & SCOPE.Cfile && n == 0)       // C11 6.7.5-6 allows 0 for alignment
+                continue;
+
+            if (n < 1 || n & (n - 1) || ushort.max < n || !e.type.isintegral())
+            {
+                error(ad.loc, "alignment must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
+                errors = true;
+            }
+            if (n > strictest)  // C11 6.7.5-6
+                strictest = n;
+        }
+    }
+
+    if (errors || strictest == 0)  // C11 6.7.5-6 says alignment of 0 means no effect
+        ad.salign.setDefault();
+    else
+        ad.salign.set(cast(uint) strictest);
+
+    return ad;
 }
 
 const(char)* getMessage(DeprecatedDeclaration dd)
@@ -341,15 +368,30 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         dsym.semanticRun = PASS.semantic;
 
-        /* Pick up storage classes from context, but except synchronized,
-         * override, abstract, and final.
-         */
-        dsym.storage_class |= (sc.stc & ~(STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_));
+        // 'static foreach' variables should not inherit scope properties
+        // https://issues.dlang.org/show_bug.cgi?id=19482
+        if ((dsym.storage_class & (STC.foreach_ | STC.local)) == (STC.foreach_ | STC.local))
+        {
+            dsym.linkage = LINK.d;
+            dsym.visibility = Visibility(Visibility.Kind.public_);
+            dsym.overlapped = false; // unset because it is modified early on this function
+            dsym.userAttribDecl = null; // unset because it is set by Dsymbol.setScope()
+        }
+        else
+        {
+            /* Pick up storage classes from context, but except synchronized,
+             * override, abstract, and final.
+             */
+            dsym.storage_class |= (sc.stc & ~(STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_));
+            dsym.userAttribDecl = sc.userAttribDecl;
+            dsym.cppnamespace = sc.namespace;
+            dsym.linkage = sc.linkage;
+            dsym.visibility = sc.visibility;
+            dsym.alignment = sc.alignment();
+        }
+
         if (dsym.storage_class & STC.extern_ && dsym._init)
             dsym.error("extern symbols cannot have initializers");
-
-        dsym.userAttribDecl = sc.userAttribDecl;
-        dsym.cppnamespace = sc.namespace;
 
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
@@ -407,16 +449,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.errors = true;
 
         dsym.type.checkDeprecated(dsym.loc, sc);
-        dsym.linkage = sc.linkage;
         dsym.parent = sc.parent;
         //printf("this = %p, parent = %p, '%s'\n", dsym, dsym.parent, dsym.parent.toChars());
-        dsym.visibility = sc.visibility;
 
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
-        dsym.alignment = sc.alignment();
-        if (dsym.alignment == STRUCTALIGN_DEFAULT)
+        if (dsym.alignment.isDefault())
             dsym.alignment = dsym.type.alignment(); // use type's alignment
 
         //printf("sc.stc = %x\n", sc.stc);
@@ -911,6 +950,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc = sc.push();
             sc.stc &= ~(STC.TYPECTOR | STC.pure_ | STC.nothrow_ | STC.nogc | STC.ref_ | STC.disable);
 
+            if (sc.flags & SCOPE.Cfile &&
+                dsym.type.isTypeSArray() &&
+                dsym.type.isTypeSArray().isIncomplete() &&
+                dsym._init.isVoidInitializer() &&
+                !(dsym.storage_class & STC.field))
+            {
+                dsym.error("incomplete array type must have initializer");
+            }
+
             ExpInitializer ei = dsym._init.isExpInitializer();
 
             if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
@@ -946,6 +994,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                         ei = new ExpInitializer(dsym._init.loc, e);
                         dsym._init = ei;
+                    }
+                    else if (sc.flags & SCOPE.Cfile && dsym.type.isTypeSArray() &&
+                             dsym.type.isTypeSArray().isIncomplete())
+                    {
+                        // C11 6.7.9-22 determine the size of the incomplete array,
+                        // or issue an error that the initializer is invalid.
+                        dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
                     }
 
                     Expression exp = ei.exp;
@@ -1032,18 +1087,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // could crash (inf. recursion) on a mod/pkg referencing itself
                     if (ei && (ei.exp.op != TOK.scope_ ? true : !ei.exp.isScopeExp().sds.isPackage()))
                     {
-                        Expression exp = ei.exp.syntaxCopy();
+                        if (ei.exp.type)
+                        {
+                            // If exp is already resolved we are done, our original init exp
+                            // could have a type painting that we need to respect
+                            // e.g.  ['a'] typed as string, or [['z'], ""] as string[]
+                            // See https://issues.dlang.org/show_bug.cgi?id=15711
+                        }
+                        else
+                        {
+                            Expression exp = ei.exp.syntaxCopy();
 
-                        bool needctfe = dsym.isDataseg() || (dsym.storage_class & STC.manifest);
-                        if (needctfe)
-                            sc = sc.startCTFE();
-                        exp = exp.expressionSemantic(sc);
-                        exp = resolveProperties(sc, exp);
-                        if (needctfe)
-                            sc = sc.endCTFE();
+                            bool needctfe = dsym.isDataseg() || (dsym.storage_class & STC.manifest);
+                            if (needctfe)
+                                sc = sc.startCTFE();
+                            exp = exp.expressionSemantic(sc);
+                            exp = resolveProperties(sc, exp);
+                            if (needctfe)
+                                sc = sc.endCTFE();
+                            ei.exp = exp;
+                        }
 
                         Type tb2 = dsym.type.toBasetype();
-                        Type ti = exp.type.toBasetype();
+                        Type ti = ei.exp.type.toBasetype();
 
                         /* The problem is the following code:
                          *  struct CopyTest {
@@ -1067,11 +1133,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             if (sd.postblit && tb2.toDsymbol(null) == sd)
                             {
                                 // The only allowable initializer is a (non-copy) constructor
-                                if (exp.isLvalue())
+                                if (ei.exp.isLvalue())
                                     dsym.error("of type struct `%s` uses `this(this)`, which is not allowed in static initialization", tb2.toChars());
                             }
                         }
-                        ei.exp = exp;
                     }
 
                     dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
@@ -1143,6 +1208,46 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(TypeInfoDeclaration dsym)
     {
         assert(dsym.linkage == LINK.c);
+    }
+
+    override void visit(BitFieldDeclaration dsym)
+    {
+        //printf("BitField::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+        if (dsym.semanticRun >= PASS.semanticdone)
+            return;
+
+        visit(cast(VarDeclaration)dsym);
+        if (dsym.errors)
+            return;
+
+        sc = sc.startCTFE();
+        auto width = dsym.width.expressionSemantic(sc);
+        sc = sc.endCTFE();
+        width = width.ctfeInterpret();
+        if (!dsym.type.isintegral())
+        {
+            // C11 6.7.2.1-5
+            width.error("bit-field type `%s` is not an integer type", dsym.type.toChars());
+            dsym.errors = true;
+        }
+        if (!width.isIntegerExp())
+        {
+            width.error("bit-field width `%s` is not an integer constant", dsym.width.toChars());
+            dsym.errors = true;
+        }
+        const uwidth = width.toInteger(); // uwidth is unsigned
+        if (uwidth == 0 && !dsym.isAnonymous())
+        {
+            width.error("bit-field `%s` has zero width", dsym.toChars());
+            dsym.errors = true;
+        }
+        const max_width = dsym.type.size() * 8;
+        if (uwidth > max_width)
+        {
+            width.error("width `%lld` of bit-field `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
+            dsym.errors = true;
+        }
+        dsym.fieldWidth = cast(uint)uwidth;
     }
 
     override void visit(Import imp)
@@ -1644,6 +1749,36 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");
+            else
+            {
+                immutable isCtor = pd.ident == Id.crt_constructor;
+
+                static uint recurse(Dsymbol s, bool isCtor)
+                {
+                    if (auto ad = s.isAttribDeclaration())
+                    {
+                        uint nestedCount;
+                        auto decls = ad.include(null);
+                        if (decls)
+                        {
+                            for (size_t i = 0; i < decls.dim; ++i)
+                                nestedCount += recurse((*decls)[i], isCtor);
+                        }
+                        return nestedCount;
+                    }
+                    else if (auto f = s.isFuncDeclaration())
+                    {
+                        f.isCrtCtorDtor |= isCtor ? 1 : 2;
+                        return 1;
+                    }
+                    else
+                        return 0;
+                    assert(0);
+                }
+
+                if (recurse(pd, isCtor) > 1)
+                    pd.error("can only apply to a single declaration");
+            }
             return declarations();
         }
         else if (pd.ident == Id.printf || pd.ident == Id.scanf)
@@ -2381,6 +2516,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         tempdecl.parent = sc.parent;
         tempdecl.visibility = sc.visibility;
+        tempdecl.userAttribDecl = sc.userAttribDecl;
         tempdecl.cppnamespace = sc.namespace;
         tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
         tempdecl.deprecated_ = !!(sc.stc & STC.deprecated_);
@@ -2909,6 +3045,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (auto pragmadecl = sc.inlining)
             funcdecl.inlining = pragmadecl.evalPragmaInline(sc);
 
+        // check pragma(crt_constructor)
+        if (funcdecl.isCrtCtorDtor)
+        {
+            if (funcdecl.linkage != LINK.c)
+            {
+                funcdecl.error("must be `extern(C)` for `pragma(%s)`",
+                    funcdecl.isCrtCtorDtor == 1 ? "crt_constructor".ptr : "crt_destructor".ptr);
+            }
+        }
+
         funcdecl.visibility = sc.visibility;
         funcdecl.userAttribDecl = sc.userAttribDecl;
         UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl.linkage);
@@ -2995,7 +3141,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (funcdecl.isCtorDeclaration())
             {
-                sc.flags |= SCOPE.ctor;
+                tf.isctor = true;
                 Type tret = ad.handleType();
                 assert(tret);
                 tret = tret.addStorageClass(funcdecl.storage_class | sc.stc);
@@ -3735,6 +3881,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
+        if (funcdecl.fbody && sc._module.isRoot() &&
+            (funcdecl.isMain() || funcdecl.isWinMain() || funcdecl.isDllMain() || funcdecl.isCMain()))
+            global.hasMainFunction = true;
+
         if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
         {
             // check if `_d_cmain` is defined
@@ -3807,7 +3957,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         sc.stc &= ~STC.static_; // not a static constructor
-        sc.flags |= SCOPE.ctor;
 
         funcDeclarationSemantic(ctd);
 
@@ -3932,7 +4081,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (dd.ident == Id.dtor && dd.semanticRun < PASS.semantic)
-            ad.dtors.push(dd);
+            ad.userDtors.push(dd);
         if (!dd.type)
         {
             dd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, dd.storage_class);
@@ -4279,6 +4428,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 sd.classKind = ClassKind.cpp;
+            else if (sc.linkage == LINK.c)
+                sd.classKind = ClassKind.c;
             sd.cppnamespace = sc.namespace;
             sd.cppmangle = sc.cppmangle;
         }
@@ -4352,8 +4503,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Look for the constructor
         sd.ctor = sd.searchCtor();
 
-        sd.dtor = buildDtor(sd, sc2);
-        sd.tidtor = buildExternDDtor(sd, sc2);
+        buildDtors(sd, sc2);
+
         sd.hasCopyCtor = buildCopyCtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
 
@@ -4992,8 +5143,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        cldec.dtor = buildDtor(cldec, sc2);
-        cldec.tidtor = buildExternDDtor(cldec, sc2);
+        buildDtors(cldec, sc2);
 
         if (cldec.classKind == ClassKind.cpp && cldec.cppDtorVtblIndex != -1)
         {

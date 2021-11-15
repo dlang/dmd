@@ -1,4 +1,6 @@
 /**
+ * Global variables for PARSER
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -10,8 +12,6 @@
  */
 
 module dmd.backend.var;
-
-/* Global variables for PARSER  */
 
 import core.stdc.stdio;
 
@@ -953,17 +953,18 @@ __gshared byte[256] _tyalignsize =
 
 
 private:
+extern(D):
 
-enum TXptr       = [ TYnptr ];
-enum TXptr_nflat = [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYrestrictPtr,TYfgPtr ];
-enum TXreal      = [ TYfloat,TYdouble,TYdouble_alias,TYldouble,
+static immutable TXptr        = [ TYnptr ];
+static immutable TXptr_nflat  = [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYrestrictPtr,TYfgPtr ];
+static immutable TXreal       = [ TYfloat,TYdouble,TYdouble_alias,TYldouble,
                      TYfloat4,TYdouble2,
                      TYfloat8,TYdouble4,
                      TYfloat16,TYdouble8,
                    ];
-enum TXimaginary = [ TYifloat,TYidouble,TYildouble, ];
-enum TXcomplex   = [ TYcfloat,TYcdouble,TYcldouble, ];
-enum TXintegral  = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
+static immutable TXimaginary  = [ TYifloat,TYidouble,TYildouble, ];
+static immutable TXcomplex    = [ TYcfloat,TYcdouble,TYcldouble, ];
+static immutable TXintegral   = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
                      TYwchar_t,TYushort,TYenum,TYint,TYuint,
                      TYlong,TYulong,TYllong,TYullong,TYdchar,
                      TYschar16,TYuchar16,TYshort8,TYushort8,
@@ -974,26 +975,26 @@ enum TXintegral  = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
                      TYlong16,TYulong16,TYllong8,TYullong8,
                      TYchar16,TYcent,TYucent,
                    ];
-enum TXref       = [ TYnref,TYref ];
-enum TXfunc      = [ TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc ];
-enum TXref_nflat = [ TYfref ];
-enum TXfunc_nflat= [ TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc,TYfsysfunc, ];
-enum TXuns       = [ TYuchar,TYushort,TYuint,TYulong,
+static immutable TXref        = [ TYnref,TYref ];
+static immutable TXfunc       = [ TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc ];
+static immutable TXref_nflat  = [ TYfref ];
+static immutable TXfunc_nflat = [ TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc,TYfsysfunc, ];
+static immutable TXuns        = [ TYuchar,TYushort,TYuint,TYulong,
                      TYwchar_t,
                      TYuchar16,TYushort8,TYulong4,TYullong2,
                      TYdchar,TYullong,TYucent,TYchar16 ];
-enum TXmptr      = [ TYmemptr ];
-enum TXnullptr   = [ TYnullptr ];
-enum TXfv        = [ TYfptr, TYvptr ];
-enum TXfarfunc   = [ TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc ];
-enum TXpasfunc   = [ TYnpfunc,TYnsfunc,TYmfunc,TYjfunc ];
-enum TXpasfunc_nf = [ TYfpfunc,TYf16func,TYfsfunc, ];
-enum TXrevfunc    = [ TYnpfunc,TYjfunc ];
-enum TXrevfunc_nf = [ TYfpfunc,TYf16func, ];
-enum TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
+static immutable TXmptr       = [ TYmemptr ];
+static immutable TXnullptr    = [ TYnullptr ];
+static immutable TXfv         = [ TYfptr, TYvptr ];
+static immutable TXfarfunc    = [ TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc ];
+static immutable TXpasfunc    = [ TYnpfunc,TYnsfunc,TYmfunc,TYjfunc ];
+static immutable TXpasfunc_nf = [ TYfpfunc,TYf16func,TYfsfunc, ];
+static immutable TXrevfunc    = [ TYnpfunc,TYjfunc ];
+static immutable TXrevfunc_nf = [ TYfpfunc,TYf16func, ];
+static immutable TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
                       TYwchar_t,TYushort,TYchar16 ];
-enum TXaggregate  = [ TYstruct,TYarray ];
-enum TXxmmreg     = [
+static immutable TXaggregate  = [ TYstruct,TYarray ];
+static immutable TXxmmreg     = [
                      TYfloat,TYdouble,TYifloat,TYidouble,
                      //TYcfloat,TYcdouble,
                      TYfloat4,TYdouble2,
@@ -1006,7 +1007,7 @@ enum TXxmmreg     = [
                      TYlong16,TYulong16,TYllong8,TYullong8,
                      TYfloat16,TYdouble8,
                     ];
-enum TXsimd       = [
+static immutable TXsimd       = [
                      TYfloat4,TYdouble2,
                      TYschar16,TYuchar16,TYshort8,TYushort8,
                      TYlong4,TYulong4,TYllong2,TYullong2,

@@ -1,4 +1,6 @@
 /**
+ * Routines to handle elems.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -8,8 +10,6 @@
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elem.d, backend/elem.d)
  */
-
-/* Routines to handle elems.                    */
 
 module dmd.backend.elem;
 
@@ -1946,7 +1946,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
         c.Vint = 1;
         elem *e_flag_1 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, &c)); // __flag = 1
         elem *e_eax = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));              // __exception_object = __EAX
-        elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_UNWIND_RESUME)), el_var(seo));
+        elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.UNWIND_RESUME)), el_var(seo));
         eu = el_bin(OPandand, TYvoid, el_una(OPnot, TYbool, el_var(sflag)), eu);
 
         edtor.EV.E1 = el_combine(el_combine(e_eax, ed), eu);
@@ -2420,7 +2420,7 @@ version (SCPP_HTOD)
                 break;
 }
             default:
-                WROP(op);
+                printf("op: %s\n", oper_str(op));
                 assert(0);
         }
 ismatch:
@@ -2866,8 +2866,7 @@ void elem_print(const elem* e, int nestlevel = 0)
         if (!OPTIMIZER)
             printf("cs=%d ",e.Ecomsub);
     }
-    WROP(e.Eoper);
-    printf(" ");
+    printf("%s ", oper_str(e.Eoper));
     version (SCPP_HTOD)
         enum scpp = true;
     else
@@ -2879,7 +2878,7 @@ void elem_print(const elem* e, int nestlevel = 0)
             type_debug(e.ET);
             if (tybasic(e.ET.Tty) == TYstruct)
                 printf("%d ", cast(int)type_size(e.ET));
-            WRTYxx(e.ET.Tty);
+            printf("%s\n", tym_str(e.ET.Tty));
         }
     }
     else
@@ -2888,7 +2887,7 @@ void elem_print(const elem* e, int nestlevel = 0)
             e.Ety == TYstruct || e.Ety == TYarray)
             if (e.ET)
                 printf("%d ", cast(int)type_size(e.ET));
-        WRTYxx(e.Ety);
+        printf("%s ", tym_str(e.Ety));
     }
     if (OTunary(e.Eoper))
     {
@@ -2923,7 +2922,7 @@ void elem_print(const elem* e, int nestlevel = 0)
 
             case OPasm:
             case OPstring:
-                printf(" '%s',%lld\n",e.EV.Vstring,cast(ulong)e.EV.Voffset);
+                printf(" '%s',%lld",e.EV.Vstring,cast(ulong)e.EV.Voffset);
                 break;
 
             case OPconst:
@@ -3085,7 +3084,7 @@ version (MARS) { } else
 
         default:
             printf("Invalid type ");
-            WRTYxx(typemask(e));
+            printf("%s\n", tym_str(typemask(e)));
             /*assert(0);*/
     }
 }

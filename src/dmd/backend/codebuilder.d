@@ -1,4 +1,6 @@
 /**
+ * Construct linked list of generated code
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -20,7 +22,6 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.mem;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 

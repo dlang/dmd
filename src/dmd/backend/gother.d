@@ -1,5 +1,5 @@
 /**
- * Other data flow analysis based optimizations.
+ * Other global optimizations
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
  *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
@@ -32,7 +32,6 @@ import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
-import dmd.backend.outbuf;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -465,7 +464,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
 
     version (SCPP)
     {
-        {   Outbuffer buf;
+        {   OutBuffer buf;
             char *p2;
 
             type_tostring(&buf, sv.Stype);

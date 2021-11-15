@@ -69,7 +69,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     import core.stdc.stdlib : malloc, free;
-    import dmd.root.outbuffer : OutBuffer;
+    import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;
     mangleToBuffer(ds, &buf);
@@ -139,7 +139,7 @@ Symbol *toSymbol(Dsymbol s)
             assert(!vd.needThis());
 
             const(char)[] id;
-            import dmd.root.outbuffer : OutBuffer;
+            import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             bool isNRVO = false;
             if (vd.isDataseg())
@@ -162,7 +162,7 @@ Symbol *toSymbol(Dsymbol s)
                 }
             }
             Symbol *s = symbol_calloc(id.ptr, cast(uint)id.length);
-            s.Salignment = vd.alignment;
+            s.Salignment = vd.alignment.isDefault() ? -1 : vd.alignment.get();
             if (vd.storage_class & STC.temp)
                 s.Sflags |= SFLartifical;
             if (isNRVO)
@@ -182,18 +182,10 @@ Symbol *toSymbol(Dsymbol s)
                     t = type_fake(TYdelegate);          // Tdelegate as C type
                 t.Tcount++;
             }
-            else if (vd.isParameter())
+            else if (vd.isParameter() && ISX64REF(vd))
             {
-                if (ISX64REF(vd))
-                {
-                    t = type_allocn(TYnref, Type_toCtype(vd.type));
-                    t.Tcount++;
-                }
-                else
-                {
-                    t = Type_toCtype(vd.type);
-                    t.Tcount++;
-                }
+                t = type_allocn(TYnref, Type_toCtype(vd.type));
+                t.Tcount++;
             }
             else
             {
@@ -314,7 +306,7 @@ Symbol *toSymbol(Dsymbol s)
             type_setmangle(&t, m);
             s.Stype = t;
 
-            s.lnoscopestart = vd.loc.linnum;
+            s.lposscopestart = toSrcpos(vd.loc);
             s.lnoscopeend = vd.endlinnum;
             result = s;
         }
@@ -355,18 +347,11 @@ Symbol *toSymbol(Dsymbol s)
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
 
-            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn())
+            if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.flags & FUNCFLAG.noreturn)
                 s.Sflags |= SFLexit;    // the function never returns
 
-            f.Fstartline.set(fd.loc.filename, fd.loc.linnum, fd.loc.charnum);
-            if (fd.endloc.linnum)
-            {
-                f.Fendline.set(fd.endloc.filename, fd.endloc.linnum, fd.endloc.charnum);
-            }
-            else
-            {
-                f.Fendline = f.Fstartline;
-            }
+            f.Fstartline = toSrcpos(fd.loc);
+            f.Fendline = fd.endloc.linnum ? toSrcpos(fd.endloc) : f.Fstartline;
 
             auto t = Type_toCtype(fd.type);
             const msave = t.Tmangle;
@@ -374,6 +359,7 @@ Symbol *toSymbol(Dsymbol s)
             {
                 t.Tty = TYnfunc;
                 t.Tmangle = mTYman_c;
+                f.Fflags3 |= Fmain;
             }
             else
             {
@@ -480,7 +466,7 @@ Symbol *toSymbol(Dsymbol s)
 /*************************************
  */
 
-Symbol *toImport(Symbol *sym)
+Symbol *toImport(Symbol *sym, Loc loc)
 {
     //printf("Dsymbol.toImport('%s')\n", sym.Sident);
     char *n = sym.Sident.ptr;
@@ -489,8 +475,8 @@ Symbol *toImport(Symbol *sym)
     int idlen;
     if (target.os & Target.OS.Posix)
     {
-        id = n;
-        idlen = cast(int)strlen(n);
+        error(loc, "Could not generate import symbol for this platform");
+        fatal();
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
@@ -501,7 +487,7 @@ Symbol *toImport(Symbol *sym)
     }
     else
     {
-        idlen = sprintf(id,(target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : "_imp__%s",n);
+        idlen = sprintf(id,(target.os == Target.OS.Windows && target.is64bit) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
@@ -525,7 +511,7 @@ Symbol *toImport(Dsymbol ds)
     {
         if (!ds.csym)
             ds.csym = toSymbol(ds);
-        ds.isym = toImport(ds.csym);
+        ds.isym = toImport(ds.csym, ds.loc);
     }
     return ds.isym;
 }
@@ -608,12 +594,18 @@ Symbol *toInitializer(AggregateDeclaration ad)
         static structalign_t alignOf(Type t)
         {
             const explicitAlignment = t.alignment();
-            return explicitAlignment == STRUCTALIGN_DEFAULT ? t.alignsize() : explicitAlignment;
+            if (!explicitAlignment.isDefault()) // if overriding default alignment
+                return explicitAlignment;
+
+            // Use the default alignment for type t
+            structalign_t sa;
+            sa.set(t.alignsize());
+            return sa;
         }
 
         auto sd = ad.isStructDeclaration();
         if (sd &&
-            alignOf(sd.type) <= 16 &&
+            alignOf(sd.type).get() <= 16 &&
             sd.type.size() <= 128 &&
             sd.zeroInit &&
             config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
@@ -633,7 +625,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             s.Sfl = FLextern;
             s.Sflags |= SFLnodebug;
             if (sd)
-                s.Salignment = sd.alignment;
+                s.Salignment = sd.alignment.isDefault() ? -1 : sd.alignment.get();
             ad.sinit = s;
         }
     }
@@ -793,4 +785,16 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
     t.Tcount++;
     s.Stype = t;
     return s;
+}
+
+/**********************************
+ * Converts a Loc to backend Srcpos
+ * Params:
+ *      loc = Source code location
+ * Returns:
+ *      Srcpos backend struct corresponding to the given location
+ */
+Srcpos toSrcpos(Loc loc)
+{
+    return Srcpos.create(loc.filename, loc.linnum, loc.charnum);
 }

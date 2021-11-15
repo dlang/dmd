@@ -16,7 +16,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.globals;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
@@ -443,29 +443,33 @@ private void verrorPrintContext(const ref Loc loc)
         !loc.filename.strstr(".d-mixin-") &&
         !global.params.mixinOut)
     {
-        import dmd.filecache : FileCache;
-        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename.toDString());
-
-        if (loc.linnum - 1 < fllines.lines.length)
+        import dmd.file_manager : FileManager;
+        import dmd.root.filename : FileName;
+        const fileName = FileName(loc.filename.toDString);
+        if (auto file = FileManager.fileManager.lookup(fileName))
         {
-            auto line = fllines.lines[loc.linnum - 1];
-            if (loc.charnum < line.length)
+            const(char)[][] lines = FileManager.fileManager.getLines(fileName);
+            if (loc.linnum - 1 < lines.length)
             {
-                fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
-                // The number of column bytes and the number of display columns
-                // occupied by a character are not the same for non-ASCII charaters.
-                // https://issues.dlang.org/show_bug.cgi?id=21849
-                size_t c = 0;
-                while (c < loc.charnum - 1)
+                auto line = lines[loc.linnum - 1];
+                if (loc.charnum < line.length)
                 {
-                    import dmd.utf : utf_decodeChar;
-                    dchar u;
-                    const msg = utf_decodeChar(line, c, u);
-                    assert(msg is null, msg);
-                    fputc(' ', stderr);
+                    fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
+                    // The number of column bytes and the number of display columns
+                    // occupied by a character are not the same for non-ASCII charaters.
+                    // https://issues.dlang.org/show_bug.cgi?id=21849
+                    size_t c = 0;
+                    while (c < loc.charnum - 1)
+                    {
+                        import dmd.utf : utf_decodeChar;
+                        dchar u;
+                        const msg = utf_decodeChar(line, c, u);
+                        assert(msg is null, msg);
+                        fputc(' ', stderr);
+                    }
+                    fputc('^', stderr);
+                    fputc('\n', stderr);
                 }
-                fputc('^', stderr);
-                fputc('\n', stderr);
             }
         }
     }

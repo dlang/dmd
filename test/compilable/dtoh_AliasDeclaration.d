@@ -121,6 +121,18 @@ struct PrivateImport final
 };
 
 typedef /* noreturn */ char Impossible[0];
+
+template <typename T>
+struct Array final
+{
+    // Ignoring var length alignment 0
+    uint32_t length;
+    Array()
+    {
+    }
+};
+
+typedef Array<char > DString;
 ---
 +/
 
@@ -195,3 +207,11 @@ struct PrivateImport
 }
 
 alias Impossible = noreturn;
+
+struct Array(T)
+{
+    uint length;
+    alias opDollar = length;
+    alias dim = length;
+}
+alias DString = Array!(char);

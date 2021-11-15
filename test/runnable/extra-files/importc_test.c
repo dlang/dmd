@@ -1,3 +1,4 @@
+#define __extension__ /* remove keyword from preprocessed code. */
 
 #include <stdint.h>
 

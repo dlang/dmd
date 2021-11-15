@@ -59,7 +59,7 @@ import dmd.opover;
 import dmd.optimize;
 import dmd.root.ctfloat;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
@@ -92,6 +92,18 @@ enum Modifiable
     yes,
     /// Modifiable because it is initialization
     initialization,
+}
+/**
+ * Specifies how the checkModify deals with certain situations
+ */
+enum ModifyFlags
+{
+    /// Issue error messages on invalid modifications of the variable
+    none,
+    /// No errors are emitted for invalid modifications
+    noError = 0x1,
+    /// The modification occurs for a subfield of the current variable
+    fieldAssign = 0x2,
 }
 
 /****************************************
@@ -976,7 +988,7 @@ extern (C++) abstract class Expression : ASTNode
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type.toChars());
         // See if this expression is a modifiable lvalue (i.e. not const)
-        if (checkModifiable(sc) == Modifiable.yes)
+        if (checkModifiable(this, sc) == Modifiable.yes)
         {
             assert(type);
             if (!type.isMutable())
@@ -1189,20 +1201,14 @@ extern (C++) abstract class Expression : ASTNode
         // DtorDeclaration without parents should fail at an earlier stage
         auto ad = cast(AggregateDeclaration) f.toParent2();
         assert(ad);
-        assert(ad.dtors.length);
 
-        // Search for the user-defined destructor (if any)
-        foreach(dtor; ad.dtors)
+        if (ad.userDtors.dim)
         {
-            if (dtor.generated)
-                continue;
-
-            if (!check(dtor)) // doesn't match check (e.g. is impure as well)
+            if (!check(ad.userDtors[0])) // doesn't match check (e.g. is impure as well)
                 return;
 
             // Sanity check
-            assert(!check(cast(DtorDeclaration) ad.fieldDtor));
-            break;
+            assert(!check(ad.fieldDtor));
         }
 
         dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",
@@ -1534,19 +1540,7 @@ extern (C++) abstract class Expression : ASTNode
         return true;
     }
 
-    /***************************************
-     * Parameters:
-     *      sc:     scope
-     *      flag:   1: do not issue error message for invalid modification
-     * Returns:
-     *      Whether the type is modifiable
-     */
-    Modifiable checkModifiable(Scope* sc, int flag = 0)
-    {
-        return type ? Modifiable.yes : Modifiable.no; // default modifiable
-    }
-
-   /************************************************
+    /************************************************
      * Destructors are attached to VarDeclarations.
      * Hence, if expression returns a temp that needs a destructor,
      * make sure and create a VarDeclaration for that temp.
@@ -1730,6 +1724,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(EqualExp)    isEqualExp() { return (op == TOK.equal || op == TOK.notEqual) ? cast(typeof(return))this : null; }
         inout(IdentityExp) isIdentityExp() { return (op == TOK.identity || op == TOK.notIdentity) ? cast(typeof(return))this : null; }
         inout(CondExp)     isCondExp() { return op == TOK.question ? cast(typeof(return))this : null; }
+        inout(GenericExp)  isGenericExp() { return op == TOK._Generic ? cast(typeof(return))this : null; }
         inout(DefaultInitExp)    isDefaultInitExp() { return isDefaultInitOp(op) ? cast(typeof(return))this: null; }
         inout(FileInitExp)       isFileInitExp() { return (op == TOK.file || op == TOK.fileFullPath) ? cast(typeof(return))this : null; }
         inout(LineInitExp)       isLineInitExp() { return op == TOK.line ? cast(typeof(return))this : null; }
@@ -1780,13 +1775,13 @@ extern (C++) final class IntegerExp : Expression
         this.value = cast(d_int32)value;
     }
 
-    static IntegerExp create(Loc loc, dinteger_t value, Type type)
+    static IntegerExp create(const ref Loc loc, dinteger_t value, Type type)
     {
         return new IntegerExp(loc, value, type);
     }
 
     // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, Loc loc, dinteger_t value, Type type)
+    static void emplace(UnionExp* pue, const ref Loc loc, dinteger_t value, Type type)
     {
         emplaceExp!(IntegerExp)(pue, loc, value, type);
     }
@@ -2051,13 +2046,13 @@ extern (C++) final class RealExp : Expression
         this.type = type;
     }
 
-    static RealExp create(Loc loc, real_t value, Type type)
+    static RealExp create(const ref Loc loc, real_t value, Type type)
     {
         return new RealExp(loc, value, type);
     }
 
     // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, Loc loc, real_t value, Type type)
+    static void emplace(UnionExp* pue, const ref Loc loc, real_t value, Type type)
     {
         emplaceExp!(RealExp)(pue, loc, value, type);
     }
@@ -2126,13 +2121,13 @@ extern (C++) final class ComplexExp : Expression
         //printf("ComplexExp::ComplexExp(%s)\n", toChars());
     }
 
-    static ComplexExp create(Loc loc, complex_t value, Type type)
+    static ComplexExp create(const ref Loc loc, complex_t value, Type type)
     {
         return new ComplexExp(loc, value, type);
     }
 
     // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, Loc loc, complex_t value, Type type)
+    static void emplace(UnionExp* pue, const ref Loc loc, complex_t value, Type type)
     {
         emplaceExp!(ComplexExp)(pue, loc, value, type);
     }
@@ -2202,7 +2197,7 @@ extern (C++) class IdentifierExp : Expression
         this.ident = ident;
     }
 
-    static IdentifierExp create(Loc loc, Identifier ident)
+    static IdentifierExp create(const ref Loc loc, Identifier ident)
     {
         return new IdentifierExp(loc, ident);
     }
@@ -2420,28 +2415,28 @@ extern (C++) final class StringExp : Expression
         this.postfix = postfix;
     }
 
-    static StringExp create(Loc loc, char* s)
+    static StringExp create(const ref Loc loc, const(char)* s)
     {
         return new StringExp(loc, s.toDString());
     }
 
-    static StringExp create(Loc loc, void* string, size_t len)
+    static StringExp create(const ref Loc loc, const(void)* string, size_t len)
     {
         return new StringExp(loc, string[0 .. len]);
     }
 
     // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, Loc loc, char* s)
+    static void emplace(UnionExp* pue, const ref Loc loc, const(char)* s)
     {
         emplaceExp!(StringExp)(pue, loc, s.toDString());
     }
 
-    extern (D) static void emplace(UnionExp* pue, Loc loc, const(void)[] string)
+    extern (D) static void emplace(UnionExp* pue, const ref Loc loc, const(void)[] string)
     {
         emplaceExp!(StringExp)(pue, loc, string);
     }
 
-    extern (D) static void emplace(UnionExp* pue, Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix)
+    extern (D) static void emplace(UnionExp* pue, const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix)
     {
         emplaceExp!(StringExp)(pue, loc, string, len, sz, postfix);
     }
@@ -2862,7 +2857,7 @@ extern (C++) final class TupleExp : Expression
         }
     }
 
-    static TupleExp create(Loc loc, Expressions* exps)
+    static TupleExp create(const ref Loc loc, Expressions* exps)
     {
         return new TupleExp(loc, exps);
     }
@@ -2945,13 +2940,13 @@ extern (C++) final class ArrayLiteralExp : Expression
         this.elements = elements;
     }
 
-    static ArrayLiteralExp create(Loc loc, Expressions* elements)
+    static ArrayLiteralExp create(const ref Loc loc, Expressions* elements)
     {
         return new ArrayLiteralExp(loc, null, elements);
     }
 
     // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, Loc loc, Expressions* elements)
+    static void emplace(UnionExp* pue, const ref Loc loc, Expressions* elements)
     {
         emplaceExp!(ArrayLiteralExp)(pue, loc, null, elements);
     }
@@ -3187,7 +3182,7 @@ extern (C++) final class StructLiteralExp : Expression
         //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
     }
 
-    static StructLiteralExp create(Loc loc, StructDeclaration sd, void* elements, Type stype = null)
+    static StructLiteralExp create(const ref Loc loc, StructDeclaration sd, void* elements, Type stype = null)
     {
         return new StructLiteralExp(loc, sd, cast(Expressions*)elements, stype);
     }
@@ -3531,7 +3526,7 @@ extern (C++) final class NewExp : Expression
         this.arguments = arguments;
     }
 
-    static NewExp create(Loc loc, Expression thisexp, Expressions* newargs, Type newtype, Expressions* arguments)
+    static NewExp create(const ref Loc loc, Expression thisexp, Expressions* newargs, Type newtype, Expressions* arguments)
     {
         return new NewExp(loc, thisexp, newargs, newtype, arguments);
     }
@@ -3652,7 +3647,7 @@ extern (C++) final class VarExp : SymbolExp
         this.type = var.type;
     }
 
-    static VarExp create(Loc loc, Declaration var, bool hasOverloads = true)
+    static VarExp create(const ref Loc loc, Declaration var, bool hasOverloads = true)
     {
         return new VarExp(loc, var, hasOverloads);
     }
@@ -3669,13 +3664,6 @@ extern (C++) final class VarExp : SymbolExp
             }
         }
         return false;
-    }
-
-    override Modifiable checkModifiable(Scope* sc, int flag)
-    {
-        //printf("VarExp::checkModifiable %s", toChars());
-        assert(type);
-        return var.checkModify(loc, sc, null, flag);
     }
 
     override bool isLvalue()
@@ -3971,6 +3959,7 @@ extern (C++) final class FuncExp : Expression
             auto tfy = new TypeFunction(tfx.parameterList, tof.next,
                         tfx.linkage, STC.undefined_);
             tfy.mod = tfx.mod;
+            tfy.trust = tfx.trust;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;
             tfy.purity = tfx.purity;
@@ -4694,6 +4683,7 @@ extern (C++) final class DotIdExp : UnaExp
     Identifier ident;
     bool noderef;       // true if the result of the expression will never be dereferenced
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
+    bool arrow;         // ImportC: if -> instead of .
 
     extern (D) this(const ref Loc loc, Expression e, Identifier ident)
     {
@@ -4701,7 +4691,7 @@ extern (C++) final class DotIdExp : UnaExp
         this.ident = ident;
     }
 
-    static DotIdExp create(Loc loc, Expression e, Identifier ident)
+    static DotIdExp create(const ref Loc loc, Expression e, Identifier ident)
     {
         return new DotIdExp(loc, e, ident);
     }
@@ -4723,6 +4713,18 @@ extern (C++) final class DotTemplateExp : UnaExp
     {
         super(loc, TOK.dotTemplateDeclaration, __traits(classInstanceSize, DotTemplateExp), e);
         this.td = td;
+    }
+
+    override bool checkType()
+    {
+        error("%s `%s` has no type", td.kind(), toChars());
+        return true;
+    }
+
+    override bool checkValue()
+    {
+        error("%s `%s` has no value", td.kind(), toChars());
+        return true;
     }
 
     override void accept(Visitor v)
@@ -4747,81 +4749,6 @@ extern (C++) final class DotVarExp : UnaExp
         //printf("DotVarExp()\n");
         this.var = var;
         this.hasOverloads = hasOverloads;
-    }
-
-    override Modifiable checkModifiable(Scope* sc, int flag)
-    {
-        //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type.toChars());
-
-        if (e1.op == TOK.this_)
-            return var.checkModify(loc, sc, e1, flag);
-
-        /* https://issues.dlang.org/show_bug.cgi?id=12764
-         * If inside a constructor and an expression of type `this.field.var`
-         * is encountered, where `field` is a struct declaration with
-         * default construction disabled, we must make sure that
-         * assigning to `var` does not imply that `field` was initialized
-         */
-        if (sc.func && sc.func.isCtorDeclaration())
-        {
-            // if inside a constructor scope and e1 of this DotVarExp
-            // is another DotVarExp, then check if the leftmost expression is a `this` identifier
-            if (auto dve = e1.isDotVarExp())
-            {
-                // Iterate the chain of DotVarExp to find `this`
-                // Keep track whether access to fields was limited to union members
-                // s.t. one can initialize an entire struct inside nested unions
-                // (but not its members)
-                bool onlyUnion = true;
-                while (true)
-                {
-                    auto v = dve.var.isVarDeclaration();
-                    assert(v);
-
-                    // Accessing union member?
-                    auto t = v.type.isTypeStruct();
-                    if (!t || !t.sym.isUnionDeclaration())
-                        onlyUnion = false;
-
-                    // Another DotVarExp left?
-                    if (!dve.e1 || dve.e1.op != TOK.dotVariable)
-                        break;
-
-                    dve = cast(DotVarExp) dve.e1;
-                }
-
-                if (dve.e1.op == TOK.this_)
-                {
-                    scope v = dve.var.isVarDeclaration();
-                    /* if v is a struct member field with no initializer, no default construction
-                     * and v wasn't intialized before
-                     */
-                    if (v && v.isField() && !v._init && !v.ctorinit)
-                    {
-                        if (auto ts = v.type.isTypeStruct())
-                        {
-                            if (ts.sym.noDefaultCtor)
-                            {
-                                /* checkModify will consider that this is an initialization
-                                 * of v while it is actually an assignment of a field of v
-                                 */
-                                scope modifyLevel = v.checkModify(loc, sc, dve.e1, flag);
-                                // reflect that assigning a field of v is not initialization of v
-                                // unless v is a (potentially nested) union
-                                if (!onlyUnion)
-                                    v.ctorinit = false;
-                                if (modifyLevel == Modifiable.initialization)
-                                    return Modifiable.yes;
-                                return modifyLevel;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        //printf("\te1 = %s\n", e1.toChars());
-        return e1.checkModifiable(sc, flag);
     }
 
     override bool isLvalue()
@@ -4958,6 +4885,31 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
         return ti.updateTempDecl(sc, s);
     }
 
+    override bool checkType()
+    {
+        // Same logic as ScopeExp.checkType()
+        if (ti.tempdecl &&
+            ti.semantictiargsdone &&
+            ti.semanticRun == PASS.init)
+        {
+            error("partial %s `%s` has no type", ti.kind(), toChars());
+            return true;
+        }
+        return false;
+    }
+
+    override bool checkValue()
+    {
+        if (ti.tempdecl &&
+            ti.semantictiargsdone &&
+            ti.semanticRun == PASS.init)
+
+            error("partial %s `%s` has no value", ti.kind(), toChars());
+        else
+            error("%s `%s` has no value", ti.kind(), ti.toChars());
+        return true;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5056,17 +5008,17 @@ extern (C++) final class CallExp : UnaExp
         this.f = fd;
     }
 
-    static CallExp create(Loc loc, Expression e, Expressions* exps)
+    static CallExp create(const ref Loc loc, Expression e, Expressions* exps)
     {
         return new CallExp(loc, e, exps);
     }
 
-    static CallExp create(Loc loc, Expression e)
+    static CallExp create(const ref Loc loc, Expression e)
     {
         return new CallExp(loc, e);
     }
 
-    static CallExp create(Loc loc, Expression e, Expression earg1)
+    static CallExp create(const ref Loc loc, Expression e, Expression earg1)
     {
         return new CallExp(loc, e, earg1);
     }
@@ -5078,7 +5030,7 @@ extern (C++) final class CallExp : UnaExp
     *       fd    = the declaration of the function to call
     *       earg1 = the function argument
     */
-    static CallExp create(Loc loc, FuncDeclaration fd, Expression earg1)
+    static CallExp create(const ref Loc loc, FuncDeclaration fd, Expression earg1)
     {
         return new CallExp(loc, fd, earg1);
     }
@@ -5223,19 +5175,6 @@ extern (C++) final class PtrExp : UnaExp
         type = t;
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
-    {
-        if (auto se = e1.isSymOffExp())
-        {
-            return se.var.checkModify(loc, sc, null, flag);
-        }
-        else if (auto ae = e1.isAddrExp())
-        {
-            return ae.e1.checkModifiable(sc, flag);
-        }
-        return Modifiable.yes;
-    }
-
     override bool isLvalue()
     {
         return true;
@@ -5249,6 +5188,19 @@ extern (C++) final class PtrExp : UnaExp
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type.toChars());
+        Declaration var;
+        if (auto se = e1.isSymOffExp())
+            var = se.var;
+        else if (auto ve = e1.isVarExp())
+            var = ve.var;
+        if (var && var.type.isFunction_Delegate_PtrToFunction())
+        {
+            if (var.type.isTypeFunction())
+                error("function `%s` is not an lvalue and cannot be modified", var.toChars());
+            else
+                error("function pointed to by `%s` is not an lvalue and cannot be modified", var.toChars());
+            return ErrorExp.get();
+        }
         return Expression.modifiableLvalue(sc, e);
     }
 
@@ -5413,13 +5365,13 @@ extern (C++) final class VectorExp : UnaExp
         to = cast(TypeVector)t;
     }
 
-    static VectorExp create(Loc loc, Expression e, Type t)
+    static VectorExp create(const ref Loc loc, Expression e, Type t)
     {
         return new VectorExp(loc, e, t);
     }
 
     // Same as create, but doesn't allocate memory.
-    static void emplace(UnionExp* pue, Loc loc, Expression e, Type type)
+    static void emplace(UnionExp* pue, const ref Loc loc, Expression e, Type type)
     {
         emplaceExp!(VectorExp)(pue, loc, e, type);
     }
@@ -5499,16 +5451,6 @@ extern (C++) final class SliceExp : UnaExp
         auto se = new SliceExp(loc, e1.syntaxCopy(), lwr ? lwr.syntaxCopy() : null, upr ? upr.syntaxCopy() : null);
         se.lengthVar = this.lengthVar; // bug7871
         return se;
-    }
-
-    override Modifiable checkModifiable(Scope* sc, int flag)
-    {
-        //printf("SliceExp::checkModifiable %s\n", toChars());
-        if (e1.type.ty == Tsarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
-        {
-            return e1.checkModifiable(sc, flag);
-        }
-        return Modifiable.yes;
     }
 
     override bool isLvalue()
@@ -5644,11 +5586,6 @@ extern (C++) final class CommaExp : BinExp
     {
         super(loc, TOK.comma, __traits(classInstanceSize, CommaExp), e1, e2);
         allowCommaExp = isGenerated = generated;
-    }
-
-    override Modifiable checkModifiable(Scope* sc, int flag)
-    {
-        return e2.checkModifiable(sc, flag);
     }
 
     override bool isLvalue()
@@ -5822,18 +5759,6 @@ extern (C++) final class IndexExp : BinExp
         auto ie = new IndexExp(loc, e1.syntaxCopy(), e2.syntaxCopy());
         ie.lengthVar = this.lengthVar; // bug7871
         return ie;
-    }
-
-    override Modifiable checkModifiable(Scope* sc, int flag)
-    {
-        if (e1.type.ty == Tsarray ||
-            e1.type.ty == Taarray ||
-            (e1.op == TOK.index && e1.type.ty != Tarray) ||
-            e1.op == TOK.slice)
-        {
-            return e1.checkModifiable(sc, flag);
-        }
-        return Modifiable.yes;
     }
 
     override bool isLvalue()
@@ -6618,14 +6543,6 @@ extern (C++) final class CondExp : BinExp
         return new CondExp(loc, econd.syntaxCopy(), e1.syntaxCopy(), e2.syntaxCopy());
     }
 
-    override Modifiable checkModifiable(Scope* sc, int flag)
-    {
-        if (e1.checkModifiable(sc, flag) != Modifiable.no
-            && e2.checkModifiable(sc, flag) != Modifiable.no)
-            return Modifiable.yes;
-        return Modifiable.no;
-    }
-
     override bool isLvalue()
     {
         return e1.isLvalue() && e2.isLvalue();
@@ -6920,5 +6837,183 @@ extern (C++) final class ObjcClassReferenceExp : Expression
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+/*******************
+ * C11 6.5.1.1 Generic Selection
+ * For ImportC
+ */
+extern (C++) final class GenericExp : Expression
+{
+    Expression cntlExp; /// controlling expression of a generic selection (not evaluated)
+    Types* types;       /// type-names for generic associations (null entry for `default`)
+    Expressions* exps;  /// 1:1 mapping of typeNames to exps
+
+    extern (D) this(const ref Loc loc, Expression cntlExp, Types* types, Expressions* exps)
+    {
+        super(loc, TOK._Generic, __traits(classInstanceSize, GenericExp));
+        this.cntlExp = cntlExp;
+        this.types = types;
+        this.exps = exps;
+        assert(types.length == exps.length);  // must be the same and >=1
+    }
+
+    override GenericExp syntaxCopy()
+    {
+        return new GenericExp(loc, cntlExp.syntaxCopy(), Type.arraySyntaxCopy(types), Expression.arraySyntaxCopy(exps));
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***************************************
+ * Parameters:
+ *      sc:     scope
+ *      flag:   1: do not issue error message for invalid modification
+                2: the exp is a DotVarExp and a subfield of the leftmost
+                   variable is modified
+ * Returns:
+ *      Whether the type is modifiable
+ */
+extern(D) Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyFlags.none)
+{
+    switch(exp.op)
+    {
+        case TOK.variable:
+            auto varExp = cast(VarExp)exp;
+
+            //printf("VarExp::checkModifiable %s", varExp.toChars());
+            assert(varExp.type);
+            return varExp.var.checkModify(varExp.loc, sc, null, flag);
+
+        case TOK.dotVariable:
+            auto dotVarExp = cast(DotVarExp)exp;
+
+            //printf("DotVarExp::checkModifiable %s %s\n", dotVarExp.toChars(), dotVarExp.type.toChars());
+            if (dotVarExp.e1.op == TOK.this_)
+                return dotVarExp.var.checkModify(dotVarExp.loc, sc, dotVarExp.e1, flag);
+
+            /* https://issues.dlang.org/show_bug.cgi?id=12764
+             * If inside a constructor and an expression of type `this.field.var`
+             * is encountered, where `field` is a struct declaration with
+             * default construction disabled, we must make sure that
+             * assigning to `var` does not imply that `field` was initialized
+             */
+            if (sc.func && sc.func.isCtorDeclaration())
+            {
+                // if inside a constructor scope and e1 of this DotVarExp
+                // is another DotVarExp, then check if the leftmost expression is a `this` identifier
+                if (auto dve = dotVarExp.e1.isDotVarExp())
+                {
+                    // Iterate the chain of DotVarExp to find `this`
+                    // Keep track whether access to fields was limited to union members
+                    // s.t. one can initialize an entire struct inside nested unions
+                    // (but not its members)
+                    bool onlyUnion = true;
+                    while (true)
+                    {
+                        auto v = dve.var.isVarDeclaration();
+                        assert(v);
+
+                        // Accessing union member?
+                        auto t = v.type.isTypeStruct();
+                        if (!t || !t.sym.isUnionDeclaration())
+                            onlyUnion = false;
+
+                        // Another DotVarExp left?
+                        if (!dve.e1 || dve.e1.op != TOK.dotVariable)
+                            break;
+
+                        dve = cast(DotVarExp) dve.e1;
+                    }
+
+                    if (dve.e1.op == TOK.this_)
+                    {
+                        scope v = dve.var.isVarDeclaration();
+                        /* if v is a struct member field with no initializer, no default construction
+                         * and v wasn't intialized before
+                         */
+                        if (v && v.isField() && !v._init && !v.ctorinit)
+                        {
+                            if (auto ts = v.type.isTypeStruct())
+                            {
+                                if (ts.sym.noDefaultCtor)
+                                {
+                                    /* checkModify will consider that this is an initialization
+                                     * of v while it is actually an assignment of a field of v
+                                     */
+                                    scope modifyLevel = v.checkModify(dotVarExp.loc, sc, dve.e1, !onlyUnion ? (flag | ModifyFlags.fieldAssign) : flag);
+                                    if (modifyLevel == Modifiable.initialization)
+                                    {
+                                        // https://issues.dlang.org/show_bug.cgi?id=22118
+                                        // v is a union type field that was assigned
+                                        // a variable, therefore it counts as initialization
+                                        if (v.ctorinit)
+                                            return Modifiable.initialization;
+
+                                        return Modifiable.yes;
+                                    }
+                                    return modifyLevel;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            //printf("\te1 = %s\n", e1.toChars());
+            return dotVarExp.e1.checkModifiable(sc, flag);
+
+        case TOK.star:
+            auto ptrExp = cast(PtrExp)exp;
+            if (auto se = ptrExp.e1.isSymOffExp())
+            {
+                return se.var.checkModify(ptrExp.loc, sc, null, flag);
+            }
+            else if (auto ae = ptrExp.e1.isAddrExp())
+            {
+                return ae.e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case TOK.slice:
+            auto sliceExp = cast(SliceExp)exp;
+
+            //printf("SliceExp::checkModifiable %s\n", sliceExp.toChars());
+            auto e1 = sliceExp.e1;
+            if (e1.type.ty == Tsarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
+            {
+                return e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case TOK.comma:
+            return (cast(CommaExp)exp).e2.checkModifiable(sc, flag);
+
+        case TOK.index:
+            auto indexExp = cast(IndexExp)exp;
+            auto e1 = indexExp.e1;
+            if (e1.type.ty == Tsarray ||
+                e1.type.ty == Taarray ||
+                (e1.op == TOK.index && e1.type.ty != Tarray) ||
+                e1.op == TOK.slice)
+            {
+                return e1.checkModifiable(sc, flag);
+            }
+            return Modifiable.yes;
+
+        case TOK.question:
+            auto condExp = cast(CondExp)exp;
+            if (condExp.e1.checkModifiable(sc, flag) != Modifiable.no
+                && condExp.e2.checkModifiable(sc, flag) != Modifiable.no)
+                return Modifiable.yes;
+            return Modifiable.no;
+
+        default:
+            return exp.type ? Modifiable.yes : Modifiable.no; // default modifiable
     }
 }

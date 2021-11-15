@@ -44,7 +44,7 @@ import dmd.mtype;
 import dmd.nspace;
 import dmd.parse;
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.statement;
@@ -909,6 +909,12 @@ public:
 
     override void visit(AttribDeclaration d)
     {
+        bool hasSTC;
+        if (auto stcd = d.isStorageClassDeclaration)
+        {
+            hasSTC = stcToBuffer(buf, stcd.stc);
+        }
+
         if (!d.decl)
         {
             buf.writeByte(';');
@@ -918,10 +924,12 @@ public:
         if (d.decl.dim == 0 || (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration()))
         {
             // hack for bugzilla 8081
+            if (hasSTC) buf.writeByte(' ');
             buf.writestring("{}");
         }
         else if (d.decl.dim == 1)
         {
+            if (hasSTC) buf.writeByte(' ');
             (*d.decl)[0].accept(this);
             return;
         }
@@ -941,8 +949,6 @@ public:
 
     override void visit(StorageClassDeclaration d)
     {
-        if (stcToBuffer(buf, d.stc))
-            buf.writeByte(' ');
         visit(cast(AttribDeclaration)d);
     }
 
@@ -995,16 +1001,21 @@ public:
 
     override void visit(AlignDeclaration d)
     {
-        buf.writestring("align ");
-        if (d.ealign)
+        if (d.exps)
         {
-            buf.printf("(%s)", d.ealign.toChars());
-            AttribDeclaration ad = cast(AttribDeclaration)d;
-            if (ad.decl && ad.decl.dim < 2)
+            foreach (i, exp; (*d.exps)[])
+            {
+                if (i)
+                    buf.writeByte(' ');
+                buf.printf("align (%s)", exp.toChars());
+            }
+            if (d.decl && d.decl.dim < 2)
                 buf.writeByte(' ');
         }
+        else
+            buf.writestring("align ");
 
-        visit(cast(AttribDeclaration)d);
+        visit(d.isAttribDeclaration());
     }
 
     override void visit(AnonDeclaration d)
@@ -1319,11 +1330,10 @@ public:
         if (d.ident)
         {
             buf.writestring(d.ident.toString());
-            buf.writeByte(' ');
         }
         if (d.memtype)
         {
-            buf.writestring(": ");
+            buf.writestring(" : ");
             typeToBuffer(d.memtype, null, buf, hgs);
         }
         if (!d.members)
@@ -1759,6 +1769,18 @@ public:
             buf.writeByte(' ');
         buf.writestring("unittest");
         bodyToBuffer(d);
+    }
+
+    override void visit(BitFieldDeclaration d)
+    {
+        if (stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
+        Identifier id = d.isAnonymous() ? null : d.ident;
+        typeToBuffer(d.type, id, buf, hgs);
+        buf.writestring(" : ");
+        d.width.expressionToBuffer(buf, hgs);
+        buf.writeByte(';');
+        buf.writenl();
     }
 
     override void visit(NewDeclaration d)
@@ -2345,7 +2367,10 @@ public:
     override void visit(DotIdExp e)
     {
         expToBuffer(e.e1, PREC.primary, buf, hgs);
-        buf.writeByte('.');
+        if (e.arrow)
+            buf.writestring("->");
+        else
+            buf.writeByte('.');
         buf.writestring(e.ident.toString());
     }
 
@@ -2766,11 +2791,39 @@ void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 
 bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
+    //printf("stc: %llx\n", stc);
     bool result = false;
-    if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
-        stc &= ~STC.scope_;
+
     if (stc & STC.scopeinferred)
         stc &= ~(STC.scope_ | STC.scopeinferred);
+    if (stc & STC.returninferred)
+        stc &= ~(STC.return_ | STC.returninferred);
+
+    /* Put scope ref return into a standard order
+     */
+    string rrs;
+    const isout = (stc & STC.out_) != 0;
+    //printf("bsr = %d %llx\n", buildScopeRef(stc), stc);
+    final switch (buildScopeRef(stc))
+    {
+        case ScopeRef.None:
+        case ScopeRef.Scope:
+        case ScopeRef.Ref:
+        case ScopeRef.Return:
+            break;
+
+        case ScopeRef.ReturnScope:      rrs = "return scope"; goto L1;
+        case ScopeRef.ReturnRef:        rrs = isout ? "return out"       : "return ref";       goto L1;
+        case ScopeRef.RefScope:         rrs = isout ? "out scope"        : "ref scope";        goto L1;
+        case ScopeRef.ReturnRef_Scope:  rrs = isout ? "return out scope" : "return ref scope"; goto L1;
+        case ScopeRef.Ref_ReturnScope:  rrs = isout ? "out return scope" : "ref return scope"; goto L1;
+        L1:
+            buf.writestring(rrs);
+            result = true;
+            stc &= ~(STC.out_ | STC.scope_ | STC.ref_ | STC.return_);
+            break;
+    }
+
     while (stc)
     {
         const s = stcToString(stc);
@@ -2781,6 +2834,7 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc)
         result = true;
         buf.writestring(s);
     }
+
     return result;
 }
 
@@ -2838,7 +2892,7 @@ string stcToString(ref StorageClass stc)
     foreach (ref entry; table)
     {
         const StorageClass tbl = entry.stc;
-        assert(tbl & STCStorageClass);
+        assert(tbl & STC.visibleStorageClasses);
         if (stc & tbl)
         {
             stc &= ~tbl;
@@ -3102,28 +3156,24 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     }
     if (p.storageClass & STC.auto_)
         buf.writestring("auto ");
-    if (p.storageClass & STC.return_)
-        buf.writestring("return ");
 
+    StorageClass stc = p.storageClass;
     if (p.storageClass & STC.in_)
+    {
         buf.writestring("in ");
-    else if (global.params.previewIn && p.storageClass & STC.ref_)
-        buf.writestring("ref ");
-    else if (p.storageClass & STC.out_)
-        buf.writestring("out ");
+        if (global.params.previewIn && p.storageClass & STC.ref_)
+            stc &= ~STC.ref_;
+    }
     else if (p.storageClass & STC.lazy_)
         buf.writestring("lazy ");
     else if (p.storageClass & STC.alias_)
         buf.writestring("alias ");
 
-    if (!global.params.previewIn && p.storageClass & STC.ref_)
-        buf.writestring("ref ");
-
-    StorageClass stc = p.storageClass;
     if (p.type && p.type.mod & MODFlags.shared_)
         stc &= ~STC.shared_;
 
-    if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.scope_ | STC.scopeinferred)))
+    if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ |
+        STC.return_ | STC.returninferred | STC.scope_ | STC.scopeinferred | STC.out_ | STC.ref_ | STC.returnScope)))
         buf.writeByte(' ');
 
     if (p.storageClass & STC.alias_)

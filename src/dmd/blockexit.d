@@ -26,7 +26,6 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.statement;
 import dmd.tokens;
-import dmd.typesem;
 import dmd.visitor;
 
 /**
@@ -109,7 +108,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                         return;
                     }
                 }
-                if (s.exp.type.toBasetype().isTypeNoreturn())
+                if (s.exp.type && s.exp.type.toBasetype().isTypeNoreturn())
                     result = BE.halt;
                 if (canThrow(s.exp, func, mustNotThrow))
                     result |= BE.throw_;
@@ -147,7 +146,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                             else if (sd && (!sd.statement.hasCode() || sd.statement.isCaseStatement() || sd.statement.isErrorStatement()))
                             {
                             }
-                            else
+                            else if (!func.getModule().isCFile)
                             {
                                 const(char)* gototype = s.isCaseStatement() ? "case" : "default";
                                 s.deprecation("switch case fallthrough - use 'goto %s;' if intended", gototype);

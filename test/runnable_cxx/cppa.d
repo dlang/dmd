@@ -2,7 +2,8 @@
 // EXTRA_CPP_SOURCES: cppb.cpp
 // EXTRA_FILES: extra-files/cppb.h
 // CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
-
+// druntime isn't linked, this prevents missing symbols '_d_arraybounds_slicep':
+// REQUIRED_ARGS: -checkaction=C
 // Filter a spurious warning on Semaphore:
 // TRANSFORM_OUTPUT: remove_lines("warning: relocation refers to discarded section")
 

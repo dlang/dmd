@@ -67,7 +67,7 @@ import dmd.initsem;
 import dmd.mtype;
 import dmd.opover;
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
@@ -985,9 +985,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 buf.writenl();
                 buf.writestring("       ");
             }
-            buf.write((*parameters)[i]);
+            write(buf, (*parameters)[i]);
             buf.writestring(" = ");
-            buf.write(tiargs[i]);
+            write(buf, tiargs[i]);
         }
         // write remaining variadic arguments on the last line
         if (variadic)
@@ -998,16 +998,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 buf.writenl();
                 buf.writestring("       ");
             }
-            buf.write((*parameters)[end]);
+            write(buf, (*parameters)[end]);
             buf.writestring(" = ");
             buf.writeByte('(');
             if (cast(int)tiargs.length - end > 0)
             {
-                buf.write(tiargs[end]);
+                write(buf, tiargs[end]);
                 foreach (j; parameters.length .. tiargs.length)
                 {
                     buf.writestring(", ");
-                    buf.write(tiargs[j]);
+                    write(buf, tiargs[j]);
                 }
             }
             buf.writeByte(')');
@@ -1919,8 +1919,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             /* If a semantic error occurs while doing alias this,
                              * eg purity(https://issues.dlang.org/show_bug.cgi?id=7295),
                              * just regard it as not a match.
-                             */
-                            if (auto e = resolveAliasThis(sc, farg, true))
+                             *
+                             * We also save/restore sc.func.flags to avoid messing up
+                             * attribute inference in the evaluation.
+                            */
+                            const oldflags = sc.func ? sc.func.flags : 0;
+                            auto e = resolveAliasThis(sc, farg, true);
+                            if (sc.func)
+                                sc.func.flags = oldflags;
+                            if (e)
                             {
                                 farg = e;
                                 goto Lretry;
@@ -2404,7 +2411,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             // For constructors, emitting return type is necessary for
             // isReturnIsolated() in functionResolve.
-            scx.flags |= SCOPE.ctor;
+            tf.isctor = true;
 
             Dsymbol parent = toParentDecl();
             Type tret;
@@ -2742,17 +2749,17 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         if (!m.lastf.type.equals(fd.type))
         {
             //printf("cov: %d %d\n", m.lastf.type.covariant(fd.type), fd.type.covariant(m.lastf.type));
-            const int lastCovariant = m.lastf.type.covariant(fd.type);
-            const int firstCovariant = fd.type.covariant(m.lastf.type);
+            const lastCovariant = m.lastf.type.covariant(fd.type);
+            const firstCovariant = fd.type.covariant(m.lastf.type);
 
-            if (lastCovariant == 1 || lastCovariant == 2)
+            if (lastCovariant == Covariant.yes || lastCovariant == Covariant.no)
             {
-                if (firstCovariant != 1 && firstCovariant != 2)
+                if (firstCovariant != Covariant.yes && firstCovariant != Covariant.no)
                 {
                     goto LlastIsBetter;
                 }
             }
-            else if (firstCovariant == 1 || firstCovariant == 2)
+            else if (firstCovariant == Covariant.yes || firstCovariant == Covariant.no)
             {
                 goto LfIsBetter;
             }
@@ -5340,7 +5347,7 @@ extern (C++) class TemplateParameter : ASTNode
 
     abstract RootObject specialization();
 
-    abstract RootObject defaultArg(Loc instLoc, Scope* sc);
+    abstract RootObject defaultArg(const ref Loc instLoc, Scope* sc);
 
     abstract bool hasDefaultArg();
 
@@ -5422,7 +5429,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         return specType;
     }
 
-    override final RootObject defaultArg(Loc instLoc, Scope* sc)
+    override final RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         Type t = defaultType;
         if (t)
@@ -5541,7 +5548,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return specValue;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         Expression e = defaultValue;
         if (e)
@@ -5640,7 +5647,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return specAlias;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
         Type ta = isType(defaultAlias);
@@ -5741,7 +5748,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         return null;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         return null;
     }
@@ -7670,13 +7677,13 @@ extern (C++) final class TemplateMixin : TemplateInstance
         return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
         //printf("TemplateMixin.setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
             dsymbolSemantic(this, null); // try to resolve it
 
-        members.foreachDsymbol( (s) { s.setFieldOffset(ad, poffset, isunion); } );
+        members.foreachDsymbol( (s) { s.setFieldOffset(ad, fieldState, isunion); } );
     }
 
     override const(char)* toChars() const
@@ -8411,5 +8418,13 @@ private struct MATCHpair
         assert(MATCH.min <= mfa && mfa <= MATCH.max);
         this.mta = mta;
         this.mfa = mfa;
+    }
+}
+
+private void write(ref OutBuffer buf, RootObject obj)
+{
+    if (obj)
+    {
+        buf.writestring(obj.toChars());
     }
 }

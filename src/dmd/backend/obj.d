@@ -20,7 +20,8 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.el;
-import dmd.backend.outbuf;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -43,7 +44,7 @@ else
 
 /* Functions common to all object formats
  */
-mixin(ObjMemDecl("Obj $Obj_init(Outbuffer *, const(char)* filename, const(char)* csegname)"));
+mixin(ObjMemDecl("Obj $Obj_init(OutBuffer *, const(char)* filename, const(char)* csegname)"));
 mixin(ObjMemDecl("void $Obj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)"));
 mixin(ObjMemDecl("void $Obj_termfile()"));
 mixin(ObjMemDecl("void $Obj_term(const(char)* objfilename)"));
@@ -141,7 +142,7 @@ int ElfObj_fardata(char *name, targ_size_t size, targ_size_t* poffset);
 void ElfObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
 void ElfObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
 void ElfObj_gotref(Symbol* s);
-uint ElfObj_addstr(Outbuffer* strtab, const(char)*);
+uint ElfObj_addstr(OutBuffer* strtab, const(char)*);
 Symbol* ElfObj_getGOTsym();
 void ElfObj_refGOTsym();
 int ElfObj_getsegment(const(char)* sectname, const(char)* suffix, int type, int flags, int align_);
@@ -160,7 +161,7 @@ int MachObj_fardata(char *name, targ_size_t size, targ_size_t *poffset);
 void MachObj_ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2);
 void MachObj_reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags);
 void MachObj_gotref(Symbol *s);
-uint MachObj_addstr(Outbuffer *strtab, const(char)* );
+uint MachObj_addstr(OutBuffer *strtab, const(char)* );
 Symbol* MachObj_getGOTsym();
 void MachObj_refGOTsym();
 int MachObj_getsegment(const(char)* sectname, const(char)* segname, int align_, int flags);
@@ -190,7 +191,7 @@ else
       {
         nothrow:
 
-        Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
+        Obj init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
             mixin(genRetVal("init(objbuf, filename, csegname)"));
         }
@@ -570,7 +571,7 @@ else
             return OmfObj_write_long(seg, offset, data, lcfd, idx1, idx2);
         }
 
-        uint addstr(Outbuffer *strtab, const(char)* p)
+        uint addstr(OutBuffer *strtab, const(char)* p)
         {
             switch (config.objfmt)
             {

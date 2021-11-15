@@ -33,7 +33,6 @@ import dmd.root.ctfloat;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.tokens;
-import dmd.typesem;
 import dmd.visitor;
 
 
@@ -686,9 +685,15 @@ bool isSafePointerCast(Type srcPointee, Type destPointee)
     // It's OK if both are the same (modulo const)
     if (srcPointee.constConv(destPointee))
         return true;
+
+    // It's ok to cast from/to shared because CTFE is single threaded anyways
+    if (srcPointee.unSharedOf() == destPointee.unSharedOf())
+        return true;
+
     // It's OK if function pointers differ only in safe/pure/nothrow
     if (srcPointee.ty == Tfunction && destPointee.ty == Tfunction)
-        return srcPointee.covariant(destPointee) == 1 || destPointee.covariant(srcPointee) == 1;
+        return srcPointee.covariant(destPointee) == Covariant.yes ||
+            destPointee.covariant(srcPointee) == Covariant.yes;
     // it's OK to cast to void*
     if (destPointee.ty == Tvoid)
         return true;

@@ -1,4 +1,6 @@
 /**
+ * Declarations for back end
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -422,10 +424,10 @@ void compdfo();
 /* debug.c */
 extern __gshared const(char)*[32] regstring;
 
-void WRclass(int c);
-void WRTYxx(tym_t t);
-void WROP(uint oper);
-void WRBC(uint bc);
+@trusted const(char)* class_str(SC c);
+@trusted const(char)* tym_str(tym_t ty);
+@trusted const(char)* oper_str(uint oper);
+@trusted const(char)* bc_str(uint bc);
 void WRarglst(list_t a);
 void WRblock(block *b);
 void WRblocklist(list_t bl);

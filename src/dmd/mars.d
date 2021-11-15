@@ -38,6 +38,7 @@ import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
+import dmd.file_manager;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -57,7 +58,7 @@ import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.man;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.response;
 import dmd.root.rmem;
 import dmd.root.string;
@@ -300,8 +301,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module._init();
     Expression._init();
     Objc._init();
-    import dmd.filecache : FileCache;
-    FileCache._init();
 
     reconcileLinkRunLib(params, files.dim);
     version(CRuntime_Microsoft)
@@ -352,23 +351,17 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.path = buildPath(params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
-    if (params.addMain)
-        files.push("__main.d");
     // Create Modules
     Modules modules = createModules(files, libmodules);
     // Read files
-    // Start by "reading" the special files (__main.d, __stdin.d)
+    // Start by "reading" the special file __stdin.d
     foreach (m; modules)
     {
-        if (params.addMain && m.srcfile.toString() == "__main.d")
-        {
-            auto data = arraydup("int main(){return 0;}\0\0\0\0"); // need 2 trailing nulls for sentinel and 2 for lexer
-            m.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-4]);
-        }
-        else if (m.srcfile.toString() == "__stdin.d")
+        if (m.srcfile.toString() == "__stdin.d")
         {
             auto buffer = readFromStdin();
             m.srcBuffer = new FileBuffer(buffer.extractSlice());
+            FileManager.fileManager.add(m.srcfile, m.srcBuffer);
         }
     }
 
@@ -597,6 +590,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         error(Loc.initial, "no input files");
         return EXIT_FAILURE;
     }
+
+    if (params.addMain && !global.hasMainFunction)
+        modules.push(moduleWithEmptyMain());
 
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
                          params.lib, params.obj, params.oneobj, params.multiobj,
@@ -1245,6 +1241,10 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
         VersionCondition.addPredefinedGlobalIdent("unittest");
     if (params.useAssert == CHECKENABLE.on)
         VersionCondition.addPredefinedGlobalIdent("assert");
+    if (params.useIn == CHECKENABLE.on)
+        VersionCondition.addPredefinedGlobalIdent("D_PreConditions");
+    if (params.useOut == CHECKENABLE.on)
+        VersionCondition.addPredefinedGlobalIdent("D_PostConditions");
     if (params.useArrayBounds == CHECKENABLE.off)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     if (params.betterC)
@@ -2812,4 +2812,20 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         }
     }
     return modules;
+}
+
+/// Returns: a compiled module (semantic3) containing an empty main() function, for the -main flag
+Module moduleWithEmptyMain()
+{
+    auto result = new Module("__main.d", Identifier.idPool("__main"), false, false);
+    // need 2 trailing nulls for sentinel and 2 for lexer
+    auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
+    result.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-4]);
+    result.parse();
+    result.importedFrom = result;
+    result.importAll(null);
+    result.dsymbolSemantic(null);
+    result.semantic2(null);
+    result.semantic3(null);
+    return result;
 }

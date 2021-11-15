@@ -22,7 +22,7 @@ import dmd.identifier;
 import dmd.lexer;
 import dmd.errors;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
@@ -100,6 +100,7 @@ immutable PREC[TOK.max + 1] precedence =
     TOK.overloadSet : PREC.primary,
     TOK.void_ : PREC.primary,
     TOK.vectorArray : PREC.primary,
+    TOK._Generic : PREC.primary,
 
     // post
     TOK.dotTemplateInstance : PREC.primary,
@@ -555,6 +556,9 @@ class Parser(AST) : Lexer
                     {
                     case TOK.leftParenthesis:
                         {
+                            // MixinType
+                            if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
+                                goto Ldeclaration;
                             // mixin(string)
                             nextToken();
                             auto exps = parseArguments();
@@ -2953,6 +2957,8 @@ class Parser(AST) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
+                    if (global.params.vin)
+                        message(scanloc, "Usage of 'in' on parameter");
                     stc = STC.in_;
                     goto L2;
 
@@ -3790,7 +3796,7 @@ class Parser(AST) : Lexer
             loc = token.loc;
             nextToken();
             if (token.value != TOK.leftParenthesis)
-                error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParenthesis), "`mixin`".ptr);
+                error("found `%s` when expecting `%s` following `mixin`", token.toChars(), Token.toChars(TOK.leftParenthesis));
             auto exps = parseArguments();
             t = new AST.TypeMixin(loc, exps);
             break;
@@ -5407,6 +5413,11 @@ class Parser(AST) : Lexer
                     stc = STC.scope_;
                     goto Lagain;
 
+                case TOK.out_:
+                    error("cannot declare `out` loop variable, use `ref` instead");
+                    stc = STC.out_;
+                    goto Lagain;
+
                 case TOK.enum_:
                     stc = STC.manifest;
                     goto Lagain;
@@ -5557,6 +5568,10 @@ LagainStc:
         {
         case TOK.ref_:
             stc = STC.ref_;
+            goto LagainStc;
+
+        case TOK.scope_:
+            stc = STC.scope_;
             goto LagainStc;
 
         case TOK.auto_:
@@ -8328,7 +8343,7 @@ LagainStc:
                 // https://dlang.org/spec/expression.html#mixin_expressions
                 nextToken();
                 if (token.value != TOK.leftParenthesis)
-                    error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParenthesis), "`mixin`".ptr);
+                    error("found `%s` when expecting `%s` following `mixin`", token.toChars(), Token.toChars(TOK.leftParenthesis));
                 auto exps = parseArguments();
                 e = new AST.MixinExp(loc, exps);
                 break;

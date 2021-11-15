@@ -90,6 +90,7 @@ public:
     void visit(AST.ClassDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
     void visit(AST.InterfaceDeclaration s) { visit(cast(AST.ClassDeclaration)s); }
     void visit(AST.TemplateMixin s) { visit(cast(AST.TemplateInstance)s); }
+    void visit(AST.BitFieldDeclaration s) { visit(cast(AST.VarDeclaration)s); }
 
     //============================================================================================
     // Statements
@@ -199,6 +200,7 @@ public:
     void visit(AST.SymbolExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.TupleExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ThisExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.GenericExp e) { visit(cast(AST.Expression)e); }
 
     // Miscellaneous
     void visit(AST.VarExp e) { visit(cast(AST.SymbolExp)e); }

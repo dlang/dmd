@@ -12,10 +12,6 @@
 
 module dmd.backend.blockopt;
 
-/****************************************************************
- * Handle basic blocks.
- */
-
 version (SPP) {} else
 {
 
@@ -264,7 +260,7 @@ void block_pred()
 
     for (block *b = startblock; b; b = b.Bnext)       // for each block
     {
-        //printf("b = %p, BC = ",b); WRBC(b.BC); printf("\n");
+        //printf("b = %p, BC = %s\n", b, bc_str(b.BC));
         foreach (bp; ListRange(b.Bsucc))
         {                               /* for each successor to b      */
             //printf("\tbs = %p\n",list_block(bp));

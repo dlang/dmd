@@ -179,8 +179,16 @@ __gshared VecGlobal vecGlobal;
 
 private pure vec_base_t MASK(uint b) { return cast(vec_base_t)1 << (b & VECMASK); }
 
+/****
+ * Returns:
+ *      number of bits in the vector
+ */
 @trusted
 pure ref inout(vec_base_t) vec_numbits(inout vec_t v) { return v[-1]; }
+/****
+ * Returns:
+ *      number of bytes in the vector
+ */
 @trusted
 pure ref inout(vec_base_t) vec_dim(inout vec_t v) { return v[-2]; }
 
@@ -362,6 +370,24 @@ size_t vec_index(size_t b, const vec_t vec)
         }
     }
     return vec_numbits(vec);
+}
+
+/********************************
+ * Count number of set bits in vector `v`
+ * Params:
+ *      v = vector
+ * Returns:
+ *      number of set bits
+ */
+@safe
+pure
+uint vec_numBitsSet(const vec_t vec)
+{
+    uint n = 0;
+    size_t length = vec_numbits(vec);
+    for (size_t i = 0; (i = vec_index(i, vec)) < length; ++i)
+        ++n;
+    return n;
 }
 
 /********************************
@@ -616,6 +642,26 @@ void vec_clearextrabits(vec_t v)
     const n = vec_numbits(v);
     if (n & VECMASK)
         v[vec_dim(v) - 1] &= MASK(cast(uint)n) - 1;
+}
+
+/**************************************
+ * Turn a vec_t into an InputRange so we can foreach
+ * over each bit in the bit vector.
+ * Replaces
+ *    for (size_t i = 0; (i = vec_index(i, v)) < vec_numbits(v); ++i) { ... }
+ * With
+ *    foreach (i; VecRange(v)) { ... }
+ */
+struct VecRange
+{
+    size_t i;
+    const vec_t v;
+
+  @nogc @safe nothrow pure:
+    this(const vec_t v) { this.v = v; i = vec_index(0, v); }
+    bool empty() const { return i == vec_numbits(v); }
+    size_t front() const { return i; }
+    void popFront() { i = vec_index(i + 1, v); }
 }
 
 /******************
