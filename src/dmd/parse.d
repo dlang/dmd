@@ -6390,8 +6390,17 @@ LagainStc:
                 check(TOK.leftParenthesis);
                 exp = parseExpression();
                 check(TOK.rightParenthesis);
-                _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
-                s = new AST.WithStatement(loc, exp, _body, endloc);
+                bool scopeless;
+                if (token.value == TOK.colon)
+                {
+                    scopeless = true;
+                    nextToken();
+                }
+                else
+                {
+                    _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
+                }
+                s = new AST.WithStatement(loc, exp, _body, endloc, scopeless);
                 break;
             }
         case TOK.try_:

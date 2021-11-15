@@ -260,6 +260,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 continue;
             }
             s = s.statementSemantic(sc);
+            if (s)
+            {
+                if (auto ws = s.isWithStatement())
+                {
+                    if (ws.scopeless)
+                        sc = ws._scope;
+                }
+            }
             (*cs.statements)[i] = s;
             if (!s)
             {
@@ -3925,6 +3933,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 result = ws._body;
                 return;
             }
+        }
+        else
+        {
+            assert(ws.scopeless);
+            sym._scope = sc;
+            sc = sc.push(sym);
+            sc.flags |= SCOPE.doublepop;
+            sc.insert(sym);
+            ws._scope = sc;
         }
 
         result = ws;

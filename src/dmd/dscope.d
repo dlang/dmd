@@ -69,6 +69,8 @@ enum SCOPE
     // The following are mutually exclusive
     printf        = 0x4_0000, /// printf-style function
     scanf         = 0x8_0000, /// scanf-style function
+
+    doublepop     = 0x10_0000, /// for "scope-less" with statements
 }
 
 /// Flags that are carried along with a scope push()
@@ -230,6 +232,10 @@ struct Scope
 
     extern (C++) Scope* pop()
     {
+        if (flags & SCOPE.doublepop)
+        {
+            enclosing = enclosing.enclosing;
+        }
         //printf("Scope::pop() %p nofree = %d\n", this, nofree);
         if (enclosing)
             enclosing.ctorflow.OR(ctorflow);

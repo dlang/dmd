@@ -1525,18 +1525,21 @@ extern (C++) final class WithStatement : Statement
     Statement _body;
     VarDeclaration wthis;
     Loc endloc;
+    bool scopeless;
+    Scope* _scope; // for scopeless with statements
 
-    extern (D) this(const ref Loc loc, Expression exp, Statement _body, Loc endloc)
+    extern (D) this(const ref Loc loc, Expression exp, Statement _body, Loc endloc, bool scopeless)
     {
         super(loc, STMT.With);
         this.exp = exp;
         this._body = _body;
         this.endloc = endloc;
+        this.scopeless = scopeless;
     }
 
     override WithStatement syntaxCopy()
     {
-        return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc, scopeless);
     }
 
     override void accept(Visitor v)
