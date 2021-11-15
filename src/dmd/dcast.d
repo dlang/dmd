@@ -1728,6 +1728,11 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     }
                     const fsize = t1b.nextOf().size();
                     const tsize = tob.nextOf().size();
+                    if (fsize == SIZE_INVALID || tsize == SIZE_INVALID)
+                    {
+                        result = ErrorExp.get();
+                        return;
+                    }
                     if (fsize != tsize)
                     {
                         const dim = t1b.isTypeSArray().dim.toInteger();
@@ -1868,6 +1873,13 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             }
 
             StringExp se = e;
+
+            void lcast()
+            {
+                result = new CastExp(e.loc, se, t);
+                result.type = t; // so semantic() won't be run on e
+            }
+
             if (!e.committed)
             {
                 se = cast(StringExp)e.copy();
@@ -1942,7 +1954,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     se = cast(StringExp)e.copy();
                     copied = 1;
                 }
-                goto Lcast;
+                return lcast();
             }
             if (typeb.ty != Tsarray && typeb.ty != Tarray && typeb.ty != Tpointer)
             {
@@ -1951,10 +1963,16 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     se = cast(StringExp)e.copy();
                     copied = 1;
                 }
-                goto Lcast;
+                return lcast();
             }
 
-            if (typeb.nextOf().size() == tb.nextOf().size())
+            const nextSz = typeb.nextOf().size();
+            if (nextSz == SIZE_INVALID)
+            {
+                result = ErrorExp.get();
+                return;
+            }
+            if (nextSz == tb.nextOf().size())
             {
                 if (!copied)
                 {
