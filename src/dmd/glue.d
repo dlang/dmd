@@ -754,8 +754,14 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     /* Make C static functions SCstatic
      */
-    if (fd.storage_class & STC.static_ && fd.isCsymbol())
-        s.Sclass = SCstatic;
+    if (fd.storage_class & STC.static_)
+    {
+        if (Module m = fd.getModule())
+        {
+            if (m.isCFile)
+                s.Sclass = SCstatic;
+        }
+    }
 
     for (Dsymbol p = fd.parent; p; p = p.parent)
     {
