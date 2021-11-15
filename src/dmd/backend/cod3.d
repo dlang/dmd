@@ -8256,4 +8256,51 @@ extern (C) void code_print(code* c)
     printf("\n");
 }
 
+/**************************************
+ * Pretty-print a CF mask.
+ * Params:
+ *      cf = CF mask
+ */
+@trusted
+extern (C) void CF_print(uint cf)
+{
+    void print(uint mask, const(char)* string)
+    {
+        if (cf & mask)
+        {
+            printf(string);
+            cf &= ~mask;
+            if (cf)
+                printf("|");
+        }
+    }
+
+    print(CFindirect, "CFindirect");
+    print(CFswitch, "CFswitch");
+    print(CFjmp5, "CFjmp5");
+    print(CFvex3, "CFvex3");
+    print(CFvex, "CFvex");
+    print(CFpc32, "CFpc32");
+    print(CFoffset64, "CFoffset64");
+    print(CFclassinit, "CFclassinit");
+    print(CFvolatile, "CFvolatile");
+    print(CFtarg2, "CFtarg2");
+    print(CFunambig, "CFunambig");
+    print(CFselfrel, "CFselfrel");
+    print(CFwait, "CFwait");
+    print(CFfs, "CFfs");
+    print(CFcs, "CFcs");
+    print(CFds, "CFds");
+    print(CFss, "CFss");
+    print(CFes, "CFes");
+    print(CFaddrsize, "CFaddrsize");
+    print(CFopsize, "CFopsize");
+    print(CFpsw, "CFpsw");
+    print(CFoff, "CFoff");
+    print(CFseg, "CFseg");
+    print(CFtarg, "CFtarg");
+    print(CFjmp16, "CFjmp16");
+    printf("\n");
+}
+
 }
