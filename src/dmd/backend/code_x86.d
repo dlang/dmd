@@ -290,22 +290,25 @@ enum
     CFoffset64  =  0x40000,     // offset is 64 bits
     CFpc32      =  0x80000,     // I64: PC relative 32 bit fixup
 
-    CFvex       =  0x100000,    // vex prefix
-    CFvex3      =  0x200000,    // 3 byte vex prefix
+    CFvex       =  0x10_0000,    // vex prefix
+    CFvex3      =  0x20_0000,    // 3 byte vex prefix
 
-    CFjmp5      =  0x400000,    // always a 5 byte jmp
-    CFswitch    =  0x800000,    // kludge for switch table fixups
+    CFjmp5      =  0x40_0000,    // always a 5 byte jmp
+    CFswitch    =  0x80_0000,    // kludge for switch table fixups
 
-    CFindirect  = 0x1000000,    // OSX32: indirect fixups
+    CFindirect  = 0x100_0000,    // OSX32: indirect fixups
 
     /* These are for CFpc32 fixups, they're the negative of the offset of the fixup
      * from the program counter
      */
-    CFREL       = 0x7000000,
+    CFREL       = 0x700_0000,
 
     CFSEG       = CFes | CFss | CFds | CFcs | CFfs | CFgs,
     CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
 }
+
+@trusted
+extern (C) void CF_print(uint cf);
 
 struct code
 {

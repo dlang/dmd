@@ -275,7 +275,7 @@ struct Relocation
                         // to address of this symbol
     uint targseg;       // if !=0, then location is to be fixed up
                         // to address of start of this segment
-    ubyte rtype;        // RELxxxx
+    ubyte rtype;        // RELaddr or RELrel
     ubyte flag;         // 1: emit SUBTRACTOR/UNSIGNED pair
     short val;          // 0, -1, -2, -4
 }
@@ -996,7 +996,7 @@ version (SCPP)
                 {
                     //printf("Relocation\n");
                     //symbol_print(s);
-                    if (r.flag == 1)
+                    if (r.flag == 1)  // emit SUBTRACTOR/UNSIGNED pair
                     {
                         if (I64)
                         {
@@ -1066,10 +1066,13 @@ version (SCPP)
                             if (s.Sclass == SCextern ||
                                 s.Sclass == SCcomdef ||
                                 s.Sclass == SCcomdat ||
+                                s.Sclass == SCstatic ||
                                 s.Sclass == SCglobal)
                             {
-                                if (I64 && (s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
+                                if ((s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_TLV;
+                                else if (s.Sfl == FLfunc && s.Sclass == SCstatic && r.rtype == RELaddr)
+                                    rel.r_type = X86_64_RELOC_SIGNED;
                                 else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef) && r.rtype == RELaddr)
                                 {
                                     rel.r_type = X86_64_RELOC_GOT_LOAD;
@@ -2581,7 +2584,7 @@ static if (0)
 
 void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
-    //printf("MachObj_reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,cast(uint)offset,cast(uint)val);
+    //printf("MachObj_reftocodeseg(seg=%d, offset=x%x, val=x%x )\n",seg,cast(uint)offset,cast(uint)val);
     assert(seg > 0);
     Outbuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
@@ -2618,8 +2621,9 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     int retsize = (flags & CFoffset64) ? 8 : 4;
 static if (0)
 {
-    printf("\nMachObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
+    printf("\nMachObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
         s.Sident.ptr,seg,cast(ulong)offset,cast(ulong)val,flags);
+    CF_print(flags);
     printf("retsize = %d\n", retsize);
     //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s.Sseg,s.Sxtrnnum);
     symbol_print(s);
