@@ -3278,9 +3278,12 @@ extern (C++) final class StructLiteralExp : Expression
          */
         if (elements.dim)
         {
+            const sz = type.size();
+            if (sz == SIZE_INVALID)
+                return -1;
             foreach (i, v; sd.fields)
             {
-                if (offset == v.offset && type.size() == v.type.size())
+                if (offset == v.offset && sz == v.type.size())
                 {
                     /* context fields might not be filled. */
                     if (i >= sd.nonHiddenFields())

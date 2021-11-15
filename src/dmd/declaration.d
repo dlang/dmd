@@ -250,7 +250,10 @@ extern (C++) abstract class Declaration : Dsymbol
     override final d_uns64 size(const ref Loc loc)
     {
         assert(type);
-        return type.size();
+        const sz = type.size();
+        if (sz == SIZE_INVALID)
+            errors = true;
+        return sz;
     }
 
     /**

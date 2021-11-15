@@ -1241,7 +1241,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             width.error("bit-field `%s` has zero width", dsym.toChars());
             dsym.errors = true;
         }
-        const max_width = dsym.type.size() * 8;
+        const sz = dsym.type.size();
+        if (sz == SIZE_INVALID)
+            dsym.errors = true;
+        const max_width = sz * 8;
         if (uwidth > max_width)
         {
             width.error("width `%lld` of bit-field `%s` does not fit in type `%s`", cast(long)uwidth, dsym.toChars(), dsym.type.toChars());
