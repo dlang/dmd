@@ -7601,6 +7601,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     const uint fromSize = cast(uint)tFrom.size();
                     const uint toSize = cast(uint)tTo.size();
+                    if (fromSize == SIZE_INVALID || toSize == SIZE_INVALID)
+                        return setError();
 
                     // If array element sizes do not match, we must adjust the dimensions
                     if (fromSize != toSize)
@@ -10227,6 +10229,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     e = new IntegerExp(exp.loc, 0, Type.tptrdiff_t);
                 }
+                else if (stride == cast(d_int64)SIZE_INVALID)
+                    e = ErrorExp.get();
                 else
                 {
                     e = new DivExp(exp.loc, exp, new IntegerExp(Loc.initial, stride, Type.tptrdiff_t));
@@ -12988,7 +12992,10 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
             }
             return false;
         }
-        offset = cast(uint)(v.offset + v.type.size());
+        const vsize = v.type.size();
+        if (vsize == SIZE_INVALID)
+            return false;
+        offset = cast(uint)(v.offset + vsize);
 
         Type t = v.type;
         if (stype)
