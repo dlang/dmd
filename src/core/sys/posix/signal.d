@@ -513,15 +513,21 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
+    //SIGABRT (defined in core.stdc.signal)
     enum SIGALRM = 14;
     enum SIGBUS = 10;
     enum SIGCHLD = 18;
     enum SIGCONT = 25;
+    //SIGFPE (defined in core.stdc.signal)
     enum SIGHUP = 1;
+    //SIGILL (defined in core.stdc.signal)
+    //SIGINT (defined in core.stdc.signal)
     enum SIGKILL = 9;
     enum SIGPIPE = 13;
     enum SIGQUIT = 3;
+    //SIGSEGV (defined in core.stdc.signal)
     enum SIGSTOP = 23;
+    //SIGTERM (defined in core.stdc.signal)
     enum SIGTSTP = 24;
     enum SIGTTIN = 26;
     enum SIGTTOU = 27;
