@@ -236,6 +236,10 @@ bool isSomeChar(TY ty) pure nothrow @nogc @safe
  * Returns: When the type has any mutable indirections, returns 0.
  * When all indirections are immutable, returns 2.
  * Otherwise, when the type has const/inout indirections, returns 1.
+ *
+ * Params:
+ *      isref = if true, check `ref t`; otherwise, check just `t`
+ *      t = the type that is being checked
  */
 int mutabilityOfType(bool isref, Type t)
 {
