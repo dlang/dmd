@@ -2887,64 +2887,69 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             Expression initialExp = cs.exp;
 
-            cs.exp = cs.exp.implicitCastTo(sc, sw.condition.type);
-            cs.exp = cs.exp.optimize(WANTvalue | WANTexpand);
-
-            Expression e = cs.exp;
-            // Remove all the casts the user and/or implicitCastTo may introduce
-            // otherwise we'd sometimes fail the check below.
-            while (e.op == TOK.cast_)
-                e = (cast(CastExp)e).e1;
-
-            /* This is where variables are allowed as case expressions.
-             */
-            if (e.op == TOK.variable)
+            // The switch'ed value has errors and doesn't provide the actual type
+            // Don't touch the case to not replace it with an `ErrorExp` even if it is valid
+            if (sw.condition.type && !sw.condition.type.isTypeError())
             {
-                VarExp ve = cast(VarExp)e;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                Type t = cs.exp.type.toBasetype();
-                if (v && (t.isintegral() || t.ty == Tclass))
+                cs.exp = cs.exp.implicitCastTo(sc, sw.condition.type);
+                cs.exp = cs.exp.optimize(WANTvalue | WANTexpand);
+
+                Expression e = cs.exp;
+                // Remove all the casts the user and/or implicitCastTo may introduce
+                // otherwise we'd sometimes fail the check below.
+                while (e.op == TOK.cast_)
+                    e = (cast(CastExp)e).e1;
+
+                /* This is where variables are allowed as case expressions.
+                */
+                if (e.op == TOK.variable)
                 {
-                    /* Flag that we need to do special code generation
-                     * for this, i.e. generate a sequence of if-then-else
-                     */
-                    sw.hasVars = 1;
-
-                    /* TODO check if v can be uninitialized at that point.
-                     */
-                    if (!v.isConst() && !v.isImmutable())
+                    VarExp ve = cast(VarExp)e;
+                    VarDeclaration v = ve.var.isVarDeclaration();
+                    Type t = cs.exp.type.toBasetype();
+                    if (v && (t.isintegral() || t.ty == Tclass))
                     {
-                        cs.error("`case` variables have to be `const` or `immutable`");
-                    }
+                        /* Flag that we need to do special code generation
+                        * for this, i.e. generate a sequence of if-then-else
+                        */
+                        sw.hasVars = 1;
 
-                    if (sw.isFinal)
-                    {
-                        cs.error("`case` variables not allowed in `final switch` statements");
-                        errors = true;
-                    }
-
-                    /* Find the outermost scope `scx` that set `sw`.
-                     * Then search scope `scx` for a declaration of `v`.
-                     */
-                    for (Scope* scx = sc; scx; scx = scx.enclosing)
-                    {
-                        if (scx.enclosing && scx.enclosing.sw == sw)
-                            continue;
-                        assert(scx.sw == sw);
-
-                        if (!scx.search(cs.exp.loc, v.ident, null))
+                        /* TODO check if v can be uninitialized at that point.
+                        */
+                        if (!v.isConst() && !v.isImmutable())
                         {
-                            cs.error("`case` variable `%s` declared at %s cannot be declared in `switch` body",
-                                v.toChars(), v.loc.toChars());
+                            cs.error("`case` variables have to be `const` or `immutable`");
+                        }
+
+                        if (sw.isFinal)
+                        {
+                            cs.error("`case` variables not allowed in `final switch` statements");
                             errors = true;
                         }
-                        break;
+
+                        /* Find the outermost scope `scx` that set `sw`.
+                        * Then search scope `scx` for a declaration of `v`.
+                        */
+                        for (Scope* scx = sc; scx; scx = scx.enclosing)
+                        {
+                            if (scx.enclosing && scx.enclosing.sw == sw)
+                                continue;
+                            assert(scx.sw == sw);
+
+                            if (!scx.search(cs.exp.loc, v.ident, null))
+                            {
+                                cs.error("`case` variable `%s` declared at %s cannot be declared in `switch` body",
+                                    v.toChars(), v.loc.toChars());
+                                errors = true;
+                            }
+                            break;
+                        }
+                        goto L1;
                     }
-                    goto L1;
                 }
+                else
+                    cs.exp = cs.exp.ctfeInterpret();
             }
-            else
-                cs.exp = cs.exp.ctfeInterpret();
 
             if (StringExp se = cs.exp.toStringExp())
                 cs.exp = se;
@@ -2955,6 +2960,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
 
         L1:
+            // // Don't check other cases if this has errors
+            if (!cs.exp.isErrorExp())
             foreach (cs2; *sw.cases)
             {
                 //printf("comparing '%s' with '%s'\n", exp.toChars(), cs.exp.toChars());
