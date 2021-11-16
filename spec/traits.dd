@@ -77,6 +77,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 isSame, $(D isSame))
     $(RELATIVE_LINK2 compiles, $(D compiles))
     $(RELATIVE_LINK2 toType, $(D toType))
+    $(RELATIVE_LINK2 initSymbol, $(D initSymbol))
 
 $(GNAME TraitsArguments):
     $(GLINK TraitsArgument)
@@ -1713,6 +1714,49 @@ $(H2 $(GNAME toType))
 
         $(RATIONALE Provides the inverse operation of the $(DDSUBLINK property, mangleof, `.mangleof`) property.)
 
+$(H2 $(GNAME initSymbol))
+
+        $(P Takes a single argument, which must evaluate to a `class`, `struct` or `union` type.
+            Returns a `const(void)[]` that holds the initial state of any instance of the supplied type.
+            The slice is constructed for any type `T` as follows:
+
+            - `ptr` points to either the initializer symbol of `T`
+               or `null` if `T` is a zero-initialized struct / unions.
+
+            - `length` is equal to the size of an instance, i.e. `T.sizeof` for structs / unions and
+              $(RELATIVE_LINK2 classInstanceSize, $(D __traits(classInstanceSize, T)`)) for classes.
+        )
+
+        $(P
+            This trait matches the behaviour of `TypeInfo.initializer()` but can also be used when
+            `TypeInfo` is not available.
+        )
+
+        $(P
+            This traits is not available during $(DDSUBLINK glossary, ctfe, CTFE) because the actual address
+            of the initializer symbol will be set by the linker and hence is not available at compile time.
+        )
+
+        ---
+        class C
+        {
+            int i = 4;
+        }
+
+        /// Initializes a malloc'ed instance of `C`
+        void main()
+        {
+            const void[] initSym = __traits(initSymbol, C);
+
+            void* ptr = malloc(initSym.length);
+            scope (exit) free(ptr);
+
+            ptr[0..initSym.length] = initSym[];
+
+            C c = cast(C) ptr;
+            assert(c.i == 4);
+        }
+        ---
 
 $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
 
