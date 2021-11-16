@@ -1989,12 +1989,13 @@ extern (C++) final class ErrorExp : Expression
     {
         super(Loc.initial, TOK.error, __traits(classInstanceSize, ErrorExp));
         type = Type.terror;
+        idx = counter++;
     }
 
     static ErrorExp get ()
     {
-        if (errorexp is null)
-            errorexp = new ErrorExp();
+        // if (errorexp is null)
+        //     errorexp = new ErrorExp();
 
         if (global.errors == 0 && global.gaggedErrors == 0)
         {
@@ -2005,7 +2006,8 @@ extern (C++) final class ErrorExp : Expression
             .error(Loc.initial, "unknown, please file report on issues.dlang.org");
         }
 
-        return errorexp;
+        // return errorexp;
+        return new ErrorExp();
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
@@ -2019,6 +2021,29 @@ extern (C++) final class ErrorExp : Expression
     }
 
     extern (C++) __gshared ErrorExp errorexp; // handy shared value
+    ulong idx;
+    __gshared ulong counter;
+    override bool equals(const RootObject o) const
+    {
+        if (!o)
+            return false;
+
+        assert(o.dyncast() == DYNCAST.expression);
+        auto oe = (cast(Expression) o).isErrorExp();
+        if (!oe)
+            return false;
+
+        if (this.idx != oe.idx)
+        {
+            puts("Relying on invalid identity");
+            printf("this = %s (%s)\n", this.toChars(), this.loc.toChars());
+            printf("  oe = %s (%s)\n", oe.toChars(), oe.loc.toChars());
+            fflush(stdout);
+            assert(false);
+        }
+
+        return true;
+    }
 }
 
 
