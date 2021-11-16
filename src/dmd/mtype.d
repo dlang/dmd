@@ -254,7 +254,7 @@ int mutabilityOfType(bool isref, Type t)
         return 2;
 
     /* Accept immutable(T)[] and immutable(T)* as being strongly pure
-        */
+     */
     if (t.ty == Tarray || t.ty == Tpointer)
     {
         Type tn = t.nextOf().toBasetype();
@@ -265,15 +265,15 @@ int mutabilityOfType(bool isref, Type t)
     }
 
     /* The rest of this is too strict; fix later.
-        * For example, the only pointer members of a struct may be immutable,
-        * which would maintain strong purity.
-        * (Just like for dynamic arrays and pointers above.)
-        */
+     * For example, the only pointer members of a struct may be immutable,
+     * which would maintain strong purity.
+     * (Just like for dynamic arrays and pointers above.)
+     */
     if (t.mod & (MODFlags.const_ | MODFlags.wild))
         return 1;
 
     /* Should catch delegates and function pointers, and fold in their purity
-        */
+     */
     return 0;
 }
 
