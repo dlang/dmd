@@ -1431,6 +1431,16 @@ else version (Solaris)
         ___data __data;
     }
 
+    enum SI_NOINFO  = 32767;
+    enum SI_DTRACE  = 2050;
+    enum SI_RCTL    = 2049;
+    enum SI_USER    = 0;
+    enum SI_LWP     = -1;
+    enum SI_QUEUE   = -2;
+    enum SI_TIMER   = -3;
+    enum SI_ASYNCIO = -4;
+    enum SI_MESGQ   = -5;
+
     int kill(pid_t, int);
     int sigaction(int, const scope sigaction_t*, sigaction_t*);
     int sigaddset(sigset_t*, int);
