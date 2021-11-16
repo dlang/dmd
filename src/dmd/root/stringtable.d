@@ -180,20 +180,7 @@ public:
 
     StringValue!(T)* update(scope const(char)[] str) nothrow pure
     {
-        const(size_t) hash = calcHash(str);
-        size_t i = findSlot(hash, str);
-        if (!table[i].vptr)
-        {
-            if (++count > countTrigger)
-            {
-                grow();
-                i = findSlot(hash, str);
-            }
-            table[i].hash = hash;
-            table[i].vptr = allocValue(str, T.init);
-        }
-        // printf("update %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: NULL);
-        return getValue(table[i].vptr);
+        return insert(str, T.init);
     }
 
     StringValue!(T)* update(scope const(char)* s, size_t length) nothrow pure
