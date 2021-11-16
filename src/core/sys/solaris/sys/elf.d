@@ -656,3 +656,14 @@ enum NT_ZONENAME   = 21;
 enum NT_FDINFO     = 22;
 enum NT_SPYMASTER  = 23;
 enum NT_NUM        = 23;
+
+version (X86) {
+    enum SHF_ORDERED = 0x40000000;
+    enum SHF_EXCLUDE = 0x80000000;
+} else version (SPARC) {
+    enum SHF_ORDERED = 0x40000000;
+    enum SHF_EXCLUDE = 0x80000000;
+} else version (SPARC64) {
+    enum SHF_ORDERED = 0x40000000;
+    enum SHF_EXCLUDE = 0x80000000;
+}
