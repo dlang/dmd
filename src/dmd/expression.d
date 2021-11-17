@@ -4006,7 +4006,7 @@ extern (C++) final class FuncExp : Expression
         }
         else
         {
-            assert(tok == TOK.function_ || tok == TOK.reserved && type.ty == Tpointer);
+            assert(tok == TOK.function_ || tok == TOK.reserved && type.ty == Tpointer || fd.errors);
             tx = tfx.pointerTo();
         }
         //printf("\ttx = %s, to = %s\n", tx.toChars(), to.toChars());
