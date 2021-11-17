@@ -553,11 +553,20 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
 
         if (auto sd = e.var.isSymbolDeclaration())
+        {
             if (sd.dsym)
             {
-                StructDeclaration_toDt(sd.dsym, dtb);
+
+                if (auto s = sd.dsym.isStructDeclaration())
+                    StructDeclaration_toDt(s, dtb);
+                else if (auto c = sd.dsym.isClassDeclaration())
+                    // Should be unreachable ATM, but just to be sure
+                    ClassDeclaration_toDt(c, dtb);
+                else
+                    assert(false);
                 return;
             }
+        }
 
         return nonConstExpError(e);
     }

@@ -1933,9 +1933,9 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
  */
 extern (C++) final class SymbolDeclaration : Declaration
 {
-    StructDeclaration dsym;
+    AggregateDeclaration dsym;
 
-    extern (D) this(const ref Loc loc, StructDeclaration dsym)
+    extern (D) this(const ref Loc loc, AggregateDeclaration dsym)
     {
         super(loc, dsym.ident);
         this.dsym = dsym;
