@@ -1446,7 +1446,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                     else
                     {
                         if (!(fparam.storageClass & STC.scope_))
-                            fparam.storageClass |= STC.scope_ | STC.scopeinferred; // 'return' implies 'scope'
+                            fparam.storageClass |= STC.scope_; // 'return' implies 'scope'
                         if (tf.isref)
                         {
                         }
