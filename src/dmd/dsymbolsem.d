@@ -652,6 +652,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(dsym.loc, arg.type, id, ti, storage_class);
                 //printf("declaring field %s of type %s\n", v.toChars(), v.type.toChars());
+                v.overlapped = dsym.overlapped;
+
                 v.dsymbolSemantic(sc);
 
                 if (sc.scopesym)
@@ -1462,7 +1464,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(AnonDeclaration scd)
     {
-        //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
+        //printf("\tAnonDeclaration::semantic isunion:%d ptr:%p\n", scd.isunion, scd);
         assert(sc.parent);
         auto p = sc.parent.pastMixin();
         auto ad = p.isAggregateDeclaration();
@@ -1482,6 +1484,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             for (size_t i = 0; i < scd.decl.dim; i++)
             {
                 Dsymbol s = (*scd.decl)[i];
+                if (auto var = s.isVarDeclaration)
+                {
+                    if (scd.isunion)
+                        var.overlapped = true;
+                }
                 s.dsymbolSemantic(sc);
             }
             sc = sc.pop();
