@@ -2793,9 +2793,15 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc)
     bool result = false;
 
     if (stc & STC.scopeinferred)
+    {
+        //buf.writestring("scope-inferred ");
         stc &= ~(STC.scope_ | STC.scopeinferred);
+    }
     if (stc & STC.returninferred)
+    {
+        //buf.writestring("return-inferred ");
         stc &= ~(STC.return_ | STC.returninferred);
+    }
 
     /* Put scope ref return into a standard order
      */
