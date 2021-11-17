@@ -3764,7 +3764,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            if (sd.ctor && nargs)
+            if (sd.hasRegularCtor() && nargs)
             {
                 FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.arguments, FuncResolveFlag.standard);
                 if (!f || f.errors)
