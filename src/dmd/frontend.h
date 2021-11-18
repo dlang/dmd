@@ -5024,6 +5024,8 @@ struct StringTable final
 
 typedef _d_real longdouble;
 
+typedef uint64_t uint64_t;
+
 class AggregateDeclaration : public ScopeDsymbol
 {
 public:
