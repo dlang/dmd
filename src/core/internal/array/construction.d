@@ -32,12 +32,18 @@ Tarr1 _d_arrayctor(Tarr1 : T1[], Tarr2 : T2[], T1, T2)(scope Tarr2 from) @truste
     import core.stdc.stdint : uintptr_t;
     debug(PRINTF) import core.stdc.stdio : printf;
 
-    debug(PRINTF) printf("_d_arrayctor(to = %p,%d, from = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, T1.tsize);
+    debug(PRINTF) printf("_d_arrayctor(from = %p,%d) size = %d\n", from.ptr, from.length, T1.sizeof);
 
-    Tarr1 to = void;
+    // Declare `to` inside a union so `__ArrayDtor(to)` isn't called in case
+    // `copyEmplace` throws.
+    union ToArr
+    {
+        Unqual!Tarr1 to;
+    }
+    ToArr toUn = void;
 
-    void[] vFrom = (cast(void*)from.ptr)[0..from.length];
-    void[] vTo = (cast(void*)to.ptr)[0..to.length];
+    void[] vFrom = (cast(void*) from.ptr)[0..from.length];
+    void[] vTo = (cast(void*) toUn.to.ptr)[0..Tarr1.length];
 
     // Force `enforceRawArraysConformable` to be `pure`
     void enforceRawArraysConformable(const char[] action, const size_t elementSize,
@@ -57,8 +63,8 @@ Tarr1 _d_arrayctor(Tarr1 : T1[], Tarr2 : T2[], T1, T2)(scope Tarr2 from) @truste
         size_t i;
         try
         {
-            for (i = 0; i < to.length; i++)
-                copyEmplace(from[i], to[i]);
+            for (i = 0; i < toUn.to.length; i++)
+                copyEmplace(from[i], cast(T1) toUn.to[i]);
         }
         catch (Exception o)
         {
@@ -66,7 +72,7 @@ Tarr1 _d_arrayctor(Tarr1 : T1[], Tarr2 : T2[], T1, T2)(scope Tarr2 from) @truste
             */
             while (i--)
             {
-                auto elem = cast(Unqual!T1*)&to[i];
+                auto elem = cast(Unqual!T1*) &toUn.to[i];
                 destroy(*elem);
             }
 
@@ -76,10 +82,10 @@ Tarr1 _d_arrayctor(Tarr1 : T1[], Tarr2 : T2[], T1, T2)(scope Tarr2 from) @truste
     else
     {
         // blit all elements at once
-        memcpy(cast(void*) to.ptr, from.ptr, to.length * T1.sizeof);
+        memcpy(cast(void*) toUn.to.ptr, from.ptr, toUn.to.length * T1.sizeof);
     }
 
-    return to;
+    return cast(Tarr1) toUn;
 }
 
 // postblit
