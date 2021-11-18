@@ -14,6 +14,7 @@ module dmd.root.port;
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.string;
+import core.stdc.stdint;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
@@ -164,8 +165,9 @@ extern (C++) struct Port
         return (p[0] << 8) | p[1];
     }
 
-    static void valcpy(scope void *dst, ulong val, size_t size) pure
+    static void valcpy(scope void *dst, uint64_t val, size_t size) pure
     {
+        assert((cast(size_t)dst) % size == 0);
         switch (size)
         {
             case 1: *cast(ubyte *)dst = cast(ubyte)val; break;
