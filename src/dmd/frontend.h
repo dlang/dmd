@@ -995,6 +995,7 @@ public:
     void deprecation(const char* format, ...);
     bool checkDeprecated(const Loc& loc, Scope* sc);
     Module* getModule();
+    bool isCsymbol();
     Module* getAccessModule();
     Dsymbol* pastMixin();
     Dsymbol* toParent();

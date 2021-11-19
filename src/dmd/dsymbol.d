@@ -462,6 +462,21 @@ extern (C++) class Dsymbol : ASTNode
         return null;
     }
 
+    /**************************************
+     * Does this Dsymbol come from a C file?
+     * Returns:
+     *  true if it does
+     */
+     final bool isCsymbol()
+     {
+        if (Module m = getModule())
+        {
+            if (m.isCFile)
+                return true;
+        }
+        return false;
+    }
+
     /**********************************
      * Determine which Module a Dsymbol is in, as far as access rights go.
      */
