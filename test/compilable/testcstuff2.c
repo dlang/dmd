@@ -634,4 +634,6 @@ int test(char *dest)
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22512
 
+extern char *tzname[];
