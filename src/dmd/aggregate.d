@@ -565,6 +565,18 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     override final Type getType()
     {
+        /* Apply storage classes to forward references. (Issue 22254)
+         * Note: Avoid interfaces for now. Implementing qualifiers on interface
+         * definitions exposed some issues in their TypeInfo generation in DMD.
+         * Related PR: https://github.com/dlang/dmd/pull/13312
+         */
+        if (semanticRun == PASS.init && !isInterfaceDeclaration())
+        {
+            auto stc = storage_class;
+            if (_scope)
+                stc |= _scope.stc;
+            type = type.addSTC(stc);
+        }
         return type;
     }
 
