@@ -1932,6 +1932,13 @@ extern (C++) class ToElemVisitor : Visitor
                 return;
             }
 
+            if (irs.params.betterC)
+            {
+                error(ee.loc, "Expression `%s` requires 'TypeInfo' wich is not available with -betterC", ee.toChars());
+                result = el_long(TYint, 0);
+                return;
+            }
+
             elem *ea1 = eval_Darray(ee.e1);
             elem *ea2 = eval_Darray(ee.e2);
 
