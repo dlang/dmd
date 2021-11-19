@@ -838,10 +838,7 @@ private FileBuffer readFromStdin()
             {
                 // We're done
                 assert(pos < sz + 2);
-                buffer[pos] = '\0';
-                buffer[pos + 1] = '\0';
-                buffer[pos + 2] = '\0';
-                buffer[pos + 3] = '\0';
+                buffer[pos .. pos + 4] = '\0';
                 return FileBuffer(buffer[0 .. pos]);
             }
         } while (pos < sz);
