@@ -11486,6 +11486,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 return false;
             }
+            
+            if (t1n.isfloating() && t2n.isfloating()) 
+                return true;
+            
             if (t1n.constOf() != t2n.constOf())
                 return true;
 
