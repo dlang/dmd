@@ -1,15 +1,28 @@
 // https://issues.dlang.org/show_bug.cgi?id=22428
 
-int printf(const char *, ...);
+int printf(const char *s, ...);
+void exit(int);
+
+void assert(int b, int line)
+{
+    if (!b)
+    {
+        printf("failed test %d\n", line);
+        exit(1);
+    }
+}
+
+/*********************************************/
+
+static void dummy() { } // so staticFunc() isn't at offset 0
 
 static int staticFunc(int i) { return i * 2; }
 
-int main()
+void testStaticFunc()
 {
     int x = staticFunc(3);
     printf("%d\n", x);
-    if (x != 6)
-        return 1;
+    assert(x == 6, 20);
 
     int (*fp)(int);
     fp = &staticFunc;
@@ -58,8 +71,3 @@ int main()
     return 0;
 }
 
-    if (x != 10)
-        return 1;
-
-    return 0;
-}
