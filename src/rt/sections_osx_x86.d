@@ -49,7 +49,7 @@ struct SectionGroup
         return _moduleGroup.modules;
     }
 
-    @property ref inout(ModuleGroup) moduleGroup() inout nothrow @nogc
+    @property ref inout(ModuleGroup) moduleGroup() inout return nothrow @nogc
     {
         return _moduleGroup;
     }
