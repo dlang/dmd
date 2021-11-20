@@ -379,6 +379,7 @@ $(GNAME Namechars):
 $(GRAMMAR
 $(GNAME LName):
     $(GLINK Number) $(GLINK Name)
+    $(GLINK Number) $(B __S) $(GLINK Number)    $(GREEN // function-local parent symbols)
 
 $(GNAME Number):
     $(GLINK Digit)
