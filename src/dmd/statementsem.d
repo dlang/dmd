@@ -682,7 +682,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
      * expands the tuples into multiple `STC.local` `static foreach`
      * variables.
      */
-    auto makeTupleForeach(bool isStatic, bool isDecl)(ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
+    auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
     {
         // Voldemort return type
         union U
@@ -704,8 +704,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         auto loc = fs.loc;
         size_t dim = fs.parameters.dim;
-        static if(isStatic) bool skipCheck = needExpansion;
-        else enum skipCheck = false;
+        const bool skipCheck = isStatic && needExpansion;
         if (!skipCheck && (dim < 1 || dim > 2))
         {
             fs.error("only one (value) or two (key,value) arguments for tuple `foreach`");
@@ -726,14 +725,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         Type tab = fs.aggr.type.toBasetype();
         TypeTuple tuple = cast(TypeTuple)tab;
-        static if(!isDecl)
-        {
-            auto statements = new Statements();
-        }
+
+        Statements* statements;
+        Dsymbols* declarations;
+        if (isDecl)
+            declarations = new Dsymbols();
         else
-        {
-            auto declarations = new Dsymbols();
-        }
+            statements = new Statements();
+
         //printf("aggr: op = %d, %s\n", fs.aggr.op, fs.aggr.toChars());
         size_t n;
         TupleExp te = null;
@@ -758,17 +757,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             else
                 t = Parameter.getNth(tuple.arguments, k).type;
             Parameter p = (*fs.parameters)[0];
-            static if(!isDecl)
-            {
-                auto st = new Statements();
-            }
-            else
-            {
-                auto st = new Dsymbols();
-            }
 
-            static if(isStatic) bool skip = needExpansion;
-            else enum skip = false;
+            Statements* stmts;
+            Dsymbols* decls;
+            if (isDecl)
+                decls = new Dsymbols();
+            else
+                stmts = new Statements();
+
+            const bool skip = isStatic && needExpansion;
             if (!skip && dim == 2)
             {
                 // Declare key
@@ -778,9 +775,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     setError();
                     return returnEarly();
                 }
-                static if(isStatic)
+
+                if (isStatic)
                 {
-                    if(!p.type)
+                    if (!p.type)
                     {
                         p.type = Type.tsize_t;
                     }
@@ -809,15 +807,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Initializer ie = new ExpInitializer(Loc.initial, new IntegerExp(k));
                 auto var = new VarDeclaration(loc, p.type, p.ident, ie);
                 var.storage_class |= STC.foreach_ | STC.manifest;
-                static if(isStatic) var.storage_class |= STC.local;
-                static if(!isDecl)
-                {
-                    st.push(new ExpStatement(loc, var));
-                }
+                if (isStatic)
+                    var.storage_class |= STC.local;
+
+                if (isDecl)
+                    decls.push(var);
                 else
-                {
-                    st.push(var);
-                }
+                    stmts.push(new ExpStatement(loc, var));
+
                 p = (*fs.parameters)[1]; // value
             }
             /***********************
@@ -910,7 +907,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             if (v.storage_class & STC.ref_)
                             {
-                                static if (!isStatic)
+                                if (!isStatic)
                                 {
                                     fs.error("constant value `%s` cannot be `ref`", ie.toChars());
                                 }
@@ -944,21 +941,19 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         return false;
                     }
                 }
-                static if (isStatic)
+                if (isStatic)
                 {
                     var.storage_class |= STC.local;
                 }
-                static if (!isDecl)
-                {
-                    st.push(new ExpStatement(loc, var));
-                }
+
+                if (isDecl)
+                    decls.push(var);
                 else
-                {
-                    st.push(var);
-                }
+                    stmts.push(new ExpStatement(loc, var));
                 return true;
             }
-            static if (!isStatic)
+
+            if (!isStatic)
             {
                 // Declare value
                 if (!declareVariable(p.storageClass, p.type, p.ident, e, t))
@@ -998,41 +993,38 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
             }
 
-            static if (!isDecl)
+            Statement s;
+            Dsymbol d;
+            if (isDecl)
+                decls.append(Dsymbol.arraySyntaxCopy(dbody));
+            else
             {
                 if (fs._body) // https://issues.dlang.org/show_bug.cgi?id=17646
-                    st.push(fs._body.syntaxCopy());
-                Statement res = new CompoundStatement(loc, st);
+                    stmts.push(fs._body.syntaxCopy());
+                s = new CompoundStatement(loc, stmts);
             }
-            else
+
+            if (!isStatic)
             {
-                st.append(Dsymbol.arraySyntaxCopy(dbody));
+                s = new ScopeStatement(loc, s, fs.endloc);
             }
-            static if (!isStatic)
-            {
-                res = new ScopeStatement(loc, res, fs.endloc);
-            }
-            else static if (!isDecl)
-            {
-                auto fwd = new ForwardingStatement(loc, res);
-                res = fwd;
-            }
-            else
+            else if (isDecl)
             {
                 import dmd.attrib: ForwardingAttribDeclaration;
-                auto res = new ForwardingAttribDeclaration(st);
-            }
-            static if (!isDecl)
-            {
-                statements.push(res);
+                d = new ForwardingAttribDeclaration(decls);
             }
             else
             {
-                declarations.push(res);
+                s = new ForwardingStatement(loc, s);
             }
+
+            if (isDecl)
+                declarations.push(d);
+            else
+                statements.push(s);
         }
 
-        static if (!isStatic)
+        if (!isStatic)
         {
             Statement res = new UnrolledLoopStatement(loc, statements);
             if (LabelStatement ls = checkLabeledLoop(sc, fs))
@@ -1041,14 +1033,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 res = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), res);
             result.statement = res;
         }
-        else static if (!isDecl)
-        {
-            result.statement = new CompoundStatement(loc, statements);
-        }
-        else
-        {
+        else if (isDecl)
             result.decl = declarations;
-        }
+        else
+            result.statement = new CompoundStatement(loc, statements);
+
         return result;
     }
 
@@ -1178,7 +1167,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (tab.ty == Ttuple) // don't generate new scope for tuple loops
         {
-            Statement s = makeTupleForeach!(false,false)(fs, null, false).statement;
+            Statement s = makeTupleForeach(sc, false, false, fs, null, false).statement;
             if (vinit)
                 s = new CompoundStatement(loc, new ExpStatement(loc, vinit), s);
             result = s.statementSemantic(sc);
@@ -4573,7 +4562,7 @@ Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out St
 auto makeTupleForeach(bool isStatic, bool isDecl)(Scope* sc, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
 {
     scope v = new StatementSemanticVisitor(sc);
-    return v.makeTupleForeach!(isStatic, isDecl)(fs, dbody, needExpansion);
+    return v.makeTupleForeach(sc, isStatic, isDecl, fs, dbody, needExpansion);
 }
 
 /*********************************
