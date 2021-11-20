@@ -198,6 +198,9 @@ else if (config.exe & EX_windos)
 
                 If this is an executable app, not a dll, _tls_index
                 can be assumed to be 0.
+                
+            _tls_index cannot be assumed to be zero. If it is set to zero, TLS will not work if you use an extern(C) main function.
+            See issue #20737 https://issues.dlang.org/show_bug.cgi?id=20737
          */
         elem* e1,e2,ea;
 
@@ -206,17 +209,10 @@ else if (config.exe & EX_windos)
         e1.EV.Vsym = s;
         e1.Ety = TYnptr;
 
-        if (config.wflags & WFexe)
-        {
-            // e => *(&s + *(FS:_tls_array))
-            e2 = el_var(getRtlsym(RTLSYM.TLS_ARRAY));
-        }
-        else
-        {
-            e2 = el_bin(OPmul,TYint,el_var(getRtlsym(RTLSYM.TLS_INDEX)),el_long(TYint,REGSIZE));
-            ea = el_var(getRtlsym(RTLSYM.TLS_ARRAY));
-            e2 = el_bin(OPadd,ea.Ety,ea,e2);
-        }
+        e2 = el_bin(OPmul,TYint,el_var(getRtlsym(RTLSYM.TLS_INDEX)),el_long(TYint,REGSIZE));
+        ea = el_var(getRtlsym(RTLSYM.TLS_ARRAY));
+        e2 = el_bin(OPadd,ea.Ety,ea,e2);
+    
         e2 = el_una(OPind,TYsize_t,e2);
 
         e.Eoper = OPind;
