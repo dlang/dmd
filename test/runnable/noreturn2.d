@@ -123,11 +123,11 @@ void testAccess()
         cast(noreturn) 1;
     });
 
-    version (FIXME)
     testAssertFailure(__LINE__ + 3, msg, function noreturn()
     {
         noreturn a;
         noreturn b = cast(noreturn) 1;
+        assert(false); // FIXME: Doesn't detect that this is unreachable
     });
 
     if (false) // Read does not assert
@@ -211,10 +211,131 @@ void testFuncCall()
     assert(WithDtor.destroyed == 1);
 }
 
+/****************************************************
+ * https://issues.dlang.org/show_bug.cgi?id=22390
+ */
+
+int main22390()
+{
+    noreturn[] empty;
+    int val;
+    foreach(el; empty)
+        val++;
+    return val;
+}
+
+int main22390_B()
+{
+    // noreturn[] empty;
+    int empty;
+    return empty == empty;
+}
+
+int test4()
+{
+    if (main22390())
+        assert(false);
+
+    if (!main22390_B())
+        assert(false);
+
+    return 0;
+}
+
+enum forceTest4 = test4();
+
+/****************************************************
+ * https://issues.dlang.org/show_bug.cgi?id=21956
+ */
+
+int main21956()
+{
+    noreturn[noreturn] nrnr;
+    foreach (a; nrnr){}
+    return 0;
+}
+
+int main21956_B()
+{
+    noreturn b;
+    noreturn a = b ? b : b;
+    return 0;
+}
+
+enum Noret : noreturn;
+
+int main21956_Enum()
+{
+    Noret b;
+    Noret a = b ? b : b;
+    return 0;
+}
+
+int test5()
+{
+    if (main21956())
+        assert(false);
+
+    if (!__ctfe) // Cannot catch AssertError in CTFE
+    {
+        try
+        {
+            main21956_B();
+            assert(false);
+        }
+        catch (AssertError) {}
+
+        try
+        {
+            main21956_Enum();
+            assert(false);
+        }
+        catch (AssertError) {}
+    }
+    return 0;
+}
+
+enum forceTest5 = test5();
+
+/****************************************************/
+
+ref T fail(T)(bool b)
+{
+    if (b)
+        assert(false, "A");
+    else
+        assert(false, "B");
+}
+
+void testFail(T)()
+{
+    try
+    {
+        fail!T(true) = fail!T(false);
+        assert(false);
+    }
+    catch (Throwable t)
+    {
+        assert(t.msg == "A");
+    }
+}
+
+int test6()
+{
+    testFail!int();
+    testFail!noreturn();
+    return 0;
+}
+
+/****************************************************/
+
 int main()
 {
     testDtors();
     testAccess();
     testFuncCall();
+    test4();
+    test5();
+    test6();
     return 0;
 }

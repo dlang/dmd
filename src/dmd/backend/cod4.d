@@ -385,6 +385,14 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     tym_t tyml = tybasic(e1.Ety);              // type of lvalue
     regm_t retregs = *pretregs;
 
+    // Don't need to generate the assignment if any `noreturn` appears
+    // on either side - the operand evaluation prevents the assignment
+    if (tyml == TYnoreturn || tybasic(e2.Ety) == TYnoreturn)
+    {
+        codelem(cdb, e1, pretregs, false);
+        codelem(cdb, e2, pretregs, false);
+        return;
+    }
     if (tyxmmreg(tyml) && config.fpxmmregs)
     {
         xmmeq(cdb, e, CMP, e1, e2, pretregs);
