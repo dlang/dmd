@@ -6036,7 +6036,7 @@ public:
             result = pue.exp();
             return;
         }
-        result = ctfeCast(pue, e.loc, e.type, e.to, e1);
+        result = ctfeCast(pue, e.loc, e.type, e.to, e1, true);
     }
 
     override void visit(AssertExp e)
