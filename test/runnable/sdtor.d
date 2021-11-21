@@ -3935,9 +3935,9 @@ bool test14022()
         t.sb[1].x = 'y';
         assert(sa == [S('a'), S('b'), S('c')]);
         assert(t.sb == [S('x'), S('y')]);
-        assert(op == "BC");
+        assert(op == "BCcbcbayx");
     }
-    assert(op == "BCyxcba");
+    assert(op == "BCcbcbayxyxcba");
 
     op = null;
     {
@@ -3948,7 +3948,7 @@ bool test14022()
         assert(op == "BxCy");
         assert(t.sb == [S('b'), S('c')]);
     }
-    assert(op == "BxCycbcba");
+    assert(op == "BxCycbcbcba");
 
     return true;
 }
@@ -4017,9 +4017,9 @@ bool test14023()
     {
         S[3] sa = [S('a'), S('b'), S('c')];
         test(sa[1..3]);
-        assert(op == "BxCx");
+        assert(op == "BxCxcb");
     }
-    assert(op == "BxCxcba");
+    assert(op == "BxCxcbcba");
 
     return true;
 }
