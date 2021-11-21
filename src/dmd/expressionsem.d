@@ -11480,6 +11480,35 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
 
         // Indicates whether the comparison of the 2 specified array types
+        // requires an elision of typeCombine.
+        static bool needsDirectEq(Type t1, Type t2, Scope* sc)
+        {
+            Type t1n = t1.nextOf().toBasetype();
+            Type t2n = t2.nextOf().toBasetype();
+            if ((t1n.ty.isSomeChar && t2n.ty.isSomeChar) ||
+                (t1n.ty == Tvoid || t2n.ty == Tvoid))
+            {
+                return false;
+            }
+            if (t1n.constOf() != t2n.constOf())
+                return true;
+
+            Type t = t1n;
+            while (t.toBasetype().nextOf())
+                t = t.nextOf().toBasetype();
+            if (auto ts = t.isTypeStruct())
+            {
+                // semanticTypeInfo() makes sure hasIdentityEquals has been computed
+                if (global.params.useTypeInfo && Type.dtypeinfo)
+                    semanticTypeInfo(sc, ts);
+
+                return ts.sym.hasIdentityEquals; // has custom opEquals
+            }
+
+            return false;
+        }
+
+        // Indicates whether the comparison of the 2 specified array types
         // can be implemented with a memcmp call in the glue layer instead
         // of lowering to object.__equals().
         static bool canMemcmpArrays(const ref Loc loc, Type t1, Type t2)
@@ -11529,24 +11558,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         const isArrayComparison = (t1.ty == Tarray || t1.ty == Tsarray) &&
                                   (t2.ty == Tarray || t2.ty == Tsarray);
-        const needsArrayLowering = isArrayComparison && !canMemcmpArrays(exp.loc, t1, t2);
 
         // bring both sides to common type
-        bool doTypeCombine;
-        if (!isArrayComparison)
-            doTypeCombine = true;
-        else if (needsArrayLowering)
-        {
-            const ty1n = t1.nextOf().toBasetype().ty;
-            const ty2n = t2.nextOf().toBasetype().ty;
-            doTypeCombine =
-                // __equals e.g. supports comparing int[2][3] vs. short[][] -
-                // but still need to e.g. adjust empty array literals (`(string[] a) => a == []`, `[]` is void[]-typed)
-                (ty1n == Tvoid || ty2n == Tvoid) ||
-                // and check for mismatching string-like types (e.g., string vs. wstring - no autodecoding)
-                (ty1n.isSomeChar && ty2n.isSomeChar);
-        }
-        if (doTypeCombine)
+        if (!isArrayComparison || !needsDirectEq(t1, t2, sc))
         {
             if (auto e = typeCombine(exp, sc))
             {
@@ -11560,16 +11574,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (f1 || f2)
             return setError();
 
-        // check for mismatching lengths when comparing 2 static arrays
-        if (isArrayComparison)
-            if (auto ts1 = exp.e1.type.toBasetype().isTypeSArray())
-                if (auto ts2 = exp.e2.type.toBasetype().isTypeSArray())
-                    if (ts1.dim.toUInteger() != ts2.dim.toUInteger())
-                    {
-                        exp.error("incompatible types for array comparison: `%s` and `%s`",
-                                exp.e1.type.toChars(), exp.e2.type.toChars());
-                        return setError();
-                    }
+        version (none)
+        {
+            // check for mismatching lengths when comparing 2 static arrays
+            if (isArrayComparison)
+                if (auto ts1 = exp.e1.type.toBasetype().isTypeSArray())
+                    if (auto ts2 = exp.e2.type.toBasetype().isTypeSArray())
+                        if (ts1.dim.toUInteger() != ts2.dim.toUInteger())
+                        {
+                            exp.error("incompatible types for array comparison: `%s` and `%s`",
+                                    exp.e1.type.toChars(), exp.e2.type.toChars());
+                            return setError();
+                        }
+        }
 
         exp.type = Type.tbool;
 
@@ -11584,7 +11601,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // lower non-memcmp-able array comparisons to object.__equals(e1, e2)
-        if (needsArrayLowering)
+        if (isArrayComparison && !canMemcmpArrays(exp.loc, exp.e1.type.toBasetype(), exp.e2.type.toBasetype()))
         {
             //printf("Lowering to __equals %s %s\n", exp.e1.toChars(), exp.e2.toChars());
 
