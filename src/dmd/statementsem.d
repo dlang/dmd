@@ -682,7 +682,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
      * expands the tuples into multiple `STC.local` `static foreach`
      * variables.
      */
-    auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
+    static auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
     {
         // Voldemort return type
         union U
@@ -708,7 +708,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (!skipCheck && (dim < 1 || dim > 2))
         {
             fs.error("only one (value) or two (key,value) arguments for tuple `foreach`");
-            setError();
             return returnEarly();
         }
 
@@ -718,7 +717,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             paramtype = paramtype.typeSemantic(loc, sc);
             if (paramtype.ty == Terror)
             {
-                setError();
                 return returnEarly();
             }
         }
@@ -772,7 +770,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (p.storageClass & (STC.out_ | STC.ref_ | STC.lazy_))
                 {
                     fs.error("no storage class for key `%s`", p.ident.toChars());
-                    setError();
                     return returnEarly();
                 }
 
@@ -789,7 +786,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     fs.error("foreach: key cannot be of non-integral type `%s`",
                              p.type.toChars());
-                    setError();
                     return returnEarly();
                 }
 
@@ -801,7 +797,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     fs.error("index type `%s` cannot cover index range 0..%llu",
                              p.type.toChars(), cast(ulong)length);
-                    setError();
                     return returnEarly();
                 }
                 Initializer ie = new ExpInitializer(Loc.initial, new IntegerExp(k));
@@ -835,7 +830,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     storageClass & STC.ref_ && !te)
                 {
                     fs.error("no storage class for value `%s`", ident.toChars());
-                    setError();
                     return false;
                 }
                 Declaration var;
@@ -862,7 +856,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     else if (storageClass & STC.alias_)
                     {
                         fs.error("`foreach` loop variable cannot be both `enum` and `alias`");
-                        setError();
                         return false;
                     }
 
@@ -872,13 +865,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (storageClass & STC.ref_)
                         {
                             fs.error("symbol `%s` cannot be `ref`", ds.toChars());
-                            setError();
                             return false;
                         }
                         if (paramtype)
                         {
                             fs.error("cannot specify element type for symbol `%s`", ds.toChars());
-                            setError();
                             return false;
                         }
                     }
@@ -888,7 +879,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (paramtype)
                         {
                             fs.error("cannot specify element type for type `%s`", e.type.toChars());
-                            setError();
                             return false;
                         }
                     }
@@ -922,7 +912,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                         fs.error("constant value `%s` cannot be `ref`", ident.toChars());
                                     }
                                 }
-                                setError();
                                 return false;
                             }
                             else
@@ -937,7 +926,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (paramtype)
                     {
                         fs.error("cannot specify element type for symbol `%s`", fs.toChars());
-                        setError();
                         return false;
                     }
                 }
