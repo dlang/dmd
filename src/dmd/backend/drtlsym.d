@@ -171,7 +171,6 @@ Symbol *getRtlsym(RTLSYM i)
         case RTLSYM.ARRAYCTOR:              symbolz(ps,FLfunc,FREGSAVED,"_d_arrayctor", 0, t); break;
         case RTLSYM.ARRAYSETASSIGN:         symbolz(ps,FLfunc,FREGSAVED,"_d_arraysetassign", 0, t); break;
         case RTLSYM.ARRAYSETCTOR:           symbolz(ps,FLfunc,FREGSAVED,"_d_arraysetctor", 0, t); break;
-        case RTLSYM.ARRAYEQ2:               symbolz(ps,FLfunc,FREGSAVED,"_adEq2", 0, t); break;
         case RTLSYM.ARRAYCMPCHAR:           symbolz(ps,FLfunc,FREGSAVED,"_adCmpChar", 0, t); break;
 
         case RTLSYM.EXCEPT_HANDLER2:        symbolz(ps,FLfunc,fregsaved,"_except_handler2", 0, tsclib); break;

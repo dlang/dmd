@@ -1859,89 +1859,71 @@ extern (C++) class ToElemVisitor : Visitor
         else if ((t1.ty == Tarray || t1.ty == Tsarray) &&
                  (t2.ty == Tarray || t2.ty == Tsarray))
         {
-            Type telement  = t1.nextOf().toBasetype();
-            Type telement2 = t2.nextOf().toBasetype();
+            // Only memcmp-able array comparisons make it to the glue layer
+            // (others are lowered to object.__equals). Implement via:
+            // * for a==b: a.length==b.length && (a.length == 0 || memcmp(a.ptr, b.ptr, size)==0)
+            // * for a!=b: a.length!=b.length || (a.length != 0 && memcmp(a.ptr, b.ptr, size)!=0)
+            // size is a.length*sizeof(a[0]) for dynamic arrays, or sizeof(a) for static arrays.
 
-            if ((telement.isintegral() || telement.ty == Tvoid) && telement.ty == telement2.ty)
+            elem* earr1 = toElem(ee.e1, irs);
+            elem* earr2 = toElem(ee.e2, irs);
+            elem* eptr1, eptr2; // Pointer to data, to pass to memcmp
+            elem* elen1, elen2; // Length, for comparison
+            elem* esiz1, esiz2; // Data size, to pass to memcmp
+            d_uns64 sz = t1.nextOf().toBasetype().size(); // Size of one element
+
+            if (t1.ty == Tarray)
             {
-                // Optimize comparisons of arrays of basic types
-                // For arrays of integers/characters, and void[],
-                // replace druntime call with:
-                // For a==b: a.length==b.length && (a.length == 0 || memcmp(a.ptr, b.ptr, size)==0)
-                // For a!=b: a.length!=b.length || (a.length != 0 || memcmp(a.ptr, b.ptr, size)!=0)
-                // size is a.length*sizeof(a[0]) for dynamic arrays, or sizeof(a) for static arrays.
-
-                elem* earr1 = toElem(ee.e1, irs);
-                elem* earr2 = toElem(ee.e2, irs);
-                elem* eptr1, eptr2; // Pointer to data, to pass to memcmp
-                elem* elen1, elen2; // Length, for comparison
-                elem* esiz1, esiz2; // Data size, to pass to memcmp
-                d_uns64 sz = telement.size(); // Size of one element
-
-                if (t1.ty == Tarray)
-                {
-                    elen1 = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
-                    esiz1 = el_bin(OPmul, TYsize_t, el_same(&elen1), el_long(TYsize_t, sz));
-                    eptr1 = array_toPtr(t1, el_same(&earr1));
-                }
-                else
-                {
-                    elen1 = el_long(TYsize_t, (cast(TypeSArray)t1).dim.toInteger());
-                    esiz1 = el_long(TYsize_t, t1.size());
-                    earr1 = addressElem(earr1, t1);
-                    eptr1 = el_same(&earr1);
-                }
-
-                if (t2.ty == Tarray)
-                {
-                    elen2 = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
-                    esiz2 = el_bin(OPmul, TYsize_t, el_same(&elen2), el_long(TYsize_t, sz));
-                    eptr2 = array_toPtr(t2, el_same(&earr2));
-                }
-                else
-                {
-                    elen2 = el_long(TYsize_t, (cast(TypeSArray)t2).dim.toInteger());
-                    esiz2 = el_long(TYsize_t, t2.size());
-                    earr2 = addressElem(earr2, t2);
-                    eptr2 = el_same(&earr2);
-                }
-
-                elem *esize = t2.ty == Tsarray ? esiz2 : esiz1;
-
-                e = el_param(eptr1, eptr2);
-                e = el_bin(OPmemcmp, TYint, e, esize);
-                e = el_bin(eop, TYint, e, el_long(TYint, 0));
-
-                elem *elen = t2.ty == Tsarray ? elen2 : elen1;
-                elem *esizecheck = el_bin(eop, TYint, el_same(&elen), el_long(TYsize_t, 0));
-                e = el_bin(ee.op == TOK.equal ? OPoror : OPandand, TYint, esizecheck, e);
-
-                if (t1.ty == Tsarray && t2.ty == Tsarray)
-                    assert(t1.size() == t2.size());
-                else
-                {
-                    elem *elencmp = el_bin(eop, TYint, elen1, elen2);
-                    e = el_bin(ee.op == TOK.equal ? OPandand : OPoror, TYint, elencmp, e);
-                }
-
-                // Ensure left-to-right order of evaluation
-                e = el_combine(earr2, e);
-                e = el_combine(earr1, e);
-                elem_setLoc(e, ee.loc);
-                result = e;
-                return;
+                elen1 = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
+                esiz1 = el_bin(OPmul, TYsize_t, el_same(&elen1), el_long(TYsize_t, sz));
+                eptr1 = array_toPtr(t1, el_same(&earr1));
+            }
+            else
+            {
+                elen1 = el_long(TYsize_t, (cast(TypeSArray)t1).dim.toInteger());
+                esiz1 = el_long(TYsize_t, t1.size());
+                earr1 = addressElem(earr1, t1);
+                eptr1 = el_same(&earr1);
             }
 
-            elem *ea1 = eval_Darray(ee.e1);
-            elem *ea2 = eval_Darray(ee.e2);
+            if (t2.ty == Tarray)
+            {
+                elen2 = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
+                esiz2 = el_bin(OPmul, TYsize_t, el_same(&elen2), el_long(TYsize_t, sz));
+                eptr2 = array_toPtr(t2, el_same(&earr2));
+            }
+            else
+            {
+                elen2 = el_long(TYsize_t, (cast(TypeSArray)t2).dim.toInteger());
+                esiz2 = el_long(TYsize_t, t2.size());
+                earr2 = addressElem(earr2, t2);
+                eptr2 = el_same(&earr2);
+            }
 
-            elem *ep = el_params(getTypeInfo(ee.loc, telement.arrayOf(), irs),
-                    ea2, ea1, null);
-            const rtlfunc = RTLSYM.ARRAYEQ2;
-            e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
-            if (ee.op == TOK.notEqual)
-                e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
-            elem_setLoc(e,ee.loc);
+            elem *esize = t2.ty == Tsarray ? esiz2 : esiz1;
+
+            e = el_param(eptr1, eptr2);
+            e = el_bin(OPmemcmp, TYint, e, esize);
+            e = el_bin(eop, TYint, e, el_long(TYint, 0));
+
+            elem *elen = t2.ty == Tsarray ? elen2 : elen1;
+            elem *esizecheck = el_bin(eop, TYint, el_same(&elen), el_long(TYsize_t, 0));
+            e = el_bin(ee.op == TOK.equal ? OPoror : OPandand, TYint, esizecheck, e);
+
+            if (t1.ty == Tsarray && t2.ty == Tsarray)
+                assert(t1.size() == t2.size());
+            else
+            {
+                elem *elencmp = el_bin(eop, TYint, elen1, elen2);
+                e = el_bin(ee.op == TOK.equal ? OPandand : OPoror, TYint, elencmp, e);
+            }
+
+            // Ensure left-to-right order of evaluation
+            e = el_combine(earr2, e);
+            e = el_combine(earr1, e);
+            elem_setLoc(e, ee.loc);
+            result = e;
+            return;
         }
         else if (t1.ty == Taarray && t2.ty == Taarray)
         {

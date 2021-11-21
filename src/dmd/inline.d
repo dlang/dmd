@@ -793,15 +793,7 @@ public:
             visit(cast(BinExp)e);
 
             Type t1 = e.e1.type.toBasetype();
-            if (t1.ty == Tarray || t1.ty == Tsarray)
-            {
-                Type t = t1.nextOf().toBasetype();
-                while (t.toBasetype().nextOf())
-                    t = t.nextOf().toBasetype();
-                if (t.ty == Tstruct)
-                    semanticTypeInfo(null, t);
-            }
-            else if (t1.ty == Taarray)
+            if (t1.ty == Taarray)
             {
                 semanticTypeInfo(null, t1);
             }
