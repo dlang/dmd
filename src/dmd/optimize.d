@@ -207,9 +207,13 @@ private Expression fromConstInitializer(int result, Expression e1)
     return e;
 }
 
-/* It is possible for constant folding to change an array expression of
+/***
+ * It is possible for constant folding to change an array expression of
  * unknown length, into one where the length is known.
  * If the expression 'arr' is a literal, set lengthVar to be its length.
+ * Params:
+ *    lengthVar = variable declaration for the `.length` property
+ *    arr = String, ArrayLiteral, or of TypeSArray
  */
 package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
 {
@@ -217,37 +221,39 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
         return;
     if (lengthVar._init && !lengthVar._init.isVoidInitializer())
         return; // we have previously calculated the length
-    size_t len;
-    if (arr.op == TOK.string_)
-        len = (cast(StringExp)arr).len;
-    else if (arr.op == TOK.arrayLiteral)
-        len = (cast(ArrayLiteralExp)arr).elements.dim;
+    d_uns64 len;
+    if (auto se = arr.isStringExp())
+        len = se.len;
+    else if (auto ale = arr.isArrayLiteralExp())
+        len = ale.elements.dim;
     else
     {
-        Type t = arr.type.toBasetype();
-        if (t.ty == Tsarray)
-            len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-        else
+        auto tsa = arr.type.toBasetype().isTypeSArray();
+        if (!tsa)
             return; // we don't know the length yet
+        len = tsa.dim.toInteger();
     }
     Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
     lengthVar._init = new ExpInitializer(Loc.initial, dollar);
     lengthVar.storage_class |= STC.static_ | STC.const_;
 }
 
-/* Same as above, but determines the length from 'type'. */
+/***
+ * Same as above, but determines the length from 'type'.
+ * Params:
+ *    lengthVar = variable declaration for the `.length` property
+ *    type = TypeSArray
+ */
 package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
 {
     if (!lengthVar)
         return;
     if (lengthVar._init && !lengthVar._init.isVoidInitializer())
         return; // we have previously calculated the length
-    size_t len;
-    Type t = type.toBasetype();
-    if (t.ty == Tsarray)
-        len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-    else
+    auto tsa = type.toBasetype().isTypeSArray();
+    if (!tsa)
         return; // we don't know the length yet
+    d_uns64 len = tsa.dim.toInteger();
     Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
     lengthVar._init = new ExpInitializer(Loc.initial, dollar);
     lengthVar.storage_class |= STC.static_ | STC.const_;
