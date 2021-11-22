@@ -4547,7 +4547,7 @@ Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out St
  * See StatementSemanticVisitor.makeTupleForeach.  This is a simple
  * wrapper that returns the generated statements/declarations.
  */
-auto makeTupleForeach(bool isStatic, bool isDecl)(Scope* sc, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
+auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachStatement fs, Dsymbols* dbody, bool needExpansion)
 {
     scope v = new StatementSemanticVisitor(sc);
     return v.makeTupleForeach(sc, isStatic, isDecl, fs, dbody, needExpansion);
@@ -4674,7 +4674,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             sfs.sfe.prepare(sc);
             if (sfs.sfe.ready())
             {
-                Statement s = makeTupleForeach!(true, false)(sc, sfs.sfe.aggrfe, null, sfs.sfe.needExpansion).statement;
+                Statement s = makeTupleForeach(sc, true, false, sfs.sfe.aggrfe, null, sfs.sfe.needExpansion).statement;
                 auto result = s.flatten(sc);
                 if (result)
                 {
