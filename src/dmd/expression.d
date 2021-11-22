@@ -60,6 +60,7 @@ import dmd.optimize;
 import dmd.root.ctfloat;
 import dmd.root.filename;
 import dmd.common.outbuffer;
+import dmd.root.optional;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
@@ -1597,12 +1598,11 @@ extern (C++) abstract class Expression : ASTNode
         return .isConst(this);
     }
 
-    /********************************
-     * Does this expression statically evaluate to a boolean 'result' (true or false)?
-     */
-    bool isBool(bool result)
+    /// Statically evaluate this expression to a `bool` if possible
+    /// Returns: an optional thath either contains the value or is empty
+    Optional!bool toBool()
     {
-        return false;
+        return typeof(return)();
     }
 
     bool hasCode()
@@ -1827,10 +1827,10 @@ extern (C++) final class IntegerExp : Expression
         return complex_t(toReal());
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
         bool r = toInteger() != 0;
-        return result ? r : !r;
+        return typeof(return)(r);
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
@@ -2096,9 +2096,9 @@ extern (C++) final class RealExp : Expression
         return complex_t(toReal(), toImaginary());
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
-        return result ? cast(bool)value : !cast(bool)value;
+        return typeof(return)(!!value);
     }
 
     override void accept(Visitor v)
@@ -2171,12 +2171,9 @@ extern (C++) final class ComplexExp : Expression
         return value;
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
-        if (result)
-            return cast(bool)value;
-        else
-            return !value;
+        return typeof(return)(!!value);
     }
 
     override void accept(Visitor v)
@@ -2292,9 +2289,10 @@ extern (C++) class ThisExp : Expression
         return r;
     }
 
-    override final bool isBool(bool result)
+    override Optional!bool toBool()
     {
-        return result;
+        // `this` is never null (what about structs?)
+        return typeof(return)(true);
     }
 
     override final bool isLvalue()
@@ -2358,9 +2356,10 @@ extern (C++) final class NullExp : Expression
         return false;
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
-        return result ? false : true;
+        // null in any type is false
+        return typeof(return)(false);
     }
 
     override StringExp toStringExp()
@@ -2681,9 +2680,11 @@ extern (C++) final class StringExp : Expression
         return cast(int)(len1 - len2);
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
-        return result;
+        // Keep the old behaviour for this refactoring
+        // Should probably match language spec instead and check for length
+        return typeof(return)(true);
     }
 
     override bool isLvalue()
@@ -3000,10 +3001,10 @@ extern (C++) final class ArrayLiteralExp : Expression
         return el ? el : basis;
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
         size_t dim = elements ? elements.dim : 0;
-        return result ? (dim != 0) : (dim == 0);
+        return typeof(return)(dim != 0);
     }
 
     override StringExp toStringExp()
@@ -3119,10 +3120,10 @@ extern (C++) final class AssocArrayLiteralExp : Expression
         return new AssocArrayLiteralExp(loc, arraySyntaxCopy(keys), arraySyntaxCopy(values));
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
         size_t dim = keys.dim;
-        return result ? (dim != 0) : (dim == 0);
+        return typeof(return)(dim != 0);
     }
 
     override void accept(Visitor v)
@@ -3622,9 +3623,9 @@ extern (C++) final class SymOffExp : SymbolExp
         this.offset = offset;
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
-        return result ? true : false;
+        return typeof(return)(true);
     }
 
     override void accept(Visitor v)
@@ -5476,9 +5477,9 @@ extern (C++) final class SliceExp : UnaExp
         return this;
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
-        return e1.isBool(result);
+        return e1.toBool();
     }
 
     override void accept(Visitor v)
@@ -5608,9 +5609,9 @@ extern (C++) final class CommaExp : BinExp
         return this;
     }
 
-    override bool isBool(bool result)
+    override Optional!bool toBool()
     {
-        return e2.isBool(result);
+        return e2.toBool();
     }
 
     override Expression addDtorHook(Scope* sc)

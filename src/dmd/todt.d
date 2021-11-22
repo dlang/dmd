@@ -149,7 +149,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                 size_t tadim = cast(size_t)ta.dim.toInteger();
                 if (ai.dim < tadim)
                 {
-                    if (edefault.isBool(false))
+                    if (edefault.toBool().hasValue(false))
                     {
                         // pad out end of array
                         dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));

@@ -929,12 +929,13 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             (*args)[0] = e;
         }
 
-        if (e.isBool(true))
-            return PINLINE.always;
-        else if (e.isBool(false))
-            return PINLINE.never;
-        else
+        const opt = e.toBool();
+        if (opt.isEmpty())
             return PINLINE.default_;
+        else if (opt.get())
+            return PINLINE.always;
+        else
+            return PINLINE.never;
     }
 
     override const(char)* kind() const

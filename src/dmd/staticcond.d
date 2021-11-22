@@ -108,9 +108,10 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
 
         e = e.ctfeInterpret();
 
-        if (e.isBool(true))
+        const opt = e.toBool();
+        if (opt.hasValue(true))
             return true;
-        else if (e.isBool(false))
+        else if (opt.hasValue(false))
         {
             if (negatives)
                 negatives.push(before);

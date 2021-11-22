@@ -894,7 +894,7 @@ public:
 
         if (isTrueBool(e))
             result = interpret(pue, s.ifbody, istate);
-        else if (e.isBool(false))
+        else if (e.toBool().hasValue(false))
             result = interpret(pue, s.elsebody, istate);
         else
         {
@@ -1158,7 +1158,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            if (e.isBool(false))
+            if (e.toBool().hasValue(false))
                 break;
             assert(isTrueBool(e));
         }
@@ -1189,7 +1189,7 @@ public:
                 Expression e = interpret(&ue, s.condition, istate);
                 if (exceptionOrCant(e))
                     return;
-                if (e.isBool(false))
+                if (e.toBool().hasValue(false))
                     break;
                 assert(isTrueBool(e));
             }
@@ -4634,9 +4634,9 @@ public:
 
         bool res;
         const andand = e.op == TOK.andAnd;
-        if (andand ? result.isBool(false) : isTrueBool(result))
+        if (andand ? result.toBool().hasValue(false) : isTrueBool(result))
             res = !andand;
-        else if (andand ? isTrueBool(result) : result.isBool(false))
+        else if (andand ? isTrueBool(result) : result.toBool().hasValue(false))
         {
             UnionExp ue2 = void;
             result = interpret(&ue2, e.e2, istate);
@@ -4648,7 +4648,7 @@ public:
                 result = null;
                 return;
             }
-            if (result.isBool(false))
+            if (result.toBool().hasValue(false))
                 res = false;
             else if (isTrueBool(result))
                 res = true;
@@ -5018,7 +5018,7 @@ public:
             result = interpret(pue, e.e1, istate, goal);
             incUsageCtfe(istate, e.e1.loc);
         }
-        else if (econd.isBool(false))
+        else if (econd.toBool().hasValue(false))
         {
             result = interpret(pue, e.e2, istate, goal);
             incUsageCtfe(istate, e.e2.loc);
@@ -6059,7 +6059,7 @@ public:
         if (isTrueBool(e1))
         {
         }
-        else if (e1.isBool(false))
+        else if (e1.toBool().hasValue(false))
         {
             if (e.msg)
             {

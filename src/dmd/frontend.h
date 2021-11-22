@@ -1531,6 +1531,24 @@ enum class MATCH
     exact = 3,
 };
 
+template <typename T>
+struct Optional final
+{
+    // Ignoring var value alignment 0
+    T value;
+    // Ignoring var present alignment 0
+    bool present;
+    Optional(T value);
+    static Optional<T > create(T val);
+    bool isPresent() const;
+    bool isEmpty() const;
+    T get();
+    bool hasValue(T exp) const;
+    Optional()
+    {
+    }
+};
+
 class Expression : public ASTNode
 {
 public:
@@ -1572,7 +1590,7 @@ public:
     Expression* optimize(int32_t result, bool keepLvalue = false);
     Expression* ctfeInterpret();
     int32_t isConst();
-    virtual bool isBool(bool result);
+    virtual Optional<bool > toBool();
     virtual bool hasCode();
     IntegerExp* isIntegerExp();
     ErrorExp* isErrorExp();
@@ -6488,7 +6506,7 @@ public:
     _d_real toReal();
     _d_real toImaginary();
     complex_t toComplex();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
     dinteger_t getInteger();
@@ -6526,7 +6544,7 @@ public:
     _d_real toReal();
     _d_real toImaginary();
     complex_t toComplex();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -6542,7 +6560,7 @@ public:
     _d_real toReal();
     _d_real toImaginary();
     complex_t toComplex();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -6578,7 +6596,7 @@ public:
     VarDeclaration* var;
     ThisExp(const Loc& loc, const TOK tok);
     ThisExp* syntaxCopy();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
@@ -6594,7 +6612,7 @@ class NullExp final : public Expression
 {
 public:
     bool equals(const RootObject* const o) const;
-    bool isBool(bool result);
+    Optional<bool > toBool();
     StringExp* toStringExp();
     void accept(Visitor* v);
 };
@@ -6626,7 +6644,7 @@ public:
     StringExp* toStringExp();
     StringExp* toUTF8(Scope* sc);
     int32_t compare(const StringExp* const se2) const;
-    bool isBool(bool result);
+    Optional<bool > toBool();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -6658,7 +6676,7 @@ public:
     bool equals(const RootObject* const o) const;
     Expression* getElement(size_t i);
     Expression* opIndex(size_t i);
-    bool isBool(bool result);
+    Optional<bool > toBool();
     StringExp* toStringExp();
     void accept(Visitor* v);
 };
@@ -6671,7 +6689,7 @@ public:
     OwnedBy ownedByCtfe;
     bool equals(const RootObject* const o) const;
     AssocArrayLiteralExp* syntaxCopy();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -6776,7 +6794,7 @@ class SymOffExp final : public SymbolExp
 {
 public:
     dinteger_t offset;
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -7088,7 +7106,7 @@ public:
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -7124,7 +7142,7 @@ public:
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
-    bool isBool(bool result);
+    Optional<bool > toBool();
     Expression* addDtorHook(Scope* sc);
     void accept(Visitor* v);
     static void allow(Expression* exp);

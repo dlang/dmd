@@ -1068,7 +1068,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             if (expOptimize(e.e1, WANTvalue))
                 return;
             const oror = e.op == TOK.orOr;
-            if (e.e1.isBool(oror))
+            if (e.e1.toBool().hasValue(oror))
             {
                 // Replace with (e1, oror)
                 ret = IntegerExp.createBool(oror);
@@ -1084,13 +1084,14 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             expOptimize(e.e2, WANTvalue);
             if (e.e1.isConst())
             {
+                const e1Opt = e.e1.toBool();
                 if (e.e2.isConst())
                 {
-                    bool n1 = e.e1.isBool(true);
-                    bool n2 = e.e2.isBool(true);
+                    bool n1 = e1Opt.hasValue(true);
+                    bool n2 = e.e2.toBool().hasValue(true);
                     ret = new IntegerExp(e.loc, oror ? (n1 || n2) : (n1 && n2), e.type);
                 }
-                else if (e.e1.isBool(!oror))
+                else if (e1Opt.hasValue(!oror))
                 {
                     if (e.type.toBasetype().ty == Tvoid)
                         ret = e.e2;
@@ -1156,9 +1157,10 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         {
             if (expOptimize(e.econd, WANTvalue))
                 return;
-            if (e.econd.isBool(true))
+            const opt = e.econd.toBool();
+            if (opt.hasValue(true))
                 ret = Expression_optimize(e.e1, result, keepLvalue);
-            else if (e.econd.isBool(false))
+            else if (opt.hasValue(false))
                 ret = Expression_optimize(e.e2, result, keepLvalue);
             else
             {

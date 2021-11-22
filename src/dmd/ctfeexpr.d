@@ -667,7 +667,7 @@ bool isPointer(Type t)
 // For CTFE only. Returns true if 'e' is true or a non-null pointer.
 bool isTrueBool(Expression e)
 {
-    return e.isBool(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass) && e.op != TOK.null_);
+    return e.toBool().hasValue(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass) && e.op != TOK.null_);
 }
 
 /* Is it safe to convert from srcPointee* to destPointee* ?

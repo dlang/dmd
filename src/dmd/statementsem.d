@@ -2483,9 +2483,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     return setError();
                 }
 
-                if (e.isBool(true))
+                const opt = e.toBool();
+                if (opt.hasValue(true))
                     inlining = PINLINE.always;
-                else if (e.isBool(false))
+                else if (opt.hasValue(false))
                     inlining = PINLINE.never;
 
                     FuncDeclaration fd = sc.func;

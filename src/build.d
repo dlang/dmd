@@ -1418,11 +1418,11 @@ auto sourceFiles()
             outbuffer.h
         "),
         root: fileArray(env["ROOT"], "
-            aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+            aav.d longdouble.d man.d optional.d response.d speller.d string.d strtold.d
         "),
         rootHeaders: fileArray(env["ROOT"], "
             array.h bitarray.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
-            object.h port.h rmem.h root.h
+            object.h optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
