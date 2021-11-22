@@ -225,6 +225,16 @@ jobs:
             export LDC_VSDIR='C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise'
           fi
 
+          # Workaround: Provide ldmd2 as dmd replacement as some tools assume DMD is present:
+          mkdir .pathext
+          ln -s "$(which ldmd2)" .pathext/dmd
+          if [[ "${{ matrix.target }}" == "windows" ]]
+          then
+            PATH="$PATH;$PWD/.pathext"
+          else
+            PATH="$PATH:$PWD/.pathext"
+          fi
+
           # Build the release
           ./build_all --targets=${{ matrix.target }} "v$LDC" master
 
