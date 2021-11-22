@@ -1699,7 +1699,11 @@ final class CParser(AST) : Parser!AST
             switch (token.value)
             {
                 case TOK.identifier:
-                    error("missing comma");
+                    if (s)
+                    {
+                        error("missing comma or semicolon after declaration of `%s`, found `%s` instead", s.toChars(), token.toChars());
+                        goto Lend;
+                    }
                     goto default;
 
                 case TOK.semicolon:
@@ -1713,7 +1717,8 @@ final class CParser(AST) : Parser!AST
                     break;
 
                 default:
-                    error("`=`, `;` or `,` expected");
+                    error("`=`, `;` or `,` expected to end declaration instead of `%s`", token.toChars());
+                Lend:
                     while (token.value != TOK.semicolon && token.value != TOK.endOfFile)
                         nextToken();
                     nextToken();
