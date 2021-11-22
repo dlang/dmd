@@ -203,7 +203,7 @@ jobs:
           ldmd2 -g -m64 --link-defaultlib-debug -version=NoVagrant -i build_all.d
 
           # Determine installed LDC version
-          LDC=$(ldc2 --version | head -n 1 | cut -d'(' -f2 | cut -d')' -f1)
+          LDC=$(head -n 1 < <(ldc2 --version) | cut -d'(' -f2 | cut -d')' -f1)
           echo "::set-output name=host_ldc::$LDC"
 
           # WINDOWS: Fetch additional DM tools
@@ -223,6 +223,16 @@ jobs:
 
             # Export VS dir
             export LDC_VSDIR='C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise'
+          fi
+
+          # Workaround: Provide ldmd2 as dmd replacement as some tools assume DMD is present:
+          mkdir .pathext
+          ln -s "$(which ldmd2)" .pathext/dmd
+          if [[ "${{ matrix.target }}" == "windows" ]]
+          then
+            PATH="$PATH;$PWD/.pathext"
+          else
+            PATH="$PATH:$PWD/.pathext"
           fi
 
           # Build the release
