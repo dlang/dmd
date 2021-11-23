@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -de
+REQUIRED_ARGS: -de -revert=intpromote
 TEST_OUTPUT:
 ---
 fail_compilation/fail16997.d(31): Deprecation: integral promotion not done for `~c`, use '-preview=intpromote' switch or `~cast(int)(c)`
