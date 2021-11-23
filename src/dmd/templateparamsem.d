@@ -75,6 +75,7 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
 
     override void visit(TemplateValueParameter tvp)
     {
+        // .syntaxCopy() ?
         tvp.valType = tvp.valType.typeSemantic(tvp.loc, sc);
         version (none)
         {

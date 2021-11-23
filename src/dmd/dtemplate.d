@@ -2045,6 +2045,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 }
                                 else
                                 {
+                                    // NOTE: Add valType.syntaxCopy when extending this code s.t.
+                                    //       it can handle dependencies to previous parameters, e..g
+                                    //       void foo(T = size_t, T size)(int[size]...)
                                     Type vt = tvp.valType.typeSemantic(Loc.initial, sc);
                                     MATCH m = dim.implicitConvTo(vt);
                                     if (m == MATCH.nomatch)
@@ -2314,6 +2317,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             Initializer _init = new ExpInitializer(loc, ea);
             TemplateValueParameter tvp = tp.isTemplateValueParameter();
             Type t = tvp ? tvp.valType : null;
+            if (t && !t.deco)
+                 // Parameter type most likely depends on previous parameters
+                t = t.syntaxCopy();
             v = new VarDeclaration(loc, t, tp.ident, _init);
             v.storage_class = STC.manifest | STC.templateparameter;
             d = v;
@@ -5650,15 +5656,13 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     override RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
-        Type ta = isType(defaultAlias);
-        if (ta)
-        {
-            if (ta.ty == Tinstance)
-            {
-                // If the default arg is a template, instantiate for each type
-                da = ta.syntaxCopy();
-            }
-        }
+
+        // Create a copy to not taint the default found in template
+        // declaration because it might depend on preceding parameters
+        if (Type ta = isType(defaultAlias))
+            da = ta.syntaxCopy();
+        else if (Expression ea = isExpression(defaultAlias))
+            da = ea.syntaxCopy();
 
         RootObject o = aliasParameterSemantic(loc, sc, da, null); // use the parameter loc
         return o;
@@ -8039,7 +8043,16 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
         }
 
         //printf("\tvalType: %s, ty = %d\n", tvp.valType.toChars(), tvp.valType.ty);
-        vt = tvp.valType.typeSemantic(tvp.loc, sc);
+
+        // The type might rely on preceeding parameters, e.g.
+        // void foo(T, T val)(...) {}
+        // Make a copy to not modify the template declaration!
+        vt = tvp.valType;
+
+        if (vt.reliesOnTemplateParameters((*parameters)[0..i]))
+            vt = vt.syntaxCopy();
+
+        vt = vt.typeSemantic(tvp.loc, sc);
         //printf("ei: %s, ei.type: %s\n", ei.toChars(), ei.type.toChars());
         //printf("vt = %s\n", vt.toChars());
 
@@ -8114,6 +8127,14 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             sa = (cast(ThisExp)ea).var;
         else if (ea && ea.op == TOK.scope_)
             sa = (cast(ScopeExp)ea).sds;
+
+        auto specType = tap.specType;
+        if (specType && specType.reliesOnTemplateParameters((*parameters)[0..i]))
+        {
+            specType = specType.syntaxCopy();
+            specType = specType.typeSemantic(tap.loc, sc);
+        }
+
         if (sa)
         {
             if ((cast(Dsymbol)sa).isAggregateDeclaration())
@@ -8122,12 +8143,12 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             /* specType means the alias must be a declaration with a type
              * that matches specType.
              */
-            if (tap.specType)
+            if (specType)
             {
                 Declaration d = (cast(Dsymbol)sa).isDeclaration();
                 if (!d)
                     return matchArgNoMatch();
-                if (!d.type.equals(tap.specType))
+                if (!d.type.equals(specType))
                     return matchArgNoMatch();
             }
         }
@@ -8136,9 +8157,9 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             sa = oarg;
             if (ea)
             {
-                if (tap.specType)
+                if (specType)
                 {
-                    if (!ea.type.equals(tap.specType))
+                    if (!ea.type.equals(specType))
                         return matchArgNoMatch();
                 }
             }
