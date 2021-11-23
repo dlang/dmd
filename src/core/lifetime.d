@@ -1921,7 +1921,7 @@ private void moveImpl(T)(scope ref T target, return scope ref T source)
 
     static if (is(T == struct))
     {
-        //  Unsafe when compiling without -dip1000
+        //  Unsafe when compiling without -preview=dip1000
         if ((() @trusted => &source == &target)()) return;
         // Destroy target before overwriting it
         static if (hasElaborateDestructor!T) target.__xdtor();
@@ -2099,7 +2099,7 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
 
     static if (is(T == struct))
     {
-        //  Unsafe when compiling without -dip1000
+        //  Unsafe when compiling without -preview=dip1000
         assert((() @trusted => &source !is &target)(), "source and target must not be identical");
 
         static if (hasElaborateAssign!T || !isAssignable!T)

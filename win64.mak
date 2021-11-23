@@ -30,8 +30,8 @@ IMPDIR=import
 MAKE=make
 HOST_DMD=dmd
 
-DFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -preview=dtorfields -inline -w -Isrc -Iimport
-UDFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -w -version=_MSC_VER_$(_MSC_VER) -Isrc -Iimport
+DFLAGS=-m$(MODEL) -conf= -O -release -preview=dip1000 -preview=fieldwise -preview=dtorfields -inline -w -Isrc -Iimport
+UDFLAGS=-m$(MODEL) -conf= -O -release -preview=dip1000 -preview=fieldwise -w -version=_MSC_VER_$(_MSC_VER) -Isrc -Iimport
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 UTFLAGS=-version=CoreUnittest -unittest -checkaction=context
