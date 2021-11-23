@@ -322,7 +322,7 @@ jobs:
       # Create the new release using the downloaded artifacts
       #
       - name: Create the nightly release
-        uses: ncipollo/release-action@v1.8.6
+        uses: ncipollo/release-action@v1
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           name: DMD nightly
