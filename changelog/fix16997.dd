@@ -12,12 +12,6 @@ The values computed will be different for some values of the operands:
 
     The values of -byte(-128) and -short(-32768) will change.
 
-If one of the '-transition=' switches is not specified, a deprecation will be emitted for these operations. To fix the deprecation and work as desired with or without the '-transition=' switch:
+To revert to the old behavor rewrite it as the following:
 
-Option 1:
-
-Rewrite op b as op int(b) to use correct, i.e. C-like, behavior.
-
-Option 2:
-
-Rewrite op b as typeof(b)(op int(b)) to preserve the old behavior. 
+op b as typeof(b)(op int(b)) to preserve the old behavior. 
