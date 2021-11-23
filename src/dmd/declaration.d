@@ -1674,11 +1674,11 @@ extern (C++) class VarDeclaration : Declaration
         assert(this.loc != Loc.initial);
         assert(v.loc != Loc.initial);
 
-        if (auto ld = this.loc.linnum - v.loc.linnum)
-            return ld < 0;
+        if (this.loc.linnum != v.loc.linnum)
+            return this.loc.linnum < v.loc.linnum;
 
-        if (auto cd = this.loc.charnum - v.loc.charnum)
-            return cd < 0;
+        if (this.loc.charnum != v.loc.charnum)
+            return this.loc.charnum < v.loc.charnum;
 
         // Default fallback
         return this.sequenceNumber < v.sequenceNumber;
