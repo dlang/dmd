@@ -629,7 +629,6 @@ struct Param final
         betterC(),
         addMain(),
         allInst(),
-        fix16997(),
         fixAliasThis(),
         inclusiveInContracts(),
         ehnogc(),
@@ -884,7 +883,7 @@ struct Global final
         hasMainFunction()
     {
     }
-    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, 0u, false, false, (DiagnosticReporting)1u, false, false, false, (FeatureState)-1, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, (FeatureState)-1, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, false, {}, Array<const char* >(0LLU, {}, arrayliteral), (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false) :
+    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, 0u, false, false, (DiagnosticReporting)1u, false, false, false, (FeatureState)-1, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, (FeatureState)-1, false, false, false, (FeatureState)-1, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, false, {}, Array<const char* >(0LLU, {}, arrayliteral), (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false) :
         inifilename(inifilename),
         copyright(copyright),
         written(written),
@@ -6470,8 +6469,8 @@ private:
         char exp[40LLU];
         char integerexp[48LLU];
         char errorexp[40LLU];
-        char realexp[64LLU];
-        char complexexp[80LLU];
+        char realexp[50LLU];
+        char complexexp[60LLU];
         char symoffexp[72LLU];
         char stringexp[60LLU];
         char arrayliteralexp[57LLU];
@@ -7681,7 +7680,7 @@ public:
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration* fd, Statement* fbody);
     Target() :
-        os((OS)1u),
+        os((OS)2u),
         osMajor(),
         ptrsize(),
         realsize(),
@@ -7706,7 +7705,7 @@ public:
         RealProperties()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u, 0u, (TargetC::Runtime)0u, (TargetC::BitFieldStyle)0u), TargetCPP cpp = TargetCPP(false, false, false, false, (TargetCPP::Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool mscoff = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4931LL)) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u, 0u, (TargetC::Runtime)0u, (TargetC::BitFieldStyle)0u), TargetCPP cpp = TargetCPP(false, false, false, false, (TargetCPP::Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool mscoff = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4932LL)) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),
@@ -7898,6 +7897,139 @@ public:
     void visit(RemoveExp* e);
 };
 
+extern bool initFPU();
+
+extern void ld_clearfpu();
+
+struct longdouble_soft final
+{
+    // Ignoring var mantissa alignment 2
+    uint64_t mantissa;
+    uint16_t exp_sign;
+    longdouble_soft(uint64_t m, uint16_t es);
+    longdouble_soft(longdouble_soft ld);
+    longdouble_soft(int32_t i);
+    longdouble_soft(uint32_t i);
+    longdouble_soft(int64_t i);
+    longdouble_soft(uint64_t i);
+    longdouble_soft(float f);
+    longdouble_soft(double d);
+    longdouble_soft(_d_real r);
+    uint16_t exponent() const;
+    bool sign() const;
+    static longdouble_soft nan();
+    static longdouble_soft infinity();
+    static longdouble_soft zero();
+    static longdouble_soft max();
+    static longdouble_soft min_normal();
+    static longdouble_soft epsilon();
+    static uint32_t dig();
+    static uint32_t mant_dig();
+    static uint32_t max_exp();
+    static uint32_t min_exp();
+    static uint32_t max_10_exp();
+    static uint32_t min_10_exp();
+    longdouble_soft()
+    {
+    }
+};
+
+extern double ld_read(const longdouble_soft* const pthis);
+
+extern int64_t ld_readll(const longdouble_soft* const pthis);
+
+extern uint64_t ld_readull(const longdouble_soft* const pthis);
+
+extern int32_t ld_statusfpu();
+
+extern void ld_set(longdouble_soft* pthis, double d);
+
+extern void ld_setll(longdouble_soft* pthis, int64_t d);
+
+extern void ld_setull(longdouble_soft* pthis, uint64_t d);
+
+extern longdouble_soft ldexpl(longdouble_soft ld, int32_t exp);
+
+extern longdouble_soft ld_add(longdouble_soft ld1, longdouble_soft ld2);
+
+extern longdouble_soft ld_sub(longdouble_soft ld1, longdouble_soft ld2);
+
+extern longdouble_soft ld_mul(longdouble_soft ld1, longdouble_soft ld2);
+
+extern longdouble_soft ld_div(longdouble_soft ld1, longdouble_soft ld2);
+
+extern bool ld_cmpb(longdouble_soft x, longdouble_soft y);
+
+extern bool ld_cmpbe(longdouble_soft x, longdouble_soft y);
+
+extern bool ld_cmpa(longdouble_soft x, longdouble_soft y);
+
+extern bool ld_cmpae(longdouble_soft x, longdouble_soft y);
+
+extern bool ld_cmpe(longdouble_soft x, longdouble_soft y);
+
+extern bool ld_cmpne(longdouble_soft x, longdouble_soft y);
+
+extern int32_t ld_cmp(longdouble_soft x, longdouble_soft y);
+
+extern int32_t _isnan(longdouble_soft ld);
+
+extern longdouble_soft fabsl(longdouble_soft ld);
+
+extern longdouble_soft sqrtl(longdouble_soft ld);
+
+extern longdouble_soft sqrt(longdouble_soft ld);
+
+extern longdouble_soft sinl(longdouble_soft ld);
+
+extern longdouble_soft cosl(longdouble_soft ld);
+
+extern longdouble_soft tanl(longdouble_soft ld);
+
+extern longdouble_soft fmodl(longdouble_soft x, longdouble_soft y);
+
+extern longdouble_soft ld_mod(longdouble_soft x, longdouble_soft y);
+
+extern const longdouble_soft ld_qnan;
+
+extern const longdouble_soft ld_inf;
+
+extern const longdouble_soft ld_zero;
+
+extern const longdouble_soft ld_one;
+
+extern const longdouble_soft ld_pi;
+
+extern const longdouble_soft ld_log2t;
+
+extern const longdouble_soft ld_log2e;
+
+extern const longdouble_soft ld_log2;
+
+extern const longdouble_soft ld_ln2;
+
+extern const longdouble_soft ld_pi2;
+
+extern const longdouble_soft ld_piOver2;
+
+extern const longdouble_soft ld_piOver4;
+
+extern const longdouble_soft twoPow63;
+
+enum : int32_t { LD_TYPE_OTHER = 0 };
+
+enum : int32_t { LD_TYPE_ZERO = 1 };
+
+enum : int32_t { LD_TYPE_INFINITE = 2 };
+
+enum : int32_t { LD_TYPE_SNAN = 3 };
+
+enum : int32_t { LD_TYPE_QNAN = 4 };
+
+extern int32_t ld_type(longdouble_soft x);
+
+extern size_t ld_sprint(char* str, int32_t fmt, longdouble_soft x);
+
 extern void browse(const char* url);
 
 extern void error(const Loc& loc, const char* format, ...);
@@ -7920,21 +8052,21 @@ extern void message(const char* format, ...);
 
 extern void tip(const char* format, ...);
 
-extern void verror(const Loc& loc, const char* format, va_list ap, const char* p1 = nullptr, const char* p2 = nullptr, const char* header = "Error: ");
+extern void verror(const Loc& loc, const char* format, char* ap, const char* p1 = nullptr, const char* p2 = nullptr, const char* header = "Error: ");
 
-extern void verrorSupplemental(const Loc& loc, const char* format, va_list ap);
+extern void verrorSupplemental(const Loc& loc, const char* format, char* ap);
 
-extern void vwarning(const Loc& loc, const char* format, va_list ap);
+extern void vwarning(const Loc& loc, const char* format, char* ap);
 
-extern void vwarningSupplemental(const Loc& loc, const char* format, va_list ap);
+extern void vwarningSupplemental(const Loc& loc, const char* format, char* ap);
 
-extern void vdeprecation(const Loc& loc, const char* format, va_list ap, const char* p1 = nullptr, const char* p2 = nullptr);
+extern void vdeprecation(const Loc& loc, const char* format, char* ap, const char* p1 = nullptr, const char* p2 = nullptr);
 
-extern void vmessage(const Loc& loc, const char* format, va_list ap);
+extern void vmessage(const Loc& loc, const char* format, char* ap);
 
-extern void vtip(const char* format, va_list ap);
+extern void vtip(const char* format, char* ap);
 
-extern void vdeprecationSupplemental(const Loc& loc, const char* format, va_list ap);
+extern void vdeprecationSupplemental(const Loc& loc, const char* format, char* ap);
 
 extern void fatal();
 
@@ -8434,6 +8566,7 @@ struct CTFloat final
     static size_t hash(_d_real a);
     static bool isNaN(_d_real r);
     static bool isSNaN(_d_real r);
+    static bool isSNaN(longdouble_soft ld);
     static bool isInfinity(_d_real r);
     static _d_real parse(const char* literal, bool* isOutOfRange = nullptr);
     static int32_t sprint(char* str, char fmt, _d_real x);
