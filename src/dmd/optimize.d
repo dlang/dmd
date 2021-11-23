@@ -271,579 +271,482 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
  */
 Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 {
-    extern (C++) final class OptimizeVisitor : Visitor
+    Expression ret = e;
+
+    void error()
     {
-        alias visit = Visitor.visit;
+        ret = ErrorExp.get();
+    }
 
-        Expression ret;
-        private const int result;
-        private const bool keepLvalue;
-
-        extern (D) this(Expression e, int result, bool keepLvalue)
+    /* Returns: true if error
+     */
+    bool expOptimize(ref Expression e, int flags, bool keepLvalue = false)
+    {
+        if (!e)
+            return false;
+        Expression ex = Expression_optimize(e, flags, keepLvalue);
+        if (ex.op == TOK.error)
         {
-            this.ret = e;               // default result is original expression
-            this.result = result;
-            this.keepLvalue = keepLvalue;
+            ret = ex; // store error result
+            return true;
         }
-
-        void error()
+        else
         {
-            ret = ErrorExp.get();
+            e = ex; // modify original
+            return false;
         }
+    }
 
-        bool expOptimize(ref Expression e, int flags, bool keepLvalue = false)
+    bool unaOptimize(UnaExp e, int flags)
+    {
+        return expOptimize(e.e1, flags);
+    }
+
+    bool binOptimize(BinExp e, int flags, bool keepLhsLvalue = false)
+    {
+        return expOptimize(e.e1, flags, keepLhsLvalue) |
+               expOptimize(e.e2, flags);
+    }
+
+    void visitExp(Expression e)
+    {
+        //printf("Expression::optimize(result = x%x) %s\n", result, e.toChars());
+    }
+
+    void visitVar(VarExp e)
+    {
+        VarDeclaration v = e.var.isVarDeclaration();
+
+        if (!(keepLvalue && v && !(v.storage_class & STC.manifest)))
+            ret = fromConstInitializer(result, e);
+
+        // if unoptimized, try to optimize the dtor expression
+        // (e.g., might be a LogicalExp with constant lhs)
+        if (ret == e && v && v.edtor)
         {
-            if (!e)
-                return false;
-            Expression ex = Expression_optimize(e, flags, keepLvalue);
-            if (ex.op == TOK.error)
+            // prevent infinite recursion (`<var>.~this()`)
+            if (!v.inuse)
             {
-                ret = ex; // store error result
-                return true;
-            }
-            else
-            {
-                e = ex; // modify original
-                return false;
-            }
-        }
-
-        bool unaOptimize(UnaExp e, int flags)
-        {
-            return expOptimize(e.e1, flags);
-        }
-
-        bool binOptimize(BinExp e, int flags, bool keepLhsLvalue = false)
-        {
-            expOptimize(e.e1, flags, keepLhsLvalue);
-            expOptimize(e.e2, flags);
-            return ret.op == TOK.error;
-        }
-
-        override void visit(Expression e)
-        {
-            //printf("Expression::optimize(result = x%x) %s\n", result, e.toChars());
-        }
-
-        override void visit(VarExp e)
-        {
-            VarDeclaration v = e.var.isVarDeclaration();
-
-            if (!(keepLvalue && v && !(v.storage_class & STC.manifest)))
-                ret = fromConstInitializer(result, e);
-
-            // if unoptimized, try to optimize the dtor expression
-            // (e.g., might be a LogicalExp with constant lhs)
-            if (ret == e && v && v.edtor)
-            {
-                // prevent infinite recursion (`<var>.~this()`)
-                if (!v.inuse)
-                {
-                    v.inuse++;
-                    expOptimize(v.edtor, WANTvalue);
-                    v.inuse--;
-                }
+                v.inuse++;
+                expOptimize(v.edtor, WANTvalue);
+                v.inuse--;
             }
         }
+    }
 
-        override void visit(TupleExp e)
+    void visitTuple(TupleExp e)
+    {
+        expOptimize(e.e0, WANTvalue);
+        for (size_t i = 0; i < e.exps.dim; i++)
         {
-            expOptimize(e.e0, WANTvalue);
-            for (size_t i = 0; i < e.exps.dim; i++)
+            expOptimize((*e.exps)[i], WANTvalue);
+        }
+    }
+
+    void visitArrayLiteral(ArrayLiteralExp e)
+    {
+        if (e.elements)
+        {
+            expOptimize(e.basis, result & WANTexpand);
+            for (size_t i = 0; i < e.elements.dim; i++)
             {
-                expOptimize((*e.exps)[i], WANTvalue);
+                expOptimize((*e.elements)[i], result & WANTexpand);
             }
         }
+    }
 
-        override void visit(ArrayLiteralExp e)
+    void visitAssocArrayLiteral(AssocArrayLiteralExp e)
+    {
+        assert(e.keys.dim == e.values.dim);
+        for (size_t i = 0; i < e.keys.dim; i++)
         {
-            if (e.elements)
+            expOptimize((*e.keys)[i], result & WANTexpand);
+            expOptimize((*e.values)[i], result & WANTexpand);
+        }
+    }
+
+    void visitStructLiteral(StructLiteralExp e)
+    {
+        if (e.stageflags & stageOptimize)
+            return;
+        int old = e.stageflags;
+        e.stageflags |= stageOptimize;
+        if (e.elements)
+        {
+            for (size_t i = 0; i < e.elements.dim; i++)
             {
-                expOptimize(e.basis, result & WANTexpand);
-                for (size_t i = 0; i < e.elements.dim; i++)
-                {
-                    expOptimize((*e.elements)[i], result & WANTexpand);
-                }
+                expOptimize((*e.elements)[i], result & WANTexpand);
             }
         }
+        e.stageflags = old;
+    }
 
-        override void visit(AssocArrayLiteralExp e)
+    void visitUna(UnaExp e)
+    {
+        //printf("UnaExp::optimize() %s\n", e.toChars());
+        if (unaOptimize(e, result))
+            return;
+    }
+
+    void visitNeg(NegExp e)
+    {
+        if (unaOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1)
         {
-            assert(e.keys.dim == e.values.dim);
-            for (size_t i = 0; i < e.keys.dim; i++)
+            ret = Neg(e.type, e.e1).copy();
+        }
+    }
+
+    void visitCom(ComExp e)
+    {
+        if (unaOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1)
+        {
+            ret = Com(e.type, e.e1).copy();
+        }
+    }
+
+    void visitNop(NotExp e)
+    {
+        if (unaOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1)
+        {
+            ret = Not(e.type, e.e1).copy();
+        }
+    }
+
+    void visitSymOff(SymOffExp e)
+    {
+        assert(e.var);
+    }
+
+    void visitAddr(AddrExp e)
+    {
+        //printf("AddrExp::optimize(result = %d) %s\n", result, e.toChars());
+        /* Rewrite &(a,b) as (a,&b)
+         */
+        if (e.e1.op == TOK.comma)
+        {
+            CommaExp ce = cast(CommaExp)e.e1;
+            auto ae = new AddrExp(e.loc, ce.e2, e.type);
+            ret = new CommaExp(ce.loc, ce.e1, ae);
+            ret.type = e.type;
+            return;
+        }
+        // Keep lvalue-ness
+        if (expOptimize(e.e1, result, true))
+            return;
+        // Convert &*ex to ex
+        if (e.e1.op == TOK.star)
+        {
+            Expression ex = (cast(PtrExp)e.e1).e1;
+            if (e.type.equals(ex.type))
+                ret = ex;
+            else if (e.type.toBasetype().equivalent(ex.type.toBasetype()))
             {
-                expOptimize((*e.keys)[i], result & WANTexpand);
-                expOptimize((*e.values)[i], result & WANTexpand);
+                ret = ex.copy();
+                ret.type = e.type;
             }
+            return;
         }
-
-        override void visit(StructLiteralExp e)
+        if (e.e1.op == TOK.variable)
         {
-            if (e.stageflags & stageOptimize)
-                return;
-            int old = e.stageflags;
-            e.stageflags |= stageOptimize;
-            if (e.elements)
+            VarExp ve = cast(VarExp)e.e1;
+            if (!ve.var.isReference() && !ve.var.isImportedSymbol())
             {
-                for (size_t i = 0; i < e.elements.dim; i++)
-                {
-                    expOptimize((*e.elements)[i], result & WANTexpand);
-                }
-            }
-            e.stageflags = old;
-        }
-
-        override void visit(UnaExp e)
-        {
-            //printf("UnaExp::optimize() %s\n", e.toChars());
-            if (unaOptimize(e, result))
-                return;
-        }
-
-        override void visit(NegExp e)
-        {
-            if (unaOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1)
-            {
-                ret = Neg(e.type, e.e1).copy();
-            }
-        }
-
-        override void visit(ComExp e)
-        {
-            if (unaOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1)
-            {
-                ret = Com(e.type, e.e1).copy();
-            }
-        }
-
-        override void visit(NotExp e)
-        {
-            if (unaOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1)
-            {
-                ret = Not(e.type, e.e1).copy();
-            }
-        }
-
-        override void visit(SymOffExp e)
-        {
-            assert(e.var);
-        }
-
-        override void visit(AddrExp e)
-        {
-            //printf("AddrExp::optimize(result = %d) %s\n", result, e.toChars());
-            /* Rewrite &(a,b) as (a,&b)
-             */
-            if (e.e1.op == TOK.comma)
-            {
-                CommaExp ce = cast(CommaExp)e.e1;
-                auto ae = new AddrExp(e.loc, ce.e2, e.type);
-                ret = new CommaExp(ce.loc, ce.e1, ae);
+                ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
                 ret.type = e.type;
                 return;
             }
-            // Keep lvalue-ness
-            if (expOptimize(e.e1, result, true))
-                return;
-            // Convert &*ex to ex
-            if (e.e1.op == TOK.star)
+        }
+        if (e.e1.op == TOK.index)
+        {
+            // Convert &array[n] to &array+n
+            IndexExp ae = cast(IndexExp)e.e1;
+            if (ae.e2.op == TOK.int64 && ae.e1.op == TOK.variable)
             {
-                Expression ex = (cast(PtrExp)e.e1).e1;
-                if (e.type.equals(ex.type))
-                    ret = ex;
-                else if (e.type.toBasetype().equivalent(ex.type.toBasetype()))
+                sinteger_t index = ae.e2.toInteger();
+                VarExp ve = cast(VarExp)ae.e1;
+                if (ve.type.ty == Tsarray && !ve.var.isImportedSymbol())
                 {
-                    ret = ex.copy();
-                    ret.type = e.type;
-                }
-                return;
-            }
-            if (e.e1.op == TOK.variable)
-            {
-                VarExp ve = cast(VarExp)e.e1;
-                if (!ve.var.isReference() && !ve.var.isImportedSymbol())
-                {
-                    ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
+                    TypeSArray ts = cast(TypeSArray)ve.type;
+                    sinteger_t dim = ts.dim.toInteger();
+                    if (index < 0 || index >= dim)
+                    {
+                        e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
+                        return error();
+                    }
+
+                    import core.checkedint : mulu;
+                    bool overflow;
+                    const offset = mulu(index, ts.nextOf().size(e.loc), overflow);
+                    if (overflow)
+                    {
+                        e.error("array offset overflow");
+                        return error();
+                    }
+
+                    ret = new SymOffExp(e.loc, ve.var, offset);
                     ret.type = e.type;
                     return;
                 }
             }
-            if (e.e1.op == TOK.index)
+        }
+    }
+
+    void visitPtr(PtrExp e)
+    {
+        //printf("PtrExp::optimize(result = x%x) %s\n", result, e.toChars());
+        if (expOptimize(e.e1, result))
+            return;
+        // Convert *&ex to ex
+        // But only if there is no type punning involved
+        if (e.e1.op == TOK.address)
+        {
+            Expression ex = (cast(AddrExp)e.e1).e1;
+            if (e.type.equals(ex.type))
+                ret = ex;
+            else if (e.type.toBasetype().equivalent(ex.type.toBasetype()))
             {
-                // Convert &array[n] to &array+n
-                IndexExp ae = cast(IndexExp)e.e1;
-                if (ae.e2.op == TOK.int64 && ae.e1.op == TOK.variable)
-                {
-                    sinteger_t index = ae.e2.toInteger();
-                    VarExp ve = cast(VarExp)ae.e1;
-                    if (ve.type.ty == Tsarray && !ve.var.isImportedSymbol())
-                    {
-                        TypeSArray ts = cast(TypeSArray)ve.type;
-                        sinteger_t dim = ts.dim.toInteger();
-                        if (index < 0 || index >= dim)
-                        {
-                            e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
-                            return error();
-                        }
-
-                        import core.checkedint : mulu;
-                        bool overflow;
-                        const offset = mulu(index, ts.nextOf().size(e.loc), overflow);
-                        if (overflow)
-                        {
-                            e.error("array offset overflow");
-                            return error();
-                        }
-
-                        ret = new SymOffExp(e.loc, ve.var, offset);
-                        ret.type = e.type;
-                        return;
-                    }
-                }
+                ret = ex.copy();
+                ret.type = e.type;
             }
         }
-
-        override void visit(PtrExp e)
+        if (keepLvalue)
+            return;
+        // Constant fold *(&structliteral + offset)
+        if (e.e1.op == TOK.add)
         {
-            //printf("PtrExp::optimize(result = x%x) %s\n", result, e.toChars());
-            if (expOptimize(e.e1, result))
+            Expression ex = Ptr(e.type, e.e1).copy();
+            if (!CTFEExp.isCantExp(ex))
+            {
+                ret = ex;
                 return;
-            // Convert *&ex to ex
-            // But only if there is no type punning involved
-            if (e.e1.op == TOK.address)
-            {
-                Expression ex = (cast(AddrExp)e.e1).e1;
-                if (e.type.equals(ex.type))
-                    ret = ex;
-                else if (e.type.toBasetype().equivalent(ex.type.toBasetype()))
-                {
-                    ret = ex.copy();
-                    ret.type = e.type;
-                }
-            }
-            if (keepLvalue)
-                return;
-            // Constant fold *(&structliteral + offset)
-            if (e.e1.op == TOK.add)
-            {
-                Expression ex = Ptr(e.type, e.e1).copy();
-                if (!CTFEExp.isCantExp(ex))
-                {
-                    ret = ex;
-                    return;
-                }
-            }
-            if (e.e1.op == TOK.symbolOffset)
-            {
-                SymOffExp se = cast(SymOffExp)e.e1;
-                VarDeclaration v = se.var.isVarDeclaration();
-                Expression ex = expandVar(result, v);
-                if (ex && ex.op == TOK.structLiteral)
-                {
-                    StructLiteralExp sle = cast(StructLiteralExp)ex;
-                    ex = sle.getField(e.type, cast(uint)se.offset);
-                    if (ex && !CTFEExp.isCantExp(ex))
-                    {
-                        ret = ex;
-                        return;
-                    }
-                }
             }
         }
-
-        override void visit(DotVarExp e)
+        if (e.e1.op == TOK.symbolOffset)
         {
-            //printf("DotVarExp::optimize(result = x%x) %s\n", result, e.toChars());
-            if (expOptimize(e.e1, result))
-                return;
-            if (keepLvalue)
-                return;
-            Expression ex = e.e1;
-            if (ex.op == TOK.variable)
-            {
-                VarExp ve = cast(VarExp)ex;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                ex = expandVar(result, v);
-            }
+            SymOffExp se = cast(SymOffExp)e.e1;
+            VarDeclaration v = se.var.isVarDeclaration();
+            Expression ex = expandVar(result, v);
             if (ex && ex.op == TOK.structLiteral)
             {
                 StructLiteralExp sle = cast(StructLiteralExp)ex;
-                VarDeclaration vf = e.var.isVarDeclaration();
-                if (vf && !vf.overlapped)
+                ex = sle.getField(e.type, cast(uint)se.offset);
+                if (ex && !CTFEExp.isCantExp(ex))
                 {
-                    /* https://issues.dlang.org/show_bug.cgi?id=13021
-                     * Prevent optimization if vf has overlapped fields.
-                     */
-                    ex = sle.getField(e.type, vf.offset);
-                    if (ex && !CTFEExp.isCantExp(ex))
-                    {
-                        ret = ex;
-                        return;
-                    }
+                    ret = ex;
+                    return;
                 }
             }
         }
+    }
 
-        override void visit(NewExp e)
+    void visitDotVar(DotVarExp e)
+    {
+        //printf("DotVarExp::optimize(result = x%x) %s\n", result, e.toChars());
+        if (expOptimize(e.e1, result))
+            return;
+        if (keepLvalue)
+            return;
+        Expression ex = e.e1;
+        if (ex.op == TOK.variable)
         {
-            expOptimize(e.thisexp, WANTvalue);
-            // Optimize parameters
-            if (e.newargs)
+            VarExp ve = cast(VarExp)ex;
+            VarDeclaration v = ve.var.isVarDeclaration();
+            ex = expandVar(result, v);
+        }
+        if (ex && ex.op == TOK.structLiteral)
+        {
+            StructLiteralExp sle = cast(StructLiteralExp)ex;
+            VarDeclaration vf = e.var.isVarDeclaration();
+            if (vf && !vf.overlapped)
             {
-                for (size_t i = 0; i < e.newargs.dim; i++)
+                /* https://issues.dlang.org/show_bug.cgi?id=13021
+                 * Prevent optimization if vf has overlapped fields.
+                 */
+                ex = sle.getField(e.type, vf.offset);
+                if (ex && !CTFEExp.isCantExp(ex))
                 {
-                    expOptimize((*e.newargs)[i], WANTvalue);
+                    ret = ex;
+                    return;
                 }
             }
-            if (e.arguments)
+        }
+    }
+
+    void visitNew(NewExp e)
+    {
+        expOptimize(e.thisexp, WANTvalue);
+        // Optimize parameters
+        if (e.newargs)
+        {
+            for (size_t i = 0; i < e.newargs.dim; i++)
+            {
+                expOptimize((*e.newargs)[i], WANTvalue);
+            }
+        }
+        if (e.arguments)
+        {
+            for (size_t i = 0; i < e.arguments.dim; i++)
+            {
+                expOptimize((*e.arguments)[i], WANTvalue);
+            }
+        }
+    }
+
+    void visitCall(CallExp e)
+    {
+        //printf("CallExp::optimize(result = %d) %s\n", result, e.toChars());
+        // Optimize parameters with keeping lvalue-ness
+        if (expOptimize(e.e1, result))
+            return;
+        if (e.arguments)
+        {
+            Type t1 = e.e1.type.toBasetype();
+            if (t1.ty == Tdelegate)
+                t1 = t1.nextOf();
+            // t1 can apparently be void for __ArrayDtor(T) calls
+            if (auto tf = t1.isTypeFunction())
             {
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
-                    expOptimize((*e.arguments)[i], WANTvalue);
+                    Parameter p = tf.parameterList[i];
+                    bool keep = p && p.isReference();
+                    expOptimize((*e.arguments)[i], WANTvalue, keep);
                 }
             }
         }
+    }
 
-        override void visit(CallExp e)
+    void visitCast(CastExp e)
+    {
+        //printf("CastExp::optimize(result = %d) %s\n", result, e.toChars());
+        //printf("from %s to %s\n", e.type.toChars(), e.to.toChars());
+        //printf("from %s\n", e.type.toChars());
+        //printf("e1.type %s\n", e.e1.type.toChars());
+        //printf("type = %p\n", e.type);
+        assert(e.type);
+        TOK op1 = e.e1.op;
+        Expression e1old = e.e1;
+        if (expOptimize(e.e1, result, keepLvalue))
+            return;
+        if (!keepLvalue)
+            e.e1 = fromConstInitializer(result, e.e1);
+        if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
         {
-            //printf("CallExp::optimize(result = %d) %s\n", result, e.toChars());
-            // Optimize parameters with keeping lvalue-ness
-            if (expOptimize(e.e1, result))
-                return;
-            if (e.arguments)
-            {
-                Type t1 = e.e1.type.toBasetype();
-                if (t1.ty == Tdelegate)
-                    t1 = t1.nextOf();
-                // t1 can apparently be void for __ArrayDtor(T) calls
-                if (auto tf = t1.isTypeFunction())
-                {
-                    for (size_t i = 0; i < e.arguments.dim; i++)
-                    {
-                        Parameter p = tf.parameterList[i];
-                        bool keep = p && p.isReference();
-                        expOptimize((*e.arguments)[i], WANTvalue, keep);
-                    }
-                }
-            }
+            // Casting this will result in the same expression, and
+            // infinite loop because of Expression::implicitCastTo()
+            return; // no change
         }
-
-        override void visit(CastExp e)
+        if ((e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral) &&
+            (e.type.ty == Tpointer || e.type.ty == Tarray))
         {
-            //printf("CastExp::optimize(result = %d) %s\n", result, e.toChars());
-            //printf("from %s to %s\n", e.type.toChars(), e.to.toChars());
-            //printf("from %s\n", e.type.toChars());
-            //printf("e1.type %s\n", e.e1.type.toChars());
-            //printf("type = %p\n", e.type);
-            assert(e.type);
-            TOK op1 = e.e1.op;
-            Expression e1old = e.e1;
-            if (expOptimize(e.e1, result, keepLvalue))
-                return;
-            if (!keepLvalue)
-                e.e1 = fromConstInitializer(result, e.e1);
-            if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
-            {
-                // Casting this will result in the same expression, and
-                // infinite loop because of Expression::implicitCastTo()
-                return; // no change
-            }
-            if ((e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral) &&
-                (e.type.ty == Tpointer || e.type.ty == Tarray))
-            {
-                const esz  = e.type.nextOf().size(e.loc);
-                const e1sz = e.e1.type.toBasetype().nextOf().size(e.e1.loc);
-                if (esz == SIZE_INVALID || e1sz == SIZE_INVALID)
-                    return error();
+            const esz  = e.type.nextOf().size(e.loc);
+            const e1sz = e.e1.type.toBasetype().nextOf().size(e.e1.loc);
+            if (esz == SIZE_INVALID || e1sz == SIZE_INVALID)
+                return error();
 
-                if (e1sz == esz)
-                {
-                    // https://issues.dlang.org/show_bug.cgi?id=12937
-                    // If target type is void array, trying to paint
-                    // e.e1 with that type will cause infinite recursive optimization.
-                    if (e.type.nextOf().ty == Tvoid)
-                        return;
-                    ret = e.e1.castTo(null, e.type);
-                    //printf(" returning1 %s\n", ret.toChars());
+            if (e1sz == esz)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=12937
+                // If target type is void array, trying to paint
+                // e.e1 with that type will cause infinite recursive optimization.
+                if (e.type.nextOf().ty == Tvoid)
                     return;
-                }
+                ret = e.e1.castTo(null, e.type);
+                //printf(" returning1 %s\n", ret.toChars());
+                return;
             }
+        }
 
-            if (e.e1.op == TOK.structLiteral && e.e1.type.implicitConvTo(e.type) >= MATCH.constant)
+        if (e.e1.op == TOK.structLiteral && e.e1.type.implicitConvTo(e.type) >= MATCH.constant)
+        {
+            //printf(" returning2 %s\n", e.e1.toChars());
+        L1:
+            // Returning e1 with changing its type
+            ret = (e1old == e.e1 ? e.e1.copy() : e.e1);
+            ret.type = e.type;
+            return;
+        }
+        /* The first test here is to prevent infinite loops
+         */
+        if (op1 != TOK.arrayLiteral && e.e1.op == TOK.arrayLiteral)
+        {
+            ret = e.e1.castTo(null, e.to);
+            return;
+        }
+        if (e.e1.op == TOK.null_ && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
+        {
+            //printf(" returning3 %s\n", e.e1.toChars());
+            goto L1;
+        }
+        if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
+        {
+            import dmd.astenums : Sizeok;
+
+            // See if we can remove an unnecessary cast
+            ClassDeclaration cdfrom = e.e1.type.isClassHandle();
+            ClassDeclaration cdto = e.type.isClassHandle();
+            if (cdfrom.errors || cdto.errors)
+                return error();
+            if (cdto == ClassDeclaration.object && !cdfrom.isInterfaceDeclaration())
+                goto L1;    // can always convert a class to Object
+            // Need to determine correct offset before optimizing away the cast.
+            // https://issues.dlang.org/show_bug.cgi?id=16980
+            cdfrom.size(e.loc);
+            assert(cdfrom.sizeok == Sizeok.done);
+            assert(cdto.sizeok == Sizeok.done || !cdto.isBaseOf(cdfrom, null));
+            int offset;
+            if (cdto.isBaseOf(cdfrom, &offset) && offset == 0)
             {
-                //printf(" returning2 %s\n", e.e1.toChars());
-            L1:
-                // Returning e1 with changing its type
-                ret = (e1old == e.e1 ? e.e1.copy() : e.e1);
-                ret.type = e.type;
-                return;
-            }
-            /* The first test here is to prevent infinite loops
-             */
-            if (op1 != TOK.arrayLiteral && e.e1.op == TOK.arrayLiteral)
-            {
-                ret = e.e1.castTo(null, e.to);
-                return;
-            }
-            if (e.e1.op == TOK.null_ && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
-            {
-                //printf(" returning3 %s\n", e.e1.toChars());
+                //printf(" returning4 %s\n", e.e1.toChars());
                 goto L1;
             }
-            if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
-            {
-                import dmd.astenums : Sizeok;
-
-                // See if we can remove an unnecessary cast
-                ClassDeclaration cdfrom = e.e1.type.isClassHandle();
-                ClassDeclaration cdto = e.type.isClassHandle();
-                if (cdfrom.errors || cdto.errors)
-                    return error();
-                if (cdto == ClassDeclaration.object && !cdfrom.isInterfaceDeclaration())
-                    goto L1;    // can always convert a class to Object
-                // Need to determine correct offset before optimizing away the cast.
-                // https://issues.dlang.org/show_bug.cgi?id=16980
-                cdfrom.size(e.loc);
-                assert(cdfrom.sizeok == Sizeok.done);
-                assert(cdto.sizeok == Sizeok.done || !cdto.isBaseOf(cdfrom, null));
-                int offset;
-                if (cdto.isBaseOf(cdfrom, &offset) && offset == 0)
-                {
-                    //printf(" returning4 %s\n", e.e1.toChars());
-                    goto L1;
-                }
-            }
-            if (e.e1.type.mutableOf().unSharedOf().equals(e.to.mutableOf().unSharedOf()))
-            {
-                //printf(" returning5 %s\n", e.e1.toChars());
-                goto L1;
-            }
-            if (e.e1.isConst())
-            {
-                if (e.e1.op == TOK.symbolOffset)
-                {
-                    if (e.type.toBasetype().ty != Tsarray)
-                    {
-                        const esz = e.type.size(e.loc);
-                        const e1sz = e.e1.type.size(e.e1.loc);
-                        if (esz == SIZE_INVALID ||
-                            e1sz == SIZE_INVALID)
-                            return error();
-
-                        if (esz == e1sz)
-                            goto L1;
-                    }
-                    return;
-                }
-                if (e.to.toBasetype().ty != Tvoid)
-                {
-                    if (e.e1.type.equals(e.type) && e.type.equals(e.to))
-                        ret = e.e1;
-                    else
-                        ret = Cast(e.loc, e.type, e.to, e.e1).copy();
-                }
-            }
-            //printf(" returning6 %s\n", ret.toChars());
         }
-
-        override void visit(BinAssignExp e)
+        if (e.e1.type.mutableOf().unSharedOf().equals(e.to.mutableOf().unSharedOf()))
         {
-            //printf("BinAssignExp::optimize(result = %d) %s\n", result, e.toChars());
-            if (binOptimize(e, result, /*keepLhsLvalue*/ true))
-                return;
-            if (e.op == TOK.leftShiftAssign || e.op == TOK.rightShiftAssign || e.op == TOK.unsignedRightShiftAssign)
+            //printf(" returning5 %s\n", e.e1.toChars());
+            goto L1;
+        }
+        if (e.e1.isConst())
+        {
+            if (e.e1.op == TOK.symbolOffset)
             {
-                if (e.e2.isConst() == 1)
+                if (e.type.toBasetype().ty != Tsarray)
                 {
-                    sinteger_t i2 = e.e2.toInteger();
-                    d_uns64 sz = e.e1.type.size(e.e1.loc);
-                    assert(sz != SIZE_INVALID);
-                    sz *= 8;
-                    if (i2 < 0 || i2 >= sz)
-                    {
-                        e.error("shift assign by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
+                    const esz = e.type.size(e.loc);
+                    const e1sz = e.e1.type.size(e.e1.loc);
+                    if (esz == SIZE_INVALID ||
+                        e1sz == SIZE_INVALID)
                         return error();
-                    }
+
+                    if (esz == e1sz)
+                        goto L1;
                 }
-            }
-        }
-
-        override void visit(BinExp e)
-        {
-            //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
-            const keepLhsLvalue = e.op == TOK.construct || e.op == TOK.blit || e.op == TOK.assign
-                || e.op == TOK.plusPlus || e.op == TOK.minusMinus
-                || e.op == TOK.prePlusPlus || e.op == TOK.preMinusMinus;
-            binOptimize(e, result, keepLhsLvalue);
-        }
-
-        override void visit(AddExp e)
-        {
-            //printf("AddExp::optimize(%s)\n", e.toChars());
-            if (binOptimize(e, result))
                 return;
-            if (e.e1.isConst() && e.e2.isConst())
+            }
+            if (e.to.toBasetype().ty != Tvoid)
             {
-                if (e.e1.op == TOK.symbolOffset && e.e2.op == TOK.symbolOffset)
-                    return;
-                ret = Add(e.loc, e.type, e.e1, e.e2).copy();
+                if (e.e1.type.equals(e.type) && e.type.equals(e.to))
+                    ret = e.e1;
+                else
+                    ret = Cast(e.loc, e.type, e.to, e.e1).copy();
             }
         }
+        //printf(" returning6 %s\n", ret.toChars());
+    }
 
-        override void visit(MinExp e)
+    void visitBinAssign(BinAssignExp e)
+    {
+        //printf("BinAssignExp::optimize(result = %d) %s\n", result, e.toChars());
+        if (binOptimize(e, result, /*keepLhsLvalue*/ true))
+            return;
+        if (e.op == TOK.leftShiftAssign || e.op == TOK.rightShiftAssign || e.op == TOK.unsignedRightShiftAssign)
         {
-            if (binOptimize(e, result))
-                return;
-            if (e.e1.isConst() && e.e2.isConst())
-            {
-                if (e.e2.op == TOK.symbolOffset)
-                    return;
-                ret = Min(e.loc, e.type, e.e1, e.e2).copy();
-            }
-        }
-
-        override void visit(MulExp e)
-        {
-            //printf("MulExp::optimize(result = %d) %s\n", result, e.toChars());
-            if (binOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-            {
-                ret = Mul(e.loc, e.type, e.e1, e.e2).copy();
-            }
-        }
-
-        override void visit(DivExp e)
-        {
-            //printf("DivExp::optimize(%s)\n", e.toChars());
-            if (binOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-            {
-                ret = Div(e.loc, e.type, e.e1, e.e2).copy();
-            }
-        }
-
-        override void visit(ModExp e)
-        {
-            if (binOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-            {
-                ret = Mod(e.loc, e.type, e.e1, e.e2).copy();
-            }
-        }
-
-        extern (D) void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
-        {
-            if (binOptimize(e, result))
-                return;
             if (e.e2.isConst() == 1)
             {
                 sinteger_t i2 = e.e2.toInteger();
@@ -852,331 +755,413 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 sz *= 8;
                 if (i2 < 0 || i2 >= sz)
                 {
-                    e.error("shift by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
+                    e.error("shift assign by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
                     return error();
                 }
-                if (e.e1.isConst() == 1)
-                    ret = (*shift)(e.loc, e.type, e.e1, e.e2).copy();
-            }
-        }
-
-        override void visit(ShlExp e)
-        {
-            //printf("ShlExp::optimize(result = %d) %s\n", result, e.toChars());
-            shift_optimize(e, &Shl);
-        }
-
-        override void visit(ShrExp e)
-        {
-            //printf("ShrExp::optimize(result = %d) %s\n", result, e.toChars());
-            shift_optimize(e, &Shr);
-        }
-
-        override void visit(UshrExp e)
-        {
-            //printf("UshrExp::optimize(result = %d) %s\n", result, toChars());
-            shift_optimize(e, &Ushr);
-        }
-
-        override void visit(AndExp e)
-        {
-            if (binOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-                ret = And(e.loc, e.type, e.e1, e.e2).copy();
-        }
-
-        override void visit(OrExp e)
-        {
-            if (binOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-                ret = Or(e.loc, e.type, e.e1, e.e2).copy();
-        }
-
-        override void visit(XorExp e)
-        {
-            if (binOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-                ret = Xor(e.loc, e.type, e.e1, e.e2).copy();
-        }
-
-        override void visit(PowExp e)
-        {
-            if (binOptimize(e, result))
-                return;
-            // All negative integral powers are illegal.
-            if (e.e1.type.isintegral() && (e.e2.op == TOK.int64) && cast(sinteger_t)e.e2.toInteger() < 0)
-            {
-                e.error("cannot raise `%s` to a negative integer power. Did you mean `(cast(real)%s)^^%s` ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
-                return error();
-            }
-            // If e2 *could* have been an integer, make it one.
-            if (e.e2.op == TOK.float64 && e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
-            {
-                // This only applies to floating point, or positive integral powers.
-                if (e.e1.type.isfloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
-                    e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
-            }
-            if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-            {
-                Expression ex = Pow(e.loc, e.type, e.e1, e.e2).copy();
-                if (!CTFEExp.isCantExp(ex))
-                {
-                    ret = ex;
-                    return;
-                }
-            }
-        }
-
-        override void visit(CommaExp e)
-        {
-            //printf("CommaExp::optimize(result = %d) %s\n", result, e.toChars());
-            // Comma needs special treatment, because it may
-            // contain compiler-generated declarations. We can interpret them, but
-            // otherwise we must NOT attempt to constant-fold them.
-            // In particular, if the comma returns a temporary variable, it needs
-            // to be an lvalue (this is particularly important for struct constructors)
-            expOptimize(e.e1, WANTvalue);
-            expOptimize(e.e2, result, keepLvalue);
-            if (ret.op == TOK.error)
-                return;
-            if (!e.e1 || e.e1.op == TOK.int64 || e.e1.op == TOK.float64 || !hasSideEffect(e.e1))
-            {
-                ret = e.e2;
-                if (ret)
-                    ret.type = e.type;
-            }
-            //printf("-CommaExp::optimize(result = %d) %s\n", result, e.e.toChars());
-        }
-
-        override void visit(ArrayLengthExp e)
-        {
-            //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, e.toChars());
-            if (unaOptimize(e, WANTexpand))
-                return;
-            // CTFE interpret static immutable arrays (to get better diagnostics)
-            if (e.e1.op == TOK.variable)
-            {
-                VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
-                if (v && (v.storage_class & STC.static_) && (v.storage_class & STC.immutable_) && v._init)
-                {
-                    if (Expression ci = v.getConstInitializer())
-                        e.e1 = ci;
-                }
-            }
-            if (e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral || e.e1.op == TOK.assocArrayLiteral || e.e1.type.toBasetype().ty == Tsarray)
-            {
-                ret = ArrayLength(e.type, e.e1).copy();
-            }
-        }
-
-        override void visit(EqualExp e)
-        {
-            //printf("EqualExp::optimize(result = %x) %s\n", result, e.toChars());
-            if (binOptimize(e, WANTvalue))
-                return;
-            Expression e1 = fromConstInitializer(result, e.e1);
-            Expression e2 = fromConstInitializer(result, e.e2);
-            if (e1.op == TOK.error)
-            {
-                ret = e1;
-                return;
-            }
-            if (e2.op == TOK.error)
-            {
-                ret = e2;
-                return;
-            }
-            ret = Equal(e.op, e.loc, e.type, e1, e2).copy();
-            if (CTFEExp.isCantExp(ret))
-                ret = e;
-        }
-
-        override void visit(IdentityExp e)
-        {
-            //printf("IdentityExp::optimize(result = %d) %s\n", result, e.toChars());
-            if (binOptimize(e, WANTvalue))
-                return;
-            if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOK.null_ && e.e2.op == TOK.null_))
-            {
-                ret = Identity(e.op, e.loc, e.type, e.e1, e.e2).copy();
-                if (CTFEExp.isCantExp(ret))
-                    ret = e;
-            }
-        }
-
-        override void visit(IndexExp e)
-        {
-            //printf("IndexExp::optimize(result = %d) %s\n", result, e.toChars());
-            if (expOptimize(e.e1, result & WANTexpand))
-                return;
-            Expression ex = fromConstInitializer(result, e.e1);
-            // We might know $ now
-            setLengthVarIfKnown(e.lengthVar, ex);
-            if (expOptimize(e.e2, WANTvalue))
-                return;
-            // Don't optimize to an array literal element directly in case an lvalue is requested
-            if (keepLvalue && ex.op == TOK.arrayLiteral)
-                return;
-            ret = Index(e.type, ex, e.e2).copy();
-            if (CTFEExp.isCantExp(ret) || (!ret.isErrorExp() && keepLvalue && !ret.isLvalue()))
-                ret = e;
-        }
-
-        override void visit(SliceExp e)
-        {
-            //printf("SliceExp::optimize(result = %d) %s\n", result, e.toChars());
-            if (expOptimize(e.e1, result & WANTexpand))
-                return;
-            if (!e.lwr)
-            {
-                if (e.e1.op == TOK.string_)
-                {
-                    // Convert slice of string literal into dynamic array
-                    Type t = e.e1.type.toBasetype();
-                    if (Type tn = t.nextOf())
-                        ret = e.e1.castTo(null, tn.arrayOf());
-                }
-            }
-            else
-            {
-                e.e1 = fromConstInitializer(result, e.e1);
-                // We might know $ now
-                setLengthVarIfKnown(e.lengthVar, e.e1);
-                expOptimize(e.lwr, WANTvalue);
-                expOptimize(e.upr, WANTvalue);
-                if (ret.op == TOK.error)
-                    return;
-                ret = Slice(e.type, e.e1, e.lwr, e.upr).copy();
-                if (CTFEExp.isCantExp(ret))
-                    ret = e;
-            }
-            // https://issues.dlang.org/show_bug.cgi?id=14649
-            // Leave the slice form so it might be
-            // a part of array operation.
-            // Assume that the backend codegen will handle the form `e[]`
-            // as an equal to `e` itself.
-            if (ret.op == TOK.string_)
-            {
-                e.e1 = ret;
-                e.lwr = null;
-                e.upr = null;
-                ret = e;
-            }
-            //printf("-SliceExp::optimize() %s\n", ret.toChars());
-        }
-
-        override void visit(LogicalExp e)
-        {
-            //printf("LogicalExp::optimize(%d) %s\n", result, e.toChars());
-            if (expOptimize(e.e1, WANTvalue))
-                return;
-            const oror = e.op == TOK.orOr;
-            if (e.e1.toBool().hasValue(oror))
-            {
-                // Replace with (e1, oror)
-                ret = IntegerExp.createBool(oror);
-                ret = Expression.combine(e.e1, ret);
-                if (e.type.toBasetype().ty == Tvoid)
-                {
-                    ret = new CastExp(e.loc, ret, Type.tvoid);
-                    ret.type = e.type;
-                }
-                ret = Expression_optimize(ret, result, false);
-                return;
-            }
-            expOptimize(e.e2, WANTvalue);
-            if (e.e1.isConst())
-            {
-                const e1Opt = e.e1.toBool();
-                if (e.e2.isConst())
-                {
-                    bool n1 = e1Opt.hasValue(true);
-                    bool n2 = e.e2.toBool().hasValue(true);
-                    ret = new IntegerExp(e.loc, oror ? (n1 || n2) : (n1 && n2), e.type);
-                }
-                else if (e1Opt.hasValue(!oror))
-                {
-                    if (e.type.toBasetype().ty == Tvoid)
-                        ret = e.e2;
-                    else
-                    {
-                        ret = new CastExp(e.loc, e.e2, e.type);
-                        ret.type = e.type;
-                    }
-                }
-            }
-        }
-
-        override void visit(CmpExp e)
-        {
-            //printf("CmpExp::optimize() %s\n", e.toChars());
-            if (binOptimize(e, WANTvalue))
-                return;
-            Expression e1 = fromConstInitializer(result, e.e1);
-            Expression e2 = fromConstInitializer(result, e.e2);
-            ret = Cmp(e.op, e.loc, e.type, e1, e2).copy();
-            if (CTFEExp.isCantExp(ret))
-                ret = e;
-        }
-
-        override void visit(CatExp e)
-        {
-            //printf("CatExp::optimize(%d) %s\n", result, e.toChars());
-            if (binOptimize(e, result))
-                return;
-            if (e.e1.op == TOK.concatenate)
-            {
-                // https://issues.dlang.org/show_bug.cgi?id=12798
-                // optimize ((expr ~ str1) ~ str2)
-                CatExp ce1 = cast(CatExp)e.e1;
-                scope CatExp cex = new CatExp(e.loc, ce1.e2, e.e2);
-                cex.type = e.type;
-                Expression ex = Expression_optimize(cex, result, false);
-                if (ex != cex)
-                {
-                    e.e1 = ce1.e1;
-                    e.e2 = ex;
-                }
-            }
-            // optimize "str"[] -> "str"
-            if (e.e1.op == TOK.slice)
-            {
-                SliceExp se1 = cast(SliceExp)e.e1;
-                if (se1.e1.op == TOK.string_ && !se1.lwr)
-                    e.e1 = se1.e1;
-            }
-            if (e.e2.op == TOK.slice)
-            {
-                SliceExp se2 = cast(SliceExp)e.e2;
-                if (se2.e1.op == TOK.string_ && !se2.lwr)
-                    e.e2 = se2.e1;
-            }
-            ret = Cat(e.loc, e.type, e.e1, e.e2).copy();
-            if (CTFEExp.isCantExp(ret))
-                ret = e;
-        }
-
-        override void visit(CondExp e)
-        {
-            if (expOptimize(e.econd, WANTvalue))
-                return;
-            const opt = e.econd.toBool();
-            if (opt.hasValue(true))
-                ret = Expression_optimize(e.e1, result, keepLvalue);
-            else if (opt.hasValue(false))
-                ret = Expression_optimize(e.e2, result, keepLvalue);
-            else
-            {
-                expOptimize(e.e1, result, keepLvalue);
-                expOptimize(e.e2, result, keepLvalue);
             }
         }
     }
 
-    scope OptimizeVisitor v = new OptimizeVisitor(e, result, keepLvalue);
+    void visitBin(BinExp e)
+    {
+        //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
+        const keepLhsLvalue = e.op == TOK.construct || e.op == TOK.blit || e.op == TOK.assign
+            || e.op == TOK.plusPlus || e.op == TOK.minusMinus
+            || e.op == TOK.prePlusPlus || e.op == TOK.preMinusMinus;
+        binOptimize(e, result, keepLhsLvalue);
+    }
+
+    void visitAdd(AddExp e)
+    {
+        //printf("AddExp::optimize(%s)\n", e.toChars());
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.isConst() && e.e2.isConst())
+        {
+            if (e.e1.op == TOK.symbolOffset && e.e2.op == TOK.symbolOffset)
+                return;
+            ret = Add(e.loc, e.type, e.e1, e.e2).copy();
+        }
+    }
+
+    void visitMin(MinExp e)
+    {
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.isConst() && e.e2.isConst())
+        {
+            if (e.e2.op == TOK.symbolOffset)
+                return;
+            ret = Min(e.loc, e.type, e.e1, e.e2).copy();
+        }
+    }
+
+    void visitMul(MulExp e)
+    {
+        //printf("MulExp::optimize(result = %d) %s\n", result, e.toChars());
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
+        {
+            ret = Mul(e.loc, e.type, e.e1, e.e2).copy();
+        }
+    }
+
+    void visitDiv(DivExp e)
+    {
+        //printf("DivExp::optimize(%s)\n", e.toChars());
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
+        {
+            ret = Div(e.loc, e.type, e.e1, e.e2).copy();
+        }
+    }
+
+    void visitMod(ModExp e)
+    {
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
+        {
+            ret = Mod(e.loc, e.type, e.e1, e.e2).copy();
+        }
+    }
+
+    extern (D) void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
+    {
+        if (binOptimize(e, result))
+            return;
+        if (e.e2.isConst() == 1)
+        {
+            sinteger_t i2 = e.e2.toInteger();
+            d_uns64 sz = e.e1.type.size(e.e1.loc);
+            assert(sz != SIZE_INVALID);
+            sz *= 8;
+            if (i2 < 0 || i2 >= sz)
+            {
+                e.error("shift by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
+                return error();
+            }
+            if (e.e1.isConst() == 1)
+                ret = (*shift)(e.loc, e.type, e.e1, e.e2).copy();
+        }
+    }
+
+    void visitShl(ShlExp e)
+    {
+        //printf("ShlExp::optimize(result = %d) %s\n", result, e.toChars());
+        shift_optimize(e, &Shl);
+    }
+
+    void visitShr(ShrExp e)
+    {
+        //printf("ShrExp::optimize(result = %d) %s\n", result, e.toChars());
+        shift_optimize(e, &Shr);
+    }
+
+    void visitUshr(UshrExp e)
+    {
+        //printf("UshrExp::optimize(result = %d) %s\n", result, toChars());
+        shift_optimize(e, &Ushr);
+    }
+
+    void visitAnd(AndExp e)
+    {
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
+            ret = And(e.loc, e.type, e.e1, e.e2).copy();
+    }
+
+    void visitOr(OrExp e)
+    {
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
+            ret = Or(e.loc, e.type, e.e1, e.e2).copy();
+    }
+
+    void visitXor(XorExp e)
+    {
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
+            ret = Xor(e.loc, e.type, e.e1, e.e2).copy();
+    }
+
+    void visitPow(PowExp e)
+    {
+        if (binOptimize(e, result))
+            return;
+        // All negative integral powers are illegal.
+        if (e.e1.type.isintegral() && (e.e2.op == TOK.int64) && cast(sinteger_t)e.e2.toInteger() < 0)
+        {
+            e.error("cannot raise `%s` to a negative integer power. Did you mean `(cast(real)%s)^^%s` ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
+            return error();
+        }
+        // If e2 *could* have been an integer, make it one.
+        if (e.e2.op == TOK.float64 && e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
+        {
+            // This only applies to floating point, or positive integral powers.
+            if (e.e1.type.isfloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
+                e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
+        }
+        if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
+        {
+            Expression ex = Pow(e.loc, e.type, e.e1, e.e2).copy();
+            if (!CTFEExp.isCantExp(ex))
+            {
+                ret = ex;
+                return;
+            }
+        }
+    }
+
+    void visitComma(CommaExp e)
+    {
+        //printf("CommaExp::optimize(result = %d) %s\n", result, e.toChars());
+        // Comma needs special treatment, because it may
+        // contain compiler-generated declarations. We can interpret them, but
+        // otherwise we must NOT attempt to constant-fold them.
+        // In particular, if the comma returns a temporary variable, it needs
+        // to be an lvalue (this is particularly important for struct constructors)
+        expOptimize(e.e1, WANTvalue);
+        expOptimize(e.e2, result, keepLvalue);
+        if (ret.op == TOK.error)
+            return;
+        if (!e.e1 || e.e1.op == TOK.int64 || e.e1.op == TOK.float64 || !hasSideEffect(e.e1))
+        {
+            ret = e.e2;
+            if (ret)
+                ret.type = e.type;
+        }
+        //printf("-CommaExp::optimize(result = %d) %s\n", result, e.e.toChars());
+    }
+
+    void visitArrayLength(ArrayLengthExp e)
+    {
+        //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, e.toChars());
+        if (unaOptimize(e, WANTexpand))
+            return;
+        // CTFE interpret static immutable arrays (to get better diagnostics)
+        if (e.e1.op == TOK.variable)
+        {
+            VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
+            if (v && (v.storage_class & STC.static_) && (v.storage_class & STC.immutable_) && v._init)
+            {
+                if (Expression ci = v.getConstInitializer())
+                    e.e1 = ci;
+            }
+        }
+        if (e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral || e.e1.op == TOK.assocArrayLiteral || e.e1.type.toBasetype().ty == Tsarray)
+        {
+            ret = ArrayLength(e.type, e.e1).copy();
+        }
+    }
+
+    void visitEqual(EqualExp e)
+    {
+        //printf("EqualExp::optimize(result = %x) %s\n", result, e.toChars());
+        if (binOptimize(e, WANTvalue))
+            return;
+        Expression e1 = fromConstInitializer(result, e.e1);
+        Expression e2 = fromConstInitializer(result, e.e2);
+        if (e1.op == TOK.error)
+        {
+            ret = e1;
+            return;
+        }
+        if (e2.op == TOK.error)
+        {
+            ret = e2;
+            return;
+        }
+        ret = Equal(e.op, e.loc, e.type, e1, e2).copy();
+        if (CTFEExp.isCantExp(ret))
+            ret = e;
+    }
+
+    void visitIdentity(IdentityExp e)
+    {
+        //printf("IdentityExp::optimize(result = %d) %s\n", result, e.toChars());
+        if (binOptimize(e, WANTvalue))
+            return;
+        if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOK.null_ && e.e2.op == TOK.null_))
+        {
+            ret = Identity(e.op, e.loc, e.type, e.e1, e.e2).copy();
+            if (CTFEExp.isCantExp(ret))
+                ret = e;
+        }
+    }
+
+    void visitIndex(IndexExp e)
+    {
+        //printf("IndexExp::optimize(result = %d) %s\n", result, e.toChars());
+        if (expOptimize(e.e1, result & WANTexpand))
+            return;
+        Expression ex = fromConstInitializer(result, e.e1);
+        // We might know $ now
+        setLengthVarIfKnown(e.lengthVar, ex);
+        if (expOptimize(e.e2, WANTvalue))
+            return;
+        // Don't optimize to an array literal element directly in case an lvalue is requested
+        if (keepLvalue && ex.op == TOK.arrayLiteral)
+            return;
+        ret = Index(e.type, ex, e.e2).copy();
+        if (CTFEExp.isCantExp(ret) || (!ret.isErrorExp() && keepLvalue && !ret.isLvalue()))
+            ret = e;
+    }
+
+    void visitSlice(SliceExp e)
+    {
+        //printf("SliceExp::optimize(result = %d) %s\n", result, e.toChars());
+        if (expOptimize(e.e1, result & WANTexpand))
+            return;
+        if (!e.lwr)
+        {
+            if (e.e1.op == TOK.string_)
+            {
+                // Convert slice of string literal into dynamic array
+                Type t = e.e1.type.toBasetype();
+                if (Type tn = t.nextOf())
+                    ret = e.e1.castTo(null, tn.arrayOf());
+            }
+        }
+        else
+        {
+            e.e1 = fromConstInitializer(result, e.e1);
+            // We might know $ now
+            setLengthVarIfKnown(e.lengthVar, e.e1);
+            expOptimize(e.lwr, WANTvalue);
+            expOptimize(e.upr, WANTvalue);
+            if (ret.op == TOK.error)
+                return;
+            ret = Slice(e.type, e.e1, e.lwr, e.upr).copy();
+            if (CTFEExp.isCantExp(ret))
+                ret = e;
+        }
+        // https://issues.dlang.org/show_bug.cgi?id=14649
+        // Leave the slice form so it might be
+        // a part of array operation.
+        // Assume that the backend codegen will handle the form `e[]`
+        // as an equal to `e` itself.
+        if (ret.op == TOK.string_)
+        {
+            e.e1 = ret;
+            e.lwr = null;
+            e.upr = null;
+            ret = e;
+        }
+        //printf("-SliceExp::optimize() %s\n", ret.toChars());
+    }
+
+    void visitLogical(LogicalExp e)
+    {
+        //printf("LogicalExp::optimize(%d) %s\n", result, e.toChars());
+        if (expOptimize(e.e1, WANTvalue))
+            return;
+        const oror = e.op == TOK.orOr;
+        if (e.e1.toBool().hasValue(oror))
+        {
+            // Replace with (e1, oror)
+            ret = IntegerExp.createBool(oror);
+            ret = Expression.combine(e.e1, ret);
+            if (e.type.toBasetype().ty == Tvoid)
+            {
+                ret = new CastExp(e.loc, ret, Type.tvoid);
+                ret.type = e.type;
+            }
+            ret = Expression_optimize(ret, result, false);
+            return;
+        }
+        expOptimize(e.e2, WANTvalue);
+        if (e.e1.isConst())
+        {
+            const e1Opt = e.e1.toBool();
+            if (e.e2.isConst())
+            {
+                bool n1 = e1Opt.hasValue(true);
+                bool n2 = e.e2.toBool().hasValue(true);
+                ret = new IntegerExp(e.loc, oror ? (n1 || n2) : (n1 && n2), e.type);
+            }
+            else if (e1Opt.hasValue(!oror))
+            {
+                if (e.type.toBasetype().ty == Tvoid)
+                    ret = e.e2;
+                else
+                {
+                    ret = new CastExp(e.loc, e.e2, e.type);
+                    ret.type = e.type;
+                }
+            }
+        }
+    }
+
+    void visitCmp(CmpExp e)
+    {
+        //printf("CmpExp::optimize() %s\n", e.toChars());
+        if (binOptimize(e, WANTvalue))
+            return;
+        Expression e1 = fromConstInitializer(result, e.e1);
+        Expression e2 = fromConstInitializer(result, e.e2);
+        ret = Cmp(e.op, e.loc, e.type, e1, e2).copy();
+        if (CTFEExp.isCantExp(ret))
+            ret = e;
+    }
+
+    void visitCat(CatExp e)
+    {
+        //printf("CatExp::optimize(%d) %s\n", result, e.toChars());
+        if (binOptimize(e, result))
+            return;
+        if (e.e1.op == TOK.concatenate)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=12798
+            // optimize ((expr ~ str1) ~ str2)
+            CatExp ce1 = cast(CatExp)e.e1;
+            scope CatExp cex = new CatExp(e.loc, ce1.e2, e.e2);
+            cex.type = e.type;
+            Expression ex = Expression_optimize(cex, result, false);
+            if (ex != cex)
+            {
+                e.e1 = ce1.e1;
+                e.e2 = ex;
+            }
+        }
+        // optimize "str"[] -> "str"
+        if (e.e1.op == TOK.slice)
+        {
+            SliceExp se1 = cast(SliceExp)e.e1;
+            if (se1.e1.op == TOK.string_ && !se1.lwr)
+                e.e1 = se1.e1;
+        }
+        if (e.e2.op == TOK.slice)
+        {
+            SliceExp se2 = cast(SliceExp)e.e2;
+            if (se2.e1.op == TOK.string_ && !se2.lwr)
+                e.e2 = se2.e1;
+        }
+        ret = Cat(e.loc, e.type, e.e1, e.e2).copy();
+        if (CTFEExp.isCantExp(ret))
+            ret = e;
+    }
+
+    void visitCond(CondExp e)
+    {
+        if (expOptimize(e.econd, WANTvalue))
+            return;
+        const opt = e.econd.toBool();
+        if (opt.hasValue(true))
+            ret = Expression_optimize(e.e1, result, keepLvalue);
+        else if (opt.hasValue(false))
+            ret = Expression_optimize(e.e2, result, keepLvalue);
+        else
+        {
+            expOptimize(e.e1, result, keepLvalue);
+            expOptimize(e.e2, result, keepLvalue);
+        }
+    }
 
     // Optimize the expression until it can no longer be simplified.
     size_t b;
@@ -1187,10 +1172,103 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             e.error("infinite loop while optimizing expression");
             fatal();
         }
-        auto ex = v.ret;
-        ex.accept(v);
-        if (ex == v.ret)
+
+        auto ex = ret;
+        switch (ex.op)
+        {
+            case TOK.variable:          visitVar(ex.isVarExp()); break;
+            case TOK.tuple:             visitTuple(ex.isTupleExp()); break;
+            case TOK.arrayLiteral:      visitArrayLiteral(ex.isArrayLiteralExp()); break;
+            case TOK.assocArrayLiteral: visitAssocArrayLiteral(ex.isAssocArrayLiteralExp()); break;
+            case TOK.structLiteral:     visitStructLiteral(ex.isStructLiteralExp()); break;
+
+            case TOK.import_:
+            case TOK.assert_:
+            case TOK.dotIdentifier:
+            case TOK.dotTemplateDeclaration:
+            case TOK.dotTemplateInstance:
+            case TOK.delegate_:
+            case TOK.dotType:
+            case TOK.uadd:
+            case TOK.delete_:
+            case TOK.vector:
+            case TOK.vectorArray:
+            case TOK.array:
+            case TOK.delegatePointer:
+            case TOK.delegateFunctionPointer:
+            case TOK.preMinusMinus:
+            case TOK.prePlusPlus:       visitUna(cast(UnaExp)ex); break;
+
+            case TOK.negate:            visitNeg(ex.isNegExp()); break;
+            case TOK.tilde:             visitCom(ex.isComExp()); break;
+            case TOK.not:               visitNop(ex.isNotExp()); break;
+            case TOK.symbolOffset:      visitSymOff(ex.isSymOffExp()); break;
+            case TOK.address:           visitAddr(ex.isAddrExp()); break;
+            case TOK.star:              visitPtr(ex.isPtrExp()); break;
+            case TOK.dotVariable:       visitDotVar(ex.isDotVarExp()); break;
+            case TOK.new_:              visitNew(ex.isNewExp()); break;
+            case TOK.call:              visitCall(ex.isCallExp()); break;
+            case TOK.cast_:             visitCast(ex.isCastExp()); break;
+
+            case TOK.addAssign:
+            case TOK.minAssign:
+            case TOK.mulAssign:
+            case TOK.divAssign:
+            case TOK.modAssign:
+            case TOK.andAssign:
+            case TOK.orAssign:
+            case TOK.xorAssign:
+            case TOK.powAssign:
+            case TOK.leftShiftAssign:
+            case TOK.rightShiftAssign:
+            case TOK.unsignedRightShiftAssign:
+            case TOK.concatenateElemAssign:
+            case TOK.concatenateDcharAssign:
+            case TOK.concatenateAssign: visitBinAssign(ex.isBinAssignExp()); break;
+
+            case TOK.minusMinus:
+            case TOK.plusPlus:
+            case TOK.assign:
+            case TOK.construct:
+            case TOK.blit:
+            case TOK.in_:
+            case TOK.remove:
+            case TOK.dot:                       visitBin(cast(BinExp)ex); break;
+
+            case TOK.add:                       visitAdd(ex.isAddExp()); break;
+            case TOK.min:                       visitMin(ex.isMinExp()); break;
+            case TOK.mul:                       visitMul(ex.isMulExp()); break;
+            case TOK.div:                       visitDiv(ex.isDivExp()); break;
+            case TOK.mod:                       visitMod(ex.isModExp()); break;
+            case TOK.leftShift:                 visitShl(ex.isShlExp()); break;
+            case TOK.rightShift:                visitShr(ex.isShrExp()); break;
+            case TOK.unsignedRightShift:        visitUshr(ex.isUshrExp()); break;
+            case TOK.and:                       visitAnd(ex.isAndExp()); break;
+            case TOK.or:                        visitOr(ex.isOrExp()); break;
+            case TOK.xor:                       visitXor(ex.isXorExp()); break;
+            case TOK.pow:                       visitPow(ex.isPowExp()); break;
+            case TOK.comma:                     visitComma(ex.isCommaExp()); break;
+            case TOK.arrayLength:               visitArrayLength(ex.isArrayLengthExp()); break;
+            case TOK.notEqual:
+            case TOK.equal:                     visitEqual(ex.isEqualExp()); break;
+            case TOK.notIdentity:
+            case TOK.identity:                  visitIdentity(ex.isIdentityExp()); break;
+            case TOK.index:                     visitIndex(ex.isIndexExp()); break;
+            case TOK.slice:                     visitSlice(ex.isSliceExp()); break;
+            case TOK.andAnd:
+            case TOK.orOr:                      visitLogical(ex.isLogicalExp()); break;
+            case TOK.lessThan:
+            case TOK.lessOrEqual:
+            case TOK.greaterThan:
+            case TOK.greaterOrEqual:            visitCmp(cast(CmpExp)ex); break;
+            case TOK.concatenate:               visitCat(ex.isCatExp()); break;
+            case TOK.question:                  visitCond(ex.isCondExp()); break;
+
+            default:                            visitExp(ex); break;
+        }
+
+        if (ex == ret)
             break;
     }
-    return v.ret;
+    return ret;
 }
