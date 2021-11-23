@@ -988,17 +988,14 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
         if (v.isScope() && !v.iscatchvar)       // special case: allow catch var to be rethrown
                                                 // despite being `scope`
         {
-            if (sc._module && sc._module.isRoot())
+            // Only look for errors if in module listed on command line
+            if (global.params.useDIP1000 == FeatureState.enabled) // https://issues.dlang.org/show_bug.cgi?id=17029
             {
-                // Only look for errors if in module listed on command line
-                if (global.params.useDIP1000 == FeatureState.enabled) // https://issues.dlang.org/show_bug.cgi?id=17029
-                {
-                    if (!gag)
-                        error(e.loc, "scope variable `%s` may not be thrown", v.toChars());
-                    result = true;
-                }
-                continue;
+                if (!gag)
+                    error(e.loc, "scope variable `%s` may not be thrown", v.toChars());
+                result = true;
             }
+            continue;
         }
         else
         {
@@ -1046,7 +1043,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
 
         if (v.isScope())
         {
-            if (sc._module && sc._module.isRoot() &&
+            if (
                 /* This case comes up when the ReturnStatement of a __foreachbody is
                  * checked for escapes by the caller of __foreachbody. Skip it.
                  *
@@ -1121,9 +1118,6 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
          * Infer the addition of 'return', or set result to be the offending expression.
          */
         if (!v.isReference())
-            continue;
-
-        if (!sc._module || !sc._module.isRoot())
             continue;
 
         // https://dlang.org/spec/function.html#return-ref-parameters
@@ -1259,7 +1253,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 continue;
 
             auto pfunc = p.isFuncDeclaration();
-            if (pfunc && sc._module && sc._module.isRoot() &&
+            if (pfunc &&
                 /* This case comes up when the ReturnStatement of a __foreachbody is
                  * checked for escapes by the caller of __foreachbody. Skip it.
                  *
@@ -1394,7 +1388,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }
-            else if (sc._module && sc._module.isRoot())
+            else
             {
                 // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
