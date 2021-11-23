@@ -1,4 +1,5 @@
-Preview switch fix16997 has now been set to true by default now
+-preview=intpromote switch has now been set to true by default now.
+use -revert=intpromote to revert the changes
 
 integer promotions now follow C integral promotions rules consistently 
 
