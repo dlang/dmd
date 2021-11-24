@@ -1,6 +1,5 @@
 -preview=intpromote switch is now set by default.
 
-
 integer promotions now follow C integral promotions rules consistently
 
 It affects operands of type byte, ubyte, short, ushort, char, and wchar. The operands are promoted to int before the operator is applied. The result type will now be int.
