@@ -74,7 +74,7 @@ enum STC : ulong  // transfer changes to declaration.h
 
     returninferred      = 0x100_0000,   /// `return` has been inferred and should not be part of mangling, `return_` must also be set
     immutable_          = 0x200_0000,   /// `immutable`
-    init                = 0x400_0000,   /// has explicit initializer
+    //                  = 0x400_0000,
     manifest            = 0x800_0000,   /// manifest constant
 
     nodtor              = 0x1000_0000,   /// do not run destructor

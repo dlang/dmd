@@ -4400,7 +4400,6 @@ enum class STC : uint64_t
     returnScope = 8388608LLU,
     returninferred = 16777216LLU,
     immutable_ = 33554432LLU,
-    init = 67108864LLU,
     manifest = 134217728LLU,
     nodtor = 268435456LLU,
     nothrow_ = 536870912LLU,
