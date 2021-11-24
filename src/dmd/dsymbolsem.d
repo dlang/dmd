@@ -881,7 +881,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if ((!dsym._init || dsym._init.isVoidInitializer) && !fd)
         {
             // If not mutable, initializable by constructor only
-            dsym.storage_class |= STC.ctorinit;
+            dsym.setInCtorOnly = true;
         }
 
         if (dsym._init)

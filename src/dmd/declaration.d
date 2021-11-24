@@ -388,7 +388,7 @@ extern (C++) abstract class Declaration : Dsymbol
             }
         }
 
-        if (v && (isCtorinit() || isField()))
+        if (v && (v.isCtorinit() || isField()))
         {
             // It's only modifiable if inside the right constructor
             if ((storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
@@ -435,11 +435,6 @@ extern (C++) abstract class Declaration : Dsymbol
     bool isCodeseg() const pure nothrow @nogc @safe
     {
         return false;
-    }
-
-    final bool isCtorinit() const pure nothrow @nogc @safe
-    {
-        return (storage_class & STC.ctorinit) != 0;
     }
 
     final bool isFinal() const pure nothrow @nogc @safe
@@ -1065,6 +1060,7 @@ extern (C++) class VarDeclaration : Declaration
     bool ctorinit;                  // it has been initialized in a ctor
     bool iscatchvar;                // this is the exception object variable in catch() clause
     bool isowner;                   // this is an Owner, despite it being `scope`
+    bool setInCtorOnly;             // field can only be set in a constructor, as it is const or immutable
 
     // Both these mean the var is not rebindable once assigned,
     // and the destructor gets run when it goes out of scope
@@ -1251,6 +1247,11 @@ extern (C++) class VarDeclaration : Declaration
         if (visibility.kind == Visibility.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
         return false;
+    }
+
+    final bool isCtorinit() const pure nothrow @nogc @safe
+    {
+        return setInCtorOnly;
     }
 
     /*******************************

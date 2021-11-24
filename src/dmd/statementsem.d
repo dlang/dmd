@@ -1028,7 +1028,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (var.storage_class & STC.ref_)
                     {
                         if (fs.aggr.checkModifiable(sc2, ModifyFlags.noError) == Modifiable.initialization)
-                            var.storage_class |= STC.ctorinit;
+                            var.setInCtorOnly = true;
 
                         Type t = tab.nextOf();
                         if (t.constConv(p.type) == MATCH.nomatch)
