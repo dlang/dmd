@@ -53,7 +53,7 @@ struct IntRange;
     #define STCforeach            0x4000ULL    /// variable for foreach loop
     #define STCvariadic           0x8000ULL    /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
 
-    #define STCctorinit           0x10000ULL    /// can only be set inside constructor
+    //                            0x10000ULL
     #define STCtemplateparameter  0x20000ULL    /// template parameter
     #define STCref                0x40000ULL    /// `ref`
     #define STCscope              0x80000ULL    /// `scope`
@@ -131,7 +131,6 @@ public:
     virtual bool isDataseg();
     virtual bool isThreadlocal();
     virtual bool isCodeseg() const;
-    bool isCtorinit() const     { return (storage_class & STCctorinit) != 0; }
     bool isFinal() const        { return (storage_class & STCfinal) != 0; }
     virtual bool isAbstract()   { return (storage_class & STCabstract) != 0; }
     bool isConst() const        { return (storage_class & STCconst) != 0; }
@@ -247,6 +246,7 @@ public:
     bool ctorinit;              // it has been initialized in a ctor
     bool iscatchvar;            // this is the exception object variable in catch() clause
     bool isowner;               // this is an Owner, despite it being `scope`
+    bool setInCtorOnly;         // field can only be set in a constructor, as it is const or immutable
     bool onstack;               // it is a class that was allocated on the stack
     bool mynew;                 // it is a class new'd with custom operator new
     char canassign;             // it can be assigned to
@@ -266,6 +266,7 @@ public:
     bool needThis();
     bool isExport() const;
     bool isImportedSymbol() const;
+    bool isCtorinit() const;
     bool isDataseg();
     bool isThreadlocal();
     bool isCTFE();

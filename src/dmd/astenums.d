@@ -62,7 +62,7 @@ enum STC : ulong  // transfer changes to declaration.h
     foreach_            = 0x4000,   /// variable for foreach loop
     variadic            = 0x8000,   /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
 
-    ctorinit            = 0x1_0000,   /// can only be set inside constructor
+    //                  = 0x1_0000,
     templateparameter   = 0x2_0000,   /// template parameter
     ref_                = 0x4_0000,   /// `ref`
     scope_              = 0x8_0000,   /// `scope`

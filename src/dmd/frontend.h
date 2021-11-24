@@ -4391,7 +4391,6 @@ enum class STC : uint64_t
     lazy_ = 8192LLU,
     foreach_ = 16384LLU,
     variadic = 32768LLU,
-    ctorinit = 65536LLU,
     templateparameter = 131072LLU,
     ref_ = 262144LLU,
     scope_ = 524288LLU,
@@ -5584,7 +5583,6 @@ public:
     virtual bool isDataseg();
     virtual bool isThreadlocal();
     virtual bool isCodeseg() const;
-    bool isCtorinit() const;
     bool isFinal() const;
     virtual bool isAbstract();
     bool isConst() const;
@@ -5678,6 +5676,7 @@ public:
     bool ctorinit;
     bool iscatchvar;
     bool isowner;
+    bool setInCtorOnly;
     bool onstack;
     bool mynew;
     int8_t canassign;
@@ -5695,6 +5694,7 @@ public:
     bool needThis();
     bool isExport() const;
     bool isImportedSymbol() const;
+    bool isCtorinit() const;
     bool isDataseg();
     bool isThreadlocal();
     bool isCTFE();
