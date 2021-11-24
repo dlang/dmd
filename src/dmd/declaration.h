@@ -65,7 +65,7 @@ struct IntRange;
 
     #define STCreturninferred     0x1000000ULL    /// `return` has been inferred and should not be part of mangling, `return` must also be set
     #define STCimmutable          0x2000000ULL    /// `immutable`
-    #define STCinit               0x4000000ULL    /// has explicit initializer
+    //                            0x4000000ULL
     #define STCmanifest           0x8000000ULL    /// manifest constant
 
     #define STCnodtor             0x10000000ULL    /// do not run destructor

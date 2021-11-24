@@ -885,7 +885,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         if (dsym._init)
-            dsym.storage_class |= STC.init; // remember we had an explicit initializer
+        { } // remember we had an explicit initializer
         else if (dsym.storage_class & STC.manifest)
             dsym.error("manifest constants must have initializers");
 
