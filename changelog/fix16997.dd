@@ -8,7 +8,7 @@ The values computed will be different for some values of the operands:
 
 All values of - and ~ applied to ubyte, ushort, char, and dchar operands will change.
 
-The values of -byte(-128) and -short(-32768) will change.
+The values of ``-byte(-128)`` and ``-short(-32768)`` will change.
 
 To revert to the old behavor rewrite it as the following:
 
