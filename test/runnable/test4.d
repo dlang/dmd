@@ -749,7 +749,7 @@ void test30()
     printf("test30()\n");
     GC30 gc;
 
-    GC30.gcLock = Object.classinfo;
+    GC30.gcLock = typeid(Object);
     assert(gc.malloc() == null);
 }
 

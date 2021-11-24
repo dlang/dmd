@@ -1167,7 +1167,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             if (funcdecl.isStatic())
                             {
                                 // The monitor is in the ClassInfo
-                                vsync = new DotIdExp(funcdecl.loc, symbolToExp(cd, funcdecl.loc, sc2, false), Id.classinfo);
+                                vsync = new TypeidExp(funcdecl.loc, cd.type);
                             }
                             else
                             {

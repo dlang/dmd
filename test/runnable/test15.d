@@ -422,8 +422,8 @@ class B27 : A27
 {
     static this()
     {
-        foo27(B27.classinfo);
-        foo27(A27.classinfo);
+        foo27(typeid(B27));
+        foo27(typeid(A27));
     }
 }
 
@@ -453,18 +453,18 @@ void foo28(ClassInfo ci)
 class A28
 {
     static this() {
-    foo28(A28.classinfo );
+        foo28(typeid(A28));
     }
 }
 
 class B28 : A28
 {
     static this() {
-        foo28(B28.classinfo );
+        foo28(typeid(B28));
         (new B28()).bodge_it();
     }
     void bodge_it() {
-        foo28(A28.classinfo );
+        foo28(typeid(A28));
     }
 }
 

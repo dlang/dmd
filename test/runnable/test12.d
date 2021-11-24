@@ -777,7 +777,7 @@ void test36()
 {
     A36 a = new A36;
 
-    printf("A36.sizeof = %zd\n", a.classinfo.initializer.length);
+    printf("A36.sizeof = %zd\n", typeid(a).initializer.length);
     printf("%d\n", a.s);
     printf("%d\n", a.a);
     printf("%d\n", a.b);
@@ -785,9 +785,9 @@ void test36()
     printf("%d\n", a.d);
 
     version(D_LP64)
-        assert(a.classinfo.initializer.length == 36);
+        assert(typeid(a).initializer.length == 36);
     else
-        assert(a.classinfo.initializer.length == 28);
+        assert(typeid(a).initializer.length == 28);
     assert(a.s == 1);
     assert(a.a == 2);
     assert(a.b == 3);
@@ -818,10 +818,10 @@ class Foo38
 {
     static void display_name()
     {
-        printf("%.*s\n", cast(int)Object.classinfo.name.length, Object.classinfo.name.ptr);
-        assert(Object.classinfo.name == "object.Object");
-        assert(super.classinfo.name == "object.Object");
-        assert(this.classinfo.name == "test12.Foo38");
+        printf("%.*s\n", cast(int)typeid(Object).name.length, typeid(Object).name.ptr);
+        assert(typeid(Object).name == "object.Object");
+        assert(typeid(typeof(super)).name == "object.Object");
+        assert(typeid(typeof(this)).name == "test12.Foo38");
     }
 }
 
@@ -1246,4 +1246,3 @@ int main(string[] argv)
     printf("Success\n");
     return 0;
 }
-

@@ -4248,6 +4248,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 }
 
                 Type t = Type.typeinfoclass.type;
+                const eOrig = e;
                 if (e.op == TOK.type || e.op == TOK.dotType)
                 {
                     /* For type.classinfo, we know the classinfo
@@ -4258,6 +4259,15 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                     e = new VarExp(e.loc, mt.sym.vclassinfo);
                     e = e.addressOf();
                     e.type = t; // do this so we don't get redundant dereference
+
+                    // @@@DEPRECATED_2.092.0@@@
+                    if (mt.sym.isInterfaceDeclaration())
+                        e.deprecation("`.classinfo` property is deprecated - use `typeid(%s).info` instead",
+                                      eOrig.toChars());
+                    else
+                        e.deprecation("`.classinfo` property is deprecated - use `typeid(%s)` instead",
+                                      eOrig.toChars());
+
                 }
                 else
                 {
@@ -4277,6 +4287,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                              */
                             error(e.loc, "no `.classinfo` for C++ interface objects");
                         }
+                        // @@@DEPRECATED_2.092.0@@@
+                        else
+                            e.deprecation("`.classinfo` property is deprecated - use `typeid(%s).info` instead",
+                                          eOrig.toChars());
+
                         /* For an interface, the first entry in the vtbl[]
                          * is actually a pointer to an instance of struct Interface.
                          * The first member of Interface is the .classinfo,
@@ -4286,6 +4301,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                         e = new PtrExp(e.loc, e);
                         e.type = t.pointerTo();
                     }
+                    // @@@DEPRECATED_2.092.0@@@
+                    else
+                        e.deprecation("`.classinfo` property is deprecated - use `typeid(%s)` instead",
+                                      eOrig.toChars());
                     e = new PtrExp(e.loc, e, t);
                 }
                 return e;

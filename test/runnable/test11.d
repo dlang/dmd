@@ -969,7 +969,7 @@ void test51()
 
     B51.b = a;
     assert(B51.b.bar == 3);
-    assert(B51.b.classinfo == A51.classinfo);
+    assert(typeid(B51.b) == typeid(A51));
 
     C51 c;
     c.x = &c;
@@ -1389,5 +1389,3 @@ int main(string[] argv)
     printf("Success\n");
     return 0;
 }
-
-

@@ -1,0 +1,57 @@
+Class property `.classinfo` has been deprecated
+
+This property returns the `TypeInfo_class` of the class on which it is called.
+It can be called with either an instance, or a type.
+As it was redundant with `typeid`, and `typeid` better relates to `typeof`,
+as well as not suffering from shadowing issues, `.classinfo` is now deprecated.
+
+The following code:
+---
+import std.stdio;
+void main ()
+{
+    scope o = new Object;
+    writeln(o.classinfo.name);
+    writeln(Object.classinfo.name);
+}
+---
+
+Can be turned into:
+---
+import std.stdio;
+void main ()
+{
+    scope o = new Object;
+    writeln(typeid(o).name);
+    writeln(typeid(Object).name);
+}
+---
+
+Note that in the event `typeid` is called with an `interface` as an argument,
+it will return the `TypeInfo_Interface` of the argument.
+Once can obtain the equivalent of `.classinfo` by using `typeid(myInterface).info`.
+
+Finally, `.classinfo` wrongfully accepted `this` and `super` as types in `static functions.
+Hence, the following code:
+---
+class Classe
+{
+    static void foo ()
+    {
+        writeln("Class info: ", this.classinfo);
+        writeln("Object class info: ", super.classinfo);
+    }
+}
+---
+
+Need to be turned into:
+---
+class Classe
+{
+    static void foo ()
+    {
+        writeln("Class info: ", typeid(typeof(this)));
+        writeln("Object class info: ", typeid(typeof(super)));
+    }
+}
+---

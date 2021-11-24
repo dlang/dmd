@@ -917,9 +917,9 @@ void test47()
 void test48()
 {
     Object o = new Object();
-    printf("%.*s\n", cast(int)typeof(o).classinfo.name.length, typeof(o).classinfo.name.ptr);
-    printf("%.*s\n", cast(int)(typeof(o)).classinfo.name.length, (typeof(o)).classinfo.name.ptr);
-    printf("%.*s\n", cast(int)(Object).classinfo.name.length, (Object).classinfo.name.ptr);
+    printf("%.*s\n", cast(int)typeid(typeof(o)).name.length, typeid(typeof(o)).name.ptr);
+    printf("%.*s\n", cast(int)(typeid(typeof(o))).name.length, (typeid(typeof(o))).name.ptr);
+    printf("%.*s\n", cast(int)(typeid(Object)).name.length, (typeid(Object)).name.ptr);
 }
 
 /*******************************************/
@@ -1202,7 +1202,7 @@ void test64()
 {
     auto x = new Container64;
 
-    assert(!(x.classinfo.flags & 2));
+    assert(!(typeid(x).flags & 2));
 }
 
 /*******************************************/
@@ -1339,4 +1339,3 @@ void main()
 
     printf("Success\n");
 }
-

@@ -626,8 +626,8 @@ class C42
 
 void test42()
 {
-    printf("%zd\n", C42.classinfo.initializer.length);
-    assert(C42.classinfo.initializer.length == 12 + (void*).sizeof +
+    printf("%zd\n", typeid(C42).initializer.length);
+    assert(typeid(C42).initializer.length == 12 + (void*).sizeof +
         (void*).sizeof);
     C42 c = new C42;
     assert(c.a == 1);

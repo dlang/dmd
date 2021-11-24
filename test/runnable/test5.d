@@ -57,9 +57,9 @@ int main()
 {
     bar b = new bar();
 
-    printf("b.size = x%zx\n", b.classinfo.initializer.length);
-    printf("bar.size = x%zx\n", bar.classinfo.initializer.length);
-    assert(b.classinfo.initializer.length == bar.classinfo.initializer.length);
+    printf("b.size = x%zx\n", typeid(b).initializer.length);
+    printf("bar.size = x%zx\n", typeid(bar).initializer.length);
+    assert(typeid(b).initializer.length == typeid(bar).initializer.length);
     abc(b);
     return 0;
 }
