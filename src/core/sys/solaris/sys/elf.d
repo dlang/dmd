@@ -393,7 +393,7 @@ enum SHF_LINK_ORDER       = 0x80;
 enum SHF_OS_NONCONFORMING = 0x100;
 enum SHF_GROUP            = 0x200;
 enum SHF_TLS              = 0x400;
-
+enum SHF_COMPRESSED       = 0x800;
 enum SHF_MASKOS = 0x0ff00000;
 
 enum SHF_MASKPROC = 0xf0000000;
