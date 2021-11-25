@@ -1,19 +1,10 @@
 -preview=intpromote switch is now set by default.
 
-integer promotions now follow C integral promotions rules consistently
+Integer promotions now follow C integral promotions rules consistently
 
-It affects operands of type byte, ubyte, short, ushort, char, and wchar. The operands are promoted to int before the operator is applied. The result type will now be int.
-
-The values computed will be different for some values of the operands:
-
-All values of - and ~ applied to ubyte, ushort, char, and dchar operands will change.
-
-The values of ``-byte(-128)`` and ``-short(-32768)`` will change.
+It affects operands of type byte/ubyte/short/ushort/char/wchar for ``-`` and ``~``. The operands are promoted to int before the operator is applied.
+The result type will now be int.
 
 To revert to the old behavor rewrite it as the following:
 
-op b as typeof(b)(op int(b)) to preserve the old behavior.
-
-or
-
-use -revert=intpromote to revert the changes
+~byte as typeof(byte)(~int(byte)) to preserve the old behavior or use -revert=intpromote to revert the changes
