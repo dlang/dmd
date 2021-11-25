@@ -5723,6 +5723,9 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         tempinst.minst = null;
     }
 
+    if (sc.intypeof || tempinst.tinst && tempinst.tinst.generatedByTypeof)
+        tempinst.generatedByTypeof = true;
+
     tempinst.gagged = (global.gag > 0);
 
     tempinst.semanticRun = PASS.semantic;
@@ -6128,7 +6131,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     if (global.errors != errorsave)
         goto Laftersemantic;
 
-    if ((sc.func || (sc.flags & SCOPE.fullinst)) && !tempinst.tinst)
+    if ((sc.func || tempinst.generatedByTypeof || (sc.flags & SCOPE.fullinst)) && !tempinst.tinst)
     {
         /* If a template is instantiated inside function, the whole instantiation
          * should be done at that position. But, immediate running semantic3 of

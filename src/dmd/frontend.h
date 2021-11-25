@@ -6524,6 +6524,7 @@ public:
     ScopeDsymbol* argsym;
     size_t hash;
     Array<Expression* >* fargs;
+    bool generatedByTypeof;
     Array<TemplateInstance* >* deferred;
     Module* memberOf;
     TemplateInstance* tinst;

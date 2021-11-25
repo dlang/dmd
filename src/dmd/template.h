@@ -259,6 +259,9 @@ public:
     ScopeDsymbol *argsym;               // argument symbol table
     hash_t hash;                        // cached result of toHash()
     Expressions *fargs;                 // for function template, these are the function arguments
+    bool generatedByTypeof;             // whether this template instance was generated as a result of
+                                        // a typeof evaluation
+
 
     TemplateInstances* deferred;
 

@@ -106,6 +106,16 @@ R!int
 		int elem;
 	}
 }
+RTInfo!(_R)
+{
+	enum immutable(void)* RTInfo = null;
+
+}
+NoPointersBitmapPayload!1LU
+{
+	enum ulong[1] NoPointersBitmapPayload = 0LU;
+
+}
 mixin _d_cmain!();
 {
 	extern (C) 
@@ -130,11 +140,6 @@ RTInfo!(C)
 	enum immutable(void)* RTInfo = null;
 
 }
-NoPointersBitmapPayload!1$?:32=u|64=LU$
-{
-	enum $?:32=uint|64=ulong$[1] NoPointersBitmapPayload = 0$?:32=u|64=LU$;
-
-}
 values!(__c_wchar_t)
 {
 	pure nothrow @safe __c_wchar_t[] values()
@@ -143,10 +148,5 @@ values!(__c_wchar_t)
 		values ~= cast(__c_wchar_t)'\U0000ffff';
 		return values;
 	}
-
-}
-RTInfo!(_R)
-{
-	enum immutable(void)* RTInfo = null;
 
 }

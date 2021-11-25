@@ -5809,6 +5809,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     ScopeDsymbol argsym;        // argument symbol table
     size_t hash;                // cached result of toHash()
     Expressions* fargs;         // for function template, these are the function arguments
+    bool generatedByTypeof;     // whether this template instance was generated as a result of
+                                // a typeof evaluation
 
     TemplateInstances* deferred;
 
