@@ -2,7 +2,7 @@
 
 Integer promotions now follow C integral promotions rules consistently
 
-It affects operands of type byte/ubyte/short/ushort/char/wchar for ``-`` and ``~``. The operands are promoted to int before the operator is applied.
+It affects operands of type byte/ubyte/short/ushort/char/wchar for `-` and `~`. The operands are promoted to int before the operator is applied.
 The result type will now be int.
 
 To revert to the old behavor rewrite it as the following:
