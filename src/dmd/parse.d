@@ -1530,6 +1530,8 @@ class Parser(AST) : Lexer
 
             case TOK.return_:
                 stc = STC.return_;
+                if (peekNext() == TOK.scope_)
+                    stc |= STC.returnScope;     // recognize `return scope`
                 break;
 
             case TOK.scope_:
@@ -2880,7 +2882,7 @@ class Parser(AST) : Lexer
         StorageClass varargsStc;
 
         // Attributes allowed for ...
-        enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_;
+        enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_ | STC.returnScope;
 
         check(TOK.leftParenthesis);
         while (1)
@@ -2988,6 +2990,8 @@ class Parser(AST) : Lexer
 
                 case TOK.return_:
                     stc = STC.return_;
+                    if (peekNext() == TOK.scope_)
+                        stc |= STC.returnScope;
                     goto L2;
                 L2:
                     storageClass = appendStorageClass(storageClass, stc);
