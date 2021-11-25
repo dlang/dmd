@@ -2857,9 +2857,9 @@ else version (Solaris)
     enum SIGPROF = 29;
     enum SIGSYS = 12;
     enum SIGTRAP = 5;
-    enum SIGVTALRM = 31;
+    enum SIGVTALRM = 28;
     enum SIGXCPU = 30;
-    enum SIGXFSZ = 25;
+    enum SIGXFSZ = 31;
 
     enum
     {
