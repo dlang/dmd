@@ -1168,6 +1168,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         bool mitigation = true;
         /*
+            https://issues.dlang.org/show_bug.cgi?id=22520
+
+            Apple radar: https://openradar.appspot.com/FB9733712
+
             Apple deprecated the mechanism used to implement `crt_constructor`
             on MacOS Monterey. This works around that by generating a new function
             (crt_destructor_thunk_NNN, run as a constructor) which registers
@@ -1176,6 +1180,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             This workaround may need a further look at when it comes to
             shared library support, however there is no bridge for
             that spilt milk to flow under yet.
+
+            This relies on the Itanium ABI so is portable to any
+            platform it, if needed.
         */
         if(mitigation)
         {
