@@ -224,6 +224,31 @@ T emplace(T, Args...)(void[] chunk, auto ref Args args)
     assert(c.i == 5);
 }
 
+///
+@betterC
+@nogc pure nothrow @system unittest
+{
+    // works with -betterC too:
+
+    static extern (C++) class C
+    {
+        @nogc pure nothrow @safe:
+        int i = 3;
+        this(int i)
+        {
+            assert(this.i == 3);
+            this.i = i;
+        }
+        int virtualGetI() { return i; }
+    }
+
+    import core.internal.traits : classInstanceAlignment;
+
+    align(classInstanceAlignment!C) byte[__traits(classInstanceSize, C)] buffer;
+    C c = emplace!C(buffer[], 42);
+    assert(c.virtualGetI() == 42);
+}
+
 @system unittest
 {
     class Outer
