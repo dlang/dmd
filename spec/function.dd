@@ -1465,8 +1465,8 @@ $(H3 $(LNAME2 param-storage, Parameter Storage Classes))
         Parameters can also take the type constructors $(D const), $(D immutable), $(D shared) and `inout`.
         )
 
-        $(P $(D in), `out`, $(D ref) and $(D lazy) are mutually exclusive. The first three are used to
-        denote input, input/output, and output parameters, respectively.
+        $(P $(D in), $(D out), $(D ref) and $(D lazy) are mutually exclusive. The first three are used to
+        denote input, output and input/output parameters, respectively.
         For example:
         )
 
