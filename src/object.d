@@ -3471,7 +3471,7 @@ enum immutable(void)* rtinfoHasPointers = cast(void*)1;
 
 // Helper functions
 
-private inout(TypeInfo) getElement(return inout TypeInfo value) @trusted pure nothrow
+private inout(TypeInfo) getElement(return scope inout TypeInfo value) @trusted pure nothrow
 {
     TypeInfo element = cast() value;
     for (;;)

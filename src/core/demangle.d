@@ -54,13 +54,13 @@ pure @safe:
     enum AddType { no, yes }
 
 
-    this( return const(char)[] buf_, return char[] dst_ = null )
+    this( return scope const(char)[] buf_, return scope char[] dst_ = null )
     {
         this( buf_, AddType.yes, dst_ );
     }
 
 
-    this( return const(char)[] buf_, AddType addType_, return char[] dst_ = null )
+    this( return scope const(char)[] buf_, AddType addType_, return scope char[] dst_ = null )
     {
         buf     = buf_;
         addType = addType_;

@@ -551,7 +551,7 @@ extern(C):
      * Throws:
      *  `OutOfMemoryError` on allocation failure.
      */
-    pragma(mangle, "gc_realloc") static void* realloc(return void* p, size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
+    pragma(mangle, "gc_realloc") static void* realloc(return scope void* p, size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
 
     // https://issues.dlang.org/show_bug.cgi?id=13111
     ///
