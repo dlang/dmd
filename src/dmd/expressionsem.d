@@ -11473,11 +11473,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        Type t1 = exp.e1.type.toBasetype();
-        Type t2 = exp.e2.type.toBasetype();
+        if (auto e = exp.op_overload(sc))
+        {
+            result = e;
+            return;
+        }
+
 
         // Indicates whether the comparison of the 2 specified array types
-        // requires an object.__equals() lowering.
+        // requires an elision of typeCombine.
         static bool needsDirectEq(Type t1, Type t2, Scope* sc)
         {
             Type t1n = t1.nextOf().toBasetype();
@@ -11505,22 +11509,63 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return false;
         }
 
-        if (auto e = exp.op_overload(sc))
+        // Indicates whether the comparison of the 2 specified array types
+        // can be implemented with a memcmp call in the glue layer instead
+        // of lowering to object.__equals().
+        static bool canMemcmpArrays(const ref Loc loc, Type t1, Type t2)
         {
-            result = e;
-            return;
+            Type t1n = t1.nextOf().toBasetype();
+            Type t2n = t2.nextOf().toBasetype();
+
+            static Type getBaseElementType(Type t)
+            {
+                t = t.baseElemOf();
+                if (auto tv = t.isTypeVector())
+                    t = tv.elementType();
+                if (t.ty == Tvoid)
+                    t = Type.tuns8;
+                return t;
+            }
+
+            Type e1 = getBaseElementType(t1n);
+            Type e2 = getBaseElementType(t2n);
+            if (e1.isintegral() && e2.isintegral())
+            {
+                // element sizes must match
+                if (t1n.size(loc) != t2n.size(loc))
+                    return false;
+
+                // base integer sizes too
+                const size = e1.size(loc);
+                if (size != e2.size(loc))
+                    return false;
+
+                // integers < 4 bytes are promoted to int => no memcmp for diverging signed-ness
+                return size >= 4 || e1.isunsigned() == e2.isunsigned();
+            }
+
+            if ((t1n.ty == Tpointer  && t2n.ty == Tpointer) ||
+                (t1n.ty == Tfunction && t2n.ty == Tfunction) ||
+                (t1n.ty == Tdelegate && t2n.ty == Tdelegate))
+            {
+                return t1n.equivalent(t2n);
+            }
+
+            return false;
         }
 
+        Type t1 = exp.e1.type.toBasetype();
+        Type t2 = exp.e2.type.toBasetype();
 
         const isArrayComparison = (t1.ty == Tarray || t1.ty == Tsarray) &&
                                   (t2.ty == Tarray || t2.ty == Tsarray);
-        const needsArrayLowering = isArrayComparison && needsDirectEq(t1, t2, sc);
 
-        if (!needsArrayLowering)
+        // bring both sides to common type
+        if (!isArrayComparison || !needsDirectEq(t1, t2, sc))
         {
             if (auto e = typeCombine(exp, sc))
             {
-                result = e;
+                result = e; // error
                 return;
             }
         }
@@ -11529,6 +11574,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto f2 = checkNonAssignmentArrayOp(exp.e2);
         if (f1 || f2)
             return setError();
+
+        version (none)
+        {
+            // check for mismatching lengths when comparing 2 static arrays
+            if (isArrayComparison)
+                if (auto ts1 = exp.e1.type.toBasetype().isTypeSArray())
+                    if (auto ts2 = exp.e2.type.toBasetype().isTypeSArray())
+                        if (ts1.dim.toUInteger() != ts2.dim.toUInteger())
+                        {
+                            exp.error("incompatible types for array comparison: `%s` and `%s`",
+                                    exp.e1.type.toChars(), exp.e2.type.toChars());
+                            return setError();
+                        }
+        }
 
         exp.type = Type.tbool;
 
@@ -11542,8 +11601,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        // lower some array comparisons to object.__equals(e1, e2)
-        if (needsArrayLowering || (t1.ty == Tarray && t2.ty == Tarray))
+        // lower non-memcmp-able array comparisons to object.__equals(e1, e2)
+        if (isArrayComparison && !canMemcmpArrays(exp.loc, exp.e1.type.toBasetype(), exp.e2.type.toBasetype()))
         {
             //printf("Lowering to __equals %s %s\n", exp.e1.toChars(), exp.e2.toChars());
 
@@ -11576,9 +11635,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.e1.type.toBasetype().ty == Taarray)
-            semanticTypeInfo(sc, exp.e1.type.toBasetype());
+        t1 = exp.e1.type.toBasetype();
+        t2 = exp.e2.type.toBasetype();
 
+        if (t1.ty == Taarray)
+            semanticTypeInfo(sc, t1);
 
         if (!target.isVectorOpSupported(t1, exp.op, t2))
         {

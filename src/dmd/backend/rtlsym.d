@@ -99,7 +99,7 @@ enum RTLSYM
     ARRAYSETCTOR,
     ARRAYCAST,           // unused
     ARRAYEQ,             // unused
-    ARRAYEQ2,
+    ARRAYEQ2,            // unused
     ARRAYCMP,            // unused
     ARRAYCMP2,           // unused
     ARRAYCMPCHAR,        // unused

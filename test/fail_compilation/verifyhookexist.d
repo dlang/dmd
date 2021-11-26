@@ -23,7 +23,7 @@ MyStruct[] castToMyStruct(int[] arr) {
 }
 
 void test() {
-    int[] arrA, arrB;
+    float[] arrA, arrB;
 
     bool a = arrA[] == arrB[];
     bool b = arrA < arrB;
