@@ -276,6 +276,9 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 }
 
 /* ================================================================== */
+// Sets for deduplicating output of pragma(lib, "...") and pragma(linkerDirective, "...")
+private extern(D) __gshared int[string] pragmaLibSet;
+private extern(D) __gshared int[string] pragmaLinkerDirectiveSet;
 
 void toObjFile(Dsymbol ds, bool multiobj)
 {
@@ -747,29 +750,61 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(PragmaDeclaration pd)
         {
+            char[] extractString(Expression e, int[string] uniqueTab)
+            {
+                assert(e.op == TOK.string_);
+                StringExp se = cast(StringExp)e;
+                const cu = se.numberOfCodeUnits();
+                char *str_ = cast(char *)mem.xmalloc(cu + 1);
+                se.writeTo(str_, true);
+                auto str = str_[0 .. cu];
+                bool found;
+                static if (__traits(compiles, uniqueTab.update("", () => 0u, (ref int a) => 0u)))
+                {
+                    // 2.082+
+                    uniqueTab.update(cast(string)str,
+                                     ()   { found = false; return 0;},
+                                     (int){ found = true;  return 0;});
+                }
+                else
+                {
+                    if (auto pkey = str in uniqueTab)
+                    {
+                        found = true;
+                    }
+                    else
+                    {
+                        uniqueTab[cast(string)str] = 1;
+                        found = false;
+                    }
+                }
+
+                if (found)
+                {
+                    mem.xfree(str.ptr);
+                    return null;
+                }
+                else
+                    return str;
+            }
             if (pd.ident == Id.lib)
             {
                 assert(pd.args && pd.args.dim == 1);
 
-                Expression e = (*pd.args)[0];
-
-                assert(e.op == TOK.string_);
-
-                StringExp se = cast(StringExp)e;
-                char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
-                se.writeTo(name, true);
-
+                char[] name = extractString((*pd.args)[0], pragmaLibSet);
+                if (!name)
+                    return visit(cast(AttribDeclaration)pd);
                 /* Embed the library names into the object file.
                  * The linker will then automatically
                  * search that library, too.
                  */
-                if (!obj_includelib(name))
+                if (!obj_includelib(name.ptr))
                 {
                     /* The format does not allow embedded library names,
                      * so instead append the library name to the list to be passed
                      * to the linker.
                      */
-                    global.params.libfiles.push(name);
+                    global.params.libfiles.push(name.ptr);
                 }
             }
             else if (pd.ident == Id.startaddress)
@@ -786,15 +821,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
             {
                 assert(pd.args && pd.args.dim == 1);
 
-                Expression e = (*pd.args)[0];
-
-                assert(e.op == TOK.string_);
-
-                StringExp se = cast(StringExp)e;
-                char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
-                se.writeTo(directive, true);
-
-                obj_linkerdirective(directive);
+                char[] directive = extractString((*pd.args)[0], pragmaLinkerDirectiveSet);
+                if (!directive)
+                    return visit(cast(AttribDeclaration)pd);
+                obj_linkerdirective(directive.ptr);
             }
 
             visit(cast(AttribDeclaration)pd);
