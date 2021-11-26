@@ -1163,8 +1163,57 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     if (fd.isCrtCtorDtor & 1)
         objmod.setModuleCtorDtor(s, true);
-    if (fd.isCrtCtorDtor & 2)
-        objmod.setModuleCtorDtor(s, false);
+
+    if (fd.isCrtCtorDtor & 2) 
+    {
+        bool mitigation = true;
+        s.Sclass = SCglobal;
+        /*
+            Apple deprecated the mechanism used to implement `crt_constructor`
+            on MacOS Monterey. This works around that by generating a new function
+            (crt_destructor_thunk_NNN, run as a constructor) which registers
+            the destructor-to-be using __cxa_atexit()
+
+            This workaround may need a further look at when it comes to
+            shared library support, however there is no bridge for
+            that spilt milk to flow under yet.
+        */
+        if(mitigation)
+        {
+            __gshared uint nthDestructor = 0;
+            char* buf = cast(char*) calloc(50, 1);
+            const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk_%u", nthDestructor++);
+            assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
+            //Function symbol
+            auto newConstructor = symbol_calloc(buf);
+            //Build type
+            newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
+            //Tell it it's supposed to be a C function. Does it do anything? Not sure.
+            newConstructor.Stype.Tmangle = mTYman_c;
+            symbol_func(newConstructor);
+            func_t* funcState = newConstructor.Sfunc;
+            //Init start block
+            funcState.Fstartblock = block_calloc();
+            block* startBlk = funcState.Fstartblock;
+            //Make that block run __cxa_atexit(&func);
+            auto atexitSym = getRtlsym(RTLSYM.CXA_ATEXIT);
+            //Build parameter pack - __cxa_atexit(&func, null, null)
+            auto paramPack = el_params(el_long(TYnptr, 0), el_long(TYnptr, 0), el_ptr(s), null);
+            auto exec = el_bin(OPcall, TYvoid, el_var(atexitSym), paramPack);
+            block_appendexp(startBlk, exec); //payload
+            startBlk.BC = BCgoto;
+            auto next = block_calloc();
+            startBlk.appendSucc(next);
+            startBlk.Bnext = next;
+            next.BC = BCret;
+            //Emit in binary
+            writefunc(newConstructor);
+            objmod.setModuleCtorDtor(newConstructor, true);
+        } else
+        {
+            objmod.setModuleCtorDtor(s, false);
+        }
+    }
 
     foreach (sd; *irs.deferToObj)
     {

@@ -169,7 +169,9 @@ enum RTLSYM
     C_ASSERT,
     C__ASSERT,
     C__ASSERT_FAIL,
-    C__ASSERT_RTN
+    C__ASSERT_RTN,
+
+    CXA_ATEXIT
 }
 
 extern (C++):

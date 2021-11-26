@@ -238,6 +238,7 @@ Symbol *getRtlsym(RTLSYM i)
         case RTLSYM.C__ASSERT_FAIL:         symbolz(ps,FLfunc,FREGSAVED,"__assert_fail", SFLexit, t); break;
         case RTLSYM.C__ASSERT_RTN:          symbolz(ps,FLfunc,FREGSAVED,"__assert_rtn", SFLexit, t); break;
 
+        case RTLSYM.CXA_ATEXIT:          symbolz(ps,FLfunc,FREGSAVED,"__cxa_atexit", 0, t); break;
         default:
             assert(0);
     }
