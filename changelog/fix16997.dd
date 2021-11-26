@@ -1,10 +1,18 @@
--preview=intpromote switch is now set by default.
+The '-preview=intpromote' switch is now set by default.
 
 Integer promotions now follow C integral promotions rules consistently
+It affects the unary `-` and `~` operators with operands of type `byte`, `ubyte`, `short`, `ushort`, `char`, or `wchar`.
+The operands are promoted to `int` before the operator is applied, and the resulting type will now be `int`.
 
-It affects operands of type byte/ubyte/short/ushort/char/wchar for `-` and `~`. The operands are promoted to int before the operator is applied.
-The result type will now be int.
+To revert to the old behavor, either use the '-revert=intpromote' switch, or explicitly cast the result of the unary operator back to the smaller integral type:
 
-To revert to the old behavor rewrite it as the following:
-
-~byte as typeof(byte)(~int(byte)) to preserve the old behavior or use -revert=intpromote to revert the changes
+---
+void main()
+{
+    // Note: byte.max = 127, byte.min = -128
+    byte b = -128;
+    int x = -b; // new behavior: x = 128
+    int y = cast(byte)(-b); // old behavior: y = -128
+    byte b2 = cast(byte) -b; // cast now required
+}
+---

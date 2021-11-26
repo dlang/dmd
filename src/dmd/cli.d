@@ -818,7 +818,7 @@ dmd -cov -unittest myprog.d
         Feature("fixAliasThis", "fixAliasThis",
             "when a symbol is resolved, check alias this scope before going to upper scopes"),
         Feature("intpromote", "fix16997",
-            "fix integral promotions for unary + - ~ operators"),
+            "fix integral promotions for unary + - ~ operators", false, true),
         Feature("dtorfields", "dtorFields",
             "destruct fields of partially constructed objects", false, false),
         Feature("rvaluerefparam", "rvalueRefParam",
