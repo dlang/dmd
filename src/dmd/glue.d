@@ -1164,10 +1164,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isCrtCtorDtor & 1)
         objmod.setModuleCtorDtor(s, true);
 
-    if (fd.isCrtCtorDtor & 2) 
+    if (fd.isCrtCtorDtor & 2)
     {
         bool mitigation = true;
-        s.Sclass = SCglobal;
         /*
             Apple deprecated the mechanism used to implement `crt_constructor`
             on MacOS Monterey. This works around that by generating a new function
@@ -1182,6 +1181,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             __gshared uint nthDestructor = 0;
             char* buf = cast(char*) calloc(50, 1);
+            assert(buf);
             const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk_%u", nthDestructor++);
             assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
             //Function symbol
@@ -1191,6 +1191,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             //Tell it it's supposed to be a C function. Does it do anything? Not sure.
             newConstructor.Stype.Tmangle = mTYman_c;
             symbol_func(newConstructor);
+            //Global SC for now.
+            newConstructor.Sclass = SCglobal;
             func_t* funcState = newConstructor.Sfunc;
             //Init start block
             funcState.Fstartblock = block_calloc();
@@ -1208,6 +1210,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             next.BC = BCret;
             //Emit in binary
             writefunc(newConstructor);
+            //Mark as a CONSTRUCTOR because our thunk implements the destructor
             objmod.setModuleCtorDtor(newConstructor, true);
         } else
         {
