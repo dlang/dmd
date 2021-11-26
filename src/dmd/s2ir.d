@@ -90,7 +90,7 @@ private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
 
 private bool isAssertFalse(const Expression e) nothrow
 {
-    return e ? e.type == Type.tnoreturn && (e.op == TOK.halt || e.op == TOK.assert_) : false;
+    return e ? e.type == Type.tnoreturn && (e.op == EXP.halt || e.op == EXP.assert_) : false;
 }
 
 private bool isAssertFalse(const Statement s) nothrow
@@ -646,7 +646,7 @@ private extern (C++) class S2irVisitor : Visitor
                  */
                 else if (auto ce = s.exp.isCallExp())
                 {
-                    if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
+                    if (ce.e1.op == EXP.variable || ce.e1.op == EXP.star)
                     {
                         Type t = ce.e1.type.toBasetype();
                         if (t.ty == Tdelegate)
@@ -853,7 +853,7 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(WithStatement s)
     {
         //printf("WithStatement.toIR()\n");
-        if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
+        if (s.exp.op == EXP.scope_ || s.exp.op == EXP.type)
         {
         }
         else

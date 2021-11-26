@@ -536,8 +536,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 {
     enum log = false;
     if (log) printf("checkAssignEscape(e: %s)\n", e.toChars());
-    if (e.op != TOK.assign && e.op != TOK.blit && e.op != TOK.construct &&
-        e.op != TOK.concatenateAssign && e.op != TOK.concatenateElemAssign && e.op != TOK.concatenateDcharAssign)
+    if (e.op != EXP.assign && e.op != EXP.blit && e.op != EXP.construct &&
+        e.op != EXP.concatenateAssign && e.op != EXP.concatenateElemAssign && e.op != EXP.concatenateDcharAssign)
         return false;
     auto ae = cast(BinExp)e;
     Expression e1 = ae.e1;
@@ -568,7 +568,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     VarDeclaration va = expToVariable(e1);
 
-    if (va && e.op == TOK.concatenateElemAssign)
+    if (va && e.op == EXP.concatenateElemAssign)
     {
         /* https://issues.dlang.org/show_bug.cgi?id=17842
          * Draw an equivalence between:
@@ -843,7 +843,7 @@ ByRef:
                 va.storage_class |= STC.return_ | STC.returninferred;
             continue;
         }
-        if (e1.op == TOK.structLiteral)
+        if (e1.op == EXP.structLiteral)
             continue;
         if (fd.setUnsafe())
         {
@@ -904,7 +904,7 @@ ByRef:
 
         /* Do not allow slicing of a static array returned by a function
          */
-        if (ee.op == TOK.call && ee.type.toBasetype().isTypeSArray() && e1.type.toBasetype().isTypeDArray() &&
+        if (ee.op == EXP.call && ee.type.toBasetype().isTypeSArray() && e1.type.toBasetype().isTypeDArray() &&
             !(va && va.storage_class & STC.temp))
         {
             if (!gag)
@@ -914,7 +914,7 @@ ByRef:
             continue;
         }
 
-        if (ee.op == TOK.call && ee.type.toBasetype().isTypeStruct() &&
+        if (ee.op == EXP.call && ee.type.toBasetype().isTypeStruct() &&
             (!va || !(va.storage_class & STC.temp)) &&
             fd.setUnsafe())
         {
@@ -925,7 +925,7 @@ ByRef:
             continue;
         }
 
-        if (ee.op == TOK.structLiteral &&
+        if (ee.op == EXP.structLiteral &&
             (!va || !(va.storage_class & STC.temp)) &&
             fd.setUnsafe())
         {
@@ -1524,7 +1524,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
              * allowed, but CTFE can generate one out of a new expression,
              * but it'll be placed in static data so no need to check it.
              */
-            if (e.e1.op != TOK.structLiteral)
+            if (e.e1.op != EXP.structLiteral)
                 escapeByRef(e.e1, er, live);
         }
 
@@ -1578,7 +1578,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
 
         override void visit(FuncExp e)
         {
-            if (e.fd.tok == TOK.delegate_)
+            if (e.fd.tok == EXP.delegate_)
                 er.byfunc.push(e.fd);
         }
 
@@ -1764,7 +1764,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 }
             }
             // If 'this' is returned, check it too
-            if (e.e1.op == TOK.dotVariable && t1.ty == Tfunction)
+            if (e.e1.op == EXP.dotVariable && t1.ty == Tfunction)
             {
                 DotVarExp dve = e.e1.isDotVarExp();
                 FuncDeclaration fd = dve.var.isFuncDeclaration();
@@ -2020,7 +2020,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                     }
                 }
                 // If 'this' is returned by ref, check it too
-                if (e.e1.op == TOK.dotVariable && t1.ty == Tfunction)
+                if (e.e1.op == EXP.dotVariable && t1.ty == Tfunction)
                 {
                     DotVarExp dve = e.e1.isDotVarExp();
 
@@ -2047,7 +2047,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                     }
                 }
                 // If it's a delegate, check it too
-                if (e.e1.op == TOK.variable && t1.ty == Tdelegate)
+                if (e.e1.op == EXP.variable && t1.ty == Tdelegate)
                 {
                     escapeByValue(e.e1, er, live);
                 }

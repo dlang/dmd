@@ -501,7 +501,7 @@ public:
         // https://issues.dlang.org/show_bug.cgi?id=3500
         // super.func() calls must be devirtualized, and the inliner
         // can't handle that at present.
-        if (e.e1.op == TOK.dotVariable && (cast(DotVarExp)e.e1).e1.op == TOK.super_)
+        if (e.e1.op == EXP.dotVariable && (cast(DotVarExp)e.e1).e1.op == EXP.super_)
             cost = COST_MAX;
         else if (e.f && e.f.ident == Id.__alloca && e.f.linkage == LINK.c && !allowAlloca)
             cost = COST_MAX; // inlining alloca may cause stack overflows

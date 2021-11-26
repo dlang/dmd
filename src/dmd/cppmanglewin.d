@@ -802,7 +802,7 @@ extern(D):
             buf.writeByte('1');
             mangleFunction(d.isFuncDeclaration());
         }
-        else if (e && e.op == TOK.variable && (cast(VarExp)e).var.isVarDeclaration())
+        else if (e && e.op == EXP.variable && (cast(VarExp)e).var.isVarDeclaration())
         {
             buf.writeByte('$');
             if (flags & IS_DMC)

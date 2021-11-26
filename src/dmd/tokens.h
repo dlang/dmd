@@ -33,6 +33,7 @@ class Identifier;
  */
 
 typedef unsigned short TOK;
+typedef TOK EXP;
 enum
 {
         TOKreserved,

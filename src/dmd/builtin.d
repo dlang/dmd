@@ -173,182 +173,182 @@ Expression eval_unimp(Loc loc, FuncDeclaration fd, Expressions* arguments)
 Expression eval_sin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.sin(arg0.toReal()), arg0.type);
 }
 
 Expression eval_cos(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.cos(arg0.toReal()), arg0.type);
 }
 
 Expression eval_tan(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.tan(arg0.toReal()), arg0.type);
 }
 
 Expression eval_sqrt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.sqrt(arg0.toReal()), arg0.type);
 }
 
 Expression eval_fabs(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.fabs(arg0.toReal()), arg0.type);
 }
 
 Expression eval_ldexp(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     Expression arg1 = (*arguments)[1];
-    assert(arg1.op == TOK.int64);
+    assert(arg1.op == EXP.int64);
     return new RealExp(loc, CTFloat.ldexp(arg0.toReal(), cast(int) arg1.toInteger()), arg0.type);
 }
 
 Expression eval_log(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.log(arg0.toReal()), arg0.type);
 }
 
 Expression eval_log2(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.log2(arg0.toReal()), arg0.type);
 }
 
 Expression eval_log10(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.log10(arg0.toReal()), arg0.type);
 }
 
 Expression eval_exp(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.exp(arg0.toReal()), arg0.type);
 }
 
 Expression eval_expm1(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.expm1(arg0.toReal()), arg0.type);
 }
 
 Expression eval_exp2(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.exp2(arg0.toReal()), arg0.type);
 }
 
 Expression eval_round(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.round(arg0.toReal()), arg0.type);
 }
 
 Expression eval_floor(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.floor(arg0.toReal()), arg0.type);
 }
 
 Expression eval_ceil(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.ceil(arg0.toReal()), arg0.type);
 }
 
 Expression eval_trunc(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return new RealExp(loc, CTFloat.trunc(arg0.toReal()), arg0.type);
 }
 
 Expression eval_copysign(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     Expression arg1 = (*arguments)[1];
-    assert(arg1.op == TOK.float64);
+    assert(arg1.op == EXP.float64);
     return new RealExp(loc, CTFloat.copysign(arg0.toReal(), arg1.toReal()), arg0.type);
 }
 
 Expression eval_pow(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     Expression arg1 = (*arguments)[1];
-    assert(arg1.op == TOK.float64);
+    assert(arg1.op == EXP.float64);
     return new RealExp(loc, CTFloat.pow(arg0.toReal(), arg1.toReal()), arg0.type);
 }
 
 Expression eval_fmin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     Expression arg1 = (*arguments)[1];
-    assert(arg1.op == TOK.float64);
+    assert(arg1.op == EXP.float64);
     return new RealExp(loc, CTFloat.fmin(arg0.toReal(), arg1.toReal()), arg0.type);
 }
 
 Expression eval_fmax(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     Expression arg1 = (*arguments)[1];
-    assert(arg1.op == TOK.float64);
+    assert(arg1.op == EXP.float64);
     return new RealExp(loc, CTFloat.fmax(arg0.toReal(), arg1.toReal()), arg0.type);
 }
 
 Expression eval_fma(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     Expression arg1 = (*arguments)[1];
-    assert(arg1.op == TOK.float64);
+    assert(arg1.op == EXP.float64);
     Expression arg2 = (*arguments)[2];
-    assert(arg2.op == TOK.float64);
+    assert(arg2.op == EXP.float64);
     return new RealExp(loc, CTFloat.fma(arg0.toReal(), arg1.toReal(), arg2.toReal()), arg0.type);
 }
 
 Expression eval_isnan(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return IntegerExp.createBool(CTFloat.isNaN(arg0.toReal()));
 }
 
 Expression eval_isinfinity(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     return IntegerExp.createBool(CTFloat.isInfinity(arg0.toReal()));
 }
 
 Expression eval_isfinite(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     const value = !CTFloat.isNaN(arg0.toReal()) && !CTFloat.isInfinity(arg0.toReal());
     return IntegerExp.createBool(value);
 }
@@ -356,7 +356,7 @@ Expression eval_isfinite(Loc loc, FuncDeclaration fd, Expressions* arguments)
 Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.int64);
+    assert(arg0.op == EXP.int64);
     uinteger_t n = arg0.toInteger();
     if (n == 0)
         error(loc, "`bsf(0)` is undefined");
@@ -366,7 +366,7 @@ Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
 Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.int64);
+    assert(arg0.op == EXP.int64);
     uinteger_t n = arg0.toInteger();
     if (n == 0)
         error(loc, "`bsr(0)` is undefined");
@@ -376,7 +376,7 @@ Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* arguments)
 Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.int64);
+    assert(arg0.op == EXP.int64);
     uinteger_t n = arg0.toInteger();
     TY ty = arg0.type.toBasetype().ty;
     if (ty == Tint64 || ty == Tuns64)
@@ -388,7 +388,7 @@ Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arguments)
 Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.int64);
+    assert(arg0.op == EXP.int64);
     uinteger_t n = arg0.toInteger();
     return new IntegerExp(loc, core.bitop.popcnt(n), Type.tint32);
 }
@@ -396,9 +396,9 @@ Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     Expression arg1 = (*arguments)[1];
-    assert(arg1.op == TOK.float64);
+    assert(arg1.op == EXP.float64);
     const x = arg0.toReal();
     const y = arg1.toReal();
     real_t result = CTFloat.zero;
@@ -409,9 +409,9 @@ Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* arguments)
 Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOK.float64);
+    assert(arg0.op == EXP.float64);
     Expression arg1 = (*arguments)[1];
-    assert(arg1.op == TOK.float64);
+    assert(arg1.op == EXP.float64);
     const x = arg0.toReal();
     const y = arg1.toReal();
     real_t result = CTFloat.zero;

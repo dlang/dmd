@@ -80,9 +80,9 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
     if (auto e = isExpression(oarg))
     {
-        if (e.op == TOK.dotVariable)
+        if (e.op == EXP.dotVariable)
             return (cast(DotVarExp)e).var;
-        if (e.op == TOK.dotTemplateDeclaration)
+        if (e.op == EXP.dotTemplateDeclaration)
             return (cast(DotTemplateExp)e).td;
     }
     return getDsymbol(oarg);
@@ -1055,7 +1055,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else if (e.ident == Id.getMember)
         {
-            if (ex.op == TOK.dotIdentifier)
+            if (ex.op == EXP.dotIdentifier)
                 // Prevent semantic() from replacing Symbol with its initializer
                 (cast(DotIdExp)ex).wantsym = true;
             ex = ex.expressionSemantic(scx);
@@ -1085,7 +1085,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 if (dve.var.isFuncDeclaration() || dve.var.isOverDeclaration())
                     f = dve.var;
-                if (dve.e1.op == TOK.dotType || dve.e1.op == TOK.this_)
+                if (dve.e1.op == EXP.dotType || dve.e1.op == EXP.this_)
                     ex = null;
                 else
                     ex = dve.e1;
@@ -1105,7 +1105,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (td && td.funcroot)
                     f = td.funcroot;
                 ex = null;
-                if (dte.e1.op != TOK.dotType && dte.e1.op != TOK.this_)
+                if (dte.e1.op != EXP.dotType && dte.e1.op != EXP.this_)
                     ex = dte.e1;
             }
             bool[string] funcTypeHash;
@@ -1792,7 +1792,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                         err |= tf.isnothrow && canThrow(ex, sc2.func, false);
                     }
                     ex = checkGC(sc2, ex);
-                    if (ex.op == TOK.error)
+                    if (ex.op == EXP.error)
                         err = true;
                 }
             }
@@ -2126,7 +2126,7 @@ private bool isSame(RootObject o1, RootObject o2, Scope* sc)
         }
         else if (auto ea = isExpression(oarg))
         {
-            if (ea.op == TOK.function_)
+            if (ea.op == EXP.function_)
             {
                 if (auto fe = cast(FuncExp)ea)
                     return fe.fd;

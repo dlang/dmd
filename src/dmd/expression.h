@@ -77,7 +77,7 @@ enum class ModifyFlags
 class Expression : public ASTNode
 {
 public:
-    TOK op;                     // to minimize use of dynamic_cast
+    EXP op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
     Type *type;                 // !=NULL means that semantic() has been run

@@ -2622,7 +2622,7 @@ enum : int32_t { WANTexpand = 1 };
 
 enum : int32_t { WANTvalue = 0 };
 
-typedef bool(*fp2_t)(Loc& loc, TOK , Expression , Expression );
+typedef bool(*fp2_t)(Loc& loc, EXP , Expression , Expression );
 
 typedef UnionExp(*fp_t)(Loc& loc, Type , Expression , Expression );
 
