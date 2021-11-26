@@ -94,12 +94,12 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             result = BE.fallthru;
             if (s.exp)
             {
-                if (s.exp.op == TOK.halt)
+                if (s.exp.op == EXP.halt)
                 {
                     result = BE.halt;
                     return;
                 }
-                if (s.exp.op == TOK.assert_)
+                if (s.exp.op == EXP.assert_)
                 {
                     AssertExp a = cast(AssertExp)s.exp;
                     if (a.e1.toBool().hasValue(false)) // if it's an assert(0)

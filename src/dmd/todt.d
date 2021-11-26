@@ -638,22 +638,22 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     switch (e.op)
     {
         default:                 return nonConstExpError(e);
-        case TOK.cast_:          return visitCast          (e.isCastExp());
-        case TOK.address:        return visitAddr          (e.isAddrExp());
-        case TOK.int64:          return visitInteger       (e.isIntegerExp());
-        case TOK.float64:        return visitReal          (e.isRealExp());
-        case TOK.complex80:      return visitComplex       (e.isComplexExp());
-        case TOK.null_:          return visitNull          (e.isNullExp());
-        case TOK.string_:        return visitString        (e.isStringExp());
-        case TOK.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
-        case TOK.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
-        case TOK.symbolOffset:   return visitSymOff        (e.isSymOffExp());
-        case TOK.variable:       return visitVar           (e.isVarExp());
-        case TOK.function_:      return visitFunc          (e.isFuncExp());
-        case TOK.vector:         return visitVector        (e.isVectorExp());
-        case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
-        case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
-        case TOK.assert_:        return visitNoreturn      (e);
+        case EXP.cast_:          return visitCast          (e.isCastExp());
+        case EXP.address:        return visitAddr          (e.isAddrExp());
+        case EXP.int64:          return visitInteger       (e.isIntegerExp());
+        case EXP.float64:        return visitReal          (e.isRealExp());
+        case EXP.complex80:      return visitComplex       (e.isComplexExp());
+        case EXP.null_:          return visitNull          (e.isNullExp());
+        case EXP.string_:        return visitString        (e.isStringExp());
+        case EXP.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
+        case EXP.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
+        case EXP.symbolOffset:   return visitSymOff        (e.isSymOffExp());
+        case EXP.variable:       return visitVar           (e.isVarExp());
+        case EXP.function_:      return visitFunc          (e.isFuncExp());
+        case EXP.vector:         return visitVector        (e.isVectorExp());
+        case EXP.classReference: return visitClassReference(e.isClassReferenceExp());
+        case EXP.typeid_:        return visitTypeid        (e.isTypeidExp());
+        case EXP.assert_:        return visitNoreturn      (e);
     }
 }
 

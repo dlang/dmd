@@ -23,6 +23,8 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.utf;
 
+alias EXP = TOK;        /// Expression nodes
+
 enum TOK : ushort
 {
     reserved,

@@ -103,14 +103,14 @@ Expression expandVar(int result, VarDeclaration v)
                     }
                     return nullReturn();
                 }
-                if (ei.op == TOK.construct || ei.op == TOK.blit)
+                if (ei.op == EXP.construct || ei.op == EXP.blit)
                 {
                     AssignExp ae = cast(AssignExp)ei;
                     ei = ae.e2;
                     if (ei.isConst() == 1)
                     {
                     }
-                    else if (ei.op == TOK.string_)
+                    else if (ei.op == EXP.string_)
                     {
                         // https://issues.dlang.org/show_bug.cgi?id=14459
                         // Do not constfold the string literal
@@ -136,8 +136,8 @@ Expression expandVar(int result, VarDeclaration v)
                 }
                 else if (!(v.storage_class & STC.manifest) &&
                          ei.isConst() != 1 &&
-                         ei.op != TOK.string_ &&
-                         ei.op != TOK.address)
+                         ei.op != EXP.string_ &&
+                         ei.op != EXP.address)
                 {
                     return nullReturn();
                 }
@@ -179,7 +179,7 @@ private Expression fromConstInitializer(int result, Expression e1)
     //printf("fromConstInitializer(result = %x, %s)\n", result, e1.toChars());
     //static int xx; if (xx++ == 10) assert(0);
     Expression e = e1;
-    if (e1.op == TOK.variable)
+    if (e1.op == EXP.variable)
     {
         VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
@@ -189,7 +189,7 @@ private Expression fromConstInitializer(int result, Expression e1)
             // If it is a comma expression involving a declaration, we mustn't
             // perform a copy -- we'd get two declarations of the same variable.
             // See bugzilla 4465.
-            if (e.op == TOK.comma && (cast(CommaExp)e).e1.op == TOK.declaration)
+            if (e.op == EXP.comma && (cast(CommaExp)e).e1.op == EXP.declaration)
                 e = e1;
             else if (e.type != e1.type && e1.type && e1.type.ty != Tident)
             {
@@ -285,7 +285,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (!e)
             return false;
         Expression ex = Expression_optimize(e, flags, keepLvalue);
-        if (ex.op == TOK.error)
+        if (ex.op == EXP.error)
         {
             ret = ex; // store error result
             return true;
@@ -428,7 +428,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         //printf("AddrExp::optimize(result = %d) %s\n", result, e.toChars());
         /* Rewrite &(a,b) as (a,&b)
          */
-        if (e.e1.op == TOK.comma)
+        if (e.e1.op == EXP.comma)
         {
             CommaExp ce = cast(CommaExp)e.e1;
             auto ae = new AddrExp(e.loc, ce.e2, e.type);
@@ -440,7 +440,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (expOptimize(e.e1, result, true))
             return;
         // Convert &*ex to ex
-        if (e.e1.op == TOK.star)
+        if (e.e1.op == EXP.star)
         {
             Expression ex = (cast(PtrExp)e.e1).e1;
             if (e.type.equals(ex.type))
@@ -452,7 +452,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             }
             return;
         }
-        if (e.e1.op == TOK.variable)
+        if (e.e1.op == EXP.variable)
         {
             VarExp ve = cast(VarExp)e.e1;
             if (!ve.var.isReference() && !ve.var.isImportedSymbol())
@@ -462,11 +462,11 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 return;
             }
         }
-        if (e.e1.op == TOK.index)
+        if (e.e1.op == EXP.index)
         {
             // Convert &array[n] to &array+n
             IndexExp ae = cast(IndexExp)e.e1;
-            if (ae.e2.op == TOK.int64 && ae.e1.op == TOK.variable)
+            if (ae.e2.op == EXP.int64 && ae.e1.op == EXP.variable)
             {
                 sinteger_t index = ae.e2.toInteger();
                 VarExp ve = cast(VarExp)ae.e1;
@@ -504,7 +504,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         // Convert *&ex to ex
         // But only if there is no type punning involved
-        if (e.e1.op == TOK.address)
+        if (e.e1.op == EXP.address)
         {
             Expression ex = (cast(AddrExp)e.e1).e1;
             if (e.type.equals(ex.type))
@@ -518,7 +518,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (keepLvalue)
             return;
         // Constant fold *(&structliteral + offset)
-        if (e.e1.op == TOK.add)
+        if (e.e1.op == EXP.add)
         {
             Expression ex = Ptr(e.type, e.e1).copy();
             if (!CTFEExp.isCantExp(ex))
@@ -527,12 +527,12 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 return;
             }
         }
-        if (e.e1.op == TOK.symbolOffset)
+        if (e.e1.op == EXP.symbolOffset)
         {
             SymOffExp se = cast(SymOffExp)e.e1;
             VarDeclaration v = se.var.isVarDeclaration();
             Expression ex = expandVar(result, v);
-            if (ex && ex.op == TOK.structLiteral)
+            if (ex && ex.op == EXP.structLiteral)
             {
                 StructLiteralExp sle = cast(StructLiteralExp)ex;
                 ex = sle.getField(e.type, cast(uint)se.offset);
@@ -553,13 +553,13 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (keepLvalue)
             return;
         Expression ex = e.e1;
-        if (ex.op == TOK.variable)
+        if (ex.op == EXP.variable)
         {
             VarExp ve = cast(VarExp)ex;
             VarDeclaration v = ve.var.isVarDeclaration();
             ex = expandVar(result, v);
         }
-        if (ex && ex.op == TOK.structLiteral)
+        if (ex && ex.op == EXP.structLiteral)
         {
             StructLiteralExp sle = cast(StructLiteralExp)ex;
             VarDeclaration vf = e.var.isVarDeclaration();
@@ -636,13 +636,13 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         if (!keepLvalue)
             e.e1 = fromConstInitializer(result, e.e1);
-        if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
+        if (e.e1 == e1old && e.e1.op == EXP.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
         {
             // Casting this will result in the same expression, and
             // infinite loop because of Expression::implicitCastTo()
             return; // no change
         }
-        if ((e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral) &&
+        if ((e.e1.op == EXP.string_ || e.e1.op == EXP.arrayLiteral) &&
             (e.type.ty == Tpointer || e.type.ty == Tarray))
         {
             const esz  = e.type.nextOf().size(e.loc);
@@ -663,7 +663,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             }
         }
 
-        if (e.e1.op == TOK.structLiteral && e.e1.type.implicitConvTo(e.type) >= MATCH.constant)
+        if (e.e1.op == EXP.structLiteral && e.e1.type.implicitConvTo(e.type) >= MATCH.constant)
         {
             //printf(" returning2 %s\n", e.e1.toChars());
         L1:
@@ -674,12 +674,12 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         }
         /* The first test here is to prevent infinite loops
          */
-        if (op1 != TOK.arrayLiteral && e.e1.op == TOK.arrayLiteral)
+        if (op1 != EXP.arrayLiteral && e.e1.op == EXP.arrayLiteral)
         {
             ret = e.e1.castTo(null, e.to);
             return;
         }
-        if (e.e1.op == TOK.null_ && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
+        if (e.e1.op == EXP.null_ && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
         {
             //printf(" returning3 %s\n", e.e1.toChars());
             goto L1;
@@ -714,7 +714,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         }
         if (e.e1.isConst())
         {
-            if (e.e1.op == TOK.symbolOffset)
+            if (e.e1.op == EXP.symbolOffset)
             {
                 if (e.type.toBasetype().ty != Tsarray)
                 {
@@ -745,7 +745,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         //printf("BinAssignExp::optimize(result = %d) %s\n", result, e.toChars());
         if (binOptimize(e, result, /*keepLhsLvalue*/ true))
             return;
-        if (e.op == TOK.leftShiftAssign || e.op == TOK.rightShiftAssign || e.op == TOK.unsignedRightShiftAssign)
+        if (e.op == EXP.leftShiftAssign || e.op == EXP.rightShiftAssign || e.op == EXP.unsignedRightShiftAssign)
         {
             if (e.e2.isConst() == 1)
             {
@@ -765,9 +765,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     void visitBin(BinExp e)
     {
         //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
-        const keepLhsLvalue = e.op == TOK.construct || e.op == TOK.blit || e.op == TOK.assign
-            || e.op == TOK.plusPlus || e.op == TOK.minusMinus
-            || e.op == TOK.prePlusPlus || e.op == TOK.preMinusMinus;
+        const keepLhsLvalue = e.op == EXP.construct || e.op == EXP.blit || e.op == EXP.assign
+            || e.op == EXP.plusPlus || e.op == EXP.minusMinus
+            || e.op == EXP.prePlusPlus || e.op == EXP.preMinusMinus;
         binOptimize(e, result, keepLhsLvalue);
     }
 
@@ -778,7 +778,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         if (e.e1.isConst() && e.e2.isConst())
         {
-            if (e.e1.op == TOK.symbolOffset && e.e2.op == TOK.symbolOffset)
+            if (e.e1.op == EXP.symbolOffset && e.e2.op == EXP.symbolOffset)
                 return;
             ret = Add(e.loc, e.type, e.e1, e.e2).copy();
         }
@@ -790,7 +790,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         if (e.e1.isConst() && e.e2.isConst())
         {
-            if (e.e2.op == TOK.symbolOffset)
+            if (e.e2.op == EXP.symbolOffset)
                 return;
             ret = Min(e.loc, e.type, e.e1, e.e2).copy();
         }
@@ -895,13 +895,13 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (binOptimize(e, result))
             return;
         // All negative integral powers are illegal.
-        if (e.e1.type.isintegral() && (e.e2.op == TOK.int64) && cast(sinteger_t)e.e2.toInteger() < 0)
+        if (e.e1.type.isintegral() && (e.e2.op == EXP.int64) && cast(sinteger_t)e.e2.toInteger() < 0)
         {
             e.error("cannot raise `%s` to a negative integer power. Did you mean `(cast(real)%s)^^%s` ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
             return error();
         }
         // If e2 *could* have been an integer, make it one.
-        if (e.e2.op == TOK.float64 && e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
+        if (e.e2.op == EXP.float64 && e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
         {
             // This only applies to floating point, or positive integral powers.
             if (e.e1.type.isfloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
@@ -928,9 +928,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         // to be an lvalue (this is particularly important for struct constructors)
         expOptimize(e.e1, WANTvalue);
         expOptimize(e.e2, result, keepLvalue);
-        if (ret.op == TOK.error)
+        if (ret.op == EXP.error)
             return;
-        if (!e.e1 || e.e1.op == TOK.int64 || e.e1.op == TOK.float64 || !hasSideEffect(e.e1))
+        if (!e.e1 || e.e1.op == EXP.int64 || e.e1.op == EXP.float64 || !hasSideEffect(e.e1))
         {
             ret = e.e2;
             if (ret)
@@ -945,7 +945,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (unaOptimize(e, WANTexpand))
             return;
         // CTFE interpret static immutable arrays (to get better diagnostics)
-        if (e.e1.op == TOK.variable)
+        if (e.e1.op == EXP.variable)
         {
             VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
             if (v && (v.storage_class & STC.static_) && (v.storage_class & STC.immutable_) && v._init)
@@ -954,7 +954,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     e.e1 = ci;
             }
         }
-        if (e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral || e.e1.op == TOK.assocArrayLiteral || e.e1.type.toBasetype().ty == Tsarray)
+        if (e.e1.op == EXP.string_ || e.e1.op == EXP.arrayLiteral || e.e1.op == EXP.assocArrayLiteral || e.e1.type.toBasetype().ty == Tsarray)
         {
             ret = ArrayLength(e.type, e.e1).copy();
         }
@@ -967,12 +967,12 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         Expression e1 = fromConstInitializer(result, e.e1);
         Expression e2 = fromConstInitializer(result, e.e2);
-        if (e1.op == TOK.error)
+        if (e1.op == EXP.error)
         {
             ret = e1;
             return;
         }
-        if (e2.op == TOK.error)
+        if (e2.op == EXP.error)
         {
             ret = e2;
             return;
@@ -987,7 +987,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         //printf("IdentityExp::optimize(result = %d) %s\n", result, e.toChars());
         if (binOptimize(e, WANTvalue))
             return;
-        if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOK.null_ && e.e2.op == TOK.null_))
+        if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == EXP.null_ && e.e2.op == EXP.null_))
         {
             ret = Identity(e.op, e.loc, e.type, e.e1, e.e2).copy();
             if (CTFEExp.isCantExp(ret))
@@ -1006,7 +1006,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (expOptimize(e.e2, WANTvalue))
             return;
         // Don't optimize to an array literal element directly in case an lvalue is requested
-        if (keepLvalue && ex.op == TOK.arrayLiteral)
+        if (keepLvalue && ex.op == EXP.arrayLiteral)
             return;
         ret = Index(e.type, ex, e.e2).copy();
         if (CTFEExp.isCantExp(ret) || (!ret.isErrorExp() && keepLvalue && !ret.isLvalue()))
@@ -1020,7 +1020,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         if (!e.lwr)
         {
-            if (e.e1.op == TOK.string_)
+            if (e.e1.op == EXP.string_)
             {
                 // Convert slice of string literal into dynamic array
                 Type t = e.e1.type.toBasetype();
@@ -1035,7 +1035,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             setLengthVarIfKnown(e.lengthVar, e.e1);
             expOptimize(e.lwr, WANTvalue);
             expOptimize(e.upr, WANTvalue);
-            if (ret.op == TOK.error)
+            if (ret.op == EXP.error)
                 return;
             ret = Slice(e.type, e.e1, e.lwr, e.upr).copy();
             if (CTFEExp.isCantExp(ret))
@@ -1046,7 +1046,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         // a part of array operation.
         // Assume that the backend codegen will handle the form `e[]`
         // as an equal to `e` itself.
-        if (ret.op == TOK.string_)
+        if (ret.op == EXP.string_)
         {
             e.e1 = ret;
             e.lwr = null;
@@ -1061,7 +1061,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         //printf("LogicalExp::optimize(%d) %s\n", result, e.toChars());
         if (expOptimize(e.e1, WANTvalue))
             return;
-        const oror = e.op == TOK.orOr;
+        const oror = e.op == EXP.orOr;
         if (e.e1.toBool().hasValue(oror))
         {
             // Replace with (e1, oror)
@@ -1115,7 +1115,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         //printf("CatExp::optimize(%d) %s\n", result, e.toChars());
         if (binOptimize(e, result))
             return;
-        if (e.e1.op == TOK.concatenate)
+        if (e.e1.op == EXP.concatenate)
         {
             // https://issues.dlang.org/show_bug.cgi?id=12798
             // optimize ((expr ~ str1) ~ str2)
@@ -1130,16 +1130,16 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             }
         }
         // optimize "str"[] -> "str"
-        if (e.e1.op == TOK.slice)
+        if (e.e1.op == EXP.slice)
         {
             SliceExp se1 = cast(SliceExp)e.e1;
-            if (se1.e1.op == TOK.string_ && !se1.lwr)
+            if (se1.e1.op == EXP.string_ && !se1.lwr)
                 e.e1 = se1.e1;
         }
-        if (e.e2.op == TOK.slice)
+        if (e.e2.op == EXP.slice)
         {
             SliceExp se2 = cast(SliceExp)e.e2;
-            if (se2.e1.op == TOK.string_ && !se2.lwr)
+            if (se2.e1.op == EXP.string_ && !se2.lwr)
                 e.e2 = se2.e1;
         }
         ret = Cat(e.loc, e.type, e.e1, e.e2).copy();
@@ -1176,93 +1176,93 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         auto ex = ret;
         switch (ex.op)
         {
-            case TOK.variable:          visitVar(ex.isVarExp()); break;
-            case TOK.tuple:             visitTuple(ex.isTupleExp()); break;
-            case TOK.arrayLiteral:      visitArrayLiteral(ex.isArrayLiteralExp()); break;
-            case TOK.assocArrayLiteral: visitAssocArrayLiteral(ex.isAssocArrayLiteralExp()); break;
-            case TOK.structLiteral:     visitStructLiteral(ex.isStructLiteralExp()); break;
+            case EXP.variable:          visitVar(ex.isVarExp()); break;
+            case EXP.tuple:             visitTuple(ex.isTupleExp()); break;
+            case EXP.arrayLiteral:      visitArrayLiteral(ex.isArrayLiteralExp()); break;
+            case EXP.assocArrayLiteral: visitAssocArrayLiteral(ex.isAssocArrayLiteralExp()); break;
+            case EXP.structLiteral:     visitStructLiteral(ex.isStructLiteralExp()); break;
 
-            case TOK.import_:
-            case TOK.assert_:
-            case TOK.dotIdentifier:
-            case TOK.dotTemplateDeclaration:
-            case TOK.dotTemplateInstance:
-            case TOK.delegate_:
-            case TOK.dotType:
-            case TOK.uadd:
-            case TOK.delete_:
-            case TOK.vector:
-            case TOK.vectorArray:
-            case TOK.array:
-            case TOK.delegatePointer:
-            case TOK.delegateFunctionPointer:
-            case TOK.preMinusMinus:
-            case TOK.prePlusPlus:       visitUna(cast(UnaExp)ex); break;
+            case EXP.import_:
+            case EXP.assert_:
+            case EXP.dotIdentifier:
+            case EXP.dotTemplateDeclaration:
+            case EXP.dotTemplateInstance:
+            case EXP.delegate_:
+            case EXP.dotType:
+            case EXP.uadd:
+            case EXP.delete_:
+            case EXP.vector:
+            case EXP.vectorArray:
+            case EXP.array:
+            case EXP.delegatePointer:
+            case EXP.delegateFunctionPointer:
+            case EXP.preMinusMinus:
+            case EXP.prePlusPlus:       visitUna(cast(UnaExp)ex); break;
 
-            case TOK.negate:            visitNeg(ex.isNegExp()); break;
-            case TOK.tilde:             visitCom(ex.isComExp()); break;
-            case TOK.not:               visitNop(ex.isNotExp()); break;
-            case TOK.symbolOffset:      visitSymOff(ex.isSymOffExp()); break;
-            case TOK.address:           visitAddr(ex.isAddrExp()); break;
-            case TOK.star:              visitPtr(ex.isPtrExp()); break;
-            case TOK.dotVariable:       visitDotVar(ex.isDotVarExp()); break;
-            case TOK.new_:              visitNew(ex.isNewExp()); break;
-            case TOK.call:              visitCall(ex.isCallExp()); break;
-            case TOK.cast_:             visitCast(ex.isCastExp()); break;
+            case EXP.negate:            visitNeg(ex.isNegExp()); break;
+            case EXP.tilde:             visitCom(ex.isComExp()); break;
+            case EXP.not:               visitNop(ex.isNotExp()); break;
+            case EXP.symbolOffset:      visitSymOff(ex.isSymOffExp()); break;
+            case EXP.address:           visitAddr(ex.isAddrExp()); break;
+            case EXP.star:              visitPtr(ex.isPtrExp()); break;
+            case EXP.dotVariable:       visitDotVar(ex.isDotVarExp()); break;
+            case EXP.new_:              visitNew(ex.isNewExp()); break;
+            case EXP.call:              visitCall(ex.isCallExp()); break;
+            case EXP.cast_:             visitCast(ex.isCastExp()); break;
 
-            case TOK.addAssign:
-            case TOK.minAssign:
-            case TOK.mulAssign:
-            case TOK.divAssign:
-            case TOK.modAssign:
-            case TOK.andAssign:
-            case TOK.orAssign:
-            case TOK.xorAssign:
-            case TOK.powAssign:
-            case TOK.leftShiftAssign:
-            case TOK.rightShiftAssign:
-            case TOK.unsignedRightShiftAssign:
-            case TOK.concatenateElemAssign:
-            case TOK.concatenateDcharAssign:
-            case TOK.concatenateAssign: visitBinAssign(ex.isBinAssignExp()); break;
+            case EXP.addAssign:
+            case EXP.minAssign:
+            case EXP.mulAssign:
+            case EXP.divAssign:
+            case EXP.modAssign:
+            case EXP.andAssign:
+            case EXP.orAssign:
+            case EXP.xorAssign:
+            case EXP.powAssign:
+            case EXP.leftShiftAssign:
+            case EXP.rightShiftAssign:
+            case EXP.unsignedRightShiftAssign:
+            case EXP.concatenateElemAssign:
+            case EXP.concatenateDcharAssign:
+            case EXP.concatenateAssign: visitBinAssign(ex.isBinAssignExp()); break;
 
-            case TOK.minusMinus:
-            case TOK.plusPlus:
-            case TOK.assign:
-            case TOK.construct:
-            case TOK.blit:
-            case TOK.in_:
-            case TOK.remove:
-            case TOK.dot:                       visitBin(cast(BinExp)ex); break;
+            case EXP.minusMinus:
+            case EXP.plusPlus:
+            case EXP.assign:
+            case EXP.construct:
+            case EXP.blit:
+            case EXP.in_:
+            case EXP.remove:
+            case EXP.dot:                       visitBin(cast(BinExp)ex); break;
 
-            case TOK.add:                       visitAdd(ex.isAddExp()); break;
-            case TOK.min:                       visitMin(ex.isMinExp()); break;
-            case TOK.mul:                       visitMul(ex.isMulExp()); break;
-            case TOK.div:                       visitDiv(ex.isDivExp()); break;
-            case TOK.mod:                       visitMod(ex.isModExp()); break;
-            case TOK.leftShift:                 visitShl(ex.isShlExp()); break;
-            case TOK.rightShift:                visitShr(ex.isShrExp()); break;
-            case TOK.unsignedRightShift:        visitUshr(ex.isUshrExp()); break;
-            case TOK.and:                       visitAnd(ex.isAndExp()); break;
-            case TOK.or:                        visitOr(ex.isOrExp()); break;
-            case TOK.xor:                       visitXor(ex.isXorExp()); break;
-            case TOK.pow:                       visitPow(ex.isPowExp()); break;
-            case TOK.comma:                     visitComma(ex.isCommaExp()); break;
-            case TOK.arrayLength:               visitArrayLength(ex.isArrayLengthExp()); break;
-            case TOK.notEqual:
-            case TOK.equal:                     visitEqual(ex.isEqualExp()); break;
-            case TOK.notIdentity:
-            case TOK.identity:                  visitIdentity(ex.isIdentityExp()); break;
-            case TOK.index:                     visitIndex(ex.isIndexExp()); break;
-            case TOK.slice:                     visitSlice(ex.isSliceExp()); break;
-            case TOK.andAnd:
-            case TOK.orOr:                      visitLogical(ex.isLogicalExp()); break;
-            case TOK.lessThan:
-            case TOK.lessOrEqual:
-            case TOK.greaterThan:
-            case TOK.greaterOrEqual:            visitCmp(cast(CmpExp)ex); break;
-            case TOK.concatenate:               visitCat(ex.isCatExp()); break;
-            case TOK.question:                  visitCond(ex.isCondExp()); break;
+            case EXP.add:                       visitAdd(ex.isAddExp()); break;
+            case EXP.min:                       visitMin(ex.isMinExp()); break;
+            case EXP.mul:                       visitMul(ex.isMulExp()); break;
+            case EXP.div:                       visitDiv(ex.isDivExp()); break;
+            case EXP.mod:                       visitMod(ex.isModExp()); break;
+            case EXP.leftShift:                 visitShl(ex.isShlExp()); break;
+            case EXP.rightShift:                visitShr(ex.isShrExp()); break;
+            case EXP.unsignedRightShift:        visitUshr(ex.isUshrExp()); break;
+            case EXP.and:                       visitAnd(ex.isAndExp()); break;
+            case EXP.or:                        visitOr(ex.isOrExp()); break;
+            case EXP.xor:                       visitXor(ex.isXorExp()); break;
+            case EXP.pow:                       visitPow(ex.isPowExp()); break;
+            case EXP.comma:                     visitComma(ex.isCommaExp()); break;
+            case EXP.arrayLength:               visitArrayLength(ex.isArrayLengthExp()); break;
+            case EXP.notEqual:
+            case EXP.equal:                     visitEqual(ex.isEqualExp()); break;
+            case EXP.notIdentity:
+            case EXP.identity:                  visitIdentity(ex.isIdentityExp()); break;
+            case EXP.index:                     visitIndex(ex.isIndexExp()); break;
+            case EXP.slice:                     visitSlice(ex.isSliceExp()); break;
+            case EXP.andAnd:
+            case EXP.orOr:                      visitLogical(ex.isLogicalExp()); break;
+            case EXP.lessThan:
+            case EXP.lessOrEqual:
+            case EXP.greaterThan:
+            case EXP.greaterOrEqual:            visitCmp(cast(CmpExp)ex); break;
+            case EXP.concatenate:               visitCat(ex.isCatExp()); break;
+            case EXP.question:                  visitCond(ex.isCondExp()); break;
 
             default:                            visitExp(ex); break;
         }

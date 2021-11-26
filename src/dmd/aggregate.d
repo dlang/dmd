@@ -472,7 +472,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
         foreach (e; *elements)
         {
-            if (e && e.op == TOK.error)
+            if (e && e.op == EXP.error)
                 return false;
         }
 

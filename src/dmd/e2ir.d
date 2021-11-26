@@ -532,13 +532,13 @@ extern (C++) class ToElemVisitor : Visitor
     override void visit(SymbolExp se)
     {
         elem *e;
-        Type tb = (se.op == TOK.symbolOffset) ? se.var.type.toBasetype() : se.type.toBasetype();
-        int offset = (se.op == TOK.symbolOffset) ? cast(int)(cast(SymOffExp)se).offset : 0;
+        Type tb = (se.op == EXP.symbolOffset) ? se.var.type.toBasetype() : se.type.toBasetype();
+        int offset = (se.op == EXP.symbolOffset) ? cast(int)(cast(SymOffExp)se).offset : 0;
         VarDeclaration v = se.var.isVarDeclaration();
 
         //printf("[%s] SymbolExp.toElem('%s') %p, %s\n", se.loc.toChars(), se.toChars(), se, se.type.toChars());
         //printf("\tparent = '%s'\n", se.var.parent ? se.var.parent.toChars() : "null");
-        if (se.op == TOK.variable && se.var.needThis())
+        if (se.op == EXP.variable && se.var.needThis())
         {
             se.error("need `this` to access member `%s`", se.toChars());
             result = el_long(TYsize_t, 0);
@@ -547,7 +547,7 @@ extern (C++) class ToElemVisitor : Visitor
 
         /* The magic variable __ctfe is always false at runtime
          */
-        if (se.op == TOK.variable && v && v.ident == Id.ctfe)
+        if (se.op == EXP.variable && v && v.ident == Id.ctfe)
         {
             result = el_long(totym(se.type), 0);
             return;
@@ -555,10 +555,10 @@ extern (C++) class ToElemVisitor : Visitor
 
         if (FuncLiteralDeclaration fld = se.var.isFuncLiteralDeclaration())
         {
-            if (fld.tok == TOK.reserved)
+            if (fld.tok == EXP.reserved)
             {
                 // change to non-nested
-                fld.tok = TOK.function_;
+                fld.tok = EXP.function_;
                 fld.vthis = null;
             }
             if (!fld.deferToObj)
@@ -651,11 +651,11 @@ extern (C++) class ToElemVisitor : Visitor
                     soffset += offset;
 
                 e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
-                if (se.op == TOK.variable)
+                if (se.op == EXP.variable)
                     e = el_una(OPind, TYnptr, e);
                 if (ISREF(se.var) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
                     e = el_una(OPind, s.Stype.Tty, e);
-                else if (se.op == TOK.symbolOffset && nrvo)
+                else if (se.op == EXP.symbolOffset && nrvo)
                 {
                     e = el_una(OPind, TYnptr, e);
                     e = el_bin(OPadd, e.Ety, e, el_long(TYsize_t, offset));
@@ -671,7 +671,7 @@ extern (C++) class ToElemVisitor : Visitor
             assert(irs.sclosure);
             e = el_var(irs.sclosure);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
-            if (se.op == TOK.variable)
+            if (se.op == EXP.variable)
             {
                 e = el_una(OPind, totym(se.type), e);
                 if (tybasic(e.Ety) == TYstruct)
@@ -683,12 +683,12 @@ extern (C++) class ToElemVisitor : Visitor
                 e.Ety = TYnptr;
                 e = el_una(OPind, s.Stype.Tty, e);
             }
-            else if (se.op == TOK.symbolOffset && nrvo)
+            else if (se.op == EXP.symbolOffset && nrvo)
             {
                 e = el_una(OPind, TYnptr, e);
                 e = el_bin(OPadd, e.Ety, e, el_long(TYsize_t, offset));
             }
-            else if (se.op == TOK.symbolOffset)
+            else if (se.op == EXP.symbolOffset)
             {
                 e = el_bin(OPadd, e.Ety, e, el_long(TYsize_t, offset));
             }
@@ -703,7 +703,7 @@ extern (C++) class ToElemVisitor : Visitor
 
         if (se.var.isImportedSymbol())
         {
-            assert(se.op == TOK.variable);
+            assert(se.op == EXP.variable);
             if (target.os & Target.OS.Posix)
             {
                 e = el_var(s);
@@ -719,12 +719,12 @@ extern (C++) class ToElemVisitor : Visitor
             // Out parameters are really references
             e = el_var(s);
             e.Ety = TYnptr;
-            if (se.op == TOK.variable)
+            if (se.op == EXP.variable)
                 e = el_una(OPind, s.Stype.Tty, e);
             else if (offset)
                 e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
         }
-        else if (se.op == TOK.variable)
+        else if (se.op == EXP.variable)
             e = el_var(s);
         else
         {
@@ -732,7 +732,7 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_bin(OPadd, e.Ety, e, el_long(TYsize_t, offset));
         }
     L1:
-        if (se.op == TOK.variable)
+        if (se.op == EXP.variable)
         {
             if (nrvo)
             {
@@ -776,10 +776,10 @@ extern (C++) class ToElemVisitor : Visitor
         //printf("FuncExp.toElem() %s\n", fe.toChars());
         FuncLiteralDeclaration fld = fe.fd;
 
-        if (fld.tok == TOK.reserved && fe.type.ty == Tpointer)
+        if (fld.tok == EXP.reserved && fe.type.ty == Tpointer)
         {
             // change to non-nested
-            fld.tok = TOK.function_;
+            fld.tok = EXP.function_;
             fld.vthis = null;
         }
         if (!fld.deferToObj)
@@ -1242,7 +1242,7 @@ extern (C++) class ToElemVisitor : Visitor
             else
             {
                 StructLiteralExp sle = StructLiteralExp.create(ne.loc, sd, ne.arguments, t);
-                ez = toElemStructLit(sle, irs, TOK.construct, ev.EV.Vsym, false);
+                ez = toElemStructLit(sle, irs, EXP.construct, ev.EV.Vsym, false);
             }
             //elem_print(ex);
             //elem_print(ey);
@@ -1563,7 +1563,7 @@ extern (C++) class ToElemVisitor : Visitor
         //printf("PostExp.toElem() '%s'\n", pe.toChars());
         elem *e = toElem(pe.e1, irs);
         elem *einc = toElem(pe.e2, irs);
-        e = el_bin((pe.op == TOK.plusPlus) ? OPpostinc : OPpostdec,
+        e = el_bin((pe.op == EXP.plusPlus) ? OPpostinc : OPpostdec,
                     e.Ety,e,einc);
         elem_setLoc(e,pe.loc);
         result = e;
@@ -1611,11 +1611,11 @@ extern (C++) class ToElemVisitor : Visitor
 
         elem *el;
         elem *ev;
-        if (be.e1.op == TOK.cast_)
+        if (be.e1.op == EXP.cast_)
         {
             int depth = 0;
             Expression e1 = be.e1;
-            while (e1.op == TOK.cast_)
+            while (e1.op == EXP.cast_)
             {
                 ++depth;
                 e1 = (cast(CastExp)e1).e1;
@@ -1708,7 +1708,7 @@ extern (C++) class ToElemVisitor : Visitor
         Type ta = (tb1.ty == Tarray || tb1.ty == Tsarray) ? tb1 : tb2;
 
         elem *e;
-        if (ce.e1.op == TOK.concatenate)
+        if (ce.e1.op == EXP.concatenate)
         {
             CatExp ex = ce;
 
@@ -1719,7 +1719,7 @@ extern (C++) class ToElemVisitor : Visitor
             {
                 ex = cast(CatExp)ex.e1;
                 elems.shift(array_toDarray(ex.e2.type, toElem(ex.e2, irs)));
-            } while (ex.e1.op == TOK.concatenate);
+            } while (ex.e1.op == EXP.concatenate);
             elems.shift(array_toDarray(ex.e1.type, toElem(ex.e1, irs)));
 
             // We can't use ExpressionsToStaticArray because each exp needs
@@ -1785,12 +1785,12 @@ extern (C++) class ToElemVisitor : Visitor
 
         switch (ce.op)
         {
-            case TOK.lessThan:     eop = OPlt;     break;
-            case TOK.greaterThan:     eop = OPgt;     break;
-            case TOK.lessOrEqual:     eop = OPle;     break;
-            case TOK.greaterOrEqual:     eop = OPge;     break;
-            case TOK.equal:  eop = OPeqeq;   break;
-            case TOK.notEqual: eop = OPne;   break;
+            case EXP.lessThan:     eop = OPlt;     break;
+            case EXP.greaterThan:     eop = OPgt;     break;
+            case EXP.lessOrEqual:     eop = OPle;     break;
+            case EXP.greaterOrEqual:     eop = OPge;     break;
+            case EXP.equal:  eop = OPeqeq;   break;
+            case EXP.notEqual: eop = OPne;   break;
 
             default:
                 printf("%s\n", ce.toChars());
@@ -1842,8 +1842,8 @@ extern (C++) class ToElemVisitor : Visitor
         OPER eop;
         switch (ee.op)
         {
-            case TOK.equal:          eop = OPeqeq;   break;
-            case TOK.notEqual:       eop = OPne;     break;
+            case EXP.equal:          eop = OPeqeq;   break;
+            case EXP.notEqual:       eop = OPne;     break;
             default:
                 printf("%s\n", ee.toChars());
                 assert(0);
@@ -1914,14 +1914,14 @@ extern (C++) class ToElemVisitor : Visitor
 
                 elem *elen = t2.ty == Tsarray ? elen2 : elen1;
                 elem *esizecheck = el_bin(eop, TYint, el_same(&elen), el_long(TYsize_t, 0));
-                e = el_bin(ee.op == TOK.equal ? OPoror : OPandand, TYint, esizecheck, e);
+                e = el_bin(ee.op == EXP.equal ? OPoror : OPandand, TYint, esizecheck, e);
 
                 if (t1.ty == Tsarray && t2.ty == Tsarray)
                     assert(t1.size() == t2.size());
                 else
                 {
                     elem *elencmp = el_bin(eop, TYint, elen1, elen2);
-                    e = el_bin(ee.op == TOK.equal ? OPandand : OPoror, TYint, elencmp, e);
+                    e = el_bin(ee.op == EXP.equal ? OPandand : OPoror, TYint, elencmp, e);
                 }
 
                 // Ensure left-to-right order of evaluation
@@ -1939,7 +1939,7 @@ extern (C++) class ToElemVisitor : Visitor
                     ea2, ea1, null);
             const rtlfunc = RTLSYM.ARRAYEQ2;
             e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
-            if (ee.op == TOK.notEqual)
+            if (ee.op == EXP.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
             elem_setLoc(e,ee.loc);
         }
@@ -1953,7 +1953,7 @@ extern (C++) class ToElemVisitor : Visitor
             // aaEqual(ti, e1, e2)
             elem *ep = el_params(ea2, ea1, ti, null);
             e = el_bin(OPcall, TYnptr, el_var(s), ep);
-            if (ee.op == TOK.notEqual)
+            if (ee.op == EXP.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
             elem_setLoc(e, ee.loc);
             result = e;
@@ -1972,8 +1972,8 @@ extern (C++) class ToElemVisitor : Visitor
         OPER eop;
         switch (ie.op)
         {
-            case TOK.identity:       eop = OPeqeq;   break;
-            case TOK.notIdentity:    eop = OPne;     break;
+            case EXP.identity:       eop = OPeqeq;   break;
+            case EXP.notIdentity:    eop = OPne;     break;
             default:
                 printf("%s\n", ie.toChars());
                 assert(0);
@@ -1992,7 +1992,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0 && canSkipCompare)
         {
             // we can skip the compare if the structs are empty
-            e = el_long(TYbool, ie.op == TOK.identity);
+            e = el_long(TYbool, ie.op == EXP.identity);
         }
         else if (t1.ty == Tstruct || t1.isfloating())
         {
@@ -2072,9 +2072,9 @@ extern (C++) class ToElemVisitor : Visitor
     {
         version (none)
         {
-            if (ae.op == TOK.blit)      printf("BlitExp.toElem('%s')\n", ae.toChars());
-            if (ae.op == TOK.assign)    printf("AssignExp.toElem('%s')\n", ae.toChars());
-            if (ae.op == TOK.construct) printf("ConstructExp.toElem('%s')\n", ae.toChars());
+            if (ae.op == EXP.blit)      printf("BlitExp.toElem('%s')\n", ae.toChars());
+            if (ae.op == EXP.assign)    printf("AssignExp.toElem('%s')\n", ae.toChars());
+            if (ae.op == EXP.construct) printf("ConstructExp.toElem('%s')\n", ae.toChars());
         }
 
         void setResult(elem* e)
@@ -2215,9 +2215,9 @@ extern (C++) class ToElemVisitor : Visitor
                  */
                 bool postblit = false;
                 if (needsPostblit(t1.nextOf()) &&
-                    (ae.e2.op == TOK.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                     ae.e2.op == TOK.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                     ae.e2.op != TOK.slice && ae.e2.isLvalue()))
+                    (ae.e2.op == EXP.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
+                     ae.e2.op == EXP.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
+                     ae.e2.op != EXP.slice && ae.e2.isLvalue()))
                 {
                     postblit = true;
                 }
@@ -2296,7 +2296,7 @@ extern (C++) class ToElemVisitor : Visitor
                     e = el_combine(el_combine(eto, efrom), el_combine(echeck, e));
                     return setResult(e);
                 }
-                else if ((postblit || destructor) && ae.op != TOK.blit)
+                else if ((postblit || destructor) && ae.op != EXP.blit)
                 {
                     /* Generate:
                      *      _d_arrayassign(ti, efrom, eto)
@@ -2311,7 +2311,7 @@ extern (C++) class ToElemVisitor : Visitor
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(eto, efrom, eti, null);
-                    const rtl = (ae.op == TOK.construct) ? RTLSYM.ARRAYCTOR : RTLSYM.ARRAYASSIGN;
+                    const rtl = (ae.op == EXP.construct) ? RTLSYM.ARRAYCTOR : RTLSYM.ARRAYASSIGN;
                     elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
                     return setResult(e);
                 }
@@ -2337,7 +2337,7 @@ extern (C++) class ToElemVisitor : Visitor
          */
         if (ae.memset == MemorySet.referenceInit)
         {
-            assert(ae.op == TOK.construct || ae.op == TOK.blit);
+            assert(ae.op == EXP.construct || ae.op == EXP.blit);
             auto ve = ae.e1.isVarExp();
             assert(ve);
             assert(ve.var.storage_class & (STC.out_ | STC.ref_));
@@ -2352,7 +2352,7 @@ extern (C++) class ToElemVisitor : Visitor
                 es = el_una(OPaddr, TYnptr, es);
             es.Ety = TYnptr;
             e = el_bin(OPeq, TYnptr, es, e);
-            assert(!(t1b.ty == Tstruct && ae.e2.op == TOK.int64));
+            assert(!(t1b.ty == Tstruct && ae.e2.op == EXP.int64));
 
             return setResult(e);
         }
@@ -2392,7 +2392,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (auto ve = ae.e1.isVarExp())
             if (ve.var.storage_class & STC.lazy_)
             {
-                assert(ae.op == TOK.construct || ae.op == TOK.blit);
+                assert(ae.op == EXP.construct || ae.op == EXP.blit);
                 elem* e = el_bin(OPeq, tym, e1, toElem(ae.e2, irs));
                 return setResult2(e);
             }
@@ -2402,7 +2402,7 @@ extern (C++) class ToElemVisitor : Visitor
          * If the former, because of aliasing of the return value with
          * function arguments, it'll fail.
          */
-        if (ae.op == TOK.construct && ae.e2.op == TOK.call)
+        if (ae.op == EXP.construct && ae.e2.op == EXP.call)
         {
             CallExp ce = cast(CallExp)ae.e2;
             TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
@@ -2422,7 +2422,7 @@ extern (C++) class ToElemVisitor : Visitor
              * and copy the temporary into v
              */
             if (e1.Eoper == OPvar && // no closure variables https://issues.dlang.org/show_bug.cgi?id=17622
-                ae.e1.op == TOK.variable && ce.e1.op == TOK.dotVariable)
+                ae.e1.op == EXP.variable && ce.e1.op == EXP.dotVariable)
             {
                 auto dve = cast(DotVarExp)ce.e1;
                 auto fd = dve.var.isFuncDeclaration();
@@ -2438,12 +2438,12 @@ extern (C++) class ToElemVisitor : Visitor
             }
         }
 
-        //if (ae.op == TOK.construct) printf("construct\n");
+        //if (ae.op == EXP.construct) printf("construct\n");
         if (auto t1s = t1b.isTypeStruct())
         {
-            if (ae.e2.op == TOK.int64)
+            if (ae.e2.op == EXP.int64)
             {
-                assert(ae.op == TOK.blit);
+                assert(ae.op == EXP.blit);
 
                 /* Implement:
                  *  (struct = 0)
@@ -2468,7 +2468,7 @@ extern (C++) class ToElemVisitor : Visitor
             {
                 auto ex = e1.Eoper == OPind ? e1.EV.E1 : e1;
                 if (ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
-                    (ae.op == TOK.construct || ae.op == TOK.blit))
+                    (ae.op == EXP.construct || ae.op == EXP.blit))
                 {
                     elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
                     el_free(e1);
@@ -2484,8 +2484,8 @@ extern (C++) class ToElemVisitor : Visitor
                          * Just be careful to return false for -0.0
                          */
                         if (!e ||
-                            e.op == TOK.int64 && e.isIntegerExp().toInteger() == 0 ||
-                            e.op == TOK.null_)
+                            e.op == EXP.int64 && e.isIntegerExp().toInteger() == 0 ||
+                            e.op == EXP.null_)
                             continue;
                         return false;
                     }
@@ -2516,7 +2516,7 @@ extern (C++) class ToElemVisitor : Visitor
         }
         else if (t1b.ty == Tsarray)
         {
-            if (ae.op == TOK.blit && ae.e2.op == TOK.int64)
+            if (ae.op == EXP.blit && ae.e2.op == EXP.int64)
             {
                 /* Implement:
                  *  (sarray = 0)
@@ -2558,9 +2558,9 @@ extern (C++) class ToElemVisitor : Visitor
              * as:
              *      e1[0] = x, e1[1..2] = a, e1[3] = b, ...;
              */
-            if (ae.op == TOK.construct &&   // https://issues.dlang.org/show_bug.cgi?id=11238
+            if (ae.op == EXP.construct &&   // https://issues.dlang.org/show_bug.cgi?id=11238
                                            // avoid aliasing issue
-                ae.e2.op == TOK.arrayLiteral)
+                ae.e2.op == EXP.arrayLiteral)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
                 elem* e;
@@ -2581,7 +2581,7 @@ extern (C++) class ToElemVisitor : Visitor
                 return setResult2(e);
             }
 
-            if (ae.op == TOK.assign)
+            if (ae.op == EXP.assign)
             {
                 if (auto ve1 = ae.e1.isVectorArrayExp())
                 {
@@ -2600,9 +2600,9 @@ extern (C++) class ToElemVisitor : Visitor
              * destructors on old assigned elements.
              */
             bool lvalueElem = false;
-            if (ae.e2.op == TOK.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                ae.e2.op == TOK.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                ae.e2.op != TOK.slice && ae.e2.isLvalue())
+            if (ae.e2.op == EXP.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
+                ae.e2.op == EXP.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
+                ae.e2.op != EXP.slice && ae.e2.isLvalue())
             {
                 lvalueElem = true;
             }
@@ -2610,14 +2610,14 @@ extern (C++) class ToElemVisitor : Visitor
             elem *e2 = toElem(ae.e2, irs);
 
             if (!postblit && !destructor ||
-                ae.op == TOK.construct && !lvalueElem && postblit ||
-                ae.op == TOK.blit ||
+                ae.op == EXP.construct && !lvalueElem && postblit ||
+                ae.op == EXP.blit ||
                 type_size(e1.ET) == 0)
             {
                 elem* e = elAssign(e1, e2, ae.e1.type, null);
                 return setResult2(e);
             }
-            else if (ae.op == TOK.construct)
+            else if (ae.op == EXP.construct)
             {
                 e1 = sarray_toDarray(ae.e1.loc, ae.e1.type, null, e1);
                 e2 = sarray_toDarray(ae.e2.loc, ae.e2.type, null, e2);
@@ -2709,7 +2709,7 @@ extern (C++) class ToElemVisitor : Visitor
 
         switch (ce.op)
         {
-            case TOK.concatenateDcharAssign:
+            case EXP.concatenateDcharAssign:
             {
                 // Append dchar to char[] or wchar[]
                 assert(tb2.ty == Tdchar &&
@@ -2725,7 +2725,7 @@ extern (C++) class ToElemVisitor : Visitor
                 break;
             }
 
-            case TOK.concatenateAssign:
+            case EXP.concatenateAssign:
             {
                 // Append array
                 assert(tb2.ty == Tarray || tb2.ty == Tsarray);
@@ -2746,7 +2746,7 @@ extern (C++) class ToElemVisitor : Visitor
                 break;
             }
 
-            case TOK.concatenateElemAssign:
+            case EXP.concatenateElemAssign:
             {
                 // Append element
                 assert(tb1n.equals(tb2));
@@ -2844,7 +2844,7 @@ extern (C++) class ToElemVisitor : Visitor
     {
         //printf("ShrAssignExp.toElem() %s, %s\n", e.e1.type.toChars(), e.e1.toChars());
         Type t1 = e.e1.type;
-        if (e.e1.op == TOK.cast_)
+        if (e.e1.op == EXP.cast_)
         {
             /* Use the type before it was integrally promoted to int
              */
@@ -2895,7 +2895,7 @@ extern (C++) class ToElemVisitor : Visitor
 
         elem *el = toElem(aae.e1, irs);
         elem *er = toElemDtor(aae.e2, irs);
-        elem *e = el_bin(aae.op == TOK.andAnd ? OPandand : OPoror,tym,el,er);
+        elem *e = el_bin(aae.op == EXP.andAnd ? OPandand : OPoror,tym,el,er);
 
         elem_setLoc(e, aae.loc);
 
@@ -3139,7 +3139,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (de.func.isNested() && !de.func.isThis())
         {
             ep = el_ptr(sfunc);
-            if (de.e1.op == TOK.null_)
+            if (de.e1.op == EXP.null_)
                 ethis = toElem(de.e1, irs);
             else
                 ethis = getEthis(de.loc, irs, de.func, de.func.toParentLocal());
@@ -3156,7 +3156,7 @@ extern (C++) class ToElemVisitor : Visitor
             if (ethis2)
                 ethis2 = setEthis2(de.loc, irs, de.func, ethis2, &ethis, &eeq);
 
-            if (de.e1.op == TOK.super_ || de.e1.op == TOK.dotType)
+            if (de.e1.op == EXP.super_ || de.e1.op == EXP.dotType)
                 directcall = 1;
 
             if (!de.func.isThis())
@@ -3228,7 +3228,7 @@ extern (C++) class ToElemVisitor : Visitor
         elem *ec;
         FuncDeclaration fd = null;
         bool dctor = false;
-        if (ce.e1.op == TOK.dotVariable && t1.ty != Tdelegate)
+        if (ce.e1.op == EXP.dotVariable && t1.ty != Tdelegate)
         {
             DotVarExp dve = cast(DotVarExp)ce.e1;
 
@@ -3262,10 +3262,10 @@ extern (C++) class ToElemVisitor : Visitor
             if (fd && fd.isCtorDeclaration())
             {
                 //printf("test30 %s\n", dve.e1.toChars());
-                if (dve.e1.op == TOK.comma)
+                if (dve.e1.op == EXP.comma)
                 {
                     //printf("test30a\n");
-                    if ((cast(CommaExp)dve.e1).e1.op == TOK.declaration && (cast(CommaExp)dve.e1).e2.op == TOK.variable)
+                    if ((cast(CommaExp)dve.e1).e1.op == EXP.declaration && (cast(CommaExp)dve.e1).e2.op == EXP.variable)
                     {   // dve.e1: (declaration , var)
 
                         //printf("test30b\n");
@@ -3316,7 +3316,7 @@ extern (C++) class ToElemVisitor : Visitor
                 }
             }
         }
-        else if (ce.e1.op == TOK.variable)
+        else if (ce.e1.op == EXP.variable)
         {
             fd = (cast(VarExp)ce.e1).var.isFuncDeclaration();
             version (none)
@@ -3477,7 +3477,7 @@ extern (C++) class ToElemVisitor : Visitor
         Type tb;
 
         //printf("DeleteExp.toElem()\n");
-        if (de.e1.op == TOK.index)
+        if (de.e1.op == EXP.index)
         {
             IndexExp ae = cast(IndexExp)de.e1;
             tb = ae.e1.type.toBasetype();
@@ -3512,7 +3512,7 @@ extern (C++) class ToElemVisitor : Visitor
                 break;
             }
             case Tclass:
-                if (de.e1.op == TOK.variable)
+                if (de.e1.op == EXP.variable)
                 {
                     VarExp ve = cast(VarExp)de.e1;
                     if (ve.var.isVarDeclaration() &&
@@ -3565,7 +3565,7 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem* e;
-        if (ve.e1.op == TOK.arrayLiteral)
+        if (ve.e1.op == EXP.arrayLiteral)
         {
             e = el_calloc();
             e.Eoper = OPconst;
@@ -3630,7 +3630,7 @@ extern (C++) class ToElemVisitor : Visitor
         {
             // https://issues.dlang.org/show_bug.cgi?id=19607
             // When viewing a vector literal as an array, build the underlying array directly.
-            if (ve.e1.op == TOK.arrayLiteral)
+            if (ve.e1.op == EXP.arrayLiteral)
                 result = toElem(ve.e1, irs);
             else
             {
@@ -3638,7 +3638,7 @@ extern (C++) class ToElemVisitor : Visitor
                 type* tarray = Type_toCtype(vae.type);
                 Symbol* stmp = symbol_genauto(tarray);
                 result = setArray(ve.e1, el_ptr(stmp), el_long(TYsize_t, tarray.Tdim),
-                                  ve.e1.type, toElem(ve.e1, irs), irs, TOK.blit);
+                                  ve.e1.type, toElem(ve.e1, irs), irs, EXP.blit);
                 result = el_combine(result, el_var(stmp));
                 result.ET = tarray;
             }
@@ -3815,7 +3815,7 @@ extern (C++) class ToElemVisitor : Visitor
                 {
                     /* Rewrite cast as (e ? e + offset : null)
                      */
-                    if (ce.e1.op == TOK.this_)
+                    if (ce.e1.op == EXP.this_)
                     {
                         // Assume 'this' is never null, so skip null check
                         e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
@@ -4860,7 +4860,7 @@ extern (C++) class ToElemVisitor : Visitor
             {
                 if (o.dyncast() == DYNCAST.expression)
                 {   Expression eo = cast(Expression)o;
-                    if (eo.op == TOK.dSymbol)
+                    if (eo.op == EXP.dSymbol)
                     {   DsymbolExp se = cast(DsymbolExp)eo;
                         e = el_combine(e, Dsymbol_toElem(se.s));
                     }
@@ -4938,7 +4938,7 @@ extern (C++) class ToElemVisitor : Visitor
             Expression el = (*exps)[i];
             if (!el)
                 el = basis;
-            if (el.op == TOK.arrayLiteral &&
+            if (el.op == EXP.arrayLiteral &&
                 el.type.toBasetype().ty == Tsarray)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
@@ -4953,7 +4953,7 @@ extern (C++) class ToElemVisitor : Visitor
             }
 
             size_t j = i + 1;
-            if (el.isConst() || el.op == TOK.null_)
+            if (el.isConst() || el.op == EXP.null_)
             {
                 // If the trivial elements are same values, do memcpy.
                 while (j < dim)
@@ -4982,7 +4982,7 @@ extern (C++) class ToElemVisitor : Visitor
             else
             {
                 elem *edim = el_long(TYsize_t, j - i);
-                eeq = setArray(el, ev, edim, telem, ep, irs, TOK.blit);
+                eeq = setArray(el, ev, edim, telem, ep, irs, EXP.blit);
             }
             e = el_combine(e, eeq);
             i = j;
@@ -5047,7 +5047,7 @@ extern (C++) class ToElemVisitor : Visitor
     override void visit(StructLiteralExp sle)
     {
         //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
-        result = toElemStructLit(sle, irs, TOK.construct, sle.sym, true);
+        result = toElemStructLit(sle, irs, EXP.construct, sle.sym, true);
     }
 
     override void visit(ObjcClassReferenceExp e)
@@ -5148,7 +5148,7 @@ elem *callfunc(const ref Loc loc,
         if (op == OPvector)
         {
             Expression arg = (*arguments)[0];
-            if (arg.op != TOK.int64)
+            if (arg.op != EXP.int64)
                 arg.error("simd operator must be an integer constant, not `%s`", arg.toChars());
         }
 
@@ -5888,13 +5888,13 @@ StructDeclaration needsDtor(Type t)
  *      tb     = type of evalue
  *      evalue = value to write
  *      irs    = context
- *      op     = TOK.blit, TOK.assign, or TOK.construct
+ *      op     = EXP.blit, EXP.assign, or EXP.construct
  * Returns:
  *      created IR code
  */
 elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
 {
-    assert(op == TOK.blit || op == TOK.assign || op == TOK.construct);
+    assert(op == EXP.blit || op == EXP.assign || op == EXP.construct);
     const sz = cast(uint)tb.size();
     Type tb2 = tb;
 
@@ -5957,14 +5957,14 @@ Lagain:
 
             /* Determine if we need to do postblit
              */
-            if (op != TOK.blit)
+            if (op != EXP.blit)
             {
                 if (needsPostblit(tb) || needsDtor(tb))
                 {
                     /* Need to do postblit/destructor.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
-                    r = (op == TOK.construct) ? RTLSYM.ARRAYSETCTOR : RTLSYM.ARRAYSETASSIGN;
+                    r = (op == EXP.construct) ? RTLSYM.ARRAYSETCTOR : RTLSYM.ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
                     elem *eti = getTypeInfo(exp.loc, tb.unSharedOf().mutableOf(), irs);
@@ -6109,15 +6109,15 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
 
 /*************************************************
  * Params:
- *      op = TOK.assign, TOK.construct, TOK.blit
+ *      op = EXP.assign, EXP.construct, EXP.blit
  *      fillHoles = Fill in alignment holes with zero. Set to
  *                  false if allocated by operator new, as the holes are already zeroed.
  */
 
-elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
+elem *toElemStructLit(StructLiteralExp sle, IRState *irs, EXP op, Symbol *sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
-    //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == TOK.blit, sym, fillHoles);
+    //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == EXP.blit, sym, fillHoles);
 
     Type forcetype = null;
     if (sle.stype)
@@ -6270,7 +6270,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
                 continue;
 
             VarDeclaration v = sle.sd.fields[i];
-            assert(!v.isThisDeclaration() || el.op == TOK.null_);
+            assert(!v.isThisDeclaration() || el.op == EXP.null_);
 
             elem *e1;
             if (tybasic(stmp.Stype.Tty) == TYnptr)
@@ -6298,7 +6298,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
                 else
                 {
                     elem *edim = el_long(TYsize_t, t1b.size() / t2b.size());
-                    e1 = setArray(el, e1, edim, t2b, ep, irs, op == TOK.construct ? TOK.blit : op);
+                    e1 = setArray(el, e1, edim, t2b, ep, irs, op == EXP.construct ? EXP.blit : op);
                 }
             }
             else

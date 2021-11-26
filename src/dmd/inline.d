@@ -332,12 +332,12 @@ public:
             }
             else if (e1)
             {
-                result = new LogicalExp(econd.loc, TOK.andAnd, econd, e1);
+                result = new LogicalExp(econd.loc, EXP.andAnd, econd, e1);
                 result.type = Type.tvoid;
             }
             else if (e2)
             {
-                result = new LogicalExp(econd.loc, TOK.orOr, econd, e2);
+                result = new LogicalExp(econd.loc, EXP.orOr, econd, e2);
                 result.type = Type.tvoid;
             }
             else
@@ -633,7 +633,7 @@ public:
                         foreach (i; 0 .. tup.objects.dim)
                         {
                             DsymbolExp se = (*tup.objects)[i];
-                            assert(se.op == TOK.dSymbol);
+                            assert(se.op == EXP.dSymbol);
                             se.s;
                         }
                         result = st.objects.dim;
@@ -981,7 +981,7 @@ public:
 
         Statement inlineScanExpAsStatement(ref Expression exp)
         {
-            /* If there's a TOK.call at the top, then it may fail to inline
+            /* If there's a EXP.call at the top, then it may fail to inline
              * as an Expression. Try to inline as a Statement instead.
              */
             if (auto ce = exp.isCallExp())
@@ -1223,7 +1223,7 @@ public:
                 foreach (i; 0 .. td.objects.dim)
                 {
                     DsymbolExp se = cast(DsymbolExp)(*td.objects)[i];
-                    assert(se.op == TOK.dSymbol);
+                    assert(se.op == EXP.dSymbol);
                     scanVar(se.s); // TODO
                 }
             }
@@ -1267,7 +1267,7 @@ public:
     override void visit(AssignExp e)
     {
         // Look for NRVO, as inlining NRVO function returns require special handling
-        if (e.op == TOK.construct && e.e2.op == TOK.call)
+        if (e.op == EXP.construct && e.e2.op == EXP.call)
         {
             auto ce = e.e2.isCallExp();
             if (ce.f && ce.f.nrvo_can && ce.f.nrvo_var) // NRVO
@@ -1377,7 +1377,7 @@ public:
                 {
                     //printf("init: %s\n", v._init.toChars());
                     auto ei = v._init.isExpInitializer();
-                    if (ei && ei.exp.op == TOK.blit)
+                    if (ei && ei.exp.op == EXP.blit)
                     {
                         Expression e2 = (cast(AssignExp)ei.exp).e2;
                         if (auto fe = e2.isFuncExp())
@@ -1404,7 +1404,7 @@ public:
             fd = dve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, true, false, asStatements))
             {
-                if (dve.e1.op == TOK.call && dve.e1.type.toBasetype().ty == Tstruct)
+                if (dve.e1.op == EXP.call && dve.e1.type.toBasetype().ty == Tstruct)
                 {
                     /* To create ethis, we'll need to take the address
                      * of dve.e1, but this won't work if dve.e1 is
@@ -1417,8 +1417,8 @@ public:
                 }
             }
         }
-        else if (e.e1.op == TOK.star &&
-                 (cast(PtrExp)e.e1).e1.op == TOK.variable)
+        else if (e.e1.op == EXP.star &&
+                 (cast(PtrExp)e.e1).e1.op == EXP.variable)
         {
             auto ve = e.e1.isPtrExp().e1.isVarExp();
             VarDeclaration v = ve.var.isVarDeclaration();
@@ -1426,7 +1426,7 @@ public:
             {
                 //printf("init: %s\n", v._init.toChars());
                 auto ei = v._init.isExpInitializer();
-                if (ei && ei.exp.op == TOK.blit)
+                if (ei && ei.exp.op == EXP.blit)
                 {
                     Expression e2 = (cast(AssignExp)ei.exp).e2;
                     // function pointer call
@@ -1455,7 +1455,7 @@ public:
         if (eresult && e.type.ty != Tvoid)
         {
             Expression ex = eresult;
-            while (ex.op == TOK.comma)
+            while (ex.op == EXP.comma)
             {
                 ex.type = e.type;
                 ex = ex.isCommaExp().e2;
@@ -2071,7 +2071,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
                     if (se.var.isFuncDeclaration())
                         again = true;
                 }
-                else if (arg.op == TOK.function_ || arg.op == TOK.delegate_)
+                else if (arg.op == EXP.function_ || arg.op == EXP.delegate_)
                     again = true;
             }
         }
@@ -2208,23 +2208,23 @@ private bool isConstruction(Expression e)
 {
     e = lastComma(e);
 
-    if (e.op == TOK.structLiteral)
+    if (e.op == EXP.structLiteral)
     {
         return true;
     }
     /* Detect:
      *    structliteral.ctor(args)
      */
-    else if (e.op == TOK.call)
+    else if (e.op == EXP.call)
     {
         auto ce = cast(CallExp)e;
-        if (ce.e1.op == TOK.dotVariable)
+        if (ce.e1.op == EXP.dotVariable)
         {
             auto dve = cast(DotVarExp)ce.e1;
             auto fd = dve.var.isFuncDeclaration();
             if (fd && fd.isCtorDeclaration())
             {
-                if (dve.e1.op == TOK.structLiteral)
+                if (dve.e1.op == EXP.structLiteral)
                 {
                     return true;
                 }
@@ -2359,7 +2359,7 @@ private bool expNeedsDtor(Expression exp)
                     if (o.dyncast() == DYNCAST.expression)
                     {
                         Expression eo = cast(Expression)o;
-                        if (eo.op == TOK.dSymbol)
+                        if (eo.op == EXP.dSymbol)
                         {
                             DsymbolExp se = cast(DsymbolExp)eo;
                             Dsymbol_needsDtor(se.s);

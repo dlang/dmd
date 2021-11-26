@@ -753,7 +753,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 Expression e = (*pd.args)[0];
 
-                assert(e.op == TOK.string_);
+                assert(e.op == EXP.string_);
 
                 StringExp se = cast(StringExp)e;
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
@@ -788,7 +788,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 Expression e = (*pd.args)[0];
 
-                assert(e.op == TOK.string_);
+                assert(e.op == EXP.string_);
 
                 StringExp se = cast(StringExp)e;
                 char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
