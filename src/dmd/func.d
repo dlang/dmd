@@ -3120,10 +3120,14 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
+    
+    auto fdPC = fd.toPrettyChars();
+    auto pIndex = fdPC.length;
+    
+    .error(loc, "%s is not callable using provided argument types\n\t`%s%s%s`\n\t%*s`%s`",
+           fd.kind(), fdPC, parametersTypeToChars(tf.parameterList),
+           tf.modToChars(), pIndex, "", fargsBuf.peekChars());
 
-    .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-           fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-           tf.modToChars(), fargsBuf.peekChars());
     // re-resolve to check for supplemental message
     const(char)* failMessage;
     functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
