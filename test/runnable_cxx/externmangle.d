@@ -213,6 +213,10 @@ class C1
     }
 }
 
+const(char)* getC1DataTailConst(const C1 c);
+const(char)* getC1DataTailConstRef(ref const C1 c);
+const(C1) getC1Identity(const C1 c);
+
 extern(C++, struct)
 class C2(T)
 {
@@ -231,6 +235,9 @@ void test39()
     C1 c1 = C1.init(ptr);
     assert(c1.getDataCPP() == ptr);
     assert(c1.getDataD() == ptr);
+    assert(getC1DataTailConst(c1) == ptr);
+    assert(getC1DataTailConstRef(c1) == ptr);
+    assert(getC1Identity(c1) == c1);
     C2!char c2 = C2!char.init(ptr);
     assert(c2.getData() == ptr);
     auto result = test39cpp(c2, S2!int.init(43));

@@ -462,6 +462,7 @@ public:
 
     // D class mangled as pointer to C++ class
     // const(Object) mangled as Object const* const
+    // except for class types at top, where it is mangled as Object const*
     override void visit(TypeClass type)
     {
         //printf("visit(TypeClass); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
@@ -469,7 +470,7 @@ public:
             return;
         if (flags & IS_NOT_TOP_TYPE)
             mangleModifier(type);
-        if (type.isConst())
+        if ((flags & IS_NOT_TOP_TYPE) && type.isConst())
             buf.writeByte('Q');
         else
             buf.writeByte('P');
