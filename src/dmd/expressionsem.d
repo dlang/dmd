@@ -5749,6 +5749,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * is(targ id == tspec, tpl)
              * is(targ id : tspec, tpl)
              */
+
+            if (e.targ.isTypeBasic() && e.tspec.isTypeBasic() && e.targ != e.tspec)
+            {
+                return no();
+            }
+
             Identifier tid = e.id ? e.id : Identifier.generateId("__isexp_id");
             e.parameters.insert(0, new TemplateTypeParameter(e.loc, tid, null, null));
 
