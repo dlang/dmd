@@ -4085,12 +4085,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Type is a "delegate to" or "pointer to" the function literal
-        if ((exp.fd.isNested() && exp.fd.tok == EXP.delegate_) || (exp.tok == EXP.reserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
+        if ((exp.fd.isNested() && exp.fd.tok == TOK.delegate_) || (exp.tok == TOK.reserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
         {
             exp.type = new TypeDelegate(exp.fd.type.isTypeFunction());
             exp.type = exp.type.typeSemantic(exp.loc, sc);
 
-            exp.fd.tok = EXP.delegate_;
+            exp.fd.tok = TOK.delegate_;
         }
         else
         {
@@ -4104,12 +4104,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 *   auto foo(void function() fp) { return 1; }
                 *   assert(foo({}) == 1);
                 *
-                * So, should keep fd.tok == TOKreserve if fd.treq == NULL.
+                * So, should keep fd.tok == TOK.reserve if fd.treq == NULL.
                 */
             if (exp.fd.treq && exp.fd.treq.ty == Tpointer)
             {
                 // change to non-nested
-                exp.fd.tok = EXP.function_;
+                exp.fd.tok = TOK.function_;
                 exp.fd.vthis = null;
             }
         }
@@ -5497,7 +5497,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        if (e.tok2 == EXP.package_ || e.tok2 == EXP.module_) // These is() expressions are special because they can work on modules, not just types.
+        if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
         {
             const oldErrors = global.startGagging();
             Dsymbol sym = e.targ.toDsymbol(sc);
@@ -5508,9 +5508,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Package p = resolveIsPackage(sym);
             if (p is null)
                 return no();
-            if (e.tok2 == EXP.package_ && p.isModule()) // Note that isModule() will return null for package modules because they're not actually instances of Module.
+            if (e.tok2 == TOK.package_ && p.isModule()) // Note that isModule() will return null for package modules because they're not actually instances of Module.
                 return no();
-            else if(e.tok2 == EXP.module_ && !(p.isModule() || p.isPackageMod()))
+            else if(e.tok2 == TOK.module_ && !(p.isModule() || p.isPackageMod()))
                 return no();
             tded = e.targ;
             return yes();
@@ -5528,11 +5528,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e.targ = t;
         }
 
-        if (e.tok2 != EXP.reserved)
+        if (e.tok2 != TOK.reserved)
         {
             switch (e.tok2)
             {
-            case EXP.struct_:
+            case TOK.struct_:
                 if (e.targ.ty != Tstruct)
                     return no();
                 if ((cast(TypeStruct)e.targ).sym.isUnionDeclaration())
@@ -5540,7 +5540,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tded = e.targ;
                 break;
 
-            case EXP.union_:
+            case TOK.union_:
                 if (e.targ.ty != Tstruct)
                     return no();
                 if (!(cast(TypeStruct)e.targ).sym.isUnionDeclaration())
@@ -5548,7 +5548,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tded = e.targ;
                 break;
 
-            case EXP.class_:
+            case TOK.class_:
                 if (e.targ.ty != Tclass)
                     return no();
                 if ((cast(TypeClass)e.targ).sym.isInterfaceDeclaration())
@@ -5556,7 +5556,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tded = e.targ;
                 break;
 
-            case EXP.interface_:
+            case TOK.interface_:
                 if (e.targ.ty != Tclass)
                     return no();
                 if (!(cast(TypeClass)e.targ).sym.isInterfaceDeclaration())
@@ -5564,31 +5564,31 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tded = e.targ;
                 break;
 
-            case EXP.const_:
+            case TOK.const_:
                 if (!e.targ.isConst())
                     return no();
                 tded = e.targ;
                 break;
 
-            case EXP.immutable_:
+            case TOK.immutable_:
                 if (!e.targ.isImmutable())
                     return no();
                 tded = e.targ;
                 break;
 
-            case EXP.shared_:
+            case TOK.shared_:
                 if (!e.targ.isShared())
                     return no();
                 tded = e.targ;
                 break;
 
-            case EXP.inout_:
+            case TOK.inout_:
                 if (!e.targ.isWild())
                     return no();
                 tded = e.targ;
                 break;
 
-            case EXP.super_:
+            case TOK.super_:
                 // If class or interface, get the base class and interfaces
                 if (e.targ.ty != Tclass)
                     return no();
@@ -5608,7 +5608,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 break;
 
-            case EXP.enum_:
+            case TOK.enum_:
                 if (e.targ.ty != Tenum)
                     return no();
                 if (e.id)
@@ -5620,14 +5620,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
                 break;
 
-            case EXP.delegate_:
+            case TOK.delegate_:
                 if (e.targ.ty != Tdelegate)
                     return no();
                 tded = (cast(TypeDelegate)e.targ).next; // the underlying function type
                 break;
 
-            case EXP.function_:
-            case EXP.parameters:
+            case TOK.function_:
+            case TOK.parameters:
                 {
                     if (e.targ.ty != Tfunction)
                         return no();
@@ -5644,14 +5644,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         /* If one of the default arguments was an error,
                            don't return an invalid tuple
                          */
-                        if (e.tok2 == EXP.parameters && arg.defaultArg && arg.defaultArg.op == EXP.error)
+                        if (e.tok2 == TOK.parameters && arg.defaultArg && arg.defaultArg.op == EXP.error)
                             return setError();
-                        args.push(new Parameter(arg.storageClass, arg.type, (e.tok2 == EXP.parameters) ? arg.ident : null, (e.tok2 == EXP.parameters) ? arg.defaultArg : null, arg.userAttribDecl));
+                        args.push(new Parameter(arg.storageClass, arg.type, (e.tok2 == TOK.parameters) ? arg.ident : null, (e.tok2 == TOK.parameters) ? arg.defaultArg : null, arg.userAttribDecl));
                     }
                     tded = new TypeTuple(args);
                     break;
                 }
-            case EXP.return_:
+            case TOK.return_:
                 /* Get the 'return type' for the function,
                  * delegate, or pointer to function.
                  */
@@ -5661,7 +5661,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return no();
                 break;
 
-            case EXP.argumentTypes:
+            case TOK.argumentTypes:
                 /* Generate a type tuple of the equivalent types used to determine if a
                  * function argument of this type can be passed in registers.
                  * The results of this are highly platform dependent, and intended
@@ -5673,7 +5673,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // not valid for a parameter
                 break;
 
-            case EXP.vector:
+            case TOK.vector:
                 if (e.targ.ty != Tvector)
                     return no();
                 tded = (cast(TypeVector)e.targ).basetype;
@@ -5698,7 +5698,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             //printf("targ  = %s, %s\n", e.targ.toChars(), e.targ.deco);
             //printf("tspec = %s, %s\n", e.tspec.toChars(), e.tspec.deco);
 
-            if (e.tok == EXP.colon)
+            if (e.tok == TOK.colon)
             {
                 // current scope is itself deprecated, or deprecations are not errors
                 const bool deprecationAllowed = sc.isDeprecated
@@ -5755,10 +5755,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Objects dedtypes = Objects(e.parameters.dim);
             dedtypes.zero();
 
-            MATCH m = deduceType(e.targ, sc, e.tspec, e.parameters, &dedtypes, null, 0, e.tok == EXP.equal);
+            MATCH m = deduceType(e.targ, sc, e.tspec, e.parameters, &dedtypes, null, 0, e.tok == TOK.equal);
             //printf("targ: %s\n", targ.toChars());
             //printf("tspec: %s\n", tspec.toChars());
-            if (m == MATCH.nomatch || (m != MATCH.exact && e.tok == EXP.equal))
+            if (m == MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
             {
                 return no();
             }
@@ -5938,7 +5938,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (global.errors != errors)
             return null;
 
-        if (p.token.value != EXP.endOfFile)
+        if (p.token.value != TOK.endOfFile)
         {
             exp.error("incomplete mixin expression `%s`", str.ptr);
             return null;
@@ -6209,9 +6209,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Objects* tiargs;
             Loc loc = exp.e1.loc;
 
-            const tok = exp.e1.op;
+            const op = exp.e1.op;
             bool isEqualsCallExpression;
-            if (tok == EXP.call)
+            if (op == EXP.call)
             {
                 const callExp = cast(CallExp) exp.e1;
 
@@ -6225,11 +6225,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                              callExpIdent == Id.eq;
                 }
             }
-            if (tok == EXP.equal || tok == EXP.notEqual ||
-                tok == EXP.lessThan || tok == EXP.greaterThan ||
-                tok == EXP.lessOrEqual || tok == EXP.greaterOrEqual ||
-                tok == EXP.identity || tok == EXP.notIdentity ||
-                tok == EXP.in_ ||
+            if (op == EXP.equal || op == EXP.notEqual ||
+                op == EXP.lessThan || op == EXP.greaterThan ||
+                op == EXP.lessOrEqual || op == EXP.greaterOrEqual ||
+                op == EXP.identity || op == EXP.notIdentity ||
+                op == EXP.in_ ||
                 isEqualsCallExpression)
             {
                 es = new Expressions(3);
@@ -6277,7 +6277,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // Format exp.e1 before any additional boolean conversion
             // Ignore &&/|| because "assert(...) failed" is more informative than "false != true"
-            else if (tok != EXP.andAnd && tok != EXP.orOr)
+            else if (op != EXP.andAnd && op != EXP.orOr)
             {
                 es = new Expressions(2);
                 tiargs = new Objects(1);

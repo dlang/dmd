@@ -578,7 +578,7 @@ extern (C++) struct Target
      */
     extern (C++) bool isVectorOpSupported(Type type, uint op, Type t2 = null)
     {
-        import dmd.tokens : TOK, Token;
+        import dmd.tokens : EXP, TOK, Token;
 
         auto tvec = type.isTypeVector();
         if (tvec is null)
@@ -593,12 +593,12 @@ extern (C++) struct Target
         bool supported = false;
         switch (op)
         {
-        case TOK.uadd:
+        case EXP.uadd:
             // Expression is a no-op, supported everywhere.
             supported = tvec.isscalar();
             break;
 
-        case TOK.negate:
+        case EXP.negate:
             if (vecsize == 16)
             {
                 // float[4] negate needs SSE support ({V}SUBPS)
@@ -622,15 +622,15 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.lessThan, TOK.greaterThan, TOK.lessOrEqual, TOK.greaterOrEqual, TOK.equal, TOK.notEqual, TOK.identity, TOK.notIdentity:
+        case EXP.lessThan, EXP.greaterThan, EXP.lessOrEqual, EXP.greaterOrEqual, EXP.equal, EXP.notEqual, EXP.identity, EXP.notIdentity:
             supported = false;
             break;
 
-        case TOK.leftShift, TOK.leftShiftAssign, TOK.rightShift, TOK.rightShiftAssign, TOK.unsignedRightShift, TOK.unsignedRightShiftAssign:
+        case EXP.leftShift, EXP.leftShiftAssign, EXP.rightShift, EXP.rightShiftAssign, EXP.unsignedRightShift, EXP.unsignedRightShiftAssign:
             supported = false;
             break;
 
-        case TOK.add, TOK.addAssign, TOK.min, TOK.minAssign:
+        case EXP.add, EXP.addAssign, EXP.min, EXP.minAssign:
             if (vecsize == 16)
             {
                 // float[4] add/sub needs SSE support ({V}ADDPS, {V}SUBPS)
@@ -654,7 +654,7 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.mul, TOK.mulAssign:
+        case EXP.mul, EXP.mulAssign:
             if (vecsize == 16)
             {
                 // float[4] multiply needs SSE support ({V}MULPS)
@@ -684,7 +684,7 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.div, TOK.divAssign:
+        case EXP.div, EXP.divAssign:
             if (vecsize == 16)
             {
                 // float[4] divide needs SSE support ({V}DIVPS)
@@ -702,11 +702,11 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.mod, TOK.modAssign:
+        case EXP.mod, EXP.modAssign:
             supported = false;
             break;
 
-        case TOK.and, TOK.andAssign, TOK.or, TOK.orAssign, TOK.xor, TOK.xorAssign:
+        case EXP.and, EXP.andAssign, EXP.or, EXP.orAssign, EXP.xor, EXP.xorAssign:
             // (u)byte[16]/short[8]/int[4]/long[2] bitwise ops needs SSE2 support ({V}PAND, {V}POR, {V}PXOR)
             if (vecsize == 16 && tvec.isintegral() && cpu >= CPU.sse2)
                 supported = true;
@@ -715,11 +715,11 @@ extern (C++) struct Target
                 supported = true;
             break;
 
-        case TOK.not:
+        case EXP.not:
             supported = false;
             break;
 
-        case TOK.tilde:
+        case EXP.tilde:
             // (u)byte[16]/short[8]/int[4]/long[2] logical exclusive needs SSE2 support ({V}PXOR)
             if (vecsize == 16 && tvec.isintegral() && cpu >= CPU.sse2)
                 supported = true;
@@ -728,7 +728,7 @@ extern (C++) struct Target
                 supported = true;
             break;
 
-        case TOK.pow, TOK.powAssign:
+        case EXP.pow, EXP.powAssign:
             supported = false;
             break;
 
