@@ -14,6 +14,7 @@
 module dmd.expressionsem;
 
 import core.stdc.stdio;
+import core.stdc.string;
 
 import dmd.access;
 import dmd.aggregate;
@@ -4982,9 +4983,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (tthis)
                     tthis.modToBuffer(&buf);
 
+                auto expC = exp.e1.toChars();
+                auto pIndex = cast(int) strlen(expC);
+
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
-                .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
-                    p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
+                .error(exp.loc, "%s is not callable using provided argument types\n\t`%s%s`\n\t%*s`%s`",
+                    p, expC, parametersTypeToChars(tf.parameterList), pIndex, cast(const(char)*) "", buf.peekChars());
+
                 if (failMessage)
                     errorSupplemental(exp.loc, "%s", failMessage);
                 return setError();
@@ -5055,9 +5060,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     argExpTypesToCBuffer(&buf, exp.arguments);
                     buf.writeByte(')');
 
+                    auto expC = exp.f.toPrettyChars();
+                    auto pIndex = cast(int) strlen(expC);
+
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
-                    .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
-                        exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
+                    .error(exp.loc, "%s is not callable using provided argument types\n\t`%s%s`\n\t%*s`%s`",
+                        exp.f.kind(), expC, parametersTypeToChars(tf.parameterList), pIndex, cast(const(char)*) "", buf.peekChars());
+
                     if (failMessage)
                         errorSupplemental(exp.loc, "%s", failMessage);
                     exp.f = null;

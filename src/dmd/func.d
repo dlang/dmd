@@ -3091,13 +3091,16 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             return null;
         }
 
+        auto fdPC = fd.toPrettyChars();
+        auto pIndex = cast(int) strlen(fdPC);
+
         const(char)* failMessage;
         functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
         if (failMessage)
         {
-            .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-                   fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-                   tf.modToChars(), fargsBuf.peekChars());
+            .error(loc, "%s is not callable using provided argument types\n\t`%s%s%s`\n\t%*s`%s`",
+                    fd.kind(), fdPC, parametersTypeToChars(tf.parameterList),
+                    tf.modToChars(), pIndex, cast(const(char)*) "", fargsBuf.peekChars());
             errorSupplemental(loc, failMessage);
             return null;
         }
@@ -3121,9 +3124,11 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         return null;
     }
 
-    .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-           fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-           tf.modToChars(), fargsBuf.peekChars());
+    auto fdPC = fd.toPrettyChars();
+    auto pIndex = cast(int) strlen(fdPC);
+    .error(loc, "%s is not callable using provided argument types\n\t`%s%s%s`\n\t%*s`%s`",
+           fd.kind(), fdPC, parametersTypeToChars(tf.parameterList),
+           tf.modToChars(), pIndex, cast(const(char)*) "", fargsBuf.peekChars());
     // re-resolve to check for supplemental message
     const(char)* failMessage;
     functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
