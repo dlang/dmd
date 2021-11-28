@@ -555,10 +555,10 @@ extern (C++) class ToElemVisitor : Visitor
 
         if (FuncLiteralDeclaration fld = se.var.isFuncLiteralDeclaration())
         {
-            if (fld.tok == EXP.reserved)
+            if (fld.tok == TOK.reserved)
             {
                 // change to non-nested
-                fld.tok = EXP.function_;
+                fld.tok = TOK.function_;
                 fld.vthis = null;
             }
             if (!fld.deferToObj)
@@ -776,10 +776,10 @@ extern (C++) class ToElemVisitor : Visitor
         //printf("FuncExp.toElem() %s\n", fe.toChars());
         FuncLiteralDeclaration fld = fe.fd;
 
-        if (fld.tok == EXP.reserved && fe.type.ty == Tpointer)
+        if (fld.tok == TOK.reserved && fe.type.ty == Tpointer)
         {
             // change to non-nested
-            fld.tok = EXP.function_;
+            fld.tok = TOK.function_;
             fld.vthis = null;
         }
         if (!fld.deferToObj)

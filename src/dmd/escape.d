@@ -1578,7 +1578,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
 
         override void visit(FuncExp e)
         {
-            if (e.fd.tok == EXP.delegate_)
+            if (e.fd.tok == TOK.delegate_)
                 er.byfunc.push(e.fd);
         }
 

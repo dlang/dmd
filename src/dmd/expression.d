@@ -3759,7 +3759,7 @@ extern (C++) final class FuncExp : Expression
 {
     FuncLiteralDeclaration fd;
     TemplateDeclaration td;
-    TOK tok;
+    TOK tok;  // TOK.reserved, TOK.delegate_, TOK.function_
 
     extern (D) this(const ref Loc loc, Dsymbol s)
     {
@@ -3797,9 +3797,9 @@ extern (C++) final class FuncExp : Expression
             const(char)[] s;
             if (fd.fes)
                 s = "__foreachbody";
-            else if (fd.tok == EXP.reserved)
+            else if (fd.tok == TOK.reserved)
                 s = "__lambda";
-            else if (fd.tok == EXP.delegate_)
+            else if (fd.tok == TOK.delegate_)
                 s = "__dgliteral";
             else
                 s = "__funcliteral";
@@ -3864,7 +3864,7 @@ extern (C++) final class FuncExp : Expression
         TypeFunction tof = null;
         if (to.ty == Tdelegate)
         {
-            if (tok == EXP.function_)
+            if (tok == TOK.function_)
             {
                 if (!flag)
                     error("cannot match function literal to delegate type `%s`", to.toChars());
@@ -3874,7 +3874,7 @@ extern (C++) final class FuncExp : Expression
         }
         else if (to.ty == Tpointer && (tof = to.nextOf().isTypeFunction()) !is null)
         {
-            if (tok == EXP.delegate_)
+            if (tok == TOK.delegate_)
             {
                 if (!flag)
                     error("cannot match delegate literal to function pointer type `%s`", to.toChars());
@@ -3976,8 +3976,8 @@ extern (C++) final class FuncExp : Expression
             tfx = tfy;
         }
         Type tx;
-        if (tok == EXP.delegate_ ||
-            tok == EXP.reserved && (type.ty == Tdelegate || type.ty == Tpointer && to.ty == Tdelegate))
+        if (tok == TOK.delegate_ ||
+            tok == TOK.reserved && (type.ty == Tdelegate || type.ty == Tpointer && to.ty == Tdelegate))
         {
             // Allow conversion from implicit function pointer to delegate
             tx = new TypeDelegate(tfx);
@@ -3985,7 +3985,7 @@ extern (C++) final class FuncExp : Expression
         }
         else
         {
-            assert(tok == EXP.function_ || tok == EXP.reserved && type.ty == Tpointer);
+            assert(tok == TOK.function_ || tok == TOK.reserved && type.ty == Tpointer);
             tx = tfx.pointerTo();
         }
         //printf("\ttx = %s, to = %s\n", tx.toChars(), to.toChars());
