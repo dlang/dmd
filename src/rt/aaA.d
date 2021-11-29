@@ -853,7 +853,7 @@ struct Range
 
 extern (C) pure nothrow @nogc @safe
 {
-    Range _aaRange(return AA aa)
+    Range _aaRange(return scope AA aa)
     {
         if (!aa)
             return Range();
