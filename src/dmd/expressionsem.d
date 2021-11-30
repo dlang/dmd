@@ -535,15 +535,15 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                 ce.e1 = ey;
                 if (isDotOpDispatch(ey))
                 {
-                    uint errors = global.startGagging();
-                    e = ce.syntaxCopy().expressionSemantic(sc);
-                    if (!global.endGagging(errors))
-                        return e;
-
                     // even opDispatch and UFCS must have valid arguments,
                     // so now that we've seen indication of a problem,
                     // check them for issues.
                     Expressions* originalArguments = Expression.arraySyntaxCopy(ce.arguments);
+
+                    uint errors = global.startGagging();
+                    e = ce.expressionSemantic(sc);
+                    if (!global.endGagging(errors))
+                        return e;
 
                     if (arrayExpressionSemantic(originalArguments, sc))
                         return ErrorExp.get();
