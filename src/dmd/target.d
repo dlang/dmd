@@ -1451,7 +1451,7 @@ struct TargetCPP
         case DigitalMars: return predef("CppRuntime_DigitalMars");
         case Gcc:         return predef("CppRuntime_Gcc");
         case Microsoft:   return predef("CppRuntime_Microsoft");
-        case Sun:         return predef("CppRuntime_Sun");
+        case Sun:         return predef("CppRuntime_Gcc");
         }
     }
 }
