@@ -1448,8 +1448,6 @@ else version (Solaris)
     enum SI_MESGQ   = -5;
 
     enum SIGIO = SIGPOLL;
-    enum SIGVTALRM = 28;
-    enum SIGXFSZ = 31;
 
     int kill(pid_t, int);
     int sigaction(int, const scope sigaction_t*, sigaction_t*);
