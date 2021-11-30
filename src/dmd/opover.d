@@ -523,8 +523,14 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 {
                     // Deal with $
                     result = resolveOpDollar(sc, ae, ie, &e0);
+
                     if (result.op == EXP.error)
+                    {
+                        if (!e0 && !search_function(ad, Id.dollar)) {
+                            ae.loc.errorSupplemental("Aggregate declaration '%s' does not define 'opDollar'", ae.e1.toChars());
+                        }
                         return;
+                    }
                     /* Rewrite a[i..j] as:
                      *      a.opSlice(i, j)
                      */
