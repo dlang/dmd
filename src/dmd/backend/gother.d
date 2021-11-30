@@ -475,7 +475,8 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
         }
     }
 
-    version (MARS)
+    //version (MARS)
+    version(none)
     {
         /* Watch out for:
             void test()
