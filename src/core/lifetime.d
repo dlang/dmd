@@ -1,7 +1,7 @@
 module core.lifetime;
 
 import core.internal.attributes : betterC;
-import core.memory;
+import core.memory : GC;
 
 // emplace
 /**
@@ -2243,7 +2243,7 @@ void _d_delstruct(T)(ref T *p)
     }
 }
 
-unittest
+@system unittest
 {
     int dtors = 0;
     struct S { ~this() { ++dtors; } }
@@ -2255,7 +2255,7 @@ unittest
     assert(dtors == 1);
 }
 
-unittest
+@system unittest
 {
     int innerDtors = 0;
     int outerDtors = 0;
