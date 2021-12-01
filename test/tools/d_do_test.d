@@ -254,6 +254,7 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     auto tokenStart = std.string.indexOf(file, token);
     if (tokenStart == -1) return false;
 
+    bool applied = true;
     file = file[tokenStart + token.length .. $];
 
     auto lineEndR = std.string.indexOf(file, "\r");
@@ -286,7 +287,10 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
             if (oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
                 result = result[close + 1 .. $];
             else
+            {
                 result = null;
+                applied = false; // Parameter was skipped
+            }
         }
     }
     // skips the :, if present
@@ -305,12 +309,13 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
             else
                 result ~= multiLineDelimiter ~ result2;
         }
+        applied = true;
     }
 
     // fix-up separators
     result = result.unifyDirSep(envData.sep);
 
-    return true;
+    return applied;
 }
 
 /**
