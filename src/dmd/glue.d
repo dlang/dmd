@@ -1166,7 +1166,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     if (fd.isCrtCtorDtor & 2)
     {
-        bool mitigation = true;
         /*
             https://issues.dlang.org/show_bug.cgi?id=22520
 
@@ -1184,12 +1183,12 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             This relies on the Itanium ABI so is portable to any
             platform it, if needed.
         */
-        if(mitigation)
+        if(!target.c.crtDestructorsSupported)
         {
             __gshared uint nthDestructor = 0;
             char* buf = cast(char*) calloc(50, 1);
             assert(buf);
-            const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk_%u", nthDestructor++);
+            const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk.%u", nthDestructor++);
             assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
             //Function symbol
             auto newConstructor = symbol_calloc(buf);
@@ -1199,15 +1198,21 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             newConstructor.Stype.Tmangle = mTYman_c;
             symbol_func(newConstructor);
             //Global SC for now.
-            newConstructor.Sclass = SCglobal;
+            newConstructor.Sclass = SCstatic;
             func_t* funcState = newConstructor.Sfunc;
             //Init start block
             funcState.Fstartblock = block_calloc();
             block* startBlk = funcState.Fstartblock;
             //Make that block run __cxa_atexit(&func);
             auto atexitSym = getRtlsym(RTLSYM.CXA_ATEXIT);
+            Symbol* dso_handle = symbol_calloc("__dso_handle");
+            dso_handle.Stype = type_fake(TYint);
+            dso_handle.Sfl = FLextern;
+            dso_handle.Sclass = SCextern;
+            dso_handle.Stype.Tcount++;
+            auto handlePtr = el_ptr(dso_handle);
             //Build parameter pack - __cxa_atexit(&func, null, null)
-            auto paramPack = el_params(el_long(TYnptr, 0), el_long(TYnptr, 0), el_ptr(s), null);
+            auto paramPack = el_params(handlePtr, el_long(TYnptr, 0), el_ptr(s), null);
             auto exec = el_bin(OPcall, TYvoid, el_var(atexitSym), paramPack);
             block_appendexp(startBlk, exec); //payload
             startBlk.BC = BCgoto;

@@ -1185,7 +1185,7 @@ struct TargetC
                               /// https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
         Gcc_Clang,            /// gcc and clang
     }
-
+    bool  crtDestructorsSupported = true; /// Not all platforms support crt_destructor
     ubyte longsize;           /// size of a C `long` or `unsigned long` type
     ubyte long_doublesize;    /// size of a C `long double`
     ubyte wchar_tsize;        /// size of a C `wchar_t` type
@@ -1238,6 +1238,13 @@ struct TargetC
             bitFieldStyle = BitFieldStyle.Gcc_Clang;
         else
             assert(0);
+        /*
+            MacOS Monterey (12) does not support C runtime destructors.
+        */
+        if (os == Target.OS.OSX && target.osMajor >= 12)
+        {
+            crtDestructorsSupported = false;
+        }
     }
 
     void addRuntimePredefinedGlobalIdent() const
