@@ -1226,6 +1226,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             objmod.setModuleCtorDtor(newConstructor, true);
         } else
         {
+            puts("Workaround not needed");
             objmod.setModuleCtorDtor(s, false);
         }
     }
