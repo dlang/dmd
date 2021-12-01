@@ -1,6 +1,7 @@
 module core.lifetime;
 
 import core.internal.attributes : betterC;
+import core.memory;
 
 // emplace
 /**
@@ -2220,4 +2221,73 @@ pure nothrow @nogc @system unittest
 
     static assert(!__traits(compiles, f(ncarray)));
     f(move(ncarray));
+}
+
+/**
+ * This is called for a delete statement where the value
+ * being deleted is a pointer to a struct with a destructor
+ * but doesn't have an overloaded delete operator.
+ *
+ * Param:
+ *   p = pointer to the value to be deleted
+ */
+void _d_delstruct(T)(ref T *p)
+{
+    if (p)
+    {
+        debug(PRINTF) printf("_d_delstruct(%p)\n", p);
+
+        destroy(*p);
+        GC.free(p);
+        p = null;
+    }
+}
+
+unittest
+{
+    int dtors = 0;
+    struct S { ~this() { ++dtors; } }
+
+    S *s = new S();
+    _d_delstruct(s);
+
+    assert(s == null);
+    assert(dtors == 1);
+}
+
+unittest
+{
+    int innerDtors = 0;
+    int outerDtors = 0;
+
+    struct Inner { ~this() { ++innerDtors; } }
+    struct Outer
+    {
+        Inner *i1;
+        Inner *i2;
+
+        this(int x)
+        {
+            i1 = new Inner();
+            i2 = new Inner();
+        }
+
+        ~this()
+        {
+            ++outerDtors;
+
+            _d_delstruct(i1);
+            assert(i1 == null);
+
+            _d_delstruct(i2);
+            assert(i2 == null);
+        }
+    }
+
+    Outer *o = new Outer(0);
+    _d_delstruct(o);
+
+    assert(o == null);
+    assert(innerDtors == 2);
+    assert(outerDtors == 1);
 }
