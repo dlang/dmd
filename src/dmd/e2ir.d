@@ -5128,15 +5128,7 @@ elem *callfunc(const ref Loc loc,
         ec = el_same(&ethis);
         ethis = el_una(target.is64bit ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
-        tym_t tym;
-        /* Delegates use the same calling convention as member functions.
-         * For extern(C++) on Win32 this differs from other functions.
-         */
-        if (tf.linkage == LINK.cpp && !target.is64bit && target.os == Target.OS.Windows)
-            tym = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYmfunc;
-        else
-            tym = totym(tf);
-        ec = el_una(OPind, tym, ec);
+        ec = el_una(OPind, totym(tf), ec);
     }
 
     const ty = fd ? toSymbol(fd).Stype.Tty : ec.Ety;

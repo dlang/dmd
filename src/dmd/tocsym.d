@@ -379,9 +379,7 @@ Symbol *toSymbol(Dsymbol s)
                         break;
                     case LINK.cpp:
                         s.Sflags |= SFLpublic;
-                        /* Nested functions use the same calling convention as
-                         * member functions, because both can be used as delegates. */
-                        if ((fd.isThis() || fd.isNested()) && !target.is64bit && target.os == Target.OS.Windows)
+                        if (fd.isThis() && !target.is64bit && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
