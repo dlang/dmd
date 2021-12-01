@@ -579,6 +579,7 @@ extern (C++) struct Target
     extern (C++) bool isVectorOpSupported(Type type, uint op, Type t2 = null)
     {
         import dmd.tokens : EXP, TOK, Token;
+        import dmd.hdrgen : EXPtoString;
 
         auto tvec = type.isTypeVector();
         if (tvec is null)
@@ -735,7 +736,7 @@ extern (C++) struct Target
         default:
             // import std.stdio : stderr, writeln;
             // stderr.writeln(op);
-            assert(0, "unhandled op " ~ Token.toString(cast(TOK)op));
+            assert(0, "unhandled op " ~ EXPtoString(cast(EXP)op));
         }
         return supported;
     }

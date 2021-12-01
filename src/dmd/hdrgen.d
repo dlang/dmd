@@ -1812,7 +1812,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Expression e)
     {
-        buf.writestring(Token.toString(e.op));
+        buf.writestring(EXPtoString(e.op));
     }
 
     override void visit(IntegerExp e)
@@ -2278,7 +2278,7 @@ public:
 
     override void visit(UnaExp e)
     {
-        buf.writestring(Token.toString(e.op));
+        buf.writestring(EXPtoString(e.op));
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
@@ -2286,7 +2286,7 @@ public:
     {
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
         buf.writeByte(' ');
-        buf.writestring(Token.toString(e.op));
+        buf.writestring(EXPtoString(e.op));
         buf.writeByte(' ');
         expToBuffer(e.e2, cast(PREC)(precedence[e.op] + 1), buf, hgs);
     }
@@ -2540,12 +2540,12 @@ public:
     override void visit(PostExp e)
     {
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
-        buf.writestring(Token.toString(e.op));
+        buf.writestring(EXPtoString(e.op));
     }
 
     override void visit(PreExp e)
     {
-        buf.writestring(Token.toString(e.op));
+        buf.writestring(EXPtoString(e.op));
         expToBuffer(e.e1, precedence[e.op], buf, hgs);
     }
 
@@ -2568,7 +2568,7 @@ public:
 
     override void visit(DefaultInitExp e)
     {
-        buf.writestring(Token.toString(e.op));
+        buf.writestring(EXPtoString(e.op));
     }
 
     override void visit(ClassReferenceExp e)
@@ -3961,4 +3961,153 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Tnoreturn:  return visitNoreturn(cast(TypeNoreturn)t);
         case Ttag:       return visitTag(cast(TypeTag)t);
     }
+}
+
+/****************************************
+ * Convert EXP to char*.
+ */
+
+string EXPtoString(EXP op)
+{
+    static immutable char*[EXP.max + 1] strings =
+    [
+        EXP.type : "type",
+        EXP.error : "error",
+        EXP.objcClassReference : "class",
+
+        EXP.typeof_ : "typeof",
+        EXP.mixin_ : "mixin",
+
+        EXP.import_ : "import",
+        EXP.dotVariable : "dotvar",
+        EXP.scope_ : "scope",
+        EXP.identifier : "identifier",
+        EXP.this_ : "this",
+        EXP.super_ : "super",
+        EXP.int64 : "long",
+        EXP.float64 : "double",
+        EXP.complex80 : "creal",
+        EXP.null_ : "null",
+        EXP.string_ : "string",
+        EXP.arrayLiteral : "arrayliteral",
+        EXP.assocArrayLiteral : "assocarrayliteral",
+        EXP.classReference : "classreference",
+        EXP.file : "__FILE__",
+        EXP.fileFullPath : "__FILE_FULL_PATH__",
+        EXP.line : "__LINE__",
+        EXP.moduleString : "__MODULE__",
+        EXP.functionString : "__FUNCTION__",
+        EXP.prettyFunction : "__PRETTY_FUNCTION__",
+        EXP.typeid_ : "typeid",
+        EXP.is_ : "is",
+        EXP.assert_ : "assert",
+        EXP.halt : "halt",
+        EXP.template_ : "template",
+        EXP.dSymbol : "symbol",
+        EXP.function_ : "function",
+        EXP.variable : "var",
+        EXP.symbolOffset : "symoff",
+        EXP.structLiteral : "structLiteral",
+        EXP.compoundLiteral : "compoundliteral",
+        EXP.arrayLength : "arraylength",
+        EXP.delegatePointer : "delegateptr",
+        EXP.delegateFunctionPointer : "delegatefuncptr",
+        EXP.remove : "remove",
+        EXP.tuple : "tuple",
+        EXP.traits : "__traits",
+        EXP.default_ : "default",
+        EXP.overloadSet : "__overloadset",
+        EXP.void_ : "void",
+        EXP.vectorArray : "vectorarray",
+        EXP._Generic : "_Generic",
+
+        // post
+        EXP.dotTemplateInstance : "dotti",
+        EXP.dotIdentifier : "dotid",
+        EXP.dotTemplateDeclaration : "dottd",
+        EXP.dot : ".",
+        EXP.dotType : "dottype",
+        EXP.plusPlus : "++",
+        EXP.minusMinus : "--",
+        EXP.prePlusPlus : "++",
+        EXP.preMinusMinus : "--",
+        EXP.call : "call",
+        EXP.slice : "..",
+        EXP.array : "[]",
+        EXP.index : "[i]",
+
+        EXP.delegate_ : "delegate",
+        EXP.address : "&",
+        EXP.star : "*",
+        EXP.negate : "-",
+        EXP.uadd : "+",
+        EXP.not : "!",
+        EXP.tilde : "~",
+        EXP.delete_ : "delete",
+        EXP.new_ : "new",
+        EXP.newAnonymousClass : "newanonclass",
+        EXP.cast_ : "cast",
+
+        EXP.vector : "__vector",
+        EXP.pow : "^^",
+
+        EXP.mul : "*",
+        EXP.div : "/",
+        EXP.mod : "%",
+
+        EXP.add : "+",
+        EXP.min : "-",
+        EXP.concatenate : "~",
+
+        EXP.leftShift : "<<",
+        EXP.rightShift : ">>",
+        EXP.unsignedRightShift : ">>>",
+
+        EXP.lessThan : "<",
+        EXP.lessOrEqual : "<=",
+        EXP.greaterThan : ">",
+        EXP.greaterOrEqual : ">=",
+        EXP.in_ : "in",
+
+        EXP.equal : "==",
+        EXP.notEqual : "!=",
+        EXP.identity : "is",
+        EXP.notIdentity : "!is",
+
+        EXP.and : "&",
+        EXP.xor : "^",
+        EXP.or : "|",
+
+        EXP.andAnd : "&&",
+        EXP.orOr : "||",
+
+        EXP.question : "?",
+
+        EXP.assign : "=",
+        EXP.construct : "=",
+        EXP.blit : "=",
+        EXP.addAssign : "+=",
+        EXP.minAssign : "-=",
+        EXP.concatenateAssign : "~=",
+        EXP.concatenateElemAssign : "~=",
+        EXP.concatenateDcharAssign : "~=",
+        EXP.mulAssign : "*=",
+        EXP.divAssign : "/=",
+        EXP.modAssign : "%=",
+        EXP.powAssign : "^^=",
+        EXP.leftShiftAssign : "<<=",
+        EXP.rightShiftAssign : ">>=",
+        EXP.unsignedRightShiftAssign : ">>>=",
+        EXP.andAssign : "&=",
+        EXP.orAssign : "|=",
+        EXP.xorAssign : "^=",
+
+        EXP.comma : ",",
+        EXP.declaration : "declaration",
+
+        EXP.interval : "interval",
+    ];
+    const p = strings[op];
+    assert(p);
+    return p[0 .. strlen(p)];
 }
