@@ -7316,6 +7316,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 deprecation(exp.loc, "The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.");
         }
 
+        Expression e = exp;
+
         if (Expression ex = unaSemantic(exp, sc))
         {
             result = ex;
@@ -7352,7 +7354,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (tb.ty == Tstruct)
             {
                 ad = (cast(TypeStruct)tb).sym;
-                semanticTypeInfo(sc, tb);
+
+                // Lower to .object._d_delstruct(exp.e1)
+                Expression id = new IdentifierExp(exp.loc, Id.empty);
+                id = new DotIdExp(exp.loc, id, Id.object);
+                id = new DotIdExp(exp.loc, id, Id._d_delstruct);
+                id = id.expressionSemantic(sc);
+
+                e = new CallExp(exp.loc, id, exp.e1).expressionSemantic(sc);
             }
             break;
 
@@ -7397,7 +7406,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (err)
             return setError();
 
-        result = exp;
+        result = e;
     }
 
     override void visit(CastExp exp)

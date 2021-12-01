@@ -8276,6 +8276,7 @@ struct Id final
     static Identifier* criticalenter;
     static Identifier* criticalexit;
     static Identifier* _d_delThrowable;
+    static Identifier* _d_delstruct;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;
