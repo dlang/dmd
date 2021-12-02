@@ -2311,7 +2311,7 @@ extern (C++) class ToElemVisitor : Visitor
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(eto, efrom, eti, null);
-                    int rtl = RTLSYM_ARRAYASSIGN;
+                    auto rtl = RTLSYM.ARRAYASSIGN;
                     elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
                     return setResult(e);
                 }
@@ -5959,7 +5959,7 @@ Lagain:
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
                     assert(op != EXP.construct, "Trying reference _d_arraysetctor, this should not happen!");
-                    r = RTLSYM_ARRAYSETASSIGN;
+                    r = RTLSYM.ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
                     elem *eti = getTypeInfo(exp.loc, tb.unSharedOf().mutableOf(), irs);
