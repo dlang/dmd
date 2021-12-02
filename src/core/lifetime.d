@@ -1,7 +1,6 @@
 module core.lifetime;
 
 import core.internal.attributes : betterC;
-import core.memory : GC;
 
 // emplace
 /**
@@ -2228,7 +2227,7 @@ pure nothrow @nogc @system unittest
  * being deleted is a pointer to a struct with a destructor
  * but doesn't have an overloaded delete operator.
  *
- * Param:
+ * Params:
  *   p = pointer to the value to be deleted
  */
 void _d_delstruct(T)(ref T *p)
@@ -2236,6 +2235,8 @@ void _d_delstruct(T)(ref T *p)
     if (p)
     {
         debug(PRINTF) printf("_d_delstruct(%p)\n", p);
+
+        import core.memory : GC;
 
         destroy(*p);
         GC.free(p);
