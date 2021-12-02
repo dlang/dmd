@@ -2495,7 +2495,18 @@ final class CParser(AST) : Parser!AST
                 return t;
             }
 
-            t = constApply(t);
+            if (declarator == DTR.xparameter &&
+                t.isTypePointer())
+            {
+                /* Because there are instances in .h files of "const pointer to mutable",
+                 * skip applying transitive `const`
+                 * https://issues.dlang.org/show_bug.cgi?id=22534
+                 */
+                auto tn = cast(AST.TypeNext)t;
+                tn.next = constApply(tn.next);
+            }
+            else
+                t = constApply(t);
         }
 
         //printf("result: %s\n", t.toChars());
