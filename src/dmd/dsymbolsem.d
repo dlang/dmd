@@ -3097,13 +3097,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (ad && ad.isClassDeclaration() && (tf.isreturn || sc.stc & STC.return_) && !(sc.stc & STC.static_))
                 sc.stc |= STC.scope_;
 
-            // If 'this' has no pointers, remove 'scope' as it has no meaning
-            if (sc.stc & STC.scope_ && ad && ad.isStructDeclaration() && !ad.type.hasPointers())
-            {
-                sc.stc &= ~STC.scope_;
-                tf.isScopeQual = false;
-            }
-
             sc.linkage = funcdecl.linkage;
 
             if (!tf.isNaked() && !(funcdecl.isThis() || funcdecl.isNested()))

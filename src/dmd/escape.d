@@ -1775,7 +1775,10 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                 AggregateDeclaration ad;
                 if (global.params.useDIP1000 == FeatureState.enabled && tf.isreturn && fd && (ad = fd.isThis()) !is null)
                 {
-                    if (ad.isClassDeclaration() || tf.isScopeQual)       // this is 'return scope'
+                    if (ad.isClassDeclaration() ||
+                        // https://issues.dlang.org/show_bug.cgi?id=17049
+                        // if the struct has no pointers, `scope` has no meaning
+                       (tf.isScopeQual && (!ad.isStructDeclaration || ad.type.hasPointers())))       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
                     {
