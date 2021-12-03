@@ -1241,7 +1241,7 @@ struct TargetC
         /*
             MacOS Monterey (12) does not support C runtime destructors.
         */
-        if (os == Target.OS.OSX && target.osMajor >= 12)
+        if (os == Target.OS.OSX)
         {
             crtDestructorsSupported = false;
         }
