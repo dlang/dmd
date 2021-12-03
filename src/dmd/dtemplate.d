@@ -7319,6 +7319,19 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                                 goto L1; // dparent is most nested
                             }
                         }
+                        //https://issues.dlang.org/show_bug.cgi?id=17870
+                        if (dparent.isClassDeclaration() && enclosing.isClassDeclaration())
+                        {
+                            auto pc = dparent.isClassDeclaration();
+                            auto ec = enclosing.isClassDeclaration();
+                            if (pc.isBaseOf(ec, null))
+                                goto L1;
+                            else if (ec.isBaseOf(pc, null))
+                            {
+                                enclosing = dparent;
+                                goto L1;
+                            }
+                        }
                         error("`%s` is nested in both `%s` and `%s`", toChars(), enclosing.toChars(), dparent.toChars());
                         errors = true;
                     }
