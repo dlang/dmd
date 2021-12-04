@@ -1547,7 +1547,7 @@ struct Triple
             import dmd.root.string : startsWith;
             if (!arch.ptr.startsWith(str))
                 return false;
-            arch = arch[str.length-1 .. $-1];
+            arch = arch[str.length .. $];
             return true;
         }
 
