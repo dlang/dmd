@@ -26,7 +26,7 @@ class Type;
 class TypeTuple;
 class TypeFunction;
 
-enum class CPU
+enum class CPU : unsigned char
 {
     x87,
     mmx,

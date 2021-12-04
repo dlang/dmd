@@ -27,7 +27,7 @@ module dmd.target;
 
 import dmd.globals : Param;
 
-enum CPU
+enum CPU : ubyte
 {
     x87,
     mmx,
