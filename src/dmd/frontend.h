@@ -7652,7 +7652,6 @@ private:
     const Param* params;
 public:
     void _init(const Param& params);
-    void setCPU();
     void setTriple(const Triple& triple);
     void addPredefinedGlobalIdentifiers() const;
     void deinitialize();
@@ -7680,7 +7679,6 @@ public:
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration* fd, Statement* fbody);
     Target() :
-        os((OS)1u),
         osMajor(),
         ptrsize(),
         realsize(),

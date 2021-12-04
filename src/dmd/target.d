@@ -46,25 +46,6 @@ enum CPU
     native              // the machine the compiler is being run on
 }
 
-Target.OS defaultTargetOS()
-{
-    version (Windows)
-        return Target.OS.Windows;
-    else version (linux)
-        return Target.OS.linux;
-    else version (OSX)
-        return Target.OS.OSX;
-    else version (FreeBSD)
-        return Target.OS.FreeBSD;
-    else version (OpenBSD)
-        return Target.OS.OpenBSD;
-    else version (Solaris)
-        return Target.OS.Solaris;
-    else version (DragonFlyBSD)
-        return Target.OS.DragonFlyBSD;
-    else
-        static assert(0, "unknown TARGET");
-}
 ////////////////////////////////////////////////////////////////////////////////
 /**
  * Describes a back-end target. At present it is incomplete, but in the future
@@ -106,7 +87,7 @@ extern (C++) struct Target
         Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
     }
 
-    OS os = defaultTargetOS();
+    OS os;
     ubyte osMajor;
 
     // D ABI
@@ -276,35 +257,6 @@ extern (C++) struct Target
         }
         else
             assert(0, "unknown environment");
-    }
-
-    /**
-     * Determine the instruction set to be used
-     */
-    void setCPU()
-    {
-        if(!isXmmSupported())
-        {
-            cpu = CPU.x87;   // cannot support other instruction sets
-            return;
-        }
-        switch (cpu)
-        {
-            case CPU.baseline:
-                cpu = CPU.sse2;
-                break;
-
-            case CPU.native:
-            {
-                import core.cpuid;
-                cpu = core.cpuid.avx2 ? CPU.avx2 :
-                      core.cpuid.avx  ? CPU.avx  :
-                                        CPU.sse2;
-                break;
-            }
-            default:
-                break;
-        }
     }
 
     void setTriple(const ref Triple triple)
@@ -1155,6 +1107,43 @@ extern (C++) struct Target
     {
         return (os & Target.OS.Posix) != 0;
     }
+
+    /**
+     * Determine the platform to be used
+     */
+    extern (D) void setTargetOS()
+    {
+        os = defaultTargetOS();
+    }
+
+    /**
+     * Determine the instruction set to be used
+     */
+    extern (D) void setCPU()
+    {
+        if(!isXmmSupported())
+        {
+            cpu = CPU.x87;   // cannot support other instruction sets
+            return;
+        }
+        switch (cpu)
+        {
+            case CPU.baseline:
+                cpu = CPU.sse2;
+                break;
+
+            case CPU.native:
+            {
+                import core.cpuid;
+                cpu = core.cpuid.avx2 ? CPU.avx2 :
+                      core.cpuid.avx  ? CPU.avx  :
+                                        CPU.sse2;
+                break;
+            }
+            default:
+                break;
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1672,3 +1661,27 @@ struct Triple
 
 ////////////////////////////////////////////////////////////////////////////////
 extern (C++) __gshared Target target;
+
+
+////////////////////////////////////////////////////////////////////////////////
+private:
+
+Target.OS defaultTargetOS()
+{
+    version (Windows)
+        return Target.OS.Windows;
+    else version (linux)
+        return Target.OS.linux;
+    else version (OSX)
+        return Target.OS.OSX;
+    else version (FreeBSD)
+        return Target.OS.FreeBSD;
+    else version (OpenBSD)
+        return Target.OS.OpenBSD;
+    else version (Solaris)
+        return Target.OS.Solaris;
+    else version (DragonFlyBSD)
+        return Target.OS.DragonFlyBSD;
+    else
+        static assert(0, "unknown TARGET");
+}
