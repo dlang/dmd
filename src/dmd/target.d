@@ -149,12 +149,12 @@ extern (C++) struct Target
         real_t infinity;                    /// infinity value
         real_t epsilon;                     /// smallest increment to the value 1
 
-        d_int64 dig = T.dig;                /// number of decimal digits of precision
-        d_int64 mant_dig = T.mant_dig;      /// number of bits in mantissa
-        d_int64 max_exp = T.max_exp;        /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
-        d_int64 min_exp = T.min_exp;        /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
-        d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
-        d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
+        d_int64 dig;                        /// number of decimal digits of precision
+        d_int64 mant_dig;                   /// number of bits in mantissa
+        d_int64 max_exp;                    /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
+        d_int64 min_exp;                    /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
+        d_int64 max_10_exp;                 /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
+        d_int64 min_10_exp;                 /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
 
         extern (D) void initialize()
         {
@@ -163,6 +163,12 @@ extern (C++) struct Target
             nan = T.nan;
             infinity = T.infinity;
             epsilon = T.epsilon;
+            dig = T.dig;
+            mant_dig = T.mant_dig;
+            max_exp = T.max_exp;
+            min_exp = T.min_exp;
+            max_10_exp = T.max_10_exp;
+            min_10_exp = T.min_10_exp;
         }
     }
 
