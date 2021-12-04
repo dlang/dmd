@@ -2296,12 +2296,12 @@ extern (C++) class ToElemVisitor : Visitor
                     e = el_combine(el_combine(eto, efrom), el_combine(echeck, e));
                     return setResult(e);
                 }
-                else if ((postblit || destructor) && ae.op != EXP.blit)
+                else if ((postblit || destructor) &&
+                    ae.op != EXP.blit &&
+                    ae.op != EXP.construct)
                 {
                     /* Generate:
-                     *      _d_arrayassign(ti, efrom, eto)
-                     * or:
-                     *      _d_arrayctor(ti, efrom, eto)
+                     *     _d_arrayassign(ti, efrom, eto)
                      */
                     el_free(esize);
                     elem *eti = getTypeInfo(ae.e1.loc, t1.nextOf().toBasetype(), irs);
@@ -2311,7 +2311,7 @@ extern (C++) class ToElemVisitor : Visitor
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(eto, efrom, eti, null);
-                    const rtl = (ae.op == EXP.construct) ? RTLSYM.ARRAYCTOR : RTLSYM.ARRAYASSIGN;
+                    auto rtl = RTLSYM.ARRAYASSIGN;
                     elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
                     return setResult(e);
                 }
@@ -2619,21 +2619,7 @@ extern (C++) class ToElemVisitor : Visitor
             }
             else if (ae.op == EXP.construct)
             {
-                e1 = sarray_toDarray(ae.e1.loc, ae.e1.type, null, e1);
-                e2 = sarray_toDarray(ae.e2.loc, ae.e2.type, null, e2);
-
-                /* Generate:
-                 *      _d_arrayctor(ti, e2, e1)
-                 */
-                elem *eti = getTypeInfo(ae.e1.loc, t1b.nextOf().toBasetype(), irs);
-                if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
-                {
-                    e1 = addressElem(e1, Type.tvoid.arrayOf());
-                    e2 = addressElem(e2, Type.tvoid.arrayOf());
-                }
-                elem *ep = el_params(e1, e2, eti, null);
-                elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCTOR)), ep);
-                return setResult2(e);
+                assert(0, "Trying reference _d_arrayctor, this should not happen!");
             }
             else
             {
@@ -5972,7 +5958,8 @@ Lagain:
                     /* Need to do postblit/destructor.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
-                    r = (op == EXP.construct) ? RTLSYM.ARRAYSETCTOR : RTLSYM.ARRAYSETASSIGN;
+                    assert(op != EXP.construct, "Trying reference _d_arraysetctor, this should not happen!");
+                    r = RTLSYM.ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
                     elem *eti = getTypeInfo(exp.loc, tb.unSharedOf().mutableOf(), irs);

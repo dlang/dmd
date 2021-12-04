@@ -8170,6 +8170,8 @@ struct Id final
     static Identifier* dup;
     static Identifier* _aaApply;
     static Identifier* _aaApply2;
+    static Identifier* _d_arrayctor;
+    static Identifier* _d_arraysetctor;
     static Identifier* Pinline;
     static Identifier* lib;
     static Identifier* linkerDirective;
