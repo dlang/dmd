@@ -172,19 +172,24 @@ void testFuncCall()
     assert(countLeft == 1);
     assert(countRight == 0);
 
-//     // C function arguments are still evaluated left to right
-//     // Despite them being push in reverse order
-    testAssertFailure(line, msg, function()
+    version (DigitalMars)
     {
-        static extern(C) void acceptNoreturnC(int, int, int) { puts("unreachable"); }
+        // ???: C function arguments are still evaluated left to right
+        // ???: Despite them being push in reverse order
+        testAssertFailure(line, msg, function()
+        {
+            static extern(C) void acceptNoreturnC(int, int, int) { puts("unreachable"); }
 
-        acceptNoreturnC(countLeft++, abort(), countRight++);
+            acceptNoreturnC(countLeft++, abort(), countRight++);
 
-        assert(false);
-    });
+            assert(false);
+        });
 
-    assert(countLeft == 2);
-    assert(countRight == 0);
+        assert(countLeft == 2);
+        assert(countRight == 0);
+    }
+    else
+        countLeft++;
 
     WithDtor.destroyed = 0;
 
