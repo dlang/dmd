@@ -1486,9 +1486,12 @@ final class CParser(AST) : Parser!AST
 
         /* If a declarator does not follow, it is unnamed
          */
-        if (token.value == TOK.semicolon && tspec)
+        if (token.value == TOK.semicolon)
         {
             nextToken();
+            if (!tspec)
+                return;         // accept empty declaration as an extension
+
             auto tt = tspec.isTypeTag();
             if (!tt ||
                 !tt.id && (tt.tok == TOK.struct_ || tt.tok == TOK.union_))
