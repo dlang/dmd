@@ -431,6 +431,40 @@ a = 2;         // sets `S.i` to `2`
 b = 4;         // sets `S.j` to `4`
 -----------
 
+        $(P Aliases can be used to call a function with different default
+        arguments, change an argument from required to default or vice versa:)
+
+-----------
+import std.stdio : writefln;
+
+void main() {
+    Foo foo = &foofoo;
+    foo();              // prints v: 6
+    foo(8);             // prints v: 8
+    Bar bar = &barbar;
+    // bar(4);             // compilation error, because the `Bar` alias
+                        // requires an explicit 2nd argument
+    barbar(4);          // prints a: 4, b: 6, c: 7
+    bar(4, 5);          // prints a: 4, b: 5, c: 9
+    bar(4, 5, 6);       // prints a: 4, b: 5, c: 6
+
+    Baz baz = &barbar;
+    baz();              // prints a: 2, b: 3, c: 4
+}
+
+alias Foo = void function(int=6);
+alias Bar = void function(int, int, int=9);
+alias Baz = void function(int=2, int=3, int=4);
+
+void foofoo(int v = 6) {
+    writefln("v: %d", v);
+}
+
+void barbar(int a, int b = 6, int c = 7) {
+    writefln("a: %d, b: %d, c: %d", a, b, c);
+}
+-----------
+
 $(H2 $(LNAME2 AliasAssign, Alias Assign))
 
 $(GRAMMAR
