@@ -9106,92 +9106,109 @@ LagainStc:
             return e;
 
         // require parens for e.g. `t ? a = 1 : b = 2`
-        if (e.op == EXP.question && !e.parens && precedence[token.value] == PREC.assign)
-            dmd.errors.error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
-                e.toChars(), Token.toChars(token.value));
+        void checkRequiredParens()
+        {
+            if (e.op == EXP.question && !e.parens)
+                dmd.errors.error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
+                    e.toChars(), Token.toChars(token.value));
+        }
 
         const loc = token.loc;
         switch (token.value)
         {
         case TOK.assign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AssignExp(loc, e, e2);
             break;
 
         case TOK.addAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AddAssignExp(loc, e, e2);
             break;
 
         case TOK.minAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.MinAssignExp(loc, e, e2);
             break;
 
         case TOK.mulAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.MulAssignExp(loc, e, e2);
             break;
 
         case TOK.divAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.DivAssignExp(loc, e, e2);
             break;
 
         case TOK.modAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ModAssignExp(loc, e, e2);
             break;
 
         case TOK.powAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.PowAssignExp(loc, e, e2);
             break;
 
         case TOK.andAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AndAssignExp(loc, e, e2);
             break;
 
         case TOK.orAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.OrAssignExp(loc, e, e2);
             break;
 
         case TOK.xorAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.XorAssignExp(loc, e, e2);
             break;
 
         case TOK.leftShiftAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ShlAssignExp(loc, e, e2);
             break;
 
         case TOK.rightShiftAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ShrAssignExp(loc, e, e2);
             break;
 
         case TOK.unsignedRightShiftAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.UshrAssignExp(loc, e, e2);
             break;
 
         case TOK.concatenateAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.CatAssignExp(loc, e, e2);
