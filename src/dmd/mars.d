@@ -1915,7 +1915,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         case 14_488:
                             break;
                         case 16_997:
-                            params.fix16997 = FeatureState.enabled;
+                            deprecation(Loc.initial, "`-transition=16997` is now the default behavior");
                             break;
                         default:
                             error("Transition `%s` is invalid", p);
@@ -1932,7 +1932,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             params.dtorFields = FeatureState.enabled;
                             break;
                         case "intpromote":
-                            params.fix16997 = FeatureState.enabled;
+                            deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
                             break;
                         case "markdown":
                             params.markdown = true;

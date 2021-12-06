@@ -4903,7 +4903,7 @@ static assert(is(typeof(S5933d.x) == FuncType5933));
 
 
 class C5933a { auto x() { return 0; } }
-static assert(is(typeof(&(new C5933b()).x) == int delegate()));
+static assert(is(typeof(&(new C5933b()).x) == int delegate() pure nothrow @nogc @safe));
 
 class C5933b { auto x() { return 0; } }
 //static assert(is(typeof((new C5933b()).x) == FuncType5933));

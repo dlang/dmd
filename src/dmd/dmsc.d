@@ -54,7 +54,8 @@ extern (C) void out_config_init(
         bool useExceptions,     // implement exception handling
         ubyte dwarf,            // DWARF version used
         string _version,        // Compiler version
-        exefmt_t exefmt         // Executable file format
+        exefmt_t exefmt,        // Executable file format
+        bool generatedMain      // a main entrypoint is generated
         );
 
 void out_config_debug(
@@ -118,7 +119,8 @@ void backend_init()
         params.useExceptions && ClassDeclaration.throwable,
         dmdParams.dwarf,
         global.versionString(),
-        exfmt
+        exfmt,
+        params.addMain
     );
 
     out_config_debug(

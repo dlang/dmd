@@ -4861,7 +4861,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 return;
 
             // Allow conversion from implicit function pointer to delegate
-            if (e.tok == EXP.reserved && t.ty == Tpointer && tparam.ty == Tdelegate)
+            if (e.tok == TOK.reserved && t.ty == Tpointer && tparam.ty == Tdelegate)
             {
                 TypeFunction tf = cast(TypeFunction)t.nextOf();
                 t = (new TypeDelegate(tf)).merge();
@@ -6727,10 +6727,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                      * already semanticed as function pointer, never requires
                      * outer frame. So convert it to global function is valid.
                      */
-                    if (fe.fd.tok == EXP.reserved && fe.type.ty == Tpointer)
+                    if (fe.fd.tok == TOK.reserved && fe.type.ty == Tpointer)
                     {
                         // change to non-nested
-                        fe.fd.tok = EXP.function_;
+                        fe.fd.tok = TOK.function_;
                         fe.fd.vthis = null;
                     }
                     else if (fe.td)
@@ -7317,6 +7317,19 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             {
                                 enclosing = dparent;
                                 goto L1; // dparent is most nested
+                            }
+                        }
+                        //https://issues.dlang.org/show_bug.cgi?id=17870
+                        if (dparent.isClassDeclaration() && enclosing.isClassDeclaration())
+                        {
+                            auto pc = dparent.isClassDeclaration();
+                            auto ec = enclosing.isClassDeclaration();
+                            if (pc.isBaseOf(ec, null))
+                                goto L1;
+                            else if (ec.isBaseOf(pc, null))
+                            {
+                                enclosing = dparent;
+                                goto L1;
                             }
                         }
                         error("`%s` is nested in both `%s` and `%s`", toChars(), enclosing.toChars(), dparent.toChars());

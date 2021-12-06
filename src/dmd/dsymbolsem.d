@@ -3041,9 +3041,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Type treq = fld.treq;
             assert(treq.nextOf().ty == Tfunction);
             if (treq.ty == Tdelegate)
-                fld.tok = EXP.delegate_;
+                fld.tok = TOK.delegate_;
             else if (treq.isPtrToFunction())
-                fld.tok = EXP.function_;
+                fld.tok = TOK.function_;
             else
                 assert(0);
             funcdecl.linkage = treq.nextOf().toTypeFunction().linkage;
@@ -6098,7 +6098,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
              * for attribute inference.
              */
             scope fld = fd.isFuncLiteralDeclaration();
-            if (fld && fld.tok == EXP.reserved)
+            if (fld && fld.tok == TOK.reserved)
                 doSemantic3 = true;
             else if (sc.func)
                 doSemantic3 = true;
@@ -6125,7 +6125,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
                 }
                 if (auto fld = s.isFuncLiteralDeclaration())
                 {
-                    if (fld.tok == EXP.reserved)
+                    if (fld.tok == TOK.reserved)
                     {
                         doSemantic3 = true;
                         break;

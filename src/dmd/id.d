@@ -315,6 +315,8 @@ immutable Msgtable[] msgtable =
     { "dup" },
     { "_aaApply" },
     { "_aaApply2" },
+    { "_d_arrayctor" },
+    { "_d_arraysetctor" },
 
     // For pragma's
     { "Pinline", "inline" },

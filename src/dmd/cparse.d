@@ -1122,14 +1122,15 @@ final class CParser(AST) : Parser!AST
         const loc = token.loc;
 
         auto e = cparseShiftExp();
-        TOK op = token.value;
 
-        switch (op)
+        EXP op = EXP.reserved;
+        switch (token.value)
         {
-        case TOK.lessThan:
-        case TOK.lessOrEqual:
-        case TOK.greaterThan:
-        case TOK.greaterOrEqual:
+        case TOK.lessThan:       op = EXP.lessThan; goto Lcmp;
+        case TOK.lessOrEqual:    op = EXP.lessOrEqual; goto Lcmp;
+        case TOK.greaterThan:    op = EXP.greaterThan; goto Lcmp;
+        case TOK.greaterOrEqual: op = EXP.greaterOrEqual; goto Lcmp;
+        Lcmp:
             nextToken();
             auto e2 = cparseShiftExp();
             e = new AST.CmpExp(op, loc, e, e2);
@@ -1153,12 +1154,13 @@ final class CParser(AST) : Parser!AST
         const loc = token.loc;
 
         auto e = cparseRelationalExp();
-        const TOK op = token.value;
 
-        switch (op)
+        EXP op = EXP.reserved;
+        switch (token.value)
         {
-        case TOK.equal:
-        case TOK.notEqual:
+        case TOK.equal:         op = EXP.equal;    goto Lequal;
+        case TOK.notEqual:      op = EXP.notEqual; goto Lequal;
+        Lequal:
             nextToken();
             auto e2 = cparseRelationalExp();
             e = new AST.EqualExp(op, loc, e, e2);
@@ -1245,7 +1247,7 @@ final class CParser(AST) : Parser!AST
         {
             nextToken();
             auto e2 = cparseOrExp();
-            e = new AST.LogicalExp(loc, TOK.andAnd, e, e2);
+            e = new AST.LogicalExp(loc, EXP.andAnd, e, e2);
         }
         return e;
     }
@@ -1265,7 +1267,7 @@ final class CParser(AST) : Parser!AST
         {
             nextToken();
             auto e2 = cparseAndAndExp();
-            e = new AST.LogicalExp(loc, TOK.orOr, e, e2);
+            e = new AST.LogicalExp(loc, EXP.orOr, e, e2);
         }
         return e;
     }

@@ -605,6 +605,7 @@ enum
     CFG2expand      = 0x4000,  // expanded output to list file
     CFG2stomp       = 0x8000,  // enable stack stomping code
     CFG2gms         = 0x10000, // optimize debug symbols for microsoft debuggers
+    CFG2genmain     = 0x20000, // main entrypoint is generated
 }
 
 alias config_flags3_t = uint;

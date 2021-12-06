@@ -1904,10 +1904,25 @@ static if (1)
                 abuf.writeByte(DW_FORM_flag);
         }
 
-        if (config.dwarf >= 4 && sfunc.Sfunc.Fflags3 & Fmain)
+        if (sfunc.Sfunc.Fflags3 & Fmain)
         {
-            abuf.writeByte(DW_AT_main_subprogram);
-            abuf.writeByte(DW_FORM_flag_present);
+            if (config.dwarf >= 4)
+            {
+                abuf.writeByte(DW_AT_main_subprogram);
+                abuf.writeByte(DW_FORM_flag_present);
+                if (config.flags2 & CFG2genmain)
+                {
+                    abuf.writeByte(DW_AT_artificial);
+                    abuf.writeByte(DW_FORM_flag_present);
+                }
+            } else {
+                if (config.flags2 & CFG2genmain)
+                {
+                    abuf.writeByte(DW_AT_artificial);
+                    abuf.writeByte(DW_FORM_flag);
+                }
+            }
+
         }
         if (config.dwarf >= 5 && sfunc.Sflags & SFLexit)
         {
@@ -1948,6 +1963,10 @@ static if (1)
 
         if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
             debug_info.buf.writeByte(true);           // DW_AT_pure
+        if (config.dwarf < 4
+            && sfunc.Sfunc.Fflags3 & Fmain
+            && config.flags2 & CFG2genmain)
+            debug_info.buf.writeByte(true);           // DW_AT_artificial
 
         // DW_AT_low_pc and DW_AT_high_pc
         dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset);
