@@ -702,7 +702,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         Expression oaggr = fs.aggr;     // remember original for error messages
         if (fs.aggr.type && fs.aggr.type.toBasetype().ty == Tstruct &&
             (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
-            fs.aggr.op != TOK.type && !fs.aggr.isLvalue())
+            !fs.aggr.isTypeExp() && !fs.aggr.isLvalue())
         {
             // https://issues.dlang.org/show_bug.cgi?id=14653
             // Extend the life of rvalue aggregate till the end of foreach.
@@ -723,7 +723,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
 
         Dsymbol sapply = null;                  // the inferred opApply() or front() function
-        if (!inferForeachAggregate(sc, fs.op == EXP.foreach_, fs.aggr, sapply))
+        if (!inferForeachAggregate(sc, fs.op == TOK.foreach_, fs.aggr, sapply))
         {
             const(char)* msg = "";
             if (fs.aggr.type && isAggregate(fs.aggr.type))
@@ -1089,7 +1089,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     tmp_length = new CastExp(loc, tmp_length, fs.key.type);
                 }
-                if (fs.op == EXP.foreach_reverse_)
+                if (fs.op == TOK.foreach_reverse_)
                     fs.key._init = new ExpInitializer(loc, tmp_length);
                 else
                     fs.key._init = new ExpInitializer(loc, new IntegerExp(loc, 0, fs.key.type));
@@ -1102,19 +1102,19 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Statement forinit = new CompoundDeclarationStatement(loc, cs);
 
                 Expression cond;
-                if (fs.op == EXP.foreach_reverse_)
+                if (fs.op == TOK.foreach_reverse_)
                 {
                     // key--
-                    cond = new PostExp(TOK.minusMinus, loc, new VarExp(loc, fs.key));
+                    cond = new PostExp(EXP.minusMinus, loc, new VarExp(loc, fs.key));
                 }
                 else
                 {
                     // key < tmp.length
-                    cond = new CmpExp(TOK.lessThan, loc, new VarExp(loc, fs.key), tmp_length);
+                    cond = new CmpExp(EXP.lessThan, loc, new VarExp(loc, fs.key), tmp_length);
                 }
 
                 Expression increment = null;
-                if (fs.op == EXP.foreach_)
+                if (fs.op == TOK.foreach_)
                 {
                     // key += 1
                     increment = new AddAssignExp(loc, new VarExp(loc, fs.key), new IntegerExp(loc, 1, fs.key.type));
@@ -1158,7 +1158,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 return retStmt(s);
             }
         case Taarray:
-            if (fs.op == EXP.foreach_reverse_)
+            if (fs.op == TOK.foreach_reverse_)
                 fs.warning("cannot use `foreach_reverse` with an associative array");
             if (checkForArgTypes(fs))
                 return retError();
@@ -1192,7 +1192,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     cast(AggregateDeclaration)(cast(TypeStruct)tab).sym;
                 Identifier idfront;
                 Identifier idpopFront;
-                if (fs.op == EXP.foreach_)
+                if (fs.op == TOK.foreach_)
                 {
                     idfront = Id.Ffront;
                     idpopFront = Id.FpopFront;
@@ -1359,7 +1359,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 return retStmt(s);
             }
         case Tdelegate:
-            if (fs.op == EXP.foreach_reverse_)
+            if (fs.op == TOK.foreach_reverse_)
                 fs.deprecation("cannot use `foreach_reverse` with a delegate");
             return retStmt(apply());
         case Terror:
@@ -1466,7 +1466,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             default:
                 assert(0);
         }
-        const(char)* r = (fs.op == EXP.foreach_reverse_) ? "R" : "";
+        const(char)* r = (fs.op == TOK.foreach_reverse_) ? "R" : "";
         int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
         assert(j < BUFFER_LEN);
 
@@ -1762,7 +1762,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
          *  foreach_reverse (key; lwr .. upr) =>
          *  for (auto tmp = lwr, auto key = upr; key-- > tmp;)
          */
-        auto ie = new ExpInitializer(loc, (fs.op == EXP.foreach_) ? fs.lwr : fs.upr);
+        auto ie = new ExpInitializer(loc, (fs.op == TOK.foreach_) ? fs.lwr : fs.upr);
         fs.key = new VarDeclaration(loc, fs.upr.type.mutableOf(), Identifier.generateId("__key"), ie);
         fs.key.storage_class |= STC.temp;
         SignExtendedNumber lower = getIntRange(fs.lwr).imin;
@@ -1773,13 +1773,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
 
         Identifier id = Identifier.generateId("__limit");
-        ie = new ExpInitializer(loc, (fs.op == EXP.foreach_) ? fs.upr : fs.lwr);
+        ie = new ExpInitializer(loc, (fs.op == TOK.foreach_) ? fs.upr : fs.lwr);
         auto tmp = new VarDeclaration(loc, fs.upr.type, id, ie);
         tmp.storage_class |= STC.temp;
 
         auto cs = new Statements();
         // Keep order of evaluation as lwr, then upr
-        if (fs.op == EXP.foreach_)
+        if (fs.op == TOK.foreach_)
         {
             cs.push(new ExpStatement(loc, fs.key));
             cs.push(new ExpStatement(loc, tmp));
@@ -1792,18 +1792,18 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         Statement forinit = new CompoundDeclarationStatement(loc, cs);
 
         Expression cond;
-        if (fs.op == EXP.foreach_reverse_)
+        if (fs.op == TOK.foreach_reverse_)
         {
-            cond = new PostExp(TOK.minusMinus, loc, new VarExp(loc, fs.key));
+            cond = new PostExp(EXP.minusMinus, loc, new VarExp(loc, fs.key));
             if (fs.prm.type.isscalar())
             {
                 // key-- > tmp
-                cond = new CmpExp(TOK.greaterThan, loc, cond, new VarExp(loc, tmp));
+                cond = new CmpExp(EXP.greaterThan, loc, cond, new VarExp(loc, tmp));
             }
             else
             {
                 // key-- != tmp
-                cond = new EqualExp(TOK.notEqual, loc, cond, new VarExp(loc, tmp));
+                cond = new EqualExp(EXP.notEqual, loc, cond, new VarExp(loc, tmp));
             }
         }
         else
@@ -1811,21 +1811,21 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (fs.prm.type.isscalar())
             {
                 // key < tmp
-                cond = new CmpExp(TOK.lessThan, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
+                cond = new CmpExp(EXP.lessThan, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
             }
             else
             {
                 // key != tmp
-                cond = new EqualExp(TOK.notEqual, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
+                cond = new EqualExp(EXP.notEqual, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
             }
         }
 
         Expression increment = null;
-        if (fs.op == EXP.foreach_)
+        if (fs.op == TOK.foreach_)
         {
             // key += 1
             //increment = new AddAssignExp(loc, new VarExp(loc, fs.key), IntegerExp.literal!1);
-            increment = new PreExp(TOK.prePlusPlus, loc, new VarExp(loc, fs.key));
+            increment = new PreExp(EXP.prePlusPlus, loc, new VarExp(loc, fs.key));
         }
         if ((fs.prm.storageClass & STC.ref_) && fs.prm.type.equals(fs.key.type))
         {
@@ -2173,7 +2173,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         Type att = null;
         TypeEnum te = null;
-        while (ss.condition.op != TOK.error)
+        while (!ss.condition.isErrorExp())
         {
             // preserve enum type for final switches
             if (ss.condition.type.ty == Tenum)
@@ -2189,7 +2189,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 break;
             }
             ss.condition = integralPromotions(ss.condition, sc);
-            if (ss.condition.op != TOK.error && ss.condition.type.isintegral())
+            if (!ss.condition.isErrorExp() && ss.condition.type.isintegral())
                 break;
 
             auto ad = isAggregate(ss.condition.type);
@@ -2202,7 +2202,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
             }
 
-            if (ss.condition.op != TOK.error)
+            if (!ss.condition.isErrorExp())
             {
                 ss.error("`%s` must be of integral or string type, it is a `%s`",
                     ss.condition.toChars(), ss.condition.type.toChars());
@@ -2532,7 +2532,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             if (StringExp se = cs.exp.toStringExp())
                 cs.exp = se;
-            else if (cs.exp.op != TOK.int64 && cs.exp.op != TOK.error)
+            else if (!cs.exp.isIntegerExp() && !cs.exp.isErrorExp())
             {
                 cs.error("`case` must be a `string` or an integral constant, not `%s`", cs.exp.toChars());
                 errors = true;
@@ -2930,7 +2930,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     else if (m1 && !m2)
                     {
                     }
-                    else if (rs.exp.op != TOK.error)
+                    else if (!rs.exp.isErrorExp())
                     {
                         rs.error("expected return type of `%s`, not `%s`:",
                                  tret.toChars(),
@@ -4260,7 +4260,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
         assert(0);
     foreach (j; 0 .. n)
     {
-        size_t k = (fs.op == EXP.foreach_) ? j : n - 1 - j;
+        size_t k = (fs.op == TOK.foreach_) ? j : n - 1 - j;
         Expression e = null;
         Type t = null;
         if (te)
@@ -4577,10 +4577,10 @@ private Statements* flatten(Statement statement, Scope* sc)
              * expand template mixin in statement scope
              * to handle variable destructors.
              */
-            if (!es.exp || es.exp.op != TOK.declaration)
+            if (!es.exp || !es.exp.isDeclarationExp())
                 return null;
 
-            Dsymbol d = (cast(DeclarationExp)es.exp).declaration;
+            Dsymbol d = es.exp.isDeclarationExp().declaration;
             auto tm = d.isTemplateMixin();
             if (!tm)
                 return null;

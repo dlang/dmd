@@ -1644,7 +1644,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                  * allowed, but CTFE can generate one out of a new expression,
                  * but it'll be placed in static data so no need to check it.
                  */
-                if (e.e1.op != TOK.structLiteral)
+                if (e.e1.op != EXP.structLiteral)
                     e.e1.accept(this);
             }
 
@@ -2378,7 +2378,7 @@ void checkObErrors(ref ObState obstate)
                  * allowed, but CTFE can generate one out of a new expression,
                  * but it'll be placed in static data so no need to check it.
                  */
-                if (e.e1.op != TOK.structLiteral)
+                if (e.e1.op != EXP.structLiteral)
                     e.e1.accept(this);
             }
 

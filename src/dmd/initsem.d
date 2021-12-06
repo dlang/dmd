@@ -934,7 +934,7 @@ Initializer inferType(Initializer init, Scope* sc)
                 }
                 assert(iz.isExpInitializer());
                 (*values)[i] = (cast(ExpInitializer)iz).exp;
-                assert((*values)[i].op != TOK.error);
+                assert(!(*values)[i].isErrorExp());
             }
             Expression e = new AssocArrayLiteralExp(init.loc, keys, values);
             auto ei = new ExpInitializer(init.loc, e);
@@ -957,7 +957,7 @@ Initializer inferType(Initializer init, Scope* sc)
                 }
                 assert(iz.isExpInitializer());
                 (*elements)[i] = (cast(ExpInitializer)iz).exp;
-                assert((*elements)[i].op != TOK.error);
+                assert(!(*elements)[i].isErrorExp());
             }
             Expression e = new ArrayLiteralExp(init.loc, null, elements);
             auto ei = new ExpInitializer(init.loc, e);

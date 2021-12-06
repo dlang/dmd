@@ -212,7 +212,7 @@ final class CParser(AST) : Parser!AST
         case TOK.sizeof_:
         Lexp:
             auto exp = cparseExpression();
-            if (token.value == TOK.identifier && exp.op == TOK.identifier)
+            if (token.value == TOK.identifier && exp.op == EXP.identifier)
             {
                 error("found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
                 nextToken();
@@ -781,11 +781,11 @@ final class CParser(AST) : Parser!AST
                 break;
 
             case TOK.plusPlus:
-                e = new AST.PostExp(TOK.plusPlus, loc, e);
+                e = new AST.PostExp(EXP.plusPlus, loc, e);
                 break;
 
             case TOK.minusMinus:
-                e = new AST.PostExp(TOK.minusMinus, loc, e);
+                e = new AST.PostExp(EXP.minusMinus, loc, e);
                 break;
 
             case TOK.leftParenthesis:
@@ -841,14 +841,14 @@ final class CParser(AST) : Parser!AST
             // Parse `++` as an unary operator so that cast expressions only give
             // an error for being non-lvalues.
             e = cparseCastExp();
-            e = new AST.PreExp(TOK.prePlusPlus, loc, e);
+            e = new AST.PreExp(EXP.prePlusPlus, loc, e);
             break;
 
         case TOK.minusMinus:
             nextToken();
             // Parse `--` as an unary operator, same as prefix increment.
             e = cparseCastExp();
-            e = new AST.PreExp(TOK.preMinusMinus, loc, e);
+            e = new AST.PreExp(EXP.preMinusMinus, loc, e);
             break;
 
         case TOK.and:
