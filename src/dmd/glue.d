@@ -1208,7 +1208,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             Symbol* dso_handle = symbol_calloc("__dso_handle");
             dso_handle.Stype = type_fake(TYint);
             //Try to get MacOS _ prefix-ism right.
-            type_setmangle(&dso_handle.Stype, mTYman_sys);
+            type_setmangle(&dso_handle.Stype, mTYman_c);
             dso_handle.Sfl = FLextern;
             dso_handle.Sclass = SCextern;
             dso_handle.Stype.Tcount++;
