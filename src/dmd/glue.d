@@ -1207,6 +1207,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             auto atexitSym = getRtlsym(RTLSYM.CXA_ATEXIT);
             Symbol* dso_handle = symbol_calloc("__dso_handle");
             dso_handle.Stype = type_fake(TYint);
+            //Try to get MacOS _ prefix-ism right.
+            type_setmangle(&dso_handle.Stype, mTYman_sys);
             dso_handle.Sfl = FLextern;
             dso_handle.Sclass = SCextern;
             dso_handle.Stype.Tcount++;
