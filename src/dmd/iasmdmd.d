@@ -2236,12 +2236,12 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
             else if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
-                if (e.op == TOK.variable)
+                if (e.op == EXP.variable)
                 {
                     o1.s = (cast(VarExp)e).var;
                     return;
                 }
-                else if (e.op == TOK.function_)
+                else if (e.op == EXP.function_)
                 {
                     o1.s = (cast(FuncExp)e).fd;
                     return;
@@ -3645,12 +3645,12 @@ code *asm_db_parse(OP *pop)
                 e = e.expressionSemantic(sc);
                 sc.endCTFE();
                 e = e.ctfeInterpret();
-                if (e.op == TOK.int64)
+                if (e.op == EXP.int64)
                 {
                     dt.ul = e.toInteger();
                     goto L2;
                 }
-                else if (e.op == TOK.float64)
+                else if (e.op == EXP.float64)
                 {
                     switch (op)
                     {

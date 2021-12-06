@@ -3144,7 +3144,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     {
         buf.writeByte('@');
 
-        bool isAnonymous = p.userAttribDecl.atts.dim > 0 && (*p.userAttribDecl.atts)[0].op != TOK.call;
+        bool isAnonymous = p.userAttribDecl.atts.dim > 0 && !(*p.userAttribDecl.atts)[0].isCallExp();
         if (isAnonymous)
             buf.writeByte('(');
 

@@ -630,7 +630,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         //printf("e1.type %s\n", e.e1.type.toChars());
         //printf("type = %p\n", e.type);
         assert(e.type);
-        TOK op1 = e.e1.op;
+        const op1 = e.e1.op;
         Expression e1old = e.e1;
         if (expOptimize(e.e1, result, keepLvalue))
             return;

@@ -33,7 +33,6 @@ class Identifier;
  */
 
 typedef unsigned short TOK;
-typedef TOK EXP;
 enum
 {
         TOKreserved,
@@ -214,6 +213,189 @@ enum
         TOK__attribute__,
 
         TOKMAX
+};
+
+typedef unsigned short EXP;
+enum
+{
+        EXPreserved,
+
+        // Other
+        EXPlparen,      EXPrparen,
+        EXPlbracket,    EXPrbracket,
+        EXPlcurly,      EXPrcurly,
+        EXPcolon,       EXPneg,
+        EXPsemicolon,   EXPdotdotdot,
+        EXPeof,         EXPcast,
+        EXPnull,        EXPassert,
+        EXPtrue,        EXPfalse,
+        EXParray,       EXPcall,
+        EXPaddress,
+        EXPtype,        EXPthrow,
+        EXPnew,         EXPdelete,
+        EXPstar,        EXPsymoff,
+        EXPvar,         EXPdotvar,
+        EXPdotid,       EXPdotti,
+        EXPdottype,     EXPslice,
+        EXParraylength, EXPversion,
+        EXPmodule,      EXPdollar,
+        EXPtemplate,    EXPdottd,
+        EXPdeclaration, EXPtypeof,
+        EXPpragma,      EXPdsymbol,
+        EXPtypeid,      EXPuadd,
+        EXPremove,
+        EXPnewanonclass, EXPcomment,
+        EXParrayliteral, EXPassocarrayliteral,
+        EXPstructliteral,
+        EXPclassreference,
+        EXPthrownexception,
+        EXPdelegateptr,
+        EXPdelegatefuncptr,
+
+// 54
+        // Operators
+        EXPlt,          EXPgt,
+        EXPle,          EXPge,
+        EXPequal,       EXPnotequal,
+        EXPidentity,    EXPnotidentity,
+        EXPindex,       EXPis,
+
+// 64
+        EXPshl,         EXPshr,
+        EXPshlass,      EXPshrass,
+        EXPushr,        EXPushrass,
+        EXPcat,         EXPcatass,      EXPcatelemass,  EXPcatdcharass,     // ~ ~=
+        EXPadd,         EXPmin,         EXPaddass,      EXPminass,
+        EXPmul,         EXPdiv,         EXPmod,
+        EXPmulass,      EXPdivass,      EXPmodass,
+        EXPand,         EXPor,          EXPxor,
+        EXPandass,      EXPorass,       EXPxorass,
+        EXPassign,      EXPnot,         EXPtilde,
+        EXPplusplus,    EXPminusminus,  EXPconstruct,   EXPblit,
+        EXPdot,         EXPcomma,
+        EXPquestion,    EXPandand,      EXPoror,
+        EXPpreplusplus, EXPpreminusminus,
+
+// 105
+        // Numeric literals
+        EXPint32v, EXPuns32v,
+        EXPint64v, EXPuns64v,
+        EXPint128v, EXPuns128v,
+        EXPfloat32v, EXPfloat64v, EXPfloat80v,
+        EXPimaginary32v, EXPimaginary64v, EXPimaginary80v,
+
+        // Char constants
+        EXPcharv, EXPwcharv, EXPdcharv,
+
+        // Leaf operators
+        EXPidentifier,  EXPstring, EXPxstring,
+        EXPthis,        EXPsuper,
+        EXPhalt,        EXPtuple,
+        EXPerror,
+
+        // Basic types
+        EXPvoid,
+        EXPint8, EXPuns8,
+        EXPint16, EXPuns16,
+        EXPint32, EXPuns32,
+        EXPint64, EXPuns64,
+        EXPint128, EXPuns128,
+        EXPfloat32, EXPfloat64, EXPfloat80,
+        EXPimaginary32, EXPimaginary64, EXPimaginary80,
+        EXPcomplex32, EXPcomplex64, EXPcomplex80,
+        EXPchar, EXPwchar, EXPdchar, EXPbool,
+
+// 152
+        // Aggregates
+        EXPstruct, EXPclass, EXPinterface, EXPunion, EXPenum, EXPimport,
+        EXPalias, EXPoverride, EXPdelegate, EXPfunction,
+        EXPmixin,
+
+        EXPalign, EXPextern, EXPprivate, EXPprotected, EXPpublic, EXPexport,
+        EXPstatic, EXPfinal, EXPconst, EXPabstract,
+        EXPdebug, EXPdeprecated, EXPin, EXPout, EXPinout, EXPlazy,
+        EXPauto, EXPpackage, EXPimmutable,
+
+// 182
+        // Statements
+        EXPif, EXPelse, EXPwhile, EXPfor, EXPdo, EXPswitch,
+        EXPcase, EXPdefault, EXPbreak, EXPcontinue, EXPwith,
+        EXPsynchronized, EXPreturn, EXPgoto, EXPtry, EXPcatch, EXPfinally,
+        EXPasm, EXPforeach, EXPforeach_reverse,
+        EXPscope,
+        EXPon_scope_exit, EXPon_scope_failure, EXPon_scope_success,
+
+// 206
+        // Contracts
+        EXPinvariant,
+
+        // Testing
+        EXPunittest,
+
+        // Added after 1.0
+        EXPargTypes,
+        EXPref,
+        EXPmacro,
+
+// 211
+        EXPparameters,
+        EXPtraits,
+        EXPoverloadset,
+        EXPpure,
+        EXPnothrow,
+        EXPgshared,
+        EXPline,
+        EXPfile,
+        EXPfilefullpath,
+        EXPmodulestring,
+        EXPfuncstring,
+        EXPprettyfunc,
+        EXPshared,
+        EXPat,
+        EXPpow,
+        EXPpowass,
+        EXPgoesto,
+        EXPvector,
+        EXPpound,
+
+// 230
+        EXPinterval,
+        EXPvoidexp,
+        EXPcantexp,
+        EXPshowctfecontext,
+
+        EXPobjc_class_reference,
+        EXPvectorarray,
+
+        EXParrow,
+        EXPcolonColon,
+        EXPwchar_tLiteral,
+        EXPcompoundLiteral,
+
+        EXPinline,
+        EXPregister,
+        EXPrestrict,
+        EXPsigned,
+        EXPsizeof_,
+        EXPtypedef_,
+        EXPunsigned,
+        EXPvolatile,
+        EXP_Alignas,
+        EXP_Alignof,
+        EXP_Atomic,
+        EXP_Bool,
+        EXP_Complex,
+        EXP_Generic,
+        EXP_Imaginary,
+        EXP_Noreturn,
+        EXP_Static_assert,
+        EXP_Thread_local,
+
+        EXP__cdecl,
+        EXP__declspec,
+        EXP__attribute__,
+
+        EXPMAX
 };
 
 #define TOKwild TOKinout
