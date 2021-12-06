@@ -324,6 +324,37 @@ else
         va_end(ap);
     }
 
+private immutable string[] druntimeHooks =
+[
+    "_d_delstruct"
+];
+
+/**
+ * Checks if the given error refers a template-ised druntime hook.
+ * Params:
+ *      format = printf-style format specification
+ *      ap     = printf-style variadic arguments
+ */
+extern(C++) private bool isDruntimeHookError(const(char)* format, va_list ap)
+{
+    va_list va;
+    char[2048] tmp;
+    bool foundHook = false;
+
+    va_copy(va, ap);
+    vsnprintf(tmp.ptr, tmp.length, format, va);
+
+    foreach (ref h; druntimeHooks)
+    {
+        foundHook = strstr(tmp.ptr, h.ptr) != null;
+        if (foundHook)
+            break;
+    }
+
+    va_end(va);
+    return foundHook;
+}
+
 /**
  * Just print to stderr, doesn't care about gagging.
  * (format,ap) text within backticks gets syntax highlighted.
@@ -339,6 +370,11 @@ else
 private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
         const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
+    // Ignore errors generated from template-ised druntime hooks, because they
+    // display internal compiler information, which is unnecessary to the user.
+    if (isDruntimeHookError(format, ap))
+        return;
+
     if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, p1, p2))
         return;
 
