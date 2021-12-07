@@ -356,44 +356,16 @@ enum
         EXPpowass,
         EXPgoesto,
         EXPvector,
-        EXPpound,
 
-// 230
-        EXPinterval,
         EXPvoidexp,
         EXPcantexp,
         EXPshowctfecontext,
-
         EXPobjc_class_reference,
         EXPvectorarray,
-
         EXParrow,
-        EXPcolonColon,
-        EXPwchar_tLiteral,
         EXPcompoundLiteral,
-
-        EXPinline,
-        EXPregister,
-        EXPrestrict,
-        EXPsigned,
-        EXPsizeof_,
-        EXPtypedef_,
-        EXPunsigned,
-        EXPvolatile,
-        EXP_Alignas,
-        EXP_Alignof,
-        EXP_Atomic,
-        EXP_Bool,
-        EXP_Complex,
         EXP_Generic,
-        EXP_Imaginary,
-        EXP_Noreturn,
-        EXP_Static_assert,
-        EXP_Thread_local,
-
-        EXP__cdecl,
-        EXP__declspec,
-        EXP__attribute__,
+        EXPinterval,
 
         EXPMAX
 };
