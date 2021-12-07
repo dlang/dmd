@@ -3292,7 +3292,7 @@ private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs
     debug
     {
         if (precedence[e.op] == PREC.zero)
-            printf("precedence not defined for token '%s'\n", Token.toChars(e.op));
+            printf("precedence not defined for token '%s'\n", EXPtoString(e.op).ptr);
     }
     if (e.op == 0xFF)
     {
@@ -4108,6 +4108,12 @@ string EXPtoString(EXP op)
         EXP.interval : "interval",
     ];
     const p = strings[op];
+    if (!p)
+    {
+        printf("error: EXP %d has no string\n", op);
+        return "XXXXX";
+        //assert(0);
+    }
     assert(p);
     return p[0 .. strlen(p)];
 }

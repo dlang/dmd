@@ -1290,7 +1290,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 Expression x = isExpression(o);
                 Type t = isType(o);
                 if (x)
-                    printf("e = %s %s\n", Token.toChars(x.op), x.toChars());
+                    printf("e = %s %s\n", EXPtoString(x.op).ptr, x.toChars());
                 if (t)
                     printf("t = %d %s\n", t.ty, t.toChars());
             }

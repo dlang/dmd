@@ -29,6 +29,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
@@ -194,7 +195,7 @@ Objects* opToArg(Scope* sc, EXP op)
     default:
         break;
     }
-    Expression e = new StringExp(Loc.initial, Token.toString(op));
+    Expression e = new StringExp(Loc.initial, EXPtoString(op));
     e = e.expressionSemantic(sc);
     auto tiargs = new Objects();
     tiargs.push(e);
@@ -416,7 +417,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         // @@@DEPRECATED_2.098@@@.
                         // Deprecated in 2.088
                         // Make an error in 2.098
-                        e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
+                        e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
                         // Rewrite +e1 as e1.add()
                         result = build_overload(e.loc, sc, e.e1, null, fd);
                         return;
@@ -428,7 +429,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     /* Rewrite op(e1) as:
                      *      op(e1.aliasthis)
                      */
-                    //printf("att una %s e1 = %s\n", Token::toChars(op), this.e1.type.toChars());
+                    //printf("att una %s e1 = %s\n", EXPtoString(op).ptr, this.e1.type.toChars());
                     Expression e1 = new DotIdExp(e.loc, e.e1, ad.aliasthis.ident);
                     UnaExp ue = cast(UnaExp)e.copy();
                     ue.e1 = e1;
@@ -684,9 +685,9 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         // Deprecated in 2.088
                         // Make an error in 2.098
                         if (id == Id.postinc || id == Id.postdec)
-                            e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
+                            e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
                         else
-                            e.deprecation("`%s` is deprecated.  Use `opBinary(string op)(...) if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
+                            e.deprecation("`%s` is deprecated.  Use `opBinary(string op)(...) if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
                     }
                 }
                 if (ad2 && id_r)
@@ -702,7 +703,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         // @@@DEPRECATED_2.098@@@.
                         // Deprecated in 2.088
                         // Make an error in 2.098
-                        e.deprecation("`%s` is deprecated.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), Token.toChars(e.op));
+                        e.deprecation("`%s` is deprecated.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), EXPtoString(e.op).ptr);
                     }
                 }
             }
@@ -929,8 +930,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 t2.ty == Tclass && e.e1.op == EXP.null_)
             {
                 e.error("use `%s` instead of `%s` when comparing with `null`",
-                    Token.toChars(e.op == EXP.equal ? EXP.identity : EXP.notIdentity),
-                    Token.toChars(e.op));
+                    EXPtoString(e.op == EXP.equal ? EXP.identity : EXP.notIdentity).ptr,
+                    EXPtoString(e.op).ptr);
                 result = ErrorExp.get();
                 return;
             }
@@ -1261,7 +1262,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     // @@@DEPRECATED_2.098@@@.
                     // Deprecated in 2.088
                     // Make an error in 2.098
-                    scope char[] op = Token.toString(e.op).dup;
+                    scope char[] op = EXPtoString(e.op).dup;
                     op[$-1] = '\0'; // remove trailing `=`
                     e.deprecation("`%s` is deprecated.  Use `opOpAssign(string op)(...) if (op == \"%s\")` instead.", id.toChars(), op.ptr);
                 }

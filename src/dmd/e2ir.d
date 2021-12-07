@@ -41,6 +41,7 @@ import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.glue;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
 import dmd.mtype;
@@ -523,7 +524,7 @@ extern (C++) class ToElemVisitor : Visitor
 
     override void visit(Expression e)
     {
-        printf("[%s] %s: %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
+        printf("[%s] %s: %s\n", e.loc.toChars(), EXPtoString(e.op).ptr, e.toChars());
         assert(0);
     }
 

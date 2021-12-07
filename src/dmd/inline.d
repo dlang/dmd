@@ -430,7 +430,7 @@ public:
 
         override void visit(Expression e)
         {
-            //printf("Expression.doInlineAs!%s(%s): %s\n", Result.stringof.ptr, Token.toChars(e.op), e.toChars());
+            //printf("Expression.doInlineAs!%s(%s): %s\n", Result.stringof.ptr, EXPtoString(e.op).ptr, e.toChars());
             result = e.copy();
         }
 
