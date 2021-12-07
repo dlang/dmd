@@ -1313,7 +1313,7 @@ struct TargetCPP
         else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
             runtime = Runtime.Clang;
         else if (os == Target.OS.Solaris)
-            runtime = Runtime.Sun;
+            runtime = Runtime.Gcc;
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms
