@@ -573,45 +573,16 @@ enum EXP : ushort
     powAssign,
     goesTo,
     vector,
-    pound,
 
-    interval = 229,
     voidExpression,
     cantExpression,
     showCtfeContext,
-
     objcClassReference,
     vectorArray,
-
     arrow,      // ->
-    colonColon, // ::
-    wchar_tLiteral,
     compoundLiteral, // ( type-name ) { initializer-list }
-
-    // C only keywords
-    inline,
-    register,
-    restrict,
-    signed,
-    sizeof_,
-    typedef_,
-    unsigned,
-    volatile,
-    _Alignas,
-    _Alignof,
-    _Atomic,
-    _Bool,
-    _Complex,
     _Generic,
-    _Imaginary,
-    _Noreturn,
-    _Static_assert,
-    _Thread_local,
-
-    // C only extended keywords
-    __cdecl,
-    __declspec,
-    __attribute__,
+    interval,
 }
 
 enum FirstCKeyword = TOK.inline;
