@@ -7406,7 +7406,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (err)
             return setError();
 
-        result = e;
+        if (e == exp)
+            result = e;
+        else
+        {
+            /* The type of the deleted pointer is a struct which has a dtor.
+             * Both the original DeleteExp and the lowered CallExp to
+             * `_d_delstruct` are returned in order to keep checking for dtor
+             * errors as well as generate code for the call to `_d_delstruct`.
+             */
+            result = Expression.combine(exp, e);
+        }
     }
 
     override void visit(CastExp exp)

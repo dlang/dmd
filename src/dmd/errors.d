@@ -330,7 +330,7 @@ private immutable string[] druntimeHooks =
 ];
 
 /**
- * Checks if the given error refers a template-ised druntime hook.
+ * Check if the given error refers a template-ised druntime hook.
  * Params:
  *      format = printf-style format specification
  *      ap     = printf-style variadic arguments
