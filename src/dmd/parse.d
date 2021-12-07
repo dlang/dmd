@@ -5752,7 +5752,7 @@ LagainStc:
                  * Error: found 'foo' when expecting ';' following statement
                  * becomes Error: found `(` when expecting `;` or `=`, did you mean `Foo foo = 42`?
                  */
-                if (token.value == TOK.identifier && exp.op == TOK.identifier)
+                if (token.value == TOK.identifier && exp.op == EXP.identifier)
                 {
                     error("found `%s` when expecting `;` or `=`, did you mean `%s %s = %s`?", peek(&token).toChars(), exp.toChars(), token.toChars(), peek(peek(&token)).toChars());
                     nextToken();
@@ -5911,7 +5911,7 @@ LagainStc:
                     // mixin(string)
                     AST.Expression e = parseAssignExp();
                     check(TOK.semicolon);
-                    if (e.op == TOK.mixin_)
+                    if (e.op == EXP.mixin_)
                     {
                         AST.MixinExp cpe = cast(AST.MixinExp)e;
                         s = new AST.CompileStatement(loc, cpe.exps);
@@ -6816,8 +6816,8 @@ LagainStc:
         {
             switch (token.value)
             {
-            case TOK.file:           e = new AST.FileInitExp(token.loc, TOK.file); break;
-            case TOK.fileFullPath:   e = new AST.FileInitExp(token.loc, TOK.fileFullPath); break;
+            case TOK.file:           e = new AST.FileInitExp(token.loc, EXP.file); break;
+            case TOK.fileFullPath:   e = new AST.FileInitExp(token.loc, EXP.fileFullPath); break;
             case TOK.line:           e = new AST.LineInitExp(token.loc); break;
             case TOK.moduleString:   e = new AST.ModuleInitExp(token.loc); break;
             case TOK.functionString: e = new AST.FuncInitExp(token.loc); break;
@@ -8470,14 +8470,14 @@ LagainStc:
             nextToken();
             e = parseUnaryExp();
             //e = new AddAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
-            e = new AST.PreExp(TOK.prePlusPlus, loc, e);
+            e = new AST.PreExp(EXP.prePlusPlus, loc, e);
             break;
 
         case TOK.minusMinus:
             nextToken();
             e = parseUnaryExp();
             //e = new MinAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
-            e = new AST.PreExp(TOK.preMinusMinus, loc, e);
+            e = new AST.PreExp(EXP.preMinusMinus, loc, e);
             break;
 
         case TOK.mul:
@@ -8785,11 +8785,11 @@ LagainStc:
                 break;
 
             case TOK.plusPlus:
-                e = new AST.PostExp(TOK.plusPlus, loc, e);
+                e = new AST.PostExp(EXP.plusPlus, loc, e);
                 break;
 
             case TOK.minusMinus:
-                e = new AST.PostExp(TOK.minusMinus, loc, e);
+                e = new AST.PostExp(EXP.minusMinus, loc, e);
                 break;
 
             case TOK.leftParenthesis:
@@ -9106,92 +9106,109 @@ LagainStc:
             return e;
 
         // require parens for e.g. `t ? a = 1 : b = 2`
-        if (e.op == TOK.question && !e.parens && precedence[token.value] == PREC.assign)
-            dmd.errors.error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
-                e.toChars(), Token.toChars(token.value));
+        void checkRequiredParens()
+        {
+            if (e.op == EXP.question && !e.parens)
+                dmd.errors.error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
+                    e.toChars(), Token.toChars(token.value));
+        }
 
         const loc = token.loc;
         switch (token.value)
         {
         case TOK.assign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AssignExp(loc, e, e2);
             break;
 
         case TOK.addAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AddAssignExp(loc, e, e2);
             break;
 
         case TOK.minAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.MinAssignExp(loc, e, e2);
             break;
 
         case TOK.mulAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.MulAssignExp(loc, e, e2);
             break;
 
         case TOK.divAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.DivAssignExp(loc, e, e2);
             break;
 
         case TOK.modAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ModAssignExp(loc, e, e2);
             break;
 
         case TOK.powAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.PowAssignExp(loc, e, e2);
             break;
 
         case TOK.andAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.AndAssignExp(loc, e, e2);
             break;
 
         case TOK.orAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.OrAssignExp(loc, e, e2);
             break;
 
         case TOK.xorAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.XorAssignExp(loc, e, e2);
             break;
 
         case TOK.leftShiftAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ShlAssignExp(loc, e, e2);
             break;
 
         case TOK.rightShiftAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.ShrAssignExp(loc, e, e2);
             break;
 
         case TOK.unsignedRightShiftAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.UshrAssignExp(loc, e, e2);
             break;
 
         case TOK.concatenateAssign:
+            checkRequiredParens();
             nextToken();
             auto e2 = parseAssignExp();
             e = new AST.CatAssignExp(loc, e, e2);

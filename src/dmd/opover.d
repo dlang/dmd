@@ -1671,7 +1671,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
             {
                 /* Look for a front() or back() overload
                  */
-                Identifier id = (fes.op == EXP.foreach_) ? Id.Ffront : Id.Fback;
+                Identifier id = (fes.op == TOK.foreach_) ? Id.Ffront : Id.Fback;
                 Dsymbol s = ad.search(Loc.initial, id);
                 FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
                 if (fd)

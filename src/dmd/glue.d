@@ -1195,7 +1195,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             //Build type
             newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
             //Tell it it's supposed to be a C function. Does it do anything? Not sure.
-            newConstructor.Stype.Tmangle = mTYman_c;
+            type_setmangle(&newConstructor.Stype, mTYman_c);
             symbol_func(newConstructor);
             //Global SC for now.
             newConstructor.Sclass = SCstatic;

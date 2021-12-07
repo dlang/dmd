@@ -4433,13 +4433,13 @@ struct ASTBase
 
     extern (C++) abstract class Expression : ASTNode
     {
-        TOK op;
+        EXP op;
         ubyte size;
         ubyte parens;
         Type type;
         Loc loc;
 
-        final extern (D) this(const ref Loc loc, TOK op, int size)
+        final extern (D) this(const ref Loc loc, EXP op, int size)
         {
             this.loc = loc;
             this.op = op;
@@ -4955,7 +4955,7 @@ struct ASTBase
     {
         Expression e1;
 
-        final extern (D) this(const ref Loc loc, TOK op, int size, Expression e1)
+        final extern (D) this(const ref Loc loc, EXP op, int size, Expression e1)
         {
             super(loc, op, size);
             this.e1 = e1;
@@ -4969,7 +4969,7 @@ struct ASTBase
 
     extern (C++) class DefaultInitExp : Expression
     {
-        final extern (D) this(const ref Loc loc, TOK op, int size)
+        final extern (D) this(const ref Loc loc, EXP op, int size)
         {
             super(loc, op, size);
         }
@@ -4985,7 +4985,7 @@ struct ASTBase
         Expression e1;
         Expression e2;
 
-        final extern (D) this(const ref Loc loc, TOK op, int size, Expression e1, Expression e2)
+        final extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2)
         {
             super(loc, op, size);
             this.e1 = e1;
@@ -5040,7 +5040,7 @@ struct ASTBase
         Declaration var;
         bool hasOverloads;
 
-        final extern (D) this(const ref Loc loc, TOK op, int size, Declaration var, bool hasOverloads)
+        final extern (D) this(const ref Loc loc, EXP op, int size, Declaration var, bool hasOverloads)
         {
             super(loc, op, size);
             assert(var);
@@ -5225,7 +5225,7 @@ struct ASTBase
 
     extern (C++) final class PreExp : UnaExp
     {
-        extern (D) this(TOK op, Loc loc, Expression e)
+        extern (D) this(EXP op, Loc loc, Expression e)
         {
             super(loc, op, __traits(classInstanceSize, PreExp), e);
         }
@@ -5521,7 +5521,7 @@ struct ASTBase
 
     extern (C++) final class FileInitExp : DefaultInitExp
     {
-        extern (D) this(const ref Loc loc, TOK tok)
+        extern (D) this(const ref Loc loc, EXP tok)
         {
             super(loc, tok, __traits(classInstanceSize, FileInitExp));
         }
@@ -5577,7 +5577,7 @@ struct ASTBase
 
     extern (C++) final class PostExp : BinExp
     {
-        extern (D) this(TOK op, Loc loc, Expression e)
+        extern (D) this(EXP op, Loc loc, Expression e)
         {
             super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
         }
@@ -5720,7 +5720,7 @@ struct ASTBase
 
     extern (C++) final class EqualExp : BinExp
     {
-        extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
+        extern (D) this(EXP op, Loc loc, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, EqualExp), e1, e2);
             assert(op == EXP.equal || op == EXP.notEqual);
@@ -5747,7 +5747,7 @@ struct ASTBase
 
     extern (C++) final class IdentityExp : BinExp
     {
-        extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
+        extern (D) this(EXP op, Loc loc, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
         }
@@ -5760,7 +5760,7 @@ struct ASTBase
 
     extern (C++) final class CmpExp : BinExp
     {
-        extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
+        extern (D) this(EXP op, Loc loc, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
         }
@@ -5812,7 +5812,7 @@ struct ASTBase
 
     extern (C++) final class LogicalExp : BinExp
     {
-        extern (D) this(const ref Loc loc, TOK op, Expression e1, Expression e2)
+        extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
         }
@@ -5854,7 +5854,7 @@ struct ASTBase
 
     extern (C++) class BinAssignExp : BinExp
     {
-        final extern (D) this(const ref Loc loc, TOK op, int size, Expression e1, Expression e2)
+        final extern (D) this(const ref Loc loc, EXP op, int size, Expression e1, Expression e2)
         {
             super(loc, op, size, e1, e2);
         }
