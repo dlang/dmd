@@ -4837,6 +4837,13 @@ public:
                 result = interpret(ce, istate);
                 return;
             }
+            else if (fd.ident == Id._d_delstruct)
+            {
+                // Ignore calls to `_d_delstruct`, as they are returned from
+                // expressionsem.d inside a CommaExp, together with their
+                // original DeleteExp.
+                return;
+            }
         }
         else if (auto soe = ecall.isSymOffExp())
         {
