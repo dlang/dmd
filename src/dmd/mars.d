@@ -2394,7 +2394,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
         {
             params.run = true;
-            size_t length = argc - i - 1;
+            size_t length = arguments.dim - i - 1;
             if (length)
             {
                 const(char)[] runarg = arguments[i + 1].toDString();
