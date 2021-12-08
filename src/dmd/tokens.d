@@ -324,6 +324,7 @@ enum EXP : ushort
     reserved,
 
     // Other
+/*
     leftParenthesis,
     rightParenthesis,
     leftBracket,
@@ -331,10 +332,13 @@ enum EXP : ushort
     leftCurly,
     rightCurly,
     colon,
+*/
     negate,
+/*
     semicolon,
     dotDotDot,
     endOfFile,
+*/
     cast_,
     null_,
     assert_,
@@ -357,7 +361,7 @@ enum EXP : ushort
     slice,
     arrayLength,
     version_,
-    module_,
+//    module_,
     dollar,
     template_,
     dotTemplateDeclaration,
@@ -368,8 +372,9 @@ enum EXP : ushort
     typeid_,
     uadd,
     remove,
+
     newAnonymousClass,
-    comment,
+//    comment,
     arrayLiteral,
     assocArrayLiteral,
     structLiteral,
@@ -379,7 +384,7 @@ enum EXP : ushort
     delegateFunctionPointer,
 
     // Operators
-    lessThan = 54,
+    lessThan,
     greaterThan,
     lessOrEqual,
     greaterOrEqual,
@@ -390,7 +395,7 @@ enum EXP : ushort
     index,
     is_,
 
-    leftShift = 64,
+    leftShift,
     rightShift,
     leftShiftAssign,
     rightShiftAssign,
@@ -432,6 +437,7 @@ enum EXP : ushort
     preMinusMinus,
 
     // Numeric literals
+/*
     int32Literal = 104,
     uns32Literal,
     int64Literal,
@@ -449,11 +455,11 @@ enum EXP : ushort
     charLiteral = 116,
     wcharLiteral,
     dcharLiteral,
-
+*/
     // Leaf operators
-    identifier = 119,
+    identifier,
     string_,
-    hexadecimalString,
+//    hexadecimalString,
     this_,
     super_,
     halt,
@@ -461,27 +467,34 @@ enum EXP : ushort
     error,
 
     // Basic types
-    void_ = 127,
+    void_,
+/*
     int8,
     uns8,
     int16,
     uns16,
     int32,
     uns32,
+*/
     int64,
+/*
     uns64,
     int128,
     uns128,
     float32,
+*/
     float64,
+/*
     float80,
     imaginary32,
     imaginary64,
     imaginary80,
     complex32,
     complex64,
+*/
     complex80,
     char_,
+/*
     wchar_,
     dchar_,
     bool_,
@@ -492,12 +505,16 @@ enum EXP : ushort
     interface_,
     union_,
     enum_,
+*/
     import_,
+/*
     alias_,
     override_,
+*/
     delegate_,
     function_,
     mixin_,
+/*
     align_,
     extern_,
     private_,
@@ -510,7 +527,9 @@ enum EXP : ushort
     abstract_,
     debug_,
     deprecated_,
+*/
     in_,
+/*
     out_,
     inout_,
     lazy_,
@@ -526,20 +545,26 @@ enum EXP : ushort
     do_,
     switch_,
     case_,
+*/
     default_,
     break_,
     continue_,
+/*
     with_,
     synchronized_,
     return_,
+*/
     goto_,
+/*
     try_,
     catch_,
     finally_,
     asm_,
     foreach_,
     foreach_reverse_,
+*/
     scope_,
+/*
     onScopeExit,
     onScopeFailure,
     onScopeSuccess,
@@ -554,6 +579,7 @@ enum EXP : ushort
     argumentTypes,
     ref_,
     macro_,
+*/
 
     traits,
     overloadSet,
