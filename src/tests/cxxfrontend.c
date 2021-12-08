@@ -357,17 +357,17 @@ void test_emplace()
 
     IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
     Expression *e = ue.exp();
-    assert(e->op == TOKint64);
+    assert(e->op == EXPint64);
     assert(e->toInteger() == 1065353216);
 
     UnionExp ure;
     Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-    assert(re->op == TOKfloat64);
+    assert(re->op == EXPfloat64);
     assert(re->toReal() == CTFloat::one);
 
     UnionExp uie;
     Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-    assert(ie->op == TOKint64);
+    assert(ie->op == EXPint64);
     assert(ie->toInteger() == e->toInteger());
 }
 
