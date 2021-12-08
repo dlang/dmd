@@ -7359,9 +7359,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
                 id = new DotIdExp(exp.loc, id, Id._d_delstruct);
-                id = id.expressionSemantic(sc);
 
                 e = new CallExp(exp.loc, id, exp.e1).expressionSemantic(sc);
+                /* Return both the original DeleteExp and the lowered CallExp to
+                 * `_d_delstruct` in order to keep checking for dtor errors as
+                 * well as generate code for the call to `_d_delstruct`.
+                 */
+                e = Expression.combine(exp, e);
             }
             break;
 
@@ -7406,17 +7410,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (err)
             return setError();
 
-        if (e == exp)
-            result = e;
-        else
-        {
-            /* The type of the deleted pointer is a struct which has a dtor.
-             * Both the original DeleteExp and the lowered CallExp to
-             * `_d_delstruct` are returned in order to keep checking for dtor
-             * errors as well as generate code for the call to `_d_delstruct`.
-             */
-            result = Expression.combine(exp, e);
-        }
+        result = e;
     }
 
     override void visit(CastExp exp)
