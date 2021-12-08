@@ -221,12 +221,8 @@ enum
         EXPreserved,
 
         // Other
-        EXPlparen,      EXPrparen,
-        EXPlbracket,    EXPrbracket,
-        EXPlcurly,      EXPrcurly,
-        EXPcolon,       EXPneg,
-        EXPsemicolon,   EXPdotdotdot,
-        EXPeof,         EXPcast,
+        EXPneg,
+        EXPcast,
         EXPnull,        EXPassert,
         EXPtrue,        EXPfalse,
         EXParray,       EXPcall,
@@ -238,13 +234,13 @@ enum
         EXPdotid,       EXPdotti,
         EXPdottype,     EXPslice,
         EXParraylength, EXPversion,
-        EXPmodule,      EXPdollar,
+        EXPdollar,
         EXPtemplate,    EXPdottd,
         EXPdeclaration, EXPtypeof,
         EXPpragma,      EXPdsymbol,
         EXPtypeid,      EXPuadd,
         EXPremove,
-        EXPnewanonclass, EXPcomment,
+        EXPnewanonclass,
         EXParrayliteral, EXPassocarrayliteral,
         EXPstructliteral,
         EXPclassreference,
@@ -252,7 +248,6 @@ enum
         EXPdelegateptr,
         EXPdelegatefuncptr,
 
-// 54
         // Operators
         EXPlt,          EXPgt,
         EXPle,          EXPge,
@@ -260,7 +255,6 @@ enum
         EXPidentity,    EXPnotidentity,
         EXPindex,       EXPis,
 
-// 64
         EXPshl,         EXPshr,
         EXPshlass,      EXPshrass,
         EXPushr,        EXPushrass,
@@ -276,68 +270,28 @@ enum
         EXPquestion,    EXPandand,      EXPoror,
         EXPpreplusplus, EXPpreminusminus,
 
-// 105
-        // Numeric literals
-        EXPint32v, EXPuns32v,
-        EXPint64v, EXPuns64v,
-        EXPint128v, EXPuns128v,
-        EXPfloat32v, EXPfloat64v, EXPfloat80v,
-        EXPimaginary32v, EXPimaginary64v, EXPimaginary80v,
-
-        // Char constants
-        EXPcharv, EXPwcharv, EXPdcharv,
-
         // Leaf operators
-        EXPidentifier,  EXPstring, EXPxstring,
+        EXPidentifier,  EXPstring,
         EXPthis,        EXPsuper,
         EXPhalt,        EXPtuple,
         EXPerror,
 
         // Basic types
         EXPvoid,
-        EXPint8, EXPuns8,
-        EXPint16, EXPuns16,
-        EXPint32, EXPuns32,
-        EXPint64, EXPuns64,
-        EXPint128, EXPuns128,
-        EXPfloat32, EXPfloat64, EXPfloat80,
-        EXPimaginary32, EXPimaginary64, EXPimaginary80,
-        EXPcomplex32, EXPcomplex64, EXPcomplex80,
-        EXPchar, EXPwchar, EXPdchar, EXPbool,
+        EXPint64,
+        EXPfloat64,
+        EXPcomplex80,
+        EXPchar,
 
-// 152
-        // Aggregates
-        EXPstruct, EXPclass, EXPinterface, EXPunion, EXPenum, EXPimport,
-        EXPalias, EXPoverride, EXPdelegate, EXPfunction,
+        EXPimport,
+        EXPdelegate, EXPfunction,
         EXPmixin,
-
-        EXPalign, EXPextern, EXPprivate, EXPprotected, EXPpublic, EXPexport,
-        EXPstatic, EXPfinal, EXPconst, EXPabstract,
-        EXPdebug, EXPdeprecated, EXPin, EXPout, EXPinout, EXPlazy,
-        EXPauto, EXPpackage, EXPimmutable,
-
-// 182
-        // Statements
-        EXPif, EXPelse, EXPwhile, EXPfor, EXPdo, EXPswitch,
-        EXPcase, EXPdefault, EXPbreak, EXPcontinue, EXPwith,
-        EXPsynchronized, EXPreturn, EXPgoto, EXPtry, EXPcatch, EXPfinally,
-        EXPasm, EXPforeach, EXPforeach_reverse,
+        EXPin,
+        EXPdefault, EXPbreak, EXPcontinue, /*EXPwith,
+        EXPsynchronized, EXPreturn,*/
+        EXPgoto,
         EXPscope,
-        EXPon_scope_exit, EXPon_scope_failure, EXPon_scope_success,
 
-// 206
-        // Contracts
-        EXPinvariant,
-
-        // Testing
-        EXPunittest,
-
-        // Added after 1.0
-        EXPargTypes,
-        EXPref,
-        EXPmacro,
-
-// 211
         EXPtraits,
         EXPoverloadset,
         EXPline,
