@@ -555,12 +555,8 @@ enum EXP : ushort
     ref_,
     macro_,
 
-    parameters = 210,
     traits,
     overloadSet,
-    pure_,
-    nothrow_,
-    gshared,
     line,
     file,
     fileFullPath,
@@ -568,10 +564,8 @@ enum EXP : ushort
     functionString, // __FUNCTION__
     prettyFunction, // __PRETTY_FUNCTION__
     shared_,
-    at,
     pow,
     powAssign,
-    goesTo,
     vector,
 
     voidExpression,
@@ -1276,12 +1270,17 @@ nothrow:
         return p;
     }
 
-    static const(char)* toChars(uint value)
+    static const(char)* toChars(TOK value)
     {
         return toString(value).ptr;
     }
 
-    extern (D) static string toString(uint value) pure nothrow @nogc @safe
+    static const(char)* toChars(ushort value)
+    {
+        return toString(cast(TOK)value).ptr;
+    }
+
+    extern (D) static string toString(TOK value) pure nothrow @nogc @safe
     {
         return tochars[value];
     }

@@ -338,12 +338,8 @@ enum
         EXPmacro,
 
 // 211
-        EXPparameters,
         EXPtraits,
         EXPoverloadset,
-        EXPpure,
-        EXPnothrow,
-        EXPgshared,
         EXPline,
         EXPfile,
         EXPfilefullpath,
@@ -351,10 +347,8 @@ enum
         EXPfuncstring,
         EXPprettyfunc,
         EXPshared,
-        EXPat,
         EXPpow,
         EXPpowass,
-        EXPgoesto,
         EXPvector,
 
         EXPvoidexp,
@@ -410,7 +404,7 @@ struct Token
     int isKeyword();
     const char *toChars() const;
 
-    static const char *toChars(unsigned value);
+    static const char *toChars(TOK value);
 };
 
 #if defined(__GNUC__)

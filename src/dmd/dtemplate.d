@@ -297,8 +297,8 @@ private bool match(RootObject o1, RootObject o2)
 
         static if (log)
         {
-            printf("\te1 = %s '%s' %s\n", e1.type ? e1.type.toChars() : "null", Token.toChars(e1.op), e1.toChars());
-            printf("\te2 = %s '%s' %s\n", e2.type ? e2.type.toChars() : "null", Token.toChars(e2.op), e2.toChars());
+            printf("\te1 = %s '%s' %s\n", e1.type ? e1.type.toChars() : "null", EXPtoString(e1.op).ptr, e1.toChars());
+            printf("\te2 = %s '%s' %s\n", e2.type ? e2.type.toChars() : "null", EXPtoString(e2.op).ptr, e2.toChars());
         }
 
         // two expressions can be equal although they do not have the same
@@ -6642,7 +6642,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             else if (ea)
             {
             Lexpr:
-                //printf("+[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
+                //printf("+[%d] ea = %s %s\n", j, EXPtoString(ea.op).ptr, ea.toChars());
                 if (flags & 1) // only used by __traits
                 {
                     ea = ea.expressionSemantic(sc);
@@ -6687,7 +6687,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             ea = ErrorExp.get();
                     }
                 }
-                //printf("-[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
+                //printf("-[%d] ea = %s %s\n", j, EXPtoString(ea.op).ptr, ea.toChars());
                 if (ea.op == EXP.tuple)
                 {
                     // Expand tuple

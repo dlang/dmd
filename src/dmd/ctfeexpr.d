@@ -1376,8 +1376,8 @@ bool ctfeEqual(const ref Loc loc, EXP op, Expression e1, Expression e2)
 bool ctfeIdentity(const ref Loc loc, EXP op, Expression e1, Expression e2)
 {
     //printf("ctfeIdentity %s %s\n", e1.toChars(), e2.toChars());
-    //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", Token::toChars(op),
-    //    Token::toChars(e1.op), e1.toChars(), Token::toChars(e2.op), e1.toChars());
+    //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", EXPtoString(op).ptr,
+    //    EXPtoString(e1.op).ptr, e1.toChars(), EXPtoString(e2.op).ptr, e1.toChars());
     bool cmp;
     if (e1.op == EXP.null_)
     {

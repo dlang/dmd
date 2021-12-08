@@ -1362,7 +1362,7 @@ void genKill(ref ObState obstate, ObNode* ob)
 
             override void visit(Expression e)
             {
-                //printf("[%s] %s: %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
+                //printf("[%s] %s: %s\n", e.loc.toChars(), EXPtoString(e.op).ptr, e.toChars());
                 //assert(0);
             }
 

@@ -602,7 +602,7 @@ Expression typeToExpression(Type t)
  */
 Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
 {
-    //printf("toExpressionHelper(e = %s %s)\n", Token.toChars(e.op), e.toChars());
+    //printf("toExpressionHelper(e = %s %s)\n", EXPtoString(e.op).ptr, e.toChars());
     foreach (id; t.idents[i .. t.idents.dim])
     {
         //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
