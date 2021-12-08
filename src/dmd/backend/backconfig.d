@@ -242,7 +242,7 @@ if (config.exe == EX_DRAGONFLYBSD64)
     }
     config.objfmt = OBJ_ELF;
 }
-if (config.exe & (EX_SOLARIS | EX_SOLARIS))
+if (config.exe & (EX_SOLARIS | EX_SOLARIS64))
 {
     if (model == 64)
     {
