@@ -319,7 +319,7 @@ enum TOK : ushort
 }
 
 /// Expression nodes
-enum EXP : ushort
+enum EXP : ubyte
 {
     reserved,
 

@@ -1255,7 +1255,7 @@ enum class Include : uint8_t
     no = 2u,
 };
 
-enum class EXP : uint16_t
+enum class EXP : uint8_t
 {
     reserved = 0u,
     negate = 1u,
