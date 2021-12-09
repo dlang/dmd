@@ -215,7 +215,7 @@ enum
         TOKMAX
 };
 
-typedef unsigned short EXP;
+typedef unsigned char EXP;
 enum
 {
         EXPreserved,
