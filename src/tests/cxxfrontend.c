@@ -101,12 +101,12 @@ static void frontend_term()
 void test_tokens()
 {
     // First valid TOK value
-    assert(TOKlparen == 1);
-    assert(strcmp(Token::toChars(TOKlparen), "(") == 0);
+    assert((unsigned)TOK::leftParenthesis == 1);
+    assert(strcmp(Token::toChars(TOK::leftParenthesis), "(") == 0);
 
     // Last valid TOK value
-    assert(TOK__attribute__ == TOKMAX - 1);
-    assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
+    assert((unsigned)TOK::attribute__ == (unsigned)TOK::MAX - 1);
+    assert(strcmp(Token::toChars(TOK::vectorArray), "vectorarray") == 0);
 }
 
 void test_compiler_globals()
@@ -345,7 +345,7 @@ void test_expression()
 
 void test_target()
 {
-    assert(target.isVectorOpSupported(Type::tint32, TOKpow));
+    assert(target.isVectorOpSupported(Type::tint32, EXP::pow));
 }
 
 /**********************************/
@@ -357,17 +357,17 @@ void test_emplace()
 
     IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
     Expression *e = ue.exp();
-    assert(e->op == EXPint64);
+    assert(e->op == EXP::int64);
     assert(e->toInteger() == 1065353216);
 
     UnionExp ure;
     Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-    assert(re->op == EXPfloat64);
+    assert(re->op == EXP::float64);
     assert(re->toReal() == CTFloat::one);
 
     UnionExp uie;
     Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-    assert(ie->op == EXPint64);
+    assert(ie->op == EXP::int64);
     assert(ie->toInteger() == e->toInteger());
 }
 

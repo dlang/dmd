@@ -7799,7 +7799,7 @@ public:
     uint32_t fieldalign(Type* type);
     Type* va_listType(const Loc& loc, Scope* sc);
     int32_t isVectorTypeSupported(int32_t sz, Type* type);
-    bool isVectorOpSupported(Type* type, uint32_t op, Type* t2 = nullptr);
+    bool isVectorOpSupported(Type* type, EXP op, Type* t2 = nullptr);
     LINK systemLinkage();
     TypeTuple* toArgTypes(Type* t);
     bool isReturnOnStack(TypeFunction* tf, bool needsThis);
