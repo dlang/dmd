@@ -219,7 +219,6 @@ SRCS=\
 	src\core\sys\linux\sched.d \
 	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\string.d \
-	src\core\sys\linux\syscalls.d \
 	src\core\sys\linux\termios.d \
 	src\core\sys\linux\time.d \
 	src\core\sys\linux\timerfd.d \
