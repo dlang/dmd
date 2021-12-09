@@ -146,6 +146,7 @@ class A : D
 
 class B : A
 {
+    override
     int foo() { return 2; }
 }
 
@@ -153,7 +154,7 @@ class B : A
 
 B b = new B();
 b.foo();            // returns 2
-D d = cast(D) b;    // ok since B inherits A's D implementation
+D d = b;    // ok since B inherits A's D implementation
 d.foo();            // returns 2;
 ------
 
@@ -179,10 +180,10 @@ class B : A, D
 
 B b = new B();
 b.foo();            // returns 2
-D d = cast(D) b;
+D d = b;
 d.foo();            // returns 2
-A a = cast(A) b;
-D d2 = cast(D) a;
+A a = b;
+D d2 = a;
 d2.foo();           // returns 2, even though it is A's D, not B's D
 ------
 
