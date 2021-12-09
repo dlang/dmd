@@ -2222,17 +2222,10 @@ pure nothrow @nogc @system unittest
     f(move(ncarray));
 }
 
-/**
- * This is called for a delete statement where the value
- * being deleted is a pointer to a struct with a destructor
- * but doesn't have an overloaded delete operator.
- *
- * Params:
- *   p = pointer to the value to be deleted
- */
-void _d_delstruct(T)(ref T *p)
+/// Implementation of `_d_delstruct` and `_d_delstructTrace`
+template _d_delstructImpl(T)
 {
-    if (p)
+    private void _d_delstructImpure(ref T p)
     {
         debug(PRINTF) printf("_d_delstruct(%p)\n", p);
 
@@ -2242,21 +2235,61 @@ void _d_delstruct(T)(ref T *p)
         GC.free(p);
         p = null;
     }
+
+    /**
+     * This is called for a delete statement where the value being deleted is a
+     * pointer to a struct with a destructor but doesn't have an overloaded
+     * `delete` operator.
+     *
+     * Params:
+     *   p = pointer to the value to be deleted
+     *
+     * Bugs:
+     *   This function template was ported from a much older runtime hook that
+     *   bypassed safety, purity, and throwabilty checks. To prevent breaking
+     *   existing code, this function template is temporarily declared
+     *   `@trusted` until the implementation can be brought up to modern D
+     *   expectations.
+     */
+    void _d_delstruct(ref T p) @trusted @nogc pure nothrow
+    {
+        if (p)
+        {
+            alias Type = void function(ref T P) @nogc pure nothrow;
+            (cast(Type) &_d_delstructImpure)(p);
+        }
+    }
+
+    import core.internal.array.utils : _d_HookTraceImpl;
+
+    private enum errorMessage = "Cannot delete struct if compiling without support for runtime type information!";
+
+    /**
+     * TraceGC wrapper around $(REF _d_delstruct, core,lifetime,_d_delstructImpl).
+     *
+     * Bugs:
+     *   This function template was ported from a much older runtime hook that
+     *   bypassed safety, purity, and throwabilty checks. To prevent breaking
+     *   existing code, this function template is temporarily declared
+     *   `@trusted` until the implementation can be brought up to modern D
+     *   expectations.
+     */
+    alias _d_delstructTrace = _d_HookTraceImpl!(T, _d_delstruct, errorMessage);
 }
 
-@system unittest
+@system pure nothrow unittest
 {
     int dtors = 0;
     struct S { ~this() { ++dtors; } }
 
     S *s = new S();
-    _d_delstruct(s);
+    _d_delstructImpl!(typeof(s))._d_delstruct(s);
 
     assert(s == null);
     assert(dtors == 1);
 }
 
-@system unittest
+@system pure unittest
 {
     int innerDtors = 0;
     int outerDtors = 0;
@@ -2277,16 +2310,16 @@ void _d_delstruct(T)(ref T *p)
         {
             ++outerDtors;
 
-            _d_delstruct(i1);
+            _d_delstructImpl!(typeof(i1))._d_delstruct(i1);
             assert(i1 == null);
 
-            _d_delstruct(i2);
+           _d_delstructImpl!(typeof(i2))._d_delstruct(i2);
             assert(i2 == null);
         }
     }
 
     Outer *o = new Outer(0);
-    _d_delstruct(o);
+    _d_delstructImpl!(typeof(o))._d_delstruct(o);
 
     assert(o == null);
     assert(innerDtors == 2);
