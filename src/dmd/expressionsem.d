@@ -12972,7 +12972,7 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
         e = resolveProperties(sc, e);
         if (i >= nfields)
         {
-            if (i <= sd.fields.dim && e.op == TOK.null_)
+            if (i < sd.fields.dim && e.op == TOK.null_)
             {
                 // CTFE sometimes creates null as hidden pointer; we'll allow this.
                 continue;
