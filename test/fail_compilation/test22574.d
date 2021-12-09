@@ -2,8 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test22574.d(100): Error: variable `x` is used as a type
-fail_compilation/test22574.d(100):        variable `x` is declared here
+fail_compilation/test22574.d(100): Error: undefined identifier `x`
 ---
 */
 #line 100
