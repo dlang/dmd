@@ -455,7 +455,7 @@ $(ROOT)/benchmark: benchmark/runbench.d target $(DMD)
 	$(DMD) $(PHOBOS_DFLAGS) -de $< -of$@
 
 benchmark: $(ROOT)/benchmark
-	$<
+	DMD=$(DMD) $<
 
 benchmark-compile-only: $(ROOT)/benchmark $(DMD)
 	DMD=$(DMD) $< --repeat=0 --dflags="$(PHOBOS_DFLAGS) -de"
