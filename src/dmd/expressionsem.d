@@ -7355,10 +7355,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 ad = (cast(TypeStruct)tb).sym;
 
-                // Lower to .object._d_delstruct(exp.e1)
+                Identifier hook = global.params.tracegc ? Id._d_delstructTrace : Id._d_delstruct;
+                if (!verifyHookExist(exp.loc, *sc, Id._d_delstructImpl, "deleting struct with dtor", Id.object))
+                    return setError();
+
+                // Lower to .object._d_delstruct{,Trace}(exp.e1)
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
-                id = new DotIdExp(exp.loc, id, Id._d_delstruct);
+
+                auto tiargs = new Objects();
+                tiargs.push(exp.e1.type);
+                id = new DotTemplateInstanceExp(exp.loc, id, Id._d_delstructImpl, tiargs);
+                id = new DotIdExp(exp.loc, id, hook);
 
                 e = new CallExp(exp.loc, id, exp.e1).expressionSemantic(sc);
                 /* Return both the original DeleteExp and the lowered CallExp to
