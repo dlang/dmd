@@ -179,9 +179,8 @@ private Expression fromConstInitializer(int result, Expression e1)
     //printf("fromConstInitializer(result = %x, %s)\n", result, e1.toChars());
     //static int xx; if (xx++ == 10) assert(0);
     Expression e = e1;
-    if (e1.op == EXP.variable)
+    if (auto ve = e1.isVarExp())
     {
-        VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
         e = expandVar(result, v);
         if (e)
@@ -189,7 +188,7 @@ private Expression fromConstInitializer(int result, Expression e1)
             // If it is a comma expression involving a declaration, we mustn't
             // perform a copy -- we'd get two declarations of the same variable.
             // See bugzilla 4465.
-            if (e.op == EXP.comma && (cast(CommaExp)e).e1.op == EXP.declaration)
+            if (e.op == EXP.comma && e.isCommaExp().e1.isDeclarationExp())
                 e = e1;
             else if (e.type != e1.type && e1.type && e1.type.ty != Tident)
             {
@@ -428,9 +427,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         //printf("AddrExp::optimize(result = %d) %s\n", result, e.toChars());
         /* Rewrite &(a,b) as (a,&b)
          */
-        if (e.e1.op == EXP.comma)
+        if (auto ce = e.e1.isCommaExp())
         {
-            CommaExp ce = cast(CommaExp)e.e1;
             auto ae = new AddrExp(e.loc, ce.e2, e.type);
             ret = new CommaExp(ce.loc, ce.e1, ae);
             ret.type = e.type;
@@ -440,9 +438,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (expOptimize(e.e1, result, true))
             return;
         // Convert &*ex to ex
-        if (e.e1.op == EXP.star)
+        if (auto pe = e.e1.isPtrExp())
         {
-            Expression ex = (cast(PtrExp)e.e1).e1;
+            Expression ex = pe.e1;
             if (e.type.equals(ex.type))
                 ret = ex;
             else if (e.type.toBasetype().equivalent(ex.type.toBasetype()))
@@ -452,9 +450,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             }
             return;
         }
-        if (e.e1.op == EXP.variable)
+        if (auto ve = e.e1.isVarExp())
         {
-            VarExp ve = cast(VarExp)e.e1;
             if (!ve.var.isReference() && !ve.var.isImportedSymbol())
             {
                 ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
@@ -462,17 +459,16 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 return;
             }
         }
-        if (e.e1.op == EXP.index)
+        if (auto ae = e.e1.isIndexExp())
         {
             // Convert &array[n] to &array+n
-            IndexExp ae = cast(IndexExp)e.e1;
-            if (ae.e2.op == EXP.int64 && ae.e1.op == EXP.variable)
+            if (ae.e2.op == EXP.int64 && ae.e1.isVarExp())
             {
                 sinteger_t index = ae.e2.toInteger();
-                VarExp ve = cast(VarExp)ae.e1;
-                if (ve.type.ty == Tsarray && !ve.var.isImportedSymbol())
+                VarExp ve = ae.e1.isVarExp();
+                if (ve.type.isTypeSArray() && !ve.var.isImportedSymbol())
                 {
-                    TypeSArray ts = cast(TypeSArray)ve.type;
+                    TypeSArray ts = ve.type.isTypeSArray();
                     sinteger_t dim = ts.dim.toInteger();
                     if (index < 0 || index >= dim)
                     {
@@ -504,9 +500,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return;
         // Convert *&ex to ex
         // But only if there is no type punning involved
-        if (e.e1.op == EXP.address)
+        if (auto ey = e.e1.isAddrExp())
         {
-            Expression ex = (cast(AddrExp)e.e1).e1;
+            Expression ex = ey.e1;
             if (e.type.equals(ex.type))
                 ret = ex;
             else if (e.type.toBasetype().equivalent(ex.type.toBasetype()))
@@ -527,14 +523,13 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 return;
             }
         }
-        if (e.e1.op == EXP.symbolOffset)
+        if (auto se = e.e1.isSymOffExp())
         {
-            SymOffExp se = cast(SymOffExp)e.e1;
             VarDeclaration v = se.var.isVarDeclaration();
             Expression ex = expandVar(result, v);
-            if (ex && ex.op == EXP.structLiteral)
+            if (ex && ex.isStructLiteralExp())
             {
-                StructLiteralExp sle = cast(StructLiteralExp)ex;
+                StructLiteralExp sle = ex.isStructLiteralExp();
                 ex = sle.getField(e.type, cast(uint)se.offset);
                 if (ex && !CTFEExp.isCantExp(ex))
                 {
@@ -553,15 +548,14 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (keepLvalue)
             return;
         Expression ex = e.e1;
-        if (ex.op == EXP.variable)
+        if (auto ve = ex.isVarExp())
         {
-            VarExp ve = cast(VarExp)ex;
             VarDeclaration v = ve.var.isVarDeclaration();
             ex = expandVar(result, v);
         }
-        if (ex && ex.op == EXP.structLiteral)
+        if (ex && ex.isStructLiteralExp())
         {
-            StructLiteralExp sle = cast(StructLiteralExp)ex;
+            StructLiteralExp sle = ex.isStructLiteralExp();
             VarDeclaration vf = e.var.isVarDeclaration();
             if (vf && !vf.overlapped)
             {
@@ -945,9 +939,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (unaOptimize(e, WANTexpand))
             return;
         // CTFE interpret static immutable arrays (to get better diagnostics)
-        if (e.e1.op == EXP.variable)
+        if (auto ve = e.e1.isVarExp())
         {
-            VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
+            VarDeclaration v = ve.var.isVarDeclaration();
             if (v && (v.storage_class & STC.static_) && (v.storage_class & STC.immutable_) && v._init)
             {
                 if (Expression ci = v.getConstInitializer())
@@ -1115,11 +1109,10 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         //printf("CatExp::optimize(%d) %s\n", result, e.toChars());
         if (binOptimize(e, result))
             return;
-        if (e.e1.op == EXP.concatenate)
+        if (auto ce1 = e.e1.isCatExp())
         {
             // https://issues.dlang.org/show_bug.cgi?id=12798
             // optimize ((expr ~ str1) ~ str2)
-            CatExp ce1 = cast(CatExp)e.e1;
             scope CatExp cex = new CatExp(e.loc, ce1.e2, e.e2);
             cex.type = e.type;
             Expression ex = Expression_optimize(cex, result, false);
@@ -1130,15 +1123,13 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             }
         }
         // optimize "str"[] -> "str"
-        if (e.e1.op == EXP.slice)
+        if (auto se1 = e.e1.isSliceExp())
         {
-            SliceExp se1 = cast(SliceExp)e.e1;
             if (se1.e1.op == EXP.string_ && !se1.lwr)
                 e.e1 = se1.e1;
         }
-        if (e.e2.op == EXP.slice)
+        if (auto se2 = e.e2.isSliceExp())
         {
-            SliceExp se2 = cast(SliceExp)e.e2;
             if (se2.e1.op == EXP.string_ && !se2.lwr)
                 e.e2 = se2.e1;
         }
