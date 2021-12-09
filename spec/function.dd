@@ -1929,14 +1929,6 @@ class C
         $(DDSUBLINK spec/expression, function_literals, lambdas) can deduce
         the `return scope` attribute.)
 
-        $(P A parameter annotated `return` without `scope` or `ref`/`out` is equivalent to a `return scope` parameter.)
-
----
-void retsc(return scope int* x);
-void ret(return int* x);
-static assert(is(typeof(retsc) == typeof(ret)));
----
-
 $(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
 
         $(P Parameters marked as `ref return scope` come in two forms:)
