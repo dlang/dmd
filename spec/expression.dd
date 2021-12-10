@@ -2246,10 +2246,10 @@ void foo()
 
         $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
 
-        The condition is satisfied if $(I Type) is the same as
-        $(I TypeSpecialization), or if $(I Type) is a class and
-        $(I TypeSpecialization) is a base class or base interface
-        of it.
+        The condition is satisfied if $(I Type) is semantically
+        correct and it is the same as
+        or can be implicitly converted to $(I TypeSpecialization).
+        $(I TypeSpecialization) is only allowed to be a $(I Type).
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
         dependent on $(I Identifier), the deduced type.
