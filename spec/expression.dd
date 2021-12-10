@@ -1134,7 +1134,9 @@ $(GNAME CastExpression):
         ---
 
     $(P Casting a floating point value to an integral type is the equivalent
-        of converting to an integer using truncation.)
+        of converting to an integer using truncation. If the floating point
+        value is outside the range of the integral type, the cast will produce
+        an invalid result (this is also the case in C, C++).)
 
         ---
         void main()
@@ -1145,6 +1147,18 @@ $(GNAME CastExpression):
             assert(b == 1L);
             long c = cast(long) -1.5;
             assert(c == -1);
+
+            // if the float overflows, the cast returns the integer value of
+            // 80000000_00000000H (64-bit operand) or 80000000H (32-bit operand)
+            long d = cast(long) float.max;
+            assert(d == long.min);
+            int e = cast(int) (1234.5 + int.max);
+            assert(e == int.min);
+
+            // for types represented on 16 or 8 bits, the result is the same as
+            // 32-bit types, but the most significant bits are ignored
+            short f = cast(short) float.max;
+            assert(f == 0);
         }
         ---
 
