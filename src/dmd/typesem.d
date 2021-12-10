@@ -1708,13 +1708,22 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             }
             else if (e.op == TOK.variable) // special case: variable is used as a type
             {
+                /*
+                    N.B. This branch currently triggers for the following code
+                    template test(x* x)
+                    {
+
+                    }
+                    i.e. the compiler prints "variable x is used as a type"
+                    which isn't a particularly good error message (x is a variable?).
+                */
                 Dsymbol varDecl = mtype.toDsymbol(sc);
                 const(Loc) varDeclLoc = varDecl.getLoc();
-                Module varDeclModule = varDecl.getModule();
+                Module varDeclModule = varDecl.getModule(); //This can be null
 
                 .error(loc, "variable `%s` is used as a type", mtype.toChars());
-
-                if (varDeclModule != sc._module) // variable is imported
+                //Check for null to avoid https://issues.dlang.org/show_bug.cgi?id=22574
+                if ((varDeclModule !is null) && varDeclModule != sc._module) // variable is imported
                 {
                     const(Loc) varDeclModuleImportLoc = varDeclModule.getLoc();
                     .errorSupplemental(
