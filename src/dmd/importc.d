@@ -89,7 +89,7 @@ Expression arrayFuncConv(Expression e, Scope* sc)
     }
     else if (t.isTypeFunction())
     {
-        e = e.addressOf();
+        e = new AddrExp(e.loc, e);
     }
     else
         return e;
