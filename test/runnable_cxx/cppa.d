@@ -476,12 +476,21 @@ extern (C++, std)
     {
     }
 
-    // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
-    version (none)
+    version (CppRuntime_Gcc)
     {
-        extern (C++, __cxx11)
+        // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
+        static if (__traits(getTargetInfo, "cppStd") >= 201103)
         {
-            struct basic_string(T, C = char_traits!T, A = allocator!T)
+            extern (C++, __cxx11)
+            {
+                struct basic_string(T, C = char_traits!T, A = allocator!T)
+                {
+                }
+            }
+        }
+        else
+        {
+            extern (C++, class) struct basic_string(T, C = char_traits!T, A = allocator!T)
             {
             }
         }
