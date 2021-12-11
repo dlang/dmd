@@ -106,7 +106,7 @@ void test_tokens()
 
     // Last valid TOK value
     assert((unsigned)TOK::attribute__ == (unsigned)TOK::MAX - 1);
-    assert(strcmp(Token::toChars(TOK::vectorArray), "vectorarray") == 0);
+    assert(strcmp(Token::toChars(TOK::attribute__), "__attribute__") == 0);
 }
 
 void test_compiler_globals()
