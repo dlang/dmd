@@ -999,6 +999,7 @@ public:
     void deprecation(const char* format, ...);
     bool checkDeprecated(const Loc& loc, Scope* sc);
     Module* getModule();
+    bool isCsymbol();
     Module* getAccessModule();
     Dsymbol* pastMixin();
     Dsymbol* toParent();
@@ -4471,7 +4472,7 @@ public:
     void accept(Visitor* v);
 };
 
-extern Expression* defaultInit(Type* mt, const Loc& loc);
+extern Expression* defaultInit(Type* mt, const Loc& loc, const bool isCfile = false);
 
 extern Type* merge(Type* type);
 

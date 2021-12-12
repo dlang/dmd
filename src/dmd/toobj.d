@@ -585,6 +585,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
             Dsymbol parent = vd.toParent();
             s.Sclass = SCglobal;
 
+            /* Make C static functions SCstatic
+             */
+            if (vd.storage_class & STC.static_ && vd.isCsymbol())
+                s.Sclass = SCstatic;
+
             do
             {
                 /* Global template data members need to be in comdat's
