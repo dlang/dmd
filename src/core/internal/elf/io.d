@@ -84,12 +84,18 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
          */
         this(int fd)
         {
+            import core.stdc.stdio : SEEK_END;
+
             this.fd = fd;
-            if (fd != -1)
-            {
-                // memory map header
-                this.ehdr = TypedMMapRegion!Elf_Ehdr(fd, 0);
-            }
+            if (fd == -1)
+                return;
+
+            const fsize = lseek(fd, 0, SEEK_END);
+            if (fsize == -1 || fsize < Elf_Ehdr.sizeof)
+                return;
+
+            // okay, memory map header
+            this.ehdr = TypedMMapRegion!Elf_Ehdr(fd, 0);
         }
 
         @disable this(this);
@@ -108,6 +114,9 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         /// Returns true if the ELF file header matches the ElfIO template parameters.
         bool isValid() const
         {
+            if (fd == -1 || ehdr.data is null) // invalid file descriptor or mmap error
+                return false;
+
             enum EI_MAG0 = 0;
             enum EI_MAG1 = 1;
             enum EI_MAG2 = 2;
@@ -120,18 +129,12 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
             enum ELFMAG2 = 'L';
             enum ELFMAG3 = 'F';
 
-            enum ELFCLASS32 = 1;
-            enum ELFCLASS64 = 2;
-
             enum ELFDATA2LSB = 1;
             enum ELFDATA2MSB = 2;
 
             version (LittleEndian)   alias ELFDATA = ELFDATA2LSB;
             else version (BigEndian) alias ELFDATA = ELFDATA2MSB;
             else static assert(0, "unsupported byte order");
-
-            if (fd == -1)
-                return false;
 
             const ident = ehdr.e_ident;
 
@@ -199,14 +202,23 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         int opApply(scope Callback dg)
         {
             const stringSectionHeader = ElfSectionHeader(*file, file.ehdr.e_shstrndx);
+            if (stringSectionHeader.shdr.data is null) // mmap error
+                return 0;
+
             const stringSection = ElfSection(*file, stringSectionHeader);
+            const stringSectionData = cast(const char*) stringSection.data.ptr;
+            if (stringSectionData is null) // mmap error
+                return 0;
 
             foreach (i; 0 .. file.ehdr.e_shnum)
             {
                 import core.stdc.string : strlen;
 
                 auto sectionHeader = ElfSectionHeader(*file, i);
-                auto sectionName = cast(const(char)*) (stringSection.data.ptr + sectionHeader.sh_name);
+                if (sectionHeader.shdr.data is null) // mmap error
+                    return 0;
+
+                const sectionName = stringSectionData + sectionHeader.sh_name;
                 const nameLen = strlen(sectionName);
 
                 const r = dg(i, sectionName[0 .. nameLen], move(sectionHeader));
@@ -251,7 +263,7 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         this(ref const ElfFile file, ref const ElfSectionHeader shdr)
         {
             mappedRegion = TypedMMapRegion!void(file.fd, shdr.sh_offset, shdr.sh_size);
-            size = shdr.sh_size;
+            size = mappedRegion.data is null ? 0 : shdr.sh_size;
         }
 
         @disable this(this);
@@ -383,4 +395,16 @@ unittest
             printf("not mapped into memory\n");
         }
     }
+}
+
+version (LinuxOrBSD)
+unittest
+{
+    import core.stdc.stdio : fileno, tmpfile;
+
+    auto emptyFile = tmpfile();
+    assert(emptyFile);
+
+    const elfFile = ElfFile(fileno(emptyFile));
+    assert(!elfFile.isValid()); // no SIGBUS: https://issues.dlang.org/show_bug.cgi?id=21656
 }
