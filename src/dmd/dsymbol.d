@@ -2501,6 +2501,10 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         {
             fd2.fbody = fd.fbody;       // transfer body to existing declaration
             fd.fbody = null;
+
+            auto tf = fd.type.toTypeFunction();
+            auto tf2 = fd2.type.toTypeFunction();
+            tf2.parameterList = tf.parameterList;   // transfer parameter list.
         }
 
         /* BUG: just like with VarDeclaration, the types should match, which needs semantic() to be run on it.
