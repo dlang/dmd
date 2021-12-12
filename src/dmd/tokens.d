@@ -23,7 +23,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.utf;
 
-enum TOK : ushort
+enum TOK : ubyte
 {
     reserved,
 
@@ -1113,7 +1113,7 @@ nothrow:
         return toString(value).ptr;
     }
 
-    static const(char)* toChars(ushort value)
+    static const(char)* toChars(ubyte value)
     {
         return toString(cast(TOK)value).ptr;
     }

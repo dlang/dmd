@@ -32,7 +32,7 @@ class Identifier;
         ?       &&      ||
  */
 
-enum class TOK : unsigned short
+enum class TOK : unsigned char
 {
     reserved,
 
