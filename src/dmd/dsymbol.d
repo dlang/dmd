@@ -1798,7 +1798,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         // Acts as proxy to the with class declaration
         Dsymbol s = null;
         Expression eold = null;
-        for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope, e))
+        for (Expression e = withstate.exp; e && e != eold; e = resolveAliasThis(_scope, e, true))
         {
             if (e.op == TOK.scope_)
             {
