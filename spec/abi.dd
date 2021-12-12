@@ -474,6 +474,7 @@ $(GNAME TypeX):
     $(GLINK TypeChar)
     $(GLINK TypeWchar)
     $(GLINK TypeDchar)
+    $(GLINK TypeNoreturn)
     $(GLINK TypeNull)
     $(GLINK TypeTuple)
     $(GLINK TypeVector)
@@ -688,6 +689,9 @@ $(GNAME TypeWchar):
 
 $(GNAME TypeDchar):
     $(B w)
+
+$(GNAME TypeNoreturn):
+    $(B Nn)
 
 $(GNAME TypeNull):
     $(B n)
