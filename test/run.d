@@ -194,7 +194,10 @@ Options:
             int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
             if (status != 0)
             {
-                const name = target.normalizedTestName;
+                const string name = target.filename
+                            ? target.normalizedTestName
+                            : "`unit` tests";
+
                 writeln(">>> TARGET FAILED: ", name);
                 failedTargets ~= name;
             }

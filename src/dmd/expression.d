@@ -357,7 +357,7 @@ int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
                 printf("expansion ->\n");
                 foreach (e; exps)
                 {
-                    printf("\texps[%d] e = %s %s\n", i, Token.tochars[e.op], e.toChars());
+                    printf("\texps[%d] e = %s %s\n", i, EXPtoString(e.op), e.toChars());
                 }
             }
             return cast(int)u;
@@ -529,7 +529,7 @@ extern (C++) struct UnionExp
     extern (C++) Expression copy()
     {
         Expression e = exp();
-        //if (e.size > sizeof(u)) printf("%s\n", Token::toChars(e.op));
+        //if (e.size > sizeof(u)) printf("%s\n", EXPtoString(e.op).ptr);
         assert(e.size <= u.sizeof);
         switch (e.op)
         {
@@ -919,14 +919,14 @@ extern (C++) abstract class Expression : ASTNode
 
     dinteger_t toInteger()
     {
-        //printf("Expression %s\n", Token::toChars(op));
+        //printf("Expression %s\n", EXPtoString(op).ptr);
         error("integer constant expression expected instead of `%s`", toChars());
         return 0;
     }
 
     uinteger_t toUInteger()
     {
-        //printf("Expression %s\n", Token::toChars(op));
+        //printf("Expression %s\n", EXPtoString(op).ptr);
         return cast(uinteger_t)toInteger();
     }
 
@@ -1537,7 +1537,7 @@ extern (C++) abstract class Expression : ASTNode
 
         error("read-modify-write operations are not allowed for `shared` variables");
         errorSupplemental("Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead",
-                          Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
+                          EXPtoString(rmwOp).ptr, toChars(), ex ? ex.toChars() : "1");
         return true;
     }
 
@@ -4227,11 +4227,11 @@ extern (C++) abstract class UnaExp : Expression
 
         if (e1.op == EXP.type)
         {
-            error("incompatible type for `%s(%s)`: cannot use `%s` with types", Token.toChars(op), e1.toChars(), Token.toChars(op));
+            error("incompatible type for `%s(%s)`: cannot use `%s` with types", EXPtoString(op).ptr, e1.toChars(), EXPtoString(op).ptr);
         }
         else
         {
-            error("incompatible type for `%s(%s)`: `%s`", Token.toChars(op), e1.toChars(), e1.type.toChars());
+            error("incompatible type for `%s(%s)`: `%s`", EXPtoString(op).ptr, e1.toChars(), e1.type.toChars());
         }
         return ErrorExp.get();
     }
@@ -4302,22 +4302,22 @@ extern (C++) abstract class BinExp : Expression
             return e2;
 
         // CondExp uses 'a ? b : c' but we're comparing 'b : c'
-        EXP thisOp = (op == EXP.question) ? EXP.colon : op;
+        const(char)* thisOp = (op == EXP.question) ? ":" : EXPtoString(op).ptr;
         if (e1.op == EXP.type || e2.op == EXP.type)
         {
             error("incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
-                e1.toChars(), Token.toChars(thisOp), e2.toChars(), Token.toChars(op));
+                e1.toChars(), thisOp, e2.toChars(), EXPtoString(op).ptr);
         }
         else if (e1.type.equals(e2.type))
         {
             error("incompatible types for `(%s) %s (%s)`: both operands are of type `%s`",
-                e1.toChars(), Token.toChars(thisOp), e2.toChars(), e1.type.toChars());
+                e1.toChars(), thisOp, e2.toChars(), e1.type.toChars());
         }
         else
         {
             auto ts = toAutoQualChars(e1.type, e2.type);
             error("incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
-                e1.toChars(), Token.toChars(thisOp), e2.toChars(), ts[0], ts[1]);
+                e1.toChars(), thisOp, e2.toChars(), ts[0], ts[1]);
         }
         return ErrorExp.get();
     }
@@ -4337,7 +4337,7 @@ extern (C++) abstract class BinExp : Expression
         {
             if ((type.isintegral() && t2.isfloating()))
             {
-                warning("`%s %s %s` is performing truncating conversion", type.toChars(), Token.toChars(op), t2.toChars());
+                warning("`%s %s %s` is performing truncating conversion", type.toChars(), EXPtoString(op).ptr, t2.toChars());
             }
         }
 
@@ -4346,7 +4346,7 @@ extern (C++) abstract class BinExp : Expression
         {
             // Any multiplication by an imaginary or complex number yields a complex result.
             // r *= c, i*=c, r*=i, i*=i are all forbidden operations.
-            const(char)* opstr = Token.toChars(op);
+            const(char)* opstr = EXPtoString(op).ptr;
             if (t1.isreal() && t2.iscomplex())
             {
                 error("`%s %s %s` is undefined. Did you mean `%s %s %s.re`?", t1.toChars(), opstr, t2.toChars(), t1.toChars(), opstr, t2.toChars());
@@ -4371,7 +4371,7 @@ extern (C++) abstract class BinExp : Expression
             // Thus, r+=i, r+=c, i+=r, i+=c are all forbidden operations.
             if ((t1.isreal() && (t2.isimaginary() || t2.iscomplex())) || (t1.isimaginary() && (t2.isreal() || t2.iscomplex())))
             {
-                error("`%s %s %s` is undefined (result is complex)", t1.toChars(), Token.toChars(op), t2.toChars());
+                error("`%s %s %s` is undefined (result is complex)", t1.toChars(), EXPtoString(op).ptr, t2.toChars());
                 return ErrorExp.get();
             }
             if (type.isreal() || type.isimaginary())

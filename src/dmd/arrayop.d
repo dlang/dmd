@@ -23,6 +23,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
@@ -228,7 +229,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 // RPN, prefix unary ops with u
                 OutBuffer buf;
                 buf.writestring("u");
-                buf.writestring(Token.toString(e.op));
+                buf.writestring(EXPtoString(e.op));
                 e.e1.accept(this);
                 tiargs.push(new StringExp(Loc.initial, buf.extractSlice()).expressionSemantic(sc));
             }
@@ -246,7 +247,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 // RPN
                 e.e1.accept(this);
                 e.e2.accept(this);
-                tiargs.push(new StringExp(Loc.initial, Token.toString(e.op)).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, EXPtoString(e.op)).expressionSemantic(sc));
             }
         }
     }

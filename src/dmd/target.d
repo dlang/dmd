@@ -85,6 +85,7 @@ extern (C++) struct Target
     import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
+    import dmd.tokens : EXP;
 
     /// Bit decoding of the Target.OS
     enum OS : ubyte
@@ -582,9 +583,8 @@ extern (C++) struct Target
      * Returns:
      *      true if the operation is supported or type is not a vector
      */
-    extern (C++) bool isVectorOpSupported(Type type, uint op, Type t2 = null)
+    extern (C++) bool isVectorOpSupported(Type type, EXP op, Type t2 = null)
     {
-        import dmd.tokens : EXP, TOK, Token;
         import dmd.hdrgen : EXPtoString;
 
         auto tvec = type.isTypeVector();
@@ -1320,7 +1320,7 @@ struct TargetCPP
         else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
             runtime = Runtime.Clang;
         else if (os == Target.OS.Solaris)
-            runtime = Runtime.Sun;
+            runtime = Runtime.Gcc;
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms

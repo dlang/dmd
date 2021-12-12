@@ -319,22 +319,12 @@ enum TOK : ushort
 }
 
 /// Expression nodes
-enum EXP : ushort
+enum EXP : ubyte
 {
     reserved,
 
     // Other
-    leftParenthesis,
-    rightParenthesis,
-    leftBracket,
-    rightBracket,
-    leftCurly,
-    rightCurly,
-    colon,
     negate,
-    semicolon,
-    dotDotDot,
-    endOfFile,
     cast_,
     null_,
     assert_,
@@ -357,7 +347,6 @@ enum EXP : ushort
     slice,
     arrayLength,
     version_,
-    module_,
     dollar,
     template_,
     dotTemplateDeclaration,
@@ -369,7 +358,6 @@ enum EXP : ushort
     uadd,
     remove,
     newAnonymousClass,
-    comment,
     arrayLiteral,
     assocArrayLiteral,
     structLiteral,
@@ -379,7 +367,7 @@ enum EXP : ushort
     delegateFunctionPointer,
 
     // Operators
-    lessThan = 54,
+    lessThan,
     greaterThan,
     lessOrEqual,
     greaterOrEqual,
@@ -390,7 +378,7 @@ enum EXP : ushort
     index,
     is_,
 
-    leftShift = 64,
+    leftShift,
     rightShift,
     leftShiftAssign,
     rightShiftAssign,
@@ -431,29 +419,9 @@ enum EXP : ushort
     prePlusPlus,
     preMinusMinus,
 
-    // Numeric literals
-    int32Literal = 104,
-    uns32Literal,
-    int64Literal,
-    uns64Literal,
-    int128Literal,
-    uns128Literal,
-    float32Literal,
-    float64Literal,
-    float80Literal,
-    imaginary32Literal,
-    imaginary64Literal,
-    imaginary80Literal,
-
-    // Char constants
-    charLiteral = 116,
-    wcharLiteral,
-    dcharLiteral,
-
     // Leaf operators
-    identifier = 119,
+    identifier,
     string_,
-    hexadecimalString,
     this_,
     super_,
     halt,
@@ -461,106 +429,24 @@ enum EXP : ushort
     error,
 
     // Basic types
-    void_ = 127,
-    int8,
-    uns8,
-    int16,
-    uns16,
-    int32,
-    uns32,
+    void_,
     int64,
-    uns64,
-    int128,
-    uns128,
-    float32,
     float64,
-    float80,
-    imaginary32,
-    imaginary64,
-    imaginary80,
-    complex32,
-    complex64,
     complex80,
     char_,
-    wchar_,
-    dchar_,
-    bool_,
-
-    // Aggregates
-    struct_ = 151,
-    class_,
-    interface_,
-    union_,
-    enum_,
     import_,
-    alias_,
-    override_,
     delegate_,
     function_,
     mixin_,
-    align_,
-    extern_,
-    private_,
-    protected_,
-    public_,
-    export_,
-    static_,
-    final_,
-    const_,
-    abstract_,
-    debug_,
-    deprecated_,
     in_,
-    out_,
-    inout_,
-    lazy_,
-    auto_,
-    package_,
-    immutable_,
-
-    // Statements
-    if_ = 181,
-    else_,
-    while_,
-    for_,
-    do_,
-    switch_,
-    case_,
     default_,
     break_,
     continue_,
-    with_,
-    synchronized_,
-    return_,
     goto_,
-    try_,
-    catch_,
-    finally_,
-    asm_,
-    foreach_,
-    foreach_reverse_,
     scope_,
-    onScopeExit,
-    onScopeFailure,
-    onScopeSuccess,
 
-    // Contracts
-    invariant_ = 205,
-
-    // Testing
-    unittest_,
-
-    // Added after 1.0
-    argumentTypes,
-    ref_,
-    macro_,
-
-    parameters = 210,
     traits,
     overloadSet,
-    pure_,
-    nothrow_,
-    gshared,
     line,
     file,
     fileFullPath,
@@ -568,50 +454,19 @@ enum EXP : ushort
     functionString, // __FUNCTION__
     prettyFunction, // __PRETTY_FUNCTION__
     shared_,
-    at,
     pow,
     powAssign,
-    goesTo,
     vector,
-    pound,
 
-    interval = 229,
     voidExpression,
     cantExpression,
     showCtfeContext,
-
     objcClassReference,
     vectorArray,
-
     arrow,      // ->
-    colonColon, // ::
-    wchar_tLiteral,
     compoundLiteral, // ( type-name ) { initializer-list }
-
-    // C only keywords
-    inline,
-    register,
-    restrict,
-    signed,
-    sizeof_,
-    typedef_,
-    unsigned,
-    volatile,
-    _Alignas,
-    _Alignof,
-    _Atomic,
-    _Bool,
-    _Complex,
     _Generic,
-    _Imaginary,
-    _Noreturn,
-    _Static_assert,
-    _Thread_local,
-
-    // C only extended keywords
-    __cdecl,
-    __declspec,
-    __attribute__,
+    interval,
 }
 
 enum FirstCKeyword = TOK.inline;
@@ -1305,12 +1160,17 @@ nothrow:
         return p;
     }
 
-    static const(char)* toChars(uint value)
+    static const(char)* toChars(TOK value)
     {
         return toString(value).ptr;
     }
 
-    extern (D) static string toString(uint value) pure nothrow @nogc @safe
+    static const(char)* toChars(ushort value)
+    {
+        return toString(cast(TOK)value).ptr;
+    }
+
+    extern (D) static string toString(TOK value) pure nothrow @nogc @safe
     {
         return tochars[value];
     }

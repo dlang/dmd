@@ -972,13 +972,14 @@ else version(Solaris)
 {
 int os_critsecsize32()
 {
-    return pthread_mutex_t.sizeof;
+    assert(pthread_mutex_t.sizeof == 24);
+    return 24;
 }
 
 int os_critsecsize64()
 {
-    assert(0);
-    return 0;
+    assert(pthread_mutex_t.sizeof == 24);
+    return 24;
 }
 }
 

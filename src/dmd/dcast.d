@@ -29,6 +29,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.impcnvtab;
 import dmd.id;
 import dmd.importc;
@@ -3574,13 +3575,13 @@ LmodCompare:
                 return null;
         }
 
-        //printf("test %s\n", Token::toChars(op));
+        //printf("test %s\n", EXPtoString(op).ptr);
         e1 = e1.optimize(WANTvalue);
         if (isCommutative(op) && e1.isConst())
         {
             /* Swap operands to minimize number of functions generated
              */
-            //printf("swap %s\n", Token::toChars(op));
+            //printf("swap %s\n", EXPtoString(op).ptr);
             Expression tmp = e1;
             e1 = e2;
             e2 = tmp;
@@ -3696,7 +3697,7 @@ void fix16997(Scope* sc, UnaExp ue)
             case Twchar:
             case Tdchar:
                 ue.deprecation("integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
-                    ue.toChars(), Token.toChars(ue.op), ue.e1.toChars());
+                    ue.toChars(), EXPtoString(ue.op).ptr, ue.e1.toChars());
                 break;
 
             default:
