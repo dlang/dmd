@@ -2154,7 +2154,7 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
     else static if (__traits(isStaticArray, T))
     {
         for (size_t i = 0; i < source.length; ++i)
-            move(source[i], target[i]);
+            moveEmplaceImpl(target[i], source[i]);
     }
     else
     {
@@ -2202,6 +2202,34 @@ pure nothrow @nogc @system unittest
     assert(foo1._ptr is &val);
     assert(foo2._ptr is null);
     assert(val == 0);
+}
+
+@betterC
+pure nothrow @nogc @system unittest
+{
+    static struct Foo
+    {
+    pure nothrow @nogc:
+        this(int* ptr) { _ptr = ptr; }
+        ~this() { if (_ptr) ++*_ptr; }
+        int* _ptr;
+    }
+
+    int val;
+    {
+        Foo[1] foo1 = void; // uninitialized
+        Foo[1] foo2 = [Foo(&val)];// initialized
+        assert(foo2[0]._ptr is &val);
+
+        // Using `move(foo2, foo1)` would have an undefined effect because it would destroy
+        // the uninitialized foo1.
+        // moveEmplace directly overwrites foo1 without destroying or initializing it first.
+        moveEmplace(foo2, foo1);
+        assert(foo1[0]._ptr is &val);
+        assert(foo2[0]._ptr is null);
+        assert(val == 0);
+    }
+    assert(val == 1);
 }
 
 // issue 18913
