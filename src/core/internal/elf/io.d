@@ -15,6 +15,7 @@ version (Posix):
 
 import core.memory : pageSize;
 import core.lifetime : move;
+import core.stdc.stdlib : malloc, free;
 import core.sys.posix.fcntl;
 import core.sys.posix.sys.mman;
 import core.sys.posix.unistd;
@@ -361,23 +362,132 @@ private struct MMapRegion
     public const(ubyte)[] data;
 }
 
+@nogc nothrow:
+
+version (OpenBSD)
+private extern(C) const(char)* getprogname();
+
+/// Returns the path to the process' executable as newly allocated C string
+/// (free() when done), or null on error.
+version (LinuxOrBSD)
+char* thisExePath()
+{
+    version (linux)
+    {
+        return readLink("/proc/self/exe");
+    }
+    else version (Solaris)
+    {
+        import core.stdc.stdio : snprintf;
+        import core.sys.posix.unistd : getpid;
+
+        // only Solaris 10 and later
+        char[32] buffer = void;
+        const numWritten = snprintf(buffer.ptr, sizeof(buffer), "/proc/%d/path/a.out", getpid());
+        assert(numWritten > 0 && numWritten < sizeof(buffer));
+        assert(buffer[numWritten] == 0);
+
+        return readLink(buffer.ptr);
+    }
+    else version (OpenBSD)
+    {
+        // there's apparently no proper way :/
+        import core.stdc.string : strdup;
+        return strdup(getprogname());
+    }
+    else
+    {
+        version (DragonFlyBSD)
+        {
+            import core.sys.dragonflybsd.sys.sysctl : sysctl, CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME;
+            int[4] mib = [CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1];
+        }
+        else version (FreeBSD)
+        {
+            import core.sys.freebsd.sys.sysctl : sysctl, CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME;
+            int[4] mib = [CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1];
+        }
+        else version (NetBSD)
+        {
+            import core.sys.netbsd.sys.sysctl : sysctl, CTL_KERN, KERN_PROC_ARGS, KERN_PROC_PATHNAME;
+            int[4] mib = [CTL_KERN, KERN_PROC_ARGS, -1, KERN_PROC_PATHNAME];
+        }
+        else
+            static assert(0, "Unsupported platform");
+
+        // get the length of the path
+        size_t len;
+        auto result = sysctl(mib.ptr, mib.length, null, &len, null, 0);
+        if (result != 0)
+            return null;
+
+        auto buffer = cast(char*) malloc(len);
+        if (!buffer)
+            return null;
+        result = sysctl(mib.ptr, mib.length, buffer, &len, null, 0);
+        if (result != 0)
+        {
+            free(buffer);
+            return null;
+        }
+
+        assert(buffer[len - 1] == 0);
+        return buffer;
+    }
+}
+
+// Tries to read the target of the specified link as newly allocated C string.
+// Returns null on error; free() result otherwise when done.
+private char* readLink(const(char)* link)
+{
+    for (size_t bufferSize = 128; bufferSize < 131_072; bufferSize *= 2)
+    {
+        auto buffer = cast(char*) malloc(bufferSize);
+        if (!buffer)
+            return null;
+
+        const numWritten = readlink(link, buffer, bufferSize);
+        if (numWritten == -1)
+        {
+            free(buffer);
+            return null;
+        }
+
+        enum maxCodeUnits = 6;
+        if (numWritten <= bufferSize - maxCodeUnits)
+        {
+            buffer[numWritten] = 0; // null-terminate
+            return buffer;
+        }
+        else
+            free(buffer);
+    }
+
+    return null;
+}
+
 version (LinuxOrBSD)
 unittest
 {
-    import core.internal.elf.dl, core.stdc.stdio;
+    import core.internal.elf.dl : SharedObject;
+    import core.stdc.stdio : printf;
 
-    SharedObject exe = SharedObject.thisExecutable();
+    char* exePath = thisExePath();
+    assert(exePath);
+    scope(exit) free(exePath);
 
     ElfFile file;
-    bool success = ElfFile.open(exe.name.ptr, file);
-    assert(success, "cannot open ELF file");
+    bool success = ElfFile.open(exePath, file);
+    assert(success, "cannot open ELF executable");
+
+    const exeBaseAddress = SharedObject.thisExecutable().baseAddress;
 
     foreach (index, name, sectionHeader; file.namedSections)
     {
         printf("section %3d %-32s", cast(int) index, name.ptr);
         if (const offset = sectionHeader.shdr.sh_addr)
         {
-            auto beg = exe.baseAddress + offset;
+            auto beg = exeBaseAddress + offset;
             printf("%p - %p\n", beg, beg + sectionHeader.shdr.sh_size);
         }
         else
