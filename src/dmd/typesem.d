@@ -3029,7 +3029,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
              * If we ever do care, import core.stdc.stdarg and pull
              * the definition out of that, similarly to how std.math is handled for PowExp
              */
-            pt = Type.tvoidptr;
+            pt = target.va_listType(loc, sc);
             return;
         }
 
