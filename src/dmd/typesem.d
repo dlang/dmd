@@ -4681,14 +4681,14 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
         case Tfloat32:
         case Tfloat64:
         case Tfloat80:
-            return new RealExp(loc, isCfile ? real_t(0.0) : target.RealProperties.nan, mt);
+            return new RealExp(loc, isCfile ? CTFloat.zero : target.RealProperties.nan, mt);
 
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-                const cvalue = isCfile ? complex_t(real_t(0), real_t(0))
+                const cvalue = isCfile ? complex_t(CTFloat.zero, CTFloat.zero)
                                        : complex_t(target.RealProperties.nan, target.RealProperties.nan);
                 return new ComplexExp(loc, cvalue, mt);
             }
