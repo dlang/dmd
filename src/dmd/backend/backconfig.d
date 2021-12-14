@@ -242,7 +242,7 @@ if (config.exe == EX_DRAGONFLYBSD64)
     }
     config.objfmt = OBJ_ELF;
 }
-if (config.exe & (EX_SOLARIS | EX_SOLARIS))
+if (config.exe & (EX_SOLARIS | EX_SOLARIS64))
 {
     if (model == 64)
     {
@@ -259,7 +259,7 @@ if (config.exe & (EX_SOLARIS | EX_SOLARIS))
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
+    config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
 }
     config.flags2 |= CFG2nodeflib;      // no default library
     config.flags3 |= CFG3eseqds;

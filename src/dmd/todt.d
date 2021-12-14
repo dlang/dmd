@@ -272,10 +272,29 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         version (none)
         {
-            printf("Expression.toDt() %d\n", e.op);
+            printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
         e.error("non-constant expression `%s`", e.toChars());
         dtb.nzeros(1);
+    }
+
+    void visitSlice(SliceExp e)
+    {
+        version (none)
+        {
+            printf("SliceExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
+        }
+        if (!e.lwr && !e.upr)
+            return Expression_toDt(e.e1, dtb);
+        if (auto strExp = e.e1.isStringExp())
+        {
+            auto lwr = e.lwr.isIntegerExp();
+            auto upr = e.upr.isIntegerExp();
+            if (lwr && upr && lwr.toInteger() == 0 && upr.toInteger() == strExp.len)
+                return Expression_toDt(e.e1, dtb);
+        }
+
+        nonConstExpError(e);
     }
 
     void visitCast(CastExp e)
@@ -654,6 +673,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         case EXP.classReference: return visitClassReference(e.isClassReferenceExp());
         case EXP.typeid_:        return visitTypeid        (e.isTypeidExp());
         case EXP.assert_:        return visitNoreturn      (e);
+        case EXP.slice:          return visitSlice         (e.isSliceExp());
     }
 }
 

@@ -310,7 +310,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
         b.Belem = ector;
         sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
         sctor.Sfunc.Fstartblock = b;
-        writefunc(sctor);
+        writefunc(sctor); // hand off to backend
     }
     return sctor;
 }
@@ -630,7 +630,8 @@ private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 {
     ClassDeclaration cd = fd.parent.isClassDeclaration();
-    //printf("FuncDeclaration.toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
+    //printf("FuncDeclaration_toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
+    //printf("storage_class: %llx\n", fd.storage_class);
 
     //if (type) printf("type = %s\n", type.toChars());
     version (none)
@@ -740,6 +741,12 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         f.Fflags3 |= Feh_none;
 
     s.Sclass = target.os == Target.OS.OSX ? SCcomdat : SCglobal;
+
+    /* Make C static functions SCstatic
+     */
+    if (fd.storage_class & STC.static_ && fd.isCsymbol())
+        s.Sclass = SCstatic;
+
     for (Dsymbol p = fd.parent; p; p = p.parent)
     {
         if (p.isTemplateInstance())
@@ -1151,7 +1158,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
-    writefunc(s);
+    writefunc(s); // hand off to backend
 
     buildCapture(fd);
 
