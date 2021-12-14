@@ -633,11 +633,17 @@ int ElfObj_string_literal_segment(uint sz)
 /******************************
  * Perform initialization that applies to all .o output files.
  *      Called before any other obj_xxx routines
+ *      Called by Obj.init()
+ * Params:
+ *      objbuf = where to write the object file data
+ *      filename = source file name
+ *      csegname = name for code segment
  */
 
+private
 Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
-    //printf("ElfObj_init()\n");
+    //printf("ElfObj_init(filename = %s, csegname = %s)\n",filename,csegname);
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
     cseg = CODE;
@@ -822,6 +828,7 @@ Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 
 /**************************
  * Initialize the start of object output for this particular .o file.
+ * Called by Obj.initfile()
  *
  * Input:
  *      filename:       Name of source file
@@ -830,7 +837,7 @@ Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 
 void ElfObj_initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
 {
-    //dbg_printf("ElfObj_initfile(filename = %s, modname = %s)\n",filename,modname);
+    //printf("ElfObj_initfile(filename = %s, modname = %s)\n",filename,modname);
 
     IDXSTR name = ElfObj_addstr(symtab_strings, filename);
     if (I64)
