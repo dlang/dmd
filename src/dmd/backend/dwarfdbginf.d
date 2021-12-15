@@ -1266,7 +1266,14 @@ static if (1)
                 debug_info.buf.write("Digital Mars D ");
                 debug_info.buf.writeString(config._version);     // DW_AT_producer
                 // DW_AT_language
-                debug_info.buf.writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
+                auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
+                /* if source file has .c or .i extension, emit C debug info
+                 */
+                if (filename.length >= 2 &&
+                    filename[$ - 2] == '.' &&
+                    (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
+                    language = DW_LANG_C89;
+                debug_info.buf.writeByte(language);
             }
             else version (SCPP)
             {
