@@ -2111,9 +2111,6 @@ private T trustedMoveImpl(T)(return scope ref T source) @trusted
 // target must be first-parameter, because in void-functions DMD + dip1000 allows it to take the place of a return-scope
 private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
 {
-    import core.stdc.string : memcpy, memset;
-    import core.internal.traits;
-
     // TODO: this assert pulls in half of phobos. we need to work out an alternative assert strategy.
 //    static if (!is(T == class) && hasAliasing!T) if (!__ctfe)
 //    {
@@ -2124,11 +2121,16 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
 
     static if (is(T == struct))
     {
+        import core.internal.traits;
+
         //  Unsafe when compiling without -preview=dip1000
         assert((() @trusted => &source !is &target)(), "source and target must not be identical");
 
         static if (hasElaborateAssign!T || !isAssignable!T)
+        {
+            import core.stdc.string : memcpy;
             () @trusted { memcpy(&target, &source, T.sizeof); }();
+        }
         else
             target = source;
 
@@ -2146,9 +2148,15 @@ private void moveEmplaceImpl(T)(scope ref T target, return scope ref T source)
                 enum sz = T.sizeof;
 
             static if (__traits(isZeroInit, T))
+            {
+                import core.stdc.string : memset;
                 () @trusted { memset(&source, 0, sz); }();
+            }
             else
+            {
+                import core.stdc.string : memcpy;
                 () @trusted { memcpy(&source, __traits(initSymbol, T).ptr, sz); }();
+            }
         }
     }
     else static if (__traits(isStaticArray, T))
