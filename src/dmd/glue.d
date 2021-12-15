@@ -1170,8 +1170,75 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     if (fd.isCrtCtorDtor & 1)
         objmod.setModuleCtorDtor(s, true);
+
     if (fd.isCrtCtorDtor & 2)
-        objmod.setModuleCtorDtor(s, false);
+    {
+        //See TargetC.initialize
+        if(target.c.crtDestructorsSupported)
+        {
+            objmod.setModuleCtorDtor(s, false);
+        } else
+        {
+             /*
+                https://issues.dlang.org/show_bug.cgi?id=22520
+
+                Apple radar: https://openradar.appspot.com/FB9733712
+
+                Apple deprecated the mechanism used to implement `crt_destructor`
+                on MacOS Monterey. This works around that by generating a new function
+                (crt_destructor_thunk_NNN, run as a constructor) which registers
+                the destructor-to-be using __cxa_atexit()
+
+                This workaround may need a further look at when it comes to
+                shared library support, however there is no bridge for
+                that spilt milk to flow under yet.
+
+                This relies on the Itanium ABI so is portable to any
+                platform it, if needed.
+            */
+            __gshared uint nthDestructor = 0;
+            char* buf = cast(char*) calloc(50, 1);
+            assert(buf);
+            const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk.%u", nthDestructor++);
+            assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
+            //Function symbol
+            auto newConstructor = symbol_calloc(buf);
+            //Build type
+            newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
+            //Tell it it's supposed to be a C function. Does it do anything? Not sure.
+            type_setmangle(&newConstructor.Stype, mTYman_c);
+            symbol_func(newConstructor);
+            //Global SC for now.
+            newConstructor.Sclass = SCstatic;
+            func_t* funcState = newConstructor.Sfunc;
+            //Init start block
+            funcState.Fstartblock = block_calloc();
+            block* startBlk = funcState.Fstartblock;
+            //Make that block run __cxa_atexit(&func);
+            auto atexitSym = getRtlsym(RTLSYM.CXA_ATEXIT);
+            Symbol* dso_handle = symbol_calloc("__dso_handle");
+            dso_handle.Stype = type_fake(TYint);
+            //Try to get MacOS _ prefix-ism right.
+            type_setmangle(&dso_handle.Stype, mTYman_c);
+            dso_handle.Sfl = FLextern;
+            dso_handle.Sclass = SCextern;
+            dso_handle.Stype.Tcount++;
+            auto handlePtr = el_ptr(dso_handle);
+            //Build parameter pack - __cxa_atexit(&func, null, null)
+            auto paramPack = el_params(handlePtr, el_long(TYnptr, 0), el_ptr(s), null);
+            auto exec = el_bin(OPcall, TYvoid, el_var(atexitSym), paramPack);
+            block_appendexp(startBlk, exec); //payload
+            startBlk.BC = BCgoto;
+            auto next = block_calloc();
+            startBlk.appendSucc(next);
+            startBlk.Bnext = next;
+            next.BC = BCret;
+            //Emit in binary
+            writefunc(newConstructor);
+            //Mark as a CONSTRUCTOR because our thunk implements the destructor
+            objmod.setModuleCtorDtor(newConstructor, true);
+        }
+    }
 
     foreach (sd; *irs.deferToObj)
     {
