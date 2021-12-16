@@ -149,7 +149,8 @@ extern (C++):
 
 //extern
 __gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
-private __gshared
+
+struct Glue
 {
     elem *eictor;
     Symbol *ictorlocalgot;
@@ -167,6 +168,8 @@ private __gshared
     Dsymbols obj_symbols_towrite;
 }
 
+private __gshared Glue glue;
+
 
 /**************************************
  * Append s to list of object files to generate later.
@@ -175,26 +178,26 @@ private __gshared
 void obj_append(Dsymbol s)
 {
     //printf("deferred: %s\n", s.toChars());
-    obj_symbols_towrite.push(s);
+    glue.obj_symbols_towrite.push(s);
 }
 
 private void obj_write_deferred(Library library)
 {
-    for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
+    for (size_t i = 0; i < glue.obj_symbols_towrite.dim; i++)
     {
-        Dsymbol s = obj_symbols_towrite[i];
+        Dsymbol s = glue.obj_symbols_towrite[i];
         Module m = s.getModule();
 
         const(char)* mname;
         if (m)
         {
             mname = m.srcfile.toChars();
-            lastmname = mname;
+            glue.lastmname = mname;
         }
         else
         {
             //mname = s.ident.toChars();
-            mname = lastmname;
+            mname = glue.lastmname;
             assert(mname);
         }
 
@@ -247,7 +250,7 @@ private void obj_write_deferred(Library library)
         //printf("writing '%s'\n", fname);
         obj_end(library, fname);
     }
-    obj_symbols_towrite.dim = 0;
+    glue.obj_symbols_towrite.dim = 0;
 }
 
 
@@ -405,19 +408,19 @@ private void genObjFile(Module m, bool multiobj)
 
     //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
 
-    lastmname = m.srcfile.toChars();
+    glue.lastmname = m.srcfile.toChars();
 
-    objmod.initfile(lastmname, null, m.toPrettyChars());
+    objmod.initfile(glue.lastmname, null, m.toPrettyChars());
 
-    eictor = null;
-    ictorlocalgot = null;
-    sctors.setDim(0);
-    ectorgates.setDim(0);
-    sdtors.setDim(0);
-    ssharedctors.setDim(0);
-    esharedctorgates.setDim(0);
-    sshareddtors.setDim(0);
-    stests.setDim(0);
+    glue.eictor = null;
+    glue.ictorlocalgot = null;
+    glue.sctors.setDim(0);
+    glue.ectorgates.setDim(0);
+    glue.sdtors.setDim(0);
+    glue.ssharedctors.setDim(0);
+    glue.esharedctorgates.setDim(0);
+    glue.sshareddtors.setDim(0);
+    glue.stests.setDim(0);
 
     if (m.doppelganger)
     {
@@ -537,7 +540,7 @@ private void genObjFile(Module m, bool multiobj)
 
         m.sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
-        localgot = ictorlocalgot;
+        localgot = glue.ictorlocalgot;
 
         elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
@@ -559,32 +562,32 @@ private void genObjFile(Module m, bool multiobj)
                       efilename,
                       null);
         e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
-        eictor = el_combine(e, eictor);
-        ictorlocalgot = localgot;
+        glue.eictor = el_combine(e, glue.eictor);
+        glue.ictorlocalgot = localgot;
     }
 
     // If coverage / static constructor / destructor / unittest calls
-    if (eictor || sctors.dim || ectorgates.dim || sdtors.dim ||
-        ssharedctors.dim || esharedctorgates.dim || sshareddtors.dim || stests.dim)
+    if (glue.eictor || glue.sctors.dim || glue.ectorgates.dim || glue.sdtors.dim ||
+        glue.ssharedctors.dim || glue.esharedctorgates.dim || glue.sshareddtors.dim || glue.stests.dim)
     {
-        if (eictor)
+        if (glue.eictor)
         {
-            localgot = ictorlocalgot;
+            localgot = glue.ictorlocalgot;
 
             block *b = block_calloc();
             b.BC = BCret;
-            b.Belem = eictor;
+            b.Belem = glue.eictor;
             m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
             m.sictor.Sfunc.Fstartblock = b;
             writefunc(m.sictor);
         }
 
-        m.sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
-        m.sdtor = callFuncsAndGates(m, &sdtors, null, "__moddtor");
+        m.sctor = callFuncsAndGates(m, &glue.sctors, &glue.ectorgates, "__modctor");
+        m.sdtor = callFuncsAndGates(m, &glue.sdtors, null, "__moddtor");
 
-        m.ssharedctor = callFuncsAndGates(m, &ssharedctors, cast(StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
-        m.sshareddtor = callFuncsAndGates(m, &sshareddtors, null, "__modshareddtor");
-        m.stest = callFuncsAndGates(m, &stests, null, "__modtest");
+        m.ssharedctor = callFuncsAndGates(m, &glue.ssharedctors, cast(StaticDtorDeclarations *)&glue.esharedctorgates, "__modsharedctor");
+        m.sshareddtor = callFuncsAndGates(m, &glue.sshareddtors, null, "__modshareddtor");
+        m.stest = callFuncsAndGates(m, &glue.stests, null, "__modtest");
 
         if (m.doppelganger)
             genModuleInfo(m);
@@ -1110,11 +1113,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // If static constructor
     if (fd.isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
-        ssharedctors.push(s);
+        glue.ssharedctors.push(s);
     }
     else if (fd.isStaticCtorDeclaration())
     {
-        sctors.push(s);
+        glue.sctors.push(s);
     }
 
     // If static destructor
@@ -1126,10 +1129,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             /* Increment destructor's vgate at construction time
              */
-            esharedctorgates.push(fs);
+            glue.esharedctorgates.push(fs);
         }
 
-        sshareddtors.shift(s);
+        glue.sshareddtors.shift(s);
     }
     else if (fd.isStaticDtorDeclaration())
     {
@@ -1139,16 +1142,16 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             /* Increment destructor's vgate at construction time
              */
-            ectorgates.push(fs);
+            glue.ectorgates.push(fs);
         }
 
-        sdtors.shift(s);
+        glue.sdtors.shift(s);
     }
 
     // If unit test
     if (ud)
     {
-        stests.push(s);
+        glue.stests.push(s);
     }
 
     if (global.errors)
