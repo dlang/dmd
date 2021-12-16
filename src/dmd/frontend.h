@@ -8492,7 +8492,6 @@ struct Token final
     void setString();
     const char* toChars() const;
     static const char* toChars(TOK value);
-    static const char* toChars(uint8_t value);
     Token() :
         next(),
         loc(),
