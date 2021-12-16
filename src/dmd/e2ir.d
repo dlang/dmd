@@ -3522,17 +3522,8 @@ extern (C++) class ToElemVisitor : Visitor
                 rtl = RTLSYM.DELMEMORY;
                 tb = (cast(TypePointer)tb).next.toBasetype();
 
-                /* `delete s` expressions were lowered to `_d_delstruct(s)` in
-                 * expressionsem.d. In order to still output `@safe`-ty, `nothrow`
-                 * and `nogc` errors related to dtors, the result was set to a
-                 * CommaExp made up of both the original and the lowered
-                 * expression. This is how e2ir.d gets here.
-                 * Since the lowering has already been made, the DeleteExp can
-                 * be ignored here.
-                 */
                 if (auto ts = tb.isTypeStruct())
-                    if (ts.sym.dtor)
-                        return;
+                    assert(!ts.sym.dtor, "This should have been lowererd to `_d_delstruct` in the semantic phase");
                 break;
 
             default:
