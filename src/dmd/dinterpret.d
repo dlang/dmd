@@ -4839,9 +4839,13 @@ public:
             }
             else if (fd.ident == Id._d_delstruct)
             {
-                // Ignore calls to `_d_delstruct`, as they are returned from
-                // expressionsem.d inside a CommaExp, together with their
-                // original DeleteExp.
+                // In expressionsem.d `delete s` was lowered to `_d_delstruct(s)`.
+                // The following code will rewrite it back to `delete s` and then
+                // interpret that expression.
+                assert(e.arguments.dim == 1);
+
+                auto de = new DeleteExp(e.loc, (*e.arguments)[0], false);
+                result = interpret(de, istate);
                 return;
             }
         }

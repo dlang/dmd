@@ -82,6 +82,19 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
 
             if (global.errors && !ce.e1.type)
                 return; // error recovery
+
+            import dmd.id : Id;
+
+            if (ce.f && ce.f.ident == Id._d_delstruct)
+            {
+                // In expressionsem.d `delete s` was lowered to `_d_delstruct(s)`.
+                // The following code rewrites it back to the original expresion
+                // in order to properly output `nothrow` errors.
+                auto de = new DeleteExp(ce.loc, (*ce.arguments)[0], false);
+                stop = canThrow(de, ce.f, mustNotThrow);
+                return;
+            }
+
             /* If calling a function or delegate that is typed as nothrow,
              * then this expression cannot throw.
              * Note that pure functions can throw.

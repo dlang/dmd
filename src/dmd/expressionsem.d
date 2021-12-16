@@ -7375,12 +7375,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 uint errors = global.startGagging();
                 e = e.expressionSemantic(sc);
                 global.endGagging(errors);
-
-                /* Return both the original DeleteExp and the lowered CallExp to
-                 * `_d_delstruct` in order to keep checking for dtor errors as
-                 * well as generate code for the call to `_d_delstruct`.
-                 */
-                e = Expression.combine(exp, e);
             }
             break;
 

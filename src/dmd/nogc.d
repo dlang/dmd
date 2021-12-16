@@ -83,6 +83,14 @@ public:
             }
             f.printGCUsage(e.loc, "setting `length` may cause a GC allocation");
         }
+        else if (fd.ident == Id._d_delstruct)
+        {
+            // In expressionsem.d `delete s` was lowered to `_d_delstruct(s)`.
+            // The following code rewrites it back to the original expresion in
+            // order to properly output `nogc` errors.
+            auto de = new DeleteExp(e.loc, (*e.arguments)[0], false);
+            visit(de);
+        }
     }
 
     override void visit(ArrayLiteralExp e)
