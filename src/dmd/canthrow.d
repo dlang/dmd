@@ -87,12 +87,15 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
 
             if (ce.f && ce.f.ident == Id._d_delstruct)
             {
-                // In expressionsem.d `delete s` was lowered to `_d_delstruct(s)`.
-                // The following code rewrites it back to the original expresion
-                // in order to properly output `nothrow` errors.
-                auto de = new DeleteExp(ce.loc, (*ce.arguments)[0], false);
-                stop = canThrow(de, ce.f, mustNotThrow);
-                return;
+                // Only check if the dtor throws.
+                Type tb = (*ce.arguments)[0].type.toBasetype();
+                auto ts = tb.nextOf().baseElemOf().isTypeStruct();
+                if (ts)
+                {
+                    auto sd = ts.sym;
+                    if (sd.dtor)
+                        checkFuncThrows(ce, sd.dtor);
+                }
             }
 
             /* If calling a function or delegate that is typed as nothrow,

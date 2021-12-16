@@ -85,11 +85,17 @@ public:
         }
         else if (fd.ident == Id._d_delstruct)
         {
-            // In expressionsem.d `delete s` was lowered to `_d_delstruct(s)`.
-            // The following code rewrites it back to the original expresion in
-            // order to properly output `nogc` errors.
-            auto de = new DeleteExp(e.loc, (*e.arguments)[0], false);
-            visit(de);
+            // In expressionsem.d, `delete s` was lowererd to `_d_delstruct(s)`.
+            // The following code handles the call like the original expression,
+            // so the error is menaningful to the user.
+            if (f.setGC())
+            {
+                e.error("cannot use `delete` in `@nogc` %s `%s`", f.kind(),
+                    f.toPrettyChars());
+                err = true;
+                return;
+            }
+            f.printGCUsage(e.loc, "`delete` requires the GC");
         }
     }
 
