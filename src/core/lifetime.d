@@ -2316,7 +2316,7 @@ template _d_delstructImpl(T)
 @system pure nothrow unittest
 {
     int dtors = 0;
-    struct S { ~this() { ++dtors; } }
+    struct S { ~this() nothrow { ++dtors; } }
 
     S *s = new S();
     _d_delstructImpl!(typeof(s))._d_delstruct(s);
