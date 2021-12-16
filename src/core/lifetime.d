@@ -1545,9 +1545,8 @@ template forward(args...)
 {
     import core.internal.traits : AliasSeq;
 
-    static if (args.length)
+    template fwd(alias arg)
     {
-        alias arg = args[0];
         // by ref || lazy || const/immutable
         static if (__traits(isRef,  arg) ||
                    __traits(isOut,  arg) ||
@@ -1556,15 +1555,16 @@ template forward(args...)
             alias fwd = arg;
         // (r)value
         else
-            @property auto fwd(){ return move(arg); }
-
-        static if (args.length == 1)
-            alias forward = fwd;
-        else
-            alias forward = AliasSeq!(fwd, forward!(args[1..$]));
+            @property auto fwd(){ pragma(inline, true); return move(arg); }
     }
+
+    alias Result = AliasSeq!();
+    static foreach (arg; args)
+        Result = AliasSeq!(Result, fwd!arg);
+    static if (Result.length == 1)
+        alias forward = Result[0];
     else
-        alias forward = AliasSeq!();
+        alias forward = Result;
 }
 
 ///
