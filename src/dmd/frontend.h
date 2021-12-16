@@ -1998,7 +1998,7 @@ enum class OwnedBy : uint8_t
     cache = 2u,
 };
 
-enum class TOK : uint16_t
+enum class TOK : uint8_t
 {
     reserved = 0u,
     leftParenthesis = 1u,
@@ -8492,7 +8492,7 @@ struct Token final
     void setString();
     const char* toChars() const;
     static const char* toChars(TOK value);
-    static const char* toChars(uint16_t value);
+    static const char* toChars(uint8_t value);
     Token() :
         next(),
         loc(),
