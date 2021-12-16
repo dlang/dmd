@@ -104,6 +104,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     }
     else if (oneobj)
     {
+        OutBuffer objbuf;
         Module firstm;    // first module we generate code for
         foreach (m; modules)
         {
@@ -112,7 +113,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (!firstm)
             {
                 firstm = m;
-                obj_start(m.srcfile.toChars());
+                obj_start(objbuf, m.srcfile.toChars());
             }
             if (verbose)
                 message("code      %s", m.toChars());
@@ -120,26 +121,25 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         }
         if (!global.errors && firstm)
         {
-            obj_end(library, firstm.objfile.toChars());
-            objbuf.dtor();
+            obj_end(objbuf, library, firstm.objfile.toChars());
         }
     }
     else
     {
+        OutBuffer objbuf;
         foreach (m; modules)
         {
             if (m.isHdrFile)
                 continue;
             if (verbose)
                 message("code      %s", m.toChars());
-            obj_start(m.srcfile.toChars());
+            obj_start(objbuf, m.srcfile.toChars());
             genObjFile(m, multiobj);
-            obj_end(library, m.objfile.toChars());
-            obj_write_deferred(library);
+            obj_end(objbuf, library, m.objfile.toChars());
+            obj_write_deferred(objbuf, library);
             if (global.errors && !lib)
                 m.deleteObjFile();
         }
-        objbuf.dtor();
     }
     if (lib && !global.errors)
         library.write();
@@ -181,7 +181,7 @@ void obj_append(Dsymbol s)
     glue.obj_symbols_towrite.push(s);
 }
 
-private void obj_write_deferred(Library library)
+private void obj_write_deferred(ref OutBuffer objbuf, Library library)
 {
     for (size_t i = 0; i < glue.obj_symbols_towrite.dim; i++)
     {
@@ -201,7 +201,7 @@ private void obj_write_deferred(Library library)
             assert(mname);
         }
 
-        obj_start(mname);
+        obj_start(objbuf, mname);
 
         __gshared int count;
         count++;                // sequence for generating names
@@ -248,7 +248,7 @@ private void obj_write_deferred(Library library)
         fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
-        obj_end(library, fname);
+        obj_end(objbuf, library, fname);
     }
     glue.obj_symbols_towrite.dim = 0;
 }
@@ -320,11 +320,12 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
 
 /**************************************
  * Prepare for generating obj file.
+ * Params:
+ *      objbuf = write object file contents to this
+ *      srcfile = name of the source file
  */
 
-private __gshared OutBuffer objbuf;
-
-private void obj_start(const(char)* srcfile)
+private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
 {
     //printf("obj_start()\n");
 
@@ -356,10 +357,11 @@ private void obj_start(const(char)* srcfile)
  * Then either write the object module to an actual file,
  * or add it to a library.
  * Params:
+ *      objbuf = contains the generated contents of the object file
  *      objfilename = what to call the object module
  *      library = if non-null, add object module to this library
  */
-private void obj_end(Library library, const(char)* objfilename)
+private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfilename)
 {
     objmod.term(objfilename);
     //delete objmod;
