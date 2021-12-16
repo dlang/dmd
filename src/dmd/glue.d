@@ -265,56 +265,51 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library)
  *      function Symbol generated
  */
 
-private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarations *ectorgates,
+extern (D)
+private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclaration[] ectorgates,
         const(char)* id)
 {
+    if (!sctors.length && !ectorgates.length)
+        return null;
+
     Symbol *sctor = null;
 
-    if ((sctors && sctors.dim) ||
-        (ectorgates && ectorgates.dim))
+    __gshared type *t;
+    if (!t)
     {
-        __gshared type *t;
-        if (!t)
-        {
-            /* t will be the type of the functions generated:
-             *      extern (C) void func();
-             */
-            t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-            t.Tmangle = mTYman_c;
-        }
-
-        localgot = null;
-        sctor = toSymbolX(m, id, SCglobal, t, "FZv");
-        cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
-        elem *ector = null;
-
-        if (ectorgates)
-        {
-            foreach (f; *ectorgates)
-            {
-                Symbol *s = toSymbol(f.vgate);
-                elem *e = el_var(s);
-                e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
-                ector = el_combine(ector, e);
-            }
-        }
-
-        if (sctors)
-        {
-            foreach (s; *sctors)
-            {
-                elem *e = el_una(OPucall, TYvoid, el_var(s));
-                ector = el_combine(ector, e);
-            }
-        }
-
-        block *b = block_calloc();
-        b.BC = BCret;
-        b.Belem = ector;
-        sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
-        sctor.Sfunc.Fstartblock = b;
-        writefunc(sctor); // hand off to backend
+        /* t will be the type of the functions generated:
+         *      extern (C) void func();
+         */
+        t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
+        t.Tmangle = mTYman_c;
     }
+
+    localgot = null;
+    sctor = toSymbolX(m, id, SCglobal, t, "FZv");
+    cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
+    elem *ector = null;
+
+    foreach (f; ectorgates)
+    {
+        Symbol *s = toSymbol(f.vgate);
+        elem *e = el_var(s);
+        e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
+        ector = el_combine(ector, e);
+    }
+
+    foreach (s; sctors)
+    {
+        elem *e = el_una(OPucall, TYvoid, el_var(s));
+        ector = el_combine(ector, e);
+    }
+
+    block *b = block_calloc();
+    b.BC = BCret;
+    b.Belem = ector;
+    sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
+    sctor.Sfunc.Fstartblock = b;
+    writefunc(sctor); // hand off to backend
+
     return sctor;
 }
 
@@ -584,12 +579,12 @@ private void genObjFile(Module m, bool multiobj)
             writefunc(m.sictor);
         }
 
-        m.sctor = callFuncsAndGates(m, &glue.sctors, &glue.ectorgates, "__modctor");
-        m.sdtor = callFuncsAndGates(m, &glue.sdtors, null, "__moddtor");
+        m.sctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
+        m.sdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
 
-        m.ssharedctor = callFuncsAndGates(m, &glue.ssharedctors, cast(StaticDtorDeclarations *)&glue.esharedctorgates, "__modsharedctor");
-        m.sshareddtor = callFuncsAndGates(m, &glue.sshareddtors, null, "__modshareddtor");
-        m.stest = callFuncsAndGates(m, &glue.stests, null, "__modtest");
+        m.ssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
+        m.sshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
+        m.stest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
 
         if (m.doppelganger)
             genModuleInfo(m);
