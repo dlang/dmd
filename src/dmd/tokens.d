@@ -1113,11 +1113,6 @@ nothrow:
         return toString(value).ptr;
     }
 
-    static const(char)* toChars(ubyte value)
-    {
-        return toString(cast(TOK)value).ptr;
-    }
-
     extern (D) static string toString(TOK value) pure nothrow @nogc @safe
     {
         return tochars[value];
