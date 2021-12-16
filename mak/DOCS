@@ -513,6 +513,7 @@ DOCS=\
 	$(DOCDIR)\core_thread_fiber.html \
 	$(DOCDIR)\core_thread_osthread.html \
 	$(DOCDIR)\core_thread_threadbase.html \
+	$(DOCDIR)\core_thread.html \
 	\
 	\
 	$(DOCDIR)\etc_linux_memoryerror.html \
