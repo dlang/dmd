@@ -4,8 +4,8 @@ difficult to implement, compilers provide an interface consisting of a set
 of builtins (also called intrinsics) which can be called like normal functions.
 
 This module exposes builtins both common to all D compilers
-(those provided by the frontend) and specific to the host compiler, that is
-those specific to LLVM or GCC (`ldc.intrinsics` and `gcc.builtins` are imported, respectively).
+(those provided by the frontend) and specific to the host compiler i.e. those
+specific to either LLVM or GCC (`ldc.intrinsics` and `gcc.builtins` are publicly imported, respectively).
 Host-specific intrinsics cannot be reliably listed here, however listings can be found
 at the documentation for the relevant backends, i.e.
 $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html, GCC) and
