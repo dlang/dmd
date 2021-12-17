@@ -19,7 +19,7 @@ that uses prefetching we can write the following:
 ---
 float usePrefetch(float[] x)
 {
-	// There is only one import statement required rather than two (versioned) imports
+    // There is only one import statement required rather than two (versioned) imports
     import core.builtins;
     version(GNU)
         __builtin_prefetch(x.ptr);
