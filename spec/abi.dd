@@ -942,7 +942,7 @@ $(H2 $(LNAME2 exception_handling, Exception Handling))
 
 $(H2 $(LNAME2 garbage_collection, Garbage Collection))
 
-        $(P The interface to this is found in Druntime's $(DRUNTIMESRC gc/gcinterface.d).)
+        $(P The interface to this is found in Druntime's $(DRUNTIMESRC core/gc/gcinterface.d).)
 
 $(H2 $(LNAME2 runtime_helper_functions, Runtime Helper Functions))
 
