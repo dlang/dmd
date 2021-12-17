@@ -2916,6 +2916,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 // @@@DEPRECATED_2.098@@@
                 // End deprecation cycle after 2.108.
                 uint olderrors = global.startGagging();
+                // uncomment to turn deprecation into an error when
+                // deprecation cycle is over
                 if (discardValue(rs.exp))
                 {
                     //errors = true;
