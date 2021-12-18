@@ -21,9 +21,9 @@ float usePrefetch(float[] x)
 {
     // There is only one import statement required rather than two (versioned) imports
     import core.builtins;
-    version(GNU)
+    version (GNU)
         __builtin_prefetch(x.ptr);
-    version(LDC)
+    version (LDC)
         /+
             For the curious: 0, 3, 1 mean `x` will only be read-from (0), it will be used
             very often (3), and it should be fetched to the data-cache (1).
