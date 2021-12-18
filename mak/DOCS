@@ -515,6 +515,7 @@ DOCS=\
 	$(DOCDIR)\core_thread_threadbase.html \
 	$(DOCDIR)\core_thread.html \
 	\
+	$(DOCDIR)\core_builtins.html \
 	\
 	$(DOCDIR)\etc_linux_memoryerror.html \
 	\

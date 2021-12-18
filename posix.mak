@@ -288,6 +288,9 @@ $(DOC_OUTPUT_DIR)/core_thread.html : src/core/thread/package.d $(DMD)
 $(DOC_OUTPUT_DIR)/core_thread_%.html : src/core/thread/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOC_OUTPUT_DIR)/core_builtins.html : src/core/builtins.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOC_OUTPUT_DIR)/etc_linux_%.html : src/etc/linux/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
