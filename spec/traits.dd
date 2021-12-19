@@ -1453,10 +1453,12 @@ $(H2 $(GNAME getVirtualIndex))
 $(H2 $(GNAME allMembers))
 
         $(P Takes a single argument, which must evaluate to either
-        a type or an expression of type.
+        a module, a struct, a union, a class, an interface or a
+        template instantiation.
+
         A tuple of string literals is returned, each of which
-        is the name of a member of that type combined with all
-        of the members of the base classes (if the type is a class).
+        is the name of a member of that argument combined with all
+        of the members of its base classes (if the argument is a class).
         No name is repeated.
         Builtin properties are not included.
         )
