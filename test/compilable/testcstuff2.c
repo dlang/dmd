@@ -647,3 +647,12 @@ long test22584(long a, long b)
 {
     return a + b;
 }
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22602
+
+void test22602()
+{
+    unsigned char *data;
+    data = (void *)"\0\0\xff\xff";
+}

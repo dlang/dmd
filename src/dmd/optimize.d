@@ -487,7 +487,67 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                         return true;
                     offset += v.offset;
                 }
-                else if (auto ve = e.isVarExp())
+            }
+
+            if (e.e1.isDotVarExp())
+            {
+                /******************************
+                 * Run down the left side of the a.b.c expression to determine the
+                 * leftmost variable being addressed (`a`), and accumulate the offsets of the `.b` and `.c`.
+                 * Params:
+                 *      e = the DotVarExp or VarExp
+                 *      var = set to the VarExp at the end, or null if doesn't end in VarExp
+                 *      offset = accumulation of all the .var offsets encountered
+                 * Returns: true on error
+                 */
+                static bool getVarAndOffset(Expression e, ref VarDeclaration var, ref uint offset)
+                {
+                    if (e.type.size() == SIZE_INVALID)  // trigger computation of v.offset
+                        return true;
+
+                    if (auto dve = e.isDotVarExp())
+                    {
+                        auto v = dve.var.isVarDeclaration();
+                        if (!v || !v.isField() || v.isBitFieldDeclaration())
+                            return false;
+
+                        if (getVarAndOffset(dve.e1, var, offset))
+                            return true;
+                        offset += v.offset;
+                    }
+                    else if (auto ve = e.isVarExp())
+                    {
+                        if (!ve.var.isReference() &&
+                            !ve.var.isImportedSymbol() &&
+                            ve.var.isDataseg() &&
+                            ve.var.isCsymbol())
+                        {
+                            var = ve.var.isVarDeclaration();
+                        }
+                    }
+                    return false;
+                }
+
+                uint offset;
+                VarDeclaration var;
+                if (getVarAndOffset(e.e1, var, offset))
+                {
+                    ret = ErrorExp.get();
+                    return;
+                }
+                if (var)
+                {
+                    ret = new SymOffExp(e.loc, var, offset, false);
+                    ret.type = e.type;
+                    return;
+                }
+            }
+
+            if (e.e1.op == EXP.index)
+            {
+                // Convert &array[n] to &array+n
+                IndexExp ae = cast(IndexExp)e.e1;
+                if (ae.e2.op == EXP.int64 && ae.e1.op == EXP.variable)
                 {
                     if (!ve.var.isReference() &&
                         !ve.var.isImportedSymbol() &&

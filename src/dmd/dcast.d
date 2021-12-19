@@ -1866,7 +1866,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
             //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t.toChars(), e.toChars(), e.committed);
 
-            if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
+            if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid &&
+                (!sc || !(sc.flags & SCOPE.Cfile)))
             {
                 e.error("cannot convert string literal to `void*`");
                 result = ErrorExp.get();

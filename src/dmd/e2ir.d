@@ -6743,6 +6743,15 @@ elem* builtinC(FuncDeclaration fd, elem* e)
     const id = fd.ident;
     if (id == Id.builtin_va_start)
     {
+        if (target.is64bit)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=22597
+            // callfunc reverses the parameters, swap them back for the
+            // intrinsic lowering.
+            auto earg = e.EV.E1;
+            e.EV.E1 = e.EV.E2;
+            e.EV.E2 = earg;
+        }
         return constructVa_start(e);
     }
     else if (id == Id.builtin_va_end)

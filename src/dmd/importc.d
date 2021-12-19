@@ -259,4 +259,3 @@ Expression castCallAmbiguity(Expression e, Scope* sc)
         }
     }
 }
-
