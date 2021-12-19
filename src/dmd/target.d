@@ -1170,6 +1170,8 @@ extern (C++) struct Target
  */
 struct TargetC
 {
+    import dmd.arraytypes : Dsymbols;
+
     enum Runtime : ubyte
     {
         Unspecified,
@@ -1251,6 +1253,56 @@ struct TargetC
         if (os == Target.OS.OSX)
         {
             crtDestructorsSupported = false;
+        }
+    }
+
+    /***********************************
+     * Add global target-dependent builtin declarations.
+     * Params:
+     *  symbols = array to push constructed target built-ins
+     */
+    extern (C++) void addBuiltinDeclarations(Dsymbols *symbols) const
+    {
+        import dmd.astenums : VarArg;
+        import dmd.dstruct : StructDeclaration;
+        import dmd.globals : Loc;
+        import dmd.identifier : Identifier;
+        import dmd.id : Id;
+
+        void genBuiltinFunc(Identifier id, VarArg va)
+        {
+            import dmd.arraytypes : Parameters;
+            import dmd.astenums : STC;
+            import dmd.func : FuncDeclaration;
+            import dmd.globals : LINK;
+            import dmd.mtype : Parameter, ParameterList, Type, TypeFunction, TypeIdentifier;
+            auto tva_list = new TypeIdentifier(Loc.initial, Id.builtin_va_list);
+            auto parameters = new Parameters();
+            parameters.push(new Parameter(STC.parameter | STC.ref_, tva_list, null, null, null));
+            auto pl = ParameterList(parameters, va, 0);
+            auto tf = new TypeFunction(pl, Type.tvoid, LINK.c, 0);
+            auto s = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf, false);
+            symbols.push(s);
+        }
+
+        /* void __builtin_va_start(__builtin_va_list, ...);
+         * The second argument is supposed to be of any type, so fake it with the ...
+         */
+        genBuiltinFunc(Id.builtin_va_start, VarArg.variadic);
+
+        /* void __builtin_va_end(__builtin_va_list);
+         */
+        genBuiltinFunc(Id.builtin_va_end, VarArg.none);
+
+        if (target.is64bit)
+        {
+            /* struct __va_list_tag
+             * {
+             *    uint, uint, void*, void*
+             * }
+             */
+            auto s = new StructDeclaration(Loc.initial, Id.va_list_tag, false);
+            symbols.push(s);
         }
     }
 

@@ -76,6 +76,8 @@ struct TargetC
     uint8_t wchar_tsize;         // size of a C 'wchar_t' type
     Runtime runtime;
     BitFieldStyle bitFieldStyle; // different C compilers do it differently
+
+    void addBuiltinDeclarations(Array<Dsymbol*> *symbols) const;
 };
 
 struct TargetCPP

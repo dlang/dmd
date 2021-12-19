@@ -5028,6 +5028,7 @@ struct TargetC final
     uint8_t wchar_tsize;
     Runtime runtime;
     BitFieldStyle bitFieldStyle;
+    void addBuiltinDeclarations(Array<Dsymbol* >* symbols) const;
     TargetC() :
         crtDestructorsSupported(true),
         longsize(),
