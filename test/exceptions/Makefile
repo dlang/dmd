@@ -4,22 +4,22 @@ TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor
 	  future_message refcounted rt_trap_exceptions_drt catch_in_finally
 
 ifeq ($(OS)-$(BUILD),linux-debug)
-	TESTS+=line_trace long_backtrace_trunc rt_trap_exceptions
+	TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS),linux)
 	TESTS+=rt_trap_exceptions_drt_gdb
 endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
-	TESTS+=line_trace long_backtrace_trunc
+	TESTS+=line_trace line_trace_21656 long_backtrace_trunc
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS)-$(BUILD),dragonflybsd-debug)
-	TESTS+=line_trace long_backtrace_trunc
+	TESTS+=line_trace line_trace_21656 long_backtrace_trunc
 	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS)-$(BUILD),osx-debug)
-	TESTS+=line_trace long_backtrace_trunc
+	TESTS+=line_trace line_trace_21656 long_backtrace_trunc
 	LINE_TRACE_DFLAGS:=
 endif
 
@@ -40,6 +40,16 @@ $(ROOT)/line_trace.done: $(ROOT)/line_trace
 	# Use sed to canonicalize line_trace.output and compare against expected output in line_trace.exp
 	$(QUIET)$(SED) "s/\[0x[0-9a-f]*\]/\[ADDR\]/g; s/scope //g; s/Nl//g" $(ROOT)/line_trace.output | $(DIFF) line_trace.exp -
 	@rm -f $(ROOT)/line_trace.output
+	@touch $@
+
+# https://issues.dlang.org/show_bug.cgi?id=21656
+$(ROOT)/line_trace_21656.done: $(ROOT)/line_trace
+	@echo Testing line_trace_21656
+	@mkdir -p $(ROOT)/line_trace_21656
+	@touch $(ROOT)/line_trace_21656/line_trace
+	$(QUIET)cd $(ROOT)/line_trace_21656 && PATH="..:$$PATH" $(TIMELIMIT)line_trace $(RUN_ARGS) > line_trace.output
+	$(QUIET)$(SED) "s/\[0x[0-9a-f]*\]/\[ADDR\]/g; s/scope //g; s/Nl//g" $(ROOT)/line_trace_21656/line_trace.output | $(DIFF) line_trace.exp -
+	@rm -rf $(ROOT)/line_trace_21656
 	@touch $@
 
 $(ROOT)/long_backtrace_trunc.done: $(ROOT)/long_backtrace_trunc
