@@ -1453,7 +1453,7 @@ $(H2 $(GNAME getVirtualIndex))
 $(H2 $(GNAME allMembers))
 
         $(P Takes a single argument, which must evaluate to either
-        a module, a struct, a union, a class, an interface or a
+        a module, a struct, a union, a class, an interface, or a
         template instantiation.
 
         A tuple of string literals is returned, each of which
