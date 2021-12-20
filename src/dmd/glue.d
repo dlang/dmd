@@ -1015,10 +1015,14 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             symbol_add(sv);
         }
 
-        Symbol *sa = toSymbol(fd.v_argptr);
-        symbol_add(sa);
-        elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
-        block_appendexp(irs.blx.curblock, e);
+        // Declare _argptr, but only for D files
+        if (!irs.Cfile)
+        {
+            Symbol *sa = toSymbol(fd.v_argptr);
+            symbol_add(sa);
+            elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
+            block_appendexp(irs.blx.curblock, e);
+        }
     }
 
     /* Doing this in semantic3() caused all kinds of problems:
