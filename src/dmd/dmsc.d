@@ -40,6 +40,7 @@ extern (C) void out_config_init(
                         // false: dll or shared library (generate PIC code)
         bool trace,     // add profiling code
         bool nofloat,   // do not pull in floating point code
+        bool vasm,      // print generated assembler for each function
         bool verbose,   // verbose compile
         bool optimize,  // optimize code
         int symdebug,   // add symbolic debug information
@@ -107,6 +108,7 @@ void backend_init()
         exe,
         false, //params.trace,
         params.nofloat,
+        dmdParams.vasm,
         params.verbose,
         params.optimize,
         params.symdebug,

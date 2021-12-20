@@ -597,7 +597,7 @@ else
 
         code *c = cdb.finish();
         pinholeopt(c,null);
-        codout(sfunc.Sseg,c);
+        codout(sfunc.Sseg,c,null);
         code_free(c);
     }
 }

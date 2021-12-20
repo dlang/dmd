@@ -773,6 +773,7 @@ enum LANG
 struct Configv
 {
     ubyte addlinenumbers;       // put line number info in .OBJ file
+    ubyte vasm;                 // print generated assembler for each function
     ubyte verbose;              // 0: compile quietly (no messages)
                                 // 1: show progress to DLL (default)
                                 // 2: full verbosity

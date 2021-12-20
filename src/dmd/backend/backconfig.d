@@ -42,6 +42,7 @@ version (MARS)
                     false for dll or shared library (generate PIC code)
     trace         =  add profiling code
     nofloat       = do not pull in floating point code
+    vasm          = print generated assembler for each function
     verbose       = verbose compile
     optimize      = optimize code
     symdebug      = add symbolic debug information,
@@ -66,6 +67,7 @@ extern (C) void out_config_init(
         bool exe,
         bool trace,
         bool nofloat,
+        bool vasm,      // print generated assembler for each function
         bool verbose,
         bool optimize,
         int symdebug,
@@ -305,6 +307,7 @@ static if (0)
     if (nofloat)
         cfg.flags3 |= CFG3wkfloat;
 
+    configv.vasm = vasm;
     configv.verbose = verbose;
 
     if (optimize)
