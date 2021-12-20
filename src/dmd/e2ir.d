@@ -3521,15 +3521,9 @@ extern (C++) class ToElemVisitor : Visitor
                 e = addressElem(e, de.e1.type);
                 rtl = RTLSYM.DELMEMORY;
                 tb = (cast(TypePointer)tb).next.toBasetype();
+
                 if (auto ts = tb.isTypeStruct())
-                {
-                    if (ts.sym.dtor)
-                    {
-                        rtl = RTLSYM.DELSTRUCT;
-                        elem *et = getTypeInfo(de.e1.loc, tb, irs);
-                        e = el_params(et, e, null);
-                    }
-                }
+                    assert(!ts.sym.dtor, "This should have been lowererd to `_d_delstruct` in the semantic phase");
                 break;
 
             default:
