@@ -744,10 +744,11 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
          * Params:
          *    t = element type
          *    dim = max number of elements
+         *    simple = true if array of simple elements
          * Returns:
          *    # of elements in array
          */
-        size_t array(Type t, size_t dim)
+        size_t array(Type t, size_t dim, ref bool simple)
         {
             //printf(" type %s i %d dim %d dil.length = %d\n", t.toChars(), cast(int)i, cast(int)dim, cast(int)dil.length);
             auto tn = t.nextOf().toBasetype();
@@ -789,14 +790,30 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 if (tnsa && di.initializer.isExpInitializer())
                 {
                     // no braces enclosing array initializer, so recurse
-                    array(tnsa, nelems);
+                    array(tnsa, nelems, simple);
                 }
                 else if (auto tns = tn.isTypeStruct())
                 {
-                    if (di.initializer.isExpInitializer())
+                    if (auto ei = di.initializer.isExpInitializer())
                     {
                         // no braces enclosing struct initializer
-                        dil[n].initializer = structs(tns);
+
+                        /* Disambiguate between an exp representing the entire
+                         * struct, and an exp representing the first field of the struct
+                        */
+                        if (needInterpret)
+                            sc = sc.startCTFE();
+                        ei.exp = ei.exp.expressionSemantic(sc);
+                        ei.exp = resolveProperties(sc, ei.exp);
+                        if (needInterpret)
+                            sc = sc.endCTFE();
+                        if (ei.exp.implicitConvTo(tn))
+                            di.initializer = elem(di.initializer); // the whole struct
+                        else
+                        {
+                            simple = false;
+                            dil[n].initializer = structs(tns); // the first field
+                        }
                     }
                     else
                         dil[n].initializer = elem(di.initializer);
@@ -814,7 +831,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
 
         size_t dim = tsa.isIncomplete() ? dil.length : cast(size_t)tsa.dim.toInteger();
-        auto newdim = array(t, dim);
+        bool simple = true;
+        auto newdim = array(t, dim, simple);
 
         if (errors)
             return err();
@@ -847,7 +865,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         /* If an array of simple elements, replace with an ArrayInitializer
          */
         auto tnb = tn.toBasetype();
-        if (!(tnb.isTypeSArray() || tnb.isTypeStruct()))
+        if (!tnb.isTypeSArray() && (!tnb.isTypeStruct() || simple))
         {
             auto ai = new ArrayInitializer(ci.loc);
             ai.dim = cast(uint) dil.length;

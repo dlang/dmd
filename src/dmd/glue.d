@@ -136,7 +136,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             obj_start(objbuf, m.srcfile.toChars());
             genObjFile(m, multiobj);
             obj_end(objbuf, library, m.objfile.toChars());
-            obj_write_deferred(objbuf, library);
+            obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
             if (global.errors && !lib)
                 m.deleteObjFile();
         }
@@ -173,6 +173,7 @@ private __gshared Glue glue;
 
 /**************************************
  * Append s to list of object files to generate later.
+ * Only happens with multiobj.
  */
 
 void obj_append(Dsymbol s)
@@ -181,11 +182,20 @@ void obj_append(Dsymbol s)
     glue.obj_symbols_towrite.push(s);
 }
 
-private void obj_write_deferred(ref OutBuffer objbuf, Library library)
+/*******************************
+ * Generating multiple object files, one per Dsymbol
+ * in symbols_towrite[].
+ * Params:
+ *      library = library to write object files to
+ *      symbols_towrite = array of Dsymbols
+ */
+extern (D)
+private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymbols symbols_towrite)
 {
-    for (size_t i = 0; i < glue.obj_symbols_towrite.dim; i++)
+    // this array can grow during the loop; do not replace with foreach
+    for (size_t i = 0; i < symbols_towrite.length; ++i)
     {
-        Dsymbol s = glue.obj_symbols_towrite[i];
+        Dsymbol s = symbols_towrite[i];
         Module m = s.getModule();
 
         const(char)* mname;
