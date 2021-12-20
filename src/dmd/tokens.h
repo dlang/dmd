@@ -93,10 +93,7 @@ enum class TOK : unsigned char
     rightShiftAssign,
     unsignedRightShift,
     unsignedRightShiftAssign,
-//    concatenate,
     concatenateAssign, // ~=
-//    concatenateElemAssign,
-//    concatenateDcharAssign,
     add,
     min,
     addAssign,
@@ -118,15 +115,11 @@ enum class TOK : unsigned char
     tilde,
     plusPlus,
     minusMinus,
-//    construct,
-//    blit,
     dot,
     comma,
     question,
     andAnd,
     orOr,
-//    prePlusPlus,
-//    preMinusMinus,
 
     // Numeric literals
     int32Literal,   // 104,
@@ -153,7 +146,6 @@ enum class TOK : unsigned char
     hexadecimalString,
     this_,
     super_,
-//    tuple,
     error,
 
     // Basic types
@@ -253,7 +245,6 @@ enum class TOK : unsigned char
 
     parameters,     // 210
     traits,
-//    overloadSet,
     pure_,
     nothrow_,
     gshared,
