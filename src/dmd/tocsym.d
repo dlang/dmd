@@ -331,7 +331,9 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(FuncDeclaration fd)
         {
-            const(char)* id = mangleExact(fd);
+            const(char)* id = (fd.linkage == LINK.c && fd.isCsymbol())
+                        ? fd.ident.toChars()
+                        : mangleExact(fd);
 
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
             //printf("\tid = '%s'\n", id);

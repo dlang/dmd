@@ -100,6 +100,7 @@ struct IRState
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.eh_none);
+        this.Cfile = m.isCFile;
     }
 
     FuncDeclaration getFunc()
