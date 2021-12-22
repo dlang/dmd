@@ -3378,7 +3378,7 @@ void ElfObj_dehinfo(Symbol *scc)
 
 private void obj_rtinit()
 {
-    // section start/stop symbols are defined by the linker (http://www.airs.com/blog/archives/56)
+    // section start/stop symbols are defined by the linker (https://www.airs.com/blog/archives/56)
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 

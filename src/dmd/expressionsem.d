@@ -5980,7 +5980,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         /* Be wary of CWE-22: Improper Limitation of a Pathname to a Restricted Directory
          * ('Path Traversal') attacks.
-         * http://cwe.mitre.org/data/definitions/22.html
+         * https://cwe.mitre.org/data/definitions/22.html
          */
 
         if (FileName.absolute(namez))

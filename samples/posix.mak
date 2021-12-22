@@ -43,7 +43,7 @@ LFLAGS	=
 ## Basically, if you had some Makefile knowledge, this is all you need.
 ##
 ## For explanation / more advanced use, see:
-## http://www.gnu.org/software/make/manual/html_node/Suffix-Rules.html
+## https://www.gnu.org/software/make/manual/html_node/Suffix-Rules.html
 .SUFFIXES: .d
 .d.o:
 	$(DMD) $(DFLAGS) -c $< -of$@

@@ -31,7 +31,7 @@ inline size_t ld_sprint(char* str, int fmt, longdouble x)
     if (((longdouble)(unsigned long long)x) == x)
     {   // ((1.5 -> 1 -> 1.0) == 1.5) is false
         // ((1.0 -> 1 -> 1.0) == 1.0) is true
-        // see http://en.cppreference.com/w/cpp/io/c/fprintf
+        // see https://en.cppreference.com/w/cpp/io/c/fprintf
         char sfmt[5] = "%#Lg";
         sfmt[3] = fmt;
         return sprintf(str, sfmt, x);

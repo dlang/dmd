@@ -837,7 +837,7 @@ extern (C++) final class Module : Package
         if (buf.length >= 2)
         {
             /* Convert all non-UTF-8 formats to UTF-8.
-             * BOM : http://www.unicode.org/faq/utf_bom.html
+             * BOM : https://www.unicode.org/faq/utf_bom.html
              * 00 00 FE FF  UTF-32BE, big-endian
              * FF FE 00 00  UTF-32LE, little-endian
              * FE FF        UTF-16BE, big-endian

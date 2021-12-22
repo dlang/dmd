@@ -57,7 +57,7 @@ import dmd.target;
  *      `true` if errors occurred
  * References:
  * C99 7.19.6.1
- * http://www.cplusplus.com/reference/cstdio/printf/
+ * https://www.cplusplus.com/reference/cstdio/printf/
  */
 bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list)
 {
@@ -331,7 +331,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
  *      `true` if errors occurred
  * References:
  * C99 7.19.6.2
- * http://www.cplusplus.com/reference/cstdio/scanf/
+ * https://www.cplusplus.com/reference/cstdio/scanf/
  */
 bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list)
 {
@@ -955,7 +955,7 @@ Format parseGenericFormatSpecifier(scope const char[] format,
         case 'm':
             if (useGNUExts)
             {
-                // http://www.gnu.org/software/libc/manual/html_node/Other-Output-Conversions.html
+                // https://www.gnu.org/software/libc/manual/html_node/Other-Output-Conversions.html
                 specifier = Format.GNU_m;
                 break;
             }
