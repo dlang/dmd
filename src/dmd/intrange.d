@@ -255,7 +255,7 @@ struct SignExtendedNumber
         uinteger_t v = copySign(value, negative);
 
         // compute base-2 log of 'v' to determine the maximum allowed bits to shift.
-        // Ref: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
+        // Ref: https://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
 
         // Why is this a size_t? Looks like a bug.
         size_t r, s;

@@ -1162,7 +1162,7 @@ void MsCoffObj_staticdtor(Symbol *s)
 void MsCoffObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
     // Also see https://blogs.msdn.microsoft.com/vcblog/2006/10/20/crt-initialization/
-    // and http://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm
+    // and https://www.codeguru.com/cplusplus/running-code-before-and-after-main/
     const int align_ = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
     const int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align_ | IMAGE_SCN_MEM_READ;
     const int seg = MsCoffObj_getsegment(isCtor ? ".CRT$XCU" : ".CRT$XPU", attr);

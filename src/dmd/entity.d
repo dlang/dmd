@@ -36,8 +36,8 @@ private:
 /*********************************************
  * Convert from named entity to its encoding.
  * For reference:
- *      http://www.htmlhelp.com/reference/html40/entities/
- *      http://www.w3.org/2003/entities/2007/w3centities-f.ent
+ *      https://www.htmlhelp.com/reference/html40/entities/
+ *      https://www.w3.org/2003/entities/2007/w3centities-f.ent
  */
 struct NameId
 {

@@ -284,7 +284,7 @@ private:
     size_t findSlot(hash_t hash, scope const(char)[] str) const @nogc nothrow pure
     {
         // quadratic probing using triangular numbers
-        // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
+        // https://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
         for (size_t i = hash & (table.length - 1), j = 1;; ++j)
         {
             const(StringValue!T)* sv;
