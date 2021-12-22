@@ -5504,7 +5504,7 @@ elem *callfunc(const ref Loc loc,
     {
         // `OPcallns` used to be passed here for certain pure functions,
         // but optimizations based on pure have to be retought, see:
-        // http://issues.dlang.org/show_bug.cgi?id=22277
+        // https://issues.dlang.org/show_bug.cgi?id=22277
         if (ep)
             e = el_bin(OPcall, tyret, ec, ep);
         else

@@ -8,7 +8,7 @@ We exclusively use [bugzilla](https://issues.dlang.org/) for issue tracking, whi
 Before reporting a bug, please [check bugzilla](https://issues.dlang.org/query.cgi) to see if it's already reported.
 If it isn't, [create a new issue](https://issues.dlang.org/enter_bug.cgi).
 
-For questions about a specific behavior, the [D.Learn](http://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
+For questions about a specific behavior, the [D.Learn](https://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
 
 ### Content
 
@@ -44,7 +44,7 @@ Note that after a version has entered the release window (there is a beta / the 
 
 Before submitting a PR, check the following to make the pulling process run smoothly are:
 
-- Make sure to target the right branch. Regressions go to stable, and everything else to master, as outlined in [our release process](http://wiki.dlang.org/DIP75).
+- Make sure to target the right branch. Regressions go to stable, and everything else to master, as outlined in [our release process](https://wiki.dlang.org/DIP75).
 
 - When fixing a Bugzilla issue, use the title: 'Fix issue XXXXX - Issue title'.  This is recognized by both Bugzilla and our GitHub bot (dlang-bot),
   and will automatically link the issue and the pull request together (by providing a link to the issue in Github, and automatically closing bugs when pull requests are merged).
