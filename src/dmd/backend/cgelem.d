@@ -2,7 +2,7 @@
  * Local optimizations of elem trees
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Does strength reduction optimizations on the elem trees,
  * i.e. rewriting trees to less expensive trees.

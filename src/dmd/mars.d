@@ -233,29 +233,29 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         version (Windows)
         {
-            browse("http://dlang.org/dmd-windows.html");
+            browse("https://dlang.org/dmd-windows.html");
         }
         version (linux)
         {
-            browse("http://dlang.org/dmd-linux.html");
+            browse("https://dlang.org/dmd-linux.html");
         }
         version (OSX)
         {
-            browse("http://dlang.org/dmd-osx.html");
+            browse("https://dlang.org/dmd-osx.html");
         }
         version (FreeBSD)
         {
-            browse("http://dlang.org/dmd-freebsd.html");
+            browse("https://dlang.org/dmd-freebsd.html");
         }
         /*NOTE: No regular builds for openbsd/dragonflybsd (yet) */
         /*
         version (OpenBSD)
         {
-            browse("http://dlang.org/dmd-openbsd.html");
+            browse("https://dlang.org/dmd-openbsd.html");
         }
         version (DragonFlyBSD)
         {
-            browse("http://dlang.org/dmd-dragonflybsd.html");
+            browse("https://dlang.org/dmd-dragonflybsd.html");
         }
         */
         return EXIT_SUCCESS;
