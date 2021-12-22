@@ -4,7 +4,7 @@
  * Handles function calls: putting arguments in registers / on the stack, and jumping to the function.
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
  *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved

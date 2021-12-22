@@ -1,6 +1,6 @@
 /**
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Simple bit vector implementation.
  *

@@ -1688,7 +1688,7 @@ extern (C++) class ToElemVisitor : Visitor
     }
 
     /***************************************
-     * http://dlang.org/spec/expression.html#cat_expressions
+     * https://dlang.org/spec/expression.html#cat_expressions
      */
 
     override void visit(CatExp ce)

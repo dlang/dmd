@@ -72,7 +72,7 @@ TypeIdentifier getException()
 }
 
 /***********************************************************
- * Specification: http://dlang.org/spec/statement.html
+ * Specification: https://dlang.org/spec/statement.html
  */
 extern (C++) abstract class Statement : ASTNode
 {

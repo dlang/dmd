@@ -357,7 +357,7 @@ dmd -cov -unittest myprog.d
             "add symbolic debug info",
             `$(WINDOWS
                 Add CodeView symbolic debug info. See
-                $(LINK2 http://dlang.org/windbg.html, Debugging on Windows).
+                $(LINK2 https://dlang.org/windbg.html, Debugging on Windows).
             )
             $(UNIX
                 Add symbolic debug info in DWARF format
