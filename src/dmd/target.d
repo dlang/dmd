@@ -819,7 +819,7 @@ extern (C++) struct Target
 
         if (os == Target.OS.Windows && is64bit)
         {
-            // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
+            // https://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.100).aspx
             if (tns.ty == TY.Tcomplex32)
                 return true;
             if (tns.isscalar())

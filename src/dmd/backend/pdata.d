@@ -60,7 +60,7 @@ enum ALLOCA_LIMIT = 0x10000;
  * to walk the stack and unwind exceptions.
  * Absent it, it is assumed to be a "leaf function" where [RSP] is the return address.
  * Creates an instance of struct RUNTIME_FUNCTION:
- *   http://msdn.microsoft.com/en-US/library/ft9x1kdx(v=vs.80).aspx
+ *   https://msdn.microsoft.com/en-US/library/ft9x1kdx(v=vs.100).aspx
  *
  * Params:
  *      sf = function to generate unwind data for
@@ -139,7 +139,7 @@ private Symbol *win64_unwind(Symbol *sf)
 
 /************************************************************************
  * Creates an instance of struct UNWIND_INFO:
- *   http://msdn.microsoft.com/en-US/library/ddssxxy8(v=vs.80).aspx
+ *   https://msdn.microsoft.com/en-US/library/ddssxxy8(v=vs.100).aspx
  */
 
 enum UWOP
