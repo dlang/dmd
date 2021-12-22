@@ -126,7 +126,7 @@ extern (C++) struct Param
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
-    FeatureState useDIP25;  // implement http://wiki.dlang.org/DIP25
+    FeatureState useDIP25;  // implement https://wiki.dlang.org/DIP25
     FeatureState useDIP1000; // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
     bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;           // build release version
