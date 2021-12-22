@@ -6,7 +6,7 @@
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
  * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
  * Documentation:  https://dlang.org/phobos/dmd_cli.html
@@ -491,7 +491,7 @@ dmd -cov -unittest myprog.d
             `$(UNIX Compile a 32 bit executable. This is the default for the 32 bit dmd.)
             $(WINDOWS Compile a 32 bit executable. This is the default.
             The generated object code is in OMF and is meant to be used with the
-            $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
+            $(LINK2 https://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.DragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
         ),
         Option("m32mscoff",
@@ -638,7 +638,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("profile=gc",
             "profile runtime allocations",
-            `$(LINK2 http://www.digitalmars.com/ctg/trace.html, profile)
+            `$(LINK2 https://www.digitalmars.com/ctg/trace.html, profile)
             the runtime performance of the generated code.
             $(UL
                 $(LI $(B gc): Instrument calls to memory allocation and write a report
