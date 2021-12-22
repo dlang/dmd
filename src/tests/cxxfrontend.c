@@ -4,7 +4,7 @@
  *
  * Copyright:   Copyright (C) 2017-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tests/cxxfrontend.c, _cxxfrontend.c)
  */
 
