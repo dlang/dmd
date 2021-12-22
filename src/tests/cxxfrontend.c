@@ -1,6 +1,6 @@
 /**
  * Test the C++ compiler interface of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 2017-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
