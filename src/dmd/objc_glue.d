@@ -2,7 +2,7 @@
  * Glue code for Objective-C interop.
  *
  * Copyright:   Copyright (C) 2015-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc_glue.d, _objc_glue.d)
  * Documentation:  https://dlang.org/phobos/dmd_objc_glue.html

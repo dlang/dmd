@@ -3,7 +3,7 @@
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
  *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     Mike Cote, John Micco, $(LINK2 http://www.digitalmars.com, Walter Bright),
+ * Authors:     Mike Cote, John Micco, $(LINK2 https://www.digitalmars.com, Walter Bright),
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/iasm.d, backend/iasm.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_iasm.html
