@@ -6082,6 +6082,13 @@ LagainStc:
                 param = parseAssignCondition();
                 condition = parseExpression();
                 check(TOK.rightParenthesis);
+                if (token.value == TOK.rightParenthesis)
+                {
+                    if (condition) // if not an error in condition
+                        error("extra `)` after `if (%s)`", param ? "declaration".ptr : condition.toChars());
+                    nextToken();
+                }
+
                 {
                     const lookingForElseSave = lookingForElse;
                     lookingForElse = loc;
