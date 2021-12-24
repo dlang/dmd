@@ -255,8 +255,8 @@ $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
     $(P `__attribute__((noreturn))` marks a function as never returning.
     `gcc` set this as an attribute of the function, it is
     not part of the function's type. In D, a function that never returns
-    has the return type `noreturn`. The difference can be seen with the
-    code:)
+    has the return type $(GLINK2 type, noreturn). The difference can be
+    seen with the code:)
     $(CCODE
     attribute((noreturn)) int foo();
     size_t x = sizeof(foo());
