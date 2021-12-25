@@ -3489,7 +3489,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
 
         // Allocate stack space for four entries anyway
-        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
+        // https://msdn.microsoft.com/en-US/library/ew5tede7%28v=vs.100%29
     }
 
     int[XMM7 + 1] regsaved = void;
@@ -3711,7 +3711,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
     if (config.exe == EX_WIN64)
     {   // Allocate stack space for four entries anyway
-        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
+        // https://msdn.microsoft.com/en-US/library/ew5tede7%28v=vs.100%29
         {   uint sz = 4 * REGSIZE;
             if (usefuncarg)
             {
