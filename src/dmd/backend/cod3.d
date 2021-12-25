@@ -4068,7 +4068,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv, regm_t namedargs)
 void prolog_gen_win64_varargs(ref CodeBuilder cdb)
 {
     /* The Microsoft scheme.
-     * https://msdn.microsoft.com/en-US/library/dd2wa36c(v=vs.100)
+     * https://msdn.microsoft.com/en-US/library/dd2wa36c%28v=vs.100%29
      * Copy registers onto stack.
          mov     8[RSP],RCX
          mov     010h[RSP],RDX
@@ -4222,7 +4222,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
     if (config.exe == EX_WIN64 && variadic(funcsym_p.Stype))
     {
         /* The Microsoft scheme.
-         * https://msdn.microsoft.com/en-US/library/dd2wa36c(v=vs.100)
+         * https://msdn.microsoft.com/en-US/library/dd2wa36c%28v=vs.100%29
          * Copy registers onto stack.
              mov     8[RSP],RCX or XMM0
              mov     010h[RSP],RDX or XMM1
@@ -4543,7 +4543,7 @@ void epilog(block *b)
                     cdbx.gen1(0x58 + BP);                                 // POP BP
                 }
                 else if (config.exe == EX_WIN64)
-                {   // See https://msdn.microsoft.com/en-us/library/tawsa7cb(v=vs.100).aspx
+                {   // See https://msdn.microsoft.com/en-us/library/tawsa7cb%28v=vs.100%29.aspx
                     // LEA RSP,0[RBP]
                     cdbx.genc1(LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FLconst,0);
                     cdbx.gen1(0x58 + BP);      // POP RBP
