@@ -2962,8 +2962,8 @@ $(H2 $(LNAME2 main, $(D main()) Function))
 
         $(GRAMMAR
         $(GNAME MainFunction):
-            $(GLINK MainReturnDecl) main $(D $(LPAREN)$(RPAREN)) $(GLINK2 statement, BlockStatement)
-            $(GLINK MainReturnDecl) main $(D $(LPAREN)string[] args$(RPAREN)) $(GLINK2 statement, BlockStatement)
+            $(GLINK MainReturnDecl) $(D main$(LPAREN)$(RPAREN)) $(GLINK2 statement, BlockStatement)
+            $(GLINK MainReturnDecl) $(D main$(LPAREN)string[]) $(GLINK_LEX Identifier)$(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
 
         $(GNAME MainReturnDecl):
             $(D void)
@@ -2972,6 +2972,18 @@ $(H2 $(LNAME2 main, $(D main()) Function))
             $(RELATIVE_LINK2 auto-functions, $(D auto))
         )
 
+        $(UL
+        $(LI If `main` returns `void`, the OS will receive a zero value on success.)
+        $(LI If `main` returns `void` or `noreturn`, the OS will receive a non-zero 
+        value on abnormal termination, such as an uncaught exception.)
+        $(LI If `main` is declared as `auto`, the inferred return type must be
+        one of `void`, `int` and `noreturn`.)
+        )
+        
+        $(P If the $(D string[]) parameter is declared, the parameter will hold any
+        arguments passed to the program by the OS. The first argument is typically
+        the executable name, followed by any command-line arguments.)
+        
         $(P The main function must have D linkage.)
 
         $(P Attributes may be added as needed, e.g. `@safe`, `@nogc`, `nothrow`, etc.)
