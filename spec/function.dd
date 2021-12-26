@@ -2957,14 +2957,19 @@ $(H2 $(LNAME2 main, $(D main()) Function))
         It gets called after all the module initializers are run, and
         after any unittests are run.
         After it returns, all the module destructors are run.
-        $(D main()) must be declared using one of the following forms:
+        $(D main()) must be declared as follows:
         )
 
-        $(UL
-        $(LI `void main() { ... }`)
-        $(LI `void main(string[] args) { ... }`)
-        $(LI `int main() { ... }`)
-        $(LI `int main(string[] args) { ... }`)
+        $(GRAMMAR
+        $(GNAME MainFunction):
+            $(GLINK MainReturnDecl) main $(D $(LPAREN)$(RPAREN)) $(GLINK2 statement, BlockStatement)
+            $(GLINK MainReturnDecl) main $(D $(LPAREN)string[] args$(RPAREN)) $(GLINK2 statement, BlockStatement)
+
+        $(GNAME MainReturnDecl):
+            $(D void)
+            $(D int)
+            $(GLINK2 type, noreturn)
+            $(RELATIVE_LINK2 auto-functions, $(D auto))
         )
 
         $(P The main function must have D linkage.)
