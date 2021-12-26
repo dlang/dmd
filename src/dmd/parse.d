@@ -6081,7 +6081,12 @@ LagainStc:
                 check(TOK.leftParenthesis);
                 param = parseAssignCondition();
                 condition = parseExpression();
-                check(TOK.rightParenthesis);
+                if (token.value != TOK.rightParenthesis && condition)
+                {
+                    error("missing closing `)` after `if (%s`", param ? "declaration".ptr : condition.toChars());
+                }
+                else
+                    check(TOK.rightParenthesis);
                 if (token.value == TOK.rightParenthesis)
                 {
                     if (condition) // if not an error in condition
