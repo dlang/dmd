@@ -33,32 +33,51 @@ version (MARS)
 }
 
 /**************************************
- * Initialize configuration variables.
+ * Initialize configuration for backend.
+ * Params:
+    model         = 32 for 32 bit code,
+                    64 for 64 bit code,
+                    set bit 0 to generate MS-COFF instead of OMF on Windows
+    exe           = true for exe file,
+                    false for dll or shared library (generate PIC code)
+    trace         =  add profiling code
+    nofloat       = do not pull in floating point code
+    verbose       = verbose compile
+    optimize      = optimize code
+    symdebug      = add symbolic debug information,
+                    1 for D,
+                    2 for fake it with C symbolic debug info
+    alwaysframe   = always create standard function frame
+    stackstomp    = add stack stomping code
+    avx           = use AVX instruction set (0, 1, 2)
+    pic           = position independence level (0, 1, 2)
+    useModuleInfo = implement ModuleInfo
+    useTypeInfo   = implement TypeInfo
+    useExceptions = implement exception handling
+    dwarf         = DWARF version used
+    _version      = Compiler version
+    exefmt        = Executable file format
+    generatedMain = a main entrypoint is generated
  */
 @trusted
 extern (C) void out_config_init(
-        int model,      // 32: 32 bit code
-                        // 64: 64 bit code
-                        // Windows: set bit 0 to generate MS-COFF instead of OMF
-        bool exe,       // true: exe file
-                        // false: dll or shared library (generate PIC code)
-        bool trace,     // add profiling code
-        bool nofloat,   // do not pull in floating point code
-        bool verbose,   // verbose compile
-        bool optimize,  // optimize code
-        int symdebug,   // add symbolic debug information
-                        // 1: D
-                        // 2: fake it with C symbolic debug info
-        bool alwaysframe,       // always create standard function frame
-        bool stackstomp,        // add stack stomping code
-        ubyte avx,              // use AVX instruction set (0, 1, 2)
-        ubyte pic,              // position independence level (0, 1, 2)
-        bool useModuleInfo,     // implement ModuleInfo
-        bool useTypeInfo,       // implement TypeInfo
-        bool useExceptions,     // implement exception handling
-        ubyte dwarf,            // DWARF version used
-        string _version,         // Compiler version
-        exefmt_t exefmt,           // Executable file format
+        int model,
+        bool exe,
+        bool trace,
+        bool nofloat,
+        bool verbose,
+        bool optimize,
+        int symdebug,
+        bool alwaysframe,
+        bool stackstomp,
+        ubyte avx,
+        ubyte pic,
+        bool useModuleInfo,
+        bool useTypeInfo,
+        bool useExceptions,
+        ubyte dwarf,
+        string _version,
+        exefmt_t exefmt,
         bool generatedMain      // a main entrypoint is generated
         )
 {
@@ -99,168 +118,169 @@ version (MARS)
         config.dwarf = dwarf;
     }
 
-if (config.exe & EX_windos)
-{
-    if (model == 64)
+    if (config.exe & EX_windos)
     {
-        config.fpxmmregs = true;
-        config.avx = avx;
-        config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
-
-        config.flags |= CFGnoebp;       // test suite fails without this
-        //config.flags |= CFGalwaysframe;
-        config.flags |= CFGromable; // put switch tables in code segment
-        config.objfmt = OBJ_MSCOFF;
-    }
-    else
-    {
-        config.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
-        if (mscoff)
-            config.flags |= CFGnoebp;       // test suite fails without this
-        config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
-        if (mscoff)
-            config.flags |= CFGnoebp;    // test suite fails without this
-    }
-
-    if (exe)
-        config.wflags |= WFexe;         // EXE file only optimizations
-    config.flags4 |= CFG4underscore;
-}
-if (config.exe & (EX_LINUX | EX_LINUX64))
-{
-    config.fpxmmregs = true;
-    config.avx = avx;
-    if (model == 64)
-    {
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-    }
-    else
-    {
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        if (!exe)
-            config.flags |= CFGromable; // put switch tables in code segment
-    }
-    config.flags |= CFGnoebp;
-    switch (pic)
-    {
-        case 0:         // PIC.fixed
-            break;
-
-        case 1:         // PIC.pic
-            config.flags3 |= CFG3pic;
-            break;
-
-        case 2:         // PIC.pie
-            config.flags3 |= CFG3pic | CFG3pie;
-            break;
-
-        default:
-            assert(0);
-    }
-    if (symdebug)
-        config.flags |= CFGalwaysframe;
-
-    config.objfmt = OBJ_ELF;
-}
-if (config.exe & (EX_OSX | EX_OSX64))
-{
-    config.fpxmmregs = true;
-    config.avx = avx;
-    config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-    config.flags |= CFGnoebp;
-    if (!exe)
-    {
-        config.flags3 |= CFG3pic;
         if (model == 64)
-            config.flags |= CFGalwaysframe; // autotester fails without this
-                                            // https://issues.dlang.org/show_bug.cgi?id=21042
+        {
+            config.fpxmmregs = true;
+            config.avx = avx;
+            config.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
+
+            config.flags |= CFGnoebp;       // test suite fails without this
+            //config.flags |= CFGalwaysframe;
+            config.flags |= CFGromable; // put switch tables in code segment
+            config.objfmt = OBJ_MSCOFF;
+        }
+        else
+        {
+            config.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
+            if (mscoff)
+                config.flags |= CFGnoebp;       // test suite fails without this
+            config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
+            if (mscoff)
+                config.flags |= CFGnoebp;    // test suite fails without this
+        }
+
+        if (exe)
+            config.wflags |= WFexe;         // EXE file only optimizations
+        config.flags4 |= CFG4underscore;
     }
-    if (symdebug)
+    if (config.exe & (EX_LINUX | EX_LINUX64))
+    {
+        config.fpxmmregs = true;
+        config.avx = avx;
+        if (model == 64)
+        {
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        }
+        else
+        {
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            if (!exe)
+                config.flags |= CFGromable; // put switch tables in code segment
+        }
+        config.flags |= CFGnoebp;
+        switch (pic)
+        {
+            case 0:         // PIC.fixed
+                break;
+
+            case 1:         // PIC.pic
+                config.flags3 |= CFG3pic;
+                break;
+
+            case 2:         // PIC.pie
+                config.flags3 |= CFG3pic | CFG3pie;
+                break;
+
+            default:
+                assert(0);
+        }
+        if (symdebug)
+            config.flags |= CFGalwaysframe;
+
+        config.objfmt = OBJ_ELF;
+    }
+    if (config.exe & (EX_OSX | EX_OSX64))
+    {
+        config.fpxmmregs = true;
+        config.avx = avx;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        config.flags |= CFGnoebp;
+        if (!exe)
+        {
+            config.flags3 |= CFG3pic;
+            if (model == 64)
+                config.flags |= CFGalwaysframe; // autotester fails without this
+                                                // https://issues.dlang.org/show_bug.cgi?id=21042
+        }
+        if (symdebug)
+            config.flags |= CFGalwaysframe;
+        config.flags |= CFGromable; // put switch tables in code segment
+        config.objfmt = OBJ_MACH;
+    }
+    if (config.exe & (EX_FREEBSD | EX_FREEBSD64))
+    {
+        if (model == 64)
+        {
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            config.fpxmmregs = true;
+            config.avx = avx;
+        }
+        else
+        {
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            if (!exe)
+                config.flags |= CFGromable; // put switch tables in code segment
+        }
+        config.flags |= CFGnoebp;
+        if (!exe)
+        {
+            config.flags3 |= CFG3pic;
+        }
+        if (symdebug)
+            config.flags |= CFGalwaysframe;
+        config.objfmt = OBJ_ELF;
+    }
+    if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
+    {
+        if (model == 64)
+        {
+            config.fpxmmregs = true;
+            config.avx = avx;
+        }
+        else
+        {
+            if (!exe)
+                config.flags |= CFGromable; // put switch tables in code segment
+        }
+        config.flags |= CFGnoebp;
         config.flags |= CFGalwaysframe;
-    config.flags |= CFGromable; // put switch tables in code segment
-    config.objfmt = OBJ_MACH;
-}
-if (config.exe & (EX_FREEBSD | EX_FREEBSD64))
-{
-    if (model == 64)
-    {
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        config.fpxmmregs = true;
-        config.avx = avx;
-    }
-    else
-    {
-        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         if (!exe)
-            config.flags |= CFGromable; // put switch tables in code segment
+            config.flags3 |= CFG3pic;
+        config.objfmt = OBJ_ELF;
+        config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
-    config.flags |= CFGnoebp;
-    if (!exe)
+    if (config.exe == EX_DRAGONFLYBSD64)
     {
-        config.flags3 |= CFG3pic;
+        if (model == 64)
+        {
+            config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            config.fpxmmregs = true;
+            config.avx = avx;
+        }
+        else
+        {
+            assert(0);                      // Only 64-bit supported on DragonFlyBSD
+        }
+        config.flags |= CFGnoebp;
+        if (!exe)
+        {
+            config.flags3 |= CFG3pic;
+            config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+        }
+        config.objfmt = OBJ_ELF;
     }
-    if (symdebug)
+    if (config.exe & (EX_SOLARIS | EX_SOLARIS64))
+    {
+        if (model == 64)
+        {
+            config.fpxmmregs = true;
+            config.avx = avx;
+        }
+        else
+        {
+            if (!exe)
+                config.flags |= CFGromable; // put switch tables in code segment
+        }
+        config.flags |= CFGnoebp;
         config.flags |= CFGalwaysframe;
-    config.objfmt = OBJ_ELF;
-}
-if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
-{
-    if (model == 64)
-    {
-        config.fpxmmregs = true;
-        config.avx = avx;
-    }
-    else
-    {
         if (!exe)
-            config.flags |= CFGromable; // put switch tables in code segment
-    }
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (!exe)
-        config.flags3 |= CFG3pic;
-    config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-}
-if (config.exe == EX_DRAGONFLYBSD64)
-{
-    if (model == 64)
-    {
+            config.flags3 |= CFG3pic;
+        config.objfmt = OBJ_ELF;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        config.fpxmmregs = true;
-        config.avx = avx;
     }
-    else
-    {
-        assert(0);                      // Only 64-bit supported on DragonFlyBSD
-    }
-    config.flags |= CFGnoebp;
-    if (!exe)
-    {
-        config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
-    }
-    config.objfmt = OBJ_ELF;
-}
-if (config.exe & (EX_SOLARIS | EX_SOLARIS64))
-{
-    if (model == 64)
-    {
-        config.fpxmmregs = true;
-        config.avx = avx;
-    }
-    else
-    {
-        if (!exe)
-            config.flags |= CFGromable; // put switch tables in code segment
-    }
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (!exe)
-        config.flags3 |= CFG3pic;
-    config.objfmt = OBJ_ELF;
-    config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-}
+
     config.flags2 |= CFG2nodeflib;      // no default library
     config.flags3 |= CFG3eseqds;
 static if (0)
