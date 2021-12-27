@@ -423,11 +423,17 @@ public:
     */
     const(char)* getVCLibDir(bool x64) const
     {
+        const(char)* proposed;
+
         if (VCToolsInstallDir !is null)
-            return FileName.combine(VCToolsInstallDir, x64 ? r"lib\x64" : r"lib\x86");
-        if (VCInstallDir !is null)
-            return FileName.combine(VCInstallDir, x64 ? r"lib\amd64" : "lib");
-        return null;
+            proposed = FileName.combine(VCToolsInstallDir, x64 ? r"lib\x64" : r"lib\x86");
+        else if (VCInstallDir !is null)
+            proposed = FileName.combine(VCInstallDir, x64 ? r"lib\amd64" : "lib");
+
+        // Due to the possibility of VS being installed with VC directory without the libraries
+        // we must check that the expected directory does exist.
+        // It is possible that this isn't the only location a file check is required.
+        return FileName.exists(proposed) ? proposed : null;
     }
 
     /**
