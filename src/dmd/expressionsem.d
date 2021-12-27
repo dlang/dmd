@@ -3604,16 +3604,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     if (!cdthis)
                     {
+                        if (!sc.hasThis)
+                        {
+                            string msg = "cannot construct " ~
+                            (cd.isAnonymous ? "anonymous nested class" : "nested class `%s`") ~
+                            " because no implicit `this` reference to outer class" ~
+                            (cdn.isAnonymous ? "" : " `%s`") ~ " is available\0";
+
+                            exp.error(msg.ptr, cd.toChars, cdn.toChars);
+                            return setError();
+                        }
+
                         // Supply an implicit 'this' and try again
                         exp.thisexp = new ThisExp(exp.loc);
                         for (Dsymbol sp = sc.parent; 1; sp = sp.toParentLocal())
                         {
-                            if (!sp)
-                            {
-                                exp.error("outer class `%s` `this` needed to `new` nested class `%s`",
-                                    cdn.toChars(), cd.toChars());
-                                return setError();
-                            }
                             ClassDeclaration cdp = sp.isClassDeclaration();
                             if (!cdp)
                                 continue;
