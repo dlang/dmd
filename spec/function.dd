@@ -2954,8 +2954,8 @@ $(H3 $(LNAME2 anonymous, Anonymous Functions and Anonymous Delegates))
 $(H2 $(LNAME2 main, $(D main()) Function))
 
         $(P For console programs, $(D main()) serves as the entry point.
-        It gets called after all the module initializers are run, and
-        after any unittests are run.
+        It gets called after all the $(DDSUBLINK spec/module, staticorder, module initializers)
+        are run, and after any $(DDLINK spec/unittest, Unit Tests, unittests) are run.
         After it returns, all the module destructors are run.
         $(D main()) must be declared as follows:
         )
@@ -2974,16 +2974,16 @@ $(H2 $(LNAME2 main, $(D main()) Function))
 
         $(UL
         $(LI If `main` returns `void`, the OS will receive a zero value on success.)
-        $(LI If `main` returns `void` or `noreturn`, the OS will receive a non-zero 
+        $(LI If `main` returns `void` or `noreturn`, the OS will receive a non-zero
         value on abnormal termination, such as an uncaught exception.)
         $(LI If `main` is declared as `auto`, the inferred return type must be
         one of `void`, `int` and `noreturn`.)
         )
-        
+
         $(P If the $(D string[]) parameter is declared, the parameter will hold any
         arguments passed to the program by the OS. The first argument is typically
         the executable name, followed by any command-line arguments.)
-        
+
         $(P The main function must have D linkage.)
 
         $(P Attributes may be added as needed, e.g. `@safe`, `@nogc`, `nothrow`, etc.)
