@@ -393,8 +393,8 @@ char* thisExePath()
 
         // only Solaris 10 and later
         char[32] buffer = void;
-        const numWritten = snprintf(buffer.ptr, sizeof(buffer), "/proc/%d/path/a.out", getpid());
-        assert(numWritten > 0 && numWritten < sizeof(buffer));
+        const numWritten = snprintf(buffer.ptr, buffer.sizeof, "/proc/%d/path/a.out", getpid());
+        assert(numWritten > 0 && numWritten < buffer.sizeof);
         assert(buffer[numWritten] == 0);
 
         return readLink(buffer.ptr);
