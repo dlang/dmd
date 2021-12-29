@@ -1219,6 +1219,7 @@ private void setDefaultLibrary(ref Param params, const ref Target target)
  *      params = which target to compile for (set by `setTarget()`)
  *      tgt    = target
  */
+public
 void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
@@ -1226,7 +1227,7 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
 
-    tgt.addPredefinedGlobalIdentifiers();
+    addPredefinedGlobalIdentifiers(tgt);
 
     if (params.doDocComments)
         VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
@@ -1256,6 +1257,125 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
     }
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+}
+
+/**
+ * Add predefined global identifiers that are determied by the target
+ */
+private
+void addPredefinedGlobalIdentifiers(const ref Target tgt)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    if (tgt.cpu >= CPU.sse2)
+    {
+        predef("D_SIMD");
+        if (tgt.cpu >= CPU.avx)
+            predef("D_AVX");
+        if (tgt.cpu >= CPU.avx2)
+            predef("D_AVX2");
+    }
+
+    with (Target)
+    {
+        if (tgt.os & OS.Posix)
+            predef("Posix");
+        if (tgt.os & (OS.linux | OS.FreeBSD | OS.OpenBSD | OS.DragonFlyBSD | OS.Solaris))
+            predef("ELFv1");
+        switch (tgt.os)
+        {
+            case OS.Freestanding: { predef("FreeStanding"); break; }
+            case OS.linux:        { predef("linux");        break; }
+            case OS.OpenBSD:      { predef("OpenBSD");      break; }
+            case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
+            case OS.Solaris:      { predef("Solaris");      break; }
+            case OS.Windows:
+            {
+                 predef("Windows");
+                 VersionCondition.addPredefinedGlobalIdent(tgt.is64bit ? "Win64" : "Win32");
+                 break;
+            }
+            case OS.OSX:
+            {
+                predef("OSX");
+                // For legacy compatibility
+                predef("darwin");
+                break;
+            }
+            case OS.FreeBSD:
+            {
+                predef("FreeBSD");
+                switch (tgt.osMajor)
+                {
+                    case 10: predef("FreeBSD_10");  break;
+                    case 11: predef("FreeBSD_11"); break;
+                    case 12: predef("FreeBSD_12"); break;
+                    default: predef("FreeBSD_11"); break;
+                }
+                break;
+            }
+            default: assert(0);
+        }
+    }
+
+    addCRuntimePredefinedGlobalIdent(tgt.c);
+    addCppRuntimePredefinedGlobalIdent(tgt.cpp);
+
+    if (tgt.is64bit)
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
+        VersionCondition.addPredefinedGlobalIdent("X86_64");
+    }
+    else
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
+        VersionCondition.addPredefinedGlobalIdent("X86");
+    }
+    if (tgt.isLP64)
+        VersionCondition.addPredefinedGlobalIdent("D_LP64");
+    else if (tgt.is64bit)
+        VersionCondition.addPredefinedGlobalIdent("X32");
+}
+
+private
+void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    with (TargetC.Runtime) switch (c.runtime)
+    {
+    default:
+    case Unspecified: return;
+    case Bionic:      return predef("CRuntime_Bionic");
+    case DigitalMars: return predef("CRuntime_DigitalMars");
+    case Glibc:       return predef("CRuntime_Glibc");
+    case Microsoft:   return predef("CRuntime_Microsoft");
+    case Musl:        return predef("CRuntime_Musl");
+    case Newlib:      return predef("CRuntime_Newlib");
+    case UClibc:      return predef("CRuntime_UClibc");
+    case WASI:        return predef("CRuntime_WASI");
+    }
+}
+
+private
+void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    with (TargetCPP.Runtime) switch (cpp.runtime)
+    {
+    default:
+    case Unspecified: return;
+    case Clang:       return predef("CppRuntime_Clang");
+    case DigitalMars: return predef("CppRuntime_DigitalMars");
+    case Gcc:         return predef("CppRuntime_Gcc");
+    case Microsoft:   return predef("CppRuntime_Microsoft");
+    case Sun:         return predef("CppRuntime_Sun");
+    }
 }
 
 private void printPredefinedVersions(FILE* stream)

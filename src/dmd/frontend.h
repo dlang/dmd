@@ -7764,7 +7764,6 @@ public:
     void _init(const Param& params);
     void setCPU();
     void setTriple(const Triple& triple);
-    void addPredefinedGlobalIdentifiers() const;
     void deinitialize();
     uint32_t alignsize(Type* type);
     uint32_t fieldalign(Type* type);

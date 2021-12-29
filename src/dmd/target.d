@@ -324,81 +324,7 @@ extern (C++) struct Target
         c.runtime   = triple.cenv;
         cpp.runtime = triple.cppenv;
     }
-    /**
-     * Add predefined global identifiers that are determied by the target
-     */
-    void addPredefinedGlobalIdentifiers() const
-    {
-        import dmd.cond : VersionCondition;
 
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        if (cpu >= CPU.sse2)
-        {
-            predef("D_SIMD");
-            if (cpu >= CPU.avx)
-                predef("D_AVX");
-            if (cpu >= CPU.avx2)
-                predef("D_AVX2");
-        }
-        if (os & OS.Posix)
-            predef("Posix");
-        if (os & (OS.linux | OS.FreeBSD | OS.OpenBSD | OS.DragonFlyBSD | OS.Solaris))
-            predef("ELFv1");
-        switch (os)
-        {
-            case OS.Freestanding: { predef("FreeStanding"); break; }
-            case OS.linux:        { predef("linux");        break; }
-            case OS.Windows:      { predef("Windows");      break; }
-            case OS.OpenBSD:      { predef("OpenBSD");      break; }
-            case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
-            case OS.Solaris:      { predef("Solaris");      break; }
-            case OS.OSX:
-            {
-                predef("OSX");
-                // For legacy compatibility
-                predef("darwin");
-                break;
-            }
-            case OS.FreeBSD:
-            {
-                predef("FreeBSD");
-                switch (osMajor)
-                {
-                    case 10: predef("FreeBSD_10");  break;
-                    case 11: predef("FreeBSD_11"); break;
-                    case 12: predef("FreeBSD_12"); break;
-                    default: predef("FreeBSD_11"); break;
-                }
-                break;
-            }
-            default: assert(0);
-        }
-        c.addRuntimePredefinedGlobalIdent();
-        cpp.addRuntimePredefinedGlobalIdent();
-        if (is64bit)
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
-            VersionCondition.addPredefinedGlobalIdent("X86_64");
-            if (os & OS.Windows)
-            {
-                VersionCondition.addPredefinedGlobalIdent("Win64");
-            }
-        }
-        else
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
-            VersionCondition.addPredefinedGlobalIdent("X86");
-            if (os == OS.Windows)
-            {
-                VersionCondition.addPredefinedGlobalIdent("Win32");
-            }
-        }
-        if (isLP64)
-            VersionCondition.addPredefinedGlobalIdent("D_LP64");
-        else if (is64bit)
-            VersionCondition.addPredefinedGlobalIdent("X32");
-    }
     /**
      * Deinitializes the global state of the compiler.
      *
@@ -1253,26 +1179,6 @@ struct TargetC
             crtDestructorsSupported = false;
         }
     }
-
-    void addRuntimePredefinedGlobalIdent() const
-    {
-        import dmd.cond : VersionCondition;
-
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        with (Runtime) switch (runtime)
-        {
-        default:
-        case Unspecified: return;
-        case Bionic:      return predef("CRuntime_Bionic");
-        case DigitalMars: return predef("CRuntime_DigitalMars");
-        case Glibc:       return predef("CRuntime_Glibc");
-        case Microsoft:   return predef("CRuntime_Microsoft");
-        case Musl:        return predef("CRuntime_Musl");
-        case Newlib:      return predef("CRuntime_Newlib");
-        case UClibc:      return predef("CRuntime_UClibc");
-        case WASI:        return predef("CRuntime_WASI");
-        }
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1450,23 +1356,6 @@ struct TargetCPP
             return (baseClass.structsize + baseClass.alignsize - 1) & ~(baseClass.alignsize - 1);
         else
             return baseClass.structsize;
-    }
-
-    void addRuntimePredefinedGlobalIdent() const
-    {
-        import dmd.cond : VersionCondition;
-
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        with (Runtime) switch (runtime)
-        {
-        default:
-        case Unspecified: return;
-        case Clang:       return predef("CppRuntime_Clang");
-        case DigitalMars: return predef("CppRuntime_DigitalMars");
-        case Gcc:         return predef("CppRuntime_Gcc");
-        case Microsoft:   return predef("CppRuntime_Microsoft");
-        case Sun:         return predef("CppRuntime_Sun");
-        }
     }
 }
 
