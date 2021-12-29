@@ -118,9 +118,9 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D cfloat), $(D float.nan+float.nan*1.0i), a complex number of two float values)
     $(TROW $(D cdouble), $(D double.nan+double.nan*1.0i), complex double)
     $(TROW $(D creal), $(D real.nan+real.nan*1.0i), complex real)
-    $(TROW $(D char), $(D 'xFF'), unsigned 8 bit (UTF-8 code unit))
-    $(TROW $(D wchar), $(D 'uFFFF'), unsigned 16 bit (UTF-16 code unit))
-    $(TROW $(D dchar), $(D 'U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
+    $(TROW $(D char), $(D '\xFF'), unsigned 8 bit (UTF-8 code unit))
+    $(TROW $(D wchar), $(D '\uFFFF'), unsigned 16 bit (UTF-16 code unit))
+    $(TROW $(D dchar), $(D '\U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
     )
 
     $(IMPLEMENTATION_DEFINED The real floating point type has at least the range and precision
