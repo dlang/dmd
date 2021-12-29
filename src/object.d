@@ -4637,8 +4637,6 @@ public import core.internal.array.construction : _d_arrayctor;
 public import core.internal.array.construction : _d_arraysetctor;
 public import core.internal.array.capacity: _d_arraysetlengthTImpl;
 
-public import core.lifetime : _d_delstructImpl;
-
 public import core.internal.dassert: _d_assert_fail;
 
 public import core.internal.destruction: __ArrayDtor;
@@ -4649,6 +4647,9 @@ public import core.internal.postblit: __ArrayPostblit;
 
 public import core.internal.switch_: __switch;
 public import core.internal.switch_: __switch_error;
+
+public import core.lifetime : _d_delstructImpl;
+public import core.lifetime : _d_newThrowable;
 
 public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
 
