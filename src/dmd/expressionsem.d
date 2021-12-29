@@ -5269,7 +5269,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Perturb the name mangling so that the symbols can co-exist
                     // instead of colliding
                     s.localNum = cast(ushort)(originalSymbol.localNum + 1);
-                    assert(s.localNum);         // 65535 should be enough for anyone
+                    // 65535 should be enough for anyone
+                    if (!s.localNum)
+                    {
+                        e.error("more than 65535 symbols with name `%s` generated", s.ident.toChars());
+                        return setError();
+                    }
 
                     // Replace originalSymbol with s, which updates the localCount
                     sc.func.localsymtab.update(s);
