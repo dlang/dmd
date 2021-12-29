@@ -133,8 +133,8 @@ void util_exit(int);
 
 void util_progress();
 void util_set16();
-void util_set32();
-void util_set64();
+void util_set32(exefmt_t);
+void util_set64(exefmt_t);
 int ispow2(uint64_t);
 
 version (Posix)
