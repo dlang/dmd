@@ -56,15 +56,17 @@ jobs:
       # very few PRs actually benefit from this.
       fail-fast: false
       matrix:
-        # Latest OSX, Ubuntu 18.04 in order to support older LLVM / GCC
-        os: [ macOS-10.15, ubuntu-18.04, windows-2019 ]
+        # OSX 10.15, Ubuntu 18.04 in order to support older LLVM / GCC
+        # Ubuntu 20.04 in order to support newer LLVM / GCC
+        os: [ macOS-10.15, ubuntu-18.04, ubuntu-20.04, windows-2019 ]
 
         target: [
           # Versions of clang earlier than 8 are not available on 18.04
-          clang-9.0.0, clang-8.0.0,
+          # Versions of clang earlier than 11 are not available on 20.04
+          clang-13.0.0, clang-12.0.0, clang-11.0.0, clang-10.0.0, clang-9.0.0, clang-8.0.0,
           # For g++, we test all major's latest minor releases since the
           # introduction of ABI the dual ABI (v5.1, 2015-04-15)
-          g++-9, g++-8, g++-7, g++-6, g++-5,
+          g++-11, g++-10, g++-9, g++-8, g++-7, g++-6, g++-5,
           # Finally, we test MSVC 2013 - 2019
           msvc-2019, msvc-2017, msvc-2015, msvc-2013
         ]
@@ -78,7 +80,27 @@ jobs:
           - { os: ubuntu-18.04, target: msvc-2017 }
           - { os: ubuntu-18.04, target: msvc-2015 }
           - { os: ubuntu-18.04, target: msvc-2013 }
+          - { os: ubuntu-20.04, target: msvc-2019 }
+          - { os: ubuntu-20.04, target: msvc-2017 }
+          - { os: ubuntu-20.04, target: msvc-2015 }
+          - { os: ubuntu-20.04, target: msvc-2013 }
+          # 18.04 only has g++-5 through to 9, and clang-8.0.0 through to 10.0.0
+          - { os: ubuntu-18.04, target: clang-13.0.0 }
+          - { os: ubuntu-18.04, target: clang-12.0.0 }
+          - { os: ubuntu-18.04, target: clang-11.0.0 }
+          - { os: ubuntu-18.04, target: g++-11 }
+          - { os: ubuntu-18.04, target: g++-10 }
+          # 20.04 only has g++-9 through to 11, and clang-11.0.0 through to 13.0.0
+          - { os: ubuntu-20.04, target: clang-10.0.0 }
+          - { os: ubuntu-20.04, target: clang-9.0.0 }
+          - { os: ubuntu-20.04, target: clang-8.0.0 }
+          - { os: ubuntu-20.04, target: g++-8 }
+          - { os: ubuntu-20.04, target: g++-7 }
+          - { os: ubuntu-20.04, target: g++-6 }
+          - { os: ubuntu-20.04, target: g++-5 }
           # OSX only supports clang
+          - { os: macOS-10.15, target: g++-11 }
+          - { os: macOS-10.15, target: g++-10 }
           - { os: macOS-10.15, target: g++-9 }
           - { os: macOS-10.15, target: g++-8 }
           - { os: macOS-10.15, target: g++-7 }
@@ -89,6 +111,8 @@ jobs:
           - { os: macOS-10.15, target: msvc-2015 }
           - { os: macOS-10.15, target: msvc-2013 }
           # We don't test g++ on Windows as DMD only mangles for MSVC
+          - { os: windows-2019, target: g++-11 }
+          - { os: windows-2019, target: g++-10 }
           - { os: windows-2019, target: g++-9 }
           - { os: windows-2019, target: g++-8 }
           - { os: windows-2019, target: g++-7 }
@@ -104,16 +128,23 @@ jobs:
         # but some items are unique (e.g. clang-9.0.0 and 4.0.1 have differences in their naming).
         include:
           # Clang boilerplate
+          - { target: clang-13.0.0, compiler: clang, cxx-version: 13.0.0 }
+          - { target: clang-12.0.0, compiler: clang, cxx-version: 12.0.0 }
+          - { target: clang-11.0.0, compiler: clang, cxx-version: 11.0.0 }
+          - { target: clang-10.0.0, compiler: clang, cxx-version: 10.0.0 }
           - { target: clang-9.0.0, compiler: clang, cxx-version: 9.0.0 }
           - { target: clang-8.0.0, compiler: clang, cxx-version: 8.0.0 }
           # g++ boilerplace
-          - { target: g++-9, compiler: g++, cxx-version: 9.3.0, major: 9 }
-          - { target: g++-8, compiler: g++, cxx-version: 8.4.0, major: 8 }
+          - { target: g++-11, compiler: g++, cxx-version: 11.2.0, major: 11 }
+          - { target: g++-10, compiler: g++, cxx-version: 10.3.0, major: 10 }
+          - { target: g++-9, compiler: g++, cxx-version: 9.4.0, major: 9 }
+          - { target: g++-8, compiler: g++, cxx-version: 8.5.0, major: 8 }
           - { target: g++-7, compiler: g++, cxx-version: 7.5.0, major: 7 }
           - { target: g++-6, compiler: g++, cxx-version: 6.5.0, major: 6 }
           - { target: g++-5, compiler: g++, cxx-version: 5.5.0, major: 5 }
           # Platform boilerplate
           - { os: ubuntu-18.04, arch: x86_64-linux-gnu-ubuntu-18.04 }
+          - { os: ubuntu-20.04, arch: x86_64-linux-gnu-ubuntu-20.04 }
           - { os: macOS-10.15,  arch: x86_64-apple-darwin }
           # Clang 9.0.0 have a different arch for OSX
           - { os: macOS-10.15, target: clang-9.0.0, arch: x86_64-darwin-apple }
@@ -190,7 +221,11 @@ jobs:
     - name: '[Posix] Setting up clang ${{ matrix.cxx-version }}'
       if: matrix.compiler == 'clang' && runner.os != 'Windows' && steps.cache-clang.outputs.cache-hit != 'true'
       run: |
-        wget --quiet --directory-prefix=${{ github.workspace }} https://releases.llvm.org/${{ matrix.cxx-version }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
+        if [ "${{ matrix.cxx-version }}" == "8.0.0" -o "${{ matrix.cxx-version }}" == "9.0.0" ]; then
+          wget --quiet --directory-prefix=${{ github.workspace }} https://releases.llvm.org/${{ matrix.cxx-version }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
+        else 
+          wget --quiet --directory-prefix=${{ github.workspace }} https://github.com/llvm/llvm-project/releases/download/llvmorg-${{ matrix.cxx-version }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
+        fi
         tar -x -C ${{ github.workspace }} -f ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
         TMP_CC='${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/bin/clang'
         # On OSX, the system header are installed via `xcode-select` and not distributed with clang
