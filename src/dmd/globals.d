@@ -655,7 +655,7 @@ enum PINLINE : ubyte
     always,   /// always inline
 }
 
-alias StorageClass = uinteger_t;
+alias StorageClass = ulong;
 
 /// Collection of global state
 extern (C++) __gshared Global global;
