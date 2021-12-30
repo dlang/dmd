@@ -22,3 +22,4 @@
 | [string.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/string.d)           | Various string related functions                                                           |
 | [stringtable.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/stringtable.d) | Specialized associative array with string keys stored in a variable length structure       |
 | [strtold.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/strtold.d)         | D implementation of the standard C function `strtold` (String to long double)              |
+| [utf.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/utf.d)                 | Encoding/decoding Unicode text                                                             |

@@ -49,8 +49,8 @@ import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.string;
+import dmd.root.utf;
 import dmd.tokens;
-import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
 

@@ -405,7 +405,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
                     size_t c = 0;
                     while (c < loc.charnum - 1)
                     {
-                        import dmd.utf : utf_decodeChar;
+                        import dmd.root.utf : utf_decodeChar;
                         dchar u;
                         const msg = utf_decodeChar(line, c, u);
                         assert(msg is null, msg);

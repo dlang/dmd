@@ -67,6 +67,7 @@ import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
+import dmd.root.utf;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
@@ -76,7 +77,6 @@ import dmd.tokens;
 import dmd.traits;
 import dmd.typesem;
 import dmd.typinf;
-import dmd.utf;
 import dmd.utils;
 import dmd.visitor;
 

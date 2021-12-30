@@ -30,10 +30,10 @@ import dmd.root.complex;
 import dmd.root.ctfloat;
 import dmd.root.port;
 import dmd.root.rmem;
+import dmd.root.utf;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
-import dmd.utf;
 
 private enum LOG = false;
 

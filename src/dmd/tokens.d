@@ -21,7 +21,7 @@ import dmd.identifier;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.utf;
+import dmd.root.utf;
 
 enum TOK : ubyte
 {

@@ -40,9 +40,9 @@ import dmd.opover;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
+import dmd.root.utf;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.utf;
 import dmd.visitor;
 
 enum LOG = false;

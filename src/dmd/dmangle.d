@@ -143,9 +143,9 @@ import dmd.common.outbuffer;
 import dmd.root.aav;
 import dmd.root.string;
 import dmd.root.stringtable;
+import dmd.root.utf;
 import dmd.target;
 import dmd.tokens;
-import dmd.utf;
 import dmd.visitor;
 
 private immutable char[TMAX] mangleChar =

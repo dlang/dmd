@@ -1406,10 +1406,10 @@ auto sourceFiles()
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
-            console.d entity.d errors.d file_manager.d globals.d id.d identifier.d lexer.d tokens.d utf.d
+            console.d entity.d errors.d file_manager.d globals.d id.d identifier.d lexer.d tokens.d
         ") ~ fileArray(env["ROOT"], "
             array.d bitarray.d ctfloat.d file.d filename.d hash.d port.d region.d rmem.d
-            rootobject.d stringtable.d
+            rootobject.d stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
             file.d outbuffer.d string.d
