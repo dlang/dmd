@@ -318,6 +318,72 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     return applied;
 }
 
+unittest
+{
+    immutable file = `
+/*
+Here's a link
+FOO: a b
+FOO: c
+*/
+
+void main() {}
+
+// BAR(windows): all_win
+// BAR(windows64): 64_win
+
+int i;
+
+/* REQUIRED_ARGS: -O
+ * PERMUTE_ARGS:
+ */
+`;
+    immutable EnvData win32 = {
+        os: "windows",
+        model: "32",
+    };
+
+    immutable EnvData win64 = {
+        os: "windows",
+        model: "64",
+    };
+
+    immutable EnvData linux = {
+        os: "linux",
+        model: "64",
+    };
+
+    string found;
+    assert(!findTestParameter(linux, file, "OTHER", found));
+    assert(found is null);
+
+    assert(findTestParameter(win64, file, "FOO", found));
+    assert(found == "a b c");
+
+    found = null;
+    assert(findTestParameter(win64, file, "FOO", found, ";"));
+    assert(found == "a b;c");
+
+    found = null;
+    assert(findTestParameter(win64, file, "BAR", found));
+    assert(found == "all_win 64_win");
+
+    found = null;
+    assert(findTestParameter(win32, file, "BAR", found));
+    assert(found == "all_win");
+
+    found = null;
+    assert(!findTestParameter(linux, file, "BAR", found));
+    assert(found is null);
+
+    assert(findTestParameter(linux, file, "PERMUTE_ARGS", found));
+    assert(found == "");
+
+    found = null;
+    assert(findTestParameter(linux, file, "REQUIRED_ARGS", found));
+    assert(found == "-O");
+}
+
 /**
  * Read the multi-line test parameter `token` from the source code and joins
  * multiple definitions into a single string.
@@ -376,6 +442,62 @@ bool findOutputParameter(string file, string token, out string result, string se
         result = result ? result : ""; // keep non-null
     }
     return found;
+}
+
+unittest
+{
+    immutable file = `
+/*
+Here's a link
+TEST_OUTPUT:
+---
+Hello, World
+---
+*/
+
+void main() {}
+
+/*
+TEST_OUTPUT:
+---
+Have a nice day
+---
+*/
+
+void foo() {}
+
+/*
+BAD
+---
+---
+*/
+
+/*
+MISSING:
+*/
+
+/*
+INCOMPLETE:
+---
+*/
+`;
+
+    string found;
+    assert(!findOutputParameter(file, "UNKNOWN", found, "/"));
+    assert(found is null);
+
+    assert(findOutputParameter(file, "TEST_OUTPUT", found, "/"));
+    assert(found == "Hello, World\nHave a nice day");
+
+    found = null;
+    auto ex = collectException(findOutputParameter(file, "MISSING", found, "/"));
+    assert(ex);
+    assert(ex.msg == "invalid TEST_OUTPUT format");
+    assert(found is null);
+
+    ex = collectException(findOutputParameter(file, "INCOMPLETE", found, "/"));
+    assert(ex);
+    assert(ex.msg == "invalid TEST_OUTPUT format");
 }
 
 /// Replaces the placeholer `${RESULTS_DIR}` with the actual path
