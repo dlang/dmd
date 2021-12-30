@@ -5,6 +5,7 @@
 | [aav.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/aav.d)                 | An associative array implementation                                                        |
 | [array.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/array.d)             | A dynamic array implementation                                                             |
 | [bitarray.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/bitarray.d)       | A compact array of bits                                                                    |
+| [complex.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/complex.d)         | A complex number type                                                                      |
 | [ctfloat.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/ctfloat.d)         | A floating point type for compile-time calculations                                        |
 | [env.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/env.d)                 | Modify environment variables                                                               |
 | [file.d](https://github.com/dlang/dmd/blob/master/src/dmd/root/file.d)               | Read a file from disk and store it in memory                                               |

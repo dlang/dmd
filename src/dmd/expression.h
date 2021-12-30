@@ -11,12 +11,12 @@
 #pragma once
 
 #include "ast_node.h"
-#include "complex_t.h"
 #include "globals.h"
 #include "arraytypes.h"
 #include "visitor.h"
 #include "tokens.h"
 
+#include "root/complex_t.h"
 #include "root/dcompat.h"
 #include "root/optional.h"
 

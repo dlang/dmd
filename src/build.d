@@ -1374,7 +1374,7 @@ auto sourceFiles()
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d apply.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
             arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
-            cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
+            cli.d clone.d compiler.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
             dtemplate.d dtoh.d dversion.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
@@ -1400,7 +1400,7 @@ auto sourceFiles()
     Sources sources = {
         dmd: dmd,
         frontendHeaders: fileArray(env["D"], "
-            aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h complex_t.h cond.h
+            aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h cond.h
             ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
             identifier.h id.h import.h init.h json.h mangle.h module.h mtype.h nspace.h objc.h scope.h
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
@@ -1418,10 +1418,10 @@ auto sourceFiles()
             outbuffer.h
         "),
         root: fileArray(env["ROOT"], "
-            aav.d env.d longdouble.d man.d optional.d response.d speller.d string.d strtold.d
+            aav.d complex.d env.d longdouble.d man.d optional.d response.d speller.d string.d strtold.d
         "),
         rootHeaders: fileArray(env["ROOT"], "
-            array.h bitarray.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
+            array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
             object.h optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "

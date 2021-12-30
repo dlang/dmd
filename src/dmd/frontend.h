@@ -1399,6 +1399,16 @@ typedef uint64_t dinteger_t;
 
 typedef uint64_t uinteger_t;
 
+struct complex_t final
+{
+    _d_real re;
+    _d_real im;
+    complex_t() = delete;
+    complex_t(_d_real re);
+    complex_t(_d_real re, _d_real im);
+    int32_t opEquals(complex_t y) const;
+};
+
 enum class MATCH
 {
     nomatch = 0,
@@ -5463,20 +5473,6 @@ struct Compiler final
     }
 };
 
-struct complex_t final
-{
-    _d_real re;
-    _d_real im;
-    complex_t() = delete;
-    complex_t(_d_real re);
-    complex_t(_d_real re, _d_real im);
-    int32_t opEquals(complex_t y) const;
-};
-
-extern _d_real creall(complex_t x);
-
-extern _d_real cimagl(complex_t x);
-
 class Condition : public ASTNode
 {
 public:
@@ -8005,6 +8001,10 @@ public:
     void visit(IndexExp* e);
     void visit(RemoveExp* e);
 };
+
+extern _d_real creall(complex_t x);
+
+extern _d_real cimagl(complex_t x);
 
 extern void browse(const char* url);
 
