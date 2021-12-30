@@ -20,8 +20,8 @@ import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.root.stringtable;
+import dmd.root.utf;
 import dmd.tokens;
-import dmd.utf;
 
 
 /***********************************************************

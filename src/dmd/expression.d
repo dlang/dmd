@@ -64,12 +64,12 @@ import dmd.root.optional;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
+import dmd.root.utf;
 import dmd.safe;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.utf;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
