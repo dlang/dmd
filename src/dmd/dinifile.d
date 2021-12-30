@@ -18,9 +18,9 @@ import core.sys.posix.stdlib;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
 
-import dmd.env;
 import dmd.errors;
 import dmd.globals;
+import dmd.root.env;
 import dmd.root.rmem;
 import dmd.root.filename;
 import dmd.common.outbuffer;
