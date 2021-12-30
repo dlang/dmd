@@ -83,18 +83,27 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             if (global.errors && !ce.e1.type)
                 return; // error recovery
 
-            import dmd.id : Id;
-
-            if (ce.f && ce.f.ident == Id._d_delstruct)
+            if (ce.f && ce.arguments.dim > 0)
             {
-                // Only check if the dtor throws.
                 Type tb = (*ce.arguments)[0].type.toBasetype();
-                auto ts = tb.nextOf().baseElemOf().isTypeStruct();
-                if (ts)
+                auto tbNext = tb.nextOf();
+                if (tbNext)
                 {
-                    auto sd = ts.sym;
-                    if (sd.dtor)
-                        checkFuncThrows(ce, sd.dtor);
+                    auto ts = tbNext.baseElemOf().isTypeStruct();
+                    if (ts)
+                    {
+                        import dmd.id : Id;
+
+                        auto sd = ts.sym;
+                        if (sd.dtor && ce.f.ident == Id._d_delstruct)
+                            checkFuncThrows(ce, sd.dtor);
+                        else if (sd.postblit &&
+                            (ce.f.ident == Id._d_arrayctor || ce.f.ident == Id._d_arraysetctor))
+                        {
+                            checkFuncThrows(ce, sd.postblit);
+                            return;
+                        }
+                    }
                 }
             }
 
