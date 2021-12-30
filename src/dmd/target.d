@@ -93,7 +93,7 @@ extern (C++) struct Target
         /* These are mutually exclusive; one and only one is set.
          * Match spelling and casing of corresponding version identifiers
          */
-        Freestanding = 0,
+        none         = 0,
         linux        = 1,
         Windows      = 2,
         OSX          = 4,
@@ -1494,8 +1494,20 @@ struct Triple
         }
     }
 
-    Target.OS parseOS(const(char)[] _os, out ubyte _osMajor)
+    /********************************
+     * Parse OS and osMajor version number.
+     * Params:
+     *  _os = string to check for operating system followed by version number
+     *  osMajor = set to version number (if any), otherwise set to 0.
+     *            Set to 255 if version number is 255 or larger and error is generated
+     * Returns:
+     *  detected operating system, Target.OS.none if none
+     */
+    Target.OS parseOS(const(char)[] _os, out ubyte osMajor)
     {
+        import dmd.errors : error;
+        import dmd.globals : Loc;
+
         bool matches(const(char)[] str)
         {
             import dmd.root.string : startsWith;
@@ -1504,10 +1516,7 @@ struct Triple
             _os = _os[str.length .. $];
             return true;
         }
-        if (_os == "freestanding")
-            return Target.OS.Freestanding;
         Target.OS os;
-        _osMajor = 0;
         if (matches("darwin"))
             os = Target.OS.OSX;
         else if (matches("dragonfly"))
@@ -1523,17 +1532,49 @@ struct Triple
         else
         {
             unknown(_os, "operating system");
-            return Target.OS.Freestanding;
+            return Target.OS.none;
         }
-        while (_os.length)
+
+        bool overflow;
+        auto major = parseNumber(_os, overflow);
+        if (overflow || major >= 255)
         {
-            if (!('0' < _os[0] && _os[0] < '9'))
-                break;
-            osMajor *= 10;
-            osMajor = cast(ubyte)((_os[0] - '0') + osMajor);
-            _os = _os[1 .. $];
+            error(Loc.initial, "OS version overflowed max of 254");
+            major = 255;
         }
+        osMajor = cast(ubyte)major;
+
+        /* Note that anything after the number up to the end or '-',
+         * such as '.3.4.hello.betty', is ignored
+         */
+
         return os;
+    }
+
+    /*******************************
+     * Parses a decimal number out of the str and returns it.
+     * Params:
+     *  str = string to parse the number from, updated to text after the number
+     *  overflow = set to true iff an overflow happens
+     * Returns:
+     *  parsed number
+     */
+    private pure static
+    uint parseNumber(ref const(char)[] str, ref bool overflow)
+    {
+        auto s = str;
+        ulong n;
+        while (s.length)
+        {
+            const c = s[0];
+            if (c < '0' || '9' < c)
+                break;
+            n = n * 10 + (c - '0');
+            overflow |= (n > uint.max); // sticky overflow check
+            s = s[1 .. $];              // consume digit
+        }
+        str = s;
+        return cast(uint)n;
     }
 
     TargetC.Runtime parseCEnv(const(char)[] cenv)

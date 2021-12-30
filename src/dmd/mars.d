@@ -1285,7 +1285,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
             predef("ELFv1");
         switch (tgt.os)
         {
-            case OS.Freestanding: { predef("FreeStanding"); break; }
+            case OS.none:         { predef("FreeStanding"); break; }
             case OS.linux:        { predef("linux");        break; }
             case OS.OpenBSD:      { predef("OpenBSD");      break; }
             case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
