@@ -7692,7 +7692,7 @@ struct Target final
 {
     enum class OS : uint8_t
     {
-        Freestanding = 0u,
+        none = 0u,
         linux = 1u,
         Windows = 2u,
         OSX = 4u,
