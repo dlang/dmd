@@ -40,6 +40,7 @@ struct Barray(T)
         static void enlarge(ref Barray barray, size_t length)
         {
             pragma(inline, false);
+            assert(length < size_t.max / (2 * T.sizeof));       // conservative overflow check
             auto newcap = (barray.capacity == 0) ? length : length + (length >> 1);
             barray.capacity = (newcap + 15) & ~15;
             T* p = cast(T*)realloc(barray.array.ptr, barray.capacity * T.sizeof);

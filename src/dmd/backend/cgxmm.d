@@ -1090,6 +1090,7 @@ void cdvector(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
 
     const n = el_nparams(e.EV.E1);
+    assert(n < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
     elem **params = cast(elem **)malloc(n * (elem *).sizeof);
     assert(params);
     elem **tmp = params;

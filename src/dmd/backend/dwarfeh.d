@@ -57,6 +57,7 @@ nothrow:
         assert(dim <= capacity);
         if (dim == capacity)
         {
+            assert(capacity < uint.max / (3 * DwEhTableEntry.sizeof));  // conservative overflow check
             capacity += capacity + 16;
             ptr = cast(DwEhTableEntry *)realloc(ptr, capacity * DwEhTableEntry.sizeof);
             assert(ptr);
