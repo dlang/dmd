@@ -4,9 +4,8 @@
 
 module semantic.covariance;
 
-import dmd.astenums : STC;
+import dmd.astenums : STC, StorageClass;
 import dmd.func : FuncDeclaration;
-import dmd.globals : StorageClass;
 import dmd.mtype : Covariant, Type;
 
 import support;
