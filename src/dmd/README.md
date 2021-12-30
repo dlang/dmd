@@ -251,7 +251,6 @@ Note: many other utilities are in [dmd/root](https://github.com/dlang/dmd/tree/m
 | [utf.d](https://github.com/dlang/dmd/blob/master/src/dmd/utf.d)                   | Encoding/decoding Unicode text                    |
 | [file_manager.d](https://github.com/dlang/dmd/blob/master/src/dmd/file_manager.d) | Keep file contents in memory                      |
 | [utils.d](https://github.com/dlang/dmd/blob/master/src/dmd/utils.d)               | Utility functions related to files and file paths |
-| [complex.d](https://github.com/dlang/dmd/blob/master/src/dmd/complex.d)           | A complex number type                             |
 
 | File                                                                            | Purpose                                                       |
 |---------------------------------------------------------------------------------|---------------------------------------------------------------|

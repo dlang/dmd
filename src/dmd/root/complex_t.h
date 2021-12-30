@@ -5,12 +5,12 @@
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * https://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/dmd/complex_t.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/root/complex_t.h
  */
 
 #pragma once
 
-#include "root/ctfloat.h"
+#include "ctfloat.h"
 
 /* Roll our own complex type for compilers that don't support complex
  */

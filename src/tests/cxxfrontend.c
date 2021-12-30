@@ -10,6 +10,7 @@
 
 #include "root/array.h"
 #include "root/bitarray.h"
+#include "root/complex_t.h"
 #include "root/ctfloat.h"
 #include "root/dcompat.h"
 #include "root/dsystem.h"
@@ -28,7 +29,6 @@
 #include "ast_node.h"
 #include "attrib.h"
 #include "compiler.h"
-#include "complex_t.h"
 #include "cond.h"
 #include "ctfe.h"
 #include "declaration.h"

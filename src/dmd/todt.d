@@ -16,13 +16,13 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.root.array;
+import dmd.root.complex;
 import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.backend.type;
-import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;
 import dmd.dclass;
