@@ -134,6 +134,8 @@ enum STC : ulong  // transfer changes to declaration.h
 
 }
 
+alias StorageClass = ulong;
+
 /********
  * Determine if it's the ambigous case of where `return` attaches to.
  * Params:
@@ -389,3 +391,43 @@ enum InitKind : ubyte
     C_,
 }
 
+/// A linkage attribute as defined by `extern(XXX)`
+///
+/// https://dlang.org/spec/attribute.html#linkage
+enum LINK : ubyte
+{
+    default_,
+    d,
+    c,
+    cpp,
+    windows,
+    objc,
+    system,
+}
+
+/// Whether to mangle an external aggregate as a struct or class, as set by `extern(C++, struct)`
+enum CPPMANGLE : ubyte
+{
+    def,      /// default
+    asStruct, /// `extern(C++, struct)`
+    asClass,  /// `extern(C++, class)`
+}
+
+/// Function match levels
+///
+/// https://dlang.org/spec/function.html#function-overloading
+enum MATCH : int
+{
+    nomatch,   /// no match
+    convert,   /// match with conversions
+    constant,  /// match with conversion to const
+    exact,     /// exact match
+}
+
+/// Inline setting as defined by `pragma(inline, XXX)`
+enum PINLINE : ubyte
+{
+    default_, /// as specified on the command line
+    never,    /// never inline
+    always,   /// always inline
+}

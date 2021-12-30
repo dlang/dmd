@@ -80,8 +80,8 @@ extern (C++) struct Target
     import dmd.dscope : Scope;
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
-    import dmd.globals : LINK, Loc, d_int64;
-    import dmd.astenums : TY;
+    import dmd.globals : Loc, d_int64;
+    import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
@@ -1310,8 +1310,7 @@ struct TargetCPP
      */
     extern (C++) Type parameterType(Parameter p)
     {
-        import dmd.astenums : STC;
-        import dmd.globals : LINK;
+        import dmd.astenums : LINK, STC;
         import dmd.mtype : ParameterList, TypeDelegate, TypeFunction;
         import dmd.typesem : merge;
 
