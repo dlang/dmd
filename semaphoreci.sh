@@ -2,6 +2,9 @@
 
 set -uexo pipefail
 
+# Temporarily disable CI to not be a bad neighbor
+exit 1
+
 ################################################################################
 # Set by the Semaphore job runner
 ################################################################################

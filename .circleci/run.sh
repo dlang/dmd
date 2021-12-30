@@ -2,6 +2,9 @@
 
 set -uexo pipefail
 
+# Temporarily disable CI to not be a bad neighbor
+exit 1
+
 HOST_DMD_VER=2.095.0 # same as in dmd/src/bootstrap.sh
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=4

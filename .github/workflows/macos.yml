@@ -1,0 +1,59 @@
+######################################################################
+#   WARNING: This file was automatically generated. DO NOT MODIFY!   #
+######################################################################
+# This file was automatically generated from 'ci/src/gh-actions/macos.yml'. To modify this file,
+# you should modify the source file, and call 'ci/tools/expand_yaml_anchors.d'.
+# Do not modify this file directly, as changes will most likely be lost.
+name: macOS CI
+"on":
+  pull_request:
+    branches:
+    - master
+    - stable
+    types: [synchronize, labeled]
+  push:
+    branches:
+    - master
+    - stable
+concurrency:
+  group: ci-macos-${{ github.actor }}-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  macos:
+    name: "Test and run macOS 10.15 (DMD ${{ matrix.name }}"
+    runs-on: macos-10.15
+    timeout-minutes: 60
+    env:
+      MODEL: 64
+      FULL_BUILD: true
+      OS_NAME: darwin
+      OS: osx
+      N: 3
+      HOST_DMD: ${{ matrix.HOST_DMD }}
+    strategy:
+      matrix:
+        include:
+        - name: latest
+          HOST_DMD: dmd-latest
+        - name: coverage
+          HOST_DMD: dmd-latest
+        - name: bootstrap
+          HOST_DMD: dmd-2.088.0
+    steps:
+    - name: Prepare host compiler
+      uses: dlang-community/setup-dlang@v1
+      with:
+        compiler: ${{ matrix.HOST_DMD }}
+    - name: Checkout DMD
+      uses: actions/checkout@v2
+      with:
+        path: dmd
+        persist-credentials: false
+    - name: Checkout DRuntime / Phobos
+      uses: ./dmd/.github/actions/checkout-druntime-phobos
+    - name: Run CI script
+      shell: bash
+      run: |
+        cd dmd
+        ./ci.sh build
+    if: github.repository == 'dlang/dmd' && ((github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'macos') || !github.event.pull_request.draft)) || github.event_name == 'push')

@@ -5,6 +5,12 @@
 
 set -uexo pipefail
 
+# Temporarily disable CI to not be a bad neighbor
+if [ -z ${GITHUB_WORKFLOW+x} ]; then
+    echo "Temporarily disabled on non-GitHub platforms"
+    exit 1
+fi
+
 # N: number of parallel build jobs
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
 # OS_NAME: linux|darwin|freebsd
@@ -54,12 +60,18 @@ clone() {
 
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
-    source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
+    # Only activate a host compiler if it's been setup through the setup scripts
+    if [[ -d ~/dlang ]]; then
+        source ~/dlang/*/activate # activate host compiler
+    fi
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug ENABLE_WARNINGS=1 unittest
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
-    deactivate # deactivate host compiler
+    # Only deactivate the host compiler if it's been activated through the setup scripts
+    if [[ -d ~/dlang ]]; then
+        deactivate
+    fi
 }
 
 # self-compile dmd
@@ -116,7 +128,10 @@ test_phobos() {
 
 # test dub package
 test_dub_package() {
-    source ~/dlang/*/activate # activate host compiler
+    # Only activate a host compiler if it's been setup through the setup scripts
+    if [[ -d ~/dlang ]]; then
+        source ~/dlang/*/activate # activate host compiler
+    fi
     # GDC's standard library is too old for some example scripts
     if [[ "${DMD:-dmd}" =~ "gdmd" ]] ; then
         echo "Skipping DUB examples on GDC."
@@ -138,7 +153,10 @@ test_dub_package() {
         # Test rdmd build
         "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi
-    deactivate
+    # Only deactivate if this directory exists in the first place
+    if [[ -d ~/dlang ]]; then
+        deactivate
+    fi
 }
 
 # clone druntime/phobos repos if not already available

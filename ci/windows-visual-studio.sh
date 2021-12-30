@@ -69,6 +69,3 @@ dm_make
 
 echo "[STEP]: Downloading grep"
 install_grep
-
-echo "[STEP]: Cloning repositories"
-clone_repos

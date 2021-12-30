@@ -110,8 +110,9 @@ dmd: $(GENERATED)/build
 $(GENERATED)/build: build.d $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ -g build.d
 
-auto-tester-build: $(GENERATED)/build
-	$(RUN_BUILD) $@
+auto-tester-build:
+	echo "auto-tester has been disabled"
+	exit 1
 
 .PHONY: auto-tester-build
 
@@ -123,8 +124,9 @@ ifeq ($(OS)$(MODEL),linux64)
   HEADER_TEST=cxx-headers-test
 endif
 
-auto-tester-test: $(GENERATED)/build
-	$(RUN_BUILD) unittest $(HEADER_TEST)
+auto-tester-test:
+	echo "auto-tester has been disabled"
+	exit 1
 
 unittest: $(GENERATED)/build
 	$(RUN_BUILD) $@
