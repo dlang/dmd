@@ -526,8 +526,8 @@ void foolazy(lazy int x)
 
 $(H2 $(GNAME isTemplate))
 
-        $(P Takes one argument. If that argument is a template then $(D true) is returned,
-        otherwise $(D false).
+        $(P Takes one argument. If that argument or any of its overloads is a template
+        then $(D true) is returned, otherwise $(D false).
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
