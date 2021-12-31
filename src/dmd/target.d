@@ -25,6 +25,7 @@
 
 module dmd.target;
 
+import core.stdc.stdio;
 import dmd.globals : Param;
 
 enum CPU : ubyte
@@ -186,6 +187,8 @@ extern (C++) struct Target
      */
     extern (C++) void _init(ref const Param params)
     {
+	//printf("Target._init() os: %d\n", os);
+
         // is64bit, mscoff and cpu are initialized in parseCommandLine
 
         this.params = &params;
@@ -316,6 +319,7 @@ extern (C++) struct Target
 
     void setTriple(const ref Triple triple)
     {
+        //printf("setTriple() os: %d\n", triple.os);
         cpu     = triple.cpu;
         is64bit = triple.is64bit;
         isLP64  = triple.isLP64;
@@ -1395,6 +1399,7 @@ struct Triple
 
     this(const(char)* _triple)
     {
+        //printf("Triple.ctor\n");
         import dmd.root.string : toDString, toCStringThen;
         const(char)[] triple = _triple.toDString();
         const(char)[] next()

@@ -84,7 +84,7 @@ extern (C) void out_config_init(
 {
 version (MARS)
 {
-    //printf("out_config_init()\n");
+    //printf("out_config_init() exefmt: %x\n", exefmt);
 
     auto cfg = &config;
 

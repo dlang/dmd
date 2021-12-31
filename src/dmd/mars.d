@@ -264,7 +264,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.color)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
-    target.os = defaultTargetOS();           // set target operating system
+    //target.os = defaultTargetOS();           // set target operating system
     target.setCPU();
 
     if (global.errors)
@@ -1935,6 +1935,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-target=".length;
             const triple = Triple(p + len);
             target.setTriple(triple);
+printf("target.os: %d\n", target.os);
         }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
