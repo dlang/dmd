@@ -403,6 +403,26 @@ string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
     return null;
 }
 
+unittest
+{
+    immutable EnvData win32         = { os: "windows",  model: "32", };
+    immutable EnvData win32mscoff   = { os: "windows",  model: "32mscoff", };
+    immutable EnvData win64         = { os: "windows",  model: "64", };
+
+    assert(getDisabledReason(null, win64) is null);
+
+    assert(getDisabledReason([ "linux" ], win64) is null);
+    assert(getDisabledReason([ "linux", "win" ], win64) == "on win");
+
+    assert(getDisabledReason([ "linux", "win64" ], win64) == "on win64");
+    assert(getDisabledReason([ "linux", "win32" ], win64) is null);
+
+    assert(getDisabledReason([ "win32mscoff" ], win32mscoff) == "on win32mscoff");
+    assert(getDisabledReason([ "win32mscoff" ], win32) is null);
+
+    assert(getDisabledReason([ "win32" ], win32mscoff) == "on win32");
+    assert(getDisabledReason([ "win32" ], win32) == "on win32");
+}
 /**
  * Reads the test configuration from the source code (using `findTestParameter` and
  * `findOutputParameter`) and initializes `testArgs` accordingly. Also merges
