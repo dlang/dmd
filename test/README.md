@@ -316,8 +316,11 @@ The following is a list of all available settings:
                          considered to be enabled on all platform).
                          default: (none, enabled)
                          Valid platforms: win linux osx freebsd dragonflybsd netbsd
-                         Optionally a MODEL suffix can used for further filtering, e.g.
-                         win32 win64 linux32 linux64 osx32 osx64 freebsd32 freebsd64
+                         Optionally a MODEL suffix can used for further filtering:
+                            - 32
+                            - 32mscoff (windows only)
+                            - 64
+                         E.g. win32mscoff osx64 freebsd32
 
 Environment variables
 ------------------------------
