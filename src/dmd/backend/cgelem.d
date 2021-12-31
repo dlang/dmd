@@ -2889,6 +2889,7 @@ private bool optim_loglog(elem **pe)
     if (n <= 3)
         return false;
     uint ty = e.Ety;
+    assert(n < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
     elem **array = cast(elem **)malloc(n * (elem *).sizeof);
     assert(array);
     elem **p = array;

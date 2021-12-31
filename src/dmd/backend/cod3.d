@@ -1744,6 +1744,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
         reg_t sreg = NOREG;                          // may need a scratch register
 
         // Put into casevals[0..ncases] so we can sort then slice
+        assert(ncases < size_t.max / (2 * CaseVal.sizeof));
         CaseVal *casevals = cast(CaseVal *)malloc(ncases * CaseVal.sizeof);
         assert(casevals);
         for (uint n = 0; n < ncases; n++)
