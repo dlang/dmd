@@ -1,13 +1,13 @@
 # Learn more: https://aka.ms/yaml
 
 variables:
-  VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+  VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\
 
 jobs:
   - job: Windows
     timeoutInMinutes: 60
     pool:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-2019'
     variables:
       D_COMPILER: dmd
       HOST_DMD_VERSION: LATEST
@@ -59,7 +59,7 @@ jobs:
   - job: Windows_VisualD
     timeoutInMinutes: 60
     pool:
-      vmImage: 'vs2017-win2016'
+      vmImage: 'windows-2019'
     variables:
       D_COMPILER: ldc
       VISUALD_VER: v0.49.0
