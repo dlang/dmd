@@ -1384,7 +1384,6 @@ struct TargetObjC
  */
 struct Triple
 {
-    private const(char)[] source;
     CPU               cpu;
     bool              is64bit;
     bool              isLP64;
@@ -1395,8 +1394,10 @@ struct Triple
 
     this(const(char)* _triple)
     {
-        import dmd.root.string : toDString, toCStringThen;
+        import dmd.root.string : toDString;
+
         const(char)[] triple = _triple.toDString();
+
         const(char)[] next()
         {
             size_t i = 0;
@@ -1413,38 +1414,45 @@ struct Triple
             return tmp[0 .. i];
         }
 
-        parseArch(next);
-        const(char)[] vendorOrOS = next();
-        const(char)[] _os;
-        if (tryParseVendor(vendorOrOS))
-            _os = next();
-        else
-            _os = vendorOrOS;
-        os = parseOS(_os, osMajor);
+        while (triple.length)
+        {
+            import dmd.errors : error;
+            import dmd.globals : Loc;
 
-        const(char)[] _cenv = next();
-        if (_cenv.length)
-            cenv = parseCEnv(_cenv);
-        else if (this.os == Target.OS.Windows)
-            cenv = TargetC.Runtime.Microsoft;
-        const(char)[] _cppenv = next();
-        if (_cppenv.length)
-            cppenv = parseCPPEnv(_cppenv);
-        else if (this.os == Target.OS.Windows)
-            cppenv = TargetCPP.Runtime.Microsoft;
+            auto entry = next();
+
+          L1:
+            if (parseArch(entry))
+                continue;
+
+            if (parseVendor(entry))
+                continue;
+
+            if (parseOS(entry))
+                continue;
+
+            if (parseCEnv(entry))
+            {
+                if (triple.length)
+                {
+                    entry = next();
+                    if (parseCPPEnv(entry)) // can only be after <cenv>
+                        continue;
+                    goto L1;
+                }
+                continue;
+            }
+
+            error(Loc.initial,"unknown option `%.*s` for `-target`", cast(int)entry.length, entry.ptr);
+        }
     }
     private extern(D):
 
-    void unknown(const(char)[] unk, const(char)* what)
+    bool parseArch(const(char)[] arch)
     {
         import dmd.errors : error;
-        import dmd.root.string : toCStringThen;
         import dmd.globals : Loc;
-        unk.toCStringThen!(p => error(Loc.initial,"unknown %s `%s` for `-target`", what, p.ptr));
-    }
 
-    void parseArch(const(char)[] arch)
-    {
         bool matches(const(char)[] str)
         {
             import dmd.root.string : startsWith;
@@ -1466,10 +1474,10 @@ struct Triple
             isLP64 = false;
         }
         else
-            return unknown(arch, "architecture");
+            return false;
 
         if (!arch.length)
-            return;
+            return true;
 
         switch (arch)
         {
@@ -1477,33 +1485,33 @@ struct Triple
             case "+avx":  cpu = CPU.avx;  break;
             case "+avx2": cpu = CPU.avx2; break;
             default:
-                unknown(arch, "architecture feature");
+                error(Loc.initial,"unknown architecture feature `%.*s` for `-target`", cast(int)arch.length, arch.ptr);
+                break;
         }
+        return true;
     }
 
     // try parsing vendor if present
-    bool tryParseVendor(const(char)[] vendor)
+    bool parseVendor(const(char)[] vendor)
     {
         switch (vendor)
         {
-            case "unknown": return true;
-            case "apple":   return true;
-            case "pc":      return true;
-            case "amd":     return true;
-            default:        return false;
+            case "unknown":
+            case "apple":
+            case "pc":
+            case "amd":
+                return true;
+            default:
+                return false;
         }
     }
 
     /********************************
      * Parse OS and osMajor version number.
-     * Params:
-     *  _os = string to check for operating system followed by version number
-     *  osMajor = set to version number (if any), otherwise set to 0.
-     *            Set to 255 if version number is 255 or larger and error is generated
      * Returns:
-     *  detected operating system, Target.OS.none if none
+     *  true if detected operating system
      */
-    Target.OS parseOS(const(char)[] _os, out ubyte osMajor)
+    bool parseOS(const(char)[] _os)
     {
         import dmd.errors : error;
         import dmd.globals : Loc;
@@ -1528,12 +1536,16 @@ struct Triple
         else if (matches("linux"))
             os =  Target.OS.linux;
         else if (matches("windows"))
-            os =  Target.OS.Windows;
-        else
         {
-            unknown(_os, "operating system");
-            return Target.OS.none;
+            os =  Target.OS.Windows;
+            if (!cenv)
+                cenv = TargetC.Runtime.Microsoft;
+            if (!cppenv)
+                cppenv = TargetCPP.Runtime.Microsoft;
         }
+        else
+            return false;
+        this.os = os;
 
         bool overflow;
         auto major = parseNumber(_os, overflow);
@@ -1542,13 +1554,13 @@ struct Triple
             error(Loc.initial, "OS version overflowed max of 254");
             major = 255;
         }
-        osMajor = cast(ubyte)major;
+        this.osMajor = cast(ubyte)major;
 
         /* Note that anything after the number up to the end or '-',
          * such as '.3.4.hello.betty', is ignored
          */
 
-        return os;
+        return true;
     }
 
     /*******************************
@@ -1577,40 +1589,40 @@ struct Triple
         return cast(uint)n;
     }
 
-    TargetC.Runtime parseCEnv(const(char)[] cenv)
+    bool parseCEnv(const(char)[] env)
     {
-        with (TargetC.Runtime) switch (cenv)
+        TargetC.Runtime cenv;
+        with (TargetC.Runtime) switch (env)
         {
-            case "musl":         return Musl;
-            case "msvc":         return Microsoft;
-            case "bionic":       return Bionic;
-            case "digital_mars": return DigitalMars;
-            case "newlib":       return Newlib;
-            case "uclibc":       return UClibc;
-            case "glibc":        return Glibc;
+            case "musl":         cenv = Musl;        break;
+            case "msvc":         cenv = Microsoft;   break;
+            case "bionic":       cenv = Bionic;      break;
+            case "digital_mars": cenv = DigitalMars; break;
+            case "newlib":       cenv = Newlib;      break;
+            case "uclibc":       cenv = UClibc;      break;
+            case "glibc":        cenv = Glibc;       break;
             default:
-            {
-                unknown(cenv, "C runtime environment");
-                return Unspecified;
-            }
+                return false;
         }
+        this.cenv = cenv;
+        return true;
     }
 
-    TargetCPP.Runtime parseCPPEnv(const(char)[] cppenv)
+    bool parseCPPEnv(const(char)[] env)
     {
-        with (TargetCPP.Runtime) switch (cppenv)
+        TargetCPP.Runtime cppenv;
+        with (TargetCPP.Runtime) switch (env)
         {
-            case "clang":        return Clang;
-            case "gcc":          return Gcc;
-            case "msvc":         return Microsoft;
-            case "sun":          return Sun;
-            case "digital_mars": return DigitalMars;
+            case "clang":        cppenv = Clang;       break;
+            case "gcc":          cppenv = Gcc;         break;
+            case "msvc":         cppenv = Microsoft;   break;
+            case "sun":          cppenv = Sun;         break;
+            case "digital_mars": cppenv = DigitalMars; break;
             default:
-            {
-                unknown(cppenv, "C++ runtime environment");
-                return Unspecified;
-            }
+                return false;
         }
+        this.cppenv = cppenv;
+        return true;
     }
 }
 
