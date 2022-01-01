@@ -187,7 +187,7 @@ extern (C++) struct Target
      */
     extern (C++) void _init(ref const Param params)
     {
-	//printf("Target._init() os: %d\n", os);
+        //printf("Target._init() os: %d\n", os);
 
         // is64bit, mscoff and cpu are initialized in parseCommandLine
 

@@ -264,7 +264,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.color)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
-    //target.os = defaultTargetOS();           // set target operating system
     target.setCPU();
 
     if (global.errors)
@@ -1935,7 +1934,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-target=".length;
             const triple = Triple(p + len);
             target.setTriple(triple);
-printf("target.os: %d\n", target.os);
         }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
@@ -2616,7 +2614,7 @@ private void reconcileCommands(ref Param params)
                 params.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
             }
             else
-                error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
+                error(Loc.initial, "must supply `-mscrtlib=<libname>` manually when cross compiling to Windows");
         }
     }
     else

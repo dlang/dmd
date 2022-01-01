@@ -74,7 +74,7 @@ void out_config_debug(
 
 void backend_init()
 {
-    printf("out_config_init() os: %d\n", target.os);
+    //printf("out_config_init() os: %d\n", target.os);
     Param *params = &global.params;
     exefmt_t exfmt;
     switch (target.os)
