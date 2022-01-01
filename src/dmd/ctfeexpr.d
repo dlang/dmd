@@ -1362,6 +1362,15 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         mem.xfree(used);
         return 0;
     }
+    else if (e1.op == EXP.assocArrayLiteral && e2.op == EXP.null_)
+    {
+        return e1.isAssocArrayLiteralExp.keys.dim != 0;
+    }
+    else if (e1.op == EXP.null_ && e2.op == EXP.assocArrayLiteral)
+    {
+        return e2.isAssocArrayLiteralExp.keys.dim != 0;
+    }
+
     error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1.toChars(), e2.toChars());
     assert(0);
 }
