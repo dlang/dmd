@@ -1018,16 +1018,21 @@ $(H3 $(LNAME2 cast_expressions, Cast Expressions))
 $(GRAMMAR
 $(GNAME CastExpression):
     $(D cast $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(GLINK UnaryExpression)
+    $(I CastQual)
+
+$(GNAME CastQual):
     $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
 )
 
     $(P A $(I CastExpression) converts the $(I UnaryExpression)
-        to $(GLINK2 type, Type).)
+        to $(I Type).)
 
         -------------
         cast(foo) -p; // cast (-p) to type foo
         (foo) - p;      // subtract p from foo
         -------------
+
+$(H3 $(LNAME2 cast_class, Class References))
 
     $(P Any casting of a class reference to a
         derived class reference is done with a runtime check to make sure it
@@ -1065,6 +1070,8 @@ $(GNAME CastExpression):
         (i.e. a reinterpret cast).
     )
 
+$(H3 $(LNAME2 cast_array, Arrays))
+
     $(P Casting a dynamic array to another dynamic array is done only if the
         array lengths multiplied by the element sizes match. The cast is done
         as a type paint, with the array length adjusted to match any change in
@@ -1087,6 +1094,8 @@ $(GNAME CastExpression):
         }
         ---
 
+
+$(H3 $(LNAME2 cast_static_array, Static Arrays))
 
     $(P Casting a static array to another static array is done only if the
         array lengths multiplied by the element sizes match; a mismatch
@@ -1111,6 +1120,8 @@ $(GNAME CastExpression):
              */
         }
         ---
+
+$(H3 $(LNAME2 cast_floating, Floating Point))
 
     $(P Casting a floating point literal from one type to another
         changes its type, but internally it is retained at full
@@ -1162,12 +1173,16 @@ $(GNAME CastExpression):
         }
         ---
 
+$(H3 $(LNAME2 cast_struct, Struct))
+
     $(P Casting a value $(I v) to a struct $(I S), when value is not a struct
         of the same type, is equivalent to:)
 
         ---
         S(v)
         ---
+
+$(H3 $(LNAME2 cast_qualifier, Qualifier Cast))
 
     $(P Casting to a $(GLINK CastQual) replaces the qualifiers to the type of
         the $(GLINK UnaryExpression).)
@@ -1177,7 +1192,7 @@ $(GNAME CastExpression):
         assert(is(typeof(cast(const)x) == const int));
         ---
 
-    $(P Casting with no $(GLINK2 type, Type) or $(GLINK CastQual) removes
+    $(P Casting with no type or qualifiers removes
         any top level $(D const), $(D immutable), $(D shared) or $(D inout)
         type modifiers from the type
         of the $(GLINK UnaryExpression).)
@@ -1186,6 +1201,8 @@ $(GNAME CastExpression):
         shared int x;
         assert(is(typeof(cast()x) == int));
         ---
+
+$(H3 $(LNAME2 cast_void, Casting to `void`))
 
     $(P Casting an expression to $(D void) type is allowed to mark that
         the result is unused. On $(GLINK2 statement, ExpressionStatement),
