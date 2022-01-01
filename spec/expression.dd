@@ -14,22 +14,34 @@ The syntax, order of evaluation, and semantics of expressions are as follows.)
 
 $(H2 $(LNAME2 definitions-and-terms, Definitions and Terms))
 
-$(DDOC_ANCHOR define-full-expression)$(P $(B Definition) ($(DOUBLEQUOTE Full expression)): For any expression
+$(H3 $(LNAME2 define-full-expression, Full Expression))
+
+$(P For any expression
 $(I expr), the full expression of $(I expr) is defined as follows. If $(I expr) parses as a
 subexpression of another expression $(I expr$(SUBSCRIPT 1)), then the full expression of $(I expr) is the
 full expression of $(I expr$(SUBSCRIPT 1)). Otherwise, $(I expr) is its own full expression.)
 
-$(P Each expression has a unique full expression.)
+$(P Each expression has a unique full expression. Example:)
 
-$(P Example: in the statement `return f() + g() * 2;`, the full expression of `g() * 2` is `f() + g() * 2`, but not the
+---
+return f() + g() * 2;
+---
+
+$(P The full expression of `g() * 2` above is `f() + g() * 2`, but not the
 full expression of `f() + g()` because the latter is not parsed as a subexpression.)
 
-$(P Note: Although the definition is straightforward, a few subtleties exist related to function literals. In the
-statement `return (() => x + f())() * g();`, the full expression of `f()` is `x + f()`, not the expression passed
+$(P Note: Although the definition is straightforward, a few subtleties exist related to function literals:)
+
+---
+return (() => x + f())() * g();
+---
+
+$(P The full expression of `f()` above is `x + f()`, not the expression passed
 to `return`. This is because the parent of `x + f()` has function literal type, not expression type.)
 
-$(DDOC_ANCHOR define-lvalue)$(P $(B Definition) ($(DOUBLEQUOTE Lvalue)): The following expressions, and no
-others, are called lvalue expressions or lvalues:)
+$(H3 $(LNAME2 define-lvalue, Lvalue))
+
+$(P The following expressions, and no others, are called *lvalue expressions* or *lvalues*:)
 $(OL
 $(LI `this` inside `struct` and `union` member functions;)
 $(LI a variable or the result of the $(I DotIdentifier) grammatical construct `.` (left side may be
@@ -55,23 +67,28 @@ $(LI `cast(U)` expressions applied to lvalues of type `T` when `T*` is implicitl
 $(LI `cast()` and `cast(`$(I qualifier list)`)` when applied to an lvalue.)
 )))
 
-$(DDOC_ANCHOR define-rvalue)$(P $(B Definition) ($(DOUBLEQUOTE Rvalue)): Expressions that are not
-lvalues are rvalues.)
+$(H3 $(LNAME2 define-rvalue, Rvalue))
 
-$(P Note: Rvalues include all literals, special value keywords such as `__FILE__` and `__LINE__`,
+$(P Expressions that are not lvalues are *rvalues*. Rvalues include all literals, special value keywords such as `__FILE__` and `__LINE__`,
 `enum` values, and the result of expressions not defined as lvalues above.)
 
 $(P The built-in address-of operator (unary `&`) may only be applied to lvalues.)
 
-$(DDOC_ANCHOR define-smallest-short-circuit)$(P $(B Definition) ($(DOUBLEQUOTE Smallest
-short-circuit expression)): Given an expression $(I expr) that is a subexpression of a full
-expression $(I fullexpr), the smallest short-circuit expression, if any, is the shortest
-subexpression $(I scexpr) of $(I fullexpr) that is an $(GLINK AndAndExpression) (`&&`) or an
-$(GLINK OrOrExpression) (`||`), such that $(I expr) is a subexpression of $(I scexpr).)
+$(H3 $(LNAME2 define-smallest-short-circuit, Smallest Short-Circuit Expression))
 
-Example: in the expression `((f() * 2 && g()) + 1) || h()`, the smallest short-circuit expression
-of the subexpression `f() * 2` is `f() * 2 && g()`. In the expression `(f() && g()) + h()`, the
-subexpression `h()` has no smallest short-circuit expression.
+$(P Given an expression $(I expr) that is a subexpression of a full
+expression $(I fullexpr), the *smallest short-circuit expression*, if any, is the shortest
+subexpression $(I scexpr) of $(I fullexpr) that is an $(GLINK AndAndExpression) (`&&`) or an
+$(GLINK OrOrExpression) (`||`), such that $(I expr) is a subexpression of $(I scexpr). Example:)
+---
+((f() * 2 && g()) + 1) || h()
+---
+The smallest short-circuit expression
+of the subexpression `f() * 2` above is `f() * 2 && g()`. Example:
+---
+(f() && g()) + h()
+---
+The subexpression `h()` above has no smallest short-circuit expression.
 
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
