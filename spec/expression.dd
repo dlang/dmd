@@ -469,11 +469,11 @@ $(H2 $(LNAME2 compare_expressions, Compare Expressions))
 
 $(GRAMMAR
 $(GNAME CmpExpression):
-    $(GLINK ShiftExpression)
     $(GLINK EqualExpression)
     $(GLINK IdentityExpression)
     $(GLINK RelExpression)
     $(GLINK InExpression)
+    $(GLINK ShiftExpression)
 )
 
 $(H2 $(LNAME2 equality_expressions, Equality Expressions))
@@ -507,18 +507,25 @@ $(GNAME EqualExpression):
         Otherwise, the bit patterns of the common type are compared for equality.
     )
 
-    $(P For complex numbers, equality is defined as equivalent to:
+    $(P For complex numbers, equality is defined as equivalent to:)
 
         ---
         x.re == y.re && x.im == y.im
         ---
+
+    $(P For static and dynamic arrays, equality is defined as the
+        lengths of the arrays
+        matching, and all the elements are equal.
     )
+
+    $(H3 $(LNAME2 aggregate_equality, Aggregate Equality))
 
     $(P For struct objects, equality means the result of the
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
         If an `opEquals()` is not provided, equality is defined as
         the logical product of all equality
-        results of the corresponding object fields.
+        results of the corresponding object fields.)
+    )
 
         $(IMPLEMENTATION_DEFINED The contents of any alignment gaps in the struct object.)
 
@@ -527,14 +534,13 @@ $(GNAME EqualExpression):
         An `opEquals()` can account for which of the overlapping fields contains valid data.
         An `opEquals()` can override the default behavior of floating point NaN values
         always comparing as unequal.
-        Be careful using `memcmp()` to implement `opEquals()` if:
+        Be careful using `memcmp()` to implement `opEquals()` if:)
+
         $(UL
         $(LI there are any alignment gaps)
-        $(LI if any fields have an `opEquals()`)
+        $(LI any fields have an `opEquals()`)
         $(LI there are any floating point fields that may contain NaN or `-0` values)
         )
-        )
-    )
 
     $(P For class and struct objects, the expression $(D (a == b))
         is rewritten as
@@ -559,11 +565,6 @@ $(GNAME EqualExpression):
             ...
         ---
 
-    $(P For static and dynamic arrays, equality is defined as the
-        lengths of the arrays
-        matching, and all the elements are equal.
-    )
-
 $(H3 $(LNAME2 identity_expressions, Identity Expressions))
 
 $(GRAMMAR
@@ -572,7 +573,7 @@ $(GNAME IdentityExpression):
     $(GLINK ShiftExpression) $(D ! is) $(GLINK ShiftExpression)
 )
 
-    $(P The $(D is) compares for identity.
+    $(P The $(D is) operator compares for identity.
         To compare for nonidentity, use $(D e1 !is e2).
         The type of the result is $(D bool). The operands
         undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
@@ -613,15 +614,7 @@ $(GNAME RelExpression):
         The result type of a relational expression is $(D bool).
     )
 
-    $(P For class objects, the result of Object.opCmp() forms the left
-        operand, and 0 forms the right operand. The result of the
-        relational expression (o1 op o2) is:)
-
-        ---
-        (o1.opCmp(o2) op 0)
-        ---
-
-    $(P It is an error to compare objects if one is $(D null).)
+$(H3 $(LNAME2 array_comparisons, Array comparisons))
 
     $(P For static and dynamic arrays, the result of the relational
         op is the result of the operator applied to the first non-equal
@@ -677,13 +670,24 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
     $(P For class objects, the relational
         operators compare the
         contents of the objects. Therefore, comparing against
-        $(CODE null) is invalid, as $(CODE null) has no contents.)
+        a $(CODE null) class reference is invalid, as $(CODE null) has no contents.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        class C {}
+        C c;
+        if (c < null) {}  // compile-time error
+        assert(c is null);
+        if (c > new C) {}  // runtime error
+        ---
+        )
+
+    $(P For class objects, the result of `Object.opCmp()` forms the left
+        operand, and `0` forms the right operand. The result of the
+        relational expression `(o1 op o2)` is:)
 
         ---
-        class C;
-        C c;
-        if (c < null)  // error
-            ...
+        (o1.opCmp(o2) op 0)
         ---
 
 $(H2 $(LNAME2 in_expressions, In Expressions))
