@@ -691,29 +691,34 @@ $(H2 $(LNAME2 in_expressions, In Expressions))
 $(GRAMMAR
 $(GNAME InExpression):
     $(GLINK ShiftExpression) $(D in) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D ! in) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !in) $(GLINK ShiftExpression)
 )
 
-$(P An associative array can be tested to see if an element is in the array:)
+$(P A container such as an associative array
+    $(DDSUBLINK spec/hash-map, testing_membership, can be tested) to see if contains a key:)
 
         -------------
         int foo[string];
         ...
-        if ("hello" in foo)
-            ...
+        if ("hello" in foo) {
+            // the string was found
+        }
         -------------
 
-    $(P The $(D in) expression has the same precedence as the
-        relational expressions $(D <), $(D <)$(D =),
-        etc.
-        The return value of the $(I InExpression) is $(D null)
-        if the element is not in the array;
-        if it is in the array it is a pointer to the element.
+    $(P The return value of the $(I InExpression) is typically `bool` or a pointer.
+        The pointer is $(D null) if the container has no matching key.
+        If there is a match, the return value is a pointer to the associated element.
     )
 
     $(P The $(D !in) expression is the logical negation of the $(D in)
         operation.
     )
+
+    $(P The $(D in) expression has the same precedence as the
+        relational expressions $(D <), $(D <)$(D =), etc.)
+
+    $(BEST_PRACTICE $(DDSUBLINK spec/operatoroverloading, binary, Overloading `in`)
+    for a container should only be done when the operation is of sublinear time complexity.)
 
 $(H2 $(LNAME2 shift_expressions, Shift Expressions))
 
@@ -805,13 +810,13 @@ $(GNAME CatExpression):
     $(GLINK AddExpression) $(D ~) $(GLINK MulExpression)
 )
 
-    $(P A $(I CatExpression) concatenates arrays, producing
-        a dynamic array with the result. The arrays must be
-        arrays of the same element type. If one operand is an array
-        and the other is of that array's element type, that element
-        is converted to an array of length 1 of that element,
-        and then the concatenation is performed.
-    )
+    $(P A $(I CatExpression) concatenates a container's data with other data, producing
+        a new container of the same type as the result.
+        Typically the container is a dynamic array.)
+
+    $(P For a dynamic array, the other operand must either be another array or a
+        single value compatible with the element type of the array.
+        See $(DDSUBLINK spec/arrays, array-concatenation, Array Concatenation).)
 
 $(H2 $(LNAME2 mul_expressions, Mul Expressions))
 
