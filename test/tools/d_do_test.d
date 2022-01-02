@@ -407,14 +407,9 @@ bool findOutputParameter(string file, string token, out string result, string se
 {
     bool found = false;
 
-    while (true)
+    while (consumeNextToken(file, token))
     {
-        const istart = std.string.indexOf(file, token);
-        if (istart == -1)
-            break;
         found = true;
-
-        file = file[istart + token.length .. $];
 
         enum embed_sep = "---";
         auto n = std.string.indexOf(file, embed_sep);
@@ -498,6 +493,29 @@ INCOMPLETE:
     ex = collectException(findOutputParameter(file, "INCOMPLETE", found, "/"));
     assert(ex);
     assert(ex.msg == "invalid TEST_OUTPUT format");
+}
+
+/++
+ + Reads the file content to find the next parameter specified by `token`.
+ +
+ + Params:
+ +   file  = file content, set after the colon if the parameter was found
+ +   token = requested parameter
+ +
+ + Returns: true if `token` was found
+ +/
+private bool consumeNextToken(ref string file, const string token)
+{
+    while (true)
+    {
+        const istart = std.string.indexOf(file, token);
+        if (istart == -1)
+            return false;
+
+        file = file[istart + token.length .. $];
+
+        return true;
+    }
 }
 
 /// Replaces the placeholer `${RESULTS_DIR}` with the actual path
