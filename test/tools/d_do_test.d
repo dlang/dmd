@@ -396,14 +396,14 @@ int i;
  * ```
  *
  * Params:
- *   file   = source code
- *   token  = test parameter
- *   result = variable to store the parameter
- *   sep    = platform-dependent directory separator
+ *   file    = source code
+ *   token   = test parameter
+ *   result  = variable to store the parameter
+ *   envData = environment data
  *
  * Returns: whether the parameter was found in the source code
  */
-bool findOutputParameter(string file, string token, out string result, string sep)
+bool findOutputParameter(string file, string token, out string result, ref const EnvData envData)
 {
     bool found = false;
 
@@ -433,7 +433,7 @@ bool findOutputParameter(string file, string token, out string result, string se
     if (found)
     {
         result = std.string.strip(result);
-        result = result.unifyNewLine().unifyDirSep(sep);
+        result = result.unifyNewLine().unifyDirSep(envData.sep);
         result = result ? result : ""; // keep non-null
     }
     return found;
@@ -441,6 +441,7 @@ bool findOutputParameter(string file, string token, out string result, string se
 
 unittest
 {
+    immutable EnvData linux = { sep: "/ " };
     immutable file = `
 /*
 Here's a link
@@ -478,19 +479,19 @@ INCOMPLETE:
 `;
 
     string found;
-    assert(!findOutputParameter(file, "UNKNOWN", found, "/"));
+    assert(!findOutputParameter(file, "UNKNOWN", found, linux));
     assert(found is null);
 
-    assert(findOutputParameter(file, "TEST_OUTPUT", found, "/"));
+    assert(findOutputParameter(file, "TEST_OUTPUT", found, linux));
     assert(found == "Hello, World\nHave a nice day");
 
     found = null;
-    auto ex = collectException(findOutputParameter(file, "MISSING", found, "/"));
+    auto ex = collectException(findOutputParameter(file, "MISSING", found, linux));
     assert(ex);
     assert(ex.msg == "invalid TEST_OUTPUT format");
     assert(found is null);
 
-    ex = collectException(findOutputParameter(file, "INCOMPLETE", found, "/"));
+    ex = collectException(findOutputParameter(file, "INCOMPLETE", found, linux));
     assert(ex);
     assert(ex.msg == "invalid TEST_OUTPUT format");
 }
@@ -731,7 +732,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
             testArgs.compileOutput = testArgs.compileOutput.unifyDirSep(envData.sep);
     }
     else
-        findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+        findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData);
 
     string outFilesStr;
     findTestParameter(envData, file, "OUTPUT_FILES", outFilesStr);
@@ -739,9 +740,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     findTestParameter(envData, file, "TRANSFORM_OUTPUT", testArgs.transformOutput);
 
-    findOutputParameter(file, "RUN_OUTPUT", testArgs.runOutput, envData.sep);
+    findOutputParameter(file, "RUN_OUTPUT", testArgs.runOutput, envData);
 
-    findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
+    findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
     findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript);
