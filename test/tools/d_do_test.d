@@ -251,11 +251,8 @@ immutable(EnvData) processEnvironment()
  */
 bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
 {
-    auto tokenStart = std.string.indexOf(file, token);
-    if (tokenStart == -1) return false;
-
-    bool applied = true;
-    file = file[tokenStart + token.length .. $];
+    if (!consumeNextToken(file, token, envData))
+        return false;
 
     auto lineEndR = std.string.indexOf(file, "\r");
     auto lineEndN = std.string.indexOf(file, "\n");
@@ -263,41 +260,11 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
         (lineEndN == -1 ? file.length : lineEndN) :
         (lineEndN == -1 ? lineEndR    : min(lineEndR, lineEndN));
 
-    //writeln("found ", token, " in line: ", file.length, ", ", tokenStart, ", ", tokenStart+lineEnd);
-    //writeln("found ", token, " in line: '", file[tokenStart .. tokenStart+lineEnd], "'");
-
     result = file[0 .. lineEnd];
     const commentStart = std.string.indexOf(result, "//");
     if (commentStart != -1)
         result = result[0 .. commentStart];
     result = strip(result);
-
-    // filter by OS specific setting (os1 os2 ...)
-    if (result.startsWith("("))
-    {
-        auto close = std.string.indexOf(result, ")");
-        if (close >= 0)
-        {
-            string[] oss = split(result[1 .. close], " ");
-
-            // Check if the current environment matches an entry in oss, which can either
-            // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32").
-            // The latter is important on windows because m32 might require other
-            // parameters than m32mscoff/m64.
-            if (oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
-                result = result[close + 1 .. $];
-            else
-            {
-                result = null;
-                applied = false; // Parameter was skipped
-            }
-        }
-    }
-    // skips the :, if present
-    if (result.startsWith(":"))
-        result = strip(result[1 .. $]);
-
-    //writeln("arg: '", result, "'");
 
     string result2;
     if (findTestParameter(envData, file[lineEnd .. $], token, result2, multiLineDelimiter))
@@ -309,13 +276,12 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
             else
                 result ~= multiLineDelimiter ~ result2;
         }
-        applied = true;
     }
 
     // fix-up separators
     result = result.unifyDirSep(envData.sep);
 
-    return applied;
+    return true;
 }
 
 unittest
@@ -337,6 +303,9 @@ int i;
 /* REQUIRED_ARGS: -O
  * PERMUTE_ARGS:
  */
+
+// COMPILE_SEPERATELY
+import foo.bar;
 `;
     immutable EnvData win32 = {
         os: "windows",
@@ -382,6 +351,10 @@ int i;
     found = null;
     assert(findTestParameter(linux, file, "REQUIRED_ARGS", found));
     assert(found == "-O");
+
+    found = null;
+    assert(findTestParameter(linux, file, "COMPILE_SEPERATELY", found));
+    assert(found == "");
 }
 
 /**
@@ -407,7 +380,7 @@ bool findOutputParameter(string file, string token, out string result, ref const
 {
     bool found = false;
 
-    while (consumeNextToken(file, token))
+    while (consumeNextToken(file, token, envData))
     {
         found = true;
 
@@ -441,7 +414,7 @@ bool findOutputParameter(string file, string token, out string result, ref const
 
 unittest
 {
-    immutable EnvData linux = { sep: "/ " };
+    immutable EnvData linux = { os: "linux", model: "64", sep: "/ " };
     immutable file = `
 /*
 Here's a link
@@ -454,9 +427,16 @@ Hello, World
 void main() {}
 
 /*
-TEST_OUTPUT:
+TEST_OUTPUT(linux):
 ---
 Have a nice day
+---
+*/
+
+/*
+TEST_OUTPUT(linux32):
+---
+Ignored
 ---
 */
 
@@ -498,14 +478,17 @@ INCOMPLETE:
 
 /++
  + Reads the file content to find the next parameter specified by `token`.
+ + Ignores conditional parameters that don't apply to the current environment.
  +
  + Params:
- +   file  = file content, set after the colon if the parameter was found
- +   token = requested parameter
+ +   file    = file content, will be advanced to the first non-whitespace character
+ +             of the parameter value - if `token` was found
+ +   token   = requested parameter
+ +   envData = environment data
  +
  + Returns: true if `token` was found
  +/
-private bool consumeNextToken(ref string file, const string token)
+private bool consumeNextToken(ref string file, const string token, ref const EnvData envData)
 {
     while (true)
     {
@@ -514,6 +497,31 @@ private bool consumeNextToken(ref string file, const string token)
             return false;
 
         file = file[istart + token.length .. $];
+        file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
+
+        // filter by OS specific setting (os1 os2 ...)
+        if (file.startsWith("("))
+        {
+            auto close = std.string.indexOf(file, ")");
+            if (close >= 0)
+            {
+                // Remove the (<oss>) list from the front of `file``
+                const oss = split(file[1 .. close], " ");
+                file = file[close + 1 .. $];
+                file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
+
+                // Check if the current environment matches an entry in oss, which can either
+                // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32").
+                // The latter is important on windows because m32 might require other
+                // parameters than m32mscoff/m64.
+                if (!oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
+                    continue; // Parameter was skipped
+            }
+        }
+
+        // Skip a trailing colon
+        if (file.skipOver(":"))
+            file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
 
         return true;
     }
