@@ -247,7 +247,7 @@ $(H2 $(LEGACY_LNAME2 Binary, binary, Binary Operator Overloading))
 
         $(TABLE2 Overloadable Binary Operators,
         $(TROW $(D +), $(D -), $(D *), $(D /), $(CODE_PERCENT), $(D ^^), $(CODE_AMP))
-        $(TROW $(CODE_PIPE), $(D ^), $(D <)$(D <), $(D >)$(D >), $(D >)$(D >)$(D >), $(D ~), $(D in))
+        $(TROW $(CODE_PIPE), $(D ^), $(D <)$(D <), $(D >)$(D >), $(D >)$(D >)$(D >), $(D ~), $(DDSUBLINK spec/expression, InExpression, $(D in)))
         )
 
         $(P The expression:)

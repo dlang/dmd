@@ -695,7 +695,7 @@ $(GNAME InExpression):
 )
 
 $(P A container such as an associative array
-    $(DDSUBLINK spec/hash-map, testing_membership, can be tested) to see if contains a key:)
+    $(DDSUBLINK spec/hash-map, testing_membership, can be tested) to see if it contains a certain key:)
 
         -------------
         int foo[string];
@@ -707,7 +707,7 @@ $(P A container such as an associative array
 
     $(P The return value of the $(I InExpression) is typically `bool` or a pointer.
         The pointer is $(D null) if the container has no matching key.
-        If there is a match, the return value is a pointer to the associated element.
+        If there is a match, the return value is a pointer to a value associated with the key.
     )
 
     $(P The $(D !in) expression is the logical negation of the $(D in)
@@ -717,8 +717,9 @@ $(P A container such as an associative array
     $(P The $(D in) expression has the same precedence as the
         relational expressions $(D <), $(D <)$(D =), etc.)
 
-    $(BEST_PRACTICE $(DDSUBLINK spec/operatoroverloading, binary, Overloading `in`)
-    for a container should only be done when the operation is of sublinear time complexity.)
+    $(NOTE When $(DDSUBLINK spec/operatoroverloading, binary, overloading) `in`, normally only `opBinaryRight` would be defined.)
+
+    $(BEST_PRACTICE Overloading `in` for a container should only be done when the operation is of sublinear time complexity.)
 
 $(H2 $(LNAME2 shift_expressions, Shift Expressions))
 
