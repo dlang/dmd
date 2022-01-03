@@ -188,6 +188,24 @@ void main(string[] args)
 }
 ```
 
+Test parameters can be restricted to certain targets by adding a brace-enclosed
+condition after the name, i.e. `REQUIRED_ARGS(<condition>): ...`. The `<condition>`
+consists of the target operating system followed by an optional model suffix,
+e.g. `linux`, `win32mscoff`, `freebsd64`.
+
+Valid platforms:
+- win
+- linux
+- osx
+- freebsd
+- dragonflybsd
+- netbsd
+
+Valid models:
+- 32
+- 32mscoff  (windows only)
+- 64
+
 The following is a list of all available settings:
 
     ARG_SETS:            sets off extra arguments to invoke $(DMD) with (seperated by ';').
@@ -215,14 +233,11 @@ The following is a list of all available settings:
                          empty.
 
     DISABLED:            selectively disable the test on specific platforms (if empty, the test is
-                         considered to be enabled on all platform).
+                         considered to be enabled on all platform). Target platforms are specified
+                         using nearly the same syntax as conditions of optional parameters, except for
+                         `win` instead of `windows`.
+                         Potential filters are `win32`, `linux`, ...
                          default: (none, enabled)
-                         Valid platforms: win linux osx freebsd dragonflybsd netbsd
-                         Optionally a MODEL suffix can used for further filtering:
-                            - 32
-                            - 32mscoff (windows only)
-                            - 64
-                         E.g. win32mscoff osx64 freebsd32
 
     EXECUTE_ARGS:        parameters to add to the execution of the test
                          default: (none)
