@@ -1018,10 +1018,7 @@ $(H3 $(LNAME2 cast_expressions, Cast Expressions))
 $(GRAMMAR
 $(GNAME CastExpression):
     $(D cast $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(GLINK UnaryExpression)
-    $(I CastQual)
-
-$(GNAME CastQual):
-    $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
+    $(GLINK CastQual)
 )
 
     $(P A $(I CastExpression) converts the $(I UnaryExpression)
@@ -1184,8 +1181,13 @@ $(H3 $(LNAME2 cast_struct, Struct))
 
 $(H3 $(LNAME2 cast_qualifier, Qualifier Cast))
 
-    $(P Casting to a $(GLINK CastQual) replaces the qualifiers to the type of
-        the $(GLINK UnaryExpression).)
+$(GRAMMAR
+$(GNAME CastQual):
+    $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
+)
+
+    $(P A $(I CastQual) replaces the qualifiers in the type of
+        the $(I UnaryExpression):)
 
         ---
         shared int x;
@@ -1195,7 +1197,7 @@ $(H3 $(LNAME2 cast_qualifier, Qualifier Cast))
     $(P Casting with no type or qualifiers removes
         any top level $(D const), $(D immutable), $(D shared) or $(D inout)
         type modifiers from the type
-        of the $(GLINK UnaryExpression).)
+        of the $(I UnaryExpression).)
 
         ---
         shared int x;
@@ -1206,13 +1208,13 @@ $(H3 $(LNAME2 cast_void, Casting to `void`))
 
     $(P Casting an expression to $(D void) type is allowed to mark that
         the result is unused. On $(GLINK2 statement, ExpressionStatement),
-        it could be used properly to avoid "has no effect" error.)
+        it could be used properly to avoid a "has no effect" error.)
 
         ----
         void foo(lazy void exp) {}
         void main()
         {
-            foo(10);            // NG - has no effect in expression '10'
+            foo(10);            // NG - expression '10' has no effect
             foo(cast(void)10);  // OK
         }
         ----
