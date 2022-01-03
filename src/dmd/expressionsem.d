@@ -11355,7 +11355,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        EXP cmpop;
+
+        EXP cmpop = exp.op;
         if (auto e = exp.op_overload(sc, &cmpop))
         {
             if (!e.type.isscalar() && e.type.equals(exp.e1.type))
@@ -11365,12 +11366,45 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (e.op == EXP.call)
             {
+
+                if (t1.ty == Tclass && t2.ty == Tclass)
+                {
+                    // Lower to object.__cmp(e1, e2)
+                    Expression cl = new IdentifierExp(exp.loc, Id.empty);
+                    cl = new DotIdExp(exp.loc, cl, Id.object);
+                    cl = new DotIdExp(exp.loc, cl, Id.__cmp);
+                    cl = cl.expressionSemantic(sc);
+
+                    auto arguments = new Expressions();
+                    // Check if op_overload found a better match by calling e2.opCmp(e1)
+                    // If the operands were swapped, then the result must be reversed
+                    // e1.opCmp(e2) == -e2.opCmp(e1)
+                    // cmpop takes care of this
+                    if (exp.op == cmpop)
+                    {
+                        arguments.push(exp.e1);
+                        arguments.push(exp.e2);
+                    }
+                    else
+                    {
+                        // Use better match found by op_overload
+                        arguments.push(exp.e2);
+                        arguments.push(exp.e1);
+                    }
+
+                    cl = new CallExp(exp.loc, cl, arguments);
+                    cl = new CmpExp(cmpop, exp.loc, cl, new IntegerExp(0));
+                    result = cl.expressionSemantic(sc);
+                    return;
+                }
+
                 e = new CmpExp(cmpop, exp.loc, e, IntegerExp.literal!0);
                 e = e.expressionSemantic(sc);
             }
             result = e;
             return;
         }
+
 
         if (Expression ex = typeCombine(exp, sc))
         {
