@@ -507,18 +507,18 @@ $(GNAME EqualExpression):
         Otherwise, the bit patterns of the common type are compared for equality.
     )
 
-    $(P For complex numbers, equality is defined as equivalent to:)
-
-        ---
-        x.re == y.re && x.im == y.im
-        ---
-
     $(P For static and dynamic arrays, equality is defined as the
         lengths of the arrays
         matching, and all the elements are equal.
     )
 
-    $(H3 $(LNAME2 aggregate_equality, Aggregate Equality))
+    $(DDOC_DEPRECATED For complex numbers, equality is defined as equivalent to:)
+
+        ---
+        x.re == y.re && x.im == y.im
+        ---
+
+    $(H3 $(LNAME2 class_struct_equality, Class & Struct Equality))
 
     $(P For struct objects, equality means the result of the
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
