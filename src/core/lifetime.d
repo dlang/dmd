@@ -2676,3 +2676,20 @@ Throwable _d_newThrowable(T)() @trusted
     t.refcount() = 1;
     return t;
 }
+
+@system unittest
+{
+    class E : Exception
+    {
+        this(string msg = "", Throwable nextInChain = null)
+        {
+            super(msg, nextInChain);
+        }
+    }
+
+    Throwable exc = _d_newThrowable!Exception();
+    Throwable e = _d_newThrowable!E();
+
+    assert(exc.refcount() == 1);
+    assert(e.refcount() == 1);
+}
