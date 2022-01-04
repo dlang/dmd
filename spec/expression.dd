@@ -14,7 +14,7 @@ The syntax, order of evaluation, and semantics of expressions are as follows.)
 
 $(H2 $(LNAME2 definitions-and-terms, Definitions and Terms))
 
-$(H3 $(LNAME2 define-full-expression, Full Expression))
+$(H3 $(LNAME2 .define-full-expression, Full Expression))
 
 $(P For any expression
 $(I expr), the full expression of $(I expr) is defined as follows. If $(I expr) parses as a
@@ -39,7 +39,7 @@ return (() => x + f())() * g();
 $(P The full expression of `f()` above is `x + f()`, not the expression passed
 to `return`. This is because the parent of `x + f()` has function literal type, not expression type.)
 
-$(H3 $(LNAME2 define-lvalue, Lvalue))
+$(H3 $(LNAME2 .define-lvalue, Lvalue))
 
 $(P The following expressions, and no others, are called *lvalue expressions* or *lvalues*:)
 $(OL
@@ -67,14 +67,14 @@ $(LI `cast(U)` expressions applied to lvalues of type `T` when `T*` is implicitl
 $(LI `cast()` and `cast(`$(I qualifier list)`)` when applied to an lvalue.)
 )))
 
-$(H3 $(LNAME2 define-rvalue, Rvalue))
+$(H3 $(LNAME2 .define-rvalue, Rvalue))
 
 $(P Expressions that are not lvalues are *rvalues*. Rvalues include all literals, special value keywords such as `__FILE__` and `__LINE__`,
 `enum` values, and the result of expressions not defined as lvalues above.)
 
 $(P The built-in address-of operator (unary `&`) may only be applied to lvalues.)
 
-$(H3 $(LNAME2 define-smallest-short-circuit, Smallest Short-Circuit Expression))
+$(H3 $(LNAME2 .define-smallest-short-circuit, Smallest Short-Circuit Expression))
 
 $(P Given an expression $(I expr) that is a subexpression of a full
 expression $(I fullexpr), the *smallest short-circuit expression*, if any, is the shortest
