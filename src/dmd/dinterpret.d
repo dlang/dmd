@@ -4879,6 +4879,8 @@ public:
             }
             else if (fd.ident == Id._d_arrayappendcTX)
                 assert(0, "CTFE cannot interpret _d_arrayappendcTX!");
+            else if (fd.ident == Id._d_newThrowable)
+                assert(0, "CTFE cannot interpret `_d_newThrowable`!");
         }
         else if (auto soe = ecall.isSymOffExp())
         {
