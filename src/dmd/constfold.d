@@ -127,14 +127,6 @@ UnionExp Not(Type type, Expression e1)
     return ue;
 }
 
-private UnionExp Bool(Type type, Expression e1)
-{
-    UnionExp ue = void;
-    Loc loc = e1.loc;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toBool().get() ? 1 : 0, type);
-    return ue;
-}
-
 UnionExp Add(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue = void;
