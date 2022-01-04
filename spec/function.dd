@@ -2980,9 +2980,11 @@ $(H2 $(LNAME2 main, $(D main()) Function))
         one of `void`, `int` and `noreturn`.)
         )
 
-        $(P If the $(D string[]) parameter is declared, the parameter will hold any
+        $(P If the $(D string[]) parameter is declared, the parameter will hold
         arguments passed to the program by the OS. The first argument is typically
         the executable name, followed by any command-line arguments.)
+
+        $(NOTE The runtime can remove any arguments prefixed `--DRT-`.)
 
         $(P The main function must have D linkage.)
 
