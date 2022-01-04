@@ -998,7 +998,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toChars(), b.type.toChars());
                 return ErrorExp.get();
             }
-            includeTemplates = b.toBool().hasValue(true);
+            includeTemplates = b.toBool().get();
         }
 
         StringExp se = ex.toStringExp();
