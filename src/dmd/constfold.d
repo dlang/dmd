@@ -1093,19 +1093,14 @@ UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
     }
     else if (tb.ty == Tbool)
     {
-        bool val = void;
         const opt = e1.toBool();
-        if (opt.hasValue(true))
-            val = true;
-        else if (opt.hasValue(false))
-            val = false;
-        else
+        if (opt.isEmpty())
         {
             cantExp(ue);
             return ue;
         }
 
-        emplaceExp!(IntegerExp)(&ue, loc, val, type);
+        emplaceExp!(IntegerExp)(&ue, loc, opt.get(), type);
     }
     else if (type.isintegral())
     {
