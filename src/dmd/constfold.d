@@ -120,6 +120,9 @@ UnionExp Not(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
+    // BUG: Should be replaced with e1.toBool().get(), but this is apparently
+    //      executed for some expressions that cannot be const-folded
+    //      To be fixed in another PR
     emplaceExp!(IntegerExp)(&ue, loc, e1.toBool().hasValue(false) ? 1 : 0, type);
     return ue;
 }
@@ -128,7 +131,7 @@ private UnionExp Bool(Type type, Expression e1)
 {
     UnionExp ue = void;
     Loc loc = e1.loc;
-    emplaceExp!(IntegerExp)(&ue, loc, e1.toBool().hasValue(true) ? 1 : 0, type);
+    emplaceExp!(IntegerExp)(&ue, loc, e1.toBool().get() ? 1 : 0, type);
     return ue;
 }
 
