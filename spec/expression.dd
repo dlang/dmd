@@ -1266,43 +1266,51 @@ $(GNAME Slice):
 )
 
     $(P $(I PostfixExpression) is evaluated.
-        if $(I PostfixExpression) is an expression of type
-        static array or dynamic array, the special variable $(DOLLAR)
-        is declared and set to be the length of the array.
+        If $(I PostfixExpression) is an expression of static array or
+        dynamic array type, the result of the slice is a dynamic array
+        of the element type of the $(I PostfixExpression).
+    )
+
+    $(P If $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
+        the result of the slice is a new $(I ValueSeq) formed
+        from the upper and lower bounds, which must statically evaluate
+        to integral constants.
+        It is an error if those bounds are out of range.
+    )
+
+    $(P The special variable `$`
+        is declared and set to be the number of elements in the $(I PostfixExpression).
         A new declaration scope is created for the evaluation of the
         $(GLINK AssignExpression)..$(GLINK AssignExpression)
-        and $(DOLLAR) appears in that scope only.
+        and `$` appears in that scope only.
     )
 
     $(P The first $(I AssignExpression) is taken to be the inclusive
         lower bound
         of the slice, and the second $(I AssignExpression) is the
         exclusive upper bound.
-        The result of the expression is a slice of the $(I PostfixExpression)
-        array.
+        The result of the expression is a slice of the elements in $(I PostfixExpression).
     )
 
-    $(P If the $(D [ ]) form is used, the slice is of the entire
-        array.
-    )
-
-    $(P The type of the slice is a dynamic array of the element
-        type of the $(I PostfixExpression).
+    $(P If the $(D [ ]) form is used, the slice is of all the elements in $(I PostfixExpression).
     )
 
     $(P A $(I SliceExpression) is not a modifiable lvalue.)
 
+$(H3 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
+
     $(P If the slice bounds can be known at compile time, the slice expression
-    is implicitly convertible to an lvalue of static array. For example:)
+    may be implicitly convertible to an lvalue of static array. For example:)
 
         -------------
         arr[a .. b]     // typed T[]
         -------------
 
-        If both $(CODE a) and $(CODE b) are integers (may be constant-folded),
+        If both $(CODE a) and $(CODE b) are integers (which may be constant-folded),
         the slice expression can be converted to a static array type
         $(D T[b - a]).
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
         void foo(int[2] a)
         {
@@ -1327,9 +1335,10 @@ $(GNAME Slice):
             bar(arr[1 .. 3]);
             assert(arr == [1, 4, 5]);
 
-          //baz(arr[1 .. 3]); // cannot match length
+            //baz(arr[1 .. 3]); // cannot match length
         }
         -------------
+        )
 
 $(P The following forms of slice expression can be convertible to a static array
 type:)
@@ -1349,14 +1358,6 @@ type:)
         $(TROW $(D arr[e+a .. e+b]), $(D b - a) $(I if) $(D a <= b))
         $(TROW $(D arr[e-a .. e-b]), $(D a - b) $(I if) $(D a >= b))
         )
-
-    $(P If $(I PostfixExpression) is a $(I ValueSeq), then
-        the result of the slice is a new $(I ValueSeq) formed
-        from the upper and lower bounds, which must statically evaluate
-        to integral constants.
-        It is an error if those
-        bounds are out of range.
-    )
 
 $(H2 $(LNAME2 primary_expressions, Primary Expressions))
 
