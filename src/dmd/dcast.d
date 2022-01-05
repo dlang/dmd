@@ -2245,9 +2245,12 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 ex = ex.castTo(sc, totuple ? (*totuple.arguments)[i].type : t);
                 (*te.exps)[i] = ex;
             }
+            if (totuple)
+                te.type = totuple;
             result = te;
 
-            /* Questionable behavior: In here, result.type is not set to t.
+            /* Questionable behavior: In here, result.type is not set to t
+             *  if target type is not a tuple of same length.
              * Therefoe:
              *  TypeTuple!(int, int) values;
              *  auto values2 = cast(long)values;
