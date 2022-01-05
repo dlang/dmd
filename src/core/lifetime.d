@@ -2641,6 +2641,7 @@ if (!Init.length ||
  *      default initialized instance of the type
  */
 Throwable _d_newThrowable(T)() @trusted
+    if (is(T : Throwable))
 {
     auto ci = T.classinfo;
 
