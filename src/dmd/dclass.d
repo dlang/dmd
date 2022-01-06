@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/class.html, Classes)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dclass.d, _dclass.d)
  * Documentation:  https://dlang.org/phobos/dmd_dclass.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dclass.d
@@ -20,6 +20,7 @@ import dmd.aggregate;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
@@ -607,7 +608,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 if (!b.sym.alignsize)
                     b.sym.alignsize = target.ptrsize;
-                alignmember(b.sym.alignsize, b.sym.alignsize, &offset);
+                alignmember(structalign_t(cast(ushort)b.sym.alignsize), b.sym.alignsize, &offset);
                 assert(bi < vtblInterfaces.dim);
 
                 BaseClass* bv = (*vtblInterfaces)[bi];

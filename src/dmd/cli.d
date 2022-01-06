@@ -5,9 +5,9 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
  * Documentation:  https://dlang.org/phobos/dmd_cli.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cli.d
@@ -357,7 +357,7 @@ dmd -cov -unittest myprog.d
             "add symbolic debug info",
             `$(WINDOWS
                 Add CodeView symbolic debug info. See
-                $(LINK2 http://dlang.org/windbg.html, Debugging on Windows).
+                $(LINK2 https://dlang.org/windbg.html, Debugging on Windows).
             )
             $(UNIX
                 Add symbolic debug info in DWARF format
@@ -641,7 +641,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("profile=gc",
             "profile runtime allocations",
-            `$(LINK2 http://www.digitalmars.com/ctg/trace.html, profile)
+            `$(LINK2 https://www.digitalmars.com/ctg/trace.html, profile)
             the runtime performance of the generated code.
             $(UL
                 $(LI $(B gc): Instrument calls to memory allocation and write a report
@@ -795,11 +795,14 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Feature("in", "vin",
+            "list all usages of 'in' on parameter"),
     ];
 
     /// Returns all available reverts
     static immutable reverts = [
         Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
         Feature("markdown", "markdown", "disable Markdown replacements in Ddoc"),
         Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
     ];
@@ -818,7 +821,7 @@ dmd -cov -unittest myprog.d
         Feature("fixAliasThis", "fixAliasThis",
             "when a symbol is resolved, check alias this scope before going to upper scopes"),
         Feature("intpromote", "fix16997",
-            "fix integral promotions for unary + - ~ operators"),
+            "fix integral promotions for unary + - ~ operators", false, true),
         Feature("dtorfields", "dtorFields",
             "destruct fields of partially constructed objects", false, false),
         Feature("rvaluerefparam", "rvalueRefParam",

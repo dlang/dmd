@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/globals.h
  */
 
@@ -12,7 +12,7 @@
 
 #include "root/dcompat.h"
 #include "root/ctfloat.h"
-#include "root/outbuffer.h"
+#include "common/outbuffer.h"
 #include "root/filename.h"
 #include "compiler.h"
 
@@ -107,6 +107,7 @@ struct Param
     bool vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
+    bool vin;           // identify 'in' parameters
     unsigned char symdebug;  // insert debug symbolic information
     bool symdebugref;   // insert debug information for all referenced types, too
     bool optimize;      // run optimizer
@@ -114,7 +115,7 @@ struct Param
     bool stackstomp;    // add stack stomping code
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
-    FeatureState useDIP25;      // implement http://wiki.dlang.org/DIP25
+    FeatureState useDIP25;      // implement https://wiki.dlang.org/DIP25
     FeatureState useDIP1000; // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
     bool useDIP1021;    // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;       // build release version
@@ -238,10 +239,24 @@ struct Param
     DString mapfile;
 };
 
-typedef unsigned structalign_t;
+struct structalign_t
+{
+    unsigned short value;
+    bool pack;
+
+    bool isDefault() const;
+    void setDefault();
+    bool isUnknown() const;
+    void setUnknown();
+    void set(unsigned value);
+    unsigned get() const;
+    bool isPack() const;
+    void setPack(bool pack);
+};
+
 // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
-#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)
+//#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)
 
 const DString mars_ext = "d";
 const DString doc_ext  = "html";     // for Ddoc generated files

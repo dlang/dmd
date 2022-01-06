@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/objc_interface.html, Interfacing to Objective-C)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc.d, _objc.d)
  * Documentation:  https://dlang.org/phobos/dmd_objc.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/objc.d
@@ -38,7 +38,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.stringtable;
 import dmd.target;
 import dmd.tokens;
@@ -540,10 +540,10 @@ extern(C++) private final class Supported : Objc
     override void setSelector(FuncDeclaration fd, Scope* sc)
     {
         foreachUda(fd, sc, (e) {
-            if (e.op != TOK.structLiteral)
+            if (!e.isStructLiteralExp())
                 return 0;
 
-            auto literal = cast(StructLiteralExp) e;
+            auto literal = e.isStructLiteralExp();
             assert(literal.sd);
 
             if (!isCoreUda(literal.sd, Id.udaSelector))
@@ -616,10 +616,10 @@ extern(C++) private final class Supported : Objc
         int count;
 
         foreachUda(fd, sc, (e) {
-            if (e.op != TOK.type)
+            if (!e.isTypeExp())
                 return 0;
 
-            auto typeExp = cast(TypeExp) e;
+            auto typeExp = e.isTypeExp();
 
             if (typeExp.type.ty != Tenum)
                 return 0;
@@ -861,10 +861,10 @@ extern(D) private:
         arrayExpressionSemantic(udas, sc, true);
 
         return udas.each!((uda) {
-            if (uda.op != TOK.tuple)
+            if (!uda.isTupleExp())
                 return 0;
 
-            auto exps = (cast(TupleExp) uda).exps;
+            auto exps = uda.isTupleExp().exps;
 
             return exps.each!((e) {
                 assert(e);

@@ -2,9 +2,9 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
  * Documentation:  https://dlang.org/phobos/dmd_todt.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/todt.d
@@ -16,13 +16,13 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.root.array;
+import dmd.root.complex;
 import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.backend.type;
-import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;
 import dmd.dclass;
@@ -149,7 +149,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                 size_t tadim = cast(size_t)ta.dim.toInteger();
                 if (ai.dim < tadim)
                 {
-                    if (edefault.isBool(false))
+                    if (edefault.toBool().hasValue(false))
                     {
                         // pad out end of array
                         dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));
@@ -272,10 +272,29 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         version (none)
         {
-            printf("Expression.toDt() %d\n", e.op);
+            printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
         e.error("non-constant expression `%s`", e.toChars());
         dtb.nzeros(1);
+    }
+
+    void visitSlice(SliceExp e)
+    {
+        version (none)
+        {
+            printf("SliceExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
+        }
+        if (!e.lwr && !e.upr)
+            return Expression_toDt(e.e1, dtb);
+        if (auto strExp = e.e1.isStringExp())
+        {
+            auto lwr = e.lwr.isIntegerExp();
+            auto upr = e.upr.isIntegerExp();
+            if (lwr && upr && lwr.toInteger() == 0 && upr.toInteger() == strExp.len)
+                return Expression_toDt(e.e1, dtb);
+        }
+
+        nonConstExpError(e);
     }
 
     void visitCast(CastExp e)
@@ -553,11 +572,20 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         }
 
         if (auto sd = e.var.isSymbolDeclaration())
+        {
             if (sd.dsym)
             {
-                StructDeclaration_toDt(sd.dsym, dtb);
+
+                if (auto s = sd.dsym.isStructDeclaration())
+                    StructDeclaration_toDt(s, dtb);
+                else if (auto c = sd.dsym.isClassDeclaration())
+                    // Should be unreachable ATM, but just to be sure
+                    ClassDeclaration_toDt(c, dtb);
+                else
+                    assert(false);
                 return;
             }
+        }
 
         return nonConstExpError(e);
     }
@@ -620,24 +648,32 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         assert(0);
     }
 
+    void visitNoreturn(Expression e)
+    {
+        // Noreturn field with default initializer
+        assert(e);
+    }
+
     switch (e.op)
     {
         default:                 return nonConstExpError(e);
-        case TOK.cast_:          return visitCast          (e.isCastExp());
-        case TOK.address:        return visitAddr          (e.isAddrExp());
-        case TOK.int64:          return visitInteger       (e.isIntegerExp());
-        case TOK.float64:        return visitReal          (e.isRealExp());
-        case TOK.complex80:      return visitComplex       (e.isComplexExp());
-        case TOK.null_:          return visitNull          (e.isNullExp());
-        case TOK.string_:        return visitString        (e.isStringExp());
-        case TOK.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
-        case TOK.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
-        case TOK.symbolOffset:   return visitSymOff        (e.isSymOffExp());
-        case TOK.variable:       return visitVar           (e.isVarExp());
-        case TOK.function_:      return visitFunc          (e.isFuncExp());
-        case TOK.vector:         return visitVector        (e.isVectorExp());
-        case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
-        case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
+        case EXP.cast_:          return visitCast          (e.isCastExp());
+        case EXP.address:        return visitAddr          (e.isAddrExp());
+        case EXP.int64:          return visitInteger       (e.isIntegerExp());
+        case EXP.float64:        return visitReal          (e.isRealExp());
+        case EXP.complex80:      return visitComplex       (e.isComplexExp());
+        case EXP.null_:          return visitNull          (e.isNullExp());
+        case EXP.string_:        return visitString        (e.isStringExp());
+        case EXP.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
+        case EXP.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
+        case EXP.symbolOffset:   return visitSymOff        (e.isSymOffExp());
+        case EXP.variable:       return visitVar           (e.isVarExp());
+        case EXP.function_:      return visitFunc          (e.isFuncExp());
+        case EXP.vector:         return visitVector        (e.isVectorExp());
+        case EXP.classReference: return visitClassReference(e.isClassReferenceExp());
+        case EXP.typeid_:        return visitTypeid        (e.isTypeidExp());
+        case EXP.assert_:        return visitNoreturn      (e);
+        case EXP.slice:          return visitSlice         (e.isSliceExp());
     }
 }
 

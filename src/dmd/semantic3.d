@@ -1,9 +1,9 @@
 /**
  * Performs the semantic3 stage, which deals with function bodies.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic3.d, _semantic3.d)
  * Documentation:  https://dlang.org/phobos/dmd_semantic3.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/semantic3.d
@@ -55,14 +55,14 @@ import dmd.objc;
 import dmd.opover;
 import dmd.parse;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.utf;
 import dmd.sideeffect;
 import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.utf;
 import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
@@ -235,6 +235,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (funcdecl.errors || isError(funcdecl.parent))
         {
             funcdecl.errors = true;
+
+            // Mark that the return type could not be inferred
+            if (funcdecl.inferRetType)
+            {
+                assert(funcdecl.type);
+                auto tf = funcdecl.type.isTypeFunction();
+
+                // Only change the return type s.t. other analysis is
+                // still possible e.g. missmatched parameter types
+                if (tf && !tf.next)
+                    tf.next = Type.terror;
+            }
             return;
         }
         //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", funcdecl.parent.toChars(), funcdecl.toChars(), funcdecl, sc, funcdecl.loc.toChars());
@@ -598,7 +610,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         f.next = Type.tvoid;
                     if (f.checkRetType(funcdecl.loc))
                         funcdecl.fbody = new ErrorStatement();
+                    else if (funcdecl.isMain())
+                        funcdecl.checkDmain();       // Check main() parameters and return type
                 }
+
                 if (global.params.vcomplex && f.next !is null)
                     f.next.checkComplexTransition(funcdecl.loc, sc);
 
@@ -607,7 +622,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     for (size_t i = 0; i < funcdecl.returns.dim;)
                     {
                         Expression exp = (*funcdecl.returns)[i].exp;
-                        if (exp.op == TOK.variable && (cast(VarExp)exp).var == funcdecl.vresult)
+                        if (exp.op == EXP.variable && (cast(VarExp)exp).var == funcdecl.vresult)
                         {
                             if (addReturn0())
                                 exp.type = Type.tint32;
@@ -777,8 +792,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     assert(!funcdecl.returnLabel);
                 }
-                else if (f.next.ty == Tnoreturn)
+                else if (f.next.toBasetype().ty == Tnoreturn)
                 {
+                    // Fallthrough despite being declared as noreturn? return is already rejected when evaluating the ReturnStatement
+                    if (blockexit & BE.fallthru)
+                    {
+                        funcdecl.error("is typed as `%s` but does return", f.next.toChars());
+                        funcdecl.loc.errorSupplemental("`noreturn` functions must either throw, abort or loop indefinitely");
+                    }
                 }
                 else
                 {
@@ -807,7 +828,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         ReturnStatement rs = (*funcdecl.returns)[i];
                         Expression exp = rs.exp;
-                        if (exp.op == TOK.error)
+                        if (exp.op == EXP.error)
                             continue;
                         if (tret.ty == Terror)
                         {

@@ -473,6 +473,7 @@ struct Param final
     bool vgc;
     bool vfield;
     bool vcomplex;
+    bool vin;
     uint8_t symdebug;
     bool symdebugref;
     bool optimize;
@@ -582,7 +583,6 @@ struct Param final
     _d_dynamicArray< const char > resfile;
     _d_dynamicArray< const char > exefile;
     _d_dynamicArray< const char > mapfile;
-    ~Param();
     Param() :
         obj(true),
         link(true),
@@ -601,6 +601,7 @@ struct Param final
         vgc(),
         vfield(),
         vcomplex(true),
+        vin(),
         symdebug(),
         symdebugref(),
         optimize(),
@@ -628,7 +629,7 @@ struct Param final
         betterC(),
         addMain(),
         allInst(),
-        fix16997(),
+        fix16997(true),
         fixAliasThis(),
         inclusiveInContracts(),
         ehnogc(),
@@ -707,7 +708,7 @@ struct Param final
         mapfile()
     {
     }
-    Param(bool obj, bool link = true, bool dll = false, bool lib = false, bool multiobj = false, bool oneobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, uint8_t symdebug = 0u, bool symdebugref = false, bool optimize = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool stackstomp = false, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, PIC pic = (PIC)0u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool nofloat = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = false, bool fixAliasThis = false, bool inclusiveInContracts = false, bool ehnogc = false, FeatureState dtorFields = (FeatureState)-1, bool fieldwise = false, bool rvalueRefParam = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool markdown = true, bool vmarkdown = false, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, bool doDocComments = false, _d_dynamicArray< const char > docdir = {}, _d_dynamicArray< const char > docname = {}, Array<const char* > ddocfiles = Array<const char* >(0LLU, {}, arrayliteral), bool doHdrGeneration = false, _d_dynamicArray< const char > hdrdir = {}, _d_dynamicArray< const char > hdrname = {}, bool hdrStripPlainFunctions = true, CxxHeaderMode doCxxHdrGeneration = (CxxHeaderMode)0u, _d_dynamicArray< const char > cxxhdrdir = {}, _d_dynamicArray< const char > cxxhdrname = {}, bool doJsonGeneration = false, _d_dynamicArray< const char > jsonfilename = {}, JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, OutBuffer* mixinOut = nullptr, const char* mixinFile = nullptr, int32_t mixinLines = 0, uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, _d_dynamicArray< const char > defaultlibname = {}, _d_dynamicArray< const char > debuglibname = {}, _d_dynamicArray< const char > mscrtlib = {}, _d_dynamicArray< const char > moduleDepsFile = {}, OutBuffer* moduleDeps = nullptr, bool emitMakeDeps = false, _d_dynamicArray< const char > makeDepsFile = {}, Array<const char* > makeDeps = Array<const char* >(0LLU, {}, arrayliteral), MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > objfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > linkswitches = Array<const char* >(0LLU, {}, arrayliteral), Array<bool > linkswitchIsForCC = Array<bool >(0LLU, {}, arrayliteral), Array<const char* > libfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > dllfiles = Array<const char* >(0LLU, {}, arrayliteral), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool link = true, bool dll = false, bool lib = false, bool multiobj = false, bool oneobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, uint8_t symdebug = 0u, bool symdebugref = false, bool optimize = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool stackstomp = false, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, PIC pic = (PIC)0u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool nofloat = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = true, bool fixAliasThis = false, bool inclusiveInContracts = false, bool ehnogc = false, FeatureState dtorFields = (FeatureState)-1, bool fieldwise = false, bool rvalueRefParam = false, CppStdRevision cplusplus = (CppStdRevision)201103u, bool markdown = true, bool vmarkdown = false, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, bool doDocComments = false, _d_dynamicArray< const char > docdir = {}, _d_dynamicArray< const char > docname = {}, Array<const char* > ddocfiles = Array<const char* >(0LLU, {}, arrayliteral), bool doHdrGeneration = false, _d_dynamicArray< const char > hdrdir = {}, _d_dynamicArray< const char > hdrname = {}, bool hdrStripPlainFunctions = true, CxxHeaderMode doCxxHdrGeneration = (CxxHeaderMode)0u, _d_dynamicArray< const char > cxxhdrdir = {}, _d_dynamicArray< const char > cxxhdrname = {}, bool doJsonGeneration = false, _d_dynamicArray< const char > jsonfilename = {}, JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, OutBuffer* mixinOut = nullptr, const char* mixinFile = nullptr, int32_t mixinLines = 0, uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, _d_dynamicArray< const char > defaultlibname = {}, _d_dynamicArray< const char > debuglibname = {}, _d_dynamicArray< const char > mscrtlib = {}, _d_dynamicArray< const char > moduleDepsFile = {}, OutBuffer* moduleDeps = nullptr, bool emitMakeDeps = false, _d_dynamicArray< const char > makeDepsFile = {}, Array<const char* > makeDeps = Array<const char* >(0LLU, {}, arrayliteral), MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > objfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > linkswitches = Array<const char* >(0LLU, {}, arrayliteral), Array<bool > linkswitchIsForCC = Array<bool >(0LLU, {}, arrayliteral), Array<const char* > libfiles = Array<const char* >(0LLU, {}, arrayliteral), Array<const char* > dllfiles = Array<const char* >(0LLU, {}, arrayliteral), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         link(link),
         dll(dll),
@@ -725,6 +726,7 @@ struct Param final
         vgc(vgc),
         vfield(vfield),
         vcomplex(vcomplex),
+        vin(vin),
         symdebug(symdebug),
         symdebugref(symdebugref),
         optimize(optimize),
@@ -863,10 +865,9 @@ struct Global final
     void _init();
     uint32_t versionNumber();
     const char* const versionChars();
-    ~Global();
     Global() :
         inifilename(),
-        copyright(73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved"),
+        copyright(73, "Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved"),
         written(24, "written by Walter Bright"),
         path(),
         filePath(),
@@ -883,7 +884,7 @@ struct Global final
         hasMainFunction()
     {
     }
-    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, 0u, false, false, (DiagnosticReporting)1u, false, false, false, (FeatureState)-1, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, (FeatureState)-1, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, false, {}, Array<const char* >(0LLU, {}, arrayliteral), (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false) :
+    Global(_d_dynamicArray< const char > inifilename, _d_dynamicArray< const char > copyright = { 73, "Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved" }, _d_dynamicArray< const char > written = { 24, "written by Walter Bright" }, Array<const char* >* path = nullptr, Array<const char* >* filePath = nullptr, _d_dynamicArray< const char > vendor = {}, Param params = Param(true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, 0u, false, false, (DiagnosticReporting)1u, false, false, false, (FeatureState)-1, (FeatureState)-1, false, false, false, (DiagnosticReporting)2u, (PIC)0u, false, false, 0u, false, false, false, true, true, true, false, false, false, false, false, false, true, false, false, false, (FeatureState)-1, false, false, (CppStdRevision)201103u, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKENABLE)0u, (CHECKACTION)0u, 20u, {}, Array<const char* >(0LLU, {}, arrayliteral), nullptr, nullptr, {}, {}, {}, false, {}, {}, Array<const char* >(0LLU, {}, arrayliteral), false, {}, {}, true, (CxxHeaderMode)0u, {}, {}, false, {}, (JsonFieldFlags)0u, nullptr, nullptr, 0, 0u, nullptr, 0u, nullptr, {}, {}, {}, {}, nullptr, false, {}, Array<const char* >(0LLU, {}, arrayliteral), (MessageStyle)0u, false, Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<bool >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), Array<const char* >(0LLU, {}, arrayliteral), {}, {}, {}, {}), uint32_t errors = 0u, uint32_t warnings = 0u, uint32_t gag = 0u, uint32_t gaggedErrors = 0u, uint32_t gaggedWarnings = 0u, void* console = nullptr, Array<Identifier* >* versionids = nullptr, Array<Identifier* >* debugids = nullptr, bool hasMainFunction = false) :
         inifilename(inifilename),
         copyright(copyright),
         written(written),
@@ -920,18 +921,18 @@ struct Loc final
     }
 };
 
-enum class PASS
+enum class PASS : uint8_t
 {
-    init = 0,
-    semantic = 1,
-    semanticdone = 2,
-    semantic2 = 3,
-    semantic2done = 4,
-    semantic3 = 5,
-    semantic3done = 6,
-    inline_ = 7,
-    inlinedone = 8,
-    obj = 9,
+    init = 0u,
+    semantic = 1u,
+    semanticdone = 2u,
+    semantic2 = 3u,
+    semantic2done = 4u,
+    semantic3 = 5u,
+    semantic3done = 6u,
+    inline_ = 7u,
+    inlinedone = 8u,
+    obj = 9u,
 };
 
 struct Ungag final
@@ -998,6 +999,7 @@ public:
     void deprecation(const char* format, ...);
     bool checkDeprecated(const Loc& loc, Scope* sc);
     Module* getModule();
+    bool isCsymbol();
     Module* getAccessModule();
     Dsymbol* pastMixin();
     Dsymbol* toParent();
@@ -1142,7 +1144,6 @@ public:
     bool hasStaticCtorOrDtor();
     ScopeDsymbol* isScopeDsymbol();
     void accept(Visitor* v);
-    ~ScopeDsymbol();
 };
 
 typedef uint64_t StorageClass;
@@ -1179,6 +1180,25 @@ enum class LINK : uint8_t
     windows = 4u,
     objc = 5u,
     system = 6u,
+};
+
+struct structalign_t final
+{
+private:
+    uint16_t value;
+    bool pack;
+public:
+    bool isDefault() const;
+    void setDefault();
+    bool isUnknown() const;
+    void setUnknown();
+    void set(uint32_t value);
+    uint32_t get() const;
+    bool isPack() const;
+    void setPack(bool pack);
+    structalign_t()
+    {
+    }
 };
 
 enum class PINLINE : uint8_t
@@ -1236,273 +1256,158 @@ enum class Include : uint8_t
     no = 2u,
 };
 
-enum class TOK : uint16_t
+enum class EXP : uint8_t
 {
     reserved = 0u,
-    leftParenthesis = 1u,
-    rightParenthesis = 2u,
-    leftBracket = 3u,
-    rightBracket = 4u,
-    leftCurly = 5u,
-    rightCurly = 6u,
-    colon = 7u,
-    negate = 8u,
-    semicolon = 9u,
-    dotDotDot = 10u,
-    endOfFile = 11u,
-    cast_ = 12u,
-    null_ = 13u,
-    assert_ = 14u,
-    true_ = 15u,
-    false_ = 16u,
-    array = 17u,
-    call = 18u,
-    address = 19u,
-    type = 20u,
-    throw_ = 21u,
-    new_ = 22u,
-    delete_ = 23u,
-    star = 24u,
-    symbolOffset = 25u,
-    variable = 26u,
-    dotVariable = 27u,
-    dotIdentifier = 28u,
-    dotTemplateInstance = 29u,
-    dotType = 30u,
-    slice = 31u,
-    arrayLength = 32u,
-    version_ = 33u,
-    module_ = 34u,
-    dollar = 35u,
-    template_ = 36u,
-    dotTemplateDeclaration = 37u,
-    declaration = 38u,
-    typeof_ = 39u,
-    pragma_ = 40u,
-    dSymbol = 41u,
-    typeid_ = 42u,
-    uadd = 43u,
-    remove = 44u,
-    newAnonymousClass = 45u,
-    comment = 46u,
-    arrayLiteral = 47u,
-    assocArrayLiteral = 48u,
-    structLiteral = 49u,
-    classReference = 50u,
-    thrownException = 51u,
-    delegatePointer = 52u,
-    delegateFunctionPointer = 53u,
-    lessThan = 54u,
-    greaterThan = 55u,
-    lessOrEqual = 56u,
-    greaterOrEqual = 57u,
-    equal = 58u,
-    notEqual = 59u,
-    identity = 60u,
-    notIdentity = 61u,
-    index = 62u,
-    is_ = 63u,
-    leftShift = 64u,
-    rightShift = 65u,
-    leftShiftAssign = 66u,
-    rightShiftAssign = 67u,
-    unsignedRightShift = 68u,
-    unsignedRightShiftAssign = 69u,
-    concatenate = 70u,
-    concatenateAssign = 71u,
-    concatenateElemAssign = 72u,
-    concatenateDcharAssign = 73u,
-    add = 74u,
-    min = 75u,
-    addAssign = 76u,
-    minAssign = 77u,
-    mul = 78u,
-    div = 79u,
-    mod = 80u,
-    mulAssign = 81u,
-    divAssign = 82u,
-    modAssign = 83u,
-    and_ = 84u,
-    or_ = 85u,
-    xor_ = 86u,
-    andAssign = 87u,
-    orAssign = 88u,
-    xorAssign = 89u,
-    assign = 90u,
-    not_ = 91u,
-    tilde = 92u,
-    plusPlus = 93u,
-    minusMinus = 94u,
-    construct = 95u,
-    blit = 96u,
-    dot = 97u,
-    comma = 98u,
-    question = 99u,
-    andAnd = 100u,
-    orOr = 101u,
-    prePlusPlus = 102u,
-    preMinusMinus = 103u,
-    int32Literal = 104u,
-    uns32Literal = 105u,
-    int64Literal = 106u,
-    uns64Literal = 107u,
-    int128Literal = 108u,
-    uns128Literal = 109u,
-    float32Literal = 110u,
-    float64Literal = 111u,
-    float80Literal = 112u,
-    imaginary32Literal = 113u,
-    imaginary64Literal = 114u,
-    imaginary80Literal = 115u,
-    charLiteral = 116u,
-    wcharLiteral = 117u,
-    dcharLiteral = 118u,
-    identifier = 119u,
-    string_ = 120u,
-    hexadecimalString = 121u,
-    this_ = 122u,
-    super_ = 123u,
-    halt = 124u,
-    tuple = 125u,
-    error = 126u,
-    void_ = 127u,
-    int8 = 128u,
-    uns8 = 129u,
-    int16 = 130u,
-    uns16 = 131u,
-    int32 = 132u,
-    uns32 = 133u,
-    int64 = 134u,
-    uns64 = 135u,
-    int128 = 136u,
-    uns128 = 137u,
-    float32 = 138u,
-    float64 = 139u,
-    float80 = 140u,
-    imaginary32 = 141u,
-    imaginary64 = 142u,
-    imaginary80 = 143u,
-    complex32 = 144u,
-    complex64 = 145u,
-    complex80 = 146u,
-    char_ = 147u,
-    wchar_ = 148u,
-    dchar_ = 149u,
-    bool_ = 150u,
-    struct_ = 151u,
-    class_ = 152u,
-    interface_ = 153u,
-    union_ = 154u,
-    enum_ = 155u,
-    import_ = 156u,
-    alias_ = 157u,
-    override_ = 158u,
-    delegate_ = 159u,
-    function_ = 160u,
-    mixin_ = 161u,
-    align_ = 162u,
-    extern_ = 163u,
-    private_ = 164u,
-    protected_ = 165u,
-    public_ = 166u,
-    export_ = 167u,
-    static_ = 168u,
-    final_ = 169u,
-    const_ = 170u,
-    abstract_ = 171u,
-    debug_ = 172u,
-    deprecated_ = 173u,
-    in_ = 174u,
-    out_ = 175u,
-    inout_ = 176u,
-    lazy_ = 177u,
-    auto_ = 178u,
-    package_ = 179u,
-    immutable_ = 180u,
-    if_ = 181u,
-    else_ = 182u,
-    while_ = 183u,
-    for_ = 184u,
-    do_ = 185u,
-    switch_ = 186u,
-    case_ = 187u,
-    default_ = 188u,
-    break_ = 189u,
-    continue_ = 190u,
-    with_ = 191u,
-    synchronized_ = 192u,
-    return_ = 193u,
-    goto_ = 194u,
-    try_ = 195u,
-    catch_ = 196u,
-    finally_ = 197u,
-    asm_ = 198u,
-    foreach_ = 199u,
-    foreach_reverse_ = 200u,
-    scope_ = 201u,
-    onScopeExit = 202u,
-    onScopeFailure = 203u,
-    onScopeSuccess = 204u,
-    invariant_ = 205u,
-    unittest_ = 206u,
-    argumentTypes = 207u,
-    ref_ = 208u,
-    macro_ = 209u,
-    parameters = 210u,
-    traits = 211u,
-    overloadSet = 212u,
-    pure_ = 213u,
-    nothrow_ = 214u,
-    gshared = 215u,
-    line = 216u,
-    file = 217u,
-    fileFullPath = 218u,
-    moduleString = 219u,
-    functionString = 220u,
-    prettyFunction = 221u,
-    shared_ = 222u,
-    at = 223u,
-    pow = 224u,
-    powAssign = 225u,
-    goesTo = 226u,
-    vector = 227u,
-    pound = 228u,
-    interval = 229u,
-    voidExpression = 230u,
-    cantExpression = 231u,
-    showCtfeContext = 232u,
-    objcClassReference = 233u,
-    vectorArray = 234u,
-    arrow = 235u,
-    colonColon = 236u,
-    wchar_tLiteral = 237u,
-    compoundLiteral = 238u,
-    inline_ = 239u,
-    register_ = 240u,
-    restrict = 241u,
-    signed_ = 242u,
-    sizeof_ = 243u,
-    typedef_ = 244u,
-    unsigned_ = 245u,
-    volatile_ = 246u,
-    _Alignas = 247u,
-    _Alignof = 248u,
-    _Atomic = 249u,
-    _Bool = 250u,
-    _Complex_ = 251u,
-    _Generic = 252u,
-    _Imaginary = 253u,
-    _Noreturn = 254u,
-    _Static_assert = 255u,
-    _Thread_local = 256u,
-    __cdecl_ = 257u,
-    __declspec_ = 258u,
-    __attribute___ = 259u,
+    negate = 1u,
+    cast_ = 2u,
+    null_ = 3u,
+    assert_ = 4u,
+    true_ = 5u,
+    false_ = 6u,
+    array = 7u,
+    call = 8u,
+    address = 9u,
+    type = 10u,
+    throw_ = 11u,
+    new_ = 12u,
+    delete_ = 13u,
+    star = 14u,
+    symbolOffset = 15u,
+    variable = 16u,
+    dotVariable = 17u,
+    dotIdentifier = 18u,
+    dotTemplateInstance = 19u,
+    dotType = 20u,
+    slice = 21u,
+    arrayLength = 22u,
+    version_ = 23u,
+    dollar = 24u,
+    template_ = 25u,
+    dotTemplateDeclaration = 26u,
+    declaration = 27u,
+    typeof_ = 28u,
+    pragma_ = 29u,
+    dSymbol = 30u,
+    typeid_ = 31u,
+    uadd = 32u,
+    remove = 33u,
+    newAnonymousClass = 34u,
+    arrayLiteral = 35u,
+    assocArrayLiteral = 36u,
+    structLiteral = 37u,
+    classReference = 38u,
+    thrownException = 39u,
+    delegatePointer = 40u,
+    delegateFunctionPointer = 41u,
+    lessThan = 42u,
+    greaterThan = 43u,
+    lessOrEqual = 44u,
+    greaterOrEqual = 45u,
+    equal = 46u,
+    notEqual = 47u,
+    identity = 48u,
+    notIdentity = 49u,
+    index = 50u,
+    is_ = 51u,
+    leftShift = 52u,
+    rightShift = 53u,
+    leftShiftAssign = 54u,
+    rightShiftAssign = 55u,
+    unsignedRightShift = 56u,
+    unsignedRightShiftAssign = 57u,
+    concatenate = 58u,
+    concatenateAssign = 59u,
+    concatenateElemAssign = 60u,
+    concatenateDcharAssign = 61u,
+    add = 62u,
+    min = 63u,
+    addAssign = 64u,
+    minAssign = 65u,
+    mul = 66u,
+    div = 67u,
+    mod = 68u,
+    mulAssign = 69u,
+    divAssign = 70u,
+    modAssign = 71u,
+    and_ = 72u,
+    or_ = 73u,
+    xor_ = 74u,
+    andAssign = 75u,
+    orAssign = 76u,
+    xorAssign = 77u,
+    assign = 78u,
+    not_ = 79u,
+    tilde = 80u,
+    plusPlus = 81u,
+    minusMinus = 82u,
+    construct = 83u,
+    blit = 84u,
+    dot = 85u,
+    comma = 86u,
+    question = 87u,
+    andAnd = 88u,
+    orOr = 89u,
+    prePlusPlus = 90u,
+    preMinusMinus = 91u,
+    identifier = 92u,
+    string_ = 93u,
+    this_ = 94u,
+    super_ = 95u,
+    halt = 96u,
+    tuple = 97u,
+    error = 98u,
+    void_ = 99u,
+    int64 = 100u,
+    float64 = 101u,
+    complex80 = 102u,
+    char_ = 103u,
+    import_ = 104u,
+    delegate_ = 105u,
+    function_ = 106u,
+    mixin_ = 107u,
+    in_ = 108u,
+    default_ = 109u,
+    break_ = 110u,
+    continue_ = 111u,
+    goto_ = 112u,
+    scope_ = 113u,
+    traits = 114u,
+    overloadSet = 115u,
+    line = 116u,
+    file = 117u,
+    fileFullPath = 118u,
+    moduleString = 119u,
+    functionString = 120u,
+    prettyFunction = 121u,
+    shared_ = 122u,
+    pow = 123u,
+    powAssign = 124u,
+    vector = 125u,
+    voidExpression = 126u,
+    cantExpression = 127u,
+    showCtfeContext = 128u,
+    objcClassReference = 129u,
+    vectorArray = 130u,
+    arrow = 131u,
+    compoundLiteral = 132u,
+    _Generic = 133u,
+    interval = 134u,
 };
 
 typedef uint64_t dinteger_t;
 
 typedef uint64_t uinteger_t;
+
+struct complex_t final
+{
+    _d_real re;
+    _d_real im;
+    complex_t() = delete;
+    complex_t(_d_real re);
+    complex_t(_d_real re, _d_real im);
+    int32_t opEquals(complex_t y) const;
+};
 
 enum class MATCH
 {
@@ -1512,10 +1417,28 @@ enum class MATCH
     exact = 3,
 };
 
+template <typename T>
+struct Optional final
+{
+    // Ignoring var value alignment 0
+    T value;
+    // Ignoring var present alignment 0
+    bool present;
+    Optional(T value);
+    static Optional<T > create(T val);
+    bool isPresent() const;
+    bool isEmpty() const;
+    T get();
+    bool hasValue(T exp) const;
+    Optional()
+    {
+    }
+};
+
 class Expression : public ASTNode
 {
 public:
-    const TOK op;
+    const EXP op;
     uint8_t size;
     uint8_t parens;
     Type* type;
@@ -1553,7 +1476,7 @@ public:
     Expression* optimize(int32_t result, bool keepLvalue = false);
     Expression* ctfeInterpret();
     int32_t isConst();
-    virtual bool isBool(bool result);
+    virtual Optional<bool > toBool();
     virtual bool hasCode();
     IntegerExp* isIntegerExp();
     ErrorExp* isErrorExp();
@@ -1957,6 +1880,7 @@ public:
     bool equals(const RootObject* const o) const;
     bool equivalent(Type* t);
     DYNCAST dyncast() const;
+    size_t getUniqueID() const;
     Covariant covariant(Type* t, uint64_t* pstc = nullptr);
     const char* toChars() const;
     char* toPrettyChars(bool QualifyTypes = false);
@@ -2032,7 +1956,7 @@ public:
     Type* unqualify(uint32_t m);
     virtual Type* toHeadMutable();
     virtual ClassDeclaration* isClassHandle();
-    virtual uint32_t alignment();
+    virtual structalign_t alignment();
     virtual Expression* defaultInitLiteral(const Loc& loc);
     virtual bool isZeroInit(const Loc& loc);
     Identifier* getTypeInfoIdent();
@@ -2082,6 +2006,237 @@ enum class OwnedBy : uint8_t
     code = 0u,
     ctfe = 1u,
     cache = 2u,
+};
+
+enum class TOK : uint8_t
+{
+    reserved = 0u,
+    leftParenthesis = 1u,
+    rightParenthesis = 2u,
+    leftBracket = 3u,
+    rightBracket = 4u,
+    leftCurly = 5u,
+    rightCurly = 6u,
+    colon = 7u,
+    negate = 8u,
+    semicolon = 9u,
+    dotDotDot = 10u,
+    endOfFile = 11u,
+    cast_ = 12u,
+    null_ = 13u,
+    assert_ = 14u,
+    true_ = 15u,
+    false_ = 16u,
+    array = 17u,
+    call = 18u,
+    address = 19u,
+    type = 20u,
+    throw_ = 21u,
+    new_ = 22u,
+    delete_ = 23u,
+    star = 24u,
+    variable = 25u,
+    slice = 26u,
+    version_ = 27u,
+    module_ = 28u,
+    dollar = 29u,
+    template_ = 30u,
+    declaration = 31u,
+    typeof_ = 32u,
+    pragma_ = 33u,
+    typeid_ = 34u,
+    uadd = 35u,
+    remove = 36u,
+    comment = 37u,
+    lessThan = 38u,
+    greaterThan = 39u,
+    lessOrEqual = 40u,
+    greaterOrEqual = 41u,
+    equal = 42u,
+    notEqual = 43u,
+    identity = 44u,
+    notIdentity = 45u,
+    index = 46u,
+    is_ = 47u,
+    leftShift = 48u,
+    rightShift = 49u,
+    leftShiftAssign = 50u,
+    rightShiftAssign = 51u,
+    unsignedRightShift = 52u,
+    unsignedRightShiftAssign = 53u,
+    concatenateAssign = 54u,
+    add = 55u,
+    min = 56u,
+    addAssign = 57u,
+    minAssign = 58u,
+    mul = 59u,
+    div = 60u,
+    mod = 61u,
+    mulAssign = 62u,
+    divAssign = 63u,
+    modAssign = 64u,
+    and_ = 65u,
+    or_ = 66u,
+    xor_ = 67u,
+    andAssign = 68u,
+    orAssign = 69u,
+    xorAssign = 70u,
+    assign = 71u,
+    not_ = 72u,
+    tilde = 73u,
+    plusPlus = 74u,
+    minusMinus = 75u,
+    dot = 76u,
+    comma = 77u,
+    question = 78u,
+    andAnd = 79u,
+    orOr = 80u,
+    int32Literal = 81u,
+    uns32Literal = 82u,
+    int64Literal = 83u,
+    uns64Literal = 84u,
+    int128Literal = 85u,
+    uns128Literal = 86u,
+    float32Literal = 87u,
+    float64Literal = 88u,
+    float80Literal = 89u,
+    imaginary32Literal = 90u,
+    imaginary64Literal = 91u,
+    imaginary80Literal = 92u,
+    charLiteral = 93u,
+    wcharLiteral = 94u,
+    dcharLiteral = 95u,
+    identifier = 96u,
+    string_ = 97u,
+    hexadecimalString = 98u,
+    this_ = 99u,
+    super_ = 100u,
+    error = 101u,
+    void_ = 102u,
+    int8 = 103u,
+    uns8 = 104u,
+    int16 = 105u,
+    uns16 = 106u,
+    int32 = 107u,
+    uns32 = 108u,
+    int64 = 109u,
+    uns64 = 110u,
+    int128 = 111u,
+    uns128 = 112u,
+    float32 = 113u,
+    float64 = 114u,
+    float80 = 115u,
+    imaginary32 = 116u,
+    imaginary64 = 117u,
+    imaginary80 = 118u,
+    complex32 = 119u,
+    complex64 = 120u,
+    complex80 = 121u,
+    char_ = 122u,
+    wchar_ = 123u,
+    dchar_ = 124u,
+    bool_ = 125u,
+    struct_ = 126u,
+    class_ = 127u,
+    interface_ = 128u,
+    union_ = 129u,
+    enum_ = 130u,
+    import_ = 131u,
+    alias_ = 132u,
+    override_ = 133u,
+    delegate_ = 134u,
+    function_ = 135u,
+    mixin_ = 136u,
+    align_ = 137u,
+    extern_ = 138u,
+    private_ = 139u,
+    protected_ = 140u,
+    public_ = 141u,
+    export_ = 142u,
+    static_ = 143u,
+    final_ = 144u,
+    const_ = 145u,
+    abstract_ = 146u,
+    debug_ = 147u,
+    deprecated_ = 148u,
+    in_ = 149u,
+    out_ = 150u,
+    inout_ = 151u,
+    lazy_ = 152u,
+    auto_ = 153u,
+    package_ = 154u,
+    immutable_ = 155u,
+    if_ = 156u,
+    else_ = 157u,
+    while_ = 158u,
+    for_ = 159u,
+    do_ = 160u,
+    switch_ = 161u,
+    case_ = 162u,
+    default_ = 163u,
+    break_ = 164u,
+    continue_ = 165u,
+    with_ = 166u,
+    synchronized_ = 167u,
+    return_ = 168u,
+    goto_ = 169u,
+    try_ = 170u,
+    catch_ = 171u,
+    finally_ = 172u,
+    asm_ = 173u,
+    foreach_ = 174u,
+    foreach_reverse_ = 175u,
+    scope_ = 176u,
+    onScopeExit = 177u,
+    onScopeFailure = 178u,
+    onScopeSuccess = 179u,
+    invariant_ = 180u,
+    unittest_ = 181u,
+    argumentTypes = 182u,
+    ref_ = 183u,
+    macro_ = 184u,
+    parameters = 185u,
+    traits = 186u,
+    pure_ = 187u,
+    nothrow_ = 188u,
+    gshared = 189u,
+    line = 190u,
+    file = 191u,
+    fileFullPath = 192u,
+    moduleString = 193u,
+    functionString = 194u,
+    prettyFunction = 195u,
+    shared_ = 196u,
+    at = 197u,
+    pow = 198u,
+    powAssign = 199u,
+    goesTo = 200u,
+    vector = 201u,
+    pound = 202u,
+    arrow = 203u,
+    colonColon = 204u,
+    wchar_tLiteral = 205u,
+    inline_ = 206u,
+    register_ = 207u,
+    restrict = 208u,
+    signed_ = 209u,
+    sizeof_ = 210u,
+    typedef_ = 211u,
+    unsigned_ = 212u,
+    volatile_ = 213u,
+    _Alignas = 214u,
+    _Alignof = 215u,
+    _Atomic = 216u,
+    _Bool = 217u,
+    _Complex_ = 218u,
+    _Generic = 219u,
+    _Imaginary = 220u,
+    _Noreturn = 221u,
+    _Static_assert = 222u,
+    _Thread_local = 223u,
+    __cdecl_ = 224u,
+    __declspec_ = 225u,
+    __attribute___ = 226u,
 };
 
 enum class MemorySet
@@ -2472,10 +2627,6 @@ struct MatchAccumulator final
         {}
 };
 
-static const char* const package_d = "package.d";
-
-static const char* const package_di = "package.di";
-
 enum class StructFlags
 {
     none = 0,
@@ -2589,7 +2740,7 @@ enum : int32_t { WANTexpand = 1 };
 
 enum : int32_t { WANTvalue = 0 };
 
-typedef bool(*fp2_t)(Loc& loc, TOK , Expression , Expression );
+typedef bool(*fp2_t)(Loc& loc, EXP , Expression , Expression );
 
 typedef UnionExp(*fp_t)(Loc& loc, Type , Expression , Expression );
 
@@ -2680,6 +2831,7 @@ public:
     const char* mangleString;
     VarDeclaration* vresult;
     LabelDsymbol* returnLabel;
+    void* isTypeIsolatedCache;
     DsymbolTable* localsymtab;
     VarDeclaration* vthis;
     bool isThis2;
@@ -2780,7 +2932,6 @@ public:
     FuncDeclaration* isFuncDeclaration();
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v);
-    ~FuncDeclaration();
 };
 
 class CtorDeclaration final : public FuncDeclaration
@@ -2795,7 +2946,6 @@ public:
     bool addPostInvariant();
     CtorDeclaration* isCtorDeclaration();
     void accept(Visitor* v);
-    ~CtorDeclaration();
 };
 
 class DtorDeclaration final : public FuncDeclaration
@@ -2810,7 +2960,6 @@ public:
     bool overloadInsert(Dsymbol* s);
     DtorDeclaration* isDtorDeclaration();
     void accept(Visitor* v);
-    ~DtorDeclaration();
 };
 
 enum class FUNCFLAG : uint32_t
@@ -2838,7 +2987,6 @@ public:
     const char* kind() const;
     FuncDeclaration* toAliasFunc();
     void accept(Visitor* v);
-    ~FuncAliasDeclaration();
 };
 
 class FuncLiteralDeclaration final : public FuncDeclaration
@@ -2858,7 +3006,6 @@ public:
     const char* kind() const;
     const char* toPrettyChars(bool QualifyTypes = false);
     void accept(Visitor* v);
-    ~FuncLiteralDeclaration();
 };
 
 enum class FuncResolveFlag : uint8_t
@@ -2877,7 +3024,6 @@ public:
     bool addPostInvariant();
     InvariantDeclaration* isInvariantDeclaration();
     void accept(Visitor* v);
-    ~InvariantDeclaration();
 };
 
 class NewDeclaration final : public FuncDeclaration
@@ -2890,7 +3036,6 @@ public:
     bool addPostInvariant();
     NewDeclaration* isNewDeclaration();
     void accept(Visitor* v);
-    ~NewDeclaration();
 };
 
 class SemanticTimePermissiveVisitor : public Visitor
@@ -2957,7 +3102,6 @@ public:
     bool overloadInsert(Dsymbol* s);
     PostBlitDeclaration* isPostBlitDeclaration();
     void accept(Visitor* v);
-    ~PostBlitDeclaration();
 };
 
 class StaticCtorDeclaration : public FuncDeclaration
@@ -2971,7 +3115,6 @@ public:
     bool hasStaticCtorOrDtor();
     StaticCtorDeclaration* isStaticCtorDeclaration();
     void accept(Visitor* v);
-    ~StaticCtorDeclaration();
 };
 
 class SharedStaticCtorDeclaration final : public StaticCtorDeclaration
@@ -2980,7 +3123,6 @@ public:
     SharedStaticCtorDeclaration* syntaxCopy(Dsymbol* s);
     SharedStaticCtorDeclaration* isSharedStaticCtorDeclaration();
     void accept(Visitor* v);
-    ~SharedStaticCtorDeclaration();
 };
 
 class StaticDtorDeclaration : public FuncDeclaration
@@ -2995,7 +3137,6 @@ public:
     bool addPostInvariant();
     StaticDtorDeclaration* isStaticDtorDeclaration();
     void accept(Visitor* v);
-    ~StaticDtorDeclaration();
 };
 
 class SharedStaticDtorDeclaration final : public StaticDtorDeclaration
@@ -3004,7 +3145,6 @@ public:
     SharedStaticDtorDeclaration* syntaxCopy(Dsymbol* s);
     SharedStaticDtorDeclaration* isSharedStaticDtorDeclaration();
     void accept(Visitor* v);
-    ~SharedStaticDtorDeclaration();
 };
 
 class UnitTestDeclaration final : public FuncDeclaration
@@ -3019,7 +3159,6 @@ public:
     bool addPostInvariant();
     UnitTestDeclaration* isUnitTestDeclaration();
     void accept(Visitor* v);
-    ~UnitTestDeclaration();
 };
 
 struct HdrGenState final
@@ -3102,7 +3241,6 @@ public:
     bool sem;
     bool isAssociativeArray() const;
     void accept(Visitor* v);
-    ~ArrayInitializer();
 };
 
 class CInitializer final : public Initializer
@@ -3112,7 +3250,6 @@ public:
     Type* type;
     bool sem;
     void accept(Visitor* v);
-    ~CInitializer();
 };
 
 class ErrorInitializer final : public Initializer
@@ -3141,7 +3278,6 @@ public:
     Array<Identifier* > field;
     Array<Initializer* > value;
     void accept(Visitor* v);
-    ~StructInitializer();
 };
 
 class VoidInitializer final : public Initializer
@@ -3159,6 +3295,7 @@ enum class DotExpFlag
 {
     gag = 1,
     noDeref = 2,
+    noAliasThis = 4,
 };
 
 enum : int32_t { LOGDEFAULTINIT = 0 };
@@ -3478,7 +3615,6 @@ public:
     void addIndex(RootObject* e);
     d_uns64 size(const Loc& loc);
     void accept(Visitor* v);
-    ~TypeQualified();
 };
 
 class TypeIdentifier final : public TypeQualified
@@ -3491,7 +3627,6 @@ public:
     TypeIdentifier* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
-    ~TypeIdentifier();
 };
 
 class TypeInstance final : public TypeQualified
@@ -3502,7 +3637,6 @@ public:
     TypeInstance* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
-    ~TypeInstance();
 };
 
 class TypeMixin final : public Type
@@ -3574,7 +3708,6 @@ public:
     TypeReturn* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
-    ~TypeReturn();
 };
 
 class TypeSArray final : public TypeArray
@@ -3588,7 +3721,7 @@ public:
     uint32_t alignsize();
     bool isString();
     bool isZeroInit(const Loc& loc);
-    uint32_t alignment();
+    structalign_t alignment();
     MATCH constConv(Type* to);
     MATCH implicitConvTo(Type* to);
     Expression* defaultInitLiteral(const Loc& loc);
@@ -3622,7 +3755,7 @@ public:
     uint32_t alignsize();
     TypeStruct* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
-    uint32_t alignment();
+    structalign_t alignment();
     Expression* defaultInitLiteral(const Loc& loc);
     bool isZeroInit(const Loc& loc);
     bool isAssignable();
@@ -3678,6 +3811,7 @@ public:
     const char* kind() const;
     TypeTuple* syntaxCopy();
     bool equals(const RootObject* const o) const;
+    MATCH implicitConvTo(Type* to);
     void accept(Visitor* v);
 };
 
@@ -3691,7 +3825,6 @@ public:
     Dsymbol* toDsymbol(Scope* sc);
     d_uns64 size(const Loc& loc);
     void accept(Visitor* v);
-    ~TypeTypeof();
 };
 
 class TypeVector final : public Type
@@ -3730,7 +3863,6 @@ public:
     const char* kind() const;
     Nspace* isNspace();
     void accept(Visitor* v);
-    ~Nspace();
 };
 
 enum class STMT : uint8_t
@@ -4248,7 +4380,6 @@ public:
     SwitchStatement* syntaxCopy();
     bool hasBreak() const;
     void accept(Visitor* v);
-    ~SwitchStatement();
 };
 
 class SynchronizedStatement final : public Statement
@@ -4342,7 +4473,7 @@ public:
     void accept(Visitor* v);
 };
 
-extern Expression* defaultInit(Type* mt, const Loc& loc);
+extern Expression* defaultInit(Type* mt, const Loc& loc, const bool isCfile = false);
 
 extern Type* merge(Type* type);
 
@@ -4377,7 +4508,6 @@ enum class STC : uint64_t
     lazy_ = 8192LLU,
     foreach_ = 16384LLU,
     variadic = 32768LLU,
-    ctorinit = 65536LLU,
     templateparameter = 131072LLU,
     ref_ = 262144LLU,
     scope_ = 524288LLU,
@@ -4387,7 +4517,6 @@ enum class STC : uint64_t
     returnScope = 8388608LLU,
     returninferred = 16777216LLU,
     immutable_ = 33554432LLU,
-    init = 67108864LLU,
     manifest = 134217728LLU,
     nodtor = 268435456LLU,
     nothrow_ = 536870912LLU,
@@ -4903,18 +5032,21 @@ struct TargetC final
         Gcc_Clang = 3u,
     };
 
+    bool crtDestructorsSupported;
     uint8_t longsize;
     uint8_t long_doublesize;
     uint8_t wchar_tsize;
     Runtime runtime;
     BitFieldStyle bitFieldStyle;
     TargetC() :
+        crtDestructorsSupported(true),
         longsize(),
         long_doublesize(),
         wchar_tsize()
     {
     }
-    TargetC(uint8_t longsize, uint8_t long_doublesize = 0u, uint8_t wchar_tsize = 0u, Runtime runtime = (Runtime)0u, BitFieldStyle bitFieldStyle = (BitFieldStyle)0u) :
+    TargetC(bool crtDestructorsSupported, uint8_t longsize = 0u, uint8_t long_doublesize = 0u, uint8_t wchar_tsize = 0u, Runtime runtime = (Runtime)0u, BitFieldStyle bitFieldStyle = (BitFieldStyle)0u) :
+        crtDestructorsSupported(crtDestructorsSupported),
         longsize(longsize),
         long_doublesize(long_doublesize),
         wchar_tsize(wchar_tsize),
@@ -4975,24 +5107,60 @@ struct TargetObjC final
         {}
 };
 
-enum class CPU
+enum class CPU : uint8_t
 {
-    x87 = 0,
-    mmx = 1,
-    sse = 2,
-    sse2 = 3,
-    sse3 = 4,
-    ssse3 = 5,
-    sse4_1 = 6,
-    sse4_2 = 7,
-    avx = 8,
-    avx2 = 9,
-    avx512 = 10,
-    baseline = 11,
-    native = 12,
+    x87 = 0u,
+    mmx = 1u,
+    sse = 2u,
+    sse2 = 3u,
+    sse3 = 4u,
+    ssse3 = 5u,
+    sse4_1 = 6u,
+    sse4_2 = 7u,
+    avx = 8u,
+    avx2 = 9u,
+    avx512 = 10u,
+    baseline = 11u,
+    native = 12u,
+};
+
+struct StringEntry final
+{
+    uint32_t hash;
+    uint32_t vptr;
+    StringEntry() :
+        hash(),
+        vptr()
+    {
+    }
+    StringEntry(uint32_t hash, uint32_t vptr = 0u) :
+        hash(hash),
+        vptr(vptr)
+        {}
+};
+
+template <typename T>
+struct StringTable final
+{
+    // Ignoring var table alignment 0
+    _d_dynamicArray< StringEntry > table;
+    // Ignoring var pools alignment 0
+    _d_dynamicArray< uint8_t* > pools;
+    // Ignoring var nfill alignment 0
+    size_t nfill;
+    // Ignoring var count alignment 0
+    size_t count;
+    // Ignoring var countTrigger alignment 0
+    size_t countTrigger;
+    ~StringTable();
+    StringTable()
+    {
+    }
 };
 
 typedef _d_real longdouble;
+
+typedef uint64_t uint64_t;
 
 class AggregateDeclaration : public ScopeDsymbol
 {
@@ -5014,11 +5182,11 @@ public:
     Dsymbol* ctor;
     CtorDeclaration* defaultCtor;
     AliasThis* aliasthis;
-    Array<DtorDeclaration* > dtors;
+    Array<DtorDeclaration* > userDtors;
+    DtorDeclaration* aggrDtor;
     DtorDeclaration* dtor;
-    DtorDeclaration* primaryDtor;
     DtorDeclaration* tidtor;
-    FuncDeclaration* fieldDtor;
+    DtorDeclaration* fieldDtor;
     Expression* getRTInfo;
     Visibility visibility;
     bool noDefaultCtor;
@@ -5043,7 +5211,6 @@ public:
     void* sinit;
     AggregateDeclaration* isAggregateDeclaration();
     void accept(Visitor* v);
-    ~AggregateDeclaration();
 };
 
 class AliasThis final : public Dsymbol
@@ -5163,9 +5330,7 @@ class AlignDeclaration final : public AttribDeclaration
 {
 public:
     Array<Expression* >* exps;
-    enum : uint32_t { UNKNOWN = 0u };
-
-    uint32_t salign;
+    structalign_t salign;
     AlignDeclaration* syntaxCopy(Dsymbol* s);
     Scope* newScope(Scope* sc);
     void accept(Visitor* v);
@@ -5308,20 +5473,6 @@ struct Compiler final
     }
 };
 
-struct complex_t final
-{
-    _d_real re;
-    _d_real im;
-    complex_t() = delete;
-    complex_t(_d_real re);
-    complex_t(_d_real re, _d_real im);
-    int32_t opEquals(complex_t y) const;
-};
-
-extern _d_real creall(complex_t x);
-
-extern _d_real cimagl(complex_t x);
-
 class Condition : public ASTNode
 {
 public:
@@ -5429,7 +5580,6 @@ struct BaseClass final
     Array<FuncDeclaration* > vtbl;
     _d_dynamicArray< BaseClass > baseInterfaces;
     bool fillVtbl(ClassDeclaration* cd, Array<FuncDeclaration* >* vtbl, int32_t newinstance);
-    ~BaseClass();
     BaseClass() :
         type(),
         sym(),
@@ -5497,7 +5647,6 @@ public:
     Dsymbol* vtblSymbol();
     ClassDeclaration* isClassDeclaration();
     void accept(Visitor* v);
-    ~ClassDeclaration();
 };
 
 class InterfaceDeclaration final : public ClassDeclaration
@@ -5512,7 +5661,6 @@ public:
     bool isCOMinterface() const;
     InterfaceDeclaration* isInterfaceDeclaration();
     void accept(Visitor* v);
-    ~InterfaceDeclaration();
 };
 
 extern void ObjectNotFound(Identifier* id);
@@ -5540,7 +5688,6 @@ public:
     virtual bool isDataseg();
     virtual bool isThreadlocal();
     virtual bool isCodeseg() const;
-    bool isCtorinit() const;
     bool isFinal() const;
     virtual bool isAbstract();
     bool isConst() const;
@@ -5626,7 +5773,7 @@ public:
     uint32_t offset;
     uint32_t sequenceNumber;
     static uint32_t nextSequenceNumber;
-    uint32_t alignment;
+    structalign_t alignment;
     enum : uint32_t { AdrOnStackNone = 4294967295u };
 
     uint32_t ctfeAdrOnStack;
@@ -5634,6 +5781,7 @@ public:
     bool ctorinit;
     bool iscatchvar;
     bool isowner;
+    bool setInCtorOnly;
     bool onstack;
     bool mynew;
     int8_t canassign;
@@ -5651,6 +5799,7 @@ public:
     bool needThis();
     bool isExport() const;
     bool isImportedSymbol() const;
+    bool isCtorinit() const;
     bool isDataseg();
     bool isThreadlocal();
     bool isCTFE();
@@ -5664,7 +5813,6 @@ public:
     void accept(Visitor* v);
     bool enclosesLifetimeOf(VarDeclaration* v) const;
     void addMaybe(VarDeclaration* v);
-    ~VarDeclaration();
 };
 
 class BitFieldDeclaration : public VarDeclaration
@@ -5677,13 +5825,12 @@ public:
     BitFieldDeclaration* isBitFieldDeclaration();
     void accept(Visitor* v);
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
-    ~BitFieldDeclaration();
 };
 
 class SymbolDeclaration final : public Declaration
 {
 public:
-    StructDeclaration* dsym;
+    AggregateDeclaration* dsym;
     SymbolDeclaration* isSymbolDeclaration();
     void accept(Visitor* v);
 };
@@ -5697,7 +5844,6 @@ public:
     const char* toChars() const;
     TypeInfoDeclaration* isTypeInfoDeclaration();
     void accept(Visitor* v);
-    ~TypeInfoDeclaration();
 };
 
 class TypeInfoStructDeclaration final : public TypeInfoDeclaration
@@ -5705,7 +5851,6 @@ class TypeInfoStructDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoStructDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoStructDeclaration();
 };
 
 class TypeInfoClassDeclaration final : public TypeInfoDeclaration
@@ -5713,7 +5858,6 @@ class TypeInfoClassDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoClassDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoClassDeclaration();
 };
 
 class TypeInfoInterfaceDeclaration final : public TypeInfoDeclaration
@@ -5721,7 +5865,6 @@ class TypeInfoInterfaceDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoInterfaceDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoInterfaceDeclaration();
 };
 
 class TypeInfoPointerDeclaration final : public TypeInfoDeclaration
@@ -5729,7 +5872,6 @@ class TypeInfoPointerDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoPointerDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoPointerDeclaration();
 };
 
 class TypeInfoArrayDeclaration final : public TypeInfoDeclaration
@@ -5737,7 +5879,6 @@ class TypeInfoArrayDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoArrayDeclaration();
 };
 
 class TypeInfoStaticArrayDeclaration final : public TypeInfoDeclaration
@@ -5745,7 +5886,6 @@ class TypeInfoStaticArrayDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoStaticArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoStaticArrayDeclaration();
 };
 
 class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
@@ -5753,7 +5893,6 @@ class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoAssociativeArrayDeclaration();
 };
 
 class TypeInfoEnumDeclaration final : public TypeInfoDeclaration
@@ -5761,7 +5900,6 @@ class TypeInfoEnumDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoEnumDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoEnumDeclaration();
 };
 
 class TypeInfoFunctionDeclaration final : public TypeInfoDeclaration
@@ -5769,7 +5907,6 @@ class TypeInfoFunctionDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoFunctionDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoFunctionDeclaration();
 };
 
 class TypeInfoDelegateDeclaration final : public TypeInfoDeclaration
@@ -5777,7 +5914,6 @@ class TypeInfoDelegateDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoDelegateDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoDelegateDeclaration();
 };
 
 class TypeInfoTupleDeclaration final : public TypeInfoDeclaration
@@ -5785,7 +5921,6 @@ class TypeInfoTupleDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoTupleDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoTupleDeclaration();
 };
 
 class TypeInfoConstDeclaration final : public TypeInfoDeclaration
@@ -5793,7 +5928,6 @@ class TypeInfoConstDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoConstDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoConstDeclaration();
 };
 
 class TypeInfoInvariantDeclaration final : public TypeInfoDeclaration
@@ -5801,7 +5935,6 @@ class TypeInfoInvariantDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoInvariantDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoInvariantDeclaration();
 };
 
 class TypeInfoSharedDeclaration final : public TypeInfoDeclaration
@@ -5809,7 +5942,6 @@ class TypeInfoSharedDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoSharedDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoSharedDeclaration();
 };
 
 class TypeInfoWildDeclaration final : public TypeInfoDeclaration
@@ -5817,7 +5949,6 @@ class TypeInfoWildDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoWildDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoWildDeclaration();
 };
 
 class TypeInfoVectorDeclaration final : public TypeInfoDeclaration
@@ -5825,7 +5956,6 @@ class TypeInfoVectorDeclaration final : public TypeInfoDeclaration
 public:
     static TypeInfoVectorDeclaration* create(Type* tinfo);
     void accept(Visitor* v);
-    ~TypeInfoVectorDeclaration();
 };
 
 class ThisDeclaration final : public VarDeclaration
@@ -5834,7 +5964,6 @@ public:
     ThisDeclaration* syntaxCopy(Dsymbol* s);
     ThisDeclaration* isThisDeclaration();
     void accept(Visitor* v);
-    ~ThisDeclaration();
 };
 
 class EnumDeclaration final : public ScopeDsymbol
@@ -5864,7 +5993,6 @@ public:
     EnumDeclaration* isEnumDeclaration();
     Symbol* sinit;
     void accept(Visitor* v);
-    ~EnumDeclaration();
 };
 
 class EnumMember final : public VarDeclaration
@@ -5878,7 +6006,6 @@ public:
     const char* kind() const;
     EnumMember* isEnumMember();
     void accept(Visitor* v);
-    ~EnumMember();
 };
 
 class Import final : public Dsymbol
@@ -5906,7 +6033,6 @@ public:
     bool overloadInsert(Dsymbol* s);
     Import* isImport();
     void accept(Visitor* v);
-    ~Import();
 };
 
 extern Expression* getValue(VarDeclaration* vd);
@@ -5947,7 +6073,6 @@ public:
     void accept(Visitor* v);
     Module* isPackageMod();
     void resolvePKGunknown();
-    ~Package();
 };
 
 class Module final : public Package
@@ -6035,7 +6160,6 @@ public:
     Module* isModule();
     void accept(Visitor* v);
     void fullyQualifiedName(OutBuffer& buf);
-    ~Module();
 };
 
 struct ModuleDeclaration final
@@ -6079,7 +6203,7 @@ public:
     FuncDeclaration* xhash;
     static FuncDeclaration* xerreq;
     static FuncDeclaration* xerrcmp;
-    uint32_t alignment;
+    structalign_t alignment;
     ThreeState ispod;
     TypeTuple* argTypes;
     static StructDeclaration* create(const Loc& loc, Identifier* id, bool inObject);
@@ -6093,7 +6217,6 @@ public:
     uint32_t numArgTypes() const;
     Type* argType(uint32_t index);
     bool hasRegularCtor(bool checkDisabled = false);
-    ~StructDeclaration();
 };
 
 class UnionDeclaration final : public StructDeclaration
@@ -6103,7 +6226,6 @@ public:
     const char* kind() const;
     UnionDeclaration* isUnionDeclaration();
     void accept(Visitor* v);
-    ~UnionDeclaration();
 };
 
 class WithScopeSymbol final : public ScopeDsymbol
@@ -6113,7 +6235,6 @@ public:
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     WithScopeSymbol* isWithScopeSymbol();
     void accept(Visitor* v);
-    ~WithScopeSymbol();
 };
 
 class ArrayScopeSymbol final : public ScopeDsymbol
@@ -6124,7 +6245,6 @@ public:
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
     ArrayScopeSymbol* isArrayScopeSymbol();
     void accept(Visitor* v);
-    ~ArrayScopeSymbol();
 };
 
 class OverloadSet final : public Dsymbol
@@ -6135,7 +6255,6 @@ public:
     OverloadSet* isOverloadSet();
     const char* kind() const;
     void accept(Visitor* v);
-    ~OverloadSet();
 };
 
 class ForwardingScopeDsymbol final : public ScopeDsymbol
@@ -6147,7 +6266,6 @@ public:
     void importScope(Dsymbol* s, Visibility visibility);
     const char* kind() const;
     ForwardingScopeDsymbol* isForwardingScopeDsymbol();
-    ~ForwardingScopeDsymbol();
 };
 
 class ExpressionDsymbol final : public Dsymbol
@@ -6204,7 +6322,6 @@ public:
     Array<RootObject* > objects;
     DYNCAST dyncast() const;
     const char* toChars() const;
-    ~Tuple();
 };
 
 class TemplateDeclaration final : public ScopeDsymbol
@@ -6249,7 +6366,6 @@ public:
     bool isDeprecated() const;
     bool isOverloadable() const;
     void accept(Visitor* v);
-    ~TemplateDeclaration();
 };
 
 class TypeDeduced final : public Type
@@ -6261,7 +6377,6 @@ public:
     void update(Expression* e, Type* tparam);
     void update(Type* tt, Expression* e, Type* tparam);
     MATCH matchAll(Type* tt);
-    ~TypeDeduced();
 };
 
 class TemplateParameter : public ASTNode
@@ -6405,7 +6520,6 @@ public:
     bool needsCodegen();
     TemplateInstance* isTemplateInstance();
     void accept(Visitor* v);
-    ~TemplateInstance();
 };
 
 class TemplateMixin final : public TemplateInstance
@@ -6420,7 +6534,6 @@ public:
     const char* toChars() const;
     TemplateMixin* isTemplateMixin();
     void accept(Visitor* v);
-    ~TemplateMixin();
 };
 
 extern void genCppHdrFiles(Array<Module* >& ms);
@@ -6498,7 +6611,7 @@ public:
     _d_real toReal();
     _d_real toImaginary();
     complex_t toComplex();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
     dinteger_t getInteger();
@@ -6536,7 +6649,7 @@ public:
     _d_real toReal();
     _d_real toImaginary();
     complex_t toComplex();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -6552,7 +6665,7 @@ public:
     _d_real toReal();
     _d_real toImaginary();
     complex_t toComplex();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -6586,9 +6699,9 @@ class ThisExp : public Expression
 {
 public:
     VarDeclaration* var;
-    ThisExp(const Loc& loc, const TOK tok);
+    ThisExp(const Loc& loc, const EXP tok);
     ThisExp* syntaxCopy();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     void accept(Visitor* v);
@@ -6604,7 +6717,7 @@ class NullExp final : public Expression
 {
 public:
     bool equals(const RootObject* const o) const;
-    bool isBool(bool result);
+    Optional<bool > toBool();
     StringExp* toStringExp();
     void accept(Visitor* v);
 };
@@ -6636,7 +6749,7 @@ public:
     StringExp* toStringExp();
     StringExp* toUTF8(Scope* sc);
     int32_t compare(const StringExp* const se2) const;
-    bool isBool(bool result);
+    Optional<bool > toBool();
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
@@ -6668,7 +6781,7 @@ public:
     bool equals(const RootObject* const o) const;
     Expression* getElement(size_t i);
     Expression* opIndex(size_t i);
-    bool isBool(bool result);
+    Optional<bool > toBool();
     StringExp* toStringExp();
     void accept(Visitor* v);
 };
@@ -6681,7 +6794,7 @@ public:
     OwnedBy ownedByCtfe;
     bool equals(const RootObject* const o) const;
     AssocArrayLiteralExp* syntaxCopy();
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -6786,7 +6899,7 @@ class SymOffExp final : public SymbolExp
 {
 public:
     dinteger_t offset;
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -6966,6 +7079,8 @@ public:
     TemplateInstance* ti;
     DotTemplateInstanceExp* syntaxCopy();
     bool findTempDecl(Scope* sc);
+    bool checkType();
+    bool checkValue();
     void accept(Visitor* v);
 };
 
@@ -7096,7 +7211,7 @@ public:
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
-    bool isBool(bool result);
+    Optional<bool > toBool();
     void accept(Visitor* v);
 };
 
@@ -7132,7 +7247,7 @@ public:
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
-    bool isBool(bool result);
+    Optional<bool > toBool();
     Expression* addDtorHook(Scope* sc);
     void accept(Visitor* v);
     static void allow(Expression* exp);
@@ -7194,7 +7309,7 @@ class AssignExp : public BinExp
 {
 public:
     MemorySet memset;
-    AssignExp(const Loc& loc, TOK tok, Expression* e1, Expression* e2);
+    AssignExp(const Loc& loc, EXP tok, Expression* e1, Expression* e2);
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* ex);
     void accept(Visitor* v);
@@ -7573,7 +7688,7 @@ struct Target final
 {
     enum class OS : uint8_t
     {
-        Freestanding = 0u,
+        none = 0u,
         linux = 1u,
         Windows = 2u,
         OSX = 4u,
@@ -7645,13 +7760,12 @@ public:
     void _init(const Param& params);
     void setCPU();
     void setTriple(const Triple& triple);
-    void addPredefinedGlobalIdentifiers() const;
     void deinitialize();
     uint32_t alignsize(Type* type);
     uint32_t fieldalign(Type* type);
     Type* va_listType(const Loc& loc, Scope* sc);
     int32_t isVectorTypeSupported(int32_t sz, Type* type);
-    bool isVectorOpSupported(Type* type, uint32_t op, Type* t2 = nullptr);
+    bool isVectorOpSupported(Type* type, EXP op, Type* t2 = nullptr);
     LINK systemLinkage();
     TypeTuple* toArgTypes(Type* t);
     bool isReturnOnStack(TypeFunction* tf, bool needsThis);
@@ -7683,7 +7797,7 @@ public:
         cpp(),
         objc(),
         architectureName(),
-        cpu((CPU)11),
+        cpu((CPU)11u),
         is64bit(true),
         isLP64(),
         obj_ext(),
@@ -7696,7 +7810,7 @@ public:
         RealProperties()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(0u, 0u, 0u, (TargetC::Runtime)0u, (TargetC::BitFieldStyle)0u), TargetCPP cpp = TargetCPP(false, false, false, false, (TargetCPP::Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 6LL, 24LL, 128LL, -125LL, 38LL, -37LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 15LL, 53LL, 1024LL, -1021LL, 308LL, -307LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 18LL, 64LL, 16384LL, -16381LL, 4932LL, -4931LL)) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(true, 0u, 0u, 0u, (TargetC::Runtime)0u, (TargetC::BitFieldStyle)0u), TargetCPP cpp = TargetCPP(false, false, false, false, (TargetCPP::Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL)) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),
@@ -7888,6 +8002,10 @@ public:
     void visit(RemoveExp* e);
 };
 
+extern _d_real creall(complex_t x);
+
+extern _d_real cimagl(complex_t x);
+
 extern void browse(const char* url);
 
 extern void error(const Loc& loc, const char* format, ...);
@@ -7929,6 +8047,22 @@ extern void vdeprecationSupplemental(const Loc& loc, const char* format, va_list
 extern void fatal();
 
 extern void halt();
+
+struct FileManager final
+{
+private:
+    StringTable<FileBuffer* > files;
+    static bool initialized;
+public:
+    FileBuffer* lookup(const char* filename);
+    FileBuffer* add(const char* filename, FileBuffer* filebuffer);
+    static FileManager fileManager;
+    static void _init();
+    void initialize();
+    FileManager()
+    {
+    }
+};
 
 struct Id final
 {
@@ -8141,10 +8275,15 @@ struct Id final
     static Identifier* criticalenter;
     static Identifier* criticalexit;
     static Identifier* _d_delThrowable;
+    static Identifier* _d_delstructImpl;
+    static Identifier* _d_delstruct;
+    static Identifier* _d_delstructTrace;
     static Identifier* _d_assert_fail;
     static Identifier* dup;
     static Identifier* _aaApply;
     static Identifier* _aaApply2;
+    static Identifier* _d_arrayctor;
+    static Identifier* _d_arraysetctor;
     static Identifier* Pinline;
     static Identifier* lib;
     static Identifier* linkerDirective;
@@ -8270,6 +8409,7 @@ struct Id final
     static Identifier* getUnitTests;
     static Identifier* getVirtualIndex;
     static Identifier* getPointerBitmap;
+    static Identifier* initSymbol;
     static Identifier* getCppNamespaces;
     static Identifier* isReturnOnStack;
     static Identifier* isZeroInit;
@@ -8294,6 +8434,16 @@ struct Id final
     static Identifier* dllexport;
     static Identifier* vector_size;
     static Identifier* noreturn;
+    static Identifier* builtin_va_list;
+    static Identifier* builtin_va_start;
+    static Identifier* builtin_va_arg;
+    static Identifier* builtin_va_copy;
+    static Identifier* builtin_va_end;
+    static Identifier* va_list_tag;
+    static Identifier* pack;
+    static Identifier* show;
+    static Identifier* push;
+    static Identifier* pop;
     static void initialize();
     Id()
     {
@@ -8343,7 +8493,7 @@ struct Token final
     void setString(const OutBuffer& buf);
     void setString();
     const char* toChars() const;
-    static const char* toChars(uint32_t value);
+    static const char* toChars(TOK value);
     Token() :
         next(),
         loc(),

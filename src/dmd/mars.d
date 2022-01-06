@@ -6,9 +6,9 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
  * Documentation:  https://dlang.org/phobos/dmd_mars.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mars.d
@@ -38,6 +38,7 @@ import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
+import dmd.file_manager;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -57,7 +58,7 @@ import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.man;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.response;
 import dmd.root.rmem;
 import dmd.root.string;
@@ -232,29 +233,29 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         version (Windows)
         {
-            browse("http://dlang.org/dmd-windows.html");
+            browse("https://dlang.org/dmd-windows.html");
         }
         version (linux)
         {
-            browse("http://dlang.org/dmd-linux.html");
+            browse("https://dlang.org/dmd-linux.html");
         }
         version (OSX)
         {
-            browse("http://dlang.org/dmd-osx.html");
+            browse("https://dlang.org/dmd-osx.html");
         }
         version (FreeBSD)
         {
-            browse("http://dlang.org/dmd-freebsd.html");
+            browse("https://dlang.org/dmd-freebsd.html");
         }
         /*NOTE: No regular builds for openbsd/dragonflybsd (yet) */
         /*
         version (OpenBSD)
         {
-            browse("http://dlang.org/dmd-openbsd.html");
+            browse("https://dlang.org/dmd-openbsd.html");
         }
         version (DragonFlyBSD)
         {
-            browse("http://dlang.org/dmd-dragonflybsd.html");
+            browse("https://dlang.org/dmd-dragonflybsd.html");
         }
         */
         return EXIT_SUCCESS;
@@ -300,8 +301,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module._init();
     Expression._init();
     Objc._init();
-    import dmd.filecache : FileCache;
-    FileCache._init();
 
     reconcileLinkRunLib(params, files.dim);
     version(CRuntime_Microsoft)
@@ -362,6 +361,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             auto buffer = readFromStdin();
             m.srcBuffer = new FileBuffer(buffer.extractSlice());
+            FileManager.fileManager.add(m.srcfile, m.srcBuffer);
         }
     }
 
@@ -838,10 +838,7 @@ private FileBuffer readFromStdin()
             {
                 // We're done
                 assert(pos < sz + 2);
-                buffer[pos] = '\0';
-                buffer[pos + 1] = '\0';
-                buffer[pos + 2] = '\0';
-                buffer[pos + 3] = '\0';
+                buffer[pos .. pos + 4] = '\0';
                 return FileBuffer(buffer[0 .. pos]);
             }
         } while (pos < sz);
@@ -1224,6 +1221,7 @@ private void setDefaultLibrary(ref Param params, const ref Target target)
  *      params = which target to compile for (set by `setTarget()`)
  *      tgt    = target
  */
+public
 void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
@@ -1231,7 +1229,7 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
 
-    tgt.addPredefinedGlobalIdentifiers();
+    addPredefinedGlobalIdentifiers(tgt);
 
     if (params.doDocComments)
         VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
@@ -1261,6 +1259,125 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
     }
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+}
+
+/**
+ * Add predefined global identifiers that are determied by the target
+ */
+private
+void addPredefinedGlobalIdentifiers(const ref Target tgt)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    if (tgt.cpu >= CPU.sse2)
+    {
+        predef("D_SIMD");
+        if (tgt.cpu >= CPU.avx)
+            predef("D_AVX");
+        if (tgt.cpu >= CPU.avx2)
+            predef("D_AVX2");
+    }
+
+    with (Target)
+    {
+        if (tgt.os & OS.Posix)
+            predef("Posix");
+        if (tgt.os & (OS.linux | OS.FreeBSD | OS.OpenBSD | OS.DragonFlyBSD | OS.Solaris))
+            predef("ELFv1");
+        switch (tgt.os)
+        {
+            case OS.none:         { predef("FreeStanding"); break; }
+            case OS.linux:        { predef("linux");        break; }
+            case OS.OpenBSD:      { predef("OpenBSD");      break; }
+            case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
+            case OS.Solaris:      { predef("Solaris");      break; }
+            case OS.Windows:
+            {
+                 predef("Windows");
+                 VersionCondition.addPredefinedGlobalIdent(tgt.is64bit ? "Win64" : "Win32");
+                 break;
+            }
+            case OS.OSX:
+            {
+                predef("OSX");
+                // For legacy compatibility
+                predef("darwin");
+                break;
+            }
+            case OS.FreeBSD:
+            {
+                predef("FreeBSD");
+                switch (tgt.osMajor)
+                {
+                    case 10: predef("FreeBSD_10");  break;
+                    case 11: predef("FreeBSD_11"); break;
+                    case 12: predef("FreeBSD_12"); break;
+                    default: predef("FreeBSD_11"); break;
+                }
+                break;
+            }
+            default: assert(0);
+        }
+    }
+
+    addCRuntimePredefinedGlobalIdent(tgt.c);
+    addCppRuntimePredefinedGlobalIdent(tgt.cpp);
+
+    if (tgt.is64bit)
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
+        VersionCondition.addPredefinedGlobalIdent("X86_64");
+    }
+    else
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
+        VersionCondition.addPredefinedGlobalIdent("X86");
+    }
+    if (tgt.isLP64)
+        VersionCondition.addPredefinedGlobalIdent("D_LP64");
+    else if (tgt.is64bit)
+        VersionCondition.addPredefinedGlobalIdent("X32");
+}
+
+private
+void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    with (TargetC.Runtime) switch (c.runtime)
+    {
+    default:
+    case Unspecified: return;
+    case Bionic:      return predef("CRuntime_Bionic");
+    case DigitalMars: return predef("CRuntime_DigitalMars");
+    case Glibc:       return predef("CRuntime_Glibc");
+    case Microsoft:   return predef("CRuntime_Microsoft");
+    case Musl:        return predef("CRuntime_Musl");
+    case Newlib:      return predef("CRuntime_Newlib");
+    case UClibc:      return predef("CRuntime_UClibc");
+    case WASI:        return predef("CRuntime_WASI");
+    }
+}
+
+private
+void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
+{
+    import dmd.cond : VersionCondition;
+
+    alias predef = VersionCondition.addPredefinedGlobalIdent;
+    with (TargetCPP.Runtime) switch (cpp.runtime)
+    {
+    default:
+    case Unspecified: return;
+    case Clang:       return predef("CppRuntime_Clang");
+    case DigitalMars: return predef("CppRuntime_DigitalMars");
+    case Gcc:         return predef("CppRuntime_Gcc");
+    case Microsoft:   return predef("CppRuntime_Microsoft");
+    case Sun:         return predef("CppRuntime_Sun");
+    }
 }
 
 private void printPredefinedVersions(FILE* stream)
@@ -1923,7 +2040,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         case 14_488:
                             break;
                         case 16_997:
-                            params.fix16997 = true;
+                            deprecation(Loc.initial, "`-transition=16997` is now the default behavior");
                             break;
                         default:
                             error("Transition `%s` is invalid", p);
@@ -1940,7 +2057,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             params.dtorFields = FeatureState.enabled;
                             break;
                         case "intpromote":
-                            params.fix16997 = true;
+                            deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
                             break;
                         case "markdown":
                             params.markdown = true;

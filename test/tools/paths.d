@@ -81,3 +81,15 @@ string resultsDir()
     enum def = testPath("test_results");
     return resultsDir ? resultsDir : (resultsDir = environment.get("RESULTS_DIR", def));
 }
+
+/// Returns: a path to 'target' relative to `base` using POSIX file separators
+version (Windows)
+string relativePosixPath(const string target, const string base) pure @safe
+{
+    import std.array : join;
+    import std.path : relativePath, pathSplitter;
+
+    return target.relativePath(base)
+                .pathSplitter()
+                .join('/');
+}

@@ -3605,6 +3605,84 @@ void test21878()
 }
 
 /************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20133
+
+void bar20133(ref string text)
+{
+    text = text[1 .. $];
+    assert(text.length < 3);
+    if (text.length == 2) assert(text == "oo");
+    if (text.length == 1) assert(text == "o");
+    if (text.length == 0) assert(text == "");
+    string tcopy = text;
+    if (tcopy.length > 0)
+        bar20133(tcopy);
+    assert(tcopy.length < 2);
+    if (tcopy.length == 1) assert(tcopy == "o");
+    if (tcopy.length == 0) assert(tcopy == "");
+}
+
+void bar20133_2(ref string text)
+{
+    auto ptext = &text;
+    *ptext = text[1 .. $];
+    assert(text.length < 3);
+    if (text.length == 2) assert(text == "oo");
+    if (text.length == 1) assert(text == "o");
+    if (text.length == 0) assert(text == "");
+    string tcopy = text;
+    if (tcopy.length > 0)
+        bar20133_2(tcopy);
+    assert(tcopy.length < 2);
+    if (tcopy.length == 1) assert(tcopy == "o");
+    if (tcopy.length == 0) assert(tcopy == "");
+}
+
+alias fun20133 = {
+    string input = "foo";
+    bar20133(input);
+    assert(input == "oo");
+    return input;
+};
+
+alias fun20133_2 = {
+    string input = "foo";
+    bar20133_2(input);
+    assert(input == "oo");
+    return input;
+};
+
+void test20133()
+{
+    enum ctest = fun20133();
+    enum ctest2 = fun20133_2();
+    auto rtest = fun20133();
+    auto rtest2 = fun20133_2();
+}
+
+/************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22530
+
+class D22530 { }
+
+class C22530
+{
+    D22530 y = new D22530;
+    alias y this;
+}
+
+void test22530()
+{
+    // fixed
+    static assert(cast(D22530)(new C22530) is null);
+    static assert((1 ? cast(D22530)(new C22530) : new D22530) is null);
+
+    // runtime version already works
+    assert(cast(D22530)(new C22530) is null);
+    assert((1 ? cast(D22530)(new C22530) : new D22530) is null);
+}
+
+/************************************************/
 
 int main()
 {
@@ -3732,6 +3810,8 @@ int main()
     test20366();
     test20400();
     test21878();
+    test20133();
+    test22530();
 
     printf("Success\n");
     return 0;

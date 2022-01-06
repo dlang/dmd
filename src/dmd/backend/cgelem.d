@@ -2,15 +2,15 @@
  * Local optimizations of elem trees
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Does strength reduction optimizations on the elem trees,
  * i.e. rewriting trees to less expensive trees.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgelem.d, backend/cgelem.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_cgelem.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgelem.d
@@ -37,7 +37,6 @@ import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -792,12 +791,40 @@ private elem * elmemset(elem *e, goal_t goal)
                     case SHORTSIZE:     tym = TYshort;  goto L1;
                     case LONGSIZE:      tym = TYlong;   goto L1;
                     case LLONGSIZE:     if (_tysize[TYint] == 2)
-                                            goto Ldefault;
+                                            goto default;
                                         tym = TYllong;  goto L1;
+
+                    case 16:            if (REGSIZE == 8 && e1.Eoper == OPrelconst)
+                                            goto L1;
+                                        goto default;
                     L1:
                     {
                         tym_t ety = e.Ety;
                         memset(&value, value & 0xFF, value.sizeof);
+                        if (nbytes == 2 * REGSIZE && e1.Eoper == OPrelconst)
+                        {
+                            /* Rewrite as:
+                             * (*e1.0 = value),(*e1.4 = value),(e1)
+                             */
+                            tym = REGSIZE == 8 ? TYllong : TYint;
+
+                            auto e1a = el_copytree(e1);
+                            e1a.Eoper = OPvar;
+                            e1a.Ety = tym;
+                            auto ea = el_bin(OPeq,TYint,e1a,el_long(tym,value));
+
+                            auto e1b = el_copytree(e1);
+                            e1b.Eoper = OPvar;
+                            e1b.Ety = tym;
+                            e1b.EV.Voffset += REGSIZE;
+                            auto eb = el_bin(OPeq,tym,e1b,el_long(tym,value));
+
+                            e.EV.E1 = null;
+                            el_free(e);
+                            e = el_combine(el_combine(ea, eb), e1);
+                            e = optelem(e, GOALvalue);
+                            return e;
+                        }
                         evalue.EV.Vullong = value;
                         evalue.Ety = tym;
                         e.Eoper = OPeq;
@@ -812,11 +839,10 @@ private elem * elmemset(elem *e, goal_t goal)
                         e.EV.E2 = el_selecte2(e.EV.E2);
                         e = el_combine(e, tmp);
                         e = optelem(e,GOALvalue);
-                        break;
                     }
+                        break;
 
                     default:
-                    Ldefault:
                         break;
                 }
             }
@@ -886,7 +912,7 @@ private elem * elmemcpy(elem *e, goal_t goal)
         e.EV.E2.EV.E1 = null;
         e.EV.E2.EV.E2 = null;
         el_free(e);
-        e = el_bin(OPcall, ty, el_var(getRtlsym(RTLSYM_MEMCPY)), ep);
+        e = el_bin(OPcall, ty, el_var(getRtlsym(RTLSYM.MEMCPY)), ep);
          +/
     }
     return e;
@@ -2863,6 +2889,7 @@ private bool optim_loglog(elem **pe)
     if (n <= 3)
         return false;
     uint ty = e.Ety;
+    assert(n < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
     elem **array = cast(elem **)malloc(n * (elem *).sizeof);
     assert(array);
     elem **p = array;
@@ -3607,7 +3634,9 @@ elem * elstruct(elem *e, goal_t goal)
                     }
                 }
                 else if (I32 && targ1 && targ2)
+                {
                     tym = TYllong;
+                }
                 assert(tym != TYstruct);
             }
             assert(tym != ~0);
@@ -3695,6 +3724,8 @@ elem * elstruct(elem *e, goal_t goal)
             break;
         }
     }
+    //printf("elstruct return\n");
+    //elem_print(e);
     return e;
 }
 
@@ -5651,7 +5682,7 @@ private elem * optelem(elem *e, goal_t goal)
 beg:
     //__gshared uint count;
     //printf("count: %u\n", ++count);
-    //{ printf("xoptelem: %p ",e); WROP(e.Eoper); printf(" goal x%x\n", goal); }
+    //{ printf("xoptelem: %p %s goal x%x\n",e, oper_str(e.Eoper), goal); }
     assert(e);
     elem_debug(e);
     assert(e.Ecount == 0);             // no CSEs
@@ -6133,11 +6164,11 @@ beg:
   }
 
 //  if (debugb)
-//  {   print("optelem: %p ",e); WROP(op); print("\n"); }
+//  {   print("optelem: %p %s\n",e, oper_str(op)); }
 
     static if (0)
     {
-        {   print("xoptelem: %p ",e); WROP(e.Eoper); print("\n"); }
+        printf("xoptelem: %p %s\n", e, oper_str(e.Eoper));
         elem_print(e);
         e = (*elxxx[op])(e, goal);
         printf("After:\n");

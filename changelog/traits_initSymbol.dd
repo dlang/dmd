@@ -1,0 +1,29 @@
+Added __traits(initSymbol) to obtain aggregate initializers
+
+Using `__traits(initSymbol, A)` where `A` is either a `class` or a `struct`
+will yield a `const(void)[]` that holds the initial state of an instance
+of `A`. The slice either points to the initializer symbol of `A` or `null`
+if `A` is zero-initialised - matching the behaviour of `TypeInfo.initializer()`.
+
+This traits can e.g. be used to initialize `malloc`'ed class instances without
+relying on `TypeInfo`:
+
+---
+class C
+{
+    int i = 4;
+}
+
+void main()
+{
+    const void[] initSym = __traits(initSymbol, C);
+
+    void* ptr = malloc(initSym.length);
+    scope (exit) free(ptr);
+
+    ptr[0..initSym.length] = initSym[];
+
+    C c = cast(C) ptr;
+    assert(c.i == 4);
+}
+---

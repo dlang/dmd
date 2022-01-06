@@ -3,9 +3,9 @@
  *
  * Not to be confused with the `scope` storage class.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dscope.d, _dscope.d)
  * Documentation:  https://dlang.org/phobos/dmd_dscope.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dscope.d
@@ -33,7 +33,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.speller;
 import dmd.statement;
@@ -730,12 +730,21 @@ struct Scope
         }
     }
 
+    /******************************
+     */
     structalign_t alignment()
     {
         if (aligndecl)
-            return aligndecl.getAlignment(&this);
+        {
+            auto ad = aligndecl.getAlignment(&this);
+            return ad.salign;
+        }
         else
-            return STRUCTALIGN_DEFAULT;
+        {
+            structalign_t sa;
+            sa.setDefault();
+            return sa;
+        }
     }
 
     /**********************************

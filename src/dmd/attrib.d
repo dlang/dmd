@@ -14,9 +14,9 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/attrib.d, _attrib.d)
  * Documentation:  https://dlang.org/phobos/dmd_attrib.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/attrib.d
@@ -42,7 +42,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.objc; // for objc.addSymbols
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.target; // for target.systemLinkage
 import dmd.tokens;
 import dmd.visitor;
@@ -696,12 +696,9 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
 {
     Expressions* exps;                              /// Expression(s) yielding the desired alignment,
                                                     /// the largest value wins
-    enum structalign_t UNKNOWN = 0;                 /// alignment not yet computed
-    static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
-
-    /// the actual alignment, `UNKNOWN` until it's either set to the value of `ealign`
-    /// or `STRUCTALIGN_DEFAULT` if `ealign` is null ( / an error ocurred)
-    structalign_t salign = UNKNOWN;
+    /// the actual alignment is Unknown until it's either set to the value of `ealign`
+    /// or the default if `ealign` is null ( / an error ocurred)
+    structalign_t salign;
 
 
     extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
@@ -709,8 +706,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         super(loc, null, decl);
         if (exp)
         {
-            if (!exps)
-                exps = new Expressions();
+            exps = new Expressions();
             exps.push(exp);
         }
     }
@@ -719,6 +715,12 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     {
         super(loc, null, decl);
         this.exps = exps;
+    }
+
+    extern (D) this(const ref Loc loc, structalign_t salign, Dsymbols* decl)
+    {
+        super(loc, null, decl);
+        this.salign = salign;
     }
 
     override AlignDeclaration syntaxCopy(Dsymbol s)
@@ -927,12 +929,13 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             (*args)[0] = e;
         }
 
-        if (e.isBool(true))
-            return PINLINE.always;
-        else if (e.isBool(false))
-            return PINLINE.never;
-        else
+        const opt = e.toBool();
+        if (opt.isEmpty())
             return PINLINE.default_;
+        else if (opt.get())
+            return PINLINE.always;
+        else
+            return PINLINE.never;
     }
 
     override const(char)* kind() const
@@ -1196,7 +1199,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
         // expand static foreach
         import dmd.statementsem: makeTupleForeach;
-        Dsymbols* d = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
+        Dsymbols* d = makeTupleForeach(_scope, true, true, sfe.aggrfe, decl, sfe.needExpansion).decl;
         if (d) // process generated declarations
         {
             // Add members lazily.

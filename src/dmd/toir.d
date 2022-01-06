@@ -1,9 +1,9 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
  * Documentation:  https://dlang.org/phobos/dmd_toir.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toir.d
@@ -17,7 +17,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 
 import dmd.backend.cdef;
@@ -34,6 +34,7 @@ import dmd.backend.type;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmangle;
@@ -99,6 +100,7 @@ struct IRState
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.eh_none);
+        this.Cfile = m.isCFile;
     }
 
     FuncDeclaration getFunc()
@@ -495,8 +497,9 @@ int intrinsic_op(FuncDeclaration fd)
         return op;
     //printf("intrinsic_op(%s)\n", name);
 
-    // Look for [core|std].module.function as id3.id2.id1 ...
     const Identifier id3 = fd.ident;
+
+    // Look for [core|std].module.function as id3.id2.id1 ...
     auto m = fd.getModule();
     if (!m || !m.md)
         return op;
@@ -720,14 +723,14 @@ void setClosureVarOffset(FuncDeclaration fd)
              */
             memsize = target.ptrsize * 2;
             memalignsize = memsize;
-            xalign = STRUCTALIGN_DEFAULT;
+            xalign.setDefault();
         }
         else if (v.storage_class & (STC.out_ | STC.ref_))
         {
             // reference parameters are just pointers
             memsize = target.ptrsize;
             memalignsize = memsize;
-            xalign = STRUCTALIGN_DEFAULT;
+            xalign.setDefault();
         }
         else
         {
@@ -869,7 +872,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
-        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_ALLOCMEMORY)), e);
+        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM.ALLOCMEMORY)), e);
         toTraceGC(irs, e, fd.loc);
 
         // Assign block of memory to sclosure

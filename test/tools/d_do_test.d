@@ -254,6 +254,7 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     auto tokenStart = std.string.indexOf(file, token);
     if (tokenStart == -1) return false;
 
+    bool applied = true;
     file = file[tokenStart + token.length .. $];
 
     auto lineEndR = std.string.indexOf(file, "\r");
@@ -286,7 +287,10 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
             if (oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
                 result = result[close + 1 .. $];
             else
+            {
                 result = null;
+                applied = false; // Parameter was skipped
+            }
         }
     }
     // skips the :, if present
@@ -305,12 +309,79 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
             else
                 result ~= multiLineDelimiter ~ result2;
         }
+        applied = true;
     }
 
     // fix-up separators
     result = result.unifyDirSep(envData.sep);
 
-    return true;
+    return applied;
+}
+
+unittest
+{
+    immutable file = `
+/*
+Here's a link
+FOO: a b
+FOO: c
+*/
+
+void main() {}
+
+// BAR(windows): all_win
+// BAR(windows64): 64_win
+
+int i;
+
+/* REQUIRED_ARGS: -O
+ * PERMUTE_ARGS:
+ */
+`;
+    immutable EnvData win32 = {
+        os: "windows",
+        model: "32",
+    };
+
+    immutable EnvData win64 = {
+        os: "windows",
+        model: "64",
+    };
+
+    immutable EnvData linux = {
+        os: "linux",
+        model: "64",
+    };
+
+    string found;
+    assert(!findTestParameter(linux, file, "OTHER", found));
+    assert(found is null);
+
+    assert(findTestParameter(win64, file, "FOO", found));
+    assert(found == "a b c");
+
+    found = null;
+    assert(findTestParameter(win64, file, "FOO", found, ";"));
+    assert(found == "a b;c");
+
+    found = null;
+    assert(findTestParameter(win64, file, "BAR", found));
+    assert(found == "all_win 64_win");
+
+    found = null;
+    assert(findTestParameter(win32, file, "BAR", found));
+    assert(found == "all_win");
+
+    found = null;
+    assert(!findTestParameter(linux, file, "BAR", found));
+    assert(found is null);
+
+    assert(findTestParameter(linux, file, "PERMUTE_ARGS", found));
+    assert(found == "");
+
+    found = null;
+    assert(findTestParameter(linux, file, "REQUIRED_ARGS", found));
+    assert(found == "-O");
 }
 
 /**
@@ -373,6 +444,62 @@ bool findOutputParameter(string file, string token, out string result, string se
     return found;
 }
 
+unittest
+{
+    immutable file = `
+/*
+Here's a link
+TEST_OUTPUT:
+---
+Hello, World
+---
+*/
+
+void main() {}
+
+/*
+TEST_OUTPUT:
+---
+Have a nice day
+---
+*/
+
+void foo() {}
+
+/*
+BAD
+---
+---
+*/
+
+/*
+MISSING:
+*/
+
+/*
+INCOMPLETE:
+---
+*/
+`;
+
+    string found;
+    assert(!findOutputParameter(file, "UNKNOWN", found, "/"));
+    assert(found is null);
+
+    assert(findOutputParameter(file, "TEST_OUTPUT", found, "/"));
+    assert(found == "Hello, World\nHave a nice day");
+
+    found = null;
+    auto ex = collectException(findOutputParameter(file, "MISSING", found, "/"));
+    assert(ex);
+    assert(ex.msg == "invalid TEST_OUTPUT format");
+    assert(found is null);
+
+    ex = collectException(findOutputParameter(file, "INCOMPLETE", found, "/"));
+    assert(ex);
+    assert(ex.msg == "invalid TEST_OUTPUT format");
+}
+
 /// Replaces the placeholer `${RESULTS_DIR}` with the actual path
 /// to `test_results` stored in `envData`.
 void replaceResultsDir(ref string arguments, const ref EnvData envData)
@@ -398,6 +525,26 @@ string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
     return null;
 }
 
+unittest
+{
+    immutable EnvData win32         = { os: "windows",  model: "32", };
+    immutable EnvData win32mscoff   = { os: "windows",  model: "32mscoff", };
+    immutable EnvData win64         = { os: "windows",  model: "64", };
+
+    assert(getDisabledReason(null, win64) is null);
+
+    assert(getDisabledReason([ "linux" ], win64) is null);
+    assert(getDisabledReason([ "linux", "win" ], win64) == "on win");
+
+    assert(getDisabledReason([ "linux", "win64" ], win64) == "on win64");
+    assert(getDisabledReason([ "linux", "win32" ], win64) is null);
+
+    assert(getDisabledReason([ "win32mscoff" ], win32mscoff) == "on win32mscoff");
+    assert(getDisabledReason([ "win32mscoff" ], win32) is null);
+
+    assert(getDisabledReason([ "win32" ], win32mscoff) == "on win32");
+    assert(getDisabledReason([ "win32" ], win32) == "on win32");
+}
 /**
  * Reads the test configuration from the source code (using `findTestParameter` and
  * `findOutputParameter`) and initializes `testArgs` accordingly. Also merges
@@ -474,13 +621,12 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
     if (findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs))
-    {
         replaceResultsDir(testArgs.executeArgs, envData);
-        // Always run main even if compiled with '-unittest' but let
-        // tests switch to another behaviour if necessary
-        if (!testArgs.executeArgs.canFind("--DRT-testmode"))
-            testArgs.executeArgs ~= " --DRT-testmode=run-main";
-    }
+
+    // Always run main even if compiled with '-unittest' but let
+    // tests switch to another behaviour if necessary
+    if (!testArgs.executeArgs.canFind("--DRT-testmode"))
+        testArgs.executeArgs ~= " --DRT-testmode=run-main";
 
     string extraSourcesStr;
     findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
@@ -580,8 +726,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
-    if (findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript))
-        testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
+    findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript);
 
     return true;
 }

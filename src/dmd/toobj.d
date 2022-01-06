@@ -1,9 +1,9 @@
 /**
  * Convert an AST that went through all semantic phases into an object file.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
  * Documentation:  https://dlang.org/phobos/dmd_toobj.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toobj.d
@@ -17,7 +17,7 @@ import core.stdc.string;
 import core.stdc.time;
 
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 
@@ -585,6 +585,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
             Dsymbol parent = vd.toParent();
             s.Sclass = SCglobal;
 
+            /* Make C static functions SCstatic
+             */
+            if (vd.storage_class & STC.static_ && vd.isCsymbol())
+                s.Sclass = SCstatic;
+
             do
             {
                 /* Global template data members need to be in comdat's
@@ -600,8 +605,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
             } while (parent);
             s.Sfl = FLdata;
 
-            if (!sz && vd.type.toBasetype().ty != Tsarray)
-                assert(0); // this shouldn't be possible
+            // Size 0 should only be possible for T[0] and noreturn
+            if (!sz)
+            {
+                const ty = vd.type.toBasetype().ty;
+                if (ty != Tsarray && ty != Tnoreturn)
+                    assert(0); // this shouldn't be possible
+            }
 
             auto dtb = DtBuilder(0);
             if (config.objfmt == OBJ_MACH && target.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread)
@@ -748,7 +758,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 Expression e = (*pd.args)[0];
 
-                assert(e.op == TOK.string_);
+                assert(e.op == EXP.string_);
 
                 StringExp se = cast(StringExp)e;
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
@@ -783,45 +793,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 Expression e = (*pd.args)[0];
 
-                assert(e.op == TOK.string_);
+                assert(e.op == EXP.string_);
 
                 StringExp se = cast(StringExp)e;
                 char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(directive, true);
 
                 obj_linkerdirective(directive);
-            }
-            else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
-            {
-                immutable isCtor = pd.ident == Id.crt_constructor;
-
-                static uint recurse(Dsymbol s, bool isCtor)
-                {
-                    if (auto ad = s.isAttribDeclaration())
-                    {
-                        uint nestedCount;
-                        auto decls = ad.include(null);
-                        if (decls)
-                        {
-                            for (size_t i = 0; i < decls.dim; ++i)
-                                nestedCount += recurse((*decls)[i], isCtor);
-                        }
-                        return nestedCount;
-                    }
-                    else if (auto f = s.isFuncDeclaration())
-                    {
-                        f.isCrtCtorDtor |= isCtor ? 1 : 2;
-                        if (f.linkage != LINK.c)
-                            f.error("must be `extern(C)` for `pragma(%s)`", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
-                        return 1;
-                    }
-                    else
-                        return 0;
-                    assert(0);
-                }
-
-                if (recurse(pd, isCtor) > 1)
-                    pd.error("can only apply to a single declaration");
             }
 
             visit(cast(AttribDeclaration)pd);

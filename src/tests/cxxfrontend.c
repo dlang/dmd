@@ -1,15 +1,16 @@
 /**
  * Test the C++ compiler interface of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 2017-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tests/cxxfrontend.c, _cxxfrontend.c)
  */
 
 #include "root/array.h"
 #include "root/bitarray.h"
+#include "root/complex_t.h"
 #include "root/ctfloat.h"
 #include "root/dcompat.h"
 #include "root/dsystem.h"
@@ -17,7 +18,8 @@
 #include "root/filename.h"
 #include "root/longdouble.h"
 #include "root/object.h"
-#include "root/outbuffer.h"
+#include "root/optional.h"
+#include "common/outbuffer.h"
 #include "root/port.h"
 #include "root/rmem.h"
 
@@ -27,7 +29,6 @@
 #include "ast_node.h"
 #include "attrib.h"
 #include "compiler.h"
-#include "complex_t.h"
 #include "cond.h"
 #include "ctfe.h"
 #include "declaration.h"
@@ -100,12 +101,12 @@ static void frontend_term()
 void test_tokens()
 {
     // First valid TOK value
-    assert(TOKlparen == 1);
-    assert(strcmp(Token::toChars(TOKlparen), "(") == 0);
+    assert((unsigned)TOK::leftParenthesis == 1);
+    assert(strcmp(Token::toChars(TOK::leftParenthesis), "(") == 0);
 
     // Last valid TOK value
-    assert(TOK__attribute__ == TOKMAX - 1);
-    assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
+    assert((unsigned)TOK::attribute__ == (unsigned)TOK::MAX - 1);
+    assert(strcmp(Token::toChars(TOK::attribute__), "__attribute__") == 0);
 }
 
 void test_compiler_globals()
@@ -335,13 +336,16 @@ void test_expression()
 
     assert(e);
     assert(e->isConst());
+
+    Optional<bool> res = e->toBool();
+    assert(res.get());
 }
 
 /**********************************/
 
 void test_target()
 {
-    assert(target.isVectorOpSupported(Type::tint32, TOKpow));
+    assert(target.isVectorOpSupported(Type::tint32, EXP::pow));
 }
 
 /**********************************/
@@ -353,17 +357,17 @@ void test_emplace()
 
     IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
     Expression *e = ue.exp();
-    assert(e->op == TOKint64);
+    assert(e->op == EXP::int64);
     assert(e->toInteger() == 1065353216);
 
     UnionExp ure;
     Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-    assert(re->op == TOKfloat64);
+    assert(re->op == EXP::float64);
     assert(re->toReal() == CTFloat::one);
 
     UnionExp uie;
     Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-    assert(ie->op == TOKint64);
+    assert(ie->op == EXP::int64);
     assert(ie->toInteger() == e->toInteger());
 }
 
@@ -546,6 +550,15 @@ void test_module()
     assert(global.endGagging(errors));
 }
 
+void test_optional()
+{
+    Optional<bool> opt = Optional<bool>::create(true);
+    assert(!opt.isEmpty());
+    assert(opt.isPresent());
+    assert(opt.get() == true);
+    assert(opt.hasValue(true));
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -567,6 +580,7 @@ int main(int argc, char **argv)
     test_outbuffer();
     test_cppmangle();
     test_module();
+    test_optional();
 
     frontend_term();
 

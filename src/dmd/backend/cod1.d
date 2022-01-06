@@ -4,12 +4,12 @@
  * Handles function calls: putting arguments in registers / on the stack, and jumping to the function.
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod1.d, backend/cod1.d)
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod1.d
  */
@@ -24,6 +24,7 @@ version (MARS)
 version (COMPILE)
 {
 
+import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -2156,13 +2157,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.ldiv:
                 cinfo.retregs16 = mDX|mAX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__divdi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2184,13 +2185,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.lmod:
                 cinfo.retregs16 = mCX|mBX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__moddi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2212,13 +2213,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.uldiv:
                 cinfo.retregs16 = mDX|mAX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__udivdi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__ULDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2240,13 +2241,13 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
             case CLIB.ulmod:
                 cinfo.retregs16 = mCX|mBX;
-                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD))
                 {
                     s = symboly("__umoddi3", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
                     cinfo.retregs32 = mDX|mAX;
                 }
-                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                else if (config.exe & EX_SOLARIS)
                 {
                     s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
                     cinfo.flags = INFpushebx;
@@ -2820,7 +2821,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         assert(!(cinfo.flags & (INF32 | INF64)));
     getregs(cdb,(~s.Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
     keepmask &= ~s.Sregsaved;
-    int npushed = numbitsset(keepmask);
+    int npushed = popcnt(keepmask);
     CodeBuilder cdbpop;
     cdbpop.ctor();
     gensaverestore(keepmask, cdb, cdbpop);
@@ -2907,8 +2908,8 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
                 (cinfo.flags & (INFfloat | INFwkdone)) == INFfloat)
             {
                 cinfo.flags |= INFwkdone;
-                makeitextern(getRtlsym(RTLSYM_INTONLY));
-                objmod.wkext(s, getRtlsym(RTLSYM_INTONLY));
+                makeitextern(getRtlsym(RTLSYM.INTONLY));
+                objmod.wkext(s, getRtlsym(RTLSYM.INTONLY));
             }
         }
     }
@@ -3362,14 +3363,14 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         uint psize = cast(uint)_align(stackalign, paramsize(ep, tyf));     // align on stack boundary
         if (config.exe == EX_WIN64)
         {
-            //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep.Ety); printf("\n");
+            //printf("[%d] size = %u, numpara = %d ep = %p %s\n", i, psize, numpara, ep, tym_str(ep.Ety));
             debug
             if (psize > REGSIZE) elem_print(e);
 
             assert(psize <= REGSIZE);
             psize = REGSIZE;
         }
-        //printf("[%d] size = %u, numpara = %d ", i, psize, numpara); WRTYxx(ep.Ety); printf("\n");
+        //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
         if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, &parameters[i].reg, &parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
@@ -3488,7 +3489,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
 
         // Allocate stack space for four entries anyway
-        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
+        // https://msdn.microsoft.com/en-US/library/ew5tede7%28v=vs.100%29
     }
 
     int[XMM7 + 1] regsaved = void;
@@ -3710,7 +3711,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
     if (config.exe == EX_WIN64)
     {   // Allocate stack space for four entries anyway
-        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
+        // https://msdn.microsoft.com/en-US/library/ew5tede7%28v=vs.100%29
         {   uint sz = 4 * REGSIZE;
             if (usefuncarg)
             {
@@ -3838,7 +3839,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
     {   // Call function directly
 
         if (!tyfunc(tym1))
-            WRTYxx(tym1);
+            printf("%s\n", tym_str(tym1));
         assert(tyfunc(tym1));
         s = e1.EV.Vsym;
         if (s.Sflags & SFLexit)
@@ -3862,7 +3863,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             getregs(cdbe,~s.Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
         if (strcmp(s.Sident.ptr, "alloca") == 0)
         {
-            s = getRtlsym(RTLSYM_ALLOCA);
+            s = getRtlsym(RTLSYM.ALLOCA);
             makeitextern(s);
             int areg = CX;
             if (config.exe == EX_WIN64)
@@ -3944,7 +3945,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         // Function calls may throw Errors
         funcsym_p.Sfunc.Fflags3 &= ~Fnothrow;
 
-        if (e1.Eoper != OPind) { WRFL(cast(FL)el_fl(e1)); WROP(e1.Eoper); }
+        if (e1.Eoper != OPind) { WRFL(cast(FL)el_fl(e1)); printf("e1.Eoper: %s\n", oper_str(e1.Eoper)); }
         save87(cdb);                   // assume 8087 regs are all trashed
         assert(e1.Eoper == OPind);
         elem *e11 = e1.EV.E1;
@@ -4214,7 +4215,7 @@ targ_size_t paramsize(elem* e, tym_t tyf)
         szb = type_parameterSize(e.ET, tyf);
     else
     {
-        WRTYxx(tym);
+        printf("%s\n", tym_str(tym));
         assert(0);
     }
     return szb;

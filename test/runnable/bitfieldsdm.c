@@ -1,11 +1,8 @@
 /* test bitfields for Digital Mars C
- * Note that this test is for win32 only. It is marked as DISABLED because
- * Azure insists on adding switches for Microsoft C, which then cause these tests
- * to fail. So, this test doesn't run.
- * Fixing the test runner so -win32mscoff can be DISABLED would be nice,
- * so then this test can be run.
+ * Note that this test is for win32 only
+ *
  * REQUIRED_ARGS:
- * DISABLED: win32 win64 linux32 freebsd32 osx32 linux64 freebsd64 osx64
+ * DISABLED: win32mscoff win64 linux freebsd osx
  * RUN_OUTPUT:
 ---
                 DM |   MS |  P32 |  P64
@@ -164,7 +161,7 @@ int main()
     printf("A8  = %2d %d || 12 4 | 12 4 |  8 4 |  8 8\n", (int)sizeof(struct A8),  (int)_Alignof(struct A8));
     printf("A9  = %2d %d || 32 8 | 32 8 | 16 4 | 16 8\n", (int)sizeof(struct A9),  (int)_Alignof(struct A9));
     printf("A10 = %2d %d ||  4 2 |  4 2 |  2 2 |  2 2\n", (int)sizeof(struct A10), (int)_Alignof(struct A10));
-    printf("A11 = %2d %d || 15 4 | 16 4 | 12 4 | 12 4\n", (int)sizeof(struct A11), (int)_Alignof(struct A11));
+    printf("A11 = %2d %d || 16 4 | 16 4 | 12 4 | 12 4\n", (int)sizeof(struct A11), (int)_Alignof(struct A11));
 
     {
         struct S9 s;
@@ -207,5 +204,3 @@ int main()
 
     return 0;
 }
-
-

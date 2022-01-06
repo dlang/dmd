@@ -10,7 +10,7 @@ dependency ":frontend" version="*"
 subPackage {
   name "root"
   targetType "library"
-  sourcePaths "src/dmd/root"
+  sourcePaths "src/dmd/common" "src/dmd/root"
 }
 
 subPackage {
@@ -22,13 +22,12 @@ subPackage {
     "src/dmd/console.d" \
     "src/dmd/entity.d" \
     "src/dmd/errors.d" \
-    "src/dmd/filecache.d" \
+    "src/dmd/file_manager.d" \
     "src/dmd/globals.d" \
     "src/dmd/id.d" \
     "src/dmd/identifier.d" \
     "src/dmd/lexer.d" \
     "src/dmd/tokens.d" \
-    "src/dmd/utf.d" \
     "src/dmd/utils.d"
 
   versions \
@@ -86,12 +85,13 @@ subPackage {
 
   excludedSourceFiles "src/dmd/backend/*"
   excludedSourceFiles "src/dmd/root/*"
+  excludedSourceFiles "src/dmd/common/*"
   excludedSourceFiles "src/dmd/{\
     astbase,\
     console,\
     entity,\
     errors,\
-    filecache,\
+    file_manager,\
     globals,\
     id,\
     identifier,\

@@ -1,9 +1,9 @@
 /**
  * Development utility for printing AST nodes by their internal name, instead of as D source code.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * Authors:     Stefan Koch
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/asttypename.d, _asttypename.d)
  * Documentation:  https://dlang.org/phobos/dmd_asttypename.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/asttypename.d
@@ -15,7 +15,6 @@ import dmd.ast_node;
 import dmd.attrib;
 import dmd.aliasthis;
 import dmd.aggregate;
-import dmd.complex;
 import dmd.cond;
 import dmd.ctfeexpr;
 import dmd.dclass;
@@ -37,6 +36,7 @@ import dmd.typinf;
 import dmd.identifier;
 import dmd.init;
 import dmd.doc;
+import dmd.root.complex;
 import dmd.root.rootobject;
 import dmd.statement;
 import dmd.staticassert;

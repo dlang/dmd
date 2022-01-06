@@ -1,9 +1,9 @@
 /**
  * Generate the object file for function declarations and critical sections.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
  * Documentation: $(LINK https://dlang.org/phobos/dmd_glue.html)
  * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/src/dmd/glue.d)
@@ -18,7 +18,7 @@ import core.stdc.stdlib;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 
@@ -30,7 +30,6 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -105,6 +104,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     }
     else if (oneobj)
     {
+        OutBuffer objbuf;
         Module firstm;    // first module we generate code for
         foreach (m; modules)
         {
@@ -113,7 +113,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (!firstm)
             {
                 firstm = m;
-                obj_start(m.srcfile.toChars());
+                obj_start(objbuf, m.srcfile.toChars());
             }
             if (verbose)
                 message("code      %s", m.toChars());
@@ -121,21 +121,22 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         }
         if (!global.errors && firstm)
         {
-            obj_end(library, firstm.objfile.toChars());
+            obj_end(objbuf, library, firstm.objfile.toChars());
         }
     }
     else
     {
+        OutBuffer objbuf;
         foreach (m; modules)
         {
             if (m.isHdrFile)
                 continue;
             if (verbose)
                 message("code      %s", m.toChars());
-            obj_start(m.srcfile.toChars());
+            obj_start(objbuf, m.srcfile.toChars());
             genObjFile(m, multiobj);
-            obj_end(library, m.objfile.toChars());
-            obj_write_deferred(library);
+            obj_end(objbuf, library, m.objfile.toChars());
+            obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
             if (global.errors && !lib)
                 m.deleteObjFile();
         }
@@ -148,7 +149,8 @@ extern (C++):
 
 //extern
 __gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
-private __gshared
+
+struct Glue
 {
     elem *eictor;
     Symbol *ictorlocalgot;
@@ -166,38 +168,50 @@ private __gshared
     Dsymbols obj_symbols_towrite;
 }
 
+private __gshared Glue glue;
+
 
 /**************************************
  * Append s to list of object files to generate later.
+ * Only happens with multiobj.
  */
 
 void obj_append(Dsymbol s)
 {
     //printf("deferred: %s\n", s.toChars());
-    obj_symbols_towrite.push(s);
+    glue.obj_symbols_towrite.push(s);
 }
 
-private void obj_write_deferred(Library library)
+/*******************************
+ * Generating multiple object files, one per Dsymbol
+ * in symbols_towrite[].
+ * Params:
+ *      library = library to write object files to
+ *      symbols_towrite = array of Dsymbols
+ */
+extern (D)
+private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymbols symbols_towrite)
 {
-    for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
+    // this array can grow during the loop; do not replace with foreach
+    for (size_t i = 0; i < symbols_towrite.length; ++i)
     {
-        Dsymbol s = obj_symbols_towrite[i];
+        Dsymbol s = symbols_towrite[i];
         Module m = s.getModule();
 
         const(char)* mname;
         if (m)
         {
             mname = m.srcfile.toChars();
-            lastmname = mname;
+            glue.lastmname = mname;
         }
         else
         {
             //mname = s.ident.toChars();
-            mname = lastmname;
+            mname = glue.lastmname;
             assert(mname);
         }
 
-        obj_start(mname);
+        obj_start(objbuf, mname);
 
         __gshared int count;
         count++;                // sequence for generating names
@@ -244,9 +258,9 @@ private void obj_write_deferred(Library library)
         fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
-        obj_end(library, fname);
+        obj_end(objbuf, library, fname);
     }
-    obj_symbols_towrite.dim = 0;
+    glue.obj_symbols_towrite.dim = 0;
 }
 
 
@@ -261,66 +275,62 @@ private void obj_write_deferred(Library library)
  *      function Symbol generated
  */
 
-private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarations *ectorgates,
+extern (D)
+private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclaration[] ectorgates,
         const(char)* id)
 {
+    if (!sctors.length && !ectorgates.length)
+        return null;
+
     Symbol *sctor = null;
 
-    if ((sctors && sctors.dim) ||
-        (ectorgates && ectorgates.dim))
+    __gshared type *t;
+    if (!t)
     {
-        __gshared type *t;
-        if (!t)
-        {
-            /* t will be the type of the functions generated:
-             *      extern (C) void func();
-             */
-            t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-            t.Tmangle = mTYman_c;
-        }
-
-        localgot = null;
-        sctor = toSymbolX(m, id, SCglobal, t, "FZv");
-        cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
-        elem *ector = null;
-
-        if (ectorgates)
-        {
-            foreach (f; *ectorgates)
-            {
-                Symbol *s = toSymbol(f.vgate);
-                elem *e = el_var(s);
-                e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
-                ector = el_combine(ector, e);
-            }
-        }
-
-        if (sctors)
-        {
-            foreach (s; *sctors)
-            {
-                elem *e = el_una(OPucall, TYvoid, el_var(s));
-                ector = el_combine(ector, e);
-            }
-        }
-
-        block *b = block_calloc();
-        b.BC = BCret;
-        b.Belem = ector;
-        sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
-        sctor.Sfunc.Fstartblock = b;
-        writefunc(sctor);
+        /* t will be the type of the functions generated:
+         *      extern (C) void func();
+         */
+        t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
+        t.Tmangle = mTYman_c;
     }
+
+    localgot = null;
+    sctor = toSymbolX(m, id, SCglobal, t, "FZv");
+    cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
+    elem *ector = null;
+
+    foreach (f; ectorgates)
+    {
+        Symbol *s = toSymbol(f.vgate);
+        elem *e = el_var(s);
+        e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
+        ector = el_combine(ector, e);
+    }
+
+    foreach (s; sctors)
+    {
+        elem *e = el_una(OPucall, TYvoid, el_var(s));
+        ector = el_combine(ector, e);
+    }
+
+    block *b = block_calloc();
+    b.BC = BCret;
+    b.Belem = ector;
+    sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
+    sctor.Sfunc.Fstartblock = b;
+    writefunc(sctor); // hand off to backend
+
     return sctor;
 }
 
 /**************************************
  * Prepare for generating obj file.
+ * Params:
+ *      objbuf = write object file contents to this
+ *      srcfile = name of the source file
  */
 
-private __gshared Outbuffer objbuf;
-
-private void obj_start(const(char)* srcfile)
+private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
 {
     //printf("obj_start()\n");
 
@@ -352,10 +362,11 @@ private void obj_start(const(char)* srcfile)
  * Then either write the object module to an actual file,
  * or add it to a library.
  * Params:
+ *      objbuf = contains the generated contents of the object file
  *      objfilename = what to call the object module
  *      library = if non-null, add object module to this library
  */
-private void obj_end(Library library, const(char)* objfilename)
+private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfilename)
 {
     objmod.term(objfilename);
     //delete objmod;
@@ -364,14 +375,13 @@ private void obj_end(Library library, const(char)* objfilename)
     if (library)
     {
         // Transfer ownership of image buffer to library
-        library.addObject(objfilename.toDString(), objbuf.extractSlice[]);
+        library.addObject(objfilename.toDString(), cast(ubyte[]) objbuf.extractSlice[]);
     }
     else
     {
         //printf("write obj %s\n", objfilename);
         writeFile(Loc.initial, objfilename.toDString, objbuf[]);
     }
-    objbuf.dtor();
 }
 
 bool obj_includelib(const(char)* name) nothrow
@@ -405,19 +415,19 @@ private void genObjFile(Module m, bool multiobj)
 
     //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
 
-    lastmname = m.srcfile.toChars();
+    glue.lastmname = m.srcfile.toChars();
 
-    objmod.initfile(lastmname, null, m.toPrettyChars());
+    objmod.initfile(glue.lastmname, null, m.toPrettyChars());
 
-    eictor = null;
-    ictorlocalgot = null;
-    sctors.setDim(0);
-    ectorgates.setDim(0);
-    sdtors.setDim(0);
-    ssharedctors.setDim(0);
-    esharedctorgates.setDim(0);
-    sshareddtors.setDim(0);
-    stests.setDim(0);
+    glue.eictor = null;
+    glue.ictorlocalgot = null;
+    glue.sctors.setDim(0);
+    glue.ectorgates.setDim(0);
+    glue.sdtors.setDim(0);
+    glue.ssharedctors.setDim(0);
+    glue.esharedctorgates.setDim(0);
+    glue.sshareddtors.setDim(0);
+    glue.stests.setDim(0);
 
     if (m.doppelganger)
     {
@@ -537,7 +547,7 @@ private void genObjFile(Module m, bool multiobj)
 
         m.sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
-        localgot = ictorlocalgot;
+        localgot = glue.ictorlocalgot;
 
         elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
@@ -558,33 +568,33 @@ private void genObjFile(Module m, bool multiobj)
                       ebcov,
                       efilename,
                       null);
-        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER2)), e);
-        eictor = el_combine(e, eictor);
-        ictorlocalgot = localgot;
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
+        glue.eictor = el_combine(e, glue.eictor);
+        glue.ictorlocalgot = localgot;
     }
 
     // If coverage / static constructor / destructor / unittest calls
-    if (eictor || sctors.dim || ectorgates.dim || sdtors.dim ||
-        ssharedctors.dim || esharedctorgates.dim || sshareddtors.dim || stests.dim)
+    if (glue.eictor || glue.sctors.dim || glue.ectorgates.dim || glue.sdtors.dim ||
+        glue.ssharedctors.dim || glue.esharedctorgates.dim || glue.sshareddtors.dim || glue.stests.dim)
     {
-        if (eictor)
+        if (glue.eictor)
         {
-            localgot = ictorlocalgot;
+            localgot = glue.ictorlocalgot;
 
             block *b = block_calloc();
             b.BC = BCret;
-            b.Belem = eictor;
+            b.Belem = glue.eictor;
             m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
             m.sictor.Sfunc.Fstartblock = b;
             writefunc(m.sictor);
         }
 
-        m.sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
-        m.sdtor = callFuncsAndGates(m, &sdtors, null, "__moddtor");
+        m.sctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
+        m.sdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
 
-        m.ssharedctor = callFuncsAndGates(m, &ssharedctors, cast(StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
-        m.sshareddtor = callFuncsAndGates(m, &sshareddtors, null, "__modshareddtor");
-        m.stest = callFuncsAndGates(m, &stests, null, "__modtest");
+        m.ssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
+        m.sshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
+        m.stest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
 
         if (m.doppelganger)
             genModuleInfo(m);
@@ -630,7 +640,8 @@ private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 {
     ClassDeclaration cd = fd.parent.isClassDeclaration();
-    //printf("FuncDeclaration.toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
+    //printf("FuncDeclaration_toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
+    //printf("storage_class: %llx\n", fd.storage_class);
 
     //if (type) printf("type = %s\n", type.toChars());
     version (none)
@@ -740,6 +751,12 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         f.Fflags3 |= Feh_none;
 
     s.Sclass = target.os == Target.OS.OSX ? SCcomdat : SCglobal;
+
+    /* Make C static functions SCstatic
+     */
+    if (fd.storage_class & STC.static_ && fd.isCsymbol())
+        s.Sclass = SCstatic;
+
     for (Dsymbol p = fd.parent; p; p = p.parent)
     {
         if (p.isTemplateInstance())
@@ -998,10 +1015,14 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             symbol_add(sv);
         }
 
-        Symbol *sa = toSymbol(fd.v_argptr);
-        symbol_add(sa);
-        elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
-        block_appendexp(irs.blx.curblock, e);
+        // Declare _argptr, but only for D files
+        if (!irs.Cfile)
+        {
+            Symbol *sa = toSymbol(fd.v_argptr);
+            symbol_add(sa);
+            elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
+            block_appendexp(irs.blx.curblock, e);
+        }
     }
 
     /* Doing this in semantic3() caused all kinds of problems:
@@ -1103,11 +1124,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // If static constructor
     if (fd.isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
-        ssharedctors.push(s);
+        glue.ssharedctors.push(s);
     }
     else if (fd.isStaticCtorDeclaration())
     {
-        sctors.push(s);
+        glue.sctors.push(s);
     }
 
     // If static destructor
@@ -1119,10 +1140,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             /* Increment destructor's vgate at construction time
              */
-            esharedctorgates.push(fs);
+            glue.esharedctorgates.push(fs);
         }
 
-        sshareddtors.shift(s);
+        glue.sshareddtors.shift(s);
     }
     else if (fd.isStaticDtorDeclaration())
     {
@@ -1132,16 +1153,16 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             /* Increment destructor's vgate at construction time
              */
-            ectorgates.push(fs);
+            glue.ectorgates.push(fs);
         }
 
-        sdtors.shift(s);
+        glue.sdtors.shift(s);
     }
 
     // If unit test
     if (ud)
     {
-        stests.push(s);
+        glue.stests.push(s);
     }
 
     if (global.errors)
@@ -1151,7 +1172,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
-    writefunc(s);
+    writefunc(s); // hand off to backend
 
     buildCapture(fd);
 
@@ -1163,8 +1184,75 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     if (fd.isCrtCtorDtor & 1)
         objmod.setModuleCtorDtor(s, true);
+
     if (fd.isCrtCtorDtor & 2)
-        objmod.setModuleCtorDtor(s, false);
+    {
+        //See TargetC.initialize
+        if(target.c.crtDestructorsSupported)
+        {
+            objmod.setModuleCtorDtor(s, false);
+        } else
+        {
+             /*
+                https://issues.dlang.org/show_bug.cgi?id=22520
+
+                Apple radar: https://openradar.appspot.com/FB9733712
+
+                Apple deprecated the mechanism used to implement `crt_destructor`
+                on MacOS Monterey. This works around that by generating a new function
+                (crt_destructor_thunk_NNN, run as a constructor) which registers
+                the destructor-to-be using __cxa_atexit()
+
+                This workaround may need a further look at when it comes to
+                shared library support, however there is no bridge for
+                that spilt milk to flow under yet.
+
+                This relies on the Itanium ABI so is portable to any
+                platform it, if needed.
+            */
+            __gshared uint nthDestructor = 0;
+            char* buf = cast(char*) calloc(50, 1);
+            assert(buf);
+            const ret = snprintf(buf, 100, "_dmd_crt_destructor_thunk.%u", nthDestructor++);
+            assert(ret >= 0 && ret < 100, "snprintf either failed or overran buffer");
+            //Function symbol
+            auto newConstructor = symbol_calloc(buf);
+            //Build type
+            newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
+            //Tell it it's supposed to be a C function. Does it do anything? Not sure.
+            type_setmangle(&newConstructor.Stype, mTYman_c);
+            symbol_func(newConstructor);
+            //Global SC for now.
+            newConstructor.Sclass = SCstatic;
+            func_t* funcState = newConstructor.Sfunc;
+            //Init start block
+            funcState.Fstartblock = block_calloc();
+            block* startBlk = funcState.Fstartblock;
+            //Make that block run __cxa_atexit(&func);
+            auto atexitSym = getRtlsym(RTLSYM.CXA_ATEXIT);
+            Symbol* dso_handle = symbol_calloc("__dso_handle");
+            dso_handle.Stype = type_fake(TYint);
+            //Try to get MacOS _ prefix-ism right.
+            type_setmangle(&dso_handle.Stype, mTYman_c);
+            dso_handle.Sfl = FLextern;
+            dso_handle.Sclass = SCextern;
+            dso_handle.Stype.Tcount++;
+            auto handlePtr = el_ptr(dso_handle);
+            //Build parameter pack - __cxa_atexit(&func, null, null)
+            auto paramPack = el_params(handlePtr, el_long(TYnptr, 0), el_ptr(s), null);
+            auto exec = el_bin(OPcall, TYvoid, el_var(atexitSym), paramPack);
+            block_appendexp(startBlk, exec); //payload
+            startBlk.BC = BCgoto;
+            auto next = block_calloc();
+            startBlk.appendSucc(next);
+            startBlk.Bnext = next;
+            next.BC = BCret;
+            //Emit in binary
+            writefunc(newConstructor);
+            //Mark as a CONSTRUCTOR because our thunk implements the destructor
+            objmod.setModuleCtorDtor(newConstructor, true);
+        }
+    }
 
     foreach (sd; *irs.deferToObj)
     {

@@ -1,9 +1,9 @@
 /**
  * Semantic analysis of template parameters.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/templateparamsem.d, _templateparamsem.d)
  * Documentation:  https://dlang.org/phobos/dmd_templateparamsem.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/templateparamsem.d
@@ -87,8 +87,8 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
                 sc = sc.endCTFE();
                 e = e.implicitCastTo(sc, tvp.valType);
                 e = e.ctfeInterpret();
-                if (e.op == TOK.int64 || e.op == TOK.float64 ||
-                    e.op == TOK.complex80 || e.op == TOK.null_ || e.op == TOK.string_)
+                if (e.op == EXP.int64 || e.op == EXP.float64 ||
+                    e.op == EXP.complex80 || e.op == EXP.null_ || e.op == EXP.string_)
                     tvp.specValue = e;
             }
 
@@ -100,7 +100,7 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
                 sc = sc.endCTFE();
                 e = e.implicitCastTo(sc, tvp.valType);
                 e = e.ctfeInterpret();
-                if (e.op == TOK.int64)
+                if (e.op == EXP.int64)
                     tvp.defaultValue = e;
             }
         }

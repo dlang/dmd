@@ -1,9 +1,9 @@
 /**
  * Configures and initializes the backend.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmsc.d, _dmsc.d)
  * Documentation:  https://dlang.org/phobos/dmd_dmsc.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmsc.d
@@ -54,7 +54,8 @@ extern (C) void out_config_init(
         bool useExceptions,     // implement exception handling
         ubyte dwarf,            // DWARF version used
         string _version,        // Compiler version
-        exefmt_t exefmt         // Executable file format
+        exefmt_t exefmt,        // Executable file format
+        bool generatedMain      // a main entrypoint is generated
         );
 
 void out_config_debug(
@@ -118,21 +119,19 @@ void backend_init()
         params.useExceptions && ClassDeclaration.throwable,
         dmdParams.dwarf,
         global.versionString(),
-        exfmt
+        exfmt,
+        params.addMain
     );
 
-    debug
-    {
-        out_config_debug(
-            dmdParams.debugb,
-            dmdParams.debugc,
-            dmdParams.debugf,
-            dmdParams.debugr,
-            false,
-            dmdParams.debugx,
-            dmdParams.debugy
-        );
-    }
+    out_config_debug(
+        dmdParams.debugb,
+        dmdParams.debugc,
+        dmdParams.debugf,
+        dmdParams.debugr,
+        false,
+        dmdParams.debugx,
+        dmdParams.debugy
+    );
 }
 
 
@@ -175,7 +174,7 @@ targ_size_t size(tym_t ty)
     debug
     {
         if (sz == -1)
-            WRTYxx(ty);
+            printf("ty: %s\n", tym_str(ty));
     }
     assert(sz!= -1);
     return sz;

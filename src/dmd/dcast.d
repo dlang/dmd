@@ -1,9 +1,9 @@
 /**
  * Semantic analysis for cast-expressions.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dcast.d, _dcast.d)
  * Documentation:  https://dlang.org/phobos/dmd_dcast.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dcast.d
@@ -29,6 +29,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.impcnvtab;
 import dmd.id;
 import dmd.importc;
@@ -37,11 +38,11 @@ import dmd.intrange;
 import dmd.mtype;
 import dmd.opover;
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
+import dmd.root.utf;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.utf;
 import dmd.visitor;
 
 enum LOG = false;
@@ -994,7 +995,7 @@ MATCH implicitConvTo(Expression e, Type t)
             Type typeb = e.type.toBasetype();
 
             // Look for pointers to functions where the functions are overloaded.
-            if (e.e1.op == TOK.overloadSet &&
+            if (e.e1.op == EXP.overloadSet &&
                 (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
                 OverExp eo = e.e1.isOverExp();
@@ -1019,7 +1020,7 @@ MATCH implicitConvTo(Expression e, Type t)
                 }
             }
 
-            if (e.e1.op == TOK.variable &&
+            if (e.e1.op == EXP.variable &&
                 typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
                 tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
             {
@@ -1443,8 +1444,31 @@ MATCH implicitConvTo(Expression e, Type t)
             }
 
             // Enhancement 10724
-            if (tb.ty == Tpointer && e.e1.op == TOK.string_)
+            if (tb.ty == Tpointer && e.e1.op == EXP.string_)
                 e.e1.accept(this);
+        }
+
+        override void visit(TupleExp e)
+        {
+            result = e.type.implicitConvTo(t);
+            if (result != MATCH.nomatch)
+                return;
+
+            /* If target type is a tuple of same length, test conversion of
+             * each expression to the corresponding type in the tuple.
+             */
+            TypeTuple totuple = t.isTypeTuple();
+            if (totuple && e.exps.length == totuple.arguments.length)
+            {
+                result = MATCH.exact;
+                foreach (i, ex; *e.exps)
+                {
+                    auto to = (*totuple.arguments)[i].type;
+                    MATCH mi = ex.implicitConvTo(to);
+                    if (mi < result)
+                        result = mi;
+                }
+            }
         }
     }
 
@@ -1477,12 +1501,8 @@ MATCH cimplicitConvTo(Expression e, Type t)
         return MATCH.convert;
     if (tb.isintegral() && typeb.ty == Tpointer) // C11 6.3.2.3-6
         return MATCH.convert;
-    if (tb.ty == Tpointer && typeb.ty == Tpointer)
-    {
-        if (tb.isTypePointer().next.ty == Tvoid ||
-            typeb.isTypePointer().next.ty == Tvoid)
-            return MATCH.convert;       // convert to/from void* C11 6.3.2.3-1
-    }
+    if (tb.ty == Tpointer && typeb.ty == Tpointer) // C11 6.3.2.3-7
+        return MATCH.convert;
 
     return implicitConvTo(e, t);
 }
@@ -1545,9 +1565,9 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 result = e;
                 return;
             }
-            if (e.op == TOK.variable)
+            if (auto ve = e.isVarExp())
             {
-                VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
+                VarDeclaration v = ve.var.isVarDeclaration();
                 if (v && v.storage_class & STC.manifest)
                 {
                     result = e.ctfeInterpret();
@@ -1709,6 +1729,11 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     }
                     const fsize = t1b.nextOf().size();
                     const tsize = tob.nextOf().size();
+                    if (fsize == SIZE_INVALID || tsize == SIZE_INVALID)
+                    {
+                        result = ErrorExp.get();
+                        return;
+                    }
                     if (fsize != tsize)
                     {
                         const dim = t1b.isTypeSArray().dim.toInteger();
@@ -1827,8 +1852,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         override void visit(StructLiteralExp e)
         {
             visit(cast(Expression)e);
-            if (result.op == TOK.structLiteral)
-                (cast(StructLiteralExp)result).stype = t; // commit type
+            if (auto sle = result.isStructLiteralExp())
+                sle.stype = t; // commit type
         }
 
         override void visit(StringExp e)
@@ -1841,7 +1866,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
             //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t.toChars(), e.toChars(), e.committed);
 
-            if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
+            if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid &&
+                (!sc || !(sc.flags & SCOPE.Cfile)))
             {
                 e.error("cannot convert string literal to `void*`");
                 result = ErrorExp.get();
@@ -1849,9 +1875,16 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             }
 
             StringExp se = e;
+
+            void lcast()
+            {
+                result = new CastExp(e.loc, se, t);
+                result.type = t; // so semantic() won't be run on e
+            }
+
             if (!e.committed)
             {
-                se = cast(StringExp)e.copy();
+                se = e.copy().isStringExp();
                 se.committed = 1;
                 copied = 1;
             }
@@ -1876,7 +1909,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             {
                 if (!copied)
                 {
-                    se = cast(StringExp)e.copy();
+                    se = e.copy().isStringExp();
                     copied = 1;
                 }
                 se.type = t;
@@ -1892,7 +1925,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
              */
             if (e.committed && tb.ty == Tsarray && typeb.ty == Tarray)
             {
-                se = cast(StringExp)e.copy();
+                se = e.copy().isStringExp();
                 d_uns64 szx = tb.nextOf().size();
                 assert(szx <= 255);
                 se.sz = cast(ubyte)szx;
@@ -1920,26 +1953,32 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             {
                 if (!copied)
                 {
-                    se = cast(StringExp)e.copy();
+                    se = e.copy().isStringExp();
                     copied = 1;
                 }
-                goto Lcast;
+                return lcast();
             }
             if (typeb.ty != Tsarray && typeb.ty != Tarray && typeb.ty != Tpointer)
             {
                 if (!copied)
                 {
-                    se = cast(StringExp)e.copy();
+                    se = e.copy().isStringExp();
                     copied = 1;
                 }
-                goto Lcast;
+                return lcast();
             }
 
-            if (typeb.nextOf().size() == tb.nextOf().size())
+            const nextSz = typeb.nextOf().size();
+            if (nextSz == SIZE_INVALID)
+            {
+                result = ErrorExp.get();
+                return;
+            }
+            if (nextSz == tb.nextOf().size())
             {
                 if (!copied)
                 {
-                    se = cast(StringExp)e.copy();
+                    se = e.copy().isStringExp();
                     copied = 1;
                 }
                 if (tb.ty == Tsarray)
@@ -2050,7 +2089,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 L1:
                     if (!copied)
                     {
-                        se = cast(StringExp)e.copy();
+                        se = e.copy().isStringExp();
                         copied = 1;
                     }
 
@@ -2116,10 +2155,10 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             }
 
             // Look for pointers to functions where the functions are overloaded.
-            if (e.e1.op == TOK.overloadSet &&
+            if (e.e1.isOverExp() &&
                 (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
-                OverExp eo = cast(OverExp)e.e1;
+                OverExp eo = e.e1.isOverExp();
                 FuncDeclaration f = null;
                 for (size_t i = 0; i < eo.vars.a.dim; i++)
                 {
@@ -2150,11 +2189,11 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 }
             }
 
-            if (e.e1.op == TOK.variable &&
+            if (e.e1.isVarExp() &&
                 typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
                 tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
             {
-                auto ve = cast(VarExp)e.e1;
+                auto ve = e.e1.isVarExp();
                 auto f = ve.var.isFuncDeclaration();
                 if (f)
                 {
@@ -2190,13 +2229,20 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 return;
             }
 
+            /* If target type is a tuple of same length, cast each expression to
+             * the corresponding type in the tuple.
+             */
+            TypeTuple totuple;
+            if (auto tt = t.isTypeTuple())
+                totuple = e.exps.length == tt.arguments.length ? tt : null;
+
             TupleExp te = e.copy().isTupleExp();
             te.e0 = e.e0 ? e.e0.copy() : null;
             te.exps = e.exps.copy();
             for (size_t i = 0; i < te.exps.dim; i++)
             {
                 Expression ex = (*te.exps)[i];
-                ex = ex.castTo(sc, t);
+                ex = ex.castTo(sc, totuple ? (*totuple.arguments)[i].type : t);
                 (*te.exps)[i] = ex;
             }
             result = te;
@@ -2258,7 +2304,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                             goto L1;
                     }
 
-                    ae = cast(ArrayLiteralExp)e.copy();
+                    ae = e.copy().isArrayLiteralExp();
                     if (e.basis)
                         ae.basis = e.basis.castTo(sc, tb.nextOf());
                     ae.elements = e.elements.copy();
@@ -2280,7 +2326,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 Type tp = typeb.nextOf().pointerTo();
                 if (!tp.equals(ae.type))
                 {
-                    ae = cast(ArrayLiteralExp)e.copy();
+                    ae = e.copy().isArrayLiteralExp();
                     ae.type = tp;
                 }
             }
@@ -2337,7 +2383,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             if (tb.ty == Taarray && typeb.ty == Taarray &&
                 tb.nextOf().toBasetype().ty != Tvoid)
             {
-                AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e.copy();
+                AssocArrayLiteralExp ae = e.copy().isAssocArrayLiteralExp();
                 ae.keys = e.keys.copy();
                 ae.values = e.values.copy();
                 assert(e.keys.dim == e.values.dim);
@@ -2377,7 +2423,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             {
                 result = e.copy();
                 result.type = t;
-                (cast(SymOffExp)result).hasOverloads = false;
+                result.isSymOffExp().hasOverloads = false;
                 return;
             }
 
@@ -2595,8 +2641,8 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 if (e.e1.implicitConvTo(t1b) > MATCH.nomatch)
                 {
                     Expression e1x = e.e1.implicitCastTo(sc, t1b);
-                    assert(e1x.op != TOK.error);
-                    e = cast(SliceExp)e.copy();
+                    assert(e1x.op != EXP.error);
+                    e = e.copy().isSliceExp();
                     e.e1 = e1x;
                     e.type = t;
                     result = e;
@@ -2706,10 +2752,10 @@ Expression inferType(Expression e, Type t, int flag = 0)
 
     if (t) switch (e.op)
     {
-        case TOK.arrayLiteral:      return visitAle(cast(ArrayLiteralExp) e);
-        case TOK.assocArrayLiteral: return visitAar(cast(AssocArrayLiteralExp) e);
-        case TOK.function_:         return visitFun(cast(FuncExp) e);
-        case TOK.question:          return visitTer(cast(CondExp) e);
+        case EXP.arrayLiteral:      return visitAle(e.isArrayLiteralExp());
+        case EXP.assocArrayLiteral: return visitAar(e.isAssocArrayLiteralExp());
+        case EXP.function_:         return visitFun(e.isFuncExp());
+        case EXP.question:          return visitTer(e.isCondExp());
         default:
     }
     return e;
@@ -2763,7 +2809,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
     if (sc.func && !sc.intypeof)
     {
         eoff = eoff.optimize(WANTvalue);
-        if (eoff.op == TOK.int64 && eoff.toInteger() == 0)
+        if (eoff.op == EXP.int64 && eoff.toInteger() == 0)
         {
         }
         else if (sc.func.setUnsafe())
@@ -2785,9 +2831,9 @@ Expression scaleFactor(BinExp be, Scope* sc)
  */
 private bool isVoidArrayLiteral(Expression e, Type other)
 {
-    while (e.op == TOK.arrayLiteral && e.type.ty == Tarray && ((cast(ArrayLiteralExp)e).elements.dim == 1))
+    while (e.op == EXP.arrayLiteral && e.type.ty == Tarray && (e.isArrayLiteralExp().elements.dim == 1))
     {
-        auto ale = cast(ArrayLiteralExp)e;
+        auto ale = e.isArrayLiteralExp();
         e = ale[0];
         if (other.ty == Tsarray || other.ty == Tarray)
             other = other.nextOf();
@@ -2797,7 +2843,7 @@ private bool isVoidArrayLiteral(Expression e, Type other)
     if (other.ty != Tsarray && other.ty != Tarray)
         return false;
     Type t = e.type;
-    return (e.op == TOK.arrayLiteral && t.ty == Tarray && t.nextOf().ty == Tvoid && (cast(ArrayLiteralExp)e).elements.dim == 0);
+    return (e.op == EXP.arrayLiteral && t.ty == Tarray && t.nextOf().ty == Tvoid && e.isArrayLiteralExp().elements.dim == 0);
 }
 
 /**
@@ -2807,7 +2853,7 @@ private bool isVoidArrayLiteral(Expression e, Type other)
  *
  * Params:
  *     sc  = Current scope
- *     op  = Operator such as `e1 op e2`. In practice, either TOK.question
+ *     op  = Operator such as `e1 op e2`. In practice, either EXP.question
  *           or one of the binary operator.
  *     pe1 = The LHS of the operation, will be rewritten
  *     pe2 = The RHS of the operation, will be rewritten
@@ -2815,7 +2861,7 @@ private bool isVoidArrayLiteral(Expression e, Type other)
  * Returns:
  *      The resulting type in case of success, `null` in case of error
  */
-Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
+Type typeMerge(Scope* sc, EXP op, ref Expression pe1, ref Expression pe2)
 {
     //printf("typeMerge() %s op %s\n", e1.toChars(), e2.toChars());
 
@@ -2846,7 +2892,7 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
         return result;
     }
 
-    /// Converts one of the expression too the other
+    /// Converts one of the expression to the other
     Type convert(ref Expression from, Type to)
     {
         from = from.castTo(sc, to);
@@ -2864,9 +2910,25 @@ Type typeMerge(Scope* sc, TOK op, ref Expression pe1, ref Expression pe2)
     Type t1b = e1.type.toBasetype();
     Type t2b = e2.type.toBasetype();
 
-    if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
+    if (sc && sc.flags & SCOPE.Cfile)
     {
-        if (op == TOK.question && t1b.ty.isSomeChar() && t2b.ty.isSomeChar())
+        // Integral types can be implicitly converted to pointers
+        if ((t1b.ty == Tpointer) != (t2b.ty == Tpointer))
+        {
+            if (t1b.isintegral())
+            {
+                return convert(e1, t2b);
+            }
+            else if (t2b.isintegral())
+            {
+                return convert(e2, t1b);
+            }
+        }
+    }
+
+    if (op != EXP.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
+    {
+        if (op == EXP.question && t1b.ty.isSomeChar() && t2b.ty.isSomeChar())
         {
             e1 = e1.castTo(sc, Type.tdchar);
             e2 = e2.castTo(sc, Type.tdchar);
@@ -3035,7 +3097,7 @@ Lagain:
         return null;
     }
 
-    if ((t1.ty == Tsarray || t1.ty == Tarray) && (e2.op == TOK.null_ && t2.ty == Tpointer && t2.nextOf().ty == Tvoid || e2.op == TOK.arrayLiteral && t2.ty == Tsarray && t2.nextOf().ty == Tvoid && t2.isTypeSArray().dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
+    if ((t1.ty == Tsarray || t1.ty == Tarray) && (e2.op == EXP.null_ && t2.ty == Tpointer && t2.nextOf().ty == Tvoid || e2.op == EXP.arrayLiteral && t2.ty == Tsarray && t2.nextOf().ty == Tvoid && t2.isTypeSArray().dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
     {
         /*  (T[n] op void*)   => T[]
          *  (T[]  op void*)   => T[]
@@ -3047,7 +3109,7 @@ Lagain:
         return coerce(t1.nextOf().arrayOf());
     }
 
-    if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == TOK.null_ && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == TOK.arrayLiteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && t1.isTypeSArray().dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
+    if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == EXP.null_ && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == EXP.arrayLiteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && t1.isTypeSArray().dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
     {
         /*  (void*   op T[n]) => T[]
          *  (void*   op T[])  => T[]
@@ -3065,9 +3127,9 @@ Lagain:
         // Tsarray op [x, y, ...] should to be Tsarray
         // https://issues.dlang.org/show_bug.cgi?id=14737
         // Tsarray ~ [x, y, ...] should to be Tarray
-        if (t1.ty == Tsarray && e2.op == TOK.arrayLiteral && op != TOK.concatenate)
+        if (t1.ty == Tsarray && e2.op == EXP.arrayLiteral && op != EXP.concatenate)
             return convert(e2, t1);
-        if (m == MATCH.constant && (op == TOK.addAssign || op == TOK.minAssign || op == TOK.mulAssign || op == TOK.divAssign || op == TOK.modAssign || op == TOK.powAssign || op == TOK.andAssign || op == TOK.orAssign || op == TOK.xorAssign))
+        if (m == MATCH.constant && (op == EXP.addAssign || op == EXP.minAssign || op == EXP.mulAssign || op == EXP.divAssign || op == EXP.modAssign || op == EXP.powAssign || op == EXP.andAssign || op == EXP.orAssign || op == EXP.xorAssign))
         {
             // Don't make the lvalue const
             return Lret(t2);
@@ -3079,7 +3141,7 @@ Lagain:
     {
         // https://issues.dlang.org/show_bug.cgi?id=7285
         // https://issues.dlang.org/show_bug.cgi?id=14737
-        if (t2.ty == Tsarray && e1.op == TOK.arrayLiteral && op != TOK.concatenate)
+        if (t2.ty == Tsarray && e1.op == EXP.arrayLiteral && op != EXP.concatenate)
             return convert(e1, t2);
         return convert(e2, t1);
     }
@@ -3092,9 +3154,9 @@ Lagain:
         Type t1n = t1.nextOf();
         Type t2n = t2.nextOf();
         ubyte mod;
-        if (e1.op == TOK.null_ && e2.op != TOK.null_)
+        if (e1.op == EXP.null_ && e2.op != EXP.null_)
             mod = t2n.mod;
-        else if (e1.op != TOK.null_ && e2.op == TOK.null_)
+        else if (e1.op != EXP.null_ && e2.op == EXP.null_)
             mod = t1n.mod;
         else if (!t1n.isImmutable() && !t2n.isImmutable() && t1n.isShared() != t2n.isShared())
             return null;
@@ -3119,9 +3181,9 @@ Lagain:
         if (t1.mod != t2.mod)
         {
             ubyte mod;
-            if (e1.op == TOK.null_ && e2.op != TOK.null_)
+            if (e1.op == EXP.null_ && e2.op != EXP.null_)
                 mod = t2.mod;
-            else if (e1.op != TOK.null_ && e2.op == TOK.null_)
+            else if (e1.op != EXP.null_ && e2.op == EXP.null_)
                 mod = t1.mod;
             else if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
                 return null;
@@ -3140,6 +3202,14 @@ Lagain:
     Lcc:
         while (1)
         {
+            MATCH i1woat = MATCH.exact;
+            MATCH i2woat = MATCH.exact;
+
+            if (auto t2c = t2.isTypeClass())
+                i1woat = t2c.implicitConvToWithoutAliasThis(t1);
+            if (auto t1c = t1.isTypeClass())
+                i2woat = t1c.implicitConvToWithoutAliasThis(t2);
+
             MATCH i1 = e2.implicitConvTo(t1);
             MATCH i2 = e1.implicitConvTo(t2);
 
@@ -3152,10 +3222,25 @@ Lagain:
                     i2 = MATCH.nomatch;
             }
 
-            if (i2)
+            // Match but without 'alias this' on classes
+            if (i2 && i2woat)
                 return coerce(t2);
-            if (i1)
+            if (i1 && i1woat)
                 return coerce(t1);
+
+            // Here use implicitCastTo() instead of castTo() to try 'alias this' on classes
+            Type coerceImplicit(Type towards)
+            {
+                e1 = e1.implicitCastTo(sc, towards);
+                e2 = e2.implicitCastTo(sc, towards);
+                return Lret(towards);
+            }
+
+            // Implicit conversion with 'alias this'
+            if (i2)
+                return coerceImplicit(t2);
+            if (i1)
+                return coerceImplicit(t1);
 
             if (t1.ty == Tclass && t2.ty == Tclass)
             {
@@ -3265,34 +3350,31 @@ Lagain:
         }
     }
 
-    if (t1.ty == Tstruct || t2.ty == Tstruct)
+    if (t1.ty == Tstruct && t1.isTypeStruct().sym.aliasthis)
     {
-        if (t1.ty == Tstruct && t1.isTypeStruct().sym.aliasthis)
-        {
-            if (isRecursiveAliasThis(att1, e1.type))
-                return null;
-            //printf("att tmerge(s || s) e1 = %s\n", e1.type.toChars());
-            e1 = resolveAliasThis(sc, e1);
-            t1 = e1.type;
-            t = t1;
-            goto Lagain;
-        }
-        if (t2.ty == Tstruct && t2.isTypeStruct().sym.aliasthis)
-        {
-            if (isRecursiveAliasThis(att2, e2.type))
-                return null;
-            //printf("att tmerge(s || s) e2 = %s\n", e2.type.toChars());
-            e2 = resolveAliasThis(sc, e2);
-            t2 = e2.type;
-            t = t2;
-            goto Lagain;
-        }
-        return null;
+        if (isRecursiveAliasThis(att1, e1.type))
+            return null;
+        //printf("att tmerge(s || s) e1 = %s\n", e1.type.toChars());
+        e1 = resolveAliasThis(sc, e1);
+        t1 = e1.type;
+        t = t1;
+        goto Lagain;
     }
 
-    if ((e1.op == TOK.string_ || e1.op == TOK.null_) && e1.implicitConvTo(t2))
+    if (t2.ty == Tstruct && t2.isTypeStruct().sym.aliasthis)
+    {
+        if (isRecursiveAliasThis(att2, e2.type))
+            return null;
+        //printf("att tmerge(s || s) e2 = %s\n", e2.type.toChars());
+        e2 = resolveAliasThis(sc, e2);
+        t2 = e2.type;
+        t = t2;
+        goto Lagain;
+    }
+
+    if ((e1.op == EXP.string_ || e1.op == EXP.null_) && e1.implicitConvTo(t2))
         return convert(e1, t2);
-    if ((e2.op == TOK.string_ || e2.op == TOK.null_) && e2.implicitConvTo(t1))
+    if ((e2.op == EXP.string_ || e2.op == EXP.null_) && e2.implicitConvTo(t1))
         return convert(e2, t1);
     if (t1.ty == Tsarray && t2.ty == Tsarray && e2.implicitConvTo(t1.nextOf().arrayOf()))
         return coerce(t1.nextOf().arrayOf());
@@ -3365,6 +3447,69 @@ LmodCompare:
     if (t1.ty == Tnull && (t2.ty == Tpointer || t2.ty == Taarray || t2.ty == Tarray))
         return convert(e1, t2);
 
+    /// Covers array operations for user-defined types
+    Type checkArrayOpType(Expression e1, Expression e2, EXP op, Scope *sc)
+    {
+        // scalar op scalar - we shouldn't be here
+        if (e1.type.ty != Tarray && e1.type.ty != Tsarray && e2.type.ty != Tarray && e2.type.ty != Tsarray)
+            return null;
+
+        // only supporting slices and array literals
+        if (!e1.isSliceExp() && !e1.isArrayLiteralExp() && !e2.isSliceExp() && !e2.isArrayLiteralExp())
+            return null;
+
+        // start with e1 op e2 and if either one of e1 or e2 is a slice or array literal,
+        // replace it with the first element of the array
+        Expression lhs = e1;
+        Expression rhs = e2;
+
+        // T[x .. y] op ?
+        if (auto se1 = e1.isSliceExp())
+            lhs = new IndexExp(Loc.initial, se1.e1, IntegerExp.literal!0);
+
+        // [t1, t2, .. t3] op ?
+        if (auto ale1 = e1.isArrayLiteralExp())
+            lhs = ale1.opIndex(0);
+
+        // ? op U[z .. t]
+        if (auto se2 = e2.isSliceExp())
+            rhs = new IndexExp(Loc.initial, se2.e1, IntegerExp.literal!0);
+
+        // ? op [u1, u2, .. u3]
+        if (auto ale2 = e2.isArrayLiteralExp())
+            rhs = ale2.opIndex(0);
+
+        // create a new binary expression with the new lhs and rhs (at this stage, at least
+        // one of lhs/rhs has been replaced with the 0'th element of the array it was before)
+        Expression exp;
+        switch (op)
+        {
+            case EXP.add:
+                exp = new AddExp(Loc.initial, lhs, rhs); break;
+            case EXP.min:
+                exp = new MinExp(Loc.initial, lhs, rhs); break;
+            case EXP.mul:
+                exp = new MulExp(Loc.initial, lhs, rhs); break;
+            case EXP.div:
+                exp = new DivExp(Loc.initial, lhs, rhs); break;
+            case EXP.pow:
+                exp = new PowExp(Loc.initial, lhs, rhs); break;
+            default:
+                exp = null;
+        }
+
+        if (exp)
+        {
+            // if T op U is valid and has type V
+            // then T[] op U and T op U[] should be valid and have type V[]
+            Expression e = exp.trySemantic(sc);
+            if (e && e.type)
+                return e.type.arrayOf;
+        }
+
+        return null;
+    }
+
     if (t1.ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e1))
     {
         if (e2.implicitConvTo(t1.nextOf()))
@@ -3401,8 +3546,12 @@ LmodCompare:
                     e2 = e2.castTo(sc, t);
                 return Lret(t);
             }
-            return null;
         }
+
+        t = checkArrayOpType(e1, e2, op, sc);
+        if (t !is null)
+            return Lret(t);
+
         return null;
     }
     else if (t2.ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e2))
@@ -3421,15 +3570,19 @@ LmodCompare:
             t = e1.type.arrayOf();
         }
         else
-            return null;
+        {
+            t = checkArrayOpType(e1, e2, op, sc);
+            if (t is null)
+                return null;
+        }
 
-        //printf("test %s\n", Token::toChars(op));
+        //printf("test %s\n", EXPtoString(op).ptr);
         e1 = e1.optimize(WANTvalue);
         if (isCommutative(op) && e1.isConst())
         {
             /* Swap operands to minimize number of functions generated
              */
-            //printf("swap %s\n", Token::toChars(op));
+            //printf("swap %s\n", EXPtoString(op).ptr);
             Expression tmp = e1;
             e1 = e2;
             e2 = tmp;
@@ -3450,7 +3603,7 @@ Expression typeCombine(BinExp be, Scope* sc)
     Expression errorReturn()
     {
         Expression ex = be.incompatibleTypes();
-        if (ex.op == TOK.error)
+        if (ex.op == EXP.error)
             return ex;
         return ErrorExp.get();
     }
@@ -3458,7 +3611,7 @@ Expression typeCombine(BinExp be, Scope* sc)
     Type t1 = be.e1.type.toBasetype();
     Type t2 = be.e2.type.toBasetype();
 
-    if (be.op == TOK.min || be.op == TOK.add)
+    if (be.op == EXP.min || be.op == EXP.add)
     {
         // struct+struct, and class+class are errors
         if (t1.ty == Tstruct && t2.ty == Tstruct)
@@ -3478,9 +3631,9 @@ Expression typeCombine(BinExp be, Scope* sc)
         return errorReturn();
 
     // If the types have no value, return an error
-    if (be.e1.op == TOK.error)
+    if (be.e1.op == EXP.error)
         return be.e1;
-    if (be.e2.op == TOK.error)
+    if (be.e2.op == EXP.error)
         return be.e2;
     return null;
 }
@@ -3544,8 +3697,8 @@ void fix16997(Scope* sc, UnaExp ue)
             case Tchar:
             case Twchar:
             case Tdchar:
-                ue.deprecation("integral promotion not done for `%s`, use '-preview=intpromote' switch or `%scast(int)(%s)`",
-                    ue.toChars(), Token.toChars(ue.op), ue.e1.toChars());
+                ue.deprecation("integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
+                    ue.toChars(), EXPtoString(ue.op).ptr, ue.e1.toChars());
                 break;
 
             default:

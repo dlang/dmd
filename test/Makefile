@@ -29,6 +29,8 @@ BUILD=release
 
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
+else ifeq (openbsd,$(OS))
+    SHELL=/usr/local/bin/bash
 else ifeq (netbsd,$(OS))
     SHELL=/usr/pkg/bin/bash
 else ifeq (dragonflybsd,$(OS))

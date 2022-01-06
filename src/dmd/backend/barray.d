@@ -2,11 +2,11 @@
  * Generic resizeable array
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2018-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 2018-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/barrayf.d, backend/barray.d)
  * Documentation: https://dlang.org/phobos/dmd_backend_barray.html
  */
@@ -40,6 +40,7 @@ struct Barray(T)
         static void enlarge(ref Barray barray, size_t length)
         {
             pragma(inline, false);
+            assert(length < size_t.max / (2 * T.sizeof));       // conservative overflow check
             auto newcap = (barray.capacity == 0) ? length : length + (length >> 1);
             barray.capacity = (newcap + 15) & ~15;
             T* p = cast(T*)realloc(barray.array.ptr, barray.capacity * T.sizeof);

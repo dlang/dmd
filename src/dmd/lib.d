@@ -2,9 +2,9 @@
  * A module defining an abstract library.
  * Implementations for various formats are in separate `libXXX.d` modules.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lib.d, _lib.d)
  * Documentation:  https://dlang.org/phobos/dmd_lib.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/lib.d
@@ -20,7 +20,7 @@ import dmd.errors;
 import dmd.target;
 import dmd.utils;
 
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.string;

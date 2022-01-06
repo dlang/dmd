@@ -2,11 +2,11 @@
  * Emit Dwarf symbolic debug info
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfdbginf.d, backend/dwarfdbginf.d)
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/dwarfdbginf.d
  */
@@ -71,13 +71,14 @@ static if (1)
     import dmd.backend.global;
     import dmd.backend.obj;
     import dmd.backend.oper;
-    import dmd.backend.outbuf;
     import dmd.backend.symtab;
     import dmd.backend.ty;
     import dmd.backend.type;
 
     import dmd.backend.melf;
     import dmd.backend.mach;
+
+    import dmd.common.outbuffer;
 
     extern (C++):
 
@@ -229,7 +230,7 @@ static if (1)
             assert(0);
     }
 
-    void dwarf_appreladdr(int seg, Outbuffer *buf, int targseg, targ_size_t val)
+    void dwarf_appreladdr(int seg, OutBuffer *buf, int targseg, targ_size_t val)
     {
         if (I64)
         {
@@ -253,13 +254,13 @@ static if (1)
         }
     }
 
-    void dwarf_apprel32(int seg, Outbuffer *buf, int targseg, targ_size_t val)
+    void dwarf_apprel32(int seg, OutBuffer *buf, int targseg, targ_size_t val)
     {
         dwarf_addrel(seg, buf.length(), targseg, I64 ? val : 0);
         buf.write32(I64 ? 0 : cast(uint)val);
     }
 
-    void append_addr(Outbuffer *buf, targ_size_t addr)
+    void append_addr(OutBuffer *buf, targ_size_t addr)
     {
         if (I64)
             buf.write64(addr);
@@ -368,7 +369,7 @@ static if (1)
         };
 
         CFA_state CFA_state_current;     // current CFA state
-        Outbuffer cfa_buf;               // CFA instructions
+        OutBuffer cfa_buf;               // CFA instructions
     }
 
     /***********************************
@@ -483,7 +484,7 @@ static if (1)
     {
         segidx_t seg = 0;
         IDXSEC secidx = 0;
-        Outbuffer *buf = null;
+        OutBuffer *buf = null;
         const(char)* name;
         int flags = 0;
 
@@ -542,7 +543,7 @@ static if (1)
 
         AApair *type_table;
         AApair *functype_table;  // not sure why this cannot be combined with type_table
-        Outbuffer *functypebuf;
+        OutBuffer *functypebuf;
 
         // .debug_line
         size_t linebuf_filetab_end;
@@ -590,7 +591,7 @@ static if (1)
      *      offset = offset of the bytes in `buf` to replace
      *      data = bytes to write
      */
-    extern(D) void rewrite(T)(Outbuffer* buf, size_t offset, T data)
+    extern(D) void rewrite(T)(OutBuffer* buf, size_t offset, T data)
     {
         *(cast(T*)&buf.buf[offset]) = data;
     }
@@ -603,7 +604,7 @@ static if (1)
      * Params:
      *      buf = write raw data here
      */
-    void writeDebugFrameHeader(Outbuffer *buf)
+    void writeDebugFrameHeader(OutBuffer *buf)
     {
         void writeDebugFrameHeader(ubyte dversion)()
         {
@@ -676,7 +677,7 @@ static if (1)
      * See_Also:
      *      https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA/ehframechpt.html
      */
-    private uint writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality, bool ehunwind)
+    private uint writeEhFrameHeader(IDXSEC dfseg, OutBuffer *buf, Symbol *personality, bool ehunwind)
     {
         /* Augmentation string:
          *  z = first character, means Augmentation Data field is present
@@ -830,7 +831,7 @@ static if (1)
             // Do we need this?
             //debugFrameFDE64.initial_location = sfunc.Soffset;
 
-            Outbuffer *debug_frame_buf = SegData[dfseg].SDbuf;
+            OutBuffer *debug_frame_buf = SegData[dfseg].SDbuf;
             uint debug_frame_buf_offset = cast(uint)debug_frame_buf.length();
             debug_frame_buf.reserve(1000);
             debug_frame_buf.writen(&debugFrameFDE64,debugFrameFDE64.sizeof);
@@ -871,7 +872,7 @@ static if (1)
             // Do we need this?
             //debugFrameFDE32.initial_location = sfunc.Soffset;
 
-            Outbuffer *debug_frame_buf = SegData[dfseg].SDbuf;
+            OutBuffer *debug_frame_buf = SegData[dfseg].SDbuf;
             uint debug_frame_buf_offset = cast(uint)debug_frame_buf.length();
             debug_frame_buf.reserve(1000);
             debug_frame_buf.writen(&debugFrameFDE32,debugFrameFDE32.sizeof);
@@ -895,7 +896,7 @@ static if (1)
      */
     void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, uint CIE_offset)
     {
-        Outbuffer *buf = SegData[dfseg].SDbuf;
+        OutBuffer *buf = SegData[dfseg].SDbuf;
         const uint startsize = cast(uint)buf.length();
 
         Symbol *fdesym;
@@ -1032,7 +1033,7 @@ static if (1)
                 flags = SHT_PROGBITS;
 
             int seg = dwarf_getsegment(debug_frame_name, 1, flags);
-            Outbuffer *buf = SegData[seg].SDbuf;
+            OutBuffer *buf = SegData[seg].SDbuf;
             buf.reserve(1000);
             writeDebugFrameHeader(buf);
         }
@@ -1048,7 +1049,7 @@ static if (1)
          ******************************************************************** */
         {
             debug_str.initialize();
-            //Outbuffer *debug_str_buf = debug_str.buf;
+            //OutBuffer *debug_str_buf = debug_str.buf;
         }
 
         /* *********************************************************************
@@ -1267,7 +1268,14 @@ static if (1)
                 debug_info.buf.write("Digital Mars D ");
                 debug_info.buf.writeString(config._version);     // DW_AT_producer
                 // DW_AT_language
-                debug_info.buf.writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
+                auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
+                /* if source file has .c or .i extension, emit C debug info
+                 */
+                if (filename.length >= 2 &&
+                    filename[$ - 2] == '.' &&
+                    (filename[$ - 1] == 'c' || filename[$ - 1] == 'i'))
+                    language = DW_LANG_C89;
+                debug_info.buf.writeByte(language);
             }
             else version (SCPP)
             {
@@ -1767,7 +1775,7 @@ static if (1)
 
             IDXSEC dfseg = dwarf_eh_frame_alloc();
 
-            Outbuffer *buf = SegData[dfseg].SDbuf;
+            OutBuffer *buf = SegData[dfseg].SDbuf;
             buf.reserve(1000);
 
             uint *poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
@@ -1826,14 +1834,17 @@ static if (1)
             version (MARS)
                 if (sa.Sflags & SFLnodebug) continue;
 
-            __gshared ubyte[12] formal =
+            __gshared ubyte[18] formal =
             [
                 DW_TAG_formal_parameter,
                 0,
-                DW_AT_name,       DW_FORM_string,
-                DW_AT_type,       DW_FORM_ref4,
-                DW_AT_artificial, DW_FORM_flag,
-                DW_AT_location,   DW_FORM_block1,
+                DW_AT_name,        DW_FORM_string,
+                DW_AT_type,        DW_FORM_ref4,
+                DW_AT_artificial,  DW_FORM_flag,
+                DW_AT_decl_file,   DW_FORM_data1,
+                DW_AT_decl_line,   DW_FORM_data2,
+                DW_AT_decl_column, DW_FORM_data2,
+                DW_AT_location,    DW_FORM_block1,
                 0,                0,
             ];
 
@@ -1865,7 +1876,7 @@ static if (1)
             }
         }
 
-        Outbuffer abuf;
+        OutBuffer abuf;
         abuf.writeByte(DW_TAG_subprogram);
         abuf.writeByte(haveparameters);          // have children?
         if (haveparameters)
@@ -1882,6 +1893,7 @@ static if (1)
 
         abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
         abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_data2);
+        abuf.writeByte(DW_AT_decl_column); abuf.writeByte(DW_FORM_data2);
         if (ret_type)
         {
             abuf.writeByte(DW_AT_type);  abuf.writeByte(DW_FORM_ref4);
@@ -1897,6 +1909,32 @@ static if (1)
                 abuf.writeByte(DW_FORM_flag_present);
             else
                 abuf.writeByte(DW_FORM_flag);
+        }
+
+        if (sfunc.Sfunc.Fflags3 & Fmain)
+        {
+            if (config.dwarf >= 4)
+            {
+                abuf.writeByte(DW_AT_main_subprogram);
+                abuf.writeByte(DW_FORM_flag_present);
+                if (config.flags2 & CFG2genmain)
+                {
+                    abuf.writeByte(DW_AT_artificial);
+                    abuf.writeByte(DW_FORM_flag_present);
+                }
+            } else {
+                if (config.flags2 & CFG2genmain)
+                {
+                    abuf.writeByte(DW_AT_artificial);
+                    abuf.writeByte(DW_FORM_flag);
+                }
+            }
+
+        }
+        if (config.dwarf >= 5 && sfunc.Sflags & SFLexit)
+        {
+            abuf.writeuLEB128(DW_AT_noreturn);
+            abuf.writeByte(DW_FORM_flag_present);
         }
 
         abuf.writeByte(DW_AT_low_pc);     abuf.writeByte(DW_FORM_addr);
@@ -1923,6 +1961,7 @@ static if (1)
         debug_info.buf.writeString(sfunc.Sident.ptr);    // DW_AT_MIPS_linkage_name
         debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
         debug_info.buf.write16(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
+        debug_info.buf.write16(sfunc.Sfunc.Fstartline.Scharnum);   // DW_AT_decl_column
         if (ret_type)
             debug_info.buf.write32(ret_type);         // DW_AT_type
 
@@ -1931,6 +1970,10 @@ static if (1)
 
         if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
             debug_info.buf.writeByte(true);           // DW_AT_pure
+        if (config.dwarf < 4
+            && sfunc.Sfunc.Fflags3 & Fmain
+            && config.flags2 & CFG2genmain)
+            debug_info.buf.writeByte(true);           // DW_AT_artificial
 
         // DW_AT_low_pc and DW_AT_high_pc
         dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset);
@@ -1976,6 +2019,9 @@ static if (1)
                         debug_info.buf.writeString(getSymName(sa));   // DW_AT_name
                         debug_info.buf.write32(tidx);                 // DW_AT_type
                         debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
+                        debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
+                        debug_info.buf.write16(sa.lposscopestart.Slinnum);   // DW_AT_decl_line
+                        debug_info.buf.write16(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
                         soffset = cast(uint)debug_info.buf.length();
                         debug_info.buf.writeByte(2);                  // DW_FORM_block1
                         if (sa.Sfl == FLreg || sa.Sclass == SCpseudo)
@@ -2125,7 +2171,7 @@ static if (1)
         if (tyfunc(tym) && s.Sclass != SCtypedef)
             return;
 
-        Outbuffer abuf;
+        OutBuffer abuf;
         uint code;
         uint typidx;
         uint soffset;
@@ -2235,13 +2281,12 @@ static if (1)
             DW_AT_encoding,         DW_FORM_data1,
             0,                      0,
         ];
-        static immutable ubyte[12] abbrevWchar =
+        static immutable ubyte[10] abbrevWchar =
         [
-            DW_TAG_typedef,         DW_CHILDREN_no,
+            DW_TAG_base_type,       DW_CHILDREN_no,
             DW_AT_name,             DW_FORM_string,
-            DW_AT_type,             DW_FORM_ref4,
-            DW_AT_decl_file,        DW_FORM_data1,
-            DW_AT_decl_line,        DW_FORM_data2,
+            DW_AT_byte_size,        DW_FORM_data1,
+            DW_AT_encoding,         DW_FORM_data1,
             0,                      0,
         ];
         static immutable ubyte[6] abbrevTypePointer =
@@ -2294,11 +2339,22 @@ static if (1)
             DW_TAG_shared_type,     DW_CHILDREN_no,
             0,                      0,
         ];
+        static immutable ubyte[6] abbrevTypeImmutable =
+        [
+            DW_TAG_immutable_type,  DW_CHILDREN_no,
+            DW_AT_type,             DW_FORM_ref4,
+            0,                      0,
+        ];
+        static immutable ubyte[4] abbrevTypeImmutableVoid =
+        [
+            DW_TAG_immutable_type,  DW_CHILDREN_no,
+            0,                      0,
+        ];
 
         if (!t)
             return 0;
 
-        foreach(mty; [mTYconst, mTYshared, mTYvolatile])
+        foreach(mty; [mTYconst, mTYshared, mTYvolatile, mTYimmutable])
         {
             if (t.Tty & mty)
             {
@@ -2335,8 +2391,14 @@ static if (1)
                         ? dwarf_abbrev_code(abbrevTypeShared)
                         : dwarf_abbrev_code(abbrevTypeSharedVoid);
                 }
+                else if (mty == mTYimmutable && config.dwarf >= 5)
+                {
+                    code = nextidx
+                        ? dwarf_abbrev_code(abbrevTypeImmutable)
+                        : dwarf_abbrev_code(abbrevTypeImmutableVoid);
+                }
                 else
-                    assert(0);
+                    continue;
 
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);    // abbreviation code
@@ -2471,14 +2533,14 @@ static if (1)
 
                 code = dwarf_abbrev_code(abbrevTypeStruct.ptr, (abbrevTypeStruct).sizeof);
                 idx = cast(uint)debug_info.buf.length();
-                debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString("_Delegate");  // DW_AT_name
+                debug_info.buf.writeuLEB128(code);       // abbreviation code
+                debug_info.buf.writeString(t.Tident);    // DW_AT_name
                 debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
-                // ctxptr
+                // ptr
                 code = dwarf_abbrev_code(abbrevTypeMember.ptr, (abbrevTypeMember).sizeof);
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString("ctxptr");     // DW_AT_name
+                debug_info.buf.writeString("ptr");        // DW_AT_name
                 debug_info.buf.write32(pvoididx);         // DW_AT_type
 
                 debug_info.buf.writeByte(2);              // DW_AT_data_member_location
@@ -2523,20 +2585,7 @@ static if (1)
                 code = dwarf_abbrev_code(abbrevTypeStruct.ptr, (abbrevTypeStruct).sizeof);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.write("_AArray_".ptr, 8);      // DW_AT_name
-                if (tybasic(t.Tkey.Tty))
-                    p = tystring[tybasic(t.Tkey.Tty)];
-                else
-                    p = "key";
-                debug_info.buf.write(p, cast(uint)strlen(p));
-
-                debug_info.buf.writeByte('_');
-                if (tybasic(t.Tnext.Tty))
-                    p = tystring[tybasic(t.Tnext.Tty)];
-                else
-                    p = "value";
-                debug_info.buf.writeString(p);
-
+                debug_info.buf.writeString(t.Tident);      // DW_AT_name
                 debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
                 // ptr
@@ -2566,7 +2615,7 @@ static if (1)
             case TYuint:        p = "uint";          goto Lsigned;
             case TYlong:        p = "long";          goto Lsigned;
             case TYulong:       p = "ulong";         goto Lsigned;
-            case TYdchar:       p = "dchar";                goto Lsigned;
+            case TYdchar:       p = "dchar";         ate = DW_ATE_UTF;                     goto Lsigned;
             case TYfloat:       p = "float";        ate = DW_ATE_float;     goto Lsigned;
             case TYdouble_alias:
             case TYdouble:      p = "double";       ate = DW_ATE_float;     goto Lsigned;
@@ -2598,7 +2647,7 @@ static if (1)
                  * caching these, we can cache the function typidx.
                  * Cache them in functypebuf[]
                  */
-                Outbuffer tmpbuf;
+                OutBuffer tmpbuf;
                 nextidx = dwarf_typidx(t.Tnext);                   // function return type
                 tmpbuf.write32(nextidx);
                 uint params = 0;
@@ -2618,7 +2667,7 @@ static if (1)
 
                 if (!functypebuf)
                 {
-                    functypebuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+                    functypebuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
                     assert(functypebuf);
                 }
                 uint functypebufidx = cast(uint)functypebuf.length();
@@ -2626,7 +2675,7 @@ static if (1)
                 /* If it's in the cache already, return the existing typidx
                  */
                 if (!functype_table)
-                    functype_table = AApair.create(&functypebuf.buf);
+                    functype_table = AApair.create(functypebuf.bufptr);
                 uint *pidx = cast(uint *)functype_table.get(functypebufidx, cast(uint)functypebuf.length());
                 if (*pidx)
                 {
@@ -2637,7 +2686,7 @@ static if (1)
 
                 /* Not in the cache, create a new typidx
                  */
-                Outbuffer abuf;             // for abbrev
+                OutBuffer abuf;             // for abbrev
                 abuf.writeByte(DW_TAG_subroutine_type);
                 abuf.writeByte(params ? DW_CHILDREN_yes : DW_CHILDREN_no);
                 abuf.writeByte(DW_AT_prototyped);
@@ -2807,14 +2856,12 @@ static if (1)
             case TYwchar_t:
             {
                 uint code3 = dwarf_abbrev_code(abbrevWchar.ptr, (abbrevWchar).sizeof);
-                uint typebase = dwarf_typidx(tstypes[TYint]);
                 idx = cast(uint)debug_info.buf.length();
+
                 debug_info.buf.writeuLEB128(code3);       // abbreviation code
                 debug_info.buf.writeString("wchar_t");    // DW_AT_name
-                debug_info.buf.write32(typebase);         // DW_AT_type
-                debug_info.buf.writeByte(1);              // DW_AT_decl_file
-                debug_info.buf.write16(1);                // DW_AT_decl_line
-                typidx_tab[ty] = idx;
+                debug_info.buf.writeByte(tysize(TYint));  // DW_AT_byte_size
+                debug_info.buf.writeByte(DW_ATE_signed);  // DW_AT_encoding
                 break;
             }
 
@@ -2853,7 +2900,7 @@ static if (1)
                     break;                  // don't set Stypidx
                 }
 
-                Outbuffer fieldidx;
+                OutBuffer fieldidx;
 
                 // Count number of fields
                 uint nfields = 0;
@@ -2873,7 +2920,7 @@ static if (1)
                     }
                 }
 
-                Outbuffer baseclassidx;
+                OutBuffer baseclassidx;
                 for (auto bc = st.Sbase; bc; bc = bc.BCnext)
                     baseclassidx.write32(dwarf_typidx(bc.BCbase.Stype));
 
@@ -2891,7 +2938,7 @@ static if (1)
                 }
                 else
                 {
-                    Outbuffer abuf;         // for abbrev
+                    OutBuffer abuf;         // for abbrev
                     abuf.writeByte(dwarf_classify_struct(st.Sflags));
                     abuf.writeByte(DW_CHILDREN_yes);
                     abuf.writeByte(DW_AT_name);     abuf.writeByte(DW_FORM_string);
@@ -3038,7 +3085,7 @@ static if (1)
                     break;                  // don't set Stypidx
                 }
 
-                Outbuffer abuf;             // for abbrev
+                OutBuffer abuf;             // for abbrev
                 abuf.write(abbrevTypeEnum.ptr, abbrevTypeEnum.sizeof);
                 code = dwarf_abbrev_code(abuf.buf, abuf.length());
 
@@ -3093,7 +3140,7 @@ static if (1)
             /* uint[Adata] type_table;
              * where the table values are the type indices
              */
-            type_table = AApair.create(&debug_info.buf.buf);
+            type_table = AApair.create(debug_info.buf.bufptr);
 
         uint *pidx = type_table.get(idx, cast(uint)debug_info.buf.length());
         if (!*pidx)                 // if no idx assigned yet
@@ -3137,7 +3184,7 @@ static if (1)
             /* uint[Adata] abbrev_table;
              * where the table values are the abbreviation codes.
              */
-            abbrev_table = AApair.create(&debug_abbrev.buf.buf);
+            abbrev_table = AApair.create(debug_abbrev.buf.bufptr);
 
         /* Write new entry into debug_abbrev.buf
          */
@@ -3179,7 +3226,7 @@ static if (1)
             return;
 
         int seg = dwarf_except_table_alloc(sfunc);
-        Outbuffer *buf = SegData[seg].SDbuf;
+        OutBuffer *buf = SegData[seg].SDbuf;
         buf.reserve(100);
 
         if (config.objfmt == OBJ_ELF)

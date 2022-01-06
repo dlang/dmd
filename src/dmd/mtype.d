@@ -1,9 +1,9 @@
 /**
  * Defines a D type.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mtype.d, _mtype.d)
  * Documentation:  https://dlang.org/phobos/dmd_mtype.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mtype.d
@@ -43,7 +43,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.opover;
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.stringtable;
@@ -237,6 +237,7 @@ enum DotExpFlag
 {
     gag     = 1,    // don't report "not a property" error and just return null
     noDeref = 2,    // the use of the expression will not attempt a dereference
+    noAliasThis = 4, // don't do 'alias this' resolution
 }
 
 /// Result of a check whether two types are covariant
@@ -426,6 +427,13 @@ extern (C++) abstract class Type : ASTNode
         return DYNCAST.type;
     }
 
+    /// Returns a non-zero unique ID for this Type, or returns 0 if the Type does not (yet) have a unique ID.
+    /// If `semantic()` has not been run, 0 is returned.
+    final size_t getUniqueID() const
+    {
+        return cast(size_t) deco;
+    }
+
     extern (D)
     final Mcache* getMcache()
     {
@@ -507,7 +515,7 @@ extern (C++) abstract class Type : ASTNode
                         }
                         else if (tp1.ty == Tdelegate)
                         {
-                            if (tp1.implicitConvTo(tp2))
+                            if (tp2.implicitConvTo(tp1))
                                 goto Lcov;
                         }
                     }
@@ -2298,7 +2306,9 @@ extern (C++) abstract class Type : ASTNode
      */
     structalign_t alignment()
     {
-        return STRUCTALIGN_DEFAULT;
+        structalign_t s;
+        s.setDefault();
+        return s;
     }
 
     /***************************************
@@ -3968,65 +3978,37 @@ extern (C++) final class TypePointer : TypeNext
         if (equals(to))
             return MATCH.exact;
 
-        if (next.ty == Tfunction)
-        {
-            if (auto tp = to.isTypePointer())
-            {
-                if (tp.next.ty == Tfunction)
-                {
-                    if (next.equals(tp.next))
-                        return MATCH.constant;
-
-                    if (next.covariant(tp.next) == Covariant.yes)
-                    {
-                        Type tret = this.next.nextOf();
-                        Type toret = tp.next.nextOf();
-                        if (tret.ty == Tclass && toret.ty == Tclass)
-                        {
-                            /* https://issues.dlang.org/show_bug.cgi?id=10219
-                             * Check covariant interface return with offset tweaking.
-                             * interface I {}
-                             * class C : Object, I {}
-                             * I function() dg = function C() {}    // should be error
-                             */
-                            int offset = 0;
-                            if (toret.isBaseOf(tret, &offset) && offset != 0)
-                                return MATCH.nomatch;
-                        }
-                        return MATCH.convert;
-                    }
-                }
-                else if (tp.next.ty == Tvoid)
-                {
-                    // Allow conversions to void*
-                    return MATCH.convert;
-                }
-            }
+        // Only convert between pointers
+        auto tp = to.isTypePointer();
+        if (!tp)
             return MATCH.nomatch;
-        }
-        else if (auto tp = to.isTypePointer())
+
+        assert(this.next);
+        assert(tp.next);
+
+        // Conversion to void*
+        if (tp.next.ty == Tvoid)
         {
-            assert(tp.next);
+            // Function pointer conversion doesn't check constness?
+            if (this.next.ty == Tfunction)
+                return MATCH.convert;
 
             if (!MODimplicitConv(next.mod, tp.next.mod))
                 return MATCH.nomatch; // not const-compatible
 
-            /* Alloc conversion to void*
-             */
-            if (next.ty != Tvoid && tp.next.ty == Tvoid)
-            {
-                return MATCH.convert;
-            }
-
-            MATCH m = next.constConv(tp.next);
-            if (m > MATCH.nomatch)
-            {
-                if (m == MATCH.exact && mod != to.mod)
-                    m = MATCH.constant;
-                return m;
-            }
+            return this.next.ty == Tvoid ? MATCH.constant : MATCH.convert;
         }
-        return MATCH.nomatch;
+
+        // Conversion between function pointers
+        if (auto thisTf = this.next.isTypeFunction())
+            return thisTf.implicitPointerConv(tp.next);
+
+        // Default, no implicit conversion between the pointer targets
+        MATCH m = next.constConv(tp.next);
+
+        if (m == MATCH.exact && mod != to.mod)
+            m = MATCH.constant;
+        return m;
     }
 
     override MATCH constConv(Type to)
@@ -4776,7 +4758,10 @@ extern (C++) final class TypeFunction : TypeNext
                             }
                         }
                         else
-                            m = arg.implicitConvTo(tprm);
+                        {
+                            import dmd.dcast : cimplicitConvTo;
+                            m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
+                        }
                     }
                     //printf("match %d\n", m);
                 }
@@ -4798,7 +4783,7 @@ extern (C++) final class TypeFunction : TypeNext
                             goto Nomatch;
                         }
 
-                        if (arg.op == TOK.string_ && tp.ty == Tsarray)
+                        if (arg.op == EXP.string_ && tp.ty == Tsarray)
                         {
                             if (ta.ty != Tsarray)
                             {
@@ -4807,7 +4792,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 ta = tn.sarrayOf(dim);
                             }
                         }
-                        else if (arg.op == TOK.slice && tp.ty == Tsarray)
+                        else if (arg.op == EXP.slice && tp.ty == Tsarray)
                         {
                             // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             if (ta.ty != Tsarray)
@@ -4820,7 +4805,7 @@ extern (C++) final class TypeFunction : TypeNext
                         else if ((p.storageClass & STC.in_) && global.params.previewIn)
                         {
                             // Allow converting a literal to an `in` which is `ref`
-                            if (arg.op == TOK.arrayLiteral && tp.ty == Tsarray)
+                            if (arg.op == EXP.arrayLiteral && tp.ty == Tsarray)
                             {
                                 Type tn = tp.nextOf();
                                 dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
@@ -4984,6 +4969,47 @@ extern (C++) final class TypeFunction : TypeNext
 
     Nomatch:
         //printf("no match\n");
+        return MATCH.nomatch;
+    }
+
+    /+
+     + Checks whether this function type is convertible to ` to`
+     + when used in a function pointer / delegate.
+     +
+     + Params:
+     +   to = target type
+     +
+     + Returns:
+     +   MATCH.nomatch: `to` is not a covaraint function
+     +   MATCH.convert: `to` is a covaraint function
+     +   MATCH.exact:   `to` is identical to this function
+     +/
+    private MATCH implicitPointerConv(Type to)
+    {
+        assert(to);
+
+        if (this.equals(to))
+            return MATCH.constant;
+
+        if (this.covariant(to) == Covariant.yes)
+        {
+            Type tret = this.nextOf();
+            Type toret = to.nextOf();
+            if (tret.ty == Tclass && toret.ty == Tclass)
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=10219
+                 * Check covariant interface return with offset tweaking.
+                 * interface I {}
+                 * class C : Object, I {}
+                 * I function() dg = function C() {}    // should be error
+                 */
+                int offset = 0;
+                if (toret.isBaseOf(tret, &offset) && offset != 0)
+                    return MATCH.nomatch;
+            }
+            return MATCH.convert;
+        }
+
         return MATCH.nomatch;
     }
 
@@ -5275,30 +5301,19 @@ extern (C++) final class TypeDelegate : TypeNext
         //printf("TypeDelegate.implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
-        if (this == to)
+        if (this.equals(to))
             return MATCH.exact;
 
-        version (all)
+        if (auto toDg = to.isTypeDelegate())
         {
-            // not allowing covariant conversions because it interferes with overriding
-            if (to.ty == Tdelegate && this.nextOf().covariant(to.nextOf()) == Covariant.yes)
-            {
-                Type tret = this.next.nextOf();
-                Type toret = (cast(TypeDelegate)to).next.nextOf();
-                if (tret.ty == Tclass && toret.ty == Tclass)
-                {
-                    /* https://issues.dlang.org/show_bug.cgi?id=10219
-                     * Check covariant interface return with offset tweaking.
-                     * interface I {}
-                     * class C : Object, I {}
-                     * I delegate() dg = delegate C() {}    // should be error
-                     */
-                    int offset = 0;
-                    if (toret.isBaseOf(tret, &offset) && offset != 0)
-                        return MATCH.nomatch;
-                }
-                return MATCH.convert;
-            }
+            MATCH m = this.next.isTypeFunction().implicitPointerConv(toDg.next);
+
+            // Retain the old behaviour for this refactoring
+            // Should probably be changed to constant to match function pointers
+            if (m > MATCH.convert)
+                m = MATCH.convert;
+
+            return m;
         }
 
         return MATCH.nomatch;
@@ -5758,7 +5773,7 @@ extern (C++) final class TypeStruct : Type
 
     override structalign_t alignment()
     {
-        if (sym.alignment == 0)
+        if (sym.alignment.isUnknown())
             sym.size(sym.loc);
         return sym.alignment;
     }
@@ -5799,7 +5814,7 @@ extern (C++) final class TypeStruct : Type
             }
             else
                 e = vd.type.defaultInitLiteral(loc);
-            if (e && e.op == TOK.error)
+            if (e && e.op == EXP.error)
                 return e;
             if (e)
                 offset = vd.offset + cast(uint)vd.type.size();
@@ -6210,7 +6225,7 @@ extern (C++) final class TypeEnum : Type
 
     override bool isZeroInit(const ref Loc loc)
     {
-        return sym.getDefaultValue(loc).isBool(false);
+        return sym.getDefaultValue(loc).toBool().hasValue(false);
     }
 
     override bool hasPointers()
@@ -6538,6 +6553,29 @@ extern (C++) final class TypeTuple : Type
             }
         }
         return false;
+    }
+
+    override MATCH implicitConvTo(Type to)
+    {
+        if (this == to)
+            return MATCH.exact;
+        if (auto tt = to.isTypeTuple())
+        {
+            if (arguments.dim == tt.arguments.dim)
+            {
+                MATCH m = MATCH.exact;
+                for (size_t i = 0; i < tt.arguments.dim; i++)
+                {
+                    Parameter arg1 = (*arguments)[i];
+                    Parameter arg2 = (*tt.arguments)[i];
+                    MATCH mi = arg1.type.implicitConvTo(arg2.type);
+                    if (mi < m)
+                        m = mi;
+                }
+                return m;
+            }
+        }
+        return MATCH.nomatch;
     }
 
     override void accept(Visitor v)

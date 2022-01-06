@@ -2,12 +2,12 @@
  * Define registers, register masks, and the CPU instruction linked list
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code.d, backend/_code.d)
  */
 
@@ -22,9 +22,10 @@ import dmd.backend.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.oper : OPMAX;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -253,8 +254,8 @@ struct seg_data
 
     //ELFOBJ || MACHOBJ
     IDXSEC           SDshtidx;          // section header table index
-    Outbuffer       *SDbuf;             // buffer to hold data
-    Outbuffer       *SDrel;             // buffer to hold relocation info
+    OutBuffer       *SDbuf;             // buffer to hold data
+    OutBuffer       *SDrel;             // buffer to hold relocation info
 
     //ELFOBJ
     IDXSYM           SDsymidx;          // each section is in the symbol table
@@ -411,7 +412,6 @@ regm_t getscratch();
 void codelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint constflag);
 void scodelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool constflag);
 const(char)* regm_str(regm_t rm);
-int numbitsset(regm_t);
 
 /* cdxxx.c: functions that go into cdxxx[] table */
 void cdabs(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
@@ -521,7 +521,7 @@ void cod3_set32();
 void cod3_set64();
 void cod3_align_bytes(int seg, size_t nbytes);
 void cod3_align(int seg);
-void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
+void cod3_buildmodulector(OutBuffer* buf, int codeOffset, int refOffset);
 void cod3_stackadj(ref CodeBuilder cdb, int nbytes);
 void cod3_stackalign(ref CodeBuilder cdb, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);

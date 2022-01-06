@@ -11,7 +11,6 @@ Upcoming language changes listed by -preview=name:
   =dip1021          implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md (Mutable function arguments)
   =fieldwise        use fieldwise comparisons for struct equality
   =fixAliasThis     when a symbol is resolved, check alias this scope before going to upper scopes
-  =intpromote       fix integral promotions for unary + - ~ operators
   =rvaluerefparam   enable rvalue arguments to ref parameters
   =nosharedaccess   disable access to shared memory objects
   =in               `in` on parameters means `scope const [ref]` and accepts rvalues

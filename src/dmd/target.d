@@ -15,9 +15,9 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
  * Documentation:  https://dlang.org/phobos/dmd_target.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/target.d
@@ -27,7 +27,7 @@ module dmd.target;
 
 import dmd.globals : Param;
 
-enum CPU
+enum CPU : ubyte
 {
     x87,
     mmx,
@@ -80,11 +80,12 @@ extern (C++) struct Target
     import dmd.dscope : Scope;
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
-    import dmd.globals : LINK, Loc, d_int64;
-    import dmd.astenums : TY;
+    import dmd.globals : Loc, d_int64;
+    import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
+    import dmd.tokens : EXP;
 
     /// Bit decoding of the Target.OS
     enum OS : ubyte
@@ -92,7 +93,7 @@ extern (C++) struct Target
         /* These are mutually exclusive; one and only one is set.
          * Match spelling and casing of corresponding version identifiers
          */
-        Freestanding = 0,
+        none         = 0,
         linux        = 1,
         Windows      = 2,
         OSX          = 4,
@@ -149,12 +150,12 @@ extern (C++) struct Target
         real_t infinity;                    /// infinity value
         real_t epsilon;                     /// smallest increment to the value 1
 
-        d_int64 dig = T.dig;                /// number of decimal digits of precision
-        d_int64 mant_dig = T.mant_dig;      /// number of bits in mantissa
-        d_int64 max_exp = T.max_exp;        /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
-        d_int64 min_exp = T.min_exp;        /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
-        d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
-        d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
+        d_int64 dig;                        /// number of decimal digits of precision
+        d_int64 mant_dig;                   /// number of bits in mantissa
+        d_int64 max_exp;                    /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
+        d_int64 min_exp;                    /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
+        d_int64 max_10_exp;                 /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
+        d_int64 min_10_exp;                 /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
 
         extern (D) void initialize()
         {
@@ -163,6 +164,12 @@ extern (C++) struct Target
             nan = T.nan;
             infinity = T.infinity;
             epsilon = T.epsilon;
+            dig = T.dig;
+            mant_dig = T.mant_dig;
+            max_exp = T.max_exp;
+            min_exp = T.min_exp;
+            max_10_exp = T.max_10_exp;
+            min_10_exp = T.min_10_exp;
         }
     }
 
@@ -313,81 +320,7 @@ extern (C++) struct Target
         c.runtime   = triple.cenv;
         cpp.runtime = triple.cppenv;
     }
-    /**
-     * Add predefined global identifiers that are determied by the target
-     */
-    void addPredefinedGlobalIdentifiers() const
-    {
-        import dmd.cond : VersionCondition;
 
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        if (cpu >= CPU.sse2)
-        {
-            predef("D_SIMD");
-            if (cpu >= CPU.avx)
-                predef("D_AVX");
-            if (cpu >= CPU.avx2)
-                predef("D_AVX2");
-        }
-        if (os & OS.Posix)
-            predef("Posix");
-        if (os & (OS.linux | OS.FreeBSD | OS.OpenBSD | OS.DragonFlyBSD | OS.Solaris))
-            predef("ELFv1");
-        switch (os)
-        {
-            case OS.Freestanding: { predef("FreeStanding"); break; }
-            case OS.linux:        { predef("linux");        break; }
-            case OS.Windows:      { predef("Windows");      break; }
-            case OS.OpenBSD:      { predef("OpenBSD");      break; }
-            case OS.DragonFlyBSD: { predef("DragonFlyBSD"); break; }
-            case OS.Solaris:      { predef("Solaris");      break; }
-            case OS.OSX:
-            {
-                predef("OSX");
-                // For legacy compatibility
-                predef("darwin");
-                break;
-            }
-            case OS.FreeBSD:
-            {
-                predef("FreeBSD");
-                switch (osMajor)
-                {
-                    case 10: predef("FreeBSD_10");  break;
-                    case 11: predef("FreeBSD_11"); break;
-                    case 12: predef("FreeBSD_12"); break;
-                    default: predef("FreeBSD_11"); break;
-                }
-                break;
-            }
-            default: assert(0);
-        }
-        c.addRuntimePredefinedGlobalIdent();
-        cpp.addRuntimePredefinedGlobalIdent();
-        if (is64bit)
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
-            VersionCondition.addPredefinedGlobalIdent("X86_64");
-            if (os & OS.Windows)
-            {
-                VersionCondition.addPredefinedGlobalIdent("Win64");
-            }
-        }
-        else
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
-            VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
-            VersionCondition.addPredefinedGlobalIdent("X86");
-            if (os == OS.Windows)
-            {
-                VersionCondition.addPredefinedGlobalIdent("Win32");
-            }
-        }
-        if (isLP64)
-            VersionCondition.addPredefinedGlobalIdent("D_LP64");
-        else if (is64bit)
-            VersionCondition.addPredefinedGlobalIdent("X32");
-    }
     /**
      * Deinitializes the global state of the compiler.
      *
@@ -572,9 +505,9 @@ extern (C++) struct Target
      * Returns:
      *      true if the operation is supported or type is not a vector
      */
-    extern (C++) bool isVectorOpSupported(Type type, uint op, Type t2 = null)
+    extern (C++) bool isVectorOpSupported(Type type, EXP op, Type t2 = null)
     {
-        import dmd.tokens : TOK, Token;
+        import dmd.hdrgen : EXPtoString;
 
         auto tvec = type.isTypeVector();
         if (tvec is null)
@@ -589,12 +522,12 @@ extern (C++) struct Target
         bool supported = false;
         switch (op)
         {
-        case TOK.uadd:
+        case EXP.uadd:
             // Expression is a no-op, supported everywhere.
             supported = tvec.isscalar();
             break;
 
-        case TOK.negate:
+        case EXP.negate:
             if (vecsize == 16)
             {
                 // float[4] negate needs SSE support ({V}SUBPS)
@@ -618,15 +551,15 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.lessThan, TOK.greaterThan, TOK.lessOrEqual, TOK.greaterOrEqual, TOK.equal, TOK.notEqual, TOK.identity, TOK.notIdentity:
+        case EXP.lessThan, EXP.greaterThan, EXP.lessOrEqual, EXP.greaterOrEqual, EXP.equal, EXP.notEqual, EXP.identity, EXP.notIdentity:
             supported = false;
             break;
 
-        case TOK.leftShift, TOK.leftShiftAssign, TOK.rightShift, TOK.rightShiftAssign, TOK.unsignedRightShift, TOK.unsignedRightShiftAssign:
+        case EXP.leftShift, EXP.leftShiftAssign, EXP.rightShift, EXP.rightShiftAssign, EXP.unsignedRightShift, EXP.unsignedRightShiftAssign:
             supported = false;
             break;
 
-        case TOK.add, TOK.addAssign, TOK.min, TOK.minAssign:
+        case EXP.add, EXP.addAssign, EXP.min, EXP.minAssign:
             if (vecsize == 16)
             {
                 // float[4] add/sub needs SSE support ({V}ADDPS, {V}SUBPS)
@@ -650,7 +583,7 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.mul, TOK.mulAssign:
+        case EXP.mul, EXP.mulAssign:
             if (vecsize == 16)
             {
                 // float[4] multiply needs SSE support ({V}MULPS)
@@ -680,7 +613,7 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.div, TOK.divAssign:
+        case EXP.div, EXP.divAssign:
             if (vecsize == 16)
             {
                 // float[4] divide needs SSE support ({V}DIVPS)
@@ -698,11 +631,11 @@ extern (C++) struct Target
             }
             break;
 
-        case TOK.mod, TOK.modAssign:
+        case EXP.mod, EXP.modAssign:
             supported = false;
             break;
 
-        case TOK.and, TOK.andAssign, TOK.or, TOK.orAssign, TOK.xor, TOK.xorAssign:
+        case EXP.and, EXP.andAssign, EXP.or, EXP.orAssign, EXP.xor, EXP.xorAssign:
             // (u)byte[16]/short[8]/int[4]/long[2] bitwise ops needs SSE2 support ({V}PAND, {V}POR, {V}PXOR)
             if (vecsize == 16 && tvec.isintegral() && cpu >= CPU.sse2)
                 supported = true;
@@ -711,11 +644,11 @@ extern (C++) struct Target
                 supported = true;
             break;
 
-        case TOK.not:
+        case EXP.not:
             supported = false;
             break;
 
-        case TOK.tilde:
+        case EXP.tilde:
             // (u)byte[16]/short[8]/int[4]/long[2] logical exclusive needs SSE2 support ({V}PXOR)
             if (vecsize == 16 && tvec.isintegral() && cpu >= CPU.sse2)
                 supported = true;
@@ -724,14 +657,14 @@ extern (C++) struct Target
                 supported = true;
             break;
 
-        case TOK.pow, TOK.powAssign:
+        case EXP.pow, EXP.powAssign:
             supported = false;
             break;
 
         default:
             // import std.stdio : stderr, writeln;
             // stderr.writeln(op);
-            assert(0, "unhandled op " ~ Token.toString(cast(TOK)op));
+            assert(0, "unhandled op " ~ EXPtoString(cast(EXP)op));
         }
         return supported;
     }
@@ -808,7 +741,7 @@ extern (C++) struct Target
 
         if (os == Target.OS.Windows && is64bit)
         {
-            // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
+            // https://msdn.microsoft.com/en-us/library/7572ztz4%28v=vs.100%29.aspx
             if (tns.ty == TY.Tcomplex32)
                 return true;
             if (tns.isscalar())
@@ -1181,7 +1114,7 @@ struct TargetC
                               /// https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
         Gcc_Clang,            /// gcc and clang
     }
-
+    bool  crtDestructorsSupported = true; /// Not all platforms support crt_destructor
     ubyte longsize;           /// size of a C `long` or `unsigned long` type
     ubyte long_doublesize;    /// size of a C `long double`
     ubyte wchar_tsize;        /// size of a C `wchar_t` type
@@ -1234,25 +1167,12 @@ struct TargetC
             bitFieldStyle = BitFieldStyle.Gcc_Clang;
         else
             assert(0);
-    }
-
-    void addRuntimePredefinedGlobalIdent() const
-    {
-        import dmd.cond : VersionCondition;
-
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        with (Runtime) switch (runtime)
+        /*
+            MacOS Monterey (12) does not support C runtime destructors.
+        */
+        if (os == Target.OS.OSX)
         {
-        default:
-        case Unspecified: return;
-        case Bionic:      return predef("CRuntime_Bionic");
-        case DigitalMars: return predef("CRuntime_DigitalMars");
-        case Glibc:       return predef("CRuntime_Glibc");
-        case Microsoft:   return predef("CRuntime_Microsoft");
-        case Musl:        return predef("CRuntime_Musl");
-        case Newlib:      return predef("CRuntime_Newlib");
-        case UClibc:      return predef("CRuntime_UClibc");
-        case WASI:        return predef("CRuntime_WASI");
+            crtDestructorsSupported = false;
         }
     }
 }
@@ -1302,7 +1222,7 @@ struct TargetCPP
         else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
             runtime = Runtime.Clang;
         else if (os == Target.OS.Solaris)
-            runtime = Runtime.Sun;
+            runtime = Runtime.Gcc;
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms
@@ -1386,8 +1306,7 @@ struct TargetCPP
      */
     extern (C++) Type parameterType(Parameter p)
     {
-        import dmd.astenums : STC;
-        import dmd.globals : LINK;
+        import dmd.astenums : LINK, STC;
         import dmd.mtype : ParameterList, TypeDelegate, TypeFunction;
         import dmd.typesem : merge;
 
@@ -1432,23 +1351,6 @@ struct TargetCPP
             return (baseClass.structsize + baseClass.alignsize - 1) & ~(baseClass.alignsize - 1);
         else
             return baseClass.structsize;
-    }
-
-    void addRuntimePredefinedGlobalIdent() const
-    {
-        import dmd.cond : VersionCondition;
-
-        alias predef = VersionCondition.addPredefinedGlobalIdent;
-        with (Runtime) switch (runtime)
-        {
-        default:
-        case Unspecified: return;
-        case Clang:       return predef("CppRuntime_Clang");
-        case DigitalMars: return predef("CppRuntime_DigitalMars");
-        case Gcc:         return predef("CppRuntime_Gcc");
-        case Microsoft:   return predef("CppRuntime_Microsoft");
-        case Sun:         return predef("CppRuntime_Sun");
-        }
     }
 }
 
@@ -1543,7 +1445,7 @@ struct Triple
             import dmd.root.string : startsWith;
             if (!arch.ptr.startsWith(str))
                 return false;
-            arch = arch[str.length-1 .. $-1];
+            arch = arch[str.length .. $];
             return true;
         }
 
@@ -1587,8 +1489,20 @@ struct Triple
         }
     }
 
-    Target.OS parseOS(const(char)[] _os, out ubyte _osMajor)
+    /********************************
+     * Parse OS and osMajor version number.
+     * Params:
+     *  _os = string to check for operating system followed by version number
+     *  osMajor = set to version number (if any), otherwise set to 0.
+     *            Set to 255 if version number is 255 or larger and error is generated
+     * Returns:
+     *  detected operating system, Target.OS.none if none
+     */
+    Target.OS parseOS(const(char)[] _os, out ubyte osMajor)
     {
+        import dmd.errors : error;
+        import dmd.globals : Loc;
+
         bool matches(const(char)[] str)
         {
             import dmd.root.string : startsWith;
@@ -1597,10 +1511,7 @@ struct Triple
             _os = _os[str.length .. $];
             return true;
         }
-        if (_os == "freestanding")
-            return Target.OS.Freestanding;
         Target.OS os;
-        _osMajor = 0;
         if (matches("darwin"))
             os = Target.OS.OSX;
         else if (matches("dragonfly"))
@@ -1616,17 +1527,49 @@ struct Triple
         else
         {
             unknown(_os, "operating system");
-            return Target.OS.Freestanding;
+            return Target.OS.none;
         }
-        while (_os.length)
+
+        bool overflow;
+        auto major = parseNumber(_os, overflow);
+        if (overflow || major >= 255)
         {
-            if (!('0' < _os[0] && _os[0] < '9'))
-                break;
-            osMajor *= 10;
-            osMajor = cast(ubyte)((_os[0] - '0') + osMajor);
-            _os = _os[1 .. $];
+            error(Loc.initial, "OS version overflowed max of 254");
+            major = 255;
         }
+        osMajor = cast(ubyte)major;
+
+        /* Note that anything after the number up to the end or '-',
+         * such as '.3.4.hello.betty', is ignored
+         */
+
         return os;
+    }
+
+    /*******************************
+     * Parses a decimal number out of the str and returns it.
+     * Params:
+     *  str = string to parse the number from, updated to text after the number
+     *  overflow = set to true iff an overflow happens
+     * Returns:
+     *  parsed number
+     */
+    private pure static
+    uint parseNumber(ref const(char)[] str, ref bool overflow)
+    {
+        auto s = str;
+        ulong n;
+        while (s.length)
+        {
+            const c = s[0];
+            if (c < '0' || '9' < c)
+                break;
+            n = n * 10 + (c - '0');
+            overflow |= (n > uint.max); // sticky overflow check
+            s = s[1 .. $];              // consume digit
+        }
+        str = s;
+        return cast(uint)n;
     }
 
     TargetC.Runtime parseCEnv(const(char)[] cenv)
