@@ -2018,7 +2018,7 @@ $(H3 $(LNAME2 variadic, Variadic Functions))
         $(OL
         $(LI $(RELATIVE_LINK2 c_style_variadic_functions, C-style variadic functions))
         $(LI $(RELATIVE_LINK2 d_style_variadic_functions, Variadic functions with type info))
-        $(LI $(RELATIVE_LINK2 typesafe-variadic_functions, Typesafe variadic functions))
+        $(LI $(RELATIVE_LINK2 typesafe_variadic_functions, Typesafe variadic functions))
         )
 
 
