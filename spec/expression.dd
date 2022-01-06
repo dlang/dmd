@@ -1235,20 +1235,27 @@ $(GNAME IndexExpression):
     $(GLINK PostfixExpression) $(D [) $(GLINK ArgumentList) $(D ])
 )
 
-$(P $(I PostfixExpression) is evaluated. If $(I PostfixExpression) is an
-expression of type static array or dynamic array, the symbol $(DOLLAR) is set to
-be the number of elements in the array. If $(I PostfixExpression) is a $(I
-ValueSeq), the symbol $(DOLLAR) is set to be the number of elements
-in the sequence. A new declaration scope is created for the evaluation of the
-$(GLINK ArgumentList) and $(DOLLAR) appears in that scope only.)
+    $(P $(I PostfixExpression) is evaluated.
+        If $(I PostfixExpression) is an expression of static or
+        dynamic array type, the result of the indexing is an lvalue
+        of the *i*th element in the array.
+        If $(I PostfixExpression) is a pointer `p`, the result is `*(p + i)`.
+        In each case, `i` is an integer evaluated from $(I ArgumentList).
+    )
 
-    $(P If $(I PostfixExpression) is a $(I ValueSeq),
-        then the $(GLINK ArgumentList) must consist of only one argument,
+    $(P If $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
+        then the $(I ArgumentList) must consist of only one argument,
         and that must be statically evaluatable to an integral constant.
         That integral constant $(I n) then selects the $(I n)th
         expression in the $(I ValueSeq), which is the result
         of the $(I IndexExpression).
         It is an error if $(I n) is out of bounds of the $(I ValueSeq).
+    )
+
+    $(P The special variable `$` is declared and set to be the number
+        of elements in the $(I PostfixExpression) (when available).
+        A new declaration scope is created for the evaluation of the
+        $(I ArgumentList) and `$` appears in that scope only.
     )
 
 $(H2 $(LNAME2 slice_expressions, Slice Expressions))
@@ -1266,9 +1273,17 @@ $(GNAME Slice):
 )
 
     $(P $(I PostfixExpression) is evaluated.
-        If $(I PostfixExpression) is an expression of static array or
-        dynamic array type, the result of the slice is a dynamic array
-        of the element type of the $(I PostfixExpression).
+        If $(I PostfixExpression) is a static or dynamic
+        array `a`, the result of the slice is a dynamic array
+        referencing elements `a[i]` to `a[j-1]` inclusive, where `i`
+        and `j` are integers evaluated from the first and second $(I
+        AssignExpression) respectively.
+    )
+
+    $(P If $(I PostfixExpression) is a pointer `p`, the result
+        will be a dynamic array referencing elements from `p[i]` to `p[j-1]`
+        inclusive, where `i` and `j` are integers evaluated from the
+        first and second $(I AssignExpression) respectively.
     )
 
     $(P If $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
@@ -1278,18 +1293,18 @@ $(GNAME Slice):
         It is an error if those bounds are out of range.
     )
 
-    $(P The special variable `$`
-        is declared and set to be the number of elements in the $(I PostfixExpression).
-        A new declaration scope is created for the evaluation of the
-        $(GLINK AssignExpression)..$(GLINK AssignExpression)
-        and `$` appears in that scope only.
-    )
-
     $(P The first $(I AssignExpression) is taken to be the inclusive
         lower bound
         of the slice, and the second $(I AssignExpression) is the
         exclusive upper bound.
         The result of the expression is a slice of the elements in $(I PostfixExpression).
+    )
+
+    $(P The special variable `$` is declared and set to be the number
+        of elements in the $(I PostfixExpression) (when available).
+        A new declaration scope is created for the evaluation of the
+        $(I AssignExpression)`..`$(I AssignExpression) and `$` appears in
+        that scope only.
     )
 
     $(P If the $(D [ ]) form is used, the slice is of all the elements in $(I PostfixExpression).
