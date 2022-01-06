@@ -1580,7 +1580,7 @@ $(GNAME ArrayLiteral):
             bar(arr[1 .. 3]);
             assert(arr == [1, 4, 5]);
 
-            //foo(arr[0..3]); // cannot match length
+            //foo(arr[0 .. 3]); // cannot match length
         }
         -------------
         )
@@ -1660,7 +1660,7 @@ $(GNAME ValueExpression):
         anything.)
 
         ---
-        [21u:"he", 38:"ho", 2:"hi"];  // type is string[uint],
+        [21u: "he", 38: "ho", 2: "hi"]; // type is string[uint],
                                       // with keys 21u, 38u and 2u
                                       // and values "he", "ho", and "hi"
         ---

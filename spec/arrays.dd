@@ -724,9 +724,9 @@ $(H2 $(LNAME2 bounds, Array Bounds Checking))
 
         $(P It is an error to index an array with an index that is less than
         0 or greater than or equal to the array length. If an index is
-        out of bounds, a `RangeError` exception is
-        raised if detected at runtime, and an error if detected at compile
-        time.  A program may not rely on array bounds checking happening, for
+        out of bounds, an `ArrayIndexError` is thrown
+        if detected at runtime, and an error is raised if detected at compile
+        time. A program may not rely on array bounds checking happening, for
         example, the following program is incorrect:
         )
 
@@ -741,7 +741,7 @@ try
         array[i] = 5;
     }
 }
-catch (RangeError)
+catch (ArrayIndexError)
 {
     // terminate loop
 }

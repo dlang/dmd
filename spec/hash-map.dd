@@ -35,7 +35,7 @@ $(H2 $(LNAME2 literals, Literals))
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-auto aa = [21u:"he", 38:"ho", 2:"hi"];
+auto aa = [21u: "he", 38: "ho", 2: "hi"];
 static assert(is(typeof(aa) == string[uint]));
 assert(aa[2] == "hi");
 ---
