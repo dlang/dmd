@@ -474,9 +474,21 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
      * store the results in eargs[]
      */
     Expressions eargs = Expressions(dim);
+    Expressions dtors;
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = (*arguments)[i];
+        if (auto commaExp = earg.isCommaExp())
+        {
+            if (auto declExp = commaExp.e1.isDeclarationExp())
+            {
+                if (auto vd = declExp.declaration.isVarDeclaration())
+                {
+                    if (vd.edtor)
+                        dtors.push(vd.edtor);
+                }
+            }
+        }
         Parameter fparam = tf.parameterList[i];
 
         if (fparam.isReference())
@@ -709,6 +721,19 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             e = pue.copy();
         e.isThrownExceptionExp().generateUncaughtError();
         e = CTFEExp.cantexp;
+    }
+
+    // destroy temporaries
+    // https://issues.dlang.org/show_bug.cgi?id=22536
+    foreach(dtor; dtors)
+    {
+        auto res = interpret(dtor, istate);
+        if (auto ctfeError = res.isThrownExceptionExp())
+        {
+            ctfeError.generateUncaughtError();
+            e = CTFEExp.cantexp;
+            break;
+        }
     }
 
     return e;
