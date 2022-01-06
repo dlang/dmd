@@ -2643,15 +2643,10 @@ if (!Init.length ||
 Throwable _d_newThrowable(T)() @trusted
     if (is(T : Throwable))
 {
-    auto ci = T.classinfo;
-
-    debug(PRINTF) printf("_d_newThrowable(ci = %p, %s)\n", ci, cast(char *) T.stringof);
-
-    assert(!(ci.m_flags & TypeInfo_Class.ClassFlags.isCOMclass));
-    assert(!(ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass));
+    debug(PRINTF) printf("_d_newThrowable(%s)\n", cast(char*) T.stringof);
 
     import core.stdc.stdlib : malloc;
-    auto init = ci.initializer;
+    auto init = __traits(initSymbol, T);
     void* p = malloc(init.length);
     if (!p)
     {
@@ -2664,12 +2659,12 @@ Throwable _d_newThrowable(T)() @trusted
     // initialize it
     p[0 .. init.length] = init[];
 
-    if (!(ci.m_flags & TypeInfo_Class.ClassFlags.noPointers))
+    import core.internal.traits : hasIndirections;
+    if (hasIndirections!T)
     {
         // Inform the GC about the pointers in the object instance
         import core.memory : GC;
-
-        GC.addRange(p, init.length, ci);
+        GC.addRange(p, init.length);
     }
 
     debug(PRINTF) printf("initialization done\n");
