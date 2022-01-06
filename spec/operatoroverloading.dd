@@ -254,15 +254,42 @@ $(H2 $(LEGACY_LNAME2 Binary, binary, Binary Operator Overloading))
 ---
 a $(METACODE op) b
 ---
-        $(P is rewritten as both:)
+        $(P is rewritten as one of:)
 ---
 a.opBinary!($(METACODE "op"))(b)
 b.opBinaryRight!($(METACODE "op"))(a)
 ---
 
         $(P and the one with the $(SINGLEQUOTE better) match is selected.
-        It is an error for both to equally match.
+        It is an error for both to equally match. Example:
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int[] data;
+
+    // this ~ rhs
+    int[] opBinary(string op : "~")(int rhs)
+    {
+        return data ~ rhs;
+    }
+    // lhs ~ this
+    int[] opBinaryRight(string op : "~")(int lhs)
+    {
+        return lhs ~ data;
+    }
+}
+
+void main()
+{
+    auto s = S([2,3]);
+    assert(s ~ 4 == [2,3,4]); // opBinary
+    assert(1 ~ s == [1,2,3]); // opBinaryRight
+}
+---
+)
 
         $(P Operator overloading for a number of operators can be done at the same time.
         For example, if only the + or - operators are supported:)
