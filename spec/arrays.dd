@@ -121,15 +121,24 @@ int[]* e;     // pointer to dynamic array of ints
 ---------
 )
 
-$(H2 $(LNAME2 usage, Array Usage))
+$(H2 $(LNAME2 literals, Array Literals))
 
-        $(P There are two broad kinds of operations to do on an array -
-        those affecting the handle to the array,
-        and those affecting the contents of the array.
-        )
+---
+auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
+auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
+int[2] = [1, 2];
+---
+    $(P `[]` is an empty array literal.)
 
-        $(P The handle to an array is specified by naming the array, as
-        in p, s or a:
+    $(P See $(DDSUBLINK expression, array_literals, Array Literals).)
+
+$(LEGACY_LNAME2 usage)
+$(H2 $(LNAME2 assignment, Array Assignment))
+
+        $(P There are two broad kinds of operations to do on dynamic arrays and
+        pointer arrays - those affecting the handle to the array,
+        and those affecting the contents of the array. Assignment only affects
+        the handle for these types.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -144,30 +153,22 @@ p = a.ptr; // p points to the first element of the array a.
 // error, since the length of the array pointed to by p is unknown
 //s = p;
 //s = a; // error, as a's length is not known at compile-time
+s = [1,2,3];
 
 //a = p;   // error, length unknown
-a = s;     // a is initialized to point to the s array
+a = s;     // a points to the elements of s
 assert(a.ptr == s.ptr);
+assert(a == [1,2,3]);
 
 int[] b;
 a = b;     // a points to the same array as b does
 assert(a.ptr == b.ptr);
+assert(a == []);
 ---------
 )
     $(P Each of the three error lines above can be made to copy elements
     using $(RELATIVE_LINK2 slicing, slicing), so that the number of elements
     to copy is then known.)
-
-$(H2 $(LNAME2 literals, Array Literals))
-
----
-auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
-a1 = []; // a1 is now empty
-auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
-int[2] = [1, 2];
----
-
-    $(P See $(DDSUBLINK expression, array_literals, Array Literals).)
 
 $(H2 $(LNAME2 indexing, Indexing))
 
