@@ -2259,7 +2259,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
              */
 
             // @@@DEPRECATED@@@
-            // Deprecated in 2022-01, make this an error in 2.102
+            // Deprecated in 2022-01, make this an error in 2.106
             if (!totuple)
                 e.deprecation("casting from `%s` to `%s` is deprecated", e.type.toChars(), t.toChars());
         }
