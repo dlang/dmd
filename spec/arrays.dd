@@ -55,7 +55,7 @@ assert(*p == 6);
         ))
 
         $(P To set a pointer to point at an existing object, use the
-        `&` *address of* operator:
+        `&` *address of* operator:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
@@ -223,6 +223,28 @@ assert(b[1] == 2);
 )
 
     $(P See also $(GLINK2 expression, IndexExpression).)
+
+$(H3 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
+
+    $(P A pointer can also be indexed, but no bounds checks are done.
+    Unlike arrays, a pointer value can also be used in certain
+    arithmetic expressions to produce another pointer:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+int* p = a.ptr;
+
+*(p + 2) = 4; // same as `p[2] = 4`
+assert(a[2] == 4);
+
+assert(p == &a[0]);
+p++;
+assert(*p == 2);
+---
+)
+
+    $(P See $(DDSUBLINK spec/expression, pointer_arithmetic, *AddExpression*) for details.)
 
 $(H2 $(LNAME2 slicing, Slicing))
 
@@ -476,30 +498,6 @@ a[] -= (b[] + 4) * c[];
         to take advantage of any vector math instructions available on
         the target computer.
         )
-
-$(H2 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
----------
-void dibb(int* array)
-{
-    array[2];     // means same thing as *(array + 2)
-    *(array + 2); // get 3rd element
-}
-
-void diss(int[] array)
-{
-    array[2];     // ok
-    *(array + 2); // error, array is not a pointer
-}
-
-void ditt(int[3] array)
-{
-    array[2];     // ok
-    *(array + 2); // error, array is not a pointer
-}
----------
-)
 
 $(H2 $(LNAME2 rectangular-arrays, Rectangular Arrays))
 
