@@ -132,6 +132,7 @@ struct DMDparams
     bool alwaysframe;       // always emit standard stack frame
     ubyte dwarf;            // DWARF version
     bool map;               // generate linker .map file
+    bool vasm;              // print generated assembler for each function
 
     // Hidden debug switches
     bool debugb;
@@ -1871,6 +1872,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.verbose = true;
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
+        else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
+            dmdParams.vasm = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates

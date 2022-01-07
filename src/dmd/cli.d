@@ -704,6 +704,9 @@ dmd -cov -unittest myprog.d
             "verbose",
             `Enable verbose output for each compiler pass`,
         ),
+        Option("vasm",
+            "list generated assembler for each function"
+        ),
         Option("vcolumns",
             "print character (column) numbers in diagnostics"
         ),
