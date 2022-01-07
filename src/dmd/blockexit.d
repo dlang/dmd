@@ -149,7 +149,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                             else if (!func.getModule().isCFile)
                             {
                                 const(char)* gototype = s.isCaseStatement() ? "case" : "default";
-                                s.deprecation("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                                s.error("switch case fallthrough - use 'goto %s;' if intended", gototype);
                             }
                         }
                     }
