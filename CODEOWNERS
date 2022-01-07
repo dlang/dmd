@@ -22,6 +22,7 @@ src/core/cpuid.d @WalterBright @ibuclaw @JackStouffer
 src/core/demangle.d @WalterBright @MartinNowak @rainers @ibuclaw
 src/core/exception.d @MartinNowak @WalterBright @jmdavis @CyberShadow
 src/core/internal @MartinNowak @schveiguy
+src/core/int128.d @WalterBright
 src/core/math.d @ibuclaw @redstar
 src/core/runtime.d @MartinNowak @Abscissa
 src/core/simd.d @WalterBright @MartinNowak

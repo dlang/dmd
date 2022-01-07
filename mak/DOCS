@@ -4,6 +4,7 @@ DOCS=\
 	$(DOCDIR)\core_bitop.html \
 	$(DOCDIR)\core_checkedint.html \
 	$(DOCDIR)\core_exception.html \
+	$(DOCDIR)\core_int128.html \
 	$(DOCDIR)\core_math.html \
 	$(DOCDIR)\core_vararg.html \
 	$(DOCDIR)\core_volatile.html \
