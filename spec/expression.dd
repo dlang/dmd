@@ -787,7 +787,7 @@ $(GNAME AddExpression):
     $(P Add expressions for floating point operands are not associative.
     )
 
-    $(H3 $(LNAME2 pointer_ops, Pointer Operations))
+    $(H3 $(LNAME2 pointer_arithmetic, Pointer Arithmetic))
 
     $(P If the operator is $(D +) or $(D -), and
         the first operand is a pointer, and the second is an integral type,
@@ -813,6 +813,8 @@ $(GNAME AddExpression):
         It is an error if the pointers point to different types.
         The type of the result is $(D ptrdiff_t).
     )
+
+    $(P $(GLINK IndexExpression) can also be used with a pointer.)
 
 $(H2 $(LNAME2 cat_expressions, Cat Expressions))
 
@@ -901,7 +903,7 @@ $(GNAME UnaryExpression):
 
 $(TABLE
     $(THEAD Operator, Description)
-    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue)$(COMMA) producing a pointer)
+    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK arrays, pointer, pointers))
     $(TROW `++`, Increment before use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement before use)
     $(TROW `*`, Dereference/indirection - typically for pointers)
