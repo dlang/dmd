@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+runnable/variadic.d(75): Deprecation: casting from `(int, int)` to `double` is deprecated
+---
+*/
+
 alias TypeTuple(T...) = T;
 
 class A { }
