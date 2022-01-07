@@ -1,0 +1,14 @@
+Deprecated weired casting from TypeTuple to other types
+
+The result of casting from TypeTuple to other types is puzzling
+and not useful.
+
+---
+TypeTuple!(int, int) values;
+auto values2 = cast(long)values;
+// typeof(values2) == TypeTuple!(int, int)
+
+// Only when the casted tuple is immediately expanded.
+auto arr = [cast(long)values];
+// typeof(arr) == long[]
+---
