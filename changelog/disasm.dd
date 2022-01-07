@@ -1,0 +1,2 @@
+Added -vasm compiler switch, which prints to the console the generated assembler code
+for each function.
