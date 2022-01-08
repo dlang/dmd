@@ -4654,7 +4654,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
  * Returns:
  *  The initialization expression for the type.
  */
-extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfile = false)
+Expression defaultInit(Type mt, const ref Loc loc, const bool isCfile = false)
 {
     Expression visitBasic(TypeBasic mt)
     {

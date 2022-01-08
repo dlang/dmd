@@ -4473,8 +4473,6 @@ public:
     void accept(Visitor* v);
 };
 
-extern Expression* defaultInit(Type* mt, const Loc& loc, const bool isCfile = false);
-
 extern Type* merge(Type* type);
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
