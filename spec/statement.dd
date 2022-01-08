@@ -501,6 +501,11 @@ $(P
         in the $(PS0).
 )
 
+        $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
+        foreach, a $(GLINK ContinueStatement) will immediately start the
+        next iteration.
+        )
+
 $(H3 $(LNAME2 foreach_over_arrays, Foreach over Arrays))
 
 $(P
@@ -518,14 +523,17 @@ $(P
         $(I index) cannot be `ref`.
         It is set to be the index of the array element.
 )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
-char[] a;
-...
-foreach (int i, char c; a)
+import std.stdio;
+char[] a = ['h', 'i'];
+
+foreach (size_t i, char c; a)
 {
     writefln("a[%d] = '%c'", i, c);
 }
 --------------
+)
 
         $(P For $(D foreach), the
         elements for the array are iterated over starting at index 0
@@ -559,7 +567,9 @@ $(H3 $(LNAME2 foreach_over_arrays_of_characters, Foreach over Arrays of Characte
         can be decoded into any UTF type:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
+import std.stdio;
 char[] a = "\xE2\x89\xA0".dup;  // \u2260 encoded as 3 UTF-8 bytes
 
 foreach (dchar c; a)
@@ -574,15 +584,16 @@ foreach (char c; b)
     writef("%x, ", c);  // prints 'e2, 89, a0, '
 }
 --------------
-
+)
 
         $(P Aggregates can be string literals, which can be accessed
         as char, wchar, or dchar arrays:
         )
 
---------------
-void test()
-{
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    --------------
+    import std.stdio;
+
     foreach (char c; "ab")
     {
         writefln("'%s'", c);
@@ -591,8 +602,8 @@ void test()
     {
         writefln("'%s'", w);
     }
-}
---------------
+    --------------
+    )
 
         $(P which would print:
         )
@@ -665,6 +676,7 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
 
     $(P For example, consider a class that is a container for two elements:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         --------------
         class Foo
         {
@@ -674,22 +686,19 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
             {
                 int result = 0;
 
-                for (int i = 0; i < array.length; i++)
+                foreach (e; array)
                 {
-                    result = dg(array[i]);
+                    result = dg(e);
                     if (result)
                         break;
                 }
                 return result;
             }
         }
-        --------------
 
-    $(P An example using this might be:)
-
-        --------------
-        void test()
+        void main()
         {
+            import std.stdio;
             Foo a = new Foo();
 
             a.array[0] = 73;
@@ -697,12 +706,13 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
 
             foreach (uint u; a)
             {
-                writefln("%d", u);
+                writeln(u);
             }
         }
         --------------
+        )
 
-    $(P which would print:)
+    $(P This would print:)
 
 $(CONSOLE
 73
@@ -926,6 +936,8 @@ $(P
         and it is set to the index of each sequence element.
 )
         $(P Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -----
 import std.meta : AliasSeq;
 
@@ -939,6 +951,7 @@ void main()
     }
 }
 -----
+)
         $(P Output:)
 
 $(CONSOLE
@@ -954,10 +967,10 @@ $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
         $(P $(D ref) can be used to update the original elements:
         )
 
---------------
-void test()
-{
-    static uint[2] a = [7, 8];
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    --------------
+    import std.stdio;
+    uint[2] a = [7, 8];
 
     foreach (ref uint u; a)
     {
@@ -965,10 +978,10 @@ void test()
     }
     foreach (uint u; a)
     {
-        writefln("%d", u);
+        writeln(u);
     }
-}
---------------
+    --------------
+    )
 
         which would print:
 
@@ -1002,7 +1015,7 @@ foreach (int i; a)
 a = null;         // ok
 --------------
 
-$(H2 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
+$(H3 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
 
 $(P A foreach range statement loops over the specified range.)
 
@@ -1036,6 +1049,7 @@ $(GNAME ForeachRangeStatement):
         is executed.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 import std.stdio;
 
@@ -1053,6 +1067,7 @@ void main()
     }
 }
 ---
+)
 
 prints:
 
@@ -1060,14 +1075,6 @@ $(CONSOLE
 foo0123456789
 )
 
-
-$(H3 $(LNAME2 break_and_continue_out_of_foreach, Break and Continue out of Foreach))
-
-
-        $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
-        foreach, a $(GLINK ContinueStatement) will immediately start the
-        next iteration.
-        )
 
 $(H2 $(LEGACY_LNAME2 SwitchStatement, switch-statement, Switch Statement))
 
@@ -1443,7 +1450,7 @@ $(GNAME WithStatement):
         Within the with body the referenced object is searched first for
         identifier symbols.
 
-$(P The $(I WithStatement))
+$(P Below, if `ident` is a member of the type of `expression`, the $(I WithStatement):)
 
 --------------
 with (expression)
@@ -1487,7 +1494,7 @@ with (Foo)
 }
 --------------
 
-        $(P Use of with object symbols that shadow local symbols with
+        $(P Use of `with` object symbols that shadow local symbols with
         the same identifier are not allowed.
         This is to reduce the risk of inadvertent breakage of with
         statements when new members are added to the object declaration.
@@ -1512,6 +1519,8 @@ void main()
         $(P In nested $(I WithStatement)s, the inner-most scope takes precedence.  If
         a symbol cannot be resolved at the inner-most scope, resolution is forwarded
         incrementally up the scope hierarchy.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 import std.stdio;
 
@@ -1571,8 +1580,8 @@ void main()
                        // subsequently forward to module scope.
     }
 }
-
 ---
+)
 
 $(H2 $(LEGACY_LNAME2 SynchronizedStatement, synchronized-statement, Synchronized Statement))
 
@@ -1684,6 +1693,7 @@ $(GNAME FinallyStatement):
         to the original exception (the head of the chain) if a bypass occurred,
         so that the entire exception history is retained.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
 import std.stdio;
 
@@ -1709,6 +1719,7 @@ int main()
     return 0;
 }
 --------------
+)
 
     prints:
 
@@ -1770,8 +1781,10 @@ $(PSCURLYSCOPE) when the scope exits due to exception unwinding.
         scope, their destructions will be interleaved with the $(I ScopeGuardStatement)s
         in the reverse lexical order in which they appear.)
 
-
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
+import std.stdio;
+
 write("1");
 {
     write("2");
@@ -1781,6 +1794,7 @@ write("1");
 }
 writeln();
 ----
+)
 
         writes:
 
@@ -1789,7 +1803,9 @@ $(CONSOLE
 )
 
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
+import std.stdio;
 {
     scope(exit) write("1");
     scope(success) write("2");
@@ -1798,6 +1814,7 @@ $(CONSOLE
 }
 writeln();
 ----
+)
 
         writes:
 
@@ -1805,8 +1822,10 @@ $(CONSOLE
 4321
 )
 
-
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
+import std.stdio;
+
 struct Foo
 {
     this(string s) { write(s); }
@@ -1829,6 +1848,7 @@ catch (Exception e)
 }
 writeln();
 ----
+)
 
         writes:
 
@@ -1949,32 +1969,32 @@ $(GNAME MixinStatement):
         $(GLINK StatementList), and is compiled as such.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 import std.stdio;
 
 void main()
 {
-    int j;
+    int i = 0;
     mixin("
         int x = 3;
-        for (int i = 0; i < 3; i++)
-            writeln(x + i, ++j);
+        for (; i < 3; i++)
+            writeln(x + i, i);
         ");    // ok
 
-    string s = "int y;";
+    enum s = "int y;";
     mixin(s);  // ok
     y = 4;     // ok, mixin declared y
 
     string t = "y = 3;";
-    mixin(t);  // error, t is not evaluatable at compile time
-
-    mixin("y =") 4; // error, string must be complete statement
+    //mixin(t);  // error, t is not evaluatable at compile time
+    //mixin("y =") 4; // error, string must be complete statement
 
     mixin("y =" ~ "4;");  // ok
-
     mixin("y =", 2+2, ";");  // ok
 }
 ---
+)
 
 $(SPEC_SUBNAV_PREV_NEXT expression, Expressions, arrays, Arrays)
 )
