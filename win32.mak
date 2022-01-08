@@ -108,9 +108,17 @@ rebuild_minit_obj: src\rt\minit.asm
 $(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
 	*$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
-unittest: $(SRCS) $(DRUNTIME)
-	*$(DMD) $(UDFLAGS) -L/co $(UTFLAGS) -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)
-	.\unittest.exe
+################### Unittests #########################
+# Unittest are not run because OPTLINK tends to crash when linking
+# unittest.exe. Note that the unittests are still run for -m32mscoff
+# and -m64 which are configured in win64.mak
+
+unittest: unittest.obj
+	@echo "Unittests cannot be linked on Win32 + OMF due to OPTLINK issues"
+
+# Split compilation into a different step to avoid unnecessary rebuilds
+unittest.obj: $(SRCS) win$(MODEL).mak
+	*$(DMD) $(UDFLAGS) $(UTFLAGS) -c -of$@ $(SRCS)
 
 ################### tests ######################################
 
