@@ -57,7 +57,6 @@ $(GNAME NonEmptyStatementNoCaseNoDefault):
     $(GLINK SynchronizedStatement)
     $(GLINK TryStatement)
     $(GLINK ScopeGuardStatement)
-    $(GLINK ThrowStatement)
     $(GLINK AsmStatement)
     $(GLINK MixinStatement)
     $(GLINK ForeachRangeStatement)
@@ -1174,7 +1173,7 @@ $(H3 $(LNAME2 no-implicit-fallthrough, No Implicit Fall-Through))
 
         $(P A $(GLINK ScopeStatementList) must either be empty, or be ended with
         a $(GLINK ContinueStatement), $(GLINK BreakStatement),
-        $(GLINK ReturnStatement), $(GLINK GotoStatement), $(GLINK ThrowStatement)
+        $(GLINK ReturnStatement), $(GLINK GotoStatement), $(GLINK2 expression, ThrowExpression)
         or `assert(0)` expression unless this is the last case. This is to
         set apart with C's error-prone implicit fall-through behavior.)
 
@@ -1746,27 +1745,6 @@ done
         $(P A $(I FinallyStatement) may not contain any $(I Catches).
         This restriction may be relaxed in future versions.
         )
-
-$(H2 $(LEGACY_LNAME2 ThrowStatement, throw-statement, Throw Statement))
-
-$(P Throws an exception.)
-
-$(GRAMMAR
-$(GNAME ThrowStatement):
-    $(D throw) $(EXPRESSION) $(D ;)
-)
-
-$(P *Expression* is evaluated and must be  a `Throwable` reference. The
-`Throwable` reference is thrown as an exception.)
-
----
-throw new Exception("message");
----
-
-$(BEST_PRACTICE Use $(DDSUBLINK spec/expression, assert_expressions, Assert Expressions)
-rather than $(LINK2 $(ROOT_DIR)library/object#.Error, Error) to report program bugs
-and abort the program.
-)
 
 $(H2 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Statement))
 

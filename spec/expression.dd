@@ -939,6 +939,7 @@ $(GNAME UnaryExpression):
     $(GLINK ComplementExpression)
     $(GLINK DeleteExpression)
     $(GLINK CastExpression)
+    $(GLINK ThrowExpression)
     $(GLINK PowExpression)
 )
 
@@ -1299,6 +1300,43 @@ $(H4 $(LNAME2 cast_void, Casting to `void`))
             foo(cast(void)10);  // OK
         }
         ----
+
+$(H2 $(LNAME2 throw_expression, Throw Expression))
+
+$(GRAMMAR
+$(GNAME ThrowExpression):
+    $(D throw) $(GLINK AssignExpression) $(D ;)
+)
+
+$(P
+    $(I AssignExpression) is evaluated and must yield a reference to a `Throwable`
+    or a class derived from `Throwable`. The reference is thrown as an exception,
+    interrupting the current control flow to continue at a suitable $(D catch) clause
+    of a $(GLINK2 statement, try-statement). This process will execute any applicable
+    $(LINK2 statement.html#ScopeGuardStatement, `scope (exit)` / `scope (failure)`)
+    passed since entering the corresponding `try` block.
+)
+
+    ---
+    throw new Exception("message");
+    ---
+
+$(P
+    A $(I ThrowExpression) may be nested in another expression:
+)
+    ---
+    void foo(int function() f) {}
+
+    void main() {
+        foo(() => throw new Exception());
+    }
+    ---
+
+
+$(BEST_PRACTICE Use $(DDSUBLINK spec/expression, assert_expressions, Assert Expressions)
+rather than $(LINK2 $(ROOT_DIR)library/object#.Error, Error) to report program bugs
+and abort the program.
+)
 
 $(H2 $(LNAME2 pow_expressions, Pow Expressions))
 
