@@ -638,6 +638,17 @@ single quotes.)
     '\\'  // the backslash character
     ---
 
+$(P A character literal resolves to one
+    of type $(D char), $(D wchar), or $(D dchar)
+    (see $(DDSUBLINK spec/type, basic-data-types, Basic Data Types)).)
+
+$(UL
+    $(LI If the literal is a $(D \u) escape sequence, it resolves to type $(D wchar).)
+    $(LI If the literal is a $(D \U) escape sequence, it resolves to type $(D dchar).)
+)
+$(P Otherwise, it resolves to the type with the smallest size it
+    will fit into.)
+
 $(H2 $(LNAME2 integerliteral, Integer Literals))
 
 $(GRAMMAR_LEX
