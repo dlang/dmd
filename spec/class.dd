@@ -181,11 +181,13 @@ $(H2 $(LNAME2 class_properties, Class Properties))
         `.tupleof` is not available for `extern(Objective-C)` classes due to
         their fields having a dynamic offset.
         )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 class Foo { int x; long y; }
 
-void test(Foo foo)
+void main()
 {
+    auto foo = new Foo;
     import std.stdio;
     static assert(typeof(foo.tupleof).stringof == `(int, long)`);
 
@@ -195,6 +197,7 @@ void test(Foo foo)
         write(x);       // prints 12
 }
 ---
+)
 
         $(P The properties $(D .__vptr) and $(D .__monitor) give access
         to the class object's vtbl[] and monitor, respectively, but
@@ -219,11 +222,12 @@ $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
         $(D const), $(D immutable), $(D shared), or $(D inout).
         These attributes apply to the hidden $(I this) parameter.
         )
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 class C
 {
     int a;
-    const void foo()
+    void foo() const
     {
         a = 3; // error, 'this' is const
     }
@@ -233,6 +237,7 @@ class C
     }
 }
 ---
+)
 
 $(H3 $(LNAME2 objc-member-functions, Objective-C linkage))
 
@@ -726,7 +731,7 @@ $(GNAME Destructor):
         )
 
         $(P Objects referenced from the data segment never get collected
-        by the gc.
+        by the GC.
         )
 
 $(H2 $(LNAME2 static-constructor, Static Constructors))

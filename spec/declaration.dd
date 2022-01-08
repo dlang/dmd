@@ -434,6 +434,7 @@ b = 4;         // sets `S.j` to `4`
         $(P Aliases can be used to call a function with different default
         arguments, change an argument from required to default or vice versa:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 -----------
 import std.stdio : writefln;
 
@@ -464,6 +465,7 @@ void barbar(int a, int b = 6, int c = 7) {
     writefln("a: %d, b: %d, c: %d", a, b, c);
 }
 -----------
+)
 
 $(H2 $(LNAME2 AliasAssign, Alias Assign))
 
