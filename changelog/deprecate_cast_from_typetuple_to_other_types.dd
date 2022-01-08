@@ -1,7 +1,6 @@
-Deprecated weired casting from TypeTuple to other types
+Deprecated casting from TypeTuple to other types
 
-The result of casting from TypeTuple to other types is puzzling
-and not useful.
+The result of casting from TypeTuple to other types is puzzling.
 
 ---
 TypeTuple!(int, int) values;
