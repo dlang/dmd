@@ -4,6 +4,13 @@ $(SPEC_S Expressions,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
+
+$(GRAMMAR
+$(GNAME Expression):
+    $(GLINK CommaExpression)
+)
+
 $(P An expression is a sequence of operators and operands that specifies an evaluation.
 The syntax, order of evaluation, and semantics of expressions are as follows.)
 
@@ -41,7 +48,7 @@ $(LI built-in unary operators `+` (when applied to an lvalue), `*`, `++` (prefix
 $(LI built-in indexing operator `[]` (but not the slicing operator);)
 $(LI built-in assignment binary operators, i.e. `=`, `+=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `~=`,
 `<<=`, `>>=`, `>>>=`, and `^^=`;)
-$(LI the ternary operator $(I e) `?` $(I e$(SUBSCRIPT 1)) `:` $(I e$(SUBSCRIPT 2)) under the following
+$(LI the $(GLINK ConditionalExpression) operator $(I e) `?` $(I e$(SUBSCRIPT 1)) `:` $(I e$(SUBSCRIPT 2)) under the following
 circumstances:)
 $(OL
     $(LI $(I e$(SUBSCRIPT 1)) and $(I e$(SUBSCRIPT 2)) are lvalues of the same type; OR)
@@ -172,7 +179,7 @@ $(P Note: An intuition behind these rules is that destructors of temporaries are
 expression and in reverse order of construction, with the exception that the right-hand side of
 `&&` and `||` are considered their own full expressions even when part of larger expressions.)
 
-$(P Note: The ternary expression $(I e$(SUBSCRIPT 1) ? e$(SUBSCRIPT 2) : e$(SUBSCRIPT 3)) is not
+$(P Note: The $(GLINK ConditionalExpression) $(I e$(SUBSCRIPT 1) ? e$(SUBSCRIPT 2) : e$(SUBSCRIPT 3)) is not
 a special case although it evaluates expressions conditionally: $(I e$(SUBSCRIPT 1)) and one of
 $(I e$(SUBSCRIPT 2)) and $(I e$(SUBSCRIPT 3)) may create temporaries. Their destructors are inserted
 to the end of the full expression in the reverse order of creation.)
@@ -218,12 +225,9 @@ Following their destruction, `S(5)` and `S(6)` are constructed in lexical order.
 destroyed at the end of the full expression, but right at the end of the `&&` expression.
 Consequently, the destruction of `S(6)` and `S(5)` is carried before that of `S(2)` and `S(1)`.
 
-$(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
+$(H2 $(LNAME2 comma_expression, Comma Expression))
 
 $(GRAMMAR
-$(GNAME Expression):
-    $(GLINK CommaExpression)
-
 $(GNAME CommaExpression):
     $(GLINK AssignExpression)
     $(GSELF CommaExpression) $(D ,) $(GLINK AssignExpression)
@@ -371,7 +375,11 @@ $(GNAME ConditionalExpression):
     test ? a = b : (c = 2);
     ---
 
-$(H2 $(LNAME2 oror_expressions, OrOr Expressions))
+$(H2 $(LNAME2 logical_expressions, Logical Expressions))
+
+$(DDOC_SEE_ALSO $(GLINK UnaryExpression) for `!expr`.)
+
+$(H3 $(LNAME2 oror_expressions, OrOr Expressions))
 
 $(GRAMMAR
 $(GNAME OrOrExpression):
@@ -399,7 +407,7 @@ $(GNAME OrOrExpression):
         expression is the right operand converted to type $(D bool).
     )
 
-$(H2 $(LNAME2 andand_expressions, AndAnd Expressions))
+$(H3 $(LNAME2 andand_expressions, AndAnd Expressions))
 
 $(GRAMMAR
 $(GNAME AndAndExpression):
@@ -429,11 +437,13 @@ $(GNAME AndAndExpression):
 
 $(H2 $(LNAME2 bitwise_expressions, Bitwise Expressions))
 
-    $(P Bit wise expressions perform a bitwise operation on their operands.
+    $(P Bit wise expressions perform a
+    $(LINK2 https://en.wikipedia.org/wiki/Bitwise_operation, bitwise operation) on their operands.
         Their operands must be integral types.
         First, the $(USUAL_ARITHMETIC_CONVERSIONS) are done. Then, the bitwise
         operation is done.
     )
+    $(DDOC_SEE_ALSO $(GLINK ShiftExpression), $(GLINK ComplementExpression))
 
 $(H3 $(LNAME2 or_expressions, Or Expressions))
 
@@ -731,9 +741,10 @@ $(GNAME ShiftExpression):
         by the right operand's value.
     )
 
-    $(P $(D <)$(D <) is a left shift.
-        $(D >)$(D >) is a signed right shift.
-        $(D >)$(D >)$(D >) is an unsigned right shift.
+    $(UL
+        $(LI $(D <)$(D <) is a left shift.)
+        $(LI $(D >)$(D >) is a signed right shift.)
+        $(LI $(D >)$(D >)$(D >) is an unsigned right shift.)
     )
 
     $(P It's illegal to shift by the same or more bits than the size of the
@@ -759,10 +770,24 @@ $(GNAME AddExpression):
         $(USUAL_ARITHMETIC_CONVERSIONS).
     )
 
+    $(P If both operands are of integral types and an overflow or underflow
+        occurs in the computation, wrapping will happen. For example:)
+    $(UL
+        $(LI $(D uint.max + 1 == uint.min))
+        $(LI $(D uint.min - 1 == uint.max))
+        $(LI $(D int.max + 1 == int.min))
+        $(LI $(D int.min - 1 == int.max))
+    )
+
     $(P If either operand is a floating point type, the other is implicitly
         converted to floating point and they are brought to a common type
         via the $(USUAL_ARITHMETIC_CONVERSIONS).
     )
+
+    $(P Add expressions for floating point operands are not associative.
+    )
+
+    $(H3 $(LNAME2 pointer_arithmetic, Pointer Arithmetic))
 
     $(P If the operator is $(D +) or $(D -), and
         the first operand is a pointer, and the second is an integral type,
@@ -789,14 +814,7 @@ $(GNAME AddExpression):
         The type of the result is $(D ptrdiff_t).
     )
 
-    $(P If both operands are of integral types and an overflow or underflow
-        occurs in the computation, wrapping will happen. For example,
-        $(D uint.max + 1 == uint.min), $(D uint.min - 1 == uint.max),
-        $(D int.max + 1 == int.min), and $(D int.min - 1 == int.max).
-    )
-
-    $(P Add expressions for floating point operands are not associative.
-    )
+    $(P $(GLINK IndexExpression) can also be used with a pointer.)
 
 $(H2 $(LNAME2 cat_expressions, Cat Expressions))
 
@@ -833,6 +851,8 @@ $(GNAME MulExpression):
         into the integral type.
     )
 
+$(H3 $(LNAME2 division, Division))
+
     $(P For integral operands of the $(D /) and $(D %) operators,
         the quotient rounds towards zero and the remainder has the
         same sign as the dividend.
@@ -853,10 +873,12 @@ $(GNAME MulExpression):
         can be used to check for them and select a defined behavior.
     )
 
-    $(P For floating point operands, the * and / operations correspond
-        to the IEEE 754 floating point equivalents. % is not the same as
-        the IEEE 754 remainder. For example, 15.0 % 10.0 == 5.0, whereas
-        for IEEE 754, remainder(15.0,10.0) == -5.0.
+$(H3 $(LNAME2 mul_floating, Floating Point))
+
+    $(P For floating point operands, the `*` and `/` operations correspond
+        to the IEEE 754 floating point equivalents. `%` is not the same as
+        the IEEE 754 remainder. For example, `15.0 % 10.0 == 5.0`, whereas
+        for IEEE 754, `remainder(15.0,10.0) == -5.0`.
     )
 
     $(P Mul expressions for floating point operands are not associative.
@@ -877,6 +899,17 @@ $(GNAME UnaryExpression):
     $(GLINK DeleteExpression)
     $(GLINK CastExpression)
     $(GLINK PowExpression)
+)
+
+$(TABLE
+    $(THEAD Operator, Description)
+    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK arrays, pointer, pointers))
+    $(TROW `++`, Increment before use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
+    $(TROW `--`, Decrement before use)
+    $(TROW `*`, Dereference/indirection - typically for pointers)
+    $(TROW `-`, Negative)
+    $(TROW `+`, Positive)
+    $(TROW `!`, Logical NOT)
 )
 
 $(H3 $(LNAME2 complement_expressions, Complement Expressions))
@@ -916,6 +949,20 @@ $(GNAME ArgumentList):
         collected heap (default) or using a class or struct specific allocator.
     )
 
+    $(DDOC_DEPRECATED If $(I AllocatorArguments) is provided, then
+        the $(I ArgumentList) is passed to the class or struct specific
+        $(DDSUBLINK spec/class, allocators, allocator function) after the size argument.
+    )
+
+    $(P If a $(I NewExpression) is used as an initializer for
+        a function local variable with $(D scope) storage class,
+        and the $(I ArgumentList) to $(D new) is empty, then
+        the instance is allocated on the stack rather than the heap
+        or using the class specific allocator.
+    )
+
+$(H3 $(LNAME2 new_multidimensional, Multidimensional Arrays))
+
     $(P To allocate multidimensional arrays, the declaration reads
         in the same order as the prefix array declaration order.)
 
@@ -953,26 +1000,13 @@ $(GNAME ArgumentList):
         }
         -----------
 
-    $(P If there is a $(D new $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN)),
-        then
-        those arguments are passed to the class or struct specific
-        $(DDSUBLINK spec/class, allocators, allocator function) after the size argument.
-    )
-
-    $(P If a $(I NewExpression) is used as an initializer for
-        a function local variable with $(D scope) storage class,
-        and the $(GLINK ArgumentList) to $(D new) is empty, then
-        the instance is allocated on the stack rather than the heap
-        or using the class specific allocator.
-    )
-
 $(H3 $(LNAME2 delete_expressions, Delete Expressions))
 
 $(GRAMMAR
 $(GNAME DeleteExpression):
     $(D delete) $(GLINK UnaryExpression)
 )
-    $(P NOTE: `delete` has been deprecated.  Instead, please use $(REF1 destroy, object)
+    $(DDOC_DEPRECATED `delete` has been deprecated.  Instead, please use $(REF1 destroy, object)
     if feasible, or $(REF __delete, core, memory) as a last resort.)
 
     $(P If the $(I UnaryExpression) is a class object reference, and
@@ -1226,6 +1260,12 @@ $(GNAME PostfixExpression):
     $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK IndexExpression)
     $(GLINK SliceExpression)
+)
+
+$(TABLE
+    $(THEAD Operator, Description)
+    $(TROW `++`, Increment after use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
+    $(TROW `--`, Decrement after use)
 )
 
 $(H2 $(LNAME2 index_expressions, Index Expressions))
