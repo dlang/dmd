@@ -1369,12 +1369,12 @@ $(GNAME PrimaryExpression):
     $(RELATIVE_LINK2 this, $(D this))
     $(RELATIVE_LINK2 super, $(D super))
     $(RELATIVE_LINK2 null, $(D null))
-    $(D true)
-    $(D false)
-    $(D $)
+    $(LEGACY_LNAME2 true_false)$(DDSUBLINK spec/type, bool, `true`)
+    $(DDSUBLINK spec/type, bool, `false`)
+    $(RELATIVE_LINK2 IndexExpression, `$`)
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
-    $(GLINK_LEX CharacterLiteral)
+    $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
     $(GLINK StringLiterals)
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
@@ -1461,23 +1461,6 @@ $(H3 $(LNAME2 null, null))
         functions, delegates, etc.
         After it is cast to a type, such conversions are implicit,
         but no longer exact.
-    )
-
-$(H3 $(LNAME2 true_false, true, false))
-
-    $(P These are of type $(D bool) and when cast to another integral
-        type become the values 1 and 0,
-        respectively.
-    )
-
-$(H3 $(LEGACY_LNAME2 CharacterLiteral, character-literal, Character Literals))
-
-    $(P Character literals are single characters and resolve to one
-        of type $(D char), $(D wchar), or $(D dchar).
-        If the literal is a $(D \u) escape sequence, it resolves to type $(D wchar).
-        If the literal is a $(D \U) escape sequence, it resolves to type $(D dchar).
-        Otherwise, it resolves to the type with the smallest size it
-        will fit into.
     )
 
 $(H3 $(LNAME2 string_literals, String Literals))
