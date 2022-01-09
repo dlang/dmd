@@ -178,7 +178,7 @@ version (SCPP)
                 case TYulong4:
                 case TYllong2:
                 case TYullong2:
-                    b = e.EV.Vcent.lsw || e.EV.Vcent.msw;
+                    b = e.EV.Vcent.lo || e.EV.Vcent.hi;
                     break;
 
                 case TYfloat4:
@@ -1221,8 +1221,8 @@ else
                 e.EV.Vllong = (rem << 32) | (quo & 0xFFFFFFFF);
                 break;
             case 8:
-                e.EV.Vcent.lsw = quo;
-                e.EV.Vcent.msw = rem;
+                e.EV.Vcent.lo = quo;
+                e.EV.Vcent.hi = rem;
                 break;
             default:
                 assert(0);
@@ -1319,8 +1319,8 @@ version (MARS)
                 }
                 else
                 {
-                    e.EV.Vcent.lsw = l1;
-                    e.EV.Vcent.msw = l2;
+                    e.EV.Vcent.lo = l1;
+                    e.EV.Vcent.hi = l2;
                 }
                 break;
 
@@ -1366,8 +1366,8 @@ version (MARS)
                 }
                 else
                 {
-                    e.EV.Vcent.lsw = l2;
-                    e.EV.Vcent.msw = l1;
+                    e.EV.Vcent.lo = l2;
+                    e.EV.Vcent.hi = l1;
                 }
                 break;
             default:
@@ -1720,17 +1720,17 @@ else
         break;
 
     case OP128_64:
-        e.EV.Vllong = e1.EV.Vcent.lsw;
+        e.EV.Vllong = e1.EV.Vcent.lo;
         break;
     case OPs64_128:
-        e.EV.Vcent.lsw = e1.EV.Vllong;
-        e.EV.Vcent.msw = 0;
-        if (cast(targ_llong)e.EV.Vcent.lsw < 0)
-            e.EV.Vcent.msw = ~cast(targ_ullong)0;
+        e.EV.Vcent.lo = e1.EV.Vllong;
+        e.EV.Vcent.hi = 0;
+        if (cast(targ_llong)e.EV.Vcent.lo < 0)
+            e.EV.Vcent.hi = ~cast(targ_ullong)0;
         break;
     case OPu64_128:
-        e.EV.Vcent.lsw = e1.EV.Vullong;
-        e.EV.Vcent.msw = 0;
+        e.EV.Vcent.lo = e1.EV.Vullong;
+        e.EV.Vcent.hi = 0;
         break;
 
     case OPmsw:
@@ -1743,7 +1743,7 @@ else
                 e.EV.Vllong = (l1 >> 32) & 0xFFFFFFFF;
                 break;
             case 16:
-                e.EV.Vllong = e1.EV.Vcent.msw;
+                e.EV.Vllong = e1.EV.Vcent.hi;
                 break;
             default:
                 assert(0);

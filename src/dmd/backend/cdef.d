@@ -825,8 +825,8 @@ import dmd.backend.bcomplex;
 
 struct Cent
 {
-    targ_ullong lsw;
-    targ_ullong msw;
+    targ_ullong lo;
+    targ_ullong hi;
 }
 
 union eve

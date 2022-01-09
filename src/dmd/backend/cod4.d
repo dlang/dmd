@@ -2879,7 +2879,7 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
             cs.IFL2 = FLconst;
             if (sz == 16)
-                cs.IEV2.Vsize_t = cast(targ_size_t)e2.EV.Vcent.msw;
+                cs.IEV2.Vsize_t = cast(targ_size_t)e2.EV.Vcent.hi;
             else if (sz > REGSIZE)
                 cs.IEV2.Vint = cast(int)MSREG(e2.EV.Vllong);
             else
