@@ -3495,7 +3495,7 @@ __gshared uint[256] inssize2 =
     M|3,M|3,M|3,2,   M|3,M|3,M|3,M|3,       // 18
     M|3,M|3,M|3,M|3, M|3,M|3,M|3,2,         // 20
     Y|3,Y|3,X|3,Y|3, Y|3,Y|3,Y|3,Y|3,       // 28
-    M|3,M|3,M|3,M|3,        M|3,M|3,2,M|3,          // 30
+    M|3,2,M|3,M|3,          M|3,M|3,2,M|3,          // 30
     Y|4,M|3,Y|T|E|5,M|3,    M|3,M|3,M|3,M|3,        // 38
     M|3,M|3,M|3,M|3,        M|3,M|3,M|3,M|3,        // 40
     M|3,M|3,M|3,M|3,        M|3,M|3,M|3,M|3,        // 48
@@ -3571,7 +3571,7 @@ unittest
     ];
 
     int line32 = __LINE__;
-    string[15] cases32 =      // 32 bit code gen
+    string[16] cases32 =      // 32 bit code gen
     [
         "8B 44 24 04         mov        EAX,4[ESP]",
         "83 C0 05            add        EAX,5",
@@ -3588,16 +3588,18 @@ unittest
         "03 05 00 00 00 00   add        EAX,[00h]",
         "C3                  ret",
         "31 C0               xor        EAX,EAX",
+        "0F 31               rdtsc",
     ];
 
     int line64 = __LINE__;
-    string[5] cases64 =      // 64 bit code gen
+    string[6] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
         "48 89 D0            mov  RAX,RDX",
         "48 03 44 24 08      add  RAX,8[RSP]",
         "C3                  ret",
+        "0F 31               rdtsc",
     ];
 
     char[BUFMAX] buf;
