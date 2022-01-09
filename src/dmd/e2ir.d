@@ -1356,8 +1356,8 @@ extern (C++) class ToElemVisitor : Visitor
                 elem *ez = el_calloc();
                 ez.Eoper = OPconst;
                 ez.Ety = e.Ety;
-                ez.EV.Vcent.lsw = 0;
-                ez.EV.Vcent.msw = 0;
+                ez.EV.Vcent.lo = 0;
+                ez.EV.Vcent.hi = 0;
                 e = el_bin(OPmin, totym(ne.type), ez, e);
                 break;
             }
@@ -1395,8 +1395,8 @@ extern (C++) class ToElemVisitor : Visitor
                 elem *ec = el_calloc();
                 ec.Eoper = OPconst;
                 ec.Ety = e1.Ety;
-                ec.EV.Vcent.lsw = ~0L;
-                ec.EV.Vcent.msw = ~0L;
+                ec.EV.Vcent.lo = ~0L;
+                ec.EV.Vcent.hi = ~0L;
                 e = el_bin(OPxor, ty, e1, ec);
                 break;
             }

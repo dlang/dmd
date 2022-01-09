@@ -5482,8 +5482,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         }
         else if (I64 && sz == 16)
         {
-            movregconst(cdb, findreglsw(forregs), cast(targ_size_t)e.EV.Vcent.lsw, 64);
-            movregconst(cdb, findregmsw(forregs), cast(targ_size_t)e.EV.Vcent.msw, 64);
+            movregconst(cdb, findreglsw(forregs), cast(targ_size_t)e.EV.Vcent.lo, 64);
+            movregconst(cdb, findregmsw(forregs), cast(targ_size_t)e.EV.Vcent.hi, 64);
         }
         else
             assert(0);
