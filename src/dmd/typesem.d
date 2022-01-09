@@ -663,10 +663,13 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
     Type visitType(Type t)
     {
+        version (none)
+        {
         if (t.ty == Tint128 || t.ty == Tuns128)
         {
             .error(loc, "`cent` and `ucent` types not implemented");
             return error();
+        }
         }
 
         return t.merge();
