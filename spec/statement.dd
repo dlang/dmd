@@ -385,12 +385,12 @@ $(GNAME Increment):
 
         $(P $(I Initialize) is executed.
         $(I Test) is evaluated and must have a type that
-        can be converted to a boolean. If it's true the
-        statement is executed. After the statement is executed,
-        the $(I Increment) is executed.
-        Then $(I Test) is evaluated again, and if true the
-        statement is executed again. This continues until the
-        $(I Test) evaluates to false.
+        can be converted to a boolean. If *Test* is `true` the
+        *ScopeStatement* is executed. After execution,
+        $(I Increment) is executed.
+        Then $(I Test) is evaluated again, and if `true` the
+        *ScopeStatement* is executed again. This continues until the
+        $(I Test) evaluates to `false`.
         )
 
         $(P A $(GLINK BreakStatement) will exit the loop.
@@ -400,7 +400,7 @@ $(GNAME Increment):
 
         $(P A $(I ForStatement) creates a new scope.
         If $(I Initialize) declares a variable, that variable's scope
-        extends through the end of the for statement. For example:
+        extends through *ScopeStatement*. For example:
         )
 
 --------------
@@ -418,7 +418,7 @@ for (int i = 0; i < 10; i++)
 }
 --------------
 
-$(P Function bodies cannot be empty:)
+$(P *ScopeStatement* cannot be an empty statement:)
 
 --------------
 for (int i = 0; i < 10; i++)
@@ -433,9 +433,9 @@ for (int i = 0; i < 10; i++)
 }
 --------------
 
-    $(P The $(I Initialize) may be omitted (although the trailing $(D ;) is still required).
-    $(I Test) may also be omitted, and if
-    so, it is treated as if it evaluated to true.)
+    $(P $(I Initialize) may be just $(D ;).
+    $(I Test) may be omitted, and if
+    so, it is treated as if it evaluated to `true`.)
 
     $(BEST_PRACTICE Consider replacing $(I ForStatements) with
     $(DDSUBLINK spec/statement, foreach-statement, Foreach Statements) or
