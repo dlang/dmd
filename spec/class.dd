@@ -731,7 +731,7 @@ $(GNAME Destructor):
         )
 
         $(P Objects referenced from the data segment never get collected
-        by the GC.
+        by the gc.
         )
 
 $(H2 $(LNAME2 static-constructor, Static Constructors))

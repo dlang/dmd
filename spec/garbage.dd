@@ -288,7 +288,7 @@ struct Foo
 
         $(LI Do not use byte-by-byte memory copies to copy pointer values.
         This may result in intermediate conditions where there is
-        not a valid pointer, and if the GC pauses the thread in such a
+        not a valid pointer, and if the gc pauses the thread in such a
         condition, it can corrupt memory.
         Most implementations of $(D memcpy()) will work since the
         internal implementation of it does the copy in aligned chunks
@@ -401,7 +401,7 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
         $(UL
         $(LI disable:0|1    - start disabled)
         $(LI profile:0|1    - enable profiling with summary when terminating program)
-        $(LI gc:conservative|precise|manual - select GC implementation (default = conservative))
+        $(LI gc:conservative|precise|manual - select gc implementation (default = conservative))
         $(LI initReserve:N  - initial memory to reserve in MB)
         $(LI minPoolSize:N  - initial and minimum pool size in MB)
         $(LI maxPoolSize:N  - maximum pool size in MB)

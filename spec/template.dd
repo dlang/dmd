@@ -796,10 +796,8 @@ $(GNAME TemplateSequenceParameter):
             }
         }
 
-        template write(Args...)
+        template write(Args...) // Args is a TypeSeq
         {
-            pragma(msg, Args); // Args is a TypeSeq
-
             void f(Args args) // args is a ValueSeq
             {
                 writeln("args are ", args);
@@ -823,8 +821,6 @@ $(GNAME TemplateSequenceParameter):
     $(P $(I AliasSeq)-s are static compile-time entities, there is no way
         to dynamically change, add, or remove elements either at compile-time or run-time.
     )
-
-$(H3 $(LNAME2 typeseq_deduction, Type Sequence Deduction))
 
     $(P Type sequences can be deduced from the trailing parameters
         of an $(RELATIVE_LINK2 ifti, implicitly instantiated) function template:)
