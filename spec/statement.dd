@@ -525,7 +525,6 @@ $(P
 )
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
-import std.stdio;
 char[] a = ['h', 'i'];
 
 foreach (size_t i, char c; a)
@@ -569,7 +568,6 @@ $(H3 $(LNAME2 foreach_over_arrays_of_characters, Foreach over Arrays of Characte
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
-import std.stdio;
 char[] a = "\xE2\x89\xA0".dup;  // \u2260 encoded as 3 UTF-8 bytes
 
 foreach (dchar c; a)
@@ -592,8 +590,6 @@ foreach (char c; b)
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     --------------
-    import std.stdio;
-
     foreach (char c; "ab")
     {
         writefln("'%s'", c);
@@ -969,7 +965,6 @@ $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     --------------
-    import std.stdio;
     uint[2] a = [7, 8];
 
     foreach (ref uint u; a)
@@ -1783,8 +1778,6 @@ $(PSCURLYSCOPE) when the scope exits due to exception unwinding.
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
-import std.stdio;
-
 write("1");
 {
     write("2");
@@ -1805,7 +1798,6 @@ $(CONSOLE
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
-import std.stdio;
 {
     scope(exit) write("1");
     scope(success) write("2");
@@ -1824,8 +1816,6 @@ $(CONSOLE
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
-import std.stdio;
-
 struct Foo
 {
     this(string s) { write(s); }
