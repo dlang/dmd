@@ -81,7 +81,7 @@ assert(i == 4);
         )
 
         $(BEST_PRACTICE Most conventional uses for pointers can be replaced with
-        dynamic arrays, $(D out) and $(D ref) parameters,
+        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK function, parameters, parameters),
         and reference types.
         )
 
