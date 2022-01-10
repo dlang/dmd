@@ -1,2 +1,24 @@
-Added -vasm compiler switch, which prints to the console the generated assembler code
-for each function.
+New command line switch -vasm which outputs assembler code per function
+
+The new -vasm compiler switch will print to the console the generated assembler
+code for each function. As opossed to a typical dissasembler, it will omit all
+the boilerplate and output just the assembly code for each function. For example,
+compiling the following code:
+
+---
+// test.d
+int demo(int x)
+{
+    return x * x;
+}
+---
+
+by using the command `dmd test.d -c -vasm` will yield:
+
+---
+_D4test4demoFiZi:
+0000:   89 F8                   mov     EAX,EDI
+0002:   0F AF C0                imul    EAX,EAX
+0005:   C3                      ret
+---
+
