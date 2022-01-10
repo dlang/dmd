@@ -121,37 +121,74 @@ int[]* e;     // pointer to dynamic array of ints
 ---------
 )
 
-$(H2 $(LNAME2 usage, Array Usage))
+$(H2 $(LNAME2 literals, Array Literals))
 
-        $(P There are two broad kinds of operations to do on an array -
-        affecting
-        the handle to the array,
-        and affecting the contents of the array.
+---
+auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
+auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
+int[2] = [1, 2];
+---
+    $(P `[]` is an empty array literal.)
+
+    $(P See $(DDSUBLINK expression, array_literals, Array Literals).)
+
+$(LEGACY_LNAME2 usage)
+$(H2 $(LNAME2 assignment, Array Assignment))
+
+        $(P There are two broad kinds of operations to do on dynamic arrays and
+        pointer arrays - those affecting the handle to the array,
+        and those affecting the contents of the array. Assignment only affects
+        the handle for these types.
         )
 
-        $(P The handle to an array is specified by naming the array, as
-        in p, s or a:
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int* p;
 int[3] s;
 int[] a;
 
-int[] b;
-
 p = s.ptr; // p points to the first element of the array s.
 p = a.ptr; // p points to the first element of the array a.
 
-a = p;     // error, since the length of the array pointed
-           // to by p is unknown
-a = s;     // a is initialized to point to the s array
+// error, since the length of the array pointed to by p is unknown
+//s = p;
+//s = a; // error, as a's length is not known at compile-time
+s = [1,2,3];
+
+//a = p;   // error, length unknown
+a = s;     // a points to the elements of s
+assert(a.ptr == s.ptr);
+assert(a == [1,2,3]);
+
+int[] b;
 a = b;     // a points to the same array as b does
+assert(a.ptr == b.ptr);
+assert(a == []);
 ---------
 )
+    $(P Each of the three error lines above can be made to copy elements
+    using $(RELATIVE_LINK2 slicing, slicing), so that the number of elements
+    to copy is then known.)
 
 $(H2 $(LNAME2 indexing, Indexing))
+
+    $(P Indexing allows access to an element of an array:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+auto a = [1,2,3];
+assert(a[0] == 1);
+assert(a[2] == 3);
+a[2] = 4;
+assert(a[2] == 4);
+assert(a == [1,2,4]);
+//writeln(a[3]); // runtime error (unless bounds checks turned off)
+
+int[2] b = [1,2];
+assert(b[1] == 2);
+//writeln(b[2]); // compile-time error, index out of bounds
+---------
+)
 
     $(P See also $(GLINK2 expression, IndexExpression).)
 
@@ -181,7 +218,7 @@ foo(b[1]);   // equivalent to foo(3)
 ---------
 )
 
-        $(P The [] is shorthand for a slice of the entire array.
+        $(P $(I Identifier)[] is shorthand for a slice of the entire array.
         For example, the assignments to b:
         )
 
@@ -255,8 +292,10 @@ $(H3 $(LNAME2 overlapping-copying, Overlapping Copying))
 
         $(P Overlapping copies are an error:)
 
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
+int[3] s;
+
 s[0..2] = s[1..3]; // error, overlapping copy
 s[1..3] = s[0..2]; // error, overlapping copy
 ---------
@@ -410,9 +449,6 @@ $(H2 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
 
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
-int[3] abc;              // static array of 3 ints
-int[] def = [ 1, 2, 3 ]; // dynamic array of 3 ints
-
 void dibb(int* array)
 {
     array[2];     // means same thing as *(array + 2)
@@ -694,9 +730,9 @@ $(H2 $(LNAME2 bounds, Array Bounds Checking))
 
         $(P It is an error to index an array with an index that is less than
         0 or greater than or equal to the array length. If an index is
-        out of bounds, a RangeError exception is
-        raised if detected at runtime, and an error if detected at compile
-        time.  A program may not rely on array bounds checking happening, for
+        out of bounds, an `ArrayIndexError` is thrown
+        if detected at runtime, and an error is raised if detected at compile
+        time. A program may not rely on array bounds checking happening, for
         example, the following program is incorrect:
         )
 
@@ -711,7 +747,7 @@ try
         array[i] = 5;
     }
 }
-catch (RangeError)
+catch (ArrayIndexError)
 {
     // terminate loop
 }
