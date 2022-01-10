@@ -3495,7 +3495,7 @@ __gshared uint[256] inssize2 =
     M|3,M|3,M|3,2,   M|3,M|3,M|3,M|3,       // 18
     M|3,M|3,M|3,M|3, M|3,M|3,M|3,2,         // 20
     Y|3,Y|3,X|3,Y|3, Y|3,Y|3,Y|3,Y|3,       // 28
-    M|3,2,M|3,M|3,          M|3,M|3,2,M|3,          // 30
+    2,2,2,2,                2,2,2,2,                // 30
     Y|4,M|3,Y|T|E|5,M|3,    M|3,M|3,M|3,M|3,        // 38
     M|3,M|3,M|3,M|3,        M|3,M|3,M|3,M|3,        // 40
     M|3,M|3,M|3,M|3,        M|3,M|3,M|3,M|3,        // 48
@@ -3592,14 +3592,19 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[6] cases64 =      // 64 bit code gen
+    string[11] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
         "48 89 D0            mov  RAX,RDX",
         "48 03 44 24 08      add  RAX,8[RSP]",
         "C3                  ret",
+        "0F 30               wrmsr",
         "0F 31               rdtsc",
+        "0F 32               rdmsr",
+        "0F 33               rdpmc",
+        "0F 34               sysenter",
+        "0F 35               sysexit",
     ];
 
     char[BUFMAX] buf;
