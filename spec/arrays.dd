@@ -306,12 +306,14 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 int[10] a = [ 1,2,3,4,5,6,7,8,9,10 ];
 
 int* p = &a[2];
-int[] b = p[0..8];
-writeln(b);
 writeln(p[7]);      // 10
 writeln(p[8]);      // undefined behaviour
+
+int[] b = p[0..8];  // convert pointer elements to dynamic array
+assert(b is a[2..10]);
+writeln(b);
 writeln(b[7]);      // 10
-//writeln(b[8]);    // range error
+//writeln(b[8]);    // runtime error (unless bounds checks turned off)
 ---------
 )
 
