@@ -574,7 +574,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     TemplatePrevious* previous;
 
     private Expression lastConstraint; /// the constraint after the last failed evaluation
-    private Array!FailedExpression lastConstraintNegs; /// its negative parts (raw, evaluated)
+    private Array!ConstraintFailResult lastConstraintNegs; /// its negative parts (raw, evaluated)
     private Objects* lastConstraintTiargs; /// template instance arguments for `lastConstraint`
 
     extern (D) this(const ref Loc loc, Identifier ident, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)

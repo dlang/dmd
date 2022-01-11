@@ -27,7 +27,7 @@ import dmd.tokens;
 
 
 
-struct FailedExpression
+struct ConstraintFailResult
 {
     Expression raw;
     const(char)[] failMessage;
@@ -47,7 +47,7 @@ struct FailedExpression
  * Returns:
  *      true if evaluates to true
  */
-bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Array!FailedExpression* negatives = null)
+bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Array!ConstraintFailResult* negatives = null)
 {
     if (negatives)
         negatives.setDim(0);
@@ -130,11 +130,11 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
                 resolved = resolved.callToString(sc);
                 OutBuffer buf;
                 expressionsToString(buf, sc, (&resolved)[0 .. 1]);
-                negatives.push(FailedExpression(before, buf.extractSlice()));
+                negatives.push(ConstraintFailResult(before, buf.extractSlice()));
             }
             else
             {
-                negatives.push(FailedExpression(before));
+                negatives.push(ConstraintFailResult(before));
             }
         }
         return opt.get();
@@ -156,7 +156,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
  *      instantiated expression is not based on the original one
  */
 const(char)* visualizeStaticCondition(Expression original, Expression instantiated,
-    const FailedExpression[] negatives, bool full, ref uint itemCount)
+    const ConstraintFailResult[] negatives, bool full, ref uint itemCount)
 {
     if (!original || !instantiated || original.loc !is instantiated.loc)
         return null;
@@ -172,7 +172,7 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
 }
 
 private uint visualizeFull(Expression original, Expression instantiated,
-    const FailedExpression[] negatives, ref OutBuffer buf)
+    const ConstraintFailResult[] negatives, ref OutBuffer buf)
 {
     // tree-like structure; traverse and format simultaneously
     uint count;
@@ -318,7 +318,7 @@ private uint visualizeFull(Expression original, Expression instantiated,
 }
 
 private uint visualizeShort(Expression original, Expression instantiated,
-    const FailedExpression[] negatives, ref OutBuffer buf)
+    const ConstraintFailResult[] negatives, ref OutBuffer buf)
 {
     // simple list; somewhat similar to long version, so no comments
     // one difference is that it needs to hold items to display in a stack
