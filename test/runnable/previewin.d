@@ -116,6 +116,23 @@ void testForeach() @safe pure
         testMsg(k_loop, v_loop);
 }
 
+// test proper destruction at CTFE
+static assert(previewIn() == 1);
+int previewIn()
+{
+    int numDtor;
+
+    struct S
+    {
+        int x;
+        ~this() { ++numDtor; }
+    }
+
+    static accept(in S s) {}
+    accept(S(1));
+    return numDtor;
+}
+
 struct ValueT { int value; }
 struct RefT   { ulong[64] value; }
 

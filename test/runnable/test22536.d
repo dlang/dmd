@@ -1,7 +1,6 @@
 // https://issues.dlang.org/show_bug.cgi?id=22536
 
 void foo(T)(scope T[]) {}
-
 void foo(T)(scope T[], scope T[]) {}
 
 int bar()

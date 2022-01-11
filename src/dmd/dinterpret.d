@@ -734,6 +734,11 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
             e = CTFEExp.cantexp;
             break;
         }
+        if (CTFEExp.isCantExp(res))
+        {
+            e = res;
+            break;
+        }
     }
 
     return e;
