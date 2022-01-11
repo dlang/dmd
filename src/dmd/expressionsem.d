@@ -94,10 +94,16 @@ enum LOGSEMANTIC = false;
  */
 bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
 {
-    if (!exps)
+    return expressionsToString(buf, sc, exps.opSlice);
+}
+
+/// ditto
+bool expressionsToString(ref OutBuffer buf, Scope* sc, Expression[] exps)
+{
+    if (!exps.length)
         return false;
 
-    foreach (ex; *exps)
+    foreach (ex; exps)
     {
         if (!ex)
             continue;
@@ -13350,6 +13356,89 @@ Expression toBoolean(Expression exp, Scope* sc)
             {
                 if (tb != Type.terror)
                     exp.error("expression `%s` of type `%s` does not have a boolean value",
+                              exp.toChars(), t.toChars());
+                return ErrorExp.get();
+            }
+            return e;
+    }
+}
+
+
+/*****************************
+ * Inserts a `toString` call on `exp` if it's a struct or class or uses `exp`
+ * as-is if it is a string. Currently errors otherwise.
+ * Params:
+ *     exp = the expression
+ *     sc = scope to evalute `exp` in
+ * Returns:
+ *     Modified expression on success, ErrorExp on error
+ */
+Expression callToString(Expression exp, Scope* sc)
+{
+    switch(exp.op)
+    {
+        case EXP.delete_:
+            exp.error("`delete` does not give a string result");
+            return ErrorExp.get();
+
+        case EXP.comma:
+            auto ce = exp.isCommaExp();
+            auto ex2 = ce.e2.callToString(sc);
+            if (ex2.op == EXP.error)
+                return ex2;
+            ce.e2 = ex2;
+            ce.type = ce.e2.type;
+            return ce;
+
+        case EXP.question:
+            auto ce = exp.isCondExp();
+            auto ex1 = ce.e1.callToString(sc);
+            auto ex2 = ce.e2.callToString(sc);
+            if (ex1.op == EXP.error)
+                return ex1;
+            if (ex2.op == EXP.error)
+                return ex2;
+            ce.e1 = ex1;
+            ce.e2 = ex2;
+            return ce;
+
+
+        default:
+            // Default is 'yes' - do nothing
+            Expression e = exp;
+            Type t = exp.type;
+            Type tb = t.toBasetype();
+            Type att = null;
+
+            while (1)
+            {
+                // Structs can be converted to bool using opCast(bool)()
+                if (auto ts = tb.isTypeStruct())
+                {
+                    AggregateDeclaration ad = ts.sym;
+                    if (Dsymbol fd = search_function(ad, Id.tostring))
+                    {
+                        e = new CallExp(exp.loc, new DotIdExp(exp.loc, exp, Id.tostring));
+                        e = e.expressionSemantic(sc);
+                        return e;
+                    }
+
+                    // Forward to aliasthis.
+                    if (ad.aliasthis && !isRecursiveAliasThis(att, tb))
+                    {
+                        e = resolveAliasThis(sc, e);
+                        t = e.type;
+                        tb = e.type.toBasetype();
+                        continue;
+                    }
+                }
+                break;
+            }
+
+            if (!t.isString())
+            {
+                if (tb != Type.terror)
+                    exp.error("expression `%s` of type `%s` does not convert to string",
                               exp.toChars(), t.toChars());
                 return ErrorExp.get();
             }

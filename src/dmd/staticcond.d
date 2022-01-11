@@ -27,6 +27,12 @@ import dmd.tokens;
 
 
 
+struct FailedExpression
+{
+    Expression raw;
+    const(char)[] failMessage;
+}
+
 /********************************************
  * Semantically analyze and then evaluate a static condition at compile time.
  * This is special because short circuit operators &&, || and ?: at the top
@@ -41,7 +47,7 @@ import dmd.tokens;
  * Returns:
  *      true if evaluates to true
  */
-bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Expressions* negatives = null)
+bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Array!FailedExpression* negatives = null)
 {
     if (negatives)
         negatives.setDim(0);
@@ -93,6 +99,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
 
         e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);
+        Expression resolved = e;
         e = e.toBoolean(sc);
 
         sc = sc.endCTFE();
@@ -117,7 +124,19 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
         }
 
         if (negatives && !opt.get())
-            negatives.push(before);
+        {
+            if (sc.isUserErrorStruct(resolved))
+            {
+                resolved = resolved.callToString(sc);
+                OutBuffer buf;
+                expressionsToString(buf, sc, (&resolved)[0 .. 1]);
+                negatives.push(FailedExpression(before, buf.extractSlice()));
+            }
+            else
+            {
+                negatives.push(FailedExpression(before));
+            }
+        }
         return opt.get();
     }
     return impl(e);
@@ -137,7 +156,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
  *      instantiated expression is not based on the original one
  */
 const(char)* visualizeStaticCondition(Expression original, Expression instantiated,
-    const Expression[] negatives, bool full, ref uint itemCount)
+    const FailedExpression[] negatives, bool full, ref uint itemCount)
 {
     if (!original || !instantiated || original.loc !is instantiated.loc)
         return null;
@@ -153,7 +172,7 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
 }
 
 private uint visualizeFull(Expression original, Expression instantiated,
-    const Expression[] negatives, ref OutBuffer buf)
+    const FailedExpression[] negatives, ref OutBuffer buf)
 {
     // tree-like structure; traverse and format simultaneously
     uint count;
@@ -258,13 +277,15 @@ private uint visualizeFull(Expression original, Expression instantiated,
             // find its value; it may be not computed, if there was a short circuit,
             // but we handle this case with `unreached` flag
             bool value = true;
+            const(char)[] failMessage;
             if (!unreached)
             {
                 foreach (fe; negatives)
                 {
-                    if (fe is e)
+                    if (fe.raw is e)
                     {
                         value = false;
+                        failMessage = fe.failMessage;
                         break;
                     }
                 }
@@ -281,6 +302,11 @@ private uint visualizeFull(Expression original, Expression instantiated,
             if (inverted)
                 buf.writeByte('!');
             buf.writestring(orig.toChars);
+            if (failMessage.length)
+            {
+                buf.writestring(": ");
+                buf.writestring(failMessage);
+            }
             buf.writenl();
             count++;
             return satisfied;
@@ -292,7 +318,7 @@ private uint visualizeFull(Expression original, Expression instantiated,
 }
 
 private uint visualizeShort(Expression original, Expression instantiated,
-    const Expression[] negatives, ref OutBuffer buf)
+    const FailedExpression[] negatives, ref OutBuffer buf)
 {
     // simple list; somewhat similar to long version, so no comments
     // one difference is that it needs to hold items to display in a stack
@@ -300,6 +326,7 @@ private uint visualizeShort(Expression original, Expression instantiated,
     static struct Item
     {
         Expression orig;
+        const(char)[] failMessage;
         bool inverted;
     }
 
@@ -391,17 +418,19 @@ private uint visualizeShort(Expression original, Expression instantiated,
         else // 'primitive' expression
         {
             bool value = true;
+            const(char)[] failMessage;
             foreach (fe; negatives)
             {
-                if (fe is e)
+                if (fe.raw is e)
                 {
                     value = false;
+                    failMessage = fe.failMessage;
                     break;
                 }
             }
             const satisfied = inverted ? !value : value;
             if (!satisfied)
-                stack.push(Item(orig, inverted));
+                stack.push(Item(orig, failMessage, inverted));
             return satisfied;
         }
     }
@@ -415,9 +444,48 @@ private uint visualizeShort(Expression original, Expression instantiated,
         if (stack[i].inverted)
             buf.writeByte('!');
         buf.writestring(stack[i].orig.toChars);
+        if (stack[i].failMessage.length)
+        {
+            buf.writestring(": ");
+            buf.writestring(stack[i].failMessage);
+        }
         // here with no trailing newline
         if (i + 1 < stack.length)
             buf.writenl();
     }
     return cast(uint)stack.length;
+}
+
+/// Returns true if `exp` is a string or a struct with a toString method defined.
+bool isUserErrorStruct(Scope* sc, Expression e)
+{
+    import dmd.aliasthis;
+    import dmd.id;
+    import dmd.opover;
+
+    // code mostly from expressionsem.d callToString, but not emitting errors
+    Type t = e.type;
+    Type tb = t.toBasetype();
+    Type att = null;
+    while (1)
+    {
+        // Structs can be converted to bool using opCast(bool)()
+        if (auto ts = tb.isTypeStruct())
+        {
+            auto ad = ts.sym;
+            if (Dsymbol fd = search_function(ad, Id.tostring))
+                return true;
+
+            // Forward to aliasthis.
+            if (ad.aliasthis && !isRecursiveAliasThis(att, tb))
+            {
+                e = resolveAliasThis(sc, e);
+                t = e.type;
+                tb = e.type.toBasetype();
+                continue;
+            }
+        }
+        break;
+    }
+    return t.isString();
 }
