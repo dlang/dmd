@@ -1786,6 +1786,7 @@ void puts(const(char)* s)
 void disassemble(uint c)
 {
     //printf("disassemble(c = %d, siz = %d)\n", c, siz);
+    puts("   ");
     uint prefixsize = 0;
     uint sz;
     do
@@ -1796,8 +1797,6 @@ void disassemble(uint c)
     } while (sz);
     assert(siz > prefixsize);
     siz -= prefixsize;
-
-    put('\t');
 
     uint opcode,reg = 0;
     ubyte rex;
@@ -1854,7 +1853,7 @@ void disassemble(uint c)
             sprintf( buf.ptr, "%02X ", code[c+i] );
             strcat( p0.ptr, buf.ptr );
         }
-        for (; i < 6; i++)
+        for (; i + prefixsize < 8; i++)
             strcat(p0.ptr, "   ");
     }
 
@@ -3197,7 +3196,7 @@ void disassemble(uint c)
             case 0xE8:
             case 0xE9:
                     p2 = nearptr ? "near ptr" : " ";
-                    sep = " ";
+                    sep = "";
                     uint offset = opsize ? word(code, c + 1) : dword(code, c + 1);
                     p3 = labelcode(c + 1, offset, 0, opsize);
                     break;
@@ -3244,13 +3243,16 @@ void disassemble(uint c)
         }
     }
     puts(p0.ptr);
-    put('\t');
+    put(' ');
     puts(p1);
     if (*p2)
     {
-        put('\t');
+        for (int len1 = cast(int)strlen(p1); len1 < 9; ++len1)
+            put(' ');
+        put(' ');
         puts(s2);
-        puts(p2);
+        if (*p2 != ' ')
+            puts(p2);
         if (*p3)
         {
             puts(sep);
