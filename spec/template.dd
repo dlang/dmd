@@ -362,8 +362,6 @@ $(GNAME TemplateThisParameter):
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        import std.stdio;
-
         struct S
         {
             void foo(this T)(int i) const
