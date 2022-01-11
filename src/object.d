@@ -3134,7 +3134,7 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 }
 
 /***********************************
- * Returns a newly allocated dynamic array containing a copy of the keys from
+ * Returns a newly allocated dynamic array containing a copy of the values from
  * the associative array.
  * Params:
  *      aa =     The associative array.
