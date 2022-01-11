@@ -180,7 +180,30 @@ class Object
     /**
      * Test whether $(D this) is equal to $(D o).
      * The default implementation only compares by identity (using the $(D is) operator).
-     * Generally, overrides for $(D opEquals) should attempt to compare objects by their contents.
+     * Generally, overrides and overloads for $(D opEquals) should attempt to compare objects by their contents.
+     * A class will most likely want to add an overload that takes your specific type as the argument
+     * and does the content comparison. Then you can override this and forward it to your specific
+     * typed overload with a cast. Remember to check for `null` on the typed overload.
+     *
+     * Examples:
+     * ---
+     * class Child {
+     *    int contents;
+     *    // the typed overload first. It can use all the attribute you want
+     *    bool opEquals(const Child c) const @safe pure nothrow @nogc
+     *    {
+     *        if (c is null)
+     *            return false;
+     *        return this.contents == c.contents;
+     *    }
+     *
+     *    // and now the generic override forwards with a cast
+     *    override bool opEquals(Object o)
+     *    {
+     *        return this.opEquals(cast(Child) o);
+     *    }
+     * }
+     * ---
      */
     bool opEquals(Object o)
     {
@@ -237,41 +260,50 @@ class Object
     }
 }
 
-bool opEquals(Object lhs, Object rhs)
+/++
+    Implementation for class opEquals override. Calls the class-defined methods after a null check.
+    Please note this is not nogc right now, even if your implementation is, because of
+    the typeinfo name string compare. This is because of dmd's dll implementation. However,
+    it can infer to @safe if your class' opEquals is.
++/
+bool opEquals(LHS, RHS)(LHS lhs, RHS rhs) if (is(LHS : const Object) && is(RHS : const Object))
 {
-    // If aliased to the same object or both null => equal
-    if (lhs is rhs) return true;
-
-    // If either is null => non-equal
-    if (lhs is null || rhs is null) return false;
-
-    if (!lhs.opEquals(rhs)) return false;
-
-    // If same exact type => one call to method opEquals
-    if (typeid(lhs) is typeid(rhs) ||
-        !__ctfe && typeid(lhs).opEquals(typeid(rhs)))
-            /* CTFE doesn't like typeid much. 'is' works, but opEquals doesn't
-            (issue 7147). But CTFE also guarantees that equal TypeInfos are
-            always identical. So, no opEquals needed during CTFE. */
+    static if (__traits(compiles, lhs.opEquals(rhs)) && __traits(compiles, rhs.opEquals(lhs)))
     {
-        return true;
+        // If aliased to the same object or both null => equal
+        if (lhs is rhs) return true;
+
+        // If either is null => non-equal
+        if (lhs is null || rhs is null) return false;
+
+        if (!lhs.opEquals(rhs)) return false;
+
+        // If same exact type => one call to method opEquals
+        if (typeid(lhs) is typeid(rhs) ||
+            !__ctfe && typeid(lhs).opEquals(typeid(rhs)))
+                /* CTFE doesn't like typeid much. 'is' works, but opEquals doesn't
+                (issue 7147). But CTFE also guarantees that equal TypeInfos are
+                always identical. So, no opEquals needed during CTFE. */
+        {
+            return true;
+        }
+
+        // General case => symmetric calls to method opEquals
+        return rhs.opEquals(lhs);
     }
+    else
+    {
+        // this is a compatibility hack for the old const cast behavior
+        // if none of the new overloads compile, we'll go back plain Object,
+        // including casting away const. It does this through the pointer
+        // to bypass any opCast that may be present on the original class.
+        return .opEquals!(Object, Object)(*cast(Object*) &lhs, *cast(Object*) &rhs);
 
-    // General case => symmetric calls to method opEquals
-    return rhs.opEquals(lhs);
-}
-
-/************************
-* Returns true if lhs and rhs are equal.
-*/
-bool opEquals(const Object lhs, const Object rhs)
-{
-    // A hack for the moment.
-    return opEquals(cast()lhs, cast()rhs);
+    }
 }
 
 /// If aliased to the same object or both null => equal
-@system unittest
+@system unittest // this one is not @safe because it goes through the Object base method
 {
     class F { int flag; this(int flag) { this.flag = flag; } }
 
@@ -291,7 +323,8 @@ bool opEquals(const Object lhs, const Object rhs)
 }
 
 /// If same exact type => one call to method opEquals
-@system unittest
+/// This test passes `@safe` because it defines a new opEquals with `@safe`
+@safe unittest
 {
     class F
     {
@@ -302,9 +335,9 @@ bool opEquals(const Object lhs, const Object rhs)
             this.flag = flag;
         }
 
-        override bool opEquals(const Object o)
+        bool opEquals(const F o) const @safe nothrow pure
         {
-            return flag == (cast(F) o).flag;
+            return flag == o.flag;
         }
     }
 
@@ -314,7 +347,7 @@ bool opEquals(const Object lhs, const Object rhs)
 }
 
 /// General case => symmetric calls to method opEquals
-@system unittest
+@safe unittest
 {
     int fEquals, gEquals;
 
@@ -331,10 +364,10 @@ bool opEquals(const Object lhs, const Object rhs)
     {
         this(int flag) { super(flag); }
 
-        override bool opEquals(const Object o)
+        bool opEquals(const Base o) @safe
         {
             fEquals++;
-            return flag == (cast(Base) o).flag;
+            return flag == o.flag;
         }
     }
 
@@ -342,16 +375,124 @@ bool opEquals(const Object lhs, const Object rhs)
     {
         this(int flag) { super(flag); }
 
-        override bool opEquals(const Object o)
+        bool opEquals(const Base o) @safe
         {
             gEquals++;
-            return flag == (cast(Base) o).flag;
+            return flag == o.flag;
         }
     }
 
     assert(new F(1) == new G(1));
     assert(fEquals == 1);
     assert(gEquals == 1);
+}
+
+/++
+    This test shows an example for a comprehensive inheritance equality chain too.
++/
+unittest
+{
+    static class Base
+    {
+        int member;
+
+        this(int member) pure @safe nothrow @nogc
+        {
+            this.member = member;
+        }
+
+        override bool opEquals(Object rhs) const
+        {
+            return this.opEquals(cast(Base) rhs);
+        }
+
+        bool opEquals(const Base rhs) const @nogc pure nothrow @safe
+        {
+            if (rhs is null)
+                return false;
+            return this.member == rhs.member;
+        }
+    }
+
+    // works through the direct class with attributes enabled, except for pure and nogc in the current TypeInfo implementation
+    bool testThroughBase() nothrow @safe
+    {
+        Base b1 = new Base(0);
+        Base b2 = new Base(0);
+        assert(b1 == b2);
+        Base b3 = new Base(1);
+        assert(b1 != b3);
+        return true;
+    }
+
+    static assert(testThroughBase());
+
+    // also works through the base class interface thanks to the override, but no more attributes
+    bool testThroughObject()
+    {
+        Object o1 = new Base(0);
+        Object o2 = new Base(0);
+        assert(o1 == o2);
+        Object o3 = new Base(1);
+        assert(o1 != o3);
+        return true;
+    }
+
+    static assert(testThroughObject());
+
+    // Each time you make a child, you want to override all old opEquals
+    // and add a new overload for the new child.
+    static class Child : Base
+    {
+        int member2;
+
+        this(int member, int member2) pure @safe nothrow @nogc
+        {
+            super(member);
+            this.member2 = member2;
+        }
+
+        // override the whole chain so it works consistently though any base
+        override bool opEquals(Object rhs) const
+        {
+            return this.opEquals(cast(Child) rhs);
+        }
+        override bool opEquals(const Base rhs) const
+        {
+            return this.opEquals(cast(const Child) rhs);
+        }
+        // and then add the new overload, if necessary, to handle new members
+        bool opEquals(const Child rhs) const @nogc pure nothrow @safe
+        {
+            if (rhs is null)
+                return false;
+            // can call back to the devirtualized base test with implicit conversion
+            // then compare the new member too. or we could have just compared the base
+            // member directly here as well.
+            return Base.opEquals(rhs) && this.member2 == rhs.member2;
+        }
+
+        // a mixin template, of course, could automate this.
+    }
+
+    bool testThroughChild()
+    {
+        Child a = new Child(0, 0);
+        Child b = new Child(0, 1);
+        assert(a != b);
+
+        Base ba = a;
+        Base bb = b;
+        assert(ba != bb);
+
+        Object oa = a;
+        Object ob = b;
+        assert(oa != ob);
+
+        return true;
+    }
+
+    static assert(testThroughChild());
 }
 
 // To cover const Object opEquals
@@ -447,13 +588,17 @@ class TypeInfo
 
     override bool opEquals(Object o)
     {
+        return opEquals(cast(TypeInfo) o);
+    }
+
+    bool opEquals(const TypeInfo ti) @safe nothrow const
+    {
         /* TypeInfo instances are singletons, but duplicates can exist
          * across DLL's. Therefore, comparing for a name match is
          * sufficient.
          */
-        if (this is o)
+        if (this is ti)
             return true;
-        auto ti = cast(const TypeInfo)o;
         return ti && this.toString() == ti.toString();
     }
 
@@ -462,7 +607,7 @@ class TypeInfo
         auto anotherObj = new Object();
 
         assert(typeid(void).opEquals(typeid(void)));
-        assert(!typeid(void).opEquals(anotherObj));
+        assert(typeid(void) != anotherObj); // calling .opEquals here directly is a type mismatch
     }
 
     /**
@@ -1403,7 +1548,7 @@ class TypeInfo_Class : TypeInfo
 {
     override string toString() const pure { return name; }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const TypeInfo o) const
     {
         if (this is o)
             return true;
