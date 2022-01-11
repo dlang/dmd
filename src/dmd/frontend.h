@@ -1712,6 +1712,21 @@ struct AssocArray final
     }
 };
 
+struct ConstraintFailResult final
+{
+    Expression* raw;
+    _d_dynamicArray< const char > failMessage;
+    ConstraintFailResult() :
+        raw(),
+        failMessage()
+    {
+    }
+    ConstraintFailResult(Expression* raw, _d_dynamicArray< const char > failMessage = {}) :
+        raw(raw),
+        failMessage(failMessage)
+        {}
+};
+
 enum class TY : uint8_t
 {
     Tarray = 0u,
@@ -6346,7 +6361,7 @@ public:
     TemplatePrevious* previous;
 private:
     Expression* lastConstraint;
-    Array<Expression* > lastConstraintNegs;
+    Array<ConstraintFailResult > lastConstraintNegs;
     Array<RootObject* >* lastConstraintTiargs;
 public:
     TemplateDeclaration* syntaxCopy(Dsymbol* _param_0);
