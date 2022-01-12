@@ -566,8 +566,7 @@ $(H3 $(LNAME2 noreturn, $(D noreturn)))
     optimize such code accordingly.)
 
     $(P A function that never returns has the return type `noreturn`. This can
-    occur due to an infinite loop or always throwing an exception.
-    This is particularly useful when inferring types.)
+    occur due to an infinite loop or always throwing an exception.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
