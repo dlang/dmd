@@ -1036,18 +1036,24 @@ $(H3 $(LNAME2 cast_class, Class References))
         really is a downcast. $(D null) is the result if it isn't.
     )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        class A { ... }
-        class B : A { ... }
+        class A {}
+        class B : A {}
 
-        void test(A a, B b)
+        void main()
         {
-            B bx = a;         // error, need cast
-            B bx = cast(B) a; // bx is null if a is not a B
-            A ax = b;         // no cast needed
-            A ax = cast(A) b; // no runtime check needed for upcast
+            A a = new A;
+            //B b = a;         // error, need cast
+            B b = cast(B) a; // b is null if a is not a B
+            assert(b is null);
+            
+            a = b;         // no cast needed
+            a = cast(A) b; // no runtime check needed for upcast
+            assert(a is b);
         }
         -------------
+        )
 
     $(P In order to determine if an object $(D o) is an instance of
         a class $(D B) use a cast:)
