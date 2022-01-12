@@ -42,11 +42,23 @@ extern (C++):
 
 const(char)* toCppMangleMSVC(Dsymbol s)
 {
-    scope VisualCPPMangler v = new VisualCPPMangler(!target.mscoff, s.loc);
+    scope VisualCPPMangler v = new VisualCPPMangler(false, s.loc);
     return v.mangleOf(s);
 }
 
 const(char)* cppTypeInfoMangleMSVC(Dsymbol s)
+{
+    //printf("cppTypeInfoMangle(%s)\n", s.toChars());
+    assert(0);
+}
+
+const(char)* toCppMangleDMC(Dsymbol s)
+{
+    scope VisualCPPMangler v = new VisualCPPMangler(true, s.loc);
+    return v.mangleOf(s);
+}
+
+const(char)* cppTypeInfoMangleDMC(Dsymbol s)
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     assert(0);
@@ -62,7 +74,7 @@ const(char)* cppTypeInfoMangleMSVC(Dsymbol s)
  *      true if type is shared or immutable
  *      false otherwise
  */
-private bool checkImmutableShared(Type type, Loc loc)
+private extern (D) bool checkImmutableShared(Type type, Loc loc)
 {
     if (type.isImmutable() || type.isShared())
     {
@@ -72,6 +84,7 @@ private bool checkImmutableShared(Type type, Loc loc)
     }
     return false;
 }
+
 private final class VisualCPPMangler : Visitor
 {
     enum VC_SAVED_TYPE_CNT = 10u;
@@ -751,7 +764,7 @@ extern(D):
      *      tv              = template value
      *      is_dmc_template = use DMC mangling
      */
-    void manlgeTemplateValue(RootObject o,TemplateValueParameter tv, Dsymbol sym,bool is_dmc_template)
+    void mangleTemplateValue(RootObject o, TemplateValueParameter tv, Dsymbol sym, bool is_dmc_template)
     {
         if (!tv.valType.isintegral())
         {
@@ -979,7 +992,7 @@ extern(D):
             }
             if (tv)
             {
-                tmp.manlgeTemplateValue(o, tv, actualti, is_dmc_template);
+                tmp.mangleTemplateValue(o, tv, actualti, is_dmc_template);
             }
             else
             if (!tp || tp.isTemplateTypeParameter())

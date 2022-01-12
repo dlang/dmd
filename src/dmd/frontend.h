@@ -5550,6 +5550,10 @@ extern const char* toCppMangleMSVC(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleMSVC(Dsymbol* s);
 
+extern const char* toCppMangleDMC(Dsymbol* s);
+
+extern const char* cppTypeInfoMangleDMC(Dsymbol* s);
+
 class ClassReferenceExp final : public Expression
 {
 public:

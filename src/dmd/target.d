@@ -1257,12 +1257,17 @@ struct TargetCPP
     extern (C++) const(char)* toMangle(Dsymbol s)
     {
         import dmd.cppmangle : toCppMangleItanium;
-        import dmd.cppmanglewin : toCppMangleMSVC;
+        import dmd.cppmanglewin : toCppMangleDMC, toCppMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
-            return toCppMangleMSVC(s);
+        {
+            if (target.mscoff)
+                return toCppMangleMSVC(s);
+            else
+                return toCppMangleDMC(s);
+        }
         else
             assert(0, "fix this");
     }
@@ -1277,12 +1282,17 @@ struct TargetCPP
     extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
     {
         import dmd.cppmangle : cppTypeInfoMangleItanium;
-        import dmd.cppmanglewin : cppTypeInfoMangleMSVC;
+        import dmd.cppmanglewin : cppTypeInfoMangleDMC, cppTypeInfoMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return cppTypeInfoMangleItanium(cd);
         if (target.os == Target.OS.Windows)
-            return cppTypeInfoMangleMSVC(cd);
+        {
+            if (target.mscoff)
+                return cppTypeInfoMangleMSVC(cd);
+            else
+                return cppTypeInfoMangleDMC(cd);
+        }
         else
             assert(0, "fix this");
     }
