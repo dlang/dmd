@@ -59,12 +59,6 @@ shasum -a 256 -c "$UPLOADER.SHA256SUM"
 
 # Upload the sources
 chmod +x "$UPLOADER"
-if ! "./$UPLOADER" -p . -Z $UPLOADER_ARGS
-then
-    echo "Failed to upload the coverage report!"
-
-    # Ensure that it failed due to network / remote issues
-    "./$UPLOADER" --dry-run -p . -Z $UPLOADER_ARGS
-fi
+"./$UPLOADER" -p . -Z $UPLOADER_ARGS
 
 rm codecov*
