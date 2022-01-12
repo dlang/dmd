@@ -1238,9 +1238,10 @@ $(GNAME IndexExpression):
     $(P $(I PostfixExpression) is evaluated.
         If $(I PostfixExpression) is an expression of static or
         dynamic array type, the result of the indexing is an lvalue
-        of the *i*th element in the array.
-        If $(I PostfixExpression) is a pointer `p`, the result is `*(p + i)`.
-        In each case, `i` is an integer evaluated from $(I ArgumentList).
+        of the *i*th element in the array, where `i` is an integer
+        evaluated from $(I ArgumentList).
+        If $(I PostfixExpression) is a pointer `p`, the result is
+        `*(p + i)` (see $(RELATIVE_LINK2 pointer_arithmetic, Pointer Arithmetic)).
     )
 
     $(P If $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
