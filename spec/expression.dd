@@ -1103,23 +1103,22 @@ $(H3 $(LNAME2 cast_static_array, Static Arrays))
         The cast is done as a type paint (aka a reinterpret cast).
         The contents of the array are not changed.)
 
-        ---
-        import core.stdc.stdio;
-
-        void main()
-        {
-            byte[16] b = 3;
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
+            byte[16] b = 3; // set each element to 3
+            assert(b[0] == 0x03);
             int[4] ia = cast(int[4]) b;
+            // print elements as hex
             foreach (i; ia)
-                printf("%x\n", i);
+                writefln("%x", i);
             /* prints:
                3030303
                3030303
                3030303
                3030303
              */
-        }
-        ---
+            ---
+        )
 
 $(H3 $(LNAME2 cast_floating, Floating Point))
 
