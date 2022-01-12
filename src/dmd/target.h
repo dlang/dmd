@@ -131,6 +131,15 @@ struct Target
         Posix = OS_linux | OS_OSX | OS_OpenBSD | OS_FreeBSD | OS_Solaris | OS_DragonFlyBSD,
     };
 
+    typedef unsigned char ObjectFormat;
+    enum
+    {
+        OF_elf,
+        OF_macho,
+        OF_coff,
+        OF_omf
+    };
+
     OS os;
     uint8_t osMajor;
     // D ABI
@@ -190,6 +199,7 @@ private:
 public:
     void _init(const Param& params);
     // Type sizes and support.
+    ObjectFormat objectFormat();
     void setTriple(const char* _triple);
     unsigned alignsize(Type *type);
     unsigned fieldalign(Type *type);

@@ -226,7 +226,7 @@ public int runLINK()
         if (phobosLibname)
             global.params.libfiles.push(phobosLibname.xarraydup.ptr);
 
-        if (target.mscoff)
+        if (target.objectFormat() == Target.ObjectFormat.coff)
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
@@ -345,7 +345,7 @@ public int runLINK()
             }
             return status;
         }
-        else
+        else if (target.objectFormat() == Target.ObjectFormat.omf)
         {
             OutBuffer cmdbuf;
             global.params.libfiles.push("user32");
@@ -457,6 +457,10 @@ public int runLINK()
                 FileName.free(lnkfilename.ptr);
             }
             return status;
+        }
+        else
+        {
+            assert(0);
         }
     }
     else version (Posix)
@@ -838,7 +842,7 @@ version (Windows)
         size_t len;
         if (global.params.verbose)
             message("%s %s", cmd, args);
-        if (!target.mscoff)
+        if (target.objectFormat() == Target.ObjectFormat.omf)
         {
             if ((len = strlen(args)) > 255)
             {

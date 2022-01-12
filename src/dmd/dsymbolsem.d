@@ -1636,7 +1636,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
-        if (target.mscoff)
+        if (target.objectFormat() == Target.ObjectFormat.coff)
         {
             if (pd.ident == Id.linkerDirective)
             {
@@ -3459,7 +3459,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 /* These quirky conditions mimic what VC++ appears to do
                  */
-                if (target.mscoff && cd.classKind == ClassKind.cpp &&
+                if (target.objectFormat() == Target.ObjectFormat.coff &&
+                    cd.classKind == ClassKind.cpp &&
                     cd.baseClass && cd.baseClass.vtbl.dim)
                 {
                     /* if overriding an interface function, then this is not

@@ -342,8 +342,12 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     {
         // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
         assert(objbuf.length() == 0);
-        objmod = target.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
-                               :    OmfObj_init(&objbuf, srcfile, null);
+        switch (target.objectFormat())
+        {
+            case Target.ObjectFormat.coff: objmod = MsCoffObj_init(&objbuf, srcfile, null); break;
+            case Target.ObjectFormat.omf:  objmod = OmfObj_init(&objbuf, srcfile, null); break;
+            default: assert(0);
+        }
     }
     else
     {
@@ -1293,58 +1297,70 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     // Pull in RTL startup code (but only once)
     if (fd.isMain() && onlyOneMain(fd.loc))
     {
-        if (target.isPOSIX)
+        final switch (target.objectFormat())
         {
-            objmod.external_def("_main");
-        }
-        else if (target.mscoff)
-        {
-            objmod.external_def("main");
-        }
-        else if (target.os == Target.OS.Windows && !target.is64bit)
-        {
-            objmod.external_def("_main");
-            objmod.external_def("__acrtused_con");
+            case Target.ObjectFormat.elf:
+            case Target.ObjectFormat.macho:
+                objmod.external_def("_main");
+                break;
+            case Target.ObjectFormat.coff:
+                objmod.external_def("main");
+                break;
+            case Target.ObjectFormat.omf:
+                objmod.external_def("_main");
+                objmod.external_def("__acrtused_con");
+                break;
         }
         if (libname)
             obj_includelib(libname);
         s.Sclass = SCglobal;
+        return;
     }
     else if (fd.isRtInit())
     {
-        if (target.isPOSIX || target.mscoff)
+        final switch (target.objectFormat())
         {
-            objmod.ehsections();   // initialize exception handling sections
+            case Target.ObjectFormat.elf:
+            case Target.ObjectFormat.macho:
+            case Target.ObjectFormat.coff:
+                objmod.ehsections();   // initialize exception handling sections
+                break;
+            case Target.ObjectFormat.omf:
+                break;
         }
+        return;
     }
-    else if (fd.isCMain())
+    void includeWinLibs(bool cmain, const(char)* omflib)
     {
-        if (target.mscoff)
+        if (target.objectFormat() == Target.ObjectFormat.coff)
         {
+            if (!cmain)
+                objmod.includelib("uuid");
             if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
-        else if (target.os == Target.OS.Windows && !target.is64bit)
+        else if (target.objectFormat() == Target.ObjectFormat.omf)
         {
-            objmod.external_def("__acrtused_con");        // bring in C startup code
-            objmod.includelib("snn.lib");          // bring in C runtime library
+            if (cmain)
+            {
+                objmod.external_def("__acrtused_con"); // bring in C startup code
+                objmod.includelib("snn.lib");          // bring in C runtime library
+            }
+            else
+            {
+                objmod.external_def(omflib);
+            }
         }
+    }
+    if (fd.isCMain())
+    {
+        includeWinLibs(true, "");
         s.Sclass = SCglobal;
     }
     else if (target.os == Target.OS.Windows && fd.isWinMain() && onlyOneMain(fd.loc))
     {
-        if (target.mscoff)
-        {
-            objmod.includelib("uuid");
-            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
-                obj_includelib(global.params.mscrtlib);
-            objmod.includelib("OLDNAMES");
-        }
-        else
-        {
-            objmod.external_def("__acrtused");
-        }
+        includeWinLibs(false, "__acrtused");
         if (libname)
             obj_includelib(libname);
         s.Sclass = SCglobal;
@@ -1353,17 +1369,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     // Pull in RTL startup code
     else if (target.os == Target.OS.Windows && fd.isDllMain() && onlyOneMain(fd.loc))
     {
-        if (target.mscoff)
-        {
-            objmod.includelib("uuid");
-            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
-                obj_includelib(global.params.mscrtlib);
-            objmod.includelib("OLDNAMES");
-        }
-        else
-        {
-            objmod.external_def("__acrtused_dll");
-        }
+        includeWinLibs(false, "__acrtused_dll");
         if (libname)
             obj_includelib(libname);
         s.Sclass = SCglobal;
