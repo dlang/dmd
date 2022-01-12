@@ -5070,6 +5070,7 @@ struct TargetCPP final
     bool reverseOverloads;
     bool exceptions;
     bool twoDtorInVtable;
+    bool splitVBasetable;
     bool wrapDtorInExternD;
     Runtime runtime;
     const char* toMangle(Dsymbol* s);
@@ -5083,13 +5084,15 @@ struct TargetCPP final
         reverseOverloads(),
         exceptions(),
         twoDtorInVtable(),
+        splitVBasetable(),
         wrapDtorInExternD()
     {
     }
-    TargetCPP(bool reverseOverloads, bool exceptions = false, bool twoDtorInVtable = false, bool wrapDtorInExternD = false, Runtime runtime = (Runtime)0u) :
+    TargetCPP(bool reverseOverloads, bool exceptions = false, bool twoDtorInVtable = false, bool splitVBasetable = false, bool wrapDtorInExternD = false, Runtime runtime = (Runtime)0u) :
         reverseOverloads(reverseOverloads),
         exceptions(exceptions),
         twoDtorInVtable(twoDtorInVtable),
+        splitVBasetable(splitVBasetable),
         wrapDtorInExternD(wrapDtorInExternD),
         runtime(runtime)
         {}
@@ -7784,6 +7787,7 @@ public:
     Expression* getTargetInfo(const char* name, const Loc& loc);
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration* fd, Statement* fbody);
+    bool supportsLinkerDirective() const;
     Target() :
         os((OS)1u),
         osMajor(),
@@ -7810,7 +7814,7 @@ public:
         RealProperties()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(true, 0u, 0u, 0u, (TargetC::Runtime)0u, (TargetC::BitFieldStyle)0u), TargetCPP cpp = TargetCPP(false, false, false, false, (TargetCPP::Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool mscoff = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL)) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(true, 0u, 0u, 0u, (TargetC::Runtime)0u, (TargetC::BitFieldStyle)0u), TargetCPP cpp = TargetCPP(false, false, false, false, false, (TargetCPP::Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool mscoff = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL)) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),
