@@ -1080,23 +1080,17 @@ $(H3 $(LNAME2 cast_array, Arrays))
         as a type paint, with the array length adjusted to match any change in
         element size. If there's not a match, a runtime error is generated.)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
-        ---
-        import std.stdio;
-
-        int main()
-        {
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
             byte[] a = [1,2,3];
-            auto b = cast(int[])a; // runtime array cast misalignment
+            //auto b = cast(int[])a; // runtime error: array cast misalignment
 
             int[] c = [1, 2, 3];
             auto d = cast(byte[])c; // ok
             // prints:
             // [1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0]
             writeln(d);
-            return 0;
-        }
-        ---
+            ---
         )
 
     $(DDOC_SEE_ALSO $(RELATIVE_LINK2 cast_array_literal, Casting array literals).)
