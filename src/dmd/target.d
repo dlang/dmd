@@ -1064,6 +1064,16 @@ extern (C++) struct Target
         return true;
     }
 
+    /**
+     * Returns true if the target supports `pragma(linkerDirective)`.
+     * Returns:
+     *      `false` if the target does not support `pragma(linkerDirective)`.
+     */
+    extern (C++) bool supportsLinkerDirective() const
+    {
+        return mscoff;
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     /* All functions after this point are extern (D), as they are only relevant
      * for targets of DMD, and should not be used in front-end code.
@@ -1204,6 +1214,7 @@ struct TargetCPP
     bool reverseOverloads;    /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
     bool exceptions;          /// set if catching C++ exceptions is supported
     bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool splitVBasetable;     /// set if C++ ABI uses separate tables for virtual functions and virtual bases
     bool wrapDtorInExternD;   /// set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;          /// vendor of the C++ runtime to link against
 
@@ -1215,7 +1226,10 @@ struct TargetCPP
         else if (os == Target.OS.OSX)
             twoDtorInVtable = true;
         else if (os == Target.OS.Windows)
+        {
             reverseOverloads = true;
+            splitVBasetable = target.mscoff;
+        }
         else
             assert(0);
         exceptions = (os & Target.OS.Posix) != 0;

@@ -92,6 +92,7 @@ struct TargetCPP
     bool reverseOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
     bool exceptions;          // set if catching C++ exceptions is supported
     bool twoDtorInVtable;     // target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool splitVBasetable;     // set if C++ ABI uses separate tables for virtual functions and virtual bases
     bool wrapDtorInExternD;   // set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;
 
@@ -205,6 +206,7 @@ public:
     Expression *getTargetInfo(const char* name, const Loc& loc);
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration *fd, Statement *fbody);
+    bool supportsLinkerDirective() const;
     void addPredefinedGlobalIdentifiers() const;
 };
 
