@@ -1191,20 +1191,24 @@ $(GNAME CastQual):
     $(P A $(I CastQual) replaces the qualifiers in the type of
         the $(I UnaryExpression):)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         shared int x;
-        assert(is(typeof(cast(const)x) == const int));
+        static assert(is(typeof(cast(const)x) == const int));
         ---
+        )
 
     $(P Casting with no type or qualifiers removes
         any top level $(D const), $(D immutable), $(D shared) or $(D inout)
         type modifiers from the type
         of the $(I UnaryExpression).)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         shared int x;
-        assert(is(typeof(cast()x) == int));
+        static assert(is(typeof(cast()x) == int));
         ---
+        )
 
 $(H3 $(LNAME2 cast_void, Casting to `void`))
 
