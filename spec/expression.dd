@@ -672,11 +672,11 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
         contents of the objects. Therefore, comparing against
         a $(CODE null) class reference is invalid, as $(CODE null) has no contents.)
 
-        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         class C {}
         C c;
-        if (c < null) {}  // compile-time error
+        //if (c < null) {}  // compile-time error
         assert(c is null);
         if (c > new C) {}  // runtime error
         ---
