@@ -813,6 +813,20 @@ $(GNAME AddExpression):
         the size of the type pointed to by the first operand.
     )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+int* p = a.ptr;
+assert(*p == 1);
+
+*(p + 2) = 4; // same as `p[2] = 4`
+assert(a[2] == 4);
+---
+)
+
+    $(P $(GLINK IndexExpression) can also be used with a pointer and has
+    the same behaviour as adding an integer.)
+
     $(P If the second operand is a pointer, and the first is an integral type,
         and the operator is $(D +),
         the operands are reversed and the pointer arithmetic just described
@@ -831,7 +845,13 @@ $(GNAME AddExpression):
         The type of the result is $(D ptrdiff_t).
     )
 
-    $(P $(GLINK IndexExpression) can also be used with a pointer.)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+ptrdiff_t d = &a[2] - a.ptr;
+assert(d == 2);
+---
+)
 
 $(H2 $(LNAME2 cat_expressions, Cat Expressions))
 

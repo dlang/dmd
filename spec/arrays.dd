@@ -235,11 +235,12 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 int[] a = [1,2,3];
 int* p = a.ptr;
 
-*(p + 2) = 4; // same as `p[2] = 4`
+p[2] = 4;
 assert(a[2] == 4);
+writeln(p[3]); // undefined behaviour
 
 assert(p == &a[0]);
-p++;
+p++; // point to a[1]
 assert(*p == 2);
 ---
 )
