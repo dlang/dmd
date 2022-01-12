@@ -19,8 +19,8 @@ extern (C++):
 
 import dmd.globals;
 import dmd.dclass;
+import dmd.dmdparams;
 import dmd.dmodule;
-import dmd.mars;
 import dmd.mtype;
 import dmd.target;
 

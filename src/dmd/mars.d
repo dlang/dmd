@@ -28,6 +28,7 @@ import dmd.builtin;
 import dmd.cond;
 import dmd.console;
 import dmd.compiler;
+import dmd.dmdparams;
 import dmd.dinifile;
 import dmd.dinterpret;
 import dmd.dmodule;
@@ -125,25 +126,6 @@ Where:
   @<cmdfile>       read arguments from cmdfile
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
-
-/// DMD-specific parameters.
-struct DMDparams
-{
-    bool alwaysframe;       // always emit standard stack frame
-    ubyte dwarf;            // DWARF version
-    bool map;               // generate linker .map file
-    bool vasm;              // print generated assembler for each function
-
-    // Hidden debug switches
-    bool debugb;
-    bool debugc;
-    bool debugf;
-    bool debugr;
-    bool debugx;
-    bool debugy;
-}
-
-shared DMDparams dmdParams = dmdParams.init;
 
 /**
  * DMD's real entry point
