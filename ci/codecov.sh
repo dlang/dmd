@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
+set -euox pipefail
 
 # Uploads coverage reports to CodeCov
+
+# Check whether this script was called on it's own
+if [[ "${CURL_USER_AGENT:-}" == "" ]]
+then
+    CI_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    source "$CI_DIR/../.azure-pipelines/lib.sh"
+fi
 
 # CodeCov gets confused by lst files which it can't match
 rm -rf test/runnable/extra-files test/*.lst
@@ -57,8 +65,11 @@ fi
 gpg --verify "$UPLOADER.SHA256SUM.sig" "$UPLOADER.SHA256SUM"
 shasum -a 256 -c "$UPLOADER.SHA256SUM"
 
+# Remove signature files as the uploader apparently includes them...
+rm $UPLOADER.*
+
 # Upload the sources
 chmod +x "$UPLOADER"
 "./$UPLOADER" -p . -Z $UPLOADER_ARGS
 
-rm codecov*
+rm "$UPLOADER"
