@@ -25,6 +25,11 @@ translate the command line arguments.
 See the output of `./build.d --help` to get a list of all supported targets
 or see the list of major targets below.
 
+### Prerequisites
+
+To bootstrap `dmd` you need to have `make` and a `C++` compiler 
+installed, such as gcc.
+
 ### Bootstrapping
 
 Use `bootstrap.sh` to bootstrap the compiler if there is no D compiler
