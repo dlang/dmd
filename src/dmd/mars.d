@@ -128,6 +128,15 @@ Where:
 }
 
 /**
+ * Combine DMD driver options with DMD language options for command-line processing.
+ */
+private struct DMDDriver
+{
+    Param* params;
+    DMDparams* compiler;
+}
+
+/**
  * DMD's real entry point
  *
  * Parses command line arguments and config file, open and read all
@@ -141,22 +150,22 @@ Where:
  *   Application return code
  */
 version (NoMain) {} else
-private int tryMain(size_t argc, const(char)** argv, ref Param params)
+private int tryMain(size_t argc, const(char)** argv, ref DMDDriver driver)
 {
     Strings files;
     Strings libmodules;
     global._init();
 
-    if (parseCommandlineAndConfig(argc, argv, params, files))
+    if (parseCommandlineAndConfig(argc, argv, driver, files))
         return EXIT_FAILURE;
 
-    if (params.usage)
+    if (driver.params.usage)
     {
         usage();
         return EXIT_SUCCESS;
     }
 
-    if (params.logo)
+    if (driver.params.logo)
     {
         logo();
         return EXIT_SUCCESS;
@@ -202,7 +211,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         foreach (n; params)
         {
             s ~= q{
-                if (params.}~n~q{Usage)
+                if (driver.params.}~n~q{Usage)
                     return printHelpUsage(CLIUsage.}~n~q{Usage);
             };
         }
@@ -212,7 +221,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction",
         "preview", "revert", "externStd", "hc"]));
 
-    if (params.manual)
+    if (driver.params.manual)
     {
         version (Windows)
         {
@@ -244,7 +253,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_SUCCESS;
     }
 
-    if (params.color)
+    if (driver.params.color)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
     target.os = defaultTargetOS();           // set target operating system
@@ -256,7 +265,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     if (files.dim == 0)
     {
-        if (params.jsonFieldFlags)
+        if (driver.params.jsonFieldFlags)
         {
             generateJson(null);
             return EXIT_SUCCESS;
@@ -265,27 +274,27 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
     }
 
-    reconcileCommands(params);
+    reconcileCommands(driver);
 
     // Add in command line versions
-    if (params.versionids)
-        foreach (charz; *params.versionids)
+    if (driver.params.versionids)
+        foreach (charz; *driver.params.versionids)
             VersionCondition.addGlobalIdent(charz.toDString());
-    if (params.debugids)
-        foreach (charz; *params.debugids)
+    if (driver.params.debugids)
+        foreach (charz; *driver.params.debugids)
             DebugCondition.addGlobalIdent(charz.toDString());
 
-    setDefaultLibrary(params, target);
+    setDefaultLibrary(driver, target);
 
     // Initialization
-    target._init(params);
+    target._init(*driver.params);
     Type._init();
     Id.initialize();
     Module._init();
     Expression._init();
     Objc._init();
 
-    reconcileLinkRunLib(params, files.dim);
+    reconcileLinkRunLib(driver, files.dim);
     version(CRuntime_Microsoft)
     {
         import dmd.root.longdouble;
@@ -295,9 +304,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     CTFloat.initialize();
 
     // Predefined version identifiers
-    addDefaultVersionIdentifiers(params, target);
+    addDefaultVersionIdentifiers(*driver.params, target);
 
-    if (params.verbose)
+    if (driver.params.verbose)
     {
         stdout.printPredefinedVersions();
         stdout.printGlobalConfigs();
@@ -325,14 +334,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return result;
     }
 
-    if (params.mixinFile)
+    if (driver.params.mixinFile)
     {
-        params.mixinOut = cast(OutBuffer*)Mem.check(calloc(1, OutBuffer.sizeof));
+        driver.params.mixinOut = cast(OutBuffer*)Mem.check(calloc(1, OutBuffer.sizeof));
         atexit(&flushMixins); // see comment for flushMixins
     }
     scope(exit) flushMixins();
-    global.path = buildPath(params.imppath);
-    global.filePath = buildPath(params.fileImppath);
+    global.path = buildPath(driver.params.imppath);
+    global.filePath = buildPath(driver.params.fileImppath);
 
     // Create Modules
     Modules modules = createModules(files, libmodules);
@@ -359,28 +368,28 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
         Module m = modules[modi];
-        if (params.verbose)
+        if (driver.params.verbose)
             message("parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
-//        if (!params.oneobj || modi == 0 || m.isDocFile)
+//        if (!driver.params.oneobj || modi == 0 || m.isDocFile)
 //            m.deleteObjFile();
 
         m.parse();
         if (m.isHdrFile)
         {
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.length; j++)
+            for (size_t j = 0; j < driver.params.objfiles.length; j++)
             {
-                if (m.objfile.toChars() == params.objfiles[j])
+                if (m.objfile.toChars() == driver.params.objfiles[j])
                 {
-                    params.objfiles.remove(j);
+                    driver.params.objfiles.remove(j);
                     break;
                 }
             }
-            if (params.objfiles.length == 0)
-                params.link = false;
+            if (driver.params.objfiles.length == 0)
+                driver.params.link = false;
         }
         if (m.isDocFile)
         {
@@ -390,20 +399,20 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             modules.remove(modi);
             modi--;
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.length; j++)
+            for (size_t j = 0; j < driver.params.objfiles.length; j++)
             {
-                if (m.objfile.toChars() == params.objfiles[j])
+                if (m.objfile.toChars() == driver.params.objfiles[j])
                 {
-                    params.objfiles.remove(j);
+                    driver.params.objfiles.remove(j);
                     break;
                 }
             }
-            if (params.objfiles.length == 0)
-                params.link = false;
+            if (driver.params.objfiles.length == 0)
+                driver.params.link = false;
         }
     }
 
-    if (anydocfiles && modules.dim && (params.oneobj || params.objname))
+    if (anydocfiles && modules.dim && (driver.params.oneobj || driver.params.objname))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
@@ -411,7 +420,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
-    if (params.doHdrGeneration)
+    if (driver.params.doHdrGeneration)
     {
         /* Generate 'header' import files.
          * Since 'header' import files must be independent of command
@@ -422,30 +431,30 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             if (m.isHdrFile)
                 continue;
-            if (params.verbose)
+            if (driver.params.verbose)
                 message("import    %s", m.toChars());
             genhdrfile(m);
         }
     }
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(*driver.params, modules);
 
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (driver.params.verbose)
             message("importall %s", m.toChars());
         m.importAll(null);
     }
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(*driver.params, modules);
 
     backend_init();
 
     // Do semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (driver.params.verbose)
             message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
@@ -466,18 +475,18 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Do pass 2 semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (driver.params.verbose)
             message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
     Module.runDeferredSemantic2();
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(*driver.params, modules);
 
     // Do pass 3 semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (driver.params.verbose)
             message("semantic3 %s", m.toChars());
         m.semantic3(null);
     }
@@ -489,7 +498,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             auto m = compiledImports[i];
             assert(m.isRoot);
-            if (params.verbose)
+            if (driver.params.verbose)
                 message("semantic3 %s", m.toChars());
             m.semantic3(null);
             modules.push(m);
@@ -497,14 +506,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic3();
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(*driver.params, modules);
 
     // Scan for functions to inline
     foreach (m; modules)
     {
-        if (params.useInline || m.hasAlwaysInlines)
+        if (driver.params.useInline || m.hasAlwaysInlines)
         {
-            if (params.verbose)
+            if (driver.params.verbose)
                 message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
@@ -515,19 +524,19 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(*driver.params, modules);
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
-    if (OutBuffer* ob = params.moduleDeps)
+    if (OutBuffer* ob = driver.params.moduleDeps)
     {
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
         Module.runDeferredSemantic3();
 
         const data = (*ob)[];
-        if (params.moduleDepsFile)
-            writeFile(Loc.initial, params.moduleDepsFile, data);
+        if (driver.params.moduleDepsFile)
+            writeFile(Loc.initial, driver.params.moduleDepsFile, data);
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
@@ -536,18 +545,18 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     printTemplateStats();
 
     // Generate output files
-    if (params.doJsonGeneration)
+    if (driver.params.doJsonGeneration)
     {
         generateJson(&modules);
     }
-    if (!global.errors && params.doDocComments)
+    if (!global.errors && driver.params.doDocComments)
     {
         foreach (m; modules)
         {
             gendocfile(m);
         }
     }
-    if (params.vcg_ast)
+    if (driver.params.vcg_ast)
     {
         import dmd.hdrgen;
         foreach (mod; modules)
@@ -568,34 +577,34 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
-    if (params.lib && params.objfiles.length == 0)
+    if (driver.params.lib && driver.params.objfiles.length == 0)
     {
         error(Loc.initial, "no input files");
         return EXIT_FAILURE;
     }
 
-    if (params.addMain && !global.hasMainFunction)
+    if (driver.params.addMain && !global.hasMainFunction)
         modules.push(moduleWithEmptyMain());
 
-    generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
-                         params.lib, params.obj, params.oneobj, params.multiobj,
-                         params.verbose);
+    generateCodeAndWrite(modules[], libmodules[], driver.params.libname, driver.params.objdir,
+                         driver.params.lib, driver.params.obj, driver.params.oneobj, driver.params.multiobj,
+                         driver.params.verbose);
 
     backend_term();
 
     if (global.errors)
         fatal();
     int status = EXIT_SUCCESS;
-    if (!params.objfiles.length)
+    if (!driver.params.objfiles.length)
     {
-        if (params.link)
+        if (driver.params.link)
             error(Loc.initial, "no object files to link");
     }
     else
     {
-        if (params.link)
+        if (driver.params.link)
             status = runLINK();
-        if (params.run)
+        if (driver.params.run)
         {
             if (!status)
             {
@@ -605,23 +614,23 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 foreach (m; modules)
                 {
                     m.deleteObjFile();
-                    if (params.oneobj)
+                    if (driver.params.oneobj)
                         break;
                 }
-                params.exefile.toCStringThen!(ef => File.remove(ef.ptr));
+                driver.params.exefile.toCStringThen!(ef => File.remove(ef.ptr));
             }
         }
     }
 
     // Output the makefile dependencies
-    if (params.emitMakeDeps)
-        emitMakeDeps(params);
+    if (driver.params.emitMakeDeps)
+        emitMakeDeps(driver);
 
     if (global.warnings)
         errorOnWarning();
 
     if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
+        removeHdrFilesAndFail(*driver.params, modules);
 
     return status;
 }
@@ -632,12 +641,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
  * Params:
  *   argc = Number of arguments passed via command line
  *   argv = Array of string arguments passed via command line
- *   params = parametes from argv
+ *   driver = parametes from argv
  *   files = files from argv
  * Returns: true on faiure
  */
 version(NoMain) {} else
-bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params, ref Strings files)
+bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref DMDDriver driver, ref Strings files)
 {
     // Detect malformed input
     static bool badArgs()
@@ -661,7 +670,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
     // Set default values
-    params.argv0 = arguments[0].toDString;
+    driver.params.argv0 = arguments[0].toDString;
 
     version (Windows)
         enum iniName = "sc.ini";
@@ -680,7 +689,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     }
     else
     {
-        global.inifilename = findConfFile(params.argv0, iniName);
+        global.inifilename = findConfFile(driver.params.argv0, iniName);
     }
     // Read the configuration file
     const iniReadResult = global.inifilename.toCStringThen!(fn => File.read(fn.ptr));
@@ -723,7 +732,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
 
-    if (parseCommandLine(arguments, argc, params, files))
+    if (parseCommandLine(arguments, argc, driver, files))
     {
         Loc loc;
         errorSupplemental(loc, "run `dmd` to print the compiler manual");
@@ -739,32 +748,32 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
 /// Emit the makefile dependencies for the -makedeps switch
 version (NoMain) {} else
 {
-    void emitMakeDeps(ref Param params)
+    void emitMakeDeps(ref DMDDriver driver)
     {
-        assert(params.emitMakeDeps);
+        assert(driver.params.emitMakeDeps);
 
         OutBuffer buf;
 
         // start by resolving and writing the target (which is sometimes resolved during link phase)
-        if (params.link && params.exefile)
+        if (driver.params.link && driver.params.exefile)
         {
-            buf.writeEscapedMakePath(&params.exefile[0]);
+            buf.writeEscapedMakePath(&driver.params.exefile[0]);
         }
-        else if (params.lib)
+        else if (driver.params.lib)
         {
-            const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
+            const(char)[] libname = driver.params.libname ? driver.params.libname : FileName.name(driver.params.objfiles[0].toDString);
             libname = FileName.forceExt(libname,target.lib_ext);
 
             buf.writeEscapedMakePath(&libname[0]);
         }
-        else if (params.objname)
+        else if (driver.params.objname)
         {
-            buf.writeEscapedMakePath(&params.objname[0]);
+            buf.writeEscapedMakePath(&driver.params.objname[0]);
         }
-        else if (params.objfiles.length)
+        else if (driver.params.objfiles.length)
         {
-            buf.writeEscapedMakePath(params.objfiles[0]);
-            foreach (of; params.objfiles[1 .. $])
+            buf.writeEscapedMakePath(driver.params.objfiles[0]);
+            foreach (of; driver.params.objfiles[1 .. $])
             {
                 buf.writestring(" ");
                 buf.writeEscapedMakePath(of);
@@ -778,7 +787,7 @@ version (NoMain) {} else
         buf.writestring(":");
 
         // then output every dependency
-        foreach (dep; params.makeDeps)
+        foreach (dep; driver.params.makeDeps)
         {
             buf.writestringln(" \\");
             buf.writestring("  ");
@@ -787,8 +796,8 @@ version (NoMain) {} else
         buf.writenl();
 
         const data = buf[];
-        if (params.makeDepsFile)
-            writeFile(Loc.initial, params.makeDepsFile, data);
+        if (driver.params.makeDepsFile)
+            writeFile(Loc.initial, driver.params.makeDepsFile, data);
         else
             printf("%.*s", cast(int) data.length, data.ptr);
     }
@@ -1000,7 +1009,8 @@ else
         scope(failure) stderr.printInternalFailure;
 
         auto args = Runtime.cArgs();
-        return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
+        auto driver = DMDDriver(&global.params, &dmdParams);
+        return tryMain(args.argc, cast(const(char)**)args.argv, driver);
     }
 } // !NoMain
 
@@ -1156,37 +1166,37 @@ const(char)[] parse_conf_arg(Strings* args)
  * Note that if `-defaultlib=` or `-debuglib=` was used,
  * we don't override that either.
  */
-private void setDefaultLibrary(ref Param params, const ref Target target)
+private void setDefaultLibrary(ref DMDDriver driver, const ref Target target)
 {
-    if (params.defaultlibname is null)
+    if (driver.params.defaultlibname is null)
     {
         if (target.os == Target.OS.Windows)
         {
             if (target.is64bit)
-                params.defaultlibname = "phobos64";
+                driver.params.defaultlibname = "phobos64";
             else if (target.mscoff)
-                params.defaultlibname = "phobos32mscoff";
+                driver.params.defaultlibname = "phobos32mscoff";
             else
-                params.defaultlibname = "phobos";
+                driver.params.defaultlibname = "phobos";
         }
         else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
-            params.defaultlibname = "libphobos2.a";
+            driver.params.defaultlibname = "libphobos2.a";
         }
         else if (target.os == Target.OS.OSX)
         {
-            params.defaultlibname = "phobos2";
+            driver.params.defaultlibname = "phobos2";
         }
         else
         {
             assert(0, "fix this");
         }
     }
-    else if (!params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
-        params.defaultlibname = null;
+    else if (!driver.params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
+        driver.params.defaultlibname = null;
 
-    if (params.debuglibname is null)
-        params.debuglibname = params.defaultlibname;
+    if (driver.params.debuglibname is null)
+        driver.params.debuglibname = driver.params.defaultlibname;
 }
 
 /**
@@ -1438,13 +1448,13 @@ extern(C) void flushMixins()
  * Params:
  *      arguments = command line arguments
  *      argc = argument count
- *      params = set to result of parsing `arguments`
+ *      driver = set to result of parsing `arguments`
  *      files = set to files pulled from `arguments`
  * Returns:
  *      true if errors in command line
  */
 
-bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files)
+bool parseCommandLine(const ref Strings arguments, const size_t argc, ref DMDDriver driver, ref Strings files)
 {
     bool errors;
 
@@ -1513,7 +1523,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     static string checkOptionsMixin(string usageFlag, string missingMsg)
     {
         return q{
-            final switch (checkOptions(arg[len - 1 .. $], params.}~usageFlag~","~
+            final switch (checkOptions(arg[len - 1 .. $], driver.params.}~usageFlag~","~
                           `"`~missingMsg~`"`~q{))
             {
                 case CheckOptions.error:
@@ -1527,7 +1537,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     }
 
     import dmd.cli : Usage;
-    bool parseCLIOption(string name, Usage.Feature[] features)(ref Param params, const(char)[] p)
+    bool parseCLIOption(string name, Usage.Feature[] features)(ref DMDDriver driver, const(char)[] p)
     {
         // Parse:
         //      -<name>=<feature>
@@ -1544,7 +1554,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     if (t.deprecated_)
                         continue;
 
-                    buf ~= `setFlagFor(name, params.`~t.paramName~`);`;
+                    buf ~= `setFlagFor(name, driver.params.`~t.paramName~`);`;
                 }
                 buf ~= "return true;\n";
 
@@ -1553,7 +1563,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     buf ~= `case "`~t.name~`":`;
                     if (t.deprecated_)
                         buf ~= "deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
-                    buf ~= `setFlagFor(name, params.`~t.paramName~`); return true;`;
+                    buf ~= `setFlagFor(name, driver.params.`~t.paramName~`); return true;`;
                 }
                 return buf;
             }
@@ -1586,12 +1596,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 const ext = FileName.ext(arg);
                 if (ext.length && FileName.equals(ext, "exe"))
                 {
-                    params.objname = arg;
+                    driver.params.objname = arg;
                     continue;
                 }
                 if (arg == "/?")
                 {
-                    params.usage = true;
+                    driver.params.usage = true;
                     return false;
                 }
             }
@@ -1600,15 +1610,15 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
 
         if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
-            params.allInst = true;
+            driver.params.allInst = true;
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-            params.useDeprecated = DiagnosticReporting.error;
+            driver.params.useDeprecated = DiagnosticReporting.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-            params.useDeprecated = DiagnosticReporting.off;
+            driver.params.useDeprecated = DiagnosticReporting.off;
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-            params.useDeprecated = DiagnosticReporting.inform;
+            driver.params.useDeprecated = DiagnosticReporting.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
-            params.link = false;
+            driver.params.link = false;
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
         {
             /* Parse:
@@ -1620,20 +1630,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             switch (arg[len .. $])
             {
             case "D":
-                params.checkAction = CHECKACTION.D;
+                driver.params.checkAction = CHECKACTION.D;
                 break;
             case "C":
-                params.checkAction = CHECKACTION.C;
+                driver.params.checkAction = CHECKACTION.C;
                 break;
             case "halt":
-                params.checkAction = CHECKACTION.halt;
+                driver.params.checkAction = CHECKACTION.halt;
                 break;
             case "context":
-                params.checkAction = CHECKACTION.context;
+                driver.params.checkAction = CHECKACTION.context;
                 break;
             default:
                 errorInvalidSwitch(p);
-                params.checkActionUsage = true;
+                driver.params.checkActionUsage = true;
                 return false;
             }
         }
@@ -1672,31 +1682,31 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             const(char)[] checkarg = arg[len .. $];
             if (checkarg == "on")
             {
-                params.useAssert        = CHECKENABLE.on;
-                params.useArrayBounds   = CHECKENABLE.on;
-                params.useIn            = CHECKENABLE.on;
-                params.useInvariants    = CHECKENABLE.on;
-                params.useOut           = CHECKENABLE.on;
-                params.useSwitchError   = CHECKENABLE.on;
+                driver.params.useAssert        = CHECKENABLE.on;
+                driver.params.useArrayBounds   = CHECKENABLE.on;
+                driver.params.useIn            = CHECKENABLE.on;
+                driver.params.useInvariants    = CHECKENABLE.on;
+                driver.params.useOut           = CHECKENABLE.on;
+                driver.params.useSwitchError   = CHECKENABLE.on;
             }
             else if (checkarg == "off")
             {
-                params.useAssert        = CHECKENABLE.off;
-                params.useArrayBounds   = CHECKENABLE.off;
-                params.useIn            = CHECKENABLE.off;
-                params.useInvariants    = CHECKENABLE.off;
-                params.useOut           = CHECKENABLE.off;
-                params.useSwitchError   = CHECKENABLE.off;
+                driver.params.useAssert        = CHECKENABLE.off;
+                driver.params.useArrayBounds   = CHECKENABLE.off;
+                driver.params.useIn            = CHECKENABLE.off;
+                driver.params.useInvariants    = CHECKENABLE.off;
+                driver.params.useOut           = CHECKENABLE.off;
+                driver.params.useSwitchError   = CHECKENABLE.off;
             }
-            else if (!(check(checkarg, "assert",    params.useAssert) ||
-                  check(checkarg, "bounds",    params.useArrayBounds) ||
-                  check(checkarg, "in",        params.useIn         ) ||
-                  check(checkarg, "invariant", params.useInvariants ) ||
-                  check(checkarg, "out",       params.useOut        ) ||
-                  check(checkarg, "switch",    params.useSwitchError)))
+            else if (!(check(checkarg, "assert",    driver.params.useAssert) ||
+                  check(checkarg, "bounds",    driver.params.useArrayBounds) ||
+                  check(checkarg, "in",        driver.params.useIn         ) ||
+                  check(checkarg, "invariant", driver.params.useInvariants ) ||
+                  check(checkarg, "out",       driver.params.useOut        ) ||
+                  check(checkarg, "switch",    driver.params.useSwitchError)))
             {
                 errorInvalidSwitch(p);
-                params.checkUsage = true;
+                driver.params.checkUsage = true;
                 return false;
             }
         }
@@ -1710,10 +1720,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 switch(arg[7 .. $])
                 {
                 case "on":
-                    params.color = true;
+                    driver.params.color = true;
                     break;
                 case "off":
-                    params.color = false;
+                    driver.params.color = false;
                     break;
                 case "auto":
                     break;
@@ -1725,7 +1735,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[6])
                 goto Lerror;
             else
-                params.color = true;
+                driver.params.color = true;
         }
         else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
         {
@@ -1733,18 +1743,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "cov")) // https://dlang.org/dmd.html#switch-cov
         {
-            params.cov = true;
+            driver.params.cov = true;
             // Parse:
             //      -cov
             //      -cov=ctfe
             //      -cov=nnn
             if (arg == "-cov=ctfe")
             {
-                params.ctfe_cov = true;
+                driver.params.ctfe_cov = true;
             }
             else if (p[4] == '=')
             {
-                if (!params.covPercent.parseDigits(p.toDString()[5 .. $], 100))
+                if (!driver.params.covPercent.parseDigits(p.toDString()[5 .. $], 100))
                 {
                     errorInvalidSwitch(p, "Only a number between 0 and 100 can be passed to `-cov=<num>`");
                     return true;
@@ -1754,41 +1764,41 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "-shared")
-            params.dll = true;
+            driver.params.dll = true;
         else if (arg == "-fPIC")
         {
-            params.pic = PIC.pic;
+            driver.params.pic = PIC.pic;
         }
         else if (arg == "-fPIE")
         {
-            params.pic = PIC.pie;
+            driver.params.pic = PIC.pie;
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
-            dmdParams.map = true;
+            driver.compiler.map = true;
         else if (arg == "-multiobj")
-            params.multiobj = true;
+            driver.params.multiobj = true;
         else if (startsWith(p + 1, "mixin="))
         {
             auto tmp = p + 6 + 1;
             if (!tmp[0])
                 goto Lnoarg;
-            params.mixinFile = mem.xstrdup(tmp);
+            driver.params.mixinFile = mem.xstrdup(tmp);
         }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
-            params.symdebug = 1;
+            driver.params.symdebug = 1;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
-            if (dmdParams.dwarf)
+            if (driver.compiler.dwarf)
             {
                 error("`-gdwarf=<version>` can only be provided once");
                 break;
             }
-            params.symdebug = 1;
+            driver.params.symdebug = 1;
 
             enum len = "-gdwarf=".length;
             // Parse:
             //      -gdwarf=version
-            if (arg.length < len || !dmdParams.dwarf.parseDigits(arg[len .. $], 5) || dmdParams.dwarf < 3)
+            if (arg.length < len || !driver.compiler.dwarf.parseDigits(arg[len .. $], 5) || driver.compiler.dwarf < 3)
             {
                 error("`-gdwarf=<version>` requires a valid version [3|4|5]", p);
                 return false;
@@ -1796,14 +1806,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-gf")
         {
-            if (!params.symdebug)
-                params.symdebug = 1;
-            params.symdebugref = true;
+            if (!driver.params.symdebug)
+                driver.params.symdebug = 1;
+            driver.params.symdebugref = true;
         }
         else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
-            dmdParams.alwaysframe = true;
+            driver.compiler.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
-            params.stackstomp = true;
+            driver.params.stackstomp = true;
         else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
         {
             // ignore, already handled in C main
@@ -1828,7 +1838,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
-            params.mscrtlib = arg[10 .. $];
+            driver.params.mscrtlib = arg[10 .. $];
         }
         else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile
         {
@@ -1838,7 +1848,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             if (p[8] == '=')
             {
                 if (arg[9 .. $] == "gc")
-                    params.tracegc = true;
+                    driver.params.tracegc = true;
                 else
                 {
                     errorInvalidSwitch(p, "Only `gc` is allowed for `-profile`");
@@ -1848,26 +1858,26 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[8])
                 goto Lerror;
             else
-                params.trace = true;
+                driver.params.trace = true;
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
-            params.verbose = true;
+            driver.params.verbose = true;
         else if (arg == "-vcg-ast")
-            params.vcg_ast = true;
+            driver.params.vcg_ast = true;
         else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
-            dmdParams.vasm = true;
+            driver.compiler.vasm = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
-            params.vtls = true;
+            driver.params.vtls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
         {
-            params.vtemplates = true;
+            driver.params.vtemplates = true;
             if (p[1 + "vtemplates".length] == '=')
             {
                 const(char)[] style = arg[1 + "vtemplates=".length .. $];
                 switch (style)
                 {
                 case "list-instances":
-                    params.vtemplatesListInstances = true;
+                    driver.params.vtemplatesListInstances = true;
                     break;
                 default:
                     error("unknown vtemplates style '%.*s', must be 'list-instances'", cast(int) style.length, style.ptr);
@@ -1875,9 +1885,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
-            params.showColumns = true;
+            driver.params.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
-            params.vgc = true;
+            driver.params.vgc = true;
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
             if (p[8] != '=')
@@ -1887,13 +1897,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             if (startsWith(p + 9, "spec"))
             {
-                params.showGaggedErrors = true;
+                driver.params.showGaggedErrors = true;
             }
             else if (startsWith(p + 9, "context"))
             {
-                params.printErrorContext = true;
+                driver.params.printErrorContext = true;
             }
-            else if (!params.errorLimit.parseDigits(p.toDString()[9 .. $]))
+            else if (!driver.params.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
                 errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
                 return true;
@@ -1906,10 +1916,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             switch (style)
             {
             case "digitalmars":
-                params.messageStyle = MessageStyle.digitalmars;
+                driver.params.messageStyle = MessageStyle.digitalmars;
                 break;
             case "gnu":
-                params.messageStyle = MessageStyle.gnu;
+                driver.params.messageStyle = MessageStyle.gnu;
                 break;
             default:
                 error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
@@ -1947,14 +1957,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     break;
                 default:
                     errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                    params.mcpuUsage = true;
+                    driver.params.mcpuUsage = true;
                     return false;
                 }
             }
             else
             {
                 errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                params.mcpuUsage = true;
+                driver.params.mcpuUsage = true;
                 return false;
             }
         }
@@ -1970,23 +1980,23 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             switch (cpprev)
             {
             case "c++98":
-                params.cplusplus = CppStdRevision.cpp98;
+                driver.params.cplusplus = CppStdRevision.cpp98;
                 break;
             case "c++11":
-                params.cplusplus = CppStdRevision.cpp11;
+                driver.params.cplusplus = CppStdRevision.cpp11;
                 break;
             case "c++14":
-                params.cplusplus = CppStdRevision.cpp14;
+                driver.params.cplusplus = CppStdRevision.cpp14;
                 break;
             case "c++17":
-                params.cplusplus = CppStdRevision.cpp17;
+                driver.params.cplusplus = CppStdRevision.cpp17;
                 break;
             case "c++20":
-                params.cplusplus = CppStdRevision.cpp20;
+                driver.params.cplusplus = CppStdRevision.cpp20;
                 break;
             default:
                 error("Switch `%s` is invalid", p);
-                params.externStdUsage = true;
+                driver.params.externStdUsage = true;
                 return false;
             }
         }
@@ -1997,7 +2007,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             //      -transition=number
             mixin(checkOptionsMixin("transitionUsage",
                 "`-transition=<name>` requires a name"));
-            if (!parseCLIOption!("transition", Usage.transitions)(params, arg))
+            if (!parseCLIOption!("transition", Usage.transitions)(driver, arg))
             {
                 // Legacy -transition flags
                 // Before DMD 2.085, DMD `-transition` was used for all language flags
@@ -2012,10 +2022,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     switch (num)
                     {
                         case 3449:
-                            params.vfield = true;
+                            driver.params.vfield = true;
                             break;
                         case 14_246:
-                            params.dtorFields = FeatureState.enabled;
+                            driver.params.dtorFields = FeatureState.enabled;
                             break;
                         case 14_488:
                             break;
@@ -2024,7 +2034,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("Transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            driver.params.transitionUsage = true;
                             return false;
                     }
                 }
@@ -2034,22 +2044,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     switch (ident.toDString())
                     {
                         case "dtorfields":
-                            params.dtorFields = FeatureState.enabled;
+                            driver.params.dtorFields = FeatureState.enabled;
                             break;
                         case "intpromote":
                             deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
                             break;
                         case "markdown":
-                            params.markdown = true;
+                            driver.params.markdown = true;
                             break;
                         default:
                             error("Transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            driver.params.transitionUsage = true;
                             return false;
                     }
                 }
                 errorInvalidSwitch(p);
-                params.transitionUsage = true;
+                driver.params.transitionUsage = true;
                 return false;
             }
         }
@@ -2061,20 +2071,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             mixin(checkOptionsMixin("previewUsage",
                 "`-preview=<name>` requires a name"));
 
-            if (!parseCLIOption!("preview", Usage.previews)(params, arg))
+            if (!parseCLIOption!("preview", Usage.previews)(driver, arg))
             {
                 error("Preview `%s` is invalid", p);
-                params.previewUsage = true;
+                driver.params.previewUsage = true;
                 return false;
             }
 
-            if (params.useDIP1021)
-                params.useDIP1000 = FeatureState.enabled;    // dip1021 implies dip1000
+            if (driver.params.useDIP1021)
+                driver.params.useDIP1000 = FeatureState.enabled;    // dip1021 implies dip1000
 
             // copy previously standalone flags from -transition
             // -preview=dip1000 implies -preview=dip25 too
-            if (params.useDIP1000 == FeatureState.enabled)
-                params.useDIP25 = FeatureState.enabled;
+            if (driver.params.useDIP1000 == FeatureState.enabled)
+                driver.params.useDIP25 = FeatureState.enabled;
         }
         else if (startsWith(p + 1, "revert") ) // https://dlang.org/dmd.html#switch-revert
         {
@@ -2084,26 +2094,26 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             mixin(checkOptionsMixin("revertUsage",
                 "`-revert=<name>` requires a name"));
 
-            if (!parseCLIOption!("revert", Usage.reverts)(params, arg))
+            if (!parseCLIOption!("revert", Usage.reverts)(driver, arg))
             {
                 error("Revert `%s` is invalid", p);
-                params.revertUsage = true;
+                driver.params.revertUsage = true;
                 return false;
             }
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.warnings = DiagnosticReporting.error;
+            driver.params.warnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.warnings = DiagnosticReporting.inform;
+            driver.params.warnings = DiagnosticReporting.inform;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
-            params.optimize = true;
+            driver.params.optimize = true;
         else if (p[1] == 'o')
         {
             const(char)* path;
             switch (p[2])
             {
             case '-':                       // https://dlang.org/dmd.html#switch-o-
-                params.obj = false;
+                driver.params.obj = false;
                 break;
             case 'd':                       // https://dlang.org/dmd.html#switch-od
                 if (!p[3])
@@ -2113,7 +2123,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     path = toWinPath(path);
                 }
-                params.objdir = path.toDString;
+                driver.params.objdir = path.toDString;
                 break;
             case 'f':                       // https://dlang.org/dmd.html#switch-of
                 if (!p[3])
@@ -2123,12 +2133,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     path = toWinPath(path);
                 }
-                params.objname = path.toDString;
+                driver.params.objname = path.toDString;
                 break;
             case 'p':                       // https://dlang.org/dmd.html#switch-op
                 if (p[3])
                     goto Lerror;
-                params.preservePaths = true;
+                driver.params.preservePaths = true;
                 break;
             case 0:
                 error("-o no longer supported, use -of or -od");
@@ -2139,18 +2149,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'D')       // https://dlang.org/dmd.html#switch-D
         {
-            params.doDocComments = true;
+            driver.params.doDocComments = true;
             switch (p[2])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-Dd
                 if (!p[3])
                     goto Lnoarg;
-                params.docdir = (p + 3 + (p[3] == '=')).toDString();
+                driver.params.docdir = (p + 3 + (p[3] == '=')).toDString();
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-Df
                 if (!p[3])
                     goto Lnoarg;
-                params.docname = (p + 3 + (p[3] == '=')).toDString();
+                driver.params.docname = (p + 3 + (p[3] == '=')).toDString();
                 break;
             case 0:
                 break;
@@ -2160,18 +2170,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
         {
-            params.doCxxHdrGeneration = CxxHeaderMode.silent;
+            driver.params.doCxxHdrGeneration = CxxHeaderMode.silent;
             switch (p[3])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-HCd
                 if (!p[4])
                     goto Lnoarg;
-                params.cxxhdrdir = (p + 4 + (p[4] == '=')).toDString;
+                driver.params.cxxhdrdir = (p + 4 + (p[4] == '=')).toDString;
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-HCf
                 if (!p[4])
                     goto Lnoarg;
-                params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
+                driver.params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
                 break;
             case '=':
                 enum len = "-HC=".length;
@@ -2183,11 +2193,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         /* already set above */
                         break;
                     case "verbose":
-                        params.doCxxHdrGeneration = CxxHeaderMode.verbose;
+                        driver.params.doCxxHdrGeneration = CxxHeaderMode.verbose;
                         break;
                     default:
                         errorInvalidSwitch(p);
-                        params.hcUsage = true;
+                        driver.params.hcUsage = true;
                         return false;
                 }
                 break;
@@ -2199,18 +2209,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'H')       // https://dlang.org/dmd.html#switch-H
         {
-            params.doHdrGeneration = true;
+            driver.params.doHdrGeneration = true;
             switch (p[2])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-Hd
                 if (!p[3])
                     goto Lnoarg;
-                params.hdrdir = (p + 3 + (p[3] == '=')).toDString;
+                driver.params.hdrdir = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-Hf
                 if (!p[3])
                     goto Lnoarg;
-                params.hdrname = (p + 3 + (p[3] == '=')).toDString;
+                driver.params.hdrname = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 0:
                 break;
@@ -2220,18 +2230,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "Xcc="))
         {
-            params.linkswitches.push(p + 5);
-            params.linkswitchIsForCC.push(true);
+            driver.params.linkswitches.push(p + 5);
+            driver.params.linkswitchIsForCC.push(true);
         }
         else if (p[1] == 'X')       // https://dlang.org/dmd.html#switch-X
         {
-            params.doJsonGeneration = true;
+            driver.params.doJsonGeneration = true;
             switch (p[2])
             {
             case 'f':               // https://dlang.org/dmd.html#switch-Xf
                 if (!p[3])
                     goto Lnoarg;
-                params.jsonfilename = (p + 3 + (p[3] == '=')).toDString;
+                driver.params.jsonfilename = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 'i':
                 if (!p[3])
@@ -2258,11 +2268,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-ignore")      // https://dlang.org/dmd.html#switch-ignore
-            params.ignoreUnsupportedPragmas = true;
+            driver.params.ignoreUnsupportedPragmas = true;
         else if (arg == "-inline")      // https://dlang.org/dmd.html#switch-inline
         {
-            params.useInline = true;
-            params.hdrStripPlainFunctions = false;
+            driver.params.useInline = true;
+            driver.params.hdrStripPlainFunctions = false;
         }
         else if (arg == "-i")
             includeImports = true;
@@ -2282,31 +2292,31 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
-            params.useDIP25 =  FeatureState.enabled;
+            driver.params.useDIP25 =  FeatureState.enabled;
         else if (arg == "-dip1000")
         {
-            params.useDIP25 = FeatureState.enabled;
-            params.useDIP1000 = FeatureState.enabled;
+            driver.params.useDIP25 = FeatureState.enabled;
+            driver.params.useDIP1000 = FeatureState.enabled;
         }
         else if (arg == "-dip1008")
         {
-            params.ehnogc = true;
+            driver.params.ehnogc = true;
         }
         else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
-            params.lib = true;
+            driver.params.lib = true;
         else if (arg == "-nofloat")
-            params.nofloat = true;
+            driver.params.nofloat = true;
         else if (arg == "-quiet")
         {
             // Ignore
         }
         else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
-            params.release = true;
+            driver.params.release = true;
         else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
-            params.betterC = true;
+            driver.params.betterC = true;
         else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
         {
-            params.boundscheck = CHECKENABLE.off;
+            driver.params.boundscheck = CHECKENABLE.off;
         }
         else if (startsWith(p + 1, "boundscheck")) // https://dlang.org/dmd.html#switch-boundscheck
         {
@@ -2319,13 +2329,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 switch (boundscheck)
                 {
                 case "on":
-                    params.boundscheck = CHECKENABLE.on;
+                    driver.params.boundscheck = CHECKENABLE.on;
                     break;
                 case "safeonly":
-                    params.boundscheck = CHECKENABLE.safeonly;
+                    driver.params.boundscheck = CHECKENABLE.safeonly;
                     break;
                 case "off":
-                    params.boundscheck = CHECKENABLE.off;
+                    driver.params.boundscheck = CHECKENABLE.off;
                     break;
                 default:
                     goto Lerror;
@@ -2335,27 +2345,27 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "-unittest")
-            params.useUnitTests = true;
+            driver.params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
-            if (!params.imppath)
-                params.imppath = new Strings();
-            params.imppath.push(p + 2 + (p[2] == '='));
+            if (!driver.params.imppath)
+                driver.params.imppath = new Strings();
+            driver.params.imppath.push(p + 2 + (p[2] == '='));
         }
         else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
         {
             if (p[4] && strchr(p + 5, '='))
             {
-                params.modFileAliasStrings.push(p + 4);
+                driver.params.modFileAliasStrings.push(p + 4);
             }
             else
                 goto Lerror;
         }
         else if (p[1] == 'J')             // https://dlang.org/dmd.html#switch-J
         {
-            if (!params.fileImppath)
-                params.fileImppath = new Strings();
-            params.fileImppath.push(p + 2 + (p[2] == '='));
+            if (!driver.params.fileImppath)
+                driver.params.fileImppath = new Strings();
+            driver.params.fileImppath.push(p + 2 + (p[2] == '='));
         }
         else if (startsWith(p + 1, "debug") && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
         {
@@ -2367,14 +2377,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 if (isdigit(cast(char)p[7]))
                 {
-                    if (!params.debuglevel.parseDigits(p.toDString()[7 .. $]))
+                    if (!driver.params.debuglevel.parseDigits(p.toDString()[7 .. $]))
                         goto Lerror;
                 }
                 else if (Identifier.isValidIdentifier(p + 7))
                 {
-                    if (!params.debugids)
-                        params.debugids = new Array!(const(char)*);
-                    params.debugids.push(p + 7);
+                    if (!driver.params.debugids)
+                        driver.params.debugids = new Array!(const(char)*);
+                    driver.params.debugids.push(p + 7);
                 }
                 else
                     goto Lerror;
@@ -2382,7 +2392,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[6])
                 goto Lerror;
             else
-                params.debuglevel = 1;
+                driver.params.debuglevel = 1;
         }
         else if (startsWith(p + 1, "version")) // https://dlang.org/dmd.html#switch-version
         {
@@ -2393,14 +2403,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 if (isdigit(cast(char)p[9]))
                 {
-                    if (!params.versionlevel.parseDigits(p.toDString()[9 .. $]))
+                    if (!driver.params.versionlevel.parseDigits(p.toDString()[9 .. $]))
                         goto Lerror;
                 }
                 else if (Identifier.isValidIdentifier(p + 9))
                 {
-                    if (!params.versionids)
-                        params.versionids = new Array!(const(char)*);
-                    params.versionids.push(p + 9);
+                    if (!driver.params.versionids)
+                        driver.params.versionids = new Array!(const(char)*);
+                    driver.params.versionids.push(p + 9);
                 }
                 else
                     goto Lerror;
@@ -2409,52 +2419,52 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "--b")
-            dmdParams.debugb = true;
+            driver.compiler.debugb = true;
         else if (arg == "--c")
-            dmdParams.debugc = true;
+            driver.compiler.debugc = true;
         else if (arg == "--f")
-            dmdParams.debugf = true;
+            driver.compiler.debugf = true;
         else if (arg == "--help" ||
                  arg == "-h")
         {
-            params.usage = true;
+            driver.params.usage = true;
             return false;
         }
         else if (arg == "--r")
-            dmdParams.debugr = true;
+            driver.compiler.debugr = true;
         else if (arg == "--version")
         {
-            params.logo = true;
+            driver.params.logo = true;
             return false;
         }
         else if (arg == "--x")
-            dmdParams.debugx = true;
+            driver.compiler.debugx = true;
         else if (arg == "--y")
-            dmdParams.debugy = true;
+            driver.compiler.debugy = true;
         else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
         {
-            params.linkswitches.push(p + 2 + (p[2] == '='));
-            params.linkswitchIsForCC.push(false);
+            driver.params.linkswitches.push(p + 2 + (p[2] == '='));
+            driver.params.linkswitchIsForCC.push(false);
         }
         else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
         {
-            params.defaultlibname = (p + 1 + 11).toDString;
+            driver.params.defaultlibname = (p + 1 + 11).toDString;
         }
         else if (startsWith(p + 1, "debuglib="))     // https://dlang.org/dmd.html#switch-debuglib
         {
-            params.debuglibname = (p + 1 + 9).toDString;
+            driver.params.debuglibname = (p + 1 + 9).toDString;
         }
         else if (startsWith(p + 1, "deps"))          // https://dlang.org/dmd.html#switch-deps
         {
-            if (params.moduleDeps)
+            if (driver.params.moduleDeps)
             {
                 error("-deps[=file] can only be provided once!");
                 break;
             }
             if (p[5] == '=')
             {
-                params.moduleDepsFile = (p + 1 + 5).toDString;
-                if (!params.moduleDepsFile[0])
+                driver.params.moduleDepsFile = (p + 1 + 5).toDString;
+                if (!driver.params.moduleDepsFile[0])
                     goto Lnoarg;
             }
             else if (p[5] != '\0')
@@ -2462,11 +2472,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 // Else output to stdout.
                 goto Lerror;
             }
-            params.moduleDeps = new OutBuffer();
+            driver.params.moduleDeps = new OutBuffer();
         }
         else if (startsWith(p + 1, "makedeps"))          // https://dlang.org/dmd.html#switch-makedeps
         {
-            if (params.emitMakeDeps)
+            if (driver.params.emitMakeDeps)
             {
                 error("-makedeps[=file] can only be provided once!");
                 break;
@@ -2478,27 +2488,27 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     error("expected filename after -makedeps=");
                     break;
                 }
-                params.makeDepsFile = (p + 10).toDString;
+                driver.params.makeDepsFile = (p + 10).toDString;
             }
             else if (p[9] != '\0')
             {
                 goto Lerror;
             }
             // Else output to stdout.
-            params.emitMakeDeps = true;
+            driver.params.emitMakeDeps = true;
         }
         else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
         {
-            params.addMain = true;
+            driver.params.addMain = true;
         }
         else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
         {
-            params.manual = true;
+            driver.params.manual = true;
             return false;
         }
         else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
         {
-            params.run = true;
+            driver.params.run = true;
             size_t length = argc - i - 1;
             if (length)
             {
@@ -2517,16 +2527,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     files.push("__stdin.d");
                 else
                     files.push(arguments[i + 1]);
-                params.runargs.setDim(length - 1);
+                driver.params.runargs.setDim(length - 1);
                 for (size_t j = 0; j < length - 1; ++j)
                 {
-                    params.runargs[j] = arguments[i + 2 + j];
+                    driver.params.runargs[j] = arguments[i + 2 + j];
                 }
                 i += length;
             }
             else
             {
-                params.run = false;
+                driver.params.run = false;
                 goto Lnoarg;
             }
         }
@@ -2548,22 +2558,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 /***********************************************
  * Adjust gathered command line switches and reconcile them.
  * Params:
- *      params = switches gathered from command line,
+ *      driver = switches gathered from command line,
  *               and update in place
  *      numSrcFiles = number of source files
  */
 version (NoMain) {} else
-private void reconcileCommands(ref Param params)
+private void reconcileCommands(ref DMDDriver driver)
 {
     if (target.os == Target.OS.OSX)
     {
-        params.pic = PIC.pic;
+        driver.params.pic = PIC.pic;
     }
     else if (target.os == Target.OS.Windows)
     {
-        if (params.pic)
+        if (driver.params.pic)
             error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
-        if (dmdParams.dwarf)
+        if (driver.compiler.dwarf)
             error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
         if (target.is64bit)
             target.mscoff = true;
@@ -2576,12 +2586,12 @@ private void reconcileCommands(ref Param params)
 
     if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
-        if (params.lib && params.dll)
+        if (driver.params.lib && driver.params.dll)
             error(Loc.initial, "cannot mix `-lib` and `-shared`");
     }
     if (target.os == Target.OS.Windows)
     {
-        foreach(b; params.linkswitchIsForCC[])
+        foreach(b; driver.params.linkswitchIsForCC[])
         {
             if (b)
             {
@@ -2591,13 +2601,13 @@ private void reconcileCommands(ref Param params)
             }
         }
 
-        if (target.mscoff && !params.mscrtlib)
+        if (target.mscoff && !driver.params.mscrtlib)
         {
             version (Windows)
             {
                 VSOptions vsopt;
                 vsopt.initialize();
-                params.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
+                driver.params.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
             }
             else
                 error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
@@ -2607,69 +2617,69 @@ private void reconcileCommands(ref Param params)
     {
         if (!target.is64bit && target.mscoff)
             error(Loc.initial, "`-m32mscoff` can only be used when targetting windows");
-        if (params.mscrtlib)
+        if (driver.params.mscrtlib)
             error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }
 
-    if (params.boundscheck != CHECKENABLE._default)
+    if (driver.params.boundscheck != CHECKENABLE._default)
     {
-        if (params.useArrayBounds == CHECKENABLE._default)
-            params.useArrayBounds = params.boundscheck;
+        if (driver.params.useArrayBounds == CHECKENABLE._default)
+            driver.params.useArrayBounds = driver.params.boundscheck;
     }
 
-    if (params.useUnitTests)
+    if (driver.params.useUnitTests)
     {
-        if (params.useAssert == CHECKENABLE._default)
-            params.useAssert = CHECKENABLE.on;
+        if (driver.params.useAssert == CHECKENABLE._default)
+            driver.params.useAssert = CHECKENABLE.on;
     }
 
-    if (params.release)
+    if (driver.params.release)
     {
-        if (params.useInvariants == CHECKENABLE._default)
-            params.useInvariants = CHECKENABLE.off;
+        if (driver.params.useInvariants == CHECKENABLE._default)
+            driver.params.useInvariants = CHECKENABLE.off;
 
-        if (params.useIn == CHECKENABLE._default)
-            params.useIn = CHECKENABLE.off;
+        if (driver.params.useIn == CHECKENABLE._default)
+            driver.params.useIn = CHECKENABLE.off;
 
-        if (params.useOut == CHECKENABLE._default)
-            params.useOut = CHECKENABLE.off;
+        if (driver.params.useOut == CHECKENABLE._default)
+            driver.params.useOut = CHECKENABLE.off;
 
-        if (params.useArrayBounds == CHECKENABLE._default)
-            params.useArrayBounds = CHECKENABLE.safeonly;
+        if (driver.params.useArrayBounds == CHECKENABLE._default)
+            driver.params.useArrayBounds = CHECKENABLE.safeonly;
 
-        if (params.useAssert == CHECKENABLE._default)
-            params.useAssert = CHECKENABLE.off;
+        if (driver.params.useAssert == CHECKENABLE._default)
+            driver.params.useAssert = CHECKENABLE.off;
 
-        if (params.useSwitchError == CHECKENABLE._default)
-            params.useSwitchError = CHECKENABLE.off;
+        if (driver.params.useSwitchError == CHECKENABLE._default)
+            driver.params.useSwitchError = CHECKENABLE.off;
     }
     else
     {
-        if (params.useInvariants == CHECKENABLE._default)
-            params.useInvariants = CHECKENABLE.on;
+        if (driver.params.useInvariants == CHECKENABLE._default)
+            driver.params.useInvariants = CHECKENABLE.on;
 
-        if (params.useIn == CHECKENABLE._default)
-            params.useIn = CHECKENABLE.on;
+        if (driver.params.useIn == CHECKENABLE._default)
+            driver.params.useIn = CHECKENABLE.on;
 
-        if (params.useOut == CHECKENABLE._default)
-            params.useOut = CHECKENABLE.on;
+        if (driver.params.useOut == CHECKENABLE._default)
+            driver.params.useOut = CHECKENABLE.on;
 
-        if (params.useArrayBounds == CHECKENABLE._default)
-            params.useArrayBounds = CHECKENABLE.on;
+        if (driver.params.useArrayBounds == CHECKENABLE._default)
+            driver.params.useArrayBounds = CHECKENABLE.on;
 
-        if (params.useAssert == CHECKENABLE._default)
-            params.useAssert = CHECKENABLE.on;
+        if (driver.params.useAssert == CHECKENABLE._default)
+            driver.params.useAssert = CHECKENABLE.on;
 
-        if (params.useSwitchError == CHECKENABLE._default)
-            params.useSwitchError = CHECKENABLE.on;
+        if (driver.params.useSwitchError == CHECKENABLE._default)
+            driver.params.useSwitchError = CHECKENABLE.on;
     }
 
-    if (params.betterC)
+    if (driver.params.betterC)
     {
-        params.checkAction = CHECKACTION.C;
-        params.useModuleInfo = false;
-        params.useTypeInfo = false;
-        params.useExceptions = false;
+        driver.params.checkAction = CHECKACTION.C;
+        driver.params.useModuleInfo = false;
+        driver.params.useTypeInfo = false;
+        driver.params.useExceptions = false;
     }
 
 }
@@ -2677,53 +2687,53 @@ private void reconcileCommands(ref Param params)
 /***********************************************
  * Adjust link, run and lib line switches and reconcile them.
  * Params:
- *      params = switches gathered from command line,
+ *      driver = switches gathered from command line,
  *               and update in place
  *      numSrcFiles = number of source files
  */
 version (NoMain) {} else
-private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles)
+private void reconcileLinkRunLib(ref DMDDriver driver, size_t numSrcFiles)
 {
-    if (!params.obj || params.lib)
-        params.link = false;
-    if (params.link)
+    if (!driver.params.obj || driver.params.lib)
+        driver.params.link = false;
+    if (driver.params.link)
     {
-        params.exefile = params.objname;
-        params.oneobj = true;
-        if (params.objname)
+        driver.params.exefile = driver.params.objname;
+        driver.params.oneobj = true;
+        if (driver.params.objname)
         {
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            params.objname = FileName.forceExt(params.objname, target.obj_ext);
+            driver.params.objname = FileName.forceExt(driver.params.objname, target.obj_ext);
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
-            if (params.objdir)
+            if (driver.params.objdir)
             {
-                const(char)[] name = FileName.name(params.objname);
-                params.objname = FileName.combine(params.objdir, name);
+                const(char)[] name = FileName.name(driver.params.objname);
+                driver.params.objname = FileName.combine(driver.params.objdir, name);
             }
         }
     }
-    else if (params.run)
+    else if (driver.params.run)
     {
         error(Loc.initial, "flags conflict with -run");
         fatal();
     }
-    else if (params.lib)
+    else if (driver.params.lib)
     {
-        params.libname = params.objname;
-        params.objname = null;
+        driver.params.libname = driver.params.objname;
+        driver.params.objname = null;
         // Haven't investigated handling these options with multiobj
-        if (!params.cov && !params.trace)
-            params.multiobj = true;
+        if (!driver.params.cov && !driver.params.trace)
+            driver.params.multiobj = true;
     }
     else
     {
-        if (params.objname && numSrcFiles)
+        if (driver.params.objname && numSrcFiles)
         {
-            params.oneobj = true;
+            driver.params.oneobj = true;
             //error("multiple source files, but only one .obj name");
             //fatal();
         }
