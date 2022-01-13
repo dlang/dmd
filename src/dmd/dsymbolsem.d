@@ -356,6 +356,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (sc && sc.inunion && sc.inunion.isAnonDeclaration())
             dsym.overlapped = true;
 
+        dsym.sequenceNumber = global.varSequenceNumber++;
+
         Scope* scx = null;
         if (dsym._scope)
         {
