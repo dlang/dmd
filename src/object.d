@@ -2846,7 +2846,7 @@ void clear(Value, Key)(Value[Key] aa)
     _aaClear(*cast(AA *) &aa);
 }
 
-/* ditto */
+/** ditto */
 void clear(Value, Key)(Value[Key]* aa)
 {
     _aaClear(*cast(AA *) aa);
@@ -2893,21 +2893,21 @@ T rehash(T : Value[Key], Value, Key)(T aa)
     return aa;
 }
 
-/* ditto */
+/** ditto */
 T rehash(T : Value[Key], Value, Key)(T* aa)
 {
     _aaRehash(cast(AA*)aa, typeid(Value[Key]));
     return *aa;
 }
 
-/* ditto */
+/** ditto */
 T rehash(T : shared Value[Key], Value, Key)(T aa)
 {
     _aaRehash(cast(AA*)&aa, typeid(Value[Key]));
     return aa;
 }
 
-/* ditto */
+/** ditto */
 T rehash(T : shared Value[Key], Value, Key)(T* aa)
 {
     _aaRehash(cast(AA*)aa, typeid(Value[Key]));
@@ -2915,8 +2915,8 @@ T rehash(T : shared Value[Key], Value, Key)(T* aa)
 }
 
 /***********************************
- * Create a new associative array of the same size and copy the contents of the
- * associative array into it.
+ * Creates a new associative array of the same size and copies the contents of
+ * the associative array into it.
  * Params:
  *      aa =     The associative array.
  */
@@ -2957,7 +2957,7 @@ V[K] dup(T : V[K], K, V)(T aa)
     return result;
 }
 
-/* ditto */
+/** ditto */
 V[K] dup(T : V[K], K, V)(T* aa)
 {
     return (*aa).dup;
@@ -2984,11 +2984,27 @@ private AARange _aaToRange(T: V[K], K, V)(ref T aa) pure nothrow @nogc @safe
 }
 
 /***********************************
- * Returns a forward range over the keys of the associative array.
+ * Returns a $(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
+ * which will iterate over the keys of the associative array. The keys are
+ * returned by reference.
+ *
+ * If structural changes are made to the array (removing or adding keys), all
+ * ranges previously obtained through this function are invalidated. The
+ * following example program will dereference a null pointer:
+ *
+ *---
+ * import std.stdio : writeln;
+ *
+ * auto dict = ["k1": 1, "k2": 2];
+ * auto keyRange = dict.byKey;
+ * dict.clear;
+ * writeln(keyRange.front);    // Segmentation fault
+ *---
+ *
  * Params:
  *      aa =     The associative array.
  * Returns:
- *      A forward range.
+ *      A forward range referencing the keys of the associative array.
  */
 auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
@@ -3011,7 +3027,7 @@ auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
     return Result(_aaToRange(aa));
 }
 
-/* ditto */
+/** ditto */
 auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
 {
     return (*aa).byKey();
@@ -3020,7 +3036,7 @@ auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
 ///
 @safe unittest
 {
-    auto dict = [1: 0, 2: 0];
+    auto dict = [1: "v1", 2: "v2"];
     int sum;
     foreach (v; dict.byKey)
         sum += v;
@@ -3029,11 +3045,27 @@ auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
 }
 
 /***********************************
- * Returns a forward range over the values of the associative array.
+ * Returns a $(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
+ * which will iterate over the values of the associative array. The values are
+ * returned by reference.
+ *
+ * If structural changes are made to the array (removing or adding keys), all
+ * ranges previously obtained through this function are invalidated. The
+ * following example program will dereference a null pointer:
+ *
+ *---
+ * import std.stdio : writeln;
+ *
+ * auto dict = ["k1": 1, "k2": 2];
+ * auto valueRange = dict.byValue;
+ * dict.clear;
+ * writeln(valueRange.front);    // Segmentation fault
+ *---
+ *
  * Params:
  *      aa =     The associative array.
  * Returns:
- *      A forward range.
+ *      A forward range referencing the values of the associative array.
  */
 auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
@@ -3056,7 +3088,7 @@ auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
     return Result(_aaToRange(aa));
 }
 
-/* ditto */
+/** ditto */
 auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
 {
     return (*aa).byValue();
@@ -3074,11 +3106,35 @@ auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
 }
 
 /***********************************
- * Returns a forward range over the key value pairs of the associative array.
+ * Returns a $(REF_ALTTEXT forward range, isForwardRange, std,range,primitives)
+ * which will iterate over the key-value pairs of the associative array. The
+ * returned pairs are represented by an opaque type with `.key` and `.value`
+ * properties for accessing references to the key and value of the pair,
+ * respectively.
+ *
+ * If structural changes are made to the array (removing or adding keys), all
+ * ranges previously obtained through this function are invalidated. The
+ * following example program will dereference a null pointer:
+ *
+ *---
+ * import std.stdio : writeln;
+ *
+ * auto dict = ["k1": 1, "k2": 2];
+ * auto kvRange = dict.byKeyValue;
+ * dict.clear;
+ * writeln(kvRange.front.key, ": ", kvRange.front.value);    // Segmentation fault
+ *---
+ *
+ * Note that this is a low-level interface to iterating over the associative
+ * array and is not compatible withth the
+ * $(LINK2 $(ROOT_DIR)phobos/std_typecons.html#.Tuple,`Tuple`) type in Phobos.
+ * For compatibility with `Tuple`, use
+ * $(LINK2 $(ROOT_DIR)phobos/std_array.html#.byPair,std.array.byPair) instead.
+ *
  * Params:
  *      aa =     The associative array.
  * Returns:
- *      A forward range.
+ *      A forward range referencing the pairs of the associative array.
  */
 auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
@@ -3118,7 +3174,7 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
     return Result(_aaToRange(aa));
 }
 
-/* ditto */
+/** ditto */
 auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
 {
     return (*aa).byKeyValue();
@@ -3130,18 +3186,21 @@ auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
     auto dict = ["k1": 1, "k2": 2];
     int sum;
     foreach (e; dict.byKeyValue)
+    {
+        assert(e.key[1] == e.value + '0');
         sum += e.value;
+    }
 
     assert(sum == 3);
 }
 
 /***********************************
- * Returns a dynamic array, the elements of which are the keys in the
- * associative array.
+ * Returns a newly allocated dynamic array containing a copy of the keys from
+ * the associative array.
  * Params:
  *      aa =     The associative array.
  * Returns:
- *      A dynamic array.
+ *      A dynamic array containing a copy of the keys.
  */
 Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 {
@@ -3159,7 +3218,7 @@ Key[] keys(T : Value[Key], Value, Key)(T aa) @property
     return res;
 }
 
-/* ditto */
+/** ditto */
 Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 {
     return (*aa).keys;
@@ -3220,12 +3279,12 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 }
 
 /***********************************
- * Returns a dynamic array, the elements of which are the values in the
- * associative array.
+ * Returns a newly allocated dynamic array containing a copy of the values from
+ * the associative array.
  * Params:
  *      aa =     The associative array.
  * Returns:
- *      A dynamic array.
+ *      A dynamic array containing a copy of the values.
  */
 Value[] values(T : Value[Key], Value, Key)(T aa) @property
 {
@@ -3243,7 +3302,7 @@ Value[] values(T : Value[Key], Value, Key)(T aa) @property
     return res;
 }
 
-/* ditto */
+/** ditto */
 Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 {
     return (*aa).values;
@@ -3319,12 +3378,13 @@ inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
     return p ? *p : defaultValue;
 }
 
-/* ditto */
+/** ditto */
 inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 {
     return (*aa).get(key, defaultValue);
 }
 
+///
 @safe unittest
 {
     auto aa = ["k1": 1];
