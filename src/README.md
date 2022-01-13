@@ -28,7 +28,7 @@ or see the list of major targets below.
 ### Prerequisites
 
 To bootstrap `dmd` on posix you need to have a `C++` compiler installed, 
-such as gcc, when using the default $CC setting. 
+such as gcc, when using the default `$CC` setting. 
 
 ### Bootstrapping
 
