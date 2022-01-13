@@ -14,20 +14,32 @@
 </div>
 
 ---
-**DMD** is the reference compiler for [the D programming language](https://dlang.org).
+**DMD** is the reference compiler for the D programming language.
 
-To report a problem or browse the list of open bugs, please visit the
-[bug tracker](https://issues.dlang.org/).
+Releases, language specification and other resources can be found on the [homepage](https://dlang.org).
+Please refer to the guidelines for [bug reports](CONTRIBUTING.md#reporting-bugs) to
+report a problem or browse the list of open bugs.
 
-For more information, including instructions for compiling, installing, and
+### Overview
+
+This repository is structured into the following directories.
+Refer to their respective `README.md` for more in-depth information.
+
+| Directory              | Description                                      |
+|------------------------|--------------------------------------------------|
+| [src](src)             | source code, build system and build instructions |
+| [test](test)           | tests and testing infrastructure                 |
+| [changelog](changelog) | changelog entries for the upcoming release       |
+| [ci](ci)               | CI related scripts / utilities                   |
+| [docs](docs)           | man pages and internal documentation             |
+| [ini](ini)             | predefined `dmd.conf` files                      |
+| [samples](samples)     | Various code examples                            |
+
+For more general information regarding compiling, installing, and
 hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
 visit the [D Wiki](https://wiki.dlang.org/DMD).
 
-All significant contributors to DMD source code, via GitHub, Bugzilla, email,
-wiki, the D forums, etc., please assign copyright to those
-DMD source code changes to the D Language Foundation. Please send
-an email to walter@digitalmars.com with the statement:
+### Nightlies
 
-> I hereby assign copyright in my contributions to DMD to the D Language Foundation
-
-and include your name and date.
+Nightly builds based of the current DMD / DRuntime / Phobos `master` branch
+can be found [here](https://github.com/dlang/dmd/releases/tag/nightly).
