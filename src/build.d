@@ -403,16 +403,9 @@ alias versionFile = makeRule!((builder, rule) {
     alias contents = memoize!(() {
         if (dmdRepo.buildPath(".git").exists)
         {
-            try
-            {
-                auto gitResult = [env["GIT"], "describe", "--dirty"].tryRun;
-                if (gitResult.status == 0)
-                    return gitResult.output.strip;
-            }
-            catch (ProcessException)
-            {
-                // git not installed
-            }
+            auto gitResult = tryRun([env["GIT"], "describe", "--dirty"]);
+            if (gitResult.status == 0)
+                return gitResult.output.strip;
         }
         // version fallback
         return dmdRepo.buildPath("VERSION").readText;
@@ -843,11 +836,10 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
 
         void show(string what, string[] cmd)
         {
-            string output;
-            try
-                output = tryRun(cmd).output;
-            catch (ProcessException)
-                output = "<Not available>";
+            const res = tryRun(cmd);
+            const output = res.status != -1
+                        ? res.output
+                        :  "<Not available>";
 
             app.formattedWrite("%s (%s): %s\n", what, cmd[0], output);
         }
@@ -2077,7 +2069,15 @@ auto tryRun(const(string)[] args, string workDir = runDir)
 {
     args = args.filter!(a => !a.empty).array;
     log("Run: %-(%s %)", args);
-    return execute(args, null, Config.none, size_t.max, workDir);
+
+    try
+    {
+        return execute(args, null, Config.none, size_t.max, workDir);
+    }
+    catch (Exception e) // e.g. exececutable does not exist
+    {
+        return typeof(return)(-1, e.msg);
+    }
 }
 
 /**
@@ -2115,10 +2115,11 @@ string run(const string[] args, const string workDir = runDir)
             ];
 
             // Include gdb output as details (if GDB is available)
-            try
-                details = tryRun(gdb, workDir).output;
-            catch (ProcessException e)
-                log("GDB failed: %s", e);
+            const gdbRes = tryRun(gdb, workDir);
+            if (gdbRes.status != -1)
+                details = gdbRes.output;
+            else
+                log("Rerunning executable with GDB failed: %s", gdbRes.output);
         }
 
         abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status), details);
