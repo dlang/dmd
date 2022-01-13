@@ -14,11 +14,32 @@
 </div>
 
 ---
-**DMD** is the reference compiler for [the D programming language](https://dlang.org).
+**DMD** is the reference compiler for the D programming language.
 
+Releases, language specification and other resources can be found on the [homepage](https://dlang.org).
 Please refer to the guidelines for [bug reports](CONTRIBUTING.md#reporting-bugs) to
 report a problem or browse the list of open bugs.
 
-For more information, including instructions for compiling, installing, and
+### Overview
+
+This repository is structured into the following directories.
+Refer to their respective `README.md` for more in-depth information.
+
+| Directory              | Description                                      |
+|------------------------|--------------------------------------------------|
+| [src](src)             | source code, build system and build instructions |
+| [test](test)           | tests and testing infrastructure                 |
+| [changelog](changelog) | changelog entries for the upcoming release       |
+| [ci](ci)               | CI related scripts / utilities                   |
+| [docs](docs)           | man pages and internal documentation             |
+| [ini](ini)             | predefined `dmd.conf` files                      |
+| [samples](samples)     | Various code examples                            |
+
+For more general information regarding compiling, installing, and
 hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
 visit the [D Wiki](https://wiki.dlang.org/DMD).
+
+### Nightlies
+
+Nightly builds based of the current DMD / DRuntime / Phobos `master` branch
+can be found [here](https://github.com/dlang/dmd/releases/tag/nightly).
