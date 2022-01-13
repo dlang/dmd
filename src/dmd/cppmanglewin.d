@@ -346,7 +346,7 @@ public:
                 buf.writeByte('Q'); // const
             else
                 buf.writeByte('P'); // mutable
-            if (target.is64bit)
+            if (target.isLP64)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
             mangleArray(cast(TypeSArray)type.next);
@@ -365,7 +365,7 @@ public:
             {
                 buf.writeByte('P'); // mutable
             }
-            if (target.is64bit)
+            if (target.isLP64)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
             type.next.accept(this);
@@ -382,7 +382,7 @@ public:
             return;
 
         buf.writeByte('A'); // mutable
-        if (target.is64bit)
+        if (target.isLP64)
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
         assert(type.next);
@@ -486,7 +486,7 @@ public:
             buf.writeByte('Q');
         else
             buf.writeByte('P');
-        if (target.is64bit)
+        if (target.isLP64)
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
         mangleModifier(type);
@@ -554,7 +554,7 @@ extern(D):
             {
                 mangleVisibility(d, "AIQ");
             }
-            if (target.is64bit)
+            if (target.isLP64)
                 buf.writeByte('E');
             if (d.type.isConst())
             {
@@ -614,7 +614,7 @@ extern(D):
         if (t.ty != Tpointer)
             t = t.mutableOf();
         t.accept(this);
-        if ((t.ty == Tpointer || t.ty == Treference || t.ty == Tclass) && target.is64bit)
+        if ((t.ty == Tpointer || t.ty == Treference || t.ty == Tclass) && target.isLP64)
         {
             buf.writeByte('E');
         }
@@ -1190,7 +1190,7 @@ extern(D):
     {
         scope VisualCPPMangler tmp = new VisualCPPMangler(this);
         // Calling convention
-        if (target.is64bit) // always Microsoft x64 calling convention
+        if (target.isLP64) // always Microsoft x64 calling convention
         {
             tmp.buf.writeByte('A');
         }
