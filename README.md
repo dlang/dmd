@@ -16,8 +16,8 @@
 ---
 **DMD** is the reference compiler for [the D programming language](https://dlang.org).
 
-To report a problem or browse the list of open bugs, please visit the
-[bug tracker](https://issues.dlang.org/).
+Please refer to the guidelines for [bug reports](CONTRIBUTING.md#reporting-bugs) to
+report a problem or browse the list of open bugs.
 
 For more information, including instructions for compiling, installing, and
 hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
