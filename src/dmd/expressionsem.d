@@ -13250,7 +13250,16 @@ Expression getVarExp(EnumMember em, const ref Loc loc, Scope* sc)
     if (em.errors)
         return ErrorExp.get();
     Expression e = new VarExp(loc, em);
-    return e.expressionSemantic(sc);
+    e = e.expressionSemantic(sc);
+    if (!(sc.flags & SCOPE.Cfile) && em.isCsymbol())
+    {
+        /* C11 types them as int. But if in D file,
+         * type qualified names as the enum
+         */
+        e.type = em.parent.isEnumDeclaration().type;
+        assert(e.type);
+    }
+    return e;
 }
 
 
