@@ -12,3 +12,11 @@ steps:
       bash --version
       sh --login .azure-pipelines/windows.sh
     displayName: Build and test
+
+  - bash: |
+      set -eux
+      source .azure-pipelines/lib.sh
+      OS_NAME=windows source ci/codecov.sh
+    displayName: "Upload coverage report"
+    condition: eq( variables.DMD_TEST_COVERAGE, 1)
+    continueOnError: true
