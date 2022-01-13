@@ -1258,7 +1258,18 @@ extern(D):
         {
             foreach (n, p; type.parameterList)
             {
-                Type t = target.cpp.parameterType(p);
+                Type t = p.type.merge2();
+                if (p.isReference())
+                    t = t.referenceTo();
+                else if (p.storageClass & STC.lazy_)
+                {
+                    // Mangle as delegate
+                    auto tf = new TypeFunction(ParameterList(), t, LINK.d);
+                    auto td = new TypeDelegate(tf);
+                    t = td.merge();
+                }
+                else if (Type cpptype = target.cpp.parameterType(t))
+                    t = cpptype;
                 if (t.ty == Tsarray)
                 {
                     error(loc, "Internal Compiler Error: unable to pass static array to `extern(C++)` function.");

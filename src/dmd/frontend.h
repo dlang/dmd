@@ -5077,7 +5077,7 @@ struct TargetCPP final
     const char* typeInfoMangle(ClassDeclaration* cd);
     const char* thunkMangle(FuncDeclaration* fd, int32_t offset);
     const char* typeMangle(Type* t);
-    Type* parameterType(Parameter* p);
+    Type* parameterType(Type* t);
     bool fundamentalType(const Type* const t, bool& isFundamental);
     uint32_t derivedClassOffset(ClassDeclaration* baseClass);
     TargetCPP() :
