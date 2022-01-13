@@ -1273,7 +1273,8 @@ void processEnvironmentCxx()
     // Windows requires additional work to handle e.g. Cygwin on Azure
     version (Windows) return;
 
-    const cxxKind = env["CXX_KIND"] = detectHostCxx();
+    env.setDefault("CXX", "c++");
+    // env["CXX_KIND"] = detectHostCxx();
 
     string[] warnings  = [
         "-Wall", "-Werror", "-Wno-narrowing", "-Wwrite-strings", "-Wcast-qual", "-Wno-format",
@@ -1309,11 +1310,11 @@ void processEnvironmentCxx()
 }
 
 /// Returns: the host C++ compiler, either "g++" or "clang++"
+version (none) // Currently unused but will be needed at some point
 string detectHostCxx()
 {
     import std.meta: AliasSeq;
 
-    env.setDefault("CXX", "c++");
     const cxxVersion = [env["CXX"], "--version"].execute.output;
 
     alias GCC = AliasSeq!("g++", "gcc", "Free Software");
