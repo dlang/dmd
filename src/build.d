@@ -1506,7 +1506,7 @@ Detects the host model
 
 Returns: 32, 64 or throws an Exception
 */
-auto detectModel()
+string detectModel()
 {
     string uname;
     if (detectOS == "solaris")
@@ -1541,7 +1541,7 @@ Params:
     hostDmd = the command used to launch the host's dmd executable
 Returns: a string that is the absolute path of the host's dmd executable
 */
-auto getHostDMDPath(string hostDmd)
+string getHostDMDPath(const string hostDmd)
 {
     version(Posix)
         return ["which", hostDmd].execute.output;
@@ -1562,7 +1562,7 @@ Add the executable filename extension to the given `name` for the current OS.
 Params:
     name = the name to append the file extention to
 */
-auto exeName(T)(T name)
+string exeName(const string name)
 {
     version(Windows)
         return name ~ ".exe";
@@ -1575,7 +1575,7 @@ Add the object file extension to the given `name` for the current OS.
 Params:
     name = the name to append the file extention to
 */
-auto objName(T)(T name)
+string objName(const string name)
 {
     version(Windows)
         return name ~ ".obj";
@@ -1588,7 +1588,7 @@ Add the library file extension to the given `name` for the current OS.
 Params:
     name = the name to append the file extention to
 */
-auto libName(T)(T name)
+string libName(const string name)
 {
     version(Windows)
         return name ~ ".lib";
@@ -1644,7 +1644,7 @@ Params:
 
 Returns: the value associated to key
 */
-auto getDefault(ref string[string] env, string key, string default_)
+string getDefault(ref string[string] env, string key, string default_)
 {
     if (auto ex = key in env)
         return *ex;
@@ -1667,7 +1667,7 @@ Params:
 
 Returns: the value associated to key
 */
-auto setDefault(ref string[string] env, string key, string default_)
+string setDefault(ref string[string] env, string key, string default_)
 {
     auto v = getDefault(env, key, default_);
     env[key] = v;
@@ -1990,9 +1990,10 @@ abstract final class Scheduler
 struct MethodInitializer(T) if (is(T == class)) // currenly only works with classes
 {
     private T obj;
-    auto ref opDispatch(string name)(typeof(__traits(getMember, T, name)) arg)
+
+    ref MethodInitializer opDispatch(string name)(typeof(__traits(getMember, T, name)) arg)
     {
-        mixin("obj." ~ name ~ " = arg;");
+        __traits(getMember, obj, name) = arg;
         return this;
     }
 }
@@ -2029,7 +2030,7 @@ Params:
     spec = a format specifier
     args = the data to format to the log
 */
-auto log(T...)(string spec, T args)
+void log(T...)(string spec, T args)
 {
     if (verbose)
         writefln(spec, args);
@@ -2072,10 +2073,10 @@ Params:
 
 Returns: a tuple (status, output)
 */
-auto tryRun(T)(T args, string workDir = runDir)
+auto tryRun(const(string)[] args, string workDir = runDir)
 {
     args = args.filter!(a => !a.empty).array;
-    log("Run: %s", args.join(" "));
+    log("Run: %-(%s %)", args);
     return execute(args, null, Config.none, size_t.max, workDir);
 }
 
@@ -2089,7 +2090,7 @@ Params:
 
 Returns: any output of the executed command
 */
-auto run(T)(T args, string workDir = runDir)
+string run(const string[] args, const string workDir = runDir)
 {
     auto res = tryRun(args, workDir);
     if (res.status)
@@ -2164,7 +2165,7 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files, uint 
 }
 
 /** Wrapper around std.file.copy that also updates the target timestamp. */
-void copyAndTouch(RF, RT)(RF from, RT to)
+void copyAndTouch(const string from, const string to)
 {
     std.file.copy(from, to);
     const now = Clock.currTime;
