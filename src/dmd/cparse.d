@@ -1550,26 +1550,18 @@ final class CParser(AST) : Parser!AST
                 case TOK.semicolon:
                 case TOK.asm_:
                 case TOK.__attribute__:
-                    /* This is a data definition, there cannot now be a
-                     * function definition.
-                     */
-                    first = false;
                     if (token.value == TOK.asm_)
                         asmname = cparseSimpleAsmExpr();
                     if (token.value == TOK.__attribute__)
                     {
                         cparseGnuAttributes(specifier);
                         if (token.value == TOK.leftCurly)
-                        {
-                            error("attributes should be specified before the function definition");
-                            auto t = &token;
-                            if (skipBraces(t))
-                            {
-                                token = *t;
-                                return;
-                            }
-                        }
+                            break;              // function definition
                     }
+                    /* This is a data definition, there cannot now be a
+                     * function definition.
+                     */
+                    first = false;
                     break;
 
                 default:
