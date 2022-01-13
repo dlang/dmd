@@ -1200,7 +1200,7 @@ struct TargetCPP
     import dmd.dsymbol : Dsymbol;
     import dmd.dclass : ClassDeclaration;
     import dmd.func : FuncDeclaration;
-    import dmd.mtype : Parameter, Type;
+    import dmd.mtype : Type;
 
     enum Runtime : ubyte
     {
@@ -1326,29 +1326,15 @@ struct TargetCPP
 
     /**
      * Get the type that will really be used for passing the given argument
-     * to an `extern(C++)` function.
+     * to an `extern(C++)` function, or `null` if unhandled.
      * Params:
-     *      p = parameter to be passed.
+     *      t = type to be passed.
      * Returns:
-     *      `Type` to use for parameter `p`.
+     *      `Type` to use for type `t`.
      */
-    extern (C++) Type parameterType(Parameter p)
+    extern (C++) Type parameterType(Type t)
     {
-        import dmd.astenums : LINK, STC;
-        import dmd.mtype : ParameterList, TypeDelegate, TypeFunction;
-        import dmd.typesem : merge;
-
-        Type t = p.type.merge2();
-        if (p.isReference())
-            t = t.referenceTo();
-        else if (p.storageClass & STC.lazy_)
-        {
-            // Mangle as delegate
-            auto tf = new TypeFunction(ParameterList(), t, LINK.d);
-            auto td = new TypeDelegate(tf);
-            t = td.merge();
-        }
-        return t;
+        return null;
     }
 
     /**
