@@ -3561,7 +3561,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             goto Lintro;
                     }
 
-                    if (fdv.isDeprecated)
+                    if (fdv.isDeprecated && !funcdecl.isDeprecated)
                         deprecation(funcdecl.loc, "`%s` is overriding the deprecated method `%s`",
                                     funcdecl.toPrettyChars, fdv.toPrettyChars);
 
@@ -3816,7 +3816,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     deprecation(funcdecl.loc,
                                 "`%s` cannot be annotated with `@disable` because it is overriding a function in the base class",
                                 funcdecl.toPrettyChars);
-                if (funcdecl.isDeprecated)
+
+                if (funcdecl.isDeprecated && !(funcdecl.foverrides.length && funcdecl.foverrides[0].isDeprecated))
                     deprecation(funcdecl.loc,
                                 "`%s` cannot be marked as `deprecated` because it is overriding a function in the base class",
                                 funcdecl.toPrettyChars);
