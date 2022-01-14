@@ -1047,7 +1047,7 @@ $(H3 $(LNAME2 cast_class, Class References))
             //B b = a;         // error, need cast
             B b = cast(B) a; // b is null if a is not a B
             assert(b is null);
-            
+
             a = b;         // no cast needed
             a = cast(A) b; // no runtime check needed for upcast
             assert(a is b);
