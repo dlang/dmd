@@ -1029,7 +1029,7 @@ $(GNAME CastExpression):
         (foo) - p;      // subtract p from foo
         -------------
 
-$(H3 $(LNAME2 cast_class, Class References))
+$(H4 $(LNAME2 cast_class, Class References))
 
     $(P Any casting of a class reference to a
         derived class reference is done with a runtime check to make sure it
@@ -1073,7 +1073,7 @@ $(H3 $(LNAME2 cast_class, Class References))
         (i.e. a reinterpret cast).
     )
 
-$(H3 $(LNAME2 cast_array, Arrays))
+$(H4 $(LNAME2 cast_array, Arrays))
 
     $(P Casting a dynamic array to another dynamic array is done only if the
         array lengths multiplied by the element sizes match. The cast is done
@@ -1095,7 +1095,7 @@ $(H3 $(LNAME2 cast_array, Arrays))
 
     $(DDOC_SEE_ALSO $(RELATIVE_LINK2 cast_array_literal, Casting array literals).)
 
-$(H3 $(LNAME2 cast_static_array, Static Arrays))
+$(H4 $(LNAME2 cast_static_array, Static Arrays))
 
     $(P Casting a static array to another static array is done only if the
         array lengths multiplied by the element sizes match; a mismatch
@@ -1120,7 +1120,7 @@ $(H3 $(LNAME2 cast_static_array, Static Arrays))
             ---
         )
 
-$(H3 $(LNAME2 cast_floating, Floating Point))
+$(H4 $(LNAME2 cast_floating, Floating Point))
 
     $(P Casting a floating point literal from one type to another
         changes its type, but internally it is retained at full
@@ -1172,7 +1172,7 @@ $(H3 $(LNAME2 cast_floating, Floating Point))
         }
         ---
 
-$(H3 $(LNAME2 cast_struct, Struct))
+$(H4 $(LNAME2 cast_struct, Structs))
 
     $(P Casting a value $(I v) to a struct $(I S), when value is not a struct
         of the same type, is equivalent to:)
@@ -1181,7 +1181,7 @@ $(H3 $(LNAME2 cast_struct, Struct))
         S(v)
         ---
 
-$(H3 $(LNAME2 cast_qualifier, Qualifier Cast))
+$(H4 $(LNAME2 cast_qualifier, Qualifier Cast))
 
 $(GRAMMAR
 $(GNAME CastQual):
@@ -1210,7 +1210,7 @@ $(GNAME CastQual):
         ---
         )
 
-$(H3 $(LNAME2 cast_void, Casting to `void`))
+$(H4 $(LNAME2 cast_void, Casting to `void`))
 
     $(P Casting an expression to $(D void) type is allowed to mark that
         the result is unused. On $(GLINK2 statement, ExpressionStatement),
