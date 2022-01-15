@@ -67,7 +67,14 @@ Cent com(Cent c)
 pure
 Cent neg(Cent c)
 {
-    return inc(com(c)); // ~c + 1
+    if (c.lo == 0)
+        c.hi = -c.hi;
+    else
+    {
+        c.lo = -c.lo;
+        c.hi = ~c.hi;
+    }
+    return c;
 }
 
 /*****************************
@@ -598,16 +605,9 @@ bool ule(Cent c1, Cent c2)
 pure
 bool gt(Cent c1, Cent c2)
 {
-    if (cast(I)c1.hi >= 0)
-    {
-        if (cast(I)c2.hi >= 0)
-            return ugt(c1, c2);
-        return true;
-    }
-    if (cast(I)c2.hi >= 0)
-        return false;
-    return ugt(c1, c2);
-
+    return (c1.hi == c2.hi)
+        ? (c1.lo > c2.lo)
+        : (cast(I)c1.hi > cast(I)c2.hi);
 }
 
 /****************************
@@ -699,6 +699,10 @@ unittest
     const C20_0 = Cent(0,20);
     const C90_30 = Cent(30,90);
 
+    const Cm10_0 = inc(com(C10_0)); // Cent(0, -10);
+    const Cm10_1 = inc(com(C10_1)); // Cent(-1, -11);
+    const Cm10_3 = inc(com(C10_3)); // Cent(-3, -11);
+
     enum Cs_3 = Cent(3, I.min);
 
     /************************/
@@ -734,6 +738,10 @@ unittest
     assert( !lt(C2, C1) );
     assert( !le(C2, C1) );
     assert( ge(C2, C1) );
+
+    assert(neg(C10_0) == Cm10_0);
+    assert(neg(C10_1) == Cm10_1);
+    assert(neg(C10_3) == Cm10_3);
 
     assert(add(C7_1,C3_2) == C10_3);
     assert(sub(C1,C2) == Cm1);
