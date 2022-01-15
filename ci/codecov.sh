@@ -30,9 +30,6 @@ UPLOADER_ARGS=""
 case "$UPLOADER_OS" in
 
     windows)
-        # -C workaround proposed in https://github.com/codecov/codecov-bash/issues/287
-        UPLOADER_ARGS="-C \"$BUILD_SOURCEVERSION\""
-
         UPLOADER="$UPLOADER.exe"
     ;;
 
