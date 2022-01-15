@@ -1057,6 +1057,7 @@ $(H2 $(LEGACY_LNAME2 Dispatch, dispatch, Forwarding))
         to a template function named $(CODE opDispatch) for resolution.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 import std.stdio;
 
@@ -1098,6 +1099,7 @@ void main()
     assert(d.foo == 8);
 }
 ---
+)
 
 $(H2 $(LEGACY_LNAME2 Old-Style, old-style, D1 style operator overloading))
 

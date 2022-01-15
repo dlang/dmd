@@ -2377,6 +2377,7 @@ $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
         would evaluate every array element.
         With the latter, only the element being accessed would be evaluated.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         import std.stdio;
 
@@ -2399,10 +2400,11 @@ $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
         // variadic delegate array
         void flash(scope int delegate()[] arr ...)
         {
-            writeln(arr[0]); // 1
-            writeln(arr[1]); // 2
+            writeln(arr[0]()); // 1
+            writeln(arr[1]()); // 2
         }
         ---
+        )
 
         $(BEST_PRACTICE Use `scope` when declaring the array of delegates
         parameter. This will prevent a closure being generated for the delegate,
@@ -3020,20 +3022,22 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(LI $(DDLINK spec/traits, Traits, `__traits` argument))
     )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-enum eval(Args...) = Args[0];
+enum eval(alias arg) = arg;
 
 int square(int i)
 {
     return i * i;
 }
 
-void foo()
+void main()
 {
+    import std.stdio;
+
     static j = square(3);      // CTFE
     writeln(j);
-    assert(square(4));         // run time
+    assert(square(4) == 16);       // run time
     static assert(square(3) == 9); // CTFE
     writeln(eval!(square(5))); // CTFE
 }

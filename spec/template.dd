@@ -360,14 +360,13 @@ $(GNAME TemplateThisParameter):
         infer the mutability of the `this` reference. For example, if
         `this` is `const`, then the function is marked `const`.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        import std.stdio;
-
         struct S
         {
-            const void foo(this T)(int i)
+            void foo(this T)(int i) const
             {
-                writeln(typeid(T));
+                pragma(msg, T);
             }
         }
 
@@ -381,6 +380,7 @@ $(GNAME TemplateThisParameter):
             s3.foo(3);
         }
         ---
+        )
 
     Prints:
 
@@ -470,6 +470,7 @@ $(GNAME TemplateValueParameterDefault):
         associative array literals of template value arguments,
         or struct literals of template value arguments.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -----
         template foo(string s)
         {
@@ -478,9 +479,11 @@ $(GNAME TemplateValueParameterDefault):
 
         void main()
         {
-            writefln("%s", foo!("hello").bar()); // prints: hello betty
+            import std.stdio;
+            writeln(foo!("hello").bar()); // prints: hello betty
         }
         -----
+        )
 
     $(P This example of template foo has a value parameter that
         is specialized for 10:)
@@ -655,6 +658,7 @@ $(GNAME TemplateAliasParameterDefault):
 
         $(LI Literals
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         template Foo(alias x, alias y)
         {
@@ -664,11 +668,12 @@ $(GNAME TemplateAliasParameterDefault):
 
         void main()
         {
+            import std.stdio;
             alias foo = Foo!(3, "bar");
             writeln(foo.i, foo.s);  // prints 3bar
         }
         ------
-        )
+        ))
 
         $(LI Compile-time values
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -777,19 +782,21 @@ $(GNAME TemplateSequenceParameter):
     $(P An $(I AliasSeq) can be used as an argument list to instantiate
         another template, or as the list of parameters for a function.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
+        import std.stdio;
+
         template print(args...)
         {
-            void print()
+            void f()
             {
                 writeln("args are ", args); // args is a ValueSeq
             }
         }
 
-        template write(Args...)
+        template write(Args...) // Args is a TypeSeq
         {
-            void write(Args args) // Args is a TypeSeq
-                                  // args is a ValueSeq
+            void f(Args args) // args is a ValueSeq
             {
                 writeln("args are ", args);
             }
@@ -797,10 +804,11 @@ $(GNAME TemplateSequenceParameter):
 
         void main()
         {
-            print!(1,'a',6.8).print();                    // prints: args are 1a6.8
-            write!(int, char, double).write(1, 'a', 6.8); // prints: args are 1a6.8
+            print!(1,'a',6.8).f();                    // prints: args are 1a6.8
+            write!(int, char, double).f(1, 'a', 6.8); // prints: args are 1a6.8
         }
         ---
+        )
 
     $(P The number of elements in an $(I AliasSeq) can be retrieved with
         the $(D .length) property. The $(I n)th element can be retrieved
@@ -813,9 +821,12 @@ $(GNAME TemplateSequenceParameter):
     )
 
     $(P Type sequences can be deduced from the trailing parameters
-        of an implicitly instantiated function template:)
+        of an $(RELATIVE_LINK2 ifti, implicitly instantiated) function template:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
+        import std.stdio;
+
         template print(T, Args...)
         {
             void print(T first, Args args)
@@ -831,6 +842,7 @@ $(GNAME TemplateSequenceParameter):
             print(1, 'a', 6.8);
         }
         ---
+        )
 
     prints:
 
@@ -843,6 +855,7 @@ a
     $(P Type sequences can also be deduced from the type of a delegate
         or function parameter list passed as a function argument:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ----
         import std.stdio;
 
@@ -864,10 +877,12 @@ a
                 return x + y + z;
             }
 
+            import std.stdio;
             auto plus_two = partial(&plus, 2);
-            writefln("%d", plus_two(6, 8)); // prints 16
+            writeln(plus_two(6, 8)); // prints 16
         }
         ----
+        )
         See also: $(REF partial, std,functional)
 
 $(H3 $(LNAME2 variadic_template_specialization, Specialization))
@@ -1067,6 +1082,7 @@ $(H3 $(LNAME2 ifti, Implicit Function Template Instantiation (IFTI)))
         $(I TemplateArgumentList) is deducible from the types of the
         function arguments:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ----
         T square(T)(T t)
         {
@@ -1075,6 +1091,7 @@ $(H3 $(LNAME2 ifti, Implicit Function Template Instantiation (IFTI)))
 
         writefln("The square of %s is %s", 3, square(3));  // T is deduced to be int
         ----
+        )
 
     $(P Type parameter deduction is not influenced by the order of function
         arguments.
