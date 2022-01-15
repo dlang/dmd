@@ -21,13 +21,6 @@ $(GNAME TemplateParameterList):
     $(GLINK TemplateParameter)
     $(GLINK TemplateParameter) $(D ,)
     $(GLINK TemplateParameter) $(D ,) $(GSELF TemplateParameterList)
-
-$(GNAME TemplateParameter):
-    $(GLINK TemplateTypeParameter)
-    $(GLINK TemplateValueParameter)
-    $(GLINK TemplateAliasParameter)
-    $(GLINK TemplateSequenceParameter)
-    $(GLINK TemplateThisParameter)
 )
 
     $(P The *DeclDefs* body of the template must be syntactically correct
@@ -37,8 +30,8 @@ $(GNAME TemplateParameter):
         enums, variables, functions, and other templates.
     )
 
-    $(P Template parameters can take types, values, symbols, or sequences.
-        Type parameters can take any type.)
+    $(P $(RELATIVE_LINK2 parameters, Template parameters) can take types,
+        values, symbols, or sequences.)
 
     ---
     template t(T) // declare type parameter T
@@ -47,19 +40,16 @@ $(GNAME TemplateParameter):
     }
     ---
 
-    $(P Value parameters can take any expression which can be statically
-        evaluated at compile time.
-        Alias parameters can take almost any symbol.
-        Sequence parameters can take zero or more types, values or symbols.
-    )
+    $(P A template parameter can have a *specialization* which
+        constrains an argument the $(I TemplateParameter) can
+        accept.)
 
-    $(P Template parameter specializations
-        constrain the values or types the $(I TemplateParameter) can
-        accept.
-    )
-    $(P Template parameter defaults are the value or type to use for the
-        $(I TemplateParameter) in case one is not supplied.
-    )
+    ---
+    template t(T : int) // type T must implicitly convert to int
+    {
+        ...
+    }
+    ---
 
     $(P If multiple templates with the same $(I Identifier) are
         declared, they are distinct if they have different parameters
@@ -245,10 +235,37 @@ $(H2 $(LNAME2 instantiation_scope, Instantiation Scope))
         ------
 
     $(P $(I TemplateParameter) specializations and default
-        values are evaluated in the scope of the $(I TemplateDeclaration).
+        arguments are evaluated in the scope of the $(I TemplateDeclaration).
     )
 
-$(H2 $(LNAME2 argument_deduction, Argument Deduction))
+
+$(H2 $(LNAME2 parameters, Template Parameters))
+
+$(GRAMMAR
+$(GNAME TemplateParameter):
+    $(GLINK TemplateTypeParameter)
+    $(GLINK TemplateValueParameter)
+    $(GLINK TemplateAliasParameter)
+    $(GLINK TemplateSequenceParameter)
+    $(GLINK TemplateThisParameter)
+)
+
+    $(P Template parameters can take types, values, symbols, or sequences.)
+
+    $(UL
+    $(LI Type parameters can take any type.)
+    $(LI Value parameters can take any expression which can be statically
+        evaluated at compile time.)
+    $(LI Alias parameters can take almost any symbol.)
+    $(LI Sequence parameters can take zero or more types, values or symbols.)
+    )
+
+    $(P $(RELATIVE_LINK2 template_parameter_def_values, A default argument)
+        specifies the type, value or symbol to use for the
+        $(I TemplateParameter) when a matching argument is not supplied.
+    )
+
+$(H3 $(LNAME2 argument_deduction, Type Parameter Deduction))
 
     $(P The types of template parameters are deduced for a particular
         template instantiation by comparing the template argument with
@@ -322,7 +339,7 @@ $(H2 $(LNAME2 argument_deduction, Argument Deduction))
                                    // (3) U is B
         ------
 
-$(H2 $(LNAME2 template_type_parameters, Template Type Parameters))
+$(H3 $(LNAME2 template_type_parameters, Template Type Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateTypeParameter):
@@ -338,7 +355,7 @@ $(GNAME TemplateTypeParameterDefault):
     $(D =) $(GLINK2 type, Type)
 )
 
-$(H3 $(LNAME2 parameters_specialization, Specialization))
+$(H4 $(LNAME2 parameters_specialization, Specialization))
 
     $(P Templates may be specialized for particular types of arguments
         by following the template parameter identifier with a : and the
@@ -364,7 +381,7 @@ $(H3 $(LNAME2 parameters_specialization, Specialization))
     )
 
 
-$(H2 $(LNAME2 template_this_parameter, Template This Parameters))
+$(H3 $(LNAME2 template_this_parameter, Template This Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateThisParameter):
@@ -406,7 +423,9 @@ S
 immutable(S)
 )
 
-    $(P This is especially useful when used with inheritance. For example,
+$(H4 $(LNAME2 this_rtti, Avoiding Runtime Type Checks))
+
+    $(P *TemplateThisParameter* is especially useful when used with inheritance. For example,
         consider the implementation of a final base method which returns a derived
         class type. Typically this would return a base type, but that would prohibit
         calling or accessing derived properties of the type:)
@@ -462,7 +481,7 @@ immutable(S)
         }
         ---
 
-$(H2 $(LNAME2 template_value_parameter, Template Value Parameters))
+$(H3 $(LNAME2 template_value_parameter, Template Value Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateValueParameter):
@@ -501,12 +520,15 @@ $(GNAME TemplateValueParameterDefault):
         -----
         )
 
+$(H4 $(LNAME2 value_specialization, Specialization))
+
     $(P Any specialization or default expression provided must be evaluatable
         at compile-time.)
 
-    $(P This example of template foo has a value parameter that
-        is specialized for 10:)
+    $(P In this example, template `foo` has a value parameter that
+        is specialized for `10`:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         template foo(U : int, int v : 10)
         {
@@ -516,10 +538,15 @@ $(GNAME TemplateValueParameterDefault):
         void main()
         {
             assert(foo!(int, 10).x == 10);
+            static assert(!__traits(compiles, foo!(int, 11)));
         }
         ------
+        )
 
-$(H2 $(LNAME2 aliasparameters, Template Alias Parameters))
+    $(P This can be useful when a different template body is required for a specific value.
+        Another template overload would be defined to take other integer literal values.)
+
+$(H3 $(LNAME2 aliasparameters, Template Alias Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateAliasParameter):
@@ -733,7 +760,7 @@ $(GNAME TemplateAliasParameterDefault):
         ))
     )
 
-$(H3 $(LNAME2 typed_alias_op, Typed alias parameters))
+$(H4 $(LNAME2 typed_alias_op, Typed alias parameters))
 
     $(P Alias parameters can also be typed.
         These parameters will accept symbols of that type:)
@@ -747,7 +774,7 @@ $(H3 $(LNAME2 typed_alias_op, Typed alias parameters))
         Foo!f;  // fails to instantiate
         ------
 
-$(H3 $(LNAME2 alias_parameter_specialization, Specialization))
+$(H4 $(LNAME2 alias_parameter_specialization, Specialization))
 
     $(P Alias parameters can accept both literals and user-defined type symbols,
         but they are less specialized than the matches to type parameters and
@@ -775,7 +802,7 @@ $(H3 $(LNAME2 alias_parameter_specialization, Specialization))
         alias bar = Bar!(C!int);    // instantiates #5
         ------
 
-$(H2 $(LNAME2 variadic-templates, Template Sequence Parameters))
+$(H3 $(LNAME2 variadic-templates, Template Sequence Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateSequenceParameter):
@@ -928,9 +955,9 @@ $(H3 $(LNAME2 variadic_template_specialization, Specialization))
         alias foo4 = Foo!(int, 3, std);  // instantiates #4
         ----
 
-$(H2 $(LNAME2 template_parameter_def_values, Template Parameter Default Values))
+$(H3 $(LNAME2 template_parameter_def_values, Template Parameter Default Arguments))
 
-    $(P Trailing template parameters can be given default values:)
+    $(P Trailing template parameters can be given default arguments:)
 
         ------
         template Foo(T, U = int) { ... }
