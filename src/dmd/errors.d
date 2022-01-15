@@ -409,7 +409,10 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
                         dchar u;
                         const msg = utf_decodeChar(line, c, u);
                         assert(msg is null, msg);
-                        fputc(' ', stderr);
+                        // Account for tabs by copying them from the source line
+                        // otherwise cursor will not align correctly when source line contains tabs
+                        // https://issues.dlang.org/show_bug.cgi?id=22678
+                        fputc(u == '\t' ? '\t' : ' ', stderr);
                     }
                     fputc('^', stderr);
                     fputc('\n', stderr);
