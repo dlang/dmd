@@ -384,21 +384,37 @@ Cent sub(Cent c1, Cent c2)
 pure
 Cent mul(Cent c1, Cent c2)
 {
-    Cent r;
-    foreach (i; 0 .. Ubits * 2)
-    {
-        if (c1.lo & 1)
-            r = add(r, c2);
+    enum mulmask = (1UL << (Ubits / 2)) - 1;
+    enum mulshift = Ubits / 2;
 
-        c1 = shr1(c1);
-        if (!tst(c1))
-            break;
+    // This algorithm splits the operands into 4 words, then computes and sums
+    // the partial products of each part.
+    const c2l0 = c2.lo & mulmask;
+    const c2l1 = c2.lo >> mulshift;
+    const c2h0 = c2.hi & mulmask;
+    const c2h1 = c2.hi >> mulshift;
 
-        c2 = shl1(c2);
-        if (!tst(c2))
-            break;
-    }
-    return r;
+    const c1l0 = c1.lo & mulmask;
+    U r0 = c1l0 * c2l0;
+    U r1 = c1l0 * c2l1 + (r0 >> mulshift);
+    U r2 = c1l0 * c2h0 + (r1 >> mulshift);
+    U r3 = c1l0 * c2h1 + (r2 >> mulshift);
+
+    const c1l1 = c1.lo >> mulshift;
+    r1 = c1l1 * c2l0 + (r1 & mulmask);
+    r2 = c1l1 * c2l1 + (r2 & mulmask) + (r1 >> mulshift);
+    r3 = c1l1 * c2h0 + (r3 & mulmask) + (r2 >> mulshift);
+
+    const c1h0 = c1.hi & mulmask;
+    r2 = c1h0 * c2l0 + (r2 & mulmask);
+    r3 = c1h0 * c2l1 + (r3 & mulmask) + (r2 >> mulshift);
+
+    const c1h1 = c1.hi >> mulshift;
+    r3 = c1h1 * c2l0 + (r3 & mulmask);
+
+    return Cent((r0 & mulmask) + (r1 & mulmask) * (mulmask + 1),
+                (r2 & mulmask) + (r3 & mulmask) * (mulmask + 1));
+
 }
 
 
@@ -663,6 +679,7 @@ unittest
     const C10 = Cent(10);
     const C20 = Cent(20);
     const C30 = Cent(30);
+    const C100 = Cent(100);
 
     const Cm1 =  neg(One);
     const Cm3 =  neg(C3);
@@ -762,6 +779,8 @@ unittest
     assert(mul(C1, Cm10) == Cm10);
     assert(mul(C9_3, C10) == C90_30);
     assert(mul(Cs_3, C10) == C30);
+    assert(mul(Cm10, Cm10) == C100);
+    assert(div(mul(C90_30, C2), C2) == C90_30);
 
     assert( or(C4_8, C3_1) == C7_9);
     assert(and(C4_8, C7_9) == C4_8);
