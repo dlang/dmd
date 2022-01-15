@@ -207,15 +207,30 @@ Cent shr(Cent c, uint n)
 pure
 Cent sar(Cent c, uint n)
 {
+    const signmask = -(c.hi >> (Ubits - 1));
+    const signshift = (Ubits * 2) - n;
+    c = shr(c, n);
+
+    // Sign extend all bits beyond the precision of Cent.
     if (n >= Ubits * 2)
     {
-        if (cast(I)c.hi < 0)
-            return com(Zero);
-        return Zero;
+        c.hi = signmask;
+        c.lo = signmask;
     }
-
-    foreach (i; 0 .. n)
-        c = sar1(c);
+    else if (signshift >= Ubits * 2)
+    {
+    }
+    else if (signshift >= Ubits)
+    {
+        c.hi &= ~(U.max << (signshift - Ubits));
+        c.hi |= signmask << (signshift - Ubits);
+    }
+    else
+    {
+        c.hi = signmask;
+        c.lo &= ~(U.max << signshift);
+        c.lo |= signmask << signshift;
+    }
     return c;
 }
 
@@ -656,6 +671,7 @@ unittest
     const C3_1 = Cent(1,3);
     const C3_2 = Cent(2,3);
     const C4_8  = Cent(8, 4);
+    const C5_0  = Cent(0, 5);
     const C7_1 = Cent(1,7);
     const C7_9 = Cent(9,7);
     const C9_3 = Cent(3,9);
@@ -708,15 +724,26 @@ unittest
     assert(inc(C3_1) == C3_2);
     assert(dec(C3_2) == C3_1);
 
+    assert(shl(C10,0) == C10);
     assert(shl(C10,Ubits) == C10_0);
     assert(shl(C10,1) == C20);
     assert(shl(C10,Ubits * 2) == C0);
+    assert(shr(C10_0,0) == C10_0);
     assert(shr(C10_0,Ubits) == C10);
     assert(shr(C10_0,Ubits - 1) == C20);
+    assert(shr(C10_0,Ubits + 1) == C5);
     assert(shr(C10_0,Ubits * 2) == C0);
+    assert(sar(C10_0,0) == C10_0);
     assert(sar(C10_0,Ubits) == C10);
+    assert(sar(C10_0,Ubits - 1) == C20);
+    assert(sar(C10_0,Ubits + 1) == C5);
     assert(sar(C10_0,Ubits * 2) == C0);
     assert(sar(Cm1,Ubits * 2) == Cm1);
+
+    assert(shl1(C10) == C20);
+    assert(shr1(C10_0) == C5_0);
+    assert(sar1(C10_0) == C5_0);
+    assert(sar1(Cm1) == Cm1);
 
     Cent modulus;
 
