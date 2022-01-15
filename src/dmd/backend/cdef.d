@@ -15,7 +15,7 @@ module dmd.backend.cdef;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cdef.html
 
-import core.int128;
+import dmd.common.int128;
 
 import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
