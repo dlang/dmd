@@ -16,7 +16,7 @@ nothrow:
 
 alias I = long;
 alias U = ulong;
-enum Ubits = U.sizeof * 8;
+enum Ubits = uint(U.sizeof * 8);
 
 align(16) struct Cent
 {
@@ -265,9 +265,9 @@ pure
 Cent rol(Cent c, uint n)
 {
     n &= Ubits * 2 - 1;
-    foreach (i; 0 .. n)
-        c = rol1(c);
-    return c;
+    Cent l = shl(c, n);
+    Cent r = shr(c, Ubits * 2 - n);
+    return or(l, r);
 }
 
 /*****************************
@@ -282,9 +282,9 @@ pure
 Cent ror(Cent c, uint n)
 {
     n &= Ubits * 2 - 1;
-    foreach (i; 0 .. n)
-        c = ror1(c);
-    return c;
+    Cent r = shr(c, n);
+    Cent l = shl(c, Ubits * 2 - n);
+    return or(r, l);
 }
 
 /****************************
@@ -743,6 +743,8 @@ unittest
     assert(rol(Cm1,  1) == Cm1);
     assert(ror(Cm1, 45) == Cm1);
     assert(rol(ror(C7_9, 5), 5) == C7_9);
+    assert(rol(C7_9, 1) == rol1(C7_9));
+    assert(ror(C7_9, 1) == ror1(C7_9));
 }
 
 
