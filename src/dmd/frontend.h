@@ -7767,7 +7767,6 @@ private:
     const Param* params;
 public:
     void _init(const Param& params);
-    void setCPU();
     void setTriple(const Triple& triple);
     void deinitialize();
     uint32_t alignsize(Type* type);
@@ -7795,7 +7794,6 @@ public:
     bool libraryObjectMonitors(FuncDeclaration* fd, Statement* fbody);
     bool supportsLinkerDirective() const;
     Target() :
-        os((OS)1u),
         osMajor(),
         ptrsize(),
         realsize(),
