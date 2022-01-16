@@ -107,7 +107,7 @@ extern (C++) struct Target
         Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
     }
 
-    enum ObjectFormat : ubyte
+    extern(D) enum ObjectFormat : ubyte
     {
         elf,
         macho,
@@ -296,7 +296,7 @@ extern (C++) struct Target
     /**
      Determine the object format to be used
      */
-    Target.ObjectFormat objectFormat()
+    extern(D) Target.ObjectFormat objectFormat()
     {
         if (os == Target.OS.OSX)
             return Target.ObjectFormat.macho;
