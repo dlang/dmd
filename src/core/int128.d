@@ -806,6 +806,7 @@ unittest
 
     const Cbig_1 = Cent(0xa3ccac1832952398, 0xc3ac542864f652f8);
     const Cbig_2 = Cent(0x5267b85f8a42fc20, 0);
+    const Cbig_3 = Cent(0xf0000000ffffffff, 0);
 
     /************************/
 
@@ -895,6 +896,8 @@ unittest
     assert(modulus == Cent(0xd83203d0fdc799b8, U.max));
     assert(udivmod(Cbig_1, Cbig_2, modulus) == Cent(0x5fe0e9bace2bedad, 2));
     assert(modulus == Cent(0x2c923125a68721f8, 0));
+    assert(div(Cbig_1, Cbig_3) == Cent(0xbfa6c02b5aff8b86, U.max));
+    assert(udiv(Cbig_1, Cbig_3) == Cent(0xd0b7d13b48cb350f, 0));
 
     assert(mul(Cm10, C1) == Cm10);
     assert(mul(C1, Cm10) == Cm10);
