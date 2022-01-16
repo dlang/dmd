@@ -453,36 +453,135 @@ pure
 Cent udivmod(Cent c1, Cent c2, out Cent modulus)
 {
     //printf("udiv c1(%llx,%llx) c2(%llx,%llx)\n", c1.lo, c1.hi, c2.lo, c2.hi);
+    // Based on "Unsigned Doubleword Division" in Hacker's Delight
+    import core.bitop;
+
+    // Divides a 128-bit dividend by a 64-bit divisor.
+    // The result must fit in 64 bits.
+    static U udivmod128_64(Cent c1, U c2, out U modulus)
+    {
+        // We work in base 2^^32
+        enum base = 1UL << 32;
+        enum divmask = (1UL << (Ubits / 2)) - 1;
+        enum divshift = Ubits / 2;
+
+        // Check for overflow and divide by 0
+        if (c1.hi >= c2)
+        {
+            modulus = 0UL;
+            return ~0UL;
+        }
+
+        // Computes [num1 num0] / den
+        static uint udiv96_64(U num1, uint num0, U den)
+        {
+            // Extract both digits of the denominator
+            const den1 = cast(uint)(den >> divshift);
+            const den0 = cast(uint)(den & divmask);
+            // Estimate ret as num1 / den1, and then correct it
+            U ret = num1 / den1;
+            const t2 = (num1 % den1) * base + num0;
+            const t1 = ret * den0;
+            if (t1 > t2)
+                ret -= (t1 - t2 > den) ? 2 : 1;
+            return cast(uint)ret;
+        }
+
+        // Determine the normalization factor. We multiply c2 by this, so that its leading
+        // digit is at least half base. In binary this means just shifting left by the number
+        // of leading zeros, so that there's a 1 in the MSB.
+        // We also shift number by the same amount. This cannot overflow because c1.hi < c2.
+        const shift = (Ubits - 1) - bsr(c2);
+        c2 <<= shift;
+        U num2 = c1.hi;
+        num2 <<= shift;
+        num2 |= (c1.lo >> (-shift & 63)) & (-cast(I)shift >> 63);
+        c1.lo <<= shift;
+
+        // Extract the low digits of the numerator (after normalizing)
+        const num1 = cast(uint)(c1.lo >> divshift);
+        const num0 = cast(uint)(c1.lo & divmask);
+
+        // Compute q1 = [num2 num1] / c2
+        const q1 = udiv96_64(num2, num1, c2);
+        // Compute the true (partial) remainder
+        const rem = num2 * base + num1 - q1 * c2;
+        // Compute q0 = [rem num0] / c2
+        const q0 = udiv96_64(rem, num0, c2);
+
+        modulus = (rem * base + num0 - q0 * c2) >> shift;
+        return (cast(U)q1 << divshift) | q0;
+    }
+
+    // Special cases
     if (!tst(c2))
     {
         // Divide by zero
         modulus = Zero;
         return com(modulus);
     }
-
-    // left justify c2
-    uint shifts = 1;
-    while (cast(I)c2.hi >= 0)
+    if (c1.hi == 0 && c2.hi == 0)
     {
-        c2 = shl1(c2);
-        ++shifts;
+        // Single precision divide
+        modulus = Cent(c1.lo % c2.lo);
+        return Cent(c1.lo / c2.lo);
+    }
+    if (c1.hi == 0)
+    {
+        // Numerator is smaller than the divisor
+        modulus = c1;
+        return Zero;
+    }
+    if (c2.hi == 0)
+    {
+        // Divisor is a 64-bit value, so we just need one 128/64 division.
+        // If c1 / c2 would overflow, break c1 up into two halves.
+        const q1 = (c1.hi < c2.lo) ? 0 : (c1.hi / c2.lo);
+        if (q1)
+            c1.hi = c1.hi % c2.lo;
+        U rem;
+        const q0 = udivmod128_64(c1, c2.lo, rem);
+        modulus = Cent(rem);
+        return Cent(q0, q1);
     }
 
-    // subtract and shift, just like 3rd grade long division
-    Cent quotient;
-    while (shifts--)
+    // Full cent precision division.
+    // Here c2 >= 2^^64
+    // We know that c2.hi != 0, so count leading zeros is OK
+    // We have 0 <= shift <= 63
+    const shift = (Ubits - 1) - bsr(c2.hi);
+
+    // Normalize the divisor so its MSB is 1
+    // v1 = (c2 << shift) >> 64
+    U v1 = shl(c2, shift).hi;
+
+    // To ensure no overflow.
+    Cent u1 = shr1(c1);
+
+    // Get quotient from divide unsigned operation.
+    U rem_ignored;
+    const q1 = udivmod128_64(u1, v1, rem_ignored);
+
+    // Undo normalization and division of c1 by 2.
+    Cent quotient = shr(shl(Cent(q1), shift), 63);
+
+    // Make quotient correct or too small by 1
+    if (tst(quotient))
+        quotient = dec(quotient);
+
+    // Now quotient is correct.
+    // Compute rem = c1 - (quotient * c2);
+    Cent rem = sub(c1, mul(quotient, c2));
+
+    // Check if remainder is larger than the divisor
+    if (uge(rem, c2))
     {
-        //printf("shifts %d c1(%llx,%llx) c2(%llx,%llx)\n", shifts, c1.lo, c1.hi, c2.lo, c2.hi);
-        quotient = shl1(quotient);
-        if (uge(c1, c2))
-        {
-            //printf("sub\n");
-            c1 = sub(c1, c2);
-            quotient.lo |= 1;
-        }
-        c2 = shr1(c2);
+        // Increment quotient
+        quotient = inc(quotient);
+        // Subtract c2 from remainder
+        rem = sub(rem, c2);
     }
-    modulus = c1;
+    modulus = rem;
     //printf("quotient "); print(quotient);
     //printf("modulus  "); print(modulus);
     return quotient;
@@ -705,6 +804,9 @@ unittest
 
     enum Cs_3 = Cent(3, I.min);
 
+    const Cbig_1 = Cent(0xa3ccac1832952398, 0xc3ac542864f652f8);
+    const Cbig_2 = Cent(0x5267b85f8a42fc20, 0);
+
     /************************/
 
     assert( ugt(C1, C0) );
@@ -776,19 +878,29 @@ unittest
     assert(udivmod(C10,C2, modulus) ==  C5);   assert(modulus == C0);
     assert(udivmod(C10,C3, modulus) ==  C3);   assert(modulus == C1);
     assert(udivmod(C10,C0, modulus) == Cm1);   assert(modulus == C0);
+    assert(udivmod(C2,C90_30, modulus) == C0); assert(modulus == C2);
+    assert(udiv(mul(C90_30, C2), C2) == C90_30);
+    assert(udiv(mul(C90_30, C2), C90_30) == C2);
 
     assert(div(C10,C3) == C3);
     assert(divmod( C10,  C3, modulus) ==  C3); assert(modulus ==  C1);
     assert(divmod(Cm10,  C3, modulus) == Cm3); assert(modulus == Cm1);
     assert(divmod( C10, Cm3, modulus) == Cm3); assert(modulus ==  C1);
     assert(divmod(Cm10, Cm3, modulus) ==  C3); assert(modulus == Cm1);
+    assert(divmod(C2, C90_30, modulus) == C0); assert(modulus == C2);
+    assert(div(mul(C90_30, C2), C2) == C90_30);
+    assert(div(mul(C90_30, C2), C90_30) == C2);
+
+    assert(divmod(Cbig_1, Cbig_2, modulus) == Cent(0x4496aa309d4d4a2f, U.max));
+    assert(modulus == Cent(0xd83203d0fdc799b8, U.max));
+    assert(udivmod(Cbig_1, Cbig_2, modulus) == Cent(0x5fe0e9bace2bedad, 2));
+    assert(modulus == Cent(0x2c923125a68721f8, 0));
 
     assert(mul(Cm10, C1) == Cm10);
     assert(mul(C1, Cm10) == Cm10);
     assert(mul(C9_3, C10) == C90_30);
     assert(mul(Cs_3, C10) == C30);
     assert(mul(Cm10, Cm10) == C100);
-    assert(div(mul(C90_30, C2), C2) == C90_30);
 
     assert( or(C4_8, C3_1) == C7_9);
     assert(and(C4_8, C7_9) == C4_8);
