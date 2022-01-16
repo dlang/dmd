@@ -1405,7 +1405,7 @@ auto sourceFiles()
             rootobject.d stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            file.d outbuffer.d string.d
+            file.d int128.d outbuffer.d string.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h
