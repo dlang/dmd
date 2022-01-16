@@ -1,0 +1,20 @@
+Casting between compatible tuples
+
+Prior to this release, casting between built-in tuples of the same type was not allowed.
+
+Starting with this release, casting between tuples of the same length is accepted provided that the underlying types of the casted tuple are implicitly convertible to the target tuple types.
+
+---
+alias Tuple(T...) = T;
+
+void foo()
+{
+    Tuple!(int, int) tup;
+
+    auto foo = cast(long) tup;
+    pragma(msg, typeof(foo)); // (int, int)
+
+    auto bar = cast(Tuple!(long, int)) tup; // allowed
+    pragma(msg, typeof(bar)); // (long, int)
+}
+---

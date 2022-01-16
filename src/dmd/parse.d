@@ -5018,7 +5018,15 @@ class Parser(AST) : Lexer
                     continue;
 
                 default:
-                    error("semicolon expected, not `%s`", token.toChars());
+                    if (loc.linnum != token.loc.linnum)
+                    {
+                        error("semicolon needed to end declaration of `%s`, instead of `%s`", v.toChars(), token.toChars());
+                        errorSupplemental(loc, "`%s` declared here", v.toChars());
+                    }
+                    else
+                    {
+                        error("semicolon needed to end declaration of `%s` instead of `%s`", v.toChars(), token.toChars());
+                    }
                     break;
                 }
             }

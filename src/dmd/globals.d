@@ -327,6 +327,7 @@ extern (C++) struct Global
     Array!Identifier* debugids;   /// command line debug versions and predefined versions
 
     bool hasMainFunction; /// Whether a main function has already been compiled in (for -main switch)
+    uint varSequenceNumber = 1; /// Relative lifetime of `VarDeclaration` within a function, used for `scope` checks
 
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 

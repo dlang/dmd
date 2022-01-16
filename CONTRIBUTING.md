@@ -198,3 +198,14 @@ adds more technical debt.
 ## dmd-internals mailing list
 
 For questions and discussions related to DMD development, a [mailing list](https://forum.dlang.org/group/dmd) is available.
+
+## Copyright
+
+All significant contributors to DMD source code, via GitHub, Bugzilla, email,
+wiki, the D forums, etc., please assign copyright to those
+DMD source code changes to the D Language Foundation. Please send
+an email to walter@digitalmars.com with the statement:
+
+> I hereby assign copyright in my contributions to DMD to the D Language Foundation
+
+and include your name and date.

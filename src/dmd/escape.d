@@ -691,11 +691,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             }
 
             // If va's lifetime encloses v's, then error
-            if (va &&
-                (va.enclosesLifetimeOf(v) && !(v.storage_class & (STC.parameter | STC.temp)) ||
-                 // va is class reference
-                 ae.e1.isDotVarExp() && va.type.toBasetype().isTypeClass() && (va.enclosesLifetimeOf(v) ||
-                 !va.isScope()) ||
+            if (va && !va.isDataseg() &&
+                (va.enclosesLifetimeOf(v) && !(v.storage_class & STC.temp) ||
                  vaIsRef ||
                  va.isReference() && !(v.storage_class & (STC.parameter | STC.temp))) &&
                 fd.setUnsafe())
