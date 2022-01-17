@@ -262,7 +262,7 @@ public:
             buf.writeByte('D');
             break;
         case Twchar:
-            buf.writestring("_S"); // Visual C++ char16_t (since C++11)
+            buf.writestring("_W"); // Visual C++ char16_t (since C++11)
             break;
         case Tdchar:
             buf.writestring("_U"); // Visual C++ char32_t (since C++11)

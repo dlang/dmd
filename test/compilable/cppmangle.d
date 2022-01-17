@@ -1146,7 +1146,7 @@ version (CppMangle_MSVC)
 {
     version (Win64)
     {
-        static assert(test_char_mangling.mangleof == "?test_char_mangling@@YAXD_S_U_W@Z");
+        static assert(test_char_mangling.mangleof == "?test_char_mangling@@YAXD_W_U_W@Z");
     }
 }
 
