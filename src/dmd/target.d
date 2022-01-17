@@ -1285,7 +1285,7 @@ struct TargetCPP
             if (target.omfobj)
                 return toCppMangleDMC(s);
             else
-                return toCppMangleMCVC(s);
+                return toCppMangleMSVC(s);
         }
         else
             assert(0, "fix this");
