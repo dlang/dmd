@@ -107,6 +107,14 @@ extern (C++) struct Target
         Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
     }
 
+    extern(D) enum ObjectFormat : ubyte
+    {
+        elf,
+        macho,
+        coff,
+        omf
+    }
+
     OS os = defaultTargetOS();
     ubyte osMajor;
 
@@ -283,6 +291,21 @@ extern (C++) struct Target
         }
         else
             assert(0, "unknown environment");
+    }
+
+    /**
+     Determine the object format to be used
+     */
+    extern(D) Target.ObjectFormat objectFormat()
+    {
+        if (os == Target.OS.OSX)
+            return Target.ObjectFormat.macho;
+        else if (os & Target.OS.Posix)
+            return Target.ObjectFormat.elf;
+        else if (os == Target.OS.Windows)
+            return mscoff ? Target.ObjectFormat.coff : Target.ObjectFormat.omf;
+        else
+            assert(0, "unkown object format");
     }
 
     /**

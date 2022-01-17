@@ -36,19 +36,13 @@ class Library
 {
     static Library factory()
     {
-        if (target.os == Target.OS.Windows)
+        final switch (target.objectFormat())
         {
-            return (target.mscoff || target.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
+            case Target.ObjectFormat.elf:   return LibElf_factory();
+            case Target.ObjectFormat.macho: return LibMach_factory();
+            case Target.ObjectFormat.coff:  return LibMSCoff_factory();
+            case Target.ObjectFormat.omf:   return LibOMF_factory();
         }
-        else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
-        {
-            return LibElf_factory();
-        }
-        else if (target.os == Target.OS.OSX)
-        {
-            return LibMach_factory();
-        }
-        assert(0);
     }
 
     abstract void addObject(const(char)[] module_name, const ubyte[] buf);
