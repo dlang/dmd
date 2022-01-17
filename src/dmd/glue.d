@@ -1311,10 +1311,6 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
                 objmod.external_def("__acrtused_con");
                 break;
         }
-        else if (target.os == Target.OS.Windows)
-        {
-            objmod.external_def("main");
-        }
         if (libname)
             obj_includelib(libname);
         s.Sclass = SCglobal;
