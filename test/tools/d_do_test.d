@@ -304,7 +304,7 @@ int i;
  * PERMUTE_ARGS:
  */
 
-// COMPILE_SEPERATELY
+// COMPILE_SEPERATELY:
 import foo.bar;
 `;
     immutable EnvData win32 = {
@@ -443,12 +443,6 @@ Ignored
 void foo() {}
 
 /*
-BAD
----
----
-*/
-
-/*
 MISSING:
 */
 
@@ -490,14 +484,26 @@ INCOMPLETE:
  +/
 private bool consumeNextToken(ref string file, const string token, ref const EnvData envData)
 {
+    import std.ascii : isWhite;
+
     while (true)
     {
         const istart = std.string.indexOf(file, token);
         if (istart == -1)
             return false;
 
+        // Examine the preceeding character to avoid false matches
+        const ch = istart ? file[istart - 1] : ' ';
+
         file = file[istart + token.length .. $];
         file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
+
+        // Assume that real test token are preceeded by spaces or comment-related tokens
+        if (!isWhite(ch) && !among(ch, '/', '*', '+'))
+        {
+            debug writeln("Ignoring partial match for token: ", token);
+            continue;
+        }
 
         // filter by OS specific setting (os1 os2 ...)
         if (file.startsWith("("))
@@ -521,10 +527,66 @@ private bool consumeNextToken(ref string file, const string token, ref const Env
 
         // Skip a trailing colon
         if (file.skipOver(":"))
+        {
             file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
+            return true;
+        }
 
-        return true;
+        writeln("Test directive `", token,"` must be followed by a `:`");
+        throw new SilentQuit();
     }
+}
+
+unittest
+{
+    immutable EnvData linux = { os: "linux", model: "64", sep: "/ " };
+    immutable file = q{
+
+GOOD: foo
+
+WITH_SPACE : bar
+/*
+BAD
+---
+---
+*/
+
+//BAD foo
+//OPTLINK
+// $(TINK foo.bar)
+
+IgnoreSTUFF
+IgnoreSTUFF: x
+STUFF: someVal
+*/
+
+void main() {}
+};
+
+    string found = file;
+    assert(!consumeNextToken(found, "UNKNOWN", linux));
+    assert(found is file);
+
+    assert(consumeNextToken(found, "GOOD", linux));
+    assert(found.startsWith("foo"), found);
+
+    found = file;
+    assert(consumeNextToken(found, "WITH_SPACE", linux));
+    assert(found.startsWith("bar"), found);
+
+    found = file;
+    assertThrown(consumeNextToken(found, "BAD", linux));
+
+    found = file;
+    assert(!consumeNextToken(found, "LINK", linux));
+
+    found = file;
+    assert(!consumeNextToken(found, "TINK", linux));
+
+    found = file;
+    assert(consumeNextToken(found, "STUFF", linux));
+    assert(found.startsWith("someVal"), found);
+
 }
 
 /// Replaces the placeholer `${RESULTS_DIR}` with the actual path
@@ -1484,9 +1546,7 @@ int tryMain(string[] args)
         }
         version (linux)
         {
-            string gdbScript;
-            findTestParameter(envData, file, "GDB_SCRIPT", gdbScript);
-            if (gdbScript !is null)
+            if (file.canFind("GDB_SCRIPT"))
             {
                 return runGDBTestWithLock(envData, () {
                     return runBashTest(input_dir, test_name, envData);
