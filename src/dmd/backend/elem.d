@@ -2221,8 +2221,7 @@ L1:
 
                     case TYcent:
                     case TYucent:
-                        if (n1.EV.Vcent.lsw != n2.EV.Vcent.lsw ||
-                            n1.EV.Vcent.msw != n2.EV.Vcent.msw)
+                        if (n1.EV.Vcent != n2.EV.Vcent)
                                 return false;
                         break;
 
@@ -2328,7 +2327,7 @@ L1:
                     case TYulong4:
                     case TYllong2:
                     case TYullong2:
-                        if (n1.EV.Vcent.msw != n2.EV.Vcent.msw || n1.EV.Vcent.lsw != n2.EV.Vcent.lsw)
+                        if (n1.EV.Vcent != n2.EV.Vcent)
                             return false;
                         break;
 
@@ -3010,7 +3009,7 @@ case_tym:
 
         case TYcent:
         case TYucent:
-            printf("%lluLL+%lluLL ", cast(ulong)e.EV.Vcent.msw, cast(ulong)e.EV.Vcent.lsw);
+            printf("%lluLL+%lluLL ", cast(ulong)e.EV.Vcent.hi, cast(ulong)e.EV.Vcent.lo);
             break;
 
         case TYfloat:
@@ -3072,7 +3071,7 @@ case_tym:
         case TYulong4:
         case TYllong2:
         case TYullong2:
-            printf("%llxLL+%llxLL ", cast(long)e.EV.Vcent.msw, cast(long)e.EV.Vcent.lsw);
+            printf("%llxLL+%llxLL ", cast(long)e.EV.Vcent.hi, cast(long)e.EV.Vcent.lo);
             break;
 
 version (MARS) { } else

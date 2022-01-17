@@ -629,6 +629,20 @@ dmd -cov -unittest myprog.d
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
+        Option("os=<os>",
+            "sets target operating system to <os>",
+            `Set the target operating system as other than the host.
+                $(UL
+                    $(LI $(I host): Target the host operating system (default).)
+                    $(LI $(I dragonflybsd): DragonFlyBSD)
+                    $(LI $(I freebsd): FreeBSD)
+                    $(LI $(I linux): Linux)
+                    $(LI $(I openbsd): OpenBSD)
+                    $(LI $(I osx): OSX)
+                    $(LI $(I solaris): Solaris)
+                    $(LI $(I windows): Windows)
+                )`
+        ),
         Option("preview=<name>",
             "enable an upcoming language change identified by 'name'",
             `Preview an upcoming language change identified by $(I id)`,
@@ -706,6 +720,9 @@ dmd -cov -unittest myprog.d
         Option("v",
             "verbose",
             `Enable verbose output for each compiler pass`,
+        ),
+        Option("vasm",
+            "list generated assembler for each function"
         ),
         Option("vcolumns",
             "print character (column) numbers in diagnostics"

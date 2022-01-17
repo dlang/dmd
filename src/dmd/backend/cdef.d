@@ -15,6 +15,8 @@ module dmd.backend.cdef;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cdef.html
 
+import dmd.common.int128;
+
 import dmd.backend.cc: Classsym, Symbol, param_t, config;
 import dmd.backend.el;
 import dmd.backend.ty : I32;
@@ -773,6 +775,7 @@ enum LANG
 struct Configv
 {
     ubyte addlinenumbers;       // put line number info in .OBJ file
+    ubyte vasm;                 // print generated assembler for each function
     ubyte verbose;              // 0: compile quietly (no messages)
                                 // 1: show progress to DLL (default)
                                 // 2: full verbosity
@@ -821,12 +824,6 @@ import dmd.backend.bcomplex;
  * Union of all data types. Storage allocated must be the right
  * size of the data on the TARGET, not the host.
  */
-
-struct Cent
-{
-    targ_ullong lsw;
-    targ_ullong msw;
-}
 
 union eve
 {

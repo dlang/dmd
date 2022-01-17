@@ -107,6 +107,14 @@ extern (C++) struct Target
         Posix = linux | OSX | OpenBSD | FreeBSD | Solaris | DragonFlyBSD,
     }
 
+    extern(D) enum ObjectFormat : ubyte
+    {
+        elf,
+        macho,
+        coff,
+        omf
+    }
+
     OS os = defaultTargetOS();
     ubyte osMajor;
 
@@ -279,6 +287,21 @@ extern (C++) struct Target
         }
         else
             assert(0, "unknown environment");
+    }
+
+    /**
+     Determine the object format to be used
+     */
+    extern(D) Target.ObjectFormat objectFormat()
+    {
+        if (os == Target.OS.OSX)
+            return Target.ObjectFormat.macho;
+        else if (os & Target.OS.Posix)
+            return Target.ObjectFormat.elf;
+        else if (os == Target.OS.Windows)
+            return mscoff ? Target.ObjectFormat.coff : Target.ObjectFormat.omf;
+        else
+            assert(0, "unkown object format");
     }
 
     /**
@@ -1060,6 +1083,16 @@ extern (C++) struct Target
         return true;
     }
 
+    /**
+     * Returns true if the target supports `pragma(linkerDirective)`.
+     * Returns:
+     *      `false` if the target does not support `pragma(linkerDirective)`.
+     */
+    extern (C++) bool supportsLinkerDirective() const
+    {
+        return mscoff;
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     /* All functions after this point are extern (D), as they are only relevant
      * for targets of DMD, and should not be used in front-end code.
@@ -1186,7 +1219,7 @@ struct TargetCPP
     import dmd.dsymbol : Dsymbol;
     import dmd.dclass : ClassDeclaration;
     import dmd.func : FuncDeclaration;
-    import dmd.mtype : Parameter, Type;
+    import dmd.mtype : Type;
 
     enum Runtime : ubyte
     {
@@ -1200,6 +1233,7 @@ struct TargetCPP
     bool reverseOverloads;    /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
     bool exceptions;          /// set if catching C++ exceptions is supported
     bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool splitVBasetable;     /// set if C++ ABI uses separate tables for virtual functions and virtual bases
     bool wrapDtorInExternD;   /// set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;          /// vendor of the C++ runtime to link against
 
@@ -1211,7 +1245,10 @@ struct TargetCPP
         else if (os == Target.OS.OSX)
             twoDtorInVtable = true;
         else if (os == Target.OS.Windows)
+        {
             reverseOverloads = true;
+            splitVBasetable = target.mscoff;
+        }
         else
             assert(0);
         exceptions = (os & Target.OS.Posix) != 0;
@@ -1239,12 +1276,17 @@ struct TargetCPP
     extern (C++) const(char)* toMangle(Dsymbol s)
     {
         import dmd.cppmangle : toCppMangleItanium;
-        import dmd.cppmanglewin : toCppMangleMSVC;
+        import dmd.cppmanglewin : toCppMangleDMC, toCppMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
-            return toCppMangleMSVC(s);
+        {
+            if (target.mscoff)
+                return toCppMangleMSVC(s);
+            else
+                return toCppMangleDMC(s);
+        }
         else
             assert(0, "fix this");
     }
@@ -1259,12 +1301,17 @@ struct TargetCPP
     extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
     {
         import dmd.cppmangle : cppTypeInfoMangleItanium;
-        import dmd.cppmanglewin : cppTypeInfoMangleMSVC;
+        import dmd.cppmanglewin : cppTypeInfoMangleDMC, cppTypeInfoMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return cppTypeInfoMangleItanium(cd);
         if (target.os == Target.OS.Windows)
-            return cppTypeInfoMangleMSVC(cd);
+        {
+            if (target.mscoff)
+                return cppTypeInfoMangleMSVC(cd);
+            else
+                return cppTypeInfoMangleDMC(cd);
+        }
         else
             assert(0, "fix this");
     }
@@ -1298,29 +1345,15 @@ struct TargetCPP
 
     /**
      * Get the type that will really be used for passing the given argument
-     * to an `extern(C++)` function.
+     * to an `extern(C++)` function, or `null` if unhandled.
      * Params:
-     *      p = parameter to be passed.
+     *      t = type to be passed.
      * Returns:
-     *      `Type` to use for parameter `p`.
+     *      `Type` to use for type `t`.
      */
-    extern (C++) Type parameterType(Parameter p)
+    extern (C++) Type parameterType(Type t)
     {
-        import dmd.astenums : LINK, STC;
-        import dmd.mtype : ParameterList, TypeDelegate, TypeFunction;
-        import dmd.typesem : merge;
-
-        Type t = p.type.merge2();
-        if (p.isReference())
-            t = t.referenceTo();
-        else if (p.storageClass & STC.lazy_)
-        {
-            // Mangle as delegate
-            auto tf = new TypeFunction(ParameterList(), t, LINK.d);
-            auto td = new TypeDelegate(tf);
-            t = td.merge();
-        }
-        return t;
+        return null;
     }
 
     /**

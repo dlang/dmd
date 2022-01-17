@@ -136,9 +136,6 @@ CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
 ################################################################################
 
 if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
-    cd $DMD_DIR
-    OS_NAME=windows source ci/codecov.sh
-
     # Skip druntime & phobos tests
     exit 0
 fi

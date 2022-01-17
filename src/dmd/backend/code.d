@@ -564,7 +564,7 @@ void jmpaddr (code *c);
 int code_match(code *c1,code *c2);
 uint calcblksize (code *c);
 uint calccodsize(code *c);
-uint codout(int seg, code *c);
+uint codout(int seg, code *c,Barray!ubyte*);
 size_t addtofixlist(Symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
 void searchfixlist(Symbol *s) {}
 void outfixlist();

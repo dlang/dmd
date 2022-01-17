@@ -19,8 +19,8 @@ extern (C++):
 
 import dmd.globals;
 import dmd.dclass;
+import dmd.dmdparams;
 import dmd.dmodule;
-import dmd.mars;
 import dmd.mtype;
 import dmd.target;
 
@@ -40,6 +40,7 @@ extern (C) void out_config_init(
                         // false: dll or shared library (generate PIC code)
         bool trace,     // add profiling code
         bool nofloat,   // do not pull in floating point code
+        bool vasm,      // print generated assembler for each function
         bool verbose,   // verbose compile
         bool optimize,  // optimize code
         int symdebug,   // add symbolic debug information
@@ -103,10 +104,11 @@ void backend_init()
         exe = true;         // if writing out EXE file
 
     out_config_init(
-        (target.is64bit ? 64 : 32) | (target.omfobj ? 0 : 1),
+        (target.is64bit ? 64 : 32) | (target.objectFormat() == Target.ObjectFormat.coff ? 1 : 0),
         exe,
         false, //params.trace,
         params.nofloat,
+        dmdParams.vasm,
         params.verbose,
         params.optimize,
         params.symdebug,

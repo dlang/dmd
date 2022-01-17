@@ -28,6 +28,7 @@ import dmd.builtin;
 import dmd.cond;
 import dmd.console;
 import dmd.compiler;
+import dmd.dmdparams;
 import dmd.dinifile;
 import dmd.dinterpret;
 import dmd.dmodule;
@@ -125,24 +126,6 @@ Where:
   @<cmdfile>       read arguments from cmdfile
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
-
-/// DMD-specific parameters.
-struct DMDparams
-{
-    bool alwaysframe;       // always emit standard stack frame
-    ubyte dwarf;            // DWARF version
-    bool map;               // generate linker .map file
-
-    // Hidden debug switches
-    bool debugb;
-    bool debugc;
-    bool debugf;
-    bool debugr;
-    bool debugx;
-    bool debugy;
-}
-
-shared DMDparams dmdParams = dmdParams.init;
 
 /**
  * DMD's real entry point
@@ -264,7 +247,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.color)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
-    target.os = defaultTargetOS();           // set target operating system
     target.setCPU();
 
     if (global.errors)
@@ -1876,6 +1858,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.verbose = true;
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
+        else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
+            dmdParams.vasm = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
@@ -1975,6 +1959,36 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
                 params.mcpuUsage = true;
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "os")) // https://dlang.org/dmd.html#switch-os
+        {
+            enum len = "-os=".length;
+            // Parse:
+            //      -os=identifier
+            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd` allowed for `-os`";
+            if (Identifier.isValidIdentifier(p + len))
+            {
+                const ident = p + len;
+                switch (ident.toDString())
+                {
+                case "host":         target.os = defaultTargetOS();      break;
+                case "linux":        target.os = Target.OS.linux;        break;
+                case "windows":      target.os = Target.OS.Windows;      break;
+                case "osx":          target.os = Target.OS.OSX;          break;
+                case "openbsd":      target.os = Target.OS.OpenBSD;      break;
+                case "freebsd":      target.os = Target.OS.FreeBSD;      break;
+                case "solaris":      target.os = Target.OS.Solaris;      break;
+                case "dragonflybsd": target.os = Target.OS.DragonFlyBSD; break;
+                default:
+                    errorInvalidSwitch(p, msg);
+                    return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p, msg);
                 return false;
             }
         }

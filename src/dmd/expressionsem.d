@@ -3604,16 +3604,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     if (!cdthis)
                     {
+                        if (!sc.hasThis)
+                        {
+                            string msg = "cannot construct " ~
+                            (cd.isAnonymous ? "anonymous nested class" : "nested class `%s`") ~
+                            " because no implicit `this` reference to outer class" ~
+                            (cdn.isAnonymous ? "" : " `%s`") ~ " is available\0";
+
+                            exp.error(msg.ptr, cd.toChars, cdn.toChars);
+                            return setError();
+                        }
+
                         // Supply an implicit 'this' and try again
                         exp.thisexp = new ThisExp(exp.loc);
                         for (Dsymbol sp = sc.parent; 1; sp = sp.toParentLocal())
                         {
-                            if (!sp)
-                            {
-                                exp.error("outer class `%s` `this` needed to `new` nested class `%s`",
-                                    cdn.toChars(), cd.toChars());
-                                return setError();
-                            }
                             ClassDeclaration cdp = sp.isClassDeclaration();
                             if (!cdp)
                                 continue;
@@ -7511,6 +7516,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // https://issues.dlang.org/show_bug.cgi?id=19954
         if (exp.e1.type.ty == Ttuple)
         {
+            if (exp.to)
+            {
+                if (TypeTuple tt = exp.to.isTypeTuple())
+                {
+                    if (exp.e1.type.implicitConvTo(tt))
+                    {
+                        result = exp.e1.castTo(sc, tt);
+                        return;
+                    }
+                }
+            }
             TupleExp te = exp.e1.isTupleExp();
             if (te.exps.dim == 1)
                 exp.e1 = (*te.exps)[0];
@@ -7531,7 +7547,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.to.ty == Ttuple)
         {
-            exp.error("cannot cast `%s` to tuple type `%s`", exp.e1.toChars(), exp.to.toChars());
+            exp.error("cannot cast `%s` of type `%s` to tuple type `%s`", exp.e1.toChars(), exp.e1.type.toChars(), exp.to.toChars());
             return setError();
         }
 
@@ -13250,7 +13266,16 @@ Expression getVarExp(EnumMember em, const ref Loc loc, Scope* sc)
     if (em.errors)
         return ErrorExp.get();
     Expression e = new VarExp(loc, em);
-    return e.expressionSemantic(sc);
+    e = e.expressionSemantic(sc);
+    if (!(sc.flags & SCOPE.Cfile) && em.isCsymbol())
+    {
+        /* C11 types them as int. But if in D file,
+         * type qualified names as the enum
+         */
+        e.type = em.parent.isEnumDeclaration().type;
+        assert(e.type);
+    }
+    return e;
 }
 
 

@@ -1842,8 +1842,8 @@ static if (1)
                 DW_AT_type,        DW_FORM_ref4,
                 DW_AT_artificial,  DW_FORM_flag,
                 DW_AT_decl_file,   DW_FORM_data1,
-                DW_AT_decl_line,   DW_FORM_data2,
-                DW_AT_decl_column, DW_FORM_data2,
+                DW_AT_decl_line,   DW_FORM_udata,
+                DW_AT_decl_column, DW_FORM_udata,
                 DW_AT_location,    DW_FORM_block1,
                 0,                0,
             ];
@@ -1892,8 +1892,8 @@ static if (1)
         abuf.writeByte(DW_FORM_string);
 
         abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
-        abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_data2);
-        abuf.writeByte(DW_AT_decl_column); abuf.writeByte(DW_FORM_data2);
+        abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_udata);
+        abuf.writeByte(DW_AT_decl_column); abuf.writeByte(DW_FORM_udata);
         if (ret_type)
         {
             abuf.writeByte(DW_AT_type);  abuf.writeByte(DW_FORM_ref4);
@@ -1960,8 +1960,8 @@ static if (1)
         debug_info.buf.writeString(name);             // DW_AT_name
         debug_info.buf.writeString(sfunc.Sident.ptr);    // DW_AT_MIPS_linkage_name
         debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
-        debug_info.buf.write16(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
-        debug_info.buf.write16(sfunc.Sfunc.Fstartline.Scharnum);   // DW_AT_decl_column
+        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
+        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum);   // DW_AT_decl_column
         if (ret_type)
             debug_info.buf.write32(ret_type);         // DW_AT_type
 
@@ -2020,8 +2020,8 @@ static if (1)
                         debug_info.buf.write32(tidx);                 // DW_AT_type
                         debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
                         debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
-                        debug_info.buf.write16(sa.lposscopestart.Slinnum);   // DW_AT_decl_line
-                        debug_info.buf.write16(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
+                        debug_info.buf.writeuLEB128(sa.lposscopestart.Slinnum);   // DW_AT_decl_line
+                        debug_info.buf.writeuLEB128(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
                         soffset = cast(uint)debug_info.buf.length();
                         debug_info.buf.writeByte(2);                  // DW_FORM_block1
                         if (sa.Sfl == FLreg || sa.Sclass == SCpseudo)
@@ -2408,8 +2408,7 @@ static if (1)
             }
         }
 
-        tym_t ty;
-        ty = tybasic(t.Tty);
+        immutable tym_t ty = tybasic(t.Tty);
         // use cached basic type if it's not TYdarray or TYdelegate
         if (!(t.Tnext && (ty == TYdarray || ty == TYdelegate)))
         {
@@ -2438,7 +2437,7 @@ static if (1)
             0,                      0,
         ];
 
-        switch (tybasic(t.Tty))
+        switch (ty)
         {
             Lnptr:
                 nextidx = dwarf_typidx(t.Tnext);
@@ -2454,9 +2453,7 @@ static if (1)
             case TYullong:
             case TYucent:
                 if (!t.Tnext)
-                {   p = (tybasic(t.Tty) == TYullong) ? "uint long long" : "ucent";
-                    goto Lsigned;
-                }
+                    goto Lsignedstr;
 
                 /* It's really TYdarray, and Tnext is the
                  * element type
@@ -2514,9 +2511,8 @@ static if (1)
             case TYllong:
             case TYcent:
                 if (!t.Tnext)
-                {   p = (tybasic(t.Tty) == TYllong) ? "long long" : "cent";
-                    goto Lsigned;
-                }
+                    goto Lsignedstr;
+
                 /* It's really TYdelegate, and Tnext is the
                  * function type
                  */
@@ -2602,30 +2598,51 @@ static if (1)
                 break;
 
             case TYvoid:        return 0;
-            case TYbool:        p = "_Bool";         ate = DW_ATE_boolean;       goto Lsigned;
+            case TYbool:
+                ate = DW_ATE_boolean;
+                goto Lsignedstr;
             case TYchar:
-                p = "char";
-                ate = (config.flags & CFGuchar) ? DW_ATE_unsigned_char : DW_ATE_signed_char;
-                goto Lsigned;
-            case TYschar:       p = "signed char";   ate = DW_ATE_signed_char;   goto Lsigned;
-            case TYuchar:       p = "ubyte";         ate = DW_ATE_unsigned_char; goto Lsigned;
-            case TYshort:       p = "short";         goto Lsigned;
-            case TYushort:      p = "ushort";        goto Lsigned;
-            case TYint:         p = "int";           goto Lsigned;
-            case TYuint:        p = "uint";          goto Lsigned;
-            case TYlong:        p = "long";          goto Lsigned;
-            case TYulong:       p = "ulong";         goto Lsigned;
-            case TYdchar:       p = "dchar";         ate = DW_ATE_UTF;                     goto Lsigned;
-            case TYfloat:       p = "float";        ate = DW_ATE_float;     goto Lsigned;
+                ate = (config.flags & CFGuchar)
+                    ? DW_ATE_unsigned_char
+                    : DW_ATE_signed_char;
+                goto Lsignedstr;
+            case TYschar:
+                ate = DW_ATE_signed_char;
+                goto Lsignedstr;
+            case TYuchar:
+                ate = DW_ATE_unsigned_char;
+                goto Lsignedstr;
+            case TYdchar:
+                ate = DW_ATE_UTF;
+                goto Lsignedstr;
+            case TYshort:
+            case TYushort:
+            case TYint:
+            case TYuint:
+            case TYlong:
+            case TYulong:
+                goto Lsignedstr;
             case TYdouble_alias:
-            case TYdouble:      p = "double";       ate = DW_ATE_float;     goto Lsigned;
-            case TYldouble:     p = "long double";  ate = DW_ATE_float;     goto Lsigned;
-            case TYifloat:      p = "imaginary float";       ate = DW_ATE_imaginary_float;  goto Lsigned;
-            case TYidouble:     p = "imaginary double";      ate = DW_ATE_imaginary_float;  goto Lsigned;
-            case TYildouble:    p = "imaginary long double"; ate = DW_ATE_imaginary_float;  goto Lsigned;
-            case TYcfloat:      p = "complex float";         ate = DW_ATE_complex_float;    goto Lsigned;
-            case TYcdouble:     p = "complex double";        ate = DW_ATE_complex_float;    goto Lsigned;
-            case TYcldouble:    p = "complex long double";   ate = DW_ATE_complex_float;    goto Lsigned;
+                p = tystring[TYdouble];
+                ate = DW_ATE_float;
+                goto Lsigned;
+            case TYfloat:
+            case TYdouble:
+                ate = DW_ATE_float;
+                goto Lsignedstr;
+            case TYldouble:
+            case TYifloat:
+            case TYidouble:
+            case TYildouble:
+                ate = DW_ATE_imaginary_float;
+                goto Lsignedstr;
+            case TYcfloat:
+            case TYcdouble:
+            case TYcldouble:
+                ate = DW_ATE_complex_float;
+                goto Lsignedstr;
+            Lsignedstr:
+                p = tystring[ty];
             Lsigned:
                 code = dwarf_abbrev_code(abbrevTypeBasic.ptr, (abbrevTypeBasic).sizeof);
                 idx = cast(uint)debug_info.buf.length();
@@ -2859,7 +2876,7 @@ static if (1)
                 idx = cast(uint)debug_info.buf.length();
 
                 debug_info.buf.writeuLEB128(code3);       // abbreviation code
-                debug_info.buf.writeString("wchar_t");    // DW_AT_name
+                debug_info.buf.writeString(tystring[ty]); // DW_AT_name
                 debug_info.buf.writeByte(tysize(TYint));  // DW_AT_byte_size
                 debug_info.buf.writeByte(DW_ATE_signed);  // DW_AT_encoding
                 break;

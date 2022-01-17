@@ -481,7 +481,6 @@ struct ASTBase
         enum AdrOnStackNone = ~0u;
         uint ctfeAdrOnStack;
         uint sequenceNumber;
-        __gshared uint nextSequenceNumber;
 
         final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.undefined_)
         {
@@ -490,7 +489,6 @@ struct ASTBase
             this._init = _init;
             this.loc = loc;
             this.storage_class = st;
-            sequenceNumber = ++nextSequenceNumber;
             ctfeAdrOnStack = AdrOnStackNone;
         }
 
