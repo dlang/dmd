@@ -299,7 +299,7 @@ extern (C++) struct Target
         else if (os & Target.OS.Posix)
             return Target.ObjectFormat.elf;
         else if (os == Target.OS.Windows)
-            return mscoff ? Target.ObjectFormat.coff : Target.ObjectFormat.omf;
+            return omfobj ? Target.ObjectFormat.omf : Target.ObjectFormat.coff;
         else
             assert(0, "unkown object format");
     }
@@ -1090,7 +1090,7 @@ extern (C++) struct Target
      */
     extern (C++) bool supportsLinkerDirective() const
     {
-        return mscoff;
+        return os == Target.OS.Windows && !omfobj;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1247,7 +1247,7 @@ struct TargetCPP
         else if (os == Target.OS.Windows)
         {
             reverseOverloads = true;
-            splitVBasetable = target.mscoff;
+            splitVBasetable = !target.omfobj;
         }
         else
             assert(0);
@@ -1282,10 +1282,10 @@ struct TargetCPP
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
         {
-            if (target.mscoff)
-                return toCppMangleMSVC(s);
-            else
+            if (target.omfobj)
                 return toCppMangleDMC(s);
+            else
+                return toCppMangleMCVC(s);
         }
         else
             assert(0, "fix this");
@@ -1307,10 +1307,10 @@ struct TargetCPP
             return cppTypeInfoMangleItanium(cd);
         if (target.os == Target.OS.Windows)
         {
-            if (target.mscoff)
-                return cppTypeInfoMangleMSVC(cd);
-            else
+            if (target.omfobj)
                 return cppTypeInfoMangleDMC(cd);
+            else
+                return cppTypeInfoMangleMSVC(cd);
         }
         else
             assert(0, "fix this");
