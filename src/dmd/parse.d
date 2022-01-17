@@ -3491,7 +3491,7 @@ class Parser(AST) : Lexer
         return baseclasses;
     }
 
-    private AST.Dsymbols* parseImport()
+    AST.Dsymbols* parseImport()
     {
         auto decldefs = new AST.Dsymbols();
         Identifier aliasid = null;

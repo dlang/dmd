@@ -1481,6 +1481,14 @@ final class CParser(AST) : Parser!AST
             return;
         }
 
+        if (token.value == TOK._import) // import declaration extension
+        {
+            auto a = parseImport();
+            if (a && a.length)
+                symbols.append(a);
+            return;
+        }
+
         auto symbolsSave = symbols;
         Specifier specifier;
         specifier.packalign = this.packalign;
