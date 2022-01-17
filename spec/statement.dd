@@ -255,7 +255,7 @@ $(GNAME ElseStatement):
 )
 
         $(P $(EXPRESSION) is evaluated and must have a type that
-        can be converted to a boolean. If it's true the
+        can be converted to a boolean. If it's `true` the
         $(I ThenStatement) is transferred to, else the $(I ElseStatement)
         is transferred to.)
 
@@ -306,11 +306,11 @@ $(GNAME WhileStatement):
 
 $(P A $(I While Statement) implements a simple loop.)
 
-$(P If the $(GLINK IfCondition) is an $(EXPRESSION), it is evaluated and must have a type
-that can be converted to a boolean. If it's true the $(PSSCOPE) is executed.
-After the $(PSSCOPE) is executed, the $(EXPRESSION) is evaluated again, and
-if true the $(PSSCOPE) is executed again. This continues until the $(EXPRESSION)
-evaluates to false.)
+$(P If the $(I IfCondition) is an *Expression*, it is evaluated and must have a type
+that can be converted to a boolean. If it's `true` the *ScopeStatement* is executed.
+After the *ScopeStatement* is executed, the *Expression* is evaluated again, and
+if `true` the *ScopeStatement* is executed again. This continues until the *Expression*
+evaluates to `false`.)
 
 ---
 int i = 0;
@@ -322,21 +322,21 @@ while (i < 10)
 ---
 
 $(P If an $(D auto) $(I Identifier) is provided, it is declared and
-initialized to the value and type of the $(EXPRESSION). Its scope
-extends from when it is initialized to the end of the $(PSSCOPE).)
+initialized to the value and type of the *Expression*. Its scope
+extends from when it is initialized to the end of the *ScopeStatement*.)
 
 $(P If a $(I TypeCtors) $(I Identifier) is provided, it is declared
 to be of the type specified by $(I TypeCtors) and is initialized with
-the value of the $(EXPRESSION). Its scope extends from when it is
-initialized to the end of the $(PSSCOPE).)
+the value of the *Expression*. Its scope extends from when it is
+initialized to the end of the *ScopeStatement*.)
 
 $(P If a $(I Declarator) is provided, it is declared and initialized
-to the value of the $(EXPRESSION). Its scope extends from when it is
-initialized to the end of the $(PSSCOPE).)
+to the value of the *Expression*. Its scope extends from when it is
+initialized to the end of the *ScopeStatement*.)
 
 $(P A $(GLINK BreakStatement) will exit the loop.)
 
-$(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(GLINK IfCondition) again.)
+$(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(I IfCondition) again.)
 
 $(H2 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
 
@@ -348,9 +348,9 @@ $(GNAME DoStatement):
 
 $(P Do while statements implement simple loops.)
 
-$(P $(PSSCOPE) is executed. Then $(EXPRESSION) is evaluated and must have a
-type that can be converted to a boolean. If it's true the loop is iterated
-again. This continues until the $(EXPRESSION) evaluates to false.)
+$(P *ScopeStatement* is executed. Then *Expression* is evaluated and must have a
+type that can be converted to a boolean. If it's `true` the loop is iterated
+again. This continues until the *Expression* evaluates to `false`.)
 
 ---
 int i = 0;
@@ -361,7 +361,7 @@ do
 ---
 
 $(P A $(GLINK BreakStatement) will exit the loop. A $(GLINK ContinueStatement)
-will transfer directly to evaluating $(EXPRESSION) again.)
+will transfer directly to evaluating *Expression* again.)
 
 $(H2 $(LEGACY_LNAME2 ForStatement, for-statement, For Statement))
 
@@ -485,7 +485,7 @@ $(P
         $(I ForeachAggregate) is evaluated. It must evaluate to an expression
         of type static array, dynamic array, associative array,
         struct, class, delegate, or sequence.
-        The $(PS0) is executed, once for each element of the
+        The *NoScopeNonEmptyStatement* is executed, once for each element of the
         aggregate.
         At the start of each iteration, the variables declared by
         the $(I ForeachTypeList)
@@ -498,7 +498,7 @@ $(P
 $(P
         The aggregate must be loop invariant, meaning that
         elements to the aggregate cannot be added or removed from it
-        in the $(PS0).
+        in the *NoScopeNonEmptyStatement*.
 )
 
         $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
