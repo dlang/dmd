@@ -5707,12 +5707,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     || global.params.useDeprecated != DiagnosticReporting.error;
                 const bool preventAliasThis = e.targ.hasDeprecatedAliasThis && !deprecationAllowed;
 
-                // baseClass might not be set if either targ or tspec is forward referenced.
-                if (auto tc = e.targ.isTypeClass())
-                    tc.sym.dsymbolSemantic(null);
-                if (auto tc = e.tspec.isTypeClass())
-                    tc.sym.dsymbolSemantic(null);
-
                 if (preventAliasThis && e.targ.ty == Tstruct)
                 {
                     if ((cast(TypeStruct) e.targ).implicitConvToWithoutAliasThis(e.tspec))

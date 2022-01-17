@@ -6306,10 +6306,7 @@ extern (C++) final class TypeClass : Type
 
     extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
-        MATCH m = constConv(to);
-        if (m > MATCH.nomatch)
-            return m;
-
+        // Run semantic before checking whether class is convertible
         ClassDeclaration cdto = to.isClassHandle();
         if (cdto)
         {
@@ -6318,11 +6315,15 @@ extern (C++) final class TypeClass : Type
                 cdto.dsymbolSemantic(null);
             if (sym.semanticRun < PASS.semanticdone && !sym.isBaseInfoComplete())
                 sym.dsymbolSemantic(null);
-            if (cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
-            {
-                //printf("'to' is base\n");
-                return MATCH.convert;
-            }
+        }
+        MATCH m = constConv(to);
+        if (m > MATCH.nomatch)
+            return m;
+
+        if (cdto && cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
+        {
+            //printf("'to' is base\n");
+            return MATCH.convert;
         }
         return MATCH.nomatch;
     }
