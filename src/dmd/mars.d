@@ -247,7 +247,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.color)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
-    target.os = defaultTargetOS();           // set target operating system
     target.setCPU();
 
     if (global.errors)
@@ -1955,6 +1954,36 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
                 params.mcpuUsage = true;
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "os")) // https://dlang.org/dmd.html#switch-os
+        {
+            enum len = "-os=".length;
+            // Parse:
+            //      -os=identifier
+            immutable string msg = "Only `host`, `linux`, `windows`, `osx`,`openbsd`, `freebsd`, `solaris`, `dragonflybsd` allowed for `-os`";
+            if (Identifier.isValidIdentifier(p + len))
+            {
+                const ident = p + len;
+                switch (ident.toDString())
+                {
+                case "host":         target.os = defaultTargetOS();      break;
+                case "linux":        target.os = Target.OS.linux;        break;
+                case "windows":      target.os = Target.OS.Windows;      break;
+                case "osx":          target.os = Target.OS.OSX;          break;
+                case "openbsd":      target.os = Target.OS.OpenBSD;      break;
+                case "freebsd":      target.os = Target.OS.FreeBSD;      break;
+                case "solaris":      target.os = Target.OS.Solaris;      break;
+                case "dragonflybsd": target.os = Target.OS.DragonFlyBSD; break;
+                default:
+                    errorInvalidSwitch(p, msg);
+                    return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p, msg);
                 return false;
             }
         }
