@@ -12,12 +12,29 @@
 
 module __builtins;
 
-import core.stdc.stdarg;
+/* gcc relies on internal __builtin_xxxx functions and templates to
+ * accomplish <stdarg.h>. D does the same thing with templates in core.stdc.stdarg.
+ * Here, we redirect the gcc builtin declarations to the equivalent
+ * ones in core.stdc.stdarg, thereby avoiding having to hardware them
+ * into the D compiler.
+ */
 
-@nogc nothrow:
-extern (C):
+import core.stdc.stdarg;
 
 alias va_list = core.stdc.stdarg.va_list;
 
-void __builtin_va_start(va_list, ...);
-void __builtin_va_end(va_list);
+version (Posix)
+{
+    version (X86_64)
+        alias __va_list_tag = core.stdc.stdarg.__va_list_tag;
+}
+
+alias __builtin_va_start = core.stdc.stdarg.va_start;
+
+alias __builtin_va_end = core.stdc.stdarg.va_end;
+
+alias __builtin_va_copy = core.stdc.stdarg.va_copy;
+
+/* dmd's ImportC rewrites __builtin_va_arg into an instantiation of va_arg
+ */
+alias va_arg = core.stdc.stdarg.va_arg;
