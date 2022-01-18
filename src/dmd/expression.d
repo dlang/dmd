@@ -465,7 +465,17 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
              */
             auto tmp = copyToTemp(STC.rvalue, "__copytmp", e);
             if (sd.hasCopyCtor && destinationType)
-                tmp.type = destinationType;
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=22619
+                // If the destination type is inout we can preserve it
+                // only if inside an inout function; if we are not inside
+                // an inout function, then we will preserve the type of
+                // the source
+                if (destinationType.hasWild && !(sc.func.storage_class & STC.wild))
+                    tmp.type = e.type;
+                else
+                    tmp.type = destinationType;
+            }
             tmp.storage_class |= STC.nodtor;
             tmp.dsymbolSemantic(sc);
             Expression de = new DeclarationExp(e.loc, tmp);
