@@ -1230,7 +1230,20 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_LTO"))
     {
-        dflags ~= ["-flto=full"];
+        switch (env["HOST_DMD_KIND"])
+        {
+            case "dmd":
+                stderr.writeln(`DMD does not support LTO! Ignoring ENABLE_LTO flag...`);
+                break;
+            case "ldc":
+                dflags ~= "-flto=full";
+                break;
+            case "gdc":
+                dflags ~= "-flto";
+                break;
+            default:
+                assert(false, "Unknown host compiler kind: " ~ env["HOST_DMD_KIND"]);
+        }
     }
     if (env.getNumberedBool("ENABLE_UNITTEST"))
     {
