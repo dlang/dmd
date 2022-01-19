@@ -27,4 +27,4 @@ struct DMDparams
     bool debugy;
 }
 
-shared DMDparams dmdParams = dmdParams.init;
+__gshared DMDparams dmdParams = dmdParams.init;
