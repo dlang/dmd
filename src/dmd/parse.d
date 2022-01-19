@@ -5398,6 +5398,7 @@ class Parser(AST) : Lexer
         check(TOK.leftParenthesis);
 
         auto parameters = new AST.Parameters();
+        Identifier lastai;
         while (1)
         {
             Identifier ai = null;
@@ -5473,8 +5474,9 @@ class Parser(AST) : Lexer
             if (token.value == TOK.identifier)
             {
                 const tv = peekNext();
-                if (tv == TOK.comma || tv == TOK.semicolon)
+                if (tv == TOK.comma || tv == TOK.semicolon || tv == TOK.rightParenthesis)
                 {
+                    lastai = token.ident;
                     ai = token.ident;
                     at = null; // infer argument type
                     nextToken();
@@ -5494,7 +5496,17 @@ class Parser(AST) : Lexer
             }
             break;
         }
-        check(TOK.semicolon);
+        if (token.value != TOK.semicolon)
+        {
+            error("missing `; expression` before `)` of `foreach`");
+            nextToken();
+            if (lastai && parameters.length >= 2)
+            {
+                errorSupplemental(loc, "perhaps the `;` goes before `%s`", lastai.toChars());
+            }
+            return null;
+        }
+        nextToken();
 
         AST.Expression aggr = parseExpression();
         if (token.value == TOK.slice && parameters.dim == 1)
