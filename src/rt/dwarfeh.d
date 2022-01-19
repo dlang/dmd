@@ -948,8 +948,7 @@ int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, 
 
         ap = apn + NextRecordPtr;
     }
-    terminate(__LINE__);
-    assert(0);
+    assert(false); // All other branches return
 }
 
 enum LsdaResult
