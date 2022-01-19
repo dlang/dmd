@@ -9911,9 +9911,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     arguments.push(new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf).expressionSemantic(sc));
                     Expression ce = new CallExp(exp.loc, id, arguments);
-                    auto errors = global.startGagging();
                     res = ce.expressionSemantic(sc);
-                    global.endGagging(errors);
                 }
                 else
                 {
@@ -9929,9 +9927,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         arguments.push(ae.e2);
 
                     Expression ce = new CallExp(exp.loc, id, arguments);
-                    auto errors = global.startGagging();
                     res = Expression.combine(e0, ce).expressionSemantic(sc);
-                    global.endGagging(errors);
                 }
 
                 if (global.params.verbose)
