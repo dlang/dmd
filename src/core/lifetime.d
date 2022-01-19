@@ -2633,15 +2633,16 @@ if (!Init.length ||
 }
 
 /**
- * Allocate an exception of type `T` from the exception pool.
+ * Allocate an exception of type `T` from the exception pool and call its constructor.
  * It has the same interface as `rt.lifetime._d_newclass()`.
- * The class type must be Throwable or derived from it,
- * and cannot be a COM or C++ class. The compiler must enforce this.
+ * `T` must be Throwable or derived from it, must declare an explicit ctor
+ * and cannot be a COM or C++ class.
  * Returns:
- *      default initialized instance of the type
+ *      constructed instance of the type
  */
-Throwable _d_newThrowable(T)() @trusted
-    if (is(T : Throwable))
+T _d_newThrowable(T, Args...)(auto ref Args args) @trusted
+    if (is(T : Throwable) && is(typeof(T.__ctor(forward!args))) &&
+        __traits(getLinkage, T) != "Windows" && __traits(getLinkage, T) != "C++")
 {
     debug(PRINTF) printf("_d_newThrowable(%s)\n", cast(char*) T.stringof);
 
@@ -2668,8 +2669,12 @@ Throwable _d_newThrowable(T)() @trusted
     }
 
     debug(PRINTF) printf("initialization done\n");
-    Throwable t = cast(Throwable) p;
-    t.refcount() = 1;
+
+    (cast(Throwable) p).refcount() = 1;
+
+    auto t = cast(T) p;
+    t.__ctor(forward!args);
+
     return t;
 }
 
@@ -2677,15 +2682,23 @@ Throwable _d_newThrowable(T)() @trusted
 {
     class E : Exception
     {
-        this(string msg = "", Throwable nextInChain = null)
+        int x;
+
+        this(int x, string msg = "", Throwable nextInChain = null)
         {
             super(msg, nextInChain);
+            this.x = x;
         }
     }
 
-    Throwable exc = _d_newThrowable!Exception();
-    Throwable e = _d_newThrowable!E();
-
+    auto exc = _d_newThrowable!Exception("Exception");
     assert(exc.refcount() == 1);
+    assert(exc.msg == "Exception");
+
+    static assert(!__traits(compiles, _d_newThrowable!E()));
+
+    auto e = _d_newThrowable!E(42, "E", null);
     assert(e.refcount() == 1);
+    assert(e.x == 42);
+    assert(e.msg == "E");
 }
