@@ -105,6 +105,7 @@
 // REQUIRED_ARGS: -version=none
 // REQUIRED_ARGS: -version=D_PreConditions
 // REQUIRED_ARGS: -version=D_PostConditions
+// REQUIRED_ARGS: -version=D_ProfileGC
 // REQUIRED_ARGS: -debug=DigitalMars
 // REQUIRED_ARGS: -debug=GNU
 // REQUIRED_ARGS: -debug=LDC

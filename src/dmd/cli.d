@@ -658,8 +658,17 @@ dmd -cov -unittest myprog.d
             `$(LINK2 https://www.digitalmars.com/ctg/trace.html, profile)
             the runtime performance of the generated code.
             $(UL
-                $(LI $(B gc): Instrument calls to memory allocation and write a report
-                to the file $(TT profilegc.log) upon program termination.)
+                $(LI $(B gc): Instrument calls to GC memory allocation and
+                write a report to the file $(TT profilegc.log) upon program
+                termination.  $(B Note:) Only instrumented calls will be
+                logged. These include:
+                   $(UL
+                       $(LI Language constructs that allocate memory)
+                       $(LI Phobos functions that allocate GC memory)
+                       $(LI GC allocations via core.memory.GC)
+                   )
+                   Allocations made by other means will not be logged,
+                   including direct calls to the GC's C API.)
             )`,
         ),
         Option("release",
