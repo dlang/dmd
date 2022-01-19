@@ -3723,32 +3723,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            // When using `@nogc` exception handling, lower `throw new E(...)` to
-            // `throw (__ctfe ? new E(...) : __tmp = _d_newThrowable!E(), __tmp.__ctor(...), __tmp)`.
+            // When using `@nogc` exception handling, lower `throw new E(args)` to
+            // `throw _d_newThrowable!E(args)`.
             if (global.params.ehnogc && exp.thrownew &&
                 !cd.isCOMclass() && !cd.isCPPclass())
             {
-                assert(cd.ctor);
-
                 Expression id = new IdentifierExp(exp.loc, Id.empty);
                 id = new DotIdExp(exp.loc, id, Id.object);
 
                 auto tiargs = new Objects();
                 tiargs.push(exp.newtype);
                 id = new DotTemplateInstanceExp(exp.loc, id, Id._d_newThrowable, tiargs);
-                id = new CallExp(exp.loc, id).expressionSemantic(sc);
-
-                Expression idVal;
-                Expression tmp = extractSideEffect(sc, "__tmpThrowable", idVal, id, true);
-                auto castTmp = new CastExp(exp.loc, tmp, exp.type);
-
-                auto ctor = new DotIdExp(exp.loc, castTmp, exp.member.ident).expressionSemantic(sc);
-                auto ctorCall = new CallExp(exp.loc, ctor, exp.arguments);
-
-                id = Expression.combine(idVal, exp.argprefix).expressionSemantic(sc);
-                id = Expression.combine(id, ctorCall).expressionSemantic(sc);
-                id = Expression.combine(id, castTmp).expressionSemantic(sc);
-                id = new CondExp(exp.loc, new IdentifierExp(exp.loc, Id.ctfe), exp, id);
+                id = new CallExp(exp.loc, id, exp.arguments);
 
                 result = id.expressionSemantic(sc);
                 return;
