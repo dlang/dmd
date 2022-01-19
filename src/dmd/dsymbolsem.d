@@ -3650,11 +3650,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         funcdecl.tintro = fdv.tintro;
                     else if (!funcdecl.type.equals(fdv.type))
                     {
+                        auto tnext = funcdecl.type.nextOf();
+                        if (auto handle = tnext.isClassHandle())
+                        {
+                            if (handle.semanticRun < PASS.semanticdone && !handle.isBaseInfoComplete())
+                                handle.dsymbolSemantic(null);
+                        }
                         /* Only need to have a tintro if the vptr
                          * offsets differ
                          */
                         int offset;
-                        if (fdv.type.nextOf().isBaseOf(funcdecl.type.nextOf(), &offset))
+                        if (fdv.type.nextOf().isBaseOf(tnext, &offset))
                         {
                             funcdecl.tintro = fdv.type;
                         }
