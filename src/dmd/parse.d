@@ -443,6 +443,13 @@ class Parser(AST) : Lexer
         }
 
         decldefs = parseDeclDefs(0, &lastDecl);
+
+        if (token.value == TOK.rightCurly)
+        {
+            error(token.loc, "unmatched closing brace");
+            goto Lerr;
+        }
+
         if (token.value != TOK.endOfFile)
         {
             error(token.loc, "unrecognized declaration");
