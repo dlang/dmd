@@ -229,3 +229,79 @@ struct EmptyStruct2
 
 static assert(EmptyStruct2.sizeof == 1);
 static assert(EmptyStruct2.noRet.offsetof == 0);
+
+/******************************************************************************/
+
+int function() lambdaExit = () => assert(0);
+
+struct Matcher
+{
+    int value;
+    string error;
+
+    int match(handlers...)()
+    {
+        if (error)
+            return handlers[1](error);
+        else
+            return handlers[0](value);
+    }
+
+    int getValue()
+    {
+        return match!(
+            (int v) => v,
+            (string e) { throw new Exception(""); }
+        )();
+    }
+}
+
+/* Crashes
+enum NoReturn : noreturn
+{
+    a = noreturn.init,
+    b = noreturn.init
+}
+*/
+
+
+// Overloading woes
+
+int callback(void function() f);
+void* callback(void delegate() dg);
+
+void useCallback()
+{
+    int res; // = callback(() => assert(0));
+
+    void* ptr = callback(() {
+        res++;
+        assert(0);
+    });
+
+    static const(noreturn) cnFunc();
+    res = callback(&cnFunc);
+
+    //=======================================
+
+    res = callback(() {});
+
+    ptr = callback(() {
+        res++;
+    });
+
+    static const(void) cvFunc();
+    res = callback(&cvFunc);
+}
+
+// Overload resultion w.r.t. function vs. delegate should not screw with partial ordering
+
+int callback2(void function() f);
+void* callback2(noreturn function() f);
+
+void useCallback2()
+{
+    int res = callback2(() {});
+
+    void* ptr = callback2(() => assert(0));
+}

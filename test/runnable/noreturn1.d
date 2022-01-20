@@ -112,10 +112,54 @@ void test3()
     }
 }
 
+/*****************************************/
+
+// noreturn is inferred for functions that always throw
+// The code must not strip the destructor when calling a noreturn function
+
+struct WithDtor
+{
+    __gshared int destroyed;
+
+    int num;
+
+    ~this()
+    {
+        destroyed += num;
+    }
+}
+
+noreturn doesThrow()
+{
+    WithDtor wd = WithDtor(1);
+    throw new Exception("");
+}
+
+noreturn callDoesThrow()
+{
+    WithDtor wd = WithDtor(2);
+    doesThrow();
+}
+
+
+void testDtors()
+{
+    try
+    {
+        callDoesThrow();
+        assert(0);
+    } catch (Exception e) {}
+
+    assert(WithDtor.destroyed == 3);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
     test2();
     test3();
+    testDtors();
     return 0;
 }
