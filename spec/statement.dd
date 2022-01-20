@@ -1758,17 +1758,17 @@ $(H2 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Sta
 
 $(GRAMMAR
 $(GNAME ScopeGuardStatement):
-    $(D scope ( exit )) $(PSCURLYSCOPE)
-    $(D scope ( success )) $(PSCURLYSCOPE)
-    $(D scope ( failure )) $(PSCURLYSCOPE)
+    $(D scope ( exit )) $(GLINK NonEmptyOrScopeBlockStatement)
+    $(D scope ( success )) $(GLINK NonEmptyOrScopeBlockStatement)
+    $(D scope ( failure )) $(GLINK NonEmptyOrScopeBlockStatement)
 )
 
-$(P The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close of the
+$(P The $(I ScopeGuardStatement) executes *NonEmptyOrScopeBlockStatement* at the close of the
 current scope, rather than at the point where the $(I ScopeGuardStatement)
-appears. $(D scope(exit)) executes $(PSCURLYSCOPE) when the scope exits normally
+appears. $(D scope(exit)) executes *NonEmptyOrScopeBlockStatement* when the scope exits normally
 or when it exits due to exception unwinding. $(D scope(failure)) executes
-$(PSCURLYSCOPE) when the scope exits due to exception unwinding.
-`scope(success)` executes $(PSCURLYSCOPE) when the scope exits normally.)
+*NonEmptyOrScopeBlockStatement* when the scope exits due to exception unwinding.
+`scope(success)` executes *NonEmptyOrScopeBlockStatement* when the scope exits normally.)
 
         $(P If there are multiple $(I ScopeGuardStatement)s in a scope, they
         will be executed in the reverse lexical order in which they appear.
