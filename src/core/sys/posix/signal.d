@@ -151,13 +151,15 @@ version (Solaris)
         return sig;
     }
 }
-else version (FreeBSD) {
+else version (FreeBSD)
+{
     // Note: it appears that FreeBSD (prior to 7) and OSX do not support realtime signals
     // https://github.com/freebsd/freebsd/blob/e79c62ff68fc74d88cb6f479859f6fae9baa5101/sys/sys/signal.h#L117
     enum SIGRTMIN = 65;
     enum SIGRTMAX = 126;
 }
-else version (DragonFlyBSD) {
+else version (DragonFlyBSD)
+{
     enum SIGRTMIN = 35;
     enum SIGRTMAX = 126;
 }
@@ -831,8 +833,6 @@ else
 // C Extension (CX)
 //
 /*
-SIG_HOLD
-
 sigset_t
 pid_t   (defined in core.sys.types)
 
@@ -849,8 +849,6 @@ nothrow @nogc
 
 version (CRuntime_Glibc)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 1;
-
     private enum _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
 
     struct sigset_t
@@ -860,14 +858,10 @@ version (CRuntime_Glibc)
 }
 else version (Darwin)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 5;
-
     alias uint sigset_t;
 }
 else version (FreeBSD)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 3;
-
     struct sigset_t
     {
         uint[4] __bits;
@@ -875,8 +869,6 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 3;
-
     struct sigset_t
     {
         uint[4] __bits;
@@ -884,16 +876,10 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    enum SIG_CATCH = cast(sigfn_t2) 2;
-    enum SIG_HOLD = cast(sigfn_t2) 3;
-
     alias sigset_t = uint;
 }
 else version (DragonFlyBSD)
 {
-    enum SIG_CATCH = cast(sigfn_t2) 2;
-    enum SIG_HOLD = cast(sigfn_t2) 3;
-
     struct sigset_t
     {
         uint[4] __bits;
@@ -901,8 +887,6 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    enum SIG_HOLD = cast(sigfn_t2)2;
-
     struct sigset_t
     {
         uint[4] __bits;
@@ -930,8 +914,6 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_UClibc)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 2;
-
     version (MIPS32)
         private enum _SIGSET_NWORDS = 128 / (8 * c_ulong.sizeof);
     else
@@ -948,6 +930,8 @@ else
 }
 
 /*
+SIG_HOLD
+
 SA_NOCLDSTOP (CX|XSI)
 SIG_BLOCK
 SIG_UNBLOCK
@@ -982,6 +966,8 @@ SI_MESGQ
 
 version (linux)
 {
+    enum SIG_HOLD = cast(sigfn_t2) 2;
+
     enum SA_NOCLDSTOP   = 1; // (CX|XSI)
 
     version (MIPS_Any)
@@ -1102,6 +1088,8 @@ version (linux)
 }
 else version (Darwin)
 {
+    enum SIG_HOLD = cast(sigfn_t2) 5;
+
     enum SA_NOCLDSTOP = 8; // (CX|XSI)
 
     enum SIG_BLOCK   = 1;
@@ -1130,6 +1118,8 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
     enum SA_NOCLDSTOP = 8;
 
     enum SIG_BLOCK = 1;
@@ -1189,6 +1179,8 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
     enum SA_NOCLDSTOP = 8;
 
     enum SIG_BLOCK = 1;
@@ -1256,6 +1248,9 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
+    enum SIG_CATCH = cast(sigfn_t2) 2;
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
     enum SA_NOCLDSTOP = 0x0008;
 
     enum SIG_BLOCK = 1;
@@ -1315,6 +1310,9 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
+    enum SIG_CATCH = cast(sigfn_t2) 2;
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
     enum SA_NOCLDSTOP = 8;
 
     enum SIG_BLOCK = 1;
@@ -1344,6 +1342,8 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
+    enum SIG_HOLD = cast(sigfn_t2)2;
+
     enum SIG_BLOCK = 1;
     enum SIG_UNBLOCK = 2;
     enum SIG_SETMASK = 3;
@@ -1561,8 +1561,6 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    enum SIGIO = SIGPOLL;
-
     int kill(pid_t, int);
     int sigaction(int, const scope sigaction_t*, sigaction_t*);
     int sigaddset(sigset_t*, int);
@@ -1672,9 +1670,58 @@ SIGTRAP
 SIGVTALRM
 SIGXCPU
 SIGXFSZ
+
+SA_ONSTACK
+SA_RESETHAND
+SA_RESTART
+SA_SIGINFO
+SA_NOCLDWAIT
+SA_NODEFER
+
+ILL_ILLOPC
+ILL_ILLOPN
+ILL_ILLADR
+ILL_ILLTRP
+ILL_PRVOPC
+ILL_PRVREG
+ILL_COPROC
+ILL_BADSTK
+
+FPE_INTDIV
+FPE_INTOVF
+FPE_FLTDIV
+FPE_FLTOVF
+FPE_FLTUND
+FPE_FLTRES
+FPE_FLTINV
+FPE_FLTSUB
+
+SEGV_MAPERR
+SEGV_ACCERR
+
+BUS_ADRALN
+BUS_ADRERR
+BUS_OBJERR
+
+TRAP_BRKPT
+TRAP_TRACE
+
+CLD_EXITED
+CLD_KILLED
+CLD_DUMPED
+CLD_TRAPPED
+CLD_STOPPED
+CLD_CONTINUED
+
+POLL_IN
+POLL_OUT
+POLL_MSG
+POLL_ERR
+POLL_PRI
+POLL_HUP
 */
 
-version (CRuntime_Glibc)
+version (linux)
 {
     version (X86_Any)
     {
@@ -1758,214 +1805,7 @@ version (CRuntime_Glibc)
     }
     else
         static assert(0, "unimplemented");
-}
-else version (Darwin)
-{
-    enum SIGPOLL        = 7;
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-}
-else version (FreeBSD)
-{
-    // No SIGPOLL on *BSD
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-}
-else version (NetBSD)
-{
-    // No SIGPOLL on *BSD
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-}
-else version (OpenBSD)
-{
-    // No SIGPOLL on *BSD
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-}
-else version (DragonFlyBSD)
-{
-    // No SIGPOLL on *BSD
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-}
-else version (Solaris)
-{
-    enum SIGPOLL = 22;
-    enum SIGPROF = 29;
-    enum SIGSYS = 12;
-    enum SIGTRAP = 5;
-    enum SIGVTALRM = 28;
-    enum SIGXCPU = 30;
-    enum SIGXFSZ = 31;
-}
-else version (CRuntime_Bionic)
-{
-    enum SIGPOLL   = 29;
-    enum SIGPROF   = 27;
-    enum SIGSYS    = 31;
-    enum SIGTRAP   = 5;
-    enum SIGVTALRM = 26;
-    enum SIGXCPU   = 24;
-    enum SIGXFSZ   = 25;
-}
-else version (CRuntime_Musl)
-{
-    version (MIPS_Any)
-    {
-        enum SIGPOLL   = 22;
-        enum SIGPROF   = 29;
-        enum SIGSYS    = 12;
-        enum SIGTRAP   = 5;
-        enum SIGVTALRM = 28;
-        enum SIGXCPU   = 30;
-        enum SIGXFSZ   = 31;
-    }
-    else
-    {
-        enum SIGPOLL   = 29;
-        enum SIGPROF   = 27;
-        enum SIGSYS    = 31;
-        enum SIGTRAP   = 5;
-        enum SIGVTALRM = 26;
-        enum SIGXCPU   = 24;
-        enum SIGXFSZ   = 25;
-    }
-}
-else version (CRuntime_UClibc)
-{
-    version (X86_64)
-    {
-        enum SIGTRAP         = 5;
-        enum SIGIOT          = 6;
-        enum SIGSTKFLT       = 16;
-        enum SIGCLD          = SIGCHLD;
-        enum SIGXCPU         = 24;
-        enum SIGXFSZ         = 25;
-        enum SIGVTALRM       = 26;
-        enum SIGPROF         = 27;
-        enum SIGWINCH        = 28;
-        enum SIGPOLL         = SIGIO;
-        enum SIGIO           = 29;
-        enum SIGPWR          = 30;
-        enum SIGSYS          = 31;
-        enum SIGUNUSED       = 31;
-    }
-    else version (MIPS32)
-    {
-        enum SIGTRAP = 5;
-        enum SIGIOT           = 6;
-        enum SIGEMT           = 7;
-        enum SIGFPE           = 8;
-        enum SIGSYS           = 12;
-        enum SIGCLD           = SIGCHLD;
-        enum SIGPWR           = 19;
-        enum SIGWINCH         = 20;
-        enum SIGIO            = 22;
-        enum SIGPOLL          = SIGIO;
-        enum SIGVTALRM        = 28;
-        enum SIGPROF          = 29;
-        enum SIGXCPU          = 30;
-        enum SIGXFSZ          = 31;
-    }
-    else version (ARM)
-    {
-        enum SIGTRAP = 5;
-        enum SIGIOT = 6;
-        enum SIGSTKFLT = 16;
-        enum SIGCLD = SIGCHLD;
-        enum SIGXCPU = 24;
-        enum SIGXFSZ = 25;
-        enum SIGVTALRM = 26;
-        enum SIGPROF = 27;
-        enum SIGWINCH = 28;
-        enum SIGPOLL = SIGIO;
-        enum SIGIO = 29;
-        enum SIGPWR = 30;
-        enum SIGSYS = 31;
-        enum SIGUNUSED = 31;
-    }
-    else
-        static assert(0, "unimplemented");
-}
-else
-{
-    static assert(false, "Unsupported platform");
-}
 
-/*
-SA_ONSTACK
-SA_RESETHAND
-SA_RESTART
-SA_SIGINFO
-SA_NOCLDWAIT
-SA_NODEFER
-
-ILL_ILLOPC
-ILL_ILLOPN
-ILL_ILLADR
-ILL_ILLTRP
-ILL_PRVOPC
-ILL_PRVREG
-ILL_COPROC
-ILL_BADSTK
-
-FPE_INTDIV
-FPE_INTOVF
-FPE_FLTDIV
-FPE_FLTOVF
-FPE_FLTUND
-FPE_FLTRES
-FPE_FLTINV
-FPE_FLTSUB
-
-SEGV_MAPERR
-SEGV_ACCERR
-
-BUS_ADRALN
-BUS_ADRERR
-BUS_OBJERR
-
-TRAP_BRKPT
-TRAP_TRACE
-
-CLD_EXITED
-CLD_KILLED
-CLD_DUMPED
-CLD_TRAPPED
-CLD_STOPPED
-CLD_CONTINUED
-
-POLL_IN
-POLL_OUT
-POLL_MSG
-POLL_ERR
-POLL_PRI
-POLL_HUP
-*/
-
-version (linux)
-{
     version (MIPS_Any)
     {
         enum SA_ONSTACK   = 0x08000000;
@@ -2054,6 +1894,14 @@ version (linux)
 }
 else version (Darwin)
 {
+    enum SIGPOLL        = 7;
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+
     enum SA_ONSTACK     = 0x0001;
     enum SA_RESETHAND   = 0x0004;
     enum SA_RESTART     = 0x0002;
@@ -2120,6 +1968,14 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+
     enum
     {
         SA_ONSTACK      = 0x0001,
@@ -2195,6 +2051,14 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+
     enum
     {
         SA_ONSTACK      = 0x0001,
@@ -2270,6 +2134,14 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+
     enum
     {
         SA_ONSTACK      = 0x0001,
@@ -2352,6 +2224,14 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+
     enum
     {
         SA_ONSTACK      = 0x0001,
@@ -2427,6 +2307,15 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
+    enum SIGPOLL = 22;
+    enum SIGIO = SIGPOLL;
+    enum SIGPROF = 29;
+    enum SIGSYS = 12;
+    enum SIGTRAP = 5;
+    enum SIGVTALRM = 28;
+    enum SIGXCPU = 30;
+    enum SIGXFSZ = 31;
+
     enum
     {
         SA_ONSTACK = 0x00001,
