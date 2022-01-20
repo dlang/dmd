@@ -254,7 +254,7 @@ $(GNAME ElseStatement):
     $(PSSCOPE)
 )
 
-        $(P $(EXPRESSION) is evaluated and must have a type that
+        $(P *Expression* is evaluated and must have a type that
         can be converted to a boolean. If it's `true` the
         $(I ThenStatement) is transferred to, else the $(I ElseStatement)
         is transferred to.)
@@ -265,19 +265,19 @@ $(GNAME ElseStatement):
         $(P If an $(D auto) $(I Identifier) is provided, it is declared and
         initialized
         to the value
-        and type of the $(EXPRESSION). Its scope extends from when it is
+        and type of the *Expression*. Its scope extends from when it is
         initialized to the end of the $(I ThenStatement).)
 
         $(P If a $(I TypeCtors) $(I Identifier) is provided, it is declared
         to be of the type specified by $(I TypeCtors)
-        and is initialized with the value of the $(EXPRESSION).
+        and is initialized with the value of the *Expression*.
         Its scope extends from when it is
         initialized to the end of the $(I ThenStatement).)
 
         $(P If a $(I Declarator) is provided, it is declared and
         initialized
         to the value
-        of the $(EXPRESSION). Its scope extends from when it is
+        of the *Expression*. Its scope extends from when it is
         initialized to the end of the $(I ThenStatement).)
 
 ---
@@ -1144,7 +1144,7 @@ $(GNAME StatementNoCaseNoDefault):
         $(P The case expressions must all evaluate to a constant value or array,
         or a runtime initialized const or immutable variable of integral type.
         They must be implicitly convertible to the type of the switch
-        $(EXPRESSION). )
+        *Expression*. )
 
         $(P Case expressions must all evaluate to distinct values. Const or
         immutable variables must all have different names. If they share a
@@ -1253,13 +1253,13 @@ $(GNAME FinalSwitchStatement):
         $(UL
         $(LI No $(GLINK DefaultStatement) is allowed.)
         $(LI No $(GLINK CaseRangeStatement)s are allowed.)
-        $(LI If the switch $(EXPRESSION) is of enum type, all
+        $(LI If the switch *Expression* is of enum type, all
         the enum members must appear in the $(GLINK CaseStatement)s.)
         $(LI The case expressions cannot evaluate to a run time
         initialized value.)
         )
 
-        $(IMPLEMENTATION_DEFINED If the $(EXPRESSION) value does not match any
+        $(IMPLEMENTATION_DEFINED If the *Expression* value does not match any
         of the $(I CaseRangeStatements), whether that is diagnosed at compile
         time or at runtime.)
 
@@ -1336,8 +1336,8 @@ $(GNAME ReturnStatement):
 
 $(P `return` exits the current function and supplies its return value.)
 
-$(P $(EXPRESSION) is required if the function specifies a return type that is
-not void. The $(EXPRESSION) is implicitly converted to the function return
+$(P *Expression* is required if the function specifies a return type that is
+not void. The *Expression* is implicitly converted to the function return
 type.)
 
         $(P At least one return statement, throw statement, or assert(0) expression
@@ -1345,10 +1345,10 @@ type.)
         unless the function contains inline assembler code.)
 
 $(COMMENT
-        $(EXPRESSION) is allowed even if the function specifies
-        a $(D_KEYWORD void) return type. The $(EXPRESSION) will be evaluated,
+        *Expression* is allowed even if the function specifies
+        a $(D_KEYWORD void) return type. The *Expression* will be evaluated,
         but nothing will be returned.
-        If the $(EXPRESSION) has no side effects, and the return
+        If the *Expression* has no side effects, and the return
         type is $(D_KEYWORD void), then it is illegal.
 )
         $(P Before the function actually returns,
@@ -1365,7 +1365,7 @@ $(COMMENT
         $(P If there is an out postcondition
         (see $(DDLINK spec/contracts, Contract Programming, Contract Programming)),
         that postcondition is executed
-        after the $(EXPRESSION) is evaluated and before the function
+        after the *Expression* is evaluated and before the function
         actually returns.)
 
 ---
@@ -1402,10 +1402,10 @@ DefaultStatement) of an enclosing $(GLINK SwitchStatement).)
         next $(GLINK CaseStatement) of the innermost enclosing
         $(GLINK SwitchStatement).)
 
-        $(P The fourth form, $(CODE goto case) $(EXPRESSION)$(D ;), transfers to the
+        $(P The fourth form, $(CODE goto case) *Expression*$(D ;), transfers to the
         $(GLINK CaseStatement) of the innermost enclosing
         $(GLINK SwitchStatement)
-        with a matching $(EXPRESSION).)
+        with a matching *Expression*.)
 
 ---
 switch (x)
@@ -1440,7 +1440,7 @@ $(GNAME WithStatement):
     $(D with) $(D $(LPAREN)) $(GLINK2 template, TemplateInstance) $(D $(RPAREN)) $(PSSCOPE)
 )
 
-        where $(EXPRESSION) evaluates to a class reference or struct
+        where *Expression* evaluates to a class reference or struct
         instance.
         Within the with body the referenced object is searched first for
         identifier symbols.
@@ -1466,7 +1466,7 @@ with (expression)
 }
 --------------
 
-        $(P Note that $(EXPRESSION) only gets evaluated once and is not copied.
+        $(P Note that *Expression* only gets evaluated once and is not copied.
         The with statement does not change what $(D this) or
         $(D super) refer to.
         )
@@ -1594,13 +1594,13 @@ $(GNAME SynchronizedStatement):
         $(I ScopeStatement) by using a mutex.
         )
 
-        $(P What mutex is used is determined by the $(EXPRESSION).
-        If there is no $(EXPRESSION), then a global mutex is created,
+        $(P What mutex is used is determined by the *Expression*.
+        If there is no *Expression*, then a global mutex is created,
         one per such synchronized statement.
         Different synchronized statements will have different global mutexes.
         )
 
-        $(P If there is an $(EXPRESSION), it must evaluate to either an
+        $(P If there is an *Expression*, it must evaluate to either an
         Object or an instance of an $(I Interface), in which case it
         is cast to the Object instance that implemented that $(I Interface).
         The mutex used is specific to that Object instance, and
@@ -1742,7 +1742,7 @@ $(GNAME ThrowStatement):
     $(D throw) $(EXPRESSION) $(D ;)
 )
 
-$(P $(EXPRESSION) is evaluated and must be  a `Throwable` reference. The
+$(P *Expression* is evaluated and must be  a `Throwable` reference. The
 `Throwable` reference is thrown as an exception.)
 
 ---
