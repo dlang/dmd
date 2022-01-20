@@ -833,6 +833,8 @@ else
 // C Extension (CX)
 //
 /*
+SIG_HOLD
+
 sigset_t
 pid_t   (defined in core.sys.types)
 
@@ -842,95 +844,6 @@ SIGILL  (defined in core.stdc.signal)
 SIGINT  (defined in core.stdc.signal)
 SIGSEGV (defined in core.stdc.signal)
 SIGTERM (defined in core.stdc.signal)
-*/
-
-nothrow @nogc
-{
-
-version (CRuntime_Glibc)
-{
-    private enum _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
-
-    struct sigset_t
-    {
-        c_ulong[_SIGSET_NWORDS] __val;
-    }
-}
-else version (Darwin)
-{
-    alias uint sigset_t;
-}
-else version (FreeBSD)
-{
-    struct sigset_t
-    {
-        uint[4] __bits;
-    }
-}
-else version (NetBSD)
-{
-    struct sigset_t
-    {
-        uint[4] __bits;
-    }
-}
-else version (OpenBSD)
-{
-    alias sigset_t = uint;
-}
-else version (DragonFlyBSD)
-{
-    struct sigset_t
-    {
-        uint[4] __bits;
-    }
-}
-else version (Solaris)
-{
-    struct sigset_t
-    {
-        uint[4] __bits;
-    }
-}
-else version (CRuntime_Bionic)
-{
-    version (X86)
-        alias uint sigset_t;
-    else version (ARM)
-        alias uint sigset_t;
-    else version (AArch64)
-        struct sigset_t { ulong[1] sig; }
-    else version (X86_64)
-        alias ulong sigset_t;
-    else
-        static assert(false, "Architecture not supported.");
-}
-else version (CRuntime_Musl)
-{
-    struct sigset_t
-    {
-        c_ulong[128/c_long.sizeof] __bits;
-    }
-}
-else version (CRuntime_UClibc)
-{
-    version (MIPS32)
-        private enum _SIGSET_NWORDS = 128 / (8 * c_ulong.sizeof);
-    else
-        private enum _SIGSET_NWORDS = 64 / (8 * c_ulong.sizeof);
-
-    struct sigset_t
-    {
-        c_ulong[_SIGSET_NWORDS] __val;
-    }
-}
-else
-{
-    static assert(false, "Unsupported platform");
-}
-
-/*
-SIG_HOLD
 
 SA_NOCLDSTOP (CX|XSI)
 SIG_BLOCK
@@ -964,9 +877,19 @@ SI_ASYNCIO
 SI_MESGQ
 */
 
+nothrow @nogc
+{
+
 version (linux)
 {
     enum SIG_HOLD = cast(sigfn_t2) 2;
+
+    private enum _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
+
+    struct sigset_t
+    {
+        c_ulong[_SIGSET_NWORDS] __val;
+    }
 
     enum SA_NOCLDSTOP   = 1; // (CX|XSI)
 
@@ -1090,6 +1013,8 @@ else version (Darwin)
 {
     enum SIG_HOLD = cast(sigfn_t2) 5;
 
+    alias uint sigset_t;
+
     enum SA_NOCLDSTOP = 8; // (CX|XSI)
 
     enum SIG_BLOCK   = 1;
@@ -1119,6 +1044,11 @@ else version (Darwin)
 else version (FreeBSD)
 {
     enum SIG_HOLD = cast(sigfn_t2) 3;
+
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
 
     enum SA_NOCLDSTOP = 8;
 
@@ -1180,6 +1110,11 @@ else version (FreeBSD)
 else version (NetBSD)
 {
     enum SIG_HOLD = cast(sigfn_t2) 3;
+
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
 
     enum SA_NOCLDSTOP = 8;
 
@@ -1251,6 +1186,8 @@ else version (OpenBSD)
     enum SIG_CATCH = cast(sigfn_t2) 2;
     enum SIG_HOLD = cast(sigfn_t2) 3;
 
+    alias sigset_t = uint;
+
     enum SA_NOCLDSTOP = 0x0008;
 
     enum SIG_BLOCK = 1;
@@ -1313,6 +1250,11 @@ else version (DragonFlyBSD)
     enum SIG_CATCH = cast(sigfn_t2) 2;
     enum SIG_HOLD = cast(sigfn_t2) 3;
 
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
+
     enum SA_NOCLDSTOP = 8;
 
     enum SIG_BLOCK = 1;
@@ -1343,6 +1285,11 @@ else version (DragonFlyBSD)
 else version (Solaris)
 {
     enum SIG_HOLD = cast(sigfn_t2)2;
+
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
 
     enum SIG_BLOCK = 1;
     enum SIG_UNBLOCK = 2;
