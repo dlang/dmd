@@ -374,7 +374,7 @@ $(GNAME ForStatement):
 
 $(GNAME Initialize):
     $(D ;)
-    $(PS0)
+    $(GLINK NoScopeNonEmptyStatement)
 
 $(GNAME Test):
     $(EXPRESSION)
@@ -452,7 +452,7 @@ $(GNAME AggregateForeach):
     $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
 
 $(GNAME ForeachStatement):
-    $(GLINK AggregateForeach) $(PS0)
+    $(GLINK AggregateForeach) $(GLINK NoScopeNonEmptyStatement)
 
 $(GNAME Foreach):
     $(D foreach)
@@ -1642,13 +1642,13 @@ $(GNAME Catches):
     $(GLINK Catch) $(GSELF Catches)
 
 $(GNAME Catch):
-    $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
+    $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(GLINK NoScopeNonEmptyStatement)
 
 $(GNAME CatchParameter):
     $(GLINK2 type, BasicType) $(GLINK_LEX Identifier)$(OPT)
 
 $(GNAME FinallyStatement):
-    $(D finally) $(PS0)
+    $(D finally) $(GLINK NoScopeNonEmptyStatement)
 )
 
         $(P $(I CatchParameter) declares a variable v of type T, where T is
@@ -1995,10 +1995,5 @@ Macros:
         EXPRESSION=$(GLINK2 expression, Expression)
         PSSEMI_PSCURLYSCOPE=$(GLINK Statement)
         PSSEMI_PSCURLYSCOPE_LIST=$(GLINK ScopeStatementList)
-        PS0=$(GLINK NoScopeNonEmptyStatement)
         PSSCOPE=$(GLINK ScopeStatement)
-        PSCURLY=$(GLINK BlockStatement)
-        PSSEMI=$(GLINK NoScopeStatement)
-        PSCURLY_PSSCOPE=$(GLINK ScopeBlockStatement)
-        PSCURLYSCOPE=$(GLINK NonEmptyOrScopeBlockStatement)
         _=
