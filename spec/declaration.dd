@@ -281,9 +281,11 @@ $(GNAME AliasAssignment):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
-    $(P $(I AliasDeclaration)s create a symbol that is an alias for another type,
-        and can be used anywhere that other type may appear.
+    $(P $(I AliasDeclaration)s create a symbol name that refers to another symbol.
+        That symbol name can be used anywhere that the aliased symbol may appear.
     )
+
+$(H3 $(LNAME2 alias-type, Type Aliases))
 
 --------------------
 alias myint = abc.Foo.bar;
@@ -301,6 +303,20 @@ alias myint = int;
 void foo(int x) { ... }
 void foo(myint m) { ... } // error, multiply defined function foo
 --------------------
+
+        $(P
+        Type aliases can sometimes look indistinguishable from
+        other symbol aliases:
+        )
+
+--------------------
+alias abc = foo.bar; // is it a type or a symbol?
+--------------------
+
+        $(BEST_PRACTICE Other than when aliasing simple basic type names,
+        type alias names should be Capitalized.)
+
+$(H3 $(LNAME2 alias-symbol, Symbol Aliases))
 
     $(P A symbol can be declared as an $(I alias) of another symbol.
         For example:
@@ -329,16 +345,7 @@ t1.t v1;  // v1 is type int
 t2 v2;    // v2 is type int
 t3 v3;    // v3 is type int
 t4 v4;    // v4 is type int
-
-alias Fun = int(string p);
-int fun(string){return 0;}
-static assert(is(typeof(fun) == Fun));
-
-alias MemberFun1 = int() const;
-alias MemberFun2 = const int();
-// leading attributes apply to the func, not the return type
-static assert(is(MemberFun1 == MemberFun2));
---------------------
+---
 
         $(P
         Aliased symbols are useful as a shorthand for a long qualified
@@ -366,57 +373,44 @@ version (linux)
 alias strlen = string.strlen;
 --------------------
 
+$(H3 $(LNAME2 alias-overload, Aliasing an Overload Set))
+
         $(P
         Aliases can also `import` a set of overloaded functions, that can
         be overloaded with functions in the current scope:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------------
-class A
+class B
 {
-    int foo(int a) { return 1; }
-}
-
-class B : A
-{
-    int foo( int a, uint b ) { return 2; }
+    int foo(int a, uint b) { return 2; }
 }
 
 class C : B
 {
-    int foo( int a ) { return 3; }
+    // declaring an overload hides any base class overloads
+    int foo(int a) { return 3; }
+    // redeclare hidden overload
     alias foo = B.foo;
 }
 
-class D : C
+void main()
 {
-}
+    import std.stdio;
 
-void test()
-{
-    D b = new D();
-    int i;
-
-    i = b.foo(1, 2u);   // calls B.foo
-    i = b.foo(1);       // calls C.foo
+    C c = new C();
+    c.foo(1, 2u).writeln;   // calls B.foo
+    c.foo(1).writeln;       // calls C.foo
 }
 --------------------
+)
 
-        $(P
-        $(B Note:) Type aliases can sometimes look indistinguishable from
-        alias declarations:
-        )
-
---------------------
-alias abc = foo.bar; // is it a type or a symbol?
---------------------
-
-        $(P
-        The distinction is made in the semantic analysis pass.
-        )
+$(H3 $(LNAME2 alias-variable, Aliasing Variables))
 
         $(P Aliases cannot be used for expressions:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 -----------
 struct S
 {
@@ -426,10 +420,27 @@ struct S
 
 alias a = S.i; // OK, `S.i` is a symbol
 alias b = S.j; // OK. `S.j` is also a symbol
-alias c = a + b; // illegal, `a + b` is an expression
+//alias c = a + b; // illegal, `a + b` is an expression
 a = 2;         // sets `S.i` to `2`
 b = 4;         // sets `S.j` to `4`
+assert(S.i == 2);
+assert(S.j == 4);
 -----------
+)
+
+$(H3 $(LNAME2 alias-function, Aliasing a Function Type))
+
+        $(P Function types can be aliased:)
+---
+alias Fun = int(string p);
+int fun(string){return 0;}
+static assert(is(typeof(fun) == Fun));
+
+alias MemberFun1 = int() const;
+alias MemberFun2 = const int();
+// leading attributes apply to the func, not the return type
+static assert(is(MemberFun1 == MemberFun2));
+--------------------
 
         $(P Aliases can be used to call a function with different default
         arguments, change an argument from required to default or vice versa:)
@@ -467,7 +478,7 @@ void barbar(int a, int b = 6, int c = 7) {
 -----------
 )
 
-$(H2 $(LNAME2 AliasAssign, Alias Assign))
+$(H3 $(LNAME2 AliasAssign, Alias Assign))
 
 $(GRAMMAR
 $(GNAME AliasAssign):
@@ -477,6 +488,7 @@ $(GNAME AliasAssign):
         $(P An $(GLINK AliasDeclaration) can have a new value assigned to it with an
         $(I AliasAssign):)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 template Gorgon(T)
 {
@@ -486,6 +498,7 @@ template Gorgon(T)
 }
 pragma(msg, Gorgon!int); // prints int
 ---
+)
 
 $(UL
 $(LI The $(I AliasAssign) and its corresponding $(I AliasDeclaration) must both be
@@ -505,9 +518,11 @@ to another $(I AliasAssign) to the same lvalue other than in the right hand side
         $(I AliasAssign) is particularly useful when using an iterative
         computation rather than a recursive one, as it avoids creating
         the large number of intermediate templates that the recursive one
-        engenders.
+        engenders.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-template AliasSeq(T...) { alias AliasSeq = T; }
+import std.meta : AliasSeq;
 
 static if (0) // recursive method for comparison
 {
@@ -534,9 +549,9 @@ enum X = 3;
 alias TK = Reverse!(int, const uint, X);
 pragma(msg, TK); // prints tuple(3, (const(uint)), (int))
 ---
-        )
+)
 
-$(H2 $(LNAME2 alias-reassignment, Alias Reassignment))
+$(H3 $(LNAME2 alias-reassignment, Alias Reassignment))
 
 $(GRAMMAR
 $(GNAME AliasReassignment):
@@ -547,15 +562,22 @@ $(GNAME AliasReassignment):
 
         $(P An alias declaration inside a template can be reassigned a new value.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        template staticMap(alias F, T...)
+        import std.meta : AliasSeq;
+
+        template staticMap(alias F, Args...)
         {
             alias A = AliasSeq!();
-            static foreach (t; T)
-                A = AliasSeq!(A, F!T); // alias reassignment
+            static foreach (Arg; Args)
+                A = AliasSeq!(A, F!Arg); // alias reassignment
             alias staticMap = A;
         }
+
+        enum size(T) = T.sizeof;
+        static assert(staticMap!(size, char, wchar, dchar) == AliasSeq!(1, 2, 4));
         ---
+        )
 
         $(P The $(I Identifier) must resolve to a lexically preceding $(GLINK AliasDeclaration).
         Both must be members of the same $(GLINK2 template, TemplateDeclaration).
