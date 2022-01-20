@@ -1196,7 +1196,7 @@ switch (i)
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
 string message;
-foreach (i; 0..5)
+foreach (i; 1..5)
 {
     switch (i)
     {
@@ -1212,7 +1212,7 @@ foreach (i; 0..5)
             continue; // don't append a comma
 
         case 1:     // valid: ends with 'goto' (explicit fall-through to next case.)
-            message ~= "one: ";
+            message ~= ">";
             goto case;
 
         case 2:     // valid: this is the last case in the switch statement.
