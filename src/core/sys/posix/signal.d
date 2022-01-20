@@ -540,9 +540,54 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version (CRuntime_Glibc)
+version (linux)
 {
-    version (SystemZ)
+    version (CRuntime_Musl)
+    {
+        struct sigaction_t
+        {
+            union
+            {
+                sigfn_t     sa_handler;
+                sigactfn_t  sa_sigaction;
+            }
+            sigset_t        sa_mask;
+            int             sa_flags;
+            void function() sa_restorer;
+        }
+    }
+    else version (CRuntime_Bionic)
+    {
+        version (D_LP64)
+        {
+            struct sigaction_t
+            {
+                int            sa_flags;
+                union
+                {
+                    sigfn_t    sa_handler;
+                    sigactfn_t sa_sigaction;
+                }
+                sigset_t        sa_mask;
+                void function() sa_restorer;
+        }
+        }
+        else
+        {
+            struct sigaction_t
+            {
+                union
+                {
+                    sigfn_t    sa_handler;
+                    sigactfn_t sa_sigaction;
+                }
+                sigset_t        sa_mask;
+                int             sa_flags;
+                void function() sa_restorer;
+            }
+        }
+    }
+    else version (SystemZ)
     {
         struct sigaction_t
         {
@@ -558,12 +603,108 @@ version (CRuntime_Glibc)
             {
                 sigfn_t     sa_handler;
             }
-            int             __glibc_reserved0;
-            int             sa_flags;
+            version (CRuntime_Glibc)
+            {
+                int         __glibc_reserved0;
+                int         sa_flags;
+            }
+            else
+            {
+                c_ulong     sa_flags;
+            }
 
             void function() sa_restorer;
 
             sigset_t        sa_mask;
+        }
+    }
+    else version (HPPA_Any)
+    {
+        struct sigaction_t
+        {
+            static if ( true /* __USE_POSIX199309 */ )
+            {
+                union
+                {
+                    sigfn_t     sa_handler;
+                    sigactfn_t  sa_sigaction;
+                }
+            }
+            else
+            {
+                sigfn_t     sa_handler;
+            }
+            version (CRuntime_Glibc)
+            {
+                version (D_LP64)
+                    int     __glibc_reserved0;
+                int         sa_flags;
+            }
+            else
+            {
+                c_ulong     sa_flags;
+            }
+            sigset_t        sa_mask;
+        }
+    }
+    else version (MIPS_Any)
+    {
+        struct sigaction_t
+        {
+            int sa_flags;
+
+            static if ( true /* __USE_POSIX199309 */ )
+            {
+                union
+                {
+                    sigfn_t     sa_handler;
+                    sigactfn_t  sa_sigaction;
+                }
+            }
+            else
+            {
+                sigfn_t     sa_handler;
+            }
+            sigset_t        sa_mask;
+            void function() sa_restorer;
+
+            version (CRuntime_Glibc)
+            {
+                static if ((void*).sizeof < 8)
+                    int[1]  sa_resv;
+            }
+        }
+    }
+    else version (SPARC_Any)
+    {
+        struct sigaction_t
+        {
+            static if ( true /* __USE_POSIX199309 */ )
+            {
+                union
+                {
+                    sigfn_t     sa_handler;
+                    sigactfn_t  sa_sigaction;
+                }
+            }
+            else
+            {
+                sigfn_t     sa_handler;
+            }
+            version (CRuntime_Glibc)
+            {
+                sigset_t    sa_mask;
+                version (D_LP64)
+                    int     __glibc_reserved0;
+                int         sa_flags;
+                void function() sa_restorer;
+            }
+            else
+            {
+                c_ulong     sa_flags;
+                void function() sa_restorer;
+                sigset_t    sa_mask;
+            }
         }
     }
     else
@@ -587,28 +728,6 @@ version (CRuntime_Glibc)
 
             void function() sa_restorer;
         }
-    }
-}
-else version (CRuntime_Musl)
-{
-    struct sigaction_t
-    {
-        static if ( true /* __USE_POSIX199309 */ )
-        {
-            union
-            {
-                sigfn_t     sa_handler;
-                sigactfn_t  sa_sigaction;
-            }
-        }
-        else
-        {
-            sigfn_t     sa_handler;
-        }
-        sigset_t        sa_mask;
-        int             sa_flags;
-
-        void function() sa_restorer;
     }
 }
 else version (FreeBSD)
@@ -683,91 +802,6 @@ else version (Solaris)
             int[2] sa_resv;
     }
 }
-else version (CRuntime_UClibc)
-{
-    version (ARM)           version = sigaction_common;
-    else version (X86_64)   version = sigaction_common;
-
-    version (sigaction_common)
-    {
-        struct sigaction_t
-        {
-            static if ( true /* __USE_POSIX199309 */ )
-            {
-                union
-                {
-                    sigfn_t     sa_handler;
-                    sigactfn_t  sa_sigaction;
-                }
-            }
-            else
-            {
-                sigfn_t     sa_handler;
-            }
-            c_ulong     sa_flags;
-            void function() sa_restorer;
-            sigset_t    sa_mask;
-        }
-    }
-    else version (MIPS32)
-    {
-        struct sigaction_t
-        {
-            uint     sa_flags;
-            static if ( true /* __USE_POSIX199309 */ )
-            {
-                union
-                {
-                    sigfn_t     sa_handler;
-                    sigactfn_t  sa_sigaction;
-                }
-            }
-            else
-            {
-                sigfn_t     sa_handler;
-            }
-            sigset_t    sa_mask;
-            void function() sa_restorer;
-        }
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
-}
-else version (CRuntime_Bionic)
-{
-    version (D_LP64)
-    {
-        struct sigaction_t
-        {
-            int            sa_flags;
-            union
-            {
-                sigfn_t    sa_handler;
-                sigactfn_t sa_sigaction;
-            }
-
-            sigset_t        sa_mask;
-            void function() sa_restorer;
-        }
-    }
-    else
-    {
-        struct sigaction_t
-        {
-            union
-            {
-                sigfn_t    sa_handler;
-                sigactfn_t sa_sigaction;
-            }
-
-            sigset_t        sa_mask;
-            int             sa_flags;
-            void function() sa_restorer;
-        }
-    }
-}
 else version (Darwin)
 {
     struct sigaction_t
@@ -808,12 +842,193 @@ SIGILL  (defined in core.stdc.signal)
 SIGINT  (defined in core.stdc.signal)
 SIGSEGV (defined in core.stdc.signal)
 SIGTERM (defined in core.stdc.signal)
+*/
 
+nothrow @nogc
+{
+
+version (CRuntime_Glibc)
+{
+    enum SIG_HOLD = cast(sigfn_t2) 1;
+
+    private enum _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
+
+    struct sigset_t
+    {
+        c_ulong[_SIGSET_NWORDS] __val;
+    }
+}
+else version (Darwin)
+{
+    enum SIG_HOLD = cast(sigfn_t2) 5;
+
+    alias uint sigset_t;
+}
+else version (FreeBSD)
+{
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
+}
+else version (NetBSD)
+{
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
+}
+else version (OpenBSD)
+{
+    enum SIG_CATCH = cast(sigfn_t2) 2;
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
+    alias sigset_t = uint;
+}
+else version (DragonFlyBSD)
+{
+    enum SIG_CATCH = cast(sigfn_t2) 2;
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
+}
+else version (Solaris)
+{
+    enum SIG_HOLD = cast(sigfn_t2)2;
+
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
+}
+else version (CRuntime_Bionic)
+{
+    version (X86)
+        alias uint sigset_t;
+    else version (ARM)
+        alias uint sigset_t;
+    else version (AArch64)
+        struct sigset_t { ulong[1] sig; }
+    else version (X86_64)
+        alias ulong sigset_t;
+    else
+        static assert(false, "Architecture not supported.");
+}
+else version (CRuntime_Musl)
+{
+    struct sigset_t
+    {
+        c_ulong[128/c_long.sizeof] __bits;
+    }
+}
+else version (CRuntime_UClibc)
+{
+    enum SIG_HOLD = cast(sigfn_t2) 2;
+
+    version (MIPS32)
+        private enum _SIGSET_NWORDS = 128 / (8 * c_ulong.sizeof);
+    else
+        private enum _SIGSET_NWORDS = 64 / (8 * c_ulong.sizeof);
+
+    struct sigset_t
+    {
+        c_ulong[_SIGSET_NWORDS] __val;
+    }
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
+
+/*
 SA_NOCLDSTOP (CX|XSI)
 SIG_BLOCK
 SIG_UNBLOCK
 SIG_SETMASK
+*/
 
+version (linux)
+{
+    enum SA_NOCLDSTOP   = 1; // (CX|XSI)
+
+    version (MIPS_Any)
+    {
+        enum SIG_BLOCK      = 1;
+        enum SIG_UNBLOCK    = 2;
+        enum SIG_SETMASK    = 3;
+    }
+    else version (SPARC_Any)
+    {
+        enum SIG_BLOCK      = 1;
+        enum SIG_UNBLOCK    = 2;
+        enum SIG_SETMASK    = 4;
+    }
+    else
+    {
+        enum SIG_BLOCK      = 0;
+        enum SIG_UNBLOCK    = 1;
+        enum SIG_SETMASK    = 2;
+    }
+}
+else version (Darwin)
+{
+    enum SA_NOCLDSTOP = 8; // (CX|XSI)
+
+    enum SIG_BLOCK   = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
+}
+else version (FreeBSD)
+{
+    enum SA_NOCLDSTOP = 8;
+
+    enum SIG_BLOCK = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
+}
+else version (NetBSD)
+{
+    enum SA_NOCLDSTOP = 8;
+
+    enum SIG_BLOCK = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
+}
+else version (OpenBSD)
+{
+    enum SA_NOCLDSTOP = 0x0008;
+
+    enum SIG_BLOCK = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
+}
+else version (DragonFlyBSD)
+{
+    enum SA_NOCLDSTOP = 8;
+
+    enum SIG_BLOCK = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
+}
+else version (Solaris)
+{
+    enum SIG_BLOCK = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
+
+/*
 struct siginfo_t
 {
     int     si_signo;
@@ -853,35 +1068,8 @@ int sigsuspend(const scope sigset_t*);
 int sigwait(const scope sigset_t*, int*);
 */
 
-nothrow @nogc
-{
-
 version (CRuntime_Glibc)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 1;
-
-    private enum _SIGSET_NWORDS = 1024 / (8 * c_ulong.sizeof);
-
-    struct sigset_t
-    {
-        c_ulong[_SIGSET_NWORDS] __val;
-    }
-
-    // pid_t  (defined in core.sys.types)
-
-    //SIGABRT (defined in core.stdc.signal)
-    //SIGFPE  (defined in core.stdc.signal)
-    //SIGILL  (defined in core.stdc.signal)
-    //SIGINT  (defined in core.stdc.signal)
-    //SIGSEGV (defined in core.stdc.signal)
-    //SIGTERM (defined in core.stdc.signal)
-
-    enum SA_NOCLDSTOP   = 1; // (CX|XSI)
-
-    enum SIG_BLOCK      = 0;
-    enum SIG_UNBLOCK    = 1;
-    enum SIG_SETMASK    = 2;
-
     private enum __SI_MAX_SIZE = 128;
 
     static if ( __WORDSIZE == 64 )
@@ -987,24 +1175,6 @@ version (CRuntime_Glibc)
 }
 else version (Darwin)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 5;
-
-    alias uint sigset_t;
-    // pid_t  (defined in core.sys.types)
-
-    //SIGABRT (defined in core.stdc.signal)
-    //SIGFPE  (defined in core.stdc.signal)
-    //SIGILL  (defined in core.stdc.signal)
-    //SIGINT  (defined in core.stdc.signal)
-    //SIGSEGV (defined in core.stdc.signal)
-    //SIGTERM (defined in core.stdc.signal)
-
-    enum SA_NOCLDSTOP = 8; // (CX|XSI)
-
-    enum SIG_BLOCK   = 1;
-    enum SIG_UNBLOCK = 2;
-    enum SIG_SETMASK = 3;
-
     struct siginfo_t
     {
         int     si_signo;
@@ -1039,19 +1209,6 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 3;
-
-    struct sigset_t
-    {
-        uint[4] __bits;
-    }
-
-    enum SA_NOCLDSTOP = 8;
-
-    enum SIG_BLOCK = 1;
-    enum SIG_UNBLOCK = 2;
-    enum SIG_SETMASK = 3;
-
     struct siginfo_t
     {
         int si_signo;
@@ -1117,19 +1274,6 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 3;
-
-    struct sigset_t
-    {
-        uint[4] __bits;
-    }
-
-    enum SA_NOCLDSTOP = 8;
-
-    enum SIG_BLOCK = 1;
-    enum SIG_UNBLOCK = 2;
-    enum SIG_SETMASK = 3;
-
     union sigval_t
     {
         int   sival_int;
@@ -1213,17 +1357,6 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    enum SIG_CATCH = cast(sigfn_t2) 2;
-    enum SIG_HOLD = cast(sigfn_t2) 3;
-
-    alias sigset_t = uint;
-
-    enum SA_NOCLDSTOP = 0x0008;
-
-    enum SIG_BLOCK = 1;
-    enum SIG_UNBLOCK = 2;
-    enum SIG_SETMASK = 3;
-
     private enum SI_MAXSZ = 128;
     private enum SI_PAD = (SI_MAXSZ / int.sizeof) - 3;
 
@@ -1289,20 +1422,6 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
-    enum SIG_CATCH = cast(sigfn_t2) 2;
-    enum SIG_HOLD = cast(sigfn_t2) 3;
-
-    struct sigset_t
-    {
-        uint[4] __bits;
-    }
-
-    enum SA_NOCLDSTOP = 8;
-
-    enum SIG_BLOCK = 1;
-    enum SIG_UNBLOCK = 2;
-    enum SIG_SETMASK = 3;
-
     struct siginfo_t
     {
         int si_signo;
@@ -1338,17 +1457,6 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    enum SIG_HOLD = cast(sigfn_t2)2;
-
-    struct sigset_t
-    {
-        uint[4] __bits;
-    }
-
-    enum SIG_BLOCK = 1;
-    enum SIG_UNBLOCK = 2;
-    enum SIG_SETMASK = 3;
-
     struct siginfo_t
     {
         int si_signo;
@@ -1467,33 +1575,15 @@ else version (CRuntime_Bionic)
     import core.stdc.string : memset;
 
     version (X86)
-    {
-        alias uint sigset_t;
         enum int LONG_BIT = 32;
-    }
     else version (ARM)
-    {
-        alias uint sigset_t;
         enum int LONG_BIT = 32;
-    }
     else version (AArch64)
-    {
-        struct sigset_t { ulong[1] sig; }
         enum int LONG_BIT = 64;
-    }
     else version (X86_64)
-    {
-        alias ulong sigset_t;
         enum int LONG_BIT = 64;
-    }
     else
-    {
         static assert(false, "Architecture not supported.");
-    }
-
-    enum SIG_BLOCK   = 0;
-    enum SIG_UNBLOCK = 1;
-    enum SIG_SETMASK = 2;
 
     private enum SI_MAX_SIZE = 128;
     private enum SI_PAD_SIZE = ((SI_MAX_SIZE / int.sizeof) - 3);
@@ -1601,24 +1691,6 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
-    struct sigset_t
-    {
-        c_ulong[128/c_long.sizeof] __bits;
-    }
-
-    version (MIPS_Any)
-    {
-        enum SIG_BLOCK      = 1;
-        enum SIG_UNBLOCK    = 2;
-        enum SIG_SETMASK    = 3;
-    }
-    else
-    {
-        enum SIG_BLOCK      = 0;
-        enum SIG_UNBLOCK    = 1;
-        enum SIG_SETMASK    = 2;
-    }
-
     struct siginfo_t
     {
         int si_signo;
@@ -1720,24 +1792,6 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_UClibc)
 {
-    enum SIG_HOLD = cast(sigfn_t2) 2;
-
-    version (MIPS32)
-        private enum _SIGSET_NWORDS = 128 / (8 * c_ulong.sizeof);
-    else
-        private enum _SIGSET_NWORDS = 64 / (8 * c_ulong.sizeof);
-
-    struct sigset_t
-    {
-        c_ulong[_SIGSET_NWORDS] __val;
-    }
-
-    enum SA_NOCLDSTOP   = 1;
-
-    enum SIG_BLOCK      = 0;
-    enum SIG_UNBLOCK    = 1;
-    enum SIG_SETMASK    = 2;
-
     private enum __SI_MAX_SIZE = 128;
 
     static if ( __WORDSIZE == 64 )
@@ -1978,86 +2032,6 @@ SIGTRAP
 SIGVTALRM
 SIGXCPU
 SIGXFSZ
-
-SA_ONSTACK
-SA_RESETHAND
-SA_RESTART
-SA_SIGINFO
-SA_NOCLDWAIT
-SA_NODEFER
-SS_ONSTACK
-SS_DISABLE
-MINSIGSTKSZ
-SIGSTKSZ
-
-ucontext_t // from ucontext
-mcontext_t // from ucontext
-
-struct stack_t
-{
-    void*   ss_sp;
-    size_t  ss_size;
-    int     ss_flags;
-}
-
-struct sigstack
-{
-    int   ss_onstack;
-    void* ss_sp;
-}
-
-ILL_ILLOPC
-ILL_ILLOPN
-ILL_ILLADR
-ILL_ILLTRP
-ILL_PRVOPC
-ILL_PRVREG
-ILL_COPROC
-ILL_BADSTK
-
-FPE_INTDIV
-FPE_INTOVF
-FPE_FLTDIV
-FPE_FLTOVF
-FPE_FLTUND
-FPE_FLTRES
-FPE_FLTINV
-FPE_FLTSUB
-
-SEGV_MAPERR
-SEGV_ACCERR
-
-BUS_ADRALN
-BUS_ADRERR
-BUS_OBJERR
-
-TRAP_BRKPT
-TRAP_TRACE
-
-CLD_EXITED
-CLD_KILLED
-CLD_DUMPED
-CLD_TRAPPED
-CLD_STOPPED
-CLD_CONTINUED
-
-POLL_IN
-POLL_OUT
-POLL_MSG
-POLL_ERR
-POLL_PRI
-POLL_HUP
-
-sigfn_t bsd_signal(int sig, sigfn_t func);
-sigfn_t sigset(int sig, sigfn_t func);
-
-int killpg(pid_t, int);
-int sigaltstack(const scope stack_t*, stack_t*);
-int sighold(int);
-int sigignore(int);
-int siginterrupt(int, int);
-int sigpause(int);
-int sigrelse(int);
 */
 
 version (CRuntime_Glibc)
@@ -2144,13 +2118,347 @@ version (CRuntime_Glibc)
     }
     else
         static assert(0, "unimplemented");
+}
+else version (Darwin)
+{
+    enum SIGPOLL        = 7;
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+}
+else version (FreeBSD)
+{
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+}
+else version (NetBSD)
+{
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+}
+else version (OpenBSD)
+{
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+}
+else version (DragonFlyBSD)
+{
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+}
+else version (Solaris)
+{
+    enum SIGPOLL = 22;
+    enum SIGPROF = 29;
+    enum SIGSYS = 12;
+    enum SIGTRAP = 5;
+    enum SIGVTALRM = 28;
+    enum SIGXCPU = 30;
+    enum SIGXFSZ = 31;
+}
+else version (CRuntime_Bionic)
+{
+    enum SIGPOLL   = 29;
+    enum SIGPROF   = 27;
+    enum SIGSYS    = 31;
+    enum SIGTRAP   = 5;
+    enum SIGVTALRM = 26;
+    enum SIGXCPU   = 24;
+    enum SIGXFSZ   = 25;
+}
+else version (CRuntime_Musl)
+{
+    version (MIPS_Any)
+    {
+        enum SIGPOLL   = 22;
+        enum SIGPROF   = 29;
+        enum SIGSYS    = 12;
+        enum SIGTRAP   = 5;
+        enum SIGVTALRM = 28;
+        enum SIGXCPU   = 30;
+        enum SIGXFSZ   = 31;
+    }
+    else
+    {
+        enum SIGPOLL   = 29;
+        enum SIGPROF   = 27;
+        enum SIGSYS    = 31;
+        enum SIGTRAP   = 5;
+        enum SIGVTALRM = 26;
+        enum SIGXCPU   = 24;
+        enum SIGXFSZ   = 25;
+    }
+}
+else version (CRuntime_UClibc)
+{
+    version (X86_64)
+    {
+        enum SIGTRAP         = 5;
+        enum SIGIOT          = 6;
+        enum SIGSTKFLT       = 16;
+        enum SIGCLD          = SIGCHLD;
+        enum SIGXCPU         = 24;
+        enum SIGXFSZ         = 25;
+        enum SIGVTALRM       = 26;
+        enum SIGPROF         = 27;
+        enum SIGWINCH        = 28;
+        enum SIGPOLL         = SIGIO;
+        enum SIGIO           = 29;
+        enum SIGPWR          = 30;
+        enum SIGSYS          = 31;
+        enum SIGUNUSED       = 31;
+    }
+    else version (MIPS32)
+    {
+        enum SIGTRAP = 5;
+        enum SIGIOT           = 6;
+        enum SIGEMT           = 7;
+        enum SIGFPE           = 8;
+        enum SIGSYS           = 12;
+        enum SIGCLD           = SIGCHLD;
+        enum SIGPWR           = 19;
+        enum SIGWINCH         = 20;
+        enum SIGIO            = 22;
+        enum SIGPOLL          = SIGIO;
+        enum SIGVTALRM        = 28;
+        enum SIGPROF          = 29;
+        enum SIGXCPU          = 30;
+        enum SIGXFSZ          = 31;
+    }
+    else version (ARM)
+    {
+        enum SIGTRAP = 5;
+        enum SIGIOT = 6;
+        enum SIGSTKFLT = 16;
+        enum SIGCLD = SIGCHLD;
+        enum SIGXCPU = 24;
+        enum SIGXFSZ = 25;
+        enum SIGVTALRM = 26;
+        enum SIGPROF = 27;
+        enum SIGWINCH = 28;
+        enum SIGPOLL = SIGIO;
+        enum SIGIO = 29;
+        enum SIGPWR = 30;
+        enum SIGSYS = 31;
+        enum SIGUNUSED = 31;
+    }
+    else
+        static assert(0, "unimplemented");
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
-    enum SA_ONSTACK     = 0x08000000;
-    enum SA_RESETHAND   = 0x80000000;
-    enum SA_RESTART     = 0x10000000;
-    enum SA_SIGINFO     = 4;
-    enum SA_NOCLDWAIT   = 2;
-    enum SA_NODEFER     = 0x40000000;
+/*
+SA_ONSTACK
+SA_RESETHAND
+SA_RESTART
+SA_SIGINFO
+SA_NOCLDWAIT
+SA_NODEFER
+*/
+
+version (linux)
+{
+    version (MIPS_Any)
+    {
+        enum SA_ONSTACK   = 0x08000000;
+        enum SA_RESETHAND = 0x80000000;
+        enum SA_RESTART   = 0x10000000;
+        enum SA_SIGINFO   = 8;
+        enum SA_NOCLDWAIT = 0x10000;
+        enum SA_NODEFER   = 0x40000000;
+    }
+    else
+    {
+        enum SA_ONSTACK   = 0x08000000;
+        enum SA_RESETHAND = 0x80000000;
+        enum SA_RESTART   = 0x10000000;
+        enum SA_SIGINFO   = 4;
+        enum SA_NOCLDWAIT = 2;
+        enum SA_NODEFER   = 0x40000000;
+    }
+
+    enum SA_NOMASK      = SA_NODEFER;
+    enum SA_ONESHOT     = SA_RESETHAND;
+    enum SA_STACK       = SA_ONSTACK;
+}
+else version (Darwin)
+{
+    enum SA_ONSTACK     = 0x0001;
+    enum SA_RESETHAND   = 0x0004;
+    enum SA_RESTART     = 0x0002;
+    enum SA_SIGINFO     = 0x0040;
+    enum SA_NOCLDWAIT   = 0x0020;
+    enum SA_NODEFER     = 0x0010;
+}
+else version (FreeBSD)
+{
+    enum
+    {
+        SA_ONSTACK      = 0x0001,
+        SA_RESTART      = 0x0002,
+        SA_RESETHAND    = 0x0004,
+        SA_NODEFER      = 0x0010,
+        SA_NOCLDWAIT    = 0x0020,
+        SA_SIGINFO      = 0x0040,
+    }
+}
+else version (NetBSD)
+{
+    enum
+    {
+        SA_ONSTACK      = 0x0001,
+        SA_RESTART      = 0x0002,
+        SA_RESETHAND    = 0x0004,
+        SA_NODEFER      = 0x0010,
+        SA_NOCLDWAIT    = 0x0020,
+        SA_SIGINFO      = 0x0040,
+    }
+}
+else version (OpenBSD)
+{
+    enum
+    {
+        SA_ONSTACK      = 0x0001,
+        SA_RESTART      = 0x0002,
+        SA_RESETHAND    = 0x0004,
+        SA_NODEFER      = 0x0010,
+        SA_NOCLDWAIT    = 0x0020,
+        SA_SIGINFO      = 0x0040,
+    }
+}
+else version (DragonFlyBSD)
+{
+    enum
+    {
+        SA_ONSTACK      = 0x0001,
+        SA_RESTART      = 0x0002,
+        SA_RESETHAND    = 0x0004,
+        SA_NODEFER      = 0x0010,
+        SA_NOCLDWAIT    = 0x0020,
+        SA_SIGINFO      = 0x0040,
+    }
+}
+else version (Solaris)
+{
+    enum
+    {
+        SA_ONSTACK = 0x00001,
+        SA_RESTART = 0x00004,
+        SA_RESETHAND = 0x00002,
+        SA_NODEFER = 0x00010,
+        SA_NOCLDWAIT = 0x10000,
+        SA_SIGINFO = 0x00008,
+    }
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
+
+/*
+SS_ONSTACK
+SS_DISABLE
+MINSIGSTKSZ
+SIGSTKSZ
+
+ucontext_t // from ucontext
+mcontext_t // from ucontext
+
+struct stack_t
+{
+    void*   ss_sp;
+    size_t  ss_size;
+    int     ss_flags;
+}
+
+struct sigstack
+{
+    int   ss_onstack;
+    void* ss_sp;
+}
+
+ILL_ILLOPC
+ILL_ILLOPN
+ILL_ILLADR
+ILL_ILLTRP
+ILL_PRVOPC
+ILL_PRVREG
+ILL_COPROC
+ILL_BADSTK
+
+FPE_INTDIV
+FPE_INTOVF
+FPE_FLTDIV
+FPE_FLTOVF
+FPE_FLTUND
+FPE_FLTRES
+FPE_FLTINV
+FPE_FLTSUB
+
+SEGV_MAPERR
+SEGV_ACCERR
+
+BUS_ADRALN
+BUS_ADRERR
+BUS_OBJERR
+
+TRAP_BRKPT
+TRAP_TRACE
+
+CLD_EXITED
+CLD_KILLED
+CLD_DUMPED
+CLD_TRAPPED
+CLD_STOPPED
+CLD_CONTINUED
+
+POLL_IN
+POLL_OUT
+POLL_MSG
+POLL_ERR
+POLL_PRI
+POLL_HUP
+
+sigfn_t bsd_signal(int sig, sigfn_t func);
+sigfn_t sigset(int sig, sigfn_t func);
+
+int killpg(pid_t, int);
+int sigaltstack(const scope stack_t*, stack_t*);
+int sighold(int);
+int sigignore(int);
+int siginterrupt(int, int);
+int sigpause(int);
+int sigrelse(int);
+*/
+
+version (CRuntime_Glibc)
+{
     enum SS_ONSTACK     = 1;
     enum SS_DISABLE     = 2;
     enum MINSIGSTKSZ    = 2048;
@@ -2253,20 +2561,6 @@ version (CRuntime_Glibc)
 }
 else version (Darwin)
 {
-    enum SIGPOLL        = 7;
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-
-    enum SA_ONSTACK     = 0x0001;
-    enum SA_RESETHAND   = 0x0004;
-    enum SA_RESTART     = 0x0002;
-    enum SA_SIGINFO     = 0x0040;
-    enum SA_NOCLDWAIT   = 0x0020;
-    enum SA_NODEFER     = 0x0010;
     enum SS_ONSTACK     = 0x0001;
     enum SS_DISABLE     = 0x0004;
     enum MINSIGSTKSZ    = 32768;
@@ -2363,24 +2657,6 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    // No SIGPOLL on *BSD
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-
-    enum
-    {
-        SA_ONSTACK      = 0x0001,
-        SA_RESTART      = 0x0002,
-        SA_RESETHAND    = 0x0004,
-        SA_NODEFER      = 0x0010,
-        SA_NOCLDWAIT    = 0x0020,
-        SA_SIGINFO      = 0x0040,
-    }
-
     enum
     {
         SS_ONSTACK = 0x0001,
@@ -2487,24 +2763,6 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-    // No SIGPOLL on *BSD
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-
-    enum
-    {
-        SA_ONSTACK      = 0x0001,
-        SA_RESTART      = 0x0002,
-        SA_RESETHAND    = 0x0004,
-        SA_NODEFER      = 0x0010,
-        SA_NOCLDWAIT    = 0x0020,
-        SA_SIGINFO      = 0x0040,
-    }
-
     enum
     {
         SS_ONSTACK = 0x0001,
@@ -2611,24 +2869,6 @@ else version (NetBSD)
 }
 else version (OpenBSD)
 {
-    // No SIGPOLL on *BSD
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-
-    enum
-    {
-        SA_ONSTACK      = 0x0001,
-        SA_RESTART      = 0x0002,
-        SA_RESETHAND    = 0x0004,
-        SA_NODEFER      = 0x0010,
-        SA_NOCLDWAIT    = 0x0020,
-        SA_SIGINFO      = 0x0040,
-    }
-
     enum
     {
         SS_ONSTACK = 0x0001,
@@ -2727,24 +2967,6 @@ else version (OpenBSD)
 }
 else version (DragonFlyBSD)
 {
-    // No SIGPOLL on *BSD
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 12;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-
-    enum
-    {
-        SA_ONSTACK      = 0x0001,
-        SA_RESTART      = 0x0002,
-        SA_RESETHAND    = 0x0004,
-        SA_NODEFER      = 0x0010,
-        SA_NOCLDWAIT    = 0x0020,
-        SA_SIGINFO      = 0x0040,
-    }
-
     enum
     {
         SS_ONSTACK = 0x0001,
@@ -2851,24 +3073,6 @@ else version (DragonFlyBSD)
 }
 else version (Solaris)
 {
-    enum SIGPOLL = 22;
-    enum SIGPROF = 29;
-    enum SIGSYS = 12;
-    enum SIGTRAP = 5;
-    enum SIGVTALRM = 28;
-    enum SIGXCPU = 30;
-    enum SIGXFSZ = 31;
-
-    enum
-    {
-        SA_ONSTACK = 0x00001,
-        SA_RESTART = 0x00004,
-        SA_RESETHAND = 0x00002,
-        SA_NODEFER = 0x00010,
-        SA_NOCLDWAIT = 0x10000,
-        SA_SIGINFO = 0x00008,
-    }
-
     enum
     {
         SS_ONSTACK = 0x0001,
@@ -2975,20 +3179,6 @@ else version (Solaris)
 }
 else version (CRuntime_Bionic)
 {
-    enum SIGPOLL   = 29;
-    enum SIGPROF   = 27;
-    enum SIGSYS    = 31;
-    enum SIGTRAP   = 5;
-    enum SIGVTALRM = 26;
-    enum SIGXCPU   = 24;
-    enum SIGXFSZ   = 25;
-
-    enum SA_ONSTACK     = 0x08000000;
-    enum SA_RESETHAND   = 0x80000000;
-    enum SA_RESTART     = 0x10000000;
-    enum SA_SIGINFO     = 4;
-    enum SA_NOCLDWAIT   = 2;
-    enum SA_NODEFER     = 0x40000000;
     enum SS_ONSTACK     = 1;
     enum SS_DISABLE     = 2;
     enum MINSIGSTKSZ    = 2048;
@@ -3076,41 +3266,6 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
-    version (MIPS_Any)
-    {
-        enum SIGPOLL   = 22;
-        enum SIGPROF   = 29;
-        enum SIGSYS    = 12;
-        enum SIGTRAP   = 5;
-        enum SIGVTALRM = 28;
-        enum SIGXCPU   = 30;
-        enum SIGXFSZ   = 31;
-
-        enum SA_ONSTACK   = 0x08000000;
-        enum SA_RESETHAND = 0x80000000;
-        enum SA_RESTART   = 0x10000000;
-        enum SA_SIGINFO   = 8;
-        enum SA_NOCLDWAIT = 0x10000;
-        enum SA_NODEFER   = 0x40000000;
-    }
-    else
-    {
-        enum SIGPOLL   = 29;
-        enum SIGPROF   = 27;
-        enum SIGSYS    = 31;
-        enum SIGTRAP   = 5;
-        enum SIGVTALRM = 26;
-        enum SIGXCPU   = 24;
-        enum SIGXFSZ   = 25;
-
-        enum SA_ONSTACK   = 0x08000000;
-        enum SA_RESETHAND = 0x80000000;
-        enum SA_RESTART   = 0x10000000;
-        enum SA_SIGINFO   = 4;
-        enum SA_NOCLDWAIT = 2;
-        enum SA_NODEFER   = 0x40000000;
-    }
-
     enum SS_ONSTACK = 1;
     enum SS_DISABLE = 2;
 
@@ -3250,76 +3405,10 @@ else version (CRuntime_Musl)
 }
 else version (CRuntime_UClibc)
 {
-    version (X86_64)
-    {
-        enum SIGTRAP         = 5;
-        enum SIGIOT          = 6;
-        enum SIGSTKFLT       = 16;
-        enum SIGCLD          = SIGCHLD;
-        enum SIGXCPU         = 24;
-        enum SIGXFSZ         = 25;
-        enum SIGVTALRM       = 26;
-        enum SIGPROF         = 27;
-        enum SIGWINCH        = 28;
-        enum SIGPOLL         = SIGIO;
-        enum SIGIO           = 29;
-        enum SIGPWR          = 30;
-        enum SIGSYS          = 31;
-        enum SIGUNUSED       = 31;
-    }
-    else version (MIPS32)
-    {
-        enum SIGTRAP = 5;
-        enum SIGIOT           = 6;
-        enum SIGEMT           = 7;
-        enum SIGFPE           = 8;
-        enum SIGSYS           = 12;
-        enum SIGCLD           = SIGCHLD;
-        enum SIGPWR           = 19;
-        enum SIGWINCH         = 20;
-        enum SIGIO            = 22;
-        enum SIGPOLL          = SIGIO;
-        enum SIGVTALRM        = 28;
-        enum SIGPROF          = 29;
-        enum SIGXCPU          = 30;
-        enum SIGXFSZ          = 31;
-    }
-    else version (ARM)
-    {
-        enum SIGTRAP = 5;
-        enum SIGIOT = 6;
-        enum SIGSTKFLT = 16;
-        enum SIGCLD = SIGCHLD;
-        enum SIGXCPU = 24;
-        enum SIGXFSZ = 25;
-        enum SIGVTALRM = 26;
-        enum SIGPROF = 27;
-        enum SIGWINCH = 28;
-        enum SIGPOLL = SIGIO;
-        enum SIGIO = 29;
-        enum SIGPWR = 30;
-        enum SIGSYS = 31;
-        enum SIGUNUSED = 31;
-    }
-    else
-        static assert(0, "unimplemented");
-
-    enum SA_ONSTACK     = 0x08000000;
-    enum SA_RESETHAND   = 0x80000000;
-    enum SA_RESTART     = 0x10000000;
-    enum SA_SIGINFO     = 4;
-    enum SA_NOCLDWAIT   = 2;
-    enum SA_NODEFER     = 0x40000000;
     enum SS_ONSTACK     = 1;
     enum SS_DISABLE     = 2;
     enum MINSIGSTKSZ    = 2048;
     enum SIGSTKSZ       = 8192;
-
-    enum SA_INTERRUPT   = 0x20000000;
-
-    enum SA_NOMASK      = SA_NODEFER;
-    enum SA_ONESHOT     = SA_RESETHAND;
-    enum SA_STACK       = SA_ONSTACK;
 
     version (MIPS32)
     {
