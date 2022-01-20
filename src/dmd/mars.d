@@ -264,7 +264,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_FAILURE;
     }
 
-    reconcileCommands(params);
+    reconcileCommands(params, target);
 
     // Add in command line versions
     if (params.versionids)
@@ -284,7 +284,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Expression._init();
     Objc._init();
 
-    reconcileLinkRunLib(params, files.dim);
+    reconcileLinkRunLib(params, files.dim, target.obj_ext);
     version(CRuntime_Microsoft)
     {
         import dmd.root.longdouble;
@@ -334,7 +334,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.filePath = buildPath(params.fileImppath);
 
     // Create Modules
-    Modules modules = createModules(files, libmodules);
+    Modules modules = createModules(files, libmodules, target);
     // Read files
     // Start by "reading" the special file __stdin.d
     foreach (m; modules)
@@ -722,7 +722,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
 
-    if (parseCommandLine(arguments, argc, params, files))
+    if (parseCommandLine(arguments, argc, params, files, target))
     {
         Loc loc;
         errorSupplemental(loc, "run `dmd` to print the compiler manual");
@@ -1442,11 +1442,12 @@ extern(C) void flushMixins()
  *      argc = argument count
  *      params = set to result of parsing `arguments`
  *      files = set to files pulled from `arguments`
+ *      target = more things set to result of parsing `arguments`
  * Returns:
  *      true if errors in command line
  */
 
-bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files)
+bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files, ref Target target)
 {
     bool errors;
 
@@ -2582,10 +2583,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
  * Params:
  *      params = switches gathered from command line,
  *               and update in place
+ *      target = more switches from the command line,
+ *               update in place
  *      numSrcFiles = number of source files
  */
 version (NoMain) {} else
-private void reconcileCommands(ref Param params)
+private void reconcileCommands(ref Param params, ref Target target)
 {
     if (target.os == Target.OS.OSX)
     {
@@ -2703,7 +2706,6 @@ private void reconcileCommands(ref Param params)
         params.useTypeInfo = false;
         params.useExceptions = false;
     }
-
 }
 
 /***********************************************
@@ -2712,9 +2714,10 @@ private void reconcileCommands(ref Param params)
  *      params = switches gathered from command line,
  *               and update in place
  *      numSrcFiles = number of source files
+ *      obj_ext = object file extension
  */
 version (NoMain) {} else
-private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles)
+private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_ext)
 {
     if (!params.obj || params.lib)
         params.link = false;
@@ -2727,7 +2730,7 @@ private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles)
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            params.objname = FileName.forceExt(params.objname, target.obj_ext);
+            params.objname = FileName.forceExt(params.objname, obj_ext);
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
@@ -2786,11 +2789,13 @@ Params:
   file = File name to dispatch
   libmodules = Array to which binaries (shared/static libs and object files)
                will be appended
+  target = target system
 
 Returns:
   A D module
 */
-Module createModule(const(char)* file, ref Strings libmodules)
+private
+Module createModule(const(char)* file, ref Strings libmodules, const ref Target target)
 {
     const(char)[] name;
     version (Windows)
@@ -2909,18 +2914,20 @@ Params:
   files = File names to dispatch
   libmodules = Array to which binaries (shared/static libs and object files)
                will be appended
+  target = target system
 
 Returns:
   An array of path to D modules
 */
-Modules createModules(ref Strings files, ref Strings libmodules)
+private
+Modules createModules(ref Strings files, ref Strings libmodules, const ref Target target)
 {
     Modules modules;
     modules.reserve(files.dim);
     bool firstmodule = true;
     foreach(file; files)
     {
-        auto m = createModule(file, libmodules);
+        auto m = createModule(file, libmodules, target);
 
         if (m is null)
             continue;
