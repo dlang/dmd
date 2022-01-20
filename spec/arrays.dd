@@ -219,27 +219,6 @@ foo(b[1]);   // equivalent to foo(3)
 )
 
         $(P $(I Identifier)[] is shorthand for a slice of the entire array.
-        For example, the assignments to b:
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
----------
-int[10] a = [ 1,2,3,4,5,6,7,8,9,10 ];
-int[] b1, b2, b3, b4;
-
-b1 = a;
-b2 = a[];
-b3 = a[0 .. a.length];
-b4 = a[0 .. $];
-writeln(b1);
-writeln(b2);
-writeln(b3);
-writeln(b4);
-
----------
-)
-
-        $(P are all semantically equivalent.
         )
 
         $(P Slicing
@@ -262,6 +241,34 @@ writeln(b[7]);      // 10
 )
 
     $(P See also $(GLINK2 expression, SliceExpression).)
+
+
+$(H2 $(LNAME2 array-length, Array Length))
+
+        $(P When indexing or slicing a static or dynamic array,
+        the symbol $(D $) represents the length of the array.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int[4] foo;
+int[]  bar = foo;
+
+// These expressions are equivalent:
+bar = foo;
+bar = foo[];
+bar = foo[0 .. 4];
+bar = foo[0 .. $];
+bar = foo[0 .. foo.length];
+
+int* p = foo.ptr;
+//bar = p[0 .. $]; // error, '$' is not defined, since p is not an array
+
+int i;
+//i = foo[0]+$; // error, '$' is not defined, out of scope of [ ]
+i = bar[$-1]; // retrieves last element of the array
+---------
+)
 
 
 $(H2 $(LNAME2 array-copying, Array Copying))
@@ -510,35 +517,6 @@ matrix[2][5] = 3.14; // Assignment to bottom right element.
 writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 3.14]]
 
 static assert(!__traits(compiles, matrix[5][2])); // Array index out of bounds.
----------
-)
-
-$(H2 $(LNAME2 array-length, Array Length))
-
-
-        $(P Within the [ ] of a static or a dynamic array,
-        the symbol $(D $)
-        represents the length of the array.
-        )
-
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
----------
-int[4] foo;
-int[]  bar = foo;
-int*   p = &foo[0];
-
-// These expressions are equivalent:
-bar[]
-bar[0 .. 4]
-bar[0 .. $]
-bar[0 .. bar.length]
-
-
-p[0 .. $]      // '$' is not defined, since p is not an array
-bar[0]+$            // '$' is not defined, out of scope of [ ]
-
-bar[$-1] // retrieves last element of the array
 ---------
 )
 
