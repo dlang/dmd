@@ -2092,7 +2092,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return tup.expressionSemantic(sc);
     }
     //https://issues.dlang.org/show_bug.cgi?id=22291
-    if(e.ident == Id.parameters)
+    if (e.ident == Id.parameters)
     {
         //No args are valid
         if(e.args)

@@ -1,4 +1,4 @@
-Add `__traits(parameters)`
+`__traits(parameters)` has been added to the compiler.
 
 If used inside a function, this trait yields a
 tuple of the parameters to that function for example:
@@ -56,7 +56,7 @@ int testNested(int x)
 }
 ---
 
-When used inside a `foreach` utilizing an overloaded `opApply`, the trait yields
+When used inside a `foreach` using an overloaded `opApply`, the trait yields
 the parameters to the delegate and not the function the foreach appears within.
 
 ---
