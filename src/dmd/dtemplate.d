@@ -7311,7 +7311,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
                 {
                     Dsymbol dparent = sa.toParent2();
-                    if (!dparent)
+                    if (!dparent || dparent.isModule)
                         goto L1;
                     else if (!enclosing)
                         enclosing = dparent;
