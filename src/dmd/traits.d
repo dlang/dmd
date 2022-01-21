@@ -2095,7 +2095,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.parameters)
     {
         //No args are valid
-        if(e.args)
+        if (e.args)
         {
             char[] contents = cast(char[]) e.args.toString();
             contents = contents[1..$];
@@ -2104,7 +2104,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        if(sc.func is null)
+        if (sc.func is null)
         {
             e.error("`__traits(parameters)` may only be used inside a function");
             return ErrorExp.get();
