@@ -35,7 +35,8 @@ final class CParser(AST) : Parser!AST
 {
     AST.Dsymbols* symbols;      // symbols declared in current scope
 
-    bool addFuncName;             /// add declaration of __func__ to function symbol table
+    bool addFuncName;           /// add declaration of __func__ to function symbol table
+    bool importBuiltins;        /// seen use of C compiler builtins, so import __builtins;
 
     extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,
                             const ref TARGET target)
@@ -81,6 +82,15 @@ final class CParser(AST) : Parser!AST
                 auto wrap = new AST.Dsymbols();
                 auto ld = new AST.LinkDeclaration(token.loc, LINK.c, symbols);
                 wrap.push(ld);
+
+                if (importBuiltins)
+                {
+                    /* Seen references to C builtin functions.
+                     * Import their definitions
+                     */
+                    auto s = new AST.Import(Loc.initial, null, Id.builtins, null, false);
+                    wrap.push(s);
+                }
 
                 return wrap;
             }
@@ -596,6 +606,7 @@ final class CParser(AST) : Parser!AST
      *    string-literal
      *    ( expression )
      *    generic-selection
+     *    __builtin_va_arg(assign_expression, type)
      */
     AST.Expression cparsePrimaryExp()
     {
@@ -606,9 +617,20 @@ final class CParser(AST) : Parser!AST
         switch (token.value)
         {
         case TOK.identifier:
-            if (token.ident is Id.__func__)
+            const id = token.ident.toString();
+            if (id.length > 2 && id[0] == '_' && id[1] == '_')  // leading double underscore
             {
-                addFuncName = true;     // implicitly declare __func__
+                if (token.ident is Id.__func__)
+                {
+                    addFuncName = true;     // implicitly declare __func__
+                }
+                else if (token.ident is Id.builtin_va_arg)
+                {
+                    e = cparseBuiltin_va_arg();
+                    break;
+                }
+                else
+                    importBuiltins = true;  // probably one of those compiler extensions
             }
             e = new AST.IdentifierExp(loc, token.ident);
             nextToken();
@@ -1447,6 +1469,40 @@ final class CParser(AST) : Parser!AST
     private AST.Expression cparseConstantExp()
     {
         return cparseAssignExp();
+    }
+
+    /*****************************
+     * gcc extension:
+     *    type __builtin_va_arg(assign-expression, type)
+     * Rewrite as `va_arg` template from `core.stdc.stdarg`:
+     *    va_arg!(type)(assign-expression);
+     * Lexer is on `__builtin_va_arg`
+     */
+    private AST.Expression cparseBuiltin_va_arg()
+    {
+        importBuiltins = true;  // need core.stdc.stdarg
+
+        nextToken();
+        check(TOK.leftParenthesis);
+
+        auto arguments = new AST.Expressions();
+        auto arg = cparseAssignExp();
+        arguments.push(arg);
+
+        check(TOK.comma);
+
+        auto t = cparseTypeName();
+        auto tiargs = new AST.Objects();
+        tiargs.push(t);
+
+        const loc = loc;
+        auto ti = new AST.TemplateInstance(loc, Id.va_arg, tiargs);
+        auto tie = new AST.ScopeExp(loc, ti);
+
+        AST.Expression e = new AST.CallExp(loc, tie, arguments);
+
+        check(TOK.rightParenthesis);
+        return e;
     }
 
     //}
@@ -4396,6 +4452,8 @@ final class CParser(AST) : Parser!AST
      */
     private void addBuiltinDeclarations()
     {
+        importBuiltins = true;
+
         void genBuiltinFunc(Identifier id, AST.VarArg va)
         {
             auto tva_list = new AST.TypeIdentifier(Loc.initial, Id.builtin_va_list);
@@ -4410,19 +4468,19 @@ final class CParser(AST) : Parser!AST
         /* void __builtin_va_start(__builtin_va_list, ...);
          * The second argument is supposed to be of any type, so fake it with the ...
          */
-        genBuiltinFunc(Id.builtin_va_start, AST.VarArg.variadic);
+        //genBuiltinFunc(Id.builtin_va_start, AST.VarArg.variadic);
 
         /* void __builtin_va_end(__builtin_va_list);
          */
-        genBuiltinFunc(Id.builtin_va_end, AST.VarArg.none);
+        //genBuiltinFunc(Id.builtin_va_end, AST.VarArg.none);
 
         /* struct __va_list_tag
          * {
          *    uint, uint, void*, void*
          * }
          */
-        auto s = new AST.StructDeclaration(Loc.initial, Id.va_list_tag, false);
-        symbols.push(s);
+//        auto s = new AST.StructDeclaration(Loc.initial, Id.va_list_tag, false);
+//        symbols.push(s);
     }
 
     //}
