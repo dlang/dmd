@@ -73,7 +73,6 @@ final class CParser(AST) : Parser!AST
     {
         //printf("cparseTranslationUnit()\n");
         symbols = new AST.Dsymbols();
-        addBuiltinDeclarations();
         while (1)
         {
             if (token.value == TOK.endOfFile)
@@ -1824,6 +1823,7 @@ final class CParser(AST) : Parser!AST
             if (pl.varargs != AST.VarArg.none && pl.length)
                 error("function identifier-list cannot end with `...`");
             ft.parameterList.varargs = AST.VarArg.variadic;     // but C11 allows extra arguments
+            importBuiltins = true;                              // will need __va_list_tag
             auto plLength = pl.length;
             if (symbols.length != plLength)
                 error("%d identifiers does not match %d declarations", cast(int)plLength, cast(int)symbols.length);
@@ -2286,8 +2286,14 @@ final class CParser(AST) : Parser!AST
             case TKW.xcomplex | TKW.xdouble:               t = AST.Type.tcomplex64; break;
             case TKW.xcomplex | TKW.xlong | TKW.xdouble:   t = realType(RTFlags.complex); break;
 
-            case TKW.xident:                    t = new AST.TypeIdentifier(loc, previd);
+            case TKW.xident:
+            {
+                const idx = previd.toString();
+                if (idx.length > 2 && idx[0] == '_' && idx[1] == '_')  // leading double underscore
+                    importBuiltins = true;  // probably one of those compiler extensions
+                t = new AST.TypeIdentifier(loc, previd);
                 break;
+            }
 
             case TKW.xtag:
                 break;          // t is already set
@@ -2655,6 +2661,7 @@ final class CParser(AST) : Parser!AST
         if (token.value == TOK.rightParenthesis)        // func()
         {
             nextToken();
+            importBuiltins = true;                              // will need __va_list_tag
             return AST.ParameterList(parameters, AST.VarArg.variadic, varargsStc);
         }
 
@@ -2669,6 +2676,7 @@ final class CParser(AST) : Parser!AST
             {
                 if (parameters.length == 0)     // func(...)
                     error("named parameter required before `...`");
+                importBuiltins = true;          // will need __va_list_tag
                 varargs = AST.VarArg.variadic;  // C-style variadics
                 nextToken();
                 check(TOK.rightParenthesis);
@@ -4445,42 +4453,6 @@ final class CParser(AST) : Parser!AST
             s = new AST.AlignDeclaration(s.loc, specifier.packalign, decls);
         }
         return s;
-    }
-
-    /***********************************
-     * Add global target-dependent builtin declarations.
-     */
-    private void addBuiltinDeclarations()
-    {
-        importBuiltins = true;
-
-        void genBuiltinFunc(Identifier id, AST.VarArg va)
-        {
-            auto tva_list = new AST.TypeIdentifier(Loc.initial, Id.builtin_va_list);
-            auto parameters = new AST.Parameters();
-            parameters.push(new AST.Parameter(STC.parameter | STC.ref_, tva_list, null, null, null));
-            auto pl = AST.ParameterList(parameters, va, 0);
-            auto tf = new AST.TypeFunction(pl, AST.Type.tvoid, LINK.c, 0);
-            auto s = new AST.FuncDeclaration(Loc.initial, Loc.initial, id, AST.STC.static_, tf, false);
-            symbols.push(s);
-        }
-
-        /* void __builtin_va_start(__builtin_va_list, ...);
-         * The second argument is supposed to be of any type, so fake it with the ...
-         */
-        //genBuiltinFunc(Id.builtin_va_start, AST.VarArg.variadic);
-
-        /* void __builtin_va_end(__builtin_va_list);
-         */
-        //genBuiltinFunc(Id.builtin_va_end, AST.VarArg.none);
-
-        /* struct __va_list_tag
-         * {
-         *    uint, uint, void*, void*
-         * }
-         */
-//        auto s = new AST.StructDeclaration(Loc.initial, Id.va_list_tag, false);
-//        symbols.push(s);
     }
 
     //}

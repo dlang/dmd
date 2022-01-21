@@ -5626,11 +5626,6 @@ elem *callfunc(const ref Loc loc,
         else
             e = el_una(op,tyret,ep);
     }
-    else if (irs.Cfile && (e = builtinC(fd, ep)) !is null)
-    {
-        // handled magic C builtins
-        el_free(ec);
-    }
     else
     {
         // `OPcallns` used to be passed here for certain pure functions,
@@ -6850,41 +6845,6 @@ elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis
     *eside = el_combine(eeq1, *eside);
 
     return ethis2;
-}
-
-/*********************************************
- * Handle magic C __builtin functions.
- * Params:
- *      fd = magic function declaration
- *      e  = function parameters
- * Returns:
- *      if not null, then the rewrite of the magic function call
- */
-private
-elem* builtinC(FuncDeclaration fd, elem* e)
-{
-    if (!fd)
-        return null;
-    const id = fd.ident;
-    if (id == Id.builtin_va_start)
-    {
-        if (target.is64bit)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=22597
-            // callfunc reverses the parameters, swap them back for the
-            // intrinsic lowering.
-            auto earg = e.EV.E1;
-            e.EV.E1 = e.EV.E2;
-            e.EV.E2 = earg;
-        }
-        return constructVa_start(e);
-    }
-    else if (id == Id.builtin_va_end)
-    {
-        assert(e.Eoper != OPparam);       // one parameter only
-        return el_una(OPbool, TYbool, e); // evaluate ep for side effects only
-    }
-    return null;
 }
 
 /*******************************
