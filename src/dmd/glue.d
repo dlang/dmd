@@ -340,7 +340,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
 
     version (Windows)
     {
-        // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
+        // Produce Ms COFF files by default, OMF for -m32omf
         assert(objbuf.length() == 0);
         switch (target.objectFormat())
         {

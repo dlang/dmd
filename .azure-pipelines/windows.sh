@@ -73,8 +73,11 @@ fi
 ################################################################################
 # Build DMD (incl. building and running the unittests)
 ################################################################################
-
-DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
+if [ "$MODEL" == "32omf" ] ; then
+    DMD_BIN_PATH="$DMD_DIR/generated/windows/release/32/dmd"
+else
+    DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$MODEL/dmd"
+fi
 
 cd "$DMD_DIR/src"
 "$DM_MAKE" -f "$MAKE_FILE" MAKE="$DM_MAKE" BUILD=debug unittest

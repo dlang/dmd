@@ -146,7 +146,7 @@ extern (C++) struct Target
     const(char)[] lib_ext;    /// extension for static library files
     const(char)[] dll_ext;    /// extension for dynamic library files
     bool run_noext;           /// allow -run sources without extensions
-    bool mscoff = false;      // for Win32: write MsCoff object files instead of OMF
+    bool omfobj = false;      // for Win32: write OMF object files instead of MsCoff
     /**
      * Values representing all properties for floating point types
      */
@@ -194,7 +194,7 @@ extern (C++) struct Target
      */
     extern (C++) void _init(ref const Param params)
     {
-        // is64bit, mscoff and cpu are initialized in parseCommandLine
+        // is64bit, omfobj and cpu are initialized in parseCommandLine
 
         this.params = &params;
 
@@ -257,10 +257,6 @@ extern (C++) struct Target
                 realpad = 6;
                 realalignsize = 16;
             }
-            else if (os == OS.Windows)
-            {
-                mscoff = true;
-            }
         }
 
         c.initialize(params, this);
@@ -303,7 +299,7 @@ extern (C++) struct Target
         else if (os & Target.OS.Posix)
             return Target.ObjectFormat.elf;
         else if (os == Target.OS.Windows)
-            return mscoff ? Target.ObjectFormat.coff : Target.ObjectFormat.omf;
+            return omfobj ? Target.ObjectFormat.omf : Target.ObjectFormat.coff;
         else
             assert(0, "unkown object format");
     }
@@ -789,7 +785,7 @@ extern (C++) struct Target
                 return false;
             return true;
         }
-        else if (os == Target.OS.Windows && mscoff)
+        else if (os == Target.OS.Windows)
         {
             Type tb = tns.baseElemOf();
             if (tb.ty == TY.Tstruct)
@@ -1029,7 +1025,7 @@ extern (C++) struct Target
         {
             case objectFormat.stringof:
                 if (os == Target.OS.Windows)
-                    return stringExp(mscoff ? "coff" : "omf");
+                    return stringExp(omfobj ? "omf" : "coff" );
                 else if (os == Target.OS.OSX)
                     return stringExp("macho");
                 else
@@ -1039,9 +1035,9 @@ extern (C++) struct Target
             case cppRuntimeLibrary.stringof:
                 if (os == Target.OS.Windows)
                 {
-                    if (mscoff)
-                        return stringExp(params.mscrtlib);
-                    return stringExp("snn");
+                    if (omfobj)
+                        return stringExp("snn");
+                    return stringExp(params.mscrtlib);
                 }
                 return stringExp("");
             case cppStd.stringof:
@@ -1094,7 +1090,7 @@ extern (C++) struct Target
      */
     extern (C++) bool supportsLinkerDirective() const
     {
-        return mscoff;
+        return os == Target.OS.Windows && !omfobj;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1186,7 +1182,7 @@ struct TargetC
             wchar_tsize = 4;
 
         if (os == Target.OS.Windows)
-            runtime = target.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
+            runtime = target.omfobj ? Runtime.DigitalMars : Runtime.Microsoft;
         else if (os == Target.OS.linux)
         {
             // Note: This is overridden later by `-target=<triple>` if supplied.
@@ -1198,7 +1194,7 @@ struct TargetC
         }
 
         if (os == Target.OS.Windows)
-            bitFieldStyle = target.mscoff ? BitFieldStyle.MS : BitFieldStyle.DM;
+            bitFieldStyle = target.omfobj ? BitFieldStyle.DM : BitFieldStyle.MS;
         else if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OSX |
                        Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             bitFieldStyle = BitFieldStyle.Gcc_Clang;
@@ -1251,13 +1247,13 @@ struct TargetCPP
         else if (os == Target.OS.Windows)
         {
             reverseOverloads = true;
-            splitVBasetable = target.mscoff;
+            splitVBasetable = !target.omfobj;
         }
         else
             assert(0);
         exceptions = (os & Target.OS.Posix) != 0;
         if (os == Target.OS.Windows)
-            runtime = target.mscoff ? Runtime.Microsoft : Runtime.DigitalMars;
+            runtime = target.omfobj ? Runtime.DigitalMars : Runtime.Microsoft;
         else if (os & (Target.OS.linux | Target.OS.DragonFlyBSD))
             runtime = Runtime.Gcc;
         else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
@@ -1286,10 +1282,10 @@ struct TargetCPP
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
         {
-            if (target.mscoff)
-                return toCppMangleMSVC(s);
-            else
+            if (target.omfobj)
                 return toCppMangleDMC(s);
+            else
+                return toCppMangleMSVC(s);
         }
         else
             assert(0, "fix this");
@@ -1311,10 +1307,10 @@ struct TargetCPP
             return cppTypeInfoMangleItanium(cd);
         if (target.os == Target.OS.Windows)
         {
-            if (target.mscoff)
-                return cppTypeInfoMangleMSVC(cd);
-            else
+            if (target.omfobj)
                 return cppTypeInfoMangleDMC(cd);
+            else
+                return cppTypeInfoMangleMSVC(cd);
         }
         else
             assert(0, "fix this");
