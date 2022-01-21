@@ -7413,3 +7413,45 @@ const(char)* toChars(ScopeRef sr) pure nothrow @nogc @safe
         return names[sr];
     }
 }
+
+/** Aliasing happens when there exists another mutable reference to the same
+ * memory object.  The other references can change the contents of the memory
+ * object.  Immutable references may exist, but cannot change the contents. This
+ * function determines if such aliasing of a type `t` is possible.
+ *
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      `true` iff `t` contains any non-`immutable` (mutable or const) indirections.
+ */
+bool hasAliasing(scope Type t)
+{
+    t = t.toBasetype();
+    if (t.isImmutable)
+        return false;
+    else if (auto ts = t.isTypeStruct())
+    {
+        foreach (vd; ts.sym.fields)
+            if (hasAliasing(vd.type))
+                return true;
+    }
+    else if (auto tc = t.isTypeClass())
+        return !tc.isImmutable();
+    else if (auto tp = t.isTypePointer())
+    {
+        if (tp.next.isTypeFunction())
+            return false;
+        return !tp.next.isImmutable();
+    }
+    else if (auto td = t.isTypeDelegate())
+        return !td.next.isImmutable();
+    else if (auto ta = t.isTypeDArray())
+        return !ta.next.isImmutable();
+    else if (auto ta = t.isTypeAArray())
+        return !ta.next.isImmutable();
+    else if (auto ts = t.isTypeSArray())
+        return hasAliasing(ts.next);
+    else if (auto tf = t.isTypeFunction())
+        return false;
+    return false;
+}
