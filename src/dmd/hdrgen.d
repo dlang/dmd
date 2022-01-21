@@ -2364,6 +2364,12 @@ public:
         buf.writeByte(')');
     }
 
+    override void visit(ThrowExp e)
+    {
+        buf.writestring("throw ");
+        expToBuffer(e.e1, PREC.unary, buf, hgs);
+    }
+
     override void visit(DotIdExp e)
     {
         expToBuffer(e.e1, PREC.primary, buf, hgs);

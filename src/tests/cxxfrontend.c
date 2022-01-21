@@ -539,6 +539,11 @@ void test_cppmangle()
     mangle = cppThunkMangleItanium(fd, b->offset);
     assert(strcmp(mangle, "_ZThn8_N7Derived7MethodDEv") == 0);
 
+    assert(fd->fbody);
+    auto rs = (*fd->fbody->isCompoundStatement()->statements)[0]->isReturnStatement();
+    assert(rs);
+    assert(!canThrow(rs->exp, fd, false));
+
     assert(!global.endGagging(errors));
 }
 

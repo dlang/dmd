@@ -1252,6 +1252,20 @@ enum class BUILTIN : uint8_t
     toPrecReal = 35u,
 };
 
+enum class BE
+{
+    none = 0,
+    fallthru = 1,
+    throw_ = 2,
+    return_ = 4,
+    goto_ = 8,
+    halt = 16,
+    break_ = 32,
+    continue_ = 64,
+    errthrow = 128,
+    any = 31,
+};
+
 enum class Include : uint8_t
 {
     notComputed = 0u,
@@ -2420,6 +2434,7 @@ public:
     virtual void visit(typename AST::CallExp e);
     virtual void visit(typename AST::DotIdExp e);
     virtual void visit(typename AST::AssertExp e);
+    virtual void visit(typename AST::ThrowExp e);
     virtual void visit(typename AST::ImportExp e);
     virtual void visit(typename AST::DotTemplateInstanceExp e);
     virtual void visit(typename AST::ArrayExp e);
@@ -4787,6 +4802,7 @@ struct ASTCodegen final
     using SymbolExp = ::SymbolExp;
     using TemplateExp = ::TemplateExp;
     using ThisExp = ::ThisExp;
+    using ThrowExp = ::ThrowExp;
     using TraitsExp = ::TraitsExp;
     using TupleExp = ::TupleExp;
     using TypeExp = ::TypeExp;
@@ -5462,7 +5478,7 @@ extern BUILTIN isBuiltin(FuncDeclaration* fd);
 
 extern Expression* eval_builtin(const Loc& loc, FuncDeclaration* fd, Array<Expression* >* arguments);
 
-extern bool canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
+extern BE canThrow(Expression* e, FuncDeclaration* func, bool mustNotThrow);
 
 extern bool includeImports;
 
@@ -7052,6 +7068,13 @@ public:
     void accept(Visitor* v);
 };
 
+class ThrowExp final : public UnaExp
+{
+public:
+    ThrowExp* syntaxCopy();
+    void accept(Visitor* v);
+};
+
 class DotIdExp final : public UnaExp
 {
 public:
@@ -7985,6 +8008,7 @@ public:
     void visit(PostExp* e);
     void visit(CondExp* e);
     void visit(GenericExp* e);
+    void visit(ThrowExp* e);
     void visit(TemplateTypeParameter* tp);
     void visit(TemplateThisParameter* tp);
     void visit(TemplateAliasParameter* tp);
