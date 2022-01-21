@@ -8472,10 +8472,7 @@ struct Id final
     static Identifier* noreturn;
     static Identifier* builtins;
     static Identifier* builtin_va_list;
-    static Identifier* builtin_va_start;
     static Identifier* builtin_va_arg;
-    static Identifier* builtin_va_copy;
-    static Identifier* builtin_va_end;
     static Identifier* va_list_tag;
     static Identifier* va_arg;
     static Identifier* pack;
