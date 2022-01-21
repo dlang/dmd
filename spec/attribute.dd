@@ -549,30 +549,7 @@ $(H2 $(LNAME2 return, $(D return) Attribute))
 
 $(H2 $(LNAME2 override, $(D override) Attribute))
 
-        $(P The $(D override) attribute applies to virtual functions.
-        It means that the function must override a function with the
-        same name and parameters in a base class. The override attribute
-        is useful for catching errors when a base class's member function
-        gets its parameters changed, and all derived classes need to have
-        their overriding functions updated.
-        )
-
----------------
-class Foo
-{
-    int bar();
-    int abc(int x);
-}
-
-class Foo2 : Foo
-{
-    override
-    {
-        int bar(char c); // error, no bar(char) in Foo
-        int abc(int x);  // ok
-    }
-}
----------------
+    $(P See $(DDSUBLINK spec/function, virtual-functions, Virtual Functions).)
 
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
