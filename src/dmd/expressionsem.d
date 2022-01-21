@@ -4088,6 +4088,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Type is a "delegate to" or "pointer to" the function literal
         if ((exp.fd.isNested() && exp.fd.tok == TOK.delegate_) || (exp.tok == TOK.reserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
         {
+            // https://issues.dlang.org/show_bug.cgi?id=22686
+            // if the delegate return type is an error
+            // abort semantic of the FuncExp and propagate
+            // the error
+            if (exp.fd.type.isTypeError())
+            {
+                e = ErrorExp.get();
+                goto Ldone;
+            }
             exp.type = new TypeDelegate(exp.fd.type.isTypeFunction());
             exp.type = exp.type.typeSemantic(exp.loc, sc);
 
