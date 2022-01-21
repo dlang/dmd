@@ -242,10 +242,12 @@ $(H2 $(LNAME2 extensions, Extensions))
     $(P Any declarations in scope can be accessed, not just
     declarations that lexically precede a reference.)
 
+
     $(H3 $(LNAME2 ctfe, Compile Time Function Execution))
 
     $(P Evaluating constant expressions includes executing functions in the
     same manner as D's CTFE can.)
+
 
     $(H3 $(LNAME2 inlining, Function Inlining))
 
@@ -282,6 +284,77 @@ _Static_assert(sizeof(A) == 1, "A should be size 1");
 
     $(P Arrays can have `register` storage class, and may be enregistered by the compiler. C11 6.3.2.1-3)
 
+
+    $(H3 $(LNAME2 __import, Import Declarations))
+
+    $(P Modules can be imported with a $(I CImportDeclaration):)
+
+$(GRAMMAR
+$(GNAME CImportDeclaration):
+    $(D __import) $(GLINK2 module, ImportList) $(D ;)
+)
+
+    $(P Imports enable ImportC code to directly access D declarations and functions
+    without the necessity of creating a $(TT .h) file representing those declarations.
+    The tedium and brittleness of keeping the $(TT .h) file up-to-date with the D
+    declarations is eliminated.
+    D functions are available to be inlined.
+    )
+
+    $(P Imports also enable ImportC code to directly import other C files without
+    needing to create a .h file for them, either.
+    Imported C functions become available to be inlined.
+    )
+
+    $(P The $(I ImportList) works the same as it does for D.)
+
+    $(P The ordering of $(I CImportDeclaration)s has no significance.)
+
+    $(P An ImportC file can be imported, the name of the C file to be
+    imported is derived from the module name.)
+
+    $(P All the global symbols in the ImportC file become available to the
+    importing module.)
+
+    $(P If a name is referred to in the importing file is not found,
+    the global symbols in each imported file are searched for the name.
+    If it is found in exactly one module, that becomes the resolution of the
+    name. If it is found in multiple modules, it is an error.)
+
+    $(NOTE Since ImportC has no scope resolution operator, only global symbols
+    can be found, and a qualification cannot be added to specifiy which module
+    a symbols is in.)
+
+    $(P Preprocessor symbols in the imported module are not available to the
+    importing module, and preprocessing symbols in the importing file are not
+    available to the imported module.)
+
+    $(P A D module can be imported, in the same manner as that
+    of a $(GLINK2 module, ImportDeclaration).)
+
+    $(P Imports can be circular.)
+
+$(CCODE
+__import core.stdc.stdarg; // get D declaration of va_list
+__import mycode;           // import mycode.c
+
+int foo()
+{
+    va_list x;    // picks up va_list from core.stdc.stdarg
+    return 1 + A; // returns 4
+})
+
+    $(P $(TT mycode.c) looks like:)
+
+$(CCODE
+enum E { A = 3; }
+)
+
+    $(BEST_PRACTICE Avoid using preprocessor $(TT #define)s like $(TT #define A 3).
+    Use the enum form shown in the above example.
+    Prefer $(TT const) declarations over $(TT #define)s.
+    Rewrite function-style preprocessor macros as inline functions.
+    )
 
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
