@@ -15,7 +15,7 @@ int foo()
 
 test2.c is:
 
-($CCODE
+$(CCODE
 enum E { A = 3 };
 )
 
