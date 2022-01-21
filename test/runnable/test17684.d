@@ -1,3 +1,13 @@
+/*
+TEST_OUTPUT:
+---
+runnable/test17684.d(37): Deprecation: alias this for classes is deprecated
+runnable/test17684.d(54): Deprecation: alias this for classes is deprecated
+runnable/test17684.d(54): Deprecation: alias this for classes is deprecated
+runnable/test17684.d(37): Deprecation: alias this for classes is deprecated
+---
+*/
+
 struct StructField(T)
 {
     static T Field;

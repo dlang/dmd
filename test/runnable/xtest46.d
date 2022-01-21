@@ -7,6 +7,8 @@ Boo!int
 true
 int
 !! immutable(int)[]
+runnable/xtest46.d(2945): Deprecation: alias this for classes is deprecated
+runnable/xtest46.d(2977): Deprecation: alias this for classes is deprecated
 int(int i, long j = 7L)
 long
 C10390(C10390(C10390(<recursion>)))
@@ -14,19 +16,20 @@ tuple(height)
 tuple(get, get)
 tuple(clear)
 tuple(draw, draw)
-runnable/xtest46.d(149): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(151): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46.d(152): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46.d(154): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(181): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(183): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(155): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(157): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46.d(184): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46.d(186): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(187): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(189): Deprecation: `opDot` is deprecated. Use `alias this`
 const(int)
 string[]
 double[]
 double[]
 {}
+runnable/xtest46.d(4602): Deprecation: alias this for classes is deprecated
 tuple("m")
 true
 TFunction1: extern (C) void function()

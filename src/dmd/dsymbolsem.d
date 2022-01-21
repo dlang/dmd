@@ -254,6 +254,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
 
+        if (ad.isClassDeclaration())
+            deprecation(dsym.loc, "alias this for classes is deprecated");
+
         assert(ad.members);
         Dsymbol s = ad.search(dsym.loc, dsym.ident);
         if (!s)

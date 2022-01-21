@@ -1,3 +1,31 @@
+/*
+TEST_OUTPUT:
+---
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+runnable/traits_getPointerBitmap.d(112): Deprecation: alias this for classes is deprecated
+---
+*/
+
 
 module traits_getPointerBitmap;
 
