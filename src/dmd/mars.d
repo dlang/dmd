@@ -1829,6 +1829,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
+            deprecation(Loc.initial, "`-m32mscoff` is deprecated, use `-m32`");
             target.is64bit = false;
             target.omfobj = false;
         }
