@@ -3902,6 +3902,11 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         buf.writeByte(' ');
         if (t.id)
             buf.writestring(t.id.toChars());
+        if (t.base.ty != TY.Tint32)
+        {
+            buf.writestring(" : ");
+            visitWithMask(t.base, t.mod, buf, hgs);
+        }
     }
 
     void visitTuple(TypeTuple t)

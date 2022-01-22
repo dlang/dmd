@@ -2062,7 +2062,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             switch (mtype.tok)
             {
                 case TOK.enum_:
-                    auto ed = new EnumDeclaration(mtype.loc, mtype.id, Type.tint32);
+                    auto ed = new EnumDeclaration(mtype.loc, mtype.id, mtype.base);
                     declare(ed);
                     mtype.resolved = visitEnum(new TypeEnum(ed));
                     break;

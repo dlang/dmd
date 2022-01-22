@@ -3798,6 +3798,7 @@ public:
     Loc loc;
     TOK tok;
     Identifier* id;
+    Type* base;
     Array<Dsymbol* >* members;
     Type* resolved;
     const char* kind() const;
