@@ -1567,7 +1567,7 @@ final class CParser(AST) : Parser!AST
              */
             auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
                         (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
-                                                  new AST.EnumDeclaration(tt.loc, tt.id, AST.Type.tint32);
+                                                  new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
             stag.members = tt.members;
             if (!symbols)
                 symbols = new AST.Dsymbols();
@@ -3075,6 +3075,17 @@ final class CParser(AST) : Parser!AST
             nextToken();
         }
 
+        /* clang extension: add optional base type after the identifier
+         * https://en.cppreference.com/w/cpp/language/enum
+         *   enum Identifier : Type
+         */
+        AST.Type base = AST.Type.tint32;  // C11 6.7.2.2-4 implementation defined default base type
+        if (token.value == TOK.colon)
+        {
+            nextToken();
+            base = parseType();
+        }
+
         AST.Dsymbols* members;
         if (token.value == TOK.leftCurly)
         {
@@ -3148,7 +3159,7 @@ final class CParser(AST) : Parser!AST
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, TOK.enum_, tag, members);
+        return new AST.TypeTag(loc, TOK.enum_, tag, base, members);
     }
 
     /*************************************
@@ -3216,7 +3227,7 @@ final class CParser(AST) : Parser!AST
          * redeclaration, or reference to existing declaration.
          * Defer to the semantic() pass with a TypeTag.
          */
-        return new AST.TypeTag(loc, structOrUnion, tag, members);
+        return new AST.TypeTag(loc, structOrUnion, tag, null, members);
     }
 
     /*************************************

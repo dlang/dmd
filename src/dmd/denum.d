@@ -61,7 +61,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     extern (D) this(const ref Loc loc, Identifier ident, Type memtype)
     {
         super(loc, ident);
-        //printf("EnumDeclaration() %s\n", toChars());
+        //printf("EnumDeclaration() %p %s : %s\n", this, toChars(), memtype.toChars());
         type = new TypeEnum(this);
         this.memtype = memtype;
         visibility = Visibility(Visibility.Kind.undefined);

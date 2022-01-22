@@ -6761,19 +6761,21 @@ extern (C++) final class TypeTag : Type
     Loc loc;                /// location of declaration
     TOK tok;                /// TOK.struct_, TOK.union_, TOK.enum_
     Identifier id;          /// tag name identifier
+    Type base;              /// base type for enums otherwise null
     Dsymbols* members;      /// members of struct, null if none
 
     Type resolved;          /// type after semantic() in case there are more others
                             /// pointing to this instance, which can happen with
                             ///   struct S { int a; } s1, *s2;
 
-    extern (D) this(const ref Loc loc, TOK tok, Identifier id, Dsymbols* members)
+    extern (D) this(const ref Loc loc, TOK tok, Identifier id, Type base, Dsymbols* members)
     {
         //printf("TypeTag %p\n", this);
         super(Ttag);
         this.loc = loc;
         this.tok = tok;
         this.id = id;
+        this.base = base;
         this.members = members;
     }
 

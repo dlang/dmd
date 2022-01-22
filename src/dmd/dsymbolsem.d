@@ -2179,7 +2179,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             /* C11 6.7.2.2
              */
-            ed.memtype = Type.tint32; // C11 6.7.2.2-4 implementation defined
+            assert(ed.memtype);
             int nextValue = 0;        // C11 6.7.2.2-3 first member value defaults to 0
 
             void emSemantic(EnumMember em, ref int nextValue)
