@@ -339,7 +339,7 @@ $(H3 $(LNAME2 argument_deduction, Type Parameter Deduction))
                                    // (3) U is B
         ------
 
-$(H3 $(LNAME2 template_type_parameters, Template Type Parameters))
+$(H3 $(LNAME2 template_type_parameters, Type Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateTypeParameter):
@@ -381,7 +381,7 @@ $(H4 $(LNAME2 parameters_specialization, Specialization))
     )
 
 
-$(H3 $(LNAME2 template_this_parameter, Template This Parameters))
+$(H3 $(LNAME2 template_this_parameter, This Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateThisParameter):
@@ -455,7 +455,7 @@ $(H4 $(LNAME2 this_rtti, Avoiding Runtime Type Checks))
         ---
 
     $(P Here the method $(D add) returns the base type, which doesn't implement the
-        $(D remove) method. The $(D template this) parameter can be used for this purpose:)
+        $(D remove) method. The template `this` parameter can be used for this purpose:)
 
         ---
         interface Addable(T)
@@ -481,7 +481,7 @@ $(H4 $(LNAME2 this_rtti, Avoiding Runtime Type Checks))
         }
         ---
 
-$(H3 $(LNAME2 template_value_parameter, Template Value Parameters))
+$(H3 $(LNAME2 template_value_parameter, Value Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateValueParameter):
@@ -546,7 +546,7 @@ $(H4 $(LNAME2 value_specialization, Specialization))
     $(P This can be useful when a different template body is required for a specific value.
         Another template overload would be defined to take other integer literal values.)
 
-$(H3 $(LNAME2 aliasparameters, Template Alias Parameters))
+$(H3 $(LNAME2 aliasparameters, Alias Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateAliasParameter):
@@ -760,7 +760,7 @@ $(GNAME TemplateAliasParameterDefault):
         ))
     )
 
-$(H4 $(LNAME2 typed_alias_op, Typed alias parameters))
+$(H4 $(LNAME2 typed_alias_op, Typed Alias Parameters))
 
     $(P Alias parameters can also be typed.
         These parameters will accept symbols of that type:)
@@ -802,7 +802,7 @@ $(H4 $(LNAME2 alias_parameter_specialization, Specialization))
         alias bar = Bar!(C!int);    // instantiates #5
         ------
 
-$(H3 $(LNAME2 variadic-templates, Template Sequence Parameters))
+$(H3 $(LNAME2 variadic-templates, Sequence Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateSequenceParameter):
@@ -955,7 +955,7 @@ $(H4 $(LNAME2 variadic_template_specialization, Specialization))
         alias foo4 = Foo!(int, 3, std);  // instantiates #4
         ----
 
-$(H3 $(LNAME2 template_parameter_def_values, Template Parameter Default Arguments))
+$(H3 $(LNAME2 template_parameter_def_values, Default Arguments))
 
     $(P Trailing template parameters can be given default arguments:)
 
@@ -1052,7 +1052,7 @@ $(GNAME UnionTemplateDeclaration):
         }
         ------
 
-    $(P See also: $(RELATIVE_LINK2 template_this_parameter, Template This Parameters).
+    $(P See also: $(RELATIVE_LINK2 template_this_parameter, This Parameters).
     )
 
     $(P Analogously to class templates, struct, union and interfaces
