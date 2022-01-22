@@ -47,3 +47,25 @@ version (CRuntime_Microsoft)
     alias __int32 = int;
     alias __int64 = long;
 }
+
+/*********** floating point *************/
+
+/* https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
+ */
+
+version (DigitalMars)
+{
+    double __builtin_inf()  { return double.infinity; }
+    float  __builtin_inff() { return float.infinity; }
+    real   __builtin_infl() { return real.infinity; }
+
+    alias __builtin_huge_val  = __builtin_inf;
+    alias __builtin_huge_valf = __builtin_inff;
+    alias __builtin_huge_vall = __builtin_infl;
+
+    import core.stdc.math;
+
+    alias __builtin_fabs  = core.stdc.math.fabs;
+    alias __builtin_fabsf = core.stdc.math.fabsf;
+    alias __builtin_fabsl = core.stdc.math.fabsl;
+}
