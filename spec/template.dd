@@ -866,7 +866,7 @@ $(GNAME TemplateSequenceParameter):
         to dynamically change, add, or remove elements either at compile-time or run-time.
     )
 
-$(H3 $(LNAME2 typeseq_deduction, Type Sequence Deduction))
+$(H4 $(LNAME2 typeseq_deduction, Type Sequence Deduction))
 
     $(P Type sequences can be deduced from the trailing parameters
         of an $(RELATIVE_LINK2 ifti, implicitly instantiated) function template:)
@@ -933,7 +933,7 @@ a
         )
         See also: $(REF partial, std,functional)
 
-$(H3 $(LNAME2 variadic_template_specialization, Specialization))
+$(H4 $(LNAME2 variadic_template_specialization, Specialization))
 
     $(P If both a template with a sequence parameter and a template
         without a sequence parameter exactly match a template instantiation,
