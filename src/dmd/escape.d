@@ -1320,7 +1320,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     msg = "returning `%s` escapes a reference to parameter `%s`";
                     supplemental = vsr == ScopeRef.Ref_ReturnScope
                                               ? "perhaps remove `scope` parameter annotation so `return` applies to `ref`"
-                                              : "perhaps annotate the parameter with `return`";
+                                              : v.ident is Id.This
+                                                    ? "perhaps annotate the function with `return`"
+                                                    : "perhaps annotate the parameter with `return`";
                 }
                 else
                 {
