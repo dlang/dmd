@@ -56,6 +56,8 @@ struct ASTBase
     alias Designators           = Array!(Designator);
     alias DesigInits            = Array!(DesigInit);
 
+
+
     alias Visitor = ParseTimeVisitor!ASTBase;
 
     extern (C++) abstract class ASTNode : RootObject
@@ -1160,6 +1162,7 @@ struct ASTBase
         extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
         {
             super(loc, ident, decl);
+
         }
 
         extern (D) this(const ref Loc loc, Expression exp, Dsymbols* decl)
@@ -1332,12 +1335,19 @@ struct ASTBase
 
         const FileName srcfile;
         const(char)* arg;
+        bool rootModule;
 
-        extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+        extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen, bool rootModule = false)
         {
             super(ident);
             this.arg = filename;
             srcfile = FileName(FileName.defaultExt(filename.toDString, mars_ext));
+            this.rootModule = rootModule;
+        }
+
+        bool isRoot()
+        {
+            return rootModule;
         }
 
         override void accept(Visitor v)
@@ -1733,6 +1743,7 @@ struct ASTBase
         }
 
     }
+
 
     extern (C++) abstract class Statement : ASTNode
     {
@@ -3716,6 +3727,7 @@ struct ASTBase
             return result;
         }
 
+
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -3787,6 +3799,7 @@ struct ASTBase
             return result;
         }
 
+
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -3810,6 +3823,7 @@ struct ASTBase
             result.mod = mod;
             return result;
         }
+
 
         override void accept(Visitor v)
         {
@@ -4089,6 +4103,7 @@ struct ASTBase
             return result;
         }
 
+
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -4117,6 +4132,7 @@ struct ASTBase
             result.mod = mod;
             return result;
         }
+
 
         override Expression toExpression()
         {
@@ -6275,6 +6291,7 @@ struct ASTBase
         }
     }
 
+
     extern (C++) class Initializer : ASTNode
     {
         Loc loc;
@@ -6453,9 +6470,11 @@ struct ASTBase
             OutBuffer buf;
             foreach (const pid; packages)
             {
+
                 buf.writestring(pid.toString());
                 buf.writeByte('.');
             }
+
             buf.writestring(id.toString());
             return buf.extractChars();
         }
@@ -6563,6 +6582,7 @@ struct ASTBase
         {
             StorageClass stc;
             string id;
+
         }
 
         // Note: The identifier needs to be `\0` terminated
@@ -6611,6 +6631,7 @@ struct ASTBase
             {
                 stc &= ~tbl;
                 return entry.id;
+
             }
         }
         //printf("stc = %llx\n", stc);
@@ -6632,6 +6653,7 @@ struct ASTBase
             return "C++";
         case LINK.windows:
             return "Windows";
+
         case LINK.objc:
             return "Objective-C";
         }
@@ -6641,5 +6663,6 @@ struct ASTBase
     {
         extern (C++) __gshared int ptrsize;
         extern (C++) __gshared bool isLP64;
+
     }
 }
