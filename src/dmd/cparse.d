@@ -1691,6 +1691,29 @@ final class CParser(AST) : Parser!AST
                         isalias = false;
                     }
                 }
+                else if (auto tt = dt.isTypeTag())
+                {
+                    if (tt.id)
+                    {
+                        /* `struct tag;` and `struct tag { ... };`
+                         * always result in a declaration in the current scope
+                         */
+                        auto stag = (tt.tok == TOK.struct_) ? new AST.StructDeclaration(tt.loc, tt.id, false) :
+                                    (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
+                                                              new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
+                        stag.members = tt.members;
+                        if (!symbols)
+                            symbols = new AST.Dsymbols();
+                        symbols.push(stag);
+                        if (tt.tok == TOK.enum_)
+                        {
+                            if (!tt.members)
+                                error(tt.loc, "`enum %s` has no members", stag.toChars());
+                        }
+                        s = new AST.AliasDeclaration(token.loc, id, stag);
+                        isalias = false;
+                    }
+                }
                 if (isalias)
                     s = new AST.AliasDeclaration(token.loc, id, dt);
             }
