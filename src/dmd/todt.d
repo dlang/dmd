@@ -774,6 +774,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         }
     }
     dtb.checkInitialized();
+    //printf("+dtb.length: %d\n", dtb.length);
 
     /* Order:
      *  { base class } or { __vptr, __monitor }
@@ -863,6 +864,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     {
         if (bitOffset)
         {
+            //printf("finishInFlightBitField() offset %d bitOffset %d bitFieldSize %d\n", offset, bitOffset, bitFieldSize);
             assert(bitFieldSize);
             dtb.nbytes(bitFieldSize, cast(char*)&bitFieldValue);
             offset += bitFieldSize;
@@ -957,7 +959,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         assert(offset <= vd.offset);
         if (offset < vd.offset)
             dtb.nzeros(vd.offset - offset);
-        //printf("vd: %s offset: %u, vd.offset: %u\n", vd.toChars(), offset, vd.offset);
+        //printf("offset: %u, vd: %s vd.offset: %u\n", offset, vd.toChars(), vd.offset);
 
         auto dtbx = DtBuilder(0);
         if (elements)
@@ -979,7 +981,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             else
                 Expression_toDt(e, dtbx);    // convert e to an initializer dt
         }
-        else
+        else if (!bf)
         {
             if (Initializer init = vd._init)
             {
@@ -1021,6 +1023,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
     if (offset < ad.structsize)
         dtb.nzeros(ad.structsize - offset);
+    //printf("-dtb.length: %d\n", dtb.length);
 }
 
 
