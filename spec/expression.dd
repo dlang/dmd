@@ -817,6 +817,20 @@ $(GNAME AddExpression):
         the size of the type pointed to by the first operand.
     )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+int* p = a.ptr;
+assert(*p == 1);
+
+*(p + 2) = 4; // same as `p[2] = 4`
+assert(a[2] == 4);
+---
+)
+
+    $(P $(GLINK IndexExpression) can also be used with a pointer and has
+    the same behaviour as adding an integer.)
+
     $(P If the second operand is a pointer, and the first is an integral type,
         and the operator is $(D +),
         the operands are reversed and the pointer arithmetic just described
@@ -835,7 +849,13 @@ $(GNAME AddExpression):
         The type of the result is $(D ptrdiff_t).
     )
 
-    $(P $(GLINK IndexExpression) can also be used with a pointer.)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+ptrdiff_t d = &a[2] - a.ptr;
+assert(d == 2);
+---
+)
 
 $(H2 $(LNAME2 cat_expressions, Cat Expressions))
 
@@ -924,7 +944,7 @@ $(GNAME UnaryExpression):
 
 $(TABLE
     $(THEAD Operator, Description)
-    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK arrays, pointer, pointers))
+    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK arrays, pointers, pointers))
     $(TROW `++`, Increment before use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement before use)
     $(TROW `*`, Dereference/indirection - typically for pointers)

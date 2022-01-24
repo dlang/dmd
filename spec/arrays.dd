@@ -18,13 +18,24 @@ $(H2 $(LNAME2 array-kinds, Kinds))
 
 $(H3 $(LNAME2 pointers, Pointers))
 
+        $(P A pointer to type $(D T) has a value which is a reference (address) to another
+        object of type $(D T). It is commonly called a $(I pointer to T) and its type is
+        `T*`. To access the object value, use the `*` dereference operator:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int* p;
----------
 
-        $(P A pointer to type $(I T) has a value which is a reference (address) to another
-        object of type $(I T). It is commonly called a $(I pointer to T).
-        )
+assert(p == null);
+p = new int(5);
+assert(p != null);
+
+assert(*p == 5);
+(*p)++;
+assert(*p == 6);
+---------
+)
 
         $(P If a pointer contains a $(I null) value, it is not pointing to a valid object.)
 
@@ -43,13 +54,34 @@ int* p;
         to a valid object of type $(I T).)
         ))
 
-        $(BEST_PRACTICE These are simple pointers to data.
-        Pointers are provided for interfacing with C and for
+        $(P To set a pointer to point at an existing object, use the
+        `&` *address of* operator:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int i = 2;
+int* p = &i;
+
+assert(p == &i);
+assert(*p == 2);
+*p = 4;
+assert(i == 4);
+---------
+)
+
+        $(P These are simple pointers to data.
+        A pointer can manipulate a block of multiple values. Accessing more
+        than one value cannot be
+        $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe`) as it
+        requires $(RELATIVE_LINK2 pointer-arithmetic, pointer arithmetic).
+        This is supported for interfacing with C and for
         specialized systems work.
-        There is no length associated with it, and so there is no way for the
+        A pointer has no length associated with it, so there is no way for the
         compiler or runtime to do bounds checking, etc., on it.
-        Most conventional uses for pointers can be replaced with
-        dynamic arrays, $(D out) and $(D ref) parameters,
+        )
+
+        $(BEST_PRACTICE Most conventional uses for pointers can be replaced with
+        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK function, parameters, parameters),
         and reference types.
         )
 
@@ -192,6 +224,29 @@ assert(b[1] == 2);
 
     $(P See also $(GLINK2 expression, IndexExpression).)
 
+$(H3 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
+
+    $(P A pointer can also be indexed, but no bounds checks are done.
+    Unlike arrays, a pointer value can also be used in certain
+    arithmetic expressions to produce another pointer:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+int* p = a.ptr;
+
+p[2] = 4;
+assert(a[2] == 4);
+writeln(p[3]); // undefined behaviour
+
+assert(p == &a[0]);
+p++; // point to a[1]
+assert(*p == 2);
+---
+)
+
+    $(P See $(DDSUBLINK spec/expression, pointer_arithmetic, *AddExpression*) for details.)
+
 $(H2 $(LNAME2 slicing, Slicing))
 
         $(P $(I Slicing) an array means to specify a subarray of it.
@@ -231,12 +286,14 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 int[10] a = [ 1,2,3,4,5,6,7,8,9,10 ];
 
 int* p = &a[2];
-int[] b = p[0..8];
-writeln(b);
 writeln(p[7]);      // 10
 writeln(p[8]);      // undefined behaviour
+
+int[] b = p[0..8];  // convert pointer elements to dynamic array
+assert(b is a[2..10]);
+writeln(b);
 writeln(b[7]);      // 10
-//writeln(b[8]);    // range error
+//writeln(b[8]);    // runtime error (unless bounds checks turned off)
 ---------
 )
 
@@ -451,30 +508,6 @@ a[] -= (b[] + 4) * c[];
         to take advantage of any vector math instructions available on
         the target computer.
         )
-
-$(H2 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
----------
-void dibb(int* array)
-{
-    array[2];     // means same thing as *(array + 2)
-    *(array + 2); // get 3rd element
-}
-
-void diss(int[] array)
-{
-    array[2];     // ok
-    *(array + 2); // error, array is not a pointer
-}
-
-void ditt(int[3] array)
-{
-    array[2];     // ok
-    *(array + 2); // error, array is not a pointer
-}
----------
-)
 
 $(H2 $(LNAME2 rectangular-arrays, Rectangular Arrays))
 
