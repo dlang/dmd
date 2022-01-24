@@ -1073,34 +1073,42 @@ $(H3 $(LNAME2 cast_expressions, Cast Expressions))
 $(GRAMMAR
 $(GNAME CastExpression):
     $(D cast $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(GLINK UnaryExpression)
-    $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
+    $(GLINK CastQual)
 )
 
     $(P A $(I CastExpression) converts the $(I UnaryExpression)
-        to $(GLINK2 type, Type).)
+        to $(I Type).)
 
         -------------
         cast(foo) -p; // cast (-p) to type foo
         (foo) - p;      // subtract p from foo
         -------------
 
+$(H4 $(LNAME2 cast_class, Class References))
+
     $(P Any casting of a class reference to a
         derived class reference is done with a runtime check to make sure it
         really is a downcast. $(D null) is the result if it isn't.
     )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        class A { ... }
-        class B : A { ... }
+        class A {}
+        class B : A {}
 
-        void test(A a, B b)
+        void main()
         {
-            B bx = a;         // error, need cast
-            B bx = cast(B) a; // bx is null if a is not a B
-            A ax = b;         // no cast needed
-            A ax = cast(A) b; // no runtime check needed for upcast
+            A a = new A;
+            //B b = a;         // error, need cast
+            B b = cast(B) a; // b is null if a is not a B
+            assert(b is null);
+
+            a = b;         // no cast needed
+            a = cast(A) b; // no runtime check needed for upcast
+            assert(a is b);
         }
         -------------
+        )
 
     $(P In order to determine if an object $(D o) is an instance of
         a class $(D B) use a cast:)
@@ -1120,28 +1128,29 @@ $(GNAME CastExpression):
         (i.e. a reinterpret cast).
     )
 
+$(H4 $(LNAME2 cast_array, Arrays))
+
     $(P Casting a dynamic array to another dynamic array is done only if the
         array lengths multiplied by the element sizes match. The cast is done
         as a type paint, with the array length adjusted to match any change in
         element size. If there's not a match, a runtime error is generated.)
 
-        ---
-        import std.stdio;
-
-        int main()
-        {
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
             byte[] a = [1,2,3];
-            auto b = cast(int[])a; // runtime array cast misalignment
+            //auto b = cast(int[])a; // runtime error: array cast misalignment
 
             int[] c = [1, 2, 3];
             auto d = cast(byte[])c; // ok
             // prints:
             // [1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0]
             writeln(d);
-            return 0;
-        }
-        ---
+            ---
+        )
 
+    $(DDOC_SEE_ALSO $(RELATIVE_LINK2 cast_array_literal, Casting array literals).)
+
+$(H4 $(LNAME2 cast_static_array, Static Arrays))
 
     $(P Casting a static array to another static array is done only if the
         array lengths multiplied by the element sizes match; a mismatch
@@ -1149,23 +1158,24 @@ $(GNAME CastExpression):
         The cast is done as a type paint (aka a reinterpret cast).
         The contents of the array are not changed.)
 
-        ---
-        import core.stdc.stdio;
-
-        void main()
-        {
-            byte[16] b = 3;
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
+            byte[16] b = 3; // set each element to 3
+            assert(b[0] == 0x03);
             int[4] ia = cast(int[4]) b;
+            // print elements as hex
             foreach (i; ia)
-                printf("%x\n", i);
+                writefln("%x", i);
             /* prints:
                3030303
                3030303
                3030303
                3030303
              */
-        }
-        ---
+            ---
+        )
+
+$(H4 $(LNAME2 cast_floating, Floating Point))
 
     $(P Casting a floating point literal from one type to another
         changes its type, but internally it is retained at full
@@ -1217,6 +1227,8 @@ $(GNAME CastExpression):
         }
         ---
 
+$(H4 $(LNAME2 cast_struct, Structs))
+
     $(P Casting a value $(I v) to a struct $(I S), when value is not a struct
         of the same type, is equivalent to:)
 
@@ -1224,33 +1236,46 @@ $(GNAME CastExpression):
         S(v)
         ---
 
-    $(P Casting to a $(GLINK CastQual) replaces the qualifiers to the type of
-        the $(GLINK UnaryExpression).)
+$(H4 $(LNAME2 cast_qualifier, Qualifier Cast))
 
+$(GRAMMAR
+$(GNAME CastQual):
+    $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
+)
+
+    $(P A $(I CastQual) replaces the qualifiers in the type of
+        the $(I UnaryExpression):)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         shared int x;
-        assert(is(typeof(cast(const)x) == const int));
+        static assert(is(typeof(cast(const)x) == const int));
         ---
+        )
 
-    $(P Casting with no $(GLINK2 type, Type) or $(GLINK CastQual) removes
+    $(P Casting with no type or qualifiers removes
         any top level $(D const), $(D immutable), $(D shared) or $(D inout)
         type modifiers from the type
-        of the $(GLINK UnaryExpression).)
+        of the $(I UnaryExpression).)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         shared int x;
-        assert(is(typeof(cast()x) == int));
+        static assert(is(typeof(cast()x) == int));
         ---
+        )
+
+$(H4 $(LNAME2 cast_void, Casting to `void`))
 
     $(P Casting an expression to $(D void) type is allowed to mark that
         the result is unused. On $(GLINK2 statement, ExpressionStatement),
-        it could be used properly to avoid "has no effect" error.)
+        it could be used properly to avoid a "has no effect" error.)
 
         ----
         void foo(lazy void exp) {}
         void main()
         {
-            foo(10);            // NG - has no effect in expression '10'
+            foo(10);            // NG - expression '10' has no effect
             foo(cast(void)10);  // OK
         }
         ----
@@ -1644,11 +1669,14 @@ $(GNAME ArrayLiteral):
         }
         ---
 
+$(H3 $(LNAME2 cast_array_literal, Casting))
+
     $(P When array literals are cast to another array type, each
         element of the array is cast to the new element type.
-        When arrays that are not literals are cast, the array is
+        When arrays that are not literals $(RELATIVE_LINK2 cast_array, are cast), the array is
         reinterpreted as the new type, and the length is recomputed:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         import std.stdio;
 
@@ -1667,6 +1695,7 @@ $(GNAME ArrayLiteral):
             writeln(rt);  // writes [257]
         }
         ---
+        )
 
         In other words, casting an array literal will change the type of each initializer element.
 
