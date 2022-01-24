@@ -43,12 +43,12 @@ $(GNAME BaseInterfaceList):
     )
 
 ------
-interface D
+interface I
 {
     void foo();
 }
 
-class A : D, D  // error, duplicate interface
+class A : I, I  // error, duplicate interface
 {
 }
 ------
@@ -56,14 +56,14 @@ class A : D, D  // error, duplicate interface
 $(P An instance of an interface cannot be created.)
 
 ------
-interface D
+interface I
 {
     void foo();
 }
 
 ...
 
-D d = new D();  // error, cannot create instance of interface
+I iface = new I();  // error, cannot create instance of interface
 ------
 
 
@@ -72,7 +72,7 @@ D d = new D();  // error, cannot create instance of interface
     )
 
 ------
-interface D
+interface I
 {
     void bar() { }  // error, implementation not allowed
     static void foo() { } // ok
@@ -85,7 +85,7 @@ interface D
      )
 
 ---
-interface D
+interface I
 {
     void foo(T)() { }  // ok, it's implicitly final
 }
@@ -95,18 +95,18 @@ interface D
     static interface member functions.)
 
 ------
-interface D
+interface I
 {
     void bar();
     static void foo() { }
     final void abc() { }
 }
 
-class C : D
+class C : I
 {
     void bar() { } // ok
-    void foo() { } // error, cannot override static D.foo()
-    void abc() { } // error, cannot override final D.abc()
+    void foo() { } // error, cannot override static I.foo()
+    void abc() { } // error, cannot override final I.abc()
 }
 ------
 
@@ -115,96 +115,97 @@ class C : D
     from that interface:
     )
 ------
-interface D
+interface I
 {
     void foo();
 }
 
-class A : D
+class A : I
 {
     void foo() { }  // ok, provides implementation
 }
 
-class B : D
+class B : I
 {
-    int foo() { }   // error, no void foo() implementation
+    int foo() { }   // error, no `void foo()` implementation
 }
 ------
 
 $(P Interfaces can be inherited and functions overridden:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
-interface D
+interface I
 {
     int foo();
 }
 
-class A : D
+class A : I
 {
     int foo() { return 1; }
 }
 
 class B : A
 {
-    override
-    int foo() { return 2; }
+    override int foo() { return 2; }
 }
 
-...
-
 B b = new B();
-b.foo();            // returns 2
-D d = b;    // ok since B inherits A's D implementation
-d.foo();            // returns 2;
+assert(b.foo() == 2);
+
+I i = b;    // ok since B inherits A's I implementation
+assert(i.foo() == 2);
 ------
+)
 
     $(P Interfaces can be reimplemented in derived classes:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
-interface D
+interface I
 {
     int foo();
 }
 
-class A : D
+class A : I
 {
     int foo() { return 1; }
 }
 
-class B : A, D
+class B : A, I
 {
-    int foo() { return 2; }
+    override int foo() { return 2; }
 }
 
-...
-
 B b = new B();
-b.foo();            // returns 2
-D d = b;
-d.foo();            // returns 2
+assert(b.foo() == 2);
+I i = b;
+assert(i.foo() == 2);
+
 A a = b;
-D d2 = a;
-d2.foo();           // returns 2, even though it is A's D, not B's D
+I i2 = a;
+assert(i2.foo() == 2); // i2 has A's virtual pointer for foo which points to B.foo
 ------
+)
 
     $(P A reimplemented interface must implement all the interface
     functions, it does not inherit them from a super class:
     )
 
 ------
-interface D
+interface I
 {
     int foo();
 }
 
-class A : D
+class A : I
 {
     int foo() { return 1; }
 }
 
-class B : A, D
+class B : A, I
 {
-}       // error, no foo() for interface D
+}       // error, no foo() for interface I
 ------
 
 $(SECTION2 $(LEGACY_LNAME2 InterfaceContracts, interface-contracts, Interfaces with Contracts),
