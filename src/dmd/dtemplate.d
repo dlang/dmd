@@ -6223,39 +6223,43 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
+        // minst is finalized after the 1st invocation.
+        // tnext and tinst are only needed for the 1st invocation and
+        // cleared for further invocations.
+        TemplateInstance tnext = this.tnext;
+        TemplateInstance tinst = this.tinst;
+        this.tnext = null;
+        this.tinst = null;
+
+        if (errors || (inst && inst.isDiscardable()))
+        {
+            minst = null; // mark as speculative
+            return false;
+        }
+
         if (!minst)
         {
             // If this is a speculative instantiation,
-            // 1. do codegen if ancestors really needs codegen.
-            // 2. become non-speculative if siblings are not speculative
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            // At first, disconnect chain first to prevent infinite recursion.
-            this.tnext = null;
-            this.tinst = null;
+            // 1. do codegen if the ancestor really needs codegen
+            // 2. become non-speculative if a sibling isn't speculative
 
             // Determine necessity of tinst before tnext.
             if (tinst && tinst.needsCodegen())
             {
                 minst = tinst.minst; // cache result
-                if (global.params.allInst && minst)
-                {
-                    return true;
-                }
                 assert(minst);
                 assert(minst.isRoot() || minst.rootImports());
                 return true;
             }
-            if (tnext && (tnext.needsCodegen() || tnext.minst))
+
+            if (tnext)
             {
-                minst = tnext.minst; // cache result
-                if (global.params.allInst && minst)
+                const needsCodegen = tnext.needsCodegen(); // sets tnext.minst
+                if (tnext.minst) // not speculative
                 {
-                    return true;
+                    minst = tnext.minst; // cache result
+                    return needsCodegen;
                 }
-                assert(minst);
-                return minst.isRoot() || minst.rootImports();
             }
 
             // Elide codegen because this is really speculative.
@@ -6264,73 +6268,33 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         if (global.params.allInst)
         {
-            return true;
-        }
-
-        if (isDiscardable())
-        {
-            return false;
-        }
-
-        /* Even when this is reached to the codegen pass,
-         * a non-root nested template should not generate code,
-         * due to avoid ODR violation.
-         */
-        if (enclosing && enclosing.inNonRoot())
-        {
-            if (tinst)
-            {
-                auto r = tinst.needsCodegen();
-                minst = tinst.minst; // cache result
-                return r;
-            }
-            if (tnext)
-            {
-                auto r = tnext.needsCodegen();
-                minst = tnext.minst; // cache result
-                return r;
-            }
-            return false;
-        }
-
-        if (global.params.useUnitTests)
-        {
-            // Prefer instantiations from root modules, to maximize link-ability.
+            // Do codegen if there is an instantiation from a root module, to maximize link-ability.
             if (minst.isRoot())
                 return true;
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            this.tnext = null;
-            this.tinst = null;
 
             if (tinst && tinst.needsCodegen())
             {
                 minst = tinst.minst; // cache result
                 assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
+                assert(minst.isRoot());
                 return true;
             }
             if (tnext && tnext.needsCodegen())
             {
                 minst = tnext.minst; // cache result
                 assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
+                assert(minst.isRoot());
                 return true;
             }
 
-            // https://issues.dlang.org/show_bug.cgi?id=2500 case
-            if (minst.rootImports())
-                return true;
-
-            // Elide codegen because this is not included in root instances.
+            // Elide codegen because there's no instantiation from any root modules.
             return false;
         }
         else
         {
-            // Prefer instantiations from non-root module, to minimize object code size.
+            // Prefer instantiations from non-root modules, to minimize object code size.
 
-            /* If a TemplateInstance is ever instantiated by non-root modules,
+            /* If a TemplateInstance is ever instantiated from a non-root module,
              * we do not have to generate code for it,
              * because it will be generated when the non-root module is compiled.
              *
@@ -6342,20 +6306,34 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              *
              * See https://issues.dlang.org/show_bug.cgi?id=2500.
              */
+
+            if (tinst)
+            {
+                // If the ancestor isn't speculative,
+                // 1. do codegen if the ancestor needs it
+                // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
+                const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
+                if (tinst.minst) // not speculative
+                {
+                    minst = tinst.minst; // cache result
+                    return needsCodegen;
+                }
+            }
+
+            // Elide codegen if there is at least one instantiation from a non-root module
+            // which doesn't import any root modules.
             if (!minst.isRoot() && !minst.rootImports())
                 return false;
 
-            TemplateInstance tnext = this.tnext;
-            this.tnext = null;
-
             if (tnext && !tnext.needsCodegen() && tnext.minst)
             {
+                // Elide codegen because at least one non-speculative sibling can.
                 minst = tnext.minst; // cache result
-                assert(!minst.isRoot());
+                assert(!minst.isRoot() && !minst.rootImports());
                 return false;
             }
 
-            // Do codegen because this is not included in non-root instances.
+            // Do codegen because we found no guaranteed-codegen'd non-root instantiation.
             return true;
         }
     }
@@ -7369,13 +7347,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     extern (D) final Dsymbols* appendToModuleMember()
     {
         Module mi = minst; // instantiated . inserted module
-
-        if (global.params.useUnitTests)
-        {
-            // Turn all non-root instances to speculative
-            if (mi && !mi.isRoot())
-                mi = null;
-        }
 
         //printf("%s.appendToModuleMember() enclosing = %s mi = %s\n",
         //    toPrettyChars(),

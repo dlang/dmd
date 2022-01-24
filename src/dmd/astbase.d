@@ -1340,6 +1340,8 @@ struct ASTBase
             srcfile = FileName(FileName.defaultExt(filename.toDString, mars_ext));
         }
 
+        bool isRoot() { return false; }
+
         override void accept(Visitor v)
         {
             v.visit(this);
