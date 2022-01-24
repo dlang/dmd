@@ -1,11 +1,11 @@
 # Makefile to build D runtime library druntime.lib for Win32
 
-MODEL=32
+MODEL=32omf
 
 DMD_DIR=..\dmd
 BUILD=release
 OS=windows
-DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\$(MODEL)\dmd
+DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\32\dmd
 
 CC=dmc
 MAKE=make
@@ -45,13 +45,13 @@ OBJS_TO_DELETE= errno_c_$(MODEL).obj
 ######################## Header file generation ##############################
 
 import:
-	"$(MAKE)" -f mak/WINDOWS import DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
+	"$(MAKE)" -f mak/WINDOWS import DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)"
 
 copydir:
-	"$(MAKE)" -f mak/WINDOWS copydir HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
+	"$(MAKE)" -f mak/WINDOWS copydir HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)"
 
 copy:
-	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=$(MODEL) IMPDIR="$(IMPDIR)"
+	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" MODEL=32 IMPDIR="$(IMPDIR)"
 
 ################### Win32 Import Libraries ###################
 
@@ -105,7 +105,7 @@ rebuild_minit_obj: src\rt\minit.asm
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
+$(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 	*$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 ################### Unittests #########################
@@ -117,7 +117,7 @@ unittest: unittest.obj
 	@echo "Unittests cannot be linked on Win32 + OMF due to OPTLINK issues"
 
 # Split compilation into a different step to avoid unnecessary rebuilds
-unittest.obj: $(SRCS) win$(MODEL).mak
+unittest.obj: $(SRCS) win32.mak
 	*$(DMD) $(UDFLAGS) $(UTFLAGS) -c -of$@ $(SRCS)
 
 ################### tests ######################################
