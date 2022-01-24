@@ -4,6 +4,8 @@ $(SPEC_S Interfaces,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 declarations, Interface Declarations))
+
     $(P An $(I Interface) describes a list of functions that a class which inherits
     from the interface must implement.)
 
@@ -66,6 +68,7 @@ interface I
 I iface = new I();  // error, cannot create instance of interface
 ------
 
+$(H3 $(LNAME2 method-bodies, Interface Method Bodies))
 
     $(P Virtual interface member functions do not have implementations.
     Interfaces are expected to implement static or final functions.
@@ -110,8 +113,9 @@ class C : I
 }
 ------
 
+$(H3 $(LNAME2 implementing-interfaces, Implementing Interfaces))
 
-    $(P All interface functions must be defined in a class that inherits
+    $(P All virtual interface functions must be defined in a class that inherits
     from that interface:
     )
 ------
@@ -131,7 +135,7 @@ class B : I
 }
 ------
 
-$(P Interfaces can be inherited and functions overridden:)
+$(P Interfaces can be inherited from a base class, and interface functions overridden:)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
@@ -157,6 +161,8 @@ I i = b;    // ok since B inherits A's I implementation
 assert(i.foo() == 2);
 ------
 )
+
+$(H4 $(LNAME2 reimplementing-interfaces, Reimplementing Interfaces))
 
     $(P Interfaces can be reimplemented in derived classes:)
 
