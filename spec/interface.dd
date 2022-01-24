@@ -214,7 +214,7 @@ class B : A, I
 }       // error, no foo() for interface I
 ------
 
-$(SECTION2 $(LEGACY_LNAME2 InterfaceContracts, interface-contracts, Interfaces with Contracts),
+$(SECTION3 $(LEGACY_LNAME2 InterfaceContracts, interface-contracts, Interface Method Contracts),
 
     $(P Interface member functions can have contracts even though there
     is no body for the function. The contracts are inherited by any
@@ -233,7 +233,7 @@ interface I
 ---
 )
 
-$(SECTION2 $(LEGACY_LNAME2 ConstInterface, const-interface, Const and Immutable Interfaces),
+$(SECTION3 $(LEGACY_LNAME2 ConstInterface, const-interface, Const and Immutable Interfaces),
     $(P If an interface has $(CODE const) or $(CODE immutable) storage
     class, then all members of the interface are
     $(CODE const) or $(CODE immutable).
