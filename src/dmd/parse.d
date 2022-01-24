@@ -4605,12 +4605,18 @@ class Parser(AST) : Lexer
                             // parseAttributes shouldn't have set these variables
                             assert(link == linkage && !setAlignment && ealign is null);
                             auto tpl_ = cast(AST.TemplateDeclaration) s;
-                            assert(tpl_ !is null && tpl_.members.dim == 1);
-                            auto fd = cast(AST.FuncLiteralDeclaration) (*tpl_.members)[0];
-                            auto tf = cast(AST.TypeFunction) fd.type;
-                            assert(tf.parameterList.parameters.dim > 0);
-                            auto as = new AST.Dsymbols();
-                            (*tf.parameterList.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udas, as);
+                            if (tpl_ is null || tpl_.members.dim != 1)
+                            {
+                                error("user-defined attributes are not allowed on `alias` declarations");
+                            }
+                            else
+                            {
+                                auto fd = cast(AST.FuncLiteralDeclaration) (*tpl_.members)[0];
+                                auto tf = cast(AST.TypeFunction) fd.type;
+                                assert(tf.parameterList.parameters.dim > 0);
+                                auto as = new AST.Dsymbols();
+                                (*tf.parameterList.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udas, as);
+                            }
                         }
 
                         v = new AST.AliasDeclaration(loc, ident, s);
