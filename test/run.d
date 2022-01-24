@@ -133,9 +133,10 @@ Options:
     if (verbose || dumpEnvironment)
     {
         writefln("================================================================================");
-        foreach (key, value; env)
-            writefln("%s=%s", key, value);
+        foreach (key; env.keys.sort())
+            writefln("%s=%s", key, env[key]);
         writefln("================================================================================");
+        stdout.flush();
     }
 
     if (runUnitTests)
