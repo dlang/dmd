@@ -1,0 +1,5 @@
+When `ref scope return` attributes are used on a parameter, and `return scope` appears, the `return` applies to the `scope`, not the `ref`.
+
+Formerly, the `return` sometimes applied to the `ref` instead, which can be
+confusing. If `return scope` does not appear adjacent and in that order, the `return`
+will apply to the `ref`.
