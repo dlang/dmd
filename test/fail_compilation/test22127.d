@@ -1,6 +1,6 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test22127.d(101): Error: user-defined attributes not allowed for `alias` declarations
+fail_compilation/test22127.d(101): Error: user-defined attributes are not allowed on `alias` declarations
 ---
  */
 

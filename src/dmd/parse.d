@@ -4607,7 +4607,7 @@ class Parser(AST) : Lexer
                             auto tpl_ = cast(AST.TemplateDeclaration) s;
                             if (tpl_ is null || tpl_.members.dim != 1)
                             {
-                                error("user-defined attributes not allowed for `alias` declarations");
+                                error("user-defined attributes are not allowed on `alias` declarations");
                             }
                             else
                             {
