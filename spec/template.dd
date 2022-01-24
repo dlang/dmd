@@ -81,8 +81,8 @@ $(H2 $(LNAME2 template_instantiation, Template Instantiation))
     into the template body, which becomes a new scoped entity.)
 
     $(P $(RELATIVE_LINK2 function-templates, Function templates) can
-    often be implicitly instantiated by inferring the template
-    arguments from a function call. Other templates must be
+    be implicitly instantiated if the compiler can infer the template
+    arguments from a function call. Otherwise the template must be
     instantiated explicitly.)
 
 $(H3 $(LNAME2 explicit_tmp_instantiation, Explicit Template Instantiation))
