@@ -380,7 +380,7 @@ $(GNAME TemplateThisParameter):
         ---
         struct S
         {
-            void foo(this T)(int i) const
+            void foo(this T)() const
             {
                 pragma(msg, T);
             }
@@ -389,11 +389,11 @@ $(GNAME TemplateThisParameter):
         void main()
         {
             const(S) s;
-            (&s).foo(1);
+            (&s).foo();
             S s2;
-            s2.foo(2);
+            s2.foo();
             immutable(S) s3;
-            s3.foo(3);
+            s3.foo();
         }
         ---
         )
@@ -438,6 +438,7 @@ immutable(S)
     $(P Here the method $(D add) returns the base type, which doesn't implement the
         $(D remove) method. The $(D template this) parameter can be used for this purpose:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         interface Addable(T)
         {
@@ -458,9 +459,15 @@ immutable(S)
         void main()
         {
             auto list = new List!int;
-            list.add(1).remove(1);  // ok
+            static assert(is(typeof(list.add(1)) == List!int));
+            list.add(1).remove(1);  // ok, List.add
+
+            Addable!int a = list;
+            // a.add calls Addable.add
+            static assert(is(typeof(a.add(1)) == Addable!int));
         }
         ---
+        )
 
 $(H2 $(LNAME2 template_value_parameter, Template Value Parameters))
 
