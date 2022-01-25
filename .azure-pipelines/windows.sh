@@ -102,7 +102,14 @@ cd "$DMD_DIR/test"
 
 # build run.d testrunner and its tools while host compiler is untampered
 cd ../test
-"$HOST_DC" -m$MODEL -g -i run.d
+
+if [ "$MODEL" == "32omf" ] ; then
+    TOOL_MODEL=32;
+else
+    TOOL_MODEL="$MODEL"
+fi
+
+"$HOST_DC" -m$TOOL_MODEL -g -i run.d
 ./run tools
 
 # Rebuild dmd with ENABLE_COVERAGE for coverage tests
