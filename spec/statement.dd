@@ -1161,27 +1161,34 @@ $(GNAME StatementNoCaseNoDefault):
 )
 
         $(P $(I Expression) is evaluated.
-        If the type of the $(I Expression) is `enum`,
-        it is repeatedly converted
-        to its $(GLINK2 enum, EnumBaseType) until it isn't. Then,
-        if the type is integral,
-        the $(I Expression) undergoes $(DDSUBLINK spec/type, integer-promotions, Integer Promotions).
-        Then, the type of the $(I Expression) must be either integral or
+        If the type of $(I Expression) is an `enum`, it is
+        (recursively) converted to its $(GLINK2 enum, EnumBaseType).
+        Then, if the type is an integral, $(I Expression) undergoes
+        $(DDSUBLINK spec/type, integer-promotions, Integer Promotions).
+        Then, the type of $(I Expression) must be either an integral or
         a static or dynamic array of $(CODE char), $(CODE wchar), or $(CODE dchar).
         )
 
-        $(P The result is
+        $(P The resulting value is
         compared against each of the case expressions. If there is
         a match, the corresponding case statement is transferred to.
         )
 
         $(P The case expressions in $(I ArgumentList)
-        are a comma separated list of expressions.
-        )
+        are a comma separated list of expressions.)
+
+        ---
+        case 1, 2, 3:
+        ---
 
         $(P A $(I CaseRangeStatement) is a shorthand for listing a series
-        of case statements from $(I FirstExp) to $(I LastExp).
-        )
+        of case statements from $(I FirstExp) to $(I LastExp), inclusive.)
+
+        ---
+        case 1: .. case 3:
+        ---
+
+        $(P The two examples above are equivalent.)
 
         $(P The case expressions must all evaluate to a constant value or array,
         or a runtime initialized const or immutable variable of integral type.
@@ -1195,7 +1202,7 @@ $(GNAME StatementNoCaseNoDefault):
         $(P The $(GLINK ScopeStatementList) introduces a new scope.
         )
 
-        $(P A `break` statement will exit the switch $(I BlockStatement).)
+        $(P A matching `break` statement will exit the switch $(I BlockStatement).)
 
         $(P A switch statement must have exactly one *DefaultStatement*.
         If none of the case expressions match, control is transferred
