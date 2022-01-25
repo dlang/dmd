@@ -4512,23 +4512,10 @@ class Parser(AST) : Lexer
         if (!comment)
             comment = token.blockComment.ptr;
 
-        /* Look for AliasAssignment:
-         *   identifier = type;
+        /* Look for AliasReassignment
          */
         if (token.value == TOK.identifier && peekNext() == TOK.assign)
-        {
-            const loc = token.loc;
-            auto ident = token.ident;
-            nextToken();
-            nextToken();        // advance past =
-            auto t = parseType();
-            AST.Dsymbol s = new AST.AliasAssign(loc, ident, t, null);
-            check(TOK.semicolon);
-            addComment(s, comment);
-            auto a = new AST.Dsymbols();
-            a.push(s);
-            return a;
-        }
+            return parseAliasReassignment(comment);
 
         if (token.value == TOK.alias_)
         {
@@ -5080,6 +5067,31 @@ class Parser(AST) : Lexer
             }
             break;
         }
+        return a;
+    }
+
+    /********************************
+     * Parse AliasReassignment:
+     *   identifier = type;
+     * Parser is sitting on the identifier.
+     * https://dlang.org/spec/declaration.html#alias-reassignment
+     * Params:
+     *  comment = if not null, comment to attach to symbol
+     * Returns:
+     *  array of symbols
+     */
+    private AST.Dsymbols* parseAliasReassignment(const(char)* comment)
+    {
+        const loc = token.loc;
+        auto ident = token.ident;
+        nextToken();
+        nextToken();        // advance past =
+        auto t = parseType();
+        AST.Dsymbol s = new AST.AliasAssign(loc, ident, t, null);
+        check(TOK.semicolon);
+        addComment(s, comment);
+        auto a = new AST.Dsymbols();
+        a.push(s);
         return a;
     }
 
