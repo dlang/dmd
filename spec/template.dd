@@ -76,8 +76,9 @@ $(GNAME TemplateParameter):
 
 $(H2 $(LNAME2 template_instantiation, Template Instantiation))
 
-    $(P A template must be instantiated before use. This usually means
-    passing one or more arguments to the template which are substituted
+    $(P A template must be instantiated before use. This means
+    passing an argument list to the template.
+    Those arguments are typically then substituted
     into the template body, which becomes a new scoped entity.)
 
     $(P $(RELATIVE_LINK2 function-templates, Function templates) can
