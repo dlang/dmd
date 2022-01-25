@@ -29,7 +29,7 @@ echo "GREP_VERSION: $(grep --version)"
 install_host_dmc
 DM_MAKE="$PWD/dm/bin/make.exe"
 
-if [ "$MODEL" == "32" ] ; then
+if [ "$MODEL" == "32omf" ] ; then
     CC="$PWD/dm/bin/dmc.exe"
     AR="$PWD/dm/bin/lib.exe"
 else
@@ -98,6 +98,9 @@ done
 # Run DMD testsuite
 ################################################################################
 
+# Temporarily disabled because other components need to be updated as well
+if [ "$MODEL" != "32omf" ] ; then
+
 cd "$DMD_DIR/test"
 
 # build run.d testrunner and its tools while host compiler is untampered
@@ -114,7 +117,7 @@ if [ "${DMD_TEST_COVERAGE:-0}" = "1" ] ; then
     DFLAGS="-L-LARGEADDRESSAWARE" ../generated/build.exe --jobs=$N ENABLE_DEBUG=1 ENABLE_COVERAGE=1 unittest
 fi
 
-if [ "$MODEL" == "32" ] ; then
+if [ "$MODEL" == "32omf" ] ; then
     # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
     # Optlink apparently prefers LIB in sc.ini over the LIB env variable (and
     # `-conf=` for DMD apparently doesn't prevent that, and there's apparently
@@ -130,6 +133,8 @@ if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
     args=() # use default set of args
 fi
 CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
+
+fi
 
 ###############################################################################
 # Upload coverage reports and exit if ENABLE_COVERAGE is specified
@@ -151,7 +156,7 @@ cd "$DMD_DIR/../druntime"
 # Build and run Phobos unittests
 ################################################################################
 
-if [ "$MODEL" = "32" ] ; then
+if [ "$MODEL" = "32omf" ] ; then
     echo "FIXME: cannot compile 32-bit OMF Phobos unittests ('more than 32767 symbols in object file')"
 else
     cd "$DMD_DIR/../phobos"
