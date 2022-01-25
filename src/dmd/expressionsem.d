@@ -12605,6 +12605,22 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         Expression e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
         return e;
     }
+    else if ((exp.ident == Id.max || exp.ident == Id.min) &&
+             exp.e1.isVarExp() &&
+             exp.e1.isVarExp().var.isBitFieldDeclaration())
+    {
+        // For `x.max` and `x.min` get the max/min of the bitfield, not the max/min of its type
+        auto bf = exp.e1.isVarExp().var.isBitFieldDeclaration();
+        return new IntegerExp(exp.loc, bf.getMinMax(exp.ident), bf.type);
+    }
+    else if ((exp.ident == Id.max || exp.ident == Id.min) &&
+             exp.e1.isDotVarExp() &&
+             exp.e1.isDotVarExp().var.isBitFieldDeclaration())
+    {
+        // For `x.max` and `x.min` get the max/min of the bitfield, not the max/min of its type
+        auto bf = exp.e1.isDotVarExp().var.isBitFieldDeclaration();
+        return new IntegerExp(exp.loc, bf.getMinMax(exp.ident), bf.type);
+    }
     else if (cfile && exp.ident == Id.__sizeof && exp.e1.isStringExp())
     {
         // Sizeof string literal includes the terminating 0
@@ -12618,7 +12634,9 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             flag = 0;
         Expression e = exp.e1.type.dotExp(sc, exp.e1, exp.ident, flag | (exp.noderef ? DotExpFlag.noDeref : 0));
         if (e)
+        {
             e = e.expressionSemantic(sc);
+        }
         return e;
     }
 }
