@@ -236,6 +236,28 @@ $(H2 $(LNAME2 extensions, Extensions))
     $(P Functions for which the function body is present can
     be inlined by ImportC as well as by the D code that calls them.)
 
+    $(H3 $(LNAME2 enumbasetype, Enum Base Types))
+
+    $(P Enums are extended with an optional $(I EnumBaseType):)
+
+$(GRAMMAR
+$(GNAME EnumDeclaration):
+    $(D enum) $(GLINK Identifier) $(D :) $(GLINK EnumBaseType) $(GLINK EnumBody)
+
+$(GNAME EnumBaseType):
+    $(GLINK Type)
+)
+
+    $(P which, when supplied, causes the enum members to be implicitly cast to the
+    $(I EnumBaseType).
+    )
+
+$(CCODE
+enum S : byte { A };
+_Static_assert(sizeof(A) == 1, "A should be size 1");
+)
+
+
     $(H3 $(LNAME2 register, Register Storage Class))
 
     $(P Objects with `register` storage class are treated as `auto` declarations.)
