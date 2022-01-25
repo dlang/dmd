@@ -19,7 +19,7 @@ jobs:
           ARCH: x64
         x86-OMF:
           OS: Win_32
-          MODEL: 32
+          MODEL: 32omf
           ARCH: x86
     steps:
       - checkout: self
