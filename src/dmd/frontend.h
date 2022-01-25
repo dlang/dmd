@@ -2806,7 +2806,6 @@ enum class PURE : uint8_t
     fwdref = 1u,
     weak = 2u,
     const_ = 3u,
-    strong = 4u,
 };
 
 enum class VarArg : uint8_t
