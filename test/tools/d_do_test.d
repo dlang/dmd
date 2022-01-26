@@ -186,7 +186,7 @@ immutable(EnvData) processEnvironment()
     {
         if (envData.os != "windows")
             envData.ccompiler = "c++";
-        else if (envData.model == "32")
+        else if (envData.model == "32omf")
             envData.ccompiler = "dmc";
         else if (envData.model == "64")
             envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
@@ -1046,7 +1046,7 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         {
             command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
         }
-        else if (envData.compiler == "dmd" && envData.os == "windows" && envData.model == "32")
+        else if (envData.compiler == "dmd" && envData.os == "windows" && envData.model == "32omf")
         {
             command ~= " -c "~curSrc~" -o"~curObj;
         }

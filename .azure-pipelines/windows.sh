@@ -98,14 +98,18 @@ done
 # Run DMD testsuite
 ################################################################################
 
-# Temporarily disabled because other components need to be updated as well
-if [ "$MODEL" != "32omf" ] ; then
-
 cd "$DMD_DIR/test"
 
 # build run.d testrunner and its tools while host compiler is untampered
 cd ../test
-"$HOST_DC" -m$MODEL -g -i run.d
+
+if [ "$MODEL" == "32omf" ] ; then
+    TOOL_MODEL=32;
+else
+    TOOL_MODEL="$MODEL"
+fi
+
+"$HOST_DC" -m$TOOL_MODEL -g -i run.d
 ./run tools
 
 # Rebuild dmd with ENABLE_COVERAGE for coverage tests
@@ -133,8 +137,6 @@ if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
     args=() # use default set of args
 fi
 CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
-
-fi
 
 ###############################################################################
 # Upload coverage reports and exit if ENABLE_COVERAGE is specified
