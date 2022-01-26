@@ -4501,7 +4501,6 @@ class Parser(AST) : Lexer
     private AST.Dsymbols* parseDeclarations(bool autodecl, PrefixAttributes!AST* pAttrs, const(char)* comment)
     {
         StorageClass storage_class = STC.undefined_;
-        TOK tok = TOK.reserved;
         LINK link = linkage;
         Loc linkloc = this.linkLoc;
         bool setAlignment = false;
@@ -4519,10 +4518,15 @@ class Parser(AST) : Lexer
 
         /* Declarations that start with `alias`
          */
+        bool isAliasDeclaration = false;
         if (token.value == TOK.alias_)
         {
-            if (auto a = parseAliasDeclarations(comment, storage_class, udas, link, ealign, setAlignment, tok))
+            if (auto a = parseAliasDeclarations(comment))
                 return a;
+            /* Handle these later:
+             *   alias StorageClasses type ident;
+             */
+            isAliasDeclaration = true;
         }
 
         AST.Type ts;
@@ -4659,7 +4663,7 @@ class Parser(AST) : Lexer
             else if (!isThis && (t != AST.Type.terror))
                 error("no identifier for declarator `%s`", t.toChars());
 
-            if (tok == TOK.alias_)
+            if (isAliasDeclaration)
             {
                 AST.Declaration v;
                 AST.Initializer _init = null;
@@ -4672,7 +4676,7 @@ class Parser(AST) : Lexer
                  */
 
                 if (udas)
-                    error("user-defined attributes not allowed for `%s` declarations", Token.toChars(tok));
+                    error("user-defined attributes not allowed for `alias` declarations");
 
                 if (token.value == TOK.assign)
                 {
@@ -4721,7 +4725,7 @@ class Parser(AST) : Lexer
                     continue;
 
                 default:
-                    error("semicolon expected to close `%s` declaration", Token.toChars(tok));
+                    error("semicolon expected to close `alias` declaration");
                     break;
                 }
             }
@@ -4886,18 +4890,19 @@ class Parser(AST) : Lexer
      * https://dlang.org/spec/declaration.html#alias
      * Params:
      *  comment = if not null, comment to attach to symbol
-     *  storage_class = storage classes
-     *  udas = user defined attributes
      * Returns:
      *  array of symbols
      */
-    private AST.Dsymbols* parseAliasDeclarations(const(char)* comment, ref StorageClass storage_class,
-        ref AST.Expressions* udas, ref LINK link, ref AST.Expression ealign, ref bool setAlignment, ref TOK tok)
+    private AST.Dsymbols* parseAliasDeclarations(const(char)* comment)
     {
-        tok = token.value;
         const loc = token.loc;
         nextToken();
         Loc linkloc = this.linkLoc;
+        AST.Expressions* udas;
+        LINK link = linkage;
+        StorageClass storage_class = STC.undefined_;
+        AST.Expression ealign;
+        bool setAlignment = false;
 
         /* Look for:
          *   alias Identifier this;
