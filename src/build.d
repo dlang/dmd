@@ -527,7 +527,10 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
         .target(env["G"].buildPath("frontend.h"))
         .command([dmdExeFile] ~ flags["DFLAGS"] ~
             // Ignore warnings because of invalid C++ identifiers in the source code
-            ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target] ~ dmdSources);
+            ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target,
+            // Enforce the expected target architecture
+            "-m64", "-os=linux",
+            ] ~ dmdSources);
 });
 
 alias runCxxHeadersTest = makeRule!((builder, rule) {
@@ -541,8 +544,16 @@ alias runCxxHeadersTest = makeRule!((builder, rule) {
             const cxxHeaderReferencePath = env["D"].buildPath("frontend.h");
             log("Comparing referenceHeader(%s) <-> generatedHeader(%s)",
                 cxxHeaderReferencePath, cxxHeaderGeneratedPath);
-            const generatedHeader = cxxHeaderGeneratedPath.readText;
-            const referenceHeader = cxxHeaderReferencePath.readText;
+            auto generatedHeader = cxxHeaderGeneratedPath.readText;
+            auto referenceHeader = cxxHeaderReferencePath.readText;
+
+            // Ignore carriage return to unify the expected newlines
+            version (Windows)
+            {
+                generatedHeader = generatedHeader.replace("\r\n", "\n"); // \r added by OutBuffer
+                referenceHeader = referenceHeader.replace("\r\n", "\n"); // \r added by Git's if autocrlf is enabled
+            }
+
             if (generatedHeader != referenceHeader) {
                 if (env.getNumberedBool("AUTO_UPDATE"))
                 {
