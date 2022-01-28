@@ -910,20 +910,28 @@ void main()
 $(H3 $(LNAME2 foreach_over_tuples, Foreach over Sequences))
 
 $(P
-        If the aggregate expression is a sequence, there
+        If the aggregate expression is a
+        $(DDSUBLINK spec/template, variadic-templates, sequence),
+        the loop body is statically expanded once for each element. This is
+        the same as $(DDSUBLINK spec/version, staticforeach, Static Foreach)
+        on a sequence.
+)
+        $(P There
         can be one or two iteration symbols declared. If one, then the symbol
         is an $(I element alias) of each element in the sequence in turn.
-)$(P
-        If the sequence is a $(I TypeSeq), then the foreach statement
-        is executed once for each type, and the element alias is set to each
-        type.
-)$(P
-        When the sequence is a $(I ValueSeq), the element alias is a variable
-        and is set to each value in the sequence. If the type of the
-        variable is given, it must match the type of the sequence contents.
-        If no type is given, the type of the variable is set to the type
-        of the sequence element, which may change from iteration to iteration.
-)$(P
+)
+$(UL
+$(LI
+        If the sequence is a $(I TypeSeq), the element alias is set to each
+        type in turn.
+)$(LI
+        If the sequence is a $(I ValueSeq), the element alias
+        is set to each value in turn. If the type of the element alias
+        is given, it must be compatible with the type of every sequence element.
+        If no type is given, the type of the element alias will match the type
+        of each sequence element, which may change between elements.
+))
+$(P
         If there are
         two symbols declared, the first is the $(I index variable)
         and the second is the $(I element alias). The index
@@ -934,29 +942,47 @@ $(P
         $(P Example:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
------
-import std.meta : AliasSeq;
+    -----
+    import std.meta : AliasSeq;
 
-void main()
-{
     alias Seq = AliasSeq!(int, "literal", main);
 
-    foreach (sym; Seq)
+    foreach (int i, sym; Seq)
     {
-        pragma(msg, sym.stringof);
+        pragma(msg, i, ": ", sym.stringof);
     }
-}
------
+    -----
 )
         $(P Output:)
 
 $(CONSOLE
-int
-"literal"
-main()
+0: int
+1: "literal"
+2: main()
 )
 
-        $(P See also: $(DDSUBLINK spec/version, staticforeach, Static Foreach).)
+        $(P Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    -----
+    import std.meta : AliasSeq;
+
+    alias values = AliasSeq!(7.4, "hi", [2,5]);
+
+    foreach (sym; values)
+    {
+        pragma(msg, sym, " has type ", typeof(sym));
+    }
+    -----
+)
+
+        $(P Output:)
+
+$(CONSOLE
+7.4 has type double
+hi has type string
+[2, 5] has type int[]
+)
 
 $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
