@@ -7351,12 +7351,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         //    toPrettyChars(),
         //    enclosing ? enclosing.toPrettyChars() : null,
         //    mi ? mi.toPrettyChars() : null);
-        if (!mi || mi.isRoot())
+        if (global.params.allInst || !mi || mi.isRoot())
         {
             /* If the instantiated module is speculative or root, insert to the
              * member of a root module. Then:
              *  - semantic3 pass will get called on the instance members.
-             *  - codegen pass will get a selection chance to do/skip it.
+             *  - codegen pass will get a selection chance to do/skip it (needsCodegen()).
              */
             static Dsymbol getStrictEnclosing(TemplateInstance ti)
             {
@@ -7383,24 +7383,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              * non-root module. Then:
              *  - semantic3 pass won't be called on the instance.
              *  - codegen pass won't reach to the instance.
+             * Unless it is re-appended to a root module later (with changed minst).
              */
         }
         //printf("\t-. mi = %s\n", mi.toPrettyChars());
 
-        if (memberOf is mi)     // already a member
-        {
-            debug               // make sure it really is a member
-            {
-                auto a = mi.members;
-                for (size_t i = 0; 1; ++i)
-                {
-                    assert(i != a.dim);
-                    if (this == (*a)[i])
-                        break;
-                }
-            }
-            return null;
-        }
+        assert(!memberOf || (!memberOf.isRoot() && mi.isRoot()), "can only re-append from non-root to root module");
 
         Dsymbols* a = mi.members;
         a.push(this);

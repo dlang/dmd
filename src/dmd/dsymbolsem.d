@@ -5879,13 +5879,16 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
             scope v = new InstMemberWalker(tempinst.inst);
             tempinst.inst.accept(v);
 
-            if (tempinst.minst) // if inst was not speculative
+            if (!global.params.allInst &&
+                tempinst.minst) // if inst was not speculative...
             {
-                /* Add 'inst' once again to the root module members[], then the
-                 * instance members will get codegen chances.
-                 */
+                assert(!tempinst.minst.isRoot()); // ... it was previously appended to a non-root module
+                // Append again to the root module members[], so that the instance will
+                // get codegen chances (depending on `tempinst.inst.needsCodegen()`).
                 tempinst.inst.appendToModuleMember();
             }
+
+            assert(tempinst.inst.memberOf && tempinst.inst.memberOf.isRoot(), "no codegen chances");
         }
 
         // modules imported by an existing instance should be added to the module
