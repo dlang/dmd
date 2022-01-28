@@ -1702,6 +1702,7 @@ final class CParser(AST) : Parser!AST
                                     (tt.tok == TOK.union_)  ? new AST.UnionDeclaration(tt.loc, tt.id) :
                                                               new AST.EnumDeclaration(tt.loc, tt.id, tt.base);
                         stag.members = tt.members;
+                        tt.members = null;
                         if (!symbols)
                             symbols = new AST.Dsymbols();
                         symbols.push(stag);
@@ -1710,8 +1711,6 @@ final class CParser(AST) : Parser!AST
                             if (!tt.members)
                                 error(tt.loc, "`enum %s` has no members", stag.toChars());
                         }
-                        s = new AST.AliasDeclaration(token.loc, id, stag);
-                        isalias = false;
                     }
                 }
                 if (isalias)
