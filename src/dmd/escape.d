@@ -765,7 +765,6 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         }
     }
 
-ByRef:
     foreach (VarDeclaration v; er.byref)
     {
         if (log) printf("byref: %s\n", v.toChars());
@@ -794,34 +793,13 @@ ByRef:
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) && !(v.isParameter() && v.isRef()) ||
-             va.isDataseg()) &&
+            (va.enclosesLifetimeOf(v) || (va.isRef() && !(va.storage_class & STC.temp)) || va.isDataseg()) &&
             fd.setUnsafe())
         {
             if (!gag)
                 error(ae.loc, "address of variable `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
             result = true;
             continue;
-        }
-
-        if (va && v.isReference())
-        {
-            Dsymbol pva = va.toParent2();
-            for (Dsymbol pv = p; pv; )
-            {
-                pv = pv.toParent2();
-                if (pva == pv)  // if v is nested inside pva
-                {
-                    if (fd.setUnsafe())
-                    {
-                        if (!gag)
-                            error(ae.loc, "reference `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
-                        result = true;
-                        continue ByRef;
-                    }
-                    break;
-                }
-            }
         }
 
         if (!(va && va.isScope()))
