@@ -788,6 +788,42 @@ pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
             attributes accumulate or override earlier ones is also up to how the user
             interprets them.
         )
+
+        $(P
+            If a UDA is attached to a template declaration, then it will be automatically
+            attached to all direct members of instances of that template. If any of those
+            members are templates themselves, this rule applies recursively:
+        )
+
+---
+@("foo") template Outer(T)
+{
+    struct S
+    {
+        int x;
+    }
+    int y;
+    void fun() {}
+    @("bar") template Inner(U)
+    {
+        int z;
+    }
+}
+
+pragma(msg, __traits(getAttributes, Outer!int.S));
+// prints tuple("foo")
+pragma(msg, __traits(getAttributes, Outer!int.S.x));
+// prints tuple()
+pragma(msg, __traits(getAttributes, Outer!int.y));
+// prints tuple("foo")
+pragma(msg, __traits(getAttributes, Outer!int.fun));
+// prints tuple("foo")
+pragma(msg, __traits(getAttributes, Outer!int.Inner));
+// prints tuple("foo", "bar")
+pragma(msg, __traits(getAttributes, Outer!int.Inner!int.z));
+// prints tuple("foo", "bar")
+---
+
         $(P
             UDAs cannot be attached to template parameters.
         )
