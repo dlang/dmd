@@ -699,11 +699,17 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
 
     // win(32|64) doesn't support pic
-    if (envData.os == "windows")
+    // -target/-os may compile for non-PIC targets, let the test take care of -fPIC
+    if (envData.os == "windows" || testArgs.requiredArgs.canFind("-target", "-os"))
     {
         auto index = std.string.indexOf(testArgs.permuteArgs, "-fPIC");
         if (index != -1)
             testArgs.permuteArgs = testArgs.permuteArgs[0 .. index] ~ testArgs.permuteArgs[index+5 .. $];
+
+        // Remove the first -fPIC when added via the REQUIRED_ARGS environment variable
+        // This allows test to explicitly set `-fPIC` if necessary
+        if (envData.required_args.canFind("-fPIC"))
+            testArgs.requiredArgs = testArgs.requiredArgs.replaceFirst("-fPIC", "").strip();
     }
 
     // clean up extra spaces
@@ -818,6 +824,43 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript);
 
     return true;
+}
+
+unittest
+{
+    immutable EnvData linux32 = { os: "linux",   model: "32", required_args: "-fPIC" };
+    immutable EnvData linux64 = { os: "linux",   model: "64", required_args: "-fPIC" };
+    immutable EnvData win64   = { os: "windows", model: "64", };
+
+    immutable dir = "runnable";
+    immutable file = ".d_do_test_unittest_target_example.d";
+    immutable content = q{
+/+
+https://foo.bar.
+REQUIRED_ARGS: -target=x86-unknown-windows-msvc
+REQUIRED_ARGS(linux32): -fPIC
++/
+    };
+
+    std.file.write(file, content);
+    scope (exit) std.file.remove(file);
+
+    TestArgs args;
+    assert(gatherTestParameters(args, dir, file, win64));
+    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc", args.requiredArgs);
+
+    args = TestArgs.init;
+    assert(gatherTestParameters(args, dir, file, linux64));
+    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc", args.requiredArgs);
+
+    args = TestArgs.init;
+    assert(gatherTestParameters(args, dir, file, linux32));
+    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc  -fPIC", args.requiredArgs);
+
+    std.file.write(file, "REQUIRED_ARGS: -os=windows");
+    args = TestArgs.init;
+    assert(gatherTestParameters(args, dir, file, linux64));
+    assert(args.requiredArgs == "-os=windows", args.requiredArgs);
 }
 
 /// Generates all permutations of the space-separated word contained in `argstr`
