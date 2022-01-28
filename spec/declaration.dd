@@ -30,8 +30,6 @@ $(GNAME Declarators):
 $(GNAME DeclaratorInitializer):
     $(GLINK VarDeclarator)
     $(GLINK VarDeclarator) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
-    $(GLINK AltDeclarator)
-    $(GLINK AltDeclarator) $(D =) $(GLINK Initializer)
 
 $(GNAME DeclaratorIdentifierList):
     $(GLINK DeclaratorIdentifier)
@@ -39,47 +37,16 @@ $(GNAME DeclaratorIdentifierList):
 
 $(GNAME DeclaratorIdentifier):
     $(GLINK VarDeclaratorIdentifier)
-    $(GLINK AltDeclaratorIdentifier)
 
 $(GNAME VarDeclaratorIdentifier):
     $(GLINK_LEX Identifier)
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
 
-$(GNAME AltDeclaratorIdentifier):
-    $(GLINK2 type, TypeSuffixes) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)$(OPT)
-    $(GLINK2 type, TypeSuffixes) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)$(OPT) $(D =) $(GLINK Initializer)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes) $(D =) $(GLINK Initializer)
-
 $(GNAME Declarator):
     $(GLINK VarDeclarator)
-    $(GLINK AltDeclarator)
 
 $(GNAME VarDeclarator):
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
-
-$(GNAME AltDeclarator):
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltDeclaratorSuffixes)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN))
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltFuncDeclaratorSuffix)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(D $(LPAREN)) $(GLINK AltDeclaratorInner) $(D $(RPAREN)) $(GLINK AltDeclaratorSuffixes)
-
-$(GNAME AltDeclaratorInner):
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
-    $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier) $(GLINK AltFuncDeclaratorSuffix)
-    $(GLINK AltDeclarator)
-
-$(GNAME AltDeclaratorSuffixes):
-    $(GLINK AltDeclaratorSuffix)
-    $(GLINK AltDeclaratorSuffix) $(GSELF AltDeclaratorSuffixes)
-
-$(GNAME AltDeclaratorSuffix):
-    $(D [ ])
-    $(D [) $(GLINK2 expression, AssignExpression) $(D ])
-    $(D [) $(GLINK2 type, Type) $(D ])
-
-$(GNAME AltFuncDeclaratorSuffix):
-    $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
 $(GRAMMAR
