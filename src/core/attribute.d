@@ -268,5 +268,25 @@ version (UdaGNUAbiTag) struct gnuAbiTag
  * `@mustUse` to a `class`, `interface`, `enum`, or function declaration is
  * currently forbidden, and will result in a compile-time error. All other uses
  * of `@mustUse` are ignored.
+ *
+ * Examples:
+ * ---
+ * @mustUse struct ErrorCode { int value; }
+ *
+ * extern(C) ErrorCode doSomething();
+ *
+ * void main()
+ * {
+ *     // error: would discard a value of type ErrorCode
+ *     //doSomething();
+ *
+ *     ErrorCode result;
+ *     // ok: value is assigned to a variable
+ *     result = doSomething();
+ *
+ *     // ok: can ignore the value explicitly with a cast
+ *     cast(void) doSomething();
+ * }
+ * ---
  */
 enum mustUse;
