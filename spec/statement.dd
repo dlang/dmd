@@ -942,16 +942,19 @@ $(P
         $(P Example:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
-    -----
-    import std.meta : AliasSeq;
+-----
+import std.meta : AliasSeq;
 
+void main()
+{
     alias Seq = AliasSeq!(int, "literal", main);
 
     foreach (int i, sym; Seq)
     {
         pragma(msg, i, ": ", sym.stringof);
     }
-    -----
+}
+-----
 )
         $(P Output:)
 
