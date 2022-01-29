@@ -677,8 +677,6 @@ import std.stdio;
 struct S
 {
     int m;
-
-    import std.stdio; // imports write
 }
 
 void main()
@@ -688,7 +686,7 @@ void main()
     writeln(__traits(hasMember, S, "m")); // true
     writeln(__traits(hasMember, s, "m")); // true
     writeln(__traits(hasMember, S, "y")); // false
-    writeln(__traits(hasMember, S, "write")); // true
+    writeln(__traits(hasMember, S, "write")); // false
     writeln(__traits(hasMember, int, "sizeof")); // true
 }
 ---
