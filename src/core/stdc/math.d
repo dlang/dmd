@@ -3089,7 +3089,7 @@ else version (OpenBSD)
     ///
     pure real atanl(real x);
     ///
-    real atan2l(real x, real y);
+    real atan2l(real y, real x);
     ///
     pure real cosl(real x);
     ///
@@ -3377,7 +3377,7 @@ else version (DragonFlyBSD)
     pure real acosl(real x);
     pure real asinl(real x);
     pure real atanl(real x);
-    real atan2l(real x, real y);
+    real atan2l(real y, real x);
     pure real cosl(real x);
     pure real sinl(real x);
     pure real tanl(real x);
@@ -3872,7 +3872,7 @@ else version (CRuntime_UClibc)
     ///
     float   atan2f(float y, float x);
     ///
-    extern(D) real atan2l(real y, real x) { return atan2(cast(double) x, cast(double) y); }
+    extern(D) real atan2l(real y, real x) { return atan2(cast(double) y, cast(double) x); }
 
     ///
     pure double  cos(double x);
