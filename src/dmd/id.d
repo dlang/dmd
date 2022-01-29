@@ -491,6 +491,7 @@ immutable Msgtable[] msgtable =
     { "udaGNUAbiTag", "gnuAbiTag" },
     { "udaSelector", "selector" },
     { "udaOptional", "optional"},
+    { "udaMustUse", "mustUse" },
 
     // C names, for undefined identifier error messages
     { "NULL" },
