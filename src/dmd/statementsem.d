@@ -122,8 +122,10 @@ private LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
  * Returns:
  *  `e` or ErrorExp.
  */
-private Expression checkAssignmentAsCondition(Expression e)
+private Expression checkAssignmentAsCondition(Expression e, Scope* sc)
 {
+    if (sc.flags & SCOPE.Cfile)
+        return e;
     auto ec = lastComma(e);
     if (ec.op == EXP.assign)
     {
@@ -550,7 +552,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             (cast(DotIdExp)ds.condition).noderef = true;
 
         // check in syntax level
-        ds.condition = checkAssignmentAsCondition(ds.condition);
+        ds.condition = checkAssignmentAsCondition(ds.condition, sc);
 
         ds.condition = ds.condition.expressionSemantic(sc);
         ds.condition = resolveProperties(sc, ds.condition);
@@ -623,7 +625,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 (cast(DotIdExp)fs.condition).noderef = true;
 
             // check in syntax level
-            fs.condition = checkAssignmentAsCondition(fs.condition);
+            fs.condition = checkAssignmentAsCondition(fs.condition, sc);
 
             fs.condition = fs.condition.expressionSemantic(sc);
             fs.condition = resolveProperties(sc, fs.condition);
@@ -1867,7 +1869,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
          */
 
         // check in syntax level
-        ifs.condition = checkAssignmentAsCondition(ifs.condition);
+        ifs.condition = checkAssignmentAsCondition(ifs.condition, sc);
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
