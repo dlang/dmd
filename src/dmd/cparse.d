@@ -3225,7 +3225,7 @@ final class CParser(AST) : Parser!AST
             symbols = new AST.Dsymbols();
             while (token.value != TOK.rightCurly)
             {
-                cparseStructDeclaration();
+                cparseStructDeclaration(symbolsSave);
 
                 if (token.value == TOK.endOfFile)
                     break;
@@ -3266,8 +3266,10 @@ final class CParser(AST) : Parser!AST
      * struct-declarator:
      *    declarator
      *    declarator (opt) : constant-expression
+     * Params:
+     *	tagSymbols = where to put any tag symbols that we encounter
      */
-    void cparseStructDeclaration()
+    void cparseStructDeclaration(ref AST.Dsymbols* tagSymbols)
     {
         //printf("cparseStructDeclaration()\n");
         if (token.value == TOK._Static_assert)
@@ -3323,10 +3325,10 @@ final class CParser(AST) : Parser!AST
                 ? new AST.StructDeclaration(tt.loc, tt.id, false)
                 : new AST.UnionDeclaration(tt.loc, tt.id);
             stag.members = tt.members;
-            if (!symbols)
-                symbols = new AST.Dsymbols();
+            if (!tagSymbols)
+                tagSymbols = new AST.Dsymbols();
             auto s = applySpecifier(stag, specifier);
-            symbols.push(s);
+            tagSymbols.push(s);
             return;
         }
 
