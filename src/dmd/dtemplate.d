@@ -6237,41 +6237,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return false;
         }
 
-        if (!minst)
-        {
-            // If this is a speculative instantiation,
-            // 1. do codegen if the ancestor really needs codegen
-            // 2. become non-speculative if a sibling isn't speculative
-
-            // Determine necessity of tinst before tnext.
-            if (tinst && tinst.needsCodegen())
-            {
-                minst = tinst.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
-            }
-
-            if (tnext)
-            {
-                const needsCodegen = tnext.needsCodegen(); // sets tnext.minst
-                if (tnext.minst) // not speculative
-                {
-                    minst = tnext.minst; // cache result
-                    return needsCodegen;
-                }
-            }
-
-            // Elide codegen because this is really speculative.
-            return false;
-        }
-
         if (global.params.allInst)
         {
             // Do codegen if there is an instantiation from a root module, to maximize link-ability.
-            if (minst.isRoot())
+
+            // Do codegen if `this` is instantiated from a root module.
+            if (minst && minst.isRoot())
                 return true;
 
+            // Do codegen if the ancestor needs it.
             if (tinst && tinst.needsCodegen())
             {
                 minst = tinst.minst; // cache result
@@ -6279,12 +6253,22 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 assert(minst.isRoot());
                 return true;
             }
-            if (tnext && tnext.needsCodegen())
+
+            // Do codegen if a sibling needs it.
+            if (tnext)
             {
-                minst = tnext.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot());
-                return true;
+                if (tnext.needsCodegen())
+                {
+                    minst = tnext.minst; // cache result
+                    assert(minst);
+                    assert(minst.isRoot());
+                    return true;
+                }
+                else if (!minst && tnext.minst)
+                {
+                    minst = tnext.minst; // cache result from non-speculative sibling
+                    return false;
+                }
             }
 
             // Elide codegen because there's no instantiation from any root modules.
@@ -6305,13 +6289,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              * or the compilation of B do the actual instantiation?
              *
              * See https://issues.dlang.org/show_bug.cgi?id=2500.
+             *
+             * => Elide codegen if there is at least one instantiation from a non-root module
+             *    which doesn't import any root modules.
              */
 
+            // If the ancestor isn't speculative,
+            // 1. do codegen if the ancestor needs it
+            // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
             if (tinst)
             {
-                // If the ancestor isn't speculative,
-                // 1. do codegen if the ancestor needs it
-                // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
                 const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
                 if (tinst.minst) // not speculative
                 {
@@ -6320,21 +6307,33 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
             }
 
-            // Elide codegen if there is at least one instantiation from a non-root module
-            // which doesn't import any root modules.
-            if (!minst.isRoot() && !minst.rootImports())
+            // Elide codegen if `this` doesn't need it.
+            if (minst && !minst.isRoot() && !minst.rootImports())
                 return false;
 
-            if (tnext && !tnext.needsCodegen() && tnext.minst)
+            // Elide codegen if a (non-speculative) sibling doesn't need it.
+            if (tnext)
             {
-                // Elide codegen because at least one non-speculative sibling can.
-                minst = tnext.minst; // cache result
-                assert(!minst.isRoot() && !minst.rootImports());
-                return false;
+                const needsCodegen = tnext.needsCodegen(); // sets tnext.minst
+                if (tnext.minst) // not speculative
+                {
+                    if (!needsCodegen)
+                    {
+                        minst = tnext.minst; // cache result
+                        assert(!minst.isRoot() && !minst.rootImports());
+                        return false;
+                    }
+                    else if (!minst)
+                    {
+                        minst = tnext.minst; // cache result from non-speculative sibling
+                        return true;
+                    }
+                }
             }
 
-            // Do codegen because we found no guaranteed-codegen'd non-root instantiation.
-            return true;
+            // Unless `this` is still speculative (=> all further siblings speculative too),
+            // do codegen because we found no guaranteed-codegen'd non-root instantiation.
+            return minst !is null;
         }
     }
 
