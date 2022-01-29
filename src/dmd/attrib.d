@@ -1549,6 +1549,7 @@ bool isCoreUda(Dsymbol sym, Identifier ident)
  *
  * Params:
  *  sym = the symbol to get the UDAs from
+ *  sc = scope to use for semantic analysis of UDAs
  *  dg = called once for each UDA. If `dg` returns `!= 0`, it will stop the
  *      iteration and return that value, otherwise it will return `0`.
  */
