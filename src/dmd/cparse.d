@@ -3105,7 +3105,7 @@ final class CParser(AST) : Parser!AST
         if (token.value == TOK.colon)
         {
             nextToken();
-            base = parseType();
+            base = cparseTypeName();
         }
 
         AST.Dsymbols* members;
