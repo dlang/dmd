@@ -6244,12 +6244,27 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // 2. become non-speculative if a sibling isn't speculative
 
             // Determine necessity of tinst before tnext.
-            if (tinst && tinst.needsCodegen())
+            if (tinst)
             {
-                minst = tinst.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
+                const needsCodegen = tinst.needsCodegen();
+                if (global.params.allInst)
+                {
+                    if (needsCodegen)
+                    {
+                        minst = tinst.minst; // cache result
+                        assert(minst);
+                        assert(minst.isRoot());
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (tinst.minst) // not speculative
+                    {
+                        minst = tinst.minst; // cache result
+                        return needsCodegen;
+                    }
+                }
             }
 
             if (tnext)
