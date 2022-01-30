@@ -35,6 +35,44 @@ bool checkMustUse(Expression e, Scope* sc)
 }
 
 /**
+ * Called from a symbol's semantic to check for reserved usage of @mustUse.
+ *
+ * If such usage is found, emits an errror.
+ *
+ * Params:
+ *   sym = symbol to check
+ */
+void checkMustUseReserved(Dsymbol sym)
+{
+    import dmd.id : Id;
+
+    if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
+        return;
+
+    // Can't use foreachUda (and by extension hasMustUseAttribute) while
+    // semantic analysis of `sym` is still in progress
+    // TODO: factor out common code from this function and checkGNUABITag
+    foreach (exp; *sym.userAttribDecl.atts)
+    {
+        if (isMustUseAttribute(exp))
+        {
+            if (sym.isFuncDeclaration())
+            {
+                sym.error("`@%s` on functions is reserved for future use",
+                    Id.udaMustUse.toChars());
+                sym.errors = true;
+            }
+            else if (sym.isClassDeclaration() || sym.isInterfaceDeclaration() || sym.isEnumDeclaration())
+            {
+                sym.error("`@%s` on `%s` types is reserved for future use",
+                    Id.udaMustUse.toChars(), sym.kind());
+                sym.errors = true;
+            }
+        }
+    }
+}
+
+/**
  * Returns true if the given expression is an assignment, either simple (a = b)
  * or compound (a += b, etc).
  */
