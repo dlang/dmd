@@ -40,7 +40,37 @@ bool checkMustUse(Expression e, Scope* sc)
  */
 private bool isAssignment(Expression e)
 {
-    return e.isAssignExp || e.isBinAssignExp;
+    if (e.isAssignExp || e.isBinAssignExp)
+        return true;
+    if (auto ce = e.isCallExp())
+    {
+        auto fd = ce.f;
+        auto id = fd ? fd.ident : null;
+        // opXXX are reserved identifiers, so it's ok to match too much here
+        if (id && id.toString().startsWith("op") && id.toString().endsWith("Assign"))
+            return true;
+    }
+    return false;
+}
+
+/**
+ * Returns true if `s` starts with `prefix`, false otherwise.
+ */
+private bool startsWith(const(char)[] s, const(char)[] prefix)
+{
+    if (s.length < prefix.length)
+        return false;
+    return s[0 .. prefix.length] == prefix;
+}
+
+/**
+ * Returns true if `s` ends with `suffix`, false otherwise.
+ */
+private bool endsWith(const(char)[] s, const(char)[] suffix)
+{
+    if (s.length < suffix.length)
+        return false;
+    return s[$ - suffix.length .. $] == suffix;
 }
 
 /**
