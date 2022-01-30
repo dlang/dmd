@@ -3221,17 +3221,14 @@ final class CParser(AST) : Parser!AST
         if (token.value == TOK.leftCurly)
         {
             nextToken();
-            auto symbolsSave = symbols;
-            symbols = new AST.Dsymbols();
+            members = new AST.Dsymbols();          // so `members` will be non-null even with 0 members
             while (token.value != TOK.rightCurly)
             {
-                cparseStructDeclaration();
+                cparseStructDeclaration(members);
 
                 if (token.value == TOK.endOfFile)
                     break;
             }
-            members = symbols;          // `members` will be non-null even with 0 members
-            symbols = symbolsSave;
             check(TOK.rightCurly);
 
             if ((*members).length == 0) // C11 6.7.2.1-8
@@ -3266,18 +3263,19 @@ final class CParser(AST) : Parser!AST
      * struct-declarator:
      *    declarator
      *    declarator (opt) : constant-expression
+     * Params:
+     *    members = where to put the fields (members)
      */
-    void cparseStructDeclaration()
+    void cparseStructDeclaration(AST.Dsymbols* members)
     {
         //printf("cparseStructDeclaration()\n");
         if (token.value == TOK._Static_assert)
         {
             auto s = cparseStaticAssert();
-            symbols.push(s);
+            members.push(s);
             return;
         }
 
-        auto symbolsSave = symbols;
         Specifier specifier;
         specifier.packalign = this.packalign;
         auto tspec = cparseSpecifierQualifierList(LVL.member, specifier);
@@ -3306,10 +3304,8 @@ final class CParser(AST) : Parser!AST
                  * the containing struct
                  */
                 auto ad = new AST.AnonDeclaration(tt.loc, tt.tok == TOK.union_, tt.members);
-                if (!symbols)
-                    symbols = new AST.Dsymbols();
                 auto s = applySpecifier(ad, specifier);
-                symbols.push(s);
+                members.push(s);
                 return;
             }
             if (!tt.id && !tt.members)
@@ -3367,18 +3363,14 @@ final class CParser(AST) : Parser!AST
             if (token.value == TOK.__attribute__)
                 cparseGnuAttributes(specifier);
 
-            AST.Dsymbol s = null;
-            symbols = symbolsSave;
-            if (!symbols)
-                symbols = new AST.Dsymbols;     // lazilly create it
-
             if (!tspec && !specifier.scw && !specifier.mod)
                 error("specifier-qualifier-list required");
             else if (width)
             {
                 if (specifier.alignExps)
                     error("no alignment-specifier for bit field declaration"); // C11 6.7.5-2
-                s = new AST.BitFieldDeclaration(width.loc, dt, id, width);
+                auto s = new AST.BitFieldDeclaration(width.loc, dt, id, width);
+                members.push(s);
             }
             else if (id)
             {
@@ -3388,11 +3380,10 @@ final class CParser(AST) : Parser!AST
                 // declare the symbol
                 // Give member variables an implicit void initializer
                 auto initializer = new AST.VoidInitializer(token.loc);
-                s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(LVL.member, specifier));
+                AST.Dsymbol s = new AST.VarDeclaration(token.loc, dt, id, initializer, specifiersToSTC(LVL.member, specifier));
                 s = applySpecifier(s, specifier);
+                members.push(s);
             }
-            if (s !is null)
-                symbols.push(s);
 
             switch (token.value)
             {
