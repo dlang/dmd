@@ -110,6 +110,7 @@ private bool isIncrementOrDecrement(Expression e)
 {
     import dmd.dtemplate : isExpression;
     import dmd.globals : Loc;
+    import dmd.id : Id;
     import dmd.tokens : EXP;
 
     if (e.op == EXP.plusPlus
@@ -123,7 +124,7 @@ private bool isIncrementOrDecrement(Expression e)
         // e.g., a.opUnary!"++"
         auto fd = call.f;
         auto id = fd ? fd.ident : null;
-        if (id && id.toString() == "opUnary")
+        if (id == Id.opUnary)
         {
             auto ti = fd.parent ? fd.parent.isTemplateInstance() : null;
             auto tiargs = ti ? ti.tiargs : null;
