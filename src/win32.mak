@@ -107,7 +107,7 @@ check-host-dc:
 debdmd: check-host-dc debdmd-make
 
 debdmd-make:
-	$(DMDMAKE) "ENABLE_DEBUG=1" "ENABLE_UNITTEST=1" $(TARGETEXE)
+	$(DMDMAKE) "ENABLE_DEBUG=1" $(TARGETEXE)
 
 reldmd: check-host-dc reldmd-make
 
