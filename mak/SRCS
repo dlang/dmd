@@ -1,6 +1,5 @@
 SRCS=\
 	src\object.d \
-	src\__builtins.d \
 	\
 	src\core\atomic.d \
 	src\core\attribute.d \
