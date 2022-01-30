@@ -6360,6 +6360,9 @@ extern (C++) final class TypeClass : Type
 
     override MOD deduceWild(Type t, bool isRef)
     {
+        // If sym is forward referenced:
+        if (sym.semanticRun < PASS.semanticdone && !sym.isBaseInfoComplete())
+            sym.dsymbolSemantic(null);
         ClassDeclaration cd = t.isClassHandle();
         if (cd && (sym == cd || cd.isBaseOf(sym, null)))
             return Type.deduceWild(t, isRef);
