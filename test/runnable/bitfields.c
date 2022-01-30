@@ -1,6 +1,16 @@
 int printf(const char *fmt, ...);
 void exit(int);
 
+void assert(int b, int line)
+{
+    if (!b)
+    {
+        printf("failed test %d\n", line);
+        exit(1);
+    }
+}
+
+
 struct S
 {
     int a:2, b:4;
@@ -170,6 +180,30 @@ void test5()
 
 /******************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=22710
+
+struct S6
+{
+    unsigned int a:2, b:2;
+};
+
+int boo6()
+{
+    S s;
+    s.a = 3;
+    s.b = 1;
+    s.a += 2;
+    return s.a;
+}
+
+void test6()
+{
+    //printf("res: %d\n", test());
+    assert(boo6() == 1, 6);
+}
+
+/******************************************/
+
 int main()
 {
     test1();
@@ -177,6 +211,7 @@ int main()
     test3();
     test4();
     test5();
+    test6();
 
     return 0;
 }
