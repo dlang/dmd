@@ -115,7 +115,6 @@ immutable Msgtable[] msgtable =
     { "line" },
     { "empty", "" },
     { "p" },
-    { "q" },
     { "__vptr" },
     { "__monitor" },
     { "gate", "__gate" },
