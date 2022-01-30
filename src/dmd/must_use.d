@@ -72,7 +72,7 @@ void checkMustUseReserved(Dsymbol sym)
                     Id.udaMustUse.toChars());
                 sym.errors = true;
             }
-            else if (sym.isClassDeclaration() || sym.isInterfaceDeclaration() || sym.isEnumDeclaration())
+            else if (sym.isClassDeclaration() || sym.isEnumDeclaration())
             {
                 sym.error("`@%s` on `%s` types is reserved for future use",
                     Id.udaMustUse.toChars(), sym.kind());
