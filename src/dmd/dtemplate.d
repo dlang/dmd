@@ -7374,8 +7374,18 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // where tempdecl is declared.
             mi = (enc ? enc : tempdecl).getModule();
             if (!mi.isRoot())
-                mi = mi.importedFrom;
-            assert(mi.isRoot());
+            {
+                if (mi.importedFrom)
+                {
+                    mi = mi.importedFrom;
+                    assert(mi.isRoot());
+                }
+                else
+                {
+                    // This can happen when using the frontend as a library.
+                    // Append it to the non-root module.
+                }
+            }
         }
         else
         {
