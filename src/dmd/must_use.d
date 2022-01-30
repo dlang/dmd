@@ -78,12 +78,45 @@ private bool endsWith(const(char)[] s, const(char)[] suffix)
  */
 private bool isIncrementOrDecrement(Expression e)
 {
+    import dmd.dtemplate : isExpression;
+    import dmd.globals : Loc;
     import dmd.tokens : EXP;
 
-    return e.op == EXP.plusPlus
+    if (e.op == EXP.plusPlus
         || e.op == EXP.minusMinus
         || e.op == EXP.prePlusPlus
-        || e.op == EXP.preMinusMinus;
+        || e.op == EXP.preMinusMinus)
+        return true;
+    if (auto call = e.isCallExp())
+    {
+        // Check for overloaded preincrement
+        // e.g., a.opUnary!"++"
+        auto fd = call.f;
+        auto id = fd ? fd.ident : null;
+        if (id && id.toString() == "opUnary")
+        {
+            auto ti = fd.parent ? fd.parent.isTemplateInstance() : null;
+            auto tiargs = ti ? ti.tiargs : null;
+            if (tiargs && tiargs.length >= 1 && (*tiargs)[0].isExpression())
+            {
+                auto op = (cast(Expression) (*tiargs)[0]).isStringExp();
+                scope plusPlus = new StringExp(Loc.initial, "++");
+                scope minusMinus = new StringExp(Loc.initial, "--");
+                if (op && (op.compare(plusPlus) == 0 || op.compare(minusMinus) == 0))
+                    return true;
+            }
+        }
+    }
+    else if (auto comma = e.isCommaExp())
+    {
+        // Check for overloaded postincrement
+        // e.g., (auto tmp = a, ++a, tmp)
+        auto left = comma.e1 ? comma.e1.isCommaExp() : null;
+        auto middle = left ? left.e2 : null;
+        if (middle && isIncrementOrDecrement(middle))
+            return true;
+    }
+    return false;
 }
 
 /**
