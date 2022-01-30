@@ -8139,7 +8139,6 @@ struct Id final
     static Identifier* line;
     static Identifier* empty;
     static Identifier* p;
-    static Identifier* q;
     static Identifier* gate;
     static Identifier* cpp_type_info_ptr;
     static Identifier* _assert;
