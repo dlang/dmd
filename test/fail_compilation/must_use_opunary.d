@@ -1,7 +1,7 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/must_use_opunary.d(20): Error: ignored value of `@mustUse` type `S`; prepend a `cast(void)` if intentional
+fail_compilation/must_use_opunary.d(20): Error: ignored value of `@mustUse` type `must_use_opunary.S`; prepend a `cast(void)` if intentional
 ---
 +/
 import core.attribute;

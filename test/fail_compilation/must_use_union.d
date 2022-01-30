@@ -1,7 +1,7 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/must_use_union.d(15): Error: ignored value of `@mustUse` type `U`; prepend a `cast(void)` if intentional
+fail_compilation/must_use_union.d(15): Error: ignored value of `@mustUse` type `must_use_union.U`; prepend a `cast(void)` if intentional
 ---
 +/
 import core.attribute;

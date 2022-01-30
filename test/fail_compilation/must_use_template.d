@@ -1,7 +1,7 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/must_use_template.d(15): Error: ignored value of `@mustUse` type `S!int`; prepend a `cast(void)` if intentional
+fail_compilation/must_use_template.d(15): Error: ignored value of `@mustUse` type `must_use_template.S!int`; prepend a `cast(void)` if intentional
 ---
 +/
 import core.attribute;

@@ -37,7 +37,7 @@ bool checkMustUse(Expression e, Scope* sc)
         if (sd && hasMustUseAttribute(sd, sc))
         {
             e.error("ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
-                Id.udaMustUse.toChars(), e.type.toChars());
+                Id.udaMustUse.toChars(), e.type.toPrettyChars(true));
             return true;
         }
     }
