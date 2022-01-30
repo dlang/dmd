@@ -207,3 +207,23 @@ version(Windows) auto extendedPathThen(alias F)(const(char)[] path)
     // Strip null terminator from the slice
     return F(absPath[0 .. $ - 1]);
 }
+
+/**
+ * Returns true if `s` starts with `prefix`, false otherwise.
+ */
+bool startsWith(const(char)[] s, const(char)[] prefix)
+{
+    if (s.length < prefix.length)
+        return false;
+    return s[0 .. prefix.length] == prefix;
+}
+
+/**
+ * Returns true if `s` ends with `suffix`, false otherwise.
+ */
+bool endsWith(const(char)[] s, const(char)[] suffix)
+{
+    if (s.length < suffix.length)
+        return false;
+    return s[$ - suffix.length .. $] == suffix;
+}
