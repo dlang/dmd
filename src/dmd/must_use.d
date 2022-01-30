@@ -128,9 +128,10 @@ private bool isIncrementOrDecrement(Expression e)
         {
             auto ti = fd.parent ? fd.parent.isTemplateInstance() : null;
             auto tiargs = ti ? ti.tiargs : null;
-            if (tiargs && tiargs.length >= 1 && (*tiargs)[0].isExpression())
+            if (tiargs && tiargs.length >= 1)
             {
-                auto op = (cast(Expression) (*tiargs)[0]).isStringExp();
+                auto argExp = (*tiargs)[0].isExpression();
+                auto op = argExp ? argExp.isStringExp() : null;
                 scope plusPlus = new StringExp(Loc.initial, "++");
                 scope minusMinus = new StringExp(Loc.initial, "--");
                 if (op && (op.compare(plusPlus) == 0 || op.compare(minusMinus) == 0))
