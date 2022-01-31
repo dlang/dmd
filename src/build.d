@@ -401,12 +401,14 @@ alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRul
 /// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
 alias versionFile = makeRule!((builder, rule) {
     alias contents = memoize!(() {
+        /*
         if (dmdRepo.buildPath(".git").exists)
         {
             auto gitResult = tryRun([env["GIT"], "describe", "--dirty"]);
             if (gitResult.status == 0)
                 return gitResult.output.strip;
         }
+        */
         // version fallback
         return dmdRepo.buildPath("VERSION").readText;
     });
