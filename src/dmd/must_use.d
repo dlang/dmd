@@ -54,6 +54,7 @@ bool checkMustUse(Expression e, Scope* sc)
  */
 void checkMustUseReserved(Dsymbol sym)
 {
+    import dmd.errors : error;
     import dmd.id : Id;
 
     if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
@@ -68,13 +69,13 @@ void checkMustUseReserved(Dsymbol sym)
         {
             if (sym.isFuncDeclaration())
             {
-                sym.error("`@%s` on functions is reserved for future use",
+                error(sym.loc, "`@%s` on functions is reserved for future use",
                     Id.udaMustUse.toChars());
                 sym.errors = true;
             }
             else if (sym.isClassDeclaration() || sym.isEnumDeclaration())
             {
-                sym.error("`@%s` on `%s` types is reserved for future use",
+                error(sym.loc, "`@%s` on `%s` types is reserved for future use",
                     Id.udaMustUse.toChars(), sym.kind());
                 sym.errors = true;
             }
