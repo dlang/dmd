@@ -535,6 +535,7 @@ struct Param final
     CHECKENABLE boundscheck;
     CHECKACTION checkAction;
     uint32_t errorLimit;
+    uint32_t formatLevel;
     _d_dynamicArray< const char > argv0;
     Array<const char* > modFileAliasStrings;
     Array<const char* >* imppath;
@@ -660,6 +661,7 @@ struct Param final
         boundscheck((CHECKENABLE)0u),
         checkAction((CHECKACTION)0u),
         errorLimit(20u),
+        formatLevel(),
         argv0(),
         modFileAliasStrings(),
         imppath(),
@@ -788,6 +790,7 @@ struct Param final
         boundscheck(boundscheck),
         checkAction(checkAction),
         errorLimit(errorLimit),
+        formatLevel(formatLevel),
         argv0(argv0),
         modFileAliasStrings(modFileAliasStrings),
         imppath(imppath),
@@ -8042,6 +8045,10 @@ extern _d_real creall(complex_t x);
 extern _d_real cimagl(complex_t x);
 
 extern void browse(const char* url);
+
+extern void errorEx(const Loc& loc, const char* format, ...);
+
+extern void verrorEx(const Loc& loc, const char* format, va_list ap);
 
 extern void error(const Loc& loc, const char* format, ...);
 

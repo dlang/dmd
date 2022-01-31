@@ -1932,6 +1932,19 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             const triple = Triple(p + len);
             target.setTriple(triple);
         }
+        else if (startsWith(p + 1, "verror-format-level"))
+        {
+            if (p[20] != '=')
+            {
+                errorInvalidSwitch(p, "Expected argument following `-verror-format-level` , e.g. `-verror-format-level=2`");
+                return true;
+            }
+            else if (!params.formatLevel.parseDigits(p.toDString()[21 .. $]))
+            {
+                errorInvalidSwitch(p, "Only numbers are allowed for `-verror-format-level`");
+                return true;
+            }
+        }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
             enum len = "-mcpu=".length;

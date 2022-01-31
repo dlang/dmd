@@ -35,12 +35,64 @@ enum Classification : Color
     tip = Color.brightGreen,          /// for tip messages
 }
 
+private struct FragmentInfo
+{
+    const(char)* start; /// points to the first character of the `FRAGMENT_PREFIX_START` prefix for this fragment.
+
+    const(char)* name;
+    size_t nameLen;
+
+    const(char)* params; /// can be null.
+    size_t paramsLen;
+
+    const(char)* innerText;
+    size_t innerTextLen;
+}
+
+private immutable FRAGMENT_PREFIX = "\033¬\r!\033¬\t*"; // super random series of weird characters that no user code would ever really use. Change to e.g. "__PREFIX__" when debugging.
+private immutable FRAGMENT_PREFIX_START = FRAGMENT_PREFIX ~ "$[";
+private immutable FRAGMENT_PREFIX_BODY_END = FRAGMENT_PREFIX ~ '}';
+
+/**
+ * Print an error message using the extended string format, increasing the global error count.
+ * Params:
+ *      loc    = location of error
+ *      format = extended format specification
+ *      ...    = printf-style variadic arguments
+ */
+static if (__VERSION__ < 2092)
+    extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        verrorEx(loc, format, ap);
+        va_end(ap);
+    }
+else
+    pragma(printf) extern (C++) void errorEx(const ref Loc loc, const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        verrorEx(loc, format, ap);
+        va_end(ap);
+    }
+
+/**
+ * Similar to `verror` except it uses the extended format string described by `verrorFormatPrint`.
+ * Params:
+ *      loc    = location of error
+ *      format = extended format specification
+ *      ap     = printf-style argument list
+ */
+extern (C++) void verrorEx(const ref Loc loc, const(char)* format, va_list ap)
+{
+    verrorFormatPrint(loc, format, ap, &error, &errorSupplemental);
+}
 
 static if (__VERSION__ < 2092)
     private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
 else
     pragma(printf) private extern (C++) void noop(const ref Loc loc, const(char)* format, ...) {}
-
 
 package auto previewErrorFunc(bool isDeprecated, FeatureState featureState) @safe @nogc pure nothrow
 {
@@ -61,7 +113,6 @@ package auto previewSupplementalFunc(bool isDeprecated, FeatureState featureStat
     else
         return &deprecationSupplemental;
 }
-
 
 /**
  * Print an error message, increasing the global error count.
@@ -379,7 +430,12 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     else
         fputs(tmp.peekChars(), stderr);
     fputc('\n', stderr);
+    verrorPrintContext(loc);
+    fflush(stderr);     // ensure it gets written out in case of compiler aborts
+}
 
+private void verrorPrintContext(const ref Loc loc)
+{
     if (global.params.printErrorContext &&
         // ignore invalid files
         loc != Loc.initial &&
@@ -417,7 +473,6 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             }
         }
     }
-    fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
 /**
@@ -850,4 +905,216 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
         else
             fputc(c, con.fp);
     }
+}
+
+/**
+ * Similar to `verrorPrint` except this function uses an extended format string syntax, and
+ * outsources the actual printing to external functions.
+ *
+ * Notes:
+ *  When this comment mentions about inserting a new line, what really happens it that is makes
+ *  a call to `printSupplemental` instead of manually messing around with new lines.
+ *
+ * Format:
+ *  The given `format` string can be used as a normal printf-style string, but it has additional syntax
+ *  to perform additional formatting options, such as indenting text depending on the error format level set by the compiler caller.
+ *
+ *  To specify a 'format fragment' you must use the syntax `$[formatter_name:formatter_params]{text to format}`.
+ *
+ *  formatter_params (and the ':' before it) are optional, everything else is mandatory.
+ *
+ *  e.g. `$[indent:1]{This text is put onto a new line and indented by 1 'tab'}`
+ *
+ *  e.g. `There might be a new line $[indent:0]{} between these two pieces of text!`
+ *
+ * Formatters:
+ *  indent:indent_level = If the error formatting level is 1 or higher, then a new line is made and a tab (4 spaces) is inserted `indent_level`
+ *                        times, which is then followed up by the text to format. Technically there's no need to provide specific text to this formatter,
+ *                        but it makes it more clear on what you're attempting to do.
+ *
+ * Params:
+ *  loc                 = The location of the error.
+ *  format              = The extended format string to use.
+ *  ap                  = The argument list to use with the `format` string.
+ *  print               = The print function to use for the first line printed.
+ *  printSupplemental   = The print function to use for every line printed after the first line.
+ */
+private void verrorFormatPrint(MFunc, MFuncSupp)(const ref Loc loc, const(char)* format, va_list ap, MFunc print, MFuncSupp printSupplemental)
+{
+    const prefixedFormat = verrorFormatPrefixString(format, ap);
+    if (!prefixedFormat)
+        assert(0, "BAD FORMAT STRING - verrorFormatPrefixString returned null.");
+    scope (exit) mem.xfree(cast(void*)prefixedFormat);
+
+    bool firstPrint = true;
+    void push(const(char)* text)
+    {
+        if (firstPrint)
+            print(loc, "%s", text);
+        else
+            printSupplemental(loc, "%s", text);
+        firstPrint = false;
+    }
+
+    OutBuffer buf;
+    const(char)* nextFormat = prefixedFormat;
+    while (*nextFormat != '\0')
+    {
+        const nextFragment = strstr(nextFormat, FRAGMENT_PREFIX_START.ptr);
+        if (nextFragment && nextFragment == nextFormat)
+        {
+            FragmentInfo info;
+            if (!verrorFormatNextFragment(nextFormat, info, nextFormat))
+                assert(0, "BAD FORMAT STRING - FRAGMENT_PREFIX_START was found but could not be parsed.");
+
+            // TODO: Perhaps dispatch into different functions in the future, otherwise this might get messy.
+            if (!strncmp(info.name, "indent", info.nameLen))
+            {
+                if (global.params.formatLevel < 1)
+                {
+                    buf.write(info.innerText, info.innerTextLen);
+                    continue;
+                }
+                push(buf.peekChars());
+                buf.reset();
+                uint indentLevel;
+                if (info.params)
+                    if (!sscanf(info.params, "%u", &indentLevel))
+                        assert(0, "BAD FORMAT STRING - 'indent' could not parse numeric parameter of: "~info.params[0..info.paramsLen]);
+                foreach (i; 0..indentLevel)
+                    buf.writestring("    ");
+                buf.write(info.innerText, info.innerTextLen);
+            }
+            else
+                assert(0, "BAD FORMAT STRING - Formatter '"~info.name[0..info.nameLen]~"' does not exist.");
+            continue;
+        }
+
+        const length = nextFragment ? (nextFragment - nextFormat) : strlen(nextFormat);
+        buf.write(nextFormat, length);
+        nextFormat += length;
+    }
+    if (buf.length)
+        push(buf.peekChars());
+}
+
+/**
+ * Provides a new string where all the formatting fragments inside of `format` are
+ * prefixed with an unusual string of characters in order to make it harder for code
+ * to confuse compiler-proivded fragments from things like `myclass!"$[blah]"`.
+ *
+ * After prefixing, the format string is fully resolved with the given argument list.
+ *
+ * Please note that the returned string must be freed manually.
+ *
+ * Params:
+ *      format = The format string to prefix and resolve.
+ *      ap     = The argument list to resolve the format string with.
+ *
+ * Returns:
+ *  A new string (that must be freed) containing the fully resolved and prefixed `format` string.
+ */
+private const(char)* verrorFormatPrefixString(const(char)* format, va_list ap)
+{
+    OutBuffer buf;
+
+    // First, find any formatting fragments, and prefix them with a silly string of chars.
+    // This is to make it almost impossible for things like `myClass!"$[]"` from accidentally being
+    // detected as a format fragment.
+    //
+    // This is stupid, and silly, but I'm too dumb to think of anything else without making something even more clunky.
+    auto start = format;
+    auto delim = start;
+    while ((delim = strstr(start, "$[")) !is null)
+    {
+        const beforeLen = (delim - start);
+        buf.write(start, beforeLen);
+        buf.writestring(FRAGMENT_PREFIX);
+
+        // Full format is $[name:?params?]{text?} so there *should* be a '{' and '}'. We want to prefix the '}'.
+        const endParams = strchr(delim, ']');
+        if (!endParams)
+            return null;
+        const startBody = strchr(endParams, '{');
+        if (!startBody || (startBody - endParams) != 1)
+            return null;
+        const endBody = strchr(startBody, '}');
+        if (!endBody)
+            return null;
+
+        start = endBody + 1;
+        buf.write(delim, (endBody - delim));
+        buf.writestring(FRAGMENT_PREFIX);
+        buf.writeByte('}');
+    }
+    buf.writestring(start);
+
+    // Now that the developer-made fragments have their silly prefix, we'll now expand the string.
+    const prefixedFormat = buf.extractChars();
+    scope (exit) mem.xfree(cast(void*)prefixedFormat);
+    buf.vprintf(prefixedFormat, ap);
+
+    // Now verrorFormatNextFragment can be used on the result.
+    return buf.extractChars();
+}
+
+/**
+ * Retrieves the next fragment from within `prefixedFormat`.
+ *
+ * Params:
+ *      prefixedFormat      = The output of `verrorFormatPrefixString` or the result of `nextPrefixedFormat` from a previous call to this function.
+ *      info                = The `FragmentInfo` to populate.
+ *      nextPrefxiedFormat  = `prefixedFormat` but advanced to just after the fragment that was read in.
+ *                            This value is left unmodified if no fragment was read.
+ *
+ * Returns:
+ *      `false` on error or if there's no more fragments, `true` if a fragment was read in.
+ */
+private bool verrorFormatNextFragment(const(char)* prefixedFormat, out FragmentInfo info, ref const(char)* nextPrefixedFormat)
+{
+    auto start = prefixedFormat;
+    auto delim = strstr(start, FRAGMENT_PREFIX_START.ptr);
+    if (delim !is null)
+    {
+        info.start = delim;
+        delim += FRAGMENT_PREFIX_START.length;
+        info.name = delim;
+
+        // read name + params
+        while (true) // Loop is terminated by the null check if statement, and the ']' check.
+        {
+            if (*delim == '\0')
+                return false;
+            else if (*delim == ':')
+            {
+                info.params = delim + 1;
+                info.nameLen = (delim - info.name);
+            }
+            else if (*delim == ']')
+            {
+                if (!info.params)
+                    info.nameLen = (delim - info.name);
+                else
+                    info.paramsLen = (delim - info.params);
+                delim++;
+                break;
+            }
+            delim++;
+        }
+
+        // read inner text
+        if (*delim != '{')
+            return false;
+        delim++;
+
+        const innerTextEnd = strstr(delim, FRAGMENT_PREFIX_BODY_END.ptr);
+        if (!innerTextEnd)
+            return false;
+        info.innerText = delim;
+        info.innerTextLen = (innerTextEnd - delim);
+        nextPrefixedFormat = innerTextEnd + FRAGMENT_PREFIX_BODY_END.length;
+        return true;
+    }
+
+    return false;
 }

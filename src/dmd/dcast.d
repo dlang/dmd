@@ -154,7 +154,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                     //type = type.typeSemantic(loc, sc);
                     //printf("type %s t %s\n", type.deco, t.deco);
                     auto ts = toAutoQualChars(e.type, t);
-                    e.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                    errorEx(e.loc, "cannot implicitly convert expression `%s` of type $[indent:1]{`%s`} $[indent:0]{to} $[indent:1]{`%s`}",
                         e.toChars(), ts[0], ts[1]);
                 }
             }
