@@ -485,7 +485,6 @@ struct ASTBase
         enum AdrOnStackNone = ~0u;
         uint ctfeAdrOnStack;
         uint sequenceNumber;
-        __gshared uint nextSequenceNumber;
 
         final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.undefined_)
         {
@@ -494,7 +493,6 @@ struct ASTBase
             this._init = _init;
             this.loc = loc;
             this.storage_class = st;
-            sequenceNumber = ++nextSequenceNumber;
             ctfeAdrOnStack = AdrOnStackNone;
         }
 
@@ -5417,6 +5415,25 @@ struct ASTBase
         {
             super(loc, EXP.assert_, __traits(classInstanceSize, AssertExp), e);
             this.msg = msg;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class ThrowExp : UnaExp
+    {
+        extern (D) this(const ref Loc loc, Expression e)
+        {
+            super(loc, EXP.throw_, __traits(classInstanceSize, ThrowExp), e);
+            this.type = Type.tnoreturn;
+        }
+
+        override ThrowExp syntaxCopy()
+        {
+            return new ThrowExp(loc, e1.syntaxCopy());
         }
 
         override void accept(Visitor v)
