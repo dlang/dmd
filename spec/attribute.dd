@@ -664,6 +664,72 @@ $(P
         Note that the class is still abstract and cannot be instantiated directly.
 )
 
+$(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
+
+    $(P
+        The `@mustuse` attribute is a compiler-recognized $(RELATIVE_LINK2 uda,
+        UDA) defined in the D runtime module $(DPLLINK phobos/core_attribute.html,
+        `core.attribute`).
+    )
+
+
+    $(P
+        An expression is considered to be discarded if and only if either of the
+        following is true:
+    )
+
+    $(UL
+        $(LI
+            it is the top-level $(GLINK2 expression, Expression) in an $(GLINK2
+            statement, ExpressionStatement), or
+        )
+        $(LI
+            it is the $(GLINK2 expression, AssignExpression) on the left-hand
+            side of the comma in a $(GLINK2 expression, CommaExpression).
+        )
+    )
+
+    $(P
+        It is a compile-time error to discard an expression if all of the
+        following are true:
+    )
+
+    $(UL
+        $(LI
+            it is not an assignment expression, an increment expression, or a
+            decrement expression; and
+        )
+
+        $(LI
+            its type is a `struct` or `union` type whose declaration is
+            annotated with `@mustuse`.
+        )
+    )
+
+    $(P
+        "Assignment expression" means either a $(DDSUBLINK spec/expression,
+        simple_assignment_expressions, simple assignment expression) or an
+        $(DDSUBLINK spec/expression, assignment_operator_expression, assignment
+        operator expression).
+    )
+
+    $(P
+        "Increment expression" means a $(GLINK2 expression, UnaryExpression) or
+        $(GLINK2 expression, PostfixExpression) whose operator is `++`.
+    )
+
+    $(P
+        "Decrement expression" means a $(GLINK2 expression, UnaryExpression) or
+        $(GLINK2 expression, PostfixExpression) whose operator is `--`.
+    )
+
+    $(P
+        It is a compile-time error to attach `@mustuse` to a function
+        declaration or to any aggregate declaration other than a `struct` or
+        `union` declaration. The purpose of this rule is to reserve such usage
+        for possible future expansion.
+    )
+
 $(H2 $(LNAME2 uda, User-Defined Attributes))
 
 $(GRAMMAR
