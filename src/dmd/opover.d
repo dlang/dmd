@@ -1052,7 +1052,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 e.e2 = new DotIdExp(e.loc, e.e2, Id._tupleof);
 
                 auto sc2 = sc.push();
-                sc2.flags = (sc2.flags & ~SCOPE.onlysafeaccess) | SCOPE.noaccesscheck;
+                sc2.flags |= SCOPE.noaccesscheck;
                 result = e.expressionSemantic(sc2);
                 sc2.pop();
 

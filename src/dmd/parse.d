@@ -651,7 +651,43 @@ class Parser(AST) : Lexer
                 goto Lerror;
 
             case TOK.unittest_:
-                if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
+                /**
+                 * Ignore unittests in non-root modules.
+                 *
+                 * This mainly means that unittests *inside templates* are only
+                 * ever instantiated if the module lexically declaring the
+                 * template is one of the root modules.
+                 *
+                 * E.g., compiling some project with `-unittest` does NOT
+                 * compile and later run any unittests in instantiations of
+                 * templates declared in other libraries.
+                 *
+                 * Declaring unittests *inside* templates is considered an anti-
+                 * pattern. In almost all cases, the unittests don't depend on
+                 * the template parameters, but instantiate the template with
+                 * fixed arguments (e.g., Nullable!T unittests instantiating
+                 * Nullable!int), so compiling and running identical tests for
+                 * each template instantiation is hardly desirable.
+                 * But adding a unittest right below some function being tested
+                 * is arguably good for locality, so unittests end up inside
+                 * templates.
+                 * To make sure a template's unittests are run, it should be
+                 * instantiated in the same module, e.g., some module-level
+                 * unittest.
+                 *
+                 * Another reason for ignoring unittests in templates from non-
+                 * root modules is for template codegen culling via
+                 * TemplateInstance.needsCodegen(). If the compiler decides not
+                 * to emit some Nullable!bool because there's an existing
+                 * instantiation in some non-root module, it has no idea whether
+                 * that module was compiled with -unittest too, and so whether
+                 * Nullable!int (instantiated in some unittest inside the
+                 * Nullable template) can be culled too. By ignoring unittests
+                 * in non-root modules, the compiler won't consider any
+                 * template instantiations in these unittests as candidates for
+                 * further codegen culling.
+                 */
+                if (mod.isRoot() && (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration))
                 {
                     s = parseUnitTest(pAttrs);
                     if (*pLastDecl)
@@ -1538,6 +1574,8 @@ class Parser(AST) : Lexer
 
             case TOK.return_:
                 stc = STC.return_;
+                if (peekNext() == TOK.scope_)
+                    stc |= STC.returnScope;     // recognize `return scope`
                 break;
 
             case TOK.scope_:
@@ -2888,7 +2926,7 @@ class Parser(AST) : Lexer
         StorageClass varargsStc;
 
         // Attributes allowed for ...
-        enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_;
+        enum VarArgsStc = STC.const_ | STC.immutable_ | STC.shared_ | STC.scope_ | STC.return_ | STC.returnScope;
 
         check(TOK.leftParenthesis);
         while (1)
@@ -2996,6 +3034,8 @@ class Parser(AST) : Lexer
 
                 case TOK.return_:
                     stc = STC.return_;
+                    if (peekNext() == TOK.scope_)
+                        stc |= STC.returnScope;
                     goto L2;
                 L2:
                     storageClass = appendStorageClass(storageClass, stc);
@@ -4461,7 +4501,6 @@ class Parser(AST) : Lexer
     private AST.Dsymbols* parseDeclarations(bool autodecl, PrefixAttributes!AST* pAttrs, const(char)* comment)
     {
         StorageClass storage_class = STC.undefined_;
-        TOK tok = TOK.reserved;
         LINK link = linkage;
         Loc linkloc = this.linkLoc;
         bool setAlignment = false;
@@ -4472,245 +4511,22 @@ class Parser(AST) : Lexer
         if (!comment)
             comment = token.blockComment.ptr;
 
-        /* Look for AliasAssignment:
-         *   identifier = type;
+        /* Look for AliasReassignment
          */
         if (token.value == TOK.identifier && peekNext() == TOK.assign)
-        {
-            const loc = token.loc;
-            auto ident = token.ident;
-            nextToken();
-            nextToken();        // advance past =
-            auto t = parseType();
-            AST.Dsymbol s = new AST.AliasAssign(loc, ident, t, null);
-            check(TOK.semicolon);
-            addComment(s, comment);
-            auto a = new AST.Dsymbols();
-            a.push(s);
-            return a;
-        }
+            return parseAliasReassignment(comment);
 
+        /* Declarations that start with `alias`
+         */
+        bool isAliasDeclaration = false;
         if (token.value == TOK.alias_)
         {
-            const loc = token.loc;
-            tok = token.value;
-            nextToken();
-
-            /* Look for:
-             *   alias identifier this;
-             */
-            if (token.value == TOK.identifier && peekNext() == TOK.this_)
-            {
-                auto s = new AST.AliasThis(loc, token.ident);
-                nextToken();
-                check(TOK.this_);
-                check(TOK.semicolon);
-                auto a = new AST.Dsymbols();
-                a.push(s);
-                addComment(s, comment);
+            if (auto a = parseAliasDeclarations(comment))
                 return a;
-            }
-            version (none)
-            {
-                /* Look for:
-                 *  alias this = identifier;
-                 */
-                if (token.value == TOK.this_ && peekNext() == TOK.assign && peekNext2() == TOK.identifier)
-                {
-                    check(TOK.this_);
-                    check(TOK.assign);
-                    auto s = new AliasThis(loc, token.ident);
-                    nextToken();
-                    check(TOK.semicolon);
-                    auto a = new Dsymbols();
-                    a.push(s);
-                    addComment(s, comment);
-                    return a;
-                }
-            }
-            /* Look for:
-             *  alias identifier = type;
-             *  alias identifier(...) = type;
+            /* Handle these later:
+             *   alias StorageClasses type ident;
              */
-            if (token.value == TOK.identifier && hasOptionalParensThen(peek(&token), TOK.assign))
-            {
-                auto a = new AST.Dsymbols();
-                while (1)
-                {
-                    auto ident = token.ident;
-                    nextToken();
-                    AST.TemplateParameters* tpl = null;
-                    if (token.value == TOK.leftParenthesis)
-                        tpl = parseTemplateParameterList();
-                    check(TOK.assign);
-
-                    bool hasParsedAttributes;
-                    void parseAttributes()
-                    {
-                        if (hasParsedAttributes) // only parse once
-                            return;
-                        hasParsedAttributes = true;
-                        udas = null;
-                        storage_class = STC.undefined_;
-                        link = linkage;
-                        linkloc = this.linkLoc;
-                        setAlignment = false;
-                        ealign = null;
-                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas, linkloc);
-                    }
-
-                    if (token.value == TOK.at)
-                        parseAttributes;
-
-                    AST.Declaration v;
-                    AST.Dsymbol s;
-
-                    // try to parse function type:
-                    // TypeCtors? BasicType ( Parameters ) MemberFunctionAttributes
-                    bool attributesAppended;
-                    const StorageClass funcStc = parseTypeCtor();
-                    Token* tlu = &token;
-                    Token* tk;
-                    if (token.value != TOK.function_ &&
-                        token.value != TOK.delegate_ &&
-                        isBasicType(&tlu) && tlu &&
-                        tlu.value == TOK.leftParenthesis)
-                    {
-                        AST.Type tret = parseBasicType();
-                        auto parameterList = parseParameterList(null);
-
-                        parseAttributes();
-                        if (udas)
-                            error("user-defined attributes not allowed for `alias` declarations");
-
-                        attributesAppended = true;
-                        storage_class = appendStorageClass(storage_class, funcStc);
-                        AST.Type tf = new AST.TypeFunction(parameterList, tret, link, storage_class);
-                        v = new AST.AliasDeclaration(loc, ident, tf);
-                    }
-                    else if (token.value == TOK.function_ ||
-                        token.value == TOK.delegate_ ||
-                        token.value == TOK.leftParenthesis &&
-                            skipAttributes(peekPastParen(&token), &tk) &&
-                            (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
-                        token.value == TOK.leftCurly ||
-                        token.value == TOK.identifier && peekNext() == TOK.goesTo ||
-                        token.value == TOK.ref_ && peekNext() == TOK.leftParenthesis &&
-                            skipAttributes(peekPastParen(peek(&token)), &tk) &&
-                            (tk.value == TOK.goesTo || tk.value == TOK.leftCurly)
-                       )
-                    {
-                        // function (parameters) { statements... }
-                        // delegate (parameters) { statements... }
-                        // (parameters) { statements... }
-                        // (parameters) => expression
-                        // { statements... }
-                        // identifier => expression
-                        // ref (parameters) { statements... }
-                        // ref (parameters) => expression
-
-                        s = parseFunctionLiteral();
-
-                        if (udas !is null)
-                        {
-                            if (storage_class != 0)
-                                error("Cannot put a storage-class in an alias declaration.");
-                            // parseAttributes shouldn't have set these variables
-                            assert(link == linkage && !setAlignment && ealign is null);
-                            auto tpl_ = cast(AST.TemplateDeclaration) s;
-                            assert(tpl_ !is null && tpl_.members.dim == 1);
-                            auto fd = cast(AST.FuncLiteralDeclaration) (*tpl_.members)[0];
-                            auto tf = cast(AST.TypeFunction) fd.type;
-                            assert(tf.parameterList.parameters.dim > 0);
-                            auto as = new AST.Dsymbols();
-                            (*tf.parameterList.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udas, as);
-                        }
-
-                        v = new AST.AliasDeclaration(loc, ident, s);
-                    }
-                    else
-                    {
-                        parseAttributes();
-                        // type
-                        if (udas)
-                            error("user-defined attributes not allowed for `%s` declarations", Token.toChars(tok));
-
-                        auto t = parseType();
-
-                        // Disallow meaningless storage classes on type aliases
-                        if (storage_class)
-                        {
-                            // Don't raise errors for STC that are part of a function/delegate type, e.g.
-                            // `alias F = ref pure nothrow @nogc @safe int function();`
-                            auto tp = t.isTypePointer;
-                            const isFuncType = (tp && tp.next.isTypeFunction) || t.isTypeDelegate;
-                            const remStc = isFuncType ? (storage_class & ~STC.FUNCATTR) : storage_class;
-
-                            if (remStc)
-                            {
-                                OutBuffer buf;
-                                AST.stcToBuffer(&buf, remStc);
-                                // @@@DEPRECATED_2.093@@@
-                                // Deprecated in 2020-07, can be made an error in 2.103
-                                deprecation("storage class `%s` has no effect in type aliases", buf.peekChars());
-                            }
-                        }
-
-                        v = new AST.AliasDeclaration(loc, ident, t);
-                    }
-                    if (!attributesAppended)
-                        storage_class = appendStorageClass(storage_class, funcStc);
-                    v.storage_class = storage_class;
-
-                    s = v;
-                    if (tpl)
-                    {
-                        auto a2 = new AST.Dsymbols();
-                        a2.push(s);
-                        auto tempdecl = new AST.TemplateDeclaration(loc, ident, tpl, null, a2);
-                        s = tempdecl;
-                    }
-                    if (link != linkage)
-                    {
-                        auto a2 = new AST.Dsymbols();
-                        a2.push(s);
-                        s = new AST.LinkDeclaration(linkloc, link, a2);
-                    }
-                    a.push(s);
-
-                    switch (token.value)
-                    {
-                    case TOK.semicolon:
-                        nextToken();
-                        addComment(s, comment);
-                        break;
-
-                    case TOK.comma:
-                        nextToken();
-                        addComment(s, comment);
-                        if (token.value != TOK.identifier)
-                        {
-                            error("identifier expected following comma, not `%s`", token.toChars());
-                            break;
-                        }
-                        if (peekNext() != TOK.assign && peekNext() != TOK.leftParenthesis)
-                        {
-                            error("`=` expected following identifier");
-                            nextToken();
-                            break;
-                        }
-                        continue;
-
-                    default:
-                        error("semicolon expected to close `%s` declaration", Token.toChars(tok));
-                        break;
-                    }
-                    break;
-                }
-                return a;
-            }
-
-            // alias StorageClasses type ident;
+            isAliasDeclaration = true;
         }
 
         AST.Type ts;
@@ -4847,7 +4663,7 @@ class Parser(AST) : Lexer
             else if (!isThis && (t != AST.Type.terror))
                 error("no identifier for declarator `%s`", t.toChars());
 
-            if (tok == TOK.alias_)
+            if (isAliasDeclaration)
             {
                 AST.Declaration v;
                 AST.Initializer _init = null;
@@ -4860,7 +4676,7 @@ class Parser(AST) : Lexer
                  */
 
                 if (udas)
-                    error("user-defined attributes not allowed for `%s` declarations", Token.toChars(tok));
+                    error("user-defined attributes not allowed for `alias` declarations");
 
                 if (token.value == TOK.assign)
                 {
@@ -4909,7 +4725,7 @@ class Parser(AST) : Lexer
                     continue;
 
                 default:
-                    error("semicolon expected to close `%s` declaration", Token.toChars(tok));
+                    error("semicolon expected to close `alias` declaration");
                     break;
                 }
             }
@@ -5041,6 +4857,271 @@ class Parser(AST) : Lexer
             break;
         }
         return a;
+    }
+
+    /********************************
+     * Parse AliasReassignment:
+     *   identifier = type;
+     * Parser is sitting on the identifier.
+     * https://dlang.org/spec/declaration.html#alias-reassignment
+     * Params:
+     *  comment = if not null, comment to attach to symbol
+     * Returns:
+     *  array of symbols
+     */
+    private AST.Dsymbols* parseAliasReassignment(const(char)* comment)
+    {
+        const loc = token.loc;
+        auto ident = token.ident;
+        nextToken();
+        nextToken();        // advance past =
+        auto t = parseType();
+        AST.Dsymbol s = new AST.AliasAssign(loc, ident, t, null);
+        check(TOK.semicolon);
+        addComment(s, comment);
+        auto a = new AST.Dsymbols();
+        a.push(s);
+        return a;
+    }
+
+    /********************************
+     * Parse declarations that start with `alias`
+     * Parser is sitting on the `alias`.
+     * https://dlang.org/spec/declaration.html#alias
+     * Params:
+     *  comment = if not null, comment to attach to symbol
+     * Returns:
+     *  array of symbols
+     */
+    private AST.Dsymbols* parseAliasDeclarations(const(char)* comment)
+    {
+        const loc = token.loc;
+        nextToken();
+        Loc linkloc = this.linkLoc;
+        AST.Expressions* udas;
+        LINK link = linkage;
+        StorageClass storage_class = STC.undefined_;
+        AST.Expression ealign;
+        bool setAlignment = false;
+
+        /* Look for:
+         *   alias Identifier this;
+         * https://dlang.org/spec/class.html#alias-this
+         */
+        if (token.value == TOK.identifier && peekNext() == TOK.this_)
+        {
+            auto s = new AST.AliasThis(loc, token.ident);
+            nextToken();
+            check(TOK.this_);
+            check(TOK.semicolon);
+            auto a = new AST.Dsymbols();
+            a.push(s);
+            addComment(s, comment);
+            return a;
+        }
+        version (none)
+        {
+            /* Look for:
+             *  alias this = identifier;
+             */
+            if (token.value == TOK.this_ && peekNext() == TOK.assign && peekNext2() == TOK.identifier)
+            {
+                check(TOK.this_);
+                check(TOK.assign);
+                auto s = new AliasThis(loc, token.ident);
+                nextToken();
+                check(TOK.semicolon);
+                auto a = new Dsymbols();
+                a.push(s);
+                addComment(s, comment);
+                return a;
+            }
+        }
+        /* Look for:
+         *  alias identifier = type;
+         *  alias identifier(...) = type;
+         * https://dlang.org/spec/declaration.html#alias
+         */
+        if (token.value == TOK.identifier && hasOptionalParensThen(peek(&token), TOK.assign))
+        {
+            auto a = new AST.Dsymbols();
+            while (1)
+            {
+                auto ident = token.ident;
+                nextToken();
+                AST.TemplateParameters* tpl = null;
+                if (token.value == TOK.leftParenthesis)
+                    tpl = parseTemplateParameterList();
+                check(TOK.assign);
+
+                bool hasParsedAttributes;
+                void parseAttributes()
+                {
+                    if (hasParsedAttributes) // only parse once
+                        return;
+                    hasParsedAttributes = true;
+                    udas = null;
+                    storage_class = STC.undefined_;
+                    link = linkage;
+                    linkloc = this.linkLoc;
+                    setAlignment = false;
+                    ealign = null;
+                    parseStorageClasses(storage_class, link, setAlignment, ealign, udas, linkloc);
+                }
+
+                if (token.value == TOK.at)
+                    parseAttributes;
+
+                AST.Declaration v;
+                AST.Dsymbol s;
+
+                // try to parse function type:
+                // TypeCtors? BasicType ( Parameters ) MemberFunctionAttributes
+                bool attributesAppended;
+                const StorageClass funcStc = parseTypeCtor();
+                Token* tlu = &token;
+                Token* tk;
+                if (token.value != TOK.function_ &&
+                    token.value != TOK.delegate_ &&
+                    isBasicType(&tlu) && tlu &&
+                    tlu.value == TOK.leftParenthesis)
+                {
+                    AST.Type tret = parseBasicType();
+                    auto parameterList = parseParameterList(null);
+
+                    parseAttributes();
+                    if (udas)
+                        error("user-defined attributes not allowed for `alias` declarations");
+
+                    attributesAppended = true;
+                    storage_class = appendStorageClass(storage_class, funcStc);
+                    AST.Type tf = new AST.TypeFunction(parameterList, tret, link, storage_class);
+                    v = new AST.AliasDeclaration(loc, ident, tf);
+                }
+                else if (token.value == TOK.function_ ||
+                    token.value == TOK.delegate_ ||
+                    token.value == TOK.leftParenthesis &&
+                        skipAttributes(peekPastParen(&token), &tk) &&
+                        (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
+                    token.value == TOK.leftCurly ||
+                    token.value == TOK.identifier && peekNext() == TOK.goesTo ||
+                    token.value == TOK.ref_ && peekNext() == TOK.leftParenthesis &&
+                        skipAttributes(peekPastParen(peek(&token)), &tk) &&
+                        (tk.value == TOK.goesTo || tk.value == TOK.leftCurly)
+                   )
+                {
+                    // function (parameters) { statements... }
+                    // delegate (parameters) { statements... }
+                    // (parameters) { statements... }
+                    // (parameters) => expression
+                    // { statements... }
+                    // identifier => expression
+                    // ref (parameters) { statements... }
+                    // ref (parameters) => expression
+
+                    s = parseFunctionLiteral();
+
+                    if (udas !is null)
+                    {
+                        if (storage_class != 0)
+                            error("Cannot put a storage-class in an alias declaration.");
+                        // parseAttributes shouldn't have set these variables
+                        assert(link == linkage && !setAlignment && ealign is null);
+                        auto tpl_ = cast(AST.TemplateDeclaration) s;
+                        assert(tpl_ !is null && tpl_.members.dim == 1);
+                        auto fd = cast(AST.FuncLiteralDeclaration) (*tpl_.members)[0];
+                        auto tf = cast(AST.TypeFunction) fd.type;
+                        assert(tf.parameterList.parameters.dim > 0);
+                        auto as = new AST.Dsymbols();
+                        (*tf.parameterList.parameters)[0].userAttribDecl = new AST.UserAttributeDeclaration(udas, as);
+                    }
+
+                    v = new AST.AliasDeclaration(loc, ident, s);
+                }
+                else
+                {
+                    parseAttributes();
+                    // type
+                    if (udas)
+                        error("user-defined attributes not allowed for alias declarations");
+
+                    auto t = parseType();
+
+                    // Disallow meaningless storage classes on type aliases
+                    if (storage_class)
+                    {
+                        // Don't raise errors for STC that are part of a function/delegate type, e.g.
+                        // `alias F = ref pure nothrow @nogc @safe int function();`
+                        auto tp = t.isTypePointer;
+                        const isFuncType = (tp && tp.next.isTypeFunction) || t.isTypeDelegate;
+                        const remStc = isFuncType ? (storage_class & ~STC.FUNCATTR) : storage_class;
+
+                        if (remStc)
+                        {
+                            OutBuffer buf;
+                            AST.stcToBuffer(&buf, remStc);
+                            // @@@DEPRECATED_2.093@@@
+                            // Deprecated in 2020-07, can be made an error in 2.103
+                            deprecation("storage class `%s` has no effect in type aliases", buf.peekChars());
+                        }
+                    }
+
+                    v = new AST.AliasDeclaration(loc, ident, t);
+                }
+                if (!attributesAppended)
+                    storage_class = appendStorageClass(storage_class, funcStc);
+                v.storage_class = storage_class;
+
+                s = v;
+                if (tpl)
+                {
+                    auto a2 = new AST.Dsymbols();
+                    a2.push(s);
+                    auto tempdecl = new AST.TemplateDeclaration(loc, ident, tpl, null, a2);
+                    s = tempdecl;
+                }
+                if (link != linkage)
+                {
+                    auto a2 = new AST.Dsymbols();
+                    a2.push(s);
+                    s = new AST.LinkDeclaration(linkloc, link, a2);
+                }
+                a.push(s);
+
+                switch (token.value)
+                {
+                case TOK.semicolon:
+                    nextToken();
+                    addComment(s, comment);
+                    break;
+
+                case TOK.comma:
+                    nextToken();
+                    addComment(s, comment);
+                    if (token.value != TOK.identifier)
+                    {
+                        error("identifier expected following comma, not `%s`", token.toChars());
+                        break;
+                    }
+                    if (peekNext() != TOK.assign && peekNext() != TOK.leftParenthesis)
+                    {
+                        error("`=` expected following identifier");
+                        nextToken();
+                        break;
+                    }
+                    continue;
+
+                default:
+                    error("semicolon expected to close `alias` declaration");
+                    break;
+                }
+                break;
+            }
+            return a;
+        }
+
+        // alias StorageClasses type ident;
+        return null;
     }
 
     private AST.Dsymbol parseFunctionLiteral()

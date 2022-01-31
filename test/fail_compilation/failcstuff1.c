@@ -1,5 +1,5 @@
 // check the expression parser
-/* TEST_OUTPUT
+/* TEST_OUTPUT:
 ---
 fail_compilation/failcstuff1.c(100): Error: no members for `enum E21962`
 fail_compilation/failcstuff1.c(101): Error: no members for anonymous enum
@@ -159,5 +159,3 @@ fail_compilation/failcstuff1.c(551): Error: missing comma or semicolon after dec
 #line 550
 
 int * pluto p;
-
-

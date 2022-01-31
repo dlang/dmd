@@ -186,7 +186,7 @@ immutable(EnvData) processEnvironment()
     {
         if (envData.os != "windows")
             envData.ccompiler = "c++";
-        else if (envData.model == "32")
+        else if (envData.model == "32omf")
             envData.ccompiler = "dmc";
         else if (envData.model == "64")
             envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
@@ -304,7 +304,7 @@ int i;
  * PERMUTE_ARGS:
  */
 
-// COMPILE_SEPERATELY
+// COMPILE_SEPERATELY:
 import foo.bar;
 `;
     immutable EnvData win32 = {
@@ -443,12 +443,6 @@ Ignored
 void foo() {}
 
 /*
-BAD
----
----
-*/
-
-/*
 MISSING:
 */
 
@@ -490,14 +484,26 @@ INCOMPLETE:
  +/
 private bool consumeNextToken(ref string file, const string token, ref const EnvData envData)
 {
+    import std.ascii : isWhite;
+
     while (true)
     {
         const istart = std.string.indexOf(file, token);
         if (istart == -1)
             return false;
 
+        // Examine the preceeding character to avoid false matches
+        const ch = istart ? file[istart - 1] : ' ';
+
         file = file[istart + token.length .. $];
         file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
+
+        // Assume that real test token are preceeded by spaces or comment-related tokens
+        if (!isWhite(ch) && !among(ch, '/', '*', '+'))
+        {
+            debug writeln("Ignoring partial match for token: ", token);
+            continue;
+        }
 
         // filter by OS specific setting (os1 os2 ...)
         if (file.startsWith("("))
@@ -521,10 +527,66 @@ private bool consumeNextToken(ref string file, const string token, ref const Env
 
         // Skip a trailing colon
         if (file.skipOver(":"))
+        {
             file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
+            return true;
+        }
 
-        return true;
+        writeln("Test directive `", token,"` must be followed by a `:`");
+        throw new SilentQuit();
     }
+}
+
+unittest
+{
+    immutable EnvData linux = { os: "linux", model: "64", sep: "/ " };
+    immutable file = q{
+
+GOOD: foo
+
+WITH_SPACE : bar
+/*
+BAD
+---
+---
+*/
+
+//BAD foo
+//OPTLINK
+// $(TINK foo.bar)
+
+IgnoreSTUFF
+IgnoreSTUFF: x
+STUFF: someVal
+*/
+
+void main() {}
+};
+
+    string found = file;
+    assert(!consumeNextToken(found, "UNKNOWN", linux));
+    assert(found is file);
+
+    assert(consumeNextToken(found, "GOOD", linux));
+    assert(found.startsWith("foo"), found);
+
+    found = file;
+    assert(consumeNextToken(found, "WITH_SPACE", linux));
+    assert(found.startsWith("bar"), found);
+
+    found = file;
+    assertThrown(consumeNextToken(found, "BAD", linux));
+
+    found = file;
+    assert(!consumeNextToken(found, "LINK", linux));
+
+    found = file;
+    assert(!consumeNextToken(found, "TINK", linux));
+
+    found = file;
+    assert(consumeNextToken(found, "STUFF", linux));
+    assert(found.startsWith("someVal"), found);
+
 }
 
 /// Replaces the placeholer `${RESULTS_DIR}` with the actual path
@@ -637,11 +699,17 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
 
     // win(32|64) doesn't support pic
-    if (envData.os == "windows")
+    // -target/-os may compile for non-PIC targets, let the test take care of -fPIC
+    if (envData.os == "windows" || testArgs.requiredArgs.canFind("-target", "-os"))
     {
         auto index = std.string.indexOf(testArgs.permuteArgs, "-fPIC");
         if (index != -1)
             testArgs.permuteArgs = testArgs.permuteArgs[0 .. index] ~ testArgs.permuteArgs[index+5 .. $];
+
+        // Remove the first -fPIC when added via the REQUIRED_ARGS environment variable
+        // This allows test to explicitly set `-fPIC` if necessary
+        if (envData.required_args.canFind("-fPIC"))
+            testArgs.requiredArgs = testArgs.requiredArgs.replaceFirst("-fPIC", "").strip();
     }
 
     // clean up extra spaces
@@ -756,6 +824,43 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript);
 
     return true;
+}
+
+unittest
+{
+    immutable EnvData linux32 = { os: "linux",   model: "32", required_args: "-fPIC" };
+    immutable EnvData linux64 = { os: "linux",   model: "64", required_args: "-fPIC" };
+    immutable EnvData win64   = { os: "windows", model: "64", };
+
+    immutable dir = "runnable";
+    immutable file = ".d_do_test_unittest_target_example.d";
+    immutable content = q{
+/+
+https://foo.bar.
+REQUIRED_ARGS: -target=x86-unknown-windows-msvc
+REQUIRED_ARGS(linux32): -fPIC
++/
+    };
+
+    std.file.write(file, content);
+    scope (exit) std.file.remove(file);
+
+    TestArgs args;
+    assert(gatherTestParameters(args, dir, file, win64));
+    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc", args.requiredArgs);
+
+    args = TestArgs.init;
+    assert(gatherTestParameters(args, dir, file, linux64));
+    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc", args.requiredArgs);
+
+    args = TestArgs.init;
+    assert(gatherTestParameters(args, dir, file, linux32));
+    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc  -fPIC", args.requiredArgs);
+
+    std.file.write(file, "REQUIRED_ARGS: -os=windows");
+    args = TestArgs.init;
+    assert(gatherTestParameters(args, dir, file, linux64));
+    assert(args.requiredArgs == "-os=windows", args.requiredArgs);
 }
 
 /// Generates all permutations of the space-separated word contained in `argstr`
@@ -984,7 +1089,7 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         {
             command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
         }
-        else if (envData.compiler == "dmd" && envData.os == "windows" && envData.model == "32")
+        else if (envData.compiler == "dmd" && envData.os == "windows" && envData.model == "32omf")
         {
             command ~= " -c "~curSrc~" -o"~curObj;
         }
@@ -1484,9 +1589,7 @@ int tryMain(string[] args)
         }
         version (linux)
         {
-            string gdbScript;
-            findTestParameter(envData, file, "GDB_SCRIPT", gdbScript);
-            if (gdbScript !is null)
+            if (file.canFind("GDB_SCRIPT"))
             {
                 return runGDBTestWithLock(envData, () {
                     return runBashTest(input_dir, test_name, envData);

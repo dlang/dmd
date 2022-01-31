@@ -1346,6 +1346,8 @@ struct ASTBase
             srcfile = FileName(filename);
         }
 
+        bool isRoot() { return false; }
+
         override void accept(Visitor v)
         {
             v.visit(this);

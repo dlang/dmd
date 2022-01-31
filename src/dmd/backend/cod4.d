@@ -3613,7 +3613,8 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else if (
              op == OPnp_fp ||
              (I16 && op == OPu16_32) ||
-             (I32 && op == OPu32_64)
+             (I32 && op == OPu32_64) ||
+             (I64 && op == OPu64_128)
             )
     {
         /* Result goes into a register pair.
@@ -3808,7 +3809,7 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     else
     {
-        // OPs16_32, OPs32_64
+        // OPs16_32, OPs32_64, OPs64_128
         uint msreg,lsreg;
 
         retregs = *pretregs & mLSW;

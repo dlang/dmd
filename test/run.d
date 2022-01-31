@@ -133,9 +133,10 @@ Options:
     if (verbose || dumpEnvironment)
     {
         writefln("================================================================================");
-        foreach (key, value; env)
-            writefln("%s=%s", key, value);
+        foreach (key; env.keys.sort())
+            writefln("%s=%s", key, env[key]);
         writefln("================================================================================");
+        stdout.flush();
     }
 
     if (runUnitTests)
@@ -294,9 +295,12 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
             }
             else
             {
+                string model = env["MODEL"];
+                if (model == "32omf") model = "32";
+
                 command = [
                     hostDMD,
-                    "-m"~env["MODEL"],
+                    "-m"~model,
                     "-of"~targetBin,
                     sourceFile
                 ] ~ getPicFlags(env) ~ tool.extraArgs;

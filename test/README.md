@@ -206,6 +206,11 @@ Valid models:
 - 32mscoff  (windows only)
 - 64
 
+Note that test parameters *MUST* be followed by a colon (intermediate whitespace is allowed).
+The test runner will issue an error for a missing colon (e.g. `REQUIRED_ARGS foo`)
+to avoid ambiguities. Test directives embedded within other words (e.g. `OPTLINK`)
+will be ignored.
+
 The following is a list of all available settings:
 
     ARG_SETS:            sets off extra arguments to invoke $(DMD) with (seperated by ';').

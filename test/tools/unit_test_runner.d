@@ -232,16 +232,14 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
 }
 
 /**
-Writes a cmdfile with all the compiler flags to the given `path`.
+Returns the arguments for the compiler invocation.
 
 Params:
-    path = the path where to write the cmdfile file
     runnerPath = the path of the unit test runner file outputted by `writeRunnerFile`
     outputPath = the path where to place the compiled binary
     testFiles = the test files to compile
 */
-void writeCmdfile(string path, string runnerPath, string outputPath,
-    const string[] testFiles)
+string[] buildCmdArgs(string runnerPath, string outputPath, const string[] testFiles)
 {
     auto flags = [
         "-version=NoBackend",
@@ -268,7 +266,7 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
     if (!usesOptlink)
         flags ~= "-g";
 
-    write(path, flags.join("\n"));
+    return flags;
 }
 
 /**
@@ -322,10 +320,10 @@ int main(string[] args)
 
     const cmdfilePath = resultsDir.buildPath("cmdfile");
     const outputPath = resultsDir.buildPath("runner").setExtension(exeExtension);
-    writeCmdfile(cmdfilePath, runnerPath, outputPath, testFiles);
+    const flags = buildCmdArgs(runnerPath, outputPath, testFiles);
+    write(cmdfilePath, flags.join("\n"));
 
-    scope const compile = [ dmdPath, "@" ~ cmdfilePath ];
-    const dmd = execute(compile);
+    const dmd = execute([ dmdPath, "@" ~ cmdfilePath ]);
     if (dmd.status)
     {
         enum msg = "Failed to compile the `unit` test executable! (exit code %d)
@@ -333,7 +331,7 @@ int main(string[] args)
 > %-(%s %)
 %s";
         // Build the string in advance to avoid cluttering
-        writeln(format(msg, dmd.status, compile, dmd.output));
+        writeln(format(msg, dmd.status, dmdPath ~ flags, dmd.output));
         return 1;
     }
 
@@ -347,7 +345,7 @@ int main(string[] args)
 > %s
 %s";
         // Build the string in advance to avoid cluttering
-        writeln(format(msg, test.status, compile, dmd.output, outputPath, test.output));
+        writeln(format(msg, test.status, dmdPath ~ flags, dmd.output, outputPath, test.output));
         return 1;
     }
 

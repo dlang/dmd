@@ -46,6 +46,7 @@ import dmd.id;
 import dmd.init;
 import dmd.mtype;
 import dmd.objc_glue;
+import dmd.printast;
 import dmd.s2ir;
 import dmd.sideeffect;
 import dmd.statement;
@@ -1609,6 +1610,7 @@ extern (C++) class ToElemVisitor : Visitor
     elem *toElemBinAssign(BinAssignExp be, int op)
     {
         //printf("toElemBinAssign() '%s'\n", be.toChars());
+        //printAST(be);
 
         Type tb1 = be.e1.type.toBasetype();
         Type tb2 = be.e2.type.toBasetype();
@@ -1653,6 +1655,15 @@ extern (C++) class ToElemVisitor : Visitor
         else
         {
             el = toElem(be.e1, irs);
+
+            if (el.Eoper == OPbit)
+            {
+                elem *er = toElem(be.e2, irs);
+                elem* e = el_bin(op, tym, el, er);
+                elem_setLoc(e,be.loc);
+                return e;
+            }
+
             el = addressElem(el, be.e1.type.pointerTo());
             ev = el_same(&el);
 

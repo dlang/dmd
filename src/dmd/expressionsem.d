@@ -13307,6 +13307,8 @@ Expression toBoolean(Expression exp, Scope* sc)
         case EXP.assign:
         case EXP.construct:
         case EXP.blit:
+            if (sc.flags & SCOPE.Cfile)
+                return exp;
             // Things like:
             //  if (a = b) ...
             // are usually mistakes.

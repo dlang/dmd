@@ -3820,6 +3820,21 @@ public:
 
             payload = &(*sle.elements)[fieldi];
             oldval = *payload;
+            if (auto ival = newval.isIntegerExp())
+            {
+                if (auto bf = v.isBitFieldDeclaration())
+                {
+                    sinteger_t value = ival.toInteger();
+                    if (bf.type.isunsigned())
+                        value &= (1L << bf.fieldWidth) - 1; // zero extra bits
+                    else
+                    {   // sign extend extra bits
+                        value = value << (64 - bf.fieldWidth);
+                        value = value >> (64 - bf.fieldWidth);
+                    }
+                    ival.setInteger(value);
+                }
+            }
         }
         else if (auto ie = e1.isIndexExp())
         {

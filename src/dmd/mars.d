@@ -1819,15 +1819,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
-                target.is64bit = false;
+            target.is64bit = false;
+            target.omfobj = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
             target.is64bit = true;
+            target.omfobj = false;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
             target.is64bit = false;
+            target.omfobj = false;
         }
         else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omfobj
         {
