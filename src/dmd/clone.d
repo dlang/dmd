@@ -521,12 +521,12 @@ FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
 
 /******************************************
  * Build __xopEquals for TypeInfo_Struct
- *      static bool __xopEquals(ref const S q, ref const S p)
+ *      static bool __xopEquals(ref const S p, ref const S q)
  *      {
  *          return p == q;
  *      }
  *
- * This is called by TypeInfo.equals(p, q). If the struct does not support
+ * This is called by TypeInfo.equals(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
 FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
@@ -570,16 +570,18 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Loc declLoc; // loc is unnecessary so __xopEquals is never called directly
     Loc loc; // loc is unnecessary so errors are gagged
     auto parameters = new Parameters();
-    // TODO: get rid of parameter reversal by making __xopEquals a method
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null))
-              .push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null))
+              .push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
     auto tf = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
-    Expression e = new EqualExp(EXP.equal, loc, e1, e2);
+    // TODO: simplify as soon as `git describe` for DMD master yields v2.099+
+    Expression e = global.versionNumber() >= 2099
+        ? new EqualExp(EXP.equal, loc, e2, e1)
+        : new EqualExp(EXP.equal, loc, e1, e2);
     fop.fbody = new ReturnStatement(loc, e);
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
