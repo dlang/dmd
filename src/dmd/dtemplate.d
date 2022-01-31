@@ -7799,15 +7799,22 @@ struct TemplateInstanceBox
     {
         bool res = void;
         if (ti.inst && s.ti.inst)
+        {
             /* This clause is only used when an instance with errors
              * is replaced with a correct instance.
              */
             res = ti is s.ti;
+        }
         else
+        {
             /* Used when a proposed instance is used to see if there's
              * an existing instance.
              */
-            res = (cast()s.ti).equalsx(cast()ti);
+            static if (__VERSION__ >= 2099)
+                res = (cast()ti).equalsx(cast()s.ti);
+            else // https://issues.dlang.org/show_bug.cgi?id=22717
+                res = (cast()s.ti).equalsx(cast()ti);
+        }
 
         debug (FindExistingInstance) ++(res ? nHits : nCollisions);
         return res;

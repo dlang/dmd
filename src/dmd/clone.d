@@ -521,12 +521,12 @@ FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
 
 /******************************************
  * Build __xopEquals for TypeInfo_Struct
- *      static bool __xopEquals(ref const S p, ref const S q)
+ *      static bool __xopEquals(ref const S q, ref const S p)
  *      {
  *          return p == q;
  *      }
  *
- * This is called by TypeInfo.equals(p1, p2). If the struct does not support
+ * This is called by TypeInfo.equals(p, q). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
 FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
@@ -570,8 +570,9 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Loc declLoc; // loc is unnecessary so __xopEquals is never called directly
     Loc loc; // loc is unnecessary so errors are gagged
     auto parameters = new Parameters();
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null))
-              .push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
+    // TODO: get rid of parameter reversal by making __xopEquals a method
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null))
+              .push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
     auto tf = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
