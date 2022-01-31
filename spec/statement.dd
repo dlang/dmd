@@ -917,14 +917,13 @@ $(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
         many different named looping strategies to coexist in the same
         class or struct.)
 
-        $(P For example:)
+        $(P The delegate can generate the elements on the fly:)
 
---------------
-void main()
-{
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+    --------------
     // Custom loop implementation, that iterates over powers of 2 with
-    // alternating sign. The loop body is passed in dg.
-    int myLoop(int delegate(ref int) dg)
+    // alternating sign. The foreach loop body is passed in dg.
+    int myLoop(int delegate(int) dg)
     {
         for (int z = 1; z < 128; z *= -2)
         {
@@ -937,15 +936,15 @@ void main()
         return 0;
     }
 
-    // This example loop simply collects the loop index values into an array.
+    // Append each value in the iteration to an array
     int[] result;
-    foreach (ref x; &myLoop)
+    foreach (x; &myLoop)
     {
         result ~= x;
     }
     assert(result == [1, -2, 4, -8, 16, -32, 64, -128]);
-}
---------------
+    --------------
+)
 
         $(P $(B Note:) When $(I ForeachAggregate) is a delegate, the compiler
         does not try to implement reverse traversal of the results returned by
