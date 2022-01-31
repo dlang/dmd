@@ -41,7 +41,7 @@ alias va_arg = core.stdc.stdarg.va_arg;
 
 version (Windows)
 {
-    https://docs.microsoft.com/en-us/cpp/cpp/int8-int16-int32-int64?view=msvc-170
+    //https://docs.microsoft.com/en-us/cpp/cpp/int8-int16-int32-int64?view=msvc-170
     alias __int8 = byte;
     alias __int16 = short;
     alias __int32 = int;
