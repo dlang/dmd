@@ -331,6 +331,10 @@ struct ASTBase
         {
             super(id);
         }
+        final extern (D) this(const ref Loc loc, Identifier ident)
+        {
+            super(loc, ident);
+        }
 
         override void accept(Visitor v)
         {
@@ -481,6 +485,7 @@ struct ASTBase
         enum AdrOnStackNone = ~0u;
         uint ctfeAdrOnStack;
         uint sequenceNumber;
+        __gshared uint nextSequenceNumber;
 
         final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.undefined_)
         {
@@ -489,6 +494,7 @@ struct ASTBase
             this._init = _init;
             this.loc = loc;
             this.storage_class = st;
+            sequenceNumber = ++nextSequenceNumber;
             ctfeAdrOnStack = AdrOnStackNone;
         }
 
@@ -806,9 +812,9 @@ struct ASTBase
         PKG isPkgMod;
         uint tag;
 
-        final extern (D) this(Identifier ident)
+        final extern (D) this(const ref Loc loc, Identifier ident)
         {
-            super(ident);
+            super(loc, ident);
             this.isPkgMod = PKG.unknown;
             __gshared uint packageTag;
             this.tag = packageTag++;
@@ -1331,13 +1337,13 @@ struct ASTBase
         extern (C++) __gshared AggregateDeclaration moduleinfo;
 
         const FileName srcfile;
-        const(char)* arg;
+        const(char)[] arg;
 
-        extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+        extern (D) this(const ref Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
         {
-            super(ident);
+            super(loc, ident);
             this.arg = filename;
-            srcfile = FileName(FileName.defaultExt(filename.toDString, mars_ext));
+            srcfile = FileName(filename);
         }
 
         override void accept(Visitor v)
@@ -5409,25 +5415,6 @@ struct ASTBase
         {
             super(loc, EXP.assert_, __traits(classInstanceSize, AssertExp), e);
             this.msg = msg;
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class ThrowExp : UnaExp
-    {
-        extern (D) this(const ref Loc loc, Expression e)
-        {
-            super(loc, EXP.throw_, __traits(classInstanceSize, ThrowExp), e);
-            this.type = Type.tnoreturn;
-        }
-
-        override ThrowExp syntaxCopy()
-        {
-            return new ThrowExp(loc, e1.syntaxCopy());
         }
 
         override void accept(Visitor v)
