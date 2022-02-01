@@ -227,6 +227,10 @@ struct CtfeGlobals
     int maxCallDepth = 0;     // highest number of recursive calls
     int numArrayAllocs = 0;   // Number of allocated arrays
     int numAssignments = 0;   // total number of assignments executed
+
+    // destructors that are called at the end of an ExpStatement
+    // for the generated temporaries
+    Expressions dtorsForTemporaries;
 }
 
 __gshared CtfeGlobals ctfeGlobals;
@@ -474,7 +478,6 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
      * store the results in eargs[]
      */
     Expressions eargs = Expressions(dim);
-    Expressions dtors;
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = (*arguments)[i];
@@ -485,7 +488,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
                 if (auto vd = declExp.declaration.isVarDeclaration())
                 {
                     if (vd.edtor)
-                        dtors.push(vd.edtor);
+                        ctfeGlobals.dtorsForTemporaries.push(vd.edtor);
                 }
             }
         }
@@ -723,24 +726,6 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         e = CTFEExp.cantexp;
     }
 
-    // destroy temporaries
-    // https://issues.dlang.org/show_bug.cgi?id=22536
-    foreach(dtor; dtors)
-    {
-        auto res = interpret(dtor, istate);
-        if (auto ctfeError = res.isThrownExceptionExp())
-        {
-            ctfeError.generateUncaughtError();
-            e = CTFEExp.cantexp;
-            break;
-        }
-        if (CTFEExp.isCantExp(res))
-        {
-            e = res;
-            break;
-        }
-    }
-
     return e;
 }
 
@@ -764,6 +749,7 @@ public:
     CTFEGoal goal;
     Expression result;
     UnionExp* pue;              // storage for `result`
+
 
     extern (D) this(UnionExp* pue, InterState* istate, CTFEGoal goal)
     {
@@ -835,6 +821,26 @@ public:
         Expression e = interpret(pue, s.exp, istate, CTFEGoal.Nothing);
         if (exceptionOrCant(e))
             return;
+
+        // destroy temporaries
+        // https://issues.dlang.org/show_bug.cgi?id=22536
+        auto dtors = ctfeGlobals.dtorsForTemporaries.copy();
+        ctfeGlobals.dtorsForTemporaries.setDim(0);
+        foreach (dtor; *dtors)
+        {
+            auto res = interpret(dtor, istate);
+            if (auto ctfeError = res.isThrownExceptionExp())
+            {
+                ctfeError.generateUncaughtError();
+                e = CTFEExp.cantexp;
+                break;
+            }
+            if (CTFEExp.isCantExp(res))
+            {
+                e = res;
+                break;
+            }
+        }
     }
 
     override void visit(CompoundStatement s)

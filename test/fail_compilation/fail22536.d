@@ -3,10 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22536.d(22): Error: uncaught CTFE exception `object.Exception("exception")`
-fail_compilation/fail22536.d(25):        called from here: `foo(((S[2] __arrayliteral_on_stack3 = [S(1), S(2)];) , cast(S[])__arrayliteral_on_stack3))`
-fail_compilation/fail22536.d(29):        called from here: `bar()`
-fail_compilation/fail22536.d(29):        while evaluating: `static assert(bar())`
+fail_compilation/fail22536.d(21): Error: uncaught CTFE exception `object.Exception("exception")`
+fail_compilation/fail22536.d(28): Error: static assert:  `bar()` is false
+
 ---
 */
 

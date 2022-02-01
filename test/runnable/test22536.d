@@ -32,11 +32,38 @@ int bar2()
     return numDtor;
 }
 
+static assert(bar() == 2);
+static assert(bar2() == 4);
+
+// Test proper destruction at end of statement
+
+struct Inc
+{
+    int* ptr;
+    ~this()
+    {
+        (*ptr)++;
+    }
+}
+
+int* boo(scope Inc[] arr)
+{
+    return arr[0].ptr;
+}
+
+int boo()
+{
+    int i;
+    assert(*boo([ Inc(&i) ]) == 0);
+    return 0;
+}
+
+static assert(boo() == 0);
+
+// test that the runnable behavior matches CTFE
 void main()
 {
     assert(bar() == 2);
     assert(bar2() == 4);
+    assert(boo() == 0);
 }
-
-static assert(bar() == 2);
-static assert(bar2() == 4);
