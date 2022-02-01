@@ -349,75 +349,34 @@ class Parser(AST) : Lexer
         const comment = token.blockComment;
         bool isdeprecated = false;
         AST.Expression msg = null;
-        AST.Expressions* udas = null;
         AST.Dsymbols* decldefs;
         AST.Dsymbol lastDecl = mod; // for attaching ddoc unittests to module decl
 
-        Token* tk;
-        if (skipAttributes(&token, &tk) && tk.value == TOK.module_)
+        AST.Dsymbols* errorReturn()
         {
-            while (token.value != TOK.module_)
-            {
-                switch (token.value)
-                {
-                case TOK.deprecated_:
-                    {
-                        // deprecated (...) module ...
-                        if (isdeprecated)
-                            error("there is only one deprecation attribute allowed for module declaration");
-                        isdeprecated = true;
-                        nextToken();
-                        if (token.value == TOK.leftParenthesis)
-                        {
-                            check(TOK.leftParenthesis);
-                            msg = parseAssignExp();
-                            check(TOK.rightParenthesis);
-                        }
-                        break;
-                    }
-                case TOK.at:
-                    {
-                        AST.Expressions* exps = null;
-                        const stc = parseAttribute(exps);
-                        if (stc & atAttrGroup)
-                        {
-                            error("`@%s` attribute for module declaration is not supported", token.toChars());
-                        }
-                        else
-                        {
-                            udas = AST.UserAttributeDeclaration.concat(udas, exps);
-                        }
-                        if (stc)
-                            nextToken();
-                        break;
-                    }
-                default:
-                    {
-                        error("`module` expected instead of `%s`", token.toChars());
-                        nextToken();
-                        break;
-                    }
-                }
-            }
+            while (token.value != TOK.semicolon && token.value != TOK.endOfFile)
+                nextToken();
+            nextToken();
+            return new AST.Dsymbols();
         }
 
-        if (udas)
-        {
-            auto a = new AST.Dsymbols();
-            auto udad = new AST.UserAttributeDeclaration(udas, a);
-            mod.userAttribDecl = udad;
-        }
+        // Parse optional module attributes
+        parseModuleAttributes(msg, isdeprecated);
 
-        // ModuleDeclation leads off
+        // ModuleDeclaration leads off
         if (token.value == TOK.module_)
         {
             const loc = token.loc;
-
             nextToken();
+
+            /* parse ModuleFullyQualifiedName
+             * https://dlang.org/spec/module.html#ModuleFullyQualifiedName
+             */
+
             if (token.value != TOK.identifier)
             {
                 error("identifier expected following `module`");
-                goto Lerr;
+                return errorReturn();
             }
 
             Identifier[] a;
@@ -430,7 +389,7 @@ class Parser(AST) : Lexer
                 if (token.value != TOK.identifier)
                 {
                     error("identifier expected following `package`");
-                    goto Lerr;
+                    return errorReturn();
                 }
                 id = token.ident;
             }
@@ -448,21 +407,85 @@ class Parser(AST) : Lexer
         if (token.value == TOK.rightCurly)
         {
             error(token.loc, "unmatched closing brace");
-            goto Lerr;
+            return errorReturn();
         }
 
         if (token.value != TOK.endOfFile)
         {
             error(token.loc, "unrecognized declaration");
-            goto Lerr;
+            return errorReturn();
         }
         return decldefs;
+    }
 
-    Lerr:
-        while (token.value != TOK.semicolon && token.value != TOK.endOfFile)
-            nextToken();
-        nextToken();
-        return new AST.Dsymbols();
+
+    /**********************************
+     * Parse the ModuleAttributes preceding a module declaration.
+     * ModuleDeclaration:
+     *    ModuleAttributes(opt) module ModuleFullyQualifiedName ;
+     * https://dlang.org/spec/module.html#ModuleAttributes
+     * Params:
+     *  msg = set to the AssignExpression from DeprecatedAttribute https://dlang.org/spec/module.html#DeprecatedAttribute
+     *  isdeprecated = set to true if a DeprecatedAttribute is seen
+     */
+    private
+    void parseModuleAttributes(out AST.Expression msg, out bool isdeprecated)
+    {
+        Token* tk;
+        if (!(skipAttributes(&token, &tk) && tk.value == TOK.module_))
+            return;             // no module attributes
+
+        AST.Expressions* udas = null;
+        while (token.value != TOK.module_)
+        {
+            switch (token.value)
+            {
+            case TOK.deprecated_:
+                {
+                    // deprecated (...) module ...
+                    if (isdeprecated)
+                        error("there is only one deprecation attribute allowed for module declaration");
+                    isdeprecated = true;
+                    nextToken();
+                    if (token.value == TOK.leftParenthesis)
+                    {
+                        check(TOK.leftParenthesis);
+                        msg = parseAssignExp();
+                        check(TOK.rightParenthesis);
+                    }
+                    break;
+                }
+            case TOK.at:
+                {
+                    AST.Expressions* exps = null;
+                    const stc = parseAttribute(exps);
+                    if (stc & atAttrGroup)
+                    {
+                        error("`@%s` attribute for module declaration is not supported", token.toChars());
+                    }
+                    else
+                    {
+                        udas = AST.UserAttributeDeclaration.concat(udas, exps);
+                    }
+                    if (stc)
+                        nextToken();
+                    break;
+                }
+            default:
+                {
+                    error("`module` expected instead of `%s`", token.toChars());
+                    nextToken();
+                    break;
+                }
+            }
+        }
+
+        if (udas)
+        {
+            auto a = new AST.Dsymbols();
+            auto udad = new AST.UserAttributeDeclaration(udas, a);
+            mod.userAttribDecl = udad;
+        }
     }
 
   final:
