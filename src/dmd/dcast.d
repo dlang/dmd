@@ -1527,1124 +1527,1081 @@ Type toStaticArrayType(SliceExp e)
  */
 Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 {
-    extern (C++) final class CastTo : Visitor
+    Expression visit(Expression e)
     {
-        alias visit = Visitor.visit;
-    public:
-        Type t;
-        Scope* sc;
-        Expression result;
-
-        extern (D) this(Scope* sc, Type t)
+        //printf("Expression::castTo(this=%s, t=%s)\n", e.toChars(), t.toChars());
+        version (none)
         {
-            this.sc = sc;
-            this.t = t;
+            printf("Expression::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+        }
+        if (e.type.equals(t))
+        {
+            return e;
+        }
+        if (auto ve = e.isVarExp())
+        {
+            VarDeclaration v = ve.var.isVarDeclaration();
+            if (v && v.storage_class & STC.manifest)
+            {
+                auto result = e.ctfeInterpret();
+                /* https://issues.dlang.org/show_bug.cgi?id=18236
+                 *
+                 * The expression returned by ctfeInterpret points
+                 * to the line where the manifest constant was declared
+                 * so we need to update the location before trying to cast
+                 */
+                result.loc = e.loc;
+                return result.castTo(sc, t);
+            }
         }
 
-        override void visit(Expression e)
+        Type tob = t.toBasetype();
+        Type t1b = e.type.toBasetype();
+        if (tob.equals(t1b))
         {
-            //printf("Expression::castTo(this=%s, t=%s)\n", e.toChars(), t.toChars());
-            version (none)
-            {
-                printf("Expression::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
-            }
-            if (e.type.equals(t))
-            {
-                result = e;
-                return;
-            }
-            if (auto ve = e.isVarExp())
-            {
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (v && v.storage_class & STC.manifest)
-                {
-                    result = e.ctfeInterpret();
-                    /* https://issues.dlang.org/show_bug.cgi?id=18236
-                     *
-                     * The expression returned by ctfeInterpret points
-                     * to the line where the manifest constant was declared
-                     * so we need to update the location before trying to cast
-                     */
-                    result.loc = e.loc;
-                    result = result.castTo(sc, t);
-                    return;
-                }
-            }
+            auto result = e.copy(); // because of COW for assignment to e.type
+            result.type = t;
+            return result;
+        }
 
-            Type tob = t.toBasetype();
-            Type t1b = e.type.toBasetype();
-            if (tob.equals(t1b))
-            {
-                result = e.copy(); // because of COW for assignment to e.type
-                result.type = t;
-                return;
-            }
+        /* Make semantic error against invalid cast between concrete types.
+         * Assume that 'e' is never be any placeholder expressions.
+         * The result of these checks should be consistent with CastExp::toElem().
+         */
 
-            /* Make semantic error against invalid cast between concrete types.
-             * Assume that 'e' is never be any placeholder expressions.
-             * The result of these checks should be consistent with CastExp::toElem().
+        // Fat Value types
+        const(bool) tob_isFV = (tob.ty == Tstruct || tob.ty == Tsarray || tob.ty == Tvector);
+        const(bool) t1b_isFV = (t1b.ty == Tstruct || t1b.ty == Tsarray || t1b.ty == Tvector);
+
+        // Fat Reference types
+        const(bool) tob_isFR = (tob.ty == Tarray || tob.ty == Tdelegate);
+        const(bool) t1b_isFR = (t1b.ty == Tarray || t1b.ty == Tdelegate);
+
+        // Reference types
+        const(bool) tob_isR = (tob_isFR || tob.ty == Tpointer || tob.ty == Taarray || tob.ty == Tclass);
+        const(bool) t1b_isR = (t1b_isFR || t1b.ty == Tpointer || t1b.ty == Taarray || t1b.ty == Tclass);
+
+        // Arithmetic types (== valueable basic types)
+        const(bool) tob_isA = ((tob.isintegral() || tob.isfloating()) && tob.ty != Tvector);
+        const(bool) t1b_isA = ((t1b.isintegral() || t1b.isfloating()) && t1b.ty != Tvector);
+
+        // Try casting the alias this member.
+        // Return the expression if it succeeds, null otherwise.
+        Expression tryAliasThisCast()
+        {
+            if (isRecursiveAliasThis(att, t1b))
+                return null;
+
+            /* Forward the cast to our alias this member, rewrite to:
+             *   cast(to)e1.aliasthis
              */
+            auto exp = resolveAliasThis(sc, e);
+            const errors = global.startGagging();
+            exp = castTo(exp, sc, t, att);
+            return global.endGagging(errors) ? null : exp;
+        }
 
-            // Fat Value types
-            const(bool) tob_isFV = (tob.ty == Tstruct || tob.ty == Tsarray || tob.ty == Tvector);
-            const(bool) t1b_isFV = (t1b.ty == Tstruct || t1b.ty == Tsarray || t1b.ty == Tvector);
-
-            // Fat Reference types
-            const(bool) tob_isFR = (tob.ty == Tarray || tob.ty == Tdelegate);
-            const(bool) t1b_isFR = (t1b.ty == Tarray || t1b.ty == Tdelegate);
-
-            // Reference types
-            const(bool) tob_isR = (tob_isFR || tob.ty == Tpointer || tob.ty == Taarray || tob.ty == Tclass);
-            const(bool) t1b_isR = (t1b_isFR || t1b.ty == Tpointer || t1b.ty == Taarray || t1b.ty == Tclass);
-
-            // Arithmetic types (== valueable basic types)
-            const(bool) tob_isA = ((tob.isintegral() || tob.isfloating()) && tob.ty != Tvector);
-            const(bool) t1b_isA = ((t1b.isintegral() || t1b.isfloating()) && t1b.ty != Tvector);
-
-            // Try casting the alias this member.
-            // Return the expression if it succeeds, null otherwise.
-            Expression tryAliasThisCast()
+        bool hasAliasThis;
+        if (AggregateDeclaration t1ad = isAggregate(t1b))
+        {
+            AggregateDeclaration toad = isAggregate(tob);
+            if (t1ad != toad && t1ad.aliasthis)
             {
-                if (isRecursiveAliasThis(att, t1b))
-                    return null;
-
-                /* Forward the cast to our alias this member, rewrite to:
-                 *   cast(to)e1.aliasthis
-                 */
-                auto exp = resolveAliasThis(sc, e);
-                const errors = global.startGagging();
-                exp = castTo(exp, sc, t, att);
-                return global.endGagging(errors) ? null : exp;
-            }
-
-            bool hasAliasThis;
-            if (AggregateDeclaration t1ad = isAggregate(t1b))
-            {
-                AggregateDeclaration toad = isAggregate(tob);
-                if (t1ad != toad && t1ad.aliasthis)
+                if (t1b.ty == Tclass && tob.ty == Tclass)
                 {
-                    if (t1b.ty == Tclass && tob.ty == Tclass)
-                    {
-                        ClassDeclaration t1cd = t1b.isClassHandle();
-                        ClassDeclaration tocd = tob.isClassHandle();
-                        int offset;
-                        if (tocd.isBaseOf(t1cd, &offset))
-                            goto Lok;
-                    }
-                    hasAliasThis = true;
-                }
-            }
-            else if (tob.ty == Tvector && t1b.ty != Tvector)
-            {
-                //printf("test1 e = %s, e.type = %s, tob = %s\n", e.toChars(), e.type.toChars(), tob.toChars());
-                TypeVector tv = tob.isTypeVector();
-                result = new CastExp(e.loc, e, tv.elementType());
-                result = new VectorExp(e.loc, result, tob);
-                result = result.expressionSemantic(sc);
-                return;
-            }
-            else if (tob.ty != Tvector && t1b.ty == Tvector)
-            {
-                // T[n] <-- __vector(U[m])
-                if (tob.ty == Tsarray)
-                {
-                    if (t1b.size(e.loc) == tob.size(e.loc))
+                    ClassDeclaration t1cd = t1b.isClassHandle();
+                    ClassDeclaration tocd = tob.isClassHandle();
+                    int offset;
+                    if (tocd.isBaseOf(t1cd, &offset))
                         goto Lok;
                 }
-                goto Lfail;
+                hasAliasThis = true;
             }
-            else if (t1b.implicitConvTo(tob) == MATCH.constant && t.equals(e.type.constOf()))
+        }
+        else if (tob.ty == Tvector && t1b.ty != Tvector)
+        {
+            //printf("test1 e = %s, e.type = %s, tob = %s\n", e.toChars(), e.type.toChars(), tob.toChars());
+            TypeVector tv = tob.isTypeVector();
+            Expression result = new CastExp(e.loc, e, tv.elementType());
+            result = new VectorExp(e.loc, result, tob);
+            result = result.expressionSemantic(sc);
+            return result;
+        }
+        else if (tob.ty != Tvector && t1b.ty == Tvector)
+        {
+            // T[n] <-- __vector(U[m])
+            if (tob.ty == Tsarray)
             {
-                result = e.copy();
-                result.type = t;
-                return;
-            }
-
-            // arithmetic values vs. other arithmetic values
-            // arithmetic values vs. T*
-            if (tob_isA && (t1b_isA || t1b.ty == Tpointer) || t1b_isA && (tob_isA || tob.ty == Tpointer))
-            {
-                goto Lok;
-            }
-
-            // arithmetic values vs. references or fat values
-            if (tob_isA && (t1b_isR || t1b_isFV) || t1b_isA && (tob_isR || tob_isFV))
-            {
-                goto Lfail;
-            }
-
-            // Bugzlla 3133: A cast between fat values is possible only when the sizes match.
-            if (tob_isFV && t1b_isFV)
-            {
-                if (hasAliasThis)
-                {
-                    result = tryAliasThisCast();
-                    if (result)
-                        return;
-                }
-
                 if (t1b.size(e.loc) == tob.size(e.loc))
                     goto Lok;
-
-                auto ts = toAutoQualChars(e.type, t);
-                e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
-                    e.toChars(), ts[0], ts[1]);
-                result = ErrorExp.get();
-                return;
             }
+            goto Lfail;
+        }
+        else if (t1b.implicitConvTo(tob) == MATCH.constant && t.equals(e.type.constOf()))
+        {
+            auto result = e.copy();
+            result.type = t;
+            return result;
+        }
 
-            // Fat values vs. null or references
-            if (tob_isFV && (t1b.ty == Tnull || t1b_isR) || t1b_isFV && (tob.ty == Tnull || tob_isR))
+        // arithmetic values vs. other arithmetic values
+        // arithmetic values vs. T*
+        if (tob_isA && (t1b_isA || t1b.ty == Tpointer) || t1b_isA && (tob_isA || tob.ty == Tpointer))
+        {
+            goto Lok;
+        }
+
+        // arithmetic values vs. references or fat values
+        if (tob_isA && (t1b_isR || t1b_isFV) || t1b_isA && (tob_isR || tob_isFV))
+        {
+            goto Lfail;
+        }
+
+        // Bugzlla 3133: A cast between fat values is possible only when the sizes match.
+        if (tob_isFV && t1b_isFV)
+        {
+            if (hasAliasThis)
             {
-                if (tob.ty == Tpointer && t1b.ty == Tsarray)
-                {
-                    // T[n] sa;
-                    // cast(U*)sa; // ==> cast(U*)sa.ptr;
-                    result = new AddrExp(e.loc, e, t);
-                    return;
-                }
-                if (tob.ty == Tarray && t1b.ty == Tsarray)
-                {
-                    // T[n] sa;
-                    // cast(U[])sa; // ==> cast(U[])sa[];
-                    if (global.params.useDIP1000 == FeatureState.enabled)
-                    {
-                        if (auto v = expToVariable(e))
-                        {
-                            if (e.type.hasPointers() && !checkAddressVar(sc, e, v))
-                                goto Lfail;
-                        }
-                    }
-                    const fsize = t1b.nextOf().size();
-                    const tsize = tob.nextOf().size();
-                    if (fsize == SIZE_INVALID || tsize == SIZE_INVALID)
-                    {
-                        result = ErrorExp.get();
-                        return;
-                    }
-                    if (fsize != tsize)
-                    {
-                        const dim = t1b.isTypeSArray().dim.toInteger();
-                        if (tsize == 0 || (dim * fsize) % tsize != 0)
-                        {
-                            e.error("cannot cast expression `%s` of type `%s` to `%s` since sizes don't line up",
-                                    e.toChars(), e.type.toChars(), t.toChars());
-                            result = ErrorExp.get();
-                            return;
-                        }
-                    }
-                    goto Lok;
-                }
-                goto Lfail;
+                auto result = tryAliasThisCast();
+                if (result)
+                    return result;
             }
 
-            /* For references, any reinterpret casts are allowed to same 'ty' type.
-             *      T* to U*
-             *      R1 function(P1) to R2 function(P2)
-             *      R1 delegate(P1) to R2 delegate(P2)
-             *      T[] to U[]
-             *      V1[K1] to V2[K2]
-             *      class/interface A to B  (will be a dynamic cast if possible)
-             */
-            if (tob.ty == t1b.ty && tob_isR && t1b_isR)
+            if (t1b.size(e.loc) == tob.size(e.loc))
                 goto Lok;
 
-            // typeof(null) <-- non-null references or values
-            if (tob.ty == Tnull && t1b.ty != Tnull)
-                goto Lfail; // https://issues.dlang.org/show_bug.cgi?id=14629
-            // typeof(null) --> non-null references or arithmetic values
-            if (t1b.ty == Tnull && tob.ty != Tnull)
+            auto ts = toAutoQualChars(e.type, t);
+            e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
+                e.toChars(), ts[0], ts[1]);
+            return ErrorExp.get();
+        }
+
+        // Fat values vs. null or references
+        if (tob_isFV && (t1b.ty == Tnull || t1b_isR) || t1b_isFV && (tob.ty == Tnull || tob_isR))
+        {
+            if (tob.ty == Tpointer && t1b.ty == Tsarray)
+            {
+                // T[n] sa;
+                // cast(U*)sa; // ==> cast(U*)sa.ptr;
+                return new AddrExp(e.loc, e, t);
+            }
+            if (tob.ty == Tarray && t1b.ty == Tsarray)
+            {
+                // T[n] sa;
+                // cast(U[])sa; // ==> cast(U[])sa[];
+                if (global.params.useDIP1000 == FeatureState.enabled)
+                {
+                    if (auto v = expToVariable(e))
+                    {
+                        if (e.type.hasPointers() && !checkAddressVar(sc, e, v))
+                            goto Lfail;
+                    }
+                }
+                const fsize = t1b.nextOf().size();
+                const tsize = tob.nextOf().size();
+                if (fsize == SIZE_INVALID || tsize == SIZE_INVALID)
+                {
+                    return ErrorExp.get();
+                }
+                if (fsize != tsize)
+                {
+                    const dim = t1b.isTypeSArray().dim.toInteger();
+                    if (tsize == 0 || (dim * fsize) % tsize != 0)
+                    {
+                        e.error("cannot cast expression `%s` of type `%s` to `%s` since sizes don't line up",
+                                e.toChars(), e.type.toChars(), t.toChars());
+                        return ErrorExp.get();
+                    }
+                }
                 goto Lok;
-
-            // Check size mismatch of references.
-            // Tarray and Tdelegate are (void*).sizeof*2, but others have (void*).sizeof.
-            if (tob_isFR && t1b_isR || t1b_isFR && tob_isR)
-            {
-                if (tob.ty == Tpointer && t1b.ty == Tarray)
-                {
-                    // T[] da;
-                    // cast(U*)da; // ==> cast(U*)da.ptr;
-                    goto Lok;
-                }
-                if (tob.ty == Tpointer && t1b.ty == Tdelegate)
-                {
-                    // void delegate() dg;
-                    // cast(U*)dg; // ==> cast(U*)dg.ptr;
-                    // Note that it happens even when U is a Tfunction!
-                    e.deprecation("casting from %s to %s is deprecated", e.type.toChars(), t.toChars());
-                    goto Lok;
-                }
-                goto Lfail;
             }
+            goto Lfail;
+        }
 
-            if (t1b.ty == Tvoid && tob.ty != Tvoid)
+        /* For references, any reinterpret casts are allowed to same 'ty' type.
+         *      T* to U*
+         *      R1 function(P1) to R2 function(P2)
+         *      R1 delegate(P1) to R2 delegate(P2)
+         *      T[] to U[]
+         *      V1[K1] to V2[K2]
+         *      class/interface A to B  (will be a dynamic cast if possible)
+         */
+        if (tob.ty == t1b.ty && tob_isR && t1b_isR)
+            goto Lok;
+
+        // typeof(null) <-- non-null references or values
+        if (tob.ty == Tnull && t1b.ty != Tnull)
+            goto Lfail; // https://issues.dlang.org/show_bug.cgi?id=14629
+        // typeof(null) --> non-null references or arithmetic values
+        if (t1b.ty == Tnull && tob.ty != Tnull)
+            goto Lok;
+
+        // Check size mismatch of references.
+        // Tarray and Tdelegate are (void*).sizeof*2, but others have (void*).sizeof.
+        if (tob_isFR && t1b_isR || t1b_isFR && tob_isR)
+        {
+            if (tob.ty == Tpointer && t1b.ty == Tarray)
             {
-            Lfail:
-                /* if the cast cannot be performed, maybe there is an alias
-                 * this that can be used for casting.
-                 */
-                if (hasAliasThis)
-                {
-                    result = tryAliasThisCast();
-                    if (result)
-                        return;
-                }
-                e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
-                result = ErrorExp.get();
-                return;
+                // T[] da;
+                // cast(U*)da; // ==> cast(U*)da.ptr;
+                goto Lok;
             }
-
-        Lok:
-            result = new CastExp(e.loc, e, t);
-            result.type = t; // Don't call semantic()
-            //printf("Returning: %s\n", result.toChars());
-        }
-
-        override void visit(ErrorExp e)
-        {
-            result = e;
-        }
-
-        override void visit(RealExp e)
-        {
-            if (!e.type.equals(t))
+            if (tob.ty == Tpointer && t1b.ty == Tdelegate)
             {
-                if ((e.type.isreal() && t.isreal()) || (e.type.isimaginary() && t.isimaginary()))
-                {
-                    result = e.copy();
-                    result.type = t;
-                }
-                else
-                    visit(cast(Expression)e);
-                return;
+                // void delegate() dg;
+                // cast(U*)dg; // ==> cast(U*)dg.ptr;
+                // Note that it happens even when U is a Tfunction!
+                e.deprecation("casting from %s to %s is deprecated", e.type.toChars(), t.toChars());
+                goto Lok;
             }
-            result = e;
+            goto Lfail;
         }
 
-        override void visit(ComplexExp e)
+        if (t1b.ty == Tvoid && tob.ty != Tvoid)
         {
-            if (!e.type.equals(t))
-            {
-                if (e.type.iscomplex() && t.iscomplex())
-                {
-                    result = e.copy();
-                    result.type = t;
-                }
-                else
-                    visit(cast(Expression)e);
-                return;
-            }
-            result = e;
-        }
-
-        override void visit(StructLiteralExp e)
-        {
-            visit(cast(Expression)e);
-            if (auto sle = result.isStructLiteralExp())
-                sle.stype = t; // commit type
-        }
-
-        override void visit(StringExp e)
-        {
-            /* This follows copy-on-write; any changes to 'this'
-             * will result in a copy.
-             * The this.string member is considered immutable.
+        Lfail:
+            /* if the cast cannot be performed, maybe there is an alias
+             * this that can be used for casting.
              */
-            int copied = 0;
-
-            //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t.toChars(), e.toChars(), e.committed);
-
-            if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid &&
-                (!sc || !(sc.flags & SCOPE.Cfile)))
+            if (hasAliasThis)
             {
-                e.error("cannot convert string literal to `void*`");
-                result = ErrorExp.get();
-                return;
+                auto result = tryAliasThisCast();
+                if (result)
+                    return result;
             }
+            e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
+            return ErrorExp.get();
+        }
 
-            StringExp se = e;
+    Lok:
+        auto result = new CastExp(e.loc, e, t);
+        result.type = t; // Don't call semantic()
+        //printf("Returning: %s\n", result.toChars());
+        return result;
+    }
 
-            void lcast()
+    Expression visitError(ErrorExp e)
+    {
+        return e;
+    }
+
+    Expression visitReal(RealExp e)
+    {
+        if (!e.type.equals(t))
+        {
+            if ((e.type.isreal() && t.isreal()) || (e.type.isimaginary() && t.isimaginary()))
             {
-                result = new CastExp(e.loc, se, t);
-                result.type = t; // so semantic() won't be run on e
+                auto result = e.copy();
+                result.type = t;
+                return result;
             }
+            else
+                return visit(e);
+        }
+        return e;
+    }
 
-            if (!e.committed)
+    Expression visitComplex(ComplexExp e)
+    {
+        if (!e.type.equals(t))
+        {
+            if (e.type.iscomplex() && t.iscomplex())
+            {
+                auto result = e.copy();
+                result.type = t;
+                return result;
+            }
+            else
+                return visit(e);
+        }
+        return e;
+    }
+
+    Expression visitStructLiteral(StructLiteralExp e)
+    {
+        auto result = visit(e);
+        if (auto sle = result.isStructLiteralExp())
+            sle.stype = t; // commit type
+        return result;
+    }
+
+    Expression visitString(StringExp e)
+    {
+        /* This follows copy-on-write; any changes to 'this'
+         * will result in a copy.
+         * The this.string member is considered immutable.
+         */
+        int copied = 0;
+
+        //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t.toChars(), e.toChars(), e.committed);
+
+        if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid &&
+            (!sc || !(sc.flags & SCOPE.Cfile)))
+        {
+            e.error("cannot convert string literal to `void*`");
+            return ErrorExp.get();
+        }
+
+        StringExp se = e;
+
+        Expression lcast()
+        {
+            auto result = new CastExp(e.loc, se, t);
+            result.type = t; // so semantic() won't be run on e
+            return result;
+        }
+
+        if (!e.committed)
+        {
+            se = e.copy().isStringExp();
+            se.committed = 1;
+            copied = 1;
+        }
+
+        if (e.type.equals(t))
+        {
+            return se;
+        }
+
+        Type tb = t.toBasetype();
+        Type typeb = e.type.toBasetype();
+
+        //printf("\ttype = %s\n", e.type.toChars());
+        if (tb.ty == Tdelegate && typeb.ty != Tdelegate)
+        {
+            return visit(e);
+        }
+
+        if (typeb.equals(tb))
+        {
+            if (!copied)
             {
                 se = e.copy().isStringExp();
-                se.committed = 1;
                 copied = 1;
             }
+            se.type = t;
+            return se;
+        }
 
-            if (e.type.equals(t))
-            {
-                result = se;
-                return;
-            }
+        /* Handle reinterpret casts:
+         *  cast(wchar[3])"abcd"c --> [\u6261, \u6463, \u0000]
+         *  cast(wchar[2])"abcd"c --> [\u6261, \u6463]
+         *  cast(wchar[1])"abcd"c --> [\u6261]
+         *  cast(char[4])"a" --> ['a', 0, 0, 0]
+         */
+        if (e.committed && tb.ty == Tsarray && typeb.ty == Tarray)
+        {
+            se = e.copy().isStringExp();
+            d_uns64 szx = tb.nextOf().size();
+            assert(szx <= 255);
+            se.sz = cast(ubyte)szx;
+            se.len = cast(size_t)tb.isTypeSArray().dim.toInteger();
+            se.committed = 1;
+            se.type = t;
 
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
-
-            //printf("\ttype = %s\n", e.type.toChars());
-            if (tb.ty == Tdelegate && typeb.ty != Tdelegate)
-            {
-                visit(cast(Expression)e);
-                return;
-            }
-
-            if (typeb.equals(tb))
-            {
-                if (!copied)
-                {
-                    se = e.copy().isStringExp();
-                    copied = 1;
-                }
-                se.type = t;
-                result = se;
-                return;
-            }
-
-            /* Handle reinterpret casts:
-             *  cast(wchar[3])"abcd"c --> [\u6261, \u6463, \u0000]
-             *  cast(wchar[2])"abcd"c --> [\u6261, \u6463]
-             *  cast(wchar[1])"abcd"c --> [\u6261]
-             *  cast(char[4])"a" --> ['a', 0, 0, 0]
+            /* If larger than source, pad with zeros.
              */
-            if (e.committed && tb.ty == Tsarray && typeb.ty == Tarray)
+            const fullSize = (se.len + 1) * se.sz; // incl. terminating 0
+            if (fullSize > (e.len + 1) * e.sz)
+            {
+                void* s = mem.xmalloc(fullSize);
+                const srcSize = e.len * e.sz;
+                const data = se.peekData();
+                memcpy(s, data.ptr, srcSize);
+                memset(s + srcSize, 0, fullSize - srcSize);
+                se.setData(s, se.len, se.sz);
+            }
+            return se;
+        }
+
+        if (tb.ty != Tsarray && tb.ty != Tarray && tb.ty != Tpointer)
+        {
+            if (!copied)
             {
                 se = e.copy().isStringExp();
-                d_uns64 szx = tb.nextOf().size();
-                assert(szx <= 255);
-                se.sz = cast(ubyte)szx;
-                se.len = cast(size_t)tb.isTypeSArray().dim.toInteger();
-                se.committed = 1;
-                se.type = t;
-
-                /* If larger than source, pad with zeros.
-                 */
-                const fullSize = (se.len + 1) * se.sz; // incl. terminating 0
-                if (fullSize > (e.len + 1) * e.sz)
-                {
-                    void* s = mem.xmalloc(fullSize);
-                    const srcSize = e.len * e.sz;
-                    const data = se.peekData();
-                    memcpy(s, data.ptr, srcSize);
-                    memset(s + srcSize, 0, fullSize - srcSize);
-                    se.setData(s, se.len, se.sz);
-                }
-                result = se;
-                return;
+                copied = 1;
             }
-
-            if (tb.ty != Tsarray && tb.ty != Tarray && tb.ty != Tpointer)
+            return lcast();
+        }
+        if (typeb.ty != Tsarray && typeb.ty != Tarray && typeb.ty != Tpointer)
+        {
+            if (!copied)
             {
-                if (!copied)
-                {
-                    se = e.copy().isStringExp();
-                    copied = 1;
-                }
-                return lcast();
+                se = e.copy().isStringExp();
+                copied = 1;
             }
-            if (typeb.ty != Tsarray && typeb.ty != Tarray && typeb.ty != Tpointer)
-            {
-                if (!copied)
-                {
-                    se = e.copy().isStringExp();
-                    copied = 1;
-                }
-                return lcast();
-            }
-
-            const nextSz = typeb.nextOf().size();
-            if (nextSz == SIZE_INVALID)
-            {
-                result = ErrorExp.get();
-                return;
-            }
-            if (nextSz == tb.nextOf().size())
-            {
-                if (!copied)
-                {
-                    se = e.copy().isStringExp();
-                    copied = 1;
-                }
-                if (tb.ty == Tsarray)
-                    goto L2; // handle possible change in static array dimension
-                se.type = t;
-                result = se;
-                return;
-            }
-
-            if (e.committed)
-                goto Lcast;
-
-            auto X(T, U)(T tf, U tt)
-            {
-                return (cast(int)tf * 256 + cast(int)tt);
-            }
-
-            {
-                OutBuffer buffer;
-                size_t newlen = 0;
-                int tfty = typeb.nextOf().toBasetype().ty;
-                int ttty = tb.nextOf().toBasetype().ty;
-                switch (X(tfty, ttty))
-                {
-                case X(Tchar, Tchar):
-                case X(Twchar, Twchar):
-                case X(Tdchar, Tdchar):
-                    break;
-
-                case X(Tchar, Twchar):
-                    for (size_t u = 0; u < e.len;)
-                    {
-                        dchar c;
-                        if (const s = utf_decodeChar(se.peekString(), u, c))
-                            e.error("%.*s", cast(int)s.length, s.ptr);
-                        else
-                            buffer.writeUTF16(c);
-                    }
-                    newlen = buffer.length / 2;
-                    buffer.writeUTF16(0);
-                    goto L1;
-
-                case X(Tchar, Tdchar):
-                    for (size_t u = 0; u < e.len;)
-                    {
-                        dchar c;
-                        if (const s = utf_decodeChar(se.peekString(), u, c))
-                            e.error("%.*s", cast(int)s.length, s.ptr);
-                        buffer.write4(c);
-                        newlen++;
-                    }
-                    buffer.write4(0);
-                    goto L1;
-
-                case X(Twchar, Tchar):
-                    for (size_t u = 0; u < e.len;)
-                    {
-                        dchar c;
-                        if (const s = utf_decodeWchar(se.peekWstring(), u, c))
-                            e.error("%.*s", cast(int)s.length, s.ptr);
-                        else
-                            buffer.writeUTF8(c);
-                    }
-                    newlen = buffer.length;
-                    buffer.writeUTF8(0);
-                    goto L1;
-
-                case X(Twchar, Tdchar):
-                    for (size_t u = 0; u < e.len;)
-                    {
-                        dchar c;
-                        if (const s = utf_decodeWchar(se.peekWstring(), u, c))
-                            e.error("%.*s", cast(int)s.length, s.ptr);
-                        buffer.write4(c);
-                        newlen++;
-                    }
-                    buffer.write4(0);
-                    goto L1;
-
-                case X(Tdchar, Tchar):
-                    for (size_t u = 0; u < e.len; u++)
-                    {
-                        uint c = se.peekDstring()[u];
-                        if (!utf_isValidDchar(c))
-                            e.error("invalid UCS-32 char \\U%08x", c);
-                        else
-                            buffer.writeUTF8(c);
-                        newlen++;
-                    }
-                    newlen = buffer.length;
-                    buffer.writeUTF8(0);
-                    goto L1;
-
-                case X(Tdchar, Twchar):
-                    for (size_t u = 0; u < e.len; u++)
-                    {
-                        uint c = se.peekDstring()[u];
-                        if (!utf_isValidDchar(c))
-                            e.error("invalid UCS-32 char \\U%08x", c);
-                        else
-                            buffer.writeUTF16(c);
-                        newlen++;
-                    }
-                    newlen = buffer.length / 2;
-                    buffer.writeUTF16(0);
-                    goto L1;
-
-                L1:
-                    if (!copied)
-                    {
-                        se = e.copy().isStringExp();
-                        copied = 1;
-                    }
-
-                    {
-                        d_uns64 szx = tb.nextOf().size();
-                        assert(szx <= 255);
-                        se.setData(buffer.extractSlice().ptr, newlen, cast(ubyte)szx);
-                    }
-                    break;
-
-                default:
-                    assert(typeb.nextOf().size() != tb.nextOf().size());
-                    goto Lcast;
-                }
-            }
-        L2:
-            assert(copied);
-
-            // See if need to truncate or extend the literal
-            if (auto tsa = tb.isTypeSArray())
-            {
-                size_t dim2 = cast(size_t)tsa.dim.toInteger();
-                //printf("dim from = %d, to = %d\n", (int)se.len, (int)dim2);
-
-                // Changing dimensions
-                if (dim2 != se.len)
-                {
-                    // Copy when changing the string literal
-                    const newsz = se.sz;
-                    const d = (dim2 < se.len) ? dim2 : se.len;
-                    void* s = mem.xmalloc((dim2 + 1) * newsz);
-                    memcpy(s, se.peekData().ptr, d * newsz);
-                    // Extend with 0, add terminating 0
-                    memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);
-                    se.setData(s, dim2, newsz);
-                }
-            }
-            se.type = t;
-            result = se;
-            return;
-
-        Lcast:
-            result = new CastExp(e.loc, se, t);
-            result.type = t; // so semantic() won't be run on e
+            return lcast();
         }
 
-        override void visit(AddrExp e)
+        const nextSz = typeb.nextOf().size();
+        if (nextSz == SIZE_INVALID)
         {
-            version (none)
+            return ErrorExp.get();
+        }
+        if (nextSz == tb.nextOf().size())
+        {
+            if (!copied)
             {
-                printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+                se = e.copy().isStringExp();
+                copied = 1;
             }
-            result = e;
+            if (tb.ty == Tsarray)
+                goto L2; // handle possible change in static array dimension
+            se.type = t;
+            return se;
+        }
 
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
+        if (e.committed)
+            goto Lcast;
 
-            if (tb.equals(typeb))
+        auto X(T, U)(T tf, U tt)
+        {
+            return (cast(int)tf * 256 + cast(int)tt);
+        }
+
+        {
+            OutBuffer buffer;
+            size_t newlen = 0;
+            int tfty = typeb.nextOf().toBasetype().ty;
+            int ttty = tb.nextOf().toBasetype().ty;
+            switch (X(tfty, ttty))
             {
-                result = e.copy();
-                result.type = t;
-                return;
-            }
+            case X(Tchar, Tchar):
+            case X(Twchar, Twchar):
+            case X(Tdchar, Tdchar):
+                break;
 
-            // Look for pointers to functions where the functions are overloaded.
-            if (e.e1.isOverExp() &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
-            {
-                OverExp eo = e.e1.isOverExp();
-                FuncDeclaration f = null;
-                for (size_t i = 0; i < eo.vars.a.dim; i++)
+            case X(Tchar, Twchar):
+                for (size_t u = 0; u < e.len;)
                 {
-                    auto s = eo.vars.a[i];
-                    auto f2 = s.isFuncDeclaration();
-                    assert(f2);
-                    if (f2.overloadExactMatch(tb.nextOf()))
-                    {
-                        if (f)
-                        {
-                            /* Error if match in more than one overload set,
-                             * even if one is a 'better' match than the other.
-                             */
-                            ScopeDsymbol.multiplyDefined(e.loc, f, f2);
-                        }
-                        else
-                            f = f2;
-                    }
+                    dchar c;
+                    if (const s = utf_decodeChar(se.peekString(), u, c))
+                        e.error("%.*s", cast(int)s.length, s.ptr);
+                    else
+                        buffer.writeUTF16(c);
                 }
-                if (f)
-                {
-                    f.tookAddressOf++;
-                    auto se = new SymOffExp(e.loc, f, 0, false);
-                    auto se2 = se.expressionSemantic(sc);
-                    // Let SymOffExp::castTo() do the heavy lifting
-                    visit(se2);
-                    return;
-                }
-            }
+                newlen = buffer.length / 2;
+                buffer.writeUTF16(0);
+                goto L1;
 
-            if (e.e1.isVarExp() &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
-            {
-                auto ve = e.e1.isVarExp();
-                auto f = ve.var.isFuncDeclaration();
-                if (f)
+            case X(Tchar, Tdchar):
+                for (size_t u = 0; u < e.len;)
                 {
-                    assert(f.isImportedSymbol());
-                    f = f.overloadExactMatch(tb.nextOf());
+                    dchar c;
+                    if (const s = utf_decodeChar(se.peekString(), u, c))
+                        e.error("%.*s", cast(int)s.length, s.ptr);
+                    buffer.write4(c);
+                    newlen++;
+                }
+                buffer.write4(0);
+                goto L1;
+
+            case X(Twchar, Tchar):
+                for (size_t u = 0; u < e.len;)
+                {
+                    dchar c;
+                    if (const s = utf_decodeWchar(se.peekWstring(), u, c))
+                        e.error("%.*s", cast(int)s.length, s.ptr);
+                    else
+                        buffer.writeUTF8(c);
+                }
+                newlen = buffer.length;
+                buffer.writeUTF8(0);
+                goto L1;
+
+            case X(Twchar, Tdchar):
+                for (size_t u = 0; u < e.len;)
+                {
+                    dchar c;
+                    if (const s = utf_decodeWchar(se.peekWstring(), u, c))
+                        e.error("%.*s", cast(int)s.length, s.ptr);
+                    buffer.write4(c);
+                    newlen++;
+                }
+                buffer.write4(0);
+                goto L1;
+
+            case X(Tdchar, Tchar):
+                for (size_t u = 0; u < e.len; u++)
+                {
+                    uint c = se.peekDstring()[u];
+                    if (!utf_isValidDchar(c))
+                        e.error("invalid UCS-32 char \\U%08x", c);
+                    else
+                        buffer.writeUTF8(c);
+                    newlen++;
+                }
+                newlen = buffer.length;
+                buffer.writeUTF8(0);
+                goto L1;
+
+            case X(Tdchar, Twchar):
+                for (size_t u = 0; u < e.len; u++)
+                {
+                    uint c = se.peekDstring()[u];
+                    if (!utf_isValidDchar(c))
+                        e.error("invalid UCS-32 char \\U%08x", c);
+                    else
+                        buffer.writeUTF16(c);
+                    newlen++;
+                }
+                newlen = buffer.length / 2;
+                buffer.writeUTF16(0);
+                goto L1;
+
+            L1:
+                if (!copied)
+                {
+                    se = e.copy().isStringExp();
+                    copied = 1;
+                }
+
+                {
+                    d_uns64 szx = tb.nextOf().size();
+                    assert(szx <= 255);
+                    se.setData(buffer.extractSlice().ptr, newlen, cast(ubyte)szx);
+                }
+                break;
+
+            default:
+                assert(typeb.nextOf().size() != tb.nextOf().size());
+                goto Lcast;
+            }
+        }
+    L2:
+        assert(copied);
+
+        // See if need to truncate or extend the literal
+        if (auto tsa = tb.isTypeSArray())
+        {
+            size_t dim2 = cast(size_t)tsa.dim.toInteger();
+            //printf("dim from = %d, to = %d\n", (int)se.len, (int)dim2);
+
+            // Changing dimensions
+            if (dim2 != se.len)
+            {
+                // Copy when changing the string literal
+                const newsz = se.sz;
+                const d = (dim2 < se.len) ? dim2 : se.len;
+                void* s = mem.xmalloc((dim2 + 1) * newsz);
+                memcpy(s, se.peekData().ptr, d * newsz);
+                // Extend with 0, add terminating 0
+                memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);
+                se.setData(s, dim2, newsz);
+            }
+        }
+        se.type = t;
+        return se;
+
+    Lcast:
+        auto result = new CastExp(e.loc, se, t);
+        result.type = t; // so semantic() won't be run on e
+        return result;
+    }
+
+    Expression visitAddr(AddrExp e)
+    {
+        version (none)
+        {
+            printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+        }
+        Type tb = t.toBasetype();
+        Type typeb = e.type.toBasetype();
+
+        if (tb.equals(typeb))
+        {
+            auto result = e.copy();
+            result.type = t;
+            return result;
+        }
+
+        // Look for pointers to functions where the functions are overloaded.
+        if (e.e1.isOverExp() &&
+            (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+        {
+            OverExp eo = e.e1.isOverExp();
+            FuncDeclaration f = null;
+            for (size_t i = 0; i < eo.vars.a.dim; i++)
+            {
+                auto s = eo.vars.a[i];
+                auto f2 = s.isFuncDeclaration();
+                assert(f2);
+                if (f2.overloadExactMatch(tb.nextOf()))
+                {
                     if (f)
                     {
-                        result = new VarExp(e.loc, f, false);
-                        result.type = f.type;
-                        result = new AddrExp(e.loc, result, t);
-                        return;
-                    }
-                }
-            }
-
-            if (auto f = isFuncAddress(e))
-            {
-                if (f.checkForwardRef(e.loc))
-                {
-                    result = ErrorExp.get();
-                    return;
-                }
-            }
-
-            visit(cast(Expression)e);
-        }
-
-        override void visit(TupleExp e)
-        {
-            if (e.type.equals(t))
-            {
-                result = e;
-                return;
-            }
-
-            /* If target type is a tuple of same length, cast each expression to
-             * the corresponding type in the tuple.
-             */
-            TypeTuple totuple;
-            if (auto tt = t.isTypeTuple())
-                totuple = e.exps.length == tt.arguments.length ? tt : null;
-
-            TupleExp te = e.copy().isTupleExp();
-            te.e0 = e.e0 ? e.e0.copy() : null;
-            te.exps = e.exps.copy();
-            for (size_t i = 0; i < te.exps.dim; i++)
-            {
-                Expression ex = (*te.exps)[i];
-                ex = ex.castTo(sc, totuple ? (*totuple.arguments)[i].type : t);
-                (*te.exps)[i] = ex;
-            }
-            if (totuple)
-                te.type = totuple;
-            result = te;
-
-            /* Questionable behavior: In here, result.type is not set to t
-             *  if target type is not a tuple of same length.
-             * Therefoe:
-             *  TypeTuple!(int, int) values;
-             *  auto values2 = cast(long)values;
-             *  // typeof(values2) == TypeTuple!(int, int) !!
-             *
-             * Only when the casted tuple is immediately expanded, it would work.
-             *  auto arr = [cast(long)values];
-             *  // typeof(arr) == long[]
-             */
-        }
-
-        override void visit(ArrayLiteralExp e)
-        {
-            version (none)
-            {
-                printf("ArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n", e.toChars(), e.type.toChars(), t.toChars());
-            }
-
-            ArrayLiteralExp ae = e;
-
-            Type tb = t.toBasetype();
-            if (tb.ty == Tarray && global.params.useDIP1000 == FeatureState.enabled)
-            {
-                if (checkArrayLiteralEscape(sc, ae, false))
-                {
-                    result = ErrorExp.get();
-                    return;
-                }
-            }
-
-            if (e.type == t)
-            {
-                result = e;
-                return;
-            }
-            Type typeb = e.type.toBasetype();
-
-            if ((tb.ty == Tarray || tb.ty == Tsarray) &&
-                (typeb.ty == Tarray || typeb.ty == Tsarray))
-            {
-                if (tb.nextOf().toBasetype().ty == Tvoid && typeb.nextOf().toBasetype().ty != Tvoid)
-                {
-                    // Don't do anything to cast non-void[] to void[]
-                }
-                else if (typeb.ty == Tsarray && typeb.nextOf().toBasetype().ty == Tvoid)
-                {
-                    // Don't do anything for casting void[n] to others
-                }
-                else
-                {
-                    if (auto tsa = tb.isTypeSArray())
-                    {
-                        if (e.elements.dim != tsa.dim.toInteger())
-                            goto L1;
-                    }
-
-                    ae = e.copy().isArrayLiteralExp();
-                    if (e.basis)
-                        ae.basis = e.basis.castTo(sc, tb.nextOf());
-                    ae.elements = e.elements.copy();
-                    for (size_t i = 0; i < e.elements.dim; i++)
-                    {
-                        Expression ex = (*e.elements)[i];
-                        if (!ex)
-                            continue;
-                        ex = ex.castTo(sc, tb.nextOf());
-                        (*ae.elements)[i] = ex;
-                    }
-                    ae.type = t;
-                    result = ae;
-                    return;
-                }
-            }
-            else if (tb.ty == Tpointer && typeb.ty == Tsarray)
-            {
-                Type tp = typeb.nextOf().pointerTo();
-                if (!tp.equals(ae.type))
-                {
-                    ae = e.copy().isArrayLiteralExp();
-                    ae.type = tp;
-                }
-            }
-            else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
-            {
-                // Convert array literal to vector type
-                TypeVector tv = tb.isTypeVector();
-                TypeSArray tbase = tv.basetype.isTypeSArray();
-                assert(tbase.ty == Tsarray);
-                const edim = e.elements.dim;
-                const tbasedim = tbase.dim.toInteger();
-                if (edim > tbasedim)
-                    goto L1;
-
-                ae = e.copy().isArrayLiteralExp();
-                ae.type = tbase; // https://issues.dlang.org/show_bug.cgi?id=12642
-                ae.elements = e.elements.copy();
-                Type telement = tv.elementType();
-                foreach (i; 0 .. edim)
-                {
-                    Expression ex = (*e.elements)[i];
-                    ex = ex.castTo(sc, telement);
-                    (*ae.elements)[i] = ex;
-                }
-                // Fill in the rest with the default initializer
-                ae.elements.setDim(cast(size_t)tbasedim);
-                foreach (i; edim .. cast(size_t)tbasedim)
-                {
-                    Expression ex = typeb.nextOf.defaultInitLiteral(e.loc);
-                    ex = ex.castTo(sc, telement);
-                    (*ae.elements)[i] = ex;
-                }
-                Expression ev = new VectorExp(e.loc, ae, tb);
-                ev = ev.expressionSemantic(sc);
-                result = ev;
-                return;
-            }
-        L1:
-            visit(cast(Expression)ae);
-        }
-
-        override void visit(AssocArrayLiteralExp e)
-        {
-            //printf("AssocArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n", e.toChars(), e.type.toChars(), t.toChars());
-            if (e.type == t)
-            {
-                result = e;
-                return;
-            }
-
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
-
-            if (tb.ty == Taarray && typeb.ty == Taarray &&
-                tb.nextOf().toBasetype().ty != Tvoid)
-            {
-                AssocArrayLiteralExp ae = e.copy().isAssocArrayLiteralExp();
-                ae.keys = e.keys.copy();
-                ae.values = e.values.copy();
-                assert(e.keys.dim == e.values.dim);
-                for (size_t i = 0; i < e.keys.dim; i++)
-                {
-                    Expression ex = (*e.values)[i];
-                    ex = ex.castTo(sc, tb.nextOf());
-                    (*ae.values)[i] = ex;
-
-                    ex = (*e.keys)[i];
-                    ex = ex.castTo(sc, tb.isTypeAArray().index);
-                    (*ae.keys)[i] = ex;
-                }
-                ae.type = t;
-                result = ae;
-                return;
-            }
-            visit(cast(Expression)e);
-        }
-
-        override void visit(SymOffExp e)
-        {
-            version (none)
-            {
-                printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
-            }
-            if (e.type == t && !e.hasOverloads)
-            {
-                result = e;
-                return;
-            }
-
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
-
-            if (tb.equals(typeb))
-            {
-                result = e.copy();
-                result.type = t;
-                result.isSymOffExp().hasOverloads = false;
-                return;
-            }
-
-            // Look for pointers to functions where the functions are overloaded.
-            if (e.hasOverloads &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
-            {
-                FuncDeclaration f = e.var.isFuncDeclaration();
-                f = f ? f.overloadExactMatch(tb.nextOf()) : null;
-                if (f)
-                {
-                    if (tb.ty == Tdelegate)
-                    {
-                        if (f.needThis() && hasThis(sc))
-                        {
-                            result = new DelegateExp(e.loc, new ThisExp(e.loc), f, false);
-                            result = result.expressionSemantic(sc);
-                        }
-                        else if (f.needThis())
-                        {
-                            e.error("no `this` to create delegate for `%s`", f.toChars());
-                            result = ErrorExp.get();
-                            return;
-                        }
-                        else if (f.isNested())
-                        {
-                            result = new DelegateExp(e.loc, IntegerExp.literal!0, f, false);
-                            result = result.expressionSemantic(sc);
-                        }
-                        else
-                        {
-                            e.error("cannot cast from function pointer to delegate");
-                            result = ErrorExp.get();
-                            return;
-                        }
+                        /* Error if match in more than one overload set,
+                         * even if one is a 'better' match than the other.
+                         */
+                        ScopeDsymbol.multiplyDefined(e.loc, f, f2);
                     }
                     else
-                    {
-                        result = new SymOffExp(e.loc, f, 0, false);
-                        result.type = t;
-                    }
-                    f.tookAddressOf++;
-                    return;
+                        f = f2;
                 }
             }
-
-            if (auto f = isFuncAddress(e))
+            if (f)
             {
-                if (f.checkForwardRef(e.loc))
+                f.tookAddressOf++;
+                auto se = new SymOffExp(e.loc, f, 0, false);
+                auto se2 = se.expressionSemantic(sc);
+                // Let SymOffExp::castTo() do the heavy lifting
+                return visit(se2);
+            }
+        }
+
+        if (e.e1.isVarExp() &&
+            typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
+            tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
+        {
+            auto ve = e.e1.isVarExp();
+            auto f = ve.var.isFuncDeclaration();
+            if (f)
+            {
+                assert(f.isImportedSymbol());
+                f = f.overloadExactMatch(tb.nextOf());
+                if (f)
                 {
-                    result = ErrorExp.get();
-                    return;
+                    Expression result = new VarExp(e.loc, f, false);
+                    result.type = f.type;
+                    result = new AddrExp(e.loc, result, t);
+                    return result;
                 }
             }
-
-            visit(cast(Expression)e);
         }
 
-        override void visit(DelegateExp e)
+        if (auto f = isFuncAddress(e))
         {
-            version (none)
+            if (f.checkForwardRef(e.loc))
             {
-                printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+                return ErrorExp.get();
             }
-            __gshared const(char)* msg = "cannot form delegate due to covariant return type";
-
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
-
-            if (tb.equals(typeb) && !e.hasOverloads)
-            {
-                int offset;
-                e.func.tookAddressOf++;
-                if (e.func.tintro && e.func.tintro.nextOf().isBaseOf(e.func.type.nextOf(), &offset) && offset)
-                    e.error("%s", msg);
-                result = e.copy();
-                result.type = t;
-                return;
-            }
-
-            // Look for delegates to functions where the functions are overloaded.
-            if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
-            {
-                if (e.func)
-                {
-                    auto f = e.func.overloadExactMatch(tb.nextOf());
-                    if (f)
-                    {
-                        int offset;
-                        if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
-                            e.error("%s", msg);
-                        if (f != e.func)    // if address not already marked as taken
-                            f.tookAddressOf++;
-                        result = new DelegateExp(e.loc, e.e1, f, false, e.vthis2);
-                        result.type = t;
-                        return;
-                    }
-                    if (e.func.tintro)
-                        e.error("%s", msg);
-                }
-            }
-
-            if (auto f = isFuncAddress(e))
-            {
-                if (f.checkForwardRef(e.loc))
-                {
-                    result = ErrorExp.get();
-                    return;
-                }
-            }
-
-            visit(cast(Expression)e);
         }
 
-        override void visit(FuncExp e)
+        return visit(e);
+    }
+
+    Expression visitTuple(TupleExp e)
+    {
+        if (e.type.equals(t))
         {
-            //printf("FuncExp::castTo type = %s, t = %s\n", e.type.toChars(), t.toChars());
-            FuncExp fe;
-            if (e.matchType(t, sc, &fe, 1) > MATCH.nomatch)
-            {
-                result = fe;
-                return;
-            }
-            visit(cast(Expression)e);
+            return e;
         }
 
-        override void visit(CondExp e)
+        /* If target type is a tuple of same length, cast each expression to
+         * the corresponding type in the tuple.
+         */
+        TypeTuple totuple;
+        if (auto tt = t.isTypeTuple())
+            totuple = e.exps.length == tt.arguments.length ? tt : null;
+
+        TupleExp te = e.copy().isTupleExp();
+        te.e0 = e.e0 ? e.e0.copy() : null;
+        te.exps = e.exps.copy();
+        for (size_t i = 0; i < te.exps.dim; i++)
         {
-            if (!e.type.equals(t))
-            {
-                result = new CondExp(e.loc, e.econd, e.e1.castTo(sc, t), e.e2.castTo(sc, t));
-                result.type = t;
-                return;
-            }
-            result = e;
+            Expression ex = (*te.exps)[i];
+            ex = ex.castTo(sc, totuple ? (*totuple.arguments)[i].type : t);
+            (*te.exps)[i] = ex;
+        }
+        if (totuple)
+            te.type = totuple;
+        return te;
+
+        /* Questionable behavior: In here, result.type is not set to t
+         *  if target type is not a tuple of same length.
+         * Therefoe:
+         *  TypeTuple!(int, int) values;
+         *  auto values2 = cast(long)values;
+         *  // typeof(values2) == TypeTuple!(int, int) !!
+         *
+         * Only when the casted tuple is immediately expanded, it would work.
+         *  auto arr = [cast(long)values];
+         *  // typeof(arr) == long[]
+         */
+    }
+
+    Expression visitArrayLiteral(ArrayLiteralExp e)
+    {
+        version (none)
+        {
+            printf("ArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n", e.toChars(), e.type.toChars(), t.toChars());
         }
 
-        override void visit(CommaExp e)
-        {
-            Expression e2c = e.e2.castTo(sc, t);
+        ArrayLiteralExp ae = e;
 
-            if (e2c != e.e2)
+        Type tb = t.toBasetype();
+        if (tb.ty == Tarray && global.params.useDIP1000 == FeatureState.enabled)
+        {
+            if (checkArrayLiteralEscape(sc, ae, false))
             {
-                result = new CommaExp(e.loc, e.e1, e2c);
-                result.type = e2c.type;
+                return ErrorExp.get();
+            }
+        }
+
+        if (e.type == t)
+        {
+            return e;
+        }
+        Type typeb = e.type.toBasetype();
+
+        if ((tb.ty == Tarray || tb.ty == Tsarray) &&
+            (typeb.ty == Tarray || typeb.ty == Tsarray))
+        {
+            if (tb.nextOf().toBasetype().ty == Tvoid && typeb.nextOf().toBasetype().ty != Tvoid)
+            {
+                // Don't do anything to cast non-void[] to void[]
+            }
+            else if (typeb.ty == Tsarray && typeb.nextOf().toBasetype().ty == Tvoid)
+            {
+                // Don't do anything for casting void[n] to others
             }
             else
             {
-                result = e;
-                result.type = e.e2.type;
+                if (auto tsa = tb.isTypeSArray())
+                {
+                    if (e.elements.dim != tsa.dim.toInteger())
+                        goto L1;
+                }
+
+                ae = e.copy().isArrayLiteralExp();
+                if (e.basis)
+                    ae.basis = e.basis.castTo(sc, tb.nextOf());
+                ae.elements = e.elements.copy();
+                for (size_t i = 0; i < e.elements.dim; i++)
+                {
+                    Expression ex = (*e.elements)[i];
+                    if (!ex)
+                        continue;
+                    ex = ex.castTo(sc, tb.nextOf());
+                    (*ae.elements)[i] = ex;
+                }
+                ae.type = t;
+                return ae;
             }
         }
-
-        override void visit(SliceExp e)
+        else if (tb.ty == Tpointer && typeb.ty == Tsarray)
         {
-            //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e.toChars(), e.type.toChars(), t.toChars());
-
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
-
-            if (e.type.equals(t) || typeb.ty != Tarray ||
-                (tb.ty != Tarray && tb.ty != Tsarray))
+            Type tp = typeb.nextOf().pointerTo();
+            if (!tp.equals(ae.type))
             {
-                visit(cast(Expression)e);
-                return;
+                ae = e.copy().isArrayLiteralExp();
+                ae.type = tp;
             }
+        }
+        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
+        {
+            // Convert array literal to vector type
+            TypeVector tv = tb.isTypeVector();
+            TypeSArray tbase = tv.basetype.isTypeSArray();
+            assert(tbase.ty == Tsarray);
+            const edim = e.elements.dim;
+            const tbasedim = tbase.dim.toInteger();
+            if (edim > tbasedim)
+                goto L1;
 
-            if (tb.ty == Tarray)
+            ae = e.copy().isArrayLiteralExp();
+            ae.type = tbase; // https://issues.dlang.org/show_bug.cgi?id=12642
+            ae.elements = e.elements.copy();
+            Type telement = tv.elementType();
+            foreach (i; 0 .. edim)
             {
-                if (typeb.nextOf().equivalent(tb.nextOf()))
+                Expression ex = (*e.elements)[i];
+                ex = ex.castTo(sc, telement);
+                (*ae.elements)[i] = ex;
+            }
+            // Fill in the rest with the default initializer
+            ae.elements.setDim(cast(size_t)tbasedim);
+            foreach (i; edim .. cast(size_t)tbasedim)
+            {
+                Expression ex = typeb.nextOf.defaultInitLiteral(e.loc);
+                ex = ex.castTo(sc, telement);
+                (*ae.elements)[i] = ex;
+            }
+            Expression ev = new VectorExp(e.loc, ae, tb);
+            ev = ev.expressionSemantic(sc);
+            return ev;
+        }
+    L1:
+        return visit(ae);
+    }
+
+    Expression visitAssocArrayLiteral(AssocArrayLiteralExp e)
+    {
+        //printf("AssocArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n", e.toChars(), e.type.toChars(), t.toChars());
+        if (e.type == t)
+        {
+            return e;
+        }
+
+        Type tb = t.toBasetype();
+        Type typeb = e.type.toBasetype();
+
+        if (tb.ty == Taarray && typeb.ty == Taarray &&
+            tb.nextOf().toBasetype().ty != Tvoid)
+        {
+            AssocArrayLiteralExp ae = e.copy().isAssocArrayLiteralExp();
+            ae.keys = e.keys.copy();
+            ae.values = e.values.copy();
+            assert(e.keys.dim == e.values.dim);
+            for (size_t i = 0; i < e.keys.dim; i++)
+            {
+                Expression ex = (*e.values)[i];
+                ex = ex.castTo(sc, tb.nextOf());
+                (*ae.values)[i] = ex;
+
+                ex = (*e.keys)[i];
+                ex = ex.castTo(sc, tb.isTypeAArray().index);
+                (*ae.keys)[i] = ex;
+            }
+            ae.type = t;
+            return ae;
+        }
+        return visit(e);
+    }
+
+    Expression visitSymOff(SymOffExp e)
+    {
+        version (none)
+        {
+            printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+        }
+        if (e.type == t && !e.hasOverloads)
+        {
+            return e;
+        }
+
+        Type tb = t.toBasetype();
+        Type typeb = e.type.toBasetype();
+
+        if (tb.equals(typeb))
+        {
+            auto result = e.copy();
+            result.type = t;
+            result.isSymOffExp().hasOverloads = false;
+            return result;
+        }
+
+        // Look for pointers to functions where the functions are overloaded.
+        if (e.hasOverloads &&
+            typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
+            (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+        {
+            FuncDeclaration f = e.var.isFuncDeclaration();
+            f = f ? f.overloadExactMatch(tb.nextOf()) : null;
+            if (f)
+            {
+                Expression result;
+                if (tb.ty == Tdelegate)
                 {
-                    // T[] to const(T)[]
-                    result = e.copy();
+                    if (f.needThis() && hasThis(sc))
+                    {
+                        result = new DelegateExp(e.loc, new ThisExp(e.loc), f, false);
+                        result = result.expressionSemantic(sc);
+                    }
+                    else if (f.needThis())
+                    {
+                        e.error("no `this` to create delegate for `%s`", f.toChars());
+                        return ErrorExp.get();
+                    }
+                    else if (f.isNested())
+                    {
+                        result = new DelegateExp(e.loc, IntegerExp.literal!0, f, false);
+                        result = result.expressionSemantic(sc);
+                    }
+                    else
+                    {
+                        e.error("cannot cast from function pointer to delegate");
+                        return ErrorExp.get();
+                    }
+                }
+                else
+                {
+                    result = new SymOffExp(e.loc, f, 0, false);
                     result.type = t;
                 }
-                else
-                {
-                    visit(cast(Expression)e);
-                }
-                return;
+                f.tookAddressOf++;
+                return result;
             }
-
-            // Handle the cast from Tarray to Tsarray with CT-known slicing
-
-            TypeSArray tsa = toStaticArrayType(e).isTypeSArray();
-            if (tsa && tsa.size(e.loc) == tb.size(e.loc))
-            {
-                /* Match if the sarray sizes are equal:
-                 *  T[a .. b] to const(T)[b-a]
-                 *  T[a .. b] to U[dim] if (T.sizeof*(b-a) == U.sizeof*dim)
-                 *
-                 * If a SliceExp has Tsarray, it will become lvalue.
-                 * That's handled in SliceExp::isLvalue and toLvalue
-                 */
-                result = e.copy();
-                result.type = t;
-                return;
-            }
-            if (tsa && tsa.dim.equals(tb.isTypeSArray().dim))
-            {
-                /* Match if the dimensions are equal
-                 * with the implicit conversion of e.e1:
-                 *  cast(float[2]) [2.0, 1.0, 0.0][0..2];
-                 */
-                Type t1b = e.e1.type.toBasetype();
-                if (t1b.ty == Tsarray)
-                    t1b = tb.nextOf().sarrayOf(t1b.isTypeSArray().dim.toInteger());
-                else if (t1b.ty == Tarray)
-                    t1b = tb.nextOf().arrayOf();
-                else if (t1b.ty == Tpointer)
-                    t1b = tb.nextOf().pointerTo();
-                else
-                    assert(0);
-                if (e.e1.implicitConvTo(t1b) > MATCH.nomatch)
-                {
-                    Expression e1x = e.e1.implicitCastTo(sc, t1b);
-                    assert(e1x.op != EXP.error);
-                    e = e.copy().isSliceExp();
-                    e.e1 = e1x;
-                    e.type = t;
-                    result = e;
-                    return;
-                }
-            }
-            auto ts = toAutoQualChars(tsa ? tsa : e.type, t);
-            e.error("cannot cast expression `%s` of type `%s` to `%s`",
-                e.toChars(), ts[0], ts[1]);
-            result = ErrorExp.get();
         }
+
+        if (auto f = isFuncAddress(e))
+        {
+            if (f.checkForwardRef(e.loc))
+            {
+                return ErrorExp.get();
+            }
+        }
+
+        return visit(e);
+    }
+
+    Expression visitDelegate(DelegateExp e)
+    {
+        version (none)
+        {
+            printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+        }
+        __gshared const(char)* msg = "cannot form delegate due to covariant return type";
+
+        Type tb = t.toBasetype();
+        Type typeb = e.type.toBasetype();
+
+        if (tb.equals(typeb) && !e.hasOverloads)
+        {
+            int offset;
+            e.func.tookAddressOf++;
+            if (e.func.tintro && e.func.tintro.nextOf().isBaseOf(e.func.type.nextOf(), &offset) && offset)
+                e.error("%s", msg);
+            auto result = e.copy();
+            result.type = t;
+            return result;
+        }
+
+        // Look for delegates to functions where the functions are overloaded.
+        if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
+        {
+            if (e.func)
+            {
+                auto f = e.func.overloadExactMatch(tb.nextOf());
+                if (f)
+                {
+                    int offset;
+                    if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
+                        e.error("%s", msg);
+                    if (f != e.func)    // if address not already marked as taken
+                        f.tookAddressOf++;
+                    auto result = new DelegateExp(e.loc, e.e1, f, false, e.vthis2);
+                    result.type = t;
+                    return result;
+                }
+                if (e.func.tintro)
+                    e.error("%s", msg);
+            }
+        }
+
+        if (auto f = isFuncAddress(e))
+        {
+            if (f.checkForwardRef(e.loc))
+            {
+                return ErrorExp.get();
+            }
+        }
+
+        return visit(e);
+    }
+
+    Expression visitFunc(FuncExp e)
+    {
+        //printf("FuncExp::castTo type = %s, t = %s\n", e.type.toChars(), t.toChars());
+        FuncExp fe;
+        if (e.matchType(t, sc, &fe, 1) > MATCH.nomatch)
+        {
+            return fe;
+        }
+        return visit(e);
+    }
+
+    Expression visitCond(CondExp e)
+    {
+        if (!e.type.equals(t))
+        {
+            auto result = new CondExp(e.loc, e.econd, e.e1.castTo(sc, t), e.e2.castTo(sc, t));
+            result.type = t;
+            return result;
+        }
+        return e;
+    }
+
+    Expression visitComma(CommaExp e)
+    {
+        Expression e2c = e.e2.castTo(sc, t);
+
+        if (e2c != e.e2)
+        {
+            auto result = new CommaExp(e.loc, e.e1, e2c);
+            result.type = e2c.type;
+            return result;
+        }
+        else
+        {
+            e.type = e.e2.type;
+            return e;
+        }
+    }
+
+    Expression visitSlice(SliceExp e)
+    {
+        //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e.toChars(), e.type.toChars(), t.toChars());
+
+        Type tb = t.toBasetype();
+        Type typeb = e.type.toBasetype();
+
+        if (e.type.equals(t) || typeb.ty != Tarray ||
+            (tb.ty != Tarray && tb.ty != Tsarray))
+        {
+            return visit(e);
+        }
+
+        if (tb.ty == Tarray)
+        {
+            if (typeb.nextOf().equivalent(tb.nextOf()))
+            {
+                // T[] to const(T)[]
+                auto result = e.copy();
+                result.type = t;
+                return result;
+            }
+            else
+            {
+                return visit(e);
+            }
+        }
+
+        // Handle the cast from Tarray to Tsarray with CT-known slicing
+
+        TypeSArray tsa = toStaticArrayType(e).isTypeSArray();
+        if (tsa && tsa.size(e.loc) == tb.size(e.loc))
+        {
+            /* Match if the sarray sizes are equal:
+             *  T[a .. b] to const(T)[b-a]
+             *  T[a .. b] to U[dim] if (T.sizeof*(b-a) == U.sizeof*dim)
+             *
+             * If a SliceExp has Tsarray, it will become lvalue.
+             * That's handled in SliceExp::isLvalue and toLvalue
+             */
+            auto result = e.copy();
+            result.type = t;
+            return result;
+        }
+        if (tsa && tsa.dim.equals(tb.isTypeSArray().dim))
+        {
+            /* Match if the dimensions are equal
+             * with the implicit conversion of e.e1:
+             *  cast(float[2]) [2.0, 1.0, 0.0][0..2];
+             */
+            Type t1b = e.e1.type.toBasetype();
+            if (t1b.ty == Tsarray)
+                t1b = tb.nextOf().sarrayOf(t1b.isTypeSArray().dim.toInteger());
+            else if (t1b.ty == Tarray)
+                t1b = tb.nextOf().arrayOf();
+            else if (t1b.ty == Tpointer)
+                t1b = tb.nextOf().pointerTo();
+            else
+                assert(0);
+            if (e.e1.implicitConvTo(t1b) > MATCH.nomatch)
+            {
+                Expression e1x = e.e1.implicitCastTo(sc, t1b);
+                assert(e1x.op != EXP.error);
+                e = e.copy().isSliceExp();
+                e.e1 = e1x;
+                e.type = t;
+                return e;
+            }
+        }
+        auto ts = toAutoQualChars(tsa ? tsa : e.type, t);
+        e.error("cannot cast expression `%s` of type `%s` to `%s`",
+            e.toChars(), ts[0], ts[1]);
+        return ErrorExp.get();
     }
 
     // Casting to noreturn isn't an actual cast
@@ -2664,9 +2621,25 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         return Expression.combine(e, ini);
     }
 
-    scope CastTo v = new CastTo(sc, t);
-    e.accept(v);
-    return v.result;
+    switch (e.op)
+    {
+        default                   : return visit(e);
+        case EXP.error            : return visitError(e.isErrorExp());
+        case EXP.float64          : return visitReal(e.isRealExp());
+        case EXP.complex80        : return visitComplex(e.isComplexExp());
+        case EXP.structLiteral    : return visitStructLiteral(e.isStructLiteralExp());
+        case EXP.string_          : return visitString(e.isStringExp());
+        case EXP.address          : return visitAddr(e.isAddrExp());
+        case EXP.tuple            : return visitTuple(e.isTupleExp());
+        case EXP.arrayLiteral     : return visitArrayLiteral(e.isArrayLiteralExp());
+        case EXP.assocArrayLiteral: return visitAssocArrayLiteral(e.isAssocArrayLiteralExp());
+        case EXP.symbolOffset     : return visitSymOff(e.isSymOffExp());
+        case EXP.delegate_        : return visitDelegate(e.isDelegateExp());
+        case EXP.function_        : return visitFunc(e.isFuncExp());
+        case EXP.question         : return visitCond(e.isCondExp());
+        case EXP.comma            : return visitComma(e.isCommaExp());
+        case EXP.slice            : return visitSlice(e.isSliceExp());
+    }
 }
 
 /****************************************
