@@ -507,7 +507,7 @@ else
 /* Functions outside/extending POSIX requirement.  */
 version (CRuntime_Glibc)
 {
-    static if (__USE_GNU)
+    static if (_GNU_SOURCE)
     {
         /* To customize the implementation one can use the following struct.  */
         struct aioinit
@@ -527,7 +527,7 @@ version (CRuntime_Glibc)
 }
 else version (CRuntime_UClibc)
 {
-    static if (__USE_GNU)
+    static if (_GNU_SOURCE)
     {
         /* To customize the implementation one can use the following struct.  */
         struct aioinit
