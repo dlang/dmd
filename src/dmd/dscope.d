@@ -663,6 +663,17 @@ struct Scope
         return s; // inserted
     }
 
+    /// Search for the current enclosing module
+    inout(Module) getModule() inout
+    {
+        for (inout(Scope)* sc = &this; sc; sc = sc.enclosing)
+        {
+            if (sc._module)
+                return sc._module;
+        }
+        assert(false); // Uppermost scope must belong to a module
+    }
+
     /********************************************
      * Search enclosing scopes for ScopeDsymbol.
      */
