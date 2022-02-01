@@ -39,7 +39,7 @@ alias __builtin_va_copy = core.stdc.stdarg.va_copy;
  */
 alias va_arg = core.stdc.stdarg.va_arg;
 
-version (Windows)
+version (CRuntime_Microsoft)
 {
     //https://docs.microsoft.com/en-us/cpp/cpp/int8-int16-int32-int64?view=msvc-170
     alias __int8 = byte;
