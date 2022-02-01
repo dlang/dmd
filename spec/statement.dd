@@ -760,8 +760,8 @@ $(CONSOLE
 $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Structs and Classes with Ranges))
 
     $(P If the aggregate expression is a struct or class object, but the
-        $(D opApply) for $(D foreach), or $(D opApplyReverse) $(D foreach_reverse) do not exist,
-        then iteration over struct and class objects can be done with range primitives.
+        $(D opApply) for $(D foreach), or $(D opApplyReverse) for $(D foreach_reverse) do not exist,
+        then iteration can be done with $(LINK2 $(ROOT_DIR)phobos/std_range.html, range) primitives.
         For $(D foreach), this means the following properties and methods must
         be defined:
     )
@@ -826,42 +826,89 @@ $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         }
         ---
 
+    $(P Example with a linked list:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct Node
+{
+    int i;
+    Node* next;
+}
+
+// range
+struct List
+{
+    Node* node;
+
+    bool empty() { return node == null; }
+
+    ref int front() { return node.i; }
+
+    void popFront() { node = node.next; }
+}
+
+void main()
+{
+    import std.stdio;
+    auto l = new Node(1, new Node(2, null));
+    auto r = List(l);
+
+    foreach (e; r)
+    {
+        writeln(e);
+    }
+}
+---
+)
+
+$(H4 $(LNAME2 front-seq, Multiple Element Values))
+
     $(P Multiple loop variables are allowed if the `front` property returns a type that
         expands to an $(DDSUBLINK spec/template, variadic-templates, expression sequence)
         whose size matches the number of variables. Each variable is assigned
-        to the corresponding value in the tuple.
+        to the corresponding value in the sequence.
     )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
-        // Common tuple implementation that can decay into its members
-        import std.typecons : Tuple;
+        struct Tuple(Types...) // takes a TypeSeq
+        {
+            Types items; // ValueSeq
+            alias items this; // decay to a value sequence
+        }
 
-        // Range whose elements are tuples
+        // Infinite range whose element is a fixed tuple
         struct TupleRange
         {
-            Tuple!(char, bool, int) front()
-            {
-                return typeof(return)('a', true, 2);
-            }
+            enum front = Tuple!(char, bool, int)('a', true, 2);
 
-            bool empty() { return false; }
+            enum bool empty = false;
 
             void popFront() {}
         }
 
         void main()
         {
+            // Tuple destructuring
             foreach (a, b, c; TupleRange())
             {
                 assert(a == 'a');
                 assert(b == true);
                 assert(c == 2);
+                break;
             }
-
-            // Expected 3 arguments, not 1
-            // foreach (a; TupleRange()) { ... }
+            // Tuple variable
+            foreach (tup; TupleRange())
+            {
+                assert(tup[0] == 'a');
+                assert(tup == TupleRange.front);
+                break;
+            }
         }
         ---
+        )
+        $(P See also: $(REF Tuple, std,typecons).)
 
 $(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
 
