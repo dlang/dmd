@@ -28,268 +28,6 @@ import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.tokens;
 
-// How multiple declarations are parsed.
-// If 1, treat as C.
-// If 0, treat:
-//      int *p, i;
-// as:
-//      int* p;
-//      int* i;
-private enum CDECLSYNTAX = 0;
-
-// Support C cast syntax:
-//      (type)(expression)
-private enum CCASTSYNTAX = 1;
-
-// Support postfix C array declarations, such as
-//      int a[3][4];
-private enum CARRAYDECL = 1;
-
-/**********************************
- * Set operator precedence for each operator.
- *
- * Used by hdrgen
- */
-immutable PREC[EXP.max + 1] precedence =
-[
-    EXP.type : PREC.expr,
-    EXP.error : PREC.expr,
-    EXP.objcClassReference : PREC.expr, // Objective-C class reference, same as EXP.type
-
-    EXP.typeof_ : PREC.primary,
-    EXP.mixin_ : PREC.primary,
-
-    EXP.import_ : PREC.primary,
-    EXP.dotVariable : PREC.primary,
-    EXP.scope_ : PREC.primary,
-    EXP.identifier : PREC.primary,
-    EXP.this_ : PREC.primary,
-    EXP.super_ : PREC.primary,
-    EXP.int64 : PREC.primary,
-    EXP.float64 : PREC.primary,
-    EXP.complex80 : PREC.primary,
-    EXP.null_ : PREC.primary,
-    EXP.string_ : PREC.primary,
-    EXP.arrayLiteral : PREC.primary,
-    EXP.assocArrayLiteral : PREC.primary,
-    EXP.classReference : PREC.primary,
-    EXP.file : PREC.primary,
-    EXP.fileFullPath : PREC.primary,
-    EXP.line : PREC.primary,
-    EXP.moduleString : PREC.primary,
-    EXP.functionString : PREC.primary,
-    EXP.prettyFunction : PREC.primary,
-    EXP.typeid_ : PREC.primary,
-    EXP.is_ : PREC.primary,
-    EXP.assert_ : PREC.primary,
-    EXP.halt : PREC.primary,
-    EXP.template_ : PREC.primary,
-    EXP.dSymbol : PREC.primary,
-    EXP.function_ : PREC.primary,
-    EXP.variable : PREC.primary,
-    EXP.symbolOffset : PREC.primary,
-    EXP.structLiteral : PREC.primary,
-    EXP.compoundLiteral : PREC.primary,
-    EXP.arrayLength : PREC.primary,
-    EXP.delegatePointer : PREC.primary,
-    EXP.delegateFunctionPointer : PREC.primary,
-    EXP.remove : PREC.primary,
-    EXP.tuple : PREC.primary,
-    EXP.traits : PREC.primary,
-    EXP.default_ : PREC.primary,
-    EXP.overloadSet : PREC.primary,
-    EXP.void_ : PREC.primary,
-    EXP.vectorArray : PREC.primary,
-    EXP._Generic : PREC.primary,
-
-    // post
-    EXP.dotTemplateInstance : PREC.primary,
-    EXP.dotIdentifier : PREC.primary,
-    EXP.dotTemplateDeclaration : PREC.primary,
-    EXP.dot : PREC.primary,
-    EXP.dotType : PREC.primary,
-    EXP.plusPlus : PREC.primary,
-    EXP.minusMinus : PREC.primary,
-    EXP.prePlusPlus : PREC.primary,
-    EXP.preMinusMinus : PREC.primary,
-    EXP.call : PREC.primary,
-    EXP.slice : PREC.primary,
-    EXP.array : PREC.primary,
-    EXP.index : PREC.primary,
-
-    EXP.delegate_ : PREC.unary,
-    EXP.address : PREC.unary,
-    EXP.star : PREC.unary,
-    EXP.negate : PREC.unary,
-    EXP.uadd : PREC.unary,
-    EXP.not : PREC.unary,
-    EXP.tilde : PREC.unary,
-    EXP.delete_ : PREC.unary,
-    EXP.new_ : PREC.unary,
-    EXP.newAnonymousClass : PREC.unary,
-    EXP.cast_ : PREC.unary,
-    EXP.throw_ : PREC.unary,
-
-    EXP.vector : PREC.unary,
-    EXP.pow : PREC.pow,
-
-    EXP.mul : PREC.mul,
-    EXP.div : PREC.mul,
-    EXP.mod : PREC.mul,
-
-    EXP.add : PREC.add,
-    EXP.min : PREC.add,
-    EXP.concatenate : PREC.add,
-
-    EXP.leftShift : PREC.shift,
-    EXP.rightShift : PREC.shift,
-    EXP.unsignedRightShift : PREC.shift,
-
-    EXP.lessThan : PREC.rel,
-    EXP.lessOrEqual : PREC.rel,
-    EXP.greaterThan : PREC.rel,
-    EXP.greaterOrEqual : PREC.rel,
-    EXP.in_ : PREC.rel,
-
-    /* Note that we changed precedence, so that < and != have the same
-     * precedence. This change is in the parser, too.
-     */
-    EXP.equal : PREC.rel,
-    EXP.notEqual : PREC.rel,
-    EXP.identity : PREC.rel,
-    EXP.notIdentity : PREC.rel,
-
-    EXP.and : PREC.and,
-    EXP.xor : PREC.xor,
-    EXP.or : PREC.or,
-
-    EXP.andAnd : PREC.andand,
-    EXP.orOr : PREC.oror,
-
-    EXP.question : PREC.cond,
-
-    EXP.assign : PREC.assign,
-    EXP.construct : PREC.assign,
-    EXP.blit : PREC.assign,
-    EXP.addAssign : PREC.assign,
-    EXP.minAssign : PREC.assign,
-    EXP.concatenateAssign : PREC.assign,
-    EXP.concatenateElemAssign : PREC.assign,
-    EXP.concatenateDcharAssign : PREC.assign,
-    EXP.mulAssign : PREC.assign,
-    EXP.divAssign : PREC.assign,
-    EXP.modAssign : PREC.assign,
-    EXP.powAssign : PREC.assign,
-    EXP.leftShiftAssign : PREC.assign,
-    EXP.rightShiftAssign : PREC.assign,
-    EXP.unsignedRightShiftAssign : PREC.assign,
-    EXP.andAssign : PREC.assign,
-    EXP.orAssign : PREC.assign,
-    EXP.xorAssign : PREC.assign,
-
-    EXP.comma : PREC.expr,
-    EXP.declaration : PREC.expr,
-
-    EXP.interval : PREC.assign,
-];
-
-enum ParseStatementFlags : int
-{
-    semi          = 1,        // empty ';' statements are allowed, but deprecated
-    scope_        = 2,        // start a new scope
-    curly         = 4,        // { } statement is required
-    curlyScope    = 8,        // { } starts a new scope
-    semiOk        = 0x10,     // empty ';' are really ok
-}
-
-struct PrefixAttributes(AST)
-{
-    StorageClass storageClass;
-    AST.Expression depmsg;
-    LINK link;
-    AST.Visibility visibility;
-    bool setAlignment;
-    AST.Expression ealign;
-    AST.Expressions* udas;
-    const(char)* comment;
-}
-
-/// The result of the `ParseLinkage` function
-struct ParsedLinkage(AST)
-{
-    /// What linkage was specified
-    LINK link;
-    /// If `extern(C++, class|struct)`, contains the `class|struct`
-    CPPMANGLE cppmangle;
-    /// If `extern(C++, some.identifier)`, will be the identifiers
-    AST.Identifiers* idents;
-    /// If `extern(C++, (some_tuple_expression)|"string"), will be the expressions
-    AST.Expressions* identExps;
-}
-
-/*****************************
- * Destructively extract storage class from pAttrs.
- */
-private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
-{
-    StorageClass stc = STC.undefined_;
-    if (pAttrs)
-    {
-        stc = pAttrs.storageClass;
-        pAttrs.storageClass = STC.undefined_;
-    }
-    return stc;
-}
-
-/**************************************
- * dump mixin expansion to file for better debugging
- */
-private bool writeMixin(const(char)[] s, ref Loc loc)
-{
-    if (!global.params.mixinOut)
-        return false;
-
-    OutBuffer* ob = global.params.mixinOut;
-
-    ob.writestring("// expansion at ");
-    ob.writestring(loc.toChars());
-    ob.writenl();
-
-    global.params.mixinLines++;
-
-    loc = Loc(global.params.mixinFile, global.params.mixinLines + 1, loc.charnum);
-
-    // write by line to create consistent line endings
-    size_t lastpos = 0;
-    for (size_t i = 0; i < s.length; ++i)
-    {
-        // detect LF and CRLF
-        const c = s[i];
-        if (c == '\n' || (c == '\r' && i+1 < s.length && s[i+1] == '\n'))
-        {
-            ob.writestring(s[lastpos .. i]);
-            ob.writenl();
-            global.params.mixinLines++;
-            if (c == '\r')
-                ++i;
-            lastpos = i + 1;
-        }
-    }
-
-    if(lastpos < s.length)
-        ob.writestring(s[lastpos .. $]);
-
-    if (s.length == 0 || s[$-1] != '\n')
-    {
-        ob.writenl(); // ensure empty line after expansion
-        global.params.mixinLines++;
-    }
-    ob.writenl();
-    global.params.mixinLines++;
-
-    return true;
-}
-
 /***********************************************************
  */
 class Parser(AST) : Lexer
@@ -9542,7 +9280,7 @@ LagainStc:
                 STC.live     |
                 /*STC.future   |*/ // probably should be included
                 STC.disable;
-    }
+}
 
 enum PREC : int
 {
@@ -9564,3 +9302,276 @@ enum PREC : int
     unary,
     primary,
 }
+
+/**********************************
+ * Set operator precedence for each operator.
+ *
+ * Used by hdrgen
+ */
+immutable PREC[EXP.max + 1] precedence =
+[
+    EXP.type : PREC.expr,
+    EXP.error : PREC.expr,
+    EXP.objcClassReference : PREC.expr, // Objective-C class reference, same as EXP.type
+
+    EXP.typeof_ : PREC.primary,
+    EXP.mixin_ : PREC.primary,
+
+    EXP.import_ : PREC.primary,
+    EXP.dotVariable : PREC.primary,
+    EXP.scope_ : PREC.primary,
+    EXP.identifier : PREC.primary,
+    EXP.this_ : PREC.primary,
+    EXP.super_ : PREC.primary,
+    EXP.int64 : PREC.primary,
+    EXP.float64 : PREC.primary,
+    EXP.complex80 : PREC.primary,
+    EXP.null_ : PREC.primary,
+    EXP.string_ : PREC.primary,
+    EXP.arrayLiteral : PREC.primary,
+    EXP.assocArrayLiteral : PREC.primary,
+    EXP.classReference : PREC.primary,
+    EXP.file : PREC.primary,
+    EXP.fileFullPath : PREC.primary,
+    EXP.line : PREC.primary,
+    EXP.moduleString : PREC.primary,
+    EXP.functionString : PREC.primary,
+    EXP.prettyFunction : PREC.primary,
+    EXP.typeid_ : PREC.primary,
+    EXP.is_ : PREC.primary,
+    EXP.assert_ : PREC.primary,
+    EXP.halt : PREC.primary,
+    EXP.template_ : PREC.primary,
+    EXP.dSymbol : PREC.primary,
+    EXP.function_ : PREC.primary,
+    EXP.variable : PREC.primary,
+    EXP.symbolOffset : PREC.primary,
+    EXP.structLiteral : PREC.primary,
+    EXP.compoundLiteral : PREC.primary,
+    EXP.arrayLength : PREC.primary,
+    EXP.delegatePointer : PREC.primary,
+    EXP.delegateFunctionPointer : PREC.primary,
+    EXP.remove : PREC.primary,
+    EXP.tuple : PREC.primary,
+    EXP.traits : PREC.primary,
+    EXP.default_ : PREC.primary,
+    EXP.overloadSet : PREC.primary,
+    EXP.void_ : PREC.primary,
+    EXP.vectorArray : PREC.primary,
+    EXP._Generic : PREC.primary,
+
+    // post
+    EXP.dotTemplateInstance : PREC.primary,
+    EXP.dotIdentifier : PREC.primary,
+    EXP.dotTemplateDeclaration : PREC.primary,
+    EXP.dot : PREC.primary,
+    EXP.dotType : PREC.primary,
+    EXP.plusPlus : PREC.primary,
+    EXP.minusMinus : PREC.primary,
+    EXP.prePlusPlus : PREC.primary,
+    EXP.preMinusMinus : PREC.primary,
+    EXP.call : PREC.primary,
+    EXP.slice : PREC.primary,
+    EXP.array : PREC.primary,
+    EXP.index : PREC.primary,
+
+    EXP.delegate_ : PREC.unary,
+    EXP.address : PREC.unary,
+    EXP.star : PREC.unary,
+    EXP.negate : PREC.unary,
+    EXP.uadd : PREC.unary,
+    EXP.not : PREC.unary,
+    EXP.tilde : PREC.unary,
+    EXP.delete_ : PREC.unary,
+    EXP.new_ : PREC.unary,
+    EXP.newAnonymousClass : PREC.unary,
+    EXP.cast_ : PREC.unary,
+    EXP.throw_ : PREC.unary,
+
+    EXP.vector : PREC.unary,
+    EXP.pow : PREC.pow,
+
+    EXP.mul : PREC.mul,
+    EXP.div : PREC.mul,
+    EXP.mod : PREC.mul,
+
+    EXP.add : PREC.add,
+    EXP.min : PREC.add,
+    EXP.concatenate : PREC.add,
+
+    EXP.leftShift : PREC.shift,
+    EXP.rightShift : PREC.shift,
+    EXP.unsignedRightShift : PREC.shift,
+
+    EXP.lessThan : PREC.rel,
+    EXP.lessOrEqual : PREC.rel,
+    EXP.greaterThan : PREC.rel,
+    EXP.greaterOrEqual : PREC.rel,
+    EXP.in_ : PREC.rel,
+
+    /* Note that we changed precedence, so that < and != have the same
+     * precedence. This change is in the parser, too.
+     */
+    EXP.equal : PREC.rel,
+    EXP.notEqual : PREC.rel,
+    EXP.identity : PREC.rel,
+    EXP.notIdentity : PREC.rel,
+
+    EXP.and : PREC.and,
+    EXP.xor : PREC.xor,
+    EXP.or : PREC.or,
+
+    EXP.andAnd : PREC.andand,
+    EXP.orOr : PREC.oror,
+
+    EXP.question : PREC.cond,
+
+    EXP.assign : PREC.assign,
+    EXP.construct : PREC.assign,
+    EXP.blit : PREC.assign,
+    EXP.addAssign : PREC.assign,
+    EXP.minAssign : PREC.assign,
+    EXP.concatenateAssign : PREC.assign,
+    EXP.concatenateElemAssign : PREC.assign,
+    EXP.concatenateDcharAssign : PREC.assign,
+    EXP.mulAssign : PREC.assign,
+    EXP.divAssign : PREC.assign,
+    EXP.modAssign : PREC.assign,
+    EXP.powAssign : PREC.assign,
+    EXP.leftShiftAssign : PREC.assign,
+    EXP.rightShiftAssign : PREC.assign,
+    EXP.unsignedRightShiftAssign : PREC.assign,
+    EXP.andAssign : PREC.assign,
+    EXP.orAssign : PREC.assign,
+    EXP.xorAssign : PREC.assign,
+
+    EXP.comma : PREC.expr,
+    EXP.declaration : PREC.expr,
+
+    EXP.interval : PREC.assign,
+];
+
+enum ParseStatementFlags : int
+{
+    semi          = 1,        // empty ';' statements are allowed, but deprecated
+    scope_        = 2,        // start a new scope
+    curly         = 4,        // { } statement is required
+    curlyScope    = 8,        // { } starts a new scope
+    semiOk        = 0x10,     // empty ';' are really ok
+}
+
+struct PrefixAttributes(AST)
+{
+    StorageClass storageClass;
+    AST.Expression depmsg;
+    LINK link;
+    AST.Visibility visibility;
+    bool setAlignment;
+    AST.Expression ealign;
+    AST.Expressions* udas;
+    const(char)* comment;
+}
+
+/// The result of the `ParseLinkage` function
+struct ParsedLinkage(AST)
+{
+    /// What linkage was specified
+    LINK link;
+    /// If `extern(C++, class|struct)`, contains the `class|struct`
+    CPPMANGLE cppmangle;
+    /// If `extern(C++, some.identifier)`, will be the identifiers
+    AST.Identifiers* idents;
+    /// If `extern(C++, (some_tuple_expression)|"string"), will be the expressions
+    AST.Expressions* identExps;
+}
+
+
+/*********************************** Private *************************************/
+
+/***********************
+ * How multiple declarations are parsed.
+ * If 1, treat as C.
+ * If 0, treat:
+ *      int *p, i;
+ * as:
+ *      int* p;
+ *      int* i;
+ */
+private enum CDECLSYNTAX = 0;
+
+/*****
+ * Support C cast syntax:
+ *      (type)(expression)
+ */
+private enum CCASTSYNTAX = 1;
+
+/*****
+ * Support postfix C array declarations, such as
+ *      int a[3][4];
+ */
+private enum CARRAYDECL = 1;
+
+/*****************************
+ * Destructively extract storage class from pAttrs.
+ */
+private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
+{
+    StorageClass stc = STC.undefined_;
+    if (pAttrs)
+    {
+        stc = pAttrs.storageClass;
+        pAttrs.storageClass = STC.undefined_;
+    }
+    return stc;
+}
+
+/**************************************
+ * dump mixin expansion to file for better debugging
+ */
+private bool writeMixin(const(char)[] s, ref Loc loc)
+{
+    if (!global.params.mixinOut)
+        return false;
+
+    OutBuffer* ob = global.params.mixinOut;
+
+    ob.writestring("// expansion at ");
+    ob.writestring(loc.toChars());
+    ob.writenl();
+
+    global.params.mixinLines++;
+
+    loc = Loc(global.params.mixinFile, global.params.mixinLines + 1, loc.charnum);
+
+    // write by line to create consistent line endings
+    size_t lastpos = 0;
+    for (size_t i = 0; i < s.length; ++i)
+    {
+        // detect LF and CRLF
+        const c = s[i];
+        if (c == '\n' || (c == '\r' && i+1 < s.length && s[i+1] == '\n'))
+        {
+            ob.writestring(s[lastpos .. i]);
+            ob.writenl();
+            global.params.mixinLines++;
+            if (c == '\r')
+                ++i;
+            lastpos = i + 1;
+        }
+    }
+
+    if(lastpos < s.length)
+        ob.writestring(s[lastpos .. $]);
+
+    if (s.length == 0 || s[$-1] != '\n')
+    {
+        ob.writenl(); // ensure empty line after expansion
+        global.params.mixinLines++;
+    }
+    ob.writenl();
+    global.params.mixinLines++;
+
+    return true;
+}
+
+
