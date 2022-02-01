@@ -202,12 +202,12 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
 
     switch (e.op)
     {
-        default              : return visit(e);
-        case EXP.string_     : return visitString(e.isStringExp());
-        case EXP.error       : return visitError(e.isErrorExp());
-        case EXP.function_   : return visitFunc(e.isFuncExp());
+        default              : return visit            (e);
+        case EXP.string_     : return visitString      (e.isStringExp());
+        case EXP.error       : return visitError       (e.isErrorExp());
+        case EXP.function_   : return visitFunc        (e.isFuncExp());
         case EXP.arrayLiteral: return visitArrayLiteral(e.isArrayLiteralExp());
-        case EXP.slice       : return visitSlice(e.isSliceExp());
+        case EXP.slice       : return visitSlice       (e.isSliceExp());
     }
 }
 
