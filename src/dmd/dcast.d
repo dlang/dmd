@@ -3722,172 +3722,188 @@ extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
  * This is used to determine if implicit narrowing conversions will
  * be allowed.
  */
+@trusted
 IntRange getIntRange(Expression e)
 {
-    extern (C++) final class IntRangeVisitor : Visitor
+    IntRange visit(Expression e)
     {
-        alias visit = Visitor.visit;
-
-    public:
-        IntRange range;
-
-        override void visit(Expression e)
-        {
-            range = IntRange.fromType(e.type);
-        }
-
-        override void visit(IntegerExp e)
-        {
-            range = IntRange(SignExtendedNumber(e.getInteger()))._cast(e.type);
-        }
-
-        override void visit(CastExp e)
-        {
-            range = getIntRange(e.e1)._cast(e.type);
-        }
-
-        override void visit(AddExp e)
-        {
-            IntRange ir1 = getIntRange(e.e1);
-            IntRange ir2 = getIntRange(e.e2);
-            range = (ir1 + ir2)._cast(e.type);
-        }
-
-        override void visit(MinExp e)
-        {
-            IntRange ir1 = getIntRange(e.e1);
-            IntRange ir2 = getIntRange(e.e2);
-            range = (ir1 - ir2)._cast(e.type);
-        }
-
-        override void visit(DivExp e)
-        {
-            IntRange ir1 = getIntRange(e.e1);
-            IntRange ir2 = getIntRange(e.e2);
-
-            range = (ir1 / ir2)._cast(e.type);
-        }
-
-        override void visit(MulExp e)
-        {
-            IntRange ir1 = getIntRange(e.e1);
-            IntRange ir2 = getIntRange(e.e2);
-
-            range = (ir1 * ir2)._cast(e.type);
-        }
-
-        override void visit(ModExp e)
-        {
-            IntRange ir1 = getIntRange(e.e1);
-            IntRange ir2 = getIntRange(e.e2);
-
-            // Modding on 0 is invalid anyway.
-            if (!ir2.absNeg().imin.negative)
-            {
-                visit(cast(Expression)e);
-                return;
-            }
-            range = (ir1 % ir2)._cast(e.type);
-        }
-
-        override void visit(AndExp e)
-        {
-            IntRange result;
-            bool hasResult = false;
-            result.unionOrAssign(getIntRange(e.e1) & getIntRange(e.e2), hasResult);
-
-            assert(hasResult);
-            range = result._cast(e.type);
-        }
-
-        override void visit(OrExp e)
-        {
-            IntRange result;
-            bool hasResult = false;
-            result.unionOrAssign(getIntRange(e.e1) | getIntRange(e.e2), hasResult);
-
-            assert(hasResult);
-            range = result._cast(e.type);
-        }
-
-        override void visit(XorExp e)
-        {
-            IntRange result;
-            bool hasResult = false;
-            result.unionOrAssign(getIntRange(e.e1) ^ getIntRange(e.e2), hasResult);
-
-            assert(hasResult);
-            range = result._cast(e.type);
-        }
-
-        override void visit(ShlExp e)
-        {
-            IntRange ir1 = getIntRange(e.e1);
-            IntRange ir2 = getIntRange(e.e2);
-
-            range = (ir1 << ir2)._cast(e.type);
-        }
-
-        override void visit(ShrExp e)
-        {
-            IntRange ir1 = getIntRange(e.e1);
-            IntRange ir2 = getIntRange(e.e2);
-
-            range = (ir1 >> ir2)._cast(e.type);
-        }
-
-        override void visit(UshrExp e)
-        {
-            IntRange ir1 = getIntRange(e.e1).castUnsigned(e.e1.type);
-            IntRange ir2 = getIntRange(e.e2);
-
-            range = (ir1 >>> ir2)._cast(e.type);
-        }
-
-        override void visit(AssignExp e)
-        {
-            range = getIntRange(e.e2)._cast(e.type);
-        }
-
-        override void visit(CondExp e)
-        {
-            // No need to check e.econd; assume caller has called optimize()
-            IntRange ir1 = getIntRange(e.e1);
-            IntRange ir2 = getIntRange(e.e2);
-            range = ir1.unionWith(ir2)._cast(e.type);
-        }
-
-        override void visit(VarExp e)
-        {
-            Expression ie;
-            VarDeclaration vd = e.var.isVarDeclaration();
-            if (vd && vd.range)
-                range = vd.range._cast(e.type);
-            else if (vd && vd._init && !vd.type.isMutable() && (ie = vd.getConstInitializer()) !is null)
-                ie.accept(this);
-            else
-                visit(cast(Expression)e);
-        }
-
-        override void visit(CommaExp e)
-        {
-            e.e2.accept(this);
-        }
-
-        override void visit(ComExp e)
-        {
-            IntRange ir = getIntRange(e.e1);
-            range = IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative), SignExtendedNumber(~ir.imin.value, !ir.imin.negative))._cast(e.type);
-        }
-
-        override void visit(NegExp e)
-        {
-            IntRange ir = getIntRange(e.e1);
-            range = (-ir)._cast(e.type);
-        }
+        return IntRange.fromType(e.type);
     }
 
-    scope IntRangeVisitor v = new IntRangeVisitor();
-    e.accept(v);
-    return v.range;
+    IntRange visitInteger(IntegerExp e)
+    {
+        return IntRange(SignExtendedNumber(e.getInteger()))._cast(e.type);
+    }
+
+    IntRange visitCast(CastExp e)
+    {
+        return getIntRange(e.e1)._cast(e.type);
+    }
+
+    IntRange visitAdd(AddExp e)
+    {
+        IntRange ir1 = getIntRange(e.e1);
+        IntRange ir2 = getIntRange(e.e2);
+        return (ir1 + ir2)._cast(e.type);
+    }
+
+    IntRange visitMin(MinExp e)
+    {
+        IntRange ir1 = getIntRange(e.e1);
+        IntRange ir2 = getIntRange(e.e2);
+        return (ir1 - ir2)._cast(e.type);
+    }
+
+    IntRange visitDiv(DivExp e)
+    {
+        IntRange ir1 = getIntRange(e.e1);
+        IntRange ir2 = getIntRange(e.e2);
+
+        return (ir1 / ir2)._cast(e.type);
+    }
+
+    IntRange visitMul(MulExp e)
+    {
+        IntRange ir1 = getIntRange(e.e1);
+        IntRange ir2 = getIntRange(e.e2);
+
+        return (ir1 * ir2)._cast(e.type);
+    }
+
+    IntRange visitMod(ModExp e)
+    {
+        IntRange ir1 = getIntRange(e.e1);
+        IntRange ir2 = getIntRange(e.e2);
+
+        // Modding on 0 is invalid anyway.
+        if (!ir2.absNeg().imin.negative)
+        {
+            return visit(e);
+        }
+        return (ir1 % ir2)._cast(e.type);
+    }
+
+    IntRange visitAnd(AndExp e)
+    {
+        IntRange result;
+        bool hasResult = false;
+        result.unionOrAssign(getIntRange(e.e1) & getIntRange(e.e2), hasResult);
+
+        assert(hasResult);
+        return result._cast(e.type);
+    }
+
+    IntRange visitOr(OrExp e)
+    {
+        IntRange result;
+        bool hasResult = false;
+        result.unionOrAssign(getIntRange(e.e1) | getIntRange(e.e2), hasResult);
+
+        assert(hasResult);
+        return result._cast(e.type);
+    }
+
+    IntRange visitXor(XorExp e)
+    {
+        IntRange result;
+        bool hasResult = false;
+        result.unionOrAssign(getIntRange(e.e1) ^ getIntRange(e.e2), hasResult);
+
+        assert(hasResult);
+        return result._cast(e.type);
+    }
+
+    IntRange visitShl(ShlExp e)
+    {
+        IntRange ir1 = getIntRange(e.e1);
+        IntRange ir2 = getIntRange(e.e2);
+
+        return (ir1 << ir2)._cast(e.type);
+    }
+
+    IntRange visitShr(ShrExp e)
+    {
+        IntRange ir1 = getIntRange(e.e1);
+        IntRange ir2 = getIntRange(e.e2);
+
+        return (ir1 >> ir2)._cast(e.type);
+    }
+
+    IntRange visitUshr(UshrExp e)
+    {
+        IntRange ir1 = getIntRange(e.e1).castUnsigned(e.e1.type);
+        IntRange ir2 = getIntRange(e.e2);
+
+        return (ir1 >>> ir2)._cast(e.type);
+    }
+
+    IntRange visitAssign(AssignExp e)
+    {
+        return getIntRange(e.e2)._cast(e.type);
+    }
+
+    IntRange visitCond(CondExp e)
+    {
+        // No need to check e.econd; assume caller has called optimize()
+        IntRange ir1 = getIntRange(e.e1);
+        IntRange ir2 = getIntRange(e.e2);
+        return ir1.unionWith(ir2)._cast(e.type);
+    }
+
+    IntRange visitVar(VarExp e)
+    {
+        Expression ie;
+        VarDeclaration vd = e.var.isVarDeclaration();
+        if (vd && vd.range)
+            return vd.range._cast(e.type);
+        else if (vd && vd._init && !vd.type.isMutable() && (ie = vd.getConstInitializer()) !is null)
+            return getIntRange(ie);
+        else
+            return visit(e);
+    }
+
+    IntRange visitComma(CommaExp e)
+    {
+        return getIntRange(e.e2);
+    }
+
+    IntRange visitCom(ComExp e)
+    {
+        IntRange ir = getIntRange(e.e1);
+        return IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative), SignExtendedNumber(~ir.imin.value, !ir.imin.negative))._cast(e.type);
+    }
+
+    IntRange visitNeg(NegExp e)
+    {
+        IntRange ir = getIntRange(e.e1);
+        return (-ir)._cast(e.type);
+    }
+
+    switch (e.op)
+    {
+        default                     : return visit(e);
+        case EXP.int64              : return visitInteger(e.isIntegerExp());
+        case EXP.cast_              : return visitCast(e.isCastExp());
+        case EXP.add                : return visitAdd(e.isAddExp());
+        case EXP.min                : return visitMin(e.isMinExp());
+        case EXP.div                : return visitDiv(e.isDivExp());
+        case EXP.mul                : return visitMul(e.isMulExp());
+        case EXP.mod                : return visitMod(e.isModExp());
+        case EXP.and                : return visitAnd(e.isAndExp());
+        case EXP.or                 : return visitOr(e.isOrExp());
+        case EXP.xor                : return visitXor(e.isXorExp());
+        case EXP.leftShift          : return visitShl(e.isShlExp());
+        case EXP.rightShift         : return visitShr(e.isShrExp());
+        case EXP.unsignedRightShift : return visitUshr(e.isUshrExp());
+        case EXP.blit               : return visitAssign(e.isBlitExp());
+        case EXP.construct          : return visitAssign(e.isConstructExp());
+        case EXP.assign             : return visitAssign(e.isAssignExp());
+        case EXP.question           : return visitCond(e.isCondExp());
+        case EXP.variable           : return visitVar(e.isVarExp());
+        case EXP.comma              : return visitComma(e.isCommaExp());
+        case EXP.tilde              : return visitCom(e.isComExp());
+        case EXP.negate             : return visitNeg(e.isNegExp());
+
+    }
 }
+
