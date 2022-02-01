@@ -1884,7 +1884,19 @@ class TypeInfo_Struct : TypeInfo
         if (!p1 || !p2)
             return false;
         else if (xopEquals)
-            return (*xopEquals)(p1, p2);
+        {
+            // TODO: remove as soon as `git describe` for DMD master yields v2.099+
+            static if (__VERSION__ < 2099)
+            {
+                const dg = _memberFunc(p2, xopEquals);
+                return dg.xopEquals(p1);
+            }
+            else
+            {
+                const dg = _memberFunc(p1, xopEquals);
+                return dg.xopEquals(p2);
+            }
+        }
         else if (p1 == p2)
             return true;
         else
@@ -1904,7 +1916,10 @@ class TypeInfo_Struct : TypeInfo
                 if (!p2)
                     return true;
                 else if (xopCmp)
-                    return (*xopCmp)(p2, p1);
+                {
+                    const dg = _memberFunc(p1, xopCmp);
+                    return dg.xopCmp(p2);
+                }
                 else
                     // BUG: relies on the GC not moving objects
                     return memcmp(p1, p2, initializer().length);
@@ -2008,6 +2023,28 @@ class TypeInfo_Struct : TypeInfo
         TypeInfo m_arg2;
     }
     immutable(void)* m_RTInfo;                // data for precise GC
+
+    // The xopEquals and xopCmp members are function pointers to member
+    // functions, which is not guaranteed to share the same ABI, as it is not
+    // known whether the `this` parameter is the first or second argument.
+    // This wrapper is to convert it to a delegate which will always pass the
+    // `this` parameter in the correct way.
+    private struct _memberFunc
+    {
+        union
+        {
+            struct // delegate
+            {
+                const void* ptr;
+                const void* funcptr;
+            }
+            @safe pure nothrow
+            {
+                bool delegate(in void*) xopEquals;
+                int delegate(in void*) xopCmp;
+            }
+        }
+    }
 }
 
 @system unittest

@@ -211,7 +211,7 @@ private @nogc nothrow:
 
 version (linux)
 {
-    // TODO: replace with a fixed core.sys.linux.config.__USE_GNU
+    // TODO: replace with a fixed core.sys.linux.config._GNU_SOURCE
     version (CRuntime_Bionic) {} else version = Linux_Use_GNU;
 }
 

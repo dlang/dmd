@@ -2642,7 +2642,7 @@ if (!Init.length ||
  */
 T _d_newThrowable(T, Args...)(auto ref Args args) @trusted
     if (is(T : Throwable) && is(typeof(T.__ctor(forward!args))) &&
-        __traits(getLinkage, T) != "Windows" && __traits(getLinkage, T) != "C++")
+        __traits(getLinkage, T) == "D")
 {
     debug(PRINTF) printf("_d_newThrowable(%s)\n", cast(char*) T.stringof);
 

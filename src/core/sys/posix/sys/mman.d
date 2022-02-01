@@ -56,7 +56,7 @@ int posix_madvise(void*, size_t, int);
 
 version (CRuntime_Glibc)
 {
-    static if (__USE_XOPEN2K)
+    static if (_XOPEN_SOURCE >= 600)
     {
         int posix_madvise(void *__addr, size_t __len, int __advice);
     }

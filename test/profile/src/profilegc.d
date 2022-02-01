@@ -49,4 +49,10 @@ void main(string[] args)
     }
 
     auto x = foo()();
+
+    {
+        import core.memory : GC;
+        void* p = GC.malloc(32);
+        p = GC.realloc(p, 64, 0, typeid(double[]));
+    }
 }
