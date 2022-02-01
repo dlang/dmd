@@ -1344,6 +1344,11 @@ struct ASTBase
             srcfile = FileName(filename);
         }
 
+        extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+        {
+            this(Loc.initial, filename.toDString, ident, doDocComment, doHdrGen);
+        }
+
         bool isRoot() { return false; }
 
         override void accept(Visitor v)
