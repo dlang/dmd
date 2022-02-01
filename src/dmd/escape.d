@@ -1778,7 +1778,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                     if (ad.isClassDeclaration() ||
                         // https://issues.dlang.org/show_bug.cgi?id=17049
                         // if the struct has no pointers, `scope` has no meaning
-                       (tf.isScopeQual && (!ad.isStructDeclaration || ad.type.hasPointers())))       // this is 'return scope'
+                       (tf.isScopeQual && ad.type.hasPointers()))       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
                     {
@@ -2042,8 +2042,15 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                     {
                         if (dve.var.storage_class & STC.ref_ || tf.isref)
                             dve.e1.accept(this);
-                        else if (dve.var.storage_class & STC.scope_ || tf.isScopeQual)
-                            escapeByValue(dve.e1, er, live);
+                        else
+                        {
+                            auto ad = e.f.isThis();
+                            bool ignoreScope = false;
+                            if (ad && ad.isStructDeclaration() && !ad.type.hasPointers())
+                                ignoreScope = true;
+                            if (dve.var.storage_class & STC.scope_ || (tf.isScopeQual && !ignoreScope))
+                                escapeByValue(dve.e1, er, live);
+                        }
                     }
                     // If it's also a nested function that is 'return ref'
                     FuncDeclaration fd = dve.var.isFuncDeclaration();
