@@ -64,160 +64,151 @@ enum LOG = false;
  */
 Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
-    extern (C++) final class ImplicitCastTo : Visitor
+    Expression visit(Expression e)
     {
-        alias visit = Visitor.visit;
-    public:
-        Type t;
-        Scope* sc;
-        Expression result;
+        //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
-        extern (D) this(Scope* sc, Type t)
+        if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
         {
-            this.sc = sc;
-            this.t = t;
-        }
-
-        override void visit(Expression e)
-        {
-            //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
-
-            if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
+            if (match == MATCH.constant && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
             {
-                if (match == MATCH.constant && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
-                {
-                    /* Do not emit CastExp for const conversions and
-                     * unique conversions on rvalue.
-                     */
-                    result = e.copy();
-                    result.type = t;
-                    return;
-                }
+                /* Do not emit CastExp for const conversions and
+                 * unique conversions on rvalue.
+                 */
+                auto result = e.copy();
+                result.type = t;
+                return result;
+            }
 
-                auto ad = isAggregate(e.type);
-                if (ad && ad.aliasthis)
-                {
-                    auto ts = ad.type.isTypeStruct();
-                    const adMatch = ts
-                        ? ts.implicitConvToWithoutAliasThis(t)
-                        : ad.type.isTypeClass().implicitConvToWithoutAliasThis(t);
+            auto ad = isAggregate(e.type);
+            if (ad && ad.aliasthis)
+            {
+                auto ts = ad.type.isTypeStruct();
+                const adMatch = ts
+                    ? ts.implicitConvToWithoutAliasThis(t)
+                    : ad.type.isTypeClass().implicitConvToWithoutAliasThis(t);
 
-                    if (!adMatch)
+                if (!adMatch)
+                {
+                    Type tob = t.toBasetype();
+                    Type t1b = e.type.toBasetype();
+                    if (ad != isAggregate(tob))
                     {
-                        Type tob = t.toBasetype();
-                        Type t1b = e.type.toBasetype();
-                        if (ad != isAggregate(tob))
+                        if (t1b.ty == Tclass && tob.ty == Tclass)
                         {
-                            if (t1b.ty == Tclass && tob.ty == Tclass)
+                            ClassDeclaration t1cd = t1b.isClassHandle();
+                            ClassDeclaration tocd = tob.isClassHandle();
+                            int offset;
+                            if (tocd.isBaseOf(t1cd, &offset))
                             {
-                                ClassDeclaration t1cd = t1b.isClassHandle();
-                                ClassDeclaration tocd = tob.isClassHandle();
-                                int offset;
-                                if (tocd.isBaseOf(t1cd, &offset))
-                                {
-                                    result = new CastExp(e.loc, e, t);
-                                    result.type = t;
-                                    return;
-                                }
+                                auto result = new CastExp(e.loc, e, t);
+                                result.type = t;
+                                return result;
                             }
+                        }
 
-                            /* Forward the cast to our alias this member, rewrite to:
-                             *   cast(to)e1.aliasthis
-                             */
-                            result = resolveAliasThis(sc, e);
-                            result = result.castTo(sc, t);
-                            return;
-                       }
-                    }
-                }
-
-                result = e.castTo(sc, t);
-                return;
-            }
-
-            result = e.optimize(WANTvalue);
-            if (result != e)
-            {
-                result.accept(this);
-                return;
-            }
-
-            if (t.ty != Terror && e.type.ty != Terror)
-            {
-                if (!t.deco)
-                {
-                    e.error("forward reference to type `%s`", t.toChars());
-                }
-                else
-                {
-                    //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
-                    //type = type.typeSemantic(loc, sc);
-                    //printf("type %s t %s\n", type.deco, t.deco);
-                    auto ts = toAutoQualChars(e.type, t);
-                    e.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
-                        e.toChars(), ts[0], ts[1]);
+                        /* Forward the cast to our alias this member, rewrite to:
+                         *   cast(to)e1.aliasthis
+                         */
+                        auto result = resolveAliasThis(sc, e);
+                        return result.castTo(sc, t);
+                   }
                 }
             }
-            result = ErrorExp.get();
+
+            return e.castTo(sc, t);
         }
 
-        override void visit(StringExp e)
+        auto result = e.optimize(WANTvalue);
+        if (result != e)
         {
-            //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
-            visit(cast(Expression)e);
-            if (auto se = result.isStringExp())
+            return implicitCastTo(result, sc, t);
+        }
+
+        if (t.ty != Terror && e.type.ty != Terror)
+        {
+            if (!t.deco)
             {
-                // Retain polysemous nature if it started out that way
-                se.committed = e.committed;
+                e.error("forward reference to type `%s`", t.toChars());
+            }
+            else
+            {
+                //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
+                //type = type.typeSemantic(loc, sc);
+                //printf("type %s t %s\n", type.deco, t.deco);
+                auto ts = toAutoQualChars(e.type, t);
+                e.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                    e.toChars(), ts[0], ts[1]);
             }
         }
-
-        override void visit(ErrorExp e)
-        {
-            result = e;
-        }
-
-        override void visit(FuncExp e)
-        {
-            //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
-            FuncExp fe;
-            if (e.matchType(t, sc, &fe) > MATCH.nomatch)
-            {
-                result = fe;
-                return;
-            }
-            visit(cast(Expression)e);
-        }
-
-        override void visit(ArrayLiteralExp e)
-        {
-            visit(cast(Expression)e);
-
-            Type tb = result.type.toBasetype();
-            if (auto ta = tb.isTypeDArray())
-                if (global.params.useTypeInfo && Type.dtypeinfo)
-                    semanticTypeInfo(sc, ta.next);
-        }
-
-        override void visit(SliceExp e)
-        {
-            visit(cast(Expression)e);
-
-            if (auto se = result.isSliceExp())
-                if (auto ale = se.e1.isArrayLiteralExp())
-                {
-                    Type tb = t.toBasetype();
-                    Type tx = (tb.ty == Tsarray)
-                        ? tb.nextOf().sarrayOf(ale.elements ? ale.elements.dim : 0)
-                        : tb.nextOf().arrayOf();
-                    se.e1 = ale.implicitCastTo(sc, tx);
-                }
-        }
+        return ErrorExp.get();
     }
 
-    scope ImplicitCastTo v = new ImplicitCastTo(sc, t);
-    e.accept(v);
-    return v.result;
+    Expression visitString(StringExp e)
+    {
+        //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
+        auto result = visit(e);
+        if (auto se = result.isStringExp())
+        {
+            // Retain polysemous nature if it started out that way
+            se.committed = e.committed;
+        }
+        return result;
+    }
+
+    Expression visitError(ErrorExp e)
+    {
+        return e;
+    }
+
+    Expression visitFunc(FuncExp e)
+    {
+        //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
+        FuncExp fe;
+        if (e.matchType(t, sc, &fe) > MATCH.nomatch)
+        {
+            return fe;
+        }
+        return visit(e);
+    }
+
+    Expression visitArrayLiteral(ArrayLiteralExp e)
+    {
+        auto result = visit(e);
+
+        Type tb = result.type.toBasetype();
+        if (auto ta = tb.isTypeDArray())
+            if (global.params.useTypeInfo && Type.dtypeinfo)
+                semanticTypeInfo(sc, ta.next);
+        return result;
+    }
+
+    Expression visitSlice(SliceExp e)
+    {
+        auto result = visit(e);
+
+        if (auto se = result.isSliceExp())
+            if (auto ale = se.e1.isArrayLiteralExp())
+            {
+                Type tb = t.toBasetype();
+                Type tx = (tb.ty == Tsarray)
+                    ? tb.nextOf().sarrayOf(ale.elements ? ale.elements.dim : 0)
+                    : tb.nextOf().arrayOf();
+                se.e1 = ale.implicitCastTo(sc, tx);
+            }
+
+        return result;
+    }
+
+    switch (e.op)
+    {
+        default              : return visit(e);
+        case EXP.string_     : return visitString(e.isStringExp());
+        case EXP.error       : return visitError(e.isErrorExp());
+        case EXP.function_   : return visitFunc(e.isFuncExp());
+        case EXP.arrayLiteral: return visitArrayLiteral(e.isArrayLiteralExp());
+        case EXP.slice       : return visitSlice(e.isSliceExp());
+    }
 }
 
 /**
