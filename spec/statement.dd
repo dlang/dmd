@@ -518,8 +518,8 @@ foreach (n; arr) // ok, n is an int
 --------------
 )
 $(P
-        The aggregate must be *loop invariant*, meaning that
-        elements cannot be added or removed from the aggregate
+        The aggregate must be loop invariant, meaning that
+        elements to the aggregate cannot be added or removed from it
         in the *NoScopeNonEmptyStatement*.
 )
 
@@ -996,24 +996,21 @@ $(CONSOLE
 
 $(H3 $(LNAME2 foreach_restrictions, Foreach Restrictions))
 
-        $(UNDEFINED_BEHAVIOR The aggregate itself must not be resized, reallocated, free'd,
+        $(P The aggregate itself must not be resized, reallocated, free'd,
         reassigned or destructed
         while the foreach is iterating over the elements.
         )
 
 --------------
-int[] a, b;
-...
-foreach (int v; a)
+int[] a;
+int[] b;
+foreach (int i; a)
 {
-    a ~= 4;         // error
-    a.length += 10; // error
-
     a = null;       // error
+    a.length += 10; // error
     a = b;          // error
 }
-a ~= 4;   // OK
-a = null; // OK
+a = null;         // ok
 --------------
 
 $(H3 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
