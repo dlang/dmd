@@ -616,8 +616,8 @@ $(H3 $(LNAME2 foreach_over_associative_arrays, Foreach over Associative Arrays))
         $(P If the aggregate expression is an associative array, there
         can be one or two variables declared. If one, then the variable
         is said to be the $(I value) set to the elements of the array,
-        one by one. The type of the
-        variable must be compatible with the array element type.)
+        one by one. If the type of the
+        variable is provided, it must implicitly convert from the array element type.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
@@ -651,7 +651,7 @@ foreach (string s, double d; aa)
 --------------
 )
 
-        $(UNDEFINED_BEHAVIOR The order in which the elements of the
+        $(P The order in which the elements of the
         array are iterated over is unspecified for $(D foreach).
         This is why $(D foreach_reverse) for associative arrays is illegal.)
 
