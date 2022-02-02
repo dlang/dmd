@@ -331,6 +331,10 @@ struct ASTBase
         {
             super(id);
         }
+        final extern (D) this(const ref Loc loc, Identifier ident)
+        {
+            super(loc, ident);
+        }
 
         override void accept(Visitor v)
         {
@@ -806,9 +810,9 @@ struct ASTBase
         PKG isPkgMod;
         uint tag;
 
-        final extern (D) this(Identifier ident)
+        final extern (D) this(const ref Loc loc, Identifier ident)
         {
-            super(ident);
+            super(loc, ident);
             this.isPkgMod = PKG.unknown;
             __gshared uint packageTag;
             this.tag = packageTag++;
@@ -1331,13 +1335,18 @@ struct ASTBase
         extern (C++) __gshared AggregateDeclaration moduleinfo;
 
         const FileName srcfile;
-        const(char)* arg;
+        const(char)[] arg;
+
+        extern (D) this(const ref Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
+        {
+            super(loc, ident);
+            this.arg = filename;
+            srcfile = FileName(filename);
+        }
 
         extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
         {
-            super(ident);
-            this.arg = filename;
-            srcfile = FileName(FileName.defaultExt(filename.toDString, mars_ext));
+            this(Loc.initial, filename.toDString, ident, doDocComment, doHdrGen);
         }
 
         bool isRoot() { return false; }
