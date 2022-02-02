@@ -468,6 +468,10 @@ $(GNAME Typeof):
         }
         --------------------
 
+        $(P If *Expression* is a
+        $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
+        it will produce a *TypeSeq* containing the types of each element.)
+
         $(P Special cases: )
     $(OL
         $(LI $(D typeof(this)) will generate the type of what $(D this)
