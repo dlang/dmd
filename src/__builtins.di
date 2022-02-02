@@ -38,3 +38,12 @@ alias __builtin_va_copy = core.stdc.stdarg.va_copy;
 /* dmd's ImportC rewrites __builtin_va_arg into an instantiation of va_arg
  */
 alias va_arg = core.stdc.stdarg.va_arg;
+
+version (CRuntime_Microsoft)
+{
+    //https://docs.microsoft.com/en-us/cpp/cpp/int8-int16-int32-int64?view=msvc-170
+    alias __int8 = byte;
+    alias __int16 = short;
+    alias __int32 = int;
+    alias __int64 = long;
+}
