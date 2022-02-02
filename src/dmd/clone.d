@@ -578,7 +578,10 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
-    Expression e = new EqualExp(EXP.equal, loc, e1, e2);
+    // TODO: simplify as soon as `git describe` for DMD master yields v2.099+
+    Expression e = global.versionNumber() >= 2099
+        ? new EqualExp(EXP.equal, loc, e2, e1)
+        : new EqualExp(EXP.equal, loc, e1, e2);
     fop.fbody = new ReturnStatement(loc, e);
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
