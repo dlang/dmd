@@ -1693,17 +1693,8 @@ public:
 
     override void visit(DtorDeclaration d)
     {
-        if (d.storage_class & STC.trusted)
-            buf.writestring("@trusted ");
-        if (d.storage_class & STC.safe)
-            buf.writestring("@safe ");
-        if (d.storage_class & STC.nogc)
-            buf.writestring("@nogc ");
-        if (d.storage_class & STC.live)
-            buf.writestring("@live ");
-        if (d.storage_class & STC.disable)
-            buf.writestring("@disable ");
-
+        if (stcToBuffer(buf, d.storage_class))
+            buf.writeByte(' ');
         buf.writestring("~this()");
         bodyToBuffer(d);
     }
