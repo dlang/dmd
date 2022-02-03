@@ -38,172 +38,6 @@ import dmd.utils;
 
 nothrow:
 
-private enum LS = 0x2028;       // UTF line separator
-private enum PS = 0x2029;       // UTF paragraph separator
-
-/********************************************
- * Do our own char maps
- */
-private static immutable cmtable = () {
-    ubyte[256] table;
-    foreach (const c; 0 .. table.length)
-    {
-        if ('0' <= c && c <= '7')
-            table[c] |= CMoctal;
-        if (c_isxdigit(c))
-            table[c] |= CMhex;
-        if (c_isalnum(c) || c == '_')
-            table[c] |= CMidchar;
-
-        switch (c)
-        {
-            case 'x': case 'X':
-            case 'b': case 'B':
-                table[c] |= CMzerosecond;
-                break;
-
-            case '0': .. case '9':
-            case 'e': case 'E':
-            case 'f': case 'F':
-            case 'l': case 'L':
-            case 'p': case 'P':
-            case 'u': case 'U':
-            case 'i':
-            case '.':
-            case '_':
-                table[c] |= CMzerosecond | CMdigitsecond;
-                break;
-
-            default:
-                break;
-        }
-
-        switch (c)
-        {
-            case '\\':
-            case '\n':
-            case '\r':
-            case 0:
-            case 0x1A:
-            case '\'':
-                break;
-            default:
-                if (!(c & 0x80))
-                    table[c] |= CMsinglechar;
-                break;
-        }
-    }
-    return table;
-}();
-
-private
-{
-    enum CMoctal  = 0x1;
-    enum CMhex    = 0x2;
-    enum CMidchar = 0x4;
-    enum CMzerosecond = 0x8;
-    enum CMdigitsecond = 0x10;
-    enum CMsinglechar = 0x20;
-}
-
-private bool isoctal(const char c) pure @nogc @safe
-{
-    return (cmtable[c] & CMoctal) != 0;
-}
-
-private bool ishex(const char c) pure @nogc @safe
-{
-    return (cmtable[c] & CMhex) != 0;
-}
-
-private bool isidchar(const char c) pure @nogc @safe
-{
-    return (cmtable[c] & CMidchar) != 0;
-}
-
-private bool isZeroSecond(const char c) pure @nogc @safe
-{
-    return (cmtable[c] & CMzerosecond) != 0;
-}
-
-private bool isDigitSecond(const char c) pure @nogc @safe
-{
-    return (cmtable[c] & CMdigitsecond) != 0;
-}
-
-private bool issinglechar(const char c) pure @nogc @safe
-{
-    return (cmtable[c] & CMsinglechar) != 0;
-}
-
-private bool c_isxdigit(const int c) pure @nogc @safe
-{
-    return (( c >= '0' && c <= '9') ||
-            ( c >= 'a' && c <= 'f') ||
-            ( c >= 'A' && c <= 'F'));
-}
-
-private bool c_isalnum(const int c) pure @nogc @safe
-{
-    return (( c >= '0' && c <= '9') ||
-            ( c >= 'a' && c <= 'z') ||
-            ( c >= 'A' && c <= 'Z'));
-}
-
-unittest
-{
-    //printf("lexer.unittest\n");
-    /* Not much here, just trying things out.
-     */
-    string text = "int"; // We rely on the implicit null-terminator
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
-    TOK tok;
-    tok = lex1.nextToken();
-    //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOK.int32);
-    assert(tok == TOK.int32);
-    tok = lex1.nextToken();
-    assert(tok == TOK.endOfFile);
-    tok = lex1.nextToken();
-    assert(tok == TOK.endOfFile);
-    tok = lex1.nextToken();
-    assert(tok == TOK.endOfFile);
-}
-
-unittest
-{
-    // We don't want to see Lexer error output during these tests.
-    uint errors = global.startGagging();
-    scope(exit) global.endGagging(errors);
-
-    // Test malformed input: even malformed input should end in a TOK.endOfFile.
-    static immutable char[][] testcases =
-    [   // Testcase must end with 0 or 0x1A.
-        [0], // not malformed, but pathological
-        ['\'', 0],
-        ['\'', 0x1A],
-        ['{', '{', 'q', '{', 0],
-        [0xFF, 0],
-        [0xFF, 0x80, 0],
-        [0xFF, 0xFF, 0],
-        [0xFF, 0xFF, 0],
-        ['x', '"', 0x1A],
-    ];
-
-    foreach (testcase; testcases)
-    {
-        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0);
-        TOK tok = lex2.nextToken();
-        size_t iterations = 1;
-        while ((tok != TOK.endOfFile) && (iterations++ < testcase.length))
-        {
-            tok = lex2.nextToken();
-        }
-        assert(tok == TOK.endOfFile);
-        tok = lex2.nextToken();
-        assert(tok == TOK.endOfFile);
-    }
-}
-
 version (DMDLIB)
 {
     version = LocOffset;
@@ -3362,6 +3196,11 @@ class Lexer
     }
 }
 
+
+/******************************* Private *****************************************/
+
+private:
+
 /// Support for `__DATE__`, `__TIME__`, and `__TIMESTAMP__`
 private struct TimeStampInfo
 {
@@ -3397,6 +3236,121 @@ private struct TimeStampInfo
         sprintf(&timestamp[0], "%.24s", p);
     }
 }
+
+private enum LS = 0x2028;       // UTF line separator
+private enum PS = 0x2029;       // UTF paragraph separator
+
+/********************************************
+ * Do our own char maps
+ */
+private static immutable cmtable = ()
+{
+    ubyte[256] table;
+    foreach (const c; 0 .. table.length)
+    {
+        if ('0' <= c && c <= '7')
+            table[c] |= CMoctal;
+        if (c_isxdigit(c))
+            table[c] |= CMhex;
+        if (c_isalnum(c) || c == '_')
+            table[c] |= CMidchar;
+
+        switch (c)
+        {
+            case 'x': case 'X':
+            case 'b': case 'B':
+                table[c] |= CMzerosecond;
+                break;
+
+            case '0': .. case '9':
+            case 'e': case 'E':
+            case 'f': case 'F':
+            case 'l': case 'L':
+            case 'p': case 'P':
+            case 'u': case 'U':
+            case 'i':
+            case '.':
+            case '_':
+                table[c] |= CMzerosecond | CMdigitsecond;
+                break;
+
+            default:
+                break;
+        }
+
+        switch (c)
+        {
+            case '\\':
+            case '\n':
+            case '\r':
+            case 0:
+            case 0x1A:
+            case '\'':
+                break;
+            default:
+                if (!(c & 0x80))
+                    table[c] |= CMsinglechar;
+                break;
+        }
+    }
+    return table;
+}();
+
+private
+{
+    enum CMoctal  = 0x1;
+    enum CMhex    = 0x2;
+    enum CMidchar = 0x4;
+    enum CMzerosecond = 0x8;
+    enum CMdigitsecond = 0x10;
+    enum CMsinglechar = 0x20;
+}
+
+private bool isoctal(const char c) pure @nogc @safe
+{
+    return (cmtable[c] & CMoctal) != 0;
+}
+
+private bool ishex(const char c) pure @nogc @safe
+{
+    return (cmtable[c] & CMhex) != 0;
+}
+
+private bool isidchar(const char c) pure @nogc @safe
+{
+    return (cmtable[c] & CMidchar) != 0;
+}
+
+private bool isZeroSecond(const char c) pure @nogc @safe
+{
+    return (cmtable[c] & CMzerosecond) != 0;
+}
+
+private bool isDigitSecond(const char c) pure @nogc @safe
+{
+    return (cmtable[c] & CMdigitsecond) != 0;
+}
+
+private bool issinglechar(const char c) pure @nogc @safe
+{
+    return (cmtable[c] & CMsinglechar) != 0;
+}
+
+private bool c_isxdigit(const int c) pure @nogc @safe
+{
+    return (( c >= '0' && c <= '9') ||
+            ( c >= 'a' && c <= 'f') ||
+            ( c >= 'A' && c <= 'F'));
+}
+
+private bool c_isalnum(const int c) pure @nogc @safe
+{
+    return (( c >= '0' && c <= '9') ||
+            ( c >= 'a' && c <= 'z') ||
+            ( c >= 'A' && c <= 'Z'));
+}
+
+/******************************* Unittest *****************************************/
 
 unittest
 {
@@ -3450,6 +3404,7 @@ unittest
 
     diagnosticHandler = null;
 }
+
 unittest
 {
     import dmd.console;
@@ -3519,3 +3474,59 @@ unittest
 
     diagnosticHandler = null;
 }
+
+unittest
+{
+    //printf("lexer.unittest\n");
+    /* Not much here, just trying things out.
+     */
+    string text = "int"; // We rely on the implicit null-terminator
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+    TOK tok;
+    tok = lex1.nextToken();
+    //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOK.int32);
+    assert(tok == TOK.int32);
+    tok = lex1.nextToken();
+    assert(tok == TOK.endOfFile);
+    tok = lex1.nextToken();
+    assert(tok == TOK.endOfFile);
+    tok = lex1.nextToken();
+    assert(tok == TOK.endOfFile);
+}
+
+unittest
+{
+    // We don't want to see Lexer error output during these tests.
+    uint errors = global.startGagging();
+    scope(exit) global.endGagging(errors);
+
+    // Test malformed input: even malformed input should end in a TOK.endOfFile.
+    static immutable char[][] testcases =
+    [   // Testcase must end with 0 or 0x1A.
+        [0], // not malformed, but pathological
+        ['\'', 0],
+        ['\'', 0x1A],
+        ['{', '{', 'q', '{', 0],
+        [0xFF, 0],
+        [0xFF, 0x80, 0],
+        [0xFF, 0xFF, 0],
+        [0xFF, 0xFF, 0],
+        ['x', '"', 0x1A],
+    ];
+
+    foreach (testcase; testcases)
+    {
+        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0);
+        TOK tok = lex2.nextToken();
+        size_t iterations = 1;
+        while ((tok != TOK.endOfFile) && (iterations++ < testcase.length))
+        {
+            tok = lex2.nextToken();
+        }
+        assert(tok == TOK.endOfFile);
+        tok = lex2.nextToken();
+        assert(tok == TOK.endOfFile);
+    }
+}
+
+
