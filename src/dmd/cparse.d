@@ -1708,7 +1708,7 @@ final class CParser(AST) : Parser!AST
                         symbols.push(stag);
                         if (tt.tok == TOK.enum_)
                         {
-                            if (!tt.members)
+                            if (!stag.members)
                                 error(tt.loc, "`enum %s` has no members", stag.toChars());
                         }
                     }
