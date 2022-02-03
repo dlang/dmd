@@ -2113,7 +2113,11 @@ class Lexer
                 if (p[1] == '.')
                     goto Ldone; // if ".."
                 if (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80)
+                {
+                    if (Ccompile && (p[1] == 'f' || p[1] == 'F' || p[1] == 'l' || p[1] == 'L'))
+                        goto Lreal;  // if `0.f` or `0.L`
                     goto Ldone; // if ".identifier" or ".unicode"
+                }
                 goto Lreal; // '.' is part of current token
             case 'i':
             case 'f':
@@ -2182,7 +2186,12 @@ class Lexer
                 if (p[1] == '.')
                     goto Ldone; // if ".."
                 if (base <= 10 && n > 0 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
+                {
+                    if (Ccompile && base == 10 &&
+                        (p[1] == 'f' || p[1] == 'F' || p[1] == 'l' || p[1] == 'L'))
+                        goto Lreal;  // if `1.f` or `1.L`
                     goto Ldone; // if ".identifier" or ".unicode"
+                }
                 if (base == 16 && (!ishex(p[1]) || p[1] == '_' || p[1] & 0x80))
                     goto Ldone; // if ".identifier" or ".unicode"
                 if (base == 2)
