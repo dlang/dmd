@@ -1179,6 +1179,15 @@ class Parser(AST) : Lexer
      */
     private StorageClass appendStorageClass(StorageClass orig, StorageClass added)
     {
+        void checkConflictSTCGroup(bool at = false)(StorageClass group)
+        {
+            if (added & group && orig & group & ((orig & group) - 1))
+                error(
+                    at ? "conflicting attribute `@%s`"
+                       : "conflicting attribute `%s`",
+                    token.toChars());
+        }
+
         if (orig & added)
         {
             OutBuffer buf;
@@ -1221,24 +1230,9 @@ class Parser(AST) : Lexer
             return orig;
         }
 
-        if (added & (STC.const_ | STC.immutable_ | STC.manifest))
-        {
-            StorageClass u = orig & (STC.const_ | STC.immutable_ | STC.manifest);
-            if (u & (u - 1))
-                error("conflicting attribute `%s`", Token.toChars(token.value));
-        }
-        if (added & (STC.gshared | STC.shared_ | STC.tls))
-        {
-            StorageClass u = orig & (STC.gshared | STC.shared_ | STC.tls);
-            if (u & (u - 1))
-                error("conflicting attribute `%s`", Token.toChars(token.value));
-        }
-        if (added & STC.safeGroup)
-        {
-            StorageClass u = orig & STC.safeGroup;
-            if (u & (u - 1))
-                error("conflicting attribute `@%s`", token.toChars());
-        }
+        checkConflictSTCGroup(STC.const_ | STC.immutable_ | STC.manifest);
+        checkConflictSTCGroup(STC.gshared | STC.shared_ | STC.tls);
+        checkConflictSTCGroup!true(STC.safeGroup);
 
         return orig;
     }
