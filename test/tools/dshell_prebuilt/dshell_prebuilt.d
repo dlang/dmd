@@ -39,6 +39,7 @@ struct Vars
         return result;
     }
     static string opDispatch(string name)() { return get(name); }
+    static void opDispatch(string name)(string value) { set(name, value); }
 }
 
 private alias requiredEnvVars = AliasSeq!(

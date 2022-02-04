@@ -309,6 +309,9 @@ alias dmdConf = makeRule!((builder, rule) {
 DFLAGS="-I%@P%\..\..\..\..\..\druntime\import" "-I%@P%\..\..\..\..\..\phobos"
 LIB="%@P%\..\..\..\..\..\phobos"
 
+[Environment32]
+DFLAGS=%DFLAGS% -L/OPT:NOICF
+
 [Environment64]
 DFLAGS=%DFLAGS% -L/OPT:NOICF
 
