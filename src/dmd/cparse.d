@@ -264,6 +264,7 @@ final class CParser(AST) : Parser!AST
         case TOK.const_:
         case TOK.volatile:
         case TOK.restrict:
+	case TOK.__stdcall:
 
         // alignment-specifier
         case TOK._Alignas:
@@ -2063,6 +2064,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.typedef_:   scwx = SCW.xtypedef;   break;
                 case TOK.inline:     scwx = SCW.xinline;    break;
                 case TOK._Noreturn:  scwx = SCW.x_Noreturn; break;
+                case TOK.__stdcall:  scwx = SCW.x__stdcall; break;
                 case TOK._Thread_local: scwx = SCW.x_Thread_local; break;
 
                 // Type qualifiers
@@ -4271,6 +4273,8 @@ final class CParser(AST) : Parser!AST
         // C11 6.7.4 Function specifiers
         xinline    = 0x40,
         x_Noreturn = 0x80,
+	// extensions
+	x__stdcall = 0x100,	// Windows linkage
     }
 
     /// C11 6.7.3 Type qualifiers
