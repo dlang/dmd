@@ -69,13 +69,26 @@ version (DigitalMars)
     alias __builtin_fabsf = core.stdc.math.fabsf;
     alias __builtin_fabsl = core.stdc.math.fabsl;
 
-    import core.bitop;
+    ushort __builtin_bswap16()(ushort value)
+    {
+        import core.bitop;
+        return core.bitop.bswap!ushort(value);
+    }
 
-    alias __builtin_bswap32 = core.bitop.bswap;
-    alias __builtin_bswap64 = core.bitop.bswap;
+    uint __builtin_bswap32()(uint value)
+    {
+        import core.bitop;
+        return core.bitop.bswap!uint(value);
+    }
+
+    ulong  __builtin_bswap64()(ulong value)
+    {
+        import core.bitop;
+        return core.bitop.bswap!ulong(value);
+    }
 
     // Stub these out to no-ops
     int   __builtin_constant_p(T)(T exp) { return 0; } // should be something like __traits(compiles, enum X = expr)
-    long  __builtin_expect(long exp, long c) { return exp; }
-    void* __builtin_assume(const void* p, size_t align_, ...) { return cast(void*)p; }
+    long  __builtin_expect()(long exp, long c) { return exp; }
+    void* __builtin_assume()(const void* p, size_t align_, ...) { return cast(void*)p; }
 }
