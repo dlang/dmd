@@ -1146,14 +1146,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                             s = s.statementSemantic(sc2);
 
-                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
+                            immutable bool isnothrow = f.isnothrow && !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
                             const blockexit = s.blockExit(funcdecl, isnothrow);
                             if (blockexit & BE.throw_)
+                            {
                                 funcdecl.eh_none = false;
-                            if (f.isnothrow && isnothrow && blockexit & BE.throw_)
-                                error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
-                            if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
-                                f.isnothrow = false;
+                                if (isnothrow)
+                                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
+                                else if (funcdecl.flags & FUNCFLAG.nothrowInprocess)
+                                    f.isnothrow = false;
+                            }
 
                             if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
                                 sbody = new CompoundStatement(Loc.initial, sbody, s);
