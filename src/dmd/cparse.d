@@ -264,7 +264,7 @@ final class CParser(AST) : Parser!AST
         case TOK.const_:
         case TOK.volatile:
         case TOK.restrict:
-	case TOK.__stdcall:
+        case TOK.__stdcall:
 
         // alignment-specifier
         case TOK._Alignas:
@@ -1586,7 +1586,7 @@ final class CParser(AST) : Parser!AST
         if (tspec && specifier.mod & MOD.xconst)
         {
             tspec = toConst(tspec);
-            specifier.mod = MOD.xnone;          // 'used' it
+            specifier.mod &= ~MOD.xnone;          // 'used' it
         }
 
         bool first = true;
@@ -2064,13 +2064,13 @@ final class CParser(AST) : Parser!AST
                 case TOK.typedef_:   scwx = SCW.xtypedef;   break;
                 case TOK.inline:     scwx = SCW.xinline;    break;
                 case TOK._Noreturn:  scwx = SCW.x_Noreturn; break;
-                case TOK.__stdcall:  scwx = SCW.x__stdcall; break;
                 case TOK._Thread_local: scwx = SCW.x_Thread_local; break;
 
                 // Type qualifiers
                 case TOK.const_:     modx = MOD.xconst;     break;
                 case TOK.volatile:   modx = MOD.xvolatile;  break;
                 case TOK.restrict:   modx = MOD.xrestrict;  break;
+                case TOK.__stdcall:  modx = MOD.x__stdcall; break;
 
                 // Type specifiers
                 case TOK.char_:      tkwx = TKW.xchar;      break;
@@ -2409,6 +2409,13 @@ final class CParser(AST) : Parser!AST
                      *       T ((*fp))();
                      */
                     nextToken();
+
+                    if (token.value == TOK.__stdcall) // T (__stdcall*fp)();
+                    {
+                        specifier.mod |= MOD.x__stdcall;
+                        nextToken();
+                    }
+
                     ts = parseDecl(t);
                     check(TOK.rightParenthesis);
                     break;
@@ -2544,7 +2551,8 @@ final class CParser(AST) : Parser!AST
                         this.symbols = null;
 
                         auto parameterList = cparseParameterList();
-                        AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, 0);
+                        const lkg = specifier.mod & MOD.x__stdcall ? LINK.windows : linkage;
+                        AST.Type tf = new AST.TypeFunction(parameterList, t, lkg, 0);
     //                  tf = tf.addSTC(storageClass);  // TODO
                         insertTx(ts, tf, t);  // ts -> ... -> tf -> t
 
@@ -2612,6 +2620,7 @@ final class CParser(AST) : Parser!AST
      *    restrict
      *    volatile
      *    _Atomic
+     *    __stdcall
      */
     MOD cparseTypeQualifierList()
     {
@@ -2624,6 +2633,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.volatile:   mod |= MOD.xvolatile;  break;
                 case TOK.restrict:   mod |= MOD.xrestrict;  break;
                 case TOK._Atomic:    mod |= MOD.x_Atomic;   break;
+                case TOK.__stdcall:  mod |= MOD.x__stdcall; break;
 
                 default:
                     return mod;
@@ -3708,6 +3718,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.const_:
                 case TOK.volatile:
                 case TOK.restrict:
+                case TOK.__stdcall:
                     t = peek(t);
                     any = true;
                     continue;
@@ -3948,6 +3959,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.restrict:
                 case TOK.volatile:
                 case TOK._Atomic:
+                case TOK.__stdcall:
                     t = peek(t);
                     continue;
 
@@ -4000,6 +4012,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.const_:
                 case TOK.restrict:
                 case TOK.volatile:
+                case TOK.__stdcall:
 
                 // Type Specifiers
                 case TOK.char_:
@@ -4273,8 +4286,6 @@ final class CParser(AST) : Parser!AST
         // C11 6.7.4 Function specifiers
         xinline    = 0x40,
         x_Noreturn = 0x80,
-	// extensions
-	x__stdcall = 0x100,	// Windows linkage
     }
 
     /// C11 6.7.3 Type qualifiers
@@ -4285,6 +4296,7 @@ final class CParser(AST) : Parser!AST
         xvolatile = 2,
         xrestrict = 4,
         x_Atomic  = 8,
+        x__stdcall = 0x10, // Windows linkage extension
     }
 
     /**********************************

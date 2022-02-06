@@ -280,6 +280,7 @@ enum class TOK : unsigned char
     _import,
     cdecl,
     declspec,
+    stdcall,
     attribute__,
 
     MAX,

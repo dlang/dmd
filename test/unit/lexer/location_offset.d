@@ -538,6 +538,7 @@ enum ignoreTokens
     _import,
     __cdecl,
     __declspec,
+    __stdcall,
     __attribute__,
 
     max_,
