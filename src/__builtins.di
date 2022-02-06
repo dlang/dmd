@@ -72,19 +72,19 @@ version (DigitalMars)
     ushort __builtin_bswap16()(ushort value)
     {
         import core.bitop;
-        return core.bitop.bswap!ushort(value);
+        return core.bitop.byteswap(value);
     }
 
     uint __builtin_bswap32()(uint value)
     {
         import core.bitop;
-        return core.bitop.bswap!uint(value);
+        return core.bitop.bswap(value);
     }
 
     ulong  __builtin_bswap64()(ulong value)
     {
         import core.bitop;
-        return core.bitop.bswap!ulong(value);
+        return core.bitop.bswap(value);
     }
 
     // Stub these out to no-ops
