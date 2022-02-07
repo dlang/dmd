@@ -1,7 +1,7 @@
 /**
  * Compile-time checks associated with the @mustUse attribute.
  *
- * Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/must_use.d, _must_use.d)
  * Documentation:  https://dlang.org/phobos/dmd_must_use.html
