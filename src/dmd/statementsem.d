@@ -2242,7 +2242,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         ss._body = ss._body.statementSemantic(sc);
         sc.inLoop = inLoopSave;
 
-        if ((ss._body && ss._body.isErrorStatement()))
+        if (ss._body && ss._body.isErrorStatement())
         {
             sc.pop();
             return setError();
