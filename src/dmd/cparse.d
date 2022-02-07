@@ -1694,7 +1694,7 @@ final class CParser(AST) : Parser!AST
                 }
                 else if (auto tt = dt.isTypeTag())
                 {
-                    if (tt.id)
+                    if (tt.id || tt.tok == TOK.enum_)
                     {
                         /* `struct tag;` and `struct tag { ... };`
                          * always result in a declaration in the current scope
@@ -1711,6 +1711,8 @@ final class CParser(AST) : Parser!AST
                         {
                             if (!stag.members)
                                 error(tt.loc, "`enum %s` has no members", stag.toChars());
+                            isalias = false;
+                            s = new AST.AliasDeclaration(token.loc, id, stag);
                         }
                     }
                 }
