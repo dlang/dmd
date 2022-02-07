@@ -2438,8 +2438,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Type tprev = eprev.type.toHeadMutable().equals(em.ed.type.toHeadMutable())
                 ? em.ed.memtype
                 : eprev.type;
-
-            Expression emax = tprev.getProperty(sc, em.ed.loc, Id.max, 0);
+            /*
+                https://issues.dlang.org/show_bug.cgi?id=20777
+                Previously this used getProperty, which doesn't consider anything user defined,
+                this construct does do that and thus fixes the bug.
+            */
+            Expression emax = DotIdExp.create(em.ed.loc, new TypeExp(em.ed.loc, tprev), Id.max);
             emax = emax.expressionSemantic(sc);
             emax = emax.ctfeInterpret();
 
