@@ -37,7 +37,7 @@ if (is(T == float) || is(T == double) || is(T == real))
 // Three-way compare for complex types.
 pragma(inline, true)
 private int cmp3(T)(const T f1, const T f2)
-if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
+if (isComplex!T)
 {
     if (int result = cmp3(f1.re, f2.re))
         return result;
@@ -63,19 +63,19 @@ unittest
     assert(cmp3(x, y) == 0);
     assert(cmp3(y, x) == 0);
 
-    cdouble u, v;
+    d_cdouble u, v;
     assert(cmp3(u, v) == 0);
     assert(cmp3(v, u) == 0);
-    u = 42 + 42i;
+    u = d_cdouble(42, 42);
     assert(cmp3(u, v) > 0);
     assert(cmp3(v, u) < 0);
-    v = 43 + 42i;
+    v = d_cdouble(43, 42);
     assert(cmp3(u, v) < 0);
     assert(cmp3(v, u) > 0);
-    v = 42 + 43i;
+    v = d_cdouble(42, 43);
     assert(cmp3(u, v) < 0);
     assert(cmp3(v, u) > 0);
-    v = 42 + 42i;
+    v = d_cdouble(42, 42);
     assert(cmp3(u, v) == 0);
     assert(cmp3(v, u) == 0);
 }
