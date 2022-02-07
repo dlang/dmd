@@ -51,7 +51,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
 import dmd.mtype;
-import dmd.must_use;
+import dmd.mustuse;
 import dmd.nogc;
 import dmd.nspace;
 import dmd.objc;

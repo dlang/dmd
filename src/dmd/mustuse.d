@@ -3,12 +3,12 @@
  *
  * Copyright: Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/must_use.d, _must_use.d)
- * Documentation:  https://dlang.org/phobos/dmd_must_use.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/must_use.d
+ * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mustuse.d, _mustuse.d)
+ * Documentation:  https://dlang.org/phobos/dmd_mustuse.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mustuse.d
  */
 
-module dmd.must_use;
+module dmd.mustuse;
 
 import dmd.dscope;
 import dmd.dsymbol;

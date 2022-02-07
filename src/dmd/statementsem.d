@@ -51,7 +51,7 @@ import dmd.importc;
 import dmd.init;
 import dmd.intrange;
 import dmd.mtype;
-import dmd.must_use;
+import dmd.mustuse;
 import dmd.nogc;
 import dmd.opover;
 import dmd.parse;
