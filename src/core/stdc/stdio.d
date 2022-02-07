@@ -700,9 +700,8 @@ else version (Solaris)
 }
 else version (CRuntime_Bionic)
 {
-    import core.sys.posix.sys.types : off_t;
     ///
-    alias off_t fpos_t;
+    alias c_long fpos_t; // couldn't use off_t because of static if issue
 
     ///
     struct __sFILE
@@ -745,12 +744,10 @@ else version (CRuntime_UClibc)
     import core.stdc.stddef : wchar_t;
     import core.sys.posix.sys.types : ssize_t, pthread_mutex_t;
 
-    alias long off_t;
-
     ///
     struct fpos_t
     {
-        off_t __pos;
+        long __pos; // couldn't use off_t because of static if issue
         mbstate_t __state;
         int __mblen_pending;
     }
@@ -759,7 +756,7 @@ else version (CRuntime_UClibc)
     {
        ssize_t function(void* __cookie, char* __buf, size_t __bufsize)          read;
        ssize_t function(void* __cookie, const char* __buf, size_t __bufsize)    write;
-       int function(void* __cookie, off_t* __pos, int __whence)                 seek;
+       int function(void* __cookie, long* __pos, int __whence)                  seek;
        int function(void* __cookie)                                             close;
     }
 

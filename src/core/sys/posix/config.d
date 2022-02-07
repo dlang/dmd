@@ -78,6 +78,10 @@ version (CRuntime_Glibc)
 }
 else version (CRuntime_Musl)
 {
+    enum _GNU_SOURCE         = false;
+    enum _DEFAULT_SOURCE     = false;
+    enum _ATFILE_SOURCE      = false;
+
     // off_t is always 64 bits on Musl
     enum _FILE_OFFSET_BITS   = 64;
 
@@ -137,6 +141,9 @@ else version (CRuntime_UClibc)
 else version (CRuntime_Bionic)
 {
     enum _GNU_SOURCE         = false;
+    enum _DEFAULT_SOURCE     = false;
+    enum _ATFILE_SOURCE      = false;
+
     enum __USE_FILE_OFFSET64 = false; // see https://android.googlesource.com/platform/bionic/+/master/docs/32-bit-abi.md
     deprecated("use _GNU_SOURCE")
     enum __USE_GNU           = _GNU_SOURCE;
