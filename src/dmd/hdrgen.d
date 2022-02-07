@@ -2900,22 +2900,6 @@ string stcToString(ref StorageClass stc)
     return null;
 }
 
-/// Ditto
-extern (D) string trustToString(TRUST trust) pure nothrow
-{
-    final switch (trust)
-    {
-    case TRUST.default_:
-        return null;
-    case TRUST.system:
-        return "@system";
-    case TRUST.trusted:
-        return "@trusted";
-    case TRUST.safe:
-        return "@safe";
-    }
-}
-
 private void linkageToBuffer(OutBuffer* buf, LINK linkage)
 {
     const s = linkageToString(linkage);

@@ -206,6 +206,32 @@ string MODtoString(MOD mod) nothrow pure
     }
 }
 
+/*************************************************
+ * Pick off one of the trust flags from trust,
+ * and return a string representation of it.
+ */
+string trustToString(TRUST trust) pure nothrow @nogc @safe
+{
+    final switch (trust)
+    {
+    case TRUST.default_:
+        return null;
+    case TRUST.system:
+        return "@system";
+    case TRUST.trusted:
+        return "@trusted";
+    case TRUST.safe:
+        return "@safe";
+    }
+}
+
+unittest
+{
+    assert(trustToString(TRUST.default_) == "");
+    assert(trustToString(TRUST.system) == "@system");
+    assert(trustToString(TRUST.trusted) == "@trusted");
+    assert(trustToString(TRUST.safe) == "@safe");
+}
 
 /************************************
  * Convert MODxxxx to STCxxx
