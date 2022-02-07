@@ -2,12 +2,12 @@
 https://issues.dlang.org/show_bug.cgi?id=22514
 TEST_OUTPUT:
 ---
-fail_compilation/test_switch_error.d(13): Error: undefined identifier `doesNotExist`
-fail_compilation/test_switch_error.d(16): Error: undefined identifier `alsoDoesNotExits`
-fail_compilation/test_switch_error.d(19): Error: duplicate `case 2` in `switch` statement
+fail_compilation/test_switch_error.d(52): Error: undefined identifier `doesNotExist`
+fail_compilation/test_switch_error.d(52): Error: The condition expression in this switch statement failed to compile
 ---
 ++/
 
+#line 50
 void test1()
 {
     switch (doesNotExist)
@@ -24,6 +24,7 @@ void test1()
 TEST_OUTPUT:
 ---
 fail_compilation/test_switch_error.d(105): Error: undefined identifier `doesNotExist`
+fail_compilation/test_switch_error.d(105): Error: The condition expression in this switch statement failed to compile
 ---
 ++/
 #line 100

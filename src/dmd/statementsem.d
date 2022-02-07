@@ -2216,8 +2216,17 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             ss.condition = ErrorExp.get();
         ss.condition = ss.condition.optimize(WANTvalue);
         ss.condition = checkGC(sc, ss.condition);
-        if (ss.condition.op == EXP.error)
-            conditionError = true;
+        /+
+            https://issues.dlang.org/show_bug.cgi?id=22708
+
+            If we error earlier then we avoid running the semantic on the CaseStatements
+            inside the switch. This means we avoid some either pointless or misleading semantic
+            analysis, thus sparing the user from bad error messages.
+        +/
+        if (ss.condition.isErrorExp()) {
+            ss.error("The condition expression in this switch statement failed to compile");
+            return setError();
+        }
 
         bool needswitcherror = false;
 
@@ -2233,7 +2242,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         ss._body = ss._body.statementSemantic(sc);
         sc.inLoop = inLoopSave;
 
-        if (conditionError || (ss._body && ss._body.isErrorStatement()))
+        if ((ss._body && ss._body.isErrorStatement()))
         {
             sc.pop();
             return setError();
@@ -2463,7 +2472,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         SwitchStatement sw = sc.sw;
         bool errors = false;
 
-        //printf("CaseStatement::semantic() %s\n", toChars());
+        //printf("CaseStatement::semantic() %s\n", cs.toChars());
         sc = sc.startCTFE();
         cs.exp = cs.exp.expressionSemantic(sc);
         cs.exp = resolveProperties(sc, cs.exp);

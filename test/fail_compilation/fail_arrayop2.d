@@ -323,18 +323,20 @@ void test15407exp()
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(342): Error: array operation `[1] * 6` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(345): Error: array operation `[1] * 6` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(348): Error: array operation `[1] * 6` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(349): Error: array operation `[1] * 6` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(350): Error: array operation `[1] * 6` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(353): Error: array operation `[1] * 6` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(356): Error: array operation `[1] * 6` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(359): Error: array operation `"str"[] + cast(immutable(char))1` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(367): Error: CTFE internal error: non-constant value `"uvt"`
-fail_compilation/fail_arrayop2.d(367): Error: `"uvt"[] - '\x01'` cannot be interpreted at compile time
+fail_compilation/fail_arrayop2.d(404): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(407): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(410): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(411): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(412): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(415): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(418): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(421): Error: array operation `"str"[] + cast(immutable(char))1` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(421): Error: The condition expression in this switch statement failed to compile
+fail_compilation/fail_arrayop2.d(429): Error: CTFE internal error: non-constant value `"uvt"`
+fail_compilation/fail_arrayop2.d(429): Error: `"uvt"[] - '\x01'` cannot be interpreted at compile time
 ---
 */
+#line 400
 // Test all statements, which can take arrays as their operands.
 void test15407stmt()
 {
