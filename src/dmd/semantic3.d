@@ -746,7 +746,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 // Check for errors related to 'nothrow'.
                 const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
                 if (f.isnothrow && blockexit & BE.throw_)
-                    error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
 
                 if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.flags & FUNCFLAG.hasCatches))
                 {
@@ -1151,7 +1151,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             if (blockexit & BE.throw_)
                                 funcdecl.eh_none = false;
                             if (f.isnothrow && isnothrow && blockexit & BE.throw_)
-                                error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+                                error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
                             if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
                                 f.isnothrow = false;
 
