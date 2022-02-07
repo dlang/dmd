@@ -426,7 +426,7 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type[TMAX] basic;
 
     extern (D) __gshared StringTable!Type stringtable;
-    extern (D) private __gshared ubyte[TMAX] sizeTy = ()
+    extern (D) private static immutable ubyte[TMAX] sizeTy = ()
         {
             ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
             sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
