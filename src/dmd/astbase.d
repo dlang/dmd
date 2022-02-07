@@ -3886,9 +3886,9 @@ struct ASTBase
             this.trust = TRUST.default_;
             if (stc & STC.safe)
                 this.trust = TRUST.safe;
-            if (stc & STC.system)
+            else if (stc & STC.system)
                 this.trust = TRUST.system;
-            if (stc & STC.trusted)
+            else if (stc & STC.trusted)
                 this.trust = TRUST.trusted;
         }
 
