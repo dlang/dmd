@@ -84,7 +84,7 @@ void checkMustUseReserved(Dsymbol sym)
 }
 
 /**
- * Returns true if the given expression is an assignment, either simple (a = b)
+ * Returns: true if the given expression is an assignment, either simple (a = b)
  * or compound (a += b, etc).
  */
 private bool isAssignment(Expression e)
@@ -105,7 +105,7 @@ private bool isAssignment(Expression e)
 }
 
 /**
- * Returns true if the given expression is an increment (++) or decrement (--).
+ * Returns: true if the given expression is an increment (++) or decrement (--).
  */
 private bool isIncrementOrDecrement(Expression e)
 {
@@ -153,7 +153,7 @@ private bool isIncrementOrDecrement(Expression e)
 }
 
 /**
- * Returns true if the given symbol has the @mustUseAttribute.
+ * Returns: true if the given symbol has the @mustUse attribute.
  */
 private bool hasMustUseAttribute(Dsymbol sym, Scope* sc)
 {
@@ -174,7 +174,7 @@ private bool hasMustUseAttribute(Dsymbol sym, Scope* sc)
 }
 
 /**
- * Returns true if the given expression is core.attribute.mustUse.
+ * Returns: true if the given expression is core.attribute.mustUse.
  */
 private bool isMustUseAttribute(Expression e)
 {
