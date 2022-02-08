@@ -259,19 +259,19 @@ version (UdaGNUAbiTag) struct gnuAbiTag
  *  ),
  * )
  *
- * If the declaration of a `struct` or `union` type has the `@mustUse`
+ * If the declaration of a `struct` or `union` type has the `@mustuse`
  * attribute, the compiler will emit an error any time a value of that type
  * would be discarded.
  *
- * Currently, `@mustUse` is only recognized by the compiler when attached to
+ * Currently, `@mustuse` is only recognized by the compiler when attached to
  * `struct` and `union` declarations. To allow for future expansion, attaching
- * `@mustUse` to a `class`, `interface`, `enum`, or function declaration is
+ * `@mustuse` to a `class`, `interface`, `enum`, or function declaration is
  * currently forbidden, and will result in a compile-time error. All other uses
- * of `@mustUse` are ignored.
+ * of `@mustuse` are ignored.
  *
  * Examples:
  * ---
- * @mustUse struct ErrorCode { int value; }
+ * @mustuse struct ErrorCode { int value; }
  *
  * extern(C) ErrorCode doSomething();
  *
@@ -289,4 +289,4 @@ version (UdaGNUAbiTag) struct gnuAbiTag
  * }
  * ---
  */
-enum mustUse;
+enum mustuse;
