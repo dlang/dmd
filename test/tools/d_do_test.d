@@ -2072,6 +2072,7 @@ static this()
             testScriptPath,
         ];
         outfile.writeln("[COMPILE_TEST] ", escapeShellCommand(compile));
+        outfile.flush();
         // Note that spawnprocess closes the file, so it will need to be re-opened
         // below when we run the test
         auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile, null, keepFilesOpen);
@@ -2088,7 +2089,8 @@ static this()
     //
     {
         const runTest = [testScriptExe];
-        outfile.writeln("[RUN_TEST] ", escapeShellCommand(runTest));
+        outfile.writeln("\n[RUN_TEST] ", escapeShellCommand(runTest));
+        outfile.flush();
         auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, null, keepFilesOpen);
         const exitCode = wait(runTestProc);
 
