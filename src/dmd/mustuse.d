@@ -14,6 +14,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
+import dmd.identifier;
 
 // Used in isIncrementOrDecrement
 private static const StringExp plusPlus, minusMinus;
@@ -101,19 +102,45 @@ void checkMustUseReserved(Dsymbol sym)
  */
 private bool isAssignment(Expression e)
 {
-    import dmd.common.string : startsWith, endsWith;
-
     if (e.isAssignExp || e.isBinAssignExp)
         return true;
     if (auto ce = e.isCallExp())
     {
         auto fd = ce.f;
         auto id = fd ? fd.ident : null;
-        // opXXX are reserved identifiers, so it's ok to match too much here
-        if (id && id.toString().startsWith("op") && id.toString().endsWith("Assign"))
+        if (id && isAssignmentOpId(id))
             return true;
     }
     return false;
+}
+
+/**
+ * Returns: true if id is the identifier of an assignment operator overload.
+ */
+private bool isAssignmentOpId(Identifier id)
+{
+    import dmd.id : Id;
+
+    return id == Id.assign
+        || id == Id.addass
+        || id == Id.subass
+        || id == Id.mulass
+        || id == Id.divass
+        || id == Id.modass
+        || id == Id.andass
+        || id == Id.orass
+        || id == Id.xorass
+        || id == Id.shlass
+        || id == Id.shrass
+        || id == Id.ushrass
+        || id == Id.catass
+        || id == Id.indexass
+        || id == Id.slice
+        || id == Id.sliceass
+        || id == Id.opOpAssign
+        || id == Id.opIndexOpAssign
+        || id == Id.opSliceOpAssign
+        || id == Id.powass;
 }
 
 /**
