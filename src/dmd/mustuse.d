@@ -13,6 +13,18 @@ module dmd.mustuse;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.expression;
+import dmd.globals;
+
+// Used in isIncrementOrDecrement
+private static const StringExp plusPlus, minusMinus;
+
+// Loc.initial cannot be used in static initializers, so
+// these need a static constructor.
+static this()
+{
+    plusPlus = new StringExp(Loc.initial, "++");
+    minusMinus = new StringExp(Loc.initial, "--");
+}
 
 /**
  * Check whether discarding an expression would violate the requirements of
@@ -133,8 +145,6 @@ private bool isIncrementOrDecrement(Expression e)
             {
                 auto argExp = (*tiargs)[0].isExpression();
                 auto op = argExp ? argExp.isStringExp() : null;
-                scope plusPlus = new StringExp(Loc.initial, "++");
-                scope minusMinus = new StringExp(Loc.initial, "--");
                 if (op && (op.compare(plusPlus) == 0 || op.compare(minusMinus) == 0))
                     return true;
             }
