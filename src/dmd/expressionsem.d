@@ -6922,6 +6922,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.error("cannot take address of `%s`", exp.e1.toChars());
             return setError();
         }
+        if (auto dve = exp.e1.isDotVarExp())
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=22749
+             * Error about taking address of any bit-field, regardless of
+             * whether SCOPE.Cfile is set.
+             */
+            if (auto bf = dve.var.isBitFieldDeclaration())
+            {
+                exp.error("cannot take address of bit-field `%s`", bf.toChars());
+                return setError();
+            }
+        }
 
         bool hasOverloads;
         if (auto f = isFuncAddress(exp, &hasOverloads))
