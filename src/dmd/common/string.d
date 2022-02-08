@@ -211,7 +211,7 @@ version(Windows) auto extendedPathThen(alias F)(const(char)[] path)
 /**
  * Returns: true if `s` starts with `prefix`, false otherwise.
  */
-bool startsWith(const(char)[] s, const(char)[] prefix)
+bool startsWith(const(char)[] s, const(char)[] prefix) pure @safe
 {
     if (s.length < prefix.length)
         return false;
@@ -221,7 +221,7 @@ bool startsWith(const(char)[] s, const(char)[] prefix)
 /**
  * Returns: true if `s` ends with `suffix`, false otherwise.
  */
-bool endsWith(const(char)[] s, const(char)[] suffix)
+bool endsWith(const(char)[] s, const(char)[] suffix) pure @safe
 {
     if (s.length < suffix.length)
         return false;
