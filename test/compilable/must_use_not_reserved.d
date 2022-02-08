@@ -1,5 +1,5 @@
 import core.attribute;
 
-@mustUse int n;
-@mustUse alias A = int;
-@mustUse template tpl() {}
+@mustuse int n;
+@mustuse alias A = int;
+@mustuse template tpl() {}

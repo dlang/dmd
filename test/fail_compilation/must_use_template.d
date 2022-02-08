@@ -1,12 +1,12 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/must_use_template.d(15): Error: ignored value of `@mustUse` type `must_use_template.S!int`; prepend a `cast(void)` if intentional
+fail_compilation/must_use_template.d(15): Error: ignored value of `@mustuse` type `must_use_template.S!int`; prepend a `cast(void)` if intentional
 ---
 +/
 import core.attribute;
 
-@mustUse struct S(T) {}
+@mustuse struct S(T) {}
 
 S!int fun() { return S!int(); }
 

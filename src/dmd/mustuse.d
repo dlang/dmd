@@ -1,5 +1,5 @@
 /**
- * Compile-time checks associated with the @mustUse attribute.
+ * Compile-time checks associated with the @mustuse attribute.
  *
  * Copyright: Copyright (C) 2022 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -29,7 +29,7 @@ static this()
 
 /**
  * Check whether discarding an expression would violate the requirements of
- * @mustUse. If so, emit an error.
+ * @mustuse. If so, emit an error.
  *
  * Params:
  *   e = the expression to check
@@ -58,7 +58,7 @@ bool checkMustUse(Expression e, Scope* sc)
 }
 
 /**
- * Called from a symbol's semantic to check for reserved usage of @mustUse.
+ * Called from a symbol's semantic to check for reserved usage of @mustuse.
  *
  * If such usage is found, emits an errror.
  *
@@ -190,7 +190,7 @@ private bool isIncrementOrDecrement(Expression e)
 }
 
 /**
- * Returns: true if the given symbol has the @mustUse attribute.
+ * Returns: true if the given symbol has the @mustuse attribute.
  */
 private bool hasMustUseAttribute(Dsymbol sym, Scope* sc)
 {
@@ -211,7 +211,7 @@ private bool hasMustUseAttribute(Dsymbol sym, Scope* sc)
 }
 
 /**
- * Returns: true if the given expression is core.attribute.mustUse.
+ * Returns: true if the given expression is core.attribute.mustuse.
  */
 private bool isMustUseAttribute(Expression e)
 {

@@ -1,6 +1,6 @@
 import core.attribute;
 
-@mustUse struct S
+@mustuse struct S
 {
     ref S opUnary(string op)() return
     {

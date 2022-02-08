@@ -1,6 +1,6 @@
 import core.attribute;
 
-@mustUse struct S
+@mustuse struct S
 {
     ref S opOpAssign(string op)(S rhs) return
     {

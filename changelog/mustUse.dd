@@ -1,6 +1,6 @@
-Implement DIP 1038: @mustUse
+Implement DIP 1038: @mustuse
 
-`@mustUse` is a new attribute that can be applied to a `struct` or `union` type
+`@mustuse` is a new attribute that can be applied to a `struct` or `union` type
 to make ignoring an expression of that type into a compile-time error. It can
 be used to implement alternative error-handling mechanisms for code that cannot
 use exceptions, including `@nogc` and BetterC code.
