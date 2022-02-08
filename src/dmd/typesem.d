@@ -1177,8 +1177,6 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
         if (sc.stc & STC.pure_)
             tf.purity = PURE.fwdref;
-        if (sc.stc & STC.nothrow_)
-            tf.isnothrow = true;
         if (sc.stc & STC.nogc)
             tf.isnogc = true;
         if (sc.stc & STC.ref_)
@@ -1194,6 +1192,14 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
 //        if (tf.isreturn && !tf.isref)
 //            tf.isScopeQual = true;                                  // return by itself means 'return scope'
+
+        if (tf.throw_ == THROW.default_)
+        {
+            if (sc.stc & STC.nothrow_)
+                tf.throw_ = THROW.nothrow_;
+            else if (sc.stc & STC.throw_)
+                tf.throw_ = THROW.throw_;
+        }
 
         if (tf.trust == TRUST.default_)
         {
@@ -3715,7 +3721,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
                 TypeFunction tf = fd_aaLen.type.toTypeFunction();
                 tf.purity = PURE.const_;
-                tf.isnothrow = true;
+                tf.throw_ = THROW.nothrow_;
                 tf.isnogc = false;
             }
             Expression ev = new VarExp(e.loc, fd_aaLen, false);

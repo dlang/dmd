@@ -510,7 +510,7 @@ public:
 
         if (ta.purity)
             buf.writestring("Na");
-        if (ta.isnothrow)
+        if (ta.throw_ == THROW.nothrow_)
             buf.writestring("Nb");
         if (ta.isref)
             buf.writestring("Nc");

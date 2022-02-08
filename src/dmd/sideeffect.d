@@ -107,7 +107,7 @@ int callSideEffectLevel(FuncDeclaration f)
         return 0;
     assert(f.type.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)f.type;
-    if (!tf.isnothrow)
+    if (tf.throw_ != THROW.nothrow_)
         return 0;
     final switch (f.isPure())
     {
@@ -132,7 +132,7 @@ int callSideEffectLevel(Type t)
         assert(t.ty == Tfunction);
         tf = cast(TypeFunction)t;
     }
-    if (!tf.isnothrow)  // function can throw
+    if (tf.throw_ != THROW.nothrow_)  // function can throw
         return 0;
 
     tf.purityLevel();

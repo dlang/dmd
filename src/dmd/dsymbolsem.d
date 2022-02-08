@@ -3139,8 +3139,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sc.stc |= STC.ref_;
             if (tf.isScopeQual)
                 sc.stc |= STC.scope_;
-            if (tf.isnothrow)
-                sc.stc |= STC.nothrow_;
+
+            if (tf.throw_ != THROW.default_)
+            {
+                sc.stc &= ~STC.throwGroup;
+                if (tf.throw_ == THROW.nothrow_)
+                    sc.stc |= STC.nothrow_;
+                else if (tf.throw_ == THROW.throw_)
+                    sc.stc |= STC.throw_;
+            }
+
             if (tf.isnogc)
                 sc.stc |= STC.nogc;
             if (tf.isproperty)
@@ -3230,7 +3238,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             tfo.isreturninferred = tfx.isreturninferred;
             tfo.isscopeinferred = tfx.isscopeinferred;
             tfo.isref = tfx.isref;
-            tfo.isnothrow = tfx.isnothrow;
+            tfo.throw_ = tfx.throw_;
             tfo.isnogc = tfx.isnogc;
             tfo.isproperty = tfx.isproperty;
             tfo.purity = tfx.purity;

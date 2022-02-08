@@ -2870,6 +2870,7 @@ string stcToString(ref StorageClass stc)
         SCstring(STC.immutable_, Token.toString(TOK.immutable_)),
         SCstring(STC.shared_, Token.toString(TOK.shared_)),
         SCstring(STC.nothrow_, Token.toString(TOK.nothrow_)),
+        SCstring(STC.throw_, Token.toString(TOK.throw_)),
         SCstring(STC.wild, Token.toString(TOK.inout_)),
         SCstring(STC.pure_, Token.toString(TOK.pure_)),
         SCstring(STC.ref_, Token.toString(TOK.ref_)),

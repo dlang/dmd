@@ -63,10 +63,13 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
     else if (tf.trust == TRUST.trusted)
         s2 |= STC.trusted;
 
+    if (tf.throw_ == THROW.nothrow_)
+        s2 |= STC.nothrow_;
+    else if (tf.throw_ == THROW.throw_)
+        s2 |= STC.throw_;
+
     if (tf.purity != PURE.impure)
         s2 |= STC.pure_;
-    if (tf.isnothrow)
-        s2 |= STC.nothrow_;
     if (tf.isnogc)
         s2 |= STC.nogc;
 
@@ -1250,7 +1253,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         // if this field's postblit is not `nothrow`, add a `scope(failure)`
         // block to destroy any prior successfully postblitted fields should
         // this field's postblit fail
-        if (fieldsToDestroy.length > 0 && !(cast(TypeFunction)sdv.postblit.type).isnothrow)
+        if (fieldsToDestroy.length > 0 && !((cast(TypeFunction)sdv.postblit.type).throw_ == THROW.nothrow_))
         {
              // create a list of destructors that need to be called
             Expression[] dtorCalls;

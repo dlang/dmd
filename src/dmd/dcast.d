@@ -3004,8 +3004,14 @@ Lagain:
                 d.purity = PURE.impure;
             assert(d.purity != PURE.fwdref);
 
-            d.isnothrow = (tf1.isnothrow && tf2.isnothrow);
             d.isnogc = (tf1.isnogc && tf2.isnogc);
+
+            if (tf1.throw_ == tf2.throw_)
+                d.throw_ = tf1.throw_;
+            else if (tf1.throw_ <= THROW.throw_ || tf2.throw_ <= THROW.throw_)
+                d.throw_ = THROW.throw_;
+            else
+                d.throw_ = THROW.nothrow_;
 
             if (tf1.trust == tf2.trust)
                 d.trust = tf1.trust;

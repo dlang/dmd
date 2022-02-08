@@ -233,6 +233,31 @@ unittest
     assert(trustToString(TRUST.safe) == "@safe");
 }
 
+
+/*************************************************
+ * Pick off one of the throw flags from throw_,
+ * and return a string representation of it.
+ */
+extern(D) string throwToString(THROW throw_) pure nothrow
+{
+    final switch (throw_)
+    {
+    case THROW.default_:
+        return null;
+    case THROW.throw_:
+        return "throw";
+    case THROW.nothrow_:
+        return "nothrow";
+    }
+}
+
+unittest
+{
+    assert(throwToString(THROW.default_) == "");
+    assert(throwToString(THROW.throw_) == "throw");
+    assert(throwToString(THROW.nothrow_) == "nothrow");
+}
+
 /************************************
  * Convert MODxxxx to STCxxx
  */
@@ -717,7 +742,7 @@ extern (C++) abstract class Type : ASTNode
         if (!t1.purity && t2.purity)
             stc |= STC.pure_;
 
-        if (!t1.isnothrow && t2.isnothrow)
+        if (t1.throw_ != THROW.nothrow_ && t2.throw_ == THROW.nothrow_)
             stc |= STC.nothrow_;
 
         if (!t1.isnogc && t2.isnogc)
@@ -4178,6 +4203,15 @@ enum TRUSTformat : int
 alias TRUSTformatDefault = TRUSTformat.TRUSTformatDefault;
 alias TRUSTformatSystem = TRUSTformat.TRUSTformatSystem;
 
+enum THROWformat : int
+{
+    THROWformatDefault,     // do not emit throw when throw == THROWdefault
+    THROWformatThrow        // emit throw when throw == THROWdefault
+}
+
+alias THROWformatDefault = THROWformat.THROWformatDefault;
+alias THROWformatThrow = THROWformat.THROWformatThrow;
+
 /***********************************************************
  */
 extern (C++) final class TypeFunction : TypeNext
@@ -4189,24 +4223,24 @@ extern (C++) final class TypeFunction : TypeNext
     private enum FunctionFlag : uint
     {
         none            = 0,
-        isnothrow       = 0x0001, // nothrow
-        isnogc          = 0x0002, // is @nogc
-        isproperty      = 0x0004, // can be called without parentheses
-        isref           = 0x0008, // returns a reference
-        isreturn        = 0x0010, // 'this' is returned by ref
-        isscope         = 0x0020, // 'this' is scope
-        isreturninferred= 0x0040, // 'this' is return from inference
-        isscopeinferred = 0x0080, // 'this' is scope from inference
-        islive          = 0x0100, // is @live
-        incomplete      = 0x0200, // return type or default arguments removed
-        inoutParam      = 0x0400, // inout on the parameters
-        inoutQual       = 0x0800, // inout on the qualifier
-        isctor          = 0x1000, // the function is a constructor
+        isnogc          = 0x0001, // is @nogc
+        isproperty      = 0x0002, // can be called without parentheses
+        isref           = 0x0004, // returns a reference
+        isreturn        = 0x0008, // 'this' is returned by ref
+        isscope         = 0x0010, // 'this' is scope
+        isreturninferred= 0x0020, // 'this' is return from inference
+        isscopeinferred = 0x0040, // 'this' is scope from inference
+        islive          = 0x0080, // is @live
+        incomplete      = 0x0100, // return type or default arguments removed
+        inoutParam      = 0x0200, // inout on the parameters
+        inoutQual       = 0x0400, // inout on the qualifier
+        isctor          = 0x0800, // the function is a constructor
     }
 
     LINK linkage;               // calling convention
     FunctionFlag funcFlags;
     TRUST trust;                // level of trust
+    THROW throw_;               // whether throw, nothrow or default
     PURE purity = PURE.impure;
     byte inuse;
     Expressions* fargs;         // function arguments
@@ -4222,8 +4256,6 @@ extern (C++) final class TypeFunction : TypeNext
 
         if (stc & STC.pure_)
             this.purity = PURE.fwdref;
-        if (stc & STC.nothrow_)
-            this.isnothrow = true;
         if (stc & STC.nogc)
             this.isnogc = true;
         if (stc & STC.property)
@@ -4241,6 +4273,11 @@ extern (C++) final class TypeFunction : TypeNext
             this.isScopeQual = true;
         if (stc & STC.scopeinferred)
             this.isscopeinferred = true;
+
+        if (stc & STC.nothrow_)
+            this.throw_ = THROW.nothrow_;
+        else if (stc & STC.throw_)
+            this.throw_ = THROW.throw_;
 
         this.trust = TRUST.default_;
         if (stc & STC.safe)
@@ -4266,7 +4303,7 @@ extern (C++) final class TypeFunction : TypeNext
         Type treturn = next ? next.syntaxCopy() : null;
         auto t = new TypeFunction(parameterList.syntaxCopy(), treturn, linkage);
         t.mod = mod;
-        t.isnothrow = isnothrow;
+        t.throw_ = throw_;
         t.isnogc = isnogc;
         t.islive = islive;
         t.purity = purity;
@@ -4480,7 +4517,7 @@ extern (C++) final class TypeFunction : TypeNext
         //printf("addStorageClass(%llx) %d\n", stc, (stc & STC.scope_) != 0);
         TypeFunction t = Type.addStorageClass(stc).toTypeFunction();
         if ((stc & STC.pure_ && !t.purity) ||
-            (stc & STC.nothrow_ && !t.isnothrow) ||
+            (stc & STC.nothrow_ && t.throw_ != THROW.nothrow_) ||
             (stc & STC.nogc && !t.isnogc) ||
             (stc & STC.scope_ && !t.isScopeQual) ||
             (stc & STC.safe && t.trust < TRUST.trusted))
@@ -4490,7 +4527,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.mod = t.mod;
             tf.fargs = fargs;
             tf.purity = t.purity;
-            tf.isnothrow = t.isnothrow;
+            tf.throw_ = t.throw_;
             tf.isnogc = t.isnogc;
             tf.isproperty = t.isproperty;
             tf.isref = t.isref;
@@ -4506,7 +4543,7 @@ extern (C++) final class TypeFunction : TypeNext
             if (stc & STC.pure_)
                 tf.purity = PURE.fwdref;
             if (stc & STC.nothrow_)
-                tf.isnothrow = true;
+                tf.throw_ = THROW.nothrow_;
             if (stc & STC.nogc)
                 tf.isnogc = true;
             if (stc & STC.safe)
@@ -4555,7 +4592,7 @@ extern (C++) final class TypeFunction : TypeNext
         // Similar to TypeFunction::syntaxCopy;
         auto t = new TypeFunction(ParameterList(params, parameterList.varargs), tret, linkage);
         t.mod = ((mod & MODFlags.wild) ? (mod & ~MODFlags.wild) | MODFlags.const_ : mod);
-        t.isnothrow = isnothrow;
+        t.throw_ = throw_;
         t.isnogc = isnogc;
         t.purity = purity;
         t.isproperty = isproperty;
@@ -5064,18 +5101,6 @@ extern (C++) final class TypeFunction : TypeNext
         return false;
     }
 
-    /// set or get if the function has the `nothrow` attribute
-    bool isnothrow() const pure nothrow @safe @nogc
-    {
-        return (funcFlags & FunctionFlag.isnothrow) != 0;
-    }
-    /// ditto
-    void isnothrow(bool v) pure nothrow @safe @nogc
-    {
-        if (v) funcFlags |= FunctionFlag.isnothrow;
-        else funcFlags &= ~FunctionFlag.isnothrow;
-    }
-
     /// set or get if the function has the `@nogc` attribute
     bool isnogc() const pure nothrow @safe @nogc
     {
@@ -5228,11 +5253,11 @@ extern (C++) final class TypeFunction : TypeNext
     /// Returns: whether `this` function type has the same attributes (`@safe`,...) as `other`
     bool attributesEqual(const scope TypeFunction other) const pure nothrow @safe @nogc
     {
-        enum attributes = FunctionFlag.isnothrow
-                        | FunctionFlag.isnogc
+        enum attributes = FunctionFlag.isnogc
                         | FunctionFlag.islive;
 
         return this.trust == other.trust &&
+                this.throw_ == other.throw_ &&
                 this.purity == other.purity &&
                 (this.funcFlags & attributes) == (other.funcFlags & attributes);
     }
@@ -7256,12 +7281,21 @@ void modifiersApply(const TypeFunction tf, void delegate(string) dg)
  * For each active attribute (ref/const/nogc/etc) call `fp` with a void* for the
  * work param and a string representation of the attribute.
  */
-void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTformat trustFormat = TRUSTformatDefault)
+void attributesApply(
+        const TypeFunction tf,
+        void delegate(string) dg,
+        TRUSTformat trustFormat = TRUSTformatDefault,
+        THROWformat throwFormat = THROWformatDefault)
 {
     if (tf.purity)
         dg("pure");
-    if (tf.isnothrow)
-        dg("nothrow");
+
+    // avoid calling with an empty string
+    if (tf.throw_ != THROW.default_)
+        dg(throwToString(tf.throw_));
+    else if (throwFormat == THROWformatThrow)
+        dg(throwToString(THROW.throw_));
+
     if (tf.isnogc)
         dg("@nogc");
     if (tf.isproperty)

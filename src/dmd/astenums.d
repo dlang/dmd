@@ -110,11 +110,13 @@ enum STC : ulong  // transfer changes to declaration.h
     live                = 0x10_0000_0000_0000,   /// function `@live` attribute
     register            = 0x20_0000_0000_0000,   /// `register` storage class (ImportC)
     volatile_           = 0x40_0000_0000_0000,   /// destined for volatile in the back end
+    throw_              = 0x80_0000_0000_0000,   /// throws exception
 
     safeGroup = STC.safe | STC.trusted | STC.system,
+    throwGroup = STC.throw_ | STC.nothrow_,
     IOR  = STC.in_ | STC.ref_ | STC.out_,
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
+    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.throw_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                 safeGroup),
 
     /* These are visible to the user, i.e. are expressed by the user
@@ -122,7 +124,7 @@ enum STC : ulong  // transfer changes to declaration.h
     visibleStorageClasses =
         (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
          STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
-         STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
+         STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.throw_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
          STC.property | STC.safeGroup | STC.disable | STC.local | STC.live),
 
     /* These storage classes "flow through" to the inner scope of a Dsymbol
@@ -130,7 +132,7 @@ enum STC : ulong  // transfer changes to declaration.h
     flowThruAggregate = STC.safeGroup,    /// for an AggregateDeclaration
     flowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
                          STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
-                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
+                         STC.nothrow_ | STC.throw_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
 
 }
 
@@ -156,7 +158,7 @@ extern (C++) __gshared const(StorageClass) STCStorageClass =
     (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ |
      STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ |
      STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ |
-     STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls |
+     STC.wild | STC.nothrow_ | STC.throw_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls |
      STC.gshared | STC.property | STC.live |
      STC.safeGroup | STC.disable);
 
@@ -297,6 +299,13 @@ enum TRUST : ubyte
     system     = 1,    // @system (same as TRUST.default)
     trusted    = 2,    // @trusted
     safe       = 3,    // @safe
+}
+
+enum THROW : ubyte
+{
+    default_   = 0,
+    throw_     = 1, // has throw
+    nothrow_   = 2, // has nothrow
 }
 
 enum PURE : ubyte
