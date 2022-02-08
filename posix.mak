@@ -343,6 +343,10 @@ $(IMPDIR)/%.d : src/%.d
 	@mkdir -p $(dir $@)
 	@cp $< $@
 
+$(IMPDIR)/%.h : src/%.h
+	@mkdir -p $(dir $@)
+	@cp $< $@
+
 ######################## Build DMD if non-existent ##############################
 
 $(DMD):
