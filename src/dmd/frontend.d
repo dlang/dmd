@@ -407,7 +407,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
         }
     }
 
-    m.parseModule!AST();
+    m = m.parseModule!AST();
 
     Diagnostics diagnostics = {
         errors: global.errors,

@@ -524,7 +524,7 @@ extern (C++) final class Module : Package
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
             message("import    %s", buf.peekChars());
         }
-        m = m.parse();
+        if((m = m.parse()) is null) return null;
 
         // Call onImport here because if the module is going to be compiled then we
         // need to determine it early because it affects semantic analysis. This is
@@ -727,7 +727,7 @@ extern (C++) final class Module : Package
             if (buf.length & 3)
             {
                 error("odd length of UTF-32 char source %llu", cast(ulong) buf.length);
-                fatal();
+                return null;
             }
 
             const (uint)[] eBuf = cast(const(uint)[])buf;
@@ -743,7 +743,7 @@ extern (C++) final class Module : Package
                     if (u > 0x10FFFF)
                     {
                         error("UTF-32 value %08x greater than 0x10FFFF", u);
-                        fatal();
+                        return null;
                     }
                     dbuf.writeUTF8(u);
                 }
@@ -773,7 +773,7 @@ extern (C++) final class Module : Package
             if (buf.length & 1)
             {
                 error("odd length of UTF-16 char source %llu", cast(ulong) buf.length);
-                fatal();
+                return null;
             }
 
             const (ushort)[] eBuf = cast(const(ushort)[])buf;
@@ -793,13 +793,13 @@ extern (C++) final class Module : Package
                         if (i >= eBuf.length)
                         {
                             error("surrogate UTF-16 high value %04x at end of file", u);
-                            fatal();
+                            return null;
                         }
                         const u2 = readNext(&eBuf[i]);
                         if (u2 < 0xDC00 || 0xE000 <= u2)
                         {
                             error("surrogate UTF-16 low value %04x out of range", u2);
-                            fatal();
+                            return null;
                         }
                         u = (u - 0xD7C0) << 10;
                         u |= (u2 - 0xDC00);
@@ -807,12 +807,12 @@ extern (C++) final class Module : Package
                     else if (u >= 0xDC00 && u <= 0xDFFF)
                     {
                         error("unpaired surrogate UTF-16 value %04x", u);
-                        fatal();
+                        return null;
                     }
                     else if (u == 0xFFFE || u == 0xFFFF)
                     {
                         error("illegal UTF-16 value %04x", u);
-                        fatal();
+                        return null;
                     }
                     dbuf.writeUTF8(u);
                 }
@@ -899,7 +899,7 @@ extern (C++) final class Module : Package
                     if (buf[0] >= 0x80)
                     {
                         error("source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
-                        fatal();
+                        return null;
                     }
                 }
             }
@@ -929,6 +929,8 @@ extern (C++) final class Module : Package
                       ? UTF32ToUTF8!(Endian.little)(buf)
                       : UTF32ToUTF8!(Endian.big)(buf);
             }
+            // an error happened on UTF conversion
+            if (buf is null) return null;
         }
 
         /* If it starts with the string "Ddoc", then it's a documentation
