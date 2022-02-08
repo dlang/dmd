@@ -55,9 +55,9 @@ version (CRuntime_Microsoft)
 
 version (DigitalMars)
 {
-    double __builtin_inf()  { return double.infinity; }
-    float  __builtin_inff() { return float.infinity; }
-    real   __builtin_infl() { return real.infinity; }
+    double __builtin_inf()()  { return double.infinity; }
+    float  __builtin_inff()() { return float.infinity; }
+    real   __builtin_infl()() { return real.infinity; }
 
     alias __builtin_huge_val  = __builtin_inf;
     alias __builtin_huge_valf = __builtin_inff;
