@@ -1201,10 +1201,13 @@ extern (C++) final class Module : Package
             if (StringExp se = msg ? msg.toStringExp() : null)
             {
                 const slice = se.peekString();
-                deprecation(loc, "is deprecated - %.*s", cast(int)slice.length, slice.ptr);
+                if (slice.length)
+                {
+                    deprecation(loc, "is deprecated - %.*s", cast(int)slice.length, slice.ptr);
+                    return;
+                }
             }
-            else
-                deprecation(loc, "is deprecated");
+            deprecation(loc, "is deprecated");
         }
     }
 
