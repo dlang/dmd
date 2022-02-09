@@ -215,6 +215,18 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
 
             return result;
         }
+
+        version (D_Coverage)
+        shared static this()
+        {
+            import core.runtime;
+
+            static immutable sourcePath = `%s`;
+
+            dmd_coverSourcePath(sourcePath);
+            dmd_coverDestPath(sourcePath);
+            dmd_coverSetMerge(true);
+        }
     }.outdent;
 
     const imports = moduleNames
@@ -227,7 +239,7 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
         .joiner(",\n")
         .to!string;
 
-    const content = format!codeTemplate(imports, modules, format!`"%s"`(filter));
+    const content = format!codeTemplate(imports, modules, format!`"%s"`(filter), projectRootDir);
     write(path, content);
 }
 
