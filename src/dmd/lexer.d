@@ -1550,9 +1550,11 @@ class Lexer
         if (*p == '"')
             p++;
         else if (hereid)
-            error("delimited string must end in %s\"", hereid.toChars());
+            error("delimited string must end in `%s\"`", hereid.toChars());
+        else if (isspace(delimright))
+            error("delimited string must end in `\"`");
         else
-            error("delimited string must end in %c\"", delimright);
+            error("delimited string must end in `%c\"`", delimright);
         result.setString(stringbuffer);
         stringPostfix(result);
     }
