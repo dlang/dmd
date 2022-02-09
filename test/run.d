@@ -143,7 +143,7 @@ Options:
     {
         verifyCompilerExists(env);
         ensureToolsExists(env, TestTools.unitTestRunner);
-        return spawnProcess(unitTestRunnerCommand ~ args).wait();
+        return spawnProcess(unitTestRunnerCommand ~ args, env, Config.none, scriptDir).wait();
     }
 
     if (args == ["tools"])
