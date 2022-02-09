@@ -1690,15 +1690,24 @@ $(H3 $(LNAME2 array_literals, Array Literals))
 
 $(GRAMMAR
 $(GNAME ArrayLiteral):
-    $(D [) $(GLINK ArgumentList)$(OPT) $(D ])
+    $(D [) $(I ArrayMemberInitializations)$(OPT) $(D ])
+
+$(GNAME ArrayMemberInitializations):
+    $(I ArrayMemberInitialization)
+    $(I ArrayMemberInitialization) $(D ,)
+    $(I ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
+
+$(GNAME ArrayMemberInitialization):
+    $(GLINK2 declaration, NonVoidInitializer)
+    $(GLINK AssignExpression) $(D :) $(GLINK2 declaration, NonVoidInitializer)
 )
 
-    $(P Array literals are a comma-separated list of $(GLINK AssignExpression)s
+    $(P Array literals are a comma-separated list of expressions
         between square brackets $(D [) and $(D ]).
-        The $(I AssignExpression)s form the elements of a dynamic array,
-        the length of the array is the number of elements.
-        The common type of the all elements is taken to be the type of
-        the array element, and all elements are implicitly converted
+        The expressions form the elements of a dynamic array.
+        The length of the array is the number of elements.
+        The common type of all the elements is taken to be the
+        array element type, and each expression is implicitly converted
         to that type.)
 
         ---
@@ -1739,9 +1748,10 @@ $(GNAME ArrayLiteral):
         -------------
         )
 
-    $(P If any of the arguments in the $(GLINK ArgumentList) are
-        a $(I ValueSeq), then the elements of the $(I ValueSeq)
-        are inserted as arguments in place of the sequence.
+    $(P If any $(I ArrayMemberInitialization) is a
+        $(DDSUBLINK spec/template, TemplateParameterSequence, ValueSeq),
+        then the elements of the $(I ValueSeq)
+        are inserted as expressions in place of the sequence.
     )
 
     $(P Escaping array literals are allocated on the memory managed heap.
