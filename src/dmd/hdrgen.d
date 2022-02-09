@@ -991,8 +991,9 @@ public:
     override void visit(VisibilityDeclaration d)
     {
         visibilityToBuffer(buf, d.visibility);
-        buf.writeByte(' ');
         AttribDeclaration ad = cast(AttribDeclaration)d;
+        if (ad.decl.dim <= 1)
+            buf.writeByte(' ');
         if (ad.decl.dim == 1 && (*ad.decl)[0].isVisibilityDeclaration)
             visit(cast(AttribDeclaration)(*ad.decl)[0]);
         else
