@@ -8,10 +8,10 @@ import std.exception : enforce;
 import std.file : dirEntries, exists, SpanMode, mkdirRecurse, write;
 import std.format : format;
 import std.getopt : getopt;
-import std.path : absolutePath, buildPath, dirSeparator, stripExtension,
+import std.path : absolutePath, buildPath, dirSeparator,  relativePath, stripExtension,
     setExtension;
-import std.process : environment, execute;
-import std.range : empty;
+import std.process : Config, environment, execute;
+import std.range : empty, chain;
 import std.stdio;
 import std.string : join, outdent;
 
@@ -241,7 +241,7 @@ Params:
 */
 string[] buildCmdArgs(string runnerPath, string outputPath, const string[] testFiles)
 {
-    auto flags = [
+    auto flags = chain([
         "-version=NoBackend",
         "-version=GC",
         "-version=NoMain",
@@ -249,14 +249,17 @@ string[] buildCmdArgs(string runnerPath, string outputPath, const string[] testF
         "-version=DMDLIB",
         "-unittest",
         "-J" ~ buildOutputPath,
-        "-J" ~ projectRootDir.buildPath("src/dmd/res"),
-        "-I" ~ projectRootDir.buildPath("src"),
+        "-Jsrc/dmd/res",
+        "-Isrc",
         "-I" ~ unitTestDir,
         "-i",
         "-main",
         "-of" ~ outputPath,
         "-m" ~ model
-    ] ~ testFiles ~ runnerPath;
+    ],
+        testFiles.map!(f => relativePath(f, projectRootDir)),
+        [ runnerPath ]
+    ).array;
 
     // Generate coverage reports if requested
     if (environment.get("DMD_TEST_COVERAGE", "0") == "1")
@@ -310,7 +313,8 @@ int main(string[] args)
     if (missingTestFiles(givenFiles))
         return 1;
 
-    const runnerPath = resultsDir.buildPath("runner.d");
+    const absResultsDir = resultsDir.absolutePath();
+    const runnerPath = absResultsDir.buildPath("runner.d");
     const testFiles = givenFiles.testFiles;
 
     mkdirRecurse(resultsDir);
@@ -318,12 +322,12 @@ int main(string[] args)
         .moduleNames
         .writeRunnerFile(runnerPath, unitTestFilter);
 
-    const cmdfilePath = resultsDir.buildPath("cmdfile");
-    const outputPath = resultsDir.buildPath("runner").setExtension(exeExtension);
+    const cmdfilePath = absResultsDir.buildPath("cmdfile");
+    const outputPath = absResultsDir.buildPath("runner" ~ exeExtension);
     const flags = buildCmdArgs(runnerPath, outputPath, testFiles);
     write(cmdfilePath, flags.join("\n"));
 
-    const dmd = execute([ dmdPath, "@" ~ cmdfilePath ]);
+    const dmd = execute([ dmdPath, "@" ~ cmdfilePath ], null, Config.none, size_t.max, projectRootDir);
     if (dmd.status)
     {
         enum msg = "Failed to compile the `unit` test executable! (exit code %d)
