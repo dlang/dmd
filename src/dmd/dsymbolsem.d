@@ -3245,6 +3245,28 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         f = cast(TypeFunction)funcdecl.type;
 
+        if (funcdecl.overnext && funcdecl.isCsymbol())
+        {
+            /* C does not allow function overloading, but it does allow
+             * redeclarations of the same function. If .overnext points
+             * to a redeclaration, ok. Error if it is an overload.
+             */
+            auto fnext = funcdecl.overnext.isFuncDeclaration();
+            funcDeclarationSemantic(fnext);
+            auto fn = fnext.type.isTypeFunction();
+            if (!(fn &&
+                  (f.equals(fn) ||
+                   // Allow func(void) to match func()
+                   f.nextOf().equals(fn.nextOf()) && !f.parameterList.length && !fn.parameterList.length)
+               ) )
+            {
+                funcdecl.error("redeclaration with different type");
+                //printf("t1: %s\n", f.toChars());
+                //printf("t2: %s\n", fn.toChars());
+            }
+            funcdecl.overnext = null;   // don't overload the redeclarations
+        }
+
         if ((funcdecl.storage_class & STC.auto_) && !f.isref && !funcdecl.inferRetType)
             funcdecl.error("storage class `auto` has no effect if return type is not inferred");
 
