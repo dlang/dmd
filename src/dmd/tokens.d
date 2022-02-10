@@ -946,12 +946,20 @@ nothrow:
             sprintf(&buffer[0], "%d", cast(d_int32)intvalue);
             break;
         case TOK.uns32Literal:
-        case TOK.charLiteral:
         case TOK.wcharLiteral:
         case TOK.dcharLiteral:
         case TOK.wchar_tLiteral:
             sprintf(&buffer[0], "%uU", cast(d_uns32)unsvalue);
             break;
+        case TOK.charLiteral:
+        {
+            const v = cast(d_int32)intvalue;
+            if (v >= ' ' && v <= '~')
+                sprintf(&buffer[0], "'%c'", v);
+            else
+                sprintf(&buffer[0], "'\\x%02x'", v);
+            break;
+        }
         case TOK.int64Literal:
             sprintf(&buffer[0], "%lldL", cast(long)intvalue);
             break;
