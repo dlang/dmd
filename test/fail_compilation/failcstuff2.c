@@ -167,6 +167,6 @@ struct S22749
 
 void test22749(void)
 {
-    struct S22749 s; 
+    struct S22749 s;
     void *ptr = &s.field;
 }

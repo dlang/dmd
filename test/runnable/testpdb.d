@@ -251,12 +251,12 @@ IDiaSymbol testClosureVar(IDiaSymbol globals, wstring funcName, wstring[] varNam
 
         if (v + 1 == varNames.length)
             return varSym;
-            
+
         IDiaSymbol varType;
         varSym.get_type(&varType) == S_OK || assert(false, toUTF8(varName ~ ": no type"));
         varType.get_type(&varType) == S_OK || assert(false, toUTF8(varName ~ ": no ptrtype"));
         parentSym = varType;
-    }    
+    }
     return parentSym;
 }
 

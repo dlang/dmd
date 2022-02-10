@@ -30,7 +30,7 @@ void main()
         printf("%a", 2.);
         printf("%m %m %s");
         printf("%*m");
-        
+
         char* a, b;
         sscanf("salut poilu", "%a %m", a, b);
         assert(!strcmp(a, b));
@@ -71,6 +71,6 @@ void main()
         sscanf("205", "%ms", c);
         sscanf("206", "%a", c);
         sscanf("207", "%as", c);
-        
+
     }
 }
