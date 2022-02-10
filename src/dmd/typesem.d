@@ -2040,6 +2040,22 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             return mtype.resolved;
         }
 
+        /* Find the current scope by skipping tag scopes.
+         * In C, tag scopes aren't considered scopes.
+         */
+        Scope* sc2 = sc;
+        while (1)
+        {
+            sc2 = sc2.inner();
+            auto scopesym = sc2.scopesym;
+            if (scopesym.isStructDeclaration())
+            {
+                sc2 = sc2.enclosing;
+                continue;
+            }
+            break;
+        }
+
         /* Declare mtype as a struct/union/enum declaration
          */
         void declareTag()
@@ -2047,16 +2063,16 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             void declare(ScopeDsymbol sd)
             {
                 sd.members = mtype.members;
-                auto scopesym = sc.inner().scopesym;
+                auto scopesym = sc2.inner().scopesym;
                 if (scopesym.members)
                     scopesym.members.push(sd);
                 if (scopesym.symtab && !scopesym.symtabInsert(sd))
                 {
                     Dsymbol s2 = scopesym.symtabLookup(sd, mtype.id);
-                    handleTagSymbols(*sc, sd, s2, scopesym);
+                    handleTagSymbols(*sc2, sd, s2, scopesym);
                 }
-                sd.parent = sc.parent;
-                sd.dsymbolSemantic(sc);
+                sd.parent = sc2.parent;
+                sd.dsymbolSemantic(sc2);
             }
 
             switch (mtype.tok)
@@ -2098,7 +2114,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         /* look for pre-existing declaration
          */
         Dsymbol scopesym;
-        auto s = sc.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors | TagNameSpace);
+        auto s = sc2.search(mtype.loc, mtype.id, &scopesym, IgnoreErrors | TagNameSpace);
         if (!s || s.isModule())
         {
             // no pre-existing declaration, so declare it
@@ -2111,7 +2127,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         /* A redeclaration only happens if both declarations are in
          * the same scope
          */
-        const bool redeclar = (scopesym == sc.inner().scopesym);
+        const bool redeclar = (scopesym == sc2.inner().scopesym);
 
         if (redeclar)
         {
@@ -2154,7 +2170,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                          * picked up and added to the symtab.
                          */
                         sd.semanticRun = PASS.semantic;
-                        sd.dsymbolSemantic(sc);
+                        sd.dsymbolSemantic(sc2);
                     }
                 }
                 else
