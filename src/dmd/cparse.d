@@ -197,6 +197,7 @@ final class CParser(AST) : Parser!AST
             }
             break;
 
+        case TOK.charLiteral:
         case TOK.int32Literal:
         case TOK.uns32Literal:
         case TOK.int64Literal:
@@ -636,6 +637,7 @@ final class CParser(AST) : Parser!AST
             nextToken();
             break;
 
+        case TOK.charLiteral:
         case TOK.int32Literal:
             e = new AST.IntegerExp(loc, token.intvalue, AST.Type.tint32);
             nextToken();
@@ -4217,6 +4219,7 @@ final class CParser(AST) : Parser!AST
         switch (t.value)
         {
             case TOK.identifier:
+            case TOK.charLiteral:
             case TOK.int32Literal:
             case TOK.uns32Literal:
             case TOK.int64Literal:

@@ -274,7 +274,7 @@ class Lexer
                 if (issinglechar(p[1]) && p[2] == '\'')
                 {
                     t.unsvalue = p[1];        // simple one character literal
-                    t.value = Ccompile ? TOK.int32Literal : TOK.charLiteral;
+                    t.value = TOK.charLiteral;
                     p += 3;
                 }
                 else if (Ccompile)
@@ -1866,7 +1866,7 @@ class Lexer
             default:
                 assert(0);
         }
-        t.value = TOK.int32Literal;
+        t.value = n == 1 ? TOK.charLiteral : TOK.int32Literal;
         t.unsvalue = u;
     }
 
