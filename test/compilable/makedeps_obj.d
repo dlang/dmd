@@ -18,7 +18,7 @@ import imports.makedeps_a;
 // Test mixin import expression
 enum text = import("makedeps-import-codemixin.txt");
 mixin(text);
-static assert(text2 == "Imported text");
+static assert(text2 == "Imported text\x0a");
 
 void func()
 {
