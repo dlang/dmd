@@ -223,7 +223,7 @@ jobs:
       run: |
         if [ "${{ matrix.cxx-version }}" == "8.0.0" -o "${{ matrix.cxx-version }}" == "9.0.0" ]; then
           wget --quiet --directory-prefix=${{ github.workspace }} https://releases.llvm.org/${{ matrix.cxx-version }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
-        else 
+        else
           wget --quiet --directory-prefix=${{ github.workspace }} https://github.com/llvm/llvm-project/releases/download/llvmorg-${{ matrix.cxx-version }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
         fi
         tar -x -C ${{ github.workspace }} -f ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
