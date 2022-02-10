@@ -2266,11 +2266,6 @@ class Lexer
             flags = cast(FLAGS)(flags | f);
         }
 
-        void overflow()
-        {
-            error("integer overflow");
-        }
-
         TOK result = TOK.int32Literal;     // default
         switch (flags)
         {
@@ -2283,71 +2278,35 @@ class Lexer
                  * First that fits: int, unsigned, long, unsigned long,
                  * long long, unsigned long long
                  */
-                if (longsize == 4)
-                {
-                    if (n & 0x8000000000000000L)
-                        result = TOK.uns64Literal;
-                    else if (n & 0xFFFFFFFF00000000L)
-                        result = TOK.int64Literal;
-                    else if (n & 0x80000000)
-                        result = TOK.uns32Literal;
-                    else
-                        result = TOK.int32Literal;
-                }
+                if (n & 0x8000000000000000L)
+                    result = TOK.uns64Literal;      // unsigned long
+                else if (n & 0xFFFFFFFF00000000L)
+                    result = TOK.int64Literal;      // long
+                else if (n & 0x80000000)
+                    result = TOK.uns32Literal;
                 else
-                {
-                    if (n & 0x8000000000000000L)
-                        result = TOK.uns64Literal;      // unsigned long
-                    else if (n & 0xFFFFFFFF00000000L)
-                        result = TOK.int64Literal;      // long
-                    else if (n & 0x80000000)
-                        result = TOK.uns32Literal;
-                    else
-                        result = TOK.int32Literal;
-                }
+                    result = TOK.int32Literal;
                 break;
 
             case FLAGS.decimal:
                 /* First that fits: int, long, long long
                  */
-                if (longsize == 4)
-                {
-                    if (n & 0x8000000000000000L)
-                        result = TOK.uns64Literal;
-                    else if (n & 0xFFFFFFFF80000000L)
-                        result = TOK.int64Literal;
-                    else
-                        result = TOK.int32Literal;
-                }
+                if (n & 0x8000000000000000L)
+                    result = TOK.uns64Literal;      // unsigned long
+                else if (n & 0xFFFFFFFF80000000L)
+                    result = TOK.int64Literal;      // long
                 else
-                {
-                    if (n & 0x8000000000000000L)
-                        result = TOK.uns64Literal;      // unsigned long
-                    else if (n & 0xFFFFFFFF80000000L)
-                        result = TOK.int64Literal;      // long
-                    else
-                        result = TOK.int32Literal;
-                }
+                    result = TOK.int32Literal;
                 break;
 
             case FLAGS.octalhex | FLAGS.unsigned:
             case FLAGS.decimal | FLAGS.unsigned:
                 /* First that fits: unsigned, unsigned long, unsigned long long
                  */
-                if (longsize == 4)
-                {
-                    if (n & 0xFFFFFFFF00000000L)
-                        result = TOK.uns64Literal;
-                    else
-                        result = TOK.uns32Literal;
-                }
+                if (n & 0xFFFFFFFF00000000L)
+                    result = TOK.uns64Literal;      // unsigned long
                 else
-                {
-                    if (n & 0xFFFFFFFF00000000L)
-                        result = TOK.uns64Literal;      // unsigned long
-                    else
-                        result = TOK.uns32Literal;
-                }
+                    result = TOK.uns32Literal;
                 break;
 
             case FLAGS.decimal | FLAGS.long_:
@@ -2355,19 +2314,14 @@ class Lexer
                  */
                 if (longsize == 4)
                 {
-                    if (n & 0x8000000000000000L)
-                        overflow();
-                    else if (n & 0xFFFFFFFF_80000000L)
+                    if (n & 0xFFFFFFFF_80000000L)
                         result = TOK.int64Literal;
                     else
-                        result = TOK.int32Literal;      // long
+                        result = TOK.int32Literal;  // long
                 }
                 else
                 {
-                    if (n & 0x8000000000000000L)
-                        overflow();
-                    else
-                        result = TOK.int64Literal;      // long
+                    result = TOK.int64Literal;      // long
                 }
                 break;
 
