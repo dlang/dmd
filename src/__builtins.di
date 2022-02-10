@@ -90,7 +90,10 @@ version (DigitalMars)
     // Stub these out to no-ops
     int   __builtin_constant_p(T)(T exp) { return 0; } // should be something like __traits(compiles, enum X = expr)
     long  __builtin_expect()(long exp, long c) { return exp; }
-    void* __builtin_assume()(const void* p, size_t align_, ...) { return cast(void*)p; }
+    void* __builtin_assume_aligned()(const void* p, size_t align_, ...) { return cast(void*)p; }
+
+    // https://releases.llvm.org/13.0.0/tools/clang/docs/LanguageExtensions.html#builtin-assume
+    void __builtin_assume(T)(lazy T arg) { }
 
     /* Header on macOS for arm64 references this.
      * Don't need to implement it, it just needs to compile
