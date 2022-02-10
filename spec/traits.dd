@@ -686,7 +686,7 @@ void main()
     writeln(__traits(hasMember, S, "m")); // true
     writeln(__traits(hasMember, s, "m")); // true
     writeln(__traits(hasMember, S, "y")); // false
-    writeln(__traits(hasMember, S, "write")); // false
+    writeln(__traits(hasMember, S, "write")); // false, but callable like a member via UFCS
     writeln(__traits(hasMember, int, "sizeof")); // true
 }
 ---
