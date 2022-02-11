@@ -43,3 +43,8 @@
  * when placed before an expression.
  */
 #define __extension__  // ignore it, as ImportC doesn't do warnings
+
+/****************************
+ * Define it to do what other C compilers do.
+ */
+#define __builtin_offset(t,i) ((size_t)((char *)&((t *)0)->i - (char *)0))
