@@ -1604,10 +1604,6 @@ static if (1)
             if (!sd.SDlinnum_data.length)
                 continue;
 
-            if (config.objfmt == OBJ_ELF)
-                if (!sd.SDsym) // gdb ignores line number data without a DW_AT_name
-                    continue;
-
             //printf("sd = %x, SDlinnum_count = %d\n", sd, sd.SDlinnum_count);
             for (int i = 0; i < sd.SDlinnum_data.length; i++)
             {   linnum_data *ld = &sd.SDlinnum_data[i];
