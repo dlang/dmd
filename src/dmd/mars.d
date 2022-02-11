@@ -480,7 +480,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             message("semantic3 %s", m.toChars());
         m.semantic3(null);
     }
-    if (includeImports)
+    // if (includeImports) // Empty without this flag
     {
         // Note: DO NOT USE foreach here because Module.amodules.dim can
         //       change on each iteration of the loop

@@ -6237,6 +6237,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return false;
         }
 
+        // Always emit templates from core.internal.dassert that are instantiated by -checkaction=context
+        // because we might link with code that was compiled with -checkaction=[halt|C|D] / without asserts
+        if (global.params.checkAction == CHECKACTION.context)
+        {
+            assert(this.tempdecl);
+            auto mod = this.tempdecl.getModule();
+            if (mod.hasName(Id.core, Id.internal, Id.dassert))
+                return true;
+        }
+
         if (global.params.allInst)
         {
             // Do codegen if there is an instantiation from a root module, to maximize link-ability.

@@ -535,6 +535,15 @@ extern (C++) final class Module : Package
             m.importedFrom = m;
             assert(m.isRoot());
         }
+
+        // Promote the module holding the required templates for -checkaction=context to a root module
+        if (global.params.checkAction == CHECKACTION.context && !m.isRoot() && m.hasName(Id.core, Id.internal, Id.dassert))
+        {
+            m.importedFrom = m;
+            if (!compiledImports.contains(m))
+                compiledImports.push(m);
+        }
+
         return m;
     }
 
@@ -1428,7 +1437,21 @@ extern (C++) final class Module : Package
     // listed in command line.
     bool isCoreModule(Identifier ident)
     {
-        return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
+        return hasName(Id.core, ident);
+    }
+
+    /// Returns: whether the FQN of this module matches <identifiers>
+    extern(D) bool hasName(scope Identifier[] identifiers...)
+    {
+        assert(identifiers.length);
+        Dsymbol cur = this;
+        foreach_reverse (ident; identifiers)
+        {
+            if (!cur || cur.ident != ident)
+                return false;
+            cur = cur.parent;
+        }
+        return !cur;
     }
 
     // Back end

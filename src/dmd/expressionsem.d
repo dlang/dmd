@@ -6084,17 +6084,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("AssertExp::semantic('%s')\n", exp.toChars());
         }
 
-        TemplateInstance ti;
-        const generateMsg = !exp.msg
-            && global.params.checkAction == CHECKACTION.context
-            // Don't generated a message if the assert is discarded
-            && global.params.useAssert == CHECKENABLE.on
-            // Only create instances in root modules or templates instantiated from those
-            // seperately compiled modules may use other -checkaction configurations, i.e.
-            // -checkaction=[halt|C|D] / -release / -check=assert=off
-            // => Missing template instances expected from their object file
-            && ((ti = sc.func.isInstantiated()) !is null ? ti.toParentLocal() : sc.func).getModule().isRoot();
-
+        const generateMsg = !exp.msg && global.params.checkAction == CHECKACTION.context && global.params.useAssert == CHECKENABLE.on;
         Expression temporariesPrefix;
 
         if (generateMsg)
