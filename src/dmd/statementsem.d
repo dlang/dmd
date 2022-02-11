@@ -3567,7 +3567,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
         tcs.tryBody = sc.tryBody;   // chain on the in-flight tryBody
         tcs._body = tcs._body.semanticScope(sc, null, null, tcs);
-        assert(tcs._body);
 
         /* Even if body is empty, still do semantic analysis on catches
          */
@@ -3609,6 +3608,11 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (catchErrors)
             return setError();
+
+        // No actual code in the try (i.e. omitted any conditionally compiled code)
+        // Could also be extended to check for hasCode
+        if (!tcs._body)
+            return;
 
         if (tcs._body.isErrorStatement())
         {
