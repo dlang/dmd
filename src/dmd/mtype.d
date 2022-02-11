@@ -6372,7 +6372,7 @@ extern (C++) final class TypeClass : Type
         /* Conversion derived to const(base)
          */
         int offset = 0;
-        if (to.isBaseOf(this, &offset) && offset == 0 && MODimplicitConv(mod, to.mod))
+        if (to.isBaseOf(this, &offset) && MODimplicitConv(mod, to.mod))
         {
             // Disallow:
             //  derived to base

@@ -4097,6 +4097,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Type is a "delegate to" or "pointer to" the function literal
         if ((exp.fd.isNested() && exp.fd.tok == TOK.delegate_) || (exp.tok == TOK.reserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
         {
+            // https://issues.dlang.org/show_bug.cgi?id=22686
+            // if the delegate return type is an error
+            // abort semantic of the FuncExp and propagate
+            // the error
+            if (exp.fd.type.isTypeError())
+            {
+                e = ErrorExp.get();
+                goto Ldone;
+            }
             exp.type = new TypeDelegate(exp.fd.type.isTypeFunction());
             exp.type = exp.type.typeSemantic(exp.loc, sc);
 
@@ -5278,7 +5287,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Perturb the name mangling so that the symbols can co-exist
                     // instead of colliding
                     s.localNum = cast(ushort)(originalSymbol.localNum + 1);
-                    assert(s.localNum);         // 65535 should be enough for anyone
+                    // 65535 should be enough for anyone
+                    if (!s.localNum)
+                    {
+                        e.error("more than 65535 symbols with name `%s` generated", s.ident.toChars());
+                        return setError();
+                    }
 
                     // Replace originalSymbol with s, which updates the localCount
                     sc.func.localsymtab.update(s);
