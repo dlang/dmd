@@ -185,7 +185,7 @@ unittest
 
     import dmd.frontend;
     import dmd.globals : Loc;
-    import dmd.root.outbuffer;
+    import dmd.common.outbuffer;
     import dmd.console : Color;
 
     string[] diagnosticMessages;

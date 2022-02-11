@@ -1,9 +1,9 @@
 /**
  * When compiling on Windows with the Microsoft toolchain, try to detect the Visual Studio setup.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _vsoptions.d)
  * Documentation:  https://dlang.org/phobos/dmd_vsoptions.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/vsoptions.d
@@ -20,10 +20,10 @@ import core.sys.windows.winbase;
 import core.sys.windows.windef;
 import core.sys.windows.winreg;
 
-import dmd.env;
+import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string : toDString;
 
@@ -51,6 +51,21 @@ extern(C++) struct VSOptions
         detectVSInstallDir();
         detectVCInstallDir();
         detectVCToolsInstallDir();
+    }
+
+    /**
+     * set all members to null. Used if we detect a VS installation but end up
+     * falling back on lld-link.exe
+     */
+    void uninitialize()
+    {
+        WindowsSdkDir = null;
+        WindowsSdkVersion = null;
+        UCRTSdkDir = null;
+        UCRTVersion = null;
+        VSInstallDir = null;
+        VCInstallDir = null;
+        VCToolsInstallDir = null;
     }
 
     /**
@@ -500,9 +515,12 @@ extern(D):
     //  one with the largest version that also contains the test file
     static const(char)* findLatestSDKDir(const(char)* baseDir, string testfile)
     {
+        import dmd.common.string : SmallBuffer, toWStringz;
+
         const(char)* pattern = FileName.combine(baseDir, "*");
-        wchar* wpattern = toWStringz(pattern.toDString).ptr;
-        scope(exit) mem.xfree(wpattern);
+        wchar[1024] support = void;
+        auto buf = SmallBuffer!wchar(support.length, support);
+        wchar* wpattern = toWStringz(pattern.toDString, buf).ptr;
         FileName.free(pattern);
 
         WIN32_FIND_DATAW fileinfo;

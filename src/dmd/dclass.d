@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/class.html, Classes)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dclass.d, _dclass.d)
  * Documentation:  https://dlang.org/phobos/dmd_dclass.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dclass.d
@@ -368,7 +368,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         baseok = Baseok.none;
     }
 
-    static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
+    static ClassDeclaration create(const ref Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
         return new ClassDeclaration(loc, id, baseclasses, members, inObject);
     }
@@ -446,6 +446,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             *poffset = 0;
         while (cd)
         {
+            assert(cd.baseClass || cd.semanticRun >= PASS.semanticdone || cd.isInterfaceDeclaration());
             if (this == cd.baseClass)
                 return true;
 
@@ -726,6 +727,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         void searchVtbl(ref Dsymbols vtbl)
         {
+            bool seenInterfaceVirtual;
             foreach (s; vtbl)
             {
                 auto fd = s.isFuncDeclaration();
@@ -734,7 +736,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                 // the first entry might be a ClassInfo
                 //printf("\t[%d] = %s\n", i, fd.toChars());
-                if (ident != fd.ident || fd.type.covariant(tf) != 1)
+                if (ident != fd.ident || fd.type.covariant(tf) != Covariant.yes)
                 {
                     //printf("\t\t%d\n", fd.type.covariant(tf));
                     continue;
@@ -748,6 +750,23 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 }
                 if (fd == fdmatch)
                     continue;
+
+                /* Functions overriding interface functions for extern(C++) with VC++
+                 * are not in the normal vtbl, but in vtblFinal. If the implementation
+                 * is again overridden in a child class, both would be found here.
+                 * The function in the child class should override the function
+                 * in the base class, which is done here, because searchVtbl is first
+                 * called for the child class. Checking seenInterfaceVirtual makes
+                 * sure, that the compared functions are not in the same vtbl.
+                 */
+                if (fd.interfaceVirtual &&
+                    fd.interfaceVirtual is fdmatch.interfaceVirtual &&
+                    !seenInterfaceVirtual &&
+                    fdmatch.type.covariant(fd.type) == Covariant.yes)
+                {
+                    seenInterfaceVirtual = true;
+                    continue;
+                }
 
                 {
                 // Function type matching: exact > covariant

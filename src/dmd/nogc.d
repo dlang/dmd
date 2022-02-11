@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#nogc-functions, No-GC Functions)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/nogc.d, _nogc.d)
  * Documentation:  https://dlang.org/phobos/dmd_nogc.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/nogc.d
@@ -71,6 +71,7 @@ public:
         if (!e.f)
             return;
 
+        // Treat lowered hook calls as their original expressions.
         auto fd = stripHookTraceImpl(e.f);
         if (fd.ident == Id._d_arraysetlengthT)
         {
@@ -82,6 +83,20 @@ public:
                 return;
             }
             f.printGCUsage(e.loc, "setting `length` may cause a GC allocation");
+        }
+        else if (fd.ident == Id._d_delstruct)
+        {
+            // In expressionsem.d, `delete s` was lowererd to `_d_delstruct(s)`.
+            // The following code handles the call like the original expression,
+            // so the error is menaningful to the user.
+            if (f.setGC())
+            {
+                e.error("cannot use `delete` in `@nogc` %s `%s`", f.kind(),
+                    f.toPrettyChars());
+                err = true;
+                return;
+            }
+            f.printGCUsage(e.loc, "`delete` requires the GC");
         }
     }
 
@@ -136,7 +151,7 @@ public:
 
     override void visit(DeleteExp e)
     {
-        if (e.e1.op == TOK.variable)
+        if (e.e1.op == EXP.variable)
         {
             VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
             if (v && v.onstack)
@@ -189,7 +204,7 @@ public:
 
     override void visit(AssignExp e)
     {
-        if (e.e1.op == TOK.arrayLength)
+        if (e.e1.op == EXP.arrayLength)
         {
             if (f.setGC())
             {
@@ -230,7 +245,7 @@ public:
 Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
-    if (e && e.op != TOK.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&
+    if (e && e.op != EXP.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&
            (f.type.ty == Tfunction &&
             (cast(TypeFunction)f.type).isnogc || (f.flags & FUNCFLAG.nogcInprocess) || global.params.vgc) &&
            !(sc.flags & SCOPE.debug_))

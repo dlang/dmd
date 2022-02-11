@@ -1,9 +1,9 @@
 /**
  * Extract symbols from an OMF object file.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanomf.d, _scanomf.d)
  * Documentation:  https://dlang.org/phobos/dmd_scanomf.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanomf.d
@@ -15,7 +15,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import dmd.globals;
 import dmd.root.rmem;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.string;
 import dmd.arraytypes;
 import dmd.errors;

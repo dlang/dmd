@@ -1,9 +1,9 @@
 /**
  * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
  * Documentation:  https://dlang.org/phobos/dmd_id.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/id.d
@@ -115,7 +115,6 @@ immutable Msgtable[] msgtable =
     { "line" },
     { "empty", "" },
     { "p" },
-    { "q" },
     { "__vptr" },
     { "__monitor" },
     { "gate", "__gate" },
@@ -311,10 +310,15 @@ immutable Msgtable[] msgtable =
     { "__ArrayPostblit" },
     { "__ArrayDtor" },
     { "_d_delThrowable" },
+    { "_d_delstructImpl" },
+    { "_d_delstruct" },
+    { "_d_delstructTrace" },
     { "_d_assert_fail" },
     { "dup" },
     { "_aaApply" },
     { "_aaApply2" },
+    { "_d_arrayctor" },
+    { "_d_arraysetctor" },
 
     // For pragma's
     { "Pinline", "inline" },
@@ -463,6 +467,7 @@ immutable Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "initSymbol" },
     { "getCppNamespaces" },
     { "isReturnOnStack" },
     { "isZeroInit" },
@@ -472,6 +477,7 @@ immutable Msgtable[] msgtable =
     { "hasCopyConstructor" },
     { "isCopyable" },
     { "toType" },
+    { "parameters" },
 
     // For C++ mangling
     { "allocator" },
@@ -501,12 +507,11 @@ immutable Msgtable[] msgtable =
     { "__func__" },
     { "noreturn" },
     { "__pragma", "pragma" },
+    { "builtins", "__builtins" },
     { "builtin_va_list", "__builtin_va_list" },
-    { "builtin_va_start", "__builtin_va_start" },
     { "builtin_va_arg", "__builtin_va_arg" },
-    { "builtin_va_copy", "__builtin_va_copy" },
-    { "builtin_va_end", "__builtin_va_end" },
     { "va_list_tag", "__va_list_tag" },
+    { "va_arg" },
     { "pack" },
     { "show" },
     { "push" },

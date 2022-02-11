@@ -1,20 +1,19 @@
 /**
+ * Output to ELF object files
+ *
+ * http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
  */
 
 module dmd.backend.elfobj;
-
-/****
- * Output to ELF object files
- * http://www.sco.com/developers/gabi/2003-12-17/ch4.sheader.html
- */
 
 version (SCPP)
     version = COMPILE;
@@ -28,6 +27,9 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+// qsort is only nothrow in newer versions of druntime (since 2.081.0)
+private extern(C) void qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar) nothrow @nogc;
+
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -40,10 +42,11 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -59,7 +62,7 @@ extern bool symbol_iscomdat2(Symbol* s) @system;
 
 //#define DEBSYM 0x7E
 
-private __gshared Outbuffer *fobjbuf;
+private __gshared OutBuffer *fobjbuf;
 
 enum MATCH_SECTION = 1;
 
@@ -159,7 +162,7 @@ void ElfObj_refGOTsym()
 //              Comment data
 
 // Section Names  - String table for section names only
-private __gshared Outbuffer *section_names;
+private __gshared OutBuffer *section_names;
 enum SEC_NAMES_INIT = 800;
 enum SEC_NAMES_INC  = 400;
 
@@ -171,7 +174,7 @@ __gshared int jmpseg;
 /* ======================================================================== */
 
 // String Table  - String table for all other names
-private __gshared Outbuffer *symtab_strings;
+private __gshared OutBuffer *symtab_strings;
 
 
 // Section Headers
@@ -243,15 +246,15 @@ private ElfObj elfobj;
 
 
 // Extended section header indices
-private Outbuffer *shndx_data;
+private OutBuffer *shndx_data;
 private const IDXSEC secidx_shndx = SHN_HIRESERVE + 1;
 
 // Notes data (note currently used)
-private Outbuffer *note_data;
+private OutBuffer *note_data;
 private IDXSEC secidx_note;      // Final table index for note data
 
 // Comment data for compiler version
-private Outbuffer *comment_data;
+private OutBuffer *comment_data;
 
 // Each compiler segment is an elf section
 // Predefined compiler segments CODE,DATA,CDATA,UDATA map to indexes
@@ -305,7 +308,7 @@ int seg_tlsseg_bss = UNKNOWN;
  * Returns index into the specified string table.
  */
 
-IDXSTR ElfObj_addstr(Outbuffer *strtab, const(char)* str)
+IDXSTR ElfObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //dbg_printf("ElfObj_addstr(strtab = x%x str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
@@ -413,7 +416,7 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         // extended section header index.
         if (!shndx_data)
         {
-            shndx_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+            shndx_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(shndx_data);
             shndx_data.reserve(50 * (Elf64_Word).sizeof);
         }
@@ -641,7 +644,7 @@ int ElfObj_string_literal_segment(uint sz)
  */
 
 private
-Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
+Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("ElfObj_init(filename = %s, csegname = %s)\n",filename,csegname);
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
@@ -663,7 +666,7 @@ Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         symtab_strings.setsize(1);
     else
     {
-        symtab_strings = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        symtab_strings = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(symtab_strings);
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
@@ -700,7 +703,7 @@ Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
             section_names.setsize(section_names_init64.sizeof);
         else
         {
-            section_names = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+            section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(section_names);
             section_names.reserve(1024);
             section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
@@ -708,7 +711,7 @@ Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 
         if (section_names_hashtable)
             AApair2.destroy(section_names_hashtable);
-        section_names_hashtable = AApair2.create(&section_names.buf);
+        section_names_hashtable = AApair2.create(section_names.bufptr);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -742,7 +745,7 @@ Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
             section_names.setsize(section_names_init.sizeof);
         else
         {
-            section_names = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+            section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(section_names);
             section_names.reserve(100*1024);
             section_names.writen(section_names_init.ptr, section_names_init.sizeof);
@@ -750,7 +753,7 @@ Obj ElfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 
         if (section_names_hashtable)
             AApair2.destroy(section_names_hashtable);
-        section_names_hashtable = AApair2.create(&section_names.buf);
+        section_names_hashtable = AApair2.create(section_names.bufptr);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -1202,18 +1205,49 @@ void ElfObj_term(const(char)* objfilename)
             sechdr = &SecHdrTab[seg.SDrelidx];
             sechdr.sh_size = cast(uint)seg.SDrel.length();
             sechdr.sh_offset = foffset;
+
+            // sort the relocations by offset
             if (I64)
             {
                 assert(seg.SDrelcnt == seg.SDrel.length() / Elf64_Rela.sizeof);
-                debug for (size_t j = 0; j < seg.SDrelcnt; ++j)
-                {
-                    Elf64_Rela *p = (cast(Elf64_Rela *)seg.SDrel.buf) + j;
-                    if (ELF64_R_TYPE(p.r_info) == R_X86_64_64)
-                        assert(*cast(Elf64_Xword *)(seg.SDbuf.buf + p.r_offset) == 0);
-                }
+                extern (C) @trusted nothrow
+                    static int elf64_rel_fp(scope const(void*) e1,
+                                            scope const(void*) e2)
+                    {
+                        Elf64_Rela *r1 = cast(Elf64_Rela *)e1;
+                        Elf64_Rela *r2 = cast(Elf64_Rela *)e2;
+
+                        return (r1.r_offset > r2.r_offset)
+                             - (r1.r_offset < r2.r_offset);
+                    }
+                qsort(
+                    seg.SDrel.buf,
+                    seg.SDrel.length() / Elf64_Rela.sizeof,
+                    Elf64_Rela.sizeof,
+                    &elf64_rel_fp
+                );
             }
             else
+            {
                 assert(seg.SDrelcnt == seg.SDrel.length() / Elf32_Rel.sizeof);
+                extern (C) @trusted nothrow
+                    static int elf32_rel_fp(scope const(void*) e1,
+                                            scope const(void*) e2)
+                    {
+                        Elf32_Rel *r1 = cast(Elf32_Rel *)e1;
+                        Elf32_Rel *r2 = cast(Elf32_Rel *)e2;
+
+                        return (r1.r_offset > r2.r_offset)
+                             - (r1.r_offset < r2.r_offset);
+                    }
+                qsort(
+                    seg.SDrel.buf,
+                    seg.SDrel.length() / Elf32_Rel.sizeof,
+                    Elf32_Rel.sizeof,
+                    &elf32_rel_fp
+                );
+            }
+
             fobjbuf.write(seg.SDrel.buf, sechdr.sh_size);
             foffset += sechdr.sh_size;
         }
@@ -1504,7 +1538,7 @@ void ElfObj_filename(const(char)* modname)
 void ElfObj_compiler()
 {
     //dbg_printf("ElfObj_compiler\n");
-    comment_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+    comment_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
     assert(comment_data);
 
     enum maxVersionLength = 40;  // hope enough to store `git describe --dirty`
@@ -1813,7 +1847,7 @@ private void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg)
 
         /* Don't write it if it is already there
          */
-        Outbuffer *buf = pgroupseg.SDbuf;
+        OutBuffer *buf = pgroupseg.SDbuf;
         assert(int.sizeof == 4);               // loop depends on this
         for (size_t i = buf.length(); i > 4;)
         {
@@ -1861,7 +1895,7 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     else
     {   if (SecHdrTab[shtidx].sh_type != SHT_NOBITS)
         {
-            pseg.SDbuf = cast(Outbuffer*) calloc(1, (Outbuffer).sizeof);
+            pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(pseg.SDbuf);
             pseg.SDbuf.reserve(1024);
         }
@@ -1870,8 +1904,6 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
         pseg.SDrel.reset();
     pseg.SDsymidx = symidx;
     pseg.SDrelidx = relidx;
-    pseg.SDrelmaxoff = 0;
-    pseg.SDrelindex = 0;
     pseg.SDrelcnt = 0;
     pseg.SDshtidxout = 0;
     pseg.SDsym = null;
@@ -2550,7 +2582,7 @@ void ElfObj_write_byte(seg_data *pseg, uint byte_)
 
 void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
 {
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     //dbg_printf("ElfObj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
@@ -2587,7 +2619,7 @@ static if (0)
     }
 }
     assert(seg >= 0 && seg < SegData.length);
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     if (buf == null)
     {
         //dbg_printf("ElfObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n", seg, offset, nbytes, p);
@@ -2626,7 +2658,7 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
                     IDXSYM symidx, targ_size_t val)
 {
     seg_data *segdata;
-    Outbuffer *buf;
+    OutBuffer *buf;
     IDXSEC secidx;
 
     //assert(val == 0);
@@ -2641,7 +2673,7 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
 
     if (segdata.SDrel == null)
     {
-        segdata.SDrel = cast(Outbuffer*) calloc(1, (Outbuffer).sizeof);
+        segdata.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(segdata.SDrel);
     }
 
@@ -2701,24 +2733,6 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
         buf = segdata.SDrel;
         buf.write(&rel,(rel).sizeof);
         segdata.SDrelcnt++;
-
-        if (offset >= segdata.SDrelmaxoff)
-            segdata.SDrelmaxoff = offset;
-        else
-        {   // insert numerically
-            Elf64_Rela *relbuf = cast(Elf64_Rela *)buf.buf;
-            int i = relbuf[segdata.SDrelindex].r_offset > offset ? 0 : segdata.SDrelindex;
-            while (i < segdata.SDrelcnt)
-            {
-                if (relbuf[i].r_offset > offset)
-                    break;
-                i++;
-            }
-            assert(i != segdata.SDrelcnt);     // slide greater offsets down
-            memmove(relbuf+i+1,relbuf+i,Elf64_Rela.sizeof * (segdata.SDrelcnt - i - 1));
-            *(relbuf+i) = rel;          // copy to correct location
-            segdata.SDrelindex = i;    // next entry usually greater
-        }
     }
     else
     {
@@ -2728,24 +2742,6 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
         buf = segdata.SDrel;
         buf.write(&rel,rel.sizeof);
         segdata.SDrelcnt++;
-
-        if (offset >= segdata.SDrelmaxoff)
-            segdata.SDrelmaxoff = offset;
-        else
-        {   // insert numerically
-            Elf32_Rel *relbuf = cast(Elf32_Rel *)buf.buf;
-            int i = relbuf[segdata.SDrelindex].r_offset > offset ? 0 : segdata.SDrelindex;
-            while (i < segdata.SDrelcnt)
-            {
-                if (relbuf[i].r_offset > offset)
-                    break;
-                i++;
-            }
-            assert(i != segdata.SDrelcnt);     // slide greater offsets down
-            memmove(relbuf+i+1,relbuf+i,Elf32_Rel.sizeof * (segdata.SDrelcnt - i - 1));
-            *(relbuf+i) = rel;          // copy to correct location
-            segdata.SDrelindex = i;    // next entry usually greater
-        }
     }
 }
 
@@ -2840,11 +2836,11 @@ private size_t writeaddrval(int targseg, size_t offset, targ_size_t val, size_t 
 {
     assert(targseg >= 0 && targseg < SegData.length);
 
-    Outbuffer *buf = SegData[targseg].SDbuf;
+    OutBuffer *buf = SegData[targseg].SDbuf;
     const save = buf.length();
     buf.setsize(cast(uint)offset);
     buf.write(&val, cast(uint)size);
-    // restore Outbuffer position
+    // restore OutBuffer position
     if (save > offset + size)
         buf.setsize(cast(uint)save);
     return size;
@@ -3013,7 +3009,6 @@ int ElfObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
     bool external = true;
-    Outbuffer *buf;
     reltype_t relinfo = R_X86_64_NONE;
     int refseg;
     const segtyp = MAP_SEG2TYP(seg);
@@ -3383,7 +3378,7 @@ void ElfObj_dehinfo(Symbol *scc)
 
 private void obj_rtinit()
 {
-    // section start/stop symbols are defined by the linker (http://www.airs.com/blog/archives/56)
+    // section start/stop symbols are defined by the linker (https://www.airs.com/blog/archives/56)
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
 
@@ -3477,7 +3472,7 @@ private void obj_rtinit()
             elf_addsym(namidx, 0, 0, STT_FUNC, STB_LOCAL, MAP_SEG2SECIDX(codseg));
         }
 
-        Outbuffer *buf = SegData[codseg].SDbuf;
+        OutBuffer *buf = SegData[codseg].SDbuf;
         assert(!buf.length());
         size_t off = 0;
 
@@ -3802,7 +3797,7 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val
         if (!s.Sdw_ref_idx)
         {
             const dataDWref_seg = ElfObj_getsegment(".data.DW.ref.", s.Sident.ptr, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
-            Outbuffer *buf = SegData[dataDWref_seg].SDbuf;
+            OutBuffer *buf = SegData[dataDWref_seg].SDbuf;
             assert(buf.length() == 0);
             ElfObj_reftoident(dataDWref_seg, 0, s, 0, I64 ? CFoffset64 : CFoff);
 

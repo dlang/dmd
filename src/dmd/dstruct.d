@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dstruct.d, _dstruct.d)
  * Documentation:  https://dlang.org/phobos/dmd_dstruct.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dstruct.d
@@ -128,7 +128,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
          */
         if (!sd.members)
             return; // opaque struct
-        if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.dtor && !sd.xhash && !search_toString(sd))
+        if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.tidtor && !sd.xhash && !search_toString(sd))
             return; // none of TypeInfo-specific members
 
         // If the struct is in a non-root module, run semantic3 to get
@@ -233,7 +233,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
     }
 
-    static StructDeclaration create(Loc loc, Identifier id, bool inObject)
+    static StructDeclaration create(const ref Loc loc, Identifier id, bool inObject)
     {
         return new StructDeclaration(loc, id, inObject);
     }
@@ -522,14 +522,14 @@ private bool _isZeroInit(Expression exp)
 {
     switch (exp.op)
     {
-        case TOK.int64:
+        case EXP.int64:
             return exp.toInteger() == 0;
 
-        case TOK.null_:
-        case TOK.false_:
+        case EXP.null_:
+        case EXP.false_:
             return true;
 
-        case TOK.structLiteral:
+        case EXP.structLiteral:
         {
             auto sle = cast(StructLiteralExp) exp;
             foreach (i; 0 .. sle.sd.fields.dim)
@@ -546,7 +546,7 @@ private bool _isZeroInit(Expression exp)
             return true;
         }
 
-        case TOK.arrayLiteral:
+        case EXP.arrayLiteral:
         {
             auto ale = cast(ArrayLiteralExp)exp;
 
@@ -566,7 +566,7 @@ private bool _isZeroInit(Expression exp)
             return true;
         }
 
-        case TOK.string_:
+        case EXP.string_:
         {
             StringExp se = cast(StringExp)exp;
 
@@ -581,14 +581,14 @@ private bool _isZeroInit(Expression exp)
             return true;
         }
 
-        case TOK.vector:
+        case EXP.vector:
         {
             auto ve = cast(VectorExp) exp;
             return _isZeroInit(ve.e1);
         }
 
-        case TOK.float64:
-        case TOK.complex80:
+        case EXP.float64:
+        case EXP.complex80:
         {
             import dmd.root.ctfloat : CTFloat;
             return (exp.toReal()      is CTFloat.zero) &&

@@ -188,15 +188,38 @@ void main(string[] args)
 }
 ```
 
+Test parameters can be restricted to certain targets by adding a brace-enclosed
+condition after the name, i.e. `REQUIRED_ARGS(<condition>): ...`. The `<condition>`
+consists of the target operating system followed by an optional model suffix,
+e.g. `linux`, `win32mscoff`, `freebsd64`.
+
+Valid platforms:
+- win
+- linux
+- osx
+- freebsd
+- dragonflybsd
+- netbsd
+
+Valid models:
+- 32
+- 32mscoff  (windows only)
+- 64
+
+Note that test parameters *MUST* be followed by a colon (intermediate whitespace is allowed).
+The test runner will issue an error for a missing colon (e.g. `REQUIRED_ARGS foo`)
+to avoid ambiguities. Test directives embedded within other words (e.g. `OPTLINK`)
+will be ignored.
+
 The following is a list of all available settings:
+
+    ARG_SETS:            sets off extra arguments to invoke $(DMD) with (seperated by ';').
+                         default: (none)
 
     COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
                          together in an extra setup. May specify additional parameters which
                          are passed to $(DMD) when linking the generated object files.
                          default: (none, aka compile/link all in one step)
-
-    EXECUTE_ARGS:        parameters to add to the execution of the test
-                         default: (none)
 
     COMPILED_IMPORTS:    list of modules files that are imported by the main source file that
                          should be included in compilation; this differs from the EXTRA_SOURCES
@@ -206,34 +229,48 @@ The following is a list of all available settings:
                          once by explicitly passing the modules to the compiler.
                          default: (none)
 
-    DFLAGS:              Overrides the DFLAGS environment variable if specified in the test.
-                         No values are permitted; an error will be emitted if the value is not
-                         empty.
-
-    EXTRA_SOURCES:       list of extra files to build and link along with the test
-                         default: (none)
-
-    EXTRA_CPP_SOURCES:   list of extra C++ files to build and link along with the test
-                         default: (none).
-
     CXXFLAGS:            list of extra arguments passed to $(CC) when compiling C++ sources
                          defined in EXTRA_CPP_SOURCES.
                          default: (none)
 
-    EXTRA_OBJC_SOURCES:  list of extra Objective-C files to build and link along with the test
-                         default: (none). Test files with this variable will be ignored unless
-                         the D_OBJC environment variable is set to "1"
+    DFLAGS:              Overrides the DFLAGS environment variable if specified in the test.
+                         No values are permitted; an error will be emitted if the value is not
+                         empty.
+
+    DISABLED:            selectively disable the test on specific platforms (if empty, the test is
+                         considered to be enabled on all platform). Target platforms are specified
+                         using nearly the same syntax as conditions of optional parameters, except for
+                         `win` instead of `windows`.
+                         Potential filters are `win32`, `linux`, ...
+                         default: (none, enabled)
+
+    EXECUTE_ARGS:        parameters to add to the execution of the test
+                         default: (none)
+
+    EXTRA_CPP_SOURCES:   list of extra C++ files to build and link along with the test
+                         default: (none).
 
     EXTRA_FILES:         list of extra files and sources used by the test, either during
                          compilation or execution of the test. It is currently ignored by the test
                          runner, but serves as documentation of the test itself.
                          default: (none)
 
-    PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations.
-                         An empty set means only one permutation with no arguments.
-                         default: the make variable ARGS (see below)
+    EXTRA_OBJC_SOURCES:  list of extra Objective-C files to build and link along with the test
+                         default: (none). Test files with this variable will be ignored unless
+                         the D_OBJC environment variable is set to "1"
 
-    ARG_SETS:            sets off extra arguments to invoke $(DMD) with (seperated by ';').
+    EXTRA_SOURCES:       list of extra files to build and link along with the test
+                         default: (none)
+
+    GDB_MATCH:           a regular expression describing the expected output of GDB_SCRIPT. The test
+                         will fail if it does not match the actual output.
+                         default: (none)
+
+    GDB_SCRIPT:          if present, starts a `gdb` session for the compiled executable to run the commands
+                         specified in the corresponding section. GDB_MATCH may be used to used to verfiy
+                         expected output using a regex.
+                         note: restricted to `runnable` tests, the executable will not be run outside of the
+                               gdb session.
                          default: (none)
 
     LINK:                enables linking (used for the compilable and fail_compilable tests).
@@ -255,6 +292,25 @@ The following is a list of all available settings:
                         The merged output will then be prepared and compared to the
                         expected TEST_OUTPUT as defined below.
                         default: (none)
+
+    PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations.
+                         An empty set means only one permutation with no arguments.
+                         default: the make variable ARGS (see below)
+
+    POST_SCRIPT:         name of script to execute after test run
+                         note: arguments to the script may be included after the name.
+                               additionally, the name of the file that contains the output
+                               of the compile/link/run steps is added as the last parameter.
+                         default: (none)
+
+    REQUIRED_ARGS:       arguments to add to the $(DMD) command line
+                         default: (none)
+                         note: the make variable REQUIRED_ARGS is also added to the $(DMD)
+                               command line (see below)
+
+    RUN_OUTPUT:         output expected from running the compiled executable which must match
+                        the actual output. The comparison adheres to the rules defined for
+                        TEST_OUTPUT and allow e.g. using special sequences as defined below.
 
     TEST_OUTPUT:         the output is expected from the compilation (if the
                          output of the compilation doesn't match, the test
@@ -286,39 +342,6 @@ The following is a list of all available settings:
                                             arguments: the regex
                                             note: patterns containing ')' must be quoted
 
-    RUN_OUTPUT:         output expected from running the compiled executable which must match
-                        the actual output. The comparison adheres to the rules defined for
-                        TEST_OUTPUT and allow e.g. using special sequences as defined below.
-
-    POST_SCRIPT:         name of script to execute after test run
-                         note: arguments to the script may be included after the name.
-                               additionally, the name of the file that contains the output
-                               of the compile/link/run steps is added as the last parameter.
-                         default: (none)
-
-    GDB_SCRIPT:          if present, starts a `gdb` session for the compiled executable to run the commands
-                         specified in the corresponding section. GDB_MATCH may be used to used to verfiy
-                         expected output using a regex.
-                         note: restricted to `runnable` tests, the executable will not be run outside of the
-                               gdb session.
-                         default: (none)
-
-    GDB_MATCH:           a regular expression describing the expected output of GDB_SCRIPT. The test
-                         will fail if it does not match the actual output.
-                         default: (none)
-
-    REQUIRED_ARGS:       arguments to add to the $(DMD) command line
-                         default: (none)
-                         note: the make variable REQUIRED_ARGS is also added to the $(DMD)
-                               command line (see below)
-
-    DISABLED:            selectively disable the test on specific platforms (if empty, the test is
-                         considered to be enabled on all platform).
-                         default: (none, enabled)
-                         Valid platforms: win linux osx freebsd dragonflybsd netbsd
-                         Optionally a MODEL suffix can used for further filtering, e.g.
-                         win32 win64 linux32 linux64 osx32 osx64 freebsd32 freebsd64
-
 Environment variables
 ------------------------------
 
@@ -327,41 +350,41 @@ Environment variables
 > Note: These variables are also available inside any Bash test.
 
     ARGS:          set to execute all combinations of
-    REQUIRED_ARGS: arguments always passed to the compiler
-    DMD:           compiler to use, ex: ../src/dmd (required)
-    CC:            C++ compiler to use, ex: dmc, g++
-    OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd
-    RESULTS_DIR:   base directory for test results
-    MODEL:         32 or 64 (required)
     AUTO_UPDATE:   set to 1 to auto-update mismatching test output
+    CC:            C++ compiler to use, ex: dmc, g++
+    DMD:           compiler to use, ex: ../src/dmd (required)
+    MODEL:         32 or 64 (required)
+    OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd
+    REQUIRED_ARGS: arguments always passed to the compiler
+    RESULTS_DIR:   base directory for test results
 
 Windows vs non-windows portability env vars:
 
     DSEP:          \\ or /
-    SEP:           \ or / (required)
-    OBJ:          .obj or .o (required)
     EXE:          .exe or <null> (required)
+    OBJ:          .obj or .o (required)
+    SEP:           \ or / (required)
 
 Bash Tests
 ----------
 
 Along with the environment variables provided by [`run.d`](./run.d) (see above), an additional set of environment variables are made available to Bash tests. These variables are defined in `tools/exported_vars.sh`:
 
-    TEST_DIR           the name of the test directory
-                       (one of compilable, fail_compilation or runnable)
+    EXTRA_FILES        directory for extra files of this test type, e.g. runnable/extra-files
 
-    TEST_NAME          the base name of the test file without the extension, e.g. test15897
+    LIBEXT             platform-specific extension for library files, e.g. .a or .lib
 
     RESULTS_TEST_DIR   the results directory for tests of this type, e.g. test_results/runnable
 
     OUTPUT_BASE        the prefix used for test output files, e.g. test_results/runnable/mytest
 
-    EXTRA_FILES        directory for extra files of this test type, e.g. runnable/extra-files
-
-    LIBEXT             platform-specific extension for library files, e.g. .a or .lib
-
     SOEXT              platform-specific extension for shared object files (aka. dynamic libraries),
                        e.g. .so, .dll or .dylib
+
+    TEST_DIR           the name of the test directory
+                       (one of compilable, fail_compilation or runnable)
+
+    TEST_NAME          the base name of the test file without the extension, e.g. test15897
 
 Test configuration variables
 ----------------------------

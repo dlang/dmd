@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.h
  */
 
@@ -108,7 +108,21 @@ struct Visibility
 
 /* State of symbol in winding its way through the passes of the compiler
  */
-enum PASS
+enum class PASS : uint8_t
+{
+    init,           // initial state
+    semantic,       // semantic() started
+    semanticdone,   // semantic() done
+    semantic2,      // semantic2() started
+    semantic2done,  // semantic2() done
+    semantic3,      // semantic3() started
+    semantic3done,  // semantic3() done
+    inline_,         // inline started
+    inlinedone,     // inline done
+    obj             // toObjFile() run
+};
+
+enum
 {
     PASSinit,           // initial state
     PASSsemantic,       // semantic() started

@@ -8,9 +8,9 @@
  * - `invariant`
  * - `unittest`
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/func.d, _func.d)
  * Documentation:  https://dlang.org/phobos/dmd_func.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/func.d
@@ -45,7 +45,8 @@ import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
 import dmd.objc;
-import dmd.root.outbuffer;
+import dmd.root.aav;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.root.stringtable;
@@ -260,6 +261,8 @@ extern (C++) class FuncDeclaration : Declaration
 
     VarDeclaration vresult;             /// result variable for out contracts
     LabelDsymbol returnLabel;           /// where the return goes
+
+    bool[size_t] isTypeIsolatedCache;   /// cache for the potentially very expensive isTypeIsolated check
 
     // used to prevent symbols in different
     // scopes from having the same name
@@ -632,8 +635,8 @@ extern (C++) class FuncDeclaration : Declaration
         int result = 0;
         if (fd.ident == ident)
         {
-            int cov = type.covariant(fd.type);
-            if (cov)
+            const cov = type.covariant(fd.type);
+            if (cov != Covariant.distinct)
             {
                 ClassDeclaration cd1 = toParent().isClassDeclaration();
                 ClassDeclaration cd2 = fd.toParent().isClassDeclaration();
@@ -691,31 +694,28 @@ extern (C++) class FuncDeclaration : Declaration
                 }
 
                 StorageClass stc = 0;
-                int cov = type.covariant(fdv.type, &stc);
+                const cov = type.covariant(fdv.type, &stc);
                 //printf("\tbaseclass cov = %d\n", cov);
-                switch (cov)
+                final switch (cov)
                 {
-                case 0:
+                case Covariant.distinct:
                     // types are distinct
                     break;
 
-                case 1:
+                case Covariant.yes:
                     bestvi = vi; // covariant, but not identical
                     break;
                     // keep looking for an exact match
 
-                case 2:
+                case Covariant.no:
                     mismatchvi = vi;
                     mismatchstc = stc;
                     mismatch = fdv; // overrides, but is not covariant
                     break;
                     // keep looking for an exact match
 
-                case 3:
+                case Covariant.fwdref:
                     return -2; // forward references
-
-                default:
-                    assert(0);
                 }
             }
         }
@@ -743,7 +743,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final BaseClass* overrideInterface()
     {
-        if (ClassDeclaration cd = toParent2().isClassDeclaration())
+        for (ClassDeclaration cd = toParent2().isClassDeclaration(); cd; cd = cd.baseClass)
         {
             foreach (b; cd.interfaces)
             {
@@ -848,7 +848,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (t.ty == Tfunction)
             {
                 auto tf = cast(TypeFunction)f.type;
-                if (tf.covariant(t) == 1 &&
+                if (tf.covariant(t) == Covariant.yes &&
                     tf.nextOf().implicitConvTo(t.nextOf()) >= MATCH.constant)
                 {
                     fd = f;
@@ -1306,7 +1306,14 @@ extern (C++) class FuncDeclaration : Declaration
         if (!fbody)
             return false;
 
-        if (isVirtualMethod())
+        if (isVirtualMethod() &&
+            /*
+             * https://issues.dlang.org/show_bug.cgi?id=21719
+             *
+             * If we have an auto virtual function we can infer
+             * the attributes.
+             */
+            !(inferRetType && !isCtorDeclaration()))
             return false;               // since they may be overridden
 
         if (sc.func &&
@@ -1532,8 +1539,23 @@ extern (C++) class FuncDeclaration : Declaration
     extern (D) final bool isTypeIsolated(Type t)
     {
         StringTable!Type parentTypes;
-        parentTypes._init();
-        return isTypeIsolated(t, parentTypes);
+        const uniqueTypeID = t.getUniqueID();
+        if (uniqueTypeID)
+        {
+            const cacheResultPtr = uniqueTypeID in isTypeIsolatedCache;
+            if (cacheResultPtr !is null)
+                return *cacheResultPtr;
+
+            parentTypes._init();
+            const isIsolated = isTypeIsolated(t, parentTypes);
+            isTypeIsolatedCache[uniqueTypeID] = isIsolated;
+            return isIsolated;
+        }
+        else
+        {
+            parentTypes._init();
+            return isTypeIsolated(t, parentTypes);
+        }
     }
 
     ///ditto
@@ -2596,9 +2618,10 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         if (!tf.nextOf())
-            error("must return `int` or `void`");
-        else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid)
-            error("must return `int` or `void`, not `%s`", tf.nextOf().toChars());
+            // auto main(), check after semantic
+            assert(this.inferRetType);
+        else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid && tf.nextOf().ty != Tnoreturn)
+            error("must return `int`, `void` or `noreturn`, not `%s`", tf.nextOf().toChars());
         else if (tf.parameterList.varargs || nparams >= 2 || argerr)
             error("parameters must be `main()` or `main(string[] args)`");
     }
@@ -3029,7 +3052,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         // all of overloads are templates
         if (td)
         {
-            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`",
+            .error(loc, "none of the overloads of %s `%s.%s` are callable using argument types `!(%s)%s`",
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
@@ -3260,17 +3283,7 @@ private bool traverseIndirections(Type ta, Type tb)
 {
     //printf("traverseIndirections(%s, %s)\n", ta.toChars(), tb.toChars());
 
-    /* Threaded list of aggregate types already examined,
-     * used to break cycles.
-     * Cycles in type graphs can only occur with aggregates.
-     */
-    static struct Ctxt
-    {
-        Ctxt* prev;
-        Type type;      // an aggregate type
-    }
-
-    static bool traverse(Type ta, Type tb, Ctxt* ctxt, bool reversePass)
+    static bool traverse(Type ta, Type tb, ref scope AssocArray!(const(char)*, bool) table, bool reversePass)
     {
         //printf("traverse(%s, %s)\n", ta.toChars(), tb.toChars());
         ta = ta.baseElemOf();
@@ -3300,28 +3313,27 @@ private bool traverseIndirections(Type ta, Type tb)
 
         if (tb.ty == Tclass || tb.ty == Tstruct)
         {
-            for (Ctxt* c = ctxt; c; c = c.prev)
-                if (tb == c.type)
-                    return true;
-            Ctxt c;
-            c.prev = ctxt;
-            c.type = tb;
-
             /* Traverse the type of each field of the aggregate
              */
+            bool* found = table.getLvalue(tb.deco);
+            if (*found == true)
+                return true; // We have already seen this symbol, break the cycle
+            else
+                *found = true;
+
             AggregateDeclaration sym = tb.toDsymbol(null).isAggregateDeclaration();
             foreach (v; sym.fields)
             {
                 Type tprmi = v.type.addMod(tb.mod);
                 //printf("\ttb = %s, tprmi = %s\n", tb.toChars(), tprmi.toChars());
-                if (!traverse(ta, tprmi, &c, reversePass))
+                if (!traverse(ta, tprmi, table, reversePass))
                     return false;
             }
         }
         else if (tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tpointer)
         {
             Type tind = tb.nextOf();
-            if (!traverse(ta, tind, ctxt, reversePass))
+            if (!traverse(ta, tind, table, reversePass))
                 return false;
         }
         else if (tb.hasPointers())
@@ -3332,7 +3344,10 @@ private bool traverseIndirections(Type ta, Type tb)
 
         // Still no match, so try breaking up ta if we have not done so yet.
         if (!reversePass)
-            return traverse(tb, ta, ctxt, true);
+        {
+            scope newTable = AssocArray!(const(char)*, bool)();
+            return traverse(tb, ta, newTable, true);
+        }
 
         return true;
     }
@@ -3340,7 +3355,8 @@ private bool traverseIndirections(Type ta, Type tb)
     // To handle arbitrary levels of indirections in both parameters, we
     // recursively descend into aggregate members/levels of indirection in both
     // `ta` and `tb` while avoiding cycles. Start with the original types.
-    const result = traverse(ta, tb, null, false);
+    scope table = AssocArray!(const(char)*, bool)();
+    const result = traverse(ta, tb, table, false);
     //printf("  returns %d\n", result);
     return result;
 }

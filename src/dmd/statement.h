@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/statement.h
  */
 
@@ -45,7 +45,7 @@ struct code;
 
 /* How a statement exits; this is returned by blockExit()
  */
-enum BE
+enum BE : int32_t
 {
     BEnone =     0,
     BEfallthru = 1,
@@ -186,7 +186,7 @@ class ExpStatement : public Statement
 public:
     Expression *exp;
 
-    static ExpStatement *create(Loc loc, Expression *exp);
+    static ExpStatement *create(const Loc &loc, Expression *exp);
     ExpStatement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -218,7 +218,7 @@ class CompoundStatement : public Statement
 public:
     Statements *statements;
 
-    static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
+    static CompoundStatement *create(const Loc &loc, Statement *s1, Statement *s2);
     CompoundStatement *syntaxCopy();
     ReturnStatement *endsWithReturnStatement();
     Statement *last();
@@ -615,7 +615,7 @@ public:
     Statement *tryBody;   // set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
     bool bodyFallsThru;   // true if _body falls through to finally
 
-    static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
+    static TryFinallyStatement *create(const Loc &loc, Statement *body, Statement *finalbody);
     TryFinallyStatement *syntaxCopy();
     bool hasBreak() const;
     bool hasContinue() const;

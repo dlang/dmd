@@ -1,6 +1,16 @@
 int printf(const char *fmt, ...);
 void exit(int);
 
+void assert(int b, int line)
+{
+    if (!b)
+    {
+        printf("failed test %d\n", line);
+        exit(1);
+    }
+}
+
+
 struct S
 {
     int a:2, b:4;
@@ -170,6 +180,80 @@ void test5()
 
 /******************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=22710
+
+struct S6
+{
+    unsigned int a:2, b:2;
+};
+
+int boo6()
+{
+    S s;
+    s.a = 3;
+    s.b = 1;
+    s.a += 2;
+    return s.a;
+}
+
+void test6()
+{
+    //printf("res: %d\n", test());
+    assert(boo6() == 1, 6);
+}
+
+/******************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=22710
+
+struct S7
+{
+    unsigned a:2, b:2;
+    int c:2, d:2;
+};
+
+int test7u()
+{
+    S7 s;
+    s.a = 7;
+    s.b = 1;
+    s.a += 2;
+    return s.a;
+}
+
+int test7s()
+{
+    S7 s;
+    s.c = 7;
+    s.d = 1;
+    s.c += 4;
+    return s.c;
+}
+
+int test7s2()
+{
+    S7 s;
+    s.c = 7;
+    s.d = 2;
+    s.c += 4;
+    return s.d;
+}
+
+void test7()
+{
+    //printf("uns: %d\n", test7u());
+    assert(test7u() == 1, 1);
+    //printf("sig: %d\n", test7s());
+    assert(test7s() == -1, 2);
+    assert(test7s2() == -2, 3);
+}
+
+_Static_assert(test7u() ==  1, "1");
+_Static_assert(test7s() == -1, "2");
+_Static_assert(test7s2() == -2, "3");
+
+/******************************************/
+
 int main()
 {
     test1();
@@ -177,6 +261,8 @@ int main()
     test3();
     test4();
     test5();
+    test6();
+    test7();
 
     return 0;
 }

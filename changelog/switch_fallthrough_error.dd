@@ -1,0 +1,27 @@
+Falling through switch cases is now an error
+
+This was deprectated in 2.072.2 because it is a common mistake to forget a `break` statement at the end of a switch case.
+The deprecation warning has now been turned into an error.
+
+If you intend to let control flow continue from one case to the next, use the `goto case;` statement.
+
+---
+void parseNumFmt(char c, out int base, out bool uppercase)
+{
+    switch (c)
+    {
+        case 'B': // fallthrough allowed, case has no code
+        case 'b':
+            base = 2;
+            // error, accidental fallthrough to case 'X'
+        case 'X':
+            uppercase = true;
+            goto case; // allowed, explicit fallthrough
+        case 'x':
+            base = 16;
+            break;
+        default:
+            break;
+    }
+}
+---

@@ -1,7 +1,9 @@
 
 /**
+ * Declarations for ELF file format
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Translation to D of Linux's melf.h
  *

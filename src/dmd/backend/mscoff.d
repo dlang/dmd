@@ -1,4 +1,5 @@
-/** Microsoft COFF object file format
+/**
+ * Microsoft COFF object file format
  *
  * Source: $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mscoff.d, backend/_mscoff.d)
  */

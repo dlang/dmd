@@ -1,10 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Generate Mach-O object files
  *
- * Copyright:   Copyright (C) 2009-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Compiler implementation of the
+ * $(LINK2 https://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 2009-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/machobj.d, backend/machobj.d)
  */
 
@@ -36,9 +38,10 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -66,7 +69,7 @@ private int mach_rel_fp(scope const(void*) e1, scope const(void*) e2)
 }
 }
 
-void mach_relsort(Outbuffer *buf)
+void mach_relsort(OutBuffer *buf)
 {
     qsort(buf.buf, buf.length() / Relocation.sizeof, Relocation.sizeof, &mach_rel_fp);
 }
@@ -86,7 +89,7 @@ enum
     X86_64_RELOC_TLV              = 9, // for thread local variables
 }
 
-private extern (D) __gshared Outbuffer *fobjbuf;
+private extern (D) __gshared OutBuffer *fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
@@ -117,10 +120,10 @@ void MachObj_refGOTsym()
 
 
 // String Table  - String table for all other names
-private extern (D) __gshared Outbuffer *symtab_strings;
+private extern (D) __gshared OutBuffer *symtab_strings;
 
 // Section Headers
-__gshared Outbuffer  *SECbuf;             // Buffer to build section table in
+__gshared OutBuffer  *SECbuf;             // Buffer to build section table in
 section* SecHdrTab() { return cast(section *)SECbuf.buf; }
 section_64* SecHdrTab64() { return cast(section_64 *)SECbuf.buf; }
 
@@ -142,12 +145,12 @@ enum SYM_TAB_INC  = 50;          // Number of symbols to increment buffer by
  * are grouped into 3 different types (and a 4th for comdef's).
  */
 
-private Outbuffer *local_symbuf;
-private Outbuffer *public_symbuf;
-private Outbuffer *extern_symbuf;
+private OutBuffer *local_symbuf;
+private OutBuffer *public_symbuf;
+private OutBuffer *extern_symbuf;
 }
 
-private void reset_symbols(Outbuffer *buf)
+private void reset_symbols(OutBuffer *buf)
 {
     Symbol **p = cast(Symbol **)buf.buf;
     const size_t n = buf.length() / (Symbol *).sizeof;
@@ -159,12 +162,12 @@ __gshared
 {
 
 struct Comdef { Symbol *sym; targ_size_t size; int count; }
-private Outbuffer *comdef_symbuf;        // Comdef's are stored here
+private OutBuffer *comdef_symbuf;        // Comdef's are stored here
 
-private Outbuffer *indirectsymbuf1;      // indirect symbol table of Symbol*'s
+private OutBuffer *indirectsymbuf1;      // indirect symbol table of Symbol*'s
 private int jumpTableSeg;                // segment index for __jump_table
 
-private Outbuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
+private OutBuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
 private int pointersSeg;                 // segment index for __pointers
 
 /* If an MachObj_external_def() happens, set this to the string index,
@@ -290,7 +293,7 @@ struct Relocation
  * Returns index into the specified string table.
  */
 
-IDXSTR MachObj_addstr(Outbuffer *strtab, const(char)* str)
+IDXSTR MachObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //printf("MachObj_addstr(strtab = %p str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
@@ -438,7 +441,7 @@ int MachObj_string_literal_segment(uint sz)
  *      Called before any other obj_xxx routines
  */
 
-Obj MachObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
+Obj MachObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("MachObj_init()\n");
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
@@ -463,7 +466,7 @@ Obj MachObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname
         symtab_strings.setsize(1);
     else
     {
-        symtab_strings = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        symtab_strings = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(symtab_strings);
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
@@ -471,7 +474,7 @@ Obj MachObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname
 
     if (!local_symbuf)
     {
-        local_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        local_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(local_symbuf);
         local_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
@@ -484,7 +487,7 @@ Obj MachObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname
     }
     else
     {
-        public_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        public_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(public_symbuf);
         public_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
@@ -496,14 +499,14 @@ Obj MachObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname
     }
     else
     {
-        extern_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        extern_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(extern_symbuf);
         extern_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (!comdef_symbuf)
     {
-        comdef_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        comdef_symbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(comdef_symbuf);
         comdef_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
@@ -527,7 +530,7 @@ Obj MachObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname
     }
     else
     {
-        SECbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        SECbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(SECbuf);
         SECbuf.reserve(cast(uint)(SEC_TAB_INIT * struct_section_size));
         // Ignore the first section - section numbers start at 1
@@ -1729,7 +1732,7 @@ void MachObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
     // The size is (FuncTable).sizeof in deh2.d
     int seg = getsegment2(seg_deh_eh, "__deh_eh", "__DATA", align_, S_REGULAR);
 
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     if (I64)
     {
         MachObj_reftoident(seg, buf.length(), sfunc, 0, CFoff | CFoffset64);
@@ -1875,8 +1878,8 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
 
     if (pseg)
     {
-        Outbuffer *b1 = pseg.SDbuf;
-        Outbuffer *b2 = pseg.SDrel;
+        OutBuffer *b1 = pseg.SDbuf;
+        OutBuffer *b2 = pseg.SDrel;
         memset(pseg, 0, seg_data.sizeof);
         if (b1)
             b1.reset();
@@ -1895,7 +1898,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
     {
         if (flags != S_ZEROFILL)
         {
-            pseg.SDbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+            pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(pseg.SDbuf);
             pseg.SDbuf.reserve(4096);
         }
@@ -2443,7 +2446,7 @@ void MachObj_write_byte(seg_data *pseg, uint byte_)
 
 void MachObj_byte(int seg,targ_size_t offset,uint byte_)
 {
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     //dbg_printf("MachObj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
@@ -2480,7 +2483,7 @@ static if (0)
     }
 }
     assert(seg >= 0 && seg < SegData.length);
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     if (buf == null)
     {
         //dbg_printf("MachObj_bytes(seg=%d, offset=x%llx, nbytes=%d, p=%p)\n", seg, offset, nbytes, p);
@@ -2521,7 +2524,7 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
     seg_data *pseg = SegData[seg];
     if (!pseg.SDrel)
     {
-        pseg.SDrel = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(pseg.SDrel);
     }
     pseg.SDrel.write(&rel, rel.sizeof);
@@ -2543,7 +2546,7 @@ void MachObj_addrel(int seg, targ_size_t offset, Symbol *targsym,
 void MachObj_reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         uint targetdatum,int flags)
 {
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
 static if (0)
@@ -2586,7 +2589,7 @@ void MachObj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
     //printf("MachObj_reftocodeseg(seg=%d, offset=x%x, val=x%x )\n",seg,cast(uint)offset,cast(uint)val);
     assert(seg > 0);
-    Outbuffer *buf = SegData[seg].SDbuf;
+    OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
     val -= funcsym_p.Soffset;
@@ -2669,7 +2672,7 @@ static if (0)
 
                 if (!indirectsymbuf1)
                 {
-                    indirectsymbuf1 = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+                    indirectsymbuf1 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
                     assert(indirectsymbuf1);
                 }
                 else
@@ -2714,7 +2717,7 @@ static if (0)
 
                 if (!indirectsymbuf2)
                 {
-                    indirectsymbuf2 = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+                    indirectsymbuf2 = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
                     assert(indirectsymbuf2);
                 }
                 else
@@ -2751,7 +2754,7 @@ static if (0)
                     seg_data *pseg2 = SegData[seg];
                     if (!pseg2.SDrel)
                     {
-                        pseg2.SDrel = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+                        pseg2.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
                         assert(pseg2.SDrel);
                     }
                     pseg2.SDrel.write(&rel, rel.sizeof);
@@ -2765,7 +2768,7 @@ static if (0)
             }
         }
 
-        Outbuffer *buf = SegData[seg].SDbuf;
+        OutBuffer *buf = SegData[seg].SDbuf;
         int save = cast(int)buf.length();
         buf.position(cast(uint)offset, retsize);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
@@ -2965,7 +2968,7 @@ int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t va
  */
 int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t val, Symbol *fdesym)
 {
-    Outbuffer *buf = SegData[dfseg].SDbuf;
+    OutBuffer *buf = SegData[dfseg].SDbuf;
     assert(offset == buf.length());
     assert(fdesym.Sseg == dfseg);
     if (I64)
@@ -2984,7 +2987,7 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t v
     seg_data *pseg = SegData[dfseg];
     if (!pseg.SDrel)
     {
-        pseg.SDrel = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
+        pseg.SDrel = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
         assert(pseg.SDrel);
     }
     pseg.SDrel.write(&rel, rel.sizeof);

@@ -81,10 +81,10 @@ int main(string[] args)
 int tryMain(string[] args)
 {
     bool runUnitTests, dumpEnvironment;
-    int jobs = totalCPUs;
+    int jobs = 2 * totalCPUs;
     auto res = getopt(args,
         std.getopt.config.passThrough,
-        "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
+        "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(jobs), &jobs,
         "v", "Verbose command output", (cast(bool*) &verbose),
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
         "u|unit-tests", "Runs the unit tests", &runUnitTests,
@@ -133,9 +133,10 @@ Options:
     if (verbose || dumpEnvironment)
     {
         writefln("================================================================================");
-        foreach (key, value; env)
-            writefln("%s=%s", key, value);
+        foreach (key; env.keys.sort())
+            writefln("%s=%s", key, env[key]);
         writefln("================================================================================");
+        stdout.flush();
     }
 
     if (runUnitTests)
@@ -194,7 +195,10 @@ Options:
             int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
             if (status != 0)
             {
-                const name = target.normalizedTestName;
+                const string name = target.filename
+                            ? target.normalizedTestName
+                            : "`unit` tests";
+
                 writeln(">>> TARGET FAILED: ", name);
                 failedTargets ~= name;
             }
@@ -228,6 +232,31 @@ Does nothing if the tools already exist and are newer than their source.
 void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
 {
     resultsDir.mkdirRecurse;
+
+    version (Windows)
+    {{
+        // Environment variables are not properly propagated when using bash from WSL
+        // Create an additional configuration file that exports `env` entries if missing
+
+        File wrapper = File(env["RESULTS_DIR"] ~ "/setup_env.sh", "wb");
+
+        foreach (const key, string value; env)
+        {
+            // Detect windows paths and translate them to POSIX compatible relative paths
+            static immutable PATHS = [
+                "DMD",
+                "HOST_DMD",
+                "LIB",
+                "RESULTS_DIR",
+            ];
+
+            if (PATHS.canFind(key))
+                value = relativePosixPath(value, scriptDir);
+
+            // Export as env. variable if unset
+            wrapper.write(`[ -z "${`, key, `+x}" ] && export `, key, `='`, value, "' ;\n");
+        }
+    }}
 
     shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
@@ -266,9 +295,12 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
             }
             else
             {
+                string model = env["MODEL"];
+                if (model == "32omf") model = "32";
+
                 command = [
                     hostDMD,
-                    "-m"~env["MODEL"],
+                    "-m"~model,
                     "-of"~targetBin,
                     sourceFile
                 ] ~ getPicFlags(env) ~ tool.extraArgs;

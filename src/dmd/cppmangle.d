@@ -4,9 +4,9 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors: Walter Bright, http://www.digitalmars.com
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors: Walter Bright, https://www.digitalmars.com
+ * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
  * Documentation:  https://dlang.org/phobos/dmd_cppmangle.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cppmangle.d
@@ -41,7 +41,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.target;
@@ -98,21 +98,20 @@ extern(C++) const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
 }
 
 /******************************
- * Determine if sym is the 'primary' destructor, that is,
- * the most-aggregate destructor (the one that is defined as __xdtor)
+ * Determine if sym is a full aggregate destructor.
  * Params:
  *      sym = Dsymbol
  * Returns:
- *      true if sym is the primary destructor for an aggregate
+ *      true if sym is an aggregate destructor
  */
-bool isPrimaryDtor(const Dsymbol sym)
+bool isAggregateDtor(const Dsymbol sym)
 {
     const dtor = sym.isDtorDeclaration();
     if (!dtor)
         return false;
     const ad = dtor.isMember();
     assert(ad);
-    return dtor == ad.primaryDtor;
+    return dtor == ad.aggrDtor;
 }
 
 /// Context used when processing pre-semantic AST
@@ -491,7 +490,7 @@ private final class CppMangleVisitor : Visitor
                 mangle_function(d.isFuncDeclaration());
                 buf.writestring("EE");
             }
-            else if (e && e.op == TOK.variable && (cast(VarExp)e).var.isVarDeclaration())
+            else if (e && e.op == EXP.variable && (cast(VarExp)e).var.isVarDeclaration())
             {
                 VarDeclaration vd = (cast(VarExp)e).var.isVarDeclaration();
                 buf.writeByte('L');
@@ -1069,7 +1068,7 @@ private final class CppMangleVisitor : Visitor
 
             if (auto ctor = d.isCtorDeclaration())
                 buf.writestring(ctor.isCpCtor ? "C2" : "C1");
-            else if (d.isPrimaryDtor())
+            else if (d.isAggregateDtor())
                 buf.writestring("D1");
             else if (d.ident && d.ident == Id.assign)
                 buf.writestring("aS");
@@ -1184,7 +1183,7 @@ private final class CppMangleVisitor : Visitor
             mangleFunctionParameters(tf.parameterList);
             return;
         }
-        else if (d.isPrimaryDtor())
+        else if (d.isAggregateDtor())
         {
             buf.writestring("D1");
             mangleFunctionParameters(tf.parameterList);
@@ -1316,7 +1315,18 @@ private final class CppMangleVisitor : Visitor
 
         foreach (n, fparam; parameterList)
         {
-            Type t = target.cpp.parameterType(fparam);
+            Type t = fparam.type.merge2();
+            if (fparam.isReference())
+                t = t.referenceTo();
+            else if (fparam.storageClass & STC.lazy_)
+            {
+                // Mangle as delegate
+                auto tf = new TypeFunction(ParameterList(), t, LINK.d);
+                auto td = new TypeDelegate(tf);
+                t = td.merge();
+            }
+            else if (Type cpptype = target.cpp.parameterType(t))
+                t = cpptype;
             if (t.ty == Tsarray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++

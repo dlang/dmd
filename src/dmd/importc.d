@@ -3,9 +3,9 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 2021-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/importc.d, _importc.d)
  * Documentation:  https://dlang.org/phobos/dmd_importc.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/importc.d
@@ -217,25 +217,25 @@ Expression castCallAmbiguity(Expression e, Scope* sc)
         // Walk down the postfix expressions till we find a CallExp or something else
         switch ((*pe).op)
         {
-            case TOK.dotIdentifier:
+            case EXP.dotIdentifier:
                 pe = &(*pe).isDotIdExp().e1;
                 continue;
 
-            case TOK.plusPlus:
-            case TOK.minusMinus:
+            case EXP.plusPlus:
+            case EXP.minusMinus:
                 pe = &(*pe).isPostExp().e1;
                 continue;
 
-            case TOK.array:
+            case EXP.array:
                 pe = &(*pe).isArrayExp().e1;
                 continue;
 
-            case TOK.call:
+            case EXP.call:
                 auto ce = (*pe).isCallExp();
                 if (ce.e1.parens)
                 {
                     ce.e1 = expressionSemantic(ce.e1, sc);
-                    if (ce.e1.op == TOK.type)
+                    if (ce.e1.op == EXP.type)
                     {
                         const numArgs = ce.arguments ? ce.arguments.length : 0;
                         if (numArgs >= 1)

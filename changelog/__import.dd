@@ -1,0 +1,22 @@
+Add ability to import modules to ImportC
+
+ImportC can now import modules with the __import keyword, with the C code:
+
+$(CCODE
+__import core.stdc.stdarg; // import a D source file
+__import test2;            // import an ImportC file
+
+int foo()
+{
+    va_list x;
+    return 1 + A;
+}
+)
+
+test2.c is:
+
+$(CCODE
+enum E { A = 3 };
+)
+
+The syntax for `__import` after the keyword is the same as for D's `import` declaration.

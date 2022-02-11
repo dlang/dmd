@@ -3,9 +3,9 @@
  * https://dlang.org/spec/iasm.html
  *
  * Copyright:   Copyright (c) 1992-1999 by Symantec
- *              Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     Mike Cote, John Micco and $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmdmd.d, _iasmdmd.d)
  * Documentation:  https://dlang.org/phobos/dmd_iasmdmd.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/iasmdmd.d
@@ -37,7 +37,7 @@ import dmd.target;
 import dmd.tokens;
 
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 
@@ -2236,12 +2236,12 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
             else if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
-                if (e.op == TOK.variable)
+                if (e.op == EXP.variable)
                 {
                     o1.s = (cast(VarExp)e).var;
                     return;
                 }
-                else if (e.op == TOK.function_)
+                else if (e.op == EXP.function_)
                 {
                     o1.s = (cast(FuncExp)e).fd;
                     return;
@@ -3645,12 +3645,12 @@ code *asm_db_parse(OP *pop)
                 e = e.expressionSemantic(sc);
                 sc.endCTFE();
                 e = e.ctfeInterpret();
-                if (e.op == TOK.int64)
+                if (e.op == EXP.int64)
                 {
                     dt.ul = e.toInteger();
                     goto L2;
                 }
-                else if (e.op == TOK.float64)
+                else if (e.op == EXP.float64)
                 {
                     switch (op)
                     {

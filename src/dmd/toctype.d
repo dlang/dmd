@@ -1,9 +1,9 @@
 /**
  * Convert a D type to a type the backend understands.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/toctype.d, _toctype.d)
  * Documentation:  https://dlang.org/phobos/dmd_toctype.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toctype.d
@@ -143,6 +143,7 @@ public:
                 // Mangle as delegate
                 type* tf = type_function(TYnfunc, null, false, tp);
                 tp = type_delegate(tf);
+                tp.Tident = t.toPrettyChars(true);
             }
             types[i] = tp;
         }
@@ -154,6 +155,7 @@ public:
     override void visit(TypeDelegate t)
     {
         t.ctype = type_delegate(Type_toCtype(t.next));
+        t.ctype.Tident = t.toPrettyChars(true);
     }
 
     override void visit(TypeStruct t)

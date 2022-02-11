@@ -656,3 +656,14 @@ void test22602()
     unsigned char *data;
     data = (void *)"\0\0\xff\xff";
 }
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22401
+
+struct S22401
+{
+    const int *p;
+};
+const int c22401[1] = {0};
+const struct S22401 d22401 = {c22401};
+

@@ -2,9 +2,9 @@
  * Code to do the Data Flow Analysis (doesn't act on the data).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gflow.d, backend/gflow.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_gflow.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gflow.d
@@ -31,7 +31,6 @@ import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 

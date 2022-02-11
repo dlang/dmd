@@ -73,14 +73,19 @@ install_deps() {
 }
 
 setup_repos() {
-    # set a default in case we run into rate limit restrictions
     local base_branch=""
-    if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
-        base_branch=$((curl -fsSL https://api.github.com/repos/dlang/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER || echo) | jq -r '.base.ref')
-    else
+    if [ -z "${CIRCLE_PR_NUMBER:-}" ]; then
+        # no PR
         base_branch=$CIRCLE_BRANCH
+    elif [ -z "${CIRCLE_PR_REPONAME:-}" ]; then
+        # PR originating from the official dlang repo
+        base_branch=$CIRCLE_BRANCH
+    else
+        # PR from a fork
+        base_branch=$( (curl -fsSL https://api.github.com/repos/dlang/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER || echo) | jq -r '.base.ref')
+        # set a default in case we run into rate limit restrictions
+        base_branch=${base_branch:-master}
     fi
-    base_branch=${base_branch:-"master"}
 
     # merge testee PR with base branch (master) before testing
     if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
@@ -192,11 +197,7 @@ test_cxx()
 
 codecov()
 {
-    # CodeCov gets confused by lst files which it can't match
-    rm -rf test/runnable/extra-files
-    download "https://codecov.io/bash" "https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov" "codecov.sh"
-    bash ./codecov.sh -p . -Z || echo "Failed to upload coverage reports!"
-    rm codecov.sh
+    OS_NAME=linux source ci/codecov.sh
 }
 
 case $1 in

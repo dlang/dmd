@@ -1,0 +1,5 @@
+`-m32` now produces MS Coff objects when targeting windows
+
+The `-m32mscoff` switch is deprecated and `-m32` should be used in its place.
+A new switch `-m32omf` has been added to produce code for OMF. Use of this switch
+is discouraged because OMF will soon be unsupported.

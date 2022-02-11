@@ -35,6 +35,7 @@ fail_compilation/failcstuff2.c(354): Error: variable `arr` cannot be read at com
 fail_compilation/failcstuff2.c(360): Error: variable `str` cannot be read at compile time
 fail_compilation/failcstuff2.c(404): Error: undefined identifier `p1`
 fail_compilation/failcstuff2.c(404): Error: undefined identifier `p2`
+fail_compilation/failcstuff2.c(458): Error: cannot take address of bit-field `field`
 ---
 */
 
@@ -154,4 +155,18 @@ long test22584(long p1, long p2);
 long test22584(long, long)
 {
     return p1 + p2;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22749
+#line 450
+struct S22749
+{
+    int field : 1;
+};
+
+void test22749(void)
+{
+    struct S22749 s;
+    void *ptr = &s.field;
 }

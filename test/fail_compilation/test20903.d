@@ -5,7 +5,7 @@ fail_compilation/test20903.d(14): Error: integer overflow
 ---
  */
 
-// http://issues.dlang.org/show_bug.cgi?id=20903
+// https://issues.dlang.org/show_bug.cgi?id=20903
 
 long test()
 {

@@ -1,9 +1,9 @@
 /**
  * The base class for a D symbol, which can be a module, variable, function, enum, etc.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
  * Documentation:  https://dlang.org/phobos/dmd_dsymbol.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dsymbol.d
@@ -187,7 +187,7 @@ struct Visibility
     }
 }
 
-enum PASS : int
+enum PASS : ubyte
 {
     init,           // initial state
     semantic,       // semantic() started
@@ -1800,11 +1800,11 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         Expression eold = null;
         for (Expression e = withstate.exp; e && e != eold; e = resolveAliasThis(_scope, e, true))
         {
-            if (e.op == TOK.scope_)
+            if (e.op == EXP.scope_)
             {
                 s = (cast(ScopeExp)e).sds;
             }
-            else if (e.op == TOK.type)
+            else if (e.op == EXP.type)
             {
                 s = e.type.toDsymbol(null);
             }
@@ -1841,14 +1841,14 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
 extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 {
     // either a SliceExp, an IndexExp, an ArrayExp, a TypeTuple or a TupleDeclaration.
-    // Discriminated using DYNCAST and, for expressions, also TOK
+    // Discriminated using DYNCAST and, for expressions, also EXP
     private RootObject arrayContent;
     Scope* sc;
 
     extern (D) this(Scope* sc, Expression exp)
     {
         super(exp.loc, null);
-        assert(exp.op == TOK.index || exp.op == TOK.slice || exp.op == TOK.array);
+        assert(exp.op == EXP.index || exp.op == EXP.slice || exp.op == EXP.array);
         this.sc = sc;
         this.arrayContent = exp;
     }
@@ -1965,7 +1965,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
             {
                 // Look for opDollar
-                assert(exp.op == TOK.array || exp.op == TOK.slice);
+                assert(exp.op == EXP.array || exp.op == EXP.slice);
                 AggregateDeclaration ad = isAggregate(t);
                 assert(ad);
                 Dsymbol s = ad.search(loc, Id.opDollar);
@@ -1977,11 +1977,11 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 if (TemplateDeclaration td = s.isTemplateDeclaration())
                 {
                     dinteger_t dim = 0;
-                    if (exp.op == TOK.array)
+                    if (exp.op == EXP.array)
                     {
                         dim = (cast(ArrayExp)exp).currentDimension;
                     }
-                    else if (exp.op == TOK.slice)
+                    else if (exp.op == EXP.slice)
                     {
                         dim = 0; // slices are currently always one-dimensional
                     }
@@ -2002,7 +2002,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                      * Note that it's impossible to have both template & function opDollar,
                      * because both take no arguments.
                      */
-                    if (exp.op == TOK.array && (cast(ArrayExp)exp).arguments.dim != 1)
+                    if (exp.op == EXP.array && (cast(ArrayExp)exp).arguments.dim != 1)
                     {
                         exp.error("`%s` only defines opDollar for one dimension", ad.toChars());
                         return null;
@@ -2345,7 +2345,7 @@ extern (C++) final class DsymbolTable : RootObject
 Dsymbol handleTagSymbols(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsymbol sds)
 {
     enum log = false;
-    if (log) printf("handleTagSymbols('%s')\n", s.toChars());
+    if (log) printf("handleTagSymbols('%s') add %p existing %p\n", s.toChars(), s, s2);
     auto sd = s.isScopeDsymbol(); // new declaration
     auto sd2 = s2.isScopeDsymbol(); // existing declaration
 
@@ -2500,12 +2500,15 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         if (fd.fbody)                   // fd is the definition
         {
             sds.symtab.update(fd);      // replace fd2 in symbol table with fd
+            fd.overnext = fd2;
             return fd;
         }
 
-        /* BUG: just like with VarDeclaration, the types should match, which needs semantic() to be run on it.
-         * FuncDeclaration::semantic2() can detect this, but it relies overnext being set.
+        /* Just like with VarDeclaration, the types should match, which needs semantic() to be run on it.
+         * FuncDeclaration::semantic() detects this, but it relies on .overnext being set.
          */
+        fd2.overloadInsert(fd);
+
         return fd2;
     }
 

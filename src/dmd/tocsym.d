@@ -1,9 +1,9 @@
 /**
  * Convert a D symbol to a symbol the linker understands (with mangled name).
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocsym.d)
  * Documentation:  https://dlang.org/phobos/dmd_tocsym.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/tocsym.d
@@ -15,12 +15,12 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.root.array;
+import dmd.root.complex;
 import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;
 import dmd.dclass;
@@ -69,7 +69,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     import core.stdc.stdlib : malloc, free;
-    import dmd.root.outbuffer : OutBuffer;
+    import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;
     mangleToBuffer(ds, &buf);
@@ -139,7 +139,7 @@ Symbol *toSymbol(Dsymbol s)
             assert(!vd.needThis());
 
             const(char)[] id;
-            import dmd.root.outbuffer : OutBuffer;
+            import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             bool isNRVO = false;
             if (vd.isDataseg())
@@ -182,18 +182,10 @@ Symbol *toSymbol(Dsymbol s)
                     t = type_fake(TYdelegate);          // Tdelegate as C type
                 t.Tcount++;
             }
-            else if (vd.isParameter())
+            else if (vd.isParameter() && ISX64REF(vd))
             {
-                if (ISX64REF(vd))
-                {
-                    t = type_allocn(TYnref, Type_toCtype(vd.type));
-                    t.Tcount++;
-                }
-                else
-                {
-                    t = Type_toCtype(vd.type);
-                    t.Tcount++;
-                }
+                t = type_allocn(TYnref, Type_toCtype(vd.type));
+                t.Tcount++;
             }
             else
             {
@@ -257,7 +249,7 @@ Symbol *toSymbol(Dsymbol s)
                 /* if it's global or static, then it needs to have a qualified but unmangled name.
                  * This gives some explanation of the separation in treating name mangling.
                  * It applies to PDB format, but should apply to CV as PDB derives from CV.
-                 *    http://msdn.microsoft.com/en-us/library/ff553493(VS.85).aspx
+                 *    https://msdn.microsoft.com/en-us/library/ff553493%28VS.85%29.aspx
                  */
                 s.prettyIdent = vd.toPrettyChars(true);
             }
@@ -314,7 +306,7 @@ Symbol *toSymbol(Dsymbol s)
             type_setmangle(&t, m);
             s.Stype = t;
 
-            s.lnoscopestart = vd.loc.linnum;
+            s.lposscopestart = toSrcpos(vd.loc);
             s.lnoscopeend = vd.endlinnum;
             result = s;
         }
@@ -339,7 +331,9 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(FuncDeclaration fd)
         {
-            const(char)* id = mangleExact(fd);
+            const(char)* id = (fd.linkage == LINK.c && fd.isCsymbol())
+                        ? fd.ident.toChars()
+                        : mangleExact(fd);
 
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
             //printf("\tid = '%s'\n", id);
@@ -358,15 +352,8 @@ Symbol *toSymbol(Dsymbol s)
             if (fd.type.toBasetype().isTypeFunction().nextOf().isTypeNoreturn() || fd.flags & FUNCFLAG.noreturn)
                 s.Sflags |= SFLexit;    // the function never returns
 
-            f.Fstartline.set(fd.loc.filename, fd.loc.linnum, fd.loc.charnum);
-            if (fd.endloc.linnum)
-            {
-                f.Fendline.set(fd.endloc.filename, fd.endloc.linnum, fd.endloc.charnum);
-            }
-            else
-            {
-                f.Fendline = f.Fstartline;
-            }
+            f.Fstartline = toSrcpos(fd.loc);
+            f.Fendline = fd.endloc.linnum ? toSrcpos(fd.endloc) : f.Fstartline;
 
             auto t = Type_toCtype(fd.type);
             const msave = t.Tmangle;
@@ -374,6 +361,7 @@ Symbol *toSymbol(Dsymbol s)
             {
                 t.Tty = TYnfunc;
                 t.Tmangle = mTYman_c;
+                f.Fflags3 |= Fmain;
             }
             else
             {
@@ -393,7 +381,9 @@ Symbol *toSymbol(Dsymbol s)
                         break;
                     case LINK.cpp:
                         s.Sflags |= SFLpublic;
-                        if (fd.isThis() && !target.is64bit && target.os == Target.OS.Windows)
+                        /* Nested functions use the same calling convention as
+                         * member functions, because both can be used as delegates. */
+                        if ((fd.isThis() || fd.isNested()) && !target.is64bit && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
@@ -799,4 +789,16 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
     t.Tcount++;
     s.Stype = t;
     return s;
+}
+
+/**********************************
+ * Converts a Loc to backend Srcpos
+ * Params:
+ *      loc = Source code location
+ * Returns:
+ *      Srcpos backend struct corresponding to the given location
+ */
+Srcpos toSrcpos(Loc loc)
+{
+    return Srcpos.create(loc.filename, loc.linnum, loc.charnum);
 }

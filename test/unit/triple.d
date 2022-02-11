@@ -27,6 +27,15 @@ unittest
     assert(triple.is64bit == true);
 }
 
+@("-target=x86_64+avx2-apple-darwin20.3.0")
+unittest
+{
+    auto triple = Triple("x86_64+avx2-apple-darwin20.3.0");
+    assert(triple.os == Target.OS.OSX);
+    assert(triple.is64bit == true);
+    assert(triple.cpu == CPU.avx2);
+}
+
 @("-target=x86_64-unknown-linux-musl-clang")
 unittest
 {

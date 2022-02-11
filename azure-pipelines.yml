@@ -16,10 +16,6 @@ jobs:
           OS: Win_64
           MODEL: 64
           ARCH: x64
-        x86-OMF:
-          OS: Win_32
-          MODEL: 32
-          ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
 
@@ -38,7 +34,7 @@ jobs:
           ARCH: x64
         x86-OMF:
           OS: Win_32
-          MODEL: 32
+          MODEL: 32omf
           ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
@@ -52,7 +48,7 @@ jobs:
       D_COMPILER: dmd
       HOST_DMD_VERSION: LATEST
       # Disable actual coverage because of issues with the codecov uploader
-      # DMD_TEST_COVERAGE: 1
+      DMD_TEST_COVERAGE: 1
     strategy:
       matrix:
         x64:
@@ -63,7 +59,7 @@ jobs:
         # x64 only because 32bit causes weird linker errors for several tests???
         # x86-OMF:
         #   OS: Win_32
-        #   MODEL: 32
+        #   MODEL: 32omf
         #   ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml

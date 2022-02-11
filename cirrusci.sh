@@ -16,7 +16,7 @@ if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit
 
 if [ "$OS_NAME" == "linux" ]; then
   export DEBIAN_FRONTEND=noninteractive
-  packages="git-core make g++ gdb curl libcurl4 tzdata zip unzip xz-utils"
+  packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils"
   if [ "$MODEL" == "32" ]; then
     dpkg --add-architecture i386
     packages="$packages g++-multilib libcurl4:i386"

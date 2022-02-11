@@ -1,11 +1,11 @@
 /**
- * Other data flow analysis based optimizations.
+ * Other global optimizations
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ *              https://www.boost.org/LICENSE_1_0.txt
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/gother.d
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/gother.d
  * Documentation: https://dlang.org/phobos/dmd_backend_gother.html
@@ -32,7 +32,6 @@ import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.el;
-import dmd.backend.outbuf;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -465,7 +464,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
 
     version (SCPP)
     {
-        {   Outbuffer buf;
+        {   OutBuffer buf;
             char *p2;
 
             type_tostring(&buf, sv.Stype);
@@ -476,7 +475,8 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
         }
     }
 
-    version (MARS)
+    //version (MARS)
+    version(none)
     {
         /* Watch out for:
             void test()
