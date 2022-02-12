@@ -3250,11 +3250,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             auto fnext = funcdecl.overnext.isFuncDeclaration();
             funcDeclarationSemantic(fnext);
             auto fn = fnext.type.isTypeFunction();
-            if (!(fn &&
-                  (f.equals(fn) ||
-                   // Allow func(void) to match func()
-                   f.nextOf().equals(fn.nextOf()) && !f.parameterList.length && !fn.parameterList.length)
-               ) )
+            if (!fn || !cFuncEquivalence(f, fn))
             {
                 funcdecl.error("redeclaration with different type");
                 //printf("t1: %s\n", f.toChars());
