@@ -7471,12 +7471,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if ((sc && sc.flags & SCOPE.Cfile) &&
-            exp.to && exp.to.ty == Tident &&
+            exp.to && (exp.to.ty == Tident || exp.to.ty == Tsarray) &&
             (exp.e1.op == EXP.address || exp.e1.op == EXP.star ||
              exp.e1.op == EXP.uadd || exp.e1.op == EXP.negate))
         {
             /* Ambiguous cases arise from CParser if type-name is just an identifier.
              *   ( identifier ) cast-expression
+             *   ( identifier [expression]) cast-expression
              * If we determine that `identifier` is a variable, and cast-expression
              * is one of the unary operators (& * + -), then rewrite this cast
              * as a binary expression.
