@@ -1845,8 +1845,8 @@ final class CParser(AST) : Parser!AST
             /* Since there were declarations, the parameter-list must have been
              * an identifier-list.
              */
+            ft.parameterList.hasIdentifierList = true;        // semantic needs to know to adjust parameter types
             auto pl = ft.parameterList;
-            pl.hasIdentifierList = true;        // semantic needs to know to adjust parameter types
             if (pl.varargs != AST.VarArg.none && pl.length)
                 error("function identifier-list cannot end with `...`");
             ft.parameterList.varargs = AST.VarArg.variadic;     // but C11 allows extra arguments
