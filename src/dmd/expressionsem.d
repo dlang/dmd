@@ -6957,15 +6957,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (!exp.e1.type.deco)
         {
-            if (exp.e1.op == EXP.variable)
+            // try to resolve the type
+            exp.e1.type = exp.e1.type.typeSemantic(exp.e1.loc, null);
+            if (!exp.e1.type.deco)  // still couldn't resolve it
             {
-                VarExp ve = cast(VarExp)exp.e1;
-                Declaration d = ve.var;
-                exp.error("forward reference to %s `%s`", d.kind(), d.toChars());
+                if (auto ve = exp.e1.isVarExp())
+                {
+                    Declaration d = ve.var;
+                    exp.error("forward reference to %s `%s`", d.kind(), d.toChars());
+                }
+                else
+                    exp.error("forward reference to type `%s` of expression `%s`", exp.e1.type.toChars(), exp.e1.toChars());
+                return setError();
             }
-            else
-                exp.error("forward reference to `%s`", exp.e1.toChars());
-            return setError();
         }
 
         exp.type = exp.e1.type.pointerTo();
