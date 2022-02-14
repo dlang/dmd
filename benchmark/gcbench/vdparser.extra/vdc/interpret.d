@@ -229,8 +229,8 @@ class Value
     version(none)
         Value opassign(string op)(Value v)
         {
-            TypeInfo ti1 = this.classinfo;
-            TypeInfo ti2 = v.classinfo;
+            TypeInfo ti1 = typeid(this);
+            TypeInfo ti2 = typeid(v);
             foreach(iv1; BasicTypeValues)
             {
                 if(ti1 is typeid(iv1))
@@ -260,8 +260,8 @@ class Value
     version(none)
         Value opBinOp(string op)(Value v)
         {
-            TypeInfo ti1 = this.classinfo;
-            TypeInfo ti2 = v.classinfo;
+            TypeInfo ti1 = typeid(this);
+            TypeInfo ti2 = typeid(v);
             foreach(iv1; BasicTypeValues)
             {
                 if(ti1 is typeid(iv1))
@@ -298,7 +298,7 @@ class Value
     version(none)
         Value opUnOp(string op)()
         {
-            TypeInfo ti1 = this.classinfo;
+            TypeInfo ti1 = typeid(this);
             foreach(iv1; BasicTypeValues)
             {
                 if(ti1 is typeid(iv1))
@@ -338,7 +338,7 @@ class Value
     {
         Value binOp(Value v)
         {
-            TypeInfo ti = v.classinfo;
+            TypeInfo ti = typeid(v);
             foreach(iv2; Types)
             {
                 if(ti is typeid(iv2))
@@ -374,7 +374,7 @@ class Value
             if(!mutable)
                 return semanticErrorValue(this, " value is not mutable");
 
-            TypeInfo ti = v.classinfo;
+            TypeInfo ti = typeid(v);
             foreach(iv2; Types)
             {
                 if(ti is typeid(iv2))
@@ -610,7 +610,7 @@ class ValueT(T) : Value
         if(!mutable) // doCast changes this value
             return semanticErrorValue(this, " value is not mutable");
 
-        TypeInfo ti = v.classinfo;
+        TypeInfo ti = typeid(v);
         foreach(iv2; RHS_BasicTypeValues)
         {
             if(ti is typeid(iv2))

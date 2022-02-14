@@ -16,6 +16,8 @@ version (ARM)
 {
     version (iOS) {} else version = ARM_EABI_UNWINDER;
 }
+version (X86)    version = X86_Any;
+version (X86_64) version = X86_Any;
 
 extern (C):
 
@@ -102,7 +104,7 @@ version (ARM_EABI_UNWINDER)
 
     alias _Unwind_Exception = _Unwind_Control_Block;
 }
-else version (X86_64)
+else version (X86_Any)
 {
     align(16) struct _Unwind_Exception
     {

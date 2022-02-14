@@ -121,10 +121,7 @@ publictests()
 
 codecov()
 {
-    # CodeCov gets confused by lst files which it can't matched
-    rm -rf test/runnable/extra-files
-    download "https://codecov.io/bash" "https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov" "codecov.sh"
-    bash codecov.sh
+    OS_NAME=linux source ../dmd/ci/codecov.sh
 }
 
 case $1 in

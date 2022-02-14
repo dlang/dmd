@@ -1,0 +1,3 @@
+Add support for `@safe` class `opEquals`
+
+`object.opEquals` is now `@safe` if the static types being compared provide an `opEquals` method that is also `@safe`.

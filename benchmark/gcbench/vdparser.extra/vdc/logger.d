@@ -81,7 +81,7 @@ version(enableLog) {
         if(gLogFile.length == 0)
             OutputDebugStringA(toStringz(s));
         else
-            synchronized(logSync.classinfo)
+            synchronized(typeid(logSync))
             {
                 if(gLogFirst)
                 {

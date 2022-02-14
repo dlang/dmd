@@ -9,42 +9,57 @@
 */
 module core.internal.array.construction;
 
+import core.internal.traits : Unqual;
+
 /**
  * Does array initialization (not assignment) from another array of the same element type.
  * Params:
  *  to = what array to initialize
  *  from = what data the array should be initialized with
+ *  makeWeaklyPure = unused; its purpose is to prevent the function from becoming
+ *      strongly pure and risk being optimised out
  * Returns:
- *  The constructed `to`
+ *  The created and initialized array `to`
  * Bugs:
  *  This function template was ported from a much older runtime hook that bypassed safety,
  *  purity, and throwabilty checks. To prevent breaking existing code, this function template
  *  is temporarily declared `@trusted` until the implementation can be brought up to modern D expectations.
+ *
+ *  The third parameter is never used, but is necessary in order for the
+ *  function be treated as weakly pure, instead of strongly pure.
+ *  This is needed because constructions such as the one below can be ignored by
+ *  the compiler if `_d_arrayctor` is believed to be pure, because purity would
+ *  mean the call to `_d_arrayctor` has no effects (no side effects and the
+ *  return value is ignored), despite it actually modifying the contents of `a`.
+ *      const S[2] b;
+ *      const S[2] a = b;  // this would get lowered to _d_arrayctor(a, b)
  */
-Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
+Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from, char* makeWeaklyPure = null) @trusted
 {
     pragma(inline, false);
-    import core.internal.traits : hasElaborateCopyConstructor, Unqual;
+    import core.internal.traits : hasElaborateCopyConstructor;
     import core.lifetime : copyEmplace;
     import core.stdc.string : memcpy;
-    debug(PRINTF) import core.stdc.stdio;
+    import core.stdc.stdint : uintptr_t;
+    debug(PRINTF) import core.stdc.stdio : printf;
 
-    // Force `enforceRawArraysConformable` to be `pure`
-    void enforceRawArraysConformable(const char[] action, const size_t elementSize, const void[] a1, const void[] a2, in bool allowOverlap = false) @trusted
+    debug(PRINTF) printf("_d_arrayctor(from = %p,%d) size = %d\n", from.ptr, from.length, T.sizeof);
+
+    void[] vFrom = (cast(void*) from.ptr)[0..from.length];
+    void[] vTo = (cast(void*) to.ptr)[0..to.length];
+
+    // Force `enforceRawArraysConformable` to remain weakly `pure`
+    void enforceRawArraysConformable(const char[] action, const size_t elementSize,
+        const void[] a1, const void[] a2) @trusted
     {
-        import core.internal.util.array : enforceRawArraysConformable;
+        import core.internal.util.array : enforceRawArraysConformableNogc;
 
-        alias Type = void function(const char[] action, const size_t elementSize, const void[] a1, const void[] a2, in bool allowOverlap = false) pure nothrow;
-        (cast(Type)&enforceRawArraysConformable)(action, elementSize, a1, a2, allowOverlap);
+        alias Type = void function(const char[] action, const size_t elementSize,
+            const void[] a1, const void[] a2, in bool allowOverlap = false) @nogc pure nothrow;
+        (cast(Type)&enforceRawArraysConformableNogc)(action, elementSize, a1, a2, false);
     }
 
-    debug(PRINTF) printf("_d_arrayctor(to = %p,%d, from = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, T.tsize);
-
-    auto element_size = T.sizeof;
-
-    void[] vFrom = (cast(void*)from.ptr)[0..from.length];
-    void[] vTo = (cast(void*)to.ptr)[0..to.length];
-    enforceRawArraysConformable("initialization", element_size, vFrom, vTo, false);
+    enforceRawArraysConformable("initialization", T.sizeof, vFrom, vTo);
 
     static if (hasElaborateCopyConstructor!T)
     {
@@ -60,7 +75,7 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
             */
             while (i--)
             {
-                auto elem = cast(Unqual!T*)&to[i];
+                auto elem = cast(Unqual!T*) &to[i];
                 destroy(*elem);
             }
 
@@ -186,7 +201,6 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
 void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
 {
     pragma(inline, false);
-    import core.internal.traits : Unqual;
     import core.lifetime : copyEmplace;
 
     size_t i;

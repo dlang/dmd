@@ -270,7 +270,7 @@ extern(C):
      * reentrant, and must be called once for every call to disable before
      * automatic collections are enabled.
      */
-    pragma(mangle, "gc_enable") static void enable() nothrow; /* FIXME pure */
+    pragma(mangle, "gc_enable") static void enable() nothrow pure;
 
 
     /**
@@ -280,7 +280,7 @@ extern(C):
      * such as during an out of memory condition.  This function is reentrant,
      * but enable must be called once for each call to disable.
      */
-    pragma(mangle, "gc_disable") static void disable() nothrow; /* FIXME pure */
+    pragma(mangle, "gc_disable") static void disable() nothrow pure;
 
 
     /**
@@ -290,14 +290,14 @@ extern(C):
      * and then to reclaim free space.  This action may need to suspend all
      * running threads for at least part of the collection process.
      */
-    pragma(mangle, "gc_collect") static void collect() nothrow; /* FIXME pure */
+    pragma(mangle, "gc_collect") static void collect() nothrow pure;
 
     /**
      * Indicates that the managed memory space be minimized by returning free
      * physical memory to the operating system.  The amount of free memory
      * returned depends on the allocator design and on program behavior.
      */
-    pragma(mangle, "gc_minimize") static void minimize() nothrow; /* FIXME pure */
+    pragma(mangle, "gc_minimize") static void minimize() nothrow pure;
 
 extern(D):
 
@@ -459,8 +459,11 @@ extern(C):
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    pragma(mangle, "gc_malloc") static void* malloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null) pure nothrow;
-
+    version (D_ProfileGC)
+        pragma(mangle, "gc_mallocTrace") static void* malloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null,
+            string file = __FILE__, int line = __LINE__, string func = __FUNCTION__) pure nothrow;
+    else
+        pragma(mangle, "gc_malloc") static void* malloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null) pure nothrow;
 
     /**
      * Requests an aligned block of managed memory from the garbage collector.
@@ -482,7 +485,11 @@ extern(C):
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    pragma(mangle, "gc_qalloc") static BlkInfo qalloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null) pure nothrow;
+    version (D_ProfileGC)
+        pragma(mangle, "gc_qallocTrace") static BlkInfo qalloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null,
+            string file = __FILE__, int line = __LINE__, string func = __FUNCTION__) pure nothrow;
+    else
+        pragma(mangle, "gc_qalloc") static BlkInfo qalloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null) pure nothrow;
 
 
     /**
@@ -506,7 +513,11 @@ extern(C):
      * Throws:
      *  OutOfMemoryError on allocation failure.
      */
-    pragma(mangle, "gc_calloc") static void* calloc(size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
+    version (D_ProfileGC)
+        pragma(mangle, "gc_callocTrace") static void* calloc(size_t sz, uint ba = 0, const TypeInfo ti = null,
+            string file = __FILE__, int line = __LINE__, string func = __FUNCTION__) pure nothrow;
+    else
+        pragma(mangle, "gc_calloc") static void* calloc(size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
 
 
     /**
@@ -551,7 +562,11 @@ extern(C):
      * Throws:
      *  `OutOfMemoryError` on allocation failure.
      */
-    pragma(mangle, "gc_realloc") static void* realloc(return void* p, size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
+    version (D_ProfileGC)
+        pragma(mangle, "gc_reallocTrace") static void* realloc(return scope void* p, size_t sz, uint ba = 0, const TypeInfo ti = null,
+            string file = __FILE__, int line = __LINE__, string func = __FUNCTION__) pure nothrow;
+    else
+        pragma(mangle, "gc_realloc") static void* realloc(return scope void* p, size_t sz, uint ba = 0, const TypeInfo ti = null) pure nothrow;
 
     // https://issues.dlang.org/show_bug.cgi?id=13111
     ///
@@ -593,7 +608,12 @@ extern(C):
      *  as an indicator of success. $(LREF capacity) should be used to
      *  retrieve actual usable slice capacity.
      */
-    pragma(mangle, "gc_extend") static size_t extend(void* p, size_t mx, size_t sz, const TypeInfo ti = null) pure nothrow;
+    version (D_ProfileGC)
+        pragma(mangle, "gc_extendTrace") static size_t extend(void* p, size_t mx, size_t sz, const TypeInfo ti = null,
+            string file = __FILE__, int line = __LINE__, string func = __FUNCTION__) pure nothrow;
+    else
+        pragma(mangle, "gc_extend") static size_t extend(void* p, size_t mx, size_t sz, const TypeInfo ti = null) pure nothrow;
+
     /// Standard extending
     unittest
     {
@@ -635,7 +655,7 @@ extern(C):
      * Returns:
      *  The actual number of bytes reserved or zero on error.
      */
-    pragma(mangle, "gc_reserve") static size_t reserve(size_t sz) nothrow; /* FIXME pure */
+    pragma(mangle, "gc_reserve") static size_t reserve(size_t sz) nothrow pure;
 
 
     /**
@@ -807,7 +827,7 @@ extern(C):
      * }
      * ---
      */
-    pragma(mangle, "gc_addRoot") static void addRoot(const void* p) nothrow @nogc; /* FIXME pure */
+    pragma(mangle, "gc_addRoot") static void addRoot(const void* p) nothrow @nogc pure;
 
 
     /**
@@ -818,7 +838,7 @@ extern(C):
      * Params:
      *  p = A pointer into a GC-managed memory block or null.
      */
-    pragma(mangle, "gc_removeRoot") static void removeRoot(const void* p) nothrow @nogc; /* FIXME pure */
+    pragma(mangle, "gc_removeRoot") static void removeRoot(const void* p) nothrow @nogc pure;
 
 
     /**
@@ -849,7 +869,8 @@ extern(C):
      * // rawMemory will be recognized on collection.
      * ---
      */
-    pragma(mangle, "gc_addRange") static void addRange(const void* p, size_t sz, const TypeInfo ti = null) @nogc nothrow; /* FIXME pure */
+    pragma(mangle, "gc_addRange")
+    static void addRange(const void* p, size_t sz, const TypeInfo ti = null) @nogc nothrow pure;
 
 
     /**
@@ -861,7 +882,7 @@ extern(C):
      * Params:
      *  p  = A pointer to a valid memory address or to null.
      */
-    pragma(mangle, "gc_removeRange") static void removeRange(const void* p) nothrow @nogc; /* FIXME pure */
+    pragma(mangle, "gc_removeRange") static void removeRange(const void* p) nothrow @nogc pure;
 
 
     /**

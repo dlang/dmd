@@ -15,11 +15,11 @@ module core.stdcpp.exception;
 import core.stdcpp.xutility : __cplusplus, CppStdRevision;
 import core.attribute : weak;
 
-version (CppRuntime_DigitalMars)
-    version = GenericBaseException;
 version (CppRuntime_Gcc)
     version = GenericBaseException;
 version (CppRuntime_Clang)
+    version = GenericBaseException;
+version (CppRuntime_Sun)
     version = GenericBaseException;
 
 extern (C++, "std"):
@@ -80,6 +80,24 @@ version (GenericBaseException)
         this(const(char)*, int = 1) nothrow { this(); } // compat with MS derived classes
     }
 }
+else version (CppRuntime_DigitalMars)
+{
+    ///
+    class exception
+    {
+    @nogc:
+        ///
+        this() nothrow {}
+        //virtual ~this();
+        void dtor() { }     // reserve slot in vtbl[]
+
+        ///
+        const(char)* what() const nothrow;
+
+    protected:
+        this(const(char)*, int = 1) nothrow { this(); } // compat with MS derived classes
+    }
+}
 else version (CppRuntime_Microsoft)
 {
     ///
@@ -89,16 +107,16 @@ else version (CppRuntime_Microsoft)
         ///
         this(const(char)* message = "unknown", int = 1) nothrow { msg = message; }
         ///
-        extern(D) ~this() nothrow {}
+        @weak ~this() nothrow {}
 
         ///
-        extern(D) const(char)* what() const nothrow { return msg != null ? msg : "unknown exception"; }
+        @weak const(char)* what() const nothrow { return msg != null ? msg : "unknown exception"; }
 
         // TODO: do we want this? exceptions are classes... ref types.
 //        final ref exception opAssign(ref const(exception) e) nothrow { msg = e.msg; return this; }
 
     protected:
-        @weak void _Doraise() const {}
+        @weak void _Doraise() const { assert(0); }
 
     protected:
         const(char)* msg;
@@ -114,4 +132,10 @@ class bad_exception : exception
 @nogc:
     ///
     this(const(char)* message = "bad exception") { super(message); }
+
+    version (GenericBaseException)
+    {
+        ///
+        @weak override const(char)* what() const nothrow { return "bad exception"; }
+    }
 }

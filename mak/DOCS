@@ -4,6 +4,7 @@ DOCS=\
 	$(DOCDIR)\core_bitop.html \
 	$(DOCDIR)\core_checkedint.html \
 	$(DOCDIR)\core_exception.html \
+	$(DOCDIR)\core_int128.html \
 	$(DOCDIR)\core_math.html \
 	$(DOCDIR)\core_vararg.html \
 	$(DOCDIR)\core_volatile.html \
@@ -513,7 +514,9 @@ DOCS=\
 	$(DOCDIR)\core_thread_fiber.html \
 	$(DOCDIR)\core_thread_osthread.html \
 	$(DOCDIR)\core_thread_threadbase.html \
+	$(DOCDIR)\core_thread.html \
 	\
+	$(DOCDIR)\core_builtins.html \
 	\
 	$(DOCDIR)\etc_linux_memoryerror.html \
 	\

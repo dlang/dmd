@@ -19,6 +19,7 @@ module rt.tracegc;
 
 extern (C) Object _d_newclass(const ClassInfo ci);
 extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length);
+extern (C) void[] _d_newarrayU(const scope TypeInfo ti, size_t length);
 extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length);
 extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims);
 extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims);
@@ -44,6 +45,21 @@ extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]
 extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p);
 extern (C) void* _d_allocmemory(size_t sz);
 
+// From GC.BlkInfo_. We cannot import it from core.memory.GC because .stringof
+// replaces the alias with the private symbol that's not visible from this
+// module, causing a compile error.
+private struct BlkInfo
+{
+    void*  base;
+    size_t size;
+    uint   attr;
+}
+extern (C) void* gc_malloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null);
+extern (C) BlkInfo gc_qalloc(size_t sz, uint ba = 0, const scope TypeInfo ti = null);
+extern (C) void* gc_calloc(size_t sz, uint ba = 0, const TypeInfo ti = null);
+extern (C) void* gc_realloc(return scope void* p, size_t sz, uint ba = 0, const TypeInfo ti = null);
+extern (C) size_t gc_extend(void* p, size_t mx, size_t sz, const TypeInfo ti = null);
+
 // Used as wrapper function body to get actual stats.
 //
 // Placed here as a separate string constant to simplify maintenance as it is
@@ -55,7 +71,7 @@ enum accumulator = q{
     static if (is(typeof(ci)))
         string name = ci.name;
     else static if (is(typeof(ti)))
-        string name = ti.toString();
+        string name = ti ? ti.toString() : "void[]";
     else static if (__FUNCTION__ == "rt.tracegc._d_arrayappendcdTrace")
         string name = "char[]";
     else static if (__FUNCTION__ == "rt.tracegc._d_arrayappendwdTrace")
@@ -105,12 +121,19 @@ private string generateTraceWrappers()
             mixin("alias Declaration = " ~ name ~ ";");
             code ~= generateWrapper!Declaration();
         }
+        static if (name.length > 3 && name[0..3] == "gc_")
+        {
+            mixin("alias Declaration = " ~ name ~ ";");
+            code ~= generateWrapper!(Declaration, ParamPos.back)();
+        }
     }
 
     return code;
 }
 
-private string generateWrapper(alias Declaration)()
+static enum ParamPos { front, back }
+
+private string generateWrapper(alias Declaration, ParamPos pos = ParamPos.front)()
 {
     static size_t findParamIndex(string s)
     {
@@ -133,9 +156,16 @@ private string generateWrapper(alias Declaration)()
     auto name = __traits(identifier, Declaration);
     auto param_idx = findParamIndex(type_string);
 
-    auto new_declaration = type_string[0 .. param_idx] ~ " " ~ name
-        ~ "Trace(string file, int line, string funcname, "
-        ~ type_string[param_idx+1 .. $];
+    static if (pos == ParamPos.front)
+        auto new_declaration = type_string[0 .. param_idx] ~ " " ~ name
+            ~ "Trace(string file, int line, string funcname, "
+            ~ type_string[param_idx+1 .. $];
+    else static if (pos == ParamPos.back)
+        auto new_declaration = type_string[0 .. param_idx] ~ " " ~ name
+            ~ "Trace(" ~ type_string[param_idx+1 .. $-1]
+            ~ `, string file = "", int line = 0, string funcname = "")`;
+    else
+        static assert(0);
     auto call_original = "return "
         ~ __traits(identifier, Declaration) ~ "(" ~ Arguments!Declaration() ~ ");";
 

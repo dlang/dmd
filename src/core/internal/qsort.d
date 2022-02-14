@@ -130,8 +130,6 @@ else
     }
 }
 
-
-
 unittest
 {
     debug(qsort) printf("array.sort.unittest()\n");
@@ -150,6 +148,44 @@ unittest
     a[9] = -1;
 
     _adSort(*cast(void[]*)&a, typeid(a[0]));
+
+    for (int i = 0; i < a.length - 1; i++)
+    {
+        //printf("i = %d", i);
+        //printf(" %d %d\n", a[i], a[i + 1]);
+        assert(a[i] <= a[i + 1]);
+    }
+}
+
+unittest
+{
+    debug(qsort) printf("struct.sort.unittest()\n");
+
+    static struct TestStruct
+    {
+        int value;
+
+        int opCmp(const TestStruct rhs) const
+        {
+            return value <= rhs.value ?
+                value < rhs.value ? -1 : 0 : 1;
+        }
+    }
+
+    TestStruct[] a = new TestStruct[10];
+
+    a[0] = TestStruct(23);
+    a[1] = TestStruct(1);
+    a[2] = TestStruct(64);
+    a[3] = TestStruct(5);
+    a[4] = TestStruct(6);
+    a[5] = TestStruct(5);
+    a[6] = TestStruct(17);
+    a[7] = TestStruct(3);
+    a[8] = TestStruct(0);
+    a[9] = TestStruct(-1);
+
+    _adSort(*cast(void[]*)&a, typeid(TestStruct));
 
     for (int i = 0; i < a.length - 1; i++)
     {

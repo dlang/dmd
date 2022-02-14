@@ -1,5 +1,7 @@
 COPY=\
 	$(IMPDIR)\object.d \
+	$(IMPDIR)\__builtins.di \
+	$(IMPDIR)\importc.h \
 	\
 	$(IMPDIR)\core\gc\config.d \
 	$(IMPDIR)\core\gc\gcinterface.d \
@@ -214,6 +216,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\ifaddrs.d \
 	$(IMPDIR)\core\sys\linux\io_uring.d \
 	$(IMPDIR)\core\sys\linux\link.d \
+	$(IMPDIR)\core\sys\linux\perf_event.d \
 	$(IMPDIR)\core\sys\linux\sched.d \
 	$(IMPDIR)\core\sys\linux\stdio.d \
 	$(IMPDIR)\core\sys\linux\string.d \
@@ -257,10 +260,12 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\openbsd\dlfcn.d \
 	$(IMPDIR)\core\sys\openbsd\err.d \
+	$(IMPDIR)\core\sys\openbsd\execinfo.d \
 	$(IMPDIR)\core\sys\openbsd\pthread_np.d \
 	$(IMPDIR)\core\sys\openbsd\stdlib.d \
 	$(IMPDIR)\core\sys\openbsd\string.d \
 	$(IMPDIR)\core\sys\openbsd\time.d \
+	$(IMPDIR)\core\sys\openbsd\unistd.d \
 	\
 	$(IMPDIR)\core\sys\openbsd\sys\cdefs.d \
 	$(IMPDIR)\core\sys\openbsd\sys\elf.d \
