@@ -221,9 +221,9 @@ codecov()
 if [ "$#" -gt 0 ]; then
   case $1 in
     install_host_compiler) install_host_compiler ;;
-    setup_repos) setup_repos "$2" ;; # ci.sh setup_repos <git branch>
+    setup_repos) setup_repos "$2" ;; # ci/run.sh setup_repos <git branch>
     build) build ;;
-    rebuild) rebuild "${2:-}" ;; # ci.sh rebuild [1] (use `1` to compare binaries to test reproducible build)
+    rebuild) rebuild "${2:-}" ;; # ci/run.sh rebuild [1] (use `1` to compare binaries to test reproducible build)
     test) test ;;
     test_dmd) test_dmd ;;
     test_druntime) test_druntime ;;

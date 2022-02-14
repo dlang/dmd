@@ -2,7 +2,7 @@
 
 # Installs the OS-specific prerequisites for Cirrus CI jobs.
 # This file is invoked by DMD, druntime and Phobos' .cirrus.yml
-# and sets up the machine for the later steps with ci.sh.
+# and sets up the machine for the later steps with ci/run.sh.
 
 set -uexo pipefail
 
@@ -22,7 +22,7 @@ if [ "$OS_NAME" == "linux" ]; then
     packages="$packages g++-multilib libcurl4:i386"
   fi
   if [ "${HOST_DMD:0:4}" == "gdmd" ]; then
-    # ci.sh uses `sudo add-apt-repository ...` to add a PPA repo
+    # ci/run.sh uses `sudo add-apt-repository ...` to add a PPA repo
     packages="$packages sudo software-properties-common"
   fi
   apt-get -q update
