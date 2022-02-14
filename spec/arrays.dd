@@ -18,13 +18,24 @@ $(H2 $(LNAME2 array-kinds, Kinds))
 
 $(H3 $(LNAME2 pointers, Pointers))
 
+        $(P A pointer to type $(D T) has a value which is a reference (address) to another
+        object of type $(D T). It is commonly called a $(I pointer to T) and its type is
+        `T*`. To access the object value, use the `*` dereference operator:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int* p;
----------
 
-        $(P A pointer to type $(I T) has a value which is a reference (address) to another
-        object of type $(I T). It is commonly called a $(I pointer to T).
-        )
+assert(p == null);
+p = new int(5);
+assert(p != null);
+
+assert(*p == 5);
+(*p)++;
+assert(*p == 6);
+---------
+)
 
         $(P If a pointer contains a $(I null) value, it is not pointing to a valid object.)
 
@@ -43,13 +54,34 @@ int* p;
         to a valid object of type $(I T).)
         ))
 
-        $(BEST_PRACTICE These are simple pointers to data.
-        Pointers are provided for interfacing with C and for
+        $(P To set a pointer to point at an existing object, use the
+        `&` *address of* operator:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int i = 2;
+int* p = &i;
+
+assert(p == &i);
+assert(*p == 2);
+*p = 4;
+assert(i == 4);
+---------
+)
+
+        $(P These are simple pointers to data.
+        A pointer can manipulate a block of multiple values. Accessing more
+        than one value cannot be
+        $(DDLINK spec/memory-safe-d, Memory-Safe-D-Spec, `@safe`) as it
+        requires $(RELATIVE_LINK2 pointer-arithmetic, pointer arithmetic).
+        This is supported for interfacing with C and for
         specialized systems work.
-        There is no length associated with it, and so there is no way for the
+        A pointer has no length associated with it, so there is no way for the
         compiler or runtime to do bounds checking, etc., on it.
-        Most conventional uses for pointers can be replaced with
-        dynamic arrays, $(D out) and $(D ref) parameters,
+        )
+
+        $(BEST_PRACTICE Most conventional uses for pointers can be replaced with
+        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK function, parameters, parameters),
         and reference types.
         )
 
@@ -121,39 +153,99 @@ int[]* e;     // pointer to dynamic array of ints
 ---------
 )
 
-$(H2 $(LNAME2 usage, Array Usage))
+$(H2 $(LNAME2 literals, Array Literals))
 
-        $(P There are two broad kinds of operations to do on an array -
-        affecting
-        the handle to the array,
-        and affecting the contents of the array.
+---
+auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
+auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
+int[2] = [1, 2];
+---
+    $(P `[]` is an empty array literal.)
+
+    $(P See $(DDSUBLINK expression, array_literals, Array Literals).)
+
+$(LEGACY_LNAME2 usage)
+$(H2 $(LNAME2 assignment, Array Assignment))
+
+        $(P There are two broad kinds of operations to do on dynamic arrays and
+        pointer arrays - those affecting the handle to the array,
+        and those affecting the contents of the array. Assignment only affects
+        the handle for these types.
         )
 
-        $(P The handle to an array is specified by naming the array, as
-        in p, s or a:
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int* p;
 int[3] s;
 int[] a;
 
-int[] b;
-
 p = s.ptr; // p points to the first element of the array s.
 p = a.ptr; // p points to the first element of the array a.
 
-a = p;     // error, since the length of the array pointed
-           // to by p is unknown
-a = s;     // a is initialized to point to the s array
+// error, since the length of the array pointed to by p is unknown
+//s = p;
+//s = a; // error, as a's length is not known at compile-time
+s = [1,2,3];
+
+//a = p;   // error, length unknown
+a = s;     // a points to the elements of s
+assert(a.ptr == s.ptr);
+assert(a == [1,2,3]);
+
+int[] b;
 a = b;     // a points to the same array as b does
+assert(a.ptr == b.ptr);
+assert(a == []);
 ---------
 )
+    $(P Each of the three error lines above can be made to copy elements
+    using $(RELATIVE_LINK2 slicing, slicing), so that the number of elements
+    to copy is then known.)
 
 $(H2 $(LNAME2 indexing, Indexing))
 
+    $(P Indexing allows access to an element of an array:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+auto a = [1,2,3];
+assert(a[0] == 1);
+assert(a[2] == 3);
+a[2] = 4;
+assert(a[2] == 4);
+assert(a == [1,2,4]);
+//writeln(a[3]); // runtime error (unless bounds checks turned off)
+
+int[2] b = [1,2];
+assert(b[1] == 2);
+//writeln(b[2]); // compile-time error, index out of bounds
+---------
+)
+
     $(P See also $(GLINK2 expression, IndexExpression).)
+
+$(H3 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
+
+    $(P A pointer can also be indexed, but no bounds checks are done.
+    Unlike arrays, a pointer value can also be used in certain
+    arithmetic expressions to produce another pointer:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+int* p = a.ptr;
+
+p[2] = 4;
+assert(a[2] == 4);
+writeln(p[3]); // undefined behaviour
+
+assert(p == &a[0]);
+p++; // point to a[1]
+assert(*p == 2);
+---
+)
+
+    $(P See $(DDSUBLINK spec/expression, pointer_arithmetic, *AddExpression*) for details.)
 
 $(H2 $(LNAME2 slicing, Slicing))
 
@@ -181,28 +273,7 @@ foo(b[1]);   // equivalent to foo(3)
 ---------
 )
 
-        $(P The [] is shorthand for a slice of the entire array.
-        For example, the assignments to b:
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
----------
-int[10] a = [ 1,2,3,4,5,6,7,8,9,10 ];
-int[] b1, b2, b3, b4;
-
-b1 = a;
-b2 = a[];
-b3 = a[0 .. a.length];
-b4 = a[0 .. $];
-writeln(b1);
-writeln(b2);
-writeln(b3);
-writeln(b4);
-
----------
-)
-
-        $(P are all semantically equivalent.
+        $(P $(I Identifier)[] is shorthand for a slice of the entire array.
         )
 
         $(P Slicing
@@ -215,16 +286,46 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 int[10] a = [ 1,2,3,4,5,6,7,8,9,10 ];
 
 int* p = &a[2];
-int[] b = p[0..8];
-writeln(b);
 writeln(p[7]);      // 10
 writeln(p[8]);      // undefined behaviour
+
+int[] b = p[0..8];  // convert pointer elements to dynamic array
+assert(b is a[2..10]);
+writeln(b);
 writeln(b[7]);      // 10
-//writeln(b[8]);    // range error
+//writeln(b[8]);    // runtime error (unless bounds checks turned off)
 ---------
 )
 
     $(P See also $(GLINK2 expression, SliceExpression).)
+
+
+$(H2 $(LNAME2 array-length, Array Length))
+
+        $(P When indexing or slicing a static or dynamic array,
+        the symbol $(D $) represents the length of the array.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int[4] foo;
+int[]  bar = foo;
+
+// These expressions are equivalent:
+bar = foo;
+bar = foo[];
+bar = foo[0 .. 4];
+bar = foo[0 .. $];
+bar = foo[0 .. foo.length];
+
+int* p = foo.ptr;
+//bar = p[0 .. $]; // error, '$' is not defined, since p is not an array
+
+int i;
+//i = foo[0]+$; // error, '$' is not defined, out of scope of [ ]
+i = bar[$-1]; // retrieves last element of the array
+---------
+)
 
 
 $(H2 $(LNAME2 array-copying, Array Copying))
@@ -255,8 +356,10 @@ $(H3 $(LNAME2 overlapping-copying, Overlapping Copying))
 
         $(P Overlapping copies are an error:)
 
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
+int[3] s;
+
 s[0..2] = s[1..3]; // error, overlapping copy
 s[1..3] = s[0..2]; // error, overlapping copy
 ---------
@@ -406,33 +509,6 @@ a[] -= (b[] + 4) * c[];
         the target computer.
         )
 
-$(H2 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
----------
-int[3] abc;              // static array of 3 ints
-int[] def = [ 1, 2, 3 ]; // dynamic array of 3 ints
-
-void dibb(int* array)
-{
-    array[2];     // means same thing as *(array + 2)
-    *(array + 2); // get 3rd element
-}
-
-void diss(int[] array)
-{
-    array[2];     // ok
-    *(array + 2); // error, array is not a pointer
-}
-
-void ditt(int[3] array)
-{
-    array[2];     // ok
-    *(array + 2); // error, array is not a pointer
-}
----------
-)
-
 $(H2 $(LNAME2 rectangular-arrays, Rectangular Arrays))
 
         $(P Experienced FORTRAN numerics programmers know that multidimensional
@@ -474,35 +550,6 @@ matrix[2][5] = 3.14; // Assignment to bottom right element.
 writeln(matrix); // [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 3.14]]
 
 static assert(!__traits(compiles, matrix[5][2])); // Array index out of bounds.
----------
-)
-
-$(H2 $(LNAME2 array-length, Array Length))
-
-
-        $(P Within the [ ] of a static or a dynamic array,
-        the symbol $(D $)
-        represents the length of the array.
-        )
-
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
----------
-int[4] foo;
-int[]  bar = foo;
-int*   p = &foo[0];
-
-// These expressions are equivalent:
-bar[]
-bar[0 .. 4]
-bar[0 .. $]
-bar[0 .. bar.length]
-
-
-p[0 .. $]      // '$' is not defined, since p is not an array
-bar[0]+$            // '$' is not defined, out of scope of [ ]
-
-bar[$-1] // retrieves last element of the array
 ---------
 )
 
@@ -694,9 +741,9 @@ $(H2 $(LNAME2 bounds, Array Bounds Checking))
 
         $(P It is an error to index an array with an index that is less than
         0 or greater than or equal to the array length. If an index is
-        out of bounds, a RangeError exception is
-        raised if detected at runtime, and an error if detected at compile
-        time.  A program may not rely on array bounds checking happening, for
+        out of bounds, an `ArrayIndexError` is thrown
+        if detected at runtime, and an error is raised if detected at compile
+        time. A program may not rely on array bounds checking happening, for
         example, the following program is incorrect:
         )
 
@@ -711,7 +758,7 @@ try
         array[i] = 5;
     }
 }
-catch (RangeError)
+catch (ArrayIndexError)
 {
     // terminate loop
 }
@@ -779,6 +826,19 @@ $(H3 $(LNAME2 default-initialization, Default Initialization))
         $(LI Dynamic arrays are initialized to having 0 elements.)
         $(LI Associative arrays are initialized to having 0 elements.)
         )
+
+$(H3 $(LNAME2 length-initialization, Length Initialization))
+        $(P The $(D new) expression can be used to start a dynamic array
+        with a specified length by specifying its type and then using the
+        () syntax:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---------
+int[] i = new int[](5); //i.length == 5
+int[][] j = new int[][](10, 5); //j.length == 10, j[0].length == 5
+---------
+)
 
 $(H3 $(LNAME2 void-initialization, Void Initialization))
 
@@ -1101,6 +1161,14 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
         $(LI $(D const(U[])))
         $(LI $(D void[]))
         )
+
+        $(P Array literals can also be implicitly converted to static array
+        types. See $(DDSUBLINK spec/expression, array_literals, Array Literals)
+        for details.)
+
+        $(P String literals can also be implicitly converted to static array
+        types and character pointer types. See $(DDSUBLINK spec/expression, string_literals,
+        String Literals) for details.)
 
 $(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
 )

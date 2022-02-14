@@ -152,7 +152,7 @@ $(H3 $(LNAME2 crtctor, $(D pragma crt_constructor)))
 
 $(H3 $(LNAME2 crtdtor, $(D pragma crt_destructor)))
 
-    $(P `pragma(crt_destructor)` works the same as `pragma(crt_destructor)` except:)
+    $(P `pragma(crt_destructor)` works the same as `pragma(crt_constructor)` except:)
 
     $(P Annotates a function so it is run after the D runtime library is terminated
         and before the C runtime library is terminated.

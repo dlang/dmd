@@ -4,8 +4,10 @@ $(SPEC_S Templates,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 declarations, Template Declarations))
+
     $(P Templates are D's approach to generic programming.
-        Templates are defined with a $(I TemplateDeclaration):
+        Templates can be defined with a $(I TemplateDeclaration):
     )
 
 $(GRAMMAR
@@ -28,21 +30,27 @@ $(GNAME TemplateParameter):
     $(GLINK TemplateThisParameter)
 )
 
-    $(P The body of the $(I TemplateDeclaration) must be syntactically correct
+    $(P The *DeclDefs* body of the template must be syntactically correct
         even if never instantiated. Semantic analysis is not done until
-        instantiated. A template forms its own scope, and the template
-        body can contain classes, structs, types, enums, variables,
-        functions, and other templates.
+        instantiation. A template forms its own scope, and the template
+        body can contain declarations such as classes, structs, types,
+        enums, variables, functions, and other templates.
     )
 
-    $(P Template parameters can be types, values, symbols, or sequences.
-        Types can be any type.
-        Value parameters must be of an integral type, floating point
-        type, or string type and
-        specializations for them must resolve to an integral constant,
-        floating point constant, null, or a string literal.
-        Symbols can be any non-local symbol.
-        Sequences can contain zero or more types, values or symbols.
+    $(P Template parameters can take types, values, symbols, or sequences.
+        Type parameters can take any type.)
+
+    ---
+    template t(T) // declare type parameter T
+    {
+        T v; // declare a member variable of type T within template t
+    }
+    ---
+
+    $(P Value parameters can take any expression which can be statically
+        evaluated at compile time.
+        Alias parameters can take almost any symbol.
+        Sequence parameters can take zero or more types, values or symbols.
     )
 
     $(P Template parameter specializations
@@ -52,6 +60,19 @@ $(GNAME TemplateParameter):
     $(P Template parameter defaults are the value or type to use for the
         $(I TemplateParameter) in case one is not supplied.
     )
+
+    $(P If multiple templates with the same $(I Identifier) are
+        declared, they are distinct if they have different parameters
+        or are differently specialized.
+    )
+
+    $(P If a template has a member which has the same identifier as the
+        template, the template is an
+        $(RELATIVE_LINK2 implicit_template_properties, Eponymous Template).
+        `template` declarations with one eponymous member are usually
+        written as specific $(RELATIVE_LINK2 aggregate_templates, short syntax)
+        template declarations instead.)
+
 
 $(H2 $(LNAME2 explicit_tmp_instantiation, Explicit Template Instantiation))
 
@@ -158,11 +179,6 @@ $(GNAME TemplateSingleArgument):
         // and refers to exactly the same instance as TFoo!(3)
         static assert(is(TFoo!(3) == TFoo!(3u)));
         -----
-
-    $(P If multiple templates with the same $(I Identifier) are
-        declared, they are distinct if they have a different number of
-        arguments or are differently specialized.
-    )
 
     $(H3 $(LNAME2 copy_example, Practical Example))
 
@@ -360,27 +376,27 @@ $(GNAME TemplateThisParameter):
         infer the mutability of the `this` reference. For example, if
         `this` is `const`, then the function is marked `const`.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
-        import std.stdio;
-
         struct S
         {
-            const void foo(this T)(int i)
+            void foo(this T)() const
             {
-                writeln(typeid(T));
+                pragma(msg, T);
             }
         }
 
         void main()
         {
             const(S) s;
-            (&s).foo(1);
+            (&s).foo();
             S s2;
-            s2.foo(2);
+            s2.foo();
             immutable(S) s3;
-            s3.foo(3);
+            s3.foo();
         }
         ---
+        )
 
     Prints:
 
@@ -422,6 +438,7 @@ immutable(S)
     $(P Here the method $(D add) returns the base type, which doesn't implement the
         $(D remove) method. The $(D template this) parameter can be used for this purpose:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         interface Addable(T)
         {
@@ -442,9 +459,15 @@ immutable(S)
         void main()
         {
             auto list = new List!int;
-            list.add(1).remove(1);  // ok
+            static assert(is(typeof(list.add(1)) == List!int));
+            list.add(1).remove(1);  // ok, List.add
+
+            Addable!int a = list;
+            // a.add calls Addable.add
+            static assert(is(typeof(a.add(1)) == Addable!int));
         }
         ---
+        )
 
 $(H2 $(LNAME2 template_value_parameter, Template Value Parameters))
 
@@ -463,13 +486,14 @@ $(GNAME TemplateValueParameterDefault):
     $(D =) $(GLINK2 expression, SpecialKeyword)
 )
 
-    $(P Template value parameter types can be any type which can
-        be statically initialized at compile time.
+    $(P A template value parameter can take an argument of any expression which can
+        be statically evaluated at compile time.
         Template value arguments can be integer values, floating point values,
         nulls, string values, array literals of template value arguments,
         associative array literals of template value arguments,
         or struct literals of template value arguments.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -----
         template foo(string s)
         {
@@ -478,9 +502,14 @@ $(GNAME TemplateValueParameterDefault):
 
         void main()
         {
-            writefln("%s", foo!("hello").bar()); // prints: hello betty
+            import std.stdio;
+            writeln(foo!("hello").bar()); // prints: hello betty
         }
         -----
+        )
+
+    $(P Any specialization or default expression provided must be evaluatable
+        at compile-time.)
 
     $(P This example of template foo has a value parameter that
         is specialized for 10:)
@@ -655,6 +684,7 @@ $(GNAME TemplateAliasParameterDefault):
 
         $(LI Literals
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         template Foo(alias x, alias y)
         {
@@ -664,11 +694,12 @@ $(GNAME TemplateAliasParameterDefault):
 
         void main()
         {
+            import std.stdio;
             alias foo = Foo!(3, "bar");
             writeln(foo.i, foo.s);  // prints 3bar
         }
         ------
-        )
+        ))
 
         $(LI Compile-time values
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -777,19 +808,21 @@ $(GNAME TemplateSequenceParameter):
     $(P An $(I AliasSeq) can be used as an argument list to instantiate
         another template, or as the list of parameters for a function.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
+        import std.stdio;
+
         template print(args...)
         {
-            void print()
+            void f()
             {
                 writeln("args are ", args); // args is a ValueSeq
             }
         }
 
-        template write(Args...)
+        template write(Args...) // Args is a TypeSeq
         {
-            void write(Args args) // Args is a TypeSeq
-                                  // args is a ValueSeq
+            void f(Args args) // args is a ValueSeq
             {
                 writeln("args are ", args);
             }
@@ -797,10 +830,11 @@ $(GNAME TemplateSequenceParameter):
 
         void main()
         {
-            print!(1,'a',6.8).print();                    // prints: args are 1a6.8
-            write!(int, char, double).write(1, 'a', 6.8); // prints: args are 1a6.8
+            print!(1,'a',6.8).f();                    // prints: args are 1a6.8
+            write!(int, char, double).f(1, 'a', 6.8); // prints: args are 1a6.8
         }
         ---
+        )
 
     $(P The number of elements in an $(I AliasSeq) can be retrieved with
         the $(D .length) property. The $(I n)th element can be retrieved
@@ -812,10 +846,15 @@ $(GNAME TemplateSequenceParameter):
         to dynamically change, add, or remove elements either at compile-time or run-time.
     )
 
-    $(P Type sequences can be deduced from the trailing parameters
-        of an implicitly instantiated function template:)
+$(H3 $(LNAME2 typeseq_deduction, Type Sequence Deduction))
 
+    $(P Type sequences can be deduced from the trailing parameters
+        of an $(RELATIVE_LINK2 ifti, implicitly instantiated) function template:)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
+        import std.stdio;
+
         template print(T, Args...)
         {
             void print(T first, Args args)
@@ -831,6 +870,7 @@ $(GNAME TemplateSequenceParameter):
             print(1, 'a', 6.8);
         }
         ---
+        )
 
     prints:
 
@@ -843,6 +883,7 @@ a
     $(P Type sequences can also be deduced from the type of a delegate
         or function parameter list passed as a function argument:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ----
         import std.stdio;
 
@@ -864,10 +905,12 @@ a
                 return x + y + z;
             }
 
+            import std.stdio;
             auto plus_two = partial(&plus, 2);
-            writefln("%d", plus_two(6, 8)); // prints 16
+            writeln(plus_two(6, 8)); // prints 16
         }
         ----
+        )
         See also: $(REF partial, std,functional)
 
 $(H3 $(LNAME2 variadic_template_specialization, Specialization))
@@ -925,7 +968,8 @@ $(H2 $(LNAME2 implicit_template_properties, Eponymous Templates))
         }
         ------
 
-        $(P Using functions and more types than the template:)
+        $(P The following example has more than one eponymous member and uses
+        $(RELATIVE_LINK2 ifti, Implicit Function Template Instantiation):)
 
         ------
         template foo(S, T)
@@ -942,36 +986,7 @@ $(H2 $(LNAME2 implicit_template_properties, Eponymous Templates))
         }
         ------
 
-        $(P When the template parameters must be deduced, the eponymous members
-        can't rely on a $(LINK2 version.html#StaticIfCondition, `static if`)
-        condition since the deduction relies on how the in members are used:)
-
-        ------
-        template foo(T)
-        {
-            static if (is(T)) // T is not yet known...
-                void foo(T t) {} // T is deduced from the member usage
-        }
-
-        void main()
-        {
-            foo(0); // Error: cannot deduce function from argument types
-            foo!int(0); // Ok since no deduction necessary
-        }
-        ------
-
-$(H2 $(LNAME2 template_ctors, Template Constructors))
-
-$(GRAMMAR
-$(GNAME ConstructorTemplate):
-    $(D this) $(GLINK TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(D :)
-    $(D this) $(GLINK TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 function, FunctionBody)
-)
-
-    $(P Templates can be used to form constructors for classes  and structs.
-    )
-
-$(H2 $(LNAME2 aggregate_templates, Aggregate Templates))
+$(H2 $(LNAME2 aggregate_templates, Aggregate Type Templates))
 
 $(GRAMMAR
 $(GNAME ClassTemplateDeclaration):
@@ -1067,6 +1082,7 @@ $(H3 $(LNAME2 ifti, Implicit Function Template Instantiation (IFTI)))
         $(I TemplateArgumentList) is deducible from the types of the
         function arguments:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ----
         T square(T)(T t)
         {
@@ -1075,6 +1091,7 @@ $(H3 $(LNAME2 ifti, Implicit Function Template Instantiation (IFTI)))
 
         writefln("The square of %s is %s", 3, square(3));  // T is deduced to be int
         ----
+        )
 
     $(P Type parameter deduction is not influenced by the order of function
         arguments.
@@ -1086,6 +1103,8 @@ $(H3 $(LNAME2 ifti, Implicit Function Template Instantiation (IFTI)))
         from the function arguments.
     )
 
+$(H4 $(LNAME2 ifti-restrictions, Restrictions))
+
     $(P Function template type parameters that are to be implicitly
         deduced may not have specializations:)
 
@@ -1095,6 +1114,25 @@ $(H3 $(LNAME2 ifti, Implicit Function Template Instantiation (IFTI)))
         int x,y;
         foo!(int*)(x);   // ok, T is not deduced from function argument
         foo(&y);         // error, T has specialization
+        ------
+
+        $(P When the template parameters must be deduced, the
+        $(RELATIVE_LINK2 implicit_template_properties, eponymous members)
+        can't rely on a $(LINK2 version.html#StaticIfCondition, `static if`)
+        condition since the deduction relies on how the members are used:)
+
+        ------
+        template foo(T)
+        {
+            static if (is(T)) // T is not yet known...
+                void foo(T t) {} // T is deduced from the member usage
+        }
+
+        void main()
+        {
+            foo(0); // Error: cannot deduce function from argument types
+            foo!int(0); // Ok since no deduction necessary
+        }
         ------
 
 $(H4 $(LNAME2 ifti-conversions, Type Conversions))
@@ -1196,6 +1234,17 @@ $(H3 $(LNAME2 function-default, Default Arguments))
         assert(fun!int(1, "filename") == 1);  // no IFTI
         ---
         )
+
+$(H2 $(LNAME2 template_ctors, Template Constructors))
+
+$(GRAMMAR
+$(GNAME ConstructorTemplate):
+    $(D this) $(GLINK TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(D :)
+    $(D this) $(GLINK TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 function, FunctionBody)
+)
+
+    $(P Templates can be used to form constructors for classes and structs.
+    )
 
 $(H2 $(LNAME2 variable-template, Enum & Variable Templates))
 

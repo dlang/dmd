@@ -8,7 +8,7 @@ $(HEADERNAV_TOC)
 
     $(P ImportC is a C compiler embedded into the D implementation.
     Its purpose is to enable direct importation of C files, without
-    needing to manually prepare a D file corresponding to the the declarations
+    needing to manually prepare a D file corresponding to the declarations
     in the C file. It enables directly compiling C files into modules, and
     linking them in with D code to form an executable. It can be used
     as a C compiler to compile and link 100% C programs.
@@ -32,8 +32,9 @@ $(H2 $(LNAME2 dialect, ImportC Dialect))
     )
 
     $(P Adjustment to the ImportC dialect is made to match the
-    behavior of the C compiler that the D compiler is matched to. For
-    example, on Win32 D is matched to the Digital Mars C compiler,
+    behavior of the C compiler that the D compiler is matched to
+    i.e. the $(I associated C compiler).
+    For example, on Win32 D is matched to the Digital Mars C compiler,
     and can be matched to the Visual C compiler using the $(TT -m32mscoff)
     switch. Win64 D is matched to the Visual C compiler.
     On Posix targets, the matching C compiler is Gnu C or Clang C.
@@ -122,6 +123,67 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     directives are normally embedded in the output of C preprocessors.)
 
 
+$(H2 $(LNAME2 implementation, Implementation))
+
+    $(P The implementation defined characteristics of ImportC are:)
+
+    $(H3 $(LNAME2 enums, Enums))
+
+    $(P $(I enumeration-constants) are always typed as `int`.)
+
+    $(P The expression that defines the value of an $(I enumeration-constant) must
+    be an integral type and evaluate to an integer value that fits in an `int`.)
+
+    ---
+    enum E { -10, 0x81231234 }; // ok
+    enum F {  0x812312345678 }; // error, doesn't fit in int
+    enum G { 1.0 };             // error, not integral type
+    ---
+
+    $(P The enumerated type is `int`.)
+
+
+    $(H3 $(LNAME2 bitfields, Bit Fields))
+
+    $(P There are many implementation defined aspects of C11 bit fields.
+    ImportC's behavior adjusts to match the behavior of the $(I associated
+    C compiler) on the target platform.
+    )
+
+    $(H3 $(LNAME2 implicit-function-declaration, Implicit Function Declarations))
+
+    $(P Implicit function declarations:)
+
+    $(CCODE
+    int main()
+    {
+        func();  // implicit declaration of func()
+    }
+    )
+
+    $(P were allowed in K+R C and C89, but were invalidated in C99 and C11. Although many
+    C compilers still support them, ImportC does not.
+    )
+
+    $(RATIONALE Implicit function declarations are very error-prone and cause hard
+    to find bugs.)
+
+    $(H3 $(LNAME2 pragma-STDC-FENV_ACCESS, #pragma STDC FENV_ACCESS))
+
+    $(P This is described in C11 7.6.1)
+
+$(GRAMMAR
+#pragma STDC FENV_ACCESS on-off-switch
+
+on-off-switch:
+    ON
+    OFF
+    DEFAULT
+)
+
+    $(P It is completely ignored.)
+
+
 $(H2 $(LNAME2 limitations, Limitations))
 
     $(H3 $(LNAME2 exceptions, Exception Handling))
@@ -190,6 +252,28 @@ $(H2 $(LNAME2 extensions, Extensions))
     $(P Functions for which the function body is present can
     be inlined by ImportC as well as by the D code that calls them.)
 
+    $(H3 $(LNAME2 enumbasetype, Enum Base Types))
+
+    $(P Enums are extended with an optional $(I EnumBaseType):)
+
+$(GRAMMAR
+$(GNAME EnumDeclaration):
+    $(D enum) $(GLINK Identifier) $(D :) $(GLINK EnumBaseType) $(GLINK EnumBody)
+
+$(GNAME EnumBaseType):
+    $(GLINK Type)
+)
+
+    $(P which, when supplied, causes the enum members to be implicitly cast to the
+    $(I EnumBaseType).
+    )
+
+$(CCODE
+enum S : byte { A };
+_Static_assert(sizeof(A) == 1, "A should be size 1");
+)
+
+
     $(H3 $(LNAME2 register, Register Storage Class))
 
     $(P Objects with `register` storage class are treated as `auto` declarations.)
@@ -209,8 +293,8 @@ $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
     $(P `__attribute__((noreturn))` marks a function as never returning.
     `gcc` set this as an attribute of the function, it is
     not part of the function's type. In D, a function that never returns
-    has the return type `noreturn`. The difference can be seen with the
-    code:)
+    has the return type $(GLINK2 type, noreturn). The difference can be
+    seen with the code:)
     $(CCODE
     attribute((noreturn)) int foo();
     size_t x = sizeof(foo());

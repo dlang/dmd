@@ -77,6 +77,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 isSame, $(D isSame))
     $(RELATIVE_LINK2 compiles, $(D compiles))
     $(RELATIVE_LINK2 toType, $(D toType))
+    $(RELATIVE_LINK2 initSymbol, $(D initSymbol))
 
 $(GNAME TraitsArguments):
     $(GLINK TraitsArgument)
@@ -525,8 +526,8 @@ void foolazy(lazy int x)
 
 $(H2 $(GNAME isTemplate))
 
-        $(P Takes one argument. If that argument is a template then $(D true) is returned,
-        otherwise $(D false).
+        $(P Takes one argument. If that argument or any of its overloads is a template
+        then $(D true) is returned, otherwise $(D false).
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -676,8 +677,6 @@ import std.stdio;
 struct S
 {
     int m;
-
-    import std.stdio; // imports write
 }
 
 void main()
@@ -687,7 +686,7 @@ void main()
     writeln(__traits(hasMember, S, "m")); // true
     writeln(__traits(hasMember, s, "m")); // true
     writeln(__traits(hasMember, S, "y")); // false
-    writeln(__traits(hasMember, S, "write")); // true
+    writeln(__traits(hasMember, S, "write")); // false, but callable like a member via UFCS
     writeln(__traits(hasMember, int, "sizeof")); // true
 }
 ---
@@ -1089,7 +1088,7 @@ $(H2 $(GNAME getParameterStorageClasses))
 
     $(P
         Takes two arguments.
-        The first must either be a function symbol, or a type
+        The first must either be a function symbol, a function call, or a type
         that is a function, delegate or a function pointer.
         The second is an integer identifying which parameter, where the first parameter is
         0.
@@ -1106,6 +1105,13 @@ static assert(__traits(getParameterStorageClasses, foo, 0)[1] == "ref");
 static assert(__traits(getParameterStorageClasses, foo, 1)[0] == "scope");
 static assert(__traits(getParameterStorageClasses, foo, 2)[0] == "out");
 static assert(__traits(getParameterStorageClasses, typeof(&foo), 3)[0] == "lazy");
+
+int* p, a;
+int b, c;
+
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 1)[0] == "scope");
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 2)[0] == "out");
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "lazy");
 ---
 )
 
@@ -1445,10 +1451,12 @@ $(H2 $(GNAME getVirtualIndex))
 $(H2 $(GNAME allMembers))
 
         $(P Takes a single argument, which must evaluate to either
-        a type or an expression of type.
+        a module, a struct, a union, a class, an interface, or a
+        template instantiation.
+
         A tuple of string literals is returned, each of which
-        is the name of a member of that type combined with all
-        of the members of the base classes (if the type is a class).
+        is the name of a member of that argument combined with all
+        of the members of its base classes (if the argument is a class).
         No name is repeated.
         Builtin properties are not included.
         )
@@ -1706,6 +1714,49 @@ $(H2 $(GNAME toType))
 
         $(RATIONALE Provides the inverse operation of the $(DDSUBLINK property, mangleof, `.mangleof`) property.)
 
+$(H2 $(GNAME initSymbol))
+
+        $(P Takes a single argument, which must evaluate to a `class`, `struct` or `union` type.
+            Returns a `const(void)[]` that holds the initial state of any instance of the supplied type.
+            The slice is constructed for any type `T` as follows:
+
+            - `ptr` points to either the initializer symbol of `T`
+               or `null` if `T` is a zero-initialized struct / unions.
+
+            - `length` is equal to the size of an instance, i.e. `T.sizeof` for structs / unions and
+              $(RELATIVE_LINK2 classInstanceSize, $(D __traits(classInstanceSize, T)`)) for classes.
+        )
+
+        $(P
+            This trait matches the behaviour of `TypeInfo.initializer()` but can also be used when
+            `TypeInfo` is not available.
+        )
+
+        $(P
+            This traits is not available during $(DDSUBLINK glossary, ctfe, CTFE) because the actual address
+            of the initializer symbol will be set by the linker and hence is not available at compile time.
+        )
+
+        ---
+        class C
+        {
+            int i = 4;
+        }
+
+        /// Initializes a malloc'ed instance of `C`
+        void main()
+        {
+            const void[] initSym = __traits(initSymbol, C);
+
+            void* ptr = malloc(initSym.length);
+            scope (exit) free(ptr);
+
+            ptr[0..initSym.length] = initSym[];
+
+            C c = cast(C) ptr;
+            assert(c.i == 4);
+        }
+        ---
 
 $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
 

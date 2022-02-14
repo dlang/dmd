@@ -66,7 +66,7 @@ $(OL
 )
 
 
-$(H2 $(LINK2 memory-model, Memory Model))
+$(H2 $(LNAME2 memory-model, Memory Model))
 
     $(P The $(I byte) is the fundamental unit of storage. Each byte has 8 bits and is stored at
     a unique address. A $(I memory location) is a sequence of one or more bytes of the exact size

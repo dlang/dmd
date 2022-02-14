@@ -4,6 +4,13 @@ $(SPEC_S Expressions,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
+
+$(GRAMMAR
+$(GNAME Expression):
+    $(GLINK CommaExpression)
+)
+
 $(P An expression is a sequence of operators and operands that specifies an evaluation.
 The syntax, order of evaluation, and semantics of expressions are as follows.)
 
@@ -14,22 +21,34 @@ The syntax, order of evaluation, and semantics of expressions are as follows.)
 
 $(H2 $(LNAME2 definitions-and-terms, Definitions and Terms))
 
-$(DDOC_ANCHOR define-full-expression)$(P $(B Definition) ($(DOUBLEQUOTE Full expression)): For any expression
+$(H3 $(LNAME2 .define-full-expression, Full Expression))
+
+$(P For any expression
 $(I expr), the full expression of $(I expr) is defined as follows. If $(I expr) parses as a
 subexpression of another expression $(I expr$(SUBSCRIPT 1)), then the full expression of $(I expr) is the
 full expression of $(I expr$(SUBSCRIPT 1)). Otherwise, $(I expr) is its own full expression.)
 
-$(P Each expression has a unique full expression.)
+$(P Each expression has a unique full expression. Example:)
 
-$(P Example: in the statement `return f() + g() * 2;`, the full expression of `g() * 2` is `f() + g() * 2`, but not the
+---
+return f() + g() * 2;
+---
+
+$(P The full expression of `g() * 2` above is `f() + g() * 2`, but not the
 full expression of `f() + g()` because the latter is not parsed as a subexpression.)
 
-$(P Note: Although the definition is straightforward, a few subtleties exist related to function literals. In the
-statement `return (() => x + f())() * g();`, the full expression of `f()` is `x + f()`, not the expression passed
+$(P Note: Although the definition is straightforward, a few subtleties exist related to function literals:)
+
+---
+return (() => x + f())() * g();
+---
+
+$(P The full expression of `f()` above is `x + f()`, not the expression passed
 to `return`. This is because the parent of `x + f()` has function literal type, not expression type.)
 
-$(DDOC_ANCHOR define-lvalue)$(P $(B Definition) ($(DOUBLEQUOTE Lvalue)): The following expressions, and no
-others, are called lvalue expressions or lvalues:)
+$(H3 $(LNAME2 .define-lvalue, Lvalue))
+
+$(P The following expressions, and no others, are called *lvalue expressions* or *lvalues*:)
 $(OL
 $(LI `this` inside `struct` and `union` member functions;)
 $(LI a variable or the result of the $(I DotIdentifier) grammatical construct `.` (left side may be
@@ -41,7 +60,7 @@ $(LI built-in unary operators `+` (when applied to an lvalue), `*`, `++` (prefix
 $(LI built-in indexing operator `[]` (but not the slicing operator);)
 $(LI built-in assignment binary operators, i.e. `=`, `+=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `~=`,
 `<<=`, `>>=`, `>>>=`, and `^^=`;)
-$(LI the ternary operator $(I e) `?` $(I e$(SUBSCRIPT 1)) `:` $(I e$(SUBSCRIPT 2)) under the following
+$(LI the $(GLINK ConditionalExpression) operator $(I e) `?` $(I e$(SUBSCRIPT 1)) `:` $(I e$(SUBSCRIPT 2)) under the following
 circumstances:)
 $(OL
     $(LI $(I e$(SUBSCRIPT 1)) and $(I e$(SUBSCRIPT 2)) are lvalues of the same type; OR)
@@ -55,23 +74,28 @@ $(LI `cast(U)` expressions applied to lvalues of type `T` when `T*` is implicitl
 $(LI `cast()` and `cast(`$(I qualifier list)`)` when applied to an lvalue.)
 )))
 
-$(DDOC_ANCHOR define-rvalue)$(P $(B Definition) ($(DOUBLEQUOTE Rvalue)): Expressions that are not
-lvalues are rvalues.)
+$(H3 $(LNAME2 .define-rvalue, Rvalue))
 
-$(P Note: Rvalues include all literals, special value keywords such as `__FILE__` and `__LINE__`,
+$(P Expressions that are not lvalues are *rvalues*. Rvalues include all literals, special value keywords such as `__FILE__` and `__LINE__`,
 `enum` values, and the result of expressions not defined as lvalues above.)
 
 $(P The built-in address-of operator (unary `&`) may only be applied to lvalues.)
 
-$(DDOC_ANCHOR define-smallest-short-circuit)$(P $(B Definition) ($(DOUBLEQUOTE Smallest
-short-circuit expression)): Given an expression $(I expr) that is a subexpression of a full
-expression $(I fullexpr), the smallest short-circuit expression, if any, is the shortest
-subexpression $(I scexpr) of $(I fullexpr) that is an $(GLINK AndAndExpression) (`&&`) or an
-$(GLINK OrOrExpression) (`||`), such that $(I expr) is a subexpression of $(I scexpr).)
+$(H3 $(LNAME2 .define-smallest-short-circuit, Smallest Short-Circuit Expression))
 
-Example: in the expression `((f() * 2 && g()) + 1) || h()`, the smallest short-circuit expression
-of the subexpression `f() * 2` is `f() * 2 && g()`. In the expression `(f() && g()) + h()`, the
-subexpression `h()` has no smallest short-circuit expression.
+$(P Given an expression $(I expr) that is a subexpression of a full
+expression $(I fullexpr), the *smallest short-circuit expression*, if any, is the shortest
+subexpression $(I scexpr) of $(I fullexpr) that is an $(GLINK AndAndExpression) (`&&`) or an
+$(GLINK OrOrExpression) (`||`), such that $(I expr) is a subexpression of $(I scexpr). Example:)
+---
+((f() * 2 && g()) + 1) || h()
+---
+The smallest short-circuit expression
+of the subexpression `f() * 2` above is `f() * 2 && g()`. Example:
+---
+(f() && g()) + h()
+---
+The subexpression `h()` above has no smallest short-circuit expression.
 
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
@@ -172,7 +196,7 @@ $(P Note: An intuition behind these rules is that destructors of temporaries are
 expression and in reverse order of construction, with the exception that the right-hand side of
 `&&` and `||` are considered their own full expressions even when part of larger expressions.)
 
-$(P Note: The ternary expression $(I e$(SUBSCRIPT 1) ? e$(SUBSCRIPT 2) : e$(SUBSCRIPT 3)) is not
+$(P Note: The $(GLINK ConditionalExpression) $(I e$(SUBSCRIPT 1) ? e$(SUBSCRIPT 2) : e$(SUBSCRIPT 3)) is not
 a special case although it evaluates expressions conditionally: $(I e$(SUBSCRIPT 1)) and one of
 $(I e$(SUBSCRIPT 2)) and $(I e$(SUBSCRIPT 3)) may create temporaries. Their destructors are inserted
 to the end of the full expression in the reverse order of creation.)
@@ -218,12 +242,9 @@ Following their destruction, `S(5)` and `S(6)` are constructed in lexical order.
 destroyed at the end of the full expression, but right at the end of the `&&` expression.
 Consequently, the destruction of `S(6)` and `S(5)` is carried before that of `S(2)` and `S(1)`.
 
-$(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
+$(H2 $(LNAME2 comma_expression, Comma Expression))
 
 $(GRAMMAR
-$(GNAME Expression):
-    $(GLINK CommaExpression)
-
 $(GNAME CommaExpression):
     $(GLINK AssignExpression)
     $(GSELF CommaExpression) $(D ,) $(GLINK AssignExpression)
@@ -371,7 +392,11 @@ $(GNAME ConditionalExpression):
     test ? a = b : (c = 2);
     ---
 
-$(H2 $(LNAME2 oror_expressions, OrOr Expressions))
+$(H2 $(LNAME2 logical_expressions, Logical Expressions))
+
+$(DDOC_SEE_ALSO $(GLINK UnaryExpression) for `!expr`.)
+
+$(H3 $(LNAME2 oror_expressions, OrOr Expressions))
 
 $(GRAMMAR
 $(GNAME OrOrExpression):
@@ -399,7 +424,7 @@ $(GNAME OrOrExpression):
         expression is the right operand converted to type $(D bool).
     )
 
-$(H2 $(LNAME2 andand_expressions, AndAnd Expressions))
+$(H3 $(LNAME2 andand_expressions, AndAnd Expressions))
 
 $(GRAMMAR
 $(GNAME AndAndExpression):
@@ -429,11 +454,13 @@ $(GNAME AndAndExpression):
 
 $(H2 $(LNAME2 bitwise_expressions, Bitwise Expressions))
 
-    $(P Bit wise expressions perform a bitwise operation on their operands.
+    $(P Bit wise expressions perform a
+    $(LINK2 https://en.wikipedia.org/wiki/Bitwise_operation, bitwise operation) on their operands.
         Their operands must be integral types.
         First, the $(USUAL_ARITHMETIC_CONVERSIONS) are done. Then, the bitwise
         operation is done.
     )
+    $(DDOC_SEE_ALSO $(GLINK ShiftExpression), $(GLINK ComplementExpression))
 
 $(H3 $(LNAME2 or_expressions, Or Expressions))
 
@@ -469,11 +496,11 @@ $(H2 $(LNAME2 compare_expressions, Compare Expressions))
 
 $(GRAMMAR
 $(GNAME CmpExpression):
-    $(GLINK ShiftExpression)
     $(GLINK EqualExpression)
     $(GLINK IdentityExpression)
     $(GLINK RelExpression)
     $(GLINK InExpression)
+    $(GLINK ShiftExpression)
 )
 
 $(H2 $(LNAME2 equality_expressions, Equality Expressions))
@@ -507,18 +534,25 @@ $(GNAME EqualExpression):
         Otherwise, the bit patterns of the common type are compared for equality.
     )
 
-    $(P For complex numbers, equality is defined as equivalent to:
+    $(P For static and dynamic arrays, equality is defined as the
+        lengths of the arrays
+        matching, and all the elements are equal.
+    )
+
+    $(DDOC_DEPRECATED For complex numbers, equality is defined as equivalent to:)
 
         ---
         x.re == y.re && x.im == y.im
         ---
-    )
+
+    $(H3 $(LNAME2 class_struct_equality, Class & Struct Equality))
 
     $(P For struct objects, equality means the result of the
         $(LINK2 https://dlang.org/spec/operatoroverloading.html#equals, `opEquals()` member function).
         If an `opEquals()` is not provided, equality is defined as
         the logical product of all equality
-        results of the corresponding object fields.
+        results of the corresponding object fields.)
+    )
 
         $(IMPLEMENTATION_DEFINED The contents of any alignment gaps in the struct object.)
 
@@ -527,14 +561,13 @@ $(GNAME EqualExpression):
         An `opEquals()` can account for which of the overlapping fields contains valid data.
         An `opEquals()` can override the default behavior of floating point NaN values
         always comparing as unequal.
-        Be careful using `memcmp()` to implement `opEquals()` if:
+        Be careful using `memcmp()` to implement `opEquals()` if:)
+
         $(UL
         $(LI there are any alignment gaps)
-        $(LI if any fields have an `opEquals()`)
+        $(LI any fields have an `opEquals()`)
         $(LI there are any floating point fields that may contain NaN or `-0` values)
         )
-        )
-    )
 
     $(P For class and struct objects, the expression $(D (a == b))
         is rewritten as
@@ -559,11 +592,6 @@ $(GNAME EqualExpression):
             ...
         ---
 
-    $(P For static and dynamic arrays, equality is defined as the
-        lengths of the arrays
-        matching, and all the elements are equal.
-    )
-
 $(H3 $(LNAME2 identity_expressions, Identity Expressions))
 
 $(GRAMMAR
@@ -572,7 +600,7 @@ $(GNAME IdentityExpression):
     $(GLINK ShiftExpression) $(D ! is) $(GLINK ShiftExpression)
 )
 
-    $(P The $(D is) compares for identity.
+    $(P The $(D is) operator compares for identity.
         To compare for nonidentity, use $(D e1 !is e2).
         The type of the result is $(D bool). The operands
         undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
@@ -613,15 +641,7 @@ $(GNAME RelExpression):
         The result type of a relational expression is $(D bool).
     )
 
-    $(P For class objects, the result of Object.opCmp() forms the left
-        operand, and 0 forms the right operand. The result of the
-        relational expression (o1 op o2) is:)
-
-        ---
-        (o1.opCmp(o2) op 0)
-        ---
-
-    $(P It is an error to compare objects if one is $(D null).)
+$(H3 $(LNAME2 array_comparisons, Array comparisons))
 
     $(P For static and dynamic arrays, the result of the relational
         op is the result of the operator applied to the first non-equal
@@ -677,13 +697,24 @@ $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
     $(P For class objects, the relational
         operators compare the
         contents of the objects. Therefore, comparing against
-        $(CODE null) is invalid, as $(CODE null) has no contents.)
+        a $(CODE null) class reference is invalid, as $(CODE null) has no contents.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        class C {}
+        C c;
+        //if (c < null) {}  // compile-time error
+        assert(c is null);
+        if (c > new C) {}  // runtime error
+        ---
+        )
+
+    $(P For class objects, the result of `Object.opCmp()` forms the left
+        operand, and `0` forms the right operand. The result of the
+        relational expression `(o1 op o2)` is:)
 
         ---
-        class C;
-        C c;
-        if (c < null)  // error
-            ...
+        (o1.opCmp(o2) op 0)
         ---
 
 $(H2 $(LNAME2 in_expressions, In Expressions))
@@ -731,9 +762,10 @@ $(GNAME ShiftExpression):
         by the right operand's value.
     )
 
-    $(P $(D <)$(D <) is a left shift.
-        $(D >)$(D >) is a signed right shift.
-        $(D >)$(D >)$(D >) is an unsigned right shift.
+    $(UL
+        $(LI $(D <)$(D <) is a left shift.)
+        $(LI $(D >)$(D >) is a signed right shift.)
+        $(LI $(D >)$(D >)$(D >) is an unsigned right shift.)
     )
 
     $(P It's illegal to shift by the same or more bits than the size of the
@@ -759,10 +791,24 @@ $(GNAME AddExpression):
         $(USUAL_ARITHMETIC_CONVERSIONS).
     )
 
+    $(P If both operands are of integral types and an overflow or underflow
+        occurs in the computation, wrapping will happen. For example:)
+    $(UL
+        $(LI $(D uint.max + 1 == uint.min))
+        $(LI $(D uint.min - 1 == uint.max))
+        $(LI $(D int.max + 1 == int.min))
+        $(LI $(D int.min - 1 == int.max))
+    )
+
     $(P If either operand is a floating point type, the other is implicitly
         converted to floating point and they are brought to a common type
         via the $(USUAL_ARITHMETIC_CONVERSIONS).
     )
+
+    $(P Add expressions for floating point operands are not associative.
+    )
+
+    $(H3 $(LNAME2 pointer_arithmetic, Pointer Arithmetic))
 
     $(P If the operator is $(D +) or $(D -), and
         the first operand is a pointer, and the second is an integral type,
@@ -770,6 +816,20 @@ $(GNAME AddExpression):
         value is the pointer plus (or minus) the second operand multiplied by
         the size of the type pointed to by the first operand.
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+int* p = a.ptr;
+assert(*p == 1);
+
+*(p + 2) = 4; // same as `p[2] = 4`
+assert(a[2] == 4);
+---
+)
+
+    $(P $(GLINK IndexExpression) can also be used with a pointer and has
+    the same behaviour as adding an integer.)
 
     $(P If the second operand is a pointer, and the first is an integral type,
         and the operator is $(D +),
@@ -789,14 +849,13 @@ $(GNAME AddExpression):
         The type of the result is $(D ptrdiff_t).
     )
 
-    $(P If both operands are of integral types and an overflow or underflow
-        occurs in the computation, wrapping will happen. For example,
-        $(D uint.max + 1 == uint.min), $(D uint.min - 1 == uint.max),
-        $(D int.max + 1 == int.min), and $(D int.min - 1 == int.max).
-    )
-
-    $(P Add expressions for floating point operands are not associative.
-    )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1,2,3];
+ptrdiff_t d = &a[2] - a.ptr;
+assert(d == 2);
+---
+)
 
 $(H2 $(LNAME2 cat_expressions, Cat Expressions))
 
@@ -833,6 +892,8 @@ $(GNAME MulExpression):
         into the integral type.
     )
 
+$(H3 $(LNAME2 division, Division))
+
     $(P For integral operands of the $(D /) and $(D %) operators,
         the quotient rounds towards zero and the remainder has the
         same sign as the dividend.
@@ -853,10 +914,12 @@ $(GNAME MulExpression):
         can be used to check for them and select a defined behavior.
     )
 
-    $(P For floating point operands, the * and / operations correspond
-        to the IEEE 754 floating point equivalents. % is not the same as
-        the IEEE 754 remainder. For example, 15.0 % 10.0 == 5.0, whereas
-        for IEEE 754, remainder(15.0,10.0) == -5.0.
+$(H3 $(LNAME2 mul_floating, Floating Point))
+
+    $(P For floating point operands, the `*` and `/` operations correspond
+        to the IEEE 754 floating point equivalents. `%` is not the same as
+        the IEEE 754 remainder. For example, `15.0 % 10.0 == 5.0`, whereas
+        for IEEE 754, `remainder(15.0,10.0) == -5.0`.
     )
 
     $(P Mul expressions for floating point operands are not associative.
@@ -876,7 +939,19 @@ $(GNAME UnaryExpression):
     $(GLINK ComplementExpression)
     $(GLINK DeleteExpression)
     $(GLINK CastExpression)
+    $(GLINK ThrowExpression)
     $(GLINK PowExpression)
+)
+
+$(TABLE
+    $(THEAD Operator, Description)
+    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK arrays, pointers, pointers))
+    $(TROW `++`, Increment before use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
+    $(TROW `--`, Decrement before use)
+    $(TROW `*`, Dereference/indirection - typically for pointers)
+    $(TROW `-`, Negative)
+    $(TROW `+`, Positive)
+    $(TROW `!`, Logical NOT)
 )
 
 $(H3 $(LNAME2 complement_expressions, Complement Expressions))
@@ -916,6 +991,20 @@ $(GNAME ArgumentList):
         collected heap (default) or using a class or struct specific allocator.
     )
 
+    $(DDOC_DEPRECATED If $(I AllocatorArguments) is provided, then
+        the $(I ArgumentList) is passed to the class or struct specific
+        $(DDSUBLINK spec/class, allocators, allocator function) after the size argument.
+    )
+
+    $(P If a $(I NewExpression) is used as an initializer for
+        a function local variable with $(D scope) storage class,
+        and the $(I ArgumentList) to $(D new) is empty, then
+        the instance is allocated on the stack rather than the heap
+        or using the class specific allocator.
+    )
+
+$(H3 $(LNAME2 new_multidimensional, Multidimensional Arrays))
+
     $(P To allocate multidimensional arrays, the declaration reads
         in the same order as the prefix array declaration order.)
 
@@ -953,26 +1042,13 @@ $(GNAME ArgumentList):
         }
         -----------
 
-    $(P If there is a $(D new $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN)),
-        then
-        those arguments are passed to the class or struct specific
-        $(DDSUBLINK spec/class, allocators, allocator function) after the size argument.
-    )
-
-    $(P If a $(I NewExpression) is used as an initializer for
-        a function local variable with $(D scope) storage class,
-        and the $(GLINK ArgumentList) to $(D new) is empty, then
-        the instance is allocated on the stack rather than the heap
-        or using the class specific allocator.
-    )
-
 $(H3 $(LNAME2 delete_expressions, Delete Expressions))
 
 $(GRAMMAR
 $(GNAME DeleteExpression):
     $(D delete) $(GLINK UnaryExpression)
 )
-    $(P NOTE: `delete` has been deprecated.  Instead, please use $(REF1 destroy, object)
+    $(DDOC_DEPRECATED `delete` has been deprecated.  Instead, please use $(REF1 destroy, object)
     if feasible, or $(REF __delete, core, memory) as a last resort.)
 
     $(P If the $(I UnaryExpression) is a class object reference, and
@@ -1018,34 +1094,42 @@ $(H3 $(LNAME2 cast_expressions, Cast Expressions))
 $(GRAMMAR
 $(GNAME CastExpression):
     $(D cast $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(GLINK UnaryExpression)
-    $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
+    $(GLINK CastQual)
 )
 
     $(P A $(I CastExpression) converts the $(I UnaryExpression)
-        to $(GLINK2 type, Type).)
+        to $(I Type).)
 
         -------------
         cast(foo) -p; // cast (-p) to type foo
         (foo) - p;      // subtract p from foo
         -------------
 
+$(H4 $(LNAME2 cast_class, Class References))
+
     $(P Any casting of a class reference to a
         derived class reference is done with a runtime check to make sure it
         really is a downcast. $(D null) is the result if it isn't.
     )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        class A { ... }
-        class B : A { ... }
+        class A {}
+        class B : A {}
 
-        void test(A a, B b)
+        void main()
         {
-            B bx = a;         // error, need cast
-            B bx = cast(B) a; // bx is null if a is not a B
-            A ax = b;         // no cast needed
-            A ax = cast(A) b; // no runtime check needed for upcast
+            A a = new A;
+            //B b = a;         // error, need cast
+            B b = cast(B) a; // b is null if a is not a B
+            assert(b is null);
+
+            a = b;         // no cast needed
+            a = cast(A) b; // no runtime check needed for upcast
+            assert(a is b);
         }
         -------------
+        )
 
     $(P In order to determine if an object $(D o) is an instance of
         a class $(D B) use a cast:)
@@ -1065,28 +1149,29 @@ $(GNAME CastExpression):
         (i.e. a reinterpret cast).
     )
 
+$(H4 $(LNAME2 cast_array, Arrays))
+
     $(P Casting a dynamic array to another dynamic array is done only if the
         array lengths multiplied by the element sizes match. The cast is done
         as a type paint, with the array length adjusted to match any change in
         element size. If there's not a match, a runtime error is generated.)
 
-        ---
-        import std.stdio;
-
-        int main()
-        {
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
             byte[] a = [1,2,3];
-            auto b = cast(int[])a; // runtime array cast misalignment
+            //auto b = cast(int[])a; // runtime error: array cast misalignment
 
             int[] c = [1, 2, 3];
             auto d = cast(byte[])c; // ok
             // prints:
             // [1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0]
             writeln(d);
-            return 0;
-        }
-        ---
+            ---
+        )
 
+    $(DDOC_SEE_ALSO $(RELATIVE_LINK2 cast_array_literal, Casting array literals).)
+
+$(H4 $(LNAME2 cast_static_array, Static Arrays))
 
     $(P Casting a static array to another static array is done only if the
         array lengths multiplied by the element sizes match; a mismatch
@@ -1094,23 +1179,24 @@ $(GNAME CastExpression):
         The cast is done as a type paint (aka a reinterpret cast).
         The contents of the array are not changed.)
 
-        ---
-        import core.stdc.stdio;
-
-        void main()
-        {
-            byte[16] b = 3;
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
+            byte[16] b = 3; // set each element to 3
+            assert(b[0] == 0x03);
             int[4] ia = cast(int[4]) b;
+            // print elements as hex
             foreach (i; ia)
-                printf("%x\n", i);
+                writefln("%x", i);
             /* prints:
                3030303
                3030303
                3030303
                3030303
              */
-        }
-        ---
+            ---
+        )
+
+$(H4 $(LNAME2 cast_floating, Floating Point))
 
     $(P Casting a floating point literal from one type to another
         changes its type, but internally it is retained at full
@@ -1134,7 +1220,9 @@ $(GNAME CastExpression):
         ---
 
     $(P Casting a floating point value to an integral type is the equivalent
-        of converting to an integer using truncation.)
+        of converting to an integer using truncation. If the floating point
+        value is outside the range of the integral type, the cast will produce
+        an invalid result (this is also the case in C, C++).)
 
         ---
         void main()
@@ -1145,8 +1233,22 @@ $(GNAME CastExpression):
             assert(b == 1L);
             long c = cast(long) -1.5;
             assert(c == -1);
+
+            // if the float overflows, the cast returns the integer value of
+            // 80000000_00000000H (64-bit operand) or 80000000H (32-bit operand)
+            long d = cast(long) float.max;
+            assert(d == long.min);
+            int e = cast(int) (1234.5 + int.max);
+            assert(e == int.min);
+
+            // for types represented on 16 or 8 bits, the result is the same as
+            // 32-bit types, but the most significant bits are ignored
+            short f = cast(short) float.max;
+            assert(f == 0);
         }
         ---
+
+$(H4 $(LNAME2 cast_struct, Structs))
 
     $(P Casting a value $(I v) to a struct $(I S), when value is not a struct
         of the same type, is equivalent to:)
@@ -1155,36 +1257,86 @@ $(GNAME CastExpression):
         S(v)
         ---
 
-    $(P Casting to a $(GLINK CastQual) replaces the qualifiers to the type of
-        the $(GLINK UnaryExpression).)
+$(H4 $(LNAME2 cast_qualifier, Qualifier Cast))
 
+$(GRAMMAR
+$(GNAME CastQual):
+    $(D cast $(LPAREN)) $(GLINK2 type, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
+)
+
+    $(P A $(I CastQual) replaces the qualifiers in the type of
+        the $(I UnaryExpression):)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         shared int x;
-        assert(is(typeof(cast(const)x) == const int));
+        static assert(is(typeof(cast(const)x) == const int));
         ---
+        )
 
-    $(P Casting with no $(GLINK2 type, Type) or $(GLINK CastQual) removes
+    $(P Casting with no type or qualifiers removes
         any top level $(D const), $(D immutable), $(D shared) or $(D inout)
         type modifiers from the type
-        of the $(GLINK UnaryExpression).)
+        of the $(I UnaryExpression).)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         shared int x;
-        assert(is(typeof(cast()x) == int));
+        static assert(is(typeof(cast()x) == int));
         ---
+        )
+
+$(H4 $(LNAME2 cast_void, Casting to `void`))
 
     $(P Casting an expression to $(D void) type is allowed to mark that
         the result is unused. On $(GLINK2 statement, ExpressionStatement),
-        it could be used properly to avoid "has no effect" error.)
+        it could be used properly to avoid a "has no effect" error.)
 
         ----
         void foo(lazy void exp) {}
         void main()
         {
-            foo(10);            // NG - has no effect in expression '10'
+            foo(10);            // NG - expression '10' has no effect
             foo(cast(void)10);  // OK
         }
         ----
+
+$(H2 $(LNAME2 throw_expression, Throw Expression))
+
+$(GRAMMAR
+$(GNAME ThrowExpression):
+    $(D throw) $(GLINK AssignExpression) $(D ;)
+)
+
+$(P
+    $(I AssignExpression) is evaluated and must yield a reference to a `Throwable`
+    or a class derived from `Throwable`. The reference is thrown as an exception,
+    interrupting the current control flow to continue at a suitable $(D catch) clause
+    of a $(GLINK2 statement, try-statement). This process will execute any applicable
+    $(LINK2 statement.html#ScopeGuardStatement, `scope (exit)` / `scope (failure)`)
+    passed since entering the corresponding `try` block.
+)
+
+    ---
+    throw new Exception("message");
+    ---
+
+$(P
+    A $(I ThrowExpression) may be nested in another expression:
+)
+    ---
+    void foo(int function() f) {}
+
+    void main() {
+        foo(() => throw new Exception());
+    }
+    ---
+
+
+$(BEST_PRACTICE Use $(DDSUBLINK spec/expression, assert_expressions, Assert Expressions)
+rather than $(LINK2 $(ROOT_DIR)library/object#.Error, Error) to report program bugs
+and abort the program.
+)
 
 $(H2 $(LNAME2 pow_expressions, Pow Expressions))
 
@@ -1214,6 +1366,12 @@ $(GNAME PostfixExpression):
     $(GLINK SliceExpression)
 )
 
+$(TABLE
+    $(THEAD Operator, Description)
+    $(TROW `++`, Increment after use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
+    $(TROW `--`, Decrement after use)
+)
+
 $(H2 $(LNAME2 index_expressions, Index Expressions))
 
 $(GRAMMAR
@@ -1221,20 +1379,28 @@ $(GNAME IndexExpression):
     $(GLINK PostfixExpression) $(D [) $(GLINK ArgumentList) $(D ])
 )
 
-$(P $(I PostfixExpression) is evaluated. If $(I PostfixExpression) is an
-expression of type static array or dynamic array, the symbol $(DOLLAR) is set to
-be the number of elements in the array. If $(I PostfixExpression) is a $(I
-ValueSeq), the symbol $(DOLLAR) is set to be the number of elements
-in the sequence. A new declaration scope is created for the evaluation of the
-$(GLINK ArgumentList) and $(DOLLAR) appears in that scope only.)
+    $(P $(I PostfixExpression) is evaluated.
+        If $(I PostfixExpression) is an expression of static or
+        dynamic array type, the result of the indexing is an lvalue
+        of the *i*th element in the array, where `i` is an integer
+        evaluated from $(I ArgumentList).
+        If $(I PostfixExpression) is a pointer `p`, the result is
+        `*(p + i)` (see $(RELATIVE_LINK2 pointer_arithmetic, Pointer Arithmetic)).
+    )
 
-    $(P If $(I PostfixExpression) is a $(I ValueSeq),
-        then the $(GLINK ArgumentList) must consist of only one argument,
+    $(P If $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
+        then the $(I ArgumentList) must consist of only one argument,
         and that must be statically evaluatable to an integral constant.
         That integral constant $(I n) then selects the $(I n)th
         expression in the $(I ValueSeq), which is the result
         of the $(I IndexExpression).
         It is an error if $(I n) is out of bounds of the $(I ValueSeq).
+    )
+
+    $(P The special variable `$` is declared and set to be the number
+        of elements in the $(I PostfixExpression) (when available).
+        A new declaration scope is created for the evaluation of the
+        $(I ArgumentList) and `$` appears in that scope only.
     )
 
 $(H2 $(LNAME2 slice_expressions, Slice Expressions))
@@ -1252,43 +1418,59 @@ $(GNAME Slice):
 )
 
     $(P $(I PostfixExpression) is evaluated.
-        if $(I PostfixExpression) is an expression of type
-        static array or dynamic array, the special variable $(DOLLAR)
-        is declared and set to be the length of the array.
-        A new declaration scope is created for the evaluation of the
-        $(GLINK AssignExpression)..$(GLINK AssignExpression)
-        and $(DOLLAR) appears in that scope only.
+        If $(I PostfixExpression) is a static or dynamic
+        array `a`, the result of the slice is a dynamic array
+        referencing elements `a[i]` to `a[j-1]` inclusive, where `i`
+        and `j` are integers evaluated from the first and second $(I
+        AssignExpression) respectively.
+    )
+
+    $(P If $(I PostfixExpression) is a pointer `p`, the result
+        will be a dynamic array referencing elements from `p[i]` to `p[j-1]`
+        inclusive, where `i` and `j` are integers evaluated from the
+        first and second $(I AssignExpression) respectively.
+    )
+
+    $(P If $(I PostfixExpression) is a $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq)), then
+        the result of the slice is a new $(I ValueSeq) formed
+        from the upper and lower bounds, which must statically evaluate
+        to integral constants.
+        It is an error if those bounds are out of range.
     )
 
     $(P The first $(I AssignExpression) is taken to be the inclusive
         lower bound
         of the slice, and the second $(I AssignExpression) is the
         exclusive upper bound.
-        The result of the expression is a slice of the $(I PostfixExpression)
-        array.
+        The result of the expression is a slice of the elements in $(I PostfixExpression).
     )
 
-    $(P If the $(D [ ]) form is used, the slice is of the entire
-        array.
+    $(P The special variable `$` is declared and set to be the number
+        of elements in the $(I PostfixExpression) (when available).
+        A new declaration scope is created for the evaluation of the
+        $(I AssignExpression)`..`$(I AssignExpression) and `$` appears in
+        that scope only.
     )
 
-    $(P The type of the slice is a dynamic array of the element
-        type of the $(I PostfixExpression).
+    $(P If the $(D [ ]) form is used, the slice is of all the elements in $(I PostfixExpression).
     )
 
     $(P A $(I SliceExpression) is not a modifiable lvalue.)
 
+$(H3 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
+
     $(P If the slice bounds can be known at compile time, the slice expression
-    is implicitly convertible to an lvalue of static array. For example:)
+    may be implicitly convertible to an lvalue of static array. For example:)
 
         -------------
         arr[a .. b]     // typed T[]
         -------------
 
-        If both $(CODE a) and $(CODE b) are integers (may be constant-folded),
+        If both $(CODE a) and $(CODE b) are integers (which may be constant-folded),
         the slice expression can be converted to a static array type
         $(D T[b - a]).
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
         void foo(int[2] a)
         {
@@ -1313,9 +1495,10 @@ $(GNAME Slice):
             bar(arr[1 .. 3]);
             assert(arr == [1, 4, 5]);
 
-          //baz(arr[1 .. 3]); // cannot match length
+            //baz(arr[1 .. 3]); // cannot match length
         }
         -------------
+        )
 
 $(P The following forms of slice expression can be convertible to a static array
 type:)
@@ -1336,14 +1519,6 @@ type:)
         $(TROW $(D arr[e-a .. e-b]), $(D a - b) $(I if) $(D a >= b))
         )
 
-    $(P If $(I PostfixExpression) is a $(I ValueSeq), then
-        the result of the slice is a new $(I ValueSeq) formed
-        from the upper and lower bounds, which must statically evaluate
-        to integral constants.
-        It is an error if those
-        bounds are out of range.
-    )
-
 $(H2 $(LNAME2 primary_expressions, Primary Expressions))
 
 $(GRAMMAR
@@ -1355,12 +1530,12 @@ $(GNAME PrimaryExpression):
     $(RELATIVE_LINK2 this, $(D this))
     $(RELATIVE_LINK2 super, $(D super))
     $(RELATIVE_LINK2 null, $(D null))
-    $(D true)
-    $(D false)
-    $(D $)
+    $(LEGACY_LNAME2 true_false)$(DDSUBLINK spec/type, bool, `true`)
+    $(DDSUBLINK spec/type, bool, `false`)
+    $(RELATIVE_LINK2 IndexExpression, `$`)
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
-    $(GLINK_LEX CharacterLiteral)
+    $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
     $(GLINK StringLiterals)
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
@@ -1449,23 +1624,6 @@ $(H3 $(LNAME2 null, null))
         but no longer exact.
     )
 
-$(H3 $(LNAME2 true_false, true, false))
-
-    $(P These are of type $(D bool) and when cast to another integral
-        type become the values 1 and 0,
-        respectively.
-    )
-
-$(H3 $(LEGACY_LNAME2 CharacterLiteral, character-literal, Character Literals))
-
-    $(P Character literals are single characters and resolve to one
-        of type $(D char), $(D wchar), or $(D dchar).
-        If the literal is a $(D \u) escape sequence, it resolves to type $(D wchar).
-        If the literal is a $(D \U) escape sequence, it resolves to type $(D dchar).
-        Otherwise, it resolves to the type with the smallest size it
-        will fit into.
-    )
-
 $(H3 $(LNAME2 string_literals, String Literals))
 
 $(GRAMMAR
@@ -1540,8 +1698,10 @@ $(GNAME ArrayLiteral):
 
     $(P By default, an array literal is typed as a dynamic array, but the element
         count is known at compile time. So all array literals can be
-        implicitly converted to static array types.)
+        implicitly converted to static array types. Slicing a dynamic array with
+        statically known bounds also allows conversion to a static array.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
         void foo(long[2] a)
         {
@@ -1550,11 +1710,9 @@ $(GNAME ArrayLiteral):
         void bar(ref long[2] a)
         {
             assert(a == [2, 3]);
-            a[0] = 4;
-            a[1] = 5;
+            a = [4, 5];
             assert(a == [4, 5]);
         }
-        void baz(const char[3] a) {}
 
         void main()
         {
@@ -1566,16 +1724,17 @@ $(GNAME ArrayLiteral):
             bar(arr[1 .. 3]);
             assert(arr == [1, 4, 5]);
 
-          //baz(arr[1 .. 3]); // cannot match length
+            //foo(arr[0 .. 3]); // cannot match length
         }
         -------------
+        )
 
     $(P If any of the arguments in the $(GLINK ArgumentList) are
         a $(I ValueSeq), then the elements of the $(I ValueSeq)
         are inserted as arguments in place of the sequence.
     )
 
-    $(P Array literals are allocated on the memory managed heap.
+    $(P Escaping array literals are allocated on the memory managed heap.
         Thus, they can be returned safely from functions:)
 
         ---
@@ -1585,11 +1744,14 @@ $(GNAME ArrayLiteral):
         }
         ---
 
+$(H3 $(LNAME2 cast_array_literal, Casting))
+
     $(P When array literals are cast to another array type, each
         element of the array is cast to the new element type.
-        When arrays that are not literals are cast, the array is
+        When arrays that are not literals $(RELATIVE_LINK2 cast_array, are cast), the array is
         reinterpreted as the new type, and the length is recomputed:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         import std.stdio;
 
@@ -1608,8 +1770,9 @@ $(GNAME ArrayLiteral):
             writeln(rt);  // writes [257]
         }
         ---
+        )
 
-        In other words, casting literal expression will change the literal type.
+        In other words, casting an array literal will change the type of each initializer element.
 
 $(H3 $(LNAME2 associative_array_literals, Associative Array Literals))
 
@@ -1645,7 +1808,7 @@ $(GNAME ValueExpression):
         anything.)
 
         ---
-        [21u:"he", 38:"ho", 2:"hi"];  // type is string[uint],
+        [21u: "he", 38: "ho", 2: "hi"]; // type is string[uint],
                                       // with keys 21u, 38u and 2u
                                       // and values "he", "ho", and "hi"
         ---
@@ -1869,7 +2032,7 @@ $(GNAME FunctionLiteralBody2):
         ---
         )
 
-    $(NOTE The syntax `Identifier { statement; }` is not supported because because it is
+    $(NOTE The syntax `Identifier { statement; }` is not supported because it is
         easily confused with statements `x = Identifier; { statement; };`
         if the semicolons were accidentally omitted.
         )
@@ -2246,10 +2409,10 @@ void foo()
 
         $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
 
-        The condition is satisfied if $(I Type) is the same as
-        $(I TypeSpecialization), or if $(I Type) is a class and
-        $(I TypeSpecialization) is a base class or base interface
-        of it.
+        The condition is satisfied if $(I Type) is semantically
+        correct and it is the same as
+        or can be implicitly converted to $(I TypeSpecialization).
+        $(I TypeSpecialization) is only allowed to be a $(I Type).
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
         dependent on $(I Identifier), the deduced type.

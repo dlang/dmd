@@ -121,7 +121,7 @@ $(GNAME MissingFunctionBody):
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
 
 $(GNAME ShortenedFunctionBody):
-    $(D =>) $(GLINK2 expression, AssignExpression) $(D ;)
+    $(GLINK InOutContractExpressions)$(OPT) $(D =>) $(GLINK2 expression, AssignExpression) $(D ;)
 )
 
         $(P Examples:)
@@ -145,6 +145,10 @@ $(GNAME FunctionContracts):
 $(GNAME FunctionContract):
     $(GLINK InOutContractExpression)
     $(GLINK InOutStatement)
+
+$(GNAME InOutContractExpressions):
+    $(GLINK InOutContractExpression)
+    $(GLINK InOutContractExpression) $(GSELF InOutContractExpressions)
 
 $(GNAME InOutContractExpression):
     $(GLINK InContractExpression)
@@ -950,26 +954,45 @@ $(H2 $(LNAME2 virtual-functions, Virtual Functions))
 
         $(P Virtual functions are class member functions that are called indirectly through a
         function pointer table, called a `vtbl[]`, rather than directly.
+        Member functions that are virtual can be overridden in a derived class:
         )
 
-        $(P Member functions that are virtual can be overridden, unless they are `final`.
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+------
+class A
+{
+    void foo(int x) {}
+}
+
+class B : A
+{
+    override void foo(int x) {}
+    //override void foo() {} // error, no foo() in A
+}
+
+void test()
+{
+    A a = new B();
+    a.foo(1);   // calls B.foo(int)
+}
+------
+)
+
+        $(P The `override` attribute is required when overriding a function.
+        This is useful for catching errors when a base class's member function
+        has its parameters changed, and all derived classes need to have
+        their overriding functions updated.)
+
+        $(P The following are not virtual:)
+        $(UL
+        $(LI Struct and union member functions)
+        $(LI `final` member functions)
+        $(LI $(DDSUBLINK attribute, static, `static`) member functions)
+        $(LI Member functions which are $(D private) or $(D package))
+        $(LI Member template functions)
         )
 
-        $(P Struct and union member functions are not virtual.
-        )
-
-        $(P Static member functions are not virtual.
-        )
-
-        $(P Member functions which are $(D private) or $(D package) are not virtual.
-        )
-
-        $(P Member template functions are not virtual.
-        )
-
-        $(P Member functions with `Objective-C` linkage are virtual even if marked
-        with `final` or `static`.
-        )
+        $(P $(B Example:))
 
 ------
 class A
@@ -988,22 +1011,23 @@ class B : A
     int abc() { ... }  // ok, A.abc is not virtual, B.abc is virtual
 }
 
-void test(A a)
+void test()
 {
+    A a = new B;
     a.def();    // calls B.def
     a.foo();    // calls A.foo
     a.bar();    // calls A.bar
     a.abc();    // calls A.abc
 }
-
-void func()
-{
-    B b = new B();
-    test(b);
-}
 ------
 
-        $(P The overriding function may be covariant with the overridden function.
+        $(P Member functions with `Objective-C` linkage are virtual even if marked
+        with `final` or `static`, and can be overridden.
+        )
+
+$(H3 $(LNAME2 covariance, Covariance))
+
+        $(P An overriding function may be covariant with the overridden function.
         A covariant function has a type that is implicitly convertible to the
         type of the overridden function.
         )
@@ -1026,18 +1050,12 @@ class Bar : Foo
 ------
 )
 
-        $(P Virtual functions all have a hidden parameter called the
-        $(I this) reference, which refers to the class object instance for which
-        the function is called.
-        )
+$(H3 $(LNAME2 base-methods, Calling Base Class Methods))
 
-        $(P
-            Functions with `Objective-C` linkage have an additional hidden,
-            unnamed, parameter which is the selector it was called with.
-        )
-
-        $(P To directly call a base member function, insert
-        base class name before the member function name. For example:
+        $(P To directly call a member function of a base class `Base`,
+        write `Base.` before the function name.
+        This avoids dynamic dispatch through a function pointer. For
+        example:
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1079,33 +1097,7 @@ void main()
         known, such as if it is `final`, it can use a direct call instead.
         )
 
-$(H3 $(LNAME2 function-inheritance, Function Inheritance and Overriding))
-
-        $(P A function in a derived class with the same name and covariant
-        with a function in a base class overrides that function:)
-
-------
-class A
-{
-    int foo(int x) { ... }
-}
-
-class B : A
-{
-    override int foo(int x) { ... }
-}
-
-void test()
-{
-    B b = new B();
-    bar(b);
-}
-
-void bar(A a)
-{
-    a.foo(1);   // calls B.foo(int)
-}
-------
+$(H3 $(LNAME2 function-inheritance, Overload Sets and Overriding))
 
         $(P When doing overload resolution, the functions in the base
         class are not considered, as they are not in the same
@@ -1127,9 +1119,9 @@ class B : A
 void test()
 {
     B b = new B();
-    b.foo(1);  // calls B.foo(long), since A.foo(int) not considered
-    A a = b;
+    b.foo(1);  // calls B.foo(long), since A.foo(int) is not considered
 
+    A a = b;
     a.foo(1);  // issues runtime error (instead of calling A.foo(int))
 }
 ------
@@ -1153,12 +1145,7 @@ class B : A
 
 void test()
 {
-    B b = new B();
-    bar(b);
-}
-
-void bar(A a)
-{
+    A a = new B();
     a.foo(1);      // calls A.foo(int)
     B b = new B();
     b.foo(1);      // calls A.foo(int)
@@ -1173,6 +1160,8 @@ void bar(A a)
         implicit conversions to the base class, those other functions do
         get called:
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 class A
 {
@@ -1181,22 +1170,19 @@ class A
 }
 class B : A
 {
-    void set(long i) { }
+    override void set(long i) { }
 }
 
-void foo(A a)
+void test()
 {
-    int i;
+    A a = new B;
     a.set(3);   // error, use of A.set(int) is hidden by B
                 // use 'alias set = A.set;' to introduce base class overload set
-    assert(i == 1);
-}
-
-void main()
-{
-    foo(new B);
 }
 ---
+)
+
+$(H3 $(LNAME2 override-defaults, Default Values))
 
         $(P A function parameter's default value is not inherited:)
 
@@ -1229,6 +1215,8 @@ void test()
 }
 ------
 
+$(H3 $(LNAME2 inheriting-attributes, Inherited Attributes))
+
         $(P An overriding function inherits any unspecified $(GLINK FunctionAttributes)
         from the attributes of the overridden function.)
 
@@ -1250,6 +1238,8 @@ void main()
 }
 ------
 )
+
+$(H3 $(LNAME2 override-restrictions, Restrictions))
 
         $(P The attributes
         $(LINK2 attribute.html#disable, $(D @disable)) and
@@ -1274,7 +1264,6 @@ void main()
         }
         ---
 
-    $(P Static functions with `Objective-C` linkage are overridable.)
 
 $(H2 $(LNAME2 inline-functions, Inline Functions))
 
@@ -1462,8 +1451,8 @@ $(H3 $(LNAME2 param-storage, Parameter Storage Classes))
         Parameters can also take the type constructors $(D const), $(D immutable), $(D shared) and `inout`.
         )
 
-        $(P $(D in), `out`, $(D ref) and $(D lazy) are mutually exclusive. The first three are used to
-        denote input, input/output, and output parameters, respectively.
+        $(P $(D in), $(D out), $(D ref) and $(D lazy) are mutually exclusive. The first three are used to
+        denote input, output and input/output parameters, respectively.
         For example:
         )
 
@@ -2015,7 +2004,7 @@ $(H3 $(LNAME2 variadic, Variadic Functions))
         $(OL
         $(LI $(RELATIVE_LINK2 c_style_variadic_functions, C-style variadic functions))
         $(LI $(RELATIVE_LINK2 d_style_variadic_functions, Variadic functions with type info))
-        $(LI $(RELATIVE_LINK2 typesafe-variadic_functions, Typesafe variadic functions))
+        $(LI $(RELATIVE_LINK2 typesafe_variadic_functions, Typesafe variadic functions))
         )
 
 
@@ -2374,6 +2363,7 @@ $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
         would evaluate every array element.
         With the latter, only the element being accessed would be evaluated.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         import std.stdio;
 
@@ -2396,14 +2386,28 @@ $(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
         // variadic delegate array
         void flash(scope int delegate()[] arr ...)
         {
-            writeln(arr[0]); // 1
-            writeln(arr[1]); // 2
+            writeln(arr[0]()); // 1
+            writeln(arr[1]()); // 2
         }
         ---
+        )
 
         $(BEST_PRACTICE Use `scope` when declaring the array of delegates
         parameter. This will prevent a closure being generated for the delegate,
         as `scope` means the delegate will not escape the function.)
+
+$(H3 $(LNAME2 this-reference, `this` Reference))
+
+        $(P
+            Non-static member functions all have a hidden parameter called the
+            `this` reference, which refers to the object for which
+            the function is called.
+        )
+
+        $(P
+            Functions with `Objective-C` linkage have an additional hidden,
+            unnamed, parameter which is the selector it was called with.
+        )
 
 
 $(H2 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
@@ -3017,20 +3021,22 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(LI $(DDLINK spec/traits, Traits, `__traits` argument))
     )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
-enum eval(Args...) = Args[0];
+enum eval(alias arg) = arg;
 
 int square(int i)
 {
     return i * i;
 }
 
-void foo()
+void main()
 {
+    import std.stdio;
+
     static j = square(3);      // CTFE
     writeln(j);
-    assert(square(4));         // run time
+    assert(square(4) == 16);       // run time
     static assert(square(3) == 9); // CTFE
     writeln(eval!(square(5))); // CTFE
 }

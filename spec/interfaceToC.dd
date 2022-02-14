@@ -98,9 +98,9 @@ $(H2 $(LNAME2 storage_allocation, Storage Allocation))
         )
 
         $(P If pointers to D garbage collector allocated memory are passed to
-        C functions, it's critical to ensure that that memory will not
-        be collected by the garbage collector before the C function is
-        done with it. This is accomplished by:
+        C functions, it's critical to ensure that the memory will not be
+        collected by the garbage collector before the C function is done with
+        it. This is accomplished by:
         )
 
         $(UL
@@ -150,19 +150,15 @@ $(H2 $(LNAME2 data_type_compat, Data Type Compatibility))
         $(TROW2 int, int)
         $(TROW2 uint, unsigned)
 
-        $(TROW3 ulong, unsigned long long, unsigned long)
         $(TROW3 core.stdc.config.c_long, long, long)
-
-
         $(TROW3 core.stdc.config.c_ulong, unsigned long, unsigned long)
+
         $(TROW3PLUS long, long long, long, (or $(D long long)))
         $(TROW3PLUS ulong, unsigned long long, unsigned long, (or $(D unsigned long long)))
 
         $(TROW2 float, float)
         $(TROW2 double, double)
         $(TROW2 real, long double)
-
-
 
         $(TROW2 cdouble, double _Complex)
         $(TROW2 creal, long double _Complex)

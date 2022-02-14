@@ -638,6 +638,17 @@ single quotes.)
     '\\'  // the backslash character
     ---
 
+$(P A character literal resolves to one
+    of type $(D char), $(D wchar), or $(D dchar)
+    (see $(DDSUBLINK spec/type, basic-data-types, Basic Data Types)).)
+
+$(UL
+    $(LI If the literal is a $(D \u) escape sequence, it resolves to type $(D wchar).)
+    $(LI If the literal is a $(D \U) escape sequence, it resolves to type $(D dchar).)
+)
+$(P Otherwise, it resolves to the type with the smallest size it
+    will fit into.)
+
 $(H2 $(LNAME2 integerliteral, Integer Literals))
 
 $(GRAMMAR_LEX
@@ -992,14 +1003,14 @@ $(MULTICOLS 4,
     $(LINK2 statement.html#SwitchStatement, $(D case))
     $(LINK2 expression.html#CastExpression, $(D cast))
     $(LINK2 statement.html#TryStatement, $(D catch))
-    $(LINK2 type.html, $(D cdouble))
+    $(GDEPRECATED $(LINK2 type.html, $(D cdouble)))
     $(LINK2 type.html, $(D cent))
-    $(LINK2 type.html, $(D cfloat))
+    $(GDEPRECATED $(LINK2 type.html, $(D cfloat)))
     $(LINK2 type.html, $(D char))
     $(LINK2 class.html, $(D class))
     $(LINK2 attribute.html#const, $(D const))
     $(LINK2 statement.html#ContinueStatement, $(D continue))
-    $(LINK2 type.html, $(D creal))
+    $(GDEPRECATED $(LINK2 type.html, $(D creal)))
 
     $(LINK2 type.html, $(D dchar))
     $(LINK2 version.html#debug, $(D debug))
@@ -1026,9 +1037,9 @@ $(MULTICOLS 4,
 
     $(LINK2 statement.html#GotoStatement, $(D goto))
 
-    $(LINK2 type.html, $(D idouble))
+    $(GDEPRECATED $(LINK2 type.html, $(D idouble)))
     $(LINK2 statement.html#IfStatement, $(D if))
-    $(LINK2 type.html, $(D ifloat))
+    $(GDEPRECATED $(LINK2 type.html, $(D ifloat)))
     $(LINK2 attribute.html#immutable, $(D immutable))
     $(LINK2 expression.html#ImportExpression, $(D import))
     $(LINK2 expression.html#InExpression, $(D in))
@@ -1036,7 +1047,7 @@ $(MULTICOLS 4,
     $(LINK2 type.html, $(D int))
     $(LINK2 interface.html, $(D interface))
     $(LINK2 contracts.html, $(D invariant))
-    $(LINK2 type.html, $(D ireal))
+    $(GDEPRECATED $(LINK2 type.html, $(D ireal)))
     $(LINK2 expression.html#IsExpression, $(D is))
 
     $(LINK2 function.html#overload-sets, $(D lazy))

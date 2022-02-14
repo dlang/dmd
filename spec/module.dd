@@ -141,6 +141,22 @@ $(P If the file name of a module is an invalid module name (e.g.
 module foo_bar;
 ---------
 
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI The mapping of package and module identifiers to directory and file names.)
+    ))
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI $(GLINK PackageName)s and $(GLINK ModuleName)s should be composed of the ASCII
+    characters lower case letters, digits or `_` to ensure maximum portability and compatibility with
+    various file systems.)
+    $(LI The file names for packages and modules should be composed only of
+    the ASCII lower case letters, digits, and `_`s, and should not be a $(GLINK_LEX Keyword).)
+    ))
+
+$(H3 $(LNAME2 deprecated_modules, Deprecated modules))
+
 $(P A $(I ModuleDeclaration) can have an optional $(GLINK2 attribute,
 DeprecatedAttribute). The compiler will produce a message when the deprecated
 module is imported.)
@@ -155,7 +171,7 @@ import foo;  // Deprecated: module foo is deprecated
 ---------
 
 $(P A $(I DeprecatedAttribute) can have an optional $(ASSIGNEXPRESSION) argument to provide a
-more informative message. An $(I AssignExpression) must evaluate to a string at compile time.
+more informative message. The $(I AssignExpression) must evaluate to a string at compile time.
 )
 
 ---------
@@ -170,18 +186,9 @@ import foo;  // Deprecated: module foo is deprecated - Please use foo2 instead.
 
     $(IMPLEMENTATION_DEFINED
     $(OL
-    $(LI The mapping of package and module identifiers to directory and file names.)
     $(LI How the deprecation messages are presented to the user.)
     ))
 
-    $(BEST_PRACTICE
-    $(OL
-    $(LI $(GLINK PackageName)s and $(GLINK ModuleName)s should be composed of the ASCII
-    characters lower case letters, digits or `_` to ensure maximum portability and compatibility with
-    various file systems.)
-    $(LI The file names for packages and modules should be composed only of
-    the ASCII lower case letters, digits, and `_`s, and should not be a $(GLINK_LEX Keyword).)
-    ))
 
 $(H2 $(LEGACY_LNAME2 ImportDeclaration, import-declaration, Import Declaration))
 
@@ -226,7 +233,7 @@ $(P $(I ModuleFullyQualifiedName)s in the $(I ImportDeclaration) must be fully
 qualified with whatever packages they are in. They are not considered to be
 relative to the module that imports them.)
 
-$(H2 $(LNAME2 name_lookup, Symbol Name Lookup))
+$(H3 $(LNAME2 name_lookup, Symbol Name Lookup))
 
 $(P The simplest form of importing is to just list the modules being imported:)
 
@@ -317,7 +324,7 @@ void test()
 }
 ---
 
-$(H2 $(LNAME2 public_imports, Public Imports))
+$(H3 $(LNAME2 public_imports, Public Imports))
 
 $(P By default, imports are $(I private). This means that if module A imports
 module B, and module B imports module C, then names inside C are visible only inside
@@ -363,7 +370,7 @@ X.bar(); // ditto
 Y.bar(); // ok, Y.bar() is an alias to X.bar()
 ---
 
-$(H2 $(LNAME2 static_imports, Static Imports))
+$(H3 $(LNAME2 static_imports, Static Imports))
 
 $(P A static import requires the use of a fully qualified name
 to reference the module's names:)
@@ -378,7 +385,7 @@ void main()
 }
 ---
 
-$(H2 $(LNAME2 renamed_imports, Renamed Imports))
+$(H3 $(LNAME2 renamed_imports, Renamed Imports))
 
 $(P A local name for an import can be given, through which all references to the
 module's symbols must be qualified with:)
@@ -398,7 +405,7 @@ void main()
 
     $(BEST_PRACTICE Renamed imports are handy when dealing with very long import names.)
 
-$(H2 $(LNAME2 selective_imports, Selective Imports))
+$(H3 $(LNAME2 selective_imports, Selective Imports))
 
 $(P Specific symbols can be exclusively imported from a module and bound into
 the current namespace:)
@@ -420,7 +427,7 @@ void main()
 
 $(P $(D static) cannot be used with selective imports.)
 
-$(H2 $(LNAME2 renamed_selective_imports, Renamed and Selective Imports))
+$(H3 $(LNAME2 renamed_selective_imports, Renamed and Selective Imports))
 
 $(P When renaming and selective importing are combined:)
 
@@ -444,7 +451,7 @@ void main()
 --------------
 )
 
-$(H2 $(LNAME2 scoped_imports, Scoped Imports))
+$(H3 $(LNAME2 scoped_imports, Scoped Imports))
 
 $(P Import declarations may be used at any scope. For example:)
 
@@ -557,7 +564,7 @@ $(H2 $(LNAME2 staticorder, Static Construction and Destruction))
     thread local data.)
     ))
 
-$(H2 $(LNAME2 order_of_static_ctor, Order of Static Construction))
+$(H3 $(LNAME2 order_of_static_ctor, Order of Static Construction))
 
 $(P Shared static constructors on all modules are run before any non-shared static
 constructors.)
@@ -603,12 +610,12 @@ destructors. Violation of this rule will result in a runtime exception.)
     )
     )
 
-$(H2 $(LNAME2 order_of_static_ctors, Order of Static Construction within a Module))
+$(H3 $(LNAME2 order_of_static_ctors, Order of Static Construction within a Module))
 
 $(P Within a module, static construction occurs in the lexical order in
 which they appear.)
 
-$(H2 $(LNAME2 order_static_dtor, Order of Static Destruction))
+$(H3 $(LNAME2 order_static_dtor, Order of Static Destruction))
 
 $(P This is defined to be in exactly the reverse order of static construction.
 Static destructors for individual modules will only be run if the

@@ -57,7 +57,6 @@ $(GNAME NonEmptyStatementNoCaseNoDefault):
     $(GLINK SynchronizedStatement)
     $(GLINK TryStatement)
     $(GLINK ScopeGuardStatement)
-    $(GLINK ThrowStatement)
     $(GLINK AsmStatement)
     $(GLINK MixinStatement)
     $(GLINK ForeachRangeStatement)
@@ -254,8 +253,8 @@ $(GNAME ElseStatement):
     $(PSSCOPE)
 )
 
-        $(P $(EXPRESSION) is evaluated and must have a type that
-        can be converted to a boolean. If it's true the
+        $(P *Expression* is evaluated and must have a type that
+        can be converted to a boolean. If it's `true` the
         $(I ThenStatement) is transferred to, else the $(I ElseStatement)
         is transferred to.)
 
@@ -265,19 +264,19 @@ $(GNAME ElseStatement):
         $(P If an $(D auto) $(I Identifier) is provided, it is declared and
         initialized
         to the value
-        and type of the $(EXPRESSION). Its scope extends from when it is
+        and type of the *Expression*. Its scope extends from when it is
         initialized to the end of the $(I ThenStatement).)
 
         $(P If a $(I TypeCtors) $(I Identifier) is provided, it is declared
         to be of the type specified by $(I TypeCtors)
-        and is initialized with the value of the $(EXPRESSION).
+        and is initialized with the value of the *Expression*.
         Its scope extends from when it is
         initialized to the end of the $(I ThenStatement).)
 
         $(P If a $(I Declarator) is provided, it is declared and
         initialized
         to the value
-        of the $(EXPRESSION). Its scope extends from when it is
+        of the *Expression*. Its scope extends from when it is
         initialized to the end of the $(I ThenStatement).)
 
 ---
@@ -306,11 +305,11 @@ $(GNAME WhileStatement):
 
 $(P A $(I While Statement) implements a simple loop.)
 
-$(P If the $(GLINK IfCondition) is an $(EXPRESSION), it is evaluated and must have a type
-that can be converted to a boolean. If it's true the $(PSSCOPE) is executed.
-After the $(PSSCOPE) is executed, the $(EXPRESSION) is evaluated again, and
-if true the $(PSSCOPE) is executed again. This continues until the $(EXPRESSION)
-evaluates to false.)
+$(P If the $(I IfCondition) is an *Expression*, it is evaluated and must have a type
+that can be converted to a boolean. If it's `true` the *ScopeStatement* is executed.
+After the *ScopeStatement* is executed, the *Expression* is evaluated again, and
+if `true` the *ScopeStatement* is executed again. This continues until the *Expression*
+evaluates to `false`.)
 
 ---
 int i = 0;
@@ -322,21 +321,21 @@ while (i < 10)
 ---
 
 $(P If an $(D auto) $(I Identifier) is provided, it is declared and
-initialized to the value and type of the $(EXPRESSION). Its scope
-extends from when it is initialized to the end of the $(PSSCOPE).)
+initialized to the value and type of the *Expression*. Its scope
+extends from when it is initialized to the end of the *ScopeStatement*.)
 
 $(P If a $(I TypeCtors) $(I Identifier) is provided, it is declared
 to be of the type specified by $(I TypeCtors) and is initialized with
-the value of the $(EXPRESSION). Its scope extends from when it is
-initialized to the end of the $(PSSCOPE).)
+the value of the *Expression*. Its scope extends from when it is
+initialized to the end of the *ScopeStatement*.)
 
 $(P If a $(I Declarator) is provided, it is declared and initialized
-to the value of the $(EXPRESSION). Its scope extends from when it is
-initialized to the end of the $(PSSCOPE).)
+to the value of the *Expression*. Its scope extends from when it is
+initialized to the end of the *ScopeStatement*.)
 
 $(P A $(GLINK BreakStatement) will exit the loop.)
 
-$(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(GLINK IfCondition) again.)
+$(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(I IfCondition) again.)
 
 $(H2 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
 
@@ -348,9 +347,9 @@ $(GNAME DoStatement):
 
 $(P Do while statements implement simple loops.)
 
-$(P $(PSSCOPE) is executed. Then $(EXPRESSION) is evaluated and must have a
-type that can be converted to a boolean. If it's true the loop is iterated
-again. This continues until the $(EXPRESSION) evaluates to false.)
+$(P *ScopeStatement* is executed. Then *Expression* is evaluated and must have a
+type that can be converted to a boolean. If it's `true` the loop is iterated
+again. This continues until the *Expression* evaluates to `false`.)
 
 ---
 int i = 0;
@@ -361,7 +360,7 @@ do
 ---
 
 $(P A $(GLINK BreakStatement) will exit the loop. A $(GLINK ContinueStatement)
-will transfer directly to evaluating $(EXPRESSION) again.)
+will transfer directly to evaluating *Expression* again.)
 
 $(H2 $(LEGACY_LNAME2 ForStatement, for-statement, For Statement))
 
@@ -374,7 +373,7 @@ $(GNAME ForStatement):
 
 $(GNAME Initialize):
     $(D ;)
-    $(PS0)
+    $(GLINK NoScopeNonEmptyStatement)
 
 $(GNAME Test):
     $(EXPRESSION)
@@ -385,12 +384,12 @@ $(GNAME Increment):
 
         $(P $(I Initialize) is executed.
         $(I Test) is evaluated and must have a type that
-        can be converted to a boolean. If it's true the
-        statement is executed. After the statement is executed,
-        the $(I Increment) is executed.
-        Then $(I Test) is evaluated again, and if true the
-        statement is executed again. This continues until the
-        $(I Test) evaluates to false.
+        can be converted to a boolean. If *Test* is `true` the
+        *ScopeStatement* is executed. After execution,
+        $(I Increment) is executed.
+        Then $(I Test) is evaluated again, and if `true` the
+        *ScopeStatement* is executed again. This continues until the
+        $(I Test) evaluates to `false`.
         )
 
         $(P A $(GLINK BreakStatement) will exit the loop.
@@ -400,7 +399,7 @@ $(GNAME Increment):
 
         $(P A $(I ForStatement) creates a new scope.
         If $(I Initialize) declares a variable, that variable's scope
-        extends through the end of the for statement. For example:
+        extends through *ScopeStatement*. For example:
         )
 
 --------------
@@ -418,7 +417,7 @@ for (int i = 0; i < 10; i++)
 }
 --------------
 
-$(P Function bodies cannot be empty:)
+$(P *ScopeStatement* cannot be an empty statement:)
 
 --------------
 for (int i = 0; i < 10; i++)
@@ -433,9 +432,9 @@ for (int i = 0; i < 10; i++)
 }
 --------------
 
-    $(P The $(I Initialize) may be omitted (although the trailing $(D ;) is still required).
-    $(I Test) may also be omitted, and if
-    so, it is treated as if it evaluated to true.)
+    $(P $(I Initialize) may be just $(D ;).
+    $(I Test) may be omitted, and if
+    so, it is treated as if it evaluated to `true`.)
 
     $(BEST_PRACTICE Consider replacing $(I ForStatements) with
     $(DDSUBLINK spec/statement, foreach-statement, Foreach Statements) or
@@ -452,7 +451,7 @@ $(GNAME AggregateForeach):
     $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN))
 
 $(GNAME ForeachStatement):
-    $(GLINK AggregateForeach) $(PS0)
+    $(GLINK AggregateForeach) $(GLINK NoScopeNonEmptyStatement)
 
 $(GNAME Foreach):
     $(D foreach)
@@ -485,7 +484,7 @@ $(P
         $(I ForeachAggregate) is evaluated. It must evaluate to an expression
         of type static array, dynamic array, associative array,
         struct, class, delegate, or sequence.
-        The $(PS0) is executed, once for each element of the
+        The *NoScopeNonEmptyStatement* is executed, once for each element of the
         aggregate.
         At the start of each iteration, the variables declared by
         the $(I ForeachTypeList)
@@ -498,8 +497,13 @@ $(P
 $(P
         The aggregate must be loop invariant, meaning that
         elements to the aggregate cannot be added or removed from it
-        in the $(PS0).
+        in the *NoScopeNonEmptyStatement*.
 )
+
+        $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
+        foreach, a $(GLINK ContinueStatement) will immediately start the
+        next iteration.
+        )
 
 $(H3 $(LNAME2 foreach_over_arrays, Foreach over Arrays))
 
@@ -518,14 +522,16 @@ $(P
         $(I index) cannot be `ref`.
         It is set to be the index of the array element.
 )
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
-char[] a;
-...
-foreach (int i, char c; a)
+char[] a = ['h', 'i'];
+
+foreach (size_t i, char c; a)
 {
     writefln("a[%d] = '%c'", i, c);
 }
 --------------
+)
 
         $(P For $(D foreach), the
         elements for the array are iterated over starting at index 0
@@ -559,6 +565,7 @@ $(H3 $(LNAME2 foreach_over_arrays_of_characters, Foreach over Arrays of Characte
         can be decoded into any UTF type:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
 char[] a = "\xE2\x89\xA0".dup;  // \u2260 encoded as 3 UTF-8 bytes
 
@@ -574,15 +581,14 @@ foreach (char c; b)
     writef("%x, ", c);  // prints 'e2, 89, a0, '
 }
 --------------
-
+)
 
         $(P Aggregates can be string literals, which can be accessed
         as char, wchar, or dchar arrays:
         )
 
---------------
-void test()
-{
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    --------------
     foreach (char c; "ab")
     {
         writefln("'%s'", c);
@@ -591,8 +597,8 @@ void test()
     {
         writefln("'%s'", w);
     }
-}
---------------
+    --------------
+    )
 
         $(P which would print:
         )
@@ -665,6 +671,7 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
 
     $(P For example, consider a class that is a container for two elements:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         --------------
         class Foo
         {
@@ -674,22 +681,19 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
             {
                 int result = 0;
 
-                for (int i = 0; i < array.length; i++)
+                foreach (e; array)
                 {
-                    result = dg(array[i]);
+                    result = dg(e);
                     if (result)
                         break;
                 }
                 return result;
             }
         }
-        --------------
 
-    $(P An example using this might be:)
-
-        --------------
-        void test()
+        void main()
         {
+            import std.stdio;
             Foo a = new Foo();
 
             a.array[0] = 73;
@@ -697,12 +701,13 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
 
             foreach (uint u; a)
             {
-                writefln("%d", u);
+                writeln(u);
             }
         }
         --------------
+        )
 
-    $(P which would print:)
+    $(P This would print:)
 
 $(CONSOLE
 73
@@ -755,8 +760,8 @@ $(CONSOLE
 $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Structs and Classes with Ranges))
 
     $(P If the aggregate expression is a struct or class object, but the
-        $(D opApply) for $(D foreach), or $(D opApplyReverse) $(D foreach_reverse) do not exist,
-        then iteration over struct and class objects can be done with range primitives.
+        $(D opApply) for $(D foreach), or $(D opApplyReverse) for $(D foreach_reverse) do not exist,
+        then iteration can be done with $(LINK2 $(ROOT_DIR)phobos/std_range.html, range) primitives.
         For $(D foreach), this means the following properties and methods must
         be defined:
     )
@@ -821,42 +826,89 @@ $(H3 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Stru
         }
         ---
 
+    $(P Example with a linked list:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct Node
+{
+    int i;
+    Node* next;
+}
+
+// range
+struct List
+{
+    Node* node;
+
+    bool empty() { return node == null; }
+
+    ref int front() { return node.i; }
+
+    void popFront() { node = node.next; }
+}
+
+void main()
+{
+    import std.stdio;
+    auto l = new Node(1, new Node(2, null));
+    auto r = List(l);
+
+    foreach (e; r)
+    {
+        writeln(e);
+    }
+}
+---
+)
+
+$(H4 $(LNAME2 front-seq, Multiple Element Values))
+
     $(P Multiple loop variables are allowed if the `front` property returns a type that
         expands to an $(DDSUBLINK spec/template, variadic-templates, expression sequence)
         whose size matches the number of variables. Each variable is assigned
-        to the corresponding value in the tuple.
+        to the corresponding value in the sequence.
     )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
-        // Common tuple implementation that can decay into its members
-        import std.typecons : Tuple;
+        struct Tuple(Types...) // takes a TypeSeq
+        {
+            Types items; // ValueSeq
+            alias items this; // decay to a value sequence
+        }
 
-        // Range whose elements are tuples
+        // Infinite range whose element is a fixed tuple
         struct TupleRange
         {
-            Tuple!(char, bool, int) front()
-            {
-                return typeof(return)('a', true, 2);
-            }
+            enum front = Tuple!(char, bool, int)('a', true, 2);
 
-            bool empty() { return false; }
+            enum bool empty = false;
 
             void popFront() {}
         }
 
         void main()
         {
+            // Tuple destructuring
             foreach (a, b, c; TupleRange())
             {
                 assert(a == 'a');
                 assert(b == true);
                 assert(c == 2);
+                break;
             }
-
-            // Expected 3 arguments, not 1
-            // foreach (a; TupleRange()) { ... }
+            // Tuple variable
+            foreach (tup; TupleRange())
+            {
+                assert(tup[0] == 'a');
+                assert(tup == TupleRange.front);
+                break;
+            }
         }
         ---
+        )
+        $(P See also: $(REF Tuple, std,typecons).)
 
 $(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
 
@@ -926,6 +978,8 @@ $(P
         and it is set to the index of each sequence element.
 )
         $(P Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -----
 import std.meta : AliasSeq;
 
@@ -939,6 +993,7 @@ void main()
     }
 }
 -----
+)
         $(P Output:)
 
 $(CONSOLE
@@ -954,10 +1009,9 @@ $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
         $(P $(D ref) can be used to update the original elements:
         )
 
---------------
-void test()
-{
-    static uint[2] a = [7, 8];
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    --------------
+    uint[2] a = [7, 8];
 
     foreach (ref uint u; a)
     {
@@ -965,10 +1019,10 @@ void test()
     }
     foreach (uint u; a)
     {
-        writefln("%d", u);
+        writeln(u);
     }
-}
---------------
+    --------------
+    )
 
         which would print:
 
@@ -1002,7 +1056,7 @@ foreach (int i; a)
 a = null;         // ok
 --------------
 
-$(H2 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
+$(H3 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
 
 $(P A foreach range statement loops over the specified range.)
 
@@ -1036,6 +1090,7 @@ $(GNAME ForeachRangeStatement):
         is executed.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 import std.stdio;
 
@@ -1053,6 +1108,7 @@ void main()
     }
 }
 ---
+)
 
 prints:
 
@@ -1060,14 +1116,6 @@ $(CONSOLE
 foo0123456789
 )
 
-
-$(H3 $(LNAME2 break_and_continue_out_of_foreach, Break and Continue out of Foreach))
-
-
-        $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
-        foreach, a $(GLINK ContinueStatement) will immediately start the
-        next iteration.
-        )
 
 $(H2 $(LEGACY_LNAME2 SwitchStatement, switch-statement, Switch Statement))
 
@@ -1122,7 +1170,7 @@ $(GNAME StatementNoCaseNoDefault):
         a match, the corresponding case statement is transferred to.
         )
 
-        $(P The case expressions, $(GLINK2 expression, ArgumentList),
+        $(P The case expressions in $(I ArgumentList)
         are a comma separated list of expressions.
         )
 
@@ -1130,26 +1178,23 @@ $(GNAME StatementNoCaseNoDefault):
         of case statements from $(I FirstExp) to $(I LastExp).
         )
 
-
-        $(P If none of the case expressions match, and there is a default
-        statement, the default statement is transferred to.
-        )
-
-
-        $(P A switch statement must have a default statement.)
-
-
         $(P The case expressions must all evaluate to a constant value or array,
         or a runtime initialized const or immutable variable of integral type.
         They must be implicitly convertible to the type of the switch
-        $(EXPRESSION). )
+        *Expression*. )
 
         $(P Case expressions must all evaluate to distinct values. Const or
         immutable variables must all have different names. If they share a
-        value, the first case statement with that value gets control. There must
-        be exactly one default statement.)
+        value, the first case statement with that value gets control.)
 
         $(P The $(GLINK ScopeStatementList) introduces a new scope.
+        )
+
+        $(P A `break` statement will exit the switch $(I BlockStatement).)
+
+        $(P A switch statement must have exactly one *DefaultStatement*.
+        If none of the case expressions match, control is transferred
+        to the default statement.
         )
 
         $(P Case statements and default statements associated with the switch
@@ -1164,53 +1209,70 @@ switch (i)
     {
         case 2:
     }
+    i++;
     break;
+    default:
 }
 --------------
 
+$(H3 $(LNAME2 no-implicit-fallthrough, No Implicit Fall-Through))
 
 
         $(P A $(GLINK ScopeStatementList) must either be empty, or be ended with
         a $(GLINK ContinueStatement), $(GLINK BreakStatement),
-        $(GLINK ReturnStatement), $(GLINK GotoStatement), $(GLINK ThrowStatement)
-        or assert(0) expression unless this is the last case. This is to
-        set apart with C's error-prone implicit fall-through behavior.
-        $(D goto case;) could be used for explicit fall-through:
-        )
+        $(GLINK ReturnStatement), $(GLINK GotoStatement), $(GLINK2 expression, ThrowExpression)
+        or `assert(0)` expression unless this is the last case. This is to
+        set apart with C's error-prone implicit fall-through behavior.)
 
 --------------
-int number;
-string message;
-switch (number)
+switch (i)
 {
-    default:    // valid: ends with 'throw'
-        throw new Exception("unknown number");
-
-    case 3:     // valid: ends with 'break' (break out of the 'switch' only)
-        message ~= "three ";
-        break;
-
-    case 4:     // valid: ends with 'continue' (continue the enclosing loop)
-        message ~= "four ";
-        continue;
-
-    case 5:     // valid: ends with 'goto' (explicit fall-through to next case.)
-        message ~= "five ";
-        goto case;
-
-    case 6:     // ERROR: implicit fall-through
-        message ~= "six ";
-
-    case 1:     // valid: the body is empty
-    case 2:     // valid: this is the last case in the switch statement.
-        message = "one or two";
+    case 1:
+        message ~= "one";
+        // ERROR: implicit fall-through
+    case 2:
+        // valid: the body is empty
+    default:
+        message ~= "unknown";
 }
 --------------
 
-        $(P A break statement will exit the switch $(I BlockStatement).)
+        $(P $(D goto case;) can be used for explicit fall-through:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+--------------
+string message;
+foreach (i; 1..5)
+{
+    switch (i)
+    {
+        default:    // valid: ends with 'throw'
+            throw new Exception("unknown number");
 
-        $(P $(LNAME2 string-switch, Strings can be used in switch expressions).
+        case 3:     // valid: ends with 'break' (break out of the 'switch' only)
+            message ~= "three";
+            break;
+
+        case 4:     // valid: ends with 'continue' (continue the enclosing loop)
+            message ~= "four";
+            continue; // don't append a comma
+
+        case 1:     // valid: ends with 'goto' (explicit fall-through to next case.)
+            message ~= ">";
+            goto case;
+
+        case 2:     // valid: this is the last case in the switch statement.
+            message ~= "one or two";
+    }
+    message ~= ", ";
+}
+writeln(message);
+--------------
+)
+
+$(H3 $(LNAME2 string-switch, String Switch))
+
+        $(P Strings can be used in switch expressions.
         For example:
         )
 
@@ -1251,13 +1313,13 @@ $(GNAME FinalSwitchStatement):
         $(UL
         $(LI No $(GLINK DefaultStatement) is allowed.)
         $(LI No $(GLINK CaseRangeStatement)s are allowed.)
-        $(LI If the switch $(EXPRESSION) is of enum type, all
+        $(LI If the switch *Expression* is of enum type, all
         the enum members must appear in the $(GLINK CaseStatement)s.)
         $(LI The case expressions cannot evaluate to a run time
         initialized value.)
         )
 
-        $(IMPLEMENTATION_DEFINED If the $(EXPRESSION) value does not match any
+        $(IMPLEMENTATION_DEFINED If the *Expression* value does not match any
         of the $(I CaseRangeStatements), whether that is diagnosed at compile
         time or at runtime.)
 
@@ -1334,8 +1396,8 @@ $(GNAME ReturnStatement):
 
 $(P `return` exits the current function and supplies its return value.)
 
-$(P $(EXPRESSION) is required if the function specifies a return type that is
-not void. The $(EXPRESSION) is implicitly converted to the function return
+$(P *Expression* is required if the function specifies a return type that is
+not void. The *Expression* is implicitly converted to the function return
 type.)
 
         $(P At least one return statement, throw statement, or assert(0) expression
@@ -1343,10 +1405,10 @@ type.)
         unless the function contains inline assembler code.)
 
 $(COMMENT
-        $(EXPRESSION) is allowed even if the function specifies
-        a $(D_KEYWORD void) return type. The $(EXPRESSION) will be evaluated,
+        *Expression* is allowed even if the function specifies
+        a $(D_KEYWORD void) return type. The *Expression* will be evaluated,
         but nothing will be returned.
-        If the $(EXPRESSION) has no side effects, and the return
+        If the *Expression* has no side effects, and the return
         type is $(D_KEYWORD void), then it is illegal.
 )
         $(P Before the function actually returns,
@@ -1363,7 +1425,7 @@ $(COMMENT
         $(P If there is an out postcondition
         (see $(DDLINK spec/contracts, Contract Programming, Contract Programming)),
         that postcondition is executed
-        after the $(EXPRESSION) is evaluated and before the function
+        after the *Expression* is evaluated and before the function
         actually returns.)
 
 ---
@@ -1400,10 +1462,10 @@ DefaultStatement) of an enclosing $(GLINK SwitchStatement).)
         next $(GLINK CaseStatement) of the innermost enclosing
         $(GLINK SwitchStatement).)
 
-        $(P The fourth form, $(CODE goto case) $(EXPRESSION)$(D ;), transfers to the
+        $(P The fourth form, $(CODE goto case) *Expression*$(D ;), transfers to the
         $(GLINK CaseStatement) of the innermost enclosing
         $(GLINK SwitchStatement)
-        with a matching $(EXPRESSION).)
+        with a matching *Expression*.)
 
 ---
 switch (x)
@@ -1438,12 +1500,12 @@ $(GNAME WithStatement):
     $(D with) $(D $(LPAREN)) $(GLINK2 template, TemplateInstance) $(D $(RPAREN)) $(PSSCOPE)
 )
 
-        where $(EXPRESSION) evaluates to a class reference or struct
+        where *Expression* evaluates to a class reference or struct
         instance.
         Within the with body the referenced object is searched first for
         identifier symbols.
 
-$(P The $(I WithStatement))
+$(P Below, if `ident` is a member of the type of `expression`, the $(I WithStatement):)
 
 --------------
 with (expression)
@@ -1464,7 +1526,7 @@ with (expression)
 }
 --------------
 
-        $(P Note that $(EXPRESSION) only gets evaluated once and is not copied.
+        $(P Note that *Expression* only gets evaluated once and is not copied.
         The with statement does not change what $(D this) or
         $(D super) refer to.
         )
@@ -1487,7 +1549,7 @@ with (Foo)
 }
 --------------
 
-        $(P Use of with object symbols that shadow local symbols with
+        $(P Use of `with` object symbols that shadow local symbols with
         the same identifier are not allowed.
         This is to reduce the risk of inadvertent breakage of with
         statements when new members are added to the object declaration.
@@ -1512,6 +1574,8 @@ void main()
         $(P In nested $(I WithStatement)s, the inner-most scope takes precedence.  If
         a symbol cannot be resolved at the inner-most scope, resolution is forwarded
         incrementally up the scope hierarchy.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 import std.stdio;
 
@@ -1571,8 +1635,8 @@ void main()
                        // subsequently forward to module scope.
     }
 }
-
 ---
+)
 
 $(H2 $(LEGACY_LNAME2 SynchronizedStatement, synchronized-statement, Synchronized Statement))
 
@@ -1590,13 +1654,13 @@ $(GNAME SynchronizedStatement):
         $(I ScopeStatement) by using a mutex.
         )
 
-        $(P What mutex is used is determined by the $(EXPRESSION).
-        If there is no $(EXPRESSION), then a global mutex is created,
+        $(P What mutex is used is determined by the *Expression*.
+        If there is no *Expression*, then a global mutex is created,
         one per such synchronized statement.
         Different synchronized statements will have different global mutexes.
         )
 
-        $(P If there is an $(EXPRESSION), it must evaluate to either an
+        $(P If there is an *Expression*, it must evaluate to either an
         Object or an instance of an $(I Interface), in which case it
         is cast to the Object instance that implemented that $(I Interface).
         The mutex used is specific to that Object instance, and
@@ -1638,13 +1702,13 @@ $(GNAME Catches):
     $(GLINK Catch) $(GSELF Catches)
 
 $(GNAME Catch):
-    $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
+    $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(GLINK NoScopeNonEmptyStatement)
 
 $(GNAME CatchParameter):
     $(GLINK2 type, BasicType) $(GLINK_LEX Identifier)$(OPT)
 
 $(GNAME FinallyStatement):
-    $(D finally) $(PS0)
+    $(D finally) $(GLINK NoScopeNonEmptyStatement)
 )
 
         $(P $(I CatchParameter) declares a variable v of type T, where T is
@@ -1684,6 +1748,7 @@ $(GNAME FinallyStatement):
         to the original exception (the head of the chain) if a bypass occurred,
         so that the entire exception history is retained.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
 import std.stdio;
 
@@ -1709,6 +1774,7 @@ int main()
     return 0;
 }
 --------------
+)
 
     prints:
 
@@ -1727,42 +1793,21 @@ done
         This restriction may be relaxed in future versions.
         )
 
-$(H2 $(LEGACY_LNAME2 ThrowStatement, throw-statement, Throw Statement))
-
-$(P Throws an exception.)
-
-$(GRAMMAR
-$(GNAME ThrowStatement):
-    $(D throw) $(EXPRESSION) $(D ;)
-)
-
-$(P $(EXPRESSION) is evaluated and must be  a `Throwable` reference. The
-`Throwable` reference is thrown as an exception.)
-
----
-throw new Exception("message");
----
-
-$(BEST_PRACTICE Use $(DDSUBLINK spec/expression, assert_expressions, Assert Expressions)
-rather than $(LINK2 $(ROOT_DIR)library/object#.Error, Error) to report program bugs
-and abort the program.
-)
-
 $(H2 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Statement))
 
 $(GRAMMAR
 $(GNAME ScopeGuardStatement):
-    $(D scope ( exit )) $(PSCURLYSCOPE)
-    $(D scope ( success )) $(PSCURLYSCOPE)
-    $(D scope ( failure )) $(PSCURLYSCOPE)
+    $(D scope ( exit )) $(GLINK NonEmptyOrScopeBlockStatement)
+    $(D scope ( success )) $(GLINK NonEmptyOrScopeBlockStatement)
+    $(D scope ( failure )) $(GLINK NonEmptyOrScopeBlockStatement)
 )
 
-$(P The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close of the
+$(P The $(I ScopeGuardStatement) executes *NonEmptyOrScopeBlockStatement* at the close of the
 current scope, rather than at the point where the $(I ScopeGuardStatement)
-appears. $(D scope(exit)) executes $(PSCURLYSCOPE) when the scope exits normally
+appears. $(D scope(exit)) executes *NonEmptyOrScopeBlockStatement* when the scope exits normally
 or when it exits due to exception unwinding. $(D scope(failure)) executes
-$(PSCURLYSCOPE) when the scope exits due to exception unwinding.
-`scope(success)` executes $(PSCURLYSCOPE) when the scope exits normally.)
+*NonEmptyOrScopeBlockStatement* when the scope exits due to exception unwinding.
+`scope(success)` executes *NonEmptyOrScopeBlockStatement* when the scope exits normally.)
 
         $(P If there are multiple $(I ScopeGuardStatement)s in a scope, they
         will be executed in the reverse lexical order in which they appear.
@@ -1770,7 +1815,7 @@ $(PSCURLYSCOPE) when the scope exits due to exception unwinding.
         scope, their destructions will be interleaved with the $(I ScopeGuardStatement)s
         in the reverse lexical order in which they appear.)
 
-
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 write("1");
 {
@@ -1781,6 +1826,7 @@ write("1");
 }
 writeln();
 ----
+)
 
         writes:
 
@@ -1789,6 +1835,7 @@ $(CONSOLE
 )
 
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 {
     scope(exit) write("1");
@@ -1798,6 +1845,7 @@ $(CONSOLE
 }
 writeln();
 ----
+)
 
         writes:
 
@@ -1805,7 +1853,7 @@ $(CONSOLE
 4321
 )
 
-
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 struct Foo
 {
@@ -1829,6 +1877,7 @@ catch (Exception e)
 }
 writeln();
 ----
+)
 
         writes:
 
@@ -1949,32 +1998,32 @@ $(GNAME MixinStatement):
         $(GLINK StatementList), and is compiled as such.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 import std.stdio;
 
 void main()
 {
-    int j;
+    int i = 0;
     mixin("
         int x = 3;
-        for (int i = 0; i < 3; i++)
-            writeln(x + i, ++j);
+        for (; i < 3; i++)
+            writeln(x + i, i);
         ");    // ok
 
-    string s = "int y;";
+    enum s = "int y;";
     mixin(s);  // ok
     y = 4;     // ok, mixin declared y
 
     string t = "y = 3;";
-    mixin(t);  // error, t is not evaluatable at compile time
-
-    mixin("y =") 4; // error, string must be complete statement
+    //mixin(t);  // error, t is not evaluatable at compile time
+    //mixin("y =") 4; // error, string must be complete statement
 
     mixin("y =" ~ "4;");  // ok
-
     mixin("y =", 2+2, ";");  // ok
 }
 ---
+)
 
 $(SPEC_SUBNAV_PREV_NEXT expression, Expressions, arrays, Arrays)
 )
@@ -1985,10 +2034,5 @@ Macros:
         EXPRESSION=$(GLINK2 expression, Expression)
         PSSEMI_PSCURLYSCOPE=$(GLINK Statement)
         PSSEMI_PSCURLYSCOPE_LIST=$(GLINK ScopeStatementList)
-        PS0=$(GLINK NoScopeNonEmptyStatement)
         PSSCOPE=$(GLINK ScopeStatement)
-        PSCURLY=$(GLINK BlockStatement)
-        PSSEMI=$(GLINK NoScopeStatement)
-        PSCURLY_PSSCOPE=$(GLINK ScopeBlockStatement)
-        PSCURLYSCOPE=$(GLINK NonEmptyOrScopeBlockStatement)
         _=

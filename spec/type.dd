@@ -118,9 +118,9 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D cfloat), $(D float.nan+float.nan*1.0i), a complex number of two float values)
     $(TROW $(D cdouble), $(D double.nan+double.nan*1.0i), complex double)
     $(TROW $(D creal), $(D real.nan+real.nan*1.0i), complex real)
-    $(TROW $(D char), $(D 'xFF'), unsigned 8 bit (UTF-8 code unit))
-    $(TROW $(D wchar), $(D 'uFFFF'), unsigned 16 bit (UTF-16 code unit))
-    $(TROW $(D dchar), $(D 'U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
+    $(TROW $(D char), $(D '\xFF'), unsigned 8 bit (UTF-8 code unit))
+    $(TROW $(D wchar), $(D '\uFFFF'), unsigned 16 bit (UTF-16 code unit))
+    $(TROW $(D dchar), $(D '\U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
     )
 
     $(IMPLEMENTATION_DEFINED The real floating point type has at least the range and precision
@@ -557,6 +557,37 @@ $(H3 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
 $(H3 $(LNAME2 string, $(D string)))
 
     $(P A $(DDSUBLINK spec/arrays, strings, $(I string) is a special case of an array.))
+
+$(H3 $(LNAME2 noreturn, $(D noreturn)))
+
+    $(P `noreturn` is the $(LINK2 https://en.wikipedia.org/wiki/Bottom_type, bottom type)
+    which can implicitly convert to any type, including `void`.
+    A value of type `noreturn` will never be produced and the compiler can
+    optimize such code accordingly.)
+
+    $(P A function that never returns has the return type `noreturn`. This can
+    occur due to an infinite loop or always throwing an exception.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+noreturn abort(const(char)[] message);
+
+int example(int i)
+{
+    if (i < 0)
+    {
+        // abort does not return, so it doesn't need to produce an int
+        int val = abort("less than zero");
+    }
+    // ternary expression's common type is still int
+    return i != 0 ? 1024 / i : abort("calculation went awry.");
+}
+---
+)
+
+    $(P `noreturn` is defined as $(D typeof(*null)). This is because
+    dereferencing a null literal halts execution.)
+
 
 $(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 )

@@ -12,6 +12,7 @@ $(HEADERNAV_TOC)
         within the $(D [ ]) of an array declaration:
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---------
         int[string] aa;   // Associative array of ints that are
                           // indexed by string keys.
@@ -20,6 +21,7 @@ $(HEADERNAV_TOC)
         int value = aa["hello"];  // lookup value from a key
         assert(value == 3);
         ---------
+        )
 
         $(P Neither the $(I KeyType)s nor the element types of an associative
         array can be function types or $(D void).
@@ -28,6 +30,17 @@ $(HEADERNAV_TOC)
         $(IMPLEMENTATION_DEFINED The built-in associative arrays do not preserve the order
         of the keys inserted into the array. In particular, in a $(D foreach) loop the
         order in which the elements are iterated is typically unspecified.)
+
+$(H2 $(LNAME2 literals, Literals))
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+auto aa = [21u: "he", 38: "ho", 2: "hi"];
+static assert(is(typeof(aa) == string[uint]));
+assert(aa[2] == "hi");
+---
+)
+    $(P See $(DDSUBLINK expression, associative_array_literals, Associative Array Literals).)
 
 $(H2 $(LNAME2 removing_keys, Removing Keys))
 
