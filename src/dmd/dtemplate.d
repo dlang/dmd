@@ -8296,14 +8296,14 @@ struct TemplateStats
 
     uint numInstantiations;     // number of instantiations of the template
     uint uniqueInstantiations;  // number of unique instantiations of the template
-
+    long totalTime = 0;             //Total time spent compiling this template
     TemplateInstances* allInstances;
 
     /*******************************
      * Add this instance
      */
     static void incInstance(const TemplateDeclaration td,
-                            const TemplateInstance ti)
+                            const TemplateInstance ti, long** putTimeHere)
     {
         void log(ref TemplateStats ts)
         {
@@ -8329,6 +8329,7 @@ struct TemplateStats
             stats[cast(const void*) td] = TemplateStats(1, 0);
             log(stats[cast(const void*) td]);
         }
+        *putTimeHere = &stats[cast(const void*) td].totalTime;
     }
 
     /*******************************
@@ -8359,11 +8360,8 @@ void printTemplateStats()
         static int compare(scope const TemplateDeclarationStats* a,
                            scope const TemplateDeclarationStats* b) @safe nothrow @nogc pure
         {
-            auto diff = b.ts.uniqueInstantiations - a.ts.uniqueInstantiations;
-            if (diff)
-                return diff;
-            else
-                return b.ts.numInstantiations - a.ts.numInstantiations;
+            //
+            return (b.ts.totalTime > a.ts.totalTime) - (b.ts.totalTime < a.ts.totalTime);
         }
     }
 
@@ -8385,10 +8383,11 @@ void printTemplateStats()
             ss.ts.allInstances)
         {
             message(ss.td.loc,
-                    "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found, they are:",
+                    "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found (%lld μs total compile time), they are:",
                     ss.ts.numInstantiations,
                     ss.ts.uniqueInstantiations,
-                    ss.td.toCharsNoConstraints());
+                    ss.td.toCharsNoConstraints(),
+                    ss.ts.totalTime);
             foreach (const ti; (*ss.ts.allInstances)[])
             {
                 if (ti.tinst)   // if has enclosing instance
@@ -8400,10 +8399,11 @@ void printTemplateStats()
         else
         {
             message(ss.td.loc,
-                    "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found",
+                    "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found — %lld μs total compilation time.",
                     ss.ts.numInstantiations,
                     ss.ts.uniqueInstantiations,
-                    ss.td.toCharsNoConstraints());
+                    ss.td.toCharsNoConstraints(),
+                    ss.ts.totalTime);
         }
     }
 }
