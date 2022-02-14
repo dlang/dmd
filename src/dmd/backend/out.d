@@ -1,14 +1,15 @@
 /**
+ * Transition from intermediate representation to code generator
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.d, backend/out.d)
  */
-
 
 module dmd.backend.dout;
 
@@ -33,7 +34,6 @@ import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -912,7 +912,7 @@ version (SCPP)
 
             default:
                 symbol_print(s);
-                WRclass(cast(SC) s.Sclass);
+                printf("%s\n", class_str(cast(SC) s.Sclass));
                 assert(0);
 }
 else
@@ -1386,6 +1386,18 @@ version (MARS)
 
     block_pred();                       // compute predecessors to blocks
     block_compbcount();                 // eliminate unreachable blocks
+
+    debug { } else
+    {
+        if (debugb)
+        {
+            printf("...................%s().............\n", funcsym_p.Sident.ptr);
+            numberBlocks(startblock);
+            for (block *b = startblock; b; b = b.Bnext)
+                WRblock(b);
+        }
+    }
+
     if (go.mfoptim)
     {   OPTIMIZER = 1;
         optfunc();                      /* optimize function            */

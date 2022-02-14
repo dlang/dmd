@@ -2,9 +2,9 @@
  * This module contains the implementation of the C++ header generation available through
  * the command line switch -Hc.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtohd, _dtoh.d)
  * Documentation:  https://dlang.org/phobos/dmd_dtoh.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dtoh.d
@@ -16,17 +16,19 @@ import core.stdc.string;
 import core.stdc.ctype;
 
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.identifier;
 import dmd.root.filename;
 import dmd.visitor;
 import dmd.tokens;
 
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.utils;
 
 //debug = Debug_DtoH;
@@ -255,7 +257,7 @@ public:
         Identifier ident;
 
         /// Original type of the currently visited declaration
-        AST.Type* origType;
+        AST.Type origType;
 
         /// Last written visibility level applying to the current scope
         AST.Visibility.Kind currentVisibility;
@@ -707,6 +709,10 @@ public:
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
         visited[cast(void*)fd] = true;
 
+        // silently ignore non-user-defined destructors
+        if (fd.generated && fd.isDtorDeclaration())
+            return;
+
         // Note that tf might be null for templated (member) functions
         auto tf = cast(AST.TypeFunction)fd.type;
         if ((tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))
@@ -842,7 +848,7 @@ public:
             return;
 
         if (vd.originalType && vd.type == AST.Type.tsize_t)
-            origType = &vd.originalType;
+            origType = vd.originalType;
         scope(exit) origType = null;
 
         if (!vd.alignment.isDefault())
@@ -1009,12 +1015,12 @@ public:
             if (ad.originalType && ad.type.ty == AST.Tpointer &&
                 (cast(AST.TypePointer)t).nextOf.ty == AST.Tfunction)
             {
-                origType = &ad.originalType;
+                origType = ad.originalType;
             }
             scope(exit) origType = null;
 
             buf.writestring("typedef ");
-            typeToBuffer(origType ? *origType : t, ad);
+            typeToBuffer(origType !is null ? origType : t, ad);
             writeDeclEnd();
             return;
         }
@@ -1646,7 +1652,7 @@ public:
         }
 
         this.ident = s.ident;
-        auto type = origType ? *origType : t;
+        auto type = origType !is null ? origType : t;
         AST.Dsymbol customLength;
 
         // Check for quirks that are usually resolved during semantic
@@ -2391,7 +2397,7 @@ public:
     {
         debug (Debug_DtoH) mixin(traceVisit!e);
 
-        buf.writestring(tokToString(e.op));
+        buf.writestring(expToString(e.op));
         e.e1.accept(this);
     }
 
@@ -2401,20 +2407,20 @@ public:
 
         e.e1.accept(this);
         buf.writeByte(' ');
-        buf.writestring(tokToString(e.op));
+        buf.writestring(expToString(e.op));
         buf.writeByte(' ');
         e.e2.accept(this);
     }
 
     /// Translates operator `op` into the C++ representation
-    private extern(D) static string tokToString(const TOK op)
+    private extern(D) static string expToString(const EXP op)
     {
-        switch (op) with (TOK)
+        switch (op) with (EXP)
         {
             case identity:      return "==";
             case notIdentity:   return "!=";
             default:
-                return Token.toString(op);
+                return EXPtoString(op);
         }
     }
 

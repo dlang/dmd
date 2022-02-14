@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#function-safety, Function Safety)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/safe.d, _safe.d)
  * Documentation:  https://dlang.org/phobos/dmd_safe.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/safe.d
@@ -46,7 +46,7 @@ import dmd.tokens;
 bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
 {
     //printf("checkUnsafeAccess(e: '%s', readonly: %d, printmsg: %d)\n", e.toChars(), readonly, printmsg);
-    if (e.op != TOK.dotVariable)
+    if (e.op != EXP.dotVariable)
         return false;
     DotVarExp dve = cast(DotVarExp)e;
     if (VarDeclaration v = dve.var.isVarDeclaration())
@@ -170,7 +170,7 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
          */
         if (tfromn.ty == Tvoid && ttobn.isMutable())
         {
-            if (ttob.ty == Tarray && e.op == TOK.arrayLiteral)
+            if (ttob.ty == Tarray && e.op == EXP.arrayLiteral)
                 return true;
             return false;
         }

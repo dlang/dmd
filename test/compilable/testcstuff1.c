@@ -479,6 +479,13 @@ void testtags()
 
 /********************************/
 
+void testoverflow()
+{
+    long long a = 18446744073709551615L;
+}
+
+/********************************/
+
 int printf(const char*, ...);
 
 int main()

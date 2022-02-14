@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/enum.html, Enums)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/denum.d, _denum.d)
  * Documentation:  https://dlang.org/phobos/dmd_denum.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/denum.d
@@ -16,6 +16,7 @@ module dmd.denum;
 
 import core.stdc.stdio;
 
+import dmd.astenums;
 import dmd.attrib;
 import dmd.gluelayer;
 import dmd.declaration;
@@ -60,7 +61,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     extern (D) this(const ref Loc loc, Identifier ident, Type memtype)
     {
         super(loc, ident);
-        //printf("EnumDeclaration() %s\n", toChars());
+        //printf("EnumDeclaration() %p %s : %s\n", this, toChars(), memtype.toChars());
         type = new TypeEnum(this);
         this.memtype = memtype;
         visibility = Visibility(Visibility.Kind.undefined);

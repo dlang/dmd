@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/module.html, Modules)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmodule.d, _dmodule.d)
  * Documentation:  https://dlang.org/phobos/dmd_dmodule.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmodule.d
@@ -31,6 +31,7 @@ import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.file_manager;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -39,7 +40,7 @@ import dmd.cparse;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.rootobject;
@@ -49,113 +50,6 @@ import dmd.semantic3;
 import dmd.target;
 import dmd.utils;
 import dmd.visitor;
-
-enum package_d  = "package." ~ mars_ext;
-enum package_di = "package." ~ hdr_ext;
-
-/********************************************
- * Look for the source file if it's different from filename.
- * Look for .di, .d, directory, and along global.path.
- * Does not open the file.
- * Params:
- *      filename = as supplied by the user
- *      path = path to look for filename
- * Returns:
- *      the found file name or
- *      `null` if it is not different from filename.
- */
-private const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
-{
-    //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
-    /* Search along path[] for .di file, then .d file, then .i file, then .c file.
-     */
-    const sdi = FileName.forceExt(filename, hdr_ext);
-    if (FileName.exists(sdi) == 1)
-        return sdi;
-    scope(exit) FileName.free(sdi.ptr);
-
-    const sd = FileName.forceExt(filename, mars_ext);
-    if (FileName.exists(sd) == 1)
-        return sd;
-    scope(exit) FileName.free(sd.ptr);
-
-    const si = FileName.forceExt(filename, i_ext);
-    if (FileName.exists(si) == 1)
-        return si;
-    scope(exit) FileName.free(si.ptr);
-
-    const sc = FileName.forceExt(filename, c_ext);
-    if (FileName.exists(sc) == 1)
-        return sc;
-    scope(exit) FileName.free(sc.ptr);
-
-    if (FileName.exists(filename) == 2)
-    {
-        /* The filename exists and it's a directory.
-         * Therefore, the result should be: filename/package.d
-         * iff filename/package.d is a file
-         */
-        const ni = FileName.combine(filename, package_di);
-        if (FileName.exists(ni) == 1)
-            return ni;
-        FileName.free(ni.ptr);
-
-        const n = FileName.combine(filename, package_d);
-        if (FileName.exists(n) == 1)
-            return n;
-        FileName.free(n.ptr);
-    }
-    if (FileName.absolute(filename))
-        return null;
-    if (!path.length)
-        return null;
-    foreach (entry; path)
-    {
-        const p = entry.toDString();
-
-        const(char)[] n = FileName.combine(p, sdi);
-        if (FileName.exists(n) == 1) {
-            return n;
-        }
-        FileName.free(n.ptr);
-
-        n = FileName.combine(p, sd);
-        if (FileName.exists(n) == 1) {
-            return n;
-        }
-        FileName.free(n.ptr);
-
-        n = FileName.combine(p, si);
-        if (FileName.exists(n) == 1) {
-            return n;
-        }
-        FileName.free(n.ptr);
-
-        n = FileName.combine(p, sc);
-        if (FileName.exists(n) == 1) {
-            return n;
-        }
-        FileName.free(n.ptr);
-
-        const b = FileName.removeExt(filename);
-        n = FileName.combine(p, b);
-        FileName.free(b.ptr);
-        if (FileName.exists(n) == 2)
-        {
-            const n2i = FileName.combine(n, package_di);
-            if (FileName.exists(n2i) == 1)
-                return n2i;
-            FileName.free(n2i.ptr);
-            const n2 = FileName.combine(n, package_d);
-            if (FileName.exists(n2) == 1) {
-                return n2;
-            }
-            FileName.free(n2.ptr);
-        }
-        FileName.free(n.ptr);
-    }
-    return null;
-}
 
 // function used to call semantic3 on a module's dependencies
 void semantic3OnDependencies(Module m)
@@ -414,8 +308,8 @@ extern (C++) class Package : ScopeDsymbol
             packages ~= s.ident;
         reverse(packages);
 
-        if (lookForSourceFile(getFilename(packages, ident), global.path ? (*global.path)[] : null))
-            Module.load(Loc(), packages, this.ident);
+        if (FileManager.lookForSourceFile(getFilename(packages, ident), global.path ? (*global.path)[] : null))
+            Module.load(Loc.initial, packages, this.ident);
         else
             isPkgMod = PKG.package_;
     }
@@ -598,12 +492,12 @@ extern (C++) final class Module : Package
         return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
     }
 
-    extern (C++) static Module load(Loc loc, Identifiers* packages, Identifier ident)
+    extern (C++) static Module load(const ref Loc loc, Identifiers* packages, Identifier ident)
     {
         return load(loc, packages ? (*packages)[] : null, ident);
     }
 
-    extern (D) static Module load(Loc loc, Identifier[] packages, Identifier ident)
+    extern (D) static Module load(const ref Loc loc, Identifier[] packages, Identifier ident)
     {
         //printf("Module::load(ident = '%s')\n", ident.toChars());
         // Build module filename by turning:
@@ -612,7 +506,7 @@ extern (C++) final class Module : Package
         //  foo\bar\baz
         const(char)[] filename = getFilename(packages, ident);
         // Look for the source file
-        if (const result = lookForSourceFile(filename, global.path ? (*global.path)[] : null))
+        if (const result = FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null))
             filename = result; // leaks
 
         auto m = new Module(loc, filename, ident, 0, 0);
@@ -737,7 +631,12 @@ extern (C++) final class Module : Package
             if (isPackageMod)
                 .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
             else
-                error(loc, "is in file '%s' which cannot be read", srcfile.toChars());
+            {
+                .error(loc, "unable to read module `%s`", toChars());
+                const pkgfile = FileName.combine(FileName.removeExt(srcfile.toString()), package_d);
+                .errorSupplemental(loc, "Expected '%s' or '%s' in one of the following import paths:",
+                    srcfile.toChars(), pkgfile.ptr);
+            }
         }
         if (!global.gag)
         {
@@ -776,14 +675,25 @@ extern (C++) final class Module : Package
             return true; // already read
 
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
-        auto readResult = File.read(srcfile.toChars());
 
         if (global.params.emitMakeDeps)
         {
             global.params.makeDeps.push(srcfile.toChars());
         }
 
-        return loadSourceBuffer(loc, readResult);
+        if (auto readResult = FileManager.fileManager.lookup(srcfile))
+        {
+            srcBuffer = readResult;
+            return true;
+        }
+
+        auto readResult = File.read(srcfile.toChars());
+        if (loadSourceBuffer(loc, readResult))
+        {
+            FileManager.fileManager.add(srcfile, srcBuffer);
+            return true;
+        }
+        return false;
     }
 
     /// syntactic parse
@@ -927,7 +837,7 @@ extern (C++) final class Module : Package
         if (buf.length >= 2)
         {
             /* Convert all non-UTF-8 formats to UTF-8.
-             * BOM : http://www.unicode.org/faq/utf_bom.html
+             * BOM : https://www.unicode.org/faq/utf_bom.html
              * 00 00 FE FF  UTF-32BE, big-endian
              * FF FE 00 00  UTF-32LE, little-endian
              * FE FF        UTF-16BE, big-endian
@@ -1291,10 +1201,13 @@ extern (C++) final class Module : Package
             if (StringExp se = msg ? msg.toStringExp() : null)
             {
                 const slice = se.peekString();
-                deprecation(loc, "is deprecated - %.*s", cast(int)slice.length, slice.ptr);
+                if (slice.length)
+                {
+                    deprecation(loc, "is deprecated - %.*s", cast(int)slice.length, slice.ptr);
+                    return;
+                }
             }
-            else
-                deprecation(loc, "is deprecated");
+            deprecation(loc, "is deprecated");
         }
     }
 

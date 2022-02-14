@@ -256,7 +256,7 @@ alias autoTesterBuild = makeRule!((builder, rule) {
     builder
     .name("auto-tester-build")
     .description("Run the autotester build")
-    .deps([toolchainInfo, dmdDefault, checkwhitespace]);
+    .deps([toolchainInfo, dmdDefault, checkwhitespace, validateCommonBetterC]);
 
     version (Posix)
         rule.deps ~= runCxxUnittest;
@@ -276,7 +276,11 @@ alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule 
     .name("lexer")
     .target(env["G"].buildPath("lexer" ~ suffix).objName)
     .sources(sources.lexer)
-    .deps([versionFile, sysconfDirFile])
+    .deps([
+        versionFile,
+        sysconfDirFile,
+        common(suffix, extraFlags)
+    ])
     .msg("(DC) LEXER" ~ suffix)
     .command([env["HOST_DMD_RUN"],
         "-c",
@@ -304,6 +308,9 @@ alias dmdConf = makeRule!((builder, rule) {
         enum conf = `[Environment]
 DFLAGS="-I%@P%\..\..\..\..\..\druntime\import" "-I%@P%\..\..\..\..\..\phobos"
 LIB="%@P%\..\..\..\..\..\phobos"
+
+[Environment32]
+DFLAGS=%DFLAGS% -L/OPT:NOICF
 
 [Environment64]
 DFLAGS=%DFLAGS% -L/OPT:NOICF
@@ -337,12 +344,43 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         });
 });
 
+/// Returns: the rule that builds the common object file
+alias common = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
+                                   string suffix, string[] extraFlags) => builder
+    .name("common")
+    .target(env["G"].buildPath("common" ~ suffix).objName)
+    .sources(sources.common)
+    .msg("(DC) COMMON" ~ suffix)
+    .command([
+        env["HOST_DMD_RUN"],
+        "-c",
+        "-of" ~ rule.target,
+        ]
+        .chain(
+            flags["DFLAGS"], extraFlags,
+
+            // source files need to have relative paths in order for the code coverage
+            // .lst files to be named properly for CodeCov to find them
+            rule.sources.map!(e => e.relativePath(dmdRepo))
+        ).array)
+);
+
+
+alias validateCommonBetterC = makeRule!((builder, rule) => builder
+    .name("common-betterc")
+    .description("Verify that common is -betterC compatible")
+    .deps([ common("-betterc", ["-betterC"]) ])
+);
+
 /// Returns: the rule that builds the backend object file
 alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
                                    string suffix, string[] extraFlags) => builder
     .name("backend")
     .target(env["G"].buildPath("backend" ~ suffix).objName)
     .sources(sources.backend)
+    .deps([
+        common(suffix, extraFlags)
+    ])
     .msg("(DC) BACKEND" ~ suffix)
     .command([
         env["HOST_DMD_RUN"],
@@ -368,16 +406,9 @@ alias versionFile = makeRule!((builder, rule) {
     alias contents = memoize!(() {
         if (dmdRepo.buildPath(".git").exists)
         {
-            try
-            {
-                auto gitResult = [env["GIT"], "describe", "--dirty"].tryRun;
-                if (gitResult.status == 0)
-                    return gitResult.output.strip;
-            }
-            catch (ProcessException)
-            {
-                // git not installed
-            }
+            auto gitResult = tryRun([env["GIT"], "describe", "--dirty"]);
+            if (gitResult.status == 0)
+                return gitResult.output.strip;
         }
         // version fallback
         return dmdRepo.buildPath("VERSION").readText;
@@ -420,12 +451,13 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
 
     auto lexer = lexer(targetSuffix, depFlags);
     auto backend = backend(targetSuffix, depFlags);
+    auto common = common(targetSuffix, depFlags);
     builder
-        // include lexer.o and backend.o
-        .sources(dmdSources.chain(lexer.targets, backend.targets).array)
+        // include lexer.o, common.o, and backend.o
+        .sources(dmdSources.chain(lexer.targets, backend.targets, common.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
         .msg("(DC) DMD" ~ targetSuffix)
-        .deps([versionFile, sysconfDirFile, lexer, backend])
+        .deps([versionFile, sysconfDirFile, lexer, backend, common])
         .command([
             env["HOST_DMD_RUN"],
             "-of" ~ rule.target,
@@ -488,7 +520,7 @@ BuildRule to run the DMD frontend header generation
 For debugging, use `./build.d cxx-headers DFLAGS="-debug=Debug_DtoH"` (clean before)
 */
 alias buildFrontendHeaders = makeRule!((builder, rule) {
-    const dmdSources = sources.dmd.frontend ~ sources.root ~ sources.lexer;
+    const dmdSources = sources.dmd.frontend ~ sources.root ~ sources.common ~ sources.lexer;
     const dmdExeFile = dmdDefault.deps[0].target;
     builder
         .name("cxx-headers")
@@ -498,7 +530,10 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
         .target(env["G"].buildPath("frontend.h"))
         .command([dmdExeFile] ~ flags["DFLAGS"] ~
             // Ignore warnings because of invalid C++ identifiers in the source code
-            ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target] ~ dmdSources);
+            ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target,
+            // Enforce the expected target architecture
+            "-m64", "-os=linux",
+            ] ~ dmdSources);
 });
 
 alias runCxxHeadersTest = makeRule!((builder, rule) {
@@ -512,8 +547,16 @@ alias runCxxHeadersTest = makeRule!((builder, rule) {
             const cxxHeaderReferencePath = env["D"].buildPath("frontend.h");
             log("Comparing referenceHeader(%s) <-> generatedHeader(%s)",
                 cxxHeaderReferencePath, cxxHeaderGeneratedPath);
-            const generatedHeader = cxxHeaderGeneratedPath.readText;
-            const referenceHeader = cxxHeaderReferencePath.readText;
+            auto generatedHeader = cxxHeaderGeneratedPath.readText;
+            auto referenceHeader = cxxHeaderReferencePath.readText;
+
+            // Ignore carriage return to unify the expected newlines
+            version (Windows)
+            {
+                generatedHeader = generatedHeader.replace("\r\n", "\n"); // \r added by OutBuffer
+                referenceHeader = referenceHeader.replace("\r\n", "\n"); // \r added by Git's if autocrlf is enabled
+            }
+
             if (generatedHeader != referenceHeader) {
                 if (env.getNumberedBool("AUTO_UPDATE"))
                 {
@@ -559,7 +602,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-frontend")
         .description("Build the C++ frontend")
         .msg("(CXX) CXX-FRONTEND")
-        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.rootHeaders ~ .sources.dmd.driver ~ .sources.dmd.frontend ~ .sources.root)
+        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.commonHeaders ~ .sources.rootHeaders /* Andrei ~ .sources.dmd.driver ~ .sources.dmd.frontend ~ .sources.root*/)
         .target(env["G"].buildPath("cxxfrontend").objName)
         // No explicit if since CXX_KIND will always be either g++ or clang++
         .command([ env["CXX"], "-xc++", "-std=c++11",
@@ -571,7 +614,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
         .deps([lexer(null, null), cxxFrontend])
-        .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root)
+        .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common)
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain", "-version=NoBackend"
@@ -772,7 +815,7 @@ alias html = makeRule!((htmlBuilder, htmlRule) {
         return htmlFilePrefix ~ ".html";
     }
     const stddocs = env.get("STDDOC", "").split();
-    auto docSources = .sources.root ~ .sources.lexer ~ .sources.dmd.all ~ env["D"].buildPath("frontend.d");
+    auto docSources = .sources.common ~ .sources.root ~ .sources.lexer ~ .sources.dmd.all ~ env["D"].buildPath("frontend.d");
     htmlBuilder.deps(docSources.chunks(1).map!(sourceArray =>
         methodInit!(BuildRule, (docBuilder, docRule) {
             const source = sourceArray[0];
@@ -807,11 +850,10 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
 
         void show(string what, string[] cmd)
         {
-            string output;
-            try
-                output = tryRun(cmd).output;
-            catch (ProcessException)
-                output = "<Not available>";
+            const res = tryRun(cmd);
+            const output = res.status != -1
+                        ? res.output
+                        :  "<Not available>";
 
             app.formattedWrite("%s (%s): %s\n", what, cmd[0], output);
         }
@@ -1070,6 +1112,7 @@ void parseEnvironment()
 
     auto d = env["D"] = srcDir.buildPath("dmd");
     env["C"] = d.buildPath("backend");
+    env["COMMON"] = d.buildPath("common");
     env["ROOT"] = d.buildPath("root");
     env["EX"] = srcDir.buildPath("examples");
     auto generated = env["GENERATED"] = dmdRepo.buildPath("generated");
@@ -1201,7 +1244,20 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_LTO"))
     {
-        dflags ~= ["-flto=full"];
+        switch (env["HOST_DMD_KIND"])
+        {
+            case "dmd":
+                stderr.writeln(`DMD does not support LTO! Ignoring ENABLE_LTO flag...`);
+                break;
+            case "ldc":
+                dflags ~= "-flto=full";
+                break;
+            case "gdc":
+                dflags ~= "-flto";
+                break;
+            default:
+                assert(false, "Unknown host compiler kind: " ~ env["HOST_DMD_KIND"]);
+        }
     }
     if (env.getNumberedBool("ENABLE_UNITTEST"))
     {
@@ -1236,7 +1292,8 @@ void processEnvironmentCxx()
     // Windows requires additional work to handle e.g. Cygwin on Azure
     version (Windows) return;
 
-    const cxxKind = env["CXX_KIND"] = detectHostCxx();
+    env.setDefault("CXX", "c++");
+    // env["CXX_KIND"] = detectHostCxx();
 
     string[] warnings  = [
         "-Wall", "-Werror", "-Wno-narrowing", "-Wwrite-strings", "-Wcast-qual", "-Wno-format",
@@ -1272,11 +1329,11 @@ void processEnvironmentCxx()
 }
 
 /// Returns: the host C++ compiler, either "g++" or "clang++"
+version (none) // Currently unused but will be needed at some point
 string detectHostCxx()
 {
     import std.meta: AliasSeq;
 
-    env.setDefault("CXX", "c++");
     const cxxVersion = [env["CXX"], "--version"].execute.output;
 
     alias GCC = AliasSeq!("g++", "gcc", "Free Software");
@@ -1302,8 +1359,10 @@ alias buildFiles = memoize!(() => "win32.mak posix.mak osmodel.mak build.d".spli
 alias allBuildSources = memoize!(() => buildFiles
     ~ sources.dmd.all
     ~ sources.lexer
+    ~ sources.common
     ~ sources.backend
     ~ sources.root
+    ~ sources.commonHeaders
     ~ sources.frontendHeaders
     ~ sources.rootHeaders
 );
@@ -1318,7 +1377,7 @@ auto sourceFiles()
     static struct Sources
     {
         DmdSources dmd;
-        string[] lexer, root, backend, frontendHeaders, rootHeaders;
+        string[] lexer, common, root, backend, commonHeaders, frontendHeaders, rootHeaders;
     }
     static string[] fileArray(string dir, string files)
     {
@@ -1329,16 +1388,16 @@ auto sourceFiles()
             dmsc.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
-        driver: fileArray(env["D"], "dinifile.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
+        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
             link.d mars.d scanelf.d scanmach.d scanmscoff.d scanomf.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d apply.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
             arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
-            cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
+            cli.d clone.d compiler.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
-            dtemplate.d dtoh.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
+            dtemplate.d dtoh.d dversion.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
             imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
             mtype.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d
@@ -1349,7 +1408,7 @@ auto sourceFiles()
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
-            obj.d oper.d outbuf.d rtlsym.d code_x86.d iasm.d codebuilder.d
+            obj.d oper.d rtlsym.d code_x86.d iasm.d codebuilder.d
             ty.d type.d exh.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
             dlist.d melf.d
         "),
@@ -1361,23 +1420,29 @@ auto sourceFiles()
     Sources sources = {
         dmd: dmd,
         frontendHeaders: fileArray(env["D"], "
-            aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h complex_t.h cond.h
+            aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h cond.h
             ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
             identifier.h id.h import.h init.h json.h mangle.h module.h mtype.h nspace.h objc.h scope.h
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
-            console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
+            console.d entity.d errors.d file_manager.d globals.d id.d identifier.d lexer.d tokens.d
         ") ~ fileArray(env["ROOT"], "
-            array.d bitarray.d ctfloat.d file.d filename.d hash.d outbuffer.d port.d region.d rmem.d
-            rootobject.d stringtable.d
+            array.d bitarray.d ctfloat.d file.d filename.d hash.d port.d region.d rmem.d
+            rootobject.d stringtable.d utf.d
+        "),
+        common: fileArray(env["COMMON"], "
+            file.d int128.d outbuffer.d string.d
+        "),
+        commonHeaders: fileArray(env["COMMON"], "
+            outbuffer.h
         "),
         root: fileArray(env["ROOT"], "
-            aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+            aav.d complex.d env.d longdouble.d man.d optional.d response.d speller.d string.d strtold.d
         "),
         rootHeaders: fileArray(env["ROOT"], "
-            array.h bitarray.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
-            object.h outbuffer.h port.h rmem.h
+            array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
+            object.h optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
@@ -1386,7 +1451,7 @@ auto sourceFiles()
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
             cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d os.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d mscoffobj.d filespec.d newman.d cgobj.d aarray.d
+            machobj.d elfobj.d mscoffobj.d filespec.d newman.d cgobj.d aarray.d disasm86.d
             "
         ),
     };
@@ -1461,7 +1526,7 @@ Detects the host model
 
 Returns: 32, 64 or throws an Exception
 */
-auto detectModel()
+string detectModel()
 {
     string uname;
     if (detectOS == "solaris")
@@ -1496,7 +1561,7 @@ Params:
     hostDmd = the command used to launch the host's dmd executable
 Returns: a string that is the absolute path of the host's dmd executable
 */
-auto getHostDMDPath(string hostDmd)
+string getHostDMDPath(const string hostDmd)
 {
     version(Posix)
         return ["which", hostDmd].execute.output;
@@ -1517,7 +1582,7 @@ Add the executable filename extension to the given `name` for the current OS.
 Params:
     name = the name to append the file extention to
 */
-auto exeName(T)(T name)
+string exeName(const string name)
 {
     version(Windows)
         return name ~ ".exe";
@@ -1530,7 +1595,7 @@ Add the object file extension to the given `name` for the current OS.
 Params:
     name = the name to append the file extention to
 */
-auto objName(T)(T name)
+string objName(const string name)
 {
     version(Windows)
         return name ~ ".obj";
@@ -1543,7 +1608,7 @@ Add the library file extension to the given `name` for the current OS.
 Params:
     name = the name to append the file extention to
 */
-auto libName(T)(T name)
+string libName(const string name)
 {
     version(Windows)
         return name ~ ".lib";
@@ -1599,7 +1664,7 @@ Params:
 
 Returns: the value associated to key
 */
-auto getDefault(ref string[string] env, string key, string default_)
+string getDefault(ref string[string] env, string key, string default_)
 {
     if (auto ex = key in env)
         return *ex;
@@ -1622,7 +1687,7 @@ Params:
 
 Returns: the value associated to key
 */
-auto setDefault(ref string[string] env, string key, string default_)
+string setDefault(ref string[string] env, string key, string default_)
 {
     auto v = getDefault(env, key, default_);
     env[key] = v;
@@ -1945,9 +2010,10 @@ abstract final class Scheduler
 struct MethodInitializer(T) if (is(T == class)) // currenly only works with classes
 {
     private T obj;
-    auto ref opDispatch(string name)(typeof(__traits(getMember, T, name)) arg)
+
+    ref MethodInitializer opDispatch(string name)(typeof(__traits(getMember, T, name)) arg)
     {
-        mixin("obj." ~ name ~ " = arg;");
+        __traits(getMember, obj, name) = arg;
         return this;
     }
 }
@@ -1984,7 +2050,7 @@ Params:
     spec = a format specifier
     args = the data to format to the log
 */
-auto log(T...)(string spec, T args)
+void log(T...)(string spec, T args)
 {
     if (verbose)
         writefln(spec, args);
@@ -2027,11 +2093,19 @@ Params:
 
 Returns: a tuple (status, output)
 */
-auto tryRun(T)(T args, string workDir = runDir)
+auto tryRun(const(string)[] args, string workDir = runDir)
 {
     args = args.filter!(a => !a.empty).array;
-    log("Run: %s", args.join(" "));
-    return execute(args, null, Config.none, size_t.max, workDir);
+    log("Run: %-(%s %)", args);
+
+    try
+    {
+        return execute(args, null, Config.none, size_t.max, workDir);
+    }
+    catch (Exception e) // e.g. exececutable does not exist
+    {
+        return typeof(return)(-1, e.msg);
+    }
 }
 
 /**
@@ -2044,7 +2118,7 @@ Params:
 
 Returns: any output of the executed command
 */
-auto run(T)(T args, string workDir = runDir)
+string run(const string[] args, const string workDir = runDir)
 {
     auto res = tryRun(args, workDir);
     if (res.status)
@@ -2069,10 +2143,11 @@ auto run(T)(T args, string workDir = runDir)
             ];
 
             // Include gdb output as details (if GDB is available)
-            try
-                details = tryRun(gdb, workDir).output;
-            catch (ProcessException e)
-                log("GDB failed: %s", e);
+            const gdbRes = tryRun(gdb, workDir);
+            if (gdbRes.status != -1)
+                details = gdbRes.output;
+            else
+                log("Rerunning executable with GDB failed: %s", gdbRes.output);
         }
 
         abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status), details);
@@ -2119,7 +2194,7 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files, uint 
 }
 
 /** Wrapper around std.file.copy that also updates the target timestamp. */
-void copyAndTouch(RF, RT)(RF from, RT to)
+void copyAndTouch(const string from, const string to)
 {
     std.file.copy(from, to);
     const now = Clock.currTime;

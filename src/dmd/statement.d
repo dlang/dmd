@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/statement.html, Statements)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/statement.d, _statement.d)
  * Documentation:  https://dlang.org/phobos/dmd_statement.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/statement.d
@@ -21,7 +21,6 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
 import dmd.gluelayer;
-import dmd.canthrow;
 import dmd.cond;
 import dmd.dclass;
 import dmd.declaration;
@@ -39,7 +38,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.dinterpret;
 import dmd.mtype;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.sapply;
 import dmd.sideeffect;
@@ -72,7 +71,7 @@ TypeIdentifier getException()
 }
 
 /***********************************************************
- * Specification: http://dlang.org/spec/statement.html
+ * Specification: https://dlang.org/spec/statement.html
  */
 extern (C++) abstract class Statement : ASTNode
 {
@@ -463,7 +462,7 @@ extern (C++) class ExpStatement : Statement
         this.exp = new DeclarationExp(loc, declaration);
     }
 
-    static ExpStatement create(Loc loc, Expression exp)
+    static ExpStatement create(const ref Loc loc, Expression exp)
     {
         return new ExpStatement(loc, exp);
     }
@@ -577,7 +576,7 @@ extern (C++) class CompoundStatement : Statement
             statements.push(s);
     }
 
-    static CompoundStatement create(Loc loc, Statement s1, Statement s2)
+    static CompoundStatement create(const ref Loc loc, Statement s1, Statement s2)
     {
         return new CompoundStatement(loc, s1, s2);
     }
@@ -1635,7 +1634,7 @@ extern (C++) final class TryFinallyStatement : Statement
         this.bodyFallsThru = true;      // assume true until statementSemantic()
     }
 
-    static TryFinallyStatement create(Loc loc, Statement _body, Statement finalbody)
+    static TryFinallyStatement create(const ref Loc loc, Statement _body, Statement finalbody)
     {
         return new TryFinallyStatement(loc, _body, finalbody);
     }

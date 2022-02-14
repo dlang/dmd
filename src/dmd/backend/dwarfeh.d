@@ -1,11 +1,10 @@
 /**
- * Compiler implementation of the D programming language.
  * Implements LSDA (Language Specific Data Area) table generation
  * for Dwarf Exception Handling.
  *
- * Copyright: Copyright (C) 2015-2021 by The D Language Foundation, All Rights Reserved
- * Authors: Walter Bright, http://www.digitalmars.com
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright: Copyright (C) 2015-2022 by The D Language Foundation, All Rights Reserved
+ * Authors: Walter Bright, https://www.digitalmars.com
+ * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfeh.d, backend/dwarfeh.d)
  */
 
@@ -19,10 +18,11 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
-import dmd.backend.outbuf;
 
 import dmd.backend.dwarf;
 import dmd.backend.dwarf2;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -57,6 +57,7 @@ nothrow:
         assert(dim <= capacity);
         if (dim == capacity)
         {
+            assert(capacity < uint.max / (3 * DwEhTableEntry.sizeof));  // conservative overflow check
             capacity += capacity + 16;
             ptr = cast(DwEhTableEntry *)realloc(ptr, capacity * DwEhTableEntry.sizeof);
             assert(ptr);
@@ -79,7 +80,7 @@ private __gshared DwEhTable dwehtable;
  *      retoffset = offset from start of function to epilog
  */
 
-void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, uint startoffset, uint retoffset)
+void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint startoffset, uint retoffset)
 {
     debug
     unittest_dwarfeh();
@@ -118,8 +119,8 @@ static if (0)
 
     DwEhTable *deh = &dwehtable;
     deh.dim = 0;
-    Outbuffer atbuf;
-    Outbuffer cstbuf;
+    OutBuffer atbuf;
+    OutBuffer cstbuf;
 
     /* Build deh table, and Action Table
      */
@@ -388,10 +389,10 @@ else
  * Returns:
  *      offset of inserted action
  */
-int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
+int actionTableInsert(OutBuffer *atbuf, int ttindex, int nextoffset)
 {
     //printf("actionTableInsert(%d, %d)\n", ttindex, nextoffset);
-    const(ubyte)[] p = (*atbuf)[];
+    auto p = cast(const(ubyte)[]) (*atbuf)[];
     while (p.length)
     {
         int offset = cast(int) (atbuf.length - p.length);
@@ -416,7 +417,7 @@ int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
 debug
 void unittest_actionTableInsert()
 {
-    Outbuffer atbuf;
+    OutBuffer atbuf;
     static immutable int[3] tt1 = [ 1,2,3 ];
     static immutable int[1] tt2 = [ 2 ];
 
@@ -550,7 +551,7 @@ uint uLEB128size(uint value)
 debug
 void unittest_LEB128()
 {
-    Outbuffer buf;
+    OutBuffer buf;
 
     static immutable int[16] values =
     [
@@ -565,7 +566,7 @@ void unittest_LEB128()
         buf.reset();
         buf.writeuLEB128(value);
         assert(buf.length() == uLEB128size(value));
-        const(ubyte)[] p = buf[];
+        auto p = cast(const(ubyte)[]) buf[];
         int result = uLEB128(p);
         assert(!p.length);
         assert(result == value);
@@ -573,7 +574,7 @@ void unittest_LEB128()
         buf.reset();
         buf.writesLEB128(value);
         assert(buf.length() == sLEB128size(value));
-        p = buf[];
+        p = cast(const(ubyte)[]) buf[];
         result = sLEB128(p);
         assert(!p.length);
         assert(result == value);

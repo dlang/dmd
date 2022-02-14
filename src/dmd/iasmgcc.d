@@ -1,9 +1,9 @@
 /**
  * Inline assembler for the GCC D compiler.
  *
- *              Copyright (C) 2018-2021 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2018-2022 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmgcc.d, _iasmgcc.d)
  * Documentation:  https://dlang.org/phobos/dmd_iasmgcc.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/iasmgcc.d
@@ -300,7 +300,7 @@ Ldone:
  * Returns:
  *      the completed gcc asm statement, or null if errors occurred
  */
-public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
+extern (C++) public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
     scope p = new Parser!ASTCodegen(sc._module, ";", false);
@@ -348,7 +348,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
             e = (*s.constraints)[i];
             e = e.expressionSemantic(sc);
-            assert(e.op == TOK.string_ && (cast(StringExp) e).sz == 1);
+            assert(e.op == EXP.string_ && (cast(StringExp) e).sz == 1);
             (*s.constraints)[i] = e;
         }
     }
@@ -360,7 +360,7 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
         {
             Expression e = (*s.clobbers)[i];
             e = e.expressionSemantic(sc);
-            assert(e.op == TOK.string_ && (cast(StringExp) e).sz == 1);
+            assert(e.op == EXP.string_ && (cast(StringExp) e).sz == 1);
             (*s.clobbers)[i] = e;
         }
     }

@@ -2,12 +2,12 @@
  * Generate elems for fixed, PIC, and PIE code generation.
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elpicpie.d, backend/elpicpie.d)
  */
 
@@ -209,12 +209,12 @@ else if (config.exe & EX_windos)
         if (config.wflags & WFexe)
         {
             // e => *(&s + *(FS:_tls_array))
-            e2 = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
+            e2 = el_var(getRtlsym(RTLSYM.TLS_ARRAY));
         }
         else
         {
-            e2 = el_bin(OPmul,TYint,el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_long(TYint,REGSIZE));
-            ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
+            e2 = el_bin(OPmul,TYint,el_var(getRtlsym(RTLSYM.TLS_INDEX)),el_long(TYint,REGSIZE));
+            ea = el_var(getRtlsym(RTLSYM.TLS_ARRAY));
             e2 = el_bin(OPadd,ea.Ety,ea,e2);
         }
         e2 = el_una(OPind,TYsize_t,e2);
@@ -286,8 +286,8 @@ if (config.exe & EX_windos)
                 e1.ET = newpointer(s.Stype);
                 e1.ET.Tcount++;
 
-                e2 = el_bint(OPmul,tstypes[TYint],el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_longt(tstypes[TYint],4));
-                ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
+                e2 = el_bint(OPmul,tstypes[TYint],el_var(getRtlsym(RTLSYM.TLS_INDEX)),el_longt(tstypes[TYint],4));
+                ea = el_var(getRtlsym(RTLSYM.TLS_ARRAY));
                 e2 = el_bint(OPadd,ea.ET,ea,e2);
                 e2 = el_unat(OPind,tstypes[TYint],e2);
 
@@ -474,7 +474,7 @@ private elem *el_picvar_OSX(Symbol *s)
     elem *e;
     int x;
 
-    //printf("el_picvar(s = '%s')", s.Sident); printf("  Sclass = "); WRclass((enum SC) s.Sclass); printf("\n");
+    //printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(cast(SC) s.Sclass));
     //symbol_print(s);
     symbol_debug(s);
     type_debug(s.Stype);

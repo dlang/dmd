@@ -1,3 +1,6 @@
+version (CppRuntime_Clang) version = CppMangle_Itanium;
+version (CppRuntime_Gcc)   version = CppMangle_Itanium;
+version (CppRuntime_Sun)   version = CppMangle_Itanium;
 
 template ScopeClass(C , string name = C.stringof)
 //if (is(C == class) && __traits(getLinkage, C) == "C++")
@@ -29,7 +32,7 @@ extern(C++)
     void fune(const(ScopeClass!MyClassA)*);
 }
 
-version (Posix)
+version (CppMangle_Itanium)
 {
     static assert(funa.mangleof == "_Z4funa8MyClassA");
     static assert(funb.mangleof == "_Z4funb8MyClassA");
@@ -66,7 +69,7 @@ extern(C++, "ns")
     void funj(const(ScopeClass!MyClassB)*);
 }
 
-version (Posix)
+version (CppMangle_Itanium)
 {
     static assert(funf.mangleof == "_ZN2ns4funfENS_8MyClassBE");
     static assert(fung.mangleof == "_ZN2ns4fungENS_8MyClassBE");
@@ -102,7 +105,7 @@ extern(C++)
     alias funTemplC = funTempl!(const(ScopeClass!MyClassC)*);
     // N.B funTempl!([const] ref ScopeClass!MyClassC) is not permissable in D
 }
-version (Posix)
+version (CppMangle_Itanium)
 {
     static assert(funTemplA.mangleof == "_Z8funTemplI8MyClassCEvv");
     static assert(funTemplB.mangleof == "_Z8funTemplIK8MyClassCEvv");
@@ -136,7 +139,7 @@ template FunctionOf(F)
 }
 extern(C++) void funk(ScopeClass!(_function!(FunctionOf!(void function(int))),"function") a ){ }
 
-version (Posix)
+version (CppMangle_Itanium)
 {
     static assert(funk.mangleof == "_Z4funkSt8functionIFviEE");
 }
@@ -154,7 +157,7 @@ extern(C++, "ns")
     }
 }
 
-version (Posix)
+version (CppMangle_Itanium)
 {
     static assert(_function2.test.mangleof == "_ZN2ns8function4testEv");
 }
@@ -178,7 +181,7 @@ extern(C++, "ns")
     }
 }
 
-version (Posix)
+version (CppMangle_Itanium)
 {
     static assert(_function3!(int).test.mangleof == "_ZN2ns8functionIiE4testEv");
 }
@@ -197,7 +200,7 @@ extern(C++)
 
     void funl(Foo_Doppelganger f);
 }
-version (Posix)
+version (CppMangle_Itanium)
 {
     static assert(funl.mangleof == "_Z4funl3Foo");
 }

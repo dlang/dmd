@@ -2,7 +2,7 @@ import dshell;
 
 int main()
 {
-    version (Windows) if (Vars.MODEL == "32") // Avoid optlink
+    version (Windows) if (Vars.MODEL == "32omf") // Avoid optlink
         return DISABLED;
 
     Vars.set(`SRC`, `$EXTRA_FILES/dll`);

@@ -1,7 +1,5 @@
 module test18545;
 
-import std.format;
-
 enum Constness
 {
     Mutable,
@@ -61,5 +59,5 @@ void test(Constness from, Constness to)()
         immutable s2 = cast(immutable) s1;
     }
 
-    assert(s2.i == s1.i, format!"Bug 18545 occurred casting from %s to %s"(from, to));
+    assert(s2.i == s1.i, "Bug 18545 occurred casting from "~from.stringof~" to "~to.stringof);
 }

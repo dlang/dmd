@@ -1,0 +1,6 @@
+DW_AT_name        : fix22352.Foo
+DW_AT_name        : foo
+DW_AT_name        : fix22352.Foo[]
+D main
+fix22352._d_cmain!().main
+

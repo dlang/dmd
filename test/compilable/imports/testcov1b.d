@@ -3,7 +3,7 @@ module testcov1b;
 class ArraySet(Key, int div = 1)
 {
   private Key[][div] polje;
-  
+
   public this(in ArraySet a)
   {
     foreach(Key k, uint i; a)

@@ -46,9 +46,9 @@ $(warning ============================== )
 # Forward D compiler bootstrapping to bootstrap.sh
 ifneq (,$(AUTO_BOOTSTRAP))
 default:
-	@./bootstrap.sh
+	@bash ./bootstrap.sh
 .DEFAULT:
-	@./bootstrap.sh "$@"
+	@bash ./bootstrap.sh "$@"
 else
 
 # get OS and MODEL

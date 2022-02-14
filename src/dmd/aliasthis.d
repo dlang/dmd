@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/class.html#alias-this, Alias This)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aliasthis.d, _aliasthis.d)
  * Documentation:  https://dlang.org/phobos/dmd_aliasthis.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/aliasthis.d
@@ -91,7 +91,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
         if (ad.aliasthis)
         {
             Loc loc = e.loc;
-            Type tthis = (e.op == TOK.type ? e.type : null);
+            Type tthis = (e.op == EXP.type ? e.type : null);
             const flags = DotExpFlag.noAliasThis | (gag ? DotExpFlag.gag : 0);
             uint olderrors = gag ? global.startGagging() : 0;
             e = dotExp(e.type, sc, e, ad.aliasthis.ident, flags);
@@ -100,7 +100,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
 
             if (tthis && ad.aliasthis.sym.needThis())
             {
-                if (e.op == TOK.variable)
+                if (e.op == EXP.variable)
                 {
                     if (auto fd = (cast(VarExp)e).var.isFuncDeclaration())
                     {

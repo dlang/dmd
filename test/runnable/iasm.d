@@ -3,7 +3,7 @@
 // Copyright (c) 1999-2016 by The D Language Foundation
 // All Rights Reserved
 // written by Walter Bright
-// http://www.digitalmars.com
+// https://www.digitalmars.com
 
 import core.stdc.stdio;
 import core.stdc.config;

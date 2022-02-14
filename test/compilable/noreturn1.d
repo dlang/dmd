@@ -20,8 +20,7 @@ static assert(!is(noreturn == void));
 
 static assert(is( typeof(assert(0)) == noreturn ));
 
-// Does not parse yet
-// static assert(is( typeof(throw new Exception()) == noreturn ));
+static assert(is( typeof(throw new Exception("")) == noreturn ));
 
 static assert(is(noreturn == noreturn));
 static assert(!is(noreturn == const noreturn));
@@ -48,6 +47,11 @@ static assert(noreturn.alignof == 0);
 
 static assert((noreturn*).sizeof == (int*).sizeof);
 static assert((noreturn[]).sizeof == (int[]).sizeof);
+
+static assert(is(typeof(noreturn.init) == noreturn));
+static assert(is(typeof((const noreturn).init) == const noreturn));
+static assert(is(typeof((immutable noreturn).init) == immutable noreturn));
+static assert(is(typeof((shared noreturn).init) == shared noreturn));
 
 version (DigitalMars)
     noreturn exits(int* p)
@@ -105,4 +109,16 @@ void* useTls()
     void* a2 = &tlsNoreturn;
     void* a3 = &globalNoreturn;
     return a1 < a2 ? a2 : a3;
+}
+
+/***************************************************/
+
+noreturn testfn(noreturn function() fn)
+{
+    fn();
+}
+
+noreturn testdg(noreturn delegate() dg)
+{
+    dg();
 }

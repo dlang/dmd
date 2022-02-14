@@ -39,6 +39,7 @@ struct Vars
         return result;
     }
     static string opDispatch(string name)() { return get(name); }
+    static void opDispatch(string name)(string value) { set(name, value); }
 }
 
 private alias requiredEnvVars = AliasSeq!(
@@ -169,8 +170,11 @@ auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
     {
         std.stdio.stdout.write(" > ", stdout.name);
     }
+    // "Commit" all output from the tester
     std.stdio.stdout.writeln();
     std.stdio.stdout.flush();
+    std.stdio.stderr.writeln();
+    std.stdio.stderr.flush();
     auto proc = spawnProcess(args, stdin, stdout, stderr, env);
     return wait(proc);
 }

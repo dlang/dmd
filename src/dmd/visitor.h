@@ -1,9 +1,9 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
- * http://www.digitalmars.com
+ * Copyright (C) 2013-2022 by The D Language Foundation, All Rights Reserved
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/visitor.h
  */
 
@@ -220,6 +220,7 @@ class BinAssignExp;
 class MixinExp;
 class ImportExp;
 class AssertExp;
+class ThrowExp;
 class DotIdExp;
 class DotTemplateExp;
 class DotVarExp;
@@ -511,6 +512,7 @@ public:
     virtual void visit(CallExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotIdExp *e) { visit((UnaExp *)e); }
     virtual void visit(AssertExp *e) { visit((UnaExp *)e); }
+    virtual void visit(ThrowExp *e) { visit((UnaExp *)e); }
     virtual void visit(ImportExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotTemplateInstanceExp *e) { visit((UnaExp *)e); }
     virtual void visit(ArrayExp *e) { visit((UnaExp *)e); }

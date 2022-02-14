@@ -52,7 +52,7 @@ coverage_environment_template: &COVERAGE_ENVIRONMENT_TEMPLATE
   CODECOV_TOKEN: ENCRYPTED[cc6ce01618eaee6c9a08ebc81446a9233588df3b2c6ba4e30ffb7715ee9815734ccfd9fcec4f6abfc6a1b9dd8253110d]
 
 # Linux
-task:
+linux_task:
   name: Ubuntu 18.04 $TASK_NAME_SUFFIX
   container:
     image: ubuntu:18.04
@@ -82,7 +82,23 @@ task:
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
-task:
+macos12_task:
+  name: macOS 12.x x64, $TASK_NAME_SUFFIX
+  osx_instance:
+    image: monterey-xcode
+  timeout_in: 60m
+  environment:
+    OS_NAME: darwin
+    # override Cirrus default OS (`darwin`)
+    OS: osx
+    # 12 CPU cores and 24 GB of memory are available
+    N: 12
+    matrix:
+      - TASK_NAME_SUFFIX: DMD (latest)
+      - TASK_NAME_SUFFIX: DMD (coverage)
+        << : *COVERAGE_ENVIRONMENT_TEMPLATE
+  << : *COMMON_STEPS_TEMPLATE
+macos11_task:
   name: macOS 11.x x64, $TASK_NAME_SUFFIX
   osx_instance:
     image: big-sur-xcode
@@ -99,7 +115,7 @@ task:
         << : *COVERAGE_ENVIRONMENT_TEMPLATE
   << : *COMMON_STEPS_TEMPLATE
 
-task:
+macos10_task:
   name: macOS 10.15 x64, DMD (bootstrap)
   osx_instance:
     image: big-sur-xcode
@@ -116,7 +132,7 @@ task:
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
-task:
+freebsd12_task:
   name: FreeBSD 12.2 x64, DMD ($TASK_NAME_TYPE)
   freebsd_instance:
     image_family: freebsd-12-2
@@ -133,7 +149,7 @@ task:
   install_bash_script: pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE
 
-task:
+freebsd11_task:
   name: FreeBSD 11.4 x64, DMD (bootstrap)
   freebsd_instance:
     image_family: freebsd-11-4

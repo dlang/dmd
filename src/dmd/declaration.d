@@ -2,9 +2,9 @@
  * Miscellaneous declarations, including typedef, alias, variable declarations including the
  * implicit this declaration, type tuples, ClassInfo, ModuleInfo and various TypeInfos.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/declaration.d, _declaration.d)
  * Documentation:  https://dlang.org/phobos/dmd_declaration.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/declaration.d
@@ -35,7 +35,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.intrange;
 import dmd.mtype;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
@@ -94,7 +94,7 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
             ((fd.isCtorDeclaration() && var.isField()) ||
              (fd.isStaticCtorDeclaration() && !var.isField())) &&
             fd.toParentDecl() == var.toParent2() &&
-            (!e1 || e1.op == TOK.this_))
+            (!e1 || e1.op == EXP.this_))
         {
             bool result = true;
 
@@ -250,7 +250,10 @@ extern (C++) abstract class Declaration : Dsymbol
     override final d_uns64 size(const ref Loc loc)
     {
         assert(type);
-        return type.size();
+        const sz = type.size();
+        if (sz == SIZE_INVALID)
+            errors = true;
+        return sz;
     }
 
     /**
@@ -371,7 +374,7 @@ extern (C++) abstract class Declaration : Dsymbol
             }
         }
 
-        if (e1 && e1.op == TOK.this_ && isField())
+        if (e1 && e1.op == EXP.this_ && isField())
         {
             VarDeclaration vthis = (cast(ThisExp)e1).var;
             for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -385,7 +388,7 @@ extern (C++) abstract class Declaration : Dsymbol
             }
         }
 
-        if (v && (isCtorinit() || isField()))
+        if (v && (v.isCtorinit() || isField()))
         {
             // It's only modifiable if inside the right constructor
             if ((storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
@@ -432,11 +435,6 @@ extern (C++) abstract class Declaration : Dsymbol
     bool isCodeseg() const pure nothrow @nogc @safe
     {
         return false;
-    }
-
-    final bool isCtorinit() const pure nothrow @nogc @safe
-    {
-        return (storage_class & STC.ctorinit) != 0;
     }
 
     final bool isFinal() const pure nothrow @nogc @safe
@@ -655,7 +653,7 @@ extern (C++) final class TupleDeclaration : Declaration
             if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
-                if (e.op == TOK.dSymbol)
+                if (e.op == EXP.dSymbol)
                 {
                     DsymbolExp ve = cast(DsymbolExp)e;
                     Declaration d = ve.s.isDeclaration();
@@ -706,7 +704,7 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(s);
     }
 
-    static AliasDeclaration create(Loc loc, Identifier id, Type type)
+    static AliasDeclaration create(const ref Loc loc, Identifier id, Type type)
     {
         return new AliasDeclaration(loc, id, type);
     }
@@ -1050,7 +1048,6 @@ extern (C++) class VarDeclaration : Declaration
     uint endlinnum;                 // line number of end of scope that this var lives in
     uint offset;
     uint sequenceNumber;            // order the variables are declared
-    __gshared uint nextSequenceNumber;   // the counter for sequenceNumber
     structalign_t alignment;
 
     // When interpreting, these point to the value (NULL if value not determinable)
@@ -1062,6 +1059,7 @@ extern (C++) class VarDeclaration : Declaration
     bool ctorinit;                  // it has been initialized in a ctor
     bool iscatchvar;                // this is the exception object variable in catch() clause
     bool isowner;                   // this is an Owner, despite it being `scope`
+    bool setInCtorOnly;             // field can only be set in a constructor, as it is const or immutable
 
     // Both these mean the var is not rebindable once assigned,
     // and the destructor gets run when it goes out of scope
@@ -1100,7 +1098,6 @@ extern (C++) class VarDeclaration : Declaration
         this._init = _init;
         ctfeAdrOnStack = AdrOnStackNone;
         this.storage_class = storage_class;
-        sequenceNumber = ++nextSequenceNumber;
     }
 
     static VarDeclaration create(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
@@ -1131,7 +1128,7 @@ extern (C++) class VarDeclaration : Declaration
                 RootObject o = (*v2.objects)[i];
                 assert(o.dyncast() == DYNCAST.expression);
                 Expression e = cast(Expression)o;
-                assert(e.op == TOK.dSymbol);
+                assert(e.op == EXP.dSymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
                 se.s.setFieldOffset(ad, fieldState, isunion);
             }
@@ -1248,6 +1245,11 @@ extern (C++) class VarDeclaration : Declaration
         if (visibility.kind == Visibility.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
         return false;
+    }
+
+    final bool isCtorinit() const pure nothrow @nogc @safe
+    {
+        return setInCtorOnly;
     }
 
     /*******************************
@@ -1607,7 +1609,7 @@ extern (C++) class VarDeclaration : Declaration
             ExpInitializer ez = _init.isExpInitializer();
             assert(ez);
             Expression e = ez.exp;
-            if (e.op == TOK.construct || e.op == TOK.blit)
+            if (e.op == EXP.construct || e.op == EXP.blit)
                 e = (cast(AssignExp)e).e2;
             return lambdaCheckForNestedRef(e, sc);
         }
@@ -1653,12 +1655,10 @@ extern (C++) class VarDeclaration : Declaration
         // Sequence numbers work when there are no special VarDeclaration's involved
         if (!((this.storage_class | v.storage_class) & special))
         {
-            // FIXME: VarDeclaration's for parameters are created in semantic3, so
-            //        they will have a greater sequence number than local variables.
-            //        Hence reverse the result for mixed comparisons.
-            const exp = this.isParameter() == v.isParameter();
+            assert(this.sequenceNumber != this.sequenceNumber.init);
+            assert(v.sequenceNumber != v.sequenceNumber.init);
 
-            return (this.sequenceNumber < v.sequenceNumber) == exp;
+            return (this.sequenceNumber < v.sequenceNumber);
         }
 
         // Assume that semantic produces temporaries according to their lifetime
@@ -1670,11 +1670,11 @@ extern (C++) class VarDeclaration : Declaration
         assert(this.loc != Loc.initial);
         assert(v.loc != Loc.initial);
 
-        if (auto ld = this.loc.linnum - v.loc.linnum)
-            return ld < 0;
+        if (this.loc.linnum != v.loc.linnum)
+            return this.loc.linnum < v.loc.linnum;
 
-        if (auto cd = this.loc.charnum - v.loc.charnum)
-            return cd < 0;
+        if (this.loc.charnum != v.loc.charnum)
+            return this.loc.charnum < v.loc.charnum;
 
         // Default fallback
         return this.sequenceNumber < v.sequenceNumber;
@@ -1930,9 +1930,9 @@ extern (C++) class BitFieldDeclaration : VarDeclaration
  */
 extern (C++) final class SymbolDeclaration : Declaration
 {
-    StructDeclaration dsym;
+    AggregateDeclaration dsym;
 
-    extern (D) this(const ref Loc loc, StructDeclaration dsym)
+    extern (D) this(const ref Loc loc, AggregateDeclaration dsym)
     {
         super(loc, dsym.ident);
         this.dsym = dsym;

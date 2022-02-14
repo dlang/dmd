@@ -5,9 +5,9 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
  * Documentation:  https://dlang.org/phobos/dmd_cli.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cli.d
@@ -357,7 +357,7 @@ dmd -cov -unittest myprog.d
             "add symbolic debug info",
             `$(WINDOWS
                 Add CodeView symbolic debug info. See
-                $(LINK2 http://dlang.org/windbg.html, Debugging on Windows).
+                $(LINK2 https://dlang.org/windbg.html, Debugging on Windows).
             )
             $(UNIX
                 Add symbolic debug info in DWARF format
@@ -488,14 +488,17 @@ dmd -cov -unittest myprog.d
         ),
         Option("m32",
             "generate 32 bit code",
-            `$(UNIX Compile a 32 bit executable. This is the default for the 32 bit dmd.)
-            $(WINDOWS Compile a 32 bit executable. This is the default.
-            The generated object code is in OMF and is meant to be used with the
-            $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
+            `$(UNIX Compile a 32 bit executable. This is the default for the 32 bit dmd.)`,
             cast(TargetOS) (TargetOS.all & ~cast(uint)TargetOS.DragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
         ),
         Option("m32mscoff",
-            "generate 32 bit code and write MS-COFF object files",
+            "generate 32 bit code and write MS-COFF object files (deprecated use -m32)",
+            TargetOS.Windows
+        ),
+        Option("m32omf",
+            "(deprecated) generate 32 bit code and write OMF object files",
+            `$(WINDOWS Compile a 32 bit executable. The generated object code is in OMF and is meant to be used with the
+               $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
             TargetOS.Windows
         ),
         Option("m64",
@@ -506,7 +509,7 @@ dmd -cov -unittest myprog.d
             or later compiler.`,
         ),
         Option("main",
-            "add default main() (e.g. for unittesting)",
+            "add default main() if not present already (e.g. for unittesting)",
             `Add a default $(D main()) function when compiling. This is useful when
             unittesting a library, as it enables running the unittests
             in a library without having to manually define an entry-point function.`,
@@ -569,7 +572,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("mscrtlib=<libname>",
             "MS C runtime library to reference from main/WinMain/DllMain",
-            "If building MS-COFF object files with -m64 or -m32mscoff, embed a reference to
+            "If building MS-COFF object files when targeting Windows, embed a reference to
             the given C runtime library $(I libname) into the object file containing `main`,
             `DllMain` or `WinMain` for automatic linking. The default is $(TT libcmt)
             (release version with static linkage), the other usual alternatives are
@@ -626,6 +629,20 @@ dmd -cov -unittest myprog.d
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
+        Option("os=<os>",
+            "sets target operating system to <os>",
+            `Set the target operating system as other than the host.
+                $(UL
+                    $(LI $(I host): Target the host operating system (default).)
+                    $(LI $(I dragonflybsd): DragonFlyBSD)
+                    $(LI $(I freebsd): FreeBSD)
+                    $(LI $(I linux): Linux)
+                    $(LI $(I openbsd): OpenBSD)
+                    $(LI $(I osx): OSX)
+                    $(LI $(I solaris): Solaris)
+                    $(LI $(I windows): Windows)
+                )`
+        ),
         Option("preview=<name>",
             "enable an upcoming language change identified by 'name'",
             `Preview an upcoming language change identified by $(I id)`,
@@ -638,11 +655,20 @@ dmd -cov -unittest myprog.d
         ),
         Option("profile=gc",
             "profile runtime allocations",
-            `$(LINK2 http://www.digitalmars.com/ctg/trace.html, profile)
+            `$(LINK2 https://www.digitalmars.com/ctg/trace.html, profile)
             the runtime performance of the generated code.
             $(UL
-                $(LI $(B gc): Instrument calls to memory allocation and write a report
-                to the file $(TT profilegc.log) upon program termination.)
+                $(LI $(B gc): Instrument calls to GC memory allocation and
+                write a report to the file $(TT profilegc.log) upon program
+                termination.  $(B Note:) Only instrumented calls will be
+                logged. These include:
+                   $(UL
+                       $(LI Language constructs that allocate memory)
+                       $(LI Phobos functions that allocate GC memory)
+                       $(LI GC allocations via core.memory.GC)
+                   )
+                   Allocations made by other means will not be logged,
+                   including direct calls to the GC's C API.)
             )`,
         ),
         Option("release",
@@ -703,6 +729,9 @@ dmd -cov -unittest myprog.d
         Option("v",
             "verbose",
             `Enable verbose output for each compiler pass`,
+        ),
+        Option("vasm",
+            "list generated assembler for each function"
         ),
         Option("vcolumns",
             "print character (column) numbers in diagnostics"
@@ -792,11 +821,14 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Feature("in", "vin",
+            "list all usages of 'in' on parameter"),
     ];
 
     /// Returns all available reverts
     static immutable reverts = [
         Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
         Feature("markdown", "markdown", "disable Markdown replacements in Ddoc"),
         Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
     ];
@@ -815,7 +847,7 @@ dmd -cov -unittest myprog.d
         Feature("fixAliasThis", "fixAliasThis",
             "when a symbol is resolved, check alias this scope before going to upper scopes"),
         Feature("intpromote", "fix16997",
-            "fix integral promotions for unary + - ~ operators"),
+            "fix integral promotions for unary + - ~ operators", false, true),
         Feature("dtorfields", "dtorFields",
             "destruct fields of partially constructed objects", false, false),
         Feature("rvaluerefparam", "rvalueRefParam",

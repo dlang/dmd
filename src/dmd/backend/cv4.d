@@ -1,9 +1,10 @@
 /**
- * Codeview 4 stuff
+ * CodeView 4 symbolic debug info declarations
+ *
  * See "Microsoft Symbol and Type OMF" document
  *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv4.d, backend/_cv4.d)
  */

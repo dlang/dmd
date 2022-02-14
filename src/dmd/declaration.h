@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/declaration.h
  */
 
@@ -53,7 +53,7 @@ struct IntRange;
     #define STCforeach            0x4000ULL    /// variable for foreach loop
     #define STCvariadic           0x8000ULL    /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
 
-    #define STCctorinit           0x10000ULL    /// can only be set inside constructor
+    //                            0x10000ULL
     #define STCtemplateparameter  0x20000ULL    /// template parameter
     #define STCref                0x40000ULL    /// `ref`
     #define STCscope              0x80000ULL    /// `scope`
@@ -65,7 +65,7 @@ struct IntRange;
 
     #define STCreturninferred     0x1000000ULL    /// `return` has been inferred and should not be part of mangling, `return` must also be set
     #define STCimmutable          0x2000000ULL    /// `immutable`
-    #define STCinit               0x4000000ULL    /// has explicit initializer
+    //                            0x4000000ULL
     #define STCmanifest           0x8000000ULL    /// manifest constant
 
     #define STCnodtor             0x10000000ULL    /// do not run destructor
@@ -131,7 +131,6 @@ public:
     virtual bool isDataseg();
     virtual bool isThreadlocal();
     virtual bool isCodeseg() const;
-    bool isCtorinit() const     { return (storage_class & STCctorinit) != 0; }
     bool isFinal() const        { return (storage_class & STCfinal) != 0; }
     virtual bool isAbstract()   { return (storage_class & STCabstract) != 0; }
     bool isConst() const        { return (storage_class & STCconst) != 0; }
@@ -188,7 +187,7 @@ public:
     Dsymbol *overnext;          // next in overload list
     Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
 
-    static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
+    static AliasDeclaration *create(const Loc &loc, Identifier *id, Type *type);
     AliasDeclaration *syntaxCopy(Dsymbol *);
     bool overloadInsert(Dsymbol *s);
     const char *kind() const;
@@ -247,6 +246,7 @@ public:
     bool ctorinit;              // it has been initialized in a ctor
     bool iscatchvar;            // this is the exception object variable in catch() clause
     bool isowner;               // this is an Owner, despite it being `scope`
+    bool setInCtorOnly;         // field can only be set in a constructor, as it is const or immutable
     bool onstack;               // it is a class that was allocated on the stack
     bool mynew;                 // it is a class new'd with custom operator new
     char canassign;             // it can be assigned to
@@ -266,6 +266,7 @@ public:
     bool needThis();
     bool isExport() const;
     bool isImportedSymbol() const;
+    bool isCtorinit() const;
     bool isDataseg();
     bool isThreadlocal();
     bool isCTFE();
@@ -303,7 +304,7 @@ public:
 class SymbolDeclaration : public Declaration
 {
 public:
-    StructDeclaration *dsym;
+    AggregateDeclaration *dsym;
 
     // Eliminate need for dynamic_cast
     SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
@@ -511,7 +512,7 @@ enum class BUILTIN : unsigned char
     toPrecReal
 };
 
-Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
+Expression *eval_builtin(const Loc &loc, FuncDeclaration *fd, Expressions *arguments);
 BUILTIN isBuiltin(FuncDeclaration *fd);
 
 class FuncDeclaration : public Declaration
@@ -534,6 +535,8 @@ public:
 
     VarDeclaration *vresult;            // result variable for out contracts
     LabelDsymbol *returnLabel;          // where the return goes
+
+    void *isTypeIsolatedCache;          // An AA on the D side to cache an expensive check result
 
     // used to prevent symbols in different
     // scopes from having the same name

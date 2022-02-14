@@ -1,25 +1,30 @@
 /**
  * 80-bit floating point value implementation if the C/D compiler does not support them natively.
  *
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * (See accompanying file LICENSE or copy at https://www.boost.org/LICENSE_1_0.txt)
  * https://github.com/dlang/dmd/blob/master/src/root/longdouble.d
  */
 
 module dmd.root.longdouble;
 
-static if (real.sizeof > 8)
-    alias longdouble = real;
+version (CRuntime_Microsoft)
+{
+    static if (real.sizeof > 8)
+        alias longdouble = real;
+    else
+        alias longdouble = longdouble_soft;
+}
 else
-    alias longdouble = longdouble_soft;
+    alias longdouble = real;
 
 // longdouble_soft needed when building the backend with
 // Visual C or the frontend with LDC on Windows
-version(CRuntime_Microsoft):
-extern(C++):
+version (CRuntime_Microsoft):
+extern (C++):
 nothrow:
 @nogc:
 

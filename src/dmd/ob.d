@@ -1,9 +1,9 @@
 /**
  * Flow analysis for Ownership/Borrowing
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ob.d, _ob.d)
  * Documentation:  https://dlang.org/phobos/dmd_escape.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/ob.d
@@ -43,7 +43,7 @@ import dmd.tokens;
 import dmd.visitor;
 
 import dmd.root.bitarray;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 
 /**********************************
  * Perform ownership/borrowing checks for funcdecl.
@@ -1362,7 +1362,7 @@ void genKill(ref ObState obstate, ObNode* ob)
 
             override void visit(Expression e)
             {
-                //printf("[%s] %s: %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
+                //printf("[%s] %s: %s\n", e.loc.toChars(), EXPtoString(e.op).ptr, e.toChars());
                 //assert(0);
             }
 
@@ -1644,7 +1644,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                  * allowed, but CTFE can generate one out of a new expression,
                  * but it'll be placed in static data so no need to check it.
                  */
-                if (e.e1.op != TOK.structLiteral)
+                if (e.e1.op != EXP.structLiteral)
                     e.e1.accept(this);
             }
 
@@ -2378,7 +2378,7 @@ void checkObErrors(ref ObState obstate)
                  * allowed, but CTFE can generate one out of a new expression,
                  * but it'll be placed in static data so no need to check it.
                  */
-                if (e.e1.op != TOK.structLiteral)
+                if (e.e1.op != EXP.structLiteral)
                     e.e1.accept(this);
             }
 

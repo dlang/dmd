@@ -28,9 +28,9 @@
  *   arguments, and uses it if found.
  * - Otherwise, the rest of semantic is run on the `TemplateInstance`.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtemplate.d, _dtemplate.d)
  * Documentation:  https://dlang.org/phobos/dmd_dtemplate.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dtemplate.d
@@ -67,7 +67,7 @@ import dmd.initsem;
 import dmd.mtype;
 import dmd.opover;
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
@@ -144,7 +144,7 @@ extern (C++) bool isError(const RootObject o)
     if (const t = isType(o))
         return (t.ty == Terror);
     if (const e = isExpression(o))
-        return (e.op == TOK.error || !e.type || e.type.ty == Terror);
+        return (e.op == EXP.error || !e.type || e.type.ty == Terror);
     if (const v = isTuple(o))
         return arrayObjectIsError(&v.objects);
     const s = isDsymbol(o);
@@ -297,8 +297,8 @@ private bool match(RootObject o1, RootObject o2)
 
         static if (log)
         {
-            printf("\te1 = %s '%s' %s\n", e1.type ? e1.type.toChars() : "null", Token.toChars(e1.op), e1.toChars());
-            printf("\te2 = %s '%s' %s\n", e2.type ? e2.type.toChars() : "null", Token.toChars(e2.op), e2.toChars());
+            printf("\te1 = %s '%s' %s\n", e1.type ? e1.type.toChars() : "null", EXPtoString(e1.op).ptr, e1.toChars());
+            printf("\te2 = %s '%s' %s\n", e2.type ? e2.type.toChars() : "null", EXPtoString(e2.op).ptr, e2.toChars());
         }
 
         // two expressions can be equal although they do not have the same
@@ -421,26 +421,26 @@ private size_t expressionHash(Expression e)
 
     switch (e.op)
     {
-    case TOK.int64:
+    case EXP.int64:
         return cast(size_t) e.isIntegerExp().getInteger();
 
-    case TOK.float64:
+    case EXP.float64:
         return CTFloat.hash(e.isRealExp().value);
 
-    case TOK.complex80:
+    case EXP.complex80:
         auto ce = e.isComplexExp();
         return mixHash(CTFloat.hash(ce.toReal), CTFloat.hash(ce.toImaginary));
 
-    case TOK.identifier:
+    case EXP.identifier:
         return cast(size_t)cast(void*) e.isIdentifierExp().ident;
 
-    case TOK.null_:
+    case EXP.null_:
         return cast(size_t)cast(void*) e.isNullExp().type;
 
-    case TOK.string_:
+    case EXP.string_:
         return calcHash(e.isStringExp.peekData());
 
-    case TOK.tuple:
+    case EXP.tuple:
     {
         auto te = e.isTupleExp();
         size_t hash = 0;
@@ -450,7 +450,7 @@ private size_t expressionHash(Expression e)
         return hash;
     }
 
-    case TOK.arrayLiteral:
+    case EXP.arrayLiteral:
     {
         auto ae = e.isArrayLiteralExp();
         size_t hash;
@@ -459,7 +459,7 @@ private size_t expressionHash(Expression e)
         return hash;
     }
 
-    case TOK.assocArrayLiteral:
+    case EXP.assocArrayLiteral:
     {
         auto ae = e.isAssocArrayLiteralExp();
         size_t hash;
@@ -469,7 +469,7 @@ private size_t expressionHash(Expression e)
         return hash;
     }
 
-    case TOK.structLiteral:
+    case EXP.structLiteral:
     {
         auto se = e.isStructLiteralExp();
         size_t hash;
@@ -478,10 +478,10 @@ private size_t expressionHash(Expression e)
         return hash;
     }
 
-    case TOK.variable:
+    case EXP.variable:
         return cast(size_t)cast(void*) e.isVarExp().var;
 
-    case TOK.function_:
+    case EXP.function_:
         return cast(size_t)cast(void*) e.isFuncExp().fd;
 
     default:
@@ -985,9 +985,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 buf.writenl();
                 buf.writestring("       ");
             }
-            buf.write((*parameters)[i]);
+            write(buf, (*parameters)[i]);
             buf.writestring(" = ");
-            buf.write(tiargs[i]);
+            write(buf, tiargs[i]);
         }
         // write remaining variadic arguments on the last line
         if (variadic)
@@ -998,16 +998,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 buf.writenl();
                 buf.writestring("       ");
             }
-            buf.write((*parameters)[end]);
+            write(buf, (*parameters)[end]);
             buf.writestring(" = ");
             buf.writeByte('(');
             if (cast(int)tiargs.length - end > 0)
             {
-                buf.write(tiargs[end]);
+                write(buf, tiargs[end]);
                 foreach (j; parameters.length .. tiargs.length)
                 {
                     buf.writestring(", ");
-                    buf.write(tiargs[j]);
+                    write(buf, tiargs[j]);
                 }
             }
             buf.writeByte(')');
@@ -1629,7 +1629,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             farg = (*fargs)[argi + i];
 
                             // Check invalid arguments to detect errors early.
-                            if (farg.op == TOK.error || farg.type.ty == Terror)
+                            if (farg.op == EXP.error || farg.type.ty == Terror)
                                 return nomatch();
 
                             if (!(fparam.storageClass & STC.lazy_) && farg.type.ty == Tvoid)
@@ -1825,7 +1825,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 }
                 {
                     // Check invalid arguments to detect errors early.
-                    if (farg.op == TOK.error || farg.type.ty == Terror)
+                    if (farg.op == EXP.error || farg.type.ty == Terror)
                         return nomatch();
 
                     Type att = null;
@@ -1837,7 +1837,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                     Type argtype = farg.type;
 
-                    if (!(fparam.storageClass & STC.lazy_) && argtype.ty == Tvoid && farg.op != TOK.function_)
+                    if (!(fparam.storageClass & STC.lazy_) && argtype.ty == Tvoid && farg.op != EXP.function_)
                         return nomatch();
 
                     // https://issues.dlang.org/show_bug.cgi?id=12876
@@ -1853,17 +1853,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         Type taai;
                         if (argtype.ty == Tarray && (prmtype.ty == Tsarray || prmtype.ty == Taarray && (taai = (cast(TypeAArray)prmtype).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
                         {
-                            if (farg.op == TOK.string_)
+                            if (farg.op == EXP.string_)
                             {
                                 StringExp se = cast(StringExp)farg;
                                 argtype = se.type.nextOf().sarrayOf(se.len);
                             }
-                            else if (farg.op == TOK.arrayLiteral)
+                            else if (farg.op == EXP.arrayLiteral)
                             {
                                 ArrayLiteralExp ae = cast(ArrayLiteralExp)farg;
                                 argtype = ae.type.nextOf().sarrayOf(ae.elements.dim);
                             }
-                            else if (farg.op == TOK.slice)
+                            else if (farg.op == EXP.slice)
                             {
                                 SliceExp se = cast(SliceExp)farg;
                                 if (Type tsa = toStaticArrayType(se))
@@ -1939,7 +1939,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     {
                         if (!farg.isLvalue())
                         {
-                            if ((farg.op == TOK.string_ || farg.op == TOK.slice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
+                            if ((farg.op == EXP.string_ || farg.op == EXP.slice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
                             {
                                 // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             }
@@ -2280,13 +2280,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         Declaration d;
         VarDeclaration v = null;
 
-        if (ea && ea.op == TOK.type)
+        if (ea && ea.op == EXP.type)
             ta = ea.type;
-        else if (ea && ea.op == TOK.scope_)
+        else if (ea && ea.op == EXP.scope_)
             sa = (cast(ScopeExp)ea).sds;
-        else if (ea && (ea.op == TOK.this_ || ea.op == TOK.super_))
+        else if (ea && (ea.op == EXP.this_ || ea.op == EXP.super_))
             sa = (cast(ThisExp)ea).var;
-        else if (ea && ea.op == TOK.function_)
+        else if (ea && ea.op == EXP.function_)
         {
             if ((cast(FuncExp)ea).td)
                 sa = (cast(FuncExp)ea).td;
@@ -2749,17 +2749,17 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         if (!m.lastf.type.equals(fd.type))
         {
             //printf("cov: %d %d\n", m.lastf.type.covariant(fd.type), fd.type.covariant(m.lastf.type));
-            const int lastCovariant = m.lastf.type.covariant(fd.type);
-            const int firstCovariant = fd.type.covariant(m.lastf.type);
+            const lastCovariant = m.lastf.type.covariant(fd.type);
+            const firstCovariant = fd.type.covariant(m.lastf.type);
 
-            if (lastCovariant == 1 || lastCovariant == 2)
+            if (lastCovariant == Covariant.yes || lastCovariant == Covariant.no)
             {
-                if (firstCovariant != 1 && firstCovariant != 2)
+                if (firstCovariant != Covariant.yes && firstCovariant != Covariant.no)
                 {
                     goto LlastIsBetter;
                 }
             }
-            else if (firstCovariant == 1 || firstCovariant == 2)
+            else if (firstCovariant == Covariant.yes || firstCovariant == Covariant.no)
             {
                 goto LfIsBetter;
             }
@@ -3826,7 +3826,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (tparam.ty == Tsarray)
                 {
                     TypeSArray tsa = cast(TypeSArray)tparam;
-                    if (tsa.dim.op == TOK.variable && (cast(VarExp)tsa.dim).var.storage_class & STC.templateparameter)
+                    if (tsa.dim.op == EXP.variable && (cast(VarExp)tsa.dim).var.storage_class & STC.templateparameter)
                     {
                         Identifier id = (cast(VarExp)tsa.dim).var.ident;
                         i = templateIdentifierLookup(id, parameters);
@@ -4209,7 +4209,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         /* If it is one of the template parameters for this template,
                          * we should not attempt to interpret it. It already has a value.
                          */
-                        if (e2.op == TOK.variable && ((cast(VarExp)e2).var.storage_class & STC.templateparameter))
+                        if (e2.op == EXP.variable && ((cast(VarExp)e2).var.storage_class & STC.templateparameter))
                         {
                             /*
                              * (T:Number!(e2), int e2)
@@ -4847,9 +4847,9 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 // Reset inference target for the later re-semantic
                 e.fd.treq = null;
 
-                if (ex.op == TOK.error)
+                if (ex.op == EXP.error)
                     return;
-                if (ex.op != TOK.function_)
+                if (ex.op != EXP.function_)
                     return;
                 visit(ex.type);
                 return;
@@ -5347,7 +5347,7 @@ extern (C++) class TemplateParameter : ASTNode
 
     abstract RootObject specialization();
 
-    abstract RootObject defaultArg(Loc instLoc, Scope* sc);
+    abstract RootObject defaultArg(const ref Loc instLoc, Scope* sc);
 
     abstract bool hasDefaultArg();
 
@@ -5429,7 +5429,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         return specType;
     }
 
-    override final RootObject defaultArg(Loc instLoc, Scope* sc)
+    override final RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         Type t = defaultType;
         if (t)
@@ -5562,7 +5562,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return specValue;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         Expression e = defaultValue;
         if (e)
@@ -5661,7 +5661,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return specAlias;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
         Type ta = isType(defaultAlias);
@@ -5762,7 +5762,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         return null;
     }
 
-    override RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         return null;
     }
@@ -6223,114 +6223,62 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsCodegen()
     {
-        if (!minst)
+        // minst is finalized after the 1st invocation.
+        // tnext and tinst are only needed for the 1st invocation and
+        // cleared for further invocations.
+        TemplateInstance tnext = this.tnext;
+        TemplateInstance tinst = this.tinst;
+        this.tnext = null;
+        this.tinst = null;
+
+        if (errors || (inst && inst.isDiscardable()))
         {
-            // If this is a speculative instantiation,
-            // 1. do codegen if ancestors really needs codegen.
-            // 2. become non-speculative if siblings are not speculative
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            // At first, disconnect chain first to prevent infinite recursion.
-            this.tnext = null;
-            this.tinst = null;
-
-            // Determine necessity of tinst before tnext.
-            if (tinst && tinst.needsCodegen())
-            {
-                minst = tinst.minst; // cache result
-                if (global.params.allInst && minst)
-                {
-                    return true;
-                }
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
-            }
-            if (tnext && (tnext.needsCodegen() || tnext.minst))
-            {
-                minst = tnext.minst; // cache result
-                if (global.params.allInst && minst)
-                {
-                    return true;
-                }
-                assert(minst);
-                return minst.isRoot() || minst.rootImports();
-            }
-
-            // Elide codegen because this is really speculative.
+            minst = null; // mark as speculative
             return false;
         }
 
         if (global.params.allInst)
         {
-            return true;
-        }
+            // Do codegen if there is an instantiation from a root module, to maximize link-ability.
 
-        if (isDiscardable())
-        {
-            return false;
-        }
-
-        /* Even when this is reached to the codegen pass,
-         * a non-root nested template should not generate code,
-         * due to avoid ODR violation.
-         */
-        if (enclosing && enclosing.inNonRoot())
-        {
-            if (tinst)
-            {
-                auto r = tinst.needsCodegen();
-                minst = tinst.minst; // cache result
-                return r;
-            }
-            if (tnext)
-            {
-                auto r = tnext.needsCodegen();
-                minst = tnext.minst; // cache result
-                return r;
-            }
-            return false;
-        }
-
-        if (global.params.useUnitTests)
-        {
-            // Prefer instantiations from root modules, to maximize link-ability.
-            if (minst.isRoot())
+            // Do codegen if `this` is instantiated from a root module.
+            if (minst && minst.isRoot())
                 return true;
 
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            this.tnext = null;
-            this.tinst = null;
-
+            // Do codegen if the ancestor needs it.
             if (tinst && tinst.needsCodegen())
             {
                 minst = tinst.minst; // cache result
                 assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
+                assert(minst.isRoot());
                 return true;
             }
-            if (tnext && tnext.needsCodegen())
+
+            // Do codegen if a sibling needs it.
+            if (tnext)
             {
-                minst = tnext.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
+                if (tnext.needsCodegen())
+                {
+                    minst = tnext.minst; // cache result
+                    assert(minst);
+                    assert(minst.isRoot());
+                    return true;
+                }
+                else if (!minst && tnext.minst)
+                {
+                    minst = tnext.minst; // cache result from non-speculative sibling
+                    return false;
+                }
             }
 
-            // https://issues.dlang.org/show_bug.cgi?id=2500 case
-            if (minst.rootImports())
-                return true;
-
-            // Elide codegen because this is not included in root instances.
+            // Elide codegen because there's no instantiation from any root modules.
             return false;
         }
         else
         {
-            // Prefer instantiations from non-root module, to minimize object code size.
+            // Prefer instantiations from non-root modules, to minimize object code size.
 
-            /* If a TemplateInstance is ever instantiated by non-root modules,
+            /* If a TemplateInstance is ever instantiated from a non-root module,
              * we do not have to generate code for it,
              * because it will be generated when the non-root module is compiled.
              *
@@ -6341,22 +6289,51 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              * or the compilation of B do the actual instantiation?
              *
              * See https://issues.dlang.org/show_bug.cgi?id=2500.
+             *
+             * => Elide codegen if there is at least one instantiation from a non-root module
+             *    which doesn't import any root modules.
              */
-            if (!minst.isRoot() && !minst.rootImports())
-                return false;
 
-            TemplateInstance tnext = this.tnext;
-            this.tnext = null;
-
-            if (tnext && !tnext.needsCodegen() && tnext.minst)
+            // If the ancestor isn't speculative,
+            // 1. do codegen if the ancestor needs it
+            // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
+            if (tinst)
             {
-                minst = tnext.minst; // cache result
-                assert(!minst.isRoot());
-                return false;
+                const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
+                if (tinst.minst) // not speculative
+                {
+                    minst = tinst.minst; // cache result
+                    return needsCodegen;
+                }
             }
 
-            // Do codegen because this is not included in non-root instances.
-            return true;
+            // Elide codegen if `this` doesn't need it.
+            if (minst && !minst.isRoot() && !minst.rootImports())
+                return false;
+
+            // Elide codegen if a (non-speculative) sibling doesn't need it.
+            if (tnext)
+            {
+                const needsCodegen = tnext.needsCodegen(); // sets tnext.minst
+                if (tnext.minst) // not speculative
+                {
+                    if (!needsCodegen)
+                    {
+                        minst = tnext.minst; // cache result
+                        assert(!minst.isRoot() && !minst.rootImports());
+                        return false;
+                    }
+                    else if (!minst)
+                    {
+                        minst = tnext.minst; // cache result from non-speculative sibling
+                        return true;
+                    }
+                }
+            }
+
+            // Unless `this` is still speculative (=> all further siblings speculative too),
+            // do codegen because we found no guaranteed-codegen'd non-root instantiation.
+            return minst !is null;
         }
     }
 
@@ -6656,13 +6633,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             else if (ea)
             {
             Lexpr:
-                //printf("+[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
+                //printf("+[%d] ea = %s %s\n", j, EXPtoString(ea.op).ptr, ea.toChars());
                 if (flags & 1) // only used by __traits
                 {
                     ea = ea.expressionSemantic(sc);
 
                     // must not interpret the args, excepting template parameters
-                    if (ea.op != TOK.variable || ((cast(VarExp)ea).var.storage_class & STC.templateparameter))
+                    if (ea.op != EXP.variable || ((cast(VarExp)ea).var.storage_class & STC.templateparameter))
                     {
                         ea = ea.optimize(WANTvalue);
                     }
@@ -6673,7 +6650,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     ea = ea.expressionSemantic(sc);
                     sc = sc.endCTFE();
 
-                    if (ea.op == TOK.variable)
+                    if (ea.op == EXP.variable)
                     {
                         /* If the parameter is a function that is not called
                          * explicitly, i.e. `foo!func` as opposed to `foo!func()`,
@@ -6701,8 +6678,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             ea = ErrorExp.get();
                     }
                 }
-                //printf("-[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
-                if (ea.op == TOK.tuple)
+                //printf("-[%d] ea = %s %s\n", j, EXPtoString(ea.op).ptr, ea.toChars());
+                if (ea.op == EXP.tuple)
                 {
                     // Expand tuple
                     TupleExp te = cast(TupleExp)ea;
@@ -6717,24 +6694,24 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     j--;
                     continue;
                 }
-                if (ea.op == TOK.error)
+                if (ea.op == EXP.error)
                 {
                     err = true;
                     continue;
                 }
                 (*tiargs)[j] = ea;
 
-                if (ea.op == TOK.type)
+                if (ea.op == EXP.type)
                 {
                     ta = ea.type;
                     goto Ltype;
                 }
-                if (ea.op == TOK.scope_)
+                if (ea.op == EXP.scope_)
                 {
                     sa = (cast(ScopeExp)ea).sds;
                     goto Ldsym;
                 }
-                if (ea.op == TOK.function_)
+                if (ea.op == EXP.function_)
                 {
                     FuncExp fe = cast(FuncExp)ea;
                     /* A function literal, that is passed to template and
@@ -6755,24 +6732,24 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         //goto Ldsym;
                     }
                 }
-                if (ea.op == TOK.dotVariable && !(flags & 1))
+                if (ea.op == EXP.dotVariable && !(flags & 1))
                 {
                     // translate expression to dsymbol.
                     sa = (cast(DotVarExp)ea).var;
                     goto Ldsym;
                 }
-                if (ea.op == TOK.template_)
+                if (ea.op == EXP.template_)
                 {
                     sa = (cast(TemplateExp)ea).td;
                     goto Ldsym;
                 }
-                if (ea.op == TOK.dotTemplateDeclaration && !(flags & 1))
+                if (ea.op == EXP.dotTemplateDeclaration && !(flags & 1))
                 {
                     // translate expression to dsymbol.
                     sa = (cast(DotTemplateExp)ea).td;
                     goto Ldsym;
                 }
-                if (ea.op == TOK.dot)
+                if (ea.op == EXP.dot)
                 {
                     if (auto se = (cast(DotExp)ea).e2.isScopeExp())
                     {
@@ -7270,17 +7247,17 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             Tuple va = isTuple(o);
             if (ea)
             {
-                if (ea.op == TOK.variable)
+                if (ea.op == EXP.variable)
                 {
                     sa = (cast(VarExp)ea).var;
                     goto Lsa;
                 }
-                if (ea.op == TOK.this_)
+                if (ea.op == EXP.this_)
                 {
                     sa = (cast(ThisExp)ea).var;
                     goto Lsa;
                 }
-                if (ea.op == TOK.function_)
+                if (ea.op == EXP.function_)
                 {
                     if ((cast(FuncExp)ea).td)
                         sa = (cast(FuncExp)ea).td;
@@ -7289,7 +7266,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     goto Lsa;
                 }
                 // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
-                if (ea.op != TOK.int64 && ea.op != TOK.float64 && ea.op != TOK.complex80 && ea.op != TOK.null_ && ea.op != TOK.string_ && ea.op != TOK.arrayLiteral && ea.op != TOK.assocArrayLiteral && ea.op != TOK.structLiteral)
+                if (ea.op != EXP.int64 && ea.op != EXP.float64 && ea.op != EXP.complex80 && ea.op != EXP.null_ && ea.op != EXP.string_ && ea.op != EXP.arrayLiteral && ea.op != EXP.assocArrayLiteral && ea.op != EXP.structLiteral)
                 {
                     ea.error("expression `%s` is not a valid template value argument", ea.toChars());
                     errors = true;
@@ -7311,7 +7288,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
                 {
                     Dsymbol dparent = sa.toParent2();
-                    if (!dparent)
+                    if (!dparent || dparent.isModule)
                         goto L1;
                     else if (!enclosing)
                         enclosing = dparent;
@@ -7331,6 +7308,19 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             {
                                 enclosing = dparent;
                                 goto L1; // dparent is most nested
+                            }
+                        }
+                        //https://issues.dlang.org/show_bug.cgi?id=17870
+                        if (dparent.isClassDeclaration() && enclosing.isClassDeclaration())
+                        {
+                            auto pc = dparent.isClassDeclaration();
+                            auto ec = enclosing.isClassDeclaration();
+                            if (pc.isBaseOf(ec, null))
+                                goto L1;
+                            else if (ec.isBaseOf(pc, null))
+                            {
+                                enclosing = dparent;
+                                goto L1;
                             }
                         }
                         error("`%s` is nested in both `%s` and `%s`", toChars(), enclosing.toChars(), dparent.toChars());
@@ -7357,23 +7347,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     {
         Module mi = minst; // instantiated . inserted module
 
-        if (global.params.useUnitTests)
-        {
-            // Turn all non-root instances to speculative
-            if (mi && !mi.isRoot())
-                mi = null;
-        }
-
         //printf("%s.appendToModuleMember() enclosing = %s mi = %s\n",
         //    toPrettyChars(),
         //    enclosing ? enclosing.toPrettyChars() : null,
         //    mi ? mi.toPrettyChars() : null);
-        if (!mi || mi.isRoot())
+        if (global.params.allInst || !mi || mi.isRoot())
         {
             /* If the instantiated module is speculative or root, insert to the
              * member of a root module. Then:
              *  - semantic3 pass will get called on the instance members.
-             *  - codegen pass will get a selection chance to do/skip it.
+             *  - codegen pass will get a selection chance to do/skip it (needsCodegen()).
              */
             static Dsymbol getStrictEnclosing(TemplateInstance ti)
             {
@@ -7391,8 +7374,18 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // where tempdecl is declared.
             mi = (enc ? enc : tempdecl).getModule();
             if (!mi.isRoot())
-                mi = mi.importedFrom;
-            assert(mi.isRoot());
+            {
+                if (mi.importedFrom)
+                {
+                    mi = mi.importedFrom;
+                    assert(mi.isRoot());
+                }
+                else
+                {
+                    // This can happen when using the frontend as a library.
+                    // Append it to the non-root module.
+                }
+            }
         }
         else
         {
@@ -7400,24 +7393,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              * non-root module. Then:
              *  - semantic3 pass won't be called on the instance.
              *  - codegen pass won't reach to the instance.
+             * Unless it is re-appended to a root module later (with changed minst).
              */
         }
         //printf("\t-. mi = %s\n", mi.toPrettyChars());
 
-        if (memberOf is mi)     // already a member
-        {
-            debug               // make sure it really is a member
-            {
-                auto a = mi.members;
-                for (size_t i = 0; 1; ++i)
-                {
-                    assert(i != a.dim);
-                    if (this == (*a)[i])
-                        break;
-                }
-            }
-            return null;
-        }
+        assert(!memberOf || (!memberOf.isRoot() && mi.isRoot()), "can only re-append from non-root to root module");
 
         Dsymbols* a = mi.members;
         a.push(this);
@@ -7598,15 +7579,15 @@ void unSpeculative(Scope* sc, RootObject o)
 bool definitelyValueParameter(Expression e)
 {
     // None of these can be value parameters
-    if (e.op == TOK.tuple || e.op == TOK.scope_ ||
-        e.op == TOK.type || e.op == TOK.dotType ||
-        e.op == TOK.template_ || e.op == TOK.dotTemplateDeclaration ||
-        e.op == TOK.function_ || e.op == TOK.error ||
-        e.op == TOK.this_ || e.op == TOK.super_ ||
-        e.op == TOK.dot)
+    if (e.op == EXP.tuple || e.op == EXP.scope_ ||
+        e.op == EXP.type || e.op == EXP.dotType ||
+        e.op == EXP.template_ || e.op == EXP.dotTemplateDeclaration ||
+        e.op == EXP.function_ || e.op == EXP.error ||
+        e.op == EXP.this_ || e.op == EXP.super_ ||
+        e.op == EXP.dot)
         return false;
 
-    if (e.op != TOK.dotVariable)
+    if (e.op != EXP.dotVariable)
         return true;
 
     /* Template instantiations involving a DotVar expression are difficult.
@@ -7620,20 +7601,20 @@ bool definitelyValueParameter(Expression e)
     if (f)
         return false;
 
-    while (e.op == TOK.dotVariable)
+    while (e.op == EXP.dotVariable)
     {
         e = (cast(DotVarExp)e).e1;
     }
     // this.x.y and super.x.y couldn't possibly be valid values.
-    if (e.op == TOK.this_ || e.op == TOK.super_)
+    if (e.op == EXP.this_ || e.op == EXP.super_)
         return false;
 
     // e.type.x could be an alias
-    if (e.op == TOK.dotType)
+    if (e.op == EXP.dotType)
         return false;
 
     // var.x.y is the only other possible form of alias
-    if (e.op != TOK.variable)
+    if (e.op != EXP.variable)
         return true;
 
     VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
@@ -7818,15 +7799,22 @@ struct TemplateInstanceBox
     {
         bool res = void;
         if (ti.inst && s.ti.inst)
+        {
             /* This clause is only used when an instance with errors
              * is replaced with a correct instance.
              */
             res = ti is s.ti;
+        }
         else
+        {
             /* Used when a proposed instance is used to see if there's
              * an existing instance.
              */
-            res = (cast()s.ti).equalsx(cast()ti);
+            static if (__VERSION__ >= 2099)
+                res = (cast()ti).equalsx(cast()s.ti);
+            else // https://issues.dlang.org/show_bug.cgi?id=22717
+                res = (cast()s.ti).equalsx(cast()ti);
+        }
 
         debug (FindExistingInstance) ++(res ? nHits : nCollisions);
         return res;
@@ -8024,7 +8012,7 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             uint olderrors = global.startGagging();
             ei = resolveProperties(sc, ei);
             ei = ei.ctfeInterpret();
-            if (global.endGagging(olderrors) || ei.op == TOK.error)
+            if (global.endGagging(olderrors) || ei.op == EXP.error)
                 return matchArgNoMatch();
 
             /* https://issues.dlang.org/show_bug.cgi?id=14520
@@ -8046,7 +8034,7 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             m = MATCH.convert;
         }
 
-        if (ei && ei.op == TOK.variable)
+        if (ei && ei.op == EXP.variable)
         {
             // Resolve const variables that we had skipped earlier
             ei = ei.ctfeInterpret();
@@ -8124,9 +8112,9 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
         Type ta = isType(oarg);
         RootObject sa = ta && !ta.deco ? null : getDsymbol(oarg);
         Expression ea = isExpression(oarg);
-        if (ea && (ea.op == TOK.this_ || ea.op == TOK.super_))
+        if (ea && (ea.op == EXP.this_ || ea.op == EXP.super_))
             sa = (cast(ThisExp)ea).var;
-        else if (ea && ea.op == TOK.scope_)
+        else if (ea && ea.op == EXP.scope_)
             sa = (cast(ScopeExp)ea).sds;
         if (sa)
         {
@@ -8432,5 +8420,13 @@ private struct MATCHpair
         assert(MATCH.min <= mfa && mfa <= MATCH.max);
         this.mta = mta;
         this.mfa = mfa;
+    }
+}
+
+private void write(ref OutBuffer buf, RootObject obj)
+{
+    if (obj)
+    {
+        buf.writestring(obj.toChars());
     }
 }

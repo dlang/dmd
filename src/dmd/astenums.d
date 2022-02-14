@@ -1,8 +1,8 @@
 /**
  * Defines enums common to dmd and dmd as parse library.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astenums.d, _astenums.d)
  * Documentation:  https://dlang.org/phobos/dmd_astenums.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astenums.d
@@ -62,7 +62,7 @@ enum STC : ulong  // transfer changes to declaration.h
     foreach_            = 0x4000,   /// variable for foreach loop
     variadic            = 0x8000,   /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
 
-    ctorinit            = 0x1_0000,   /// can only be set inside constructor
+    //                  = 0x1_0000,
     templateparameter   = 0x2_0000,   /// template parameter
     ref_                = 0x4_0000,   /// `ref`
     scope_              = 0x8_0000,   /// `scope`
@@ -74,7 +74,7 @@ enum STC : ulong  // transfer changes to declaration.h
 
     returninferred      = 0x100_0000,   /// `return` has been inferred and should not be part of mangling, `return_` must also be set
     immutable_          = 0x200_0000,   /// `immutable`
-    init                = 0x400_0000,   /// has explicit initializer
+    //                  = 0x400_0000,
     manifest            = 0x800_0000,   /// manifest constant
 
     nodtor              = 0x1000_0000,   /// do not run destructor
@@ -133,6 +133,8 @@ enum STC : ulong  // transfer changes to declaration.h
                          STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
 
 }
+
+alias StorageClass = ulong;
 
 /********
  * Determine if it's the ambigous case of where `return` attaches to.
@@ -302,8 +304,7 @@ enum PURE : ubyte
     impure      = 0,    // not pure at all
     fwdref      = 1,    // it's pure, but not known which level yet
     weak        = 2,    // no mutable globals are read or written
-    const_      = 3,    // parameters are values or const
-    strong      = 4,    // parameters are values or immutable
+    const_      = 3,    // parameters are values or const = strongly pure
 }
 
 // Whether alias this dependency is recursive or not
@@ -389,3 +390,43 @@ enum InitKind : ubyte
     C_,
 }
 
+/// A linkage attribute as defined by `extern(XXX)`
+///
+/// https://dlang.org/spec/attribute.html#linkage
+enum LINK : ubyte
+{
+    default_,
+    d,
+    c,
+    cpp,
+    windows,
+    objc,
+    system,
+}
+
+/// Whether to mangle an external aggregate as a struct or class, as set by `extern(C++, struct)`
+enum CPPMANGLE : ubyte
+{
+    def,      /// default
+    asStruct, /// `extern(C++, struct)`
+    asClass,  /// `extern(C++, class)`
+}
+
+/// Function match levels
+///
+/// https://dlang.org/spec/function.html#function-overloading
+enum MATCH : int
+{
+    nomatch,   /// no match
+    convert,   /// match with conversions
+    constant,  /// match with conversion to const
+    exact,     /// exact match
+}
+
+/// Inline setting as defined by `pragma(inline, XXX)`
+enum PINLINE : ubyte
+{
+    default_, /// as specified on the command line
+    never,    /// never inline
+    always,   /// always inline
+}

@@ -2,9 +2,9 @@
  * Top level code for the code generator.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_cgcod.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgcod.d
@@ -22,6 +22,7 @@ version (MARS)
 version (COMPILE)
 {
 
+import core.bitop;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -33,6 +34,7 @@ import dmd.backend.code;
 import dmd.backend.cgcse;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
+import dmd.backend.disasm86;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.melf;
@@ -42,7 +44,6 @@ import dmd.backend.exh;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
@@ -507,7 +508,7 @@ tryagain:
     // Emit the generated code
     if (eecontext.EEcompile == 1)
     {
-        codout(sfunc.Sseg,eecontext.EEcode);
+        codout(sfunc.Sseg,eecontext.EEcode,null);
         code_free(eecontext.EEcode);
         version (SCPP)
         {
@@ -516,6 +517,9 @@ tryagain:
     }
     else
     {
+        __gshared Barray!ubyte disasmBuf;
+        disasmBuf.reset();
+
         for (block* b = startblock; b; b = b.Bnext)
         {
             if (b.BC == BCjmptab || b.BC == BCswitch)
@@ -568,7 +572,7 @@ tryagain:
                 }
             }
 
-            codout(sfunc.Sseg,b.Bcode);   // output code
+            codout(sfunc.Sseg,b.Bcode,configv.vasm ? &disasmBuf : null);   // output code
         }
         if (coffset != Offset(sfunc.Sseg))
         {
@@ -578,6 +582,9 @@ tryagain:
             assert(0);
         }
         sfunc.Ssize = Offset(sfunc.Sseg) - funcoffset;    // size of function
+
+        if (configv.vasm)
+            disassemble(disasmBuf[]);                   // disassemble the code
 
         static if (NTEXCEPTIONS || MARS)
         {
@@ -938,8 +945,8 @@ else
         /* Instead of pushing the registers onto the stack one by one,
          * allocate space in the stack frame and copy/restore them there.
          */
-        int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
-        int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
+        int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
         if (NDPoff || xmmtopush || cgstate.funcarg.size)
         {
             pushoff = alignsection(pushoff - (gptopush * REGSIZE + xmmtopush * 16),
@@ -973,8 +980,8 @@ else
     if (!I16 && calledafunc &&
         (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
     {
-        int npush = numbitsset(topush);            // number of registers that need saving
-        npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
+        int npush = popcnt(topush);            // number of registers that need saving
+        npush += popcnt(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
         if (pushoffuse)
             npush = 0;
 
@@ -1653,8 +1660,7 @@ private void cgcod_eh()
         debug
         if (debuge)
         {
-            WRBC(b.BC);
-            printf(" block (%p) Btry=%p Bindex=%d\n",b,b.Btry,b.Bindex);
+            printf("%s block (%p) Btry=%p Bindex=%d\n",bc_str(b.BC),b,b.Btry,b.Bindex);
         }
 
         except_index_set(b.Bindex);
@@ -1819,20 +1825,6 @@ private void cgcod_eh()
         }
 }
 
-}
-
-/******************************
- * Count the number of bits set in a register mask.
- */
-
-int numbitsset(regm_t regm)
-{
-    int n = 0;
-    if (regm)
-        do
-            n++;
-        while ((regm &= regm - 1) != 0);
-    return n;
 }
 
 /******************************
@@ -2048,11 +2040,9 @@ static if (0)
 {
         if (pass == PASSfinal)
         {
-            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym ",
+            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
-                regm_str(msavereg),regm_str(*pretregs));
-            WRTYxx(tym);
-            dbg_printf("\n");
+                regm_str(msavereg),regm_str(*pretregs),tym_str(tym));
         }
 }
         tym = tybasic(tym);
@@ -2195,9 +2185,8 @@ L3:
         {
             debug
             {
-                WRTYxx(tym);
-                printf("\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
-                    file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
+                printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
+                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
             }
             assert(0);
         }
@@ -3045,8 +3034,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 
     debug if (debugw)
     {
-        printf("+codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
-        WROP(e.Eoper);
+        printf("+codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs),oper_str(e.Eoper));
         printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
@@ -3184,8 +3172,7 @@ L1:
 
     debug if (debugw)
     {
-        printf("-codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
-        WROP(op);
+        printf("-codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs), oper_str(op));
         printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
     }
@@ -3485,6 +3472,34 @@ void andregcon(con_t *pregconsave)
     regcon.params &= pregconsave.params;
     //printf("regcon.cse.mval&regcon.cse.mops = %s, regcon.cse.mops = %s\n",regm_str(regcon.cse.mval & regcon.cse.mops), regm_str(regcon.cse.mops));
     regcon.cse.mops &= regcon.cse.mval;
+}
+
+
+/**********************************************
+ * Disassemble the code instruction bytes
+ * Params:
+ *    code = array of instruction bytes
+ */
+@trusted
+private extern (D)
+void disassemble(ubyte[] code)
+{
+    printf("%s:\n", funcsym_p.Sident.ptr);
+    const model = I16 ? 16 : I32 ? 32 : 64;     // 16/32/64
+    size_t i = 0;
+    while (i < code.length)
+    {
+        printf("%04x:", cast(int)i);
+        uint pc;
+        const sz = dmd.backend.disasm86.calccodsize(code, cast(uint)i, pc, model);
+
+        void put(char c) { printf("%c", c); }
+
+        dmd.backend.disasm86.getopstring(&put, code, cast(uint)i, sz, model, model == 16, true,
+                null, null, null, null);
+        printf("\n");
+        i += sz;
+    }
 }
 
 }

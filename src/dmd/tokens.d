@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/lex.html#tokens, Tokens)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/tokens.d, _tokens.d)
  * Documentation:  https://dlang.org/phobos/dmd_tokens.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/tokens.d
@@ -19,11 +19,11 @@ import core.stdc.string;
 import dmd.globals;
 import dmd.identifier;
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.utf;
+import dmd.root.utf;
 
-enum TOK : ushort
+enum TOK : ubyte
 {
     reserved,
 
@@ -35,10 +35,253 @@ enum TOK : ushort
     leftCurly,
     rightCurly,
     colon,
-    negate,
     semicolon,
     dotDotDot,
     endOfFile,
+    cast_,
+    null_,
+    assert_,
+    true_,
+    false_,
+    throw_,
+    new_,
+    delete_,
+    variable,
+    slice,
+    version_,
+    module_,
+    dollar,
+    template_,
+    typeof_,
+    pragma_,
+    typeid_,
+    comment,
+
+    // Operators
+    lessThan,
+    greaterThan,
+    lessOrEqual,
+    greaterOrEqual,
+    equal,
+    notEqual,
+    identity,
+    notIdentity,
+    is_,
+
+    leftShift,
+    rightShift,
+    leftShiftAssign,
+    rightShiftAssign,
+    unsignedRightShift,
+    unsignedRightShiftAssign,
+    concatenateAssign, // ~=
+    add,
+    min,
+    addAssign,
+    minAssign,
+    mul,
+    div,
+    mod,
+    mulAssign,
+    divAssign,
+    modAssign,
+    and,
+    or,
+    xor,
+    andAssign,
+    orAssign,
+    xorAssign,
+    assign,
+    not,
+    tilde,
+    plusPlus,
+    minusMinus,
+    dot,
+    comma,
+    question,
+    andAnd,
+    orOr,
+
+    // Numeric literals
+    int32Literal,
+    uns32Literal,
+    int64Literal,
+    uns64Literal,
+    int128Literal,
+    uns128Literal,
+    float32Literal,
+    float64Literal,
+    float80Literal,
+    imaginary32Literal,
+    imaginary64Literal,
+    imaginary80Literal,
+
+    // Char constants
+    charLiteral,
+    wcharLiteral,
+    dcharLiteral,
+
+    // Leaf operators
+    identifier,
+    string_,
+    hexadecimalString,
+    this_,
+    super_,
+    error,
+
+    // Basic types
+    void_,
+    int8,
+    uns8,
+    int16,
+    uns16,
+    int32,
+    uns32,
+    int64,
+    uns64,
+    int128,
+    uns128,
+    float32,
+    float64,
+    float80,
+    imaginary32,
+    imaginary64,
+    imaginary80,
+    complex32,
+    complex64,
+    complex80,
+    char_,
+    wchar_,
+    dchar_,
+    bool_,
+
+    // Aggregates
+    struct_,
+    class_,
+    interface_,
+    union_,
+    enum_,
+    import_,
+    alias_,
+    override_,
+    delegate_,
+    function_,
+    mixin_,
+    align_,
+    extern_,
+    private_,
+    protected_,
+    public_,
+    export_,
+    static_,
+    final_,
+    const_,
+    abstract_,
+    debug_,
+    deprecated_,
+    in_,
+    out_,
+    inout_,
+    lazy_,
+    auto_,
+    package_,
+    immutable_,
+
+    // Statements
+    if_,
+    else_,
+    while_,
+    for_,
+    do_,
+    switch_,
+    case_,
+    default_,
+    break_,
+    continue_,
+    with_,
+    synchronized_,
+    return_,
+    goto_,
+    try_,
+    catch_,
+    finally_,
+    asm_,
+    foreach_,
+    foreach_reverse_,
+    scope_,
+    onScopeExit,
+    onScopeFailure,
+    onScopeSuccess,
+
+    // Contracts
+    invariant_,
+
+    // Testing
+    unittest_,
+
+    // Added after 1.0
+    argumentTypes,
+    ref_,
+    macro_,
+
+    parameters,
+    traits,
+    pure_,
+    nothrow_,
+    gshared,
+    line,
+    file,
+    fileFullPath,
+    moduleString,   // __MODULE__
+    functionString, // __FUNCTION__
+    prettyFunction, // __PRETTY_FUNCTION__
+    shared_,
+    at,
+    pow,
+    powAssign,
+    goesTo,
+    vector,
+    pound,
+
+    arrow,      // ->
+    colonColon, // ::
+    wchar_tLiteral,
+
+    // C only keywords
+    inline,
+    register,
+    restrict,
+    signed,
+    sizeof_,
+    typedef_,
+    unsigned,
+    volatile,
+    _Alignas,
+    _Alignof,
+    _Atomic,
+    _Bool,
+    _Complex,
+    _Generic,
+    _Imaginary,
+    _Noreturn,
+    _Static_assert,
+    _Thread_local,
+
+    // C only extended keywords
+    _import,
+    __cdecl,
+    __declspec,
+    __stdcall,
+    __attribute__,
+}
+
+/// Expression nodes
+enum EXP : ubyte
+{
+    reserved,
+
+    // Other
+    negate,
     cast_,
     null_,
     assert_,
@@ -61,7 +304,6 @@ enum TOK : ushort
     slice,
     arrayLength,
     version_,
-    module_,
     dollar,
     template_,
     dotTemplateDeclaration,
@@ -73,7 +315,6 @@ enum TOK : ushort
     uadd,
     remove,
     newAnonymousClass,
-    comment,
     arrayLiteral,
     assocArrayLiteral,
     structLiteral,
@@ -83,7 +324,7 @@ enum TOK : ushort
     delegateFunctionPointer,
 
     // Operators
-    lessThan = 54,
+    lessThan,
     greaterThan,
     lessOrEqual,
     greaterOrEqual,
@@ -94,7 +335,7 @@ enum TOK : ushort
     index,
     is_,
 
-    leftShift = 64,
+    leftShift,
     rightShift,
     leftShiftAssign,
     rightShiftAssign,
@@ -135,29 +376,9 @@ enum TOK : ushort
     prePlusPlus,
     preMinusMinus,
 
-    // Numeric literals
-    int32Literal = 104,
-    uns32Literal,
-    int64Literal,
-    uns64Literal,
-    int128Literal,
-    uns128Literal,
-    float32Literal,
-    float64Literal,
-    float80Literal,
-    imaginary32Literal,
-    imaginary64Literal,
-    imaginary80Literal,
-
-    // Char constants
-    charLiteral = 116,
-    wcharLiteral,
-    dcharLiteral,
-
     // Leaf operators
-    identifier = 119,
+    identifier,
     string_,
-    hexadecimalString,
     this_,
     super_,
     halt,
@@ -165,106 +386,24 @@ enum TOK : ushort
     error,
 
     // Basic types
-    void_ = 127,
-    int8,
-    uns8,
-    int16,
-    uns16,
-    int32,
-    uns32,
+    void_,
     int64,
-    uns64,
-    int128,
-    uns128,
-    float32,
     float64,
-    float80,
-    imaginary32,
-    imaginary64,
-    imaginary80,
-    complex32,
-    complex64,
     complex80,
     char_,
-    wchar_,
-    dchar_,
-    bool_,
-
-    // Aggregates
-    struct_ = 151,
-    class_,
-    interface_,
-    union_,
-    enum_,
     import_,
-    alias_,
-    override_,
     delegate_,
     function_,
     mixin_,
-    align_,
-    extern_,
-    private_,
-    protected_,
-    public_,
-    export_,
-    static_,
-    final_,
-    const_,
-    abstract_,
-    debug_,
-    deprecated_,
     in_,
-    out_,
-    inout_,
-    lazy_,
-    auto_,
-    package_,
-    immutable_,
-
-    // Statements
-    if_ = 181,
-    else_,
-    while_,
-    for_,
-    do_,
-    switch_,
-    case_,
     default_,
     break_,
     continue_,
-    with_,
-    synchronized_,
-    return_,
     goto_,
-    try_,
-    catch_,
-    finally_,
-    asm_,
-    foreach_,
-    foreach_reverse_,
     scope_,
-    onScopeExit,
-    onScopeFailure,
-    onScopeSuccess,
 
-    // Contracts
-    invariant_ = 205,
-
-    // Testing
-    unittest_,
-
-    // Added after 1.0
-    argumentTypes,
-    ref_,
-    macro_,
-
-    parameters = 210,
     traits,
     overloadSet,
-    pure_,
-    nothrow_,
-    gshared,
     line,
     file,
     fileFullPath,
@@ -272,50 +411,19 @@ enum TOK : ushort
     functionString, // __FUNCTION__
     prettyFunction, // __PRETTY_FUNCTION__
     shared_,
-    at,
     pow,
     powAssign,
-    goesTo,
     vector,
-    pound,
 
-    interval = 229,
     voidExpression,
     cantExpression,
     showCtfeContext,
-
     objcClassReference,
     vectorArray,
-
     arrow,      // ->
-    colonColon, // ::
-    wchar_tLiteral,
     compoundLiteral, // ( type-name ) { initializer-list }
-
-    // C only keywords
-    inline,
-    register,
-    restrict,
-    signed,
-    sizeof_,
-    typedef_,
-    unsigned,
-    volatile,
-    _Alignas,
-    _Alignof,
-    _Atomic,
-    _Bool,
-    _Complex,
     _Generic,
-    _Imaginary,
-    _Noreturn,
-    _Static_assert,
-    _Thread_local,
-
-    // C only extended keywords
-    __cdecl,
-    __declspec,
-    __attribute__,
+    interval,
 }
 
 enum FirstCKeyword = TOK.inline;
@@ -439,7 +547,6 @@ private immutable TOK[] keywords =
     TOK.gshared,
     TOK.traits,
     TOK.vector,
-    TOK.overloadSet,
     TOK.file,
     TOK.fileFullPath,
     TOK.line,
@@ -470,8 +577,10 @@ private immutable TOK[] keywords =
     TOK._Thread_local,
 
     // C only extended keywords
+    TOK._import,
     TOK.__cdecl,
     TOK.__declspec,
+    TOK.__stdcall,
     TOK.__attribute__,
 ];
 
@@ -500,7 +609,7 @@ static immutable TOK[TOK.max + 1] Ckeywords =
                        restrict, return_, int16, signed, sizeof_, static_, struct_, switch_, typedef_,
                        union_, unsigned, void_, volatile, while_, asm_,
                        _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn,
-                       _Static_assert, _Thread_local, __cdecl, __declspec, __attribute__ ];
+                       _Static_assert, _Thread_local, _import, __cdecl, __declspec, __stdcall, __attribute__ ];
 
         foreach (kw; Ckwds)
             tab[kw] = cast(TOK) kw;
@@ -644,7 +753,6 @@ extern (C++) struct Token
         TOK.gshared: "__gshared",
         TOK.traits: "__traits",
         TOK.vector: "__vector",
-        TOK.overloadSet: "__overloadset",
         TOK.file: "__FILE__",
         TOK.fileFullPath: "__FILE_FULL_PATH__",
         TOK.line: "__LINE__",
@@ -668,8 +776,6 @@ extern (C++) struct Token
         TOK.xor: "^",
         TOK.xorAssign: "^=",
         TOK.assign: "=",
-        TOK.construct: "=",
-        TOK.blit: "=",
         TOK.lessThan: "<",
         TOK.greaterThan: ">",
         TOK.lessOrEqual: "<=",
@@ -691,20 +797,11 @@ extern (C++) struct Token
         TOK.andAnd: "&&",
         TOK.or: "|",
         TOK.orOr: "||",
-        TOK.array: "[]",
-        TOK.index: "[i]",
-        TOK.address: "&",
-        TOK.star: "*",
         TOK.tilde: "~",
         TOK.dollar: "$",
         TOK.plusPlus: "++",
         TOK.minusMinus: "--",
-        TOK.prePlusPlus: "++",
-        TOK.preMinusMinus: "--",
-        TOK.type: "type",
         TOK.question: "?",
-        TOK.negate: "-",
-        TOK.uadd: "+",
         TOK.variable: "var",
         TOK.addAssign: "+=",
         TOK.minAssign: "-=",
@@ -717,10 +814,6 @@ extern (C++) struct Token
         TOK.andAssign: "&=",
         TOK.orAssign: "|=",
         TOK.concatenateAssign: "~=",
-        TOK.concatenateElemAssign: "~=",
-        TOK.concatenateDcharAssign: "~=",
-        TOK.concatenate: "~",
-        TOK.call: "call",
         TOK.identity: "is",
         TOK.notIdentity: "!is",
         TOK.identifier: "identifier",
@@ -734,33 +827,14 @@ extern (C++) struct Token
 
         // For debugging
         TOK.error: "error",
-        TOK.dotIdentifier: "dotid",
-        TOK.dotTemplateDeclaration: "dottd",
-        TOK.dotTemplateInstance: "dotti",
-        TOK.dotVariable: "dotvar",
-        TOK.dotType: "dottype",
-        TOK.symbolOffset: "symoff",
-        TOK.arrayLength: "arraylength",
-        TOK.arrayLiteral: "arrayliteral",
-        TOK.assocArrayLiteral: "assocarrayliteral",
-        TOK.structLiteral: "structliteral",
         TOK.string_: "string",
-        TOK.dSymbol: "symbol",
-        TOK.tuple: "tuple",
-        TOK.declaration: "declaration",
         TOK.onScopeExit: "scope(exit)",
         TOK.onScopeSuccess: "scope(success)",
         TOK.onScopeFailure: "scope(failure)",
-        TOK.delegatePointer: "delegateptr",
 
         // Finish up
         TOK.reserved: "reserved",
-        TOK.remove: "remove",
-        TOK.newAnonymousClass: "newanonclass",
         TOK.comment: "comment",
-        TOK.classReference: "classreference",
-        TOK.thrownException: "thrownexception",
-        TOK.delegateFunctionPointer: "delegatefuncptr",
         TOK.int32Literal: "int32v",
         TOK.uns32Literal: "uns32v",
         TOK.int64Literal: "int64v",
@@ -777,18 +851,8 @@ extern (C++) struct Token
         TOK.wcharLiteral: "wcharv",
         TOK.dcharLiteral: "dcharv",
         TOK.wchar_tLiteral: "wchar_tv",
-        TOK.compoundLiteral: "compoundliteral",
 
-        TOK.halt: "halt",
         TOK.hexadecimalString: "xstring",
-
-        TOK.interval: "interval",
-        TOK.voidExpression: "voidexp",
-        TOK.cantExpression: "cantexp",
-        TOK.showCtfeContext : "showCtfeContext",
-
-        TOK.objcClassReference: "class",
-        TOK.vectorArray: "vectorarray",
 
         // C only keywords
         TOK.inline    : "inline",
@@ -811,8 +875,10 @@ extern (C++) struct Token
         TOK._Thread_local  : "_Thread_local",
 
         // C only extended keywords
+        TOK._import       : "__import",
         TOK.__cdecl        : "__cdecl",
         TOK.__declspec     : "__declspec",
+        TOK.__stdcall      : "__stdcall",
         TOK.__attribute__  : "__attribute__",
     ];
 
@@ -880,12 +946,20 @@ nothrow:
             sprintf(&buffer[0], "%d", cast(d_int32)intvalue);
             break;
         case TOK.uns32Literal:
-        case TOK.charLiteral:
         case TOK.wcharLiteral:
         case TOK.dcharLiteral:
         case TOK.wchar_tLiteral:
             sprintf(&buffer[0], "%uU", cast(d_uns32)unsvalue);
             break;
+        case TOK.charLiteral:
+        {
+            const v = cast(d_int32)intvalue;
+            if (v >= ' ' && v <= '~')
+                sprintf(&buffer[0], "'%c'", v);
+            else
+                sprintf(&buffer[0], "'\\x%02x'", v);
+            break;
+        }
         case TOK.int64Literal:
             sprintf(&buffer[0], "%lldL", cast(long)intvalue);
             break;
@@ -1009,12 +1083,12 @@ nothrow:
         return p;
     }
 
-    static const(char)* toChars(uint value)
+    static const(char)* toChars(TOK value)
     {
         return toString(value).ptr;
     }
 
-    extern (D) static string toString(uint value) pure nothrow @nogc @safe
+    extern (D) static string toString(TOK value) pure nothrow @nogc @safe
     {
         return tochars[value];
     }

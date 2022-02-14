@@ -1,9 +1,9 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
  * Documentation:  https://dlang.org/phobos/dmd_link.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/link.d
@@ -19,13 +19,13 @@ import core.sys.posix.stdlib;
 import core.sys.posix.unistd;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
-import dmd.env;
+import dmd.dmdparams;
 import dmd.errors;
 import dmd.globals;
-import dmd.mars;
+import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
@@ -226,7 +226,7 @@ public int runLINK()
         if (phobosLibname)
             global.params.libfiles.push(phobosLibname.xarraydup.ptr);
 
-        if (target.mscoff)
+        if (target.objectFormat() == Target.ObjectFormat.coff)
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
@@ -301,23 +301,26 @@ public int runLINK()
                 global.params.mscrtlib[0..6] != "msvcrt" || !isdigit(global.params.mscrtlib[6]))
                 vsopt.initialize();
 
-            const(char)* lflags = vsopt.linkOptions(target.is64bit);
-            if (lflags)
-            {
-                cmdbuf.writeByte(' ');
-                cmdbuf.writestring(lflags);
-            }
-
             const(char)* linkcmd = getenv(target.is64bit ? "LINKCMD64" : "LINKCMD");
             if (!linkcmd)
                 linkcmd = getenv("LINKCMD"); // backward compatible
             if (!linkcmd)
                 linkcmd = vsopt.linkerPath(target.is64bit);
 
-            // object files not SAFESEH compliant, but LLD is more picky than MS link
-            if (!target.is64bit)
-                if (FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
-                    cmdbuf.writestring(" /SAFESEH:NO");
+            if (!target.is64bit && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
+            {
+                // object files not SAFESEH compliant, but LLD is more picky than MS link
+                cmdbuf.writestring(" /SAFESEH:NO");
+                // if we are using LLD as a fallback, don't link to any VS libs even if
+                // we detected a VS installation and they are present
+                vsopt.uninitialize();
+            }
+
+            if (const(char)* lflags = vsopt.linkOptions(target.is64bit))
+            {
+                cmdbuf.writeByte(' ');
+                cmdbuf.writestring(lflags);
+            }
 
             cmdbuf.writeByte(0); // null terminate the buffer
             char[] p = cmdbuf.extractSlice()[0 .. $-1];
@@ -342,7 +345,7 @@ public int runLINK()
             }
             return status;
         }
-        else
+        else if (target.objectFormat() == Target.ObjectFormat.omf)
         {
             OutBuffer cmdbuf;
             global.params.libfiles.push("user32");
@@ -454,6 +457,10 @@ public int runLINK()
                 FileName.free(lnkfilename.ptr);
             }
             return status;
+        }
+        else
+        {
+            assert(0);
         }
     }
     else version (Posix)
@@ -703,8 +710,7 @@ public int runLINK()
         {
             const bufsize = 2 + libname.length + 1;
             auto buf = (cast(char*) malloc(bufsize))[0 .. bufsize];
-            if (!buf)
-                Mem.error();
+            Mem.check(buf.ptr);
             buf[0 .. 2] = "-l";
 
             char* getbuf(const(char)[] suffix)
@@ -748,6 +754,8 @@ public int runLINK()
         {
             // Link against -lc++abi for Unwind symbols
             argv.push("-lc++abi");
+            // Link against -lexecinfo for backtrace symbols
+            argv.push("-lexecinfo");
         }
         if (global.params.verbose)
         {
@@ -833,7 +841,7 @@ version (Windows)
         size_t len;
         if (global.params.verbose)
             message("%s %s", cmd, args);
-        if (!target.mscoff)
+        if (target.objectFormat() == Target.ObjectFormat.omf)
         {
             if ((len = strlen(args)) > 255)
             {

@@ -1,9 +1,9 @@
 /**
  * Performs the semantic3 stage, which deals with function bodies.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic3.d, _semantic3.d)
  * Documentation:  https://dlang.org/phobos/dmd_semantic3.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/semantic3.d
@@ -55,14 +55,14 @@ import dmd.objc;
 import dmd.opover;
 import dmd.parse;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.utf;
 import dmd.sideeffect;
 import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.utf;
 import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
@@ -610,7 +610,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         f.next = Type.tvoid;
                     if (f.checkRetType(funcdecl.loc))
                         funcdecl.fbody = new ErrorStatement();
+                    else if (funcdecl.isMain())
+                        funcdecl.checkDmain();       // Check main() parameters and return type
                 }
+
                 if (global.params.vcomplex && f.next !is null)
                     f.next.checkComplexTransition(funcdecl.loc, sc);
 
@@ -619,7 +622,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     for (size_t i = 0; i < funcdecl.returns.dim;)
                     {
                         Expression exp = (*funcdecl.returns)[i].exp;
-                        if (exp.op == TOK.variable && (cast(VarExp)exp).var == funcdecl.vresult)
+                        if (exp.op == EXP.variable && (cast(VarExp)exp).var == funcdecl.vresult)
                         {
                             if (addReturn0())
                                 exp.type = Type.tint32;
@@ -743,7 +746,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 // Check for errors related to 'nothrow'.
                 const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
                 if (f.isnothrow && blockexit & BE.throw_)
-                    error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
 
                 if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.flags & FUNCFLAG.hasCatches))
                 {
@@ -825,7 +828,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         ReturnStatement rs = (*funcdecl.returns)[i];
                         Expression exp = rs.exp;
-                        if (exp.op == TOK.error)
+                        if (exp.op == EXP.error)
                             continue;
                         if (tret.ty == Terror)
                         {
@@ -1143,14 +1146,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                             s = s.statementSemantic(sc2);
 
-                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
+                            immutable bool isnothrow = f.isnothrow && !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
                             const blockexit = s.blockExit(funcdecl, isnothrow);
                             if (blockexit & BE.throw_)
+                            {
                                 funcdecl.eh_none = false;
-                            if (f.isnothrow && isnothrow && blockexit & BE.throw_)
-                                error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
-                            if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
-                                f.isnothrow = false;
+                                if (isnothrow)
+                                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
+                                else if (funcdecl.flags & FUNCFLAG.nothrowInprocess)
+                                    f.isnothrow = false;
+                            }
 
                             if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
                                 sbody = new CompoundStatement(Loc.initial, sbody, s);
@@ -1589,7 +1594,7 @@ private struct FuncDeclSem3
     }
 }
 
-private void semanticTypeInfoMembers(StructDeclaration sd)
+extern (C++) void semanticTypeInfoMembers(StructDeclaration sd)
 {
     if (sd.xeq &&
         sd.xeq._scope &&

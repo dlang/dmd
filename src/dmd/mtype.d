@@ -1,9 +1,9 @@
 /**
  * Defines a D type.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mtype.d, _mtype.d)
  * Documentation:  https://dlang.org/phobos/dmd_mtype.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mtype.d
@@ -43,7 +43,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.opover;
 import dmd.root.ctfloat;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.stringtable;
@@ -206,6 +206,32 @@ string MODtoString(MOD mod) nothrow pure
     }
 }
 
+/*************************************************
+ * Pick off one of the trust flags from trust,
+ * and return a string representation of it.
+ */
+string trustToString(TRUST trust) pure nothrow @nogc @safe
+{
+    final switch (trust)
+    {
+    case TRUST.default_:
+        return null;
+    case TRUST.system:
+        return "@system";
+    case TRUST.trusted:
+        return "@trusted";
+    case TRUST.safe:
+        return "@safe";
+    }
+}
+
+unittest
+{
+    assert(trustToString(TRUST.default_) == "");
+    assert(trustToString(TRUST.system) == "@system");
+    assert(trustToString(TRUST.trusted) == "@trusted");
+    assert(trustToString(TRUST.safe) == "@safe");
+}
 
 /************************************
  * Convert MODxxxx to STCxxx
@@ -230,6 +256,57 @@ bool isSomeChar(TY ty) pure nothrow @nogc @safe
     return ty == Tchar || ty == Twchar || ty == Tdchar;
 }
 
+/************************************
+ * Determine mutability of indirections in (ref) t.
+ *
+ * Returns: When the type has any mutable indirections, returns 0.
+ * When all indirections are immutable, returns 2.
+ * Otherwise, when the type has const/inout indirections, returns 1.
+ *
+ * Params:
+ *      isref = if true, check `ref t`; otherwise, check just `t`
+ *      t = the type that is being checked
+ */
+int mutabilityOfType(bool isref, Type t)
+{
+    if (isref)
+    {
+        if (t.mod & MODFlags.immutable_)
+            return 2;
+        if (t.mod & (MODFlags.const_ | MODFlags.wild))
+            return 1;
+        return 0;
+    }
+
+    t = t.baseElemOf();
+
+    if (!t.hasPointers() || t.mod & MODFlags.immutable_)
+        return 2;
+
+    /* Accept immutable(T)[] and immutable(T)* as being strongly pure
+     */
+    if (t.ty == Tarray || t.ty == Tpointer)
+    {
+        Type tn = t.nextOf().toBasetype();
+        if (tn.mod & MODFlags.immutable_)
+            return 2;
+        if (tn.mod & (MODFlags.const_ | MODFlags.wild))
+            return 1;
+    }
+
+    /* The rest of this is too strict; fix later.
+     * For example, the only pointer members of a struct may be immutable,
+     * which would maintain strong purity.
+     * (Just like for dynamic arrays and pointers above.)
+     */
+    if (t.mod & (MODFlags.const_ | MODFlags.wild))
+        return 1;
+
+    /* Should catch delegates and function pointers, and fold in their purity
+     */
+    return 0;
+}
+
 /****************
  * dotExp() bit flags
  */
@@ -238,6 +315,15 @@ enum DotExpFlag
     gag     = 1,    // don't report "not a property" error and just return null
     noDeref = 2,    // the use of the expression will not attempt a dereference
     noAliasThis = 4, // don't do 'alias this' resolution
+}
+
+/// Result of a check whether two types are covariant
+enum Covariant
+{
+    distinct = 0, /// types are distinct
+    yes = 1, /// types are covariant
+    no = 2, /// arguments match as far as overloading goes, but types are not covariant
+    fwdref = 3, /// cannot determine covariance because of forward references
 }
 
 /***********************************************************
@@ -340,7 +426,7 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type[TMAX] basic;
 
     extern (D) __gshared StringTable!Type stringtable;
-    extern (D) private __gshared ubyte[TMAX] sizeTy = ()
+    extern (D) private static immutable ubyte[TMAX] sizeTy = ()
         {
             ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
             sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
@@ -418,6 +504,13 @@ extern (C++) abstract class Type : ASTNode
         return DYNCAST.type;
     }
 
+    /// Returns a non-zero unique ID for this Type, or returns 0 if the Type does not (yet) have a unique ID.
+    /// If `semantic()` has not been run, 0 is returned.
+    final size_t getUniqueID() const
+    {
+        return cast(size_t) deco;
+    }
+
     extern (D)
     final Mcache* getMcache()
     {
@@ -433,14 +526,9 @@ extern (C++) abstract class Type : ASTNode
      *      t = type 'this' is covariant with
      *      pstc = if not null, store STCxxxx which would make it covariant
      * Returns:
-     *      0       types are distinct
-     *      1       this is covariant with t
-     *      2       arguments match as far as overloading goes,
-     *              but types are not covariant
-     *      3       cannot determine covariance because of forward references
-     *      *pstc   STCxxxx which would make it covariant
+     *     An enum value of either `Covariant.yes` or a reason it's not covariant.
      */
-    final int covariant(Type t, StorageClass* pstc = null)
+    final Covariant covariant(Type t, StorageClass* pstc = null)
     {
         version (none)
         {
@@ -456,7 +544,7 @@ extern (C++) abstract class Type : ASTNode
         bool notcovariant = false;
 
         if (equals(t))
-            return 1; // covariant
+            return Covariant.yes;
 
         TypeFunction t1 = this.isTypeFunction();
         TypeFunction t2 = t.isTypeFunction();
@@ -504,7 +592,7 @@ extern (C++) abstract class Type : ASTNode
                         }
                         else if (tp1.ty == Tdelegate)
                         {
-                            if (tp1.implicitConvTo(tp2))
+                            if (tp2.implicitConvTo(tp1))
                                 goto Lcov;
                         }
                     }
@@ -551,7 +639,7 @@ extern (C++) abstract class Type : ASTNode
                     cd.dsymbolSemantic(null);
                 if (!cd.isBaseInfoComplete())
                 {
-                    return 3; // forward references
+                    return Covariant.fwdref;
                 }
             }
             if (t1n.ty == Tstruct && t2n.ty == Tstruct)
@@ -651,15 +739,15 @@ extern (C++) abstract class Type : ASTNode
         }
 
         //printf("\tcovaraint: 1\n");
-        return 1;
+        return Covariant.yes;
 
     Ldistinct:
         //printf("\tcovaraint: 0\n");
-        return 0;
+        return Covariant.distinct;
 
     Lnotcovariant:
         //printf("\tcovaraint: 2\n");
-        return 2;
+        return Covariant.no;
     }
 
     /********************************
@@ -3967,65 +4055,37 @@ extern (C++) final class TypePointer : TypeNext
         if (equals(to))
             return MATCH.exact;
 
-        if (next.ty == Tfunction)
-        {
-            if (auto tp = to.isTypePointer())
-            {
-                if (tp.next.ty == Tfunction)
-                {
-                    if (next.equals(tp.next))
-                        return MATCH.constant;
-
-                    if (next.covariant(tp.next) == 1)
-                    {
-                        Type tret = this.next.nextOf();
-                        Type toret = tp.next.nextOf();
-                        if (tret.ty == Tclass && toret.ty == Tclass)
-                        {
-                            /* https://issues.dlang.org/show_bug.cgi?id=10219
-                             * Check covariant interface return with offset tweaking.
-                             * interface I {}
-                             * class C : Object, I {}
-                             * I function() dg = function C() {}    // should be error
-                             */
-                            int offset = 0;
-                            if (toret.isBaseOf(tret, &offset) && offset != 0)
-                                return MATCH.nomatch;
-                        }
-                        return MATCH.convert;
-                    }
-                }
-                else if (tp.next.ty == Tvoid)
-                {
-                    // Allow conversions to void*
-                    return MATCH.convert;
-                }
-            }
+        // Only convert between pointers
+        auto tp = to.isTypePointer();
+        if (!tp)
             return MATCH.nomatch;
-        }
-        else if (auto tp = to.isTypePointer())
+
+        assert(this.next);
+        assert(tp.next);
+
+        // Conversion to void*
+        if (tp.next.ty == Tvoid)
         {
-            assert(tp.next);
+            // Function pointer conversion doesn't check constness?
+            if (this.next.ty == Tfunction)
+                return MATCH.convert;
 
             if (!MODimplicitConv(next.mod, tp.next.mod))
                 return MATCH.nomatch; // not const-compatible
 
-            /* Alloc conversion to void*
-             */
-            if (next.ty != Tvoid && tp.next.ty == Tvoid)
-            {
-                return MATCH.convert;
-            }
-
-            MATCH m = next.constConv(tp.next);
-            if (m > MATCH.nomatch)
-            {
-                if (m == MATCH.exact && mod != to.mod)
-                    m = MATCH.constant;
-                return m;
-            }
+            return this.next.ty == Tvoid ? MATCH.constant : MATCH.convert;
         }
-        return MATCH.nomatch;
+
+        // Conversion between function pointers
+        if (auto thisTf = this.next.isTypeFunction())
+            return thisTf.implicitPointerConv(tp.next);
+
+        // Default, no implicit conversion between the pointer targets
+        MATCH m = next.constConv(tp.next);
+
+        if (m == MATCH.exact && mod != to.mod)
+            m = MATCH.constant;
+        return m;
     }
 
     override MATCH constConv(Type to)
@@ -4185,9 +4245,9 @@ extern (C++) final class TypeFunction : TypeNext
         this.trust = TRUST.default_;
         if (stc & STC.safe)
             this.trust = TRUST.safe;
-        if (stc & STC.system)
+        else if (stc & STC.system)
             this.trust = TRUST.system;
-        if (stc & STC.trusted)
+        else if (stc & STC.trusted)
             this.trust = TRUST.trusted;
     }
 
@@ -4234,54 +4294,11 @@ extern (C++) final class TypeFunction : TypeNext
         if (tf.purity != PURE.fwdref)
             return;
 
-        /* Determine purity level based on mutability of t
-         * and whether it is a 'ref' type or not.
-         */
-        static PURE purityOfType(bool isref, Type t)
-        {
-            if (isref)
-            {
-                if (t.mod & MODFlags.immutable_)
-                    return PURE.strong;
-                if (t.mod & (MODFlags.const_ | MODFlags.wild))
-                    return PURE.const_;
-                return PURE.weak;
-            }
-
-            t = t.baseElemOf();
-
-            if (!t.hasPointers() || t.mod & MODFlags.immutable_)
-                return PURE.strong;
-
-            /* Accept immutable(T)[] and immutable(T)* as being strongly pure
-             */
-            if (t.ty == Tarray || t.ty == Tpointer)
-            {
-                Type tn = t.nextOf().toBasetype();
-                if (tn.mod & MODFlags.immutable_)
-                    return PURE.strong;
-                if (tn.mod & (MODFlags.const_ | MODFlags.wild))
-                    return PURE.const_;
-            }
-
-            /* The rest of this is too strict; fix later.
-             * For example, the only pointer members of a struct may be immutable,
-             * which would maintain strong purity.
-             * (Just like for dynamic arrays and pointers above.)
-             */
-            if (t.mod & (MODFlags.const_ | MODFlags.wild))
-                return PURE.const_;
-
-            /* Should catch delegates and function pointers, and fold in their purity
-             */
-            return PURE.weak;
-        }
-
-        purity = PURE.strong; // assume strong until something weakens it
+        purity = PURE.const_; // assume strong until something weakens it
 
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
-    Lloop: foreach (i, fparam; tf.parameterList)
+        foreach (i, fparam; tf.parameterList)
         {
             Type t = fparam.type;
             if (!t)
@@ -4292,33 +4309,11 @@ extern (C++) final class TypeFunction : TypeNext
                 purity = PURE.weak;
                 break;
             }
-            switch (purityOfType((fparam.storageClass & STC.ref_) != 0, t))
-            {
-                case PURE.weak:
-                    purity = PURE.weak;
-                    break Lloop; // since PURE.weak, no need to check further
-
-                case PURE.const_:
-                    purity = PURE.const_;
-                    continue;
-
-                case PURE.strong:
-                    continue;
-
-                default:
-                    assert(0);
-            }
+            const pref = (fparam.storageClass & STC.ref_) != 0;
+            if (mutabilityOfType(pref, t) == 0)
+                purity = PURE.weak;
         }
 
-        if (purity > PURE.weak && tf.nextOf())
-        {
-            /* Adjust purity based on mutability of return type.
-             * https://issues.dlang.org/show_bug.cgi?id=15862
-             */
-            const purity2 = purityOfType(tf.isref, tf.nextOf());
-            if (purity2 < purity)
-                purity = purity2;
-        }
         tf.purity = purity;
     }
 
@@ -4800,7 +4795,7 @@ extern (C++) final class TypeFunction : TypeNext
                             goto Nomatch;
                         }
 
-                        if (arg.op == TOK.string_ && tp.ty == Tsarray)
+                        if (arg.op == EXP.string_ && tp.ty == Tsarray)
                         {
                             if (ta.ty != Tsarray)
                             {
@@ -4809,7 +4804,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 ta = tn.sarrayOf(dim);
                             }
                         }
-                        else if (arg.op == TOK.slice && tp.ty == Tsarray)
+                        else if (arg.op == EXP.slice && tp.ty == Tsarray)
                         {
                             // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             if (ta.ty != Tsarray)
@@ -4822,7 +4817,7 @@ extern (C++) final class TypeFunction : TypeNext
                         else if ((p.storageClass & STC.in_) && global.params.previewIn)
                         {
                             // Allow converting a literal to an `in` which is `ref`
-                            if (arg.op == TOK.arrayLiteral && tp.ty == Tsarray)
+                            if (arg.op == EXP.arrayLiteral && tp.ty == Tsarray)
                             {
                                 Type tn = tp.nextOf();
                                 dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
@@ -4986,6 +4981,47 @@ extern (C++) final class TypeFunction : TypeNext
 
     Nomatch:
         //printf("no match\n");
+        return MATCH.nomatch;
+    }
+
+    /+
+     + Checks whether this function type is convertible to ` to`
+     + when used in a function pointer / delegate.
+     +
+     + Params:
+     +   to = target type
+     +
+     + Returns:
+     +   MATCH.nomatch: `to` is not a covaraint function
+     +   MATCH.convert: `to` is a covaraint function
+     +   MATCH.exact:   `to` is identical to this function
+     +/
+    private MATCH implicitPointerConv(Type to)
+    {
+        assert(to);
+
+        if (this.equals(to))
+            return MATCH.constant;
+
+        if (this.covariant(to) == Covariant.yes)
+        {
+            Type tret = this.nextOf();
+            Type toret = to.nextOf();
+            if (tret.ty == Tclass && toret.ty == Tclass)
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=10219
+                 * Check covariant interface return with offset tweaking.
+                 * interface I {}
+                 * class C : Object, I {}
+                 * I function() dg = function C() {}    // should be error
+                 */
+                int offset = 0;
+                if (toret.isBaseOf(tret, &offset) && offset != 0)
+                    return MATCH.nomatch;
+            }
+            return MATCH.convert;
+        }
+
         return MATCH.nomatch;
     }
 
@@ -5277,30 +5313,19 @@ extern (C++) final class TypeDelegate : TypeNext
         //printf("TypeDelegate.implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
-        if (this == to)
+        if (this.equals(to))
             return MATCH.exact;
 
-        version (all)
+        if (auto toDg = to.isTypeDelegate())
         {
-            // not allowing covariant conversions because it interferes with overriding
-            if (to.ty == Tdelegate && this.nextOf().covariant(to.nextOf()) == 1)
-            {
-                Type tret = this.next.nextOf();
-                Type toret = (cast(TypeDelegate)to).next.nextOf();
-                if (tret.ty == Tclass && toret.ty == Tclass)
-                {
-                    /* https://issues.dlang.org/show_bug.cgi?id=10219
-                     * Check covariant interface return with offset tweaking.
-                     * interface I {}
-                     * class C : Object, I {}
-                     * I delegate() dg = delegate C() {}    // should be error
-                     */
-                    int offset = 0;
-                    if (toret.isBaseOf(tret, &offset) && offset != 0)
-                        return MATCH.nomatch;
-                }
-                return MATCH.convert;
-            }
+            MATCH m = this.next.isTypeFunction().implicitPointerConv(toDg.next);
+
+            // Retain the old behaviour for this refactoring
+            // Should probably be changed to constant to match function pointers
+            if (m > MATCH.convert)
+                m = MATCH.convert;
+
+            return m;
         }
 
         return MATCH.nomatch;
@@ -5532,6 +5557,11 @@ extern (C++) final class TypeIdentifier : TypeQualified
     {
         super(Tident, loc);
         this.ident = ident;
+    }
+
+    static TypeIdentifier create(const ref Loc loc, Identifier ident)
+    {
+        return new TypeIdentifier(loc, ident);
     }
 
     override const(char)* kind() const
@@ -5796,7 +5826,7 @@ extern (C++) final class TypeStruct : Type
             }
             else
                 e = vd.type.defaultInitLiteral(loc);
-            if (e && e.op == TOK.error)
+            if (e && e.op == EXP.error)
                 return e;
             if (e)
                 offset = vd.offset + cast(uint)vd.type.size();
@@ -6207,7 +6237,7 @@ extern (C++) final class TypeEnum : Type
 
     override bool isZeroInit(const ref Loc loc)
     {
-        return sym.getDefaultValue(loc).isBool(false);
+        return sym.getDefaultValue(loc).toBool().hasValue(false);
     }
 
     override bool hasPointers()
@@ -6288,10 +6318,7 @@ extern (C++) final class TypeClass : Type
 
     extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
-        MATCH m = constConv(to);
-        if (m > MATCH.nomatch)
-            return m;
-
+        // Run semantic before checking whether class is convertible
         ClassDeclaration cdto = to.isClassHandle();
         if (cdto)
         {
@@ -6300,11 +6327,15 @@ extern (C++) final class TypeClass : Type
                 cdto.dsymbolSemantic(null);
             if (sym.semanticRun < PASS.semanticdone && !sym.isBaseInfoComplete())
                 sym.dsymbolSemantic(null);
-            if (cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
-            {
-                //printf("'to' is base\n");
-                return MATCH.convert;
-            }
+        }
+        MATCH m = constConv(to);
+        if (m > MATCH.nomatch)
+            return m;
+
+        if (cdto && cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
+        {
+            //printf("'to' is base\n");
+            return MATCH.convert;
         }
         return MATCH.nomatch;
     }
@@ -6355,6 +6386,9 @@ extern (C++) final class TypeClass : Type
 
     override MOD deduceWild(Type t, bool isRef)
     {
+        // If sym is forward referenced:
+        if (sym.semanticRun < PASS.semanticdone && !sym.isBaseInfoComplete())
+            sym.dsymbolSemantic(null);
         ClassDeclaration cd = t.isClassHandle();
         if (cd && (sym == cd || cd.isBaseOf(sym, null)))
             return Type.deduceWild(t, isRef);
@@ -6742,19 +6776,21 @@ extern (C++) final class TypeTag : Type
     Loc loc;                /// location of declaration
     TOK tok;                /// TOK.struct_, TOK.union_, TOK.enum_
     Identifier id;          /// tag name identifier
+    Type base;              /// base type for enums otherwise null
     Dsymbols* members;      /// members of struct, null if none
 
     Type resolved;          /// type after semantic() in case there are more others
                             /// pointing to this instance, which can happen with
                             ///   struct S { int a; } s1, *s2;
 
-    extern (D) this(const ref Loc loc, TOK tok, Identifier id, Dsymbols* members)
+    extern (D) this(const ref Loc loc, TOK tok, Identifier id, Type base, Dsymbols* members)
     {
         //printf("TypeTag %p\n", this);
         super(Ttag);
         this.loc = loc;
         this.tok = tok;
         this.id = id;
+        this.base = base;
         this.members = members;
     }
 
@@ -7243,10 +7279,9 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
 
     if (trustAttrib == TRUST.default_)
     {
-        if (trustFormat == TRUSTformatSystem)
-            trustAttrib = TRUST.system;
-        else
-            return; // avoid calling with an empty string
+        if (trustFormat != TRUSTformatSystem)
+            return;
+        trustAttrib = TRUST.system; // avoid calling with an empty string
     }
 
     dg(trustToString(trustAttrib));

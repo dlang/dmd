@@ -1,8 +1,22 @@
 // REQUIRED_ARGS: -unittest -main -O
 // https://issues.dlang.org/show_bug.cgi?id=15568
 
-import std.algorithm;
-import std.array;
+auto filter(alias pred)(D[])
+{
+    struct FilterResult
+    {
+        void popFront()
+        {
+            pred(null);
+        }
+
+        D[] array()
+        {
+            return null;
+        }
+    }
+    return FilterResult();
+}
 
 class A
 {

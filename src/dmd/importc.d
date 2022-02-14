@@ -3,9 +3,9 @@
  *
  * Specification: C11
  *
- * Copyright:   Copyright (C) 2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 2021-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/importc.d, _importc.d)
  * Documentation:  https://dlang.org/phobos/dmd_importc.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/importc.d
@@ -217,25 +217,25 @@ Expression castCallAmbiguity(Expression e, Scope* sc)
         // Walk down the postfix expressions till we find a CallExp or something else
         switch ((*pe).op)
         {
-            case TOK.dotIdentifier:
+            case EXP.dotIdentifier:
                 pe = &(*pe).isDotIdExp().e1;
                 continue;
 
-            case TOK.plusPlus:
-            case TOK.minusMinus:
+            case EXP.plusPlus:
+            case EXP.minusMinus:
                 pe = &(*pe).isPostExp().e1;
                 continue;
 
-            case TOK.array:
+            case EXP.array:
                 pe = &(*pe).isArrayExp().e1;
                 continue;
 
-            case TOK.call:
+            case EXP.call:
                 auto ce = (*pe).isCallExp();
                 if (ce.e1.parens)
                 {
                     ce.e1 = expressionSemantic(ce.e1, sc);
-                    if (ce.e1.op == TOK.type)
+                    if (ce.e1.op == EXP.type)
                     {
                         const numArgs = ce.arguments ? ce.arguments.length : 0;
                         if (numArgs >= 1)
@@ -260,3 +260,50 @@ Expression castCallAmbiguity(Expression e, Scope* sc)
     }
 }
 
+/********************************************
+ * Implement the C11 notion of function equivalence,
+ * which allows prototyped functions to match K+R functions,
+ * even though they are different.
+ * Params:
+ *      tf1 = type of first function
+ *      tf2 = type of second function
+ * Returns:
+ *      true if C11 considers them equivalent
+ */
+
+bool cFuncEquivalence(TypeFunction tf1, TypeFunction tf2)
+{
+    if (tf1.equals(tf2))
+        return true;
+
+    if (tf1.linkage != tf2.linkage)
+        return false;
+
+    // Allow func(void) to match func()
+    if (tf1.parameterList.length == 0 && tf2.parameterList.length == 0)
+        return true;
+
+    if (!tf1.parameterList.hasIdentifierList &&
+        !tf2.parameterList.hasIdentifierList)
+        return false;   // both functions are prototyped
+
+    // Otherwise ignore variadicness, as K+R functions are all variadic
+
+    if (!tf1.nextOf().equals(tf2.nextOf()))
+        return false;   // function return types don't match
+
+    if (tf1.parameterList.length != tf2.parameterList.length)
+        return false;
+
+    foreach (i, fparam ; tf1.parameterList)
+    {
+        Type t1 = fparam.type;
+        Type t2 = tf2.parameterList[i].type;
+        if (!t1.equals(t2))
+            return false;
+    }
+
+    //printf("t1: %s\n", tf1.toChars());
+    //printf("t2: %s\n", tf2.toChars());
+    return true;
+}
