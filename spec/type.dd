@@ -513,6 +513,15 @@ $(GNAME Typeof):
         typeof(S.foo) n;  // n is declared to be an int
         --------------------
 
+        $(P If the expression is a $(DDLINK, spec/template, Template, Template),
+        $(D typeof) gives the type $(D void).
+        )
+
+        --------------------
+        template t {}
+        static assert(is(typeof(t) == void));
+        --------------------
+
         $(BEST_PRACTICE
         $(OL
         $(LI $(I Typeof) is most useful in writing generic
