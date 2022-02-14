@@ -897,12 +897,14 @@ else version (CRuntime_Microsoft)
 
     extern shared void function() _fcloseallp;
 
+    FILE* __acrt_iob_func(int hnd);     // VS2015+, reimplemented in msvc.d for VS2013-
+
     ///
-    shared FILE* stdin;  // = &__iob_func()[0];
+    FILE* stdin()() { return __acrt_iob_func(0); }
     ///
-    shared FILE* stdout; // = &__iob_func()[1];
+    FILE* stdout()() { return __acrt_iob_func(1); }
     ///
-    shared FILE* stderr; // = &__iob_func()[2];
+    FILE* stderr()() { return __acrt_iob_func(2); }
 }
 else version (CRuntime_Glibc)
 {
