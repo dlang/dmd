@@ -585,17 +585,25 @@ else
 
 private void _vmessage(const ref Loc loc, const(char)* format, va_list ap)
 {
+    OutBuffer tmp;
     const p = loc.toChars();
     if (*p)
     {
-        fprintf(stdout, "%s: ", p);
+        tmp.printf("%s: ", p);
         mem.xfree(cast(void*)p);
     }
-    OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fputs(tmp.peekChars(), stdout);
-    fputc('\n', stdout);
-    fflush(stdout);     // ensure it gets written out in case of compiler aborts
+    //If there's no console we're printing to a pipe so no syntax highlighting.
+    if(auto glblCon = cast(Console) global.console)
+    {
+        colorSyntaxHighlight(tmp);
+        writeHighlights(glblCon, tmp);
+    } else
+    {
+        fputs(tmp.peekChars(), stderr);
+    }
+    fputc('\n', stderr);
+    fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
 /**
