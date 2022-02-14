@@ -5248,21 +5248,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             break;
         }
 
-        VarDeclaration v = s.isVarDeclaration();
-        if (v)
-        {
-            // Do semantic() on initializer first, so:
-            //      int a = a;
-            // will be illegal.
-            e.declaration.dsymbolSemantic(sc);
-            s.parent = sc.parent;
-        }
-
         //printf("inserting '%s' %p into sc = %p\n", s.toChars(), s, sc);
         // Insert into both local scope and function scope.
         // Must be unique in both.
         if (s.ident)
         {
+            VarDeclaration v = s.isVarDeclaration();
+            if (v && !(sc.flags & SCOPE.Cfile))
+            {
+                /* Do semantic() on initializer first so this will be illegal:
+                 *      int a = a;
+                 */
+                e.declaration.dsymbolSemantic(sc);
+                s.parent = sc.parent;
+            }
+
             if (!sc.insert(s))
             {
                 auto conflict = sc.search(Loc.initial, s.ident, null);
@@ -5271,7 +5271,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                   conflict.kind(), conflict.toChars());
                 return setError();
             }
-            else if (sc.func)
+
+            if (v && (sc.flags & SCOPE.Cfile))
+            {
+                /* Do semantic() on initializer last so this will be legal:
+                 *      int a = a;
+                 */
+                e.declaration.dsymbolSemantic(sc);
+                s.parent = sc.parent;
+            }
+
+            if (sc.func)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=11720
                 if ((s.isFuncDeclaration() ||
@@ -5299,7 +5309,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     // The mangling change only works for D mangling
                 }
-//              else
+
                 {
                     /* https://issues.dlang.org/show_bug.cgi?id=21272
                      * If we are in a foreach body we need to extract the
