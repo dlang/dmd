@@ -1742,11 +1742,21 @@ extern (C++) abstract class Expression : ASTNode
         inout(PrettyFuncInitExp) isPrettyFuncInitExp() { return op == EXP.prettyFunction ? cast(typeof(return))this : null; }
         inout(ClassReferenceExp) isClassReferenceExp() { return op == EXP.classReference ? cast(typeof(return))this : null; }
         inout(ThrownExceptionExp) isThrownExceptionExp() { return op == EXP.thrownException ? cast(typeof(return))this : null; }
-    }
 
-    inout(BinAssignExp) isBinAssignExp() pure inout nothrow @nogc
-    {
-        return null;
+        inout(UnaExp) isUnaExp() pure inout nothrow @nogc
+        {
+            return exptab[op] & EXPFLAGS.unary ? cast(typeof(return))this : null;
+        }
+
+        inout(BinExp) isBinExp() pure inout nothrow @nogc
+        {
+            return exptab[op] & EXPFLAGS.binary ? cast(typeof(return))this : null;
+        }
+
+        inout(BinAssignExp) isBinAssignExp() pure inout nothrow @nogc
+        {
+            return exptab[op] & EXPFLAGS.binaryAssign ? cast(typeof(return))this : null;
+        }
     }
 
     override void accept(Visitor v)
@@ -4593,11 +4603,6 @@ extern (C++) class BinAssignExp : BinExp
         return toLvalue(sc, this);
     }
 
-    override inout(BinAssignExp) isBinAssignExp() pure inout nothrow @nogc @safe
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -7055,3 +7060,53 @@ extern(D) Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag
             return exp.type ? Modifiable.yes : Modifiable.no; // default modifiable
     }
 }
+
+/******************************
+ * Provide efficient way to implement isUnaExp(), isBinExp(), isBinAssignExp()
+ */
+private immutable ubyte[EXP.max + 1] exptab =
+() {
+    ubyte[EXP.max + 1] tab;
+    with (EXPFLAGS)
+    {
+        foreach (i; Eunary)  { tab[i] |= unary;  }
+        foreach (i; Ebinary) { tab[i] |= unary | binary; }
+        foreach (i; EbinaryAssign) { tab[i] |= unary | binary | binaryAssign; }
+    }
+    return tab;
+} ();
+
+private enum EXPFLAGS : ubyte
+{
+    unary = 1,
+    binary = 2,
+    binaryAssign = 4,
+}
+
+private enum Eunary =
+    [
+        EXP.import_, EXP.assert_, EXP.throw_, EXP.dotIdentifier, EXP.dotTemplateDeclaration,
+        EXP.dotVariable, EXP.dotTemplateInstance, EXP.delegate_, EXP.dotType, EXP.call,
+        EXP.address, EXP.star, EXP.negate, EXP.uadd, EXP.tilde, EXP.not, EXP.delete_, EXP.cast_,
+        EXP.vector, EXP.vectorArray, EXP.slice, EXP.arrayLength, EXP.array, EXP.delegatePointer,
+        EXP.delegateFunctionPointer, EXP.preMinusMinus, EXP.prePlusPlus,
+    ];
+
+private enum Ebinary =
+    [
+        EXP.dot, EXP.comma, EXP.index, EXP.minusMinus, EXP.plusPlus, EXP.assign,
+        EXP.add, EXP.min, EXP.concatenate, EXP.mul, EXP.div, EXP.mod, EXP.pow, EXP.leftShift,
+        EXP.rightShift, EXP.unsignedRightShift, EXP.and, EXP.or, EXP.xor, EXP.andAnd, EXP.orOr,
+        EXP.lessThan, EXP.lessOrEqual, EXP.greaterThan, EXP.greaterOrEqual,
+        EXP.in_, EXP.remove, EXP.equal, EXP.notEqual, EXP.identity, EXP.notIdentity,
+        EXP.question,
+        EXP.construct, EXP.blit,
+    ];
+
+private enum EbinaryAssign =
+    [
+        EXP.addAssign, EXP.minAssign, EXP.mulAssign, EXP.divAssign, EXP.modAssign,
+        EXP.andAssign, EXP.orAssign, EXP.xorAssign, EXP.powAssign,
+        EXP.leftShiftAssign, EXP.rightShiftAssign, EXP.unsignedRightShiftAssign,
+        EXP.concatenateAssign, EXP.concatenateElemAssign, EXP.concatenateDcharAssign,
+    ];

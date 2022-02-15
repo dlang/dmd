@@ -219,6 +219,8 @@ class FuncInitExp;
 class PrettyFuncInitExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
+class UnaExp;
+class BinExp;
 class BinAssignExp;
 class TypeInfoClassDeclaration;
 class TypeFunction;
@@ -1603,7 +1605,9 @@ public:
     PrettyFuncInitExp* isPrettyFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
-    virtual BinAssignExp* isBinAssignExp();
+    UnaExp* isUnaExp();
+    BinExp* isBinExp();
+    BinAssignExp* isBinAssignExp();
     void accept(Visitor* v);
 };
 
@@ -7032,7 +7036,6 @@ public:
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* ex);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
-    BinAssignExp* isBinAssignExp();
     void accept(Visitor* v);
 };
 
