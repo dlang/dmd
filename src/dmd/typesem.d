@@ -210,6 +210,9 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
             error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
         else if (const q = Scope.search_correct_C(id))
             error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
+        else if ((id == Id.This   && sc.getStructClassScope()) ||
+                 (id == Id._super && sc.getClassScope()))
+            error(loc, "undefined identifier `%s`, did you mean `typeof(%s)`?", p, p);
         else
             error(loc, "undefined identifier `%s`", p);
 
@@ -3001,39 +3004,6 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
     void visitIdentifier(TypeIdentifier mt)
     {
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, mt.toChars());
-        if ((mt.ident.equals(Id._super) || mt.ident.equals(Id.This)) && !hasThis(sc))
-        {
-            // @@@DEPRECATED_2.091@@@.
-            // Made an error in 2.086.
-            // Eligible for removal in 2.091.
-            if (mt.ident.equals(Id._super))
-            {
-                error(mt.loc, "Using `super` as a type is obsolete. Use `typeof(super)` instead");
-            }
-             // @@@DEPRECATED_2.091@@@.
-            // Made an error in 2.086.
-            // Eligible for removal in 2.091.
-            if (mt.ident.equals(Id.This))
-            {
-                error(mt.loc, "Using `this` as a type is obsolete. Use `typeof(this)` instead");
-            }
-            if (AggregateDeclaration ad = sc.getStructClassScope())
-            {
-                if (ClassDeclaration cd = ad.isClassDeclaration())
-                {
-                    if (mt.ident.equals(Id.This))
-                        mt.ident = cd.ident;
-                    else if (cd.baseClass && mt.ident.equals(Id._super))
-                        mt.ident = cd.baseClass.ident;
-                }
-                else
-                {
-                    StructDeclaration sd = ad.isStructDeclaration();
-                    if (sd && mt.ident.equals(Id.This))
-                        mt.ident = sd.ident;
-                }
-            }
-        }
         if (mt.ident == Id.ctfe)
         {
             error(loc, "variable `__ctfe` cannot be read at compile time");
