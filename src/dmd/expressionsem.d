@@ -1236,21 +1236,21 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         tthis = null;
         goto Lfd;
     }
-    else if (e1.op == EXP.dotVariable && e1.type && (e1.type.toBasetype().ty == Tfunction || (cast(DotVarExp)e1).var.isOverDeclaration()))
+    else if (e1.isDotVarExp() && e1.type && (e1.type.toBasetype().isTypeFunction() || e1.isDotVarExp().var.isOverDeclaration()))
     {
-        DotVarExp dve = cast(DotVarExp)e1;
+        DotVarExp dve = e1.isDotVarExp();
         s = dve.var;
         tiargs = null;
         tthis = dve.e1.type;
         goto Lfd;
     }
-    else if (sc && sc.flags & SCOPE.Cfile && e1.op == EXP.variable && !e2)
+    else if (sc && sc.flags & SCOPE.Cfile && e1.isVarExp() && !e2)
     {
         // ImportC: do not implicitly call function if no ( ) are present
     }
-    else if (e1.op == EXP.variable && e1.type && (e1.type.toBasetype().ty == Tfunction || (cast(VarExp)e1).var.isOverDeclaration()))
+    else if (e1.isVarExp() && e1.type && (e1.type.toBasetype().isTypeFunction() || e1.isVarExp().var.isOverDeclaration()))
     {
-        s = (cast(VarExp)e1).var;
+        s = e1.isVarExp().var;
         tiargs = null;
         tthis = null;
     Lfd:
@@ -1274,7 +1274,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 {
                     // @@@DEPRECATED_2020-10@@@
                     // When turning into error, uncomment the return statement
-                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    TypeFunction tf = fd.type.isTypeFunction();
                     deprecation(loc, "Function `%s` of type `%s` is not accessible from module `%s`",
                                 fd.toPrettyChars(), tf.toChars, sc._module.toChars);
                     //return ErrorExp.get();
@@ -1290,8 +1290,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             {
                 if (fd.errors)
                     return ErrorExp.get();
-                assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                TypeFunction tf = fd.type.isTypeFunction();
                 if (!e2 || tf.isref)
                 {
                     if (!checkSymbolAccess(sc, fd))
@@ -1319,17 +1318,18 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         if (e2)
             goto Leprop;
     }
-    if (e1.op == EXP.variable)
+    if (auto ve = e1.isVarExp())
     {
-        VarExp ve = cast(VarExp)e1;
-        VarDeclaration v = ve.var.isVarDeclaration();
-        if (v && ve.checkPurity(sc, v))
-            return ErrorExp.get();
+        if (auto v = ve.var.isVarDeclaration())
+        {
+            if (ve.checkPurity(sc, v))
+                return ErrorExp.get();
+        }
     }
     if (e2)
         return null;
 
-    if (e1.type && e1.op != EXP.type) // function type is not a property
+    if (e1.type && !e1.isTypeExp()) // function type is not a property
     {
         /* Look for e1 being a lazy parameter; rewrite as delegate call
          * only if the symbol wasn't already treated as a delegate
@@ -1340,15 +1340,14 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 Expression e = new CallExp(loc, e1);
                 return e.expressionSemantic(sc);
         }
-        else if (e1.op == EXP.dotVariable)
+        else if (e1.isDotVarExp())
         {
             // Check for reading overlapped pointer field in @safe code.
             if (checkUnsafeAccess(sc, e1, true, true))
                 return ErrorExp.get();
         }
-        else if (e1.op == EXP.call)
+        else if (auto ce = e1.isCallExp())
         {
-            CallExp ce = cast(CallExp)e1;
             // Check for reading overlapped pointer field in @safe code.
             if (checkUnsafeAccess(sc, ce.e1, true, true))
                 return ErrorExp.get();
@@ -1560,14 +1559,12 @@ private Expression opAssignToOp(const ref Loc loc, EXP op, Expression e1, Expres
  */
 private Expression rewriteOpAssign(BinExp exp)
 {
-    Expression e;
-
-    assert(exp.e1.op == EXP.arrayLength);
-    ArrayLengthExp ale = cast(ArrayLengthExp)exp.e1;
-    if (ale.e1.op == EXP.variable)
+    ArrayLengthExp ale = exp.e1.isArrayLengthExp();
+    if (ale.e1.isVarExp())
     {
-        e = opAssignToOp(exp.loc, exp.op, ale, exp.e2);
+        Expression e = opAssignToOp(exp.loc, exp.op, ale, exp.e2);
         e = new AssignExp(exp.loc, ale.syntaxCopy(), e);
+        return e;
     }
     else
     {
@@ -1578,11 +1575,11 @@ private Expression rewriteOpAssign(BinExp exp)
 
         Expression e1 = new ArrayLengthExp(ale.loc, new PtrExp(ale.loc, new VarExp(ale.loc, tmp)));
         Expression elvalue = e1.syntaxCopy();
-        e = opAssignToOp(exp.loc, exp.op, e1, exp.e2);
+        Expression e = opAssignToOp(exp.loc, exp.op, e1, exp.e2);
         e = new AssignExp(exp.loc, elvalue, e);
         e = new CommaExp(exp.loc, new DeclarationExp(ale.loc, tmp), e);
+        return e;
     }
-    return e;
 }
 
 /****************************************
@@ -1650,10 +1647,9 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool repo
  */
 private bool checkDefCtor(Loc loc, Type t)
 {
-    t = t.baseElemOf();
-    if (t.ty == Tstruct)
+    if (auto ts = t.baseElemOf().isTypeStruct())
     {
-        StructDeclaration sd = (cast(TypeStruct)t).sym;
+        StructDeclaration sd = ts.sym;
         if (sd.noDefaultCtor)
         {
             sd.error(loc, "default construction is disabled");
@@ -1923,7 +1919,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     }
                     else if (auto ff = s.isFuncDeclaration())
                     {
-                        if ((cast(TypeFunction)ff.type).iswild)
+                        if (ff.type.isTypeFunction().iswild)
                             return errorInout(wildmatch);
 
                         if (ff.isNested() || ff.isThis())
@@ -1969,7 +1965,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ? p.type.substWildTo(wildmatch)
                     : p.type;
 
-                const hasCopyCtor = (arg.type.ty == Tstruct) && (cast(TypeStruct)arg.type).sym.hasCopyCtor;
+                const hasCopyCtor = arg.type.isTypeStruct() && arg.type.isTypeStruct().sym.hasCopyCtor;
                 const typesMatch = arg.type.mutableOf().unSharedOf().equals(tprm.mutableOf().unSharedOf());
                 if (!((hasCopyCtor && typesMatch) || tprm.equals(arg.type)))
                 {
@@ -2059,8 +2055,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 /* Argument value cannot escape from the called function.
                  */
                 Expression a = arg;
-                if (a.op == EXP.cast_)
-                    a = (cast(CastExp)a).e1;
+                if (auto ce = a.isCastExp())
+                    a = ce.e1;
 
                 ArrayLiteralExp ale;
                 if (p.type.toBasetype().ty == Tarray &&
@@ -2074,26 +2070,22 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     arg = CommaExp.combine(declareTmp, castToSlice);
                     arg = arg.expressionSemantic(sc);
                 }
-                else if (a.op == EXP.function_)
+                else if (auto fe = a.isFuncExp())
                 {
                     /* Function literals can only appear once, so if this
                      * appearance was scoped, there cannot be any others.
                      */
-                    FuncExp fe = cast(FuncExp)a;
                     fe.fd.tookAddressOf = 0;
                 }
-                else if (a.op == EXP.delegate_)
+                else if (auto de = a.isDelegateExp())
                 {
                     /* For passing a delegate to a scoped parameter,
                      * this doesn't count as taking the address of it.
                      * We only worry about 'escaping' references to the function.
                      */
-                    DelegateExp de = cast(DelegateExp)a;
-                    if (de.e1.op == EXP.variable)
+                    if (auto ve = de.e1.isVarExp())
                     {
-                        VarExp ve = cast(VarExp)de.e1;
-                        FuncDeclaration f = ve.var.isFuncDeclaration();
-                        if (f)
+                        if (auto f = ve.var.isFuncDeclaration())
                         {
                             if (f.tookAddressOf)
                                 --f.tookAddressOf;
@@ -2174,9 +2166,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             // Convert static arrays to dynamic arrays
             // BUG: I don't think this is right for D2
             Type tb = arg.type.toBasetype();
-            if (tb.ty == Tsarray)
+            if (auto ts = tb.isTypeSArray())
             {
-                TypeSArray ts = cast(TypeSArray)tb;
                 Type ta = ts.next.arrayOf();
                 if (ts.size(arg.loc) == 0)
                     arg = new NullExp(arg.loc, ta);
@@ -2188,9 +2179,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 //arg = callCpCtor(sc, arg);
             }
             // Give error for overloaded function addresses
-            if (arg.op == EXP.symbolOffset)
+            if (auto se = arg.isSymOffExp())
             {
-                SymOffExp se = cast(SymOffExp)arg;
                 if (se.hasOverloads && !se.var.isFuncDeclaration().isUnique())
                 {
                     arg.error("function `%s` is overloaded", arg.toChars());
@@ -3469,10 +3459,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // T should be analyzed first and edim should go into arguments iff it's
         // not a tuple.
         Expression edim = null;
-        if (!exp.arguments && exp.newtype.ty == Tsarray)
+        if (!exp.arguments && exp.newtype.isTypeSArray())
         {
-            edim = (cast(TypeSArray)exp.newtype).dim;
-            exp.newtype = (cast(TypeNext)exp.newtype).next;
+            auto ts = exp.newtype.isTypeSArray();
+            edim = ts.dim;
+            exp.newtype = ts.next;
         }
 
         ClassDeclaration cdthis = null;
@@ -3556,9 +3547,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         const size_t nargs = exp.arguments ? exp.arguments.dim : 0;
         Expression newprefix = null;
 
-        if (tb.ty == Tclass)
+        if (auto tc = tb.isTypeClass())
         {
-            auto cd = (cast(TypeClass)tb).sym;
+            auto cd = tc.sym;
             cd.size(exp.loc);
             if (cd.sizeok != Sizeok.done)
                 return setError();
@@ -3710,7 +3701,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 checkFunctionAttributes(exp, sc, f);
                 checkAccess(cd, exp.loc, sc, f);
 
-                TypeFunction tf = cast(TypeFunction)f.type;
+                TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
                 if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.arguments, f, &exp.type, &exp.argprefix))
@@ -3744,9 +3735,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
         }
-        else if (tb.ty == Tstruct)
+        else if (auto ts = tb.isTypeStruct())
         {
-            auto sd = (cast(TypeStruct)tb).sym;
+            auto sd = ts.sym;
             sd.size(exp.loc);
             if (sd.sizeok != Sizeok.done)
                 return setError();
@@ -3783,7 +3774,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 checkFunctionAttributes(exp, sc, f);
                 checkAccess(sd, exp.loc, sc, f);
 
-                TypeFunction tf = cast(TypeFunction)f.type;
+                TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
                     exp.arguments = new Expressions();
                 if (functionParameters(exp.loc, sc, tf, null, exp.type, exp.arguments, f, &exp.type, &exp.argprefix))
@@ -3861,7 +3852,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
                 }
                 (*exp.arguments)[i] = arg;
-                tb = (cast(TypeDArray)tb).next.toBasetype();
+                tb = tb.isTypeDArray().next.toBasetype();
             }
         }
         else if (tb.isscalar())
