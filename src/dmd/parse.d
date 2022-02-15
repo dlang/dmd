@@ -675,7 +675,7 @@ class Parser(AST) : Lexer
                      tk.value == TOK.out_ || tk.value == TOK.do_ || tk.value == TOK.goesTo ||
                      tk.value == TOK.identifier && tk.ident == Id._body))
                 {
-                    // @@@DEPRECATED@@@
+                    // @@@DEPRECATED_2.117@@@
                     // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                     // Deprecated in 2.097 - Can be removed from 2.117
                     // The deprecation period is longer than usual as `body`
@@ -2646,7 +2646,7 @@ class Parser(AST) : Lexer
         }
         nextToken();
 
-        /* @@@DEPRECATED_2.098@@@
+        /* @@@DEPRECATED_2.108@@@
          * After deprecation period (2.108), remove all code in the version(all) block.
          */
         version (all)
@@ -4375,7 +4375,7 @@ class Parser(AST) : Lexer
                     (tk.value == TOK.leftParenthesis || tk.value == TOK.leftCurly || tk.value == TOK.in_ || tk.value == TOK.out_ || tk.value == TOK.goesTo ||
                      tk.value == TOK.do_ || tk.value == TOK.identifier && tk.ident == Id._body))
                 {
-                    // @@@DEPRECATED@@@
+                    // @@@DEPRECATED_2.117@@@
                     // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                     // Deprecated in 2.097 - Can be removed from 2.117
                     // The deprecation period is longer than usual as `body`
@@ -4827,7 +4827,7 @@ class Parser(AST) : Lexer
                         {
                             OutBuffer buf;
                             AST.stcToBuffer(&buf, remStc);
-                            // @@@DEPRECATED_2.093@@@
+                            // @@@DEPRECATED_2.103@@@
                             // Deprecated in 2020-07, can be made an error in 2.103
                             deprecation("storage class `%s` has no effect in type aliases", buf.peekChars());
                         }
@@ -5054,7 +5054,7 @@ class Parser(AST) : Lexer
         case TOK.identifier:
             if (token.ident == Id._body)
             {
-                // @@@DEPRECATED@@@
+                // @@@DEPRECATED_2.117@@@
                 // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                 // Deprecated in 2.097 - Can be removed from 2.117
                 // The deprecation period is longer than usual as `body`
@@ -7374,7 +7374,7 @@ LagainStc:
             case TOK.identifier:
                 if (t.ident == Id._body)
                 {
-                    // @@@DEPRECATED@@@
+                    // @@@DEPRECATED_2.117@@@
                     // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                     // Deprecated in 2.097 - Can be removed from 2.117
                     // The deprecation period is longer than usual as `body`

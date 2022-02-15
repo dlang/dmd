@@ -904,7 +904,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     return;
             }
 
-            // @@@DEPRECATED_2019-02@@@
+            // @@@DEPRECATED_2.096@@@
             // 1. Deprecation for 1 year
             // 2. Turn to error after
             if (tempResult)

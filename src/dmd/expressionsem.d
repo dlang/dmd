@@ -1272,7 +1272,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     return ErrorExp.get();
                 if (!checkSymbolAccess(sc, fd))
                 {
-                    // @@@DEPRECATED_2020-10@@@
+                    // @@@DEPRECATED_2.105@@@
                     // When turning into error, uncomment the return statement
                     TypeFunction tf = fd.type.isTypeFunction();
                     deprecation(loc, "Function `%s` of type `%s` is not accessible from module `%s`",
@@ -1295,7 +1295,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 {
                     if (!checkSymbolAccess(sc, fd))
                     {
-                        // @@@DEPRECATED_2020-10@@@
+                        // @@@DEPRECATED_2.105@@@
                         // When turning into error, uncomment the return statement
                         deprecation(loc, "Function `%s` of type `%s` is not accessible from module `%s`",
                                     fd.toPrettyChars(), tf.toChars, sc._module.toChars);
@@ -7348,7 +7348,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         if (!sc.isDeprecated)
         {
-            // @@@DEPRECATED_2019-02@@@
+            // @@@DEPRECATED_2.089@@@
             // 1. Deprecation for 1 year
             // 2. Error for 1 year
             // 3. Removal of keyword, "delete" can be used for other identities

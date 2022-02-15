@@ -847,7 +847,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym.error("globals, statics, fields, manifest constants, ref and out parameters cannot be `scope`");
             }
 
-            // @@@DEPRECATED@@@  https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+            // @@@DEPRECATED_2.097@@@  https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
             // Deprecated in 2.087
             // Remove this when the feature is removed from the language
             if (0 &&          // deprecation disabled for now to accommodate existing extensive use
@@ -5292,7 +5292,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         //printf("-ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 
-        // @@@DEPRECATED@@@ https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // @@@DEPRECATED_2.097@@@ https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
         // Deprecated in 2.087
         // Make an error in 2.091
         // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
@@ -5599,7 +5599,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         assert(idec.type.ty != Tclass || (cast(TypeClass)idec.type).sym == idec);
 
-        // @@@DEPRECATED@@@https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // @@@DEPRECATED_2.097@@@https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
         // Deprecated in 2.087
         // Remove in 2.091
         // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
