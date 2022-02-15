@@ -252,7 +252,7 @@ void test15407exp()
     // StructLiteralExp.elements <- preFunctionParameters in CallExp
     { auto r = S([1] * 6); }
 
-    // NewExp.newargs/arguments <- preFunctionParameters
+    // NewExp.arguments <- preFunctionParameters
     { auto r = new S([1] * 6); }
 
     // TODO: TypeidExp

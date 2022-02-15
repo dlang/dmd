@@ -5125,15 +5125,6 @@ private bool reliesOnTemplateParameters(Expression e, TemplateParameter[] tparam
             //printf("NewExp.reliesOnTemplateParameters('%s')\n", e.toChars());
             if (e.thisexp)
                 e.thisexp.accept(this);
-            if (!result && e.newargs)
-            {
-                foreach (ea; *e.newargs)
-                {
-                    ea.accept(this);
-                    if (result)
-                        return;
-                }
-            }
             result = e.newtype.reliesOnTemplateParameters(tparams);
             if (!result && e.arguments)
             {

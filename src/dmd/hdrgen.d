@@ -2105,12 +2105,6 @@ public:
             buf.writeByte('.');
         }
         buf.writestring("new ");
-        if (e.newargs && e.newargs.dim)
-        {
-            buf.writeByte('(');
-            argsToBuffer(e.newargs, buf, hgs);
-            buf.writeByte(')');
-        }
         typeToBuffer(e.newtype, null, buf, hgs);
         if (e.arguments && e.arguments.dim)
         {
@@ -2128,12 +2122,6 @@ public:
             buf.writeByte('.');
         }
         buf.writestring("new");
-        if (e.newargs && e.newargs.dim)
-        {
-            buf.writeByte('(');
-            argsToBuffer(e.newargs, buf, hgs);
-            buf.writeByte(')');
-        }
         buf.writestring(" class ");
         if (e.arguments && e.arguments.dim)
         {

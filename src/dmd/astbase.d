@@ -4608,15 +4608,13 @@ struct ASTBase
     extern (C++) final class NewAnonClassExp : Expression
     {
         Expression thisexp;     // if !=null, 'this' for class being allocated
-        Expressions* newargs;   // Array of Expression's to call new operator
         ClassDeclaration cd;    // class being instantiated
         Expressions* arguments; // Array of Expression's to call class constructor
 
-        extern (D) this(const ref Loc loc, Expression thisexp, Expressions* newargs, ClassDeclaration cd, Expressions* arguments)
+        extern (D) this(const ref Loc loc, Expression thisexp, ClassDeclaration cd, Expressions* arguments)
         {
             super(loc, EXP.newAnonymousClass, __traits(classInstanceSize, NewAnonClassExp));
             this.thisexp = thisexp;
-            this.newargs = newargs;
             this.cd = cd;
             this.arguments = arguments;
         }
@@ -4799,15 +4797,13 @@ struct ASTBase
     extern (C++) class NewExp : Expression
     {
         Expression thisexp;         // if !=null, 'this' for class being allocated
-        Expressions* newargs;       // Array of Expression's to call new operator
         Type newtype;
         Expressions* arguments;     // Array of Expression's
 
-        extern (D) this(const ref Loc loc, Expression thisexp, Expressions* newargs, Type newtype, Expressions* arguments)
+        extern (D) this(const ref Loc loc, Expression thisexp, Type newtype, Expressions* arguments)
         {
             super(loc, EXP.new_, __traits(classInstanceSize, NewExp));
             this.thisexp = thisexp;
-            this.newargs = newargs;
             this.newtype = newtype;
             this.arguments = arguments;
         }

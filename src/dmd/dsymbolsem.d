@@ -1040,15 +1040,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             // See if initializer is a NewExp that can be allocated on the stack
                             if (dsym.type.toBasetype().ty == Tclass)
                             {
-                                if (ne.newargs && ne.newargs.dim > 1)
-                                {
-                                    dsym.mynew = true;
-                                }
-                                else
-                                {
-                                    ne.onstack = 1;
-                                    dsym.onstack = true;
-                                }
+                                ne.onstack = 1;
+                                dsym.onstack = true;
                             }
                         }
                         else if (auto fe = ex.isFuncExp())

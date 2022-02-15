@@ -5804,7 +5804,6 @@ public:
     bool isowner;
     bool setInCtorOnly;
     bool onstack;
-    bool mynew;
     int8_t canassign;
     bool overlapped;
     bool overlapUnsafe;
@@ -6884,14 +6883,13 @@ class NewExp final : public Expression
 {
 public:
     Expression* thisexp;
-    Array<Expression* >* newargs;
     Type* newtype;
     Array<Expression* >* arguments;
     Expression* argprefix;
     CtorDeclaration* member;
     bool onstack;
     bool thrownew;
-    static NewExp* create(const Loc& loc, Expression* thisexp, Array<Expression* >* newargs, Type* newtype, Array<Expression* >* arguments);
+    static NewExp* create(const Loc& loc, Expression* thisexp, Type* newtype, Array<Expression* >* arguments);
     NewExp* syntaxCopy();
     void accept(Visitor* v);
 };
@@ -6900,7 +6898,6 @@ class NewAnonClassExp final : public Expression
 {
 public:
     Expression* thisexp;
-    Array<Expression* >* newargs;
     ClassDeclaration* cd;
     Array<Expression* >* arguments;
     NewAnonClassExp* syntaxCopy();
