@@ -82,21 +82,31 @@ class Parser(AST) : Lexer
         //nextToken();              // start up the scanner
     }
 
+    /++
+     + Parse a module, i.e. the optional `module x.y.z` declaration and all declarations
+     + found in the current file.
+     +
+     + Returns: the list of declarations or an empty list in case of malformed declarations,
+     +          the module declaration will be stored as `this.md` if found
+     +/
     AST.Dsymbols* parseModule()
+    {
+        if (!parseModuleDeclaration())
+            return errorReturn();
+
+        return parseModuleContent();
+    }
+
+    /++
+     + Parse the optional module declaration
+     +
+     + Returns: false if a malformed module declaration was found
+     +/
+    final bool parseModuleDeclaration()
     {
         const comment = token.blockComment;
         bool isdeprecated = false;
         AST.Expression msg = null;
-        AST.Dsymbols* decldefs;
-        AST.Dsymbol lastDecl = mod; // for attaching ddoc unittests to module decl
-
-        AST.Dsymbols* errorReturn()
-        {
-            while (token.value != TOK.semicolon && token.value != TOK.endOfFile)
-                nextToken();
-            nextToken();
-            return new AST.Dsymbols();
-        }
 
         // Parse optional module attributes
         parseModuleAttributes(msg, isdeprecated);
@@ -114,7 +124,7 @@ class Parser(AST) : Lexer
             if (token.value != TOK.identifier)
             {
                 error("identifier expected following `module`");
-                return errorReturn();
+                return false;
             }
 
             Identifier[] a;
@@ -127,7 +137,7 @@ class Parser(AST) : Lexer
                 if (token.value != TOK.identifier)
                 {
                     error("identifier expected following `package`");
-                    return errorReturn();
+                    return false;
                 }
                 id = token.ident;
             }
@@ -139,8 +149,18 @@ class Parser(AST) : Lexer
             nextToken();
             addComment(mod, comment);
         }
+        return true;
+    }
 
-        decldefs = parseDeclDefs(0, &lastDecl);
+    /++
+     + Parse the content of a module, i.e. all declarations found until the end of file.
+     +
+     + Returns: the list of declarations or an empty list in case of malformed declarations
+     +/
+    final AST.Dsymbols* parseModuleContent()
+    {
+        AST.Dsymbol lastDecl = mod;
+        AST.Dsymbols* decldefs = parseDeclDefs(0, &lastDecl);
 
         if (token.value == TOK.rightCurly)
         {
@@ -156,6 +176,18 @@ class Parser(AST) : Lexer
         return decldefs;
     }
 
+    /++
+     + Skips to the end of the current declaration - denoted by either `;` or EOF
+     +
+     + Returns: An empty list of Dsymbols
+     +/
+    private AST.Dsymbols* errorReturn()
+    {
+        while (token.value != TOK.semicolon && token.value != TOK.endOfFile)
+            nextToken();
+        nextToken();
+        return new AST.Dsymbols();
+    }
 
     /**********************************
      * Parse the ModuleAttributes preceding a module declaration.
