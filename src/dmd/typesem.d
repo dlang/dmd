@@ -273,7 +273,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
             // Same check as in Expression.semanticY(DotIdExp)
             else if (sm.isPackage() && checkAccess(sc, sm.isPackage()))
             {
-                // @@@DEPRECATED_2.096@@@
+                // @@@DEPRECATED_2.106@@@
                 // Should be an error in 2.106. Just remove the deprecation call
                 // and uncomment the null assignment
                 deprecation(loc, "%s %s is not accessible here, perhaps add 'static import %s;'", sm.kind(), sm.toPrettyChars(), sm.toPrettyChars());
@@ -3003,14 +3003,14 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, mt.toChars());
         if ((mt.ident.equals(Id._super) || mt.ident.equals(Id.This)) && !hasThis(sc))
         {
-            // @@@DEPRECATED_v2.091@@@.
+            // @@@DEPRECATED_2.091@@@.
             // Made an error in 2.086.
             // Eligible for removal in 2.091.
             if (mt.ident.equals(Id._super))
             {
                 error(mt.loc, "Using `super` as a type is obsolete. Use `typeof(super)` instead");
             }
-             // @@@DEPRECATED_v2.091@@@.
+             // @@@DEPRECATED_2.091@@@.
             // Made an error in 2.086.
             // Eligible for removal in 2.091.
             if (mt.ident.equals(Id.This))
@@ -3847,7 +3847,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                  *  e.opDot().ident
                  */
                 e = build_overload(e.loc, sc, e, null, fd);
-                // @@@DEPRECATED_2.087@@@.
+                // @@@DEPRECATED_2.092@@@.
                 e.deprecation("`opDot` is deprecated. Use `alias this`");
                 e = new DotIdExp(e.loc, e, ident);
                 return returnExp(e.expressionSemantic(sc));

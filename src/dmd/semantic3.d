@@ -1404,7 +1404,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         auto sexp = new ExpStatement(ctor.loc, ce);
         auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
 
-        // @@@DEPRECATED_2096@@@
+        // @@@DEPRECATED_2.106@@@
         // Allow negligible attribute violations to allow for a smooth
         // transition. Remove this after the usual deprecation period
         // after 2.106.
