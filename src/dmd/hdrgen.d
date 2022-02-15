@@ -1984,29 +1984,9 @@ public:
     {
         buf.writeByte('"');
         const o = buf.length;
-        for (size_t i = 0; i < e.len; i++)
+        foreach (i; 0 .. e.len)
         {
-            const c = e.charAt(i);
-            switch (c)
-            {
-            case '"':
-            case '\\':
-                buf.writeByte('\\');
-                goto default;
-            default:
-                if (c <= 0xFF)
-                {
-                    if (c <= 0x7F && isprint(c))
-                        buf.writeByte(c);
-                    else
-                        buf.printf("\\x%02x", c);
-                }
-                else if (c <= 0xFFFF)
-                    buf.printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
-                else
-                    buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x", c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
-                break;
-            }
+            writeCharLiteral(*buf, e.charAt(i));
         }
         if (hgs.ddoc)
             escapeDdocString(buf, o);

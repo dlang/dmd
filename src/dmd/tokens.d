@@ -997,29 +997,7 @@ nothrow:
                 {
                     dchar c;
                     utf_decodeChar(ustring[0 .. len], i, c);
-                    switch (c)
-                    {
-                    case 0:
-                        break;
-                    case '"':
-                    case '\\':
-                        buf.writeByte('\\');
-                        goto default;
-                    default:
-                        if (c <= 0x7F)
-                        {
-                            if (isprint(c))
-                                buf.writeByte(c);
-                            else
-                                buf.printf("\\x%02x", c);
-                        }
-                        else if (c <= 0xFFFF)
-                            buf.printf("\\u%04x", c);
-                        else
-                            buf.printf("\\U%08x", c);
-                        continue;
-                    }
-                    break;
+                    writeCharLiteral(buf, c);
                 }
                 buf.writeByte('"');
                 if (postfix)
@@ -1094,3 +1072,64 @@ nothrow:
     }
 }
 
+/**
+ * Write a character, using a readable escape sequence if needed
+ *
+ * Useful for printing "" string literals in e.g. error messages, ddoc, or the `.stringof` property
+ *
+ * Params:
+ *   buf = buffer to append character in
+ *   c = code point to write
+ */
+nothrow
+void writeCharLiteral(ref OutBuffer buf, dchar c)
+{
+    switch (c)
+    {
+        case '\0':
+            buf.writestring("\\0");
+            break;
+        case '\n':
+            buf.writestring("\\n");
+            break;
+        case '\r':
+            buf.writestring("\\r");
+            break;
+        case '\t':
+            buf.writestring("\\t");
+            break;
+        case '\b':
+            buf.writestring("\\b");
+            break;
+        case '\f':
+            buf.writestring("\\f");
+            break;
+        case '"':
+        case '\\':
+            buf.writeByte('\\');
+            goto default;
+        default:
+            if (c <= 0x7F)
+            {
+                if (isprint(c))
+                    buf.writeByte(c);
+                else
+                    buf.printf("\\x%02x", c);
+            }
+            else if (c <= 0xFFFF)
+                buf.printf("\\u%04x", c);
+            else
+                buf.printf("\\U%08x", c);
+            break;
+    }
+}
+
+unittest
+{
+    OutBuffer buf;
+    foreach(dchar d; "a\n\r\t\b\f\0\x11\u7233\U00017233"d)
+    {
+        writeCharLiteral(buf, d);
+    }
+    assert(buf.extractSlice() == `a\n\r\t\b\f\0\x11\u7233\U00017233`);
+}
