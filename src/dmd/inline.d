@@ -722,7 +722,6 @@ public:
             auto ne = e.copy().isNewExp();
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
             ne.argprefix = doInlineAs!Expression(e.argprefix, ids);
-            ne.newargs = arrayExpressionDoInline(e.newargs);
             ne.arguments = arrayExpressionDoInline(e.arguments);
             result = ne;
 

@@ -1842,7 +1842,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                         auto args = new Expressions(nargs - i);
                         foreach (u; i .. nargs)
                             (*args)[u - i] = (*arguments)[u];
-                        arg = new NewExp(loc, null, null, p.type, args);
+                        arg = new NewExp(loc, null, p.type, args);
                         break;
                     }
                 default:
@@ -3513,11 +3513,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.newtype = exp.type; // in case type gets cast to something else
         Type tb = exp.type.toBasetype();
         //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
-        if (arrayExpressionSemantic(exp.newargs, sc) ||
-            preFunctionParameters(sc, exp.newargs))
-        {
-            return setError();
-        }
         if (arrayExpressionSemantic(exp.arguments, sc))
         {
             return setError();
@@ -3683,14 +3678,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                           originalNewtype.toChars());
                 return setError();
             }
-            else
-            {
-                if (exp.newargs && exp.newargs.dim)
-                {
-                    exp.error("no allocator for `%s`", cd.toChars());
-                    return setError();
-                }
-            }
 
             if (cd.ctor)
             {
@@ -3755,14 +3742,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.error("cannot allocate `struct %s` with `new` because it is annotated with `@disable new()`",
                           originalNewtype.toChars());
                 return setError();
-            }
-            else
-            {
-                if (exp.newargs && exp.newargs.dim)
-                {
-                    exp.error("no allocator for `%s`", sd.toChars());
-                    return setError();
-                }
             }
 
             if (sd.hasRegularCtor() && nargs)
@@ -3915,7 +3894,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             sds.members.push(e.cd);
         }
 
-        Expression n = new NewExp(e.loc, e.thisexp, e.newargs, e.cd.type, e.arguments);
+        Expression n = new NewExp(e.loc, e.thisexp, e.cd.type, e.arguments);
 
         Expression c = new CommaExp(e.loc, d, n);
         result = c.expressionSemantic(sc);
@@ -9878,7 +9857,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             VarExp ve = cast(VarExp)exp.e1;
             VarDeclaration vd = ve.var.isVarDeclaration();
-            if (vd && (vd.onstack || vd.mynew))
+            if (vd && vd.onstack)
             {
                 assert(t1.ty == Tclass);
                 exp.error("cannot rebind scope variables");

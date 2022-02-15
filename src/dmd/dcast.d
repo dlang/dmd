@@ -1151,7 +1151,6 @@ MATCH implicitConvTo(Expression e, Type t)
          * return from new() to t using the same algorithm as in CallExp, with the function
          * 'arguments' being:
          *    thisexp
-         *    newargs
          *    arguments
          *    .init
          * 'member' need to be pure.

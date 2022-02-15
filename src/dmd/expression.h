@@ -519,10 +519,9 @@ public:
 class NewExp : public Expression
 {
 public:
-    /* thisexp.new(newargs) newtype(arguments)
+    /* newtype(arguments)
      */
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
-    Expressions *newargs;       // Array of Expression's to call new operator
     Type *newtype;
     Expressions *arguments;     // Array of Expression's
 
@@ -532,7 +531,7 @@ public:
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
-    static NewExp *create(const Loc &loc, Expression *thisexp, Expressions *newargs, Type *newtype, Expressions *arguments);
+    static NewExp *create(const Loc &loc, Expression *thisexp, Type *newtype, Expressions *arguments);
     NewExp *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -541,10 +540,9 @@ public:
 class NewAnonClassExp : public Expression
 {
 public:
-    /* thisexp.new(newargs) class baseclasses { } (arguments)
+    /* class baseclasses { } (arguments)
      */
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
-    Expressions *newargs;       // Array of Expression's to call new operator
     ClassDeclaration *cd;       // class being instantiated
     Expressions *arguments;     // Array of Expression's to call class constructor
 

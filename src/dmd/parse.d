@@ -9176,12 +9176,7 @@ LagainStc:
         const loc = token.loc;
 
         nextToken();
-        AST.Expressions* newargs = null;
         AST.Expressions* arguments = null;
-        if (token.value == TOK.leftParenthesis)
-        {
-            newargs = parseArguments();
-        }
 
         // An anonymous nested class starts with "class"
         if (token.value == TOK.class_)
@@ -9211,7 +9206,7 @@ LagainStc:
             }
 
             auto cd = new AST.ClassDeclaration(loc, id, baseclasses, members, false);
-            auto e = new AST.NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
+            auto e = new AST.NewAnonClassExp(loc, thisexp, cd, arguments);
             return e;
         }
 
@@ -9236,7 +9231,7 @@ LagainStc:
             arguments = parseArguments();
         }
 
-        auto e = new AST.NewExp(loc, thisexp, newargs, t, arguments);
+        auto e = new AST.NewExp(loc, thisexp, t, arguments);
         return e;
     }
 
