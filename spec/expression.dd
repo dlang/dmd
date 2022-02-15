@@ -973,13 +973,10 @@ $(H3 $(LNAME2 new_expressions, New Expressions))
 
 $(GRAMMAR
 $(GNAME NewExpression):
-    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type)
-    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D new) $(GLINK2 type, Type)
+    $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
+    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
-
-$(GNAME AllocatorArguments):
-    $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
 
 $(GNAME ArgumentList):
     $(GLINK AssignExpression)
@@ -988,19 +985,12 @@ $(GNAME ArgumentList):
 )
 
     $(P $(I NewExpression)s are used to allocate memory on the garbage
-        collected heap (default) or using a class or struct specific allocator.
-    )
-
-    $(DDOC_DEPRECATED If $(I AllocatorArguments) is provided, then
-        the $(I ArgumentList) is passed to the class or struct specific
-        $(DDSUBLINK spec/class, allocators, allocator function) after the size argument.
+        collected heap.
     )
 
     $(P If a $(I NewExpression) is used as an initializer for
         a function local variable with $(D scope) storage class,
-        and the $(I ArgumentList) to $(D new) is empty, then
-        the instance is allocated on the stack rather than the heap
-        or using the class specific allocator.
+        then the instance is allocated on the stack.
     )
 
 $(H3 $(LNAME2 new_multidimensional, Multidimensional Arrays))
@@ -1079,8 +1069,7 @@ $(GNAME DeleteExpression):
 
     $(P If $(I UnaryExpression) is a variable allocated
         on the stack, the class destructor (if any) is called for that
-        instance. Neither the garbage collector nor any class deallocator
-        is called.
+        instance. The garbage collector is not called.
     )
 
     $(UNDEFINED_BEHAVIOR
