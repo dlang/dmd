@@ -728,23 +728,6 @@ public:
             semanticTypeInfo(null, e.type);
         }
 
-        override void visit(DeleteExp e)
-        {
-            visit(cast(UnaExp)e);
-
-            Type tb = e.e1.type.toBasetype();
-            if (tb.ty == Tarray)
-            {
-                Type tv = tb.nextOf().baseElemOf();
-                if (auto ts = tv.isTypeStruct())
-                {
-                    auto sd = ts.sym;
-                    if (sd.dtor)
-                        semanticTypeInfo(null, ts);
-                }
-            }
-        }
-
         override void visit(UnaExp e)
         {
             auto ue = cast(UnaExp)e.copy();
