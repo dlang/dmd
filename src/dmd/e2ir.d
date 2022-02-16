@@ -3497,28 +3497,6 @@ extern (C++) class ToElemVisitor : Visitor
         RTLSYM rtl;
         switch (tb.ty)
         {
-            case Tarray:
-            {
-                e = addressElem(e, de.e1.type);
-                rtl = RTLSYM.DELARRAYT;
-
-                /* See if we need to run destructors on the array contents
-                 */
-                elem *et = null;
-                Type tv = tb.nextOf().baseElemOf();
-                if (auto ts = tv.isTypeStruct())
-                {
-                    // FIXME: ts can be non-mutable, but _d_delarray_t requests TypeInfo_Struct.
-                    StructDeclaration sd = ts.sym;
-                    if (sd.dtor)
-                        et = getTypeInfo(de.e1.loc, tb.nextOf(), irs);
-                }
-                if (!et)                            // if no destructors needed
-                    et = el_long(TYnptr, 0);        // pass null for TypeInfo
-                e = el_params(et, e, null);
-                // call _d_delarray_t(e, et);
-                break;
-            }
             case Tclass:
                 if (de.e1.op == EXP.variable)
                 {
@@ -3532,20 +3510,7 @@ extern (C++) class ToElemVisitor : Visitor
                         break;
                     }
                 }
-                e = addressElem(e, de.e1.type);
-                rtl = RTLSYM.DELCLASS;
-                if (tb.isClassHandle().isInterfaceDeclaration())
-                    rtl = RTLSYM.DELINTERFACE;
-                break;
-
-            case Tpointer:
-                e = addressElem(e, de.e1.type);
-                rtl = RTLSYM.DELMEMORY;
-                tb = (cast(TypePointer)tb).next.toBasetype();
-
-                if (auto ts = tb.isTypeStruct())
-                    assert(!ts.sym.dtor, "This should have been lowererd to `_d_delstruct` in the semantic phase");
-                break;
+                goto default;
 
             default:
                 assert(0);

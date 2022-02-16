@@ -8419,6 +8419,9 @@ LagainStc:
             break;
 
         case TOK.delete_:
+            // @@@DEPRECATED_2.109@@@
+            // Use of `delete` keyword has been an error since 2.099.
+            // Remove from the parser after 2.109.
             nextToken();
             e = parseUnaryExp();
             e = new AST.DeleteExp(loc, e, false);
