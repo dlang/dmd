@@ -11,7 +11,10 @@ then
 fi
 
 # CodeCov gets confused by lst files which it can't match
-rm -rf test/runnable/extra-files test/*.lst
+rm -rf test/runnable/extra-files \
+    test/*.lst \
+    ./*test_results-runner.lst \
+    __main.lst
 
 # Save the file from URL passed as $1 to the location in $2
 doCurl()
