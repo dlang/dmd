@@ -5592,12 +5592,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         assert(idec.type.ty != Tclass || (cast(TypeClass)idec.type).sym == idec);
 
-        // @@@DEPRECATED_2.097@@@https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // @@@DEPRECATED_2.120@@@ https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
         // Deprecated in 2.087
-        // Remove in 2.091
+        // Made an error in 2.100, but removal depends on `scope class` being removed too
         // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
         if (idec.storage_class & STC.scope_)
-            deprecation(idec.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
+            error(idec.loc, "`scope` as a type constraint is obsolete.  Use `scope` at the usage site.");
     }
 }
 
