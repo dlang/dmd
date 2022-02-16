@@ -12,12 +12,6 @@ $(H2 $(LNAME2 intro, Introduction))
     )
 
 $(GRAMMAR
-$(GNAME AggregateDeclaration):
-    $(GLINK2 class, ClassDeclaration)
-    $(GLINK2 interface, InterfaceDeclaration)
-    $(GLINK StructDeclaration)
-    $(GLINK UnionDeclaration)
-
 $(GNAME StructDeclaration):
     $(D struct) $(GLINK_LEX Identifier) $(D ;)
     $(D struct) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
