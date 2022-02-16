@@ -272,28 +272,15 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
  */
 Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
 {
-    extern (C++) final class OpOverload : Visitor
-    {
-        alias visit = Visitor.visit;
-    public:
-        Scope* sc;
-        EXP* pop;
-        Expression result;
-
-        extern (D) this(Scope* sc, EXP* pop)
-        {
-            this.sc = sc;
-            this.pop = pop;
-        }
-
-        override void visit(Expression e)
+        Expression visit(Expression e)
         {
             assert(0);
         }
 
-        override void visit(UnaExp e)
+        Expression visitUna(UnaExp e)
         {
             //printf("UnaExp::op_overload() (%s)\n", e.toChars());
+            Expression result;
             if (e.e1.op == EXP.array)
             {
                 ArrayExp ae = cast(ArrayExp)e.e1;
@@ -311,8 +298,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 {
                     if (ae.e1.op == EXP.error)
                     {
-                        result = ae.e1;
-                        return;
+                        return ae.e1;
                     }
                     Expression e0 = null;
                     Expression ae1save = ae.e1;
@@ -328,7 +314,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         if (!result) // op(a[i..j]) might be: a.opSliceUnary!(op)(i, j)
                             goto Lfallback;
                         if (result.op == EXP.error)
-                            return;
+                            return result;
                         /* Rewrite op(a[arguments]) as:
                          *      a.opIndexUnary!(op)(arguments)
                          */
@@ -342,8 +328,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                             result = result.expressionSemantic(sc);
                         if (result)
                         {
-                            result = Expression.combine(e0, result);
-                            return;
+                            return Expression.combine(e0, result);
                         }
                     }
                 Lfallback:
@@ -352,7 +337,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         // Deal with $
                         result = resolveOpDollar(sc, ae, ie, &e0);
                         if (result.op == EXP.error)
-                            return;
+                            return result;
                         /* Rewrite op(a[i..j]) as:
                          *      a.opSliceUnary!(op)(i, j)
                          */
@@ -367,7 +352,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         result = new CallExp(e.loc, result, a);
                         result = result.expressionSemantic(sc);
                         result = Expression.combine(e0, result);
-                        return;
+                        return result;
                     }
                     // Didn't find it. Forward to aliasthis
                     if (ad.aliasthis && !isRecursiveAliasThis(ae.att1, ae.e1.type))
@@ -388,8 +373,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             e.e1 = resolveProperties(sc, e.e1);
             if (e.e1.op == EXP.error)
             {
-                result = e.e1;
-                return;
+                return e.e1;
             }
             AggregateDeclaration ad = isAggregate(e.e1.type);
             if (ad)
@@ -405,7 +389,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     result = new DotTemplateInstanceExp(e.loc, e.e1, fd.ident, tiargs);
                     result = new CallExp(e.loc, result);
                     result = result.expressionSemantic(sc);
-                    return;
+                    return result;
                 }
                 // D1-style operator overloads, deprecated
                 if (e.op != EXP.prePlusPlus && e.op != EXP.preMinusMinus)
@@ -420,7 +404,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
                         // Rewrite +e1 as e1.add()
                         result = build_overload(e.loc, sc, e.e1, null, fd);
-                        return;
+                        return result;
                     }
                 }
                 // Didn't find it. Forward to aliasthis
@@ -434,12 +418,13 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     UnaExp ue = cast(UnaExp)e.copy();
                     ue.e1 = e1;
                     result = ue.trySemantic(sc);
-                    return;
+                    return result;
                 }
             }
+            return result;
         }
 
-        override void visit(ArrayExp ae)
+        Expression visitArray(ArrayExp ae)
         {
             //printf("ArrayExp::op_overload() (%s)\n", ae.toChars());
             ae.e1 = ae.e1.expressionSemantic(sc);
@@ -452,12 +437,12 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 assert((*ae.arguments)[0].op == EXP.interval);
                 ie = cast(IntervalExp)(*ae.arguments)[0];
             }
+            Expression result;
             while (true)
             {
                 if (ae.e1.op == EXP.error)
                 {
-                    result = ae.e1;
-                    return;
+                    return ae.e1;
                 }
                 Expression e0 = null;
                 Expression ae1save = ae.e1;
@@ -475,14 +460,14 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         {
                             result = new SliceExp(ae.loc, ae.e1, ie);
                             result = result.expressionSemantic(sc);
-                            return;
+                            return result;
                         }
                         // Convert to IndexExp
                         if (ae.arguments.dim == 1)
                         {
                             result = new IndexExp(ae.loc, ae.e1, (*ae.arguments)[0]);
                             result = result.expressionSemantic(sc);
-                            return;
+                            return result;
                         }
                     }
                     break;
@@ -494,7 +479,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     if (!result) // a[i..j] might be: a.opSlice(i, j)
                         goto Lfallback;
                     if (result.op == EXP.error)
-                        return;
+                        return result;
                     /* Rewrite e1[arguments] as:
                      *      e1.opIndex(arguments)
                      */
@@ -507,8 +492,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         result = result.expressionSemantic(sc);
                     if (result)
                     {
-                        result = Expression.combine(e0, result);
-                        return;
+                        return Expression.combine(e0, result);
                     }
                 }
             Lfallback:
@@ -517,7 +501,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     result = new SliceExp(ae.loc, ae.e1, ie);
                     result = result.expressionSemantic(sc);
                     result = Expression.combine(e0, result);
-                    return;
+                    return result;
                 }
                 if (maybeSlice && search_function(ad, Id.slice))
                 {
@@ -529,7 +513,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         if (!e0 && !search_function(ad, Id.dollar)) {
                             ae.loc.errorSupplemental("Aggregate declaration '%s' does not define 'opDollar'", ae.e1.toChars());
                         }
-                        return;
+                        return result;
                     }
                     /* Rewrite a[i..j] as:
                      *      a.opSlice(i, j)
@@ -544,7 +528,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     result = new CallExp(ae.loc, result, a);
                     result = result.expressionSemantic(sc);
                     result = Expression.combine(e0, result);
-                    return;
+                    return result;
                 }
                 // Didn't find it. Forward to aliasthis
                 if (ad.aliasthis && !isRecursiveAliasThis(ae.att1, ae.e1.type))
@@ -561,15 +545,17 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             }
             ae.e1 = ae1old; // recovery
             ae.lengthVar = null;
+            return result;
         }
 
         /***********************************************
          * This is mostly the same as UnaryExp::op_overload(), but has
          * a different rewrite.
          */
-        override void visit(CastExp e)
+        Expression visitCast(CastExp e)
         {
             //printf("CastExp::op_overload() (%s)\n", e.toChars());
+            Expression result;
             AggregateDeclaration ad = isAggregate(e.e1.type);
             if (ad)
             {
@@ -586,8 +572,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         if (fd.isFuncDeclaration())
                         {
                             // Rewrite as:  e1.opCast()
-                            result = build_overload(e.loc, sc, e.e1, null, fd);
-                            return;
+                            return build_overload(e.loc, sc, e.e1, null, fd);
                         }
                     }
                     auto tiargs = new Objects();
@@ -595,7 +580,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     result = new DotTemplateInstanceExp(e.loc, e.e1, fd.ident, tiargs);
                     result = new CallExp(e.loc, result);
                     result = result.expressionSemantic(sc);
-                    return;
+                    return result;
                 }
                 // Didn't find it. Forward to aliasthis
                 if (ad.aliasthis && !isRecursiveAliasThis(e.att1, e.e1.type))
@@ -608,13 +593,14 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         result = e.copy();
                         (cast(UnaExp)result).e1 = e1;
                         result = result.op_overload(sc);
-                        return;
+                        return result;
                     }
                 }
             }
+            return result;
         }
 
-        override void visit(BinExp e)
+        Expression visitBin(BinExp e)
         {
             //printf("BinExp::op_overload() (%s)\n", e.toChars());
             Identifier id = opId(e);
@@ -635,7 +621,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                      (sd.hasBlitAssign && !e.e2.isLvalue())))
                 {
                     /* This is bitwise struct assignment. */
-                    return;
+                    return null;
                 }
             }
             Dsymbol s = null;
@@ -645,7 +631,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             {
                 // Bug4099 fix
                 if (ad1 && search_function(ad1, Id.opUnary))
-                    return;
+                    return null;
             }
             if (e.op != EXP.equal && e.op != EXP.notEqual && e.op != EXP.assign && e.op != EXP.plusPlus && e.op != EXP.minusMinus)
             {
@@ -657,8 +643,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     if (s && !s.isTemplateDeclaration())
                     {
                         e.e1.error("`%s.opBinary` isn't a template", e.e1.toChars());
-                        result = ErrorExp.get();
-                        return;
+                        return ErrorExp.get();
                     }
                 }
                 if (ad2)
@@ -667,8 +652,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     if (s_r && !s_r.isTemplateDeclaration())
                     {
                         e.e2.error("`%s.opBinaryRight` isn't a template", e.e2.toChars());
-                        result = ErrorExp.get();
-                        return;
+                        return ErrorExp.get();
                     }
                     if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
                         s_r = null;
@@ -735,8 +719,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
-                        result = ErrorExp.get();
-                        return;
+                        return ErrorExp.get();
                     }
                 }
                 FuncDeclaration lastf = m.lastf;
@@ -745,8 +728,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
-                        result = ErrorExp.get();
-                        return;
+                        return ErrorExp.get();
                     }
                 }
                 if (m.count > 1)
@@ -766,19 +748,18 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     // as unary, but it's implemented as a binary.
                     // Rewrite (e1 ++ e2) as e1.postinc()
                     // Rewrite (e1 -- e2) as e1.postdec()
-                    result = build_overload(e.loc, sc, e.e1, null, m.lastf ? m.lastf : s);
+                    return build_overload(e.loc, sc, e.e1, null, m.lastf ? m.lastf : s);
                 }
                 else if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
                 {
                     // Rewrite (e1 op e2) as e1.opfunc(e2)
-                    result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
+                    return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
                 }
                 else
                 {
                     // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-                    result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
+                    return build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
                 }
-                return;
             }
         L1:
             version (all)
@@ -820,8 +801,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                             functionResolve(m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
-                                result = ErrorExp.get();
-                                return;
+                                return ErrorExp.get();
                             }
                         }
                         FuncDeclaration lastf = m.lastf;
@@ -830,8 +810,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                             functionResolve(m, s, e.loc, sc, tiargs, e.e2.type, &args1);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
-                                result = ErrorExp.get();
-                                return;
+                                return ErrorExp.get();
                             }
                         }
                         if (m.count > 1)
@@ -847,18 +826,18 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         if (lastf && m.lastf == lastf || !s && m.last == MATCH.nomatch)
                         {
                             // Rewrite (e1 op e2) as e1.opfunc_r(e2)
-                            result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s_r);
+                            return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s_r);
                         }
                         else
                         {
                             // Rewrite (e1 op e2) as e2.opfunc(e1)
-                            result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s);
+                            Expression result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s);
                             // When reversing operands of comparison operators,
                             // need to reverse the sense of the op
                             if (pop)
                                 *pop = reverseRelation(e.op);
+                            return result;
                         }
-                        return;
                     }
                 }
             }
@@ -866,7 +845,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             Expression tempResult;
             if (!(e.op == EXP.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
-                result = checkAliasThisForLhs(ad1, sc, e);
+                Expression result = checkAliasThisForLhs(ad1, sc, e);
                 if (result)
                 {
                     /* https://issues.dlang.org/show_bug.cgi?id=19441
@@ -881,27 +860,27 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                      * condition.
                      */
                     if (e.op != EXP.assign || e.e1.op == EXP.type)
-                        return;
+                        return result;
 
                     if (ad1.fields.dim == 1 || (ad1.fields.dim == 2 && ad1.vthis))
                     {
                         auto var = ad1.aliasthis.sym.isVarDeclaration();
                         if (var && var.type == ad1.fields[0].type)
-                            return;
+                            return result;
 
                         auto func = ad1.aliasthis.sym.isFuncDeclaration();
                         auto tf = cast(TypeFunction)(func.type);
                         if (tf.isref && ad1.fields[0].type == tf.next)
-                            return;
+                            return result;
                     }
                     tempResult = result;
                 }
             }
             if (!(e.op == EXP.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
-                result = checkAliasThisForRhs(ad2, sc, e);
+                Expression result = checkAliasThisForRhs(ad2, sc, e);
                 if (result)
-                    return;
+                    return result;
             }
 
             // @@@DEPRECATED_2.096@@@
@@ -912,11 +891,12 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 // move this line where tempResult is assigned to result and turn to error when derecation period is over
                 e.deprecation("Cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`", e.e1.toChars(), ad1.toChars(), (cast(BinExp)tempResult).e1.toChars());
                 // delete this line when deprecation period is over
-                result = tempResult;
+                return tempResult;
             }
+            return null;
         }
 
-        override void visit(EqualExp e)
+        Expression visitEqual(EqualExp e)
         {
             //printf("EqualExp::op_overload() (%s)\n", e.toChars());
             Type t1 = e.e1.type.toBasetype();
@@ -929,7 +909,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             if ((t1.ty == Tarray || t1.ty == Tsarray) &&
                 (t2.ty == Tarray || t2.ty == Tsarray))
             {
-                return;
+                return null;
             }
 
             /* Check for class equality with null literal or typeof(null).
@@ -940,14 +920,13 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 e.error("use `%s` instead of `%s` when comparing with `null`",
                     EXPtoString(e.op == EXP.equal ? EXP.identity : EXP.notIdentity).ptr,
                     EXPtoString(e.op).ptr);
-                result = ErrorExp.get();
-                return;
+                return ErrorExp.get();
             }
             if (t1.ty == Tclass && t2.ty == Tnull ||
                 t1.ty == Tnull && t2.ty == Tclass)
             {
                 // Comparing a class with typeof(null) should not call opEquals
-                return;
+                return null;
             }
 
             /* Check for class equality.
@@ -973,26 +952,25 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     if (cd2.isInterfaceDeclaration())
                         e2x = new CastExp(e.loc, e.e2, t2.isMutable() ? to : to.constOf());
 
-                    result = new IdentifierExp(e.loc, Id.empty);
+                    Expression result = new IdentifierExp(e.loc, Id.empty);
                     result = new DotIdExp(e.loc, result, Id.object);
                     result = new DotIdExp(e.loc, result, Id.eq);
                     result = new CallExp(e.loc, result, e1x, e2x);
                     if (e.op == EXP.notEqual)
                         result = new NotExp(e.loc, result);
                     result = result.expressionSemantic(sc);
-                    return;
+                    return result;
                 }
             }
 
-            result = compare_overload(e, sc, Id.eq, null);
-            if (result)
+            if (Expression result = compare_overload(e, sc, Id.eq, null))
             {
                 if (lastComma(result).op == EXP.call && e.op == EXP.notEqual)
                 {
                     result = new NotExp(result.loc, result);
                     result = result.expressionSemantic(sc);
                 }
-                return;
+                return result;
             }
 
             /* Check for pointer equality.
@@ -1008,9 +986,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                  * as the backend input.
                  */
                 auto op2 = e.op == EXP.equal ? EXP.identity : EXP.notIdentity;
-                result = new IdentityExp(op2, e.loc, e.e1, e.e2);
-                result = result.expressionSemantic(sc);
-                return;
+                Expression r = new IdentityExp(op2, e.loc, e.e1, e.e2);
+                return r.expressionSemantic(sc);
             }
 
             /* Check for struct equality without opEquals.
@@ -1019,16 +996,15 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             {
                 auto sd = (cast(TypeStruct)t1).sym;
                 if (sd != (cast(TypeStruct)t2).sym)
-                    return;
+                    return null;
 
                 import dmd.clone : needOpEquals;
                 if (!global.params.fieldwise && !needOpEquals(sd))
                 {
                     // Use bitwise equality.
                     auto op2 = e.op == EXP.equal ? EXP.identity : EXP.notIdentity;
-                    result = new IdentityExp(op2, e.loc, e.e1, e.e2);
-                    result = result.expressionSemantic(sc);
-                    return;
+                    Expression r = new IdentityExp(op2, e.loc, e.e1, e.e2);
+                    return r.expressionSemantic(sc);
                 }
 
                 /* Do memberwise equality.
@@ -1042,8 +1018,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                  * also compare the parent class's equality. Otherwise, compares
                  * the identity of parent context through void*.
                  */
-                if (e.att1 && t1.equivalent(e.att1)) return;
-                if (e.att2 && t2.equivalent(e.att2)) return;
+                if (e.att1 && t1.equivalent(e.att1)) return null;
+                if (e.att2 && t2.equivalent(e.att2)) return null;
 
                 e = cast(EqualExp)e.copy();
                 if (!e.att1) e.att1 = t1;
@@ -1053,21 +1029,21 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
 
                 auto sc2 = sc.push();
                 sc2.flags |= SCOPE.noaccesscheck;
-                result = e.expressionSemantic(sc2);
+                Expression r = e.expressionSemantic(sc2);
                 sc2.pop();
 
                 /* https://issues.dlang.org/show_bug.cgi?id=15292
                  * if the rewrite result is same with the original,
                  * the equality is unresolvable because it has recursive definition.
                  */
-                if (result.op == e.op &&
-                    (cast(EqualExp)result).e1.type.toBasetype() == t1)
+                if (r.op == e.op &&
+                    (cast(EqualExp)r).e1.type.toBasetype() == t1)
                 {
                     e.error("cannot compare `%s` because its auto generated member-wise equality has recursive definition",
                         t1.toChars());
-                    result = ErrorExp.get();
+                    return ErrorExp.get();
                 }
-                return;
+                return r;
             }
 
             /* Check for tuple equality.
@@ -1081,10 +1057,10 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 {
                     e.error("mismatched tuple lengths, `%d` and `%d`",
                         cast(int)dim, cast(int)tup2.exps.dim);
-                    result = ErrorExp.get();
-                    return;
+                    return ErrorExp.get();
                 }
 
+                Expression result;
                 if (dim == 0)
                 {
                     // zero-length tuple comparison should always return true or false.
@@ -1112,20 +1088,21 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 result = Expression.combine(tup1.e0, tup2.e0, result);
                 result = result.expressionSemantic(sc);
 
-                return;
+                return result;
             }
+            return null;
         }
 
-        override void visit(CmpExp e)
+        Expression visitCmp(CmpExp e)
         {
             //printf("CmpExp:: () (%s)\n", e.toChars());
-            result = compare_overload(e, sc, Id.cmp, pop);
+            return compare_overload(e, sc, Id.cmp, pop);
         }
 
         /*********************************
          * Operator overloading for op=
          */
-        override void visit(BinAssignExp e)
+        Expression visitBinAssign(BinAssignExp e)
         {
             //printf("BinAssignExp::op_overload() (%s)\n", e.toChars());
             if (e.e1.op == EXP.array)
@@ -1145,8 +1122,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 {
                     if (ae.e1.op == EXP.error)
                     {
-                        result = ae.e1;
-                        return;
+                        return ae.e1;
                     }
                     Expression e0 = null;
                     Expression ae1save = ae.e1;
@@ -1158,14 +1134,14 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     if (search_function(ad, Id.opIndexOpAssign))
                     {
                         // Deal with $
-                        result = resolveOpDollar(sc, ae, &e0);
+                        Expression result = resolveOpDollar(sc, ae, &e0);
                         if (!result) // (a[i..j] op= e2) might be: a.opSliceOpAssign!(op)(e2, i, j)
                             goto Lfallback;
                         if (result.op == EXP.error)
-                            return;
+                            return result;
                         result = e.e2.expressionSemantic(sc);
                         if (result.op == EXP.error)
-                            return;
+                            return result;
                         e.e2 = result;
                         /* Rewrite a[arguments] op= e2 as:
                          *      a.opIndexOpAssign!(op)(e2, arguments)
@@ -1181,20 +1157,19 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                             result = result.expressionSemantic(sc);
                         if (result)
                         {
-                            result = Expression.combine(e0, result);
-                            return;
+                            return Expression.combine(e0, result);
                         }
                     }
                 Lfallback:
                     if (maybeSlice && search_function(ad, Id.opSliceOpAssign))
                     {
                         // Deal with $
-                        result = resolveOpDollar(sc, ae, ie, &e0);
+                        Expression result = resolveOpDollar(sc, ae, ie, &e0);
                         if (result.op == EXP.error)
-                            return;
+                            return result;
                         result = e.e2.expressionSemantic(sc);
                         if (result.op == EXP.error)
-                            return;
+                            return result;
                         e.e2 = result;
                         /* Rewrite (a[i..j] op= e2) as:
                          *      a.opSliceOpAssign!(op)(e2, i, j)
@@ -1211,7 +1186,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         result = new CallExp(e.loc, result, a);
                         result = result.expressionSemantic(sc);
                         result = Expression.combine(e0, result);
-                        return;
+                        return result;
                     }
                     // Didn't find it. Forward to aliasthis
                     if (ad.aliasthis && !isRecursiveAliasThis(ae.att1, ae.e1.type))
@@ -1228,14 +1203,13 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 ae.e1 = ae1old; // recovery
                 ae.lengthVar = null;
             }
-            result = e.binSemanticProp(sc);
+            Expression result = e.binSemanticProp(sc);
             if (result)
-                return;
+                return result;
             // Don't attempt 'alias this' if an error occurred
             if (e.e1.type.ty == Terror || e.e2.type.ty == Terror)
             {
-                result = ErrorExp.get();
-                return;
+                return ErrorExp.get();
             }
             Identifier id = opId(e);
             Expressions args2;
@@ -1250,8 +1224,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 if (s && !s.isTemplateDeclaration())
                 {
                     e.error("`%s.opOpAssign` isn't a template", e.e1.toChars());
-                    result = ErrorExp.get();
-                    return;
+                    return ErrorExp.get();
                 }
             }
             // Set tiargs, the template argument list, which will be the operator string
@@ -1290,8 +1263,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
-                        result = ErrorExp.get();
-                        return;
+                        return ErrorExp.get();
                     }
                 }
                 if (m.count > 1)
@@ -1306,23 +1278,38 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     m.lastf = null;
                 }
                 // Rewrite (e1 op e2) as e1.opOpAssign(e2)
-                result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
-                return;
+                return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
             }
         L1:
             result = checkAliasThisForLhs(ad1, sc, e);
             if (result || !s) // no point in trying Rhs alias-this if there's no overload of any kind in lhs
-                return;
+                return result;
 
-            result = checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
+            return checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
         }
-    }
 
     if (pop)
         *pop = e.op;
-    scope OpOverload v = new OpOverload(sc, pop);
-    e.accept(v);
-    return v.result;
+
+    switch (e.op)
+    {
+        case EXP.cast_         : return visitCast(e.isCastExp());
+        case EXP.array         : return visitArray(e.isArrayExp());
+
+        case EXP.notEqual      :
+        case EXP.equal         : return visitEqual(e.isEqualExp());
+
+        case EXP.lessOrEqual   :
+        case EXP.greaterThan   :
+        case EXP.greaterOrEqual:
+        case EXP.lessThan      : return visitCmp(cast(CmpExp)e);
+
+        default:
+            if (auto ex = e.isBinAssignExp()) return visitBinAssign(ex);
+            if (auto ex = e.isBinExp())       return visitBin(ex);
+            if (auto ex = e.isUnaExp())       return visitUna(ex);
+            return visit(e);
+    }
 }
 
 /******************************************
