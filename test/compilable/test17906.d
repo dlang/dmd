@@ -3,5 +3,5 @@
 deprecated void main ()
 {
     Object o = new Object;
-    delete o;
+    destroy(o);
 }
