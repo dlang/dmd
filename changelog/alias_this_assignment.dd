@@ -1,0 +1,30 @@
+End deprecation period for using `alias this` for partial assignment.
+
+Starting with this release, `alias this` may not be used for the partial
+assignment of a left-hand side operand. Any such assignment will result in a
+compiler error.
+
+If a struct has a single member which is aliased this directly or aliased to a
+ref getter function that returns the mentioned member, then alias this may be
+used since the object will be fully initialised.
+
+---
+struct Allowed
+{
+    int onemember;
+    alias onemember this;
+}
+
+struct Rejected
+{
+    int aliased;
+    long other;
+    alias aliased this;
+}
+
+void fun(Allowed a, Rejected r)
+{
+    a = 0; // OK, struct has only one member.
+    r = 0; // Error, cannot use `alias this` to partially initialize variable `r` of type `Rejected`. Use `r.aliased`
+}
+---
