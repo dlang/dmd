@@ -3828,10 +3828,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                  *  e.opDot().ident
                  */
                 e = build_overload(e.loc, sc, e, null, fd);
-                // @@@DEPRECATED_2.092@@@.
-                e.deprecation("`opDot` is deprecated. Use `alias this`");
-                e = new DotIdExp(e.loc, e, ident);
-                return returnExp(e.expressionSemantic(sc));
+                // @@@DEPRECATED_2.110@@@.
+                // Deprecated in 2.082, made an error in 2.100.
+                e.error("`opDot` is obsolete. Use `alias this`");
+                return ErrorExp.get();
             }
 
             /* Look for overloaded opDispatch to see if we should forward request
