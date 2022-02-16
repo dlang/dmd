@@ -839,11 +839,10 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 }
             }
 
-            Expression tempResult;
+            Expression rewrittenLhs;
             if (!(e.op == EXP.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
-                Expression result = checkAliasThisForLhs(ad1, sc, e);
-                if (result)
+                if (Expression result = checkAliasThisForLhs(ad1, sc, e))
                 {
                     /* https://issues.dlang.org/show_bug.cgi?id=19441
                      *
@@ -874,25 +873,19 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                                 return result;
                         }
                     }
-                    tempResult = result;
+                    rewrittenLhs = ae.e1;
                 }
             }
             if (!(e.op == EXP.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
-                Expression result = checkAliasThisForRhs(ad2, sc, e);
-                if (result)
+                if (Expression result = checkAliasThisForRhs(ad2, sc, e))
                     return result;
             }
-
-            // @@@DEPRECATED_2.096@@@
-            // 1. Deprecation for 1 year
-            // 2. Turn to error after
-            if (tempResult)
+            if (rewrittenLhs)
             {
-                // move this line where tempResult is assigned to result and turn to error when derecation period is over
-                e.deprecation("Cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`", e.e1.toChars(), ad1.toChars(), (cast(BinExp)tempResult).e1.toChars());
-                // delete this line when deprecation period is over
-                return tempResult;
+                e.error("cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`",
+                        e.e1.toChars(), ad1.toChars(), rewrittenLhs.toChars());
+                return ErrorExp.get();
             }
             return null;
         }
