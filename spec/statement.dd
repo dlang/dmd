@@ -444,7 +444,7 @@ for (int i = 0; i < 10; i++)
 
 $(H2 $(LEGACY_LNAME2 ForeachStatement, foreach-statement, Foreach Statement))
 
-$(P A `foreach` statement loops over the contents of an aggregate.)
+$(P A `foreach` statement iterates a series of values.)
 
 $(GRAMMAR
 $(GNAME AggregateForeach):
@@ -482,17 +482,39 @@ $(GNAME ForeachAggregate):
 
 $(P
         $(I ForeachAggregate) is evaluated. It must evaluate to an expression
-        of type static array, dynamic array, associative array,
+        which is a static array, dynamic array, associative array,
         struct, class, delegate, or sequence.
         The *NoScopeNonEmptyStatement* is executed, once for each element of the
         aggregate.
-        At the start of each iteration, the variables declared by
-        the $(I ForeachTypeList)
-        are set to be a copy of the elements of the aggregate.
-        If the $(I ForeachTypeAttribute) is $(D ref), it is a reference to the
-        contents of that aggregate.
-        If the $(I ForeachTypeAttribute) is $(D scope), the $(I ForeachType) declaration
-        will have $(D scope) semantics.
+)
+$(P
+        The number of variables declared in $(I ForeachTypeList)
+        depends on the kind of aggregate. The declared variables are
+        set at the start of each iteration.
+)
+$(UL
+        $(LI By default a single declared variable is a copy of the current element.)
+        $(LI If the $(I ForeachTypeAttribute) is $(D ref), that variable will
+        be a reference to the current element of the aggregate.)
+        $(LI If the $(I ForeachTypeAttribute) is $(D scope), the variable
+        will have $(DDSUBLINK spec/function, scope-parameters, `scope`) semantics.)
+)
+$(P
+        If not specified, the type of a $(I ForeachType) variable
+        can be inferred from the type of the $(I ForeachAggregate).
+        Note that `auto` is not a valid $(I ForeachTypeAttribute).
+        The two `foreach` statements below are equivalent:
+)
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+--------------
+int[] arr = [1, 2, 3];
+
+foreach (int n; arr)
+    writeln(n);
+
+foreach (n; arr) // ok, n is an int
+    writeln(n);
+--------------
 )
 $(P
         The aggregate must be loop invariant, meaning that
@@ -501,7 +523,7 @@ $(P
 )
 
         $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
-        foreach, a $(GLINK ContinueStatement) will immediately start the
+        loop. A $(GLINK ContinueStatement) will immediately start the
         next iteration.
         )
 
@@ -539,21 +561,6 @@ foreach (size_t i, char c; a)
         For $(D foreach_reverse), the array elements are visited in the reverse
         order.
         )
-
-        $(P $(B Note:) The $(I ForeachTypeAttribute) is implicit, and when a
-        type is not specified, it is inferred. In that case, $(D auto) is
-        implied, and it is not necessary (and actually forbidden) to use it.
-        )
-
---------------
-int[] arr;
-...
-foreach (n; arr) // ok, n is an int
-    writeln(n);
-
-foreach (auto n; arr) // error, auto is redundant
-    writeln(n);
---------------
 
 $(H3 $(LNAME2 foreach_over_arrays_of_characters, Foreach over Arrays of Characters))
 
@@ -1005,7 +1012,8 @@ main()
 
 $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
-        $(P $(D ref) can be used to update the original elements:
+        $(P $(D ref) can be used to update the original elements for some
+        kinds of container. Arrays support this:
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -1029,12 +1037,7 @@ $(CONSOLE
 8
 9
 )
-        $(P $(D ref) can not be applied to the index values.)
-
-        $(P If not specified, the $(I Type)s in the $(I ForeachType) can be
-        inferred from
-        the type of the $(I ForeachAggregate).
-        )
+        $(P $(D ref) cannot be applied to an array index variable.)
 
 $(H3 $(LNAME2 foreach_restrictions, Foreach Restrictions))
 
@@ -1075,11 +1078,13 @@ $(GNAME ForeachRangeStatement):
 
         $(P
         $(I ForeachType) declares a variable with either an explicit type,
-        or a type inferred from $(I LwrExpression) and $(I UprExpression).
+        or a common type inferred from $(I LwrExpression) and $(I UprExpression).
         The $(I ScopeStatement) is then executed $(I n) times, where $(I n)
-        is the result of $(I UprExpression) - $(I LwrExpression).
+        is the result of $(I UprExpression) `-` $(I LwrExpression).
         If $(I UprExpression) is less than or equal to $(I LwrExpression),
-        the $(I ScopeStatement) is executed zero times.
+        the $(I ScopeStatement) is not executed.)
+
+        $(P
         If $(I Foreach) is $(D foreach), then the variable is set to
         $(I LwrExpression), then incremented at the end of each iteration.
         If $(I Foreach) is $(D foreach_reverse), then the variable is set to
