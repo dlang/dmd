@@ -68,7 +68,7 @@ extern (C++):
 Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    import core.stdc.stdlib : malloc, free;
+    import dmd.common.string : SmallBuffer;
     import dmd.common.outbuffer : OutBuffer;
 
     OutBuffer buf;
@@ -83,11 +83,8 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
     size_t idlen = 2 + nlen + size_t.sizeof * 3 + prefixlen + suffixlen + 1;
 
     char[64] idbuf = void;
-    char *id = &idbuf[0];
-    if (idlen > idbuf.sizeof)
-    {
-        id = cast(char *)Mem.check(malloc(idlen));
-    }
+    auto sb = SmallBuffer!(char)(idlen, idbuf[]);
+    char *id = sb.ptr;
 
     int nwritten = sprintf(id,"_D%.*s%d%.*s%.*s",
         cast(int)nlen, n,
@@ -96,9 +93,6 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
     assert(cast(uint)nwritten < idlen);         // nwritten does not include the terminating 0 char
 
     Symbol *s = symbol_name(id, nwritten, sclass, t);
-
-    if (id != &idbuf[0])
-        free(id);
 
     //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;

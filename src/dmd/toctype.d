@@ -126,11 +126,10 @@ public:
     override void visit(TypeFunction t)
     {
         const nparams = t.parameterList.length;
+        import dmd.common.string : SmallBuffer;
         type*[10] tmp = void;
-        type** ptypes = (nparams <= tmp.length)
-                        ? tmp.ptr
-                        : cast(type**)Mem.check(malloc((type*).sizeof * nparams));
-        type*[] types = ptypes[0 .. nparams];
+        auto sb = SmallBuffer!(type*)(nparams, tmp[]);
+        type*[] types = sb[];
 
         foreach (i; 0 .. nparams)
         {
@@ -148,8 +147,6 @@ public:
             types[i] = tp;
         }
         t.ctype = type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
-        if (types.ptr != tmp.ptr)
-            free(types.ptr);
     }
 
     override void visit(TypeDelegate t)

@@ -5265,13 +5265,10 @@ elem *callfunc(const ref Loc loc,
             elem*[2] elems_array = void;
         else
             elem*[10] elems_array = void;
-        import core.stdc.stdlib : malloc, free;
-        auto pe = (n <= elems_array.length)
-                  ? elems_array.ptr
-                  : cast(elem**)Mem.check(malloc(arguments.dim * (elem*).sizeof));
-        elem*[] elems = pe[0 .. n];
-        scope (exit) if (elems.ptr != elems_array.ptr)
-            free(elems.ptr);
+
+        import dmd.common.string : SmallBuffer;
+        auto pe = SmallBuffer!(elem*)(n, elems_array[]);
+        elem*[] elems = pe[];
 
         /* Fill elems[] with arguments converted to elems
          */
