@@ -1292,17 +1292,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Eliminate maybescope's
         {
             // Create and fill array[] with maybe candidates from the `this` and the parameters
-            VarDeclaration[] array = void;
-
             VarDeclaration[10] tmp = void;
             size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.dim : 0);
-            if (dim <= tmp.length)
-                array = tmp[0 .. dim];
-            else
-            {
-                auto ptr = cast(VarDeclaration*)mem.xmalloc(dim * VarDeclaration.sizeof);
-                array = ptr[0 .. dim];
-            }
+
+            import dmd.common.string : SmallBuffer;
+            auto sb = SmallBuffer!VarDeclaration(dim, tmp[]);
+            VarDeclaration[] array = sb[];
+
             size_t n = 0;
             if (funcdecl.vthis)
                 array[n++] = funcdecl.vthis;
@@ -1313,11 +1309,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     array[n++] = v;
                 }
             }
-
             eliminateMaybeScopes(array[0 .. n]);
-
-            if (dim > tmp.length)
-                mem.xfree(array.ptr);
         }
 
         // Infer STC.scope_

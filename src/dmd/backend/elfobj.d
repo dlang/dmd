@@ -2686,18 +2686,17 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
             relidx = SHN_RELDATA;
         else
         {
+            import dmd.common.string : SmallBuffer;
             // Get the section name, and make a copy because
             // elf_newsection() may reallocate the string buffer.
             char *section_name = cast(char *)GET_SECTION_NAME(secidx);
             size_t len = strlen(section_name) + 1;
             char[20] buf2 = void;
-            char *p = len <= buf2.sizeof ? &buf2[0] : cast(char *)malloc(len);
-            assert(p);
+            auto sb = SmallBuffer!char(len, buf2[]);
+            char *p = sb.ptr;
             memcpy(p, section_name, len);
 
             relidx = elf_newsection(I64 ? ".rela" : ".rel", p, I64 ? SHT_RELA : SHT_REL, 0);
-            if (p != &buf2[0])
-                free(p);
             segdata.SDrelidx = relidx;
             addSectionToComdat(relidx,seg);
         }
