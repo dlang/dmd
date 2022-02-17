@@ -1837,15 +1837,6 @@ void venus()
 }
 ---
 
-$(P `inout ref` parameters imply the `return` attribute.)
-
----
-inout(int)* neptune(inout ref int i)
-{
-    return &i;  // ok
-}
----
-
 $(H3 $(LNAME2 scope-parameters, Scope Parameters))
 
     $(P A `scope` parameter of reference type must not escape the function call
