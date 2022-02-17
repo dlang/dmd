@@ -769,26 +769,6 @@ void test10041()
 }
 
 /*******************************************/
-// https://issues.dlang.org/show_bug.cgi?id=10047
-
-struct Typedef10047(T)
-{
-    template opDispatch(string name)
-    {
-        static assert(0);
-    }
-}
-
-struct A10047 {}
-int foo10047(Typedef10047!A10047 a) { return 10; }
-
-void test10047()
-{
-    Typedef10047!A10047 a;
-    assert(a.foo10047() == 10);
-}
-
-/*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10166
 
 auto foo10166()
@@ -901,7 +881,6 @@ int main()
     test10618();
     test10003();
     test10041();
-    test10047();
     test10526();
     test11312();
 

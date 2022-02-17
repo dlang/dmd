@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10938.d(13): Error: no property `opts` for type `ice10938.C`
-fail_compilation/ice10938.d(13):        potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message
+fail_compilation/ice10938.d(18): Error: forward reference to inferred return type of function call `this.opDispatch()`
+fail_compilation/ice10938.d(13): Error: template instance `ice10938.C.opDispatch!"opts"` error instantiating
 ---
 */
 

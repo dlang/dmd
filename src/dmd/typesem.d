@@ -3846,10 +3846,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                  * e.g.
                  *  template opDispatch(name) if (isValid!name) { ... }
                  */
-                uint errors = gagError ? global.startGagging() : 0;
                 e = dti.semanticY(sc, 0);
-                if (gagError && global.endGagging(errors))
-                    e = null;
                 return returnExp(e);
             }
 
