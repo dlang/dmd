@@ -359,6 +359,8 @@ immutable Msgtable[] msgtable =
     { "core" },
     { "etc" },
     { "attribute" },
+    { "internal" },
+    { "dassert" },
     { "math" },
     { "sin" },
     { "cos" },
