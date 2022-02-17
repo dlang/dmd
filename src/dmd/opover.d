@@ -281,9 +281,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         {
             //printf("UnaExp::op_overload() (%s)\n", e.toChars());
             Expression result;
-            if (e.e1.op == EXP.array)
+            if (auto ae = e.e1.isArrayExp())
             {
-                ArrayExp ae = cast(ArrayExp)e.e1;
                 ae.e1 = ae.e1.expressionSemantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
@@ -291,8 +290,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 IntervalExp ie = null;
                 if (maybeSlice && ae.arguments.dim)
                 {
-                    assert((*ae.arguments)[0].op == EXP.interval);
-                    ie = cast(IntervalExp)(*ae.arguments)[0];
+                    ie = (*ae.arguments)[0].isIntervalExp();
                 }
                 while (true)
                 {
@@ -434,8 +432,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             IntervalExp ie = null;
             if (maybeSlice && ae.arguments.dim)
             {
-                assert((*ae.arguments)[0].op == EXP.interval);
-                ie = cast(IntervalExp)(*ae.arguments)[0];
+                ie = (*ae.arguments)[0].isIntervalExp();
             }
             Expression result;
             while (true)
@@ -869,7 +866,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                             return result;
 
                         auto func = ad1.aliasthis.sym.isFuncDeclaration();
-                        auto tf = cast(TypeFunction)(func.type);
+                        auto tf = func.type.isTypeFunction();
                         if (tf.isref && ad1.fields[0].type == tf.next)
                             return result;
                     }
@@ -994,8 +991,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
              */
             if (t1.ty == Tstruct && t2.ty == Tstruct)
             {
-                auto sd = (cast(TypeStruct)t1).sym;
-                if (sd != (cast(TypeStruct)t2).sym)
+                auto sd = t1.isTypeStruct().sym;
+                if (sd != t2.isTypeStruct().sym)
                     return null;
 
                 import dmd.clone : needOpEquals;
@@ -1021,7 +1018,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 if (e.att1 && t1.equivalent(e.att1)) return null;
                 if (e.att2 && t2.equivalent(e.att2)) return null;
 
-                e = cast(EqualExp)e.copy();
+                e = e.copy().isEqualExp();
                 if (!e.att1) e.att1 = t1;
                 if (!e.att2) e.att2 = t2;
                 e.e1 = new DotIdExp(e.loc, e.e1, Id._tupleof);
@@ -1037,7 +1034,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                  * the equality is unresolvable because it has recursive definition.
                  */
                 if (r.op == e.op &&
-                    (cast(EqualExp)r).e1.type.toBasetype() == t1)
+                    r.isEqualExp().e1.type.toBasetype() == t1)
                 {
                     e.error("cannot compare `%s` because its auto generated member-wise equality has recursive definition",
                         t1.toChars());
@@ -1050,8 +1047,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
              */
             if (e.e1.op == EXP.tuple && e.e2.op == EXP.tuple)
             {
-                auto tup1 = cast(TupleExp)e.e1;
-                auto tup2 = cast(TupleExp)e.e2;
+                auto tup1 = e.e1.isTupleExp();
+                auto tup2 = e.e2.isTupleExp();
                 size_t dim = tup1.exps.dim;
                 if (dim != tup2.exps.dim)
                 {
@@ -1105,9 +1102,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         Expression visitBinAssign(BinAssignExp e)
         {
             //printf("BinAssignExp::op_overload() (%s)\n", e.toChars());
-            if (e.e1.op == EXP.array)
+            if (auto ae = e.e1.isArrayExp())
             {
-                ArrayExp ae = cast(ArrayExp)e.e1;
                 ae.e1 = ae.e1.expressionSemantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
@@ -1115,8 +1111,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 IntervalExp ie = null;
                 if (maybeSlice && ae.arguments.dim)
                 {
-                    assert((*ae.arguments)[0].op == EXP.interval);
-                    ie = cast(IntervalExp)(*ae.arguments)[0];
+                    ie = (*ae.arguments)[0].isIntervalExp();
                 }
                 while (true)
                 {
@@ -1492,8 +1487,8 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
         case Tclass:
         case Tstruct:
         {
-            AggregateDeclaration ad = (tab.ty == Tclass) ? (cast(TypeClass)tab).sym
-                                                         : (cast(TypeStruct)tab).sym;
+            AggregateDeclaration ad = (tab.ty == Tclass) ? tab.isTypeClass().sym
+                                                         : tab.isTypeStruct().sym;
             if (!sliced)
             {
                 sapply = search_function(ad, isForeach ? Id.apply : Id.applyReverse);
@@ -1534,9 +1529,9 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
         }
 
         case Tdelegate:        // https://dlang.org/spec/statement.html#foreach_over_delegates
-            if (aggr.op == EXP.delegate_)
+            if (auto de = aggr.isDelegateExp())
             {
-                sapply = (cast(DelegateExp)aggr).func;
+                sapply = de.func;
             }
             break;
 
@@ -1587,7 +1582,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
         else
         {
             assert(tab.ty == Tdelegate && fes.aggr.op == EXP.delegate_);
-            ethis = (cast(DelegateExp)fes.aggr).e1;
+            ethis = fes.aggr.isDelegateExp().e1;
         }
 
         /* Look for like an
@@ -1600,7 +1595,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
             if (fdapply)
             {
                 // Fill in any missing types on foreach parameters[]
-                matchParamsToOpApply(cast(TypeFunction)fdapply.type, fes.parameters, true);
+                matchParamsToOpApply(fdapply.type.isTypeFunction(), fes.parameters, true);
                 sapply = fdapply;
                 return true;
             }
@@ -1636,7 +1631,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
 
     case Taarray:
         {
-            TypeAArray taa = cast(TypeAArray)tab;
+            TypeAArray taa = tab.isTypeAArray();
             if (fes.parameters.dim == 2)
             {
                 if (!p.type)
@@ -1659,8 +1654,8 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
     case Tclass:
     case Tstruct:
     {
-        AggregateDeclaration ad = (tab.ty == Tclass) ? (cast(TypeClass)tab).sym
-                                                     : (cast(TypeStruct)tab).sym;
+        AggregateDeclaration ad = (tab.ty == Tclass) ? tab.isTypeClass().sym
+                                                     : tab.isTypeStruct().sym;
         if (fes.parameters.dim == 1)
         {
             if (!p.type)
@@ -1684,7 +1679,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
                 {
                 }
                 else if (s && s.isDeclaration())
-                    p.type = (cast(Declaration)s).type;
+                    p.type = s.isDeclaration().type;
                 else
                     break;
             }
@@ -1694,9 +1689,12 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
     }
 
     case Tdelegate:
-        if (!matchParamsToOpApply(cast(TypeFunction)tab.nextOf(), fes.parameters, true))
+    {
+        auto td = tab.isTypeDelegate();
+        if (!matchParamsToOpApply(td.next.isTypeFunction(), fes.parameters, true))
             return false;
         break;
+    }
 
     default:
         break; // ignore error, caught later
@@ -1725,7 +1723,7 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
         auto f = s.isFuncDeclaration();
         if (!f)
             return 0;           // continue
-        auto tf = cast(TypeFunction)f.type;
+        auto tf = f.type.isTypeFunction();
         MATCH m = MATCH.exact;
         if (f.isThis())
         {
@@ -1812,10 +1810,10 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
     /* Get the type of opApply's dg parameter
      */
     Parameter p0 = tf.parameterList[0];
-    if (p0.type.ty != Tdelegate)
+    auto de = p0.type.isTypeDelegate();
+    if (!de)
         return nomatch;
-    TypeFunction tdg = cast(TypeFunction)p0.type.nextOf();
-    assert(tdg.ty == Tfunction);
+    TypeFunction tdg = de.next.isTypeFunction();
 
     /* We now have tdg, the type of the delegate.
      * tdg's parameters must match that of the foreach arglist (i.e. parameters).
