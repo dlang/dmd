@@ -47,4 +47,4 @@
 /****************************
  * Define it to do what other C compilers do.
  */
-#define __builtin_offset(t,i) ((size_t)((char *)&((t *)0)->i - (char *)0))
+#define __builtin_offsetof(t,i) ((size_t)((char *)&((t *)0)->i - (char *)0))
