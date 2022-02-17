@@ -2630,6 +2630,10 @@ extern (C++) abstract class Type : ASTNode
             default:
                 assert(0);
             }
+            // @@@DEPRECATED_2.117@@@
+            // Deprecated in 2.097 - Can be made an error from 2.117.
+            // The deprecation period is longer than usual as `cfloat`,
+            // `cdouble`, and `creal` were quite widely used.
             if (t.iscomplex())
             {
                 deprecation(loc, "use of complex type `%s` is deprecated, use `std.complex.Complex!(%s)` instead",
