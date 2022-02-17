@@ -377,6 +377,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             // Reverts: https://issues.dlang.org/show_bug.cgi?id=5710
             // No compiler supports this, and there was never any spec for it.
+            // @@@DEPRECATED_2.116@@@
+            // Deprecated in 2.096, can be made an error in 2.116.
+            // The deprecation period is longer than usual as dual-context
+            // functions may be widely used by dmd-compiled projects.
+            // It also gives more time for the implementation of dual-context
+            // functions to be reworked as a frontend-only feature.
             if (funcdecl.isThis2)
             {
                 funcdecl.deprecation("function requires a dual-context, which is deprecated");
