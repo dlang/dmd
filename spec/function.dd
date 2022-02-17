@@ -378,13 +378,30 @@ int foo();
 $(H2 $(LNAME2 pure-functions, Pure Functions))
 
         $(P Pure functions are annotated with the `pure` attribute.
-        )
+        Pure functions cannot directly access global or static
+        mutable state.
+        Pure functions can only call pure functions.)
 
-        $(P Pure functions cannot directly access global or static
-            mutable state.
+        $(P Pure functions can:)
+        $(UL
+        $(LI Modify the local state of the function.)
+        $(LI Throw exceptions.)
         )
+        ---
+        int x;
+        immutable int y;
+        const int* pz;
 
-        $(P Pure functions can only call pure functions.)
+        pure int foo(int i)
+        {
+            i++;     // ok, modifying local state
+            x = i;   // error, modifying global state
+            i = x;   // error, reading mutable global state
+            i = y;   // ok, reading immutable global state
+            i = *pz; // error, reading const global state
+            throw new Exception("failed"); // ok
+        }
+        ---
 
         $(P A pure function can override an impure function,
             but cannot be overridden by an impure function.
@@ -396,12 +413,18 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
             argument.
         )
 
+            $(SPEC_RUNNABLE_EXAMPLE_RUN
             ---
-            pure int foo(int[] arr) { arr[] += 1; return arr.length; }
+            pure size_t foo(int[] arr)
+            {
+                arr[] += 1;
+                return arr.length;
+            }
             int[] a = [1, 2, 3];
             foo(a);
             assert(a == [2, 3, 4]);
             ---
+            )
 
         $(P A $(I strongly pure function) has no parameters with mutable indirections
             and cannot modify any program state external to the function.
@@ -409,6 +432,7 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
 
             ---
             struct S { double x; }
+
             pure int foo(immutable(int)[] arr, int num, S val)
             {
                 //arr[num] = 1; // compile error
@@ -420,7 +444,7 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
 
         $(P A strongly pure function can call a weakly pure function.)
 
-        $(P Pure functions can modify the local state of the function.)
+$(H3 $(LNAME2 pure-special-cases, Special Cases))
 
         $(P A pure function can:)
 
@@ -439,28 +463,14 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
         controlled by a $(GLINK2 version, DebugCondition).
         )
 
-        $(BEST_PRACTICE this relaxation of purity checks in DebugConditions is
+        $(BEST_PRACTICE this relaxation of purity checks in *DebugCondition*s is
         intended solely to make debugging programs easier.)
 
-        $(P A pure function can throw exceptions.)
-
         ---
-        import std.stdio;
-        int x;
-        immutable int y;
-        const int* pz;
-
-        pure int foo(int i,
-                     char* p,
-                     const char* q,
-                     immutable int* s)
+        pure int foo(int i)
         {
-            debug writeln("in foo()"); // ok, impure code allowed in debug statement
-            x = i;   // error, modifying global state
-            i = x;   // error, reading mutable global state
-            i = y;   // ok, reading immutable global state
-            i = *pz; // error, reading const global state
-            return i;
+            debug writeln("i = ", i); // ok, impure code allowed in debug statement
+            ...
         }
         ---
 
@@ -493,50 +503,69 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
         }
         ---
 
+$(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
+
         $(P A $(I pure factory function) is a strongly pure function
         that returns a result that has mutable indirections.
         All mutable
-        memory returned by the call may not be referenced by any other part of the
+        memory returned by the call cannot be referenced by any other part of the
         program, i.e. it is newly allocated by the function.
-        Nor may the mutable
-        references of the result refer to any object that
-        existed before the function call. For example:)
+        The mutable
+        references of the result similarly cannot refer to any object that
+        existed before the function call.
+        This allows the result to be implicitly cast to any qualifier.
+        For example:)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct List { int payload; List* next; }
+
         pure List* make(int a, int b)
         {
             auto result = new List(a, null);
             result.next = new List(b, result);
             return result;
         }
+
+        void main()
+        {
+            auto list = make(1, 2);
+            pragma(msg, typeof(list));       // List*
+
+            immutable ilist = make(1, 2);
+            pragma(msg, typeof(ilist));      // immutable List*
+            pragma(msg, typeof(ilist.next)); // immutable List*
+        }
         ---
         )
 
-        $(P All references in `make`'s result refer to other `List`
+        $(P All references in `make`'s result refer to `List`
         objects created by `make`, and no other part of the program refers to
-        any of these objects.
-        This restriction does not apply to any Exception or Error thrown from the function.
+        any of these objects. Hence the result can initialize an immutable
+        variable.)
+
+        $(P This does not affect any *Exception* or *Error* thrown from the function.
         )
 
-
-        $(P Pure destructors do not benefit of special elision.)
+$(H3 $(LNAME2 pure-optimization, Optimization))
 
         $(IMPLEMENTATION_DEFINED An implementation may assume that a strongly pure
         function that returns a result
         without mutable indirections will have the same effect for all invocations
         with equivalent arguments. It is allowed to memoize the result of the
         function under the assumption that equivalent parameters always produce
-        equivalent results.
+        equivalent results.)
+
+        $(P
         A strongly pure function may still have behavior
         inconsistent with memoization by e.g. using `cast`s or by changing behavior
         depending on the address of its parameters. An implementation is currently
         not required to enforce validity of memoization in all cases.
-        If a strongly pure function throws an Exception or an Error, the
+        If a strongly pure function throws an *Exception* or an *Error*, the
         assumptions related to memoization do not carry to the thrown
         exception.)
 
+        $(P Pure destructors do not benefit of special elision.)
 
 
 $(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
