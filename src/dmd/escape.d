@@ -658,7 +658,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             p == fd)
         {
             if (log) printf("inferring 'return' for parameter %s in function %s\n", v.toChars(), fd.toChars());
-            inferReturn(fd, v);        // infer addition of 'return' to make `return scope`
+            inferReturn(fd, v, /*returnScope:*/ true); // infer addition of 'return' to make `return scope`
         }
 
         if (!(va && va.isScope()) || vaIsRef)
@@ -1215,7 +1215,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             sc.func.flags & FUNCFLAG.returnInprocess &&
             p == sc.func)
         {
-            inferReturn(sc.func, v);        // infer addition of 'return'
+            inferReturn(sc.func, v, /*returnScope:*/ true); // infer addition of 'return'
             continue;
         }
 
@@ -1355,7 +1355,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func &&
                 (vsr == ScopeRef.Ref || vsr == ScopeRef.RefScope))
             {
-                inferReturn(sc.func, v);        // infer addition of 'return'
+                inferReturn(sc.func, v, /*returnScope:*/ false); // infer addition of 'return'
             }
             else
             {
@@ -1404,23 +1404,25 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
  * Params:
  *      fd = function that v is a parameter to
  *      v = parameter that needs to be STC.return_
+ *      returnScope = infer `return scope` instead of `return ref`
  */
-
-private void inferReturn(FuncDeclaration fd, VarDeclaration v)
+private void inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
 {
     // v is a local in the current function
 
-    //printf("for function '%s' inferring 'return' for variable '%s'\n", fd.toChars(), v.toChars());
-    v.storage_class |= STC.return_ | STC.returninferred;
+    //printf("for function '%s' inferring 'return' for variable '%s', returnScope: %d\n", fd.toChars(), v.toChars(), returnScope);
+    auto newStcs = STC.return_ | STC.returninferred | (returnScope ? STC.returnScope : 0);
+    v.storage_class |= newStcs;
 
     if (v == fd.vthis)
     {
         /* v is the 'this' reference, so mark the function
          */
-        fd.storage_class |= STC.return_ | STC.returninferred;
+        fd.storage_class |= newStcs;
         if (auto tf = fd.type.isTypeFunction())
         {
             //printf("'this' too %p %s\n", tf, sc.func.toChars());
+            tf.isreturnscope = returnScope;
             tf.isreturn = true;
             tf.isreturninferred = true;
         }
@@ -1434,7 +1436,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
             {
                 if (p.ident == v.ident)
                 {
-                    p.storageClass |= STC.return_ | STC.returninferred;
+                    p.storageClass |= newStcs;
                     break;              // there can be only one
                 }
             }
@@ -1752,10 +1754,12 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                             auto tf = fd.type.toBasetype().isTypeFunction();
                             if (tf.isreturn)
                                 stc |= STC.return_;
+                            if (tf.isreturnscope)
+                                stc |= STC.returnScope;
                             auto ad = fd.isThis();
                             if (ad.isClassDeclaration() || tf.isScopeQual)
                                 stc |= STC.scope_;
-                            else if (ad.isStructDeclaration())
+                            if (ad.isStructDeclaration())
                                 stc |= STC.ref_;        // `this` for a struct member function is passed by `ref`
                             return stc;
                         }
@@ -2037,6 +2041,8 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                         stc |= STC.ref_;
                     if (tf.isScopeQual)
                         stc |= STC.scope_;
+                    if (tf.isreturnscope)
+                        stc |= STC.returnScope;
 
                     const psr = buildScopeRef(stc);
                     if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
