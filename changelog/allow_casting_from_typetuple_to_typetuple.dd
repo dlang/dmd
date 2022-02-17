@@ -1,20 +1,20 @@
-Casting between compatible tuples
+Casting between compatible sequences
 
-Prior to this release, casting between built-in tuples of the same type was not allowed.
+Prior to this release, casting between built-in sequences of the same type was not allowed.
 
-Starting with this release, casting between tuples of the same length is accepted provided that the underlying types of the casted tuple are implicitly convertible to the target tuple types.
+Starting with this release, casting between sequences of the same length is accepted provided that the underlying types of the casted sequence are implicitly convertible to the target sequence types.
 
 ---
-alias Tuple(T...) = T;
+alias Seq(T...) = T;
 
 void foo()
 {
-    Tuple!(int, int) tup;
+    Seq!(int, int) seq;
 
-    auto foo = cast(long) tup;
+    auto foo = cast(long) seq;
     pragma(msg, typeof(foo)); // (int, int)
 
-    auto bar = cast(Tuple!(long, int)) tup; // allowed
+    auto bar = cast(Seq!(long, int)) seq; // allowed
     pragma(msg, typeof(bar)); // (long, int)
 }
 ---
