@@ -10,12 +10,20 @@ $(GNAME Declaration):
     $(GLINK VarDeclarations)
     $(GLINK AliasDeclaration)
     $(GLINK AliasAssign)
-    $(GLINK2 struct, AggregateDeclaration)
+    $(GLINK AggregateDeclaration)
     $(GLINK2 enum, EnumDeclaration)
     $(GLINK2 module, ImportDeclaration)
     $(GLINK2 version, ConditionalDeclaration)
     $(GLINK2 version, StaticForeachDeclaration)
     $(GLINK2 version, StaticAssert)
+)
+
+$(GRAMMAR
+$(GNAME AggregateDeclaration):
+    $(GLINK2 class, ClassDeclaration)
+    $(GLINK2 interface, InterfaceDeclaration)
+    $(GLINK2 struct, StructDeclaration)
+    $(GLINK2 struct, UnionDeclaration)
 )
 
 $(GRAMMAR

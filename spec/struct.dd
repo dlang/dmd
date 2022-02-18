@@ -4,23 +4,19 @@ $(SPEC_S Structs and Unions,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 intro, Introduction))
+
     $(P Whereas classes are reference types, structs are value types.
     Structs and unions are simple aggregations of data and their
     associated operations on that data.
     )
 
 $(GRAMMAR
-$(GNAME AggregateDeclaration):
-    $(GLINK2 class, ClassDeclaration)
-    $(GLINK2 interface, InterfaceDeclaration)
-    $(GLINK StructDeclaration)
-    $(GLINK UnionDeclaration)
-
 $(GNAME StructDeclaration):
     $(D struct) $(GLINK_LEX Identifier) $(D ;)
     $(D struct) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
     $(GLINK2 template, StructTemplateDeclaration)
-    $(GLINK AnonStructDeclaration)
+    $(I AnonStructDeclaration)
 
 $(GNAME AnonStructDeclaration):
     $(D struct) $(GLINK AggregateBody)
@@ -29,7 +25,7 @@ $(GNAME UnionDeclaration):
     $(D union) $(GLINK_LEX Identifier) $(D ;)
     $(D union) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
     $(GLINK2 template, UnionTemplateDeclaration)
-    $(GLINK AnonUnionDeclaration)
+    $(I AnonUnionDeclaration)
 
 $(GNAME AnonUnionDeclaration):
     $(D union) $(GLINK AggregateBody)
@@ -114,7 +110,7 @@ $(H2 $(LNAME2 POD, Plain Old Data))
 
 $(H2 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
 
-    $(P Opaque struct and union declarations do not have a $(GLINK AggregateBody):)
+    $(P Opaque struct and union declarations do not have an $(GLINK AggregateBody):)
 
 ---
 struct S;
@@ -323,7 +319,7 @@ S t = s; // sets t.a to 3, S.opCall(S) is not called
 
 $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
-        $(P Struct literals consist of the name of the struct followed
+        $(P A struct literal consists of the name of the struct followed
         by a parenthesized argument list:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -360,7 +356,7 @@ $(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
 )
 
-$(H2 $(LNAME2 struct_instance_properties, Struct Instance Properties))
+$(H3 $(LNAME2 struct_instance_properties, Struct Instance Properties))
 
 $(TABLE2 Struct Instance Properties,
 $(THEAD Name, Description)
@@ -369,7 +365,7 @@ $(TROW $(D .tupleof), An $(DDSUBLINK spec/template, variadic-templates, expressi
     $(DDSUBLINK spec/class, class_properties, Class Properties) for a class-based example.)
 )
 
-$(H2 $(LNAME2 struct_field_properties, Struct Field Properties))
+$(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
@@ -407,8 +403,8 @@ $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors
 
         $(P Struct constructors are used to initialize an instance of a struct when a more
         complex construction is needed than is allowed by
-        $(LINK2 #static_struct_init, static initialization) or a
-        $(LINK2 #struct-literal, struct literal).
+        $(RELATIVE_LINK2 static_struct_init, static initialization) or a
+        $(RELATIVE_LINK2 struct-literal, struct literal).
         )
 
         $(P Constructors are defined with a function name of `this` and have no return value.
@@ -728,7 +724,7 @@ $(H3 $(LNAME2 field-init, Field initialization inside a constructor))
         ---
         )
 
-        $(P If the field type has an $(LINK2 operatoroverloading.html#assignment, `opAssign`)
+        $(P If the field type has an $(DDSUBLINK spec/operatoroverloading, assignment, `opAssign`)
         method, it will not be used for initialization.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1549,13 +1545,13 @@ $(GNAME Invariant):
     $(P Struct $(I Invariant)s must hold
     at the entry and exit of all public or exported non-static member functions.
     The order of application of invariants is:
+    )
     $(OL
     $(LI preconditions)
     $(LI invariant)
     $(LI function body)
     $(LI invariant)
     $(LI postconditions)
-    )
     )
 
     $(P The invariant need not hold if the struct instance is implicitly constructed using
@@ -1666,8 +1662,8 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
         these conditions hold:)
 
         $(UL
-        $(LI it has a $(LINK2 #struct-destructor, destructor))
-        $(LI it has a $(LINK2 #struct-postblit, postblit))
+        $(LI it has a $(RELATIVE_LINK2 struct-destructor, destructor))
+        $(LI it has a $(RELATIVE_LINK2 struct-postblit, postblit))
         $(LI it has a field with an identity assignment overload)
         )
 
