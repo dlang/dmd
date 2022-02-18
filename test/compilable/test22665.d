@@ -1,4 +1,4 @@
-// EXTRA_FILES: imports/imp22665.d
+// EXTRA_FILES: imports/imp22665.c
 
 // https://issues.dlang.org/show_bug.cgi?id=22665
 
