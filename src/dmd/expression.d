@@ -2726,12 +2726,6 @@ extern (C++) final class StringExp : Expression
         return ErrorExp.get();
     }
 
-    // Superseded by getCodeUnit
-    uint charAt(uinteger_t i) const
-    {
-        return getCodeUnit(cast(size_t) i);
-    }
-
     /********************************
      * Convert string contents to a 0 terminated string,
      * allocated by mem.xmalloc().
