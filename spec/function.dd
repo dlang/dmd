@@ -2955,18 +2955,37 @@ $(H3 $(LNAME2 anonymous, Anonymous Functions and Anonymous Delegates))
 $(H2 $(LNAME2 main, $(D main()) Function))
 
         $(P For console programs, $(D main()) serves as the entry point.
-        It gets called after all the module initializers are run, and
-        after any unittests are run.
+        It gets called after all the $(DDSUBLINK spec/module, staticorder, module initializers)
+        are run, and after any $(DDLINK spec/unittest, Unit Tests, unittests) are run.
         After it returns, all the module destructors are run.
-        $(D main()) must be declared using one of the following forms:
+        $(D main()) must be declared as follows:
+        )
+
+        $(GRAMMAR
+        $(GNAME MainFunction):
+            $(GLINK MainReturnDecl) $(D main$(LPAREN)$(RPAREN)) $(GLINK2 statement, BlockStatement)
+            $(GLINK MainReturnDecl) $(D main$(LPAREN)string[]) $(GLINK_LEX Identifier)$(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
+
+        $(GNAME MainReturnDecl):
+            $(D void)
+            $(D int)
+            $(GLINK2 type, noreturn)
+            $(RELATIVE_LINK2 auto-functions, $(D auto))
         )
 
         $(UL
-        $(LI `void main() { ... }`)
-        $(LI `void main(string[] args) { ... }`)
-        $(LI `int main() { ... }`)
-        $(LI `int main(string[] args) { ... }`)
+        $(LI If `main` returns `void`, the OS will receive a zero value on success.)
+        $(LI If `main` returns `void` or `noreturn`, the OS will receive a non-zero
+        value on abnormal termination, such as an uncaught exception.)
+        $(LI If `main` is declared as `auto`, the inferred return type must be
+        one of `void`, `int` and `noreturn`.)
         )
+
+        $(P If the $(D string[]) parameter is declared, the parameter will hold
+        arguments passed to the program by the OS. The first argument is typically
+        the executable name, followed by any command-line arguments.)
+
+        $(NOTE The runtime can remove any arguments prefixed `--DRT-`.)
 
         $(P The main function must have D linkage.)
 
