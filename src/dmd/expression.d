@@ -2726,27 +2726,10 @@ extern (C++) final class StringExp : Expression
         return ErrorExp.get();
     }
 
+    // Superseded by getCodeUnit
     uint charAt(uinteger_t i) const
     {
-        uint value;
-        switch (sz)
-        {
-        case 1:
-            value = (cast(char*)string)[cast(size_t)i];
-            break;
-
-        case 2:
-            value = (cast(ushort*)string)[cast(size_t)i];
-            break;
-
-        case 4:
-            value = (cast(uint*)string)[cast(size_t)i];
-            break;
-
-        default:
-            assert(0);
-        }
-        return value;
+        return getCodeUnit(cast(size_t) i);
     }
 
     /********************************
