@@ -1,29 +1,28 @@
-/* RUN_OUTPUT:
----
-B
-A
-B
----
- */
-
 // https://issues.dlang.org/show_bug.cgi?id=22342
 
 int printf(const char *, ...);
+int counter = 0;
 
 int foo()
 {
-  printf("A\n");
-  return 0;
+    counter += 1;
+    return counter;
 }
 
 int bar()
 {
-  printf("B\n");
-  return 0;
+    counter += 2;
+    return counter;
 }
 
 int main()
 {
-  int v;
-  return bar(1, &v, foo(), "str", bar());
+    int v;
+    int res = bar(1, &v, foo(), "str", bar());
+    if (res != 5)
+    {
+        printf("bar() = %d != 5\n", res);
+        return 1;
+    }
+    return 0;
 }

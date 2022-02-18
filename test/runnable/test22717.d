@@ -2,9 +2,6 @@
 
 void main()
 {
-  // TODO: remove as soon as `git describe` for DMD master yields v2.099+
-  static if (__VERSION__ >= 2099)
-  {
     static struct S
     {
         int value;
@@ -31,5 +28,4 @@ void main()
     auto b = S(24);
     auto ti = typeid(S);
     assert(ti.equals(&a, &b));
-  }
 }

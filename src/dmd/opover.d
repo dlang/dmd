@@ -856,19 +856,23 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                      * one of the members, hence the `ad1.fields.dim == 2 && ad1.vthis`
                      * condition.
                      */
-                    if (e.op != EXP.assign || e.e1.op == EXP.type)
-                        return result;
+                    if (result.op != EXP.assign)
+                        return result;     // i.e: Rewrote `e1 = e2` -> `e1(e2)`
 
-                    if (ad1.fields.dim == 1 || (ad1.fields.dim == 2 && ad1.vthis))
+                    auto ae = result.isAssignExp();
+                    if (ae.e1.op != EXP.dotVariable)
+                        return result;     // i.e: Rewrote `e1 = e2` -> `e1() = e2`
+
+                    auto dve = ae.e1.isDotVarExp();
+                    if (auto ad = dve.var.isMember2())
                     {
-                        auto var = ad1.aliasthis.sym.isVarDeclaration();
-                        if (var && var.type == ad1.fields[0].type)
-                            return result;
-
-                        auto func = ad1.aliasthis.sym.isFuncDeclaration();
-                        auto tf = func.type.isTypeFunction();
-                        if (tf.isref && ad1.fields[0].type == tf.next)
-                            return result;
+                        // i.e: Rewrote `e1 = e2` -> `e1.some.var = e2`
+                        // Ensure that `var` is the only field member in `ad`
+                        if (ad.fields.dim == 1 || (ad.fields.dim == 2 && ad.vthis))
+                        {
+                            if (dve.var == ad.aliasthis.sym)
+                                return result;
+                        }
                     }
                     tempResult = result;
                 }
