@@ -5946,7 +5946,7 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
 elem *getTypeInfo(Loc loc, Type t, IRState *irs)
 {
     assert(t.ty != Terror);
-    genTypeInfo(loc, t, null);
+    genTypeInfoForType(loc, t);
     elem *e = el_ptr(toSymbol(t.vtinfo));
     return e;
 }
