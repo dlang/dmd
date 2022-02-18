@@ -526,15 +526,6 @@ extern (C++) final class Module : Package
         }
         if((m = m.parse()) is null) return null;
 
-        // Call onImport here because if the module is going to be compiled then we
-        // need to determine it early because it affects semantic analysis. This is
-        // being done after parsing the module so the full module name can be taken
-        // from whatever was declared in the file.
-        if (!m.isRoot() && Compiler.onImport(m))
-        {
-            m.importedFrom = m;
-            assert(m.isRoot());
-        }
         return m;
     }
 
@@ -964,6 +955,16 @@ extern (C++) final class Module : Package
             isHdrFile = true;
         }
 
+        /// Promote `this` to a root module if requested via `-i`
+        void checkCompiledImport()
+        {
+            if (!this.isRoot() && Compiler.onImport(this))
+                this.importedFrom = this;
+        }
+
+        DsymbolTable dst;
+        Package ppack = null;
+
         /* If it has the extension ".c", it is a "C" file.
          * If it has the extension ".i", it is a preprocessed "C" file.
          */
@@ -973,33 +974,41 @@ extern (C++) final class Module : Package
 
             scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c);
             p.nextToken();
+            checkCompiledImport();
             members = p.parseModule();
-            md = p.md;
+            assert(!p.md); // C doesn't have module declarations
             numlines = p.scanloc.linnum;
         }
         else
         {
             scope p = new Parser!AST(this, buf, cast(bool) docfile);
             p.nextToken();
-            members = p.parseModule();
+            p.parseModuleDeclaration();
             md = p.md;
+
+            if (md)
+            {
+                /* A ModuleDeclaration, md, was provided.
+                * The ModuleDeclaration sets the packages this module appears in, and
+                * the name of this module.
+                */
+                this.ident = md.id;
+                dst = Package.resolve(md.packages, &this.parent, &ppack);
+            }
+
+            // Done after parsing the module header because `module x.y.z` may override the file name
+            checkCompiledImport();
+
+            members = p.parseModuleContent();
             numlines = p.scanloc.linnum;
         }
         srcBuffer.destroy();
         srcBuffer = null;
         /* The symbol table into which the module is to be inserted.
          */
-        DsymbolTable dst;
+
         if (md)
         {
-            /* A ModuleDeclaration, md, was provided.
-             * The ModuleDeclaration sets the packages this module appears in, and
-             * the name of this module.
-             */
-            this.ident = md.id;
-            Package ppack = null;
-            dst = Package.resolve(md.packages, &this.parent, &ppack);
-
             // Mark the package path as accessible from the current module
             // https://issues.dlang.org/show_bug.cgi?id=21661
             // Code taken from Import.addPackageAccess()

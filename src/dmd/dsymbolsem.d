@@ -850,8 +850,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // @@@DEPRECATED_2.097@@@  https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
             // Deprecated in 2.087
             // Remove this when the feature is removed from the language
-            if (0 &&          // deprecation disabled for now to accommodate existing extensive use
-               !(dsym.storage_class & STC.scope_))
+            if (!(dsym.storage_class & STC.scope_))
             {
                 if (!(dsym.storage_class & STC.parameter) && dsym.ident != Id.withSym)
                     dsym.error("reference to `scope class` must be `scope`");
