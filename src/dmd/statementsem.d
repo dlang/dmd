@@ -1608,7 +1608,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
      * Params:
      *  sc = context
      *  fs = ForeachStatement
-     *  tfld = type of function literal to be created, can be null
+     *  tfld = type of function literal to be created (type of opApply() function if any), can be null
      * Returns:
      *  Function literal created, as an expression
      *  null if error.
@@ -1619,7 +1619,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         foreach (i; 0 .. fs.parameters.dim)
         {
             Parameter p = (*fs.parameters)[i];
-            StorageClass stc = STC.ref_;
+            StorageClass stc = STC.ref_ | (p.storageClass & STC.scope_);
             Identifier id;
 
             p.type = p.type.typeSemantic(fs.loc, sc);
@@ -1628,17 +1628,17 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             {
                 Parameter prm = tfld.parameterList[i];
                 //printf("\tprm = %s%s\n", (prm.storageClass&STC.ref_?"ref ":"").ptr, prm.ident.toChars());
-                stc = prm.storageClass & STC.ref_;
-                id = p.ident; // argument copy is not need.
-                if ((p.storageClass & STC.ref_) != stc)
+                stc = (prm.storageClass & STC.ref_) | (p.storageClass & STC.scope_);
+                if ((p.storageClass & STC.ref_) != (prm.storageClass & STC.ref_))
                 {
-                    if (!stc)
+                    if (!(prm.storageClass & STC.ref_))
                     {
                         fs.error("`foreach`: cannot make `%s` `ref`", p.ident.toChars());
                         return null;
                     }
                     goto LcopyArg;
                 }
+                id = p.ident; // argument copy is not need.
             }
             else if (p.storageClass & STC.ref_)
             {
@@ -1655,7 +1655,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
                 Initializer ie = new ExpInitializer(fs.loc, new IdentifierExp(fs.loc, id));
                 auto v = new VarDeclaration(fs.loc, p.type, p.ident, ie);
-                v.storage_class |= STC.temp;
+                v.storage_class |= STC.temp | (stc & STC.scope_);
                 Statement s = new ExpStatement(fs.loc, v);
                 fs._body = new CompoundStatement(fs.loc, s, fs._body);
             }
