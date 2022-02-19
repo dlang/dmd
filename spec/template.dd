@@ -1218,7 +1218,7 @@ $(H3 $(LNAME2 return-deduction, Return Type Deduction))
     $(P Function templates can have their return types deduced based on the
         $(GLINK2 statement, ReturnStatement)s in the function, just as with
         normal functions.
-        See $(DDSUBLINK function, auto-functions, Auto Functions).
+        See $(DDSUBLINK spec/function, auto-functions, Auto Functions).
     )
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE

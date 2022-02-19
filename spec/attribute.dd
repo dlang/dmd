@@ -521,11 +521,11 @@ void main() { foo(); /* error, foo is disabled */ }
 
 $(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attribute))
 
-    $(P See $(DDSUBLINK function, function-safety, Function Safety).)
+    $(P See $(DDSUBLINK spec/function, function-safety, Function Safety).)
 
 $(H2 $(LNAME2 nogc, $(D @nogc) Attribute))
 
-    $(P See $(DDSUBLINK function, nogc-functions, No-GC Functions).)
+    $(P See $(DDSUBLINK spec/function, nogc-functions, No-GC Functions).)
 
 $(H2 $(LNAME2 property, $(D @property) Attribute))
 
@@ -606,7 +606,7 @@ auto i = 6.8;   // declare i as a double
 ---
 
     $(P For functions, the `auto` attribute means return type inference.
-        See $(DDSUBLINK function, auto-functions, Auto Functions).
+        See $(DDSUBLINK spec/function, auto-functions, Auto Functions).
     )
 
 $(H2 $(LNAME2 scope, $(D scope) Attribute))

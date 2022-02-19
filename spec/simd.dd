@@ -11,7 +11,7 @@ $(HEADERNAV_TOC)
 
         $(P Specialized $(GLINK2 type, Vector) types provide access to them.)
 
-        $(P The $(GLINK2 type, VectorBaseType) must be a $(DDSUBLINK arrays, static-arrays, Static Array).
+        $(P The $(GLINK2 type, VectorBaseType) must be a $(DDSUBLINK spec/arrays, static-arrays, Static Array).
         The $(GNAME VectorElementType) is the unqualified element type of the
         static array.
         The dimension of the static array is the number

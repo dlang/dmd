@@ -1695,7 +1695,7 @@ void main()
 $(H2 $(GNAME toType))
 
         $(P Takes a single argument, which must evaluate to an expression of type `string`.
-        The contents of the string must correspond to the $(DDSUBLINK abi, name_mangling, mangled contents of a type)
+        The contents of the string must correspond to the $(DDSUBLINK spec/abi, name_mangling, mangled contents of a type)
         that has been seen by the implementation.)
 
         $(P Only D mangling is supported. Other manglings, such as C++ mangling, are not.)
@@ -1712,7 +1712,7 @@ $(H2 $(GNAME toType))
         __traits(toType, "i") x = 4; // x is also declared as type `int`
         ---
 
-        $(RATIONALE Provides the inverse operation of the $(DDSUBLINK property, mangleof, `.mangleof`) property.)
+        $(RATIONALE Provides the inverse operation of the $(DDSUBLINK spec/property, mangleof, `.mangleof`) property.)
 
 $(H2 $(GNAME initSymbol))
 

@@ -81,7 +81,7 @@ assert(i == 4);
         )
 
         $(BEST_PRACTICE Most conventional uses for pointers can be replaced with
-        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK function, parameters, parameters),
+        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK spec/function, parameters, parameters),
         and reference types.
         )
 
@@ -162,7 +162,7 @@ int[2] = [1, 2];
 ---
     $(P `[]` is an empty array literal.)
 
-    $(P See $(DDSUBLINK expression, array_literals, Array Literals).)
+    $(P See $(DDSUBLINK spec/expression, array_literals, Array Literals).)
 
 $(LEGACY_LNAME2 usage)
 $(H2 $(LNAME2 assignment, Array Assignment))
@@ -735,7 +735,7 @@ assert(cap == array.capacity);
 
 $(H3 $(LNAME2 func-as-property, Functions as Array Properties))
 
-        $(P See $(DDSUBLINK function, pseudo-member, Uniform Function Call Syntax (UFCS)).)
+        $(P See $(DDSUBLINK spec/function, pseudo-member, Uniform Function Call Syntax (UFCS)).)
 
 $(H2 $(LNAME2 bounds, Array Bounds Checking))
 
@@ -798,7 +798,7 @@ int x = foo[3]; // error, out of bounds
             The runtime behavior is part of the language semantics.
         )
 
-        $(P See also $(DDSUBLINK function, safe-functions, Safe Functions).)
+        $(P See also $(DDSUBLINK spec/function, safe-functions, Safe Functions).)
 
 $(H3 $(LNAME2 disable-bounds-check, Disabling Array Bounds Checking))
 

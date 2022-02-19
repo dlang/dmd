@@ -987,7 +987,7 @@ void test()
         $(UL
         $(LI Struct and union member functions)
         $(LI `final` member functions)
-        $(LI $(DDSUBLINK attribute, static, `static`) member functions)
+        $(LI $(DDSUBLINK spec/attribute, static, `static`) member functions)
         $(LI Member functions which are $(D private) or $(D package))
         $(LI Member template functions)
         )
@@ -3070,7 +3070,7 @@ void main()
     $(LI Expressions may not reference any global or local
         static variables.)
 
-    $(LI $(DDSUBLINK iasm, asmstatements, AsmStatements) are not permitted)
+    $(LI $(DDSUBLINK spec/iasm, asmstatements, AsmStatements) are not permitted)
 
     $(LI Non-portable casts (eg, from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
@@ -3204,14 +3204,14 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
         )
 
         $(OL
-        $(LI $(DDSUBLINK expression, ArrayLiteral, constructing an array) on the heap)
+        $(LI $(DDSUBLINK spec/expression, ArrayLiteral, constructing an array) on the heap)
         $(LI resizing an array by writing to its $(D .length) property)
-        $(LI $(DDSUBLINK expression, CatExpression, array concatenation))
-        $(LI $(DDSUBLINK expression, simple_assignment_expressions, array appending))
-        $(LI $(DDSUBLINK expression, AssocArrayLiteral, constructing an associative array))
-        $(LI $(DDSUBLINK expression, IndexExpression, indexing) an associative array
+        $(LI $(DDSUBLINK spec/expression, CatExpression, array concatenation))
+        $(LI $(DDSUBLINK spec/expression, simple_assignment_expressions, array appending))
+        $(LI $(DDSUBLINK spec/expression, AssocArrayLiteral, constructing an associative array))
+        $(LI $(DDSUBLINK spec/expression, IndexExpression, indexing) an associative array
             $(NOTE because it may throw $(D RangeError) if the specified key is not present))
-        $(LI $(DDSUBLINK expression, NewExpression, allocating an object with `new`) on the heap)
+        $(LI $(DDSUBLINK spec/expression, NewExpression, allocating an object with `new`) on the heap)
         $(LI calling functions that are not `@nogc`, unless the call is
             in a $(GLINK2 version, ConditionalStatement)
             controlled by a $(GLINK2 version, DebugCondition))

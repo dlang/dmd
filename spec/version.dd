@@ -325,7 +325,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
                 command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))))
         $(TROW $(ARGS $(D D_TypeInfo)) , $(ARGS Runtime type information (a.k.a `TypeInfo`) is supported.  Evaluates to `false` when compiling with
                 command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))))
-        $(TROW $(ARGS $(D D_Coverage)) , $(ARGS $(DDLINK code_coverage, Code coverage analysis, Code coverage analysis) instrumentation
+        $(TROW $(ARGS $(D D_Coverage)) , $(ARGS $(DDLINK articles/code_coverage, Code coverage analysis, Code coverage analysis) instrumentation
                 (command line switch $(DDSUBLINK dmd, switch-cov, $(TT -cov))) is being generated))
         $(TROW $(ARGS $(D D_Ddoc)) , $(ARGS $(DDLINK spec/ddoc, Embedded Documentation, Ddoc) documentation
                 (command line switch $(DDSUBLINK dmd, switch-D, $(TT -D))) is being generated))
