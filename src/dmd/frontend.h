@@ -6773,7 +6773,6 @@ public:
     bool isLvalue();
     Expression* toLvalue(Scope* sc, Expression* e);
     Expression* modifiableLvalue(Scope* sc, Expression* e);
-    uint32_t charAt(uinteger_t i) const;
     void accept(Visitor* v);
 };
 

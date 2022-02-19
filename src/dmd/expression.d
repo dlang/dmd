@@ -2726,29 +2726,6 @@ extern (C++) final class StringExp : Expression
         return ErrorExp.get();
     }
 
-    uint charAt(uinteger_t i) const
-    {
-        uint value;
-        switch (sz)
-        {
-        case 1:
-            value = (cast(char*)string)[cast(size_t)i];
-            break;
-
-        case 2:
-            value = (cast(ushort*)string)[cast(size_t)i];
-            break;
-
-        case 4:
-            value = (cast(uint*)string)[cast(size_t)i];
-            break;
-
-        default:
-            assert(0);
-        }
-        return value;
-    }
-
     /********************************
      * Convert string contents to a 0 terminated string,
      * allocated by mem.xmalloc().

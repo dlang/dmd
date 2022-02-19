@@ -377,13 +377,14 @@ public:
     static StringExp *create(const Loc &loc, const void *s, size_t len);
     static void emplace(UnionExp *pue, const Loc &loc, const char *s);
     bool equals(const RootObject *o) const;
+    char32_t getCodeUnit(size_t i) const;
+    void setCodeUnit(size_t i, char32_t c);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
     Optional<bool> toBool();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    unsigned charAt(uinteger_t i) const;
     void accept(Visitor *v) { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;

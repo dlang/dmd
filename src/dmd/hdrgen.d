@@ -1986,7 +1986,7 @@ public:
         const o = buf.length;
         foreach (i; 0 .. e.len)
         {
-            writeCharLiteral(*buf, e.charAt(i));
+            writeCharLiteral(*buf, e.getCodeUnit(i));
         }
         if (hgs.ddoc)
             escapeDdocString(buf, o);
