@@ -99,6 +99,7 @@ class AnonDeclaration;
 class VisibilityDeclaration;
 class OverloadSet;
 class CompileDeclaration;
+class StaticAssert;
 class DsymbolTable;
 struct MangleOverride;
 class AliasThis;
@@ -311,7 +312,6 @@ class ScopeGuardStatement;
 class SwitchErrorStatement;
 struct Token;
 struct code;
-class StaticAssert;
 struct Triple;
 class Object;
 class TypeInfo_Class;
@@ -1106,6 +1106,7 @@ public:
     virtual VisibilityDeclaration* isVisibilityDeclaration();
     virtual OverloadSet* isOverloadSet();
     virtual CompileDeclaration* isCompileDeclaration();
+    virtual StaticAssert* isStaticAssert();
 };
 
 struct BitArray final
@@ -4484,6 +4485,7 @@ public:
     void addMember(Scope* sc, ScopeDsymbol* sds);
     bool oneMember(Dsymbol** ps, Identifier* ident);
     const char* kind() const;
+    StaticAssert* isStaticAssert();
     void accept(Visitor* v);
 };
 

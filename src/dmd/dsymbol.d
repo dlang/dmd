@@ -51,6 +51,7 @@ import dmd.root.rootobject;
 import dmd.root.speller;
 import dmd.root.string;
 import dmd.statement;
+import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -1305,9 +1306,10 @@ extern (C++) class Dsymbol : ASTNode
     inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
     inout(CPPNamespaceDeclaration)     isCPPNamespaceDeclaration()     inout { return null; }
-    inout(VisibilityDeclaration)             isVisibilityDeclaration()             inout { return null; }
+    inout(VisibilityDeclaration)       isVisibilityDeclaration()       inout { return null; }
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
     inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
+    inout(StaticAssert)                isStaticAssert()                inout { return null; }
 }
 
 /***********************************************************
