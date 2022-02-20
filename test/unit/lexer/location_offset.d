@@ -516,6 +516,7 @@ enum ignoreTokens
     vectorArray,
 
     wchar_tLiteral,
+    whitespace,
     inline,
     register,
     restrict,
