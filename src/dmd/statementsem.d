@@ -4820,7 +4820,7 @@ private Statement toStatement(Dsymbol s)
             result = new CompoundStatement(d.loc, statements);
         }
     }
-    else if (s.kind() == "static assert" ||  // kludge, should have isStaticAssert()
+    else if (s.isStaticAssert() ||
              s.isImport())
     {
         /* Ignore as they are not Statements
