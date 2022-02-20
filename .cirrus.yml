@@ -20,20 +20,20 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
       DMD_BRANCH="master"
     fi
     git clone --branch "$DMD_BRANCH" --depth 1 https://github.com/dlang/dmd.git ../dmd
-  install_prerequisites_script: cd ../dmd && ./cirrusci.sh
-  install_host_compiler_script: cd ../dmd && ./ci.sh install_host_compiler
+  install_prerequisites_script: cd ../dmd && ./ci/cirrusci.sh
+  install_host_compiler_script: cd ../dmd && ./ci/run.sh install_host_compiler
   setup_repos_script: |
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../druntime
-    cd ../dmd && ./ci.sh setup_repos "$REPO_BRANCH"
-  build_script: cd ../dmd && ./ci.sh build
-  test_dmd_script: cd ../dmd && ./ci.sh test_dmd
-  test_druntime_script: cd ../dmd && ./ci.sh test_druntime
-  test_phobos_script: cd ../dmd && ./ci.sh test_phobos
+    cd ../dmd && ./ci/run.sh setup_repos "$REPO_BRANCH"
+  build_script: cd ../dmd && ./ci/run.sh build
+  test_dmd_script: cd ../dmd && ./ci/run.sh test_dmd
+  test_druntime_script: cd ../dmd && ./ci/run.sh test_druntime
+  test_phobos_script: cd ../dmd && ./ci/run.sh test_phobos
 
 environment:
   CIRRUS_CLONE_DEPTH: 1
-  # for ci.sh:
+  # for ci/run.sh:
   MODEL: 64
   HOST_DMD: dmd
   N: 4
