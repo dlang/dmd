@@ -865,7 +865,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                             assert(t.ty == Tdelegate);
                             tfld = cast(TypeFunction)t.nextOf();
                         }
-                        //printf("tfld = %s\n", tfld.toChars());
                     }
                 }
             }
