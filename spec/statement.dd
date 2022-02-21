@@ -536,7 +536,8 @@ foreach (i, char c; a)
 }
 --------------
 )
-        $(P The $(I index) type must be `size_t` for a dynamic array.
+        $(P For a dynamic array, the $(I index) type must be compatible
+        with `size_t`.
         Static arrays may use any integral type that spans the length
         of the array.)
 
