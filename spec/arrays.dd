@@ -409,19 +409,18 @@ $(H2 $(LNAME2 array-concatenation, Array Concatenation))
         to concatenate arrays:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----------
-int[] a;
-int[] b;
-int[] c;
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1, 2];
+assert(a ~ 3 == [1, 2, 3]); // concatenate array with a single value
 
-a = b ~ c; // Create an array from the concatenation
-           // of the b and c arrays
----------
+int[] b = a ~ [3, 4];
+assert(b == [1, 2, 3, 4]); // concatenate two arrays
+---
 )
 
-        $(P Many languages overload the + operator to mean concatenation.
-        This confusingly leads to, does:
+        $(P Many languages overload the + operator for concatenation.
+        This confusingly leads to a dilemma - does:
         )
 
 ---------
@@ -436,20 +435,31 @@ a = b ~ c; // Create an array from the concatenation
         concatenation.
         )
 
+        $(P Concatenation always creates a copy of its operands, even
+        if one of the operands is a 0 length array, so:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+auto b = [7];
+auto a = b;      // a refers to b
+assert(a is b);
+
+a = b ~ []; // a refers to a copy of b
+assert(a !is b);
+assert(a == b);
+---------
+)
+
+        $(P See also: $(DDSUBLINK spec/expression, identity_expressions, `is` operator).)
+
+$(H2 $(LNAME2 array-appending, Array Appending))
+
         $(P Similarly, the ~= operator means append, as in:
         )
 
 ---------
 a ~= b; // a becomes the concatenation of a and b
----------
-
-        $(P Concatenation always creates a copy of its operands, even
-        if one of the operands is a 0 length array, so:
-        )
-
----------
-a = b;           // a refers to b
-a = b ~ c[0..0]; // a refers to a copy of b
 ---------
 
         $(P Appending does not always create a copy, see $(RELATIVE_LINK2 resize,

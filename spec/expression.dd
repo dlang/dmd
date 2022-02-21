@@ -875,13 +875,12 @@ $(GNAME CatExpression):
     $(GLINK AddExpression) $(D ~) $(GLINK MulExpression)
 )
 
-    $(P A $(I CatExpression) concatenates arrays, producing
-        a dynamic array with the result. The arrays must be
-        arrays of the same element type. If one operand is an array
-        and the other is of that array's element type, that element
-        is converted to an array of length 1 of that element,
-        and then the concatenation is performed.
-    )
+    $(P A $(I CatExpression) concatenates a container's data with other data, producing
+        a new container.)
+
+    $(P For a dynamic array, the other operand must either be another array or a
+        single value that implicitly converts to the element type of the array.
+        See $(DDSUBLINK spec/arrays, array-concatenation, Array Concatenation).)
 
 $(H2 $(LNAME2 mul_expressions, Mul Expressions))
 
