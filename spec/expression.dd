@@ -1466,48 +1466,59 @@ $(H3 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
         -------------
 
         If both $(CODE a) and $(CODE b) are integers (which may be constant-folded),
-        the slice expression can be converted to a static array type
+        the slice expression can be converted to a static array of type
         $(D T[b - a]).
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        int[] arr = [1, 2, 3];
+        int[2] sa = arr[1 .. 3];
+
+        assert(sa == [2, 3]);
+        //sa = arr[0 .. 3]; // error, cannot match length
+        ---
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        void foo(int[2] a)
-        {
-            assert(a == [2, 3]);
-        }
         void bar(ref int[2] a)
         {
             assert(a == [2, 3]);
-            a[0] = 4;
-            a[1] = 5;
-            assert(a == [4, 5]);
+            a = [4, 5];
         }
-        void baz(int[3] a) {}
 
         void main()
         {
             int[] arr = [1, 2, 3];
 
-            foo(arr[1 .. 3]);
-            assert(arr == [1, 2, 3]);
-
+            // slicing an lvalue gives an lvalue
             bar(arr[1 .. 3]);
             assert(arr == [1, 4, 5]);
-
-            //baz(arr[1 .. 3]); // cannot match length
         }
         -------------
         )
 
-$(P The following forms of slice expression can be convertible to a static array
-type:)
+    $(P Certain other forms of slice expression can be implicitly converted to a static array
+        when the slice length can be known at compile-time.
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        -------------
+        int[] da = [1, 2, 3];
+        int i = da[0]; // runtime variable
+
+        int[2] sa = da[i .. i + 2];
+        assert(sa == [2, 3]);
+        -------------
+        )
+
+    $(P The table below shows all the forms recognized:)
 
         $(DL
         $(DT $(D e)) $(DD An expression that contains no side effects.)
         $(DT $(D a), $(D b)) $(DD Integers (that may be constant-folded).)
         )
 
-        $(TABLE2 Computing array lengths during compilation,
+        $(TABLE2 ,
         $(THEAD Form, The length calculated at compile time)
         $(TROW $(D arr[]), The compile time length of $(D arr) if it's known.)
         $(TROW $(D arr[a .. b]),               $(D b - a))
