@@ -1836,25 +1836,12 @@ public:
                     t = te.sym.memtype;
                     goto L1;
                 }
-            case Twchar:
-                // BUG: need to cast(wchar)
-            case Tdchar:
-                // BUG: need to cast(dchar)
-                if (cast(uinteger_t)v > 0xFF)
-                {
-                    buf.printf("'\\U%08llx'", cast(long)v);
-                    break;
-                }
-                goto case;
             case Tchar:
+            case Twchar:
+            case Tdchar:
                 {
-                    size_t o = buf.length;
-                    if (v == '\'')
-                        buf.writestring("'\\''");
-                    else if (isprint(cast(int)v) && v != '\\')
-                        buf.printf("'%c'", cast(int)v);
-                    else
-                        buf.printf("'\\x%02x'", cast(int)v);
+                    const o = buf.length;
+                    writeSingleCharLiteral(*buf, cast(dchar) v);
                     if (hgs.ddoc)
                         escapeDdocString(buf, o);
                     break;
