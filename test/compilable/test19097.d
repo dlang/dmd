@@ -21,3 +21,25 @@ void foo(scope int* pf)
     betty(rf, pf);
     boop(rf, pf);
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=22801
+struct Wrapper
+{
+    int* ptr;
+
+    this(return ref int var) @safe
+    {
+        this.ptr = &var;
+    }
+}
+
+void main() @safe
+{
+    int i;
+    auto w = Wrapper(i);
+}
+
+void assign(ref scope int* x, return ref int y) @safe
+{
+    x = &y;
+}
