@@ -724,8 +724,9 @@ $(CONSOLE
     not escape the scope of the $(I opApply) function (an example would be assigning $(I dg) to a
     global). If it cannot be statically guaranteed that $(I dg) does not escape, a closure may
     be allocated for it on the heap instead of the stack.
-    Best practice is to annotate delegate parameters with `scope` when possible.
     )
+
+    $(BEST_PRACTICE Annotate delegate parameters to `opApply` functions with `scope` when possible.)
 
     $(P $(LEGACY_LNAME2 opApply, op-apply, $(I opApply)) can also be a templated function,
         which will infer the types of parameters based on the $(I ForeachStatement).
