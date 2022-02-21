@@ -1,6 +1,6 @@
 common_steps_template: &COMMON_STEPS_TEMPLATE
-  install_prerequisites_script: ./cirrusci.sh
-  install_host_compiler_script: ./ci.sh install_host_compiler
+  install_prerequisites_script: ./ci/cirrusci.sh
+  install_host_compiler_script: ./ci/run.sh install_host_compiler
   setup_repos_script: |
     set -uexo pipefail
     ln -s $CIRRUS_WORKING_DIR ../dmd
@@ -22,25 +22,25 @@ common_steps_template: &COMMON_STEPS_TEMPLATE
       fi
     fi
 
-    ./ci.sh setup_repos "$REPO_BRANCH"
-  build_script: ./ci.sh build
+    ./ci/run.sh setup_repos "$REPO_BRANCH"
+  build_script: ./ci/run.sh build
 
   test_dmd_script: |
     if [ "${DMD_TEST_COVERAGE:-0}" == "1" ]
     then
-      OS_NAME=$OS ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ./ci.sh rebuild
-      ./ci.sh test_dmd
-      ./ci.sh codecov
+      OS_NAME=$OS ENABLE_RELEASE=0 ENABLE_DEBUG=1 ENABLE_COVERAGE=1 ./ci/run.sh rebuild
+      ./ci/run.sh test_dmd
+      ./ci/run.sh codecov
     else
-      ./ci.sh test_dmd
+      ./ci/run.sh test_dmd
     fi
 
-  test_druntime_script: \[ "${DMD_TEST_COVERAGE:-0}" == "1" \] || ./ci.sh test_druntime
-  test_phobos_script: \[ "${DMD_TEST_COVERAGE:-0}" == "1" \] || ./ci.sh test_phobos
+  test_druntime_script: \[ "${DMD_TEST_COVERAGE:-0}" == "1" \] || ./ci/run.sh test_druntime
+  test_phobos_script: \[ "${DMD_TEST_COVERAGE:-0}" == "1" \] || ./ci/run.sh test_phobos
 
 environment:
   CIRRUS_CLONE_DEPTH: 50
-  # for ci.sh:
+  # for ci/run.sh:
   MODEL: 64
   HOST_DMD: dmd
   N: 4
