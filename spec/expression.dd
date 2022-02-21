@@ -1723,7 +1723,7 @@ $(GNAME ArrayMemberInitialization):
         int[2] sa = [1, 2];
         -------------
 
-    $(NOTE Slicing a dynamic array with statically known bounds also
+    $(NOTE Slicing a dynamic array with a statically known slice length also
         $(RELATIVE_LINK2 slice_to_static_array, allows conversion) to a static array.)
 
     $(P If any $(I ArrayMemberInitialization) is a
