@@ -691,7 +691,7 @@ $(H2 $(LNAME2 in_expressions, In Expressions))
 $(GRAMMAR
 $(GNAME InExpression):
     $(GLINK ShiftExpression) $(D in) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !in) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D ! in) $(GLINK ShiftExpression)
 )
 
 $(P A container such as an associative array
@@ -700,14 +700,17 @@ $(P A container such as an associative array
         -------------
         int foo[string];
         ...
-        if ("hello" in foo) {
+        if ("hello" in foo)
+        {
             // the string was found
         }
         -------------
 
-    $(P The return value of the $(I InExpression) is typically `bool` or a pointer.
+    $(P The result of an $(I InExpression) is a pointer for associative
+        arrays.
         The pointer is $(D null) if the container has no matching key.
-        If there is a match, the return value is a pointer to a value associated with the key.
+        If there is a match, the pointer points to a value associated
+        with the key.
     )
 
     $(P The $(D !in) expression is the logical negation of the $(D in)
@@ -717,9 +720,11 @@ $(P A container such as an associative array
     $(P The $(D in) expression has the same precedence as the
         relational expressions $(D <), $(D <)$(D =), etc.)
 
-    $(NOTE When $(DDSUBLINK spec/operatoroverloading, binary, overloading) `in`, normally only `opBinaryRight` would be defined.)
-
-    $(BEST_PRACTICE Overloading `in` for a container should only be done when the operation is of sublinear time complexity.)
+    $(NOTE When $(DDSUBLINK spec/operatoroverloading, binary, overloading)
+        `in`, normally only $(TT opBinaryRight) would be defined. This is
+        because the operation is usually not defined by the key type but by
+        the container, which appears on the right hand side of the `in`
+        operator.)
 
 $(H2 $(LNAME2 shift_expressions, Shift Expressions))
 
@@ -812,7 +817,7 @@ $(GNAME CatExpression):
 )
 
     $(P A $(I CatExpression) concatenates a container's data with other data, producing
-        a new container of the same type as the result.
+        a new container.
         Typically the container is a dynamic array.)
 
     $(P For a dynamic array, the other operand must either be another array or a
