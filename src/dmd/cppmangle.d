@@ -1395,14 +1395,13 @@ private final class CppMangleVisitor : Visitor
     }
 
     /******
-     * Write out 1 or 2 character basic type mangling.
+     * Write out basic type mangling.
      * Handle const and substitutions.
      * Params:
      *  t = type to mangle
-     *  p = if not 0, then character prefix
-     *  c = mangling character
+     *  c = mangling string
      */
-    void writeBasicType(Type t, char p, char c)
+    void writeBasicType(Type t, const(char)[] c)
     {
         // Only do substitutions for non-fundamental types.
         if (!isFundamentalType(t) || t.isConst())
@@ -1413,9 +1412,7 @@ private final class CppMangleVisitor : Visitor
                 append(t);
         }
         CV_qualifiers(t);
-        if (p)
-            buf.writeByte(p);
-        buf.writeByte(c);
+        buf.writestring(c);
     }
 
 
@@ -1651,7 +1648,7 @@ extern(C++):
         if (t.isImmutable() || t.isShared())
             return error(t);
 
-        writeBasicType(t, 'D', 'n');
+        writeBasicType(t, "Dn");
     }
 
     override void visit(TypeNoreturn t)
@@ -1659,7 +1656,7 @@ extern(C++):
         if (t.isImmutable() || t.isShared())
             return error(t);
 
-        writeBasicType(t, 0, 'v');      // mangle like `void`
+        writeBasicType(t, "v");      // mangle like `void`
     }
 
     override void visit(TypeBasic t)
@@ -1670,16 +1667,7 @@ extern(C++):
         // Handle any target-specific basic types.
         if (auto tm = target.cpp.typeMangle(t))
         {
-            // Only do substitutions for non-fundamental types.
-            if (!isFundamentalType(t) || t.isConst())
-            {
-                if (substitute(t))
-                    return;
-                else
-                    append(t);
-            }
-            CV_qualifiers(t);
-            buf.writestring(tm);
+            writeBasicType(t, toDString(tm));
             return;
         }
 
@@ -1713,43 +1701,42 @@ extern(C++):
          * Ds       char16_t
          * u <source-name>  # vendor extended type
          */
-        char c;
-        char p = 0;
+        string c;
         switch (t.ty)
         {
-            case Tvoid:                 c = 'v';        break;
-            case Tint8:                 c = 'a';        break;
-            case Tuns8:                 c = 'h';        break;
-            case Tint16:                c = 's';        break;
-            case Tuns16:                c = 't';        break;
-            case Tint32:                c = 'i';        break;
-            case Tuns32:                c = 'j';        break;
-            case Tfloat32:              c = 'f';        break;
+            case Tvoid:         c = "v";        break;
+            case Tint8:         c = "a";        break;
+            case Tuns8:         c = "h";        break;
+            case Tint16:        c = "s";        break;
+            case Tuns16:        c = "t";        break;
+            case Tint32:        c = "i";        break;
+            case Tuns32:        c = "j";        break;
+            case Tfloat32:      c = "f";        break;
             case Tint64:
-                c = target.c.longsize == 8 ? 'l' : 'x';
+                c = target.c.longsize == 8 ? "l" : "x";
                 break;
             case Tuns64:
-                c = target.c.longsize == 8 ? 'm' : 'y';
+                c = target.c.longsize == 8 ? "m" : "y";
                 break;
-            case Tint128:                c = 'n';       break;
-            case Tuns128:                c = 'o';       break;
-            case Tfloat64:               c = 'd';       break;
-            case Tfloat80:               c = 'e';       break;
-            case Tbool:                  c = 'b';       break;
-            case Tchar:                  c = 'c';       break;
-            case Twchar:        p = 'D'; c = 's';       break;  // since C++11
-            case Tdchar:        p = 'D'; c = 'i';       break;  // since C++11
-            case Timaginary32:  p = 'G'; c = 'f';       break;  // 'G' means imaginary
-            case Timaginary64:  p = 'G'; c = 'd';       break;
-            case Timaginary80:  p = 'G'; c = 'e';       break;
-            case Tcomplex32:    p = 'C'; c = 'f';       break;  // 'C' means complex
-            case Tcomplex64:    p = 'C'; c = 'd';       break;
-            case Tcomplex80:    p = 'C'; c = 'e';       break;
+            case Tint128:       c = "n";       break;
+            case Tuns128:       c = "o";       break;
+            case Tfloat64:      c = "d";       break;
+            case Tfloat80:      c = "e";       break;
+            case Tbool:         c = "b";       break;
+            case Tchar:         c = "c";       break;
+            case Twchar:        c = "Ds";      break;  // since C++11
+            case Tdchar:        c = "Di";      break;  // since C++11
+            case Timaginary32:  c = "Gf";      break;  // 'G' means imaginary
+            case Timaginary64:  c = "Gd";      break;
+            case Timaginary80:  c = "Ge";      break;
+            case Tcomplex32:    c = "Cf";      break;  // 'C' means complex
+            case Tcomplex64:    c = "Cd";      break;
+            case Tcomplex80:    c = "Ce";      break;
 
             default:
                 return error(t);
         }
-        writeBasicType(t, p, c);
+        writeBasicType(t, c);
     }
 
     override void visit(TypeVector t)
@@ -1879,21 +1866,21 @@ extern(C++):
         const id = t.sym.ident;
         //printf("enum id = '%s'\n", id.toChars());
         if (id == Id.__c_long)
-            return writeBasicType(t, 0, 'l');
+            return writeBasicType(t, "l");
         else if (id == Id.__c_ulong)
-            return writeBasicType(t, 0, 'm');
+            return writeBasicType(t, "m");
         else if (id == Id.__c_wchar_t)
-            return writeBasicType(t, 0, 'w');
+            return writeBasicType(t, "w");
         else if (id == Id.__c_longlong)
-            return writeBasicType(t, 0, 'x');
+            return writeBasicType(t, "x");
         else if (id == Id.__c_ulonglong)
-            return writeBasicType(t, 0, 'y');
+            return writeBasicType(t, "y");
         else if (id == Id.__c_complex_float)
-            return writeBasicType(t, 'C', 'f');
+            return writeBasicType(t, "Cf");
         else if (id == Id.__c_complex_double)
-            return writeBasicType(t, 'C', 'd');
+            return writeBasicType(t, "Cd");
         else if (id == Id.__c_complex_real)
-            return writeBasicType(t, 'C', 'e');
+            return writeBasicType(t, "Ce");
 
         doSymbol(t);
     }
