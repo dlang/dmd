@@ -156,7 +156,7 @@ class ConservativeGC : GC
      *
      * Throws: InvalidMemoryOperationError on recursive locking during finalization.
      */
-    static void lockNR() @nogc nothrow
+    static void lockNR() @safe @nogc nothrow
     {
         if (_inFinalizer)
             onInvalidMemoryOperationError();
@@ -1300,7 +1300,7 @@ class ConservativeGC : GC
     }
 
 
-    core.memory.GC.Stats stats() nothrow
+    core.memory.GC.Stats stats() @safe nothrow @nogc
     {
         typeof(return) ret;
 
@@ -1333,8 +1333,15 @@ class ConservativeGC : GC
     //
     // Implementation of getStats
     //
-    private void getStatsNoSync(out core.memory.GC.Stats stats) nothrow
+    private void getStatsNoSync(out core.memory.GC.Stats stats) @trusted nothrow @nogc
     {
+        // This function is trusted for two reasons: `pool.pagetable` is a pointer,
+        // which is being sliced in the below foreach, and so is `binPageChain`,
+        // also sliced a bit later in this function.
+        // However, both usages are safe as long as the assumption that `npools`
+        // defines the limit for `pagetable`'s length holds true (see allocation).
+        // The slicing happens at __LINE__ + 4 and __LINE__ + 24.
+        // `@trusted` delegates are not used to prevent any performance issue.
         foreach (pool; gcx.pooltable[])
         {
             foreach (bin; pool.pagetable[0 .. pool.npages])
