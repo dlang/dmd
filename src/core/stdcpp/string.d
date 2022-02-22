@@ -343,7 +343,7 @@ extern(D):
         ///
         inout(T)* data() inout @safe                                        { return _Get_data()._Myptr; }
         ///
-        inout(T)[] as_array() inout nothrow @trusted                        { return _Get_data()._Myptr[0 .. _Get_data()._Mysize]; }
+        inout(T)[] as_array() return scope inout nothrow @trusted           { return _Get_data()._Myptr[0 .. _Get_data()._Mysize]; }
         ///
         ref inout(T) at(size_type i) inout nothrow @trusted                 { return _Get_data()._Myptr[0 .. _Get_data()._Mysize][i]; }
 
