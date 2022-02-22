@@ -87,6 +87,8 @@ void dshellPrebuiltInit(string testDir, string testName)
     Vars.set("OUTPUT_BASE", buildPath(RESULTS_TEST_DIR, TEST_NAME));
     // reference to the extra files directory
     Vars.set("EXTRA_FILES", buildPath(TEST_DIR, "extra-files"));
+    // reference to the imports directory
+    Vars.set("IMPORT_FILES", buildPath(TEST_DIR, "imports"));
     version (Windows)
     {
         Vars.set("LIBEXT", ".lib");
