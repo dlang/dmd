@@ -686,7 +686,7 @@ class ConservativeGC : GC
             else if (pagenum + newsz <= pool.npages)
             {
                 // Attempt to expand in place (TODO: merge with extend)
-                if (lpool.pagetable[pagenum + psz] != B_FREE)
+                if (lpool.pagetable[pagenum + psz] != Bins.B_FREE)
                     return doMalloc();
 
                 auto newPages = newsz - psz;
@@ -696,7 +696,7 @@ class ConservativeGC : GC
 
                 debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
                 debug (PRINTF) printFreeInfo(pool);
-                memset(&lpool.pagetable[pagenum + psz], B_PAGEPLUS, newPages);
+                memset(&lpool.pagetable[pagenum + psz], Bins.B_PAGEPLUS, newPages);
                 lpool.bPageOffsets[pagenum] = cast(uint) newsz;
                 for (auto offset = psz; offset < newsz; offset++)
                     lpool.bPageOffsets[pagenum + offset] = cast(uint) offset;
@@ -767,7 +767,7 @@ class ConservativeGC : GC
 
             auto lpool = cast(LargeObjectPool*) pool;
             size_t pagenum = lpool.pagenumOf(p);
-            if (lpool.pagetable[pagenum] != B_PAGE)
+            if (lpool.pagetable[pagenum] != Bins.B_PAGE)
                 return 0;
 
             size_t psz = lpool.bPageOffsets[pagenum];
@@ -778,7 +778,7 @@ class ConservativeGC : GC
 
             if (pagenum + psz >= lpool.npages)
                 return 0;
-            if (lpool.pagetable[pagenum + psz] != B_FREE)
+            if (lpool.pagetable[pagenum + psz] != Bins.B_FREE)
                 return 0;
 
             size_t freesz = lpool.bPageOffsets[pagenum + psz];
@@ -786,7 +786,7 @@ class ConservativeGC : GC
                 return 0;
             size_t sz = freesz > maxsz ? maxsz : freesz;
             debug (MEMSTOMP) memset(pool.baseAddr + (pagenum + psz) * PAGESIZE, 0xF0, sz * PAGESIZE);
-            memset(lpool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
+            memset(lpool.pagetable + pagenum + psz, Bins.B_PAGEPLUS, sz);
             lpool.bPageOffsets[pagenum] = cast(uint) (psz + sz);
             for (auto offset = psz; offset < psz + sz; offset++)
                 lpool.bPageOffsets[pagenum + offset] = cast(uint) offset;
@@ -875,11 +875,11 @@ class ConservativeGC : GC
         debug(PRINTF) printf("pool base = %p, PAGENUM = %d of %d, bin = %d\n", pool.baseAddr, pagenum, pool.npages, pool.pagetable[pagenum]);
         debug(PRINTF) if (pool.isLargeObject) printf("Block size = %d\n", pool.bPageOffsets[pagenum]);
 
-        bin = cast(Bins)pool.pagetable[pagenum];
+        bin = pool.pagetable[pagenum];
 
         // Verify that the pointer is at the beginning of a block,
         //  no action should be taken if p is an interior pointer
-        if (bin > B_PAGE) // B_PAGEPLUS or B_FREE
+        if (bin > Bins.B_PAGE) // B_PAGEPLUS or B_FREE
             return;
         size_t off = (sentinel_sub(p) - pool.baseAddr);
         size_t base = baseOffset(off, bin);
@@ -894,7 +894,7 @@ class ConservativeGC : GC
         if (pool.isLargeObject)              // if large alloc
         {
             biti = cast(size_t)(p - pool.baseAddr) >> pool.ShiftBy.Large;
-            assert(bin == B_PAGE);
+            assert(bin == Bins.B_PAGE);
             auto lpool = cast(LargeObjectPool*) pool;
 
             // Free pages
@@ -1095,13 +1095,13 @@ class ConservativeGC : GC
             pool = gcx.findPool(p);
             assert(pool);
             pagenum = pool.pagenumOf(p);
-            bin = cast(Bins)pool.pagetable[pagenum];
-            assert(bin <= B_PAGE);
+            bin = pool.pagetable[pagenum];
+            assert(bin <= Bins.B_PAGE);
             assert(p == cast(void*)baseOffset(cast(size_t)p, bin));
 
             debug (PTRCHECK2)
             {
-                if (bin < B_PAGE)
+                if (bin < Bins.B_PAGE)
                 {
                     // Check that p is not on a free list
                     List *list;
@@ -1339,7 +1339,7 @@ class ConservativeGC : GC
         {
             foreach (bin; pool.pagetable[0 .. pool.npages])
             {
-                if (bin == B_FREE)
+                if (bin == Bins.B_FREE)
                     stats.freeSize += PAGESIZE;
                 else
                     stats.usedSize += PAGESIZE;
@@ -1347,7 +1347,7 @@ class ConservativeGC : GC
         }
 
         size_t freeListSize;
-        foreach (n; 0 .. B_PAGE)
+        foreach (n; 0 .. Bins.B_PAGE)
         {
             immutable sz = binsize[n];
             for (List *list = gcx.bucket[n]; list; list = list.next)
@@ -1382,7 +1382,7 @@ enum
 }
 
 
-enum
+enum Bins : ubyte
 {
     B_16,
     B_32,
@@ -1406,10 +1406,6 @@ enum
     B_MAX,
 }
 
-
-alias ubyte Bins;
-
-
 struct List
 {
     List *next;
@@ -1417,12 +1413,12 @@ struct List
 }
 
 // non power of two sizes optimized for small remainder within page (<= 64 bytes)
-immutable short[B_NUMSMALL + 1] binsize = [ 16, 32, 48, 64, 96, 128, 176, 256, 368, 512, 816, 1024, 1360, 2048, 4096 ];
-immutable short[PAGESIZE / 16][B_NUMSMALL + 1] binbase = calcBinBase();
+immutable short[Bins.B_NUMSMALL + 1] binsize = [ 16, 32, 48, 64, 96, 128, 176, 256, 368, 512, 816, 1024, 1360, 2048, 4096 ];
+immutable short[PAGESIZE / 16][Bins.B_NUMSMALL + 1] binbase = calcBinBase();
 
-short[PAGESIZE / 16][B_NUMSMALL + 1] calcBinBase()
+short[PAGESIZE / 16][Bins.B_NUMSMALL + 1] calcBinBase()
 {
-    short[PAGESIZE / 16][B_NUMSMALL + 1] bin;
+    short[PAGESIZE / 16][Bins.B_NUMSMALL + 1] bin;
 
     foreach (i, size; binsize)
     {
@@ -1441,7 +1437,7 @@ short[PAGESIZE / 16][B_NUMSMALL + 1] calcBinBase()
 
 size_t baseOffset(size_t offset, Bins bin) @nogc nothrow
 {
-    assert(bin <= B_PAGE);
+    assert(bin <= Bins.B_PAGE);
     return (offset & ~(PAGESIZE - 1)) + binbase[bin][(offset & (PAGESIZE - 1)) >> 4];
 }
 
@@ -1449,9 +1445,9 @@ alias PageBits = GCBits.wordtype[PAGESIZE / 16 / GCBits.BITS_PER_WORD];
 static assert(PAGESIZE % (GCBits.BITS_PER_WORD * 16) == 0);
 
 // bitmask with bits set at base offsets of objects
-immutable PageBits[B_NUMSMALL] baseOffsetBits = (){
-    PageBits[B_NUMSMALL] bits;
-    foreach (bin; 0..B_NUMSMALL)
+immutable PageBits[Bins.B_NUMSMALL] baseOffsetBits = (){
+    PageBits[Bins.B_NUMSMALL] bits;
+    foreach (bin; 0 .. Bins.B_NUMSMALL)
     {
         size_t size = binsize[bin];
         const top = PAGESIZE - size + 1; // ensure <size> bytes available even if unaligned
@@ -1493,7 +1489,7 @@ struct Gcx
 
     PoolTable!Pool pooltable;
 
-    List*[B_NUMSMALL] bucket; // free list for each small size
+    List*[Bins.B_NUMSMALL] bucket; // free list for each small size
 
     // run a collection when reaching those thresholds (number of used pages)
     float smallCollectThreshold, largeCollectThreshold;
@@ -1506,7 +1502,7 @@ struct Gcx
     else
         alias leakDetector = LeakDetector;
 
-    SmallObjectPool*[B_NUMSMALL] recoverPool;
+    SmallObjectPool*[Bins.B_NUMSMALL] recoverPool;
     version (Posix) __gshared Gcx* instance;
 
     void initialize()
@@ -1632,7 +1628,7 @@ struct Gcx
             if (!inCollection)
                 (cast()rangesLock).unlock();
 
-            for (size_t i = 0; i < B_NUMSMALL; i++)
+            for (size_t i = 0; i < Bins.B_NUMSMALL; i++)
             {
                 size_t j = 0;
                 List* prev, pprev, ppprev; // keep a short history to inspect in the debugger
@@ -1813,18 +1809,18 @@ struct Gcx
     /**
      * Computes the bin table using CTFE.
      */
-    static byte[2049] ctfeBins() nothrow
+    static Bins[2049] ctfeBins() nothrow
     {
-        byte[2049] ret;
+        Bins[2049] ret;
         size_t p = 0;
-        for (Bins b = B_16; b <= B_2048; b++)
+        for (Bins b = Bins.B_16; b <= Bins.B_2048; b++)
             for ( ; p <= binsize[b]; p++)
                 ret[p] = b;
 
         return ret;
     }
 
-    static const byte[2049] binTable = ctfeBins();
+    static immutable Bins[2049] binTable = ctfeBins();
 
     /**
      * Allocate a new pool of at least size bytes.
@@ -2331,7 +2327,7 @@ struct Gcx
                     printf("\t\tfound pool %p, base=%p, pn = %lld, bin = %d\n", pool, pool.baseAddr, cast(long)pn, bin);
 
                 // Adjust bit to be at start of allocated memory block
-                if (bin < B_PAGE)
+                if (bin < Bins.B_PAGE)
                 {
                     // We don't care abou setting pointsToBase correctly
                     // because it's ignored for small object pools anyhow.
@@ -2352,7 +2348,7 @@ struct Gcx
                         goto LaddRange;
                     }
                 }
-                else if (bin == B_PAGE)
+                else if (bin == Bins.B_PAGE)
                 {
                     biti = offset >> Pool.ShiftBy.Large;
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
@@ -2372,7 +2368,7 @@ struct Gcx
                         goto LaddLargeRange;
                     }
                 }
-                else if (bin == B_PAGEPLUS)
+                else if (bin == Bins.B_PAGEPLUS)
                 {
                     pn -= pool.bPageOffsets[pn];
                     biti = pn * (PAGESIZE >> Pool.ShiftBy.Large);
@@ -2425,7 +2421,7 @@ struct Gcx
                 else
                 {
                     // Don't mark bits in B_FREE pages
-                    assert(bin == B_FREE);
+                    assert(bin == Bins.B_FREE);
                 }
             }
         LnextPtr:
@@ -2606,12 +2602,12 @@ struct Gcx
                 {
                     npages = pool.bPageOffsets[pn];
                     Bins bin = cast(Bins)pool.pagetable[pn];
-                    if (bin == B_FREE)
+                    if (bin == Bins.B_FREE)
                     {
                         numFree += npages;
                         continue;
                     }
-                    assert(bin == B_PAGE);
+                    assert(bin == Bins.B_PAGE);
                     size_t biti = pn;
 
                     if (!pool.mark.test(biti))
@@ -2631,7 +2627,7 @@ struct Gcx
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
                         leakDetector.log_free(q, sentinel_size(q, npages * PAGESIZE - SENTINEL_EXTRA));
-                        pool.pagetable[pn..pn+npages] = B_FREE;
+                        pool.pagetable[pn..pn+npages] = Bins.B_FREE;
                         if (pn < pool.searchStart) pool.searchStart = pn;
                         freedLargePages += npages;
                         pool.freepages += npages;
@@ -2665,7 +2661,7 @@ struct Gcx
                 {
                     Bins bin = cast(Bins)pool.pagetable[pn];
 
-                    if (bin < B_PAGE)
+                    if (bin < Bins.B_PAGE)
                     {
                         auto freebitsdata = pool.freebits.data + pn * PageBits.length;
                         auto markdata = pool.mark.data + pn * PageBits.length;
@@ -2761,7 +2757,7 @@ struct Gcx
                         {
                             pool.freeAllPageBits(pn);
 
-                            pool.pagetable[pn] = B_FREE;
+                            pool.pagetable[pn] = Bins.B_FREE;
                             // add to free chain
                             pool.binPageChain[pn] = cast(uint) pool.searchStart;
                             pool.searchStart = pn;
@@ -3147,7 +3143,7 @@ Lmark:
 
         // init bucket lists
         bucket[] = null;
-        foreach (Bins bin; 0..B_NUMSMALL)
+        foreach (Bins bin; Bins.B_16 .. Bins.B_NUMSMALL)
             setNextRecoverPool(bin, 0);
 
         stop = currTime;
@@ -3182,24 +3178,24 @@ Lmark:
             auto pn = offset / PAGESIZE;
             auto bins = cast(Bins)pool.pagetable[pn];
             size_t biti = void;
-            if (bins < B_PAGE)
+            if (bins < Bins.B_PAGE)
             {
                 biti = baseOffset(offset, bins) >> pool.ShiftBy.Small;
                 // doesn't need to check freebits because no pointer must exist
                 //  to a block that was free before starting the collection
             }
-            else if (bins == B_PAGE)
+            else if (bins == Bins.B_PAGE)
             {
                 biti = pn * (PAGESIZE >> pool.ShiftBy.Large);
             }
-            else if (bins == B_PAGEPLUS)
+            else if (bins == Bins.B_PAGEPLUS)
             {
                 pn -= pool.bPageOffsets[pn];
                 biti = pn * (PAGESIZE >> pool.ShiftBy.Large);
             }
-            else // bins == B_FREE
+            else // bins == Bins.B_FREE
             {
-                assert(bins == B_FREE);
+                assert(bins == Bins.B_FREE);
                 return IsMarked.no;
             }
             return pool.mark.test(biti) ? IsMarked.yes : IsMarked.no;
@@ -3508,7 +3504,7 @@ struct Pool
     GCBits is_pointer;  // precise GC only: per-word, not per-block like the rest of them (SmallObjectPool only)
     size_t npages;
     size_t freepages;     // The number of pages not in use.
-    ubyte* pagetable;
+    Bins* pagetable;
 
     bool isLargeObject;
 
@@ -3537,7 +3533,7 @@ struct Pool
     enum PageRecovered = uint.max;
 
     // first of chain of pages to recover (SmallObjectPool only)
-    uint[B_NUMSMALL] recoverPageFirst;
+    uint[Bins.B_NUMSMALL] recoverPageFirst;
 
     // precise GC: TypeInfo.rtInfo for allocation (LargeObjectPool only)
     immutable(size_t)** rtinfo;
@@ -3607,7 +3603,7 @@ struct Pool
         noscan.alloc(nbits);
         appendable.alloc(nbits);
 
-        pagetable = cast(ubyte*)cstdlib.malloc(npages);
+        pagetable = cast(Bins*)cstdlib.malloc(npages * Bins.sizeof);
         if (!pagetable)
             onOutOfMemoryErrorNoGC();
 
@@ -3631,7 +3627,7 @@ struct Pool
             }
         }
 
-        memset(pagetable, B_FREE, npages);
+        memset(pagetable, Bins.B_FREE, npages);
 
         this.npages = npages;
         this.freepages = npages;
@@ -3879,10 +3875,10 @@ struct Pool
     {
         size_t offset = cast(size_t)(p - baseAddr);
         size_t pn = offset / PAGESIZE;
-        Bins   bin = cast(Bins)pagetable[pn];
+        Bins   bin = pagetable[pn];
 
         // Adjust bit to be at start of allocated memory block
-        if (bin < B_NUMSMALL)
+        if (bin < Bins.B_NUMSMALL)
         {
             auto baseOff = baseOffset(offset, bin);
             const biti = baseOff >> Pool.ShiftBy.Small;
@@ -3890,11 +3886,11 @@ struct Pool
                 return null;
             return baseAddr + baseOff;
         }
-        if (bin == B_PAGE)
+        if (bin == Bins.B_PAGE)
         {
             return baseAddr + (offset & (offset.max ^ (PAGESIZE-1)));
         }
-        if (bin == B_PAGEPLUS)
+        if (bin == Bins.B_PAGEPLUS)
         {
             size_t pageOffset = bPageOffsets[pn];
             offset -= pageOffset * PAGESIZE;
@@ -3903,7 +3899,7 @@ struct Pool
             return baseAddr + (offset & (offset.max ^ (PAGESIZE-1)));
         }
         // we are in a B_FREE page
-        assert(bin == B_FREE);
+        assert(bin == Bins.B_FREE);
         return null;
     }
 
@@ -3940,8 +3936,8 @@ struct Pool
         {
             for (size_t i = 0; i < npages; i++)
             {
-                Bins bin = cast(Bins)pagetable[i];
-                assert(bin < B_MAX);
+                Bins bin = pagetable[i];
+                assert(bin < Bins.B_MAX);
             }
         }
     }
@@ -4049,19 +4045,19 @@ struct LargeObjectPool
             uint np = bPageOffsets[n];
             assert(np > 0 && np <= npages - n);
 
-            if (pagetable[n] == B_PAGE)
+            if (pagetable[n] == Bins.B_PAGE)
             {
                 for (uint p = 1; p < np; p++)
                 {
-                    assert(pagetable[n + p] == B_PAGEPLUS);
+                    assert(pagetable[n + p] == Bins.B_PAGEPLUS);
                     assert(bPageOffsets[n + p] == p);
                 }
             }
-            else if (pagetable[n] == B_FREE)
+            else if (pagetable[n] == Bins.B_FREE)
             {
                 for (uint p = 1; p < np; p++)
                 {
-                    assert(pagetable[n + p] == B_FREE);
+                    assert(pagetable[n + p] == Bins.B_FREE);
                 }
                 assert(bPageOffsets[n + np - 1] == np);
             }
@@ -4082,17 +4078,17 @@ struct LargeObjectPool
 
         //debug(PRINTF) printf("Pool::allocPages(n = %d)\n", n);
         size_t largest = 0;
-        if (pagetable[searchStart] == B_PAGEPLUS)
+        if (pagetable[searchStart] == Bins.B_PAGEPLUS)
         {
             searchStart -= bPageOffsets[searchStart]; // jump to B_PAGE
             searchStart += bPageOffsets[searchStart];
         }
-        while (searchStart < npages && pagetable[searchStart] == B_PAGE)
+        while (searchStart < npages && pagetable[searchStart] == Bins.B_PAGE)
             searchStart += bPageOffsets[searchStart];
 
         for (size_t i = searchStart; i < npages; )
         {
-            assert(pagetable[i] == B_FREE);
+            assert(pagetable[i] == Bins.B_FREE);
 
             auto p = bPageOffsets[i];
             if (p > n)
@@ -4103,11 +4099,11 @@ struct LargeObjectPool
             if (p == n)
             {
             L_found:
-                pagetable[i] = B_PAGE;
+                pagetable[i] = Bins.B_PAGE;
                 bPageOffsets[i] = cast(uint) n;
                 if (n > 1)
                 {
-                    memset(&pagetable[i + 1], B_PAGEPLUS, n - 1);
+                    memset(&pagetable[i + 1], Bins.B_PAGEPLUS, n - 1);
                     for (auto offset = 1; offset < n; offset++)
                         bPageOffsets[i + offset] = cast(uint) offset;
                 }
@@ -4118,7 +4114,7 @@ struct LargeObjectPool
                 largest = p;
 
             i += p;
-            while (i < npages && pagetable[i] == B_PAGE)
+            while (i < npages && pagetable[i] == Bins.B_PAGE)
             {
                 // we have the size information, so we skip a whole bunch of pages.
                 i += bPageOffsets[i];
@@ -4141,8 +4137,8 @@ struct LargeObjectPool
 
         for (size_t i = pagenum; i < npages + pagenum; i++)
         {
-            assert(pagetable[i] < B_FREE);
-            pagetable[i] = B_FREE;
+            assert(pagetable[i] < Bins.B_FREE);
+            pagetable[i] = Bins.B_FREE;
         }
         freepages += npages;
         largestFree = freepages; // invalidate
@@ -4153,8 +4149,8 @@ struct LargeObjectPool
      */
     void setFreePageOffsets(size_t page, size_t num) nothrow @nogc
     {
-        assert(pagetable[page] == B_FREE);
-        assert(pagetable[page + num - 1] == B_FREE);
+        assert(pagetable[page] == Bins.B_FREE);
+        assert(pagetable[page + num - 1] == Bins.B_FREE);
         bPageOffsets[page] = cast(uint)num;
         if (num > 1)
             bPageOffsets[page + num - 1] = cast(uint)num;
@@ -4164,7 +4160,7 @@ struct LargeObjectPool
     {
         static if (bwd)
         {
-            if (page > 0 && pagetable[page - 1] == B_FREE)
+            if (page > 0 && pagetable[page - 1] == Bins.B_FREE)
             {
                 auto sz = bPageOffsets[page - 1];
                 page -= sz;
@@ -4173,7 +4169,7 @@ struct LargeObjectPool
         }
         static if (fwd)
         {
-            if (page + num < npages && pagetable[page + num] == B_FREE)
+            if (page + num < npages && pagetable[page + num] == Bins.B_FREE)
                 num += bPageOffsets[page + num];
         }
         setFreePageOffsets(page, num);
@@ -4193,8 +4189,8 @@ struct LargeObjectPool
         if (cast(size_t)p & (PAGESIZE - 1)) // check for interior pointer
             return 0;
         size_t pagenum = pagenumOf(p);
-        Bins bin = cast(Bins)pagetable[pagenum];
-        if (bin != B_PAGE)
+        Bins bin = pagetable[pagenum];
+        if (bin != Bins.B_PAGE)
             return 0;
         return bPageOffsets[pagenum];
     }
@@ -4204,7 +4200,7 @@ struct LargeObjectPool
     */
     size_t getSize(size_t pn) const nothrow @nogc
     {
-        assert(pagetable[pn] == B_PAGE);
+        assert(pagetable[pn] == Bins.B_PAGE);
         return cast(size_t) bPageOffsets[pn] * PAGESIZE;
     }
 
@@ -4217,11 +4213,11 @@ struct LargeObjectPool
 
         size_t offset = cast(size_t)(p - baseAddr);
         size_t pn = offset / PAGESIZE;
-        Bins bin = cast(Bins)pagetable[pn];
+        Bins bin = pagetable[pn];
 
-        if (bin == B_PAGEPLUS)
+        if (bin == Bins.B_PAGEPLUS)
             pn -= bPageOffsets[pn];
-        else if (bin != B_PAGE)
+        else if (bin != Bins.B_PAGE)
             return info;           // no info for free pages
 
         info.base = baseAddr + pn * PAGESIZE;
@@ -4234,8 +4230,8 @@ struct LargeObjectPool
     {
         foreach (pn; 0 .. npages)
         {
-            Bins bin = cast(Bins)pagetable[pn];
-            if (bin > B_PAGE)
+            Bins bin = pagetable[pn];
+            if (bin > Bins.B_PAGE)
                 continue;
             size_t biti = pn;
 
@@ -4261,7 +4257,7 @@ struct LargeObjectPool
 
             size_t n = 1;
             for (; pn + n < npages; ++n)
-                if (pagetable[pn + n] != B_PAGEPLUS)
+                if (pagetable[pn + n] != Bins.B_PAGEPLUS)
                     break;
             debug (MEMSTOMP) memset(baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
             freePages(pn, n);
@@ -4281,7 +4277,7 @@ struct SmallObjectPool
     {
         //base.Invariant();
         uint cntRecover = 0;
-        foreach (Bins bin; 0 .. B_NUMSMALL)
+        foreach (Bins bin; Bins.B_16 .. Bins.B_NUMSMALL)
         {
             for (auto pn = recoverPageFirst[bin]; pn < npages; pn = binPageChain[pn])
             {
@@ -4292,7 +4288,7 @@ struct SmallObjectPool
         uint cntFree = 0;
         for (auto pn = searchStart; pn < npages; pn = binPageChain[pn])
         {
-            assert(pagetable[pn] == B_FREE);
+            assert(pagetable[pn] == Bins.B_FREE);
             cntFree++;
         }
         assert(cntFree == freepages);
@@ -4311,8 +4307,8 @@ struct SmallObjectPool
     do
     {
         size_t pagenum = pagenumOf(p);
-        Bins bin = cast(Bins)pagetable[pagenum];
-        assert(bin < B_PAGE);
+        Bins bin = pagetable[pagenum];
+        assert(bin < Bins.B_PAGE);
         if (p != cast(void*)baseOffset(cast(size_t)p, bin)) // check for interior pointer
             return 0;
         const biti = cast(size_t)(p - baseAddr) >> ShiftBy.Small;
@@ -4326,9 +4322,9 @@ struct SmallObjectPool
         BlkInfo info;
         size_t offset = cast(size_t)(p - baseAddr);
         size_t pn = offset / PAGESIZE;
-        Bins   bin = cast(Bins)pagetable[pn];
+        Bins   bin = pagetable[pn];
 
-        if (bin >= B_PAGE)
+        if (bin >= Bins.B_PAGE)
             return info;
 
         auto base = cast(void*)baseOffset(cast(size_t)p, bin);
@@ -4348,8 +4344,8 @@ struct SmallObjectPool
     {
         foreach (pn; 0 .. npages)
         {
-            Bins bin = cast(Bins)pagetable[pn];
-            if (bin >= B_PAGE)
+            Bins bin = pagetable[pn];
+            if (bin >= Bins.B_PAGE)
                 continue;
 
             immutable size = binsize[bin];
@@ -4400,13 +4396,13 @@ struct SmallObjectPool
         if (searchStart >= npages)
             return null;
 
-        assert(pagetable[searchStart] == B_FREE);
+        assert(pagetable[searchStart] == Bins.B_FREE);
 
     L1:
         size_t pn = searchStart;
         searchStart = binPageChain[searchStart];
         binPageChain[pn] = Pool.PageRecovered;
-        pagetable[pn] = cast(ubyte)bin;
+        pagetable[pn] = bin;
         freepages--;
 
         // Convert page to free list
@@ -4533,7 +4529,7 @@ debug(PRINTF) void printFreeInfo(Pool* pool) nothrow
 {
     uint nReallyFree;
     foreach (i; 0..pool.npages) {
-        if (pool.pagetable[i] >= B_FREE) nReallyFree++;
+        if (pool.pagetable[i] >= Bins.B_FREE) nReallyFree++;
     }
 
     printf("Pool %p:  %d really free, %d supposedly free\n", pool, nReallyFree, pool.freepages);
@@ -4766,7 +4762,7 @@ debug (LOGGING)
                 size_t offset = cast(size_t)(p - pool.baseAddr);
                 size_t biti;
                 size_t pn = offset / PAGESIZE;
-                Bins bin = cast(Bins)pool.pagetable[pn];
+                Bins bin = pool.pagetable[pn];
                 biti = (offset & (PAGESIZE - 1)) >> pool.shiftBy;
                 debug(PRINTF) printf("\tbin = %d, offset = x%x, biti = x%x\n", bin, offset, biti);
             }
@@ -4917,7 +4913,7 @@ unittest
     assert(p + (260 << 20) == q);
     assert(q + (65 << 20) == r);
     GC.free(q);
-    // should trigger "assert(bin == B_FREE);" in mark due to dangling pointer q:
+    // should trigger "assert(bin == Bins.B_FREE);" in mark due to dangling pointer q:
     GC.collect();
     // should trigger "break;" in extendNoSync:
     size_t sz = GC.extend(p, 64 << 20, 66 << 20); // trigger size after p large enough (but limited)
