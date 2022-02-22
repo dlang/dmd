@@ -13,15 +13,14 @@ struct PoolTable(Pool)
 {
     import core.stdc.string : memmove;
 
-nothrow:
-    void Dtor()
+    void Dtor() nothrow @nogc
     {
         cstdlib.free(pools);
         pools = null;
         npools = 0;
     }
 
-    bool insert(Pool* pool)
+    bool insert(Pool* pool) nothrow @nogc
     {
         auto newpools = cast(Pool **)cstdlib.realloc(pools, (npools + 1) * pools[0].sizeof);
         if (!newpools)
@@ -51,7 +50,7 @@ nothrow:
         return true;
     }
 
-    @property size_t length() pure const
+    @property size_t length() const scope @safe pure nothrow @nogc
     {
         return npools;
     }
@@ -77,7 +76,7 @@ nothrow:
      * Return null if not in a Pool.
      * Assume pooltable[] is sorted.
      */
-    Pool *findPool(void *p) nothrow
+    Pool *findPool(void *p) nothrow @nogc
     {
         if (p >= minAddr && p < maxAddr)
         {
@@ -109,7 +108,7 @@ nothrow:
     }
 
     // semi-stable partition, returns right half for which pred is false
-    Pool*[] minimize() pure
+    Pool*[] minimize() pure nothrow @nogc
     {
         static void swap(ref Pool* a, ref Pool* b)
         {
@@ -151,7 +150,7 @@ nothrow:
         return pools[npools .. len];
     }
 
-    void Invariant() const
+    void Invariant() const nothrow @nogc
     {
         if (!npools) return;
 
@@ -165,8 +164,8 @@ nothrow:
         assert(_maxAddr == pools[npools - 1].topAddr);
     }
 
-    @property const(void)* minAddr() pure const { return _minAddr; }
-    @property const(void)* maxAddr() pure const { return _maxAddr; }
+    @property const(void)* minAddr() const @safe pure nothrow @nogc { return _minAddr; }
+    @property const(void)* maxAddr() const @safe pure nothrow @nogc { return _maxAddr; }
 
 package:
     Pool** pools;
@@ -184,7 +183,7 @@ unittest
     {
         byte* baseAddr, topAddr;
         size_t freepages, npages, ptIndex;
-        @property bool isFree() const pure nothrow { return freepages == npages; }
+        @property bool isFree() const scope pure nothrow @nogc { return freepages == npages; }
     }
     PoolTable!MockPool pooltable;
 

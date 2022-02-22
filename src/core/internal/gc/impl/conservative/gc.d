@@ -3852,7 +3852,7 @@ struct Pool
     }
 
     public
-    @property bool isFree() const pure nothrow
+    @property bool isFree() const scope @safe pure nothrow @nogc
     {
         return npages == freepages;
     }
