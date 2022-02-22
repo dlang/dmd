@@ -507,10 +507,14 @@ struct Duration
         string format and create the string itself.
 
         The format returned by toString may or may not change in the future.
+
+        Params:
+          sink = A sink object, expected to be a delegate or aggregate
+                 implementing `opCall` that accepts a `scope const(char)[]`
+                 as argument.
       +/
-    void toString (DGT) (scope DGT sink) const scope
+    void toString (SinkT) (scope SinkT sink) const scope
     {
-        alias SinkT = typeof(sink);
         static immutable units = [
             "weeks", "days", "hours", "minutes", "seconds", "msecs", "usecs"
         ];
