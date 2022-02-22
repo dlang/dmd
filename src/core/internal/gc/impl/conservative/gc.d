@@ -38,6 +38,8 @@ import core.gc.config;
 import core.gc.gcinterface;
 
 import core.internal.container.treap;
+import core.internal.spinlock;
+import core.internal.gc.pooltable;
 
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string : memcpy, memset, memmove;
@@ -145,7 +147,6 @@ class ConservativeGC : GC
 
     Gcx *gcx;                   // implementation
 
-    import core.internal.spinlock;
     static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.lengthy);
     static bool _inFinalizer;
     __gshared bool isPrecise = false;
@@ -1475,7 +1476,6 @@ private void set(ref PageBits bits, size_t i) @nogc pure nothrow
 
 struct Gcx
 {
-    import core.internal.spinlock;
     auto rootsLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
     auto rangesLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
     Treap!Root roots;
@@ -1491,7 +1491,6 @@ struct Gcx
     debug(INVARIANT) bool inCollection;
     uint disabled; // turn off collections if >0
 
-    import core.internal.gc.pooltable;
     private @property size_t npools() pure const nothrow { return pooltable.length; }
     PoolTable!Pool pooltable;
 
@@ -2300,7 +2299,6 @@ struct Gcx
                         bitpos -= rng.bmplength;
                         rng.pbase += rng.bmplength;
                     }
-                    import core.bitop;
                     if (!core.bitop.bt(rng.ptrbmp, bitpos))
                     {
                         debug(MARK_PRINTF) printf("\t\tskipping non-pointer\n");
@@ -2928,7 +2926,6 @@ struct Gcx
         import core.stdc.stdlib : _Exit;
         debug (PRINTF_TO_FILE)
         {
-            import core.stdc.stdio : fflush;
             fflush(null); // avoid duplicated FILE* output
         }
         version (OSX)
@@ -3262,8 +3259,11 @@ Lmark:
 
     /* ============================ Parallel scanning =============================== */
     version (COLLECT_PARALLEL):
-    import core.sync.event;
+
     import core.atomic;
+    import core.cpuid;
+    import core.sync.event;
+
     private: // disable invariants for background threads
 
     static struct ScanThreadData
@@ -3334,7 +3334,6 @@ Lmark:
 
     int maxParallelThreads() nothrow
     {
-        import core.cpuid;
         auto threads = threadsPerCPU();
 
         if (threads == 0)
