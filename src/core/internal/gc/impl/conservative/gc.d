@@ -1335,7 +1335,7 @@ class ConservativeGC : GC
     //
     private void getStatsNoSync(out core.memory.GC.Stats stats) nothrow
     {
-        foreach (pool; gcx.pooltable[0 .. gcx.npools])
+        foreach (pool; gcx.pooltable[])
         {
             foreach (bin; pool.pagetable[0 .. pool.npages])
             {
@@ -1353,7 +1353,7 @@ class ConservativeGC : GC
             for (List *list = gcx.bucket[n]; list; list = list.next)
                 freeListSize += sz;
 
-            foreach (pool; gcx.pooltable[0 .. gcx.npools])
+            foreach (pool; gcx.pooltable[])
             {
                 if (pool.isLargeObject)
                     continue;
@@ -1491,7 +1491,6 @@ struct Gcx
     debug(INVARIANT) bool inCollection;
     uint disabled; // turn off collections if >0
 
-    private @property size_t npools() pure const nothrow { return pooltable.length; }
     PoolTable!Pool pooltable;
 
     List*[B_NUMSMALL] bucket; // free list for each small size
@@ -1591,9 +1590,8 @@ struct Gcx
 
         debug(INVARIANT) initialized = false;
 
-        for (size_t i = 0; i < npools; i++)
+        foreach (Pool* pool; this.pooltable[])
         {
-            Pool *pool = pooltable[i];
             mappedPages -= pool.npages;
             pool.Dtor();
             cstdlib.free(pool);
@@ -1751,7 +1749,7 @@ struct Gcx
         ConservativeGC._inFinalizer = true;
         scope (failure) ConservativeGC._inFinalizer = false;
 
-        foreach (pool; pooltable[0 .. npools])
+        foreach (pool; this.pooltable[])
         {
             if (!pool.finals.nbits) continue;
 
@@ -1993,7 +1991,7 @@ struct Gcx
 
         bool tryAlloc() nothrow
         {
-            foreach (p; pooltable[0 .. npools])
+            foreach (p; this.pooltable[])
             {
                 if (!p.isLargeObject || p.freepages < npages)
                     continue;
@@ -2093,10 +2091,11 @@ struct Gcx
         }
 
         // Allocate successively larger pools up to 8 megs
-        if (npools)
-        {   size_t n;
+        if (this.pooltable.length)
+        {
+            size_t n;
 
-            n = config.minPoolSize + config.incPoolSize * npools;
+            n = config.minPoolSize + config.incPoolSize * this.pooltable.length;
             if (n > config.maxPoolSize)
                 n = config.maxPoolSize;                 // cap pool size
             n /= PAGESIZE; // convert bytes to pages
@@ -2138,9 +2137,8 @@ struct Gcx
     List* allocPage(Bins bin) nothrow
     {
         //debug(PRINTF) printf("Gcx::allocPage(bin = %d)\n", bin);
-        for (size_t n = 0; n < npools; n++)
+        foreach (Pool* pool; this.pooltable[])
         {
-            Pool* pool = pooltable[n];
             if (pool.isLargeObject)
                 continue;
             if (List* p = (cast(SmallObjectPool*)pool).allocPage(bin))
@@ -2274,7 +2272,7 @@ struct Gcx
 
         // let dmd allocate a register for this.pools
         auto pools = pooltable.pools;
-        const highpool = pooltable.npools - 1;
+        const highpool = pooltable.length - 1;
         const minAddr = pooltable.minAddr;
         size_t memSize = pooltable.maxAddr - minAddr;
         Pool* pool = null;
@@ -2524,9 +2522,8 @@ struct Gcx
     {
         debug(COLLECT_PRINTF) printf("preparing mark.\n");
 
-        for (size_t n = 0; n < npools; n++)
+        foreach (Pool* pool; this.pooltable[])
         {
-            Pool* pool = pooltable[n];
             if (pool.isLargeObject)
                 pool.mark.zero();
             else
@@ -2596,10 +2593,9 @@ struct Gcx
         size_t freedLargePages;
         size_t freedSmallPages;
         size_t freed;
-        for (size_t n = 0; n < npools; n++)
+        foreach (Pool* pool; this.pooltable[])
         {
             size_t pn;
-            Pool* pool = pooltable[n];
 
             if (pool.isLargeObject)
             {
@@ -2787,7 +2783,8 @@ struct Gcx
 
         assert(freedLargePages <= usedLargePages);
         usedLargePages -= freedLargePages;
-        debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedLargePages, npools);
+        debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n",
+                                     freed, freedLargePages, this.pooltable.length);
 
         assert(freedSmallPages <= usedSmallPages);
         usedSmallPages -= freedSmallPages;
@@ -2852,12 +2849,12 @@ struct Gcx
     private SmallObjectPool* setNextRecoverPool(Bins bin, size_t poolIndex) nothrow
     {
         Pool* pool;
-        while (poolIndex < npools &&
-               ((pool = pooltable[poolIndex]).isLargeObject ||
+        while (poolIndex < this.pooltable.length &&
+               ((pool = this.pooltable[poolIndex]).isLargeObject ||
                 pool.recoverPageFirst[bin] >= pool.npages))
             poolIndex++;
 
-        return recoverPool[bin] = poolIndex < npools ? cast(SmallObjectPool*)pool : null;
+        return recoverPool[bin] = poolIndex < this.pooltable.length ? cast(SmallObjectPool*)pool : null;
     }
 
     version (COLLECT_FORK)
