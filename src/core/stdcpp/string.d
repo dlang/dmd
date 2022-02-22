@@ -2497,8 +2497,8 @@ extern(C++, (StdNamespace)):
     extern(D) @safe @nogc:
         pragma(inline, true)
         {
-            ref inout(Alloc) _Getal() inout pure nothrow { return _Mypair._Myval1; }
-            ref inout(ValTy) _Get_data() inout pure nothrow { return _Mypair._Myval2; }
+            ref inout(Alloc) _Getal() return inout pure nothrow { return _Mypair._Myval1; }
+            ref inout(ValTy) _Get_data() return inout pure nothrow { return _Mypair._Myval2; }
         }
 
         void _Orphan_all() nothrow { _Get_data._Base._Orphan_all(); }
