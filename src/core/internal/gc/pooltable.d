@@ -56,14 +56,14 @@ nothrow:
         return npools;
     }
 
-    ref inout(Pool*) opIndex(size_t idx) inout pure
+    ref inout(Pool*) opIndex(size_t idx) inout return @trusted pure nothrow @nogc
     in { assert(idx < length); }
     do
     {
         return pools[idx];
     }
 
-    inout(Pool*)[] opSlice(size_t a, size_t b) inout pure
+    inout(Pool*)[] opSlice(size_t a, size_t b) inout return @trusted pure nothrow @nogc
     in { assert(a <= length && b <= length); }
     do
     {
