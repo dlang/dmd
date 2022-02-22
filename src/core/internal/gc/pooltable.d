@@ -69,6 +69,12 @@ struct PoolTable(Pool)
         return pools[a .. b];
     }
 
+    /// Returns: A slice over all pools in this `PoolTable`
+    inout(Pool*)[] opSlice() inout return @trusted pure nothrow @nogc
+    {
+        return this.pools[0 .. this.length];
+    }
+
     alias opDollar = length;
 
     /**
