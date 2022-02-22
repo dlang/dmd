@@ -1920,7 +1920,7 @@ extern(D):
         ///
         inout(T)* data() inout @safe                                        { return __get_pointer(); }
         ///
-        inout(T)[] as_array() inout nothrow @trusted                        { return __get_pointer()[0 .. size()]; }
+        inout(T)[] as_array() return scope inout nothrow @trusted           { return __get_pointer()[0 .. size()]; }
         ///
         ref inout(T) at(size_type i) inout nothrow @trusted                 { return __get_pointer()[0 .. size()][i]; }
 
