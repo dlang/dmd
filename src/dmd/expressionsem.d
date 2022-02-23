@@ -7800,7 +7800,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         Type t1b = exp.e1.type.toBasetype();
-        if (t1b.ty == Tpointer)
+        if (auto tp = t1b.isTypePointer())
         {
             if (t1b.isPtrToFunction())
             {
@@ -7809,7 +7809,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (!exp.lwr || !exp.upr)
             {
-                exp.error("need upper and lower bound to slice pointer");
+                exp.error("upper and lower bounds are needed to slice a pointer");
+                if (auto ad = isAggregate(tp.next.toBasetype()))
+                {
+                    auto s = search_function(ad, Id.index);
+                    if (!s) s = search_function(ad, Id.slice);
+                    if (s)
+                    {
+                        auto fd = s.isFuncDeclaration();
+                        if ((fd && !fd.getParameterList().length) || s.isTemplateDeclaration())
+                        {
+                            exp.errorSupplemental(
+                                "pointer `%s` points to an aggregate that defines an `%s`, perhaps you meant `(*%s)[]`",
+                                exp.e1.toChars(),
+                                s.ident.toChars(),
+                                exp.e1.toChars()
+                            );
+                        }
+
+                    }
+                }
+
                 return setError();
             }
             if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
