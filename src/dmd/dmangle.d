@@ -231,56 +231,6 @@ unittest
     }
 }
 
-/***********************
- * Mangle basic type ty to buf.
- */
-
-private void tyToDecoBuffer(OutBuffer* buf, int ty)
-{
-    const c = mangleChar[ty];
-    buf.writeByte(c);
-    if (c == 'z')
-        buf.writeByte(ty == Tint128 ? 'i' : 'k');
-}
-
-/*********************************
- * Mangling for mod.
- */
-private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
-{
-    switch (mod)
-    {
-    case 0:
-        break;
-    case MODFlags.const_:
-        buf.writeByte('x');
-        break;
-    case MODFlags.immutable_:
-        buf.writeByte('y');
-        break;
-    case MODFlags.shared_:
-        buf.writeByte('O');
-        break;
-    case MODFlags.shared_ | MODFlags.const_:
-        buf.writestring("Ox");
-        break;
-    case MODFlags.wild:
-        buf.writestring("Ng");
-        break;
-    case MODFlags.wildconst:
-        buf.writestring("Ngx");
-        break;
-    case MODFlags.shared_ | MODFlags.wild:
-        buf.writestring("ONg");
-        break;
-    case MODFlags.shared_ | MODFlags.wildconst:
-        buf.writestring("ONgx");
-        break;
-    default:
-        assert(0);
-    }
-}
-
 private extern (C++) final class Mangler : Visitor
 {
     alias visit = Visitor.visit;
@@ -295,34 +245,6 @@ public:
     {
         this.buf = buf;
         this.rootType = rootType;
-    }
-
-    /**
-    * writes a back reference with the relative position encoded with base 26
-    *  using upper case letters for all digits but the last digit which uses
-    *  a lower case letter.
-    * The decoder has to look up the referenced position to determine
-    *  whether the back reference is an identifier (starts with a digit)
-    *  or a type (starts with a letter).
-    *
-    * Params:
-    *  pos           = relative position to encode
-    */
-    void writeBackRef(size_t pos)
-    {
-        buf.writeByte('Q');
-        enum base = 26;
-        size_t mul = 1;
-        while (pos >= mul * base)
-            mul *= base;
-        while (mul >= base)
-        {
-            auto dig = cast(ubyte)(pos / mul);
-            buf.writeByte('A' + dig);
-            pos -= dig * mul;
-            mul /= base;
-        }
-        buf.writeByte('a' + cast(ubyte)pos);
     }
 
     /**
@@ -388,7 +310,7 @@ public:
         if (*p)
         {
             const offset = *p - 1;
-            writeBackRef(buf.length - offset);
+            writeBackRef(buf, buf.length - offset);
             return true;
         }
         *p = buf.length + 1;
@@ -409,7 +331,7 @@ public:
     void mangleIdentifier(Identifier id, Dsymbol s)
     {
         if (!backrefIdentifier(id))
-            toBuffer(id.toString(), s);
+            toBuffer(buf, id.toString(), s);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -643,24 +565,8 @@ public:
             else
                 buf.writeByte('0');
 
-            /* There can be multiple different declarations in the same
-             * function that have the same mangled name.
-             * This results in localNum having a non-zero number, which
-             * is used to add a fake parent of the form `__Sddd` to make
-             * the mangled names unique.
-             * https://issues.dlang.org/show_bug.cgi?id=20565
-             */
             if (localNum)
-            {
-                uint ndigits = 1;
-                auto n = localNum;
-                while (n >= 10)
-                {
-                    n /= 10;
-                    ++ndigits;
-                }
-                buf.printf("%u__S%u", ndigits + 3, localNum);
-            }
+                writeLocalParent(buf, localNum);
         }
     }
 
@@ -690,67 +596,6 @@ public:
         {
             visitWithMask(fd.type, 0);
         }
-    }
-
-    /************************************************************
-     * Write length prefixed string to buf.
-     */
-    extern (D) void toBuffer(const(char)[] id, Dsymbol s)
-    {
-        const len = id.length;
-        if (buf.length + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
-            s.error("excessive length %llu for symbol, possible recursive expansion?", cast(ulong)(buf.length + len));
-        else
-        {
-            buf.print(len);
-            buf.writestring(id);
-        }
-    }
-
-    /************************************************************
-     * Try to obtain an externally mangled identifier from a declaration.
-     * If the declaration is at global scope or mixed in at global scope,
-     * the user might want to call it externally, so an externally mangled
-     * name is returned. Member functions or nested functions can't be called
-     * externally in C, so in that case null is returned. C++ does support
-     * namespaces, so extern(C++) always gives a C++ mangled name.
-     *
-     * See also: https://issues.dlang.org/show_bug.cgi?id=20012
-     *
-     * Params:
-     *     d = declaration to mangle
-     *
-     * Returns:
-     *     an externally mangled name or null if the declaration cannot be called externally
-     */
-    extern (D) static const(char)[] externallyMangledIdentifier(Declaration d)
-    {
-        const par = d.toParent(); //toParent() skips over mixin templates
-        if (!par || par.isModule() || d.linkage == LINK.cpp ||
-            (d.linkage == LINK.c && d.isCsymbol() && d.isFuncDeclaration()))
-        {
-            if (d.linkage != LINK.d && d.localNum)
-                d.error("the same declaration cannot be in multiple scopes with non-D linkage");
-            final switch (d.linkage)
-            {
-                case LINK.d:
-                    break;
-                case LINK.c:
-                case LINK.windows:
-                case LINK.objc:
-                    return d.ident.toString();
-                case LINK.cpp:
-                {
-                    const p = target.cpp.toMangle(d);
-                    return p.toDString();
-                }
-                case LINK.default_:
-                case LINK.system:
-                    d.error("forward declaration");
-                    return d.ident.toString();
-            }
-        }
-        return null;
     }
 
     override void visit(Declaration d)
@@ -1009,13 +854,13 @@ public:
                     if (d.mangleOverride)
                     {
                         buf.writeByte('X');
-                        toBuffer(d.mangleOverride, d);
+                        toBuffer(buf, d.mangleOverride, d);
                         continue;
                     }
                     if (const id = externallyMangledIdentifier(d))
                     {
                         buf.writeByte('X');
-                        toBuffer(id, d);
+                        toBuffer(buf, id, d);
                         continue;
                     }
                     if (!d.type || !d.type.deco)
@@ -1052,7 +897,7 @@ public:
         if (s.ident)
             mangleIdentifier(s.ident, s);
         else
-            toBuffer(s.toString(), s);
+            toBuffer(buf, s.toString(), s);
         //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
     }
 
@@ -1080,68 +925,15 @@ public:
     override void visit(RealExp e)
     {
         buf.writeByte('e');
-        realToMangleBuffer(e.value);
-    }
-
-    void realToMangleBuffer(real_t value)
-    {
-        /* Rely on %A to get portable mangling.
-         * Must munge result to get only identifier characters.
-         *
-         * Possible values from %A  => mangled result
-         * NAN                      => NAN
-         * -INF                     => NINF
-         * INF                      => INF
-         * -0X1.1BC18BA997B95P+79   => N11BC18BA997B95P79
-         * 0X1.9P+2                 => 19P2
-         */
-        if (CTFloat.isNaN(value))
-        {
-            buf.writestring("NAN"); // no -NAN bugs
-            return;
-        }
-
-        if (value < CTFloat.zero)
-        {
-            buf.writeByte('N');
-            value = -value;
-        }
-
-        if (CTFloat.isInfinity(value))
-        {
-            buf.writestring("INF");
-            return;
-        }
-
-        char[36] buffer = void;
-        // 'A' format yields [-]0xh.hhhhp+-d
-        const n = CTFloat.sprint(buffer.ptr, 'A', value);
-        assert(n < buffer.length);
-        foreach (const c; buffer[2 .. n])
-        {
-            switch (c)
-            {
-                case '-':
-                    buf.writeByte('N');
-                    break;
-
-                case '+':
-                case '.':
-                    break;
-
-                default:
-                    buf.writeByte(c);
-                    break;
-            }
-        }
+        realToMangleBuffer(buf, e.value);
     }
 
     override void visit(ComplexExp e)
     {
         buf.writeByte('c');
-        realToMangleBuffer(e.toReal());
+        realToMangleBuffer(buf, e.toReal());
         buf.writeByte('c'); // separate the two
-        realToMangleBuffer(e.toImaginary());
+        realToMangleBuffer(buf, e.toImaginary());
     }
 
     override void visit(NullExp e)
@@ -1331,3 +1123,236 @@ public:
         visitWithMask(p.type, (stc & STC.in_) ? MODFlags.const_ : 0);
     }
 }
+
+
+/***********************
+ * Mangle basic type ty to buf.
+ */
+
+private void tyToDecoBuffer(OutBuffer* buf, int ty)
+{
+    const c = mangleChar[ty];
+    buf.writeByte(c);
+    if (c == 'z')
+        buf.writeByte(ty == Tint128 ? 'i' : 'k');
+}
+
+/*********************************
+ * Mangling for mod.
+ */
+private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
+{
+    switch (mod)
+    {
+    case 0:
+        break;
+    case MODFlags.const_:
+        buf.writeByte('x');
+        break;
+    case MODFlags.immutable_:
+        buf.writeByte('y');
+        break;
+    case MODFlags.shared_:
+        buf.writeByte('O');
+        break;
+    case MODFlags.shared_ | MODFlags.const_:
+        buf.writestring("Ox");
+        break;
+    case MODFlags.wild:
+        buf.writestring("Ng");
+        break;
+    case MODFlags.wildconst:
+        buf.writestring("Ngx");
+        break;
+    case MODFlags.shared_ | MODFlags.wild:
+        buf.writestring("ONg");
+        break;
+    case MODFlags.shared_ | MODFlags.wildconst:
+        buf.writestring("ONgx");
+        break;
+    default:
+        assert(0);
+    }
+}
+
+
+/**
+ * writes a back reference with the relative position encoded with base 26
+ *  using upper case letters for all digits but the last digit which uses
+ *  a lower case letter.
+ * The decoder has to look up the referenced position to determine
+ *  whether the back reference is an identifier (starts with a digit)
+ *  or a type (starts with a letter).
+ *
+ * Params:
+ *  buf           = buffer to write to
+ *  pos           = relative position to encode
+ */
+private
+void writeBackRef(OutBuffer* buf, size_t pos)
+{
+    buf.writeByte('Q');
+    enum base = 26;
+    size_t mul = 1;
+    while (pos >= mul * base)
+        mul *= base;
+    while (mul >= base)
+    {
+        auto dig = cast(ubyte)(pos / mul);
+        buf.writeByte('A' + dig);
+        pos -= dig * mul;
+        mul /= base;
+    }
+    buf.writeByte('a' + cast(ubyte)pos);
+}
+
+
+/************************************************************
+ * Write length prefixed string to buf.
+ */
+private
+extern (D) void toBuffer(OutBuffer* buf, const(char)[] id, Dsymbol s)
+{
+    const len = id.length;
+    if (buf.length + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
+        s.error("excessive length %llu for symbol, possible recursive expansion?", cast(ulong)(buf.length + len));
+    else
+    {
+        buf.print(len);
+        buf.writestring(id);
+    }
+}
+
+
+/*****
+ * There can be multiple different declarations in the same
+ * function that have the same mangled name.
+ * This results in localNum having a non-zero number, which
+ * is used to add a fake parent of the form `__Sddd` to make
+ * the mangled names unique.
+ * https://issues.dlang.org/show_bug.cgi?id=20565
+ * Params:
+ *      buf = buffer to write to
+ *      localNum = local symbol number
+ */
+private
+void writeLocalParent(OutBuffer* buf, uint localNum)
+{
+    uint ndigits = 1;
+    auto n = localNum;
+    while (n >= 10)
+    {
+        n /= 10;
+        ++ndigits;
+    }
+    buf.printf("%u__S%u", ndigits + 3, localNum);
+}
+
+/*************************
+ * Write real to buffer.
+ * Params:
+ *      buf = buffer to write to
+ *      value = real to write
+ */
+private
+void realToMangleBuffer(OutBuffer* buf, real_t value)
+{
+    /* Rely on %A to get portable mangling.
+     * Must munge result to get only identifier characters.
+     *
+     * Possible values from %A  => mangled result
+     * NAN                      => NAN
+     * -INF                     => NINF
+     * INF                      => INF
+     * -0X1.1BC18BA997B95P+79   => N11BC18BA997B95P79
+     * 0X1.9P+2                 => 19P2
+     */
+    if (CTFloat.isNaN(value))
+    {
+        buf.writestring("NAN"); // no -NAN bugs
+        return;
+    }
+
+    if (value < CTFloat.zero)
+    {
+        buf.writeByte('N');
+        value = -value;
+    }
+
+    if (CTFloat.isInfinity(value))
+    {
+        buf.writestring("INF");
+        return;
+    }
+
+    char[36] buffer = void;
+    // 'A' format yields [-]0xh.hhhhp+-d
+    const n = CTFloat.sprint(buffer.ptr, 'A', value);
+    assert(n < buffer.length);
+    foreach (const c; buffer[2 .. n])
+    {
+        switch (c)
+        {
+            case '-':
+                buf.writeByte('N');
+                break;
+
+            case '+':
+            case '.':
+                break;
+
+            default:
+                buf.writeByte(c);
+                break;
+        }
+    }
+}
+
+/************************************************************
+ * Try to obtain an externally mangled identifier from a declaration.
+ * If the declaration is at global scope or mixed in at global scope,
+ * the user might want to call it externally, so an externally mangled
+ * name is returned. Member functions or nested functions can't be called
+ * externally in C, so in that case null is returned. C++ does support
+ * namespaces, so extern(C++) always gives a C++ mangled name.
+ *
+ * See also: https://issues.dlang.org/show_bug.cgi?id=20012
+ *
+ * Params:
+ *     d = declaration to mangle
+ *
+ * Returns:
+ *     an externally mangled name or null if the declaration cannot be called externally
+ */
+private
+extern (D) const(char)[] externallyMangledIdentifier(Declaration d)
+{
+    const par = d.toParent(); //toParent() skips over mixin templates
+    if (!par || par.isModule() || d.linkage == LINK.cpp ||
+        (d.linkage == LINK.c && d.isCsymbol() && d.isFuncDeclaration()))
+    {
+        if (d.linkage != LINK.d && d.localNum)
+            d.error("the same declaration cannot be in multiple scopes with non-D linkage");
+        final switch (d.linkage)
+        {
+            case LINK.d:
+                break;
+            case LINK.c:
+            case LINK.windows:
+            case LINK.objc:
+                return d.ident.toString();
+            case LINK.cpp:
+            {
+                const p = target.cpp.toMangle(d);
+                return p.toDString();
+            }
+            case LINK.default_:
+            case LINK.system:
+                d.error("forward declaration");
+                return d.ident.toString();
+        }
+    }
+    return null;
+}
+
+
