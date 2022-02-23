@@ -1748,11 +1748,8 @@ unittest
 }
 
 // Ensure `toString` doesn't allocate if the sink doesn't
-version (CoreUnittest) @system unittest
+version (CoreUnittest) @safe pure nothrow @nogc unittest
 {
-    import core.memory : GC;
-
-    const before = GC.stats();
     char[256] buffer; size_t len;
     scope sink = (in char[] data) {
         assert(data.length + len <= buffer.length);
@@ -1762,8 +1759,6 @@ version (CoreUnittest) @system unittest
     auto dur = Duration(-12_096_020_900_003);
     dur.toString(sink);
     assert(buffer[0 .. len] == "-2 weeks, -2 secs, -90 ms, and -3 hnsecs");
-    const after = GC.stats();
-    assert(before == after);
 }
 
 /++
