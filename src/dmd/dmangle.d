@@ -463,7 +463,7 @@ public:
 
         // Write argument types
         foreach (idx, param; t.parameterList)
-            param.accept(this);
+            mangleParameter(param);
         //if (buf.data[buf.length - 1] == '@') assert(0);
         buf.writeByte('Z' - t.parameterList.varargs); // mark end of arg list
         if (tret !is null)
@@ -504,7 +504,7 @@ public:
         //printf("TypeTuple.toDecoBuffer() t = %p, %s\n", t, t.toChars());
         visit(cast(Type)t);
         Parameter._foreach(t.arguments, (idx, param) {
-                param.accept(this);
+                mangleParameter(param);
                 return 0;
         });
         buf.writeByte('Z');
@@ -1050,7 +1050,7 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////
 
-    override void visit(Parameter p)
+    void mangleParameter(Parameter p)
     {
         // https://dlang.org/spec/abi.html#Parameter
 
