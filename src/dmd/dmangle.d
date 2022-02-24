@@ -236,85 +236,14 @@ private extern (C++) final class Mangler : Visitor
     alias visit = Visitor.visit;
 public:
     static assert(Key.sizeof == size_t.sizeof);
-    AssocArray!(Type, size_t) types;        // Type => (offset+1) in buf
-    AssocArray!(Identifier, size_t) idents; // Identifier => (offset+1) in buf
+
     OutBuffer* buf;
-    Type rootType;
+    Backref backref;
 
     extern (D) this(OutBuffer* buf, Type rootType = null)
     {
         this.buf = buf;
-        this.rootType = rootType;
-    }
-
-    /**
-    * Back references a non-basic type
-    *
-    * The encoded mangling is
-    *       'Q' <relative position of first occurrence of type>
-    *
-    * Params:
-    *  t = the type to encode via back referencing
-    *
-    * Returns:
-    *  true if the type was found. A back reference has been encoded.
-    *  false if the type was not found. The current position is saved for later back references.
-    */
-    bool backrefType(Type t)
-    {
-        if (t.isTypeBasic())
-            return false;
-
-        /**
-         * https://issues.dlang.org/show_bug.cgi?id=21591
-         *
-         * Special case for unmerged TypeFunctions: use the generic merged
-         * function type as backref cache key to avoid missed backrefs.
-         *
-         * Merging is based on mangling, so we need to avoid an infinite
-         * recursion by excluding the case where `t` is the root type passed to
-         * `mangleToBuffer()`.
-         */
-        if (t != rootType)
-        {
-            if (t.isFunction_Delegate_PtrToFunction())
-            {
-                t = t.merge2();
-            }
-        }
-
-        return backrefImpl(types, t);
-    }
-
-    /**
-    * Back references a single identifier
-    *
-    * The encoded mangling is
-    *       'Q' <relative position of first occurrence of type>
-    *
-    * Params:
-    *  id = the identifier to encode via back referencing
-    *
-    * Returns:
-    *  true if the identifier was found. A back reference has been encoded.
-    *  false if the identifier was not found. The current position is saved for later back references.
-    */
-    bool backrefIdentifier(Identifier id)
-    {
-        return backrefImpl(idents, id);
-    }
-
-    private extern(D) bool backrefImpl(T)(ref AssocArray!(T, size_t) aa, T key)
-    {
-        auto p = aa.getLvalue(key);
-        if (*p)
-        {
-            const offset = *p - 1;
-            writeBackRef(buf, buf.length - offset);
-            return true;
-        }
-        *p = buf.length + 1;
-        return false;
+        this.backref = Backref(rootType);
     }
 
     void mangleSymbol(Dsymbol s)
@@ -324,13 +253,13 @@ public:
 
     void mangleType(Type t)
     {
-        if (!backrefType(t))
+        if (!backref.addRefToType(buf, t))
             t.accept(this);
     }
 
     void mangleIdentifier(Identifier id, Dsymbol s)
     {
-        if (!backrefIdentifier(id))
+        if (!backref.addRefToIdentifier(buf, id))
             toBuffer(buf, id.toString(), s);
     }
 
@@ -1122,6 +1051,88 @@ public:
         }
         visitWithMask(p.type, (stc & STC.in_) ? MODFlags.const_ : 0);
     }
+}
+
+/***************************************
+ * Manage back reference mangling
+ */
+private struct Backref
+{
+    /**
+    * Back references a non-basic type
+    *
+    * The encoded mangling is
+    *       'Q' <relative position of first occurrence of type>
+    *
+    * Params:
+    *  t = the type to encode via back referencing
+    *
+    * Returns:
+    *  true if the type was found. A back reference has been encoded.
+    *  false if the type was not found. The current position is saved for later back references.
+    */
+    bool addRefToType(OutBuffer* buf, Type t)
+    {
+        if (t.isTypeBasic())
+            return false;
+
+        /**
+         * https://issues.dlang.org/show_bug.cgi?id=21591
+         *
+         * Special case for unmerged TypeFunctions: use the generic merged
+         * function type as backref cache key to avoid missed backrefs.
+         *
+         * Merging is based on mangling, so we need to avoid an infinite
+         * recursion by excluding the case where `t` is the root type passed to
+         * `mangleToBuffer()`.
+         */
+        if (t != rootType)
+        {
+            if (t.isFunction_Delegate_PtrToFunction())
+            {
+                t = t.merge2();
+            }
+        }
+
+        return backrefImpl(buf, types, t);
+    }
+
+    /**
+    * Back references a single identifier
+    *
+    * The encoded mangling is
+    *       'Q' <relative position of first occurrence of type>
+    *
+    * Params:
+    *  id = the identifier to encode via back referencing
+    *
+    * Returns:
+    *  true if the identifier was found. A back reference has been encoded.
+    *  false if the identifier was not found. The current position is saved for later back references.
+    */
+    bool addRefToIdentifier(OutBuffer* buf, Identifier id)
+    {
+        return backrefImpl(buf, idents, id);
+    }
+
+  private:
+
+    extern(D) bool backrefImpl(T)(OutBuffer* buf, ref AssocArray!(T, size_t) aa, T key)
+    {
+        auto p = aa.getLvalue(key);
+        if (*p)
+        {
+            const offset = *p - 1;
+            writeBackRef(buf, buf.length - offset);
+            return true;
+        }
+        *p = buf.length + 1;
+        return false;
+    }
+
+    Type rootType;                          /// avoid infinite recursion
+    AssocArray!(Type, size_t) types;        /// Type => (offset+1) in buf
+    AssocArray!(Identifier, size_t) idents; /// Identifier => (offset+1) in buf
 }
 
 
