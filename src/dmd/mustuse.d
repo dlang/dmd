@@ -41,18 +41,15 @@ bool checkMustUse(Expression e, Scope* sc)
 {
     import dmd.id : Id;
 
-    if (!isAssignment(e) && !isIncrementOrDecrement(e))
+    assert(e.type);
+    auto sym = e.type.toDsymbol(sc);
+    auto sd = sym ? sym.isStructDeclaration() : null;
+    // isStructDeclaration returns non-null for both structs and unions
+    if (sd && hasMustUseAttribute(sd, sc) && !isAssignment(e) && !isIncrementOrDecrement(e))
     {
-        assert(e.type);
-        auto sym = e.type.toDsymbol(sc);
-        auto sd = sym ? sym.isStructDeclaration() : null;
-        // isStructDeclaration returns non-null for both structs and unions
-        if (sd && hasMustUseAttribute(sd, sc))
-        {
-            e.error("ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
-                Id.udaMustUse.toChars(), e.type.toPrettyChars(true));
-            return true;
-        }
+        e.error("ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
+            Id.udaMustUse.toChars(), e.type.toPrettyChars(true));
+        return true;
     }
     return false;
 }
