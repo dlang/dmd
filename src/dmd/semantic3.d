@@ -468,7 +468,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         stc |= STC.variadic;
                         auto vtypeb = vtype.toBasetype();
-                        if (vtypeb.ty == Tarray)
+                        if (vtypeb.ty == Tarray || vtypeb.ty == Tclass)
                         {
                             /* Since it'll be pointing into the stack for the array
                              * contents, it needs to be `scope`
