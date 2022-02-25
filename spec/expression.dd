@@ -2283,30 +2283,23 @@ $(GNAME TypeSpecialization):
         If it is not semantically correct, the condition is not satisfied.
     )
 
-    $(P $(IDENTIFIER) is declared to be an alias of the resulting
-        type if the condition is satisfied. The $(IDENTIFIER) forms
-        can only be used if the $(I IsExpression) appears in a
-        $(GLINK2 version, StaticIfCondition).
-    )
-
     $(P $(I TypeSpecialization) is the type that $(I Type) is being
         compared against.
     )
 
-    $(P The forms of the $(I IsExpression) are:
-    )
+$(H4 $(LNAME2 basic-forms, Basic Forms))
 
-    $(OL
+        $(H5 $(LNAME2 is-type, $(D is $(LPAREN)) $(I Type) $(D $(RPAREN))))
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(D $(RPAREN))$(BR)
+        $(P
         The condition is satisfied if $(D Type) is semantically
         correct (it must be syntactically correct regardless).
-
+        )
 -------------
-alias int func(int);    // func is a alias to a function type
+alias int Func(int);    // Func is a alias to a function type
 void foo()
 {
-    if (is(func[]))     // not satisfied because arrays of
+    if (is(Func[]))     // not satisfied because arrays of
                         // functions are not allowed
         writeln("satisfied");
     else
@@ -2316,14 +2309,15 @@ void foo()
         ...
 }
 -------------
-        )
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+        $(H5 $(LNAME2 is-type-convert, $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D $(RPAREN))))
+
+        $(P
         The condition is satisfied if $(I Type) is semantically
         correct and it is the same as
         or can be implicitly converted to $(I TypeSpecialization).
         $(I TypeSpecialization) is only allowed to be a $(I Type).
-
+        )
 -------------
 alias Bar = short;
 void foo()
@@ -2335,32 +2329,13 @@ void foo()
         writeln("not satisfied");
 }
 -------------
-        )
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+        $(H5 $(LNAME2 is-type-equal, $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
+        $(P
         The condition is satisfied if $(I Type) is semantically correct and is
         the same type as $(I TypeSpecialization).
-
-        If $(I TypeSpecialization) is one of
-
-                $(D struct)
-                $(D union)
-                $(D class)
-                $(D interface)
-                $(D enum)
-                $(D function)
-                $(D delegate)
-                $(D const)
-                $(D immutable)
-                $(D shared)
-                $(D module)
-                $(D package)
-
-        then the condition is satisfied if $(I Type) is one of those. $(DDSUBLINK
-        spec/module, package-module, Package modules) are considered to be both
-        packages and modules.
-
+        )
 -------------
 alias Bar = short;
 void foo()
@@ -2372,13 +2347,54 @@ void foo()
         writeln("not satisfied");
 }
 -------------
-        )
+        $(P
+        If $(I TypeSpecialization) is one of
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D $(RPAREN))$(BR)
+                $(D struct)
+                $(D union)
+                $(D class)
+                $(D interface)
+                $(D enum)
+                $(D __vector)
+                $(D function)
+                $(D delegate)
+                $(D const)
+                $(D immutable)
+                $(D shared)
+                $(D module)
+                $(D package)
+
+        then the condition is satisfied if $(I Type) is one of those.
+        )
+---
+static assert(is(Object == class));
+
+int i;
+static assert(!is(i == const));
+---
+        $(P $(DDSUBLINK
+        spec/module, package-module, Package modules) are considered to be both
+        packages and modules.
+        )
+        $(P $(B See also:) $(DDLINK spec/traits, Traits, Traits).)
+
+$(H4 $(LNAME2 is-identifier, Identifier Forms))
+
+    $(P *Identifier* is declared to be an alias of the resulting
+        type if the condition is satisfied. The *Identifier* forms
+        can only be used if the $(I IsExpression) appears in a
+        $(GLINK2 version, StaticIfCondition) or $(GLINK2 version, StaticAssert).
+    )
+
+        $(H5 $(LNAME2 is-type-identifier, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D $(RPAREN))))
+
+        $(P
         The condition is satisfied if $(I Type) is semantically
         correct. If so, $(I Identifier)
         is declared to be an alias of $(I Type).
+        )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
 alias Bar = short;
 void foo()
@@ -2388,16 +2404,21 @@ void foo()
     else
         alias S = long;
 
-    writeln(typeid(S)); // prints "short"
-    if (is(Bar T))      // error, Identifier T form can
-                        // only be in StaticIfConditions
-        ...
+    pragma(msg, S); // short
+
+    // if T was defined, it remains in scope
+    if (is(T))
+        pragma(msg, T); // short
+
+    //if (is(Bar U)) {} // error, cannot declare U here
 }
 -------------
+)
+
+        $(H5 $(LNAME2 is-identifier-convert, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))
         )
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
-
+        $(P
         The condition is satisfied if $(I Type) is semantically
         correct and it is the same as
         or can be implicitly converted to $(I TypeSpecialization).
@@ -2405,55 +2426,81 @@ void foo()
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
         dependent on $(I Identifier), the deduced type.
+        )
 
--------------
-alias Bar = int;
-alias Abc = long*;
-void foo()
-{
+    ---
+    alias Bar = int;
+
     static if (is(Bar T : int))
         alias S = T;
     else
         alias S = long;
 
     writeln(typeid(S));  // prints "int"
+    ---
+    ---
+    alias Abc = long*;
 
     static if (is(Abc U : U*))
     {
         U u;
         writeln(typeid(typeof(u)));  // prints "long"
     }
-}
--------------
+    ---
 
+        $(P
         The way the type of $(I Identifier) is determined is analogous
         to the way template parameter types are determined by
         $(GLINK2 template, TemplateTypeParameterSpecialization).
         )
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+        $(H5 $(LNAME2 is-identifier-equal, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
-
+        $(P
         The condition is satisfied if $(I Type) is semantically
         correct and is the same as $(I TypeSpecialization).
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
         dependent on $(I Identifier), the deduced type.
+        )
 
+    ---
+    alias Bar = short;
+
+    static if (is(Bar T == int))   // not satisfied, short is not int
+        alias S = T;
+
+    alias U = T;                   // error, T is not defined
+    ---
+
+        $(P
         If $(I TypeSpecialization) is one of
-               $(D struct)
+                $(D struct)
                 $(D union)
                 $(D class)
                 $(D interface)
                 $(D enum)
+                $(D __vector)
                 $(D function)
                 $(D delegate)
-           $(D const)
+                $(D const)
                 $(D immutable)
                 $(D shared)
 
         then the condition is satisfied if $(I Type) is one of those.
+        *TypeSpecialization* can also match the following keywords:
+        )
+        $(TABLE
+        $(THEAD keyword, condition)
+        $(TROW `super`, `true` if *Type* is a class or interface)
+        $(TROW `return`,
+            $(ARGS `true` is *Type* is a function, delegate or function pointer))
+        $(TROW `__parameters`,
+            $(ARGS `true` is *Type* is a function, delegate or function pointer))
+        )
+        $(P
         Furthermore, $(I Identifier) is set to be an alias of the type:
+        )
 
         $(TABLE_2COLS ,
         $(THEAD keyword, alias type for $(I Identifier))
@@ -2464,6 +2511,7 @@ void foo()
         $(TROW $(D interface), $(I Type))
         $(TROW $(D super), $(I TypeSeq) of base classes and interfaces)
         $(TROW $(D enum), the base type of the enum)
+        $(TROW $(D __vector), the static array type of the vector)
         $(TROW $(D function), $(ARGS $(I TypeSeq) of the function parameter types.
              For C- and D-style variadic functions,
              only the non-variadic parameters are included.
@@ -2484,75 +2532,83 @@ void foo()
 
         )
 
--------------
-alias Bar = short;
-enum E : byte { Emember }
-void foo()
-{
-    static if (is(Bar T == int))   // not satisfied, short is not int
-        alias S = T;
-    alias U = T;                   // error, T is not defined
+    ---
+    enum E : byte { Emember }
 
     static if (is(E V == enum))    // satisfied, E is an enum
         V v;                       // v is declared to be a byte
-}
--------------
 
-        )
+    pragma(msg, V); // byte
+    ---
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
-             $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
-             $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
-             $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(H4 $(LNAME2 is-parameter-list, Parameter List Forms))
 
+$(GRAMMAR
+$(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+)
+
+        $(P
         More complex types can be pattern matched; the
-        $(GLINK2 template, TemplateParameterList) declares symbols based on the
+        $(I TemplateParameterList) declares symbols based on the
         parts of the pattern that are matched, analogously to the
         way implied template parameters are matched.
+        )
 
----
-import std.stdio, std.typecons;
+$(P $(B Example:) Matching a Template Instantiation))
 
-void main()
-{
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    struct Tuple(T...)
+    {
+        // ...
+    }
     alias Tup = Tuple!(int, string);
-    alias AA = long[string];
 
     static if (is(Tup : Template!Args, alias Template, Args...))
     {
         writeln(__traits(isSame, Template, Tuple)); // true
-        writeln(is(Template!(int, string) == Tup));  // true
+        writeln(is(Template!(int, string) == Tup));  // true, same struct
         writeln(typeid(Args[0]));  // int
         writeln(typeid(Args[1]));  // immutable(char)[]
     }
+    ---
+)
+
+$(P $(B Example:) Matching an Associative Array)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    alias AA = long[string];
 
     static if (is(AA T : T[U], U : string))
     {
-        writeln(typeid(T));  // long
-        writeln(typeid(U));  // string
+        pragma(msg, T);  // long
+        pragma(msg, U);  // string
     }
 
-    static if (is(AA A : A[B], B : int))
-    {
-        assert(0);  // should not match, as B is not an int
-    }
+    // no match, B is not an int
+    static assert(!is(AA A : A[B], B : int));
+    ---
+)
 
+$(P $(B Example:) Matching a Static Array)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
     static if (is(int[10] W : W[len], int len))
     {
         writeln(typeid(W));  // int
         writeln(len);        // 10
     }
 
-    static if (is(int[10] X : X[len], int len : 5))
-    {
-        assert(0);  // should not match, len should be 10
-    }
-}
----
+    // no match, len should be 10
+    static assert(!is(int[10] X : X[len], int len : 5));
+    ---
+)
 
-        )
-
-    )
 
 $(H2 $(LNAME2 specialkeywords, Special Keywords))
 
