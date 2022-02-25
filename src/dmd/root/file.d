@@ -97,13 +97,13 @@ nothrow:
             int fd = name.toCStringThen!(slice => open(slice.ptr, O_RDONLY));
             if (fd == -1)
             {
-                //printf("\topen error, errno = %d\n",errno);
+                //perror("\topen error");
                 return result;
             }
             //printf("\tfile opened\n");
             if (fstat(fd, &buf))
             {
-                perror("\tfstat error");
+                //perror("\tfstat error");
                 close(fd);
                 return result;
             }
@@ -112,12 +112,12 @@ nothrow:
             numread = .read(fd, buffer, size);
             if (numread != size)
             {
-                perror("\tread error");
+                //perror("\tread error");
                 goto err2;
             }
             if (close(fd) == -1)
             {
-                perror("\tclose error");
+                //perror("\tclose error");
                 goto err;
             }
             // Always store a wchar ^Z past end of buffer so scanner has a
