@@ -5050,21 +5050,33 @@ struct TargetC final
     };
 
     bool crtDestructorsSupported;
+    uint8_t boolsize;
+    uint8_t shortsize;
+    uint8_t intsize;
     uint8_t longsize;
+    uint8_t long_longsize;
     uint8_t long_doublesize;
     uint8_t wchar_tsize;
     Runtime runtime;
     BitFieldStyle bitFieldStyle;
     TargetC() :
         crtDestructorsSupported(true),
+        boolsize(),
+        shortsize(),
+        intsize(),
         longsize(),
+        long_longsize(),
         long_doublesize(),
         wchar_tsize()
     {
     }
-    TargetC(bool crtDestructorsSupported, uint8_t longsize = 0u, uint8_t long_doublesize = 0u, uint8_t wchar_tsize = 0u, Runtime runtime = (Runtime)0u, BitFieldStyle bitFieldStyle = (BitFieldStyle)0u) :
+    TargetC(bool crtDestructorsSupported, uint8_t boolsize = 0u, uint8_t shortsize = 0u, uint8_t intsize = 0u, uint8_t longsize = 0u, uint8_t long_longsize = 0u, uint8_t long_doublesize = 0u, uint8_t wchar_tsize = 0u, Runtime runtime = (Runtime)0u, BitFieldStyle bitFieldStyle = (BitFieldStyle)0u) :
         crtDestructorsSupported(crtDestructorsSupported),
+        boolsize(boolsize),
+        shortsize(shortsize),
+        intsize(intsize),
         longsize(longsize),
+        long_longsize(long_longsize),
         long_doublesize(long_doublesize),
         wchar_tsize(wchar_tsize),
         runtime(runtime),
@@ -7836,7 +7848,7 @@ public:
         RealProperties()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(true, 0u, 0u, 0u, (TargetC::Runtime)0u, (TargetC::BitFieldStyle)0u), TargetCPP cpp = TargetCPP(false, false, false, false, false, (TargetCPP::Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL)) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(true, 0u, 0u, 0u, 0u, 0u, 0u, 0u, (TargetC::Runtime)0u, (TargetC::BitFieldStyle)0u), TargetCPP cpp = TargetCPP(false, false, false, false, false, (TargetCPP::Runtime)0u), TargetObjC objc = TargetObjC(false), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)11u, bool is64bit = true, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(NAN, NAN, NAN, NAN, NAN, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL)) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),

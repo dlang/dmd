@@ -1148,7 +1148,11 @@ struct TargetC
         Gcc_Clang,            /// gcc and clang
     }
     bool  crtDestructorsSupported = true; /// Not all platforms support crt_destructor
+    ubyte boolsize;           /// size of a C `_Bool` type
+    ubyte shortsize;          /// size of a C `short` or `unsigned short` type
+    ubyte intsize;            /// size of a C `int` or `unsigned int` type
     ubyte longsize;           /// size of a C `long` or `unsigned long` type
+    ubyte long_longsize;      /// size of a C `long long` or `unsigned long long` type
     ubyte long_doublesize;    /// size of a C `long double`
     ubyte wchar_tsize;        /// size of a C `wchar_t` type
     Runtime runtime;          /// vendor of the C runtime to link against
@@ -1157,6 +1161,10 @@ struct TargetC
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
         const os = target.os;
+        boolsize = 1;
+        shortsize = 2;
+        intsize = 4;
+        long_longsize = 8;
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             longsize = 4;
         else if (os == Target.OS.OSX)
