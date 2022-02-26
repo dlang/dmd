@@ -87,6 +87,8 @@ void dshellPrebuiltInit(string testDir, string testName)
     Vars.set("OUTPUT_BASE", buildPath(RESULTS_TEST_DIR, TEST_NAME));
     // reference to the extra files directory
     Vars.set("EXTRA_FILES", buildPath(TEST_DIR, "extra-files"));
+    // reference to the imports directory
+    Vars.set("IMPORT_FILES", buildPath(TEST_DIR, "imports"));
     version (Windows)
     {
         Vars.set("LIBEXT", ".lib");
@@ -178,6 +180,14 @@ auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
     auto proc = spawnProcess(args, stdin, stdout, stderr, env);
     return wait(proc);
 }
+
+/// ditto
+auto tryRun(string cmd, File stdout = std.stdio.stdout,
+            File stderr = std.stdio.stderr, string[string] env = null)
+{
+    return tryRun(parseCommand(cmd), stdout, stderr, env);
+}
+
 /// ditto
 void run(scope const(char[])[] args, File stdout = std.stdio.stdout,
          File stderr = std.stdio.stderr, string[string] env = null)
