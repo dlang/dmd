@@ -2710,6 +2710,8 @@ class Lexer
             case '2':
             case '3':
             case '4':
+                if (!linemarker)
+                    goto Lerr;
                 flags = true;   // linemarker flags seen
                 ++p;
                 if ('0' <= *p && *p <= '9')
