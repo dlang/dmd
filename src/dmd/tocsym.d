@@ -98,8 +98,6 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
     return s;
 }
 
-private __gshared Symbol *scc;
-
 /*************************************
  */
 
@@ -409,6 +407,7 @@ Symbol *toSymbol(Dsymbol s)
 
         static type* getClassInfoCType()
         {
+            __gshared Symbol* scc;
             if (!scc)
                 scc = fake_classsym(Id.ClassInfo);
             return scc.Stype;
