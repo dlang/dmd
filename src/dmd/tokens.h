@@ -255,6 +255,7 @@ enum class TOK : unsigned char
     arrow,      // ->
     colonColon, // ::
     wchar_tLiteral,
+    endOfLine,  // \n, \r, \u2028, \u2029
 
     // C only keywords
     inline_,

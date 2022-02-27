@@ -81,6 +81,7 @@ class Lexer
         bool commentToken;      // comments are TOK.comment's
         int inTokenStringConstant; // can be larger than 1 when in nested q{} strings
         int lastDocLine;        // last line of previous doc comment
+        int tokenizeNewlines;   // newlines are turned into tokens
 
         Token* tokenFreelist;
 
@@ -202,7 +203,21 @@ class Lexer
     }
 
     /****************************
+     * Turn next token in buffer into a token, including newlines.
+     * Params:
+     *  t = the token to set the resulting Token to
+     */
+    final void scanUntilNewline(Token* t)
+    {
+        this.tokenizeNewlines++;
+        scan(t);
+        this.tokenizeNewlines--;
+    }
+
+    /****************************
      * Turn next token in buffer into a token.
+     * Params:
+     *  t = the token to set the resulting Token to
      */
     final void scan(Token* t)
     {
@@ -247,10 +262,20 @@ class Lexer
                 p++;
                 if (*p != '\n') // if CR stands by itself
                     endOfLine();
+                if (tokenizeNewlines)
+                {
+                    t.value = TOK.endOfLine;
+                    return;
+                }
                 continue; // skip white space
             case '\n':
                 p++;
                 endOfLine();
+                if (tokenizeNewlines)
+                {
+                    t.value = TOK.endOfLine;
+                    return;
+                }
                 continue; // skip white space
             case '0':
                 if (!isZeroSecond(p[1]))        // if numeric literal does not continue
@@ -985,7 +1010,7 @@ class Lexer
                 {
                     p++;
                     Token n;
-                    scan(&n);
+                    scanUntilNewline(&n);
                     if (Ccompile && n.value == TOK.int32Literal)
                     {
                         poundLine(n, true);
@@ -1029,6 +1054,11 @@ class Lexer
                         {
                             endOfLine();
                             p++;
+                            if (tokenizeNewlines)
+                            {
+                                t.value = TOK.endOfLine;
+                                return;
+                            }
                             continue;
                         }
                     }
@@ -2621,7 +2651,7 @@ class Lexer
         bool flags;
 
         if (!linemarker)
-            scan(&tok);
+            scanUntilNewline(&tok);
         if (tok.value == TOK.int32Literal || tok.value == TOK.int64Literal)
         {
             const lin = cast(int)(tok.unsvalue - 1);
