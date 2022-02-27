@@ -620,7 +620,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         funcdecl.checkDmain();       // Check main() parameters and return type
                 }
 
-                if (global.params.vcomplex && f.next !is null)
+                if (f.next !is null)
                     f.next.checkComplexTransition(funcdecl.loc, sc);
 
                 if (funcdecl.returns && !funcdecl.fbody.isErrorStatement())
