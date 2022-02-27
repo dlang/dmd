@@ -666,9 +666,13 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
     Type visitType(Type t)
     {
+        // @@@DEPRECATED_2.110@@@
+        // Use of `cent` and `ucent` has always been an error.
+        // Starting from 2.100, recommend core.int128 as a replace for the
+        // lack of compiler support.
         if (t.ty == Tint128 || t.ty == Tuns128)
         {
-            .error(loc, "`cent` and `ucent` types not implemented");
+            .error(loc, "`cent` and `ucent` types are obsolete, use `core.int128.Cent` instead");
             return error();
         }
 
