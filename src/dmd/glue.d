@@ -385,6 +385,10 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfile
     {
         //printf("write obj %s\n", objfilename);
         writeFile(Loc.initial, objfilename.toDString, objbuf[]);
+
+        // For non-libraries, the object buffer should be cleared to
+        // avoid repetitions.
+        objbuf.destroy();
     }
 }
 
