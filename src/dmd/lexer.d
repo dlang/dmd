@@ -77,6 +77,7 @@ class Lexer
         bool doDocComment;      // collect doc comment information
         bool anyToken;          // seen at least one token
         bool commentToken;      // comments are TOK.comment's
+        bool tokenizeNewlines;  // newlines are turned into TOK.endOfLine's
 
         version (DMDLIB)
         {
@@ -116,6 +117,7 @@ class Lexer
         line = p;
         this.doDocComment = doDocComment;
         this.commentToken = commentToken;
+        this.tokenizeNewlines = false;
         this.inTokenStringConstant = 0;
         this.lastDocLine = 0;
         //initKeywords();
@@ -227,6 +229,8 @@ class Lexer
 
     /****************************
      * Turn next token in buffer into a token.
+     * Params:
+     *  t = the token to set the resulting Token to
      */
     final void scan(Token* t)
     {
@@ -286,7 +290,15 @@ class Lexer
             case '\r':
                 p++;
                 if (*p != '\n') // if CR stands by itself
+                {
                     endOfLine();
+                    if (tokenizeNewlines)
+                    {
+                        t.value = TOK.endOfLine;
+                        tokenizeNewlines = false;
+                        return;
+                    }
+                }
                 version (DMDLIB)
                 {
                     if (whitespaceToken)
@@ -299,6 +311,12 @@ class Lexer
             case '\n':
                 p++;
                 endOfLine();
+                if (tokenizeNewlines)
+                {
+                    t.value = TOK.endOfLine;
+                    tokenizeNewlines = false;
+                    return;
+                }
                 version (DMDLIB)
                 {
                     if (whitespaceToken)
@@ -1039,6 +1057,10 @@ class Lexer
                 return;
             case '#':
                 {
+                    // https://issues.dlang.org/show_bug.cgi?id=22825
+                    // Special token sequences are terminated by newlines,
+                    // and should not be skipped over.
+                    this.tokenizeNewlines = true;
                     p++;
                     if (parseSpecialTokenSequence())
                         continue;
@@ -1058,6 +1080,12 @@ class Lexer
                         {
                             endOfLine();
                             p++;
+                            if (tokenizeNewlines)
+                            {
+                                t.value = TOK.endOfLine;
+                                tokenizeNewlines = false;
+                                return;
+                            }
                             continue;
                         }
                     }

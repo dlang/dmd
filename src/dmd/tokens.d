@@ -245,6 +245,7 @@ enum TOK : ubyte
     arrow,      // ->
     colonColon, // ::
     wchar_tLiteral,
+    endOfLine,  // \n, \r, \u2028, \u2029
     whitespace,
 
     // C only keywords
@@ -851,6 +852,7 @@ extern (C++) struct Token
         TOK.wcharLiteral: "wcharv",
         TOK.dcharLiteral: "dcharv",
         TOK.wchar_tLiteral: "wchar_tv",
+        TOK.endOfLine: "\\n",
         TOK.whitespace: "whitespace",
 
         // C only keywords
