@@ -71,7 +71,7 @@ private int mach_rel_fp(scope const(void*) e1, scope const(void*) e2)
 
 void mach_relsort(OutBuffer *buf)
 {
-    qsort(buf.buf, buf.length() / Relocation.sizeof, Relocation.sizeof, &mach_rel_fp);
+    qsort(buf.data.ptr, buf.length() / Relocation.sizeof, Relocation.sizeof, &mach_rel_fp);
 }
 
 // for x86_64
@@ -124,8 +124,8 @@ private extern (D) __gshared OutBuffer *symtab_strings;
 
 // Section Headers
 __gshared OutBuffer  *SECbuf;             // Buffer to build section table in
-section* SecHdrTab() { return cast(section *)SECbuf.buf; }
-section_64* SecHdrTab64() { return cast(section_64 *)SECbuf.buf; }
+section* SecHdrTab() { return cast(section *)SECbuf.data.ptr; }
+section_64* SecHdrTab64() { return cast(section_64 *)SECbuf.data.ptr; }
 
 __gshared
 {
@@ -152,7 +152,7 @@ private OutBuffer *extern_symbuf;
 
 private void reset_symbols(OutBuffer *buf)
 {
-    Symbol **p = cast(Symbol **)buf.buf;
+    Symbol **p = cast(Symbol **)buf.data.ptr;
     const size_t n = buf.length() / (Symbol *).sizeof;
     for (size_t i = 0; i < n; ++i)
         symbol_reset(p[i]);
@@ -592,13 +592,13 @@ version (SCPP)
 @trusted
 int32_t *patchAddr(int seg, targ_size_t offset)
 {
-    return cast(int32_t *)(fobjbuf.buf + SecHdrTab[SegData[seg].SDshtidx].offset + offset);
+    return cast(int32_t *)fobjbuf.data.ptr + SecHdrTab[SegData[seg].SDshtidx].offset + offset;
 }
 
 @trusted
 int32_t *patchAddr64(int seg, targ_size_t offset)
 {
-    return cast(int32_t *)(fobjbuf.buf + SecHdrTab64[SegData[seg].SDshtidx].offset + offset);
+    return cast(int32_t *)fobjbuf.data.ptr + SecHdrTab64[SegData[seg].SDshtidx].offset + offset;
 }
 
 @trusted
@@ -607,7 +607,7 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (uint)offset, seg, value);
     if (I64)
     {
-        int32_t *p = cast(int32_t *)(fobjbuf.buf + SecHdrTab64[pseg.SDshtidx].offset + offset);
+        int32_t *p = cast(int32_t *)&fobjbuf.data[SecHdrTab64[pseg.SDshtidx].offset + offset];
 static if (0)
 {
         printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%llx\n\tdelta = x%llx\n",
@@ -622,7 +622,7 @@ static if (0)
     }
     else
     {
-        int32_t *p = cast(int32_t *)(fobjbuf.buf + SecHdrTab[pseg.SDshtidx].offset + offset);
+        int32_t *p = cast(int32_t *)&fobjbuf.data[SecHdrTab[pseg.SDshtidx].offset + offset];
 static if (0)
 {
         printf("\taddr1 = x%x\n\taddr2 = x%x\n\t*p = x%x\n\tdelta = x%x\n",
@@ -650,28 +650,28 @@ void mach_numbersyms()
     int dim;
     dim = cast(int)(local_symbuf.length() / (Symbol *).sizeof);
     for (int i = 0; i < dim; i++)
-    {   Symbol *s = (cast(Symbol **)local_symbuf.buf)[i];
+    {   Symbol *s = cast(Symbol *)local_symbuf.data[i];
         s.Sxtrnnum = n;
         n++;
     }
 
     dim = cast(int)(public_symbuf.length() / (Symbol *).sizeof);
     for (int i = 0; i < dim; i++)
-    {   Symbol *s = (cast(Symbol **)public_symbuf.buf)[i];
+    {   Symbol *s = cast(Symbol *)public_symbuf.data[i];
         s.Sxtrnnum = n;
         n++;
     }
 
     dim = cast(int)(extern_symbuf.length() / (Symbol *).sizeof);
     for (int i = 0; i < dim; i++)
-    {   Symbol *s = (cast(Symbol **)extern_symbuf.buf)[i];
+    {   Symbol *s = cast(Symbol *)extern_symbuf.data[i];
         s.Sxtrnnum = n;
         n++;
     }
 
     dim = cast(int)(comdef_symbuf.length() / Comdef.sizeof);
     for (int i = 0; i < dim; i++)
-    {   Comdef *c = (cast(Comdef *)comdef_symbuf.buf) + i;
+    {   Comdef *c = (cast(Comdef *)comdef_symbuf.data.ptr) + i;
         c.sym.Sxtrnnum = n;
         n++;
     }
@@ -896,7 +896,7 @@ version (SCPP)
                     {
                         //printf("\tsize %d\n", pseg.SDbuf.length());
                         psechdr.size = pseg.SDbuf.length();
-                        fobjbuf.write(pseg.SDbuf.buf, cast(uint)psechdr.size);
+                        fobjbuf.write(pseg.SDbuf.data.ptr, cast(uint)psechdr.size);
                         foffset += psechdr.size;
                     }
                 }
@@ -934,7 +934,7 @@ version (SCPP)
                     {
                         //printf("\tsize %d\n", pseg.SDbuf.length());
                         psechdr.size = cast(uint)pseg.SDbuf.length();
-                        fobjbuf.write(pseg.SDbuf.buf, psechdr.size);
+                        fobjbuf.write(pseg.SDbuf.data.ptr, psechdr.size);
                         foffset += psechdr.size;
                     }
                 }
@@ -987,8 +987,8 @@ version (SCPP)
         uint reloff = foffset;
         uint nreloc = 0;
         if (pseg.SDrel)
-        {   Relocation *r = cast(Relocation *)pseg.SDrel.buf;
-            Relocation *rend = cast(Relocation *)(pseg.SDrel.buf + pseg.SDrel.length());
+        {   Relocation *r = cast(Relocation *)pseg.SDrel.data.ptr;
+            Relocation *rend = cast(Relocation *)(pseg.SDrel.data.ptr + pseg.SDrel.length());
             for (; r != rend; r++)
             {   Symbol *s = r.targsym;
                 const(char)* rs = r.rtype == RELaddr ? "addr" : "rel";
@@ -1327,7 +1327,7 @@ version (SCPP)
                         dysymtab_cmd.nundefsym;
     fobjbuf.reserve(cast(uint)(symtab_cmd.nsyms * (I64 ? nlist_64.sizeof : nlist.sizeof)));
     for (int i = 0; i < dysymtab_cmd.nlocalsym; i++)
-    {   Symbol *s = (cast(Symbol **)local_symbuf.buf)[i];
+    {   Symbol *s = cast(Symbol *)local_symbuf.data[i];
         nlist_64 sym = void;
         sym.n_strx = mach_addmangled(s);
         sym.n_type = N_SECT;
@@ -1352,7 +1352,7 @@ version (SCPP)
         }
     }
     for (int i = 0; i < dysymtab_cmd.nextdefsym; i++)
-    {   Symbol *s = (cast(Symbol **)public_symbuf.buf)[i];
+    {   Symbol *s = cast(Symbol *)public_symbuf.data[i];
 
         //printf("Writing public symbol %d:x%x %s\n", s.Sseg, s.Soffset, s.Sident);
         nlist_64 sym = void;
@@ -1381,7 +1381,7 @@ version (SCPP)
         }
     }
     for (int i = 0; i < nexterns; i++)
-    {   Symbol *s = (cast(Symbol **)extern_symbuf.buf)[i];
+    {   Symbol *s = cast(Symbol *)extern_symbuf.data[i];
         nlist_64 sym = void;
         sym.n_strx = mach_addmangled(s);
         sym.n_value = s.Soffset;
@@ -1403,7 +1403,7 @@ version (SCPP)
         }
     }
     for (int i = 0; i < ncomdefs; i++)
-    {   Comdef *c = (cast(Comdef *)comdef_symbuf.buf) + i;
+    {   Comdef *c = cast(Comdef *)&comdef_symbuf.data[i];
         nlist_64 sym = void;
         sym.n_strx = mach_addmangled(c.sym);
         sym.n_value = c.size * c.count;
@@ -1462,7 +1462,7 @@ version (SCPP)
     foffset = elf_align(I64 ? 8 : 4, foffset);
     symtab_cmd.stroff = foffset;
     symtab_cmd.strsize = cast(uint)symtab_strings.length();
-    fobjbuf.write(symtab_strings.buf, symtab_cmd.strsize);
+    fobjbuf.write(symtab_strings.data.ptr, symtab_cmd.strsize);
     foffset += symtab_cmd.strsize;
 
     // Put out indirectsym table, which is in two parts
@@ -1472,7 +1472,7 @@ version (SCPP)
     {
         dysymtab_cmd.nindirectsyms += indirectsymbuf1.length() / (Symbol *).sizeof;
         for (int i = 0; i < dysymtab_cmd.nindirectsyms; i++)
-        {   Symbol *s = (cast(Symbol **)indirectsymbuf1.buf)[i];
+        {   Symbol *s = cast(Symbol *)indirectsymbuf1.data[i];
             fobjbuf.write32(s.Sxtrnnum);
         }
     }
@@ -1481,7 +1481,7 @@ version (SCPP)
         int n = cast(int)(indirectsymbuf2.length() / (Symbol *).sizeof);
         dysymtab_cmd.nindirectsyms += n;
         for (int i = 0; i < n; i++)
-        {   Symbol *s = (cast(Symbol **)indirectsymbuf2.buf)[i];
+        {   Symbol *s = cast(Symbol *)indirectsymbuf2.data[i];
             fobjbuf.write32(s.Sxtrnnum);
         }
     }
@@ -1494,12 +1494,12 @@ version (SCPP)
     if (I64)
     {
         fobjbuf.write(&segment_cmd64, segment_cmd64.sizeof);
-        fobjbuf.write(SECbuf.buf + section_64.sizeof, cast(uint)((section_cnt - 1) * section_64.sizeof));
+        fobjbuf.write(&SECbuf.data[section_64.sizeof], cast(uint)((section_cnt - 1) * section_64.sizeof));
     }
     else
     {
         fobjbuf.write(&segment_cmd, segment_cmd.sizeof);
-        fobjbuf.write(SECbuf.buf + section.sizeof, cast(uint)((section_cnt - 1) * section.sizeof));
+        fobjbuf.write(&SECbuf.data[section.sizeof], cast(uint)((section_cnt - 1) * section.sizeof));
     }
     fobjbuf.write(&symtab_cmd, symtab_cmd.sizeof);
     fobjbuf.write(&dysymtab_cmd, dysymtab_cmd.sizeof);
@@ -2678,7 +2678,7 @@ static if (0)
                 else
                 {   // Look through indirectsym to see if it is already there
                     int n = cast(int)(indirectsymbuf1.length() / (Symbol *).sizeof);
-                    Symbol **psym = cast(Symbol **)indirectsymbuf1.buf;
+                    Symbol **psym = cast(Symbol **)indirectsymbuf1.data.ptr;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
                         if (s == psym[i])
@@ -2723,7 +2723,7 @@ static if (0)
                 else
                 {   // Look through indirectsym to see if it is already there
                     int n = cast(int)(indirectsymbuf2.length() / (Symbol *).sizeof);
-                    Symbol **psym = cast(Symbol **)indirectsymbuf2.buf;
+                    Symbol **psym = cast(Symbol **)indirectsymbuf2.data.ptr;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
                         if (s == psym[i])
