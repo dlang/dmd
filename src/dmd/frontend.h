@@ -260,6 +260,7 @@ class TypeMixin;
 class TypeTraits;
 class TypeNoreturn;
 class TypeTag;
+class TypeAggregate;
 class TemplateTypeParameter;
 class TemplateValueParameter;
 class TemplateAliasParameter;
@@ -1981,6 +1982,7 @@ public:
     TypeTraits* isTypeTraits();
     TypeNoreturn* isTypeNoreturn();
     TypeTag* isTypeTag();
+    TypeAggregate* isTypeAggregate();
     void accept(Visitor* v);
     TypeFunction* toTypeFunction();
 };
@@ -2331,13 +2333,14 @@ public:
     virtual void visit(typename AST::TypeVector t);
     virtual void visit(typename AST::TypeEnum t);
     virtual void visit(typename AST::TypeTuple t);
-    virtual void visit(typename AST::TypeClass t);
-    virtual void visit(typename AST::TypeStruct t);
+    virtual void visit(typename AST::TypeAggregate t);
     virtual void visit(typename AST::TypeNext t);
     virtual void visit(typename AST::TypeQualified t);
     virtual void visit(typename AST::TypeTraits t);
     virtual void visit(typename AST::TypeMixin t);
     virtual void visit(typename AST::TypeTag t);
+    virtual void visit(typename AST::TypeClass t);
+    virtual void visit(typename AST::TypeStruct t);
     virtual void visit(typename AST::TypeReference t);
     virtual void visit(typename AST::TypeSlice t);
     virtual void visit(typename AST::TypeDelegate t);
@@ -3383,6 +3386,27 @@ public:
     void accept(Visitor* v);
 };
 
+enum class AliasThisRec
+{
+    no = 0,
+    yes = 1,
+    fwdref = 2,
+    typeMask = 3,
+    tracing = 4,
+    tracingDT = 8,
+};
+
+class TypeAggregate : public Type
+{
+public:
+    AggregateDeclaration* asym;
+    AliasThisRec att;
+    Dsymbol* toDsymbol(Scope* sc);
+    MATCH constConv(Type* to);
+    uint8_t deduceWild(Type* t, bool isRef);
+    void accept(Visitor* v);
+};
+
 class TypeBasic final : public Type
 {
 public:
@@ -3405,26 +3429,13 @@ public:
     void accept(Visitor* v);
 };
 
-enum class AliasThisRec
-{
-    no = 0,
-    yes = 1,
-    fwdref = 2,
-    typeMask = 3,
-    tracing = 4,
-    tracingDT = 8,
-};
-
-class TypeClass final : public Type
+class TypeClass final : public TypeAggregate
 {
 public:
-    ClassDeclaration* sym;
-    AliasThisRec att;
     CPPMANGLE cppmangle;
     const char* kind() const;
     uinteger_t size(const Loc& loc) /* const */;
     TypeClass* syntaxCopy();
-    Dsymbol* toDsymbol(Scope* sc);
     ClassDeclaration* isClassHandle();
     bool isBaseOf(Type* t, int32_t* poffset);
     MATCH implicitConvTo(Type* to);
@@ -3737,18 +3748,15 @@ public:
     void accept(Visitor* v);
 };
 
-class TypeStruct final : public Type
+class TypeStruct final : public TypeAggregate
 {
 public:
-    StructDeclaration* sym;
-    AliasThisRec att;
     bool inuse;
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const;
     uinteger_t size(const Loc& loc);
     uint32_t alignsize();
     TypeStruct* syntaxCopy();
-    Dsymbol* toDsymbol(Scope* sc);
     structalign_t alignment();
     Expression* defaultInitLiteral(const Loc& loc);
     bool isZeroInit(const Loc& loc);
@@ -3761,8 +3769,6 @@ public:
     bool hasVoidInitPointers();
     bool hasInvariant();
     MATCH implicitConvTo(Type* to);
-    MATCH constConv(Type* to);
-    uint8_t deduceWild(Type* t, bool isRef);
     Type* toHeadMutable();
     void accept(Visitor* v);
 };
@@ -4837,6 +4843,7 @@ struct ASTCodegen final
     using TRUSTformat = ::TRUSTformat;
     using Type = ::Type;
     using TypeAArray = ::TypeAArray;
+    using TypeAggregate = ::TypeAggregate;
     using TypeArray = ::TypeArray;
     using TypeBasic = ::TypeBasic;
     using TypeClass = ::TypeClass;
