@@ -862,33 +862,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
                              * The implicit conversion with alias this is taken care of later.
                              */
                             AggregateDeclaration aggDecl = isAggregate(exp.type);
-                            TypeStruct tstruct;
-                            TypeClass tclass;
-                            bool hasAliasThis;
                             if (aggDecl && aggDecl.aliasthis)
                             {
-                                hasAliasThis = true;
-                                tclass = exp.type.isTypeClass();
-                                if (!tclass)
-                                    tstruct = exp.type.isTypeStruct();
-                                assert(tclass || tstruct);
-                            }
-                            if (hasAliasThis)
-                            {
-                                if (tclass)
-                                {
-                                    if ((cast(TypeClass)(exp.type.immutableOf())).implicitConvToWithoutAliasThis(tret))
-                                        exp = exp.castTo(sc2, exp.type.immutableOf());
-                                    else if ((cast(TypeClass)(exp.type.wildOf())).implicitConvToWithoutAliasThis(tret))
-                                        exp = exp.castTo(sc2, exp.type.wildOf());
-                                }
-                                else
-                                {
-                                    if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
-                                        exp = exp.castTo(sc2, exp.type.immutableOf());
-                                    else if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
-                                        exp = exp.castTo(sc2, exp.type.wildOf());
-                                }
+
+                                if ((cast(TypeAggregate)(exp.type.immutableOf())).implicitConvToWithoutAliasThis(tret))
+                                    exp = exp.castTo(sc2, exp.type.immutableOf());
+                                else if ((cast(TypeAggregate)(exp.type.wildOf())).implicitConvToWithoutAliasThis(tret))
+                                    exp = exp.castTo(sc2, exp.type.wildOf());
                             }
                             else
                             {

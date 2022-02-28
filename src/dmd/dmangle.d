@@ -414,16 +414,9 @@ public:
         mangleSymbol(t.sym);
     }
 
-    override void visit(TypeStruct t)
+    override void visit(TypeAggregate t)
     {
-        //printf("TypeStruct.toDecoBuffer('%s') = '%s'\n", t.toChars(), name);
-        visit(cast(Type)t);
-        mangleSymbol(t.sym);
-    }
-
-    override void visit(TypeClass t)
-    {
-        //printf("TypeClass.toDecoBuffer('%s' mod=%x) = '%s'\n", t.toChars(), mod, name);
+        //printf("TypeAggregate.toDecoBuffer('%s') = '%s'\n", t.toChars(), name);
         visit(cast(Type)t);
         mangleSymbol(t.sym);
     }

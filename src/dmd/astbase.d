@@ -3332,6 +3332,9 @@ struct ASTBase
             inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
             inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
             inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
+            inout(TypeAggregate)  isTypeAggregate()  {
+                return ty == Tstruct || ty == Tclass ? cast(typeof(return))this : null;
+            }
         }
 
         override void accept(Visitor v)
@@ -3633,15 +3636,35 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class TypeClass : Type
+    extern (C++) abstract class TypeAggregate : Type
     {
-        ClassDeclaration sym;
+        AggregateDeclaration asym;
+        alias sym = asym;
+
         AliasThisRec att = AliasThisRec.fwdref;
+
+        extern (D) this(TY ty, AggregateDeclaration asym)
+        {
+            assert(ty == Tstruct || ty == Tclass);
+
+            super(ty);
+            this.asym = asym;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class TypeClass : TypeAggregate
+    {
+        extern (D) inout(ClassDeclaration) sym() inout { return cast(typeof(return))asym; }
+        extern (D) void sym(ClassDeclaration asym) { this.asym = asym; }
 
         extern (D) this (ClassDeclaration sym)
         {
-            super(Tclass);
-            this.sym = sym;
+            super(Tclass, sym);
         }
 
         override TypeClass syntaxCopy()
@@ -3655,16 +3678,16 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class TypeStruct : Type
+    extern (C++) final class TypeStruct : TypeAggregate
     {
-        StructDeclaration sym;
-        AliasThisRec att = AliasThisRec.fwdref;
         bool inuse = false;
+
+        extern (D) inout(StructDeclaration) sym() inout { return cast(typeof(return))asym; }
+        extern (D) void sym(StructDeclaration asym) { this.asym = asym; }
 
         extern (D) this(StructDeclaration sym)
         {
-            super(Tstruct);
-            this.sym = sym;
+            super(Tstruct, sym);
         }
 
         override TypeStruct syntaxCopy()
