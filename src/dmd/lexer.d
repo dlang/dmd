@@ -145,6 +145,24 @@ class Lexer
         }
     }
 
+    version (DMDLIB)
+    {
+        bool empty()
+        {
+            return front() == TOK.endOfFile;
+        }
+
+        TOK front() const @property
+        {
+            return token.value;
+        }
+
+        void popFront()
+        {
+            nextToken();
+        }
+    }
+
     /// Returns: a newly allocated `Token`.
     Token* allocateToken() pure nothrow @safe
     {
