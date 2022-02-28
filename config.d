@@ -1,7 +1,8 @@
+#!/usr/bin/env dub
 /+
 dub.sdl:
     name "config"
-    targetPath "generated/dub"
+    targetPath "generated/dub-gen"
 +/
 /**
 Generates the compiler version, the version printed with `dmd --version`.
