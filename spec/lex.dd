@@ -1162,6 +1162,10 @@ $(GNAME Filespec):
         parsing.
         )
 
+        $(P Special token sequences are terminated by the first newline that
+            follows the first $(D #) token at the beginning of the sequence.
+        )
+
         $(P There is currently only one special token sequence, $(D #line).
         )
 
