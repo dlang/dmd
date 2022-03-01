@@ -1885,17 +1885,8 @@ class TypeInfo_Struct : TypeInfo
             return false;
         else if (xopEquals)
         {
-            // TODO: remove as soon as `git describe` for DMD master yields v2.099+
-            static if (__VERSION__ < 2099)
-            {
-                const dg = _memberFunc(p2, xopEquals);
-                return dg.xopEquals(p1);
-            }
-            else
-            {
-                const dg = _memberFunc(p1, xopEquals);
-                return dg.xopEquals(p2);
-            }
+            const dg = _memberFunc(p1, xopEquals);
+            return dg.xopEquals(p2);
         }
         else if (p1 == p2)
             return true;
