@@ -789,7 +789,7 @@ writeln(__traits(identifier, var));             // "var"
 $(H2 $(GNAME getAliasThis))
 
     $(P Takes one argument, a type. If the type has `alias this` declarations,
-        returns a sequence of the names (as `string`s) of the members used in
+        returns a *ValueSeq* of the names (as `string`s) of the members used in
         those declarations. Otherwise returns an empty sequence.
     )
 
@@ -819,8 +819,8 @@ tuple()
 
 $(SECTION2 $(GNAME getAttributes),
     $(P
-        Takes one argument, a symbol. Returns a tuple of all attached user-defined attributes.
-        If no UDAs exist it will return an empty tuple.
+        Takes one argument, a symbol. Returns a sequence of all attached user-defined attributes.
+        If no UDAs exist it will return an empty sequence
     )
 
     $(P
@@ -891,14 +891,14 @@ static assert(__traits(getFunctionVariadicStyle, typeof(cstyle)) == "stdarg");
 $(SECTION2 $(GNAME getFunctionAttributes),
     $(P
         Takes one argument which must either be a function symbol, function literal,
-        or a function pointer. It returns a string tuple of all the attributes of
+        or a function pointer. It returns a string *ValueSeq* of all the attributes of
         that function $(B excluding) any user-defined attributes (UDAs can be
         retrieved with the $(RELATIVE_LINK2 get-attributes, getAttributes) trait).
-        If no attributes exist it will return an empty tuple.
+        If no attributes exist it will return an empty sequence.
     )
 
 
-        $(B Note:) The order of the attributes in the returned tuple is
+        $(B Note:) The order of the attributes in the returned sequence is
         implementation-defined and should not be relied upon.
 
         $(P
@@ -993,7 +993,7 @@ static assert(__traits(getLinkage, FooCPPInterface) == "C++");
 $(H2 $(GNAME getLocation))
         $(P Takes one argument which is a symbol.
         To disambiguate between overloads, pass the result of $(GLINK getOverloads) with the desired index, to `getLocation`.
-        Returns a `tuple(string, int, int)` whose entries correspond to the filename, line number and column number where the argument
+        Returns a *ValueSeq* of a string and two `int`s which correspond to the filename, line number and column number where the argument
         was declared.
         )
 
@@ -1035,7 +1035,7 @@ $(H2 $(GNAME getOverloads))
         the member(s) to return.
         The third argument is a `bool`, and is optional.  If `true`, the
         result will also include template overloads.
-        The result is a tuple of all the overloads of the supplied name.
+        The result is a symbol sequence of all the overloads of the supplied name.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1092,7 +1092,7 @@ $(H2 $(GNAME getParameterStorageClasses))
         that is a function, delegate or a function pointer.
         The second is an integer identifying which parameter, where the first parameter is
         0.
-        It returns a tuple of strings representing the storage classes of that parameter.
+        It returns a *ValueSeq* of strings representing the storage classes of that parameter.
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1158,7 +1158,7 @@ void main()
 
 $(H2 $(GNAME getCppNamespaces))
     $(P The argument is a symbol.
-    The result is a tuple of strings, possibly empty, that correspond to the namespaces the symbol resides in.
+    The result is a *ValueSeq* of strings, possibly empty, that correspond to the namespaces the symbol resides in.
     )
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
@@ -1252,7 +1252,7 @@ $(H2 $(GNAME getVirtualMethods))
         class type.
         The second argument is a string that matches the name of
         one of the functions of that class.
-        The result is a tuple of the virtual overloads of that function.
+        The result is a symbol sequence of the virtual overloads of that function.
         It does not include final functions that do not override anything.
         )
 
@@ -1299,7 +1299,7 @@ $(H2 $(GNAME getUnitTests))
 
         $(P
                 Takes one argument, a symbol of an aggregate (e.g. struct/class/module).
-                The result is a tuple of all the unit test functions of that aggregate.
+                The result is a symbol sequence of all the unit test functions of that aggregate.
                 The functions returned are like normal nested static functions,
                 $(DDSUBLINK glossary, ctfe, CTFE) will work and
                 $(DDSUBLINK spec/attribute, uda, UDAs) will be accessible.
@@ -1310,7 +1310,7 @@ $(H2 $(GNAME getUnitTests))
         $(P
                 The -unittest flag needs to be passed to the compiler. If the flag
                 is not passed $(CODE __traits(getUnitTests)) will always return an
-                empty tuple.
+                empty sequence.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1454,7 +1454,7 @@ $(H2 $(GNAME allMembers))
         a module, a struct, a union, a class, an interface, or a
         template instantiation.
 
-        A tuple of string literals is returned, each of which
+        A sequence of string literals is returned, each of which
         is the name of a member of that argument combined with all
         of the members of its base classes (if the argument is a class).
         No name is repeated.
@@ -1490,7 +1490,7 @@ $(H2 $(GNAME derivedMembers))
 
         $(P Takes a single argument, which must evaluate to either
         a type or an expression of type.
-        A tuple of string literals is returned, each of which
+        A sequence of string literals is returned, each of which
         is the name of a member of that type.
         No name is repeated.
         Base class member names are not included.
