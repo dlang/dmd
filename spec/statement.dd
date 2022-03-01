@@ -532,32 +532,39 @@ $(H3 $(LNAME2 foreach_over_arrays, Foreach over Arrays))
 $(P
         If the aggregate is a static or dynamic array, there
         can be one or two variables declared. If one, then the variable
-        is said to be the $(I value) set to the elements of the array,
-        one by one. The type of the
-        variable must match the type of the array contents, except for the
-        special cases outlined below.
+        is said to be the $(I value), which is set successively to each
+        element of the array. The type of the variable, if specified,
+        must be compatible with the array element type (except for the
+        special handling of character elements outlined below).
+        The *value* variable can modify array elements when
+        $(RELATIVE_LINK2 foreach_ref_parameters, declared with `ref`).
+)
+$(P
         If there are
         two variables declared, the first is said to be the $(I index)
-        and the second is said to be the $(I value). The $(I index)
-        must be of type `size_t` for dynamic arrays. Static arrays may use
-        any integral type that spans the length of the array.
-        $(I index) cannot be `ref`.
-        It is set to be the index of the array element.
+        and the second is said to be the $(I value) as above.
+        $(I index) cannot be declared with `ref`.
+        It is set to the index of the array element on each iteration.
+        The index type can be inferred:
 )
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
 char[] a = ['h', 'i'];
 
-foreach (size_t i, char c; a)
+foreach (i, char c; a)
 {
     writefln("a[%d] = '%c'", i, c);
 }
 --------------
 )
+        $(P For a dynamic array, the $(I index) type must be compatible
+        with `size_t`.
+        Static arrays may use any integral type that spans the length
+        of the array.)
 
         $(P For $(D foreach), the
         elements for the array are iterated over starting at index 0
-        and continuing to the maximum of the array.
+        and continuing to the last element of the array.
         For $(D foreach_reverse), the array elements are visited in the reverse
         order.
         )
@@ -565,8 +572,8 @@ foreach (size_t i, char c; a)
 $(H3 $(LNAME2 foreach_over_arrays_of_characters, Foreach over Arrays of Characters))
 
         $(P If the aggregate expression is a static or dynamic array of
-        $(D char)s, $(D wchar)s, or $(D dchar)s, then the $(I Type) of
-        the $(I value)
+        $(D char)s, $(D wchar)s, or $(D dchar)s, then the type of
+        the $(I value) variable
         can be any of $(D char), $(D wchar), or $(D dchar).
         In this manner any UTF array
         can be decoded into any UTF type:
@@ -591,7 +598,7 @@ foreach (char c; b)
 )
 
         $(P Aggregates can be string literals, which can be accessed
-        as char, wchar, or dchar arrays:
+        as `char`, `wchar`, or `dchar` arrays:
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
