@@ -725,26 +725,37 @@ $(GNAME InExpression):
     $(GLINK ShiftExpression) $(D ! in) $(GLINK ShiftExpression)
 )
 
-$(P An associative array can be tested to see if an element is in the array:)
+$(P A container such as an associative array
+    $(DDSUBLINK spec/hash-map, testing_membership, can be tested) to see if it contains a certain key:)
 
         -------------
         int foo[string];
         ...
         if ("hello" in foo)
-            ...
+        {
+            // the string was found
+        }
         -------------
 
-    $(P The $(D in) expression has the same precedence as the
-        relational expressions $(D <), $(D <)$(D =),
-        etc.
-        The return value of the $(I InExpression) is $(D null)
-        if the element is not in the array;
-        if it is in the array it is a pointer to the element.
+    $(P The result of an $(I InExpression) is a pointer for associative
+        arrays.
+        The pointer is $(D null) if the container has no matching key.
+        If there is a match, the pointer points to a value associated
+        with the key.
     )
 
     $(P The $(D !in) expression is the logical negation of the $(D in)
         operation.
     )
+
+    $(P The $(D in) expression has the same precedence as the
+        relational expressions $(D <), $(D <)$(D =), etc.)
+
+    $(NOTE When $(DDSUBLINK spec/operatoroverloading, binary, overloading)
+        `in`, normally only $(TT opBinaryRight) would be defined. This is
+        because the operation is usually not defined by the key type but by
+        the container, which appears on the right hand side of the `in`
+        operator.)
 
 $(H2 $(LNAME2 shift_expressions, Shift Expressions))
 
