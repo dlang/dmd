@@ -2270,9 +2270,14 @@ $(GNAME TypeSpecialization):
 )
 
     $(P $(I IsExpression)s are evaluated at compile time and are
-        used for checking for valid types, comparing types for equivalence,
-        determining if one type can be implicitly converted to another,
-        and deducing the subtypes of a type.
+        used for:)
+    $(UL
+    $(LI checking for valid types)
+    $(LI comparing types for equivalence)
+    $(LI determining if one type can be implicitly converted to another)
+    $(LI deducing the subtypes of a type)
+    )
+    $(P
         The result of an $(I IsExpression) is a boolean of value `true`
         if the condition is satisfied. If the condition is not satisfied,
         the result is a boolean of value `false`.
