@@ -75,6 +75,7 @@ class TypeIdentifier;
 class TypeInstance;
 class TypeTypeof;
 class TypeReturn;
+class TypeAggregate;
 class TypeStruct;
 class TypeEnum;
 class TypeClass;
@@ -438,13 +439,16 @@ public:
     virtual void visit(TypeVector *t) { visit((Type *)t); }
     virtual void visit(TypeEnum *t) { visit((Type *)t); }
     virtual void visit(TypeTuple *t) { visit((Type *)t); }
-    virtual void visit(TypeClass *t) { visit((Type *)t); }
-    virtual void visit(TypeStruct *t) { visit((Type *)t); }
+    virtual void visit(TypeAggregate *t) { visit((Type *)t); }
     virtual void visit(TypeNext *t) { visit((Type *)t); }
     virtual void visit(TypeQualified *t) { visit((Type *)t); }
     virtual void visit(TypeTraits *t) { visit((Type *)t); }
     virtual void visit(TypeMixin *t) { visit((Type *)t); }
     virtual void visit(TypeTag *t) { visit((Type *)t); }
+
+    // TypeAggregate
+    virtual void visit(TypeClass *t) { visit((TypeAggregate *)t); }
+    virtual void visit(TypeStruct *t) { visit((TypeAggregate *)t); }
 
     // TypeNext
     virtual void visit(TypeReference *t) { visit((TypeNext *)t); }
