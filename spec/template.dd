@@ -64,7 +64,19 @@ $(GNAME TemplateParameterList):
         template declarations instead.)
 
 
-$(H2 $(LNAME2 explicit_tmp_instantiation, Explicit Template Instantiation))
+$(H2 $(LNAME2 template_instantiation, Template Instantiation))
+
+    $(P A template must be instantiated before use. This means
+    passing an argument list to the template.
+    Those arguments are typically then substituted
+    into the template body, which becomes a new scoped entity.)
+
+    $(P $(RELATIVE_LINK2 function-templates, Function templates) can
+    be implicitly instantiated if the compiler can infer the template
+    arguments from a function call. Otherwise the template must be
+    instantiated explicitly.)
+
+$(H3 $(LNAME2 explicit_tmp_instantiation, Explicit Template Instantiation))
 
     $(P Templates are explicitly instantiated with:
     )
@@ -135,6 +147,8 @@ $(GNAME TemplateSingleArgument):
         foo.Ptr x;        // declare x to be of type int*
         ------
 
+$(H3 $(LNAME2 common_instantiation, Common Instantiation))
+
     $(P Multiple instantiations of a $(I TemplateDeclaration) with the same
         $(I TemplateArgumentList) will all refer to the same instantiation.
         For example:)
@@ -154,7 +168,7 @@ $(GNAME TemplateSingleArgument):
 
     $(P Even if template arguments are implicitly converted to the same
         template parameter type, they still refer to the same instance.
-        This example uses a
+        This example uses a $(GLINK TemplateValueParameter) and a
         $(RELATIVE_LINK2 aggregate_templates, `struct` template):)
 
         -----
@@ -193,21 +207,20 @@ $(GNAME TemplateSingleArgument):
         ------
     $(P See also $(RELATIVE_LINK2 function-templates, function templates).)
 
-$(H2 $(LNAME2 instantiation_scope, Instantiation Scope))
+$(H3 $(LNAME2 instantiation_scope, Instantiation Scope))
 
     $(P $(I TemplateInstance)s are always instantiated in the scope of where
         the $(I TemplateDeclaration) is declared, with the addition of the
         template parameters being declared as aliases for their deduced types.
     )
-    $(P For example:)
+    $(P $(B Example:))
 
-        $(BR)$(BR)
-        $(U module a)
+        $(U module a:)
         ------
         template TFoo(T) { void bar() { func(); } }
         ------
 
-        $(U module b)
+        $(U module b:)
         ------
         import a;
 
@@ -215,16 +228,15 @@ $(H2 $(LNAME2 instantiation_scope, Instantiation Scope))
         alias f = TFoo!(int); // error: func not defined in module a
         ------
 
-    and:
+    $(P $(B Example:))
 
-        $(BR)$(BR)
-        $(U module a)
+        $(U module a:)
         ------
         template TFoo(T) { void bar() { func(1); } }
         void func(double d) { }
         ------
 
-        $(U module b)
+        $(U module b:)
         ------
         import a;
 
@@ -1096,8 +1108,8 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         }
         ------
 
-    $(P Function templates can be explicitly instantiated with a
-        !($(I TemplateArgumentList)):)
+    $(P Function templates can be explicitly instantiated with
+        *Identifier*`!(`*TemplateArgumentList*`)`:)
 
         ----
         writefln("The square of %s is %s", 3, square!(int)(3));
