@@ -3916,8 +3916,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (funcdecl.isMain())
-            funcdecl.checkDmain();       // Check main() parameters and return type
+        funcdecl.checkMain();       // Check main() parameters and return type
 
         /* Purity and safety can be inferred for some functions by examining
          * the function body.

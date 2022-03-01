@@ -2641,35 +2641,122 @@ extern (C++) class FuncDeclaration : Declaration
         return fd;
     }
 
-    /******************
-     * Check parameters and return type of D main() function.
-     * Issue error messages.
-     */
-    extern (D) final void checkDmain()
+    /+
+     + Checks the parameter and return types iff this is a `main` function.
+     +
+     + The following signatures are allowed for a `D main`:
+     + - Either no or a single parameter of type `string[]`
+     + - Return type is either `void`, `int` or `noreturn`
+     +
+     + The following signatures are standard C:
+     + - `int main()`
+     + - `int main(int, char**)`
+     +
+     + This function accepts the following non-standard extensions:
+     + - `char** envp` as a third parameter
+     + - `void` / `noreturn` as return type
+     +
+     + This function will issue errors for unexpected arguments / return types.
+     +/
+    extern (D) final void checkMain()
     {
-        TypeFunction tf = type.toTypeFunction();
-        const nparams = tf.parameterList.length;
-        bool argerr;
-        if (nparams == 1)
-        {
-            auto fparam0 = tf.parameterList[0];
-            auto t = fparam0.type.toBasetype();
-            if (t.ty != Tarray ||
-                t.nextOf().ty != Tarray ||
-                t.nextOf().nextOf().ty != Tchar ||
-                fparam0.storageClass & (STC.out_ | STC.ref_ | STC.lazy_))
-            {
-                argerr = true;
-            }
-        }
+        if (ident != Id.main || isMember() || isNested())
+            return; // Not a main function
 
-        if (!tf.nextOf())
+        TypeFunction tf = type.toTypeFunction();
+
+        Type retType = tf.nextOf();
+        if (!retType)
+        {
             // auto main(), check after semantic
             assert(this.inferRetType);
-        else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid && tf.nextOf().ty != Tnoreturn)
+            return;
+        }
+
+        /// Checks whether `t` is equivalent to `char**`
+        /// Ignores qualifiers and treats enums according to their base type
+        static bool isCharPtrPtr(Type t)
+        {
+            auto tp = t.toBasetype().isTypePointer();
+            if (!tp)
+                return false;
+
+            tp = tp.next.toBasetype().isTypePointer();
+            if (!tp)
+                return false;
+
+            return tp.next.toBasetype().ty == Tchar;
+        }
+
+        // Neither of these qualifiers is allowed because they affect the ABI
+        enum invalidSTC = STC.out_ | STC.ref_ | STC.lazy_;
+
+        const nparams = tf.parameterList.length;
+        bool argerr;
+
+        if (linkage == LINK.d)
+        {
+            if (nparams == 1)
+            {
+                auto fparam0 = tf.parameterList[0];
+                auto t = fparam0.type.toBasetype();
+                if (t.ty != Tarray ||
+                    t.nextOf().ty != Tarray ||
+                    t.nextOf().nextOf().ty != Tchar ||
+                    fparam0.storageClass & invalidSTC)
+                {
+                    argerr = true;
+                }
+            }
+
+            if (tf.parameterList.varargs || nparams >= 2 || argerr)
+                error("parameters must be `main()` or `main(string[] args)`");
+        }
+
+        else if (linkage == LINK.c)
+        {
+            if (nparams == 2 || nparams == 3)
+            {
+                // Argument count must be int
+                auto argCount = tf.parameterList[0];
+                argerr |= !!(argCount.storageClass & invalidSTC);
+                argerr |= argCount.type.toBasetype().ty != Tint32;
+
+                // Argument pointer must be char**
+                auto argPtr = tf.parameterList[1];
+                argerr |= !!(argPtr.storageClass & invalidSTC);
+                argerr |= !isCharPtrPtr(argPtr.type);
+
+                // `char** environ` is a common extension, see J.5.1 of the C standard
+                if (nparams == 3)
+                {
+                    auto envPtr = tf.parameterList[2];
+                    argerr |= !!(envPtr.storageClass & invalidSTC);
+                    argerr |= !isCharPtrPtr(envPtr.type);
+                }
+            }
+            else
+                argerr = nparams != 0;
+
+            if (tf.parameterList.varargs)
+                argerr |= nparams != 0; // Allow implicitly variadic main() in C files
+
+            if (argerr)
+            {
+                error("parameters must match one of the following signatures");
+                loc.errorSupplemental("`main()`");
+                loc.errorSupplemental("`main(int argc, char** argv)`");
+                loc.errorSupplemental("`main(int argc, char** argv, char** environ)` [POSIX extension]");
+            }
+        }
+        else
+            return; // Neither C nor D main, ignore (should probably be an error)
+
+        // Allow enums with appropriate base types (same ABI)
+        retType = retType.toBasetype();
+
+        if (retType.ty != Tint32 && retType.ty != Tvoid && retType.ty != Tnoreturn)
             error("must return `int`, `void` or `noreturn`, not `%s`", tf.nextOf().toChars());
-        else if (tf.parameterList.varargs || nparams >= 2 || argerr)
-            error("parameters must be `main()` or `main(string[] args)`");
     }
 
     /***********************************************
