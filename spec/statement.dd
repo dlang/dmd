@@ -622,26 +622,44 @@ $(H3 $(LNAME2 foreach_over_associative_arrays, Foreach over Associative Arrays))
         $(P If the aggregate expression is an associative array, there
         can be one or two variables declared. If one, then the variable
         is said to be the $(I value) set to the elements of the array,
-        one by one. The type of the
-        variable must match the type of the array contents. If there are
+        one by one. If the type of the
+        variable is provided, it must implicitly convert from the array element type.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+--------------
+// value type is int
+int[string] userAges = ["john":30, "sue":32];
+
+foreach (ref age; userAges)
+{
+    age++;
+}
+assert(userAges == ["john":31, "sue":33]);
+--------------
+)
+
+        $(P If there are
         two variables declared, the first is said to be the $(I index)
         and the second is said to be the $(I value). The $(I index)
-        must be of the same type as the indexing type of the associative
+        must be compatible with the indexing type of the associative
         array. It cannot be `ref`,
-        and it is set to be the index of the array element.
-        The order in which the elements of the array are iterated over is unspecified
-        for $(D foreach). $(D foreach_reverse) for associative arrays
-        is illegal.
-        )
+        and it is set to be the index of the array element.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 --------------
-double[string] a; // index type is string, value type is double
-...
-foreach (string s, double d; a)
+// index type is string, value type is double
+double[string] aa = ["pi":3.14, "e":2.72];
+
+foreach (string s, double d; aa)
 {
-    writefln("a['%s'] = %g", s, d);
+    writefln("aa['%s'] = %g", s, d);
 }
 --------------
+)
+
+        $(P The order in which the elements of the
+        array are iterated over is unspecified for $(D foreach).
+        This is why $(D foreach_reverse) for associative arrays is illegal.)
 
 $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes with opApply))
 
