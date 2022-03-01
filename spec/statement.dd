@@ -717,15 +717,13 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
 
             int opApply(scope int delegate(ref uint) dg)
             {
-                int result = 0;
-
                 foreach (e; array)
                 {
-                    result = dg(e);
+                    int result = dg(e);
                     if (result)
-                        break;
+                        return result;
                 }
-                return result;
+                return 0;
             }
         }
 
@@ -751,26 +749,24 @@ $(CONSOLE
 82
 )
     $(P The `scope` storage class on the $(I dg) parameter means that the delegate does
-    not escape the scope of the $(I opApply) function (an example would be assigning $(I dg) to a
-    global). If it cannot be statically guaranteed that $(I dg) does not escape, a closure may
+    not escape the scope of the $(D opApply) function (an example would be assigning $(I dg) to a
+    global variable). If it cannot be statically guaranteed that $(I dg) does not escape, a closure may
     be allocated for it on the heap instead of the stack.
     )
 
     $(BEST_PRACTICE Annotate delegate parameters to `opApply` functions with `scope` when possible.)
 
-    $(P It is important to make sure that, if $(D opApply) catches any exceptions, that those
-        exceptions did not originate from the delegate passed to $(I opApply). The user would expect
+    $(P $(B Important:) If $(D opApply) catches any exceptions, ensure that those
+        exceptions did not originate from the delegate passed to $(D opApply). The user would expect
         exceptions thrown from a `foreach` body to both terminate the loop, and propagate outside
         the `foreach` body.
      )
 
 $(H4 $(LNAME2 template-op-apply, Template `opApply`))
 
-    $(P $(I opApply) can also be a templated function,
+    $(P $(D opApply) can also be a templated function,
         which will infer the types of parameters based on the $(I ForeachStatement).
-    )
-
-    $(P For example:)
+        For example:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         --------------
