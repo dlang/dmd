@@ -1058,14 +1058,14 @@ else version (Solaris)
         _IOMYBUF = 0x08,
     }
 
-    private extern shared FILE[_NFILE] __iob;
+    private extern __gshared FILE[_NFILE] __iob;
 
     ///
-    shared stdin = &__iob[0];
+    @property auto stdin()() { return &__iob[0]; }
     ///
-    shared stdout = &__iob[1];
+    @property auto stdout()() { return &__iob[1]; }
     ///
-    shared stderr = &__iob[2];
+    @property auto stderr()() { return &__iob[2]; }
 }
 else version (CRuntime_Bionic)
 {
@@ -1079,14 +1079,14 @@ else version (CRuntime_Bionic)
         _IONBF = 2,
     }
 
-    private extern shared FILE[3] __sF;
+    private extern __gshared FILE[3] __sF;
 
     ///
-    shared stdin  = &__sF[0];
+    @property auto stdin()() { return &__sF[0]; }
     ///
-    shared stdout = &__sF[1];
+    @property auto stdout()() { return &__sF[1]; }
     ///
-    shared stderr = &__sF[2];
+    @property auto stderr()() { return &__sF[2]; }
 }
 else version (CRuntime_Musl)
 {
