@@ -154,13 +154,13 @@ $(H3 $(LNAME2 crtdtor, $(D pragma crt_destructor)))
 
     $(P `pragma(crt_destructor)` works the same as `pragma(crt_constructor)` except:)
 
-    $(P Annotates a function so it is run after the D runtime library is terminated
-        and before the C runtime library is terminated.
-        Calling C's `exit()` function also causes the annotated functions to run.
+    $(OL
+        $(LI Annotates a function so it is run after the D runtime library is terminated
+             and before the C runtime library is terminated.
+             Calling C's `exit()` function also causes the annotated functions to run.)
+        $(LI The order in which the annotated functions are run is the reverse of those functions
+             annotated with `pragma(crt_constructor)`.)
     )
-
-    $(P The order in which the annotated functions are run is the reverse of those functions
-        annotated with `pragma(crt_constructor)`.)
 
     $(IMPLEMENTATION_DEFINED This uses the mechanism C compilers use to run
         code after `main()` returns or `exit()` is called. C++ compilers use it to run static
