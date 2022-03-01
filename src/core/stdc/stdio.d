@@ -983,7 +983,7 @@ else version (NetBSD)
         _IONBF = 2,
     }
 
-    private extern __gshared FILE[3] __sF;
+    private extern shared FILE[3] __sF;
     @property auto __stdin()() { return &__sF[0]; }
     @property auto __stdout()() { return &__sF[1]; }
     @property auto __stderr()() { return &__sF[2]; }
@@ -1006,7 +1006,7 @@ else version (OpenBSD)
         _IONBF = 2,
     }
 
-    private extern __gshared FILE[3] __sF;
+    private extern shared FILE[3] __sF;
     @property auto __stdin()() { return &__sF[0]; }
     @property auto __stdout()() { return &__sF[1]; }
     @property auto __stderr()() { return &__sF[2]; }
@@ -1058,7 +1058,7 @@ else version (Solaris)
         _IOMYBUF = 0x08,
     }
 
-    private extern __gshared FILE[_NFILE] __iob;
+    private extern shared FILE[_NFILE] __iob;
 
     ///
     @property auto stdin()() { return &__iob[0]; }
@@ -1079,7 +1079,7 @@ else version (CRuntime_Bionic)
         _IONBF = 2,
     }
 
-    private extern __gshared FILE[3] __sF;
+    private extern shared FILE[3] __sF;
 
     ///
     @property auto stdin()() { return &__sF[0]; }
