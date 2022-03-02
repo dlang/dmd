@@ -147,12 +147,12 @@ class Lexer
 
     version (DMDLIB)
     {
-        bool empty()
+        bool empty() const pure @property @nogc @safe
         {
             return front() == TOK.endOfFile;
         }
 
-        TOK front() const @property
+        TOK front() const pure @property @nogc @safe
         {
             return token.value;
         }
