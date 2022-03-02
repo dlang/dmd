@@ -145,16 +145,13 @@ public:
     void visit(AST.TypeVector t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeEnum t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTuple t) { visit(cast(AST.Type)t); }
-    void visit(AST.TypeAggregate t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeClass t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeStruct t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeNext t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeQualified t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTraits t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeMixin t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTag t) { visit(cast(AST.Type)t); }
-
-    // TypeAggregate
-    void visit(AST.TypeClass t) { visit(cast(AST.TypeAggregate)t); }
-    void visit(AST.TypeStruct t) { visit(cast(AST.TypeAggregate)t); }
 
     // TypeNext
     void visit(AST.TypeReference t) { visit(cast(AST.TypeNext)t); }
