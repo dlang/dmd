@@ -3139,8 +3139,10 @@ ASTCodegen.Dsymbol outermostSymbol(ASTCodegen.Dsymbol sym)
 /// if `t` is either `TypeClass`, `TypeStruct` or `TypeEnum`
 ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t)
 {
-    if (auto ta = t.isTypeAggregate())
-        return ta.sym;
+    if (auto tc = t.isTypeClass())
+        return tc.sym;
+    if (auto ts = t.isTypeStruct())
+        return ts.sym;
     if (auto te = t.isTypeEnum())
         return te.sym;
     return null;

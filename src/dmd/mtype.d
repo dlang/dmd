@@ -570,9 +570,14 @@ extern (C++) abstract class Type : ASTNode
                     Type tp2 = fparam2.type;
                     if (tp1.ty == tp2.ty)
                     {
-                        if (auto ta1 = tp1.isTypeAggregate())
+                        if (auto tc1 = tp1.isTypeClass())
                         {
-                            if (ta1.sym == (cast(TypeAggregate)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                            if (tc1.sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                                goto Lcov;
+                        }
+                        else if (auto ts1 = tp1.isTypeStruct())
+                        {
+                            if (ts1.sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
                         else if (tp1.ty == Tpointer)
@@ -2716,9 +2721,6 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
         inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
-        inout(TypeAggregate)  isTypeAggregate()  {
-            return ty == Tstruct || ty == Tclass ? cast(typeof(return))this : null;
-        }
     }
 
     override void accept(Visitor v)
@@ -4438,8 +4440,10 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 auto tb = tthis.toBasetype();
                 AggregateDeclaration ad;
-                if (auto ta = tb.isTypeAggregate())
-                    ad = ta.sym;
+                if (auto tc = tb.isTypeClass())
+                    ad = tc.sym;
+                else if (auto ts = tb.isTypeStruct())
+                    ad = ts.sym;
                 else
                     assert(0);
                 foreach (VarDeclaration v; ad.fields)
@@ -5748,90 +5752,16 @@ extern (C++) final class TypeReturn : TypeQualified
 
 /***********************************************************
  */
-extern (C++) abstract class TypeAggregate : Type
+extern (C++) final class TypeStruct : Type
 {
-    AggregateDeclaration asym;
-    alias sym = asym;
-
+    StructDeclaration sym;
     AliasThisRec att = AliasThisRec.fwdref;
-
-    extern (D) this(TY ty, AggregateDeclaration asym)
-    {
-        assert(ty == Tstruct || ty == Tclass);
-
-        super(ty);
-        this.asym = asym;
-    }
-
-    override Dsymbol toDsymbol(Scope* sc)
-    {
-        return asym;
-    }
-
-    extern (D) abstract MATCH implicitConvToWithoutAliasThis(Type to);
-
-    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
-    {
-        MATCH m;
-        if (!(ty == to.ty && sym == (cast(TypeAggregate)to).sym) && sym.aliasthis && !(att & AliasThisRec.tracing))
-        {
-            if (auto ato = aliasthisOf())
-            {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                m = ato.implicitConvTo(to);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
-            }
-        }
-        return m;
-    }
-
-    override MATCH constConv(Type to)
-    {
-        if (equals(to))
-            return MATCH.exact;
-        if (ty == to.ty && asym == (cast(TypeAggregate)to).asym && MODimplicitConv(mod, to.mod))
-            return MATCH.constant;
-        return MATCH.nomatch;
-    }
-
-    override MOD deduceWild(Type t, bool isRef)
-    {
-        if (ty == t.ty && asym == (cast(TypeAggregate)t).asym)
-            return Type.deduceWild(t, isRef);
-
-        ubyte wm = 0;
-
-        if (t.hasWild() && asym.aliasthis && !(att & AliasThisRec.tracing))
-        {
-            if (auto ato = aliasthisOf())
-            {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                wm = ato.deduceWild(t, isRef);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
-            }
-        }
-
-        return wm;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- */
-extern (C++) final class TypeStruct : TypeAggregate
-{
     bool inuse = false; // struct currently subject of recursive method call
-
-    extern (D) inout(StructDeclaration) sym() inout { return cast(typeof(return))asym; }
-    extern (D) void sym(StructDeclaration asym) { this.asym = asym; }
 
     extern (D) this(StructDeclaration sym)
     {
-        super(Tstruct, sym);
+        super(Tstruct);
+        this.sym = sym;
     }
 
     static TypeStruct create(StructDeclaration sym)
@@ -5858,6 +5788,11 @@ extern (C++) final class TypeStruct : TypeAggregate
     override TypeStruct syntaxCopy()
     {
         return this;
+    }
+
+    override Dsymbol toDsymbol(Scope* sc)
+    {
+        return sym;
     }
 
     override structalign_t alignment()
@@ -6051,7 +5986,7 @@ extern (C++) final class TypeStruct : TypeAggregate
         return false;
     }
 
-    extern (D) override MATCH implicitConvToWithoutAliasThis(Type to)
+    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m;
 
@@ -6109,11 +6044,57 @@ extern (C++) final class TypeStruct : TypeAggregate
         return m;
     }
 
+    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
+    {
+        MATCH m;
+        if (!(ty == to.ty && sym == (cast(TypeStruct)to).sym) && sym.aliasthis && !(att & AliasThisRec.tracing))
+        {
+            if (auto ato = aliasthisOf())
+            {
+                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
+                m = ato.implicitConvTo(to);
+                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+            }
+            else
+                m = MATCH.nomatch; // no match
+        }
+        return m;
+    }
+
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to.toChars());
         MATCH m = implicitConvToWithoutAliasThis(to);
         return m ? m : implicitConvToThroughAliasThis(to);
+    }
+
+    override MATCH constConv(Type to)
+    {
+        if (equals(to))
+            return MATCH.exact;
+        if (ty == to.ty && sym == (cast(TypeStruct)to).sym && MODimplicitConv(mod, to.mod))
+            return MATCH.constant;
+        return MATCH.nomatch;
+    }
+
+    override MOD deduceWild(Type t, bool isRef)
+    {
+        if (ty == t.ty && sym == (cast(TypeStruct)t).sym)
+            return Type.deduceWild(t, isRef);
+
+        ubyte wm = 0;
+
+        if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
+        {
+            if (auto ato = aliasthisOf())
+            {
+                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
+                wm = ato.deduceWild(t, isRef);
+                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+            }
+        }
+
+        return wm;
     }
 
     override inout(Type) toHeadMutable() inout
@@ -6299,16 +6280,16 @@ extern (C++) final class TypeEnum : Type
 
 /***********************************************************
  */
-extern (C++) final class TypeClass : TypeAggregate
+extern (C++) final class TypeClass : Type
 {
+    ClassDeclaration sym;
+    AliasThisRec att = AliasThisRec.fwdref;
     CPPMANGLE cppmangle = CPPMANGLE.def;
-
-    extern (D) inout(ClassDeclaration) sym() inout { return cast(typeof(return))asym; }
-    extern (D) void sym(ClassDeclaration asym) { this.asym = asym; }
 
     extern (D) this(ClassDeclaration sym)
     {
-        super(Tclass, sym);
+        super(Tclass);
+        this.sym = sym;
     }
 
     override const(char)* kind() const
@@ -6324,6 +6305,11 @@ extern (C++) final class TypeClass : TypeAggregate
     override TypeClass syntaxCopy()
     {
         return this;
+    }
+
+    override Dsymbol toDsymbol(Scope* sc)
+    {
+        return sym;
     }
 
     override inout(ClassDeclaration) isClassHandle() inout
@@ -6342,7 +6328,7 @@ extern (C++) final class TypeClass : TypeAggregate
         return false;
     }
 
-    extern (D) override MATCH implicitConvToWithoutAliasThis(Type to)
+    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         // Run semantic before checking whether class is convertible
         ClassDeclaration cdto = to.isClassHandle();
@@ -6366,6 +6352,21 @@ extern (C++) final class TypeClass : TypeAggregate
         return MATCH.nomatch;
     }
 
+    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
+    {
+        MATCH m;
+        if (sym.aliasthis && !(att & AliasThisRec.tracing))
+        {
+            if (auto ato = aliasthisOf())
+            {
+                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
+                m = ato.implicitConvTo(to);
+                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+            }
+        }
+        return m;
+    }
+
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to.toChars(), toChars());
@@ -6375,8 +6376,10 @@ extern (C++) final class TypeClass : TypeAggregate
 
     override MATCH constConv(Type to)
     {
-        if (auto m = super.constConv(to))
-            return m;
+        if (equals(to))
+            return MATCH.exact;
+        if (ty == to.ty && sym == (cast(TypeClass)to).sym && MODimplicitConv(mod, to.mod))
+            return MATCH.constant;
 
         /* Conversion derived to const(base)
          */
@@ -6402,7 +6405,19 @@ extern (C++) final class TypeClass : TypeAggregate
         if (cd && (sym == cd || cd.isBaseOf(sym, null)))
             return Type.deduceWild(t, isRef);
 
-        return super.deduceWild(t, isRef);
+        ubyte wm = 0;
+
+        if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
+        {
+            if (auto ato = aliasthisOf())
+            {
+                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
+                wm = ato.deduceWild(t, isRef);
+                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+            }
+        }
+
+        return wm;
     }
 
     override inout(Type) toHeadMutable() inout
@@ -7291,8 +7306,10 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
 extern (C++) AggregateDeclaration isAggregate(Type t)
 {
     t = t.toBasetype();
-    if (t.ty == Tclass || t.ty == Tstruct)
-        return (cast(TypeAggregate)t).sym;
+    if (t.ty == Tclass)
+        return (cast(TypeClass)t).sym;
+    if (t.ty == Tstruct)
+        return (cast(TypeStruct)t).sym;
     return null;
 }
 

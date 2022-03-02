@@ -1573,8 +1573,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     e = resolveProperties(sc2, e);
                     sc2 = sc2.endCTFE();
                     AggregateDeclaration agg;
-                    if (auto ta = e.type.isTypeAggregate())
-                        agg = ta.sym;
+                    if (auto tc = e.type.isTypeClass())
+                        agg = tc.sym;
+                    else if (auto ts = e.type.isTypeStruct())
+                        agg = ts.sym;
                     ad.mangleOverride = new MangleOverride;
                     void setString(ref Expression e)
                     {

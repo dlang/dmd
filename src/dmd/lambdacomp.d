@@ -403,17 +403,33 @@ public:
             buf.setsize(0);
     }
 
-    override void visit(TypeAggregate t)
+    private bool checkTemplateInstance(T)(T t)
+        if (is(T == TypeStruct) || is(T == TypeClass))
     {
-        static if (LOG)
-            printf("TypeAggregate: %s\n", t.toChars);
-
         if (t.sym.parent && t.sym.parent.isTemplateInstance())
         {
             buf.setsize(0);
-            return;
+            return true;
         }
-        writeMangledName(t.sym);
+        return false;
+    }
+
+    override void visit(TypeStruct t)
+    {
+        static if (LOG)
+            printf("TypeStruct: %s\n", t.toChars);
+
+        if (!checkTemplateInstance!TypeStruct(t))
+            writeMangledName(t.sym);
+    }
+
+    override void visit(TypeClass t)
+    {
+        static if (LOG)
+            printf("TypeClass: %s\n", t.toChars());
+
+        if (!checkTemplateInstance!TypeClass(t))
+            writeMangledName(t.sym);
     }
 
     override void visit(Parameter p)
