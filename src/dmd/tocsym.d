@@ -201,9 +201,16 @@ Symbol *toSymbol(Dsymbol s)
                      */
                     t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
                 }
-                else if (auto ta = vd.type.isTypeAggregate())
+                else if (auto ts = vd.type.isTypeStruct())
                 {
-                    if (!ta.isMutable() && ta.sym.ctor)
+                    if (!ts.isMutable() && ts.sym.ctor)
+                    {
+                        t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
+                    }
+                }
+                else if (auto tc = vd.type.isTypeClass())
+                {
+                    if (!tc.isMutable() && tc.sym.ctor)
                     {
                         t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
                     }
