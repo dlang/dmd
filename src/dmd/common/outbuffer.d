@@ -662,6 +662,8 @@ struct OutBuffer
         return cast(char)data[i];
     }
 
+    alias opDollar = length;
+
     /***********************************
      * Extract the data as a slice and take ownership of it.
      *
