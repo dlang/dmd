@@ -8645,4 +8645,3 @@ extern "C" Object* _d_newclass(const TypeInfo_Class* const ci);
 extern "C" void* _d_newitemT(TypeInfo* ti);
 
 extern "C" void* _d_newitemiT(TypeInfo* ti);
-
