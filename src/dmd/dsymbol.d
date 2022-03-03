@@ -811,7 +811,7 @@ extern (C++) class Dsymbol : ASTNode
             Dsymbol s2 = sds.symtabLookup(this,ident);
 
             // If using C tag/prototype/forward declaration rules
-            if (sc.flags & SCOPE.Cfile)
+            if (sc.flags & SCOPE.Cfile && !this.isImport())
             {
                 if (handleTagSymbols(*sc, this, s2, sds))
                     return;
