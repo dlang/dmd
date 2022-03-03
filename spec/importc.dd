@@ -443,23 +443,23 @@ $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
     struct S *ps;
     )
 
-    $(P D does not have this distinction. If the only declaration of an identifier is the tag
-    symbol, that's what it sees. If there is a tag symbol and a non-tag symbol with the same
-    identifier, it sees the non-tag symbol. This is normally not a problem, due to the common
-    C practice of:)
+    $(P D does not make this distinction. Given a tag symbol that is the only declaration of an
+    identifier, that's what the D compiler recognizes. Given a tag symbol and a non-tag symbol
+    that share an identifier, the D compiler recognizes the non-tag symbol. This is normally
+    not a problem due to the common C practice of applying `typedef`, as in:)
 
     $(CCODE
     typedef struct S { int a, b; } S;
     )
 
-    $(P and D sees the typedef for `S` and it works as expected. But in the case of:)
+    $(P The D compiler recognizes the `typedef` applied to `S`, and the code compiles as expected. But when `typedef` is absent, as in:)
 
     $(CCODE
     int S;
     struct S { int a, b; };
     )
 
-    $(P the most pragmatic workaround is to add a typedef to the C code:)
+    $(P the most pragmatic workaround is to add a `typedef` to the C code:)
 
     $(CCODE
     int S;
@@ -467,7 +467,7 @@ $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
     typedef struct S S_t;    // add this typedef
     )
 
-    $(P and then D can access the struct tag symbol via `S_t`.)
+    $(P Then the D compiler can access the struct tag symbol via `S_t`.)
 
 
 $(H2 $(LNAME2 wrapping, Wrapping C Code))
