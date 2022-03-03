@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Introduction,
 
+$(HEADERNAV_TOC)
+
 $(P D is a general-purpose systems programming language with a C-like syntax that compiles to native code.
 It is statically typed and supports both automatic $(LPAREN)garbage collected$(RPAREN) and manual memory management.
 D programs are structured as modules that can be compiled separately and linked with external libraries
@@ -10,7 +12,7 @@ to create native libraries or executables.)
 $(P This document is the reference manual for the D Programming Language. For more information and
 other documents$(COMMA) see $(LINK2 https://dlang.org/, The D Language Website).)
 
-$(H2 Phases of Compilation)
+$(H2 $(LNAME2 phases-of-compilation, Phases of Compilation))
 
 $(P The process of compiling is divided into multiple phases. Each phase is
 independent of subsequent phases. For example, the scanner is not affected by

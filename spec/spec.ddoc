@@ -33,7 +33,7 @@ $(T style,
         counter-increment: h1;
         content: counter(h1) ". ";
     }
-    h2::before {
+    .hyphenate h2::before {
         counter-increment: h2;
         content: counter(h1) "." counter(h2) " ";
     }
@@ -57,7 +57,7 @@ $(T style,
     }
 )
 
-SUBNAV_HEAD = $(DIVC head, $(H5 $1) $(TC p, $4, $(LINK2 $2, $3)))
+SUBNAV_HEAD = $(DIVC head, $(H2 $1) $(TC p, $4, $(LINK2 $2, $3)))
 SUBNAV=$(SUBNAV_SPEC)
 SUBNAV_SPEC=
 $(SUBNAV_TEMPLATE
