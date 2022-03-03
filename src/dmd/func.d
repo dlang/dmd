@@ -2689,6 +2689,12 @@ extern (C++) class FuncDeclaration : Declaration
         return this;
     }
 
+    /// Returns: true if this is a function annotated with `pragma(crt_constructor)`
+    extern (D) final bool isCrtConstructor() const pure nothrow @nogc @safe
+    {
+        return this.isCrtCtorDtor == 1;
+    }
+
     inout(FuncDeclaration) toAliasFunc() inout
     {
         return this;
