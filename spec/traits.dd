@@ -4,6 +4,9 @@ $(SPEC_S Traits,
 
 $(COMMENT Group traits logically rather than automatic lexical order)
 $(DIVC page-contents quickindex,
+$(DIVC page-contents-header,
+    $(B Contents)
+)
 $(OL
 $(LI $(RELATIVE_LINK2 grammar, Grammar))
 $(NAV_ITEMS Types,
