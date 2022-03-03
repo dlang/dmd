@@ -73,8 +73,16 @@ version (Windows)
 
     alias int_fast8_t   = byte;     ///
     alias uint_fast8_t  = ubyte;    ///
-    alias int_fast16_t  = int;      ///
-    alias uint_fast16_t = uint;     ///
+    version (MinGW)
+    {
+        alias int_fast16_t  = short;  ///
+        alias uint_fast16_t = ushort; ///
+    }
+    else
+    {
+        alias int_fast16_t  = int;  ///
+        alias uint_fast16_t = uint; ///
+    }
     alias int_fast32_t  = int32_t;  ///
     alias uint_fast32_t = uint32_t; ///
     alias int_fast64_t  = long;     ///
