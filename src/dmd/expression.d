@@ -5831,6 +5831,13 @@ extern (C++) final class IndexExp : BinExp
         //printf("IndexExp::IndexExp('%s')\n", toChars());
     }
 
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2, bool indexIsInBounds)
+    {
+        super(loc, EXP.index, __traits(classInstanceSize, IndexExp), e1, e2);
+        this.indexIsInBounds = indexIsInBounds;
+        //printf("IndexExp::IndexExp('%s')\n", toChars());
+    }
+
     override IndexExp syntaxCopy()
     {
         auto ie = new IndexExp(loc, e1.syntaxCopy(), e2.syntaxCopy());
