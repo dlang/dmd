@@ -273,10 +273,10 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
     $(P Overrides the default mangling for a symbol.)
 
     $(P For variables and functions there must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
-        For aggregates there may one or two $(ASSIGNEXPRESSION)s, one of which must evaluate at compile time to a string literal,
-        one which must evaluate to a symbol. If that symbol is a TemplateInstance the aggregate is treated as being a template
-        with the signature and arguments of the TemplateInstance. If no string is supplied the identifier of the symbol is used
-        in its place. Both arguments may be used used when an aggregate has name that is a D keyword.
+        For aggregates there may be one or two $(ASSIGNEXPRESSION)s, one of which must evaluate at compile time to a string literal and
+        one which must evaluate to a symbol. If that symbol is a $(I TemplateInstance), the aggregate is treated as a template
+        that has the signature and arguments of the $(I TemplateInstance). The identifier of the symbol is used when no string is supplied.
+        Both arguments may be used used when an aggregate's name is a D keyword.
     )
 
     $(P It only applies to function and variable symbols. Other symbols are ignored.)
