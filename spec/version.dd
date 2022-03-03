@@ -354,6 +354,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D unittest)) , $(ARGS $(DDLINK spec/unittest, Unit Tests, Unit tests) are enabled
                 (command line switch $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)))))
         $(TROW $(ARGS $(D assert)) , $(ARGS Checks are being emitted for $(GLINK2 expression, AssertExpression)s))
+        $(TROW $(ARGS $(D D_PreConditions)) , $(ARGS Checks are being emitted for $(DDSUBLINK spec/function, contracts, in contracts)))
+        $(TROW $(ARGS $(D D_PostConditions)) , $(ARGS Checks are being emitted for $(DDSUBLINK spec/function, contracts, out contracts)))
         $(TROW $(ARGS $(D none)) , $(ARGS Never defined; used to just disable a section of code))
         $(TROW $(ARGS $(D all)) , $(ARGS Always defined; used as the opposite of $(D none)))
         )
