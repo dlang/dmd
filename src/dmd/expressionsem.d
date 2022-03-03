@@ -5279,6 +5279,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // The mangling change only works for D mangling
                 }
 
+                if (!(sc.flags & SCOPE.Cfile))
                 {
                     /* https://issues.dlang.org/show_bug.cgi?id=21272
                      * If we are in a foreach body we need to extract the
