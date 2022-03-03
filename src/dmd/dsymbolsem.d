@@ -3550,6 +3550,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             default:
                 {
+                    if (vi >= cd.vtbl.length)
+                    {
+                        /* the derived class cd doesn't have its vtbl[] allocated yet.
+                         * https://issues.dlang.org/show_bug.cgi?id=21008
+                         */
+                        funcdecl.error("circular reference to class `%s`", cd.toChars());
+                        funcdecl.errors = true;
+                        return;
+                    }
                     FuncDeclaration fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
                     FuncDeclaration fdc = cd.vtbl[vi].isFuncDeclaration();
                     // This function is covariant with fdv
