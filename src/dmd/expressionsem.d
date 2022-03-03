@@ -5182,9 +5182,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = result.expressionSemantic(sc);
         }
 
-        if (exp.f && exp.f.isCrtConstructor())
+        if (exp.f && exp.f.isCrtConstructor() && sc.func.setUnsafe())
         {
-            exp.error("functions marked as `crt_constructor` may not be called at runtime");
+            exp.error("cannot call `crt_constructor` function `%s` in `@safe` code", exp.f.toChars());
             return setError();
         }
 
@@ -7116,9 +7116,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (auto ve = exp.e1.isVarExp())
         {
             auto fd = ve.var.isFuncDeclaration();
-            if (fd && fd.isCrtConstructor())
+            if (fd && fd.isCrtConstructor() && sc.func.setUnsafe())
             {
-                exp.error("cannot take address of function `%s` marked as `crt_constructor`", fd.toChars());
+                exp.error("cannot take address of `crt_constructor` function `%s` in `@safe` code", fd.toChars());
                 return setError();
             }
         }

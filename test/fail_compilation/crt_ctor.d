@@ -3,10 +3,14 @@ https://issues.dlang.org/show_bug.cgi?id=22031
 
 TEST_OUTPUT:
 ---
-fail_compilation/crt_ctor.d(17): Error: cannot modify `immutable` expression `example`
-fail_compilation/crt_ctor.d(31): Error: cannot modify `immutable` expression `example`
-fail_compilation/crt_ctor.d(37): Error: functions marked as `crt_constructor` may not be called at runtime
-fail_compilation/crt_ctor.d(38): Error: cannot take address of function `initialize` marked as `crt_constructor`
+fail_compilation/crt_ctor.d(21): Error: cannot modify `immutable` expression `example`
+fail_compilation/crt_ctor.d(35): Error: cannot modify `immutable` expression `example`
+fail_compilation/crt_ctor.d(41): Error: cannot call `crt_constructor` function `initialize` in `@safe` code
+fail_compilation/crt_ctor.d(42): Error: cannot take address of `crt_constructor` function `initialize` in `@safe` code
+fail_compilation/crt_ctor.d(44): Error: `@safe` function `D main` cannot call `@system` function `crt_ctor.inferCall!().inferCall`
+fail_compilation/crt_ctor.d(48):        `crt_ctor.inferCall!().inferCall` is declared here
+fail_compilation/crt_ctor.d(45): Error: `@safe` function `D main` cannot call `@system` function `crt_ctor.inferAddress!().inferAddress`
+fail_compilation/crt_ctor.d(53):        `crt_ctor.inferAddress!().inferAddress` is declared here
 ---
 +/
 
@@ -20,7 +24,7 @@ shared static ~this()
 extern (C)
 {
     pragma(crt_constructor)
-    void initialize()
+    void initialize() @safe
     {
         example = 1;
     }
@@ -32,9 +36,21 @@ extern (C)
     }
 }
 
-void main()
+void main() @safe
 {
     initialize();
     auto addr = &initialize;
     addr();
+    inferCall();
+    inferAddress();
+}
+
+void inferCall()()
+{
+    initialize();
+}
+
+void inferAddress()()
+{
+    auto addr = &initialize;
 }
