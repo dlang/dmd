@@ -620,7 +620,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 return false;
             if (va == fd.vthis) // `this` of a non-static member function is considered to be the first parameter
                 return true;
-            if (fd.parameters && fd.parameters.length && (*fd.parameters)[0] == va) // va is first parameter
+            if (!fd.vthis && fd.parameters && fd.parameters.length && (*fd.parameters)[0] == va) // va is first parameter
                 return true;
         }
         return false;
