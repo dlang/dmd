@@ -1118,7 +1118,7 @@ static if (1)
                         1,      // DW_LNS_fixed_advance_pc
                         0,      // DW_LNS_set_prologue_end
                         0,      // DW_LNS_set_epilogue_begin
-                        0,      // DW_LNS_set_isa
+                        1,      // DW_LNS_set_isa
                     ];
                     static if (hversion >= 5)
                     {
