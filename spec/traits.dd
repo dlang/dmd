@@ -2,100 +2,7 @@ Ddoc
 
 $(SPEC_S Traits,
 
-$(COMMENT Group traits logically rather than automatic lexical order)
-$(DIVC page-contents quickindex,
-$(DIVC page-contents-header,
-    $(B Contents)
-)
-$(OL
-$(LI $(RELATIVE_LINK2 grammar, Grammar))
-$(NAV_ITEMS Types,
-    $(NAV_SUB_ITEM isArithmetic)
-    $(NAV_SUB_ITEM isFloating)
-    $(NAV_SUB_ITEM isIntegral)
-    $(NAV_SUB_ITEM isScalar)
-    $(NAV_SUB_ITEM isUnsigned)
-    $(NAV_SUB_ITEM isAssociativeArray)
-    $(NAV_SUB_ITEM isStaticArray)
-    $(NAV_SUB_ITEM isCopyable)
-    $(NAV_SUB_ITEM isPOD)
-    )
-
-$(NAV_ITEMS Functions,
-    $(NAV_SUB_ITEM getFunctionAttributes)
-    $(NAV_SUB_ITEM getFunctionVariadicStyle)
-    $(NAV_SUB_ITEM isDisabled)
-    $(NAV_SUB_ITEM isStaticFunction)
-    $(NAV_SUB_ITEM isReturnOnStack)
-    )
-
-$(NAV_ITEMS Function Parameters,
-    $(NAV_SUB_ITEM getParameterStorageClasses)
-    $(NAV_SUB_ITEM isRef)
-    $(NAV_SUB_ITEM isOut)
-    $(NAV_SUB_ITEM isLazy)
-    )
-
-$(NAV_ITEMS Symbols,
-    $(NAV_SUB_ITEM allMembers)
-    $(NAV_SUB_ITEM getAttributes)
-    $(NAV_SUB_ITEM getLocation)
-    $(NAV_SUB_ITEM getOverloads)
-    $(NAV_SUB_ITEM getProtection)
-    $(NAV_SUB_ITEM getUnitTests)
-    $(NAV_SUB_ITEM getVisibility)
-    $(NAV_SUB_ITEM hasMember)
-    $(NAV_SUB_ITEM identifier)
-    $(NAV_SUB_ITEM isDeprecated)
-    $(NAV_SUB_ITEM isFuture)
-    $(NAV_SUB_ITEM isModule)
-    $(NAV_SUB_ITEM isNested)
-    $(NAV_SUB_ITEM isPackage)
-    $(NAV_SUB_ITEM isSame)
-    $(NAV_SUB_ITEM isTemplate)
-    $(NAV_SUB_ITEM parent)
-    $(NAV_SUB_ITEM toType)
-    )
-
-$(NAV_ITEMS Aggregates,
-    $(NAV_SUB_ITEM child)
-    $(NAV_SUB_ITEM hasCopyConstructor)
-    $(NAV_SUB_ITEM hasPostblit)
-    $(NAV_SUB_ITEM getAliasThis)
-    $(NAV_SUB_ITEM getMember)
-    )
-
-$(NAV_ITEMS OOP,
-    $(NAV_SUB_ITEM derivedMembers)
-    $(NAV_SUB_ITEM getVirtualIndex)
-    $(NAV_SUB_ITEM getVirtualFunctions)
-    $(NAV_SUB_ITEM getVirtualMethods)
-    $(NAV_SUB_ITEM isAbstractClass)
-    $(NAV_SUB_ITEM isAbstractFunction)
-    $(NAV_SUB_ITEM isFinalClass)
-    $(NAV_SUB_ITEM isFinalFunction)
-    $(NAV_SUB_ITEM isOverrideFunction)
-    $(NAV_SUB_ITEM isVirtualFunction)
-    $(NAV_SUB_ITEM isVirtualMethod)
-    )
-
-$(NAV_ITEMS Initialization,
-    $(NAV_SUB_ITEM classInstanceSize)
-    $(NAV_SUB_ITEM getPointerBitmap)
-    $(NAV_SUB_ITEM initSymbol)
-    $(NAV_SUB_ITEM isZeroInit)
-    )
-
-$(NAV_ITEMS Linkage,
-    $(NAV_SUB_ITEM getCppNamespaces)
-    $(NAV_SUB_ITEM getLinkage)
-    $(NAV_SUB_ITEM getTargetInfo)
-    )
-
-$(NAV_ITEMS Other,
-    $(NAV_SUB_ITEM compiles)
-    )
-))
+$(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 grammar, Grammar))
 
@@ -1858,5 +1765,3 @@ $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling
 Macros:
         CHAPTER=25
         TITLE=Traits
-        NAV_ITEMS=$(LI $1 $(OL $+))
-        NAV_SUB_ITEM=$(LI $(RELATIVE_LINK2 $1, $1))
