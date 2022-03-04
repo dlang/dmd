@@ -862,7 +862,7 @@ $(GNAME TemplateSequenceParameter):
 
         void main()
         {
-            print!(1,'a',6.8).f(); // prints: args are 1a6.8
+            print!(1, 'a', 6.8).f(); // prints: args are 1a6.8
         }
         ---
         )
