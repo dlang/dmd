@@ -932,7 +932,7 @@ $(H4 $(LNAME2 seq-ops, Sequence Operations))
     $(UL
     $(LI Construct a new sequence using the original sequence (or a slice of it) and additional elements before or after it.)
     $(LI Use $(DDSUBLINK spec/declaration, AliasAssign, Alias Assignment)
-        to build a new sequence iteratively.)
+        to build new sequences iteratively.)
     )
     $(P Sequences can 'unroll' code for each element using a
         $(DDSUBLINK spec/statement, foreach_over_tuples, `foreach` statement).)
