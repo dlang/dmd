@@ -1065,7 +1065,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         // Don't optimize to an array literal element directly in case an lvalue is requested
         if (keepLvalue && ex.op == EXP.arrayLiteral)
             return;
-        ret = Index(e.type, ex, e.e2).copy();
+        ret = Index(e.type, ex, e.e2, e.indexIsInBounds).copy();
         if (CTFEExp.isCantExp(ret) || (!ret.isErrorExp() && keepLvalue && !ret.isLvalue()))
             ret = e;
     }
