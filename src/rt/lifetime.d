@@ -1011,8 +1011,12 @@ extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow @
     foreach (T; AliasSeq!(ubyte, ushort, uint, ulong))
     {
     case T.sizeof:
-        (cast(T*)result.ptr)[0 .. size * length / T.sizeof] = *cast(T*)init.ptr;
-        return result;
+        if (tinext.talign % T.alignof == 0)
+        {
+            (cast(T*)result.ptr)[0 .. size * length / T.sizeof] = *cast(T*)init.ptr;
+            return result;
+        }
+        goto default;
     }
 
     default:
