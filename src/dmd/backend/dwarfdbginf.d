@@ -1682,11 +1682,6 @@ static if (1)
 
         rewrite32(debug_line.buf, 0, cast(uint) debug_line.buf.length() - 4);
 
-        // Bugzilla 3502, workaround OSX's ld64-77 bug.
-        // Don't emit the the debug_line section if nothing has been written to the line table.
-        if (*cast(uint*) &debug_line.buf.buf[lineHeaderLengthOffset] + 10 == debug_line.buf.length())
-            debug_line.buf.reset();
-
         /* ================================================= */
 
         debug_abbrev.buf.writeByte(0);
