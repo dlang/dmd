@@ -33,6 +33,10 @@ if [ "$OS_NAME" == "linux" ]; then
     NM="nm --print-size"
 else
     NM=nm
+
+  if [ "$OS_NAME" == "darwin" ]; then
+    export PATH="/usr/local/opt/llvm/bin:$PATH"
+  fi
 fi
 
 # clone a repo

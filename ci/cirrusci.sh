@@ -32,7 +32,7 @@ elif [ "$OS_NAME" == "darwin" ]; then
   brew update-reset
   brew install gnupg libarchive xz llvm
 elif [ "$OS_NAME" == "freebsd" ]; then
-  packages="git gmake devel/llvm"
+  packages="git gmake devel/llvm12"
   if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then
     packages="$packages lang/gcc9"
   fi
@@ -40,4 +40,5 @@ elif [ "$OS_NAME" == "freebsd" ]; then
   # replace default make by GNU make
   rm /usr/bin/make
   ln -s /usr/local/bin/gmake /usr/bin/make
+  ln -s /usr/local/bin/llvm-dwarfdump12 /usr/bin/llvm-dwarfdump
 fi
