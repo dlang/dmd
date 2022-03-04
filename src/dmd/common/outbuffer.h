@@ -19,11 +19,11 @@ struct OutBuffer
 {
     // IMPORTANT: PLEASE KEEP STATE AND DESTRUCTOR IN SYNC WITH DEFINITION IN ./outbuffer.d.
 private:
-    DArray<unsigned char> data;
     d_size_t offset;
     bool notlinehead;
     void *fileMapping;  // pointer to a file mapping object not used on the C++ side
 public:
+    DArray<unsigned char> data;
     bool doindent;
     bool spaces;
     int level;

@@ -266,7 +266,7 @@ void cv8_termfile(const(char)* objfilename)
 
     // Write out "F2" sections
     uint length = cast(uint)funcdata.length();
-    ubyte *p = funcdata.buf;
+    ubyte *p = funcdata.data.ptr;
     for (uint u = 0; u < length; u += FuncData.sizeof)
     {   FuncData *fd = cast(FuncData *)(p + u);
 
@@ -275,7 +275,7 @@ void cv8_termfile(const(char)* objfilename)
         F2_buf.write32(cast(uint)fd.sfunc.Soffset);
         F2_buf.write32(0);
         F2_buf.write32(fd.section_length);
-        F2_buf.write(linepair.buf + fd.linepairstart, fd.linepairbytes);
+        F2_buf.write(&linepair.data[fd.linepairstart], fd.linepairbytes);
 
         int f2seg = seg;
         if (symbol_iscomdat4(fd.sfunc))
@@ -296,7 +296,7 @@ void cv8_termfile(const(char)* objfilename)
 
             // Fixups for "F1" section
             const uint fixupLength = cast(uint)fd.f1fixup.length();
-            ubyte *pfixup = fd.f1fixup.buf;
+            ubyte *pfixup = fd.f1fixup.data.ptr;
             for (uint v = 0; v < fixupLength; v += F1_Fixups.sizeof)
             {   F1_Fixups *f = cast(F1_Fixups *)(pfixup + v);
 
@@ -321,7 +321,7 @@ void cv8_termfile(const(char)* objfilename)
 
         // Fixups for "F1" section
         length = cast(uint)F1fixup.length();
-        p = F1fixup.buf;
+        p = F1fixup.data.ptr;
         for (uint u = 0; u < length; u += F1_Fixups.sizeof)
         {   F1_Fixups *f = cast(F1_Fixups *)(p + u);
 
@@ -567,7 +567,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
 
     // update segment length
     auto segmentbytes = currentfuncdata.linepairstart + currentfuncdata.linepairbytes - currentfuncdata.linepairsegment;
-    auto segmentheader = cast(uint*)(linepair.buf + currentfuncdata.linepairsegment);
+    auto segmentheader = (cast(uint[])linepair.data)[currentfuncdata.linepairsegment .. 2];
     segmentheader[1] = (segmentbytes - 12) / 8;
     segmentheader[2] = segmentbytes;
 }
@@ -588,7 +588,7 @@ uint cv8_addfile(const(char)* filename)
      */
 
     uint length = cast(uint)F3_buf.length();
-    ubyte *p = F3_buf.buf;
+    ubyte *p = F3_buf.data.ptr;
     size_t len = strlen(filename);
 
     // ensure the filename is absolute to help the debugger to find the source
@@ -635,7 +635,7 @@ L1:
     // Find it in F4.
 
     length = cast(uint)F4_buf.length();
-    p = F4_buf.buf;
+    p = F4_buf.data.ptr;
 
     uint u = 0;
     while (u + 8 <= length)
@@ -685,7 +685,7 @@ void cv8_writesection(int seg, uint type, OutBuffer *buf)
     objmod.bytes(seg,off,4,&type);
     uint length = cast(uint)buf.length();
     objmod.bytes(seg,off+4,4,&length);
-    objmod.bytes(seg,off+8,length,buf.buf);
+    objmod.bytes(seg,off+8,length,buf.data.ptr);
     // Align to 4
     uint pad = ((length + 3) & ~3) - length;
     objmod.lidata(seg,off+8+length,pad);

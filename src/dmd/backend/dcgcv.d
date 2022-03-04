@@ -455,7 +455,7 @@ void cv_init()
 
     if (reset_symbuf)
     {
-        Symbol **p = cast(Symbol **)reset_symbuf.buf;
+        Symbol *[] p = cast(Symbol*[])reset_symbuf.data;
         const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
             symbol_reset(p[i]);

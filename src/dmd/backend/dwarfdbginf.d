@@ -593,7 +593,7 @@ static if (1)
      */
     extern(D) void rewrite(T)(OutBuffer* buf, size_t offset, T data)
     {
-        *(cast(T*)&buf.buf[offset]) = data;
+        *(cast(T*)&buf.data[offset]) = data;
     }
 
     alias rewrite32 = rewrite!uint;
@@ -1684,7 +1684,7 @@ static if (1)
 
         // Bugzilla 3502, workaround OSX's ld64-77 bug.
         // Don't emit the the debug_line section if nothing has been written to the line table.
-        if (*cast(uint*) &debug_line.buf.buf[lineHeaderLengthOffset] + 10 == debug_line.buf.length())
+        if (*cast(uint*) &debug_line.buf.data[lineHeaderLengthOffset] + 10 == debug_line.buf.length())
             debug_line.buf.reset();
 
         /* ================================================= */
@@ -1706,8 +1706,8 @@ static if (1)
         debug_pubnames.buf.write32(0);
 
         // Plug final sizes into header
-        *cast(uint *)debug_pubnames.buf.buf = cast(uint)debug_pubnames.buf.length() - 4;
-        *cast(uint *)(debug_pubnames.buf.buf + 10) = cast(uint)debug_info.buf.length();
+        *cast(uint *)&debug_pubnames.buf.data[0] = cast(uint)debug_pubnames.buf.length() - 4;
+        *cast(uint *)&debug_pubnames.buf.data[10] = cast(uint)debug_info.buf.length();
 
         /* ================================================= */
 
@@ -1716,7 +1716,7 @@ static if (1)
         append_addr(debug_aranges.buf, 0);
 
         // Plug final sizes into header
-        *cast(uint *)debug_aranges.buf.buf = cast(uint)debug_aranges.buf.length() - 4;
+        *cast(uint *)&debug_aranges.buf.data[0] = cast(uint)debug_aranges.buf.length() - 4;
 
         /* ================================================= */
 
@@ -1938,7 +1938,7 @@ static if (1)
         abuf.writeByte(DW_AT_frame_base); abuf.writeByte(DW_FORM_data4);
         abuf.writeByte(0);                abuf.writeByte(0);
 
-        funcabbrevcode = dwarf_abbrev_code(abuf.buf, abuf.length());
+        funcabbrevcode = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
 
         uint idxsibling = 0;
         uint siblingoffset;
@@ -2068,7 +2068,7 @@ static if (1)
                             else
                                 debug_info.buf.writesLEB128(cast(int)(Auto.size + BPoff - Para.size + sa.Soffset));
                         }
-                        debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
+                        debug_info.buf.data[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
                         break;
                     }
                     default:
@@ -2078,7 +2078,7 @@ static if (1)
             debug_info.buf.writeByte(0);              // end of parameter children
 
             idxsibling = cast(uint)debug_info.buf.length();
-            *cast(uint *)(debug_info.buf.buf + siblingoffset) = idxsibling;
+            *cast(uint *)&debug_info.buf.data[siblingoffset] = idxsibling;
         }
 
         /* ============= debug_pubnames =========================== */
@@ -2090,7 +2090,7 @@ static if (1)
 
         if (sd.SDaranges_offset)
             // Extend existing entry size
-            *cast(ulong *)(debug_aranges.buf.buf + sd.SDaranges_offset + _tysize[TYnptr]) = funcoffset + sfunc.Ssize;
+            *cast(ulong *)&debug_aranges.buf.data[sd.SDaranges_offset + _tysize[TYnptr]] = funcoffset + sfunc.Ssize;
         else
         {   // Add entry
             sd.SDaranges_offset = cast(uint)debug_aranges.buf.length();
@@ -2183,7 +2183,7 @@ static if (1)
                 abuf.writeByte(DW_AT_external);     abuf.writeByte(DW_FORM_flag);
                 abuf.writeByte(DW_AT_location);     abuf.writeByte(DW_FORM_block1);
                 abuf.writeByte(0);                  abuf.writeByte(0);
-                code = dwarf_abbrev_code(abuf.buf, abuf.length());
+                code = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
 
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
                 debug_info.buf.writeString(getSymName(s));// DW_AT_name
@@ -2225,7 +2225,7 @@ static if (1)
                     dwarf_appreladdr(debug_info.seg, debug_info.buf, s.Sseg, s.Soffset); // address of global
                 }
 
-                debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
+                debug_info.buf.data[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
                 break;
 
             default:
@@ -2684,7 +2684,7 @@ static if (1)
                     assert(functypebuf);
                 }
                 uint functypebufidx = cast(uint)functypebuf.length();
-                functypebuf.write(tmpbuf.buf, cast(uint)tmpbuf.length());
+                functypebuf.write(tmpbuf.data.ptr, cast(uint)tmpbuf.length());
                 /* If it's in the cache already, return the existing typidx
                  */
                 if (!functype_table)
@@ -2712,7 +2712,7 @@ static if (1)
 
                 abuf.writeByte(0);
                 abuf.writeByte(0);
-                code = dwarf_abbrev_code(abuf.buf, abuf.length());
+                code = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
 
                 uint paramcode;
                 if (params)
@@ -2722,7 +2722,7 @@ static if (1)
                     abuf.writeByte(0);
                     abuf.writeByte(DW_AT_type);     abuf.writeByte(DW_FORM_ref4);
                     abuf.writeByte(0);              abuf.writeByte(0);
-                    paramcode = dwarf_abbrev_code(abuf.buf, abuf.length());
+                    paramcode = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
                 }
 
                 idx = cast(uint)debug_info.buf.length();
@@ -2733,7 +2733,7 @@ static if (1)
 
                 if (params)
                 {
-                    uint *pparamidx = cast(uint *)(functypebuf.buf + functypebufidx);
+                    uint *pparamidx = cast(uint *)(functypebuf.data.ptr + functypebufidx);
                     //printf("2: functypebufidx = %x, pparamidx = %p, size = %x\n", functypebufidx, pparamidx, functypebuf.length());
                     for (param_t *p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
                     {
@@ -2966,7 +2966,7 @@ static if (1)
                         abuf.writeByte(DW_FORM_data4);      // DW_AT_byte_size
                     abuf.writeByte(0);              abuf.writeByte(0);
 
-                    code = dwarf_abbrev_code(abuf.buf, abuf.length());
+                    code = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
 
                     uint membercode;
                     abuf.reset();
@@ -2980,7 +2980,7 @@ static if (1)
                     abuf.writeByte(DW_FORM_block1);
                     abuf.writeByte(0);
                     abuf.writeByte(0);
-                    membercode = dwarf_abbrev_code(abuf.buf, abuf.length());
+                    membercode = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
 
                     uint baseclasscode;
                     if (st.Sbase)
@@ -2994,7 +2994,7 @@ static if (1)
                         abuf.writeByte(DW_FORM_block1);
                         abuf.writeByte(0);
                         abuf.writeByte(0);
-                        baseclasscode = dwarf_abbrev_code(abuf.buf, abuf.length());
+                        baseclasscode = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
                     }
 
                     idx = cast(uint)debug_info.buf.length();
@@ -3011,13 +3011,13 @@ static if (1)
                     for (auto bc = st.Sbase; bc; bc = bc.BCnext, n++)
                     {
                         debug_info.buf.writeuLEB128(baseclasscode);
-                        uint bci = (cast(uint *)baseclassidx.buf)[n];
+                        uint bci = (cast(uint[])baseclassidx.data)[n];
                         debug_info.buf.write32(bci);
                         const soffset = debug_info.buf.length();
                         debug_info.buf.writeByte(2);
                         debug_info.buf.writeByte(DW_OP_plus_uconst);
                         debug_info.buf.writeuLEB128(cast(uint)bc.BCoffset);
-                        debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
+                        debug_info.buf.data[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
                     }
 
                     s.Stypidx = idx;
@@ -3033,14 +3033,14 @@ static if (1)
                                 debug_info.buf.writeuLEB128(membercode);
                                 debug_info.buf.writeString(getSymName(sf));      // DW_AT_name
                                 //debug_info.buf.write32(dwarf_typidx(sf.Stype));
-                                uint fi = (cast(uint *)fieldidx.buf)[n];
+                                uint fi = (cast(uint[])fieldidx.data)[n];
                                 debug_info.buf.write32(fi);
                                 n++;
                                 soffset = debug_info.buf.length();
                                 debug_info.buf.writeByte(2);
                                 debug_info.buf.writeByte(DW_OP_plus_uconst);
                                 debug_info.buf.writeuLEB128(cast(uint)sf.Smemoff);
-                                debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
+                                debug_info.buf.data[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
                                 break;
 
                             default:
@@ -3100,7 +3100,7 @@ static if (1)
 
                 OutBuffer abuf;             // for abbrev
                 abuf.write(abbrevTypeEnum.ptr, abbrevTypeEnum.sizeof);
-                code = dwarf_abbrev_code(abuf.buf, abuf.length());
+                code = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
 
                 uint membercode;
                 abuf.reset();
@@ -3115,7 +3115,7 @@ static if (1)
                     abuf.writeByte(DW_FORM_sdata);
                 abuf.writeByte(0);
                 abuf.writeByte(0);
-                membercode = dwarf_abbrev_code(abuf.buf, abuf.length());
+                membercode = dwarf_abbrev_code(abuf.data.ptr, abuf.length());
 
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);

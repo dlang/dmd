@@ -40,12 +40,13 @@ struct OutBuffer
 
     // IMPORTANT: PLEASE KEEP STATE AND DESTRUCTOR IN SYNC WITH DEFINITION IN ./outbuffer.h.
     // state {
-    private ubyte[] data;
     private size_t offset;
     private bool notlinehead;
     /// File mapping, if any. Use a pointer for ABI compatibility with the C++ counterpart.
     /// If the pointer is non-null the store is a memory-mapped file, otherwise the store is RAM.
     private FileMapping!ubyte* fileMapping;
+    /// Buffer data slice
+    ubyte[] data;
     /// Whether to indent
     bool doindent;
     /// Whether to indent by 4 spaces or by tabs;
