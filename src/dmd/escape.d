@@ -497,7 +497,7 @@ bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
     {
         Expression arg = (*ce.arguments)[i];
         if (!arg.type.hasPointers())
-            return false;
+            continue;
 
         //printf("\targ[%d]: %s\n", i, arg.toChars());
 
