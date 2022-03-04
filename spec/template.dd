@@ -902,8 +902,8 @@ $(H4 $(LNAME2 seq-ops, Sequence Operations))
         $(DDSUBLINK spec/expression, index_expressions, indexing) an
         $(I AliasSeq) with `Seq[n]`. Indexes must be known at compile-time.
         The result is an lvalue when the element is a variable.)
-    $(LI Sub-sequences can be obtained using
-        $(DDSUBLINK spec/expression, slice_expressions, slicing) syntax.)
+    $(LI $(DDSUBLINK spec/expression, slice_expressions, Slicing)
+        produces a new sequence with a subset of the elements of the original sequence.)
     )
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
