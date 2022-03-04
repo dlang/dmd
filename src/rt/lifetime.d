@@ -1118,7 +1118,8 @@ extern (C) void* _d_newitemU(scope const TypeInfo _ti) pure nothrow @weak
 
     if (tiSize)
     {
-        *cast(TypeInfo*)(p + itemSize) = null; // the GC might not have cleared this area
+        // the GC might not have cleared the padding area in the block
+        *cast(TypeInfo*)(p + (itemSize & ~(size_t.sizeof - 1))) = null;
         *cast(TypeInfo*)(p + blkInf.size - tiSize) = cast() ti;
     }
 
