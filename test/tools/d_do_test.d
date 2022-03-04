@@ -304,7 +304,7 @@ int i;
  * PERMUTE_ARGS:
  */
 
-// COMPILE_SEPERATELY:
+// COMPILE_SEPARATELY:
 import foo.bar;
 `;
     immutable EnvData win32 = {
@@ -353,7 +353,7 @@ import foo.bar;
     assert(found == "-O");
 
     found = null;
-    assert(findTestParameter(linux, file, "COMPILE_SEPERATELY", found));
+    assert(findTestParameter(linux, file, "COMPILE_SEPARATELY", found));
     assert(found == "");
 }
 
