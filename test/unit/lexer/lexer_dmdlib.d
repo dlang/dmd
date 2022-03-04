@@ -195,7 +195,7 @@ unittest
 
     Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false);
     lexer.nextToken;
-    
+
     TOK[] result;
 
     foreach(TOK t; lexer)
@@ -216,7 +216,7 @@ unittest
 
     Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true);
     lexer.nextToken;
-    
+
     TOK[] result;
 
     foreach(TOK t; lexer)
@@ -241,7 +241,7 @@ unittest
     ];
 
     Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false);
-    
+
     TOK[] result;
 
     foreach(TOK t; lexer)
