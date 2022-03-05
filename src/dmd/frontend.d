@@ -166,6 +166,7 @@ application.
 void deinitializeDMD()
 {
     import dmd.dmodule : Module;
+    import dmd.dsymbol : Dsymbol;
     import dmd.expression : Expression;
     import dmd.globals : global;
     import dmd.id : Id;
@@ -183,6 +184,7 @@ void deinitializeDMD()
     target.deinitialize();
     Expression.deinitialize();
     Objc.deinitialize();
+    Dsymbol.deinitialize();
 }
 
 /**
