@@ -93,7 +93,7 @@ $(GNAME TraitsArgument):
 
 $(H2 $(LNAME2 types, Type Traits))
 
-$(H2 $(GNAME isArithmetic))
+$(H3 $(GNAME isArithmetic))
 
         $(P If the arguments are all either types that are arithmetic types,
         or expressions that are typed as arithmetic types, then $(D true)
@@ -125,7 +125,7 @@ false
 false
 )
 
-$(H2 $(GNAME isFloating))
+$(H3 $(GNAME isFloating))
 
         $(P Works like $(D isArithmetic), except it's for floating
         point types (including imaginary and complex types).)
@@ -144,7 +144,7 @@ static assert(!__traits(isFloating, float[4]));
 ---
 )
 
-$(H2 $(GNAME isIntegral))
+$(H3 $(GNAME isIntegral))
 
         $(P Works like $(D isArithmetic), except it's for integral
         types (including character types).)
@@ -167,7 +167,7 @@ static assert(!__traits(isIntegral, void*));
 ---
 )
 
-$(H2 $(GNAME isScalar))
+$(H3 $(GNAME isScalar))
 
         $(P Works like $(D isArithmetic), except it's for scalar
         types.)
@@ -194,7 +194,7 @@ static assert(!__traits(isScalar, Object));
 ---
 )
 
-$(H2 $(GNAME isUnsigned))
+$(H3 $(GNAME isUnsigned))
 
         $(P Works like $(D isArithmetic), except it's for unsigned
         types.)
@@ -220,7 +220,7 @@ static assert(!__traits(isUnsigned, void*));
 ---
 )
 
-$(H2 $(GNAME isStaticArray))
+$(H3 $(GNAME isStaticArray))
 
         $(P Works like $(D isArithmetic), except it's for static array
         types.)
@@ -240,12 +240,12 @@ static assert(!__traits(isStaticArray, array));
 ---
 )
 
-$(H2 $(GNAME isAssociativeArray))
+$(H3 $(GNAME isAssociativeArray))
 
         $(P Works like $(D isArithmetic), except it's for associative array
         types.)
 
-$(H2 $(GNAME isAbstractClass))
+$(H3 $(GNAME isAbstractClass))
 
         $(P If the arguments are all either types that are abstract classes,
         or expressions that are typed as abstract classes, then $(D true)
@@ -279,12 +279,12 @@ false
 false
 )
 
-$(H2 $(GNAME isFinalClass))
+$(H3 $(GNAME isFinalClass))
 
         $(P Works like $(D isAbstractClass), except it's for final
         classes.)
 
-$(H2 $(GNAME isCopyable))
+$(H3 $(GNAME isCopyable))
 
 $(P Takes one argument. If that argument is a copyable type then $(D true) is returned,
 otherwise $(D false).
@@ -305,7 +305,7 @@ static assert(!__traits(isCopyable, T));
 ---
 )
 
-$(H2 $(GNAME isZeroInit))
+$(H3 $(GNAME isZeroInit))
 
         $(P Takes one argument which must be a type. If the type's
         $(DDSUBLINK spec/property, init, default initializer) is all zero
@@ -337,12 +337,12 @@ static assert(__traits(isZeroInit, void));
 ---
 )
 
-$(H2 $(GNAME isPOD))
+$(H3 $(GNAME isPOD))
 
         $(P Takes one argument, which must be a type. It returns
         $(D true) if the type is a $(DDSUBLINK glossary, pod, POD) type, otherwise $(D false).)
 
-$(H2 $(GNAME isNested))
+$(H3 $(GNAME isNested))
 
     $(P Takes one argument.
     It returns $(D true) if the argument is a nested type which internally
@@ -354,7 +354,7 @@ $(H2 $(GNAME isNested))
 
 $(H2 $(LNAME2 functions, Function Traits))
 
-$(H2 $(GNAME isDisabled))
+$(H3 $(GNAME isDisabled))
 
     $(P Takes one argument and returns `true` if it's a function declaration
     marked with `@disable`.)
@@ -383,13 +383,13 @@ static assert(!__traits(isDisabled, Bar));
 ---
 )
 
-$(H2 $(GNAME isVirtualFunction))
+$(H3 $(GNAME isVirtualFunction))
 
         $(P The same as $(GLINK isVirtualMethod), except
         that final functions that don't override anything return true.
         )
 
-$(H2 $(GNAME isVirtualMethod))
+$(H3 $(GNAME isVirtualMethod))
 
         $(P Takes one argument. If that argument is a virtual function,
         $(D true) is returned, otherwise $(D false).
@@ -418,7 +418,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME isAbstractFunction))
+$(H3 $(GNAME isAbstractFunction))
 
         $(P Takes one argument. If that argument is an abstract function,
         $(D true) is returned, otherwise $(D false).
@@ -452,7 +452,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME isFinalFunction))
+$(H3 $(GNAME isFinalFunction))
 
         $(P Takes one argument. If that argument is a final function,
         $(D true) is returned, otherwise $(D false).
@@ -488,7 +488,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME isOverrideFunction))
+$(H3 $(GNAME isOverrideFunction))
 
         $(P Takes one argument. If that argument is a function marked with
         $(D_KEYWORD override), $(D true) is returned, otherwise $(D false).
@@ -518,7 +518,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME isStaticFunction))
+$(H3 $(GNAME isStaticFunction))
 
         $(P Takes one argument. If that argument is a static function,
         meaning it has no context pointer,
@@ -542,7 +542,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME isReturnOnStack))
+$(H3 $(GNAME isReturnOnStack))
 
     $(P
         Takes one argument which must either be a function symbol, function literal,
@@ -580,7 +580,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 
 $(H2 $(LNAME2 function-parameters, Function Parameter Traits))
 
-$(H2 $(GNAME isRef), $(GNAME isOut), $(GNAME isLazy))
+$(H3 $(GNAME isRef), $(GNAME isOut), $(GNAME isLazy))
 
         $(P Takes one argument. If that argument is a declaration,
         $(D true) is returned if it is $(D_KEYWORD ref), $(D_KEYWORD out),
@@ -612,7 +612,7 @@ void foolazy(lazy int x)
 ---
 )
 
-$(H2 $(GNAME getParameterStorageClasses))
+$(H3 $(GNAME getParameterStorageClasses))
 
     $(P
         Takes two arguments.
@@ -646,18 +646,18 @@ static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "la
 
 $(H2 $(LNAME2 symbols, Symbol Traits))
 
-$(H2 $(GNAME isFuture))
+$(H3 $(GNAME isFuture))
 
     $(P Takes one argument. It returns `true` if the argument is a symbol
     marked with the `@future` keyword, otherwise `false`. Currently, only
     functions and variable declarations have support for the `@future` keyword.)
 
-$(H2 $(GNAME isDeprecated))
+$(H3 $(GNAME isDeprecated))
 
     $(P Takes one argument. It returns `true` if the argument is a symbol
     marked with the `deprecated` keyword, otherwise `false`.)
 
-$(H2 $(GNAME isTemplate))
+$(H3 $(GNAME isTemplate))
 
         $(P Takes one argument. If that argument or any of its overloads is a template
         then $(D true) is returned, otherwise $(D false).
@@ -672,7 +672,7 @@ static assert(!__traits(isTemplate,"string"));
 ---
 )
 
-$(H2 $(GNAME isModule))
+$(H3 $(GNAME isModule))
 
         $(P Takes one argument. If that argument is a symbol that refers to a
         $(DDLINK spec/module, module) then $(D true) is returned, otherwise $(D false).
@@ -693,7 +693,7 @@ static assert(__traits(isModule, std.algorithm));
 static assert(__traits(isModule, std.algorithm.sorting));
 ---
 
-$(H2 $(GNAME isPackage))
+$(H3 $(GNAME isPackage))
 
         $(P Takes one argument. If that argument is a symbol that refers to a
         $(DDLINK spec/module, package) then $(D true) is returned, otherwise $(D false).
@@ -706,7 +706,7 @@ static assert(__traits(isPackage, std.algorithm));
 static assert(!__traits(isPackage, std.algorithm.sorting));
 ---
 
-$(H2 $(GNAME hasMember))
+$(H3 $(GNAME hasMember))
 
         $(P The first argument is a type that has members, or
         is an expression of a type that has members.
@@ -737,7 +737,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME hasCopyConstructor))
+$(H3 $(GNAME hasCopyConstructor))
 
         $(P The argument is a type. If it is a struct with a copy constructor, returns $(D true). Otherwise, return $(D false). Note that a copy constructor is distinct from a postblit.
         )
@@ -775,7 +775,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME hasPostblit))
+$(H3 $(GNAME hasPostblit))
 
         $(P The argument is a type. If it is a struct with a postblit, returns $(D true). Otherwise, return $(D false). Note a postblit is distinct from a copy constructor.
         )
@@ -814,7 +814,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME identifier))
+$(H3 $(GNAME identifier))
 
         $(P Takes one argument, a symbol. Returns the identifier
         for that symbol as a string literal.
@@ -831,7 +831,7 @@ writeln(__traits(identifier, var));             // "var"
 ---
 )
 
-$(H2 $(GNAME getAliasThis))
+$(H3 $(GNAME getAliasThis))
 
     $(P Takes one argument, a type. If the type has `alias this` declarations,
         returns a *ValueSeq* of the names (as `string`s) of the members used in
@@ -999,7 +999,7 @@ tuple("pure", "nothrow", "@nogc", "@trusted")
 )
 )
 
-$(H2 $(GNAME getLinkage))
+$(H3 $(GNAME getLinkage))
 
         $(P Takes one argument, which is a declaration symbol, or the type of a function, delegate,
         pointer to function, struct, class, or interface.
@@ -1035,14 +1035,14 @@ static assert(__traits(getLinkage, FooCPPInterface) == "C++");
 ---
 )
 
-$(H2 $(GNAME getLocation))
+$(H3 $(GNAME getLocation))
         $(P Takes one argument which is a symbol.
         To disambiguate between overloads, pass the result of $(GLINK getOverloads) with the desired index, to `getLocation`.
         Returns a *ValueSeq* of a string and two `int`s which correspond to the filename, line number and column number where the argument
         was declared.
         )
 
-$(H2 $(GNAME getMember))
+$(H3 $(GNAME getMember))
 
         $(P Takes two arguments, the second must be a string.
         The result is an expression formed from the first
@@ -1073,7 +1073,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME getOverloads))
+$(H3 $(GNAME getOverloads))
 
         $(P The first argument is an aggregate (e.g. struct/class/module).
         The second argument is a `string` that matches the name of
@@ -1129,7 +1129,7 @@ bar(T)()
 bar(int n)
 )
 
-$(H2 $(GNAME getPointerBitmap))
+$(H3 $(GNAME getPointerBitmap))
 
     $(P The argument is a type.
     The result is an array of $(D size_t) describing the memory used by an instance of the given type.
@@ -1170,7 +1170,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME getCppNamespaces))
+$(H3 $(GNAME getCppNamespaces))
     $(P The argument is a symbol.
     The result is a *ValueSeq* of strings, possibly empty, that correspond to the namespaces the symbol resides in.
     )
@@ -1190,7 +1190,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME getVisibility))
+$(H3 $(GNAME getVisibility))
 
         $(P The argument is a symbol.
         The result is a string giving its visibility level: "public", "private", "protected", "export", or "package".
@@ -1226,11 +1226,11 @@ export
 public
 )
 
-$(H2 $(GNAME getProtection))
+$(H3 $(GNAME getProtection))
 
         $(P A backward-compatible alias for $(GLINK getVisibility).)
 
-$(H2 $(GNAME getTargetInfo))
+$(H3 $(GNAME getTargetInfo))
 
         $(P Receives a string key as argument.
         The result is an expression describing the requested target information.
@@ -1254,13 +1254,13 @@ version (CppRuntime_Microsoft)
         $(LI $(D "objectFormat") - Target object format)
         )
 
-$(H2 $(GNAME getVirtualFunctions))
+$(H3 $(GNAME getVirtualFunctions))
 
         $(P The same as $(GLINK getVirtualMethods), except that
         final functions that do not override anything are included.
         )
 
-$(H2 $(GNAME getVirtualMethods))
+$(H3 $(GNAME getVirtualMethods))
 
         $(P The first argument is a class type or an expression of
         class type.
@@ -1309,7 +1309,7 @@ int()
 2
 )
 
-$(H2 $(GNAME getUnitTests))
+$(H3 $(GNAME getUnitTests))
 
         $(P
                 Takes one argument, a symbol of an aggregate (e.g. struct/class/module).
@@ -1319,7 +1319,7 @@ $(H2 $(GNAME getUnitTests))
                 $(DDSUBLINK spec/attribute, uda, UDAs) will be accessible.
         )
 
-        $(H3 Note:)
+        $(H4 Note:)
 
         $(P
                 The -unittest flag needs to be passed to the compiler. If the flag
@@ -1388,13 +1388,13 @@ foo.unittest
 foo.Foo.unittest
 )
 
-$(H2 $(GNAME parent))
+$(H3 $(GNAME parent))
 
         $(P Takes a single argument which must evaluate to a symbol.
         The result is the symbol that is the parent of it.
         )
 
-$(H2 $(GNAME child))
+$(H3 $(GNAME child))
 
         $(P Takes two arguments.
         The first must be a symbol or expression.
@@ -1442,7 +1442,7 @@ $(CONSOLE
 8
 )
 
-$(H2 $(GNAME classInstanceSize))
+$(H3 $(GNAME classInstanceSize))
 
         $(P Takes a single argument, which must evaluate to either
         a class type or an expression of class type.
@@ -1453,7 +1453,7 @@ $(H2 $(GNAME classInstanceSize))
         polymorphic type.
         )
 
-$(H2 $(GNAME getVirtualIndex))
+$(H3 $(GNAME getVirtualIndex))
 
   $(P Takes a single argument which must evaluate to a function.
   The result is a $(CODE ptrdiff_t) containing the index
@@ -1462,7 +1462,7 @@ $(H2 $(GNAME getVirtualIndex))
   a virtual function, $(D -1) is returned instead.
   )
 
-$(H2 $(GNAME allMembers))
+$(H3 $(GNAME allMembers))
 
         $(P Takes a single argument, which must evaluate to either
         a module, a struct, a union, a class, an interface, or a
@@ -1500,7 +1500,7 @@ void main()
         $(P The order in which the strings appear in the result
         is not defined.)
 
-$(H2 $(GNAME derivedMembers))
+$(H3 $(GNAME derivedMembers))
 
         $(P Takes a single argument, which must evaluate to either
         a type or an expression of type.
@@ -1534,7 +1534,7 @@ void main()
         $(P The order in which the strings appear in the result
         is not defined.)
 
-$(H2 $(GNAME isSame))
+$(H3 $(GNAME isSame))
 
         $(P Takes two arguments and returns bool $(D true) if they
         are the same symbol, $(D false) if not.)
@@ -1657,7 +1657,7 @@ void main()
 ---
 )
 
-$(H2 $(GNAME compiles))
+$(H3 $(GNAME compiles))
 
         $(P Returns a bool $(D true) if all of the arguments
         compile (are semantically correct).
@@ -1706,7 +1706,7 @@ void main()
         partial specialization allows for.)
         )
 
-$(H2 $(GNAME toType))
+$(H3 $(GNAME toType))
 
         $(P Takes a single argument, which must evaluate to an expression of type `string`.
         The contents of the string must correspond to the $(DDSUBLINK spec/abi, name_mangling, mangled contents of a type)
@@ -1728,7 +1728,7 @@ $(H2 $(GNAME toType))
 
         $(RATIONALE Provides the inverse operation of the $(DDSUBLINK spec/property, mangleof, `.mangleof`) property.)
 
-$(H2 $(GNAME initSymbol))
+$(H3 $(GNAME initSymbol))
 
         $(P Takes a single argument, which must evaluate to a `class`, `struct` or `union` type.
             Returns a `const(void)[]` that holds the initial state of any instance of the supplied type.
