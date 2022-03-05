@@ -174,8 +174,6 @@ public:
     Dsymbol *parent;
     /// C++ namespace this symbol belongs to
     CPPNamespaceDeclaration *namespace_;
-    Symbol *csym;               // symbol for code generator
-    Symbol *isym;               // import version of csym
     const utf8_t *comment;      // documentation comment for this Dsymbol
     Loc loc;                    // where defined
     Scope *_scope;               // !=NULL means context to use for semantic()
@@ -186,6 +184,12 @@ public:
     DeprecatedDeclaration *depdecl; // customized deprecation message
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
     UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
+
+    struct Extra
+    {
+        Symbol* csym;           // symbol for code generator
+        Symbol* isym;           // import version of csym
+    } *extra;
 
     static Dsymbol *create(Identifier *);
     const char *toChars() const;

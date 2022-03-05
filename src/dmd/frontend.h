@@ -40,12 +40,12 @@ struct _d_dynamicArray final
 class Visitor;
 class Identifier;
 class CPPNamespaceDeclaration;
-struct Symbol;
 struct OutBuffer;
 struct Scope;
 class DeprecatedDeclaration;
 class UserAttributeDeclaration;
 class UnitTestDeclaration;
+struct Symbol;
 class Module;
 class TemplateInstance;
 class ScopeDsymbol;
@@ -979,8 +979,6 @@ public:
     Identifier* ident;
     Dsymbol* parent;
     CPPNamespaceDeclaration* cppnamespace;
-    Symbol* csym;
-    Symbol* isym;
     const char* comment;
     const Loc loc;
     Scope* _scope;
@@ -991,6 +989,26 @@ public:
     DeprecatedDeclaration* depdecl;
     UserAttributeDeclaration* userAttribDecl;
     UnitTestDeclaration* ddocUnittest;
+    struct Extra final
+    {
+        Symbol* csym;
+        Symbol* isym;
+        Extra() :
+            csym(),
+            isym()
+        {
+        }
+        Extra(Symbol* csym, Symbol* isym = nullptr) :
+            csym(csym),
+            isym(isym)
+            {}
+    };
+
+    Extra* extra;
+    Symbol* csym();
+    Symbol* isym();
+    void csym(Symbol* val);
+    void isym(Symbol* val);
     static Dsymbol* create(Identifier* ident);
     const char* toChars() const;
     virtual const char* toPrettyCharsHelper();

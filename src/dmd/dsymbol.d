@@ -244,8 +244,6 @@ extern (C++) class Dsymbol : ASTNode
     Dsymbol parent;
     /// C++ namespace this symbol belongs to
     CPPNamespaceDeclaration cppnamespace;
-    Symbol* csym;           // symbol for code generator
-    Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
     const Loc loc;          // where defined
     Scope* _scope;          // !=null means context to use for semantic()
@@ -260,6 +258,44 @@ extern (C++) class Dsymbol : ASTNode
     // !=null means there's a ddoc unittest associated with this symbol
     // (only use this with ddoc)
     UnitTestDeclaration ddocUnittest;
+
+    /* Rarely used fields, allocate separately to save memory
+     */
+    struct Extra
+    {
+        Symbol* csym;           // symbol for code generator
+        Symbol* isym;           // import version of csym
+    }
+    Extra* extra;
+
+    final @safe nothrow
+    {
+        /* Accessors of Extra fields, allocate on demand
+         */
+        Symbol* csym() { return extra ? extra.csym : null; };
+        Symbol* isym() { return extra ? extra.isym : null; };
+
+        void csym(Symbol* val)
+        {
+            if (extra)
+                extra.csym = val;
+            else if (val)
+            {
+                extra = new Extra();
+                extra.csym = val;
+            }
+        }
+        void isym(Symbol* val)
+        {
+            if (extra)
+                extra.isym = val;
+            else if (val)
+            {
+                extra = new Extra();
+                extra.isym = val;
+            }
+        }
+    }
 
     final extern (D) this()
     {

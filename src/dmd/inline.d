@@ -663,6 +663,11 @@ public:
 
                 auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
+                if (vd.extra)
+                {
+                    vto.extra = new Dsymbol.Extra();
+                    *vto.extra = *vd.extra;
+                }
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
@@ -799,6 +804,11 @@ public:
                 auto vd = e.lengthVar;
                 auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
+                if (vd.extra)
+                {
+                    vto.extra = new Dsymbol.Extra();
+                    *vto.extra = *vd.extra;
+                }
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
@@ -828,6 +838,11 @@ public:
                 auto vd = e.lengthVar;
                 auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
+                if (vd.extra)
+                {
+                    vto.extra = new Dsymbol.Extra();
+                    *vto.extra = *vd.extra;
+                }
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
