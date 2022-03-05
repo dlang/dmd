@@ -577,6 +577,110 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     this enables efficient, direct, and simple testing.)
     ))
 
+$(SECTION2 $(GNAME getFunctionVariadicStyle),
+    $(P
+        Takes one argument which must either be a function symbol, or a type
+        that is a function, delegate or a function pointer.
+        It returns a string identifying the kind of
+        $(LINK2 function.html#variadic, variadic arguments) that are supported.
+    )
+
+    $(TABLE2 getFunctionVariadicStyle,
+        $(THEAD result, kind, access, example)
+        $(TROW $(D "none"), not a variadic function, $(NBSP), $(D void foo();))
+        $(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
+        $(TROW $(D "stdarg"), C style variadic function, $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)), $(D extern (C) void abc(int, ...)))
+        $(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import core.stdc.stdarg;
+
+void novar() {}
+extern(C) void cstyle(int, ...) {}
+extern(C++) void cppstyle(int, ...) {}
+void dstyle(...) {}
+void typesafe(int[]...) {}
+
+static assert(__traits(getFunctionVariadicStyle, novar) == "none");
+static assert(__traits(getFunctionVariadicStyle, cstyle) == "stdarg");
+static assert(__traits(getFunctionVariadicStyle, cppstyle) == "stdarg");
+static assert(__traits(getFunctionVariadicStyle, dstyle) == "argptr");
+static assert(__traits(getFunctionVariadicStyle, typesafe) == "typesafe");
+
+static assert(__traits(getFunctionVariadicStyle, (int[] a...) {}) == "typesafe");
+static assert(__traits(getFunctionVariadicStyle, typeof(cstyle)) == "stdarg");
+---
+)
+)
+
+$(SECTION2 $(GNAME getFunctionAttributes),
+    $(P
+        Takes one argument which must either be a function symbol, function literal,
+        or a function pointer. It returns a string *ValueSeq* of all the attributes of
+        that function $(B excluding) any user-defined attributes (UDAs can be
+        retrieved with the $(RELATIVE_LINK2 get-attributes, getAttributes) trait).
+        If no attributes exist it will return an empty sequence.
+    )
+
+
+        $(B Note:) The order of the attributes in the returned sequence is
+        implementation-defined and should not be relied upon.
+
+        $(P
+            A list of currently supported attributes are:)
+            $(UL $(LI $(D pure), $(D nothrow), $(D @nogc), $(D @property), $(D @system), $(D @trusted), $(D @safe), $(D ref) and $(D @live)))
+            $(B Note:) $(D ref) is a function attribute even though it applies to the return type.
+
+        $(P
+            Additionally the following attributes are only valid for non-static member functions:)
+            $(UL $(LI $(D const), $(D immutable), $(D inout), $(D shared)))
+
+    For example:
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int sum(int x, int y) pure nothrow { return x + y; }
+
+pragma(msg, __traits(getFunctionAttributes, sum));
+
+struct S
+{
+    void test() const @system { }
+}
+
+pragma(msg, __traits(getFunctionAttributes, S.test));
+
+void main(){}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+tuple("pure", "nothrow", "@system")
+tuple("const", "@system")
+)
+
+    $(P Note that some attributes can be inferred. For example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }));
+
+void main(){}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+tuple("pure", "nothrow", "@nogc", "@trusted")
+)
+)
+)
+
 
 $(H2 $(LNAME2 function-parameters, Function Parameter Traits))
 
@@ -892,110 +996,6 @@ $(CONSOLE
 tuple(3)
 tuple("string", 7)
 tuple((Foo))
-)
-)
-
-$(SECTION2 $(GNAME getFunctionVariadicStyle),
-    $(P
-        Takes one argument which must either be a function symbol, or a type
-        that is a function, delegate or a function pointer.
-        It returns a string identifying the kind of
-        $(LINK2 function.html#variadic, variadic arguments) that are supported.
-    )
-
-    $(TABLE2 getFunctionVariadicStyle,
-        $(THEAD result, kind, access, example)
-        $(TROW $(D "none"), not a variadic function, $(NBSP), $(D void foo();))
-        $(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
-        $(TROW $(D "stdarg"), C style variadic function, $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)), $(D extern (C) void abc(int, ...)))
-        $(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
-    )
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-import core.stdc.stdarg;
-
-void novar() {}
-extern(C) void cstyle(int, ...) {}
-extern(C++) void cppstyle(int, ...) {}
-void dstyle(...) {}
-void typesafe(int[]...) {}
-
-static assert(__traits(getFunctionVariadicStyle, novar) == "none");
-static assert(__traits(getFunctionVariadicStyle, cstyle) == "stdarg");
-static assert(__traits(getFunctionVariadicStyle, cppstyle) == "stdarg");
-static assert(__traits(getFunctionVariadicStyle, dstyle) == "argptr");
-static assert(__traits(getFunctionVariadicStyle, typesafe) == "typesafe");
-
-static assert(__traits(getFunctionVariadicStyle, (int[] a...) {}) == "typesafe");
-static assert(__traits(getFunctionVariadicStyle, typeof(cstyle)) == "stdarg");
----
-)
-)
-
-$(SECTION2 $(GNAME getFunctionAttributes),
-    $(P
-        Takes one argument which must either be a function symbol, function literal,
-        or a function pointer. It returns a string *ValueSeq* of all the attributes of
-        that function $(B excluding) any user-defined attributes (UDAs can be
-        retrieved with the $(RELATIVE_LINK2 get-attributes, getAttributes) trait).
-        If no attributes exist it will return an empty sequence.
-    )
-
-
-        $(B Note:) The order of the attributes in the returned sequence is
-        implementation-defined and should not be relied upon.
-
-        $(P
-            A list of currently supported attributes are:)
-            $(UL $(LI $(D pure), $(D nothrow), $(D @nogc), $(D @property), $(D @system), $(D @trusted), $(D @safe), $(D ref) and $(D @live)))
-            $(B Note:) $(D ref) is a function attribute even though it applies to the return type.
-
-        $(P
-            Additionally the following attributes are only valid for non-static member functions:)
-            $(UL $(LI $(D const), $(D immutable), $(D inout), $(D shared)))
-
-    For example:
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-int sum(int x, int y) pure nothrow { return x + y; }
-
-pragma(msg, __traits(getFunctionAttributes, sum));
-
-struct S
-{
-    void test() const @system { }
-}
-
-pragma(msg, __traits(getFunctionAttributes, S.test));
-
-void main(){}
----
-)
-
-        Prints:
-
-$(CONSOLE
-tuple("pure", "nothrow", "@system")
-tuple("const", "@system")
-)
-
-    $(P Note that some attributes can be inferred. For example:)
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }));
-
-void main(){}
----
-)
-
-        Prints:
-
-$(CONSOLE
-tuple("pure", "nothrow", "@nogc", "@trusted")
-)
 )
 )
 
