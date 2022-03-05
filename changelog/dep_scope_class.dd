@@ -1,12 +1,23 @@
 `scope` as a type constraint on class declarations is deprecated.
 
-`scope` as a type constraint on class declarations has been scheduled for
-deprecation for quite some time. However, starting with this release, the
-compiler will emit a deprecation warning if used.
+`scope` as a type constraint on class declarations was meant to force users
+of a class to `scope` allocate it, which resulted in the class being placed
+on the stack rather than GC-allocated. While it has been scheduled for
+deprecation for quite some time, the compiler will emit a deprecation warning
+on usage starting from this release.
 
 ---
 scope class C { }  // Deprecation: `scope` as a type constraint is deprecated. Use `scope` at the usage site.
 ---
 
-Note that this does not apply to structs. Deprecation of `scope` as a type
-constraint on structs is still awaiting a decision.
+Using `scope` to stack-allocate `class` is still suported,
+only the type constraint is deprecated.
+
+---
+class C { }
+
+void main () @nogc
+{
+    scope c = new C;
+}
+---
