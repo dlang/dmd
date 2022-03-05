@@ -175,7 +175,6 @@ public:
     /// C++ namespace this symbol belongs to
     CPPNamespaceDeclaration *namespace_;
     Symbol *csym;               // symbol for code generator
-    Symbol *isym;               // import version of csym
     const utf8_t *comment;      // documentation comment for this Dsymbol
     Loc loc;                    // where defined
     Scope *_scope;               // !=NULL means context to use for semantic()

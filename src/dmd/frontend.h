@@ -980,7 +980,6 @@ public:
     Dsymbol* parent;
     CPPNamespaceDeclaration* cppnamespace;
     Symbol* csym;
-    Symbol* isym;
     const char* comment;
     const Loc loc;
     Scope* _scope;
@@ -5716,6 +5715,7 @@ public:
 
     enum : int32_t { ignoreRead = 2 };
 
+    Symbol* isym;
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const;
     d_uns64 size(const Loc& loc);

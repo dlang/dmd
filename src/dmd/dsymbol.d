@@ -245,7 +245,6 @@ extern (C++) class Dsymbol : ASTNode
     /// C++ namespace this symbol belongs to
     CPPNamespaceDeclaration cppnamespace;
     Symbol* csym;           // symbol for code generator
-    Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
     const Loc loc;          // where defined
     Scope* _scope;          // !=null means context to use for semantic()

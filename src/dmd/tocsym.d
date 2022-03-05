@@ -502,7 +502,7 @@ Symbol *toImport(Symbol *sym, Loc loc)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Dsymbol ds)
+Symbol *toImport(Declaration ds)
 {
     if (!ds.isym)
     {
