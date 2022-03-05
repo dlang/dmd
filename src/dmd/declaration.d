@@ -682,10 +682,12 @@ extern (C++) final class TupleDeclaration : Declaration
 }
 
 /***********************************************************
+ * https://dlang.org/spec/declaration.html#AliasDeclaration
  */
 extern (C++) final class AliasDeclaration : Declaration
 {
-    Dsymbol aliassym;
+    Dsymbol aliassym;   // alias ident = aliassym;
+
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
