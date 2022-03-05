@@ -2140,6 +2140,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         Module.dprogress++;
 
+        // @@@DEPRECATED_2.110@@@ https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // Deprecated in 2.100
+        // Make an error in 2.110
+        if (sc.stc & STC.scope_)
+            deprecation(ed.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
+
         Scope* sce;
         if (ed.isAnonymous())
             sce = sc;
@@ -4634,6 +4640,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.deferred.semantic2(sc);
             sd.deferred.semantic3(sc);
         }
+
+        // @@@DEPRECATED_2.110@@@ https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // Deprecated in 2.100
+        // Make an error in 2.110
+        if (sd.storage_class & STC.scope_)
+            deprecation(sd.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
     }
 
     void interfaceSemantic(ClassDeclaration cd)
