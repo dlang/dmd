@@ -227,7 +227,7 @@ class Lexer
                         goto LendSkipFourSpaces;
                     p++;
                 }
-                while (*(cast(uint*)p) == 0x20202020) // ' ' == 0x20
+                while (p + 4 < end && *(cast(uint*)p) == 0x20202020) // ' ' == 0x20
                     p += 4;
                 // Skip over any remaining space on the line.
                 while (*p == ' ')
