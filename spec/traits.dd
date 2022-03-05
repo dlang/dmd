@@ -305,38 +305,6 @@ static assert(!__traits(isCopyable, T));
 ---
 )
 
-$(H3 $(GNAME isZeroInit))
-
-        $(P Takes one argument which must be a type. If the type's
-        $(DDSUBLINK spec/property, init, default initializer) is all zero
-        bits then `true` is returned, otherwise `false`.)
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-struct S1 { int x; }
-struct S2 { int x = -1; }
-
-static assert(__traits(isZeroInit, S1));
-static assert(!__traits(isZeroInit, S2));
-
-void test()
-{
-    int x = 3;
-    static assert(__traits(isZeroInit, typeof(x)));
-}
-
-// `isZeroInit` will always return true for a class C
-// because `C.init` is null reference.
-
-class C { int x = -1; }
-
-static assert(__traits(isZeroInit, C));
-
-// For initializing arrays of element type `void`.
-static assert(__traits(isZeroInit, void));
----
-)
-
 $(H3 $(GNAME isPOD))
 
         $(P Takes one argument, which must be a type. It returns
@@ -773,6 +741,38 @@ void foo(T)(){}
 static assert(__traits(isTemplate,foo));
 static assert(!__traits(isTemplate,foo!int()));
 static assert(!__traits(isTemplate,"string"));
+---
+)
+
+$(H3 $(GNAME isZeroInit))
+
+        $(P Takes one argument which must be a type. If the type's
+        $(DDSUBLINK spec/property, init, default initializer) is all zero
+        bits then `true` is returned, otherwise `false`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S1 { int x; }
+struct S2 { int x = -1; }
+
+static assert(__traits(isZeroInit, S1));
+static assert(!__traits(isZeroInit, S2));
+
+void test()
+{
+    int x = 3;
+    static assert(__traits(isZeroInit, typeof(x)));
+}
+
+// `isZeroInit` will always return true for a class C
+// because `C.init` is null reference.
+
+class C { int x = -1; }
+
+static assert(__traits(isZeroInit, C));
+
+// For initializing arrays of element type `void`.
+static assert(__traits(isZeroInit, void));
 ---
 )
 
