@@ -90,6 +90,9 @@ $(GNAME TraitsArgument):
     $(GLINK2 type, Type)
 )
 
+
+$(H2 $(LNAME2 types, Type Traits))
+
 $(H2 $(GNAME isArithmetic))
 
         $(P If the arguments are all either types that are arithmetic types,
@@ -295,16 +298,8 @@ $(H2 $(GNAME isNested))
     $(DDSUBLINK spec/struct, nested, structs), and
     $(DDSUBLINK spec/function, variadicnested, functions).)
 
-$(H2 $(GNAME isFuture))
 
-    $(P Takes one argument. It returns `true` if the argument is a symbol
-    marked with the `@future` keyword, otherwise `false`. Currently, only
-    functions and variable declarations have support for the `@future` keyword.)
-
-$(H2 $(GNAME isDeprecated))
-
-    $(P Takes one argument. It returns `true` if the argument is a symbol
-    marked with the `deprecated` keyword, otherwise `false`.)
+$(H2 $(LNAME2 functions, Function Traits))
 
 $(H2 $(GNAME isDisabled))
 
@@ -494,6 +489,9 @@ void main()
 ---
 )
 
+
+$(H2 $(LNAME2 function-parameters, Function Parameter Traits))
+
 $(H2 $(GNAME isRef), $(GNAME isOut), $(GNAME isLazy))
 
         $(P Takes one argument. If that argument is a declaration,
@@ -525,6 +523,20 @@ void foolazy(lazy int x)
 }
 ---
 )
+
+
+$(H2 $(LNAME2 symbols, Symbol Traits))
+
+$(H2 $(GNAME isFuture))
+
+    $(P Takes one argument. It returns `true` if the argument is a symbol
+    marked with the `@future` keyword, otherwise `false`. Currently, only
+    functions and variable declarations have support for the `@future` keyword.)
+
+$(H2 $(GNAME isDeprecated))
+
+    $(P Takes one argument. It returns `true` if the argument is a symbol
+    marked with the `deprecated` keyword, otherwise `false`.)
 
 $(H2 $(GNAME isTemplate))
 
