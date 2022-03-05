@@ -612,6 +612,37 @@ void foolazy(lazy int x)
 ---
 )
 
+$(H2 $(GNAME getParameterStorageClasses))
+
+    $(P
+        Takes two arguments.
+        The first must either be a function symbol, a function call, or a type
+        that is a function, delegate or a function pointer.
+        The second is an integer identifying which parameter, where the first parameter is
+        0.
+        It returns a *ValueSeq* of strings representing the storage classes of that parameter.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+ref int foo(return ref const int* p, scope int* a, out int b, lazy int c);
+
+static assert(__traits(getParameterStorageClasses, foo, 0)[0] == "return");
+static assert(__traits(getParameterStorageClasses, foo, 0)[1] == "ref");
+
+static assert(__traits(getParameterStorageClasses, foo, 1)[0] == "scope");
+static assert(__traits(getParameterStorageClasses, foo, 2)[0] == "out");
+static assert(__traits(getParameterStorageClasses, typeof(&foo), 3)[0] == "lazy");
+
+int* p, a;
+int b, c;
+
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 1)[0] == "scope");
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 2)[0] == "out");
+static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "lazy");
+---
+)
+
 
 $(H2 $(LNAME2 symbols, Symbol Traits))
 
@@ -1096,37 +1127,6 @@ int()
 2
 bar(T)()
 bar(int n)
-)
-
-$(H2 $(GNAME getParameterStorageClasses))
-
-    $(P
-        Takes two arguments.
-        The first must either be a function symbol, a function call, or a type
-        that is a function, delegate or a function pointer.
-        The second is an integer identifying which parameter, where the first parameter is
-        0.
-        It returns a *ValueSeq* of strings representing the storage classes of that parameter.
-    )
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-ref int foo(return ref const int* p, scope int* a, out int b, lazy int c);
-
-static assert(__traits(getParameterStorageClasses, foo, 0)[0] == "return");
-static assert(__traits(getParameterStorageClasses, foo, 0)[1] == "ref");
-
-static assert(__traits(getParameterStorageClasses, foo, 1)[0] == "scope");
-static assert(__traits(getParameterStorageClasses, foo, 2)[0] == "out");
-static assert(__traits(getParameterStorageClasses, typeof(&foo), 3)[0] == "lazy");
-
-int* p, a;
-int b, c;
-
-static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 1)[0] == "scope");
-static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 2)[0] == "out");
-static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "lazy");
----
 )
 
 $(H2 $(GNAME getPointerBitmap))
