@@ -310,6 +310,28 @@ $(H3 $(GNAME isPOD))
         $(P Takes one argument, which must be a type. It returns
         $(D true) if the type is a $(DDSUBLINK glossary, pod, POD) type, otherwise $(D false).)
 
+$(H3 $(GNAME toType))
+
+        $(P Takes a single argument, which must evaluate to an expression of type `string`.
+        The contents of the string must correspond to the $(DDSUBLINK spec/abi, name_mangling, mangled contents of a type)
+        that has been seen by the implementation.)
+
+        $(P Only D mangling is supported. Other manglings, such as C++ mangling, are not.)
+
+        $(P The value returned is a type.)
+
+        ---
+        template Type(T) { alias Type = T; }
+
+        Type!(__traits(toType, "i")) j = 3; // j is declared as type `int`
+
+        static assert(is(Type!(__traits(toType, (int*).mangleof)) == int*));
+
+        __traits(toType, "i") x = 4; // x is also declared as type `int`
+        ---
+
+        $(RATIONALE Provides the inverse operation of the $(DDSUBLINK spec/property, mangleof, `.mangleof`) property.)
+
 
 $(H2 $(LNAME2 functions, Function Traits))
 
@@ -1705,28 +1727,6 @@ void main()
         $(LI Doing a finer grained specialization than template
         partial specialization allows for.)
         )
-
-$(H3 $(GNAME toType))
-
-        $(P Takes a single argument, which must evaluate to an expression of type `string`.
-        The contents of the string must correspond to the $(DDSUBLINK spec/abi, name_mangling, mangled contents of a type)
-        that has been seen by the implementation.)
-
-        $(P Only D mangling is supported. Other manglings, such as C++ mangling, are not.)
-
-        $(P The value returned is a type.)
-
-        ---
-        template Type(T) { alias Type = T; }
-
-        Type!(__traits(toType, "i")) j = 3; // j is declared as type `int`
-
-        static assert(is(Type!(__traits(toType, (int*).mangleof)) == int*));
-
-        __traits(toType, "i") x = 4; // x is also declared as type `int`
-        ---
-
-        $(RATIONALE Provides the inverse operation of the $(DDSUBLINK spec/property, mangleof, `.mangleof`) property.)
 
 $(H3 $(GNAME initSymbol))
 
