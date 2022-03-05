@@ -577,7 +577,7 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     this enables efficient, direct, and simple testing.)
     ))
 
-$(SECTION2 $(GNAME getFunctionVariadicStyle),
+$(SECTION3 $(GNAME getFunctionVariadicStyle),
     $(P
         Takes one argument which must either be a function symbol, or a type
         that is a function, delegate or a function pointer.
@@ -615,7 +615,7 @@ static assert(__traits(getFunctionVariadicStyle, typeof(cstyle)) == "stdarg");
 )
 )
 
-$(SECTION2 $(GNAME getFunctionAttributes),
+$(SECTION3 $(GNAME getFunctionAttributes),
     $(P
         Takes one argument which must either be a function symbol, function literal,
         or a function pointer. It returns a string *ValueSeq* of all the attributes of
@@ -966,7 +966,7 @@ tuple("var")
 tuple()
 )
 
-$(SECTION2 $(GNAME getAttributes),
+$(SECTION3 $(GNAME getAttributes),
     $(P
         Takes one argument, a symbol. Returns a sequence of all attached user-defined attributes.
         If no UDAs exist it will return an empty sequence
