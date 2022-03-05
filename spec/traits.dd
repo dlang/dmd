@@ -342,15 +342,6 @@ $(H3 $(GNAME isPOD))
         $(P Takes one argument, which must be a type. It returns
         $(D true) if the type is a $(DDSUBLINK glossary, pod, POD) type, otherwise $(D false).)
 
-$(H3 $(GNAME isNested))
-
-    $(P Takes one argument.
-    It returns $(D true) if the argument is a nested type which internally
-    stores a context pointer, otherwise it returns $(D false).
-    Nested types can be  $(DDSUBLINK spec/class, nested, classes),
-    $(DDSUBLINK spec/struct, nested, structs), and
-    $(DDSUBLINK spec/function, variadicnested, functions).)
-
 
 $(H2 $(LNAME2 functions, Function Traits))
 
@@ -749,6 +740,15 @@ static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "la
 
 
 $(H2 $(LNAME2 symbols, Symbol Traits))
+
+$(H3 $(GNAME isNested))
+
+    $(P Takes one argument.
+    It returns $(D true) if the argument is a nested type which internally
+    stores a context pointer, otherwise it returns $(D false).
+    Nested types can be  $(DDSUBLINK spec/class, nested, classes),
+    $(DDSUBLINK spec/struct, nested, structs), and
+    $(DDSUBLINK spec/function, variadicnested, functions).)
 
 $(H3 $(GNAME isFuture))
 
