@@ -29,6 +29,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -226,6 +227,8 @@ extern (C++) abstract class Declaration : Dsymbol
     ubyte adFlags;         // control re-assignment of AliasDeclaration (put here for packing reasons)
       enum wasRead    = 1; // set if AliasDeclaration was read
       enum ignoreRead = 2; // ignore any reads of AliasDeclaration
+
+    Symbol* isym;           // import version of csym
 
     // overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;
