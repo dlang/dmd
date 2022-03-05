@@ -620,7 +620,7 @@ $(SECTION3 $(GNAME getFunctionAttributes),
         Takes one argument which must either be a function symbol, function literal,
         or a function pointer. It returns a string *ValueSeq* of all the attributes of
         that function $(B excluding) any user-defined attributes (UDAs can be
-        retrieved with the $(RELATIVE_LINK2 get-attributes, getAttributes) trait).
+        retrieved with the $(GLINK getAttributes) trait).
         If no attributes exist it will return an empty sequence.
     )
 
