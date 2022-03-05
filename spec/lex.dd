@@ -995,7 +995,7 @@ $(MULTICOLS 4,
     $(LINK2 expression.html#AssertExpression, $(D assert))
     $(LINK2 attribute.html#auto, $(D auto))
 
-    $(GDEPRECATED LINK2 function.html#BodyStatement, $(D body))
+    $(GDEPRECATED $(LINK2 function.html#BodyStatement, $(D body)))
     $(LINK2 type.html, $(D bool))
     $(LINK2 statement.html#BreakStatement, $(D break))
     $(LINK2 type.html, $(D byte))
