@@ -605,6 +605,7 @@ class Lexer
                     endOfLine();
                     continue;
                 case '+':
+                    if (!Ccompile)
                     {
                         int nest;
                         startLoc = loc();
@@ -674,6 +675,7 @@ class Lexer
                         }
                         continue;
                     }
+                    break;
                 default:
                     break;
                 }
