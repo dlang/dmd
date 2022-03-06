@@ -521,18 +521,19 @@ For debugging, use `./build.d cxx-headers DFLAGS="-debug=Debug_DtoH"` (clean bef
 */
 alias buildFrontendHeaders = makeRule!((builder, rule) {
     const dmdSources = sources.dmd.frontend ~ sources.root ~ sources.common ~ sources.lexer;
-    const dmdExeFile = dmdDefault.deps[0].target;
+    // -m$MODEL and -target= conflicts, so let's remove -m$MODEL
+    const dflagsNoModel = remove!(a => a == env["MODEL_FLAG"])(flags["DFLAGS"].dup);
     builder
         .name("cxx-headers")
         .description("Build the C++ frontend headers ")
         .msg("(DC) CXX-HEADERS")
         .deps([dmdDefault])
         .target(env["G"].buildPath("frontend.h"))
-        .command([dmdExeFile] ~ flags["DFLAGS"] ~
+        .command([env["HOST_DMD_RUN"]] ~ dflagsNoModel ~
             // Ignore warnings because of invalid C++ identifiers in the source code
             ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target,
             // Enforce the expected target architecture
-            "-m64", "-os=linux",
+            "-target=x86_64-linux",
             ] ~ dmdSources);
 });
 
