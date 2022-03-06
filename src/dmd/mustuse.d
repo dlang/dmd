@@ -42,14 +42,16 @@ bool checkMustUse(Expression e, Scope* sc)
     import dmd.id : Id;
 
     assert(e.type);
-    auto sym = e.type.toDsymbol(sc);
-    auto sd = sym ? sym.isStructDeclaration() : null;
-    // isStructDeclaration returns non-null for both structs and unions
-    if (sd && hasMustUseAttribute(sd, sc) && !isAssignment(e) && !isIncrementOrDecrement(e))
+    if (auto sym = e.type.toDsymbol(sc))
     {
-        e.error("ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
-            Id.udaMustUse.toChars(), e.type.toPrettyChars(true));
-        return true;
+        auto sd = sym.isStructDeclaration();
+        // isStructDeclaration returns non-null for both structs and unions
+        if (sd && hasMustUseAttribute(sd, sc) && !isAssignment(e) && !isIncrementOrDecrement(e))
+        {
+            e.error("ignored value of `@%s` type `%s`; prepend a `cast(void)` if intentional",
+                Id.udaMustUse.toChars(), e.type.toPrettyChars(true));
+            return true;
+        }
     }
     return false;
 }
@@ -103,10 +105,12 @@ private bool isAssignment(Expression e)
         return true;
     if (auto ce = e.isCallExp())
     {
-        auto fd = ce.f;
-        auto id = fd ? fd.ident : null;
-        if (id && isAssignmentOpId(id))
-            return true;
+        if (auto fd = ce.f)
+        {
+            auto id = fd.ident;
+            if (id && isAssignmentOpId(id))
+                return true;
+        }
     }
     return false;
 }
@@ -159,18 +163,23 @@ private bool isIncrementOrDecrement(Expression e)
     {
         // Check for overloaded preincrement
         // e.g., a.opUnary!"++"
-        auto fd = call.f;
-        auto id = fd ? fd.ident : null;
-        if (id == Id.opUnary)
+        if (auto fd = call.f)
         {
-            auto ti = fd.parent ? fd.parent.isTemplateInstance() : null;
-            auto tiargs = ti ? ti.tiargs : null;
-            if (tiargs && tiargs.length >= 1)
+            if (fd.ident == Id.opUnary && fd.parent)
             {
-                auto argExp = (*tiargs)[0].isExpression();
-                auto op = argExp ? argExp.isStringExp() : null;
-                if (op && (op.compare(plusPlus) == 0 || op.compare(minusMinus) == 0))
-                    return true;
+                if (auto ti = fd.parent.isTemplateInstance())
+                {
+                    auto tiargs = ti.tiargs;
+                    if (tiargs && tiargs.length >= 1)
+                    {
+                        if (auto argExp = (*tiargs)[0].isExpression())
+                        {
+                            auto op = argExp.isStringExp();
+                            if (op && (op.compare(plusPlus) == 0 || op.compare(minusMinus) == 0))
+                                return true;
+                        }
+                    }
+                }
             }
         }
     }
@@ -178,10 +187,17 @@ private bool isIncrementOrDecrement(Expression e)
     {
         // Check for overloaded postincrement
         // e.g., (auto tmp = a, ++a, tmp)
-        auto left = comma.e1 ? comma.e1.isCommaExp() : null;
-        auto middle = left ? left.e2 : null;
-        if (middle && isIncrementOrDecrement(middle))
-            return true;
+        if (comma.e1)
+        {
+            if (auto left = comma.e1.isCommaExp())
+            {
+                if (auto middle = left.e2)
+                {
+                    if (middle && isIncrementOrDecrement(middle))
+                        return true;
+                }
+            }
+        }
     }
     return false;
 }
