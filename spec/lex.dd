@@ -291,7 +291,6 @@ $(GNAME StringLiteral):
     $(GLINK AlternateWysiwygString)
     $(GLINK DoubleQuotedString)
 
-    $(GLINK HexString)
     $(GLINK DelimitedString)
     $(GLINK TokenString)
 )
@@ -342,18 +341,6 @@ $(GNAME EscapeSequence):
     $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
     $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
     $(B \\) $(GLINK2 entity, NamedCharacterEntity)
-
-$(GNAME HexString):
-    $(B x") $(GLINK HexStringChars)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
-
-$(GNAME HexStringChars):
-    $(GLINK HexStringChar)
-    $(GLINK HexStringChar) $(GSELF HexStringChars)
-
-$(GNAME HexStringChar):
-    $(GLINK HexDigit)
-    $(GLINK WhiteSpace)
-    $(GLINK EndOfLine)
 
 $(GNAME StringPostfix):
     $(B c)
@@ -408,7 +395,7 @@ $(GNAME TokenStringToken):
 
         $(P
         A string literal is either a double quoted string, a wysiwyg quoted
-        string, a delimited string, a token string, or a hex string.
+        string, a delimited string, or a token string.
         )
 
         $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
@@ -467,23 +454,6 @@ $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
         "        // string is 3 characters,
                  // 'a', 'b', and a linefeed
         ---
-
-$(H3 $(LNAME2 hex_strings, Hex Strings))
-
-        $(P Hex strings allow string literals to be created using hex data.
-        The hex data need not form valid UTF characters.
-        )
-
-$(D_CODE
-x"0A"              // same as "\x0A"
-x"00 FBCD 32FD 0A" // same as
-                   // "\x00\xFB\xCD\x32\xFD\x0A"
-)
-
-$(P Whitespace and newlines are ignored, so the hex data can be easily
-formatted. The number of hex characters must be a multiple of 2.)
-
-$(P Note: Hex Strings are $(B deprecated). Please use $(REF hexString, std,conv) instead.)
 
 $(H3 $(LNAME2 delimited_strings, Delimited Strings))
 
