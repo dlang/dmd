@@ -525,10 +525,12 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
     builder
         .name("cxx-headers")
         .description("Build the C++ frontend headers ")
-        .msg("(DC) CXX-HEADERS")
+        .msg("(DMD) CXX-HEADERS")
         .deps([dmdDefault])
         .target(env["G"].buildPath("frontend.h"))
-        .command([dmdExeFile] ~ flags["DFLAGS"] ~
+        .command([dmdExeFile] ~
+            flags["DFLAGS"]
+              .filter!(f => startsWith(f, "-debug=", "-version=", "-I", "-J")).array ~
             // Ignore warnings because of invalid C++ identifiers in the source code
             ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target,
             // Enforce the expected target architecture
