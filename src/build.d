@@ -481,10 +481,10 @@ alias runTests = makeRule!((testBuilder, testRule)
 {
     // Precompiles the test runner
     alias runner = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
-        .msg("(DMD) RUN.D")
+        .msg("(DC) RUN.D")
         .sources([ testDir.buildPath( "run.d") ])
         .target(env["GENERATED"].buildPath("run".exeName))
-        .command([ env["HOST_DMD"], "-of=" ~ rundRule.target, "-i", "-I" ~ testDir] ~ rundRule.sources));
+        .command([ env["HOST_DMD_RUN"], "-of=" ~ rundRule.target, "-i", "-I" ~ testDir] ~ rundRule.sources));
 
     // Reference header assumes Linux64
     auto headerCheck = env["OS"] == "linux" && env["MODEL"] == "64"
@@ -612,7 +612,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
     alias cxxUnittestExe = methodInit!(BuildRule, (exeBuilder, exeRule) => exeBuilder
         .name("cxx-unittest")
         .description("Build the C++ unittests")
-        .msg("(DMD) CXX-UNITTEST")
+        .msg("(DC) CXX-UNITTEST")
         .deps([lexer(null, null), cxxFrontend])
         .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common)
         .target(env["G"].buildPath("cxx-unittest").exeName)
