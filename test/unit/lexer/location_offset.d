@@ -341,7 +341,6 @@ enum Test[string] tests = [
 
     "identifier" : Test("identifier", "foo"),
     "string_" : Test("string literal", `"foo"`),
-    "hexadecimalString" : Test("hexadecimal string literal", `x"61"`),
     "this_" : Test("this"),
     "super_" : Test("super"),
 
