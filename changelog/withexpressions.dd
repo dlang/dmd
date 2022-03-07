@@ -1,0 +1,37 @@
+With expressions have been added to D under the preview flag `-preview=withExpressions`.
+
+These expressions are a simple feature designed to remove the need for a few keystrokes
+in non-trival code, based on the observation that the with *statement* is very useful, but often not useable
+within certain patterns of code. Why? The atom of any piece of D code that could be, loosely, considered
+[functional](https://en.wikipedia.org/wiki/Functional_programming) is the expression and not the statement.
+
+Put simply, this new type of expression allows the programmer to use with "statements" inside an expression.
+
+For example if one has a range-based algorithm dealing with a type like
+---
+struct Polar
+{
+    double angle;
+    double length;
+}
+---
+one can, using these with expressions, transform the following
+---
+//project data onto x axis
+getData()
+    .map!(p => p.length * cos(p.angle))
+    .doSomthing();
+---
+into the following
+---
+getData()
+    .map!(p => with(p)(length * cos(angle)))
+    .doSomething();
+---
+
+Blaise Pascal once wrote:
+
+> If I had more time, I would have written a shorter letter.
+
+Unlike some purely creative disciplines, programming does not always afford a programmer the luxury of beauty —
+this feature does something to rectify that by making it possible for you to write a shorter letter.

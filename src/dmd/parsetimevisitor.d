@@ -224,7 +224,7 @@ public:
     void visit(AST.ImportExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.DotTemplateInstanceExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.ArrayExp e) { visit(cast(AST.UnaExp)e); }
-
+    void visit(AST.WithExp e) { visit(cast(AST.UnaExp)e); }
     // DefaultInitExp
     void visit(AST.FuncInitExp e) { visit(cast(AST.DefaultInitExp)e); }
     void visit(AST.PrettyFuncInitExp e) { visit(cast(AST.DefaultInitExp)e); }

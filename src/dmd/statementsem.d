@@ -3436,7 +3436,6 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     {
         /* https://dlang.org/spec/statement.html#with-statement
          */
-
         ScopeDsymbol sym;
         Initializer _init;
 

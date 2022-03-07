@@ -1136,7 +1136,11 @@ package mixin template ParseVisitMethods(AST)
             (*e.exps )[i].accept(this);
         }
     }
-
+    override void visit(AST.WithExp e)
+    {
+        e.wrt.accept(this);
+        e.e1.accept(this);
+    }
     override void visit(AST.ThrowExp e)
     {
         //printf("Visiting ThrowExp\n");

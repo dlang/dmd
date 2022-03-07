@@ -2541,6 +2541,16 @@ public:
     {
         buf.writestring(e.value.toChars());
     }
+
+    override void visit(WithExp we)
+    {
+        buf.writestring("with(");
+        expToBuffer(we.wrt, precedence[we.op], buf, hgs);
+        buf.writeByte(')');
+        buf.writeByte('(');
+        expToBuffer(we.e1, precedence[we.op], buf, hgs);
+        buf.writeByte(')');
+    }
 }
 
 /**
@@ -4002,6 +4012,7 @@ string EXPtoString(EXP op)
         EXP.new_ : "new",
         EXP.newAnonymousClass : "newanonclass",
         EXP.cast_ : "cast",
+        EXP.withExp : "with",
 
         EXP.vector : "__vector",
         EXP.pow : "^^",
