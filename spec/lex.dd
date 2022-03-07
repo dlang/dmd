@@ -586,36 +586,39 @@ $(H2 $(LNAME2 escape_sequences, Escape Sequences))
 
     $(LONGTABLE_2COLS 0.8, Escape Sequences,
     $(THEAD Sequence, Meaning),
-    $(TROW $(D \'), Literal single-quote: $(D '))
-    $(TROW $(D \"), Literal double-quote: $(D "))
-    $(TROW $(D \?), Literal question mark: $(D ?))
-    $(TROW $(D \\), Literal backslash: $(D \))
-    $(TROW $(D \0), Binary zero (NUL, U+0000).)
-    $(TROW $(D \a), BEL (alarm) character (U+0007).)
-    $(TROW $(D \b), Backspace (U+0008).)
-    $(TROW $(D \f), Form feed (FF) (U+000C).)
-    $(TROW $(D \n), End-of-line (U+000A).)
-    $(TROW $(D \r), Carriage return (U+000D).)
-    $(TROW $(D \t), Horizontal tab (U+0009).)
-    $(TROW $(D \v), Vertical tab (U+000B).)
-    $(TROW $(D \x)$(I nn), Byte value in hexadecimal$(COMMA) where $(I nn) is
-        specified as two hexadecimal digits.$(BR)For example: $(D \xFF)
-        represents the character with the value 255.)
-    $(TROW $(D \)$(I n)$(BR)$(D \)$(I nn)$(BR)$(D \)$(I nnn), Byte value in
-        octal.$(BR)For example: $(D \101) represents the character with the
+    $(TROW `\'`, Literal single-quote: $(D '))
+    $(TROW `\"`, Literal double-quote: $(D "))
+    $(TROW `\?`, Literal question mark: $(D ?))
+    $(TROW `\\`, Literal backslash: `\`)
+    $(TROW `\0`, Binary zero (NUL, U+0000).)
+    $(TROW `\a`, BEL (alarm) character (U+0007).)
+    $(TROW `\b`, Backspace (U+0008).)
+    $(TROW `\f`, Form feed (FF) (U+000C).)
+    $(TROW `\n`, End-of-line (U+000A).)
+    $(TROW `\r`, Carriage return (U+000D).)
+    $(TROW `\t`, Horizontal tab (U+0009).)
+    $(TROW `\v`, Vertical tab (U+000B).)
+    $(TROW `\x`$(I nn), Byte value in hexadecimal$(COMMA) where $(I nn) is
+        specified as two hexadecimal digits.$(BR)For example: `\xFF`
+        represents the character with the value 255.$(BR)
+        See also: $(REF hexString, std,conv).)
+    $(TROW `\`$(I n)$(BR)`\`$(I nn)$(BR)`\`$(I nnn), Byte value in
+        octal.$(BR)For example: `\101` represents the character with the
         value 65 ($(D 'A')). Analogous to hexadecimal characters$(COMMA)
-        the largest byte value is $(D \377) (= $(D \xFF) in hexadecimal
-        or $(D 255) in decimal))
-    $(TROW $(D \u)$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
+        the largest byte value is `\377` (= `\xFF` in hexadecimal
+        or $(D 255) in decimal)$(BR)
+        See also: $(REF octal, std,conv).)
+    $(TROW `\u`$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
         $(I nnnn) are four hexadecimal digits.$(BR)For example$(COMMA)
-        $(D \u03B3) represents the Unicode character $(GAMMA) (U+03B3 - GREEK SMALL LETTER GAMMA).)
-    $(TROW $(D \U)$(I nnnnnnnn), Unicode character U+$(I nnnnnnnn)$(COMMA)
+        `\u03B3` represents the Unicode character $(GAMMA) (U+03B3 - GREEK SMALL LETTER GAMMA).)
+    $(TROW `\U`$(I nnnnnnnn), Unicode character U+$(I nnnnnnnn)$(COMMA)
         where $(I nnnnnnnn) are 8 hexadecimal digits.$(BR)For example$(COMMA)
-        $(D \U0001F603) represents the Unicode character U+1F603 (SMILING FACE
+        `\U0001F603` represents the Unicode character U+1F603 (SMILING FACE
         WITH OPEN MOUTH).)
-    $(TROW $(D \)$(I name), Named character entity from the HTML5
-        specification. These names begin with $(CODE_AMP) and end with $(D ;), e.g.$(COMMA) $(D $(AMP)euro;).
-        See $(GLINK2 entity, NamedCharacterEntity).)
+    $(TROW `\`$(I name), $(ARGS Named character entity from the HTML5
+        specification. $(BR)
+        These names begin with $(CODE_AMP) and end with $(D ;), e.g.$(COMMA) $(D $(AMP)euro;).
+        See $(GLINK2 entity, NamedCharacterEntity).))
     )
 
 $(H2 $(LNAME2 characterliteral, Character Literals))
