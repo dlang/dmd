@@ -980,7 +980,6 @@ public:
     Dsymbol* parent;
     CPPNamespaceDeclaration* cppnamespace;
     Symbol* csym;
-    const char* comment;
     const Loc loc;
     Scope* _scope;
     const char* prettystring;
@@ -1051,7 +1050,10 @@ public:
     virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
     virtual void checkCtorConstInit();
     virtual void addComment(const char* comment);
+    const char* comment();
+    void comment(const char* comment);
     bool inNonRoot();
+    static void deinitialize();
     void accept(Visitor* v);
     virtual Package* isPackage();
     virtual Module* isModule();
