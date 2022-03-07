@@ -1549,7 +1549,8 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
  * Params:
  *      fes = the foreach statement
  *      sc = context
- *      sapply = null or opApply or delegate
+ *      sapply = null or opApply or delegate, overload resolution has not been done.
+ *               Do overload resolution on sapply.
  * Returns:
  *      false for errors
  */
@@ -1585,8 +1586,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
          */
         if (FuncDeclaration fd = sapply.isFuncDeclaration())
         {
-            auto fdapply = findBestOpApplyMatch(ethis, fd, fes.parameters);
-            if (fdapply)
+            if (auto fdapply = findBestOpApplyMatch(ethis, fd, fes.parameters))
             {
                 // Fill in any missing types on foreach parameters[]
                 matchParamsToOpApply(fdapply.type.isTypeFunction(), fes.parameters, true);
@@ -1595,7 +1595,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
             }
             return false;
         }
-        return sapply !is null;
+        return true;   // shouldn't this be false?
     }
 
     Parameter p = (*fes.parameters)[0];
