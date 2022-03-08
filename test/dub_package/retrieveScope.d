@@ -30,6 +30,7 @@ import dmd.dsymbolsem;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.statement;
+import dmd.target;
 import dmd.visitor;
 import dmd.dscope;
 import dmd.denum;
@@ -79,7 +80,7 @@ int main()
 
     Strings libmodules;
     Module m = createModule((dirName(__FILE_FULL_PATH__) ~ "/testfiles/correct.d").ptr,
-                                libmodules);
+                                libmodules, target);
     m.importedFrom = m; // m.isRoot() == true
 
     m.read(Loc.initial);
