@@ -161,11 +161,11 @@ extern (C++) struct Param
     FeatureState dtorFields; // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
-    bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
-                            // https://dconf.org/2019/talks/alexandrescu.html
-                            // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
-                            // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
-                            // Implementation: https://github.com/dlang/dmd/pull/9817
+    FeatureState rvalueRefParam; // allow rvalues to be arguments to ref parameters
+                                 // https://dconf.org/2019/talks/alexandrescu.html
+                                 // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
+                                 // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
+                                 // Implementation: https://github.com/dlang/dmd/pull/9817
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
