@@ -36,7 +36,6 @@ int main()
     if (sysObjdump.status)
         return DISABLED;
 
-
     double objdumpVersion;
     try
     {
@@ -97,6 +96,12 @@ int main()
         run("objdump -W " ~ exe, objdump_file);
         objdump_file.close();
 
+        auto llvmDwarfdump = executeShell("llvm-dwarfdump --version");
+        try {
+            if (!llvmDwarfdump.status && requirements["DWARF_VERIFY"].to!bool)
+                run("llvm-dwarfdump --verify " ~ exe);
+        } catch (ConvException e) { }
+
         // Objdump excepted results
         string excepted_results_file = extra_dwarf_dir ~ "excepted_results"
             ~ slash ~ filename ~ ".txt";
@@ -137,6 +142,7 @@ string[string] getRequirements(string dfile)
     // Initialize to an empty string to prevent RangeViolation exceptions.
     foreach (req; ["EXTRA_ARGS", "MIN_OBJDUMP_VERSION"])
         result[req] = "";
+    result["DWARF_VERIFY"] = "true";
 
     bool begin;
 

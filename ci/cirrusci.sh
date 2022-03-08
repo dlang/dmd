@@ -16,7 +16,7 @@ if [ -z ${HOST_DMD+x} ] ; then echo "Variable 'HOST_DMD' needs to be set."; exit
 
 if [ "$OS_NAME" == "linux" ]; then
   export DEBIAN_FRONTEND=noninteractive
-  packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils"
+  packages="git-core make g++ gdb gnupg curl libcurl4 tzdata zip unzip xz-utils llvm"
   if [ "$MODEL" == "32" ]; then
     dpkg --add-architecture i386
     packages="$packages g++-multilib libcurl4:i386"
@@ -30,9 +30,9 @@ if [ "$OS_NAME" == "linux" ]; then
 elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
   brew update-reset
-  brew install gnupg libarchive xz
+  brew install gnupg libarchive xz llvm
 elif [ "$OS_NAME" == "freebsd" ]; then
-  packages="git gmake"
+  packages="git gmake devel/llvm12"
   if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then
     packages="$packages lang/gcc9"
   fi
@@ -40,4 +40,5 @@ elif [ "$OS_NAME" == "freebsd" ]; then
   # replace default make by GNU make
   rm /usr/bin/make
   ln -s /usr/local/bin/gmake /usr/bin/make
+  ln -s /usr/local/bin/llvm-dwarfdump12 /usr/bin/llvm-dwarfdump
 fi
