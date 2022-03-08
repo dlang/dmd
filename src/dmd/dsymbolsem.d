@@ -3091,6 +3091,25 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return null;
         }
 
+        if (sc.flags & SCOPE.Cfile)
+        {
+            /* C11 allows a function to be declared with a typedef, D does not.
+             */
+            if (auto ti = funcdecl.type.isTypeIdentifier())
+            {
+                auto tj = ti.typeSemantic(funcdecl.loc, sc);
+                if (auto tjf = tj.isTypeFunction())
+                {
+                    /* Copy the type instead of just pointing to it,
+                     * as we don't merge function types
+                     */
+                    auto tjf2 = new TypeFunction(tjf.parameterList, tjf.next, tjf.linkage);
+                    funcdecl.type = tjf2;
+                    funcdecl.originalType = tjf2;
+                }
+            }
+        }
+
         if (!getFunctionType(funcdecl))
             return;
 
