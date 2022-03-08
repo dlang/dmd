@@ -31,9 +31,11 @@ $(H2 $(LNAME2 usage, Usage))
                 $(LI $(DDSUBLINK spec/function, system-functions, `@system`) functions)
         )
 
-        $(P `@system` functions may perform any operation legal from the perspective of the language including inherently
-        memory unsafe operations like returning pointers to expired stackframes. These functions may not be called directly from
-        `@safe` functions.)
+        $(P `@system` functions may perform any operation legal from the perspective of the language,
+        including inherently memory unsafe operations such as pointer casts or pointer arithmetic.
+        However, compile-time known memory corrupting operations, such as indexing a static array
+        out of bounds or returning a pointer to an expired stack frame, can still raise an error.
+        `@system` functions may not be called directly from `@safe` functions.)
 
         $(P `@trusted` functions have all the capabilities of `@system` functions but may be called from
         `@safe` functions. For this reason they should be very limited in the scope of their use. Typical uses of
