@@ -4845,7 +4845,7 @@ extern (C++) final class TypeFunction : TypeNext
                             // Need to make this a rvalue through a temporary
                             m = MATCH.convert;
                         }
-                        else if (!global.params.rvalueRefParam ||
+                        else if (global.params.rvalueRefParam != FeatureState.enabled ||
                                  p.storageClass & STC.out_ ||
                                  !arg.type.isCopyable())  // can't copy to temp for ref parameter
                         {

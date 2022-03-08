@@ -1943,7 +1943,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             {
                                 // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             }
-                            else if (global.params.rvalueRefParam)
+                            else if (global.params.rvalueRefParam == FeatureState.enabled)
                             {
                                 // Allow implicit conversion to ref
                             }
