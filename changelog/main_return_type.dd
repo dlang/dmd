@@ -1,9 +1,0 @@
-`main` can now return type `noreturn` and supports return inference
-
-If `main` never returns (due to an infinite loop or always throwing an
-exception), it can now be declared as returning `noreturn`.
-See https://dlang.org/spec/type.html#noreturn.
-
-If `main` is declared with `auto`, the inferred return type must be
-one of `void`, `int` and `noreturn`.
-

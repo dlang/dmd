@@ -374,14 +374,18 @@ class Lexer
                 goto case_ident;
 
             case 'r':
-                if (p[1] != '"')
+                if (Ccompile || p[1] != '"')
                     goto case_ident;
                 p++;
                 goto case '`';
             case '`':
+                if (Ccompile)
+                    goto default;
                 wysiwygStringConstant(t);
                 return;
             case 'q':
+                if (Ccompile)
+                    goto case_ident;
                 if (p[1] == '"')
                 {
                     p++;
@@ -659,6 +663,7 @@ class Lexer
                     endOfLine();
                     continue;
                 case '+':
+                    if (!Ccompile)
                     {
                         int nest;
                         startLoc = loc();
@@ -728,6 +733,7 @@ class Lexer
                         }
                         continue;
                     }
+                    break;
                 default:
                     break;
                 }
@@ -3293,5 +3299,3 @@ unittest
         assert(tok == TOK.endOfFile);
     }
 }
-
-
