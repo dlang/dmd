@@ -2595,6 +2595,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (s.errors)
                 return setError();
 
+            // https://issues.dlang.org/show_bug.cgi?id=18623
+            auto decl = s.isDeclaration();
+            if (global.params.doDocComments && decl && sc.func)
+            {
+                auto unitTestDecl = sc.func.isUnitTestDeclaration();
+                if (unitTestDecl && unitTestDecl.comment() &&
+                    symbolIsVisible(sc._module, decl) &&
+                    decl.visibility.kind != Visibility.Kind.public_)
+                {
+                    exp.deprecation("`%s` `%s` is `%s` but is used in a public documented unittest",
+                         decl.kind(), decl.toChars(), visibilityToChars(decl.visibility.kind));
+                }
+            }
             Expression e;
 
             /* See if the symbol was a member of an enclosing 'with'
