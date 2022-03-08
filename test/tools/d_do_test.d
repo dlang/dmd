@@ -699,8 +699,8 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
 
     // win(32|64) doesn't support pic
-    // -target/-os may compile for non-PIC targets, let the test take care of -fPIC
-    if (envData.os == "windows" || testArgs.requiredArgs.canFind("-target", "-os"))
+    // -os may compile for non-PIC targets, let the test take care of -fPIC
+    if (envData.os == "windows" || testArgs.requiredArgs.canFind("-os"))
     {
         auto index = std.string.indexOf(testArgs.permuteArgs, "-fPIC");
         if (index != -1)
@@ -837,7 +837,7 @@ unittest
     immutable content = q{
 /+
 https://foo.bar.
-REQUIRED_ARGS: -target=x86-unknown-windows-msvc
+REQUIRED_ARGS: -os=windows
 REQUIRED_ARGS(linux32): -fPIC
 +/
     };
@@ -847,20 +847,15 @@ REQUIRED_ARGS(linux32): -fPIC
 
     TestArgs args;
     assert(gatherTestParameters(args, dir, file, win64));
-    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc", args.requiredArgs);
+    assert(args.requiredArgs == "-os=windows", args.requiredArgs);
 
-    args = TestArgs.init;
-    assert(gatherTestParameters(args, dir, file, linux64));
-    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc", args.requiredArgs);
-
-    args = TestArgs.init;
-    assert(gatherTestParameters(args, dir, file, linux32));
-    assert(args.requiredArgs == "-target=x86-unknown-windows-msvc  -fPIC", args.requiredArgs);
-
-    std.file.write(file, "REQUIRED_ARGS: -os=windows");
     args = TestArgs.init;
     assert(gatherTestParameters(args, dir, file, linux64));
     assert(args.requiredArgs == "-os=windows", args.requiredArgs);
+
+    args = TestArgs.init;
+    assert(gatherTestParameters(args, dir, file, linux32));
+    assert(args.requiredArgs == "-os=windows  -fPIC", args.requiredArgs);
 }
 
 /// Generates all permutations of the space-separated word contained in `argstr`
