@@ -816,7 +816,7 @@ dmd -cov -unittest myprog.d
         Feature("field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
         Feature("complex", "vcomplex",
-            "give deprecation messages about all usages of complex or imaginary types", false, true),
+            "give deprecation messages about all usages of complex or imaginary types", true, true),
         Feature("tls", "vtls",
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
@@ -927,8 +927,6 @@ struct CLIUsage
             "Enables all available " ~ description)] ~ features;
         foreach (t; allTransitions)
         {
-            if (t.deprecated_)
-                continue;
             if (!t.documented)
                 continue;
             buf ~= "  =";
@@ -938,6 +936,8 @@ struct CLIUsage
             foreach (i; lineLength .. maxFlagLength)
                 buf ~= " ";
             buf ~= t.helpText;
+            if (t.deprecated_)
+                buf ~= " [DEPRECATED]";
             buf ~= "\n";
         }
         return buf;
