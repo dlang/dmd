@@ -48,6 +48,15 @@ final class CParser(AST) : Parser!AST
         Array!structalign_t* packs;     // parallel alignment values
     }
 
+    /** C allows declaring a function with a typedef:
+     *   typedef int (myfunc)(); myfunc fun;
+     * but we need to distinguish `fun` being a function as opposed to a variable in the
+     * parse pass. This is accomplished by having a simple symbol table of typedefs
+     * where we know, by syntax, if they are function types or non-function types.
+     * funcTypeIds is the symbol table, of the identifiers of typedefs of function types.
+     */
+    AST.Identifiers funcTypeIds;  /// Identifiers in this are typedefs of function types
+
     extern (D) this(TARGET)(AST.Module _module, const(char)[] input, bool doDocComment,
                             const ref TARGET target)
     {
@@ -1733,6 +1742,10 @@ final class CParser(AST) : Parser!AST
                         }
                     }
                 }
+                else if (isFunctionTypedef(dt))
+                {
+                    funcTypeIds.push(id);       // remember function typedefs
+                }
                 if (isalias)
                     s = new AST.AliasDeclaration(token.loc, id, dt);
             }
@@ -1754,7 +1767,8 @@ final class CParser(AST) : Parser!AST
                 }
                 // declare the symbol
                 assert(id);
-                if (dt.isTypeFunction())
+
+                if (isFunctionTypedef(dt))
                 {
                     if (hasInitializer)
                         error("no initializer for function declaration");
@@ -4555,6 +4569,35 @@ final class CParser(AST) : Parser!AST
             s = new AST.AlignDeclaration(s.loc, specifier.packalign, decls);
         }
         return s;
+    }
+
+    /********************************
+     * Determines if type t is a function type.
+     * Make this work without needing semantic analysis.
+     * Params:
+     *  t = type to test
+     * Returns:
+     *  true if it represents a function
+     */
+    bool isFunctionTypedef(AST.Type t)
+    {
+        //printf("isFunctionTypedef() %s\n", t.toChars());
+        if (t.isTypeFunction())
+            return true;
+        if (auto tid = t.isTypeIdentifier())
+        {
+            /* Scan array of typedef identifiers that are an alias for
+             * a function type
+             */
+            foreach (ftid; funcTypeIds[])
+            {
+                if (tid.ident == ftid)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     //}
