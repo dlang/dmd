@@ -1029,7 +1029,6 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                  */
                 !(p.parent == sc.func))
             {
-                // Only look for errors if in module listed on command line
                 if (global.params.useDIP1000 == FeatureState.enabled   // https://issues.dlang.org/show_bug.cgi?id=17029
                     && sc.func.setUnsafe())     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
@@ -1095,7 +1094,6 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
             continue;
 
         // https://dlang.org/spec/function.html#return-ref-parameters
-        // Only look for errors if in module listed on command line
         if (p == sc.func)
         {
             //printf("escaping reference to local ref variable %s\n", v.toChars());
@@ -1246,7 +1244,6 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
                )
             {
-                // Only look for errors if in module listed on command line
                 // https://issues.dlang.org/show_bug.cgi?id=17029
                 if (global.params.useDIP1000 == FeatureState.enabled && sc.func.setUnsafe())
                 {
