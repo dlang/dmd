@@ -150,6 +150,7 @@ final class CParser(AST) : Parser!AST
 
         //printf("cparseStatement()\n");
 
+        const funcTypeIdsLengthSave = funcTypeIds.length;
         auto symbolsSave = symbols;
         if (!(flags & (ParseStatementFlags.scope_ | ParseStatementFlags.curlyScope)))
             symbols = new AST.Dsymbols();
@@ -592,6 +593,7 @@ final class CParser(AST) : Parser!AST
         if (pEndloc)
             *pEndloc = prevloc;
         symbols = symbolsSave;
+        funcTypeIds.setDim(funcTypeIdsLengthSave);
         return s;
     }
 
@@ -1571,6 +1573,7 @@ final class CParser(AST) : Parser!AST
             return;
         }
 
+        const funcTypeIdsLengthSave = funcTypeIds.length;
         auto symbolsSave = symbols;
         Specifier specifier;
         specifier.packalign = this.packalign;
@@ -1680,11 +1683,13 @@ final class CParser(AST) : Parser!AST
                 t.value == TOK.leftCurly)  // start of compound-statement
             {
                 auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), specifier);
+                funcTypeIds.setDim(funcTypeIdsLengthSave);
                 symbols = symbolsSave;
                 symbols.push(s);
                 return;
             }
             AST.Dsymbol s = null;
+            funcTypeIds.setDim(funcTypeIdsLengthSave);
             symbols = symbolsSave;
             if (!symbols)
                 symbols = new AST.Dsymbols;     // lazilly create it

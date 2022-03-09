@@ -34,3 +34,17 @@ void high()
 {
     skyy asdf;
 }
+
+/*******************************/
+
+void low()
+{
+    typedef int (down)();
+}
+
+typedef int down;
+down dd;
+int low2()
+{
+    dd = 1;
+}
