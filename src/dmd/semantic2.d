@@ -419,14 +419,14 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     return 0;
 
                 const sameAttr = tf1.attributesEqual(tf2);
-                const sameParams = tf1.parameterList == tf2.parameterList;
+                const sameParamsReturn = tf1.parameterList == tf2.parameterList && tf1.next == tf2.next;
 
                 // Allow the hack to declare overloads with different parameters/STC's
                 // @@@DEPRECATED_2.104@@@
                 // Deprecated in 2020-08, make this an error in 2.104
                 if (parent1.isModule() &&
                     f1.linkage != LINK.d && f1.linkage != LINK.cpp &&
-                    (!sameAttr || !sameParams)
+                    (!sameAttr || !sameParamsReturn)
                 )
                 {
                     f2.deprecation("cannot overload `extern(%s)` function at %s",
@@ -435,8 +435,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     return 0;
                 }
 
-                // Different parameters don't conflict in extern(C++/D)
-                if (!sameParams)
+                // Different parameters/return type don't conflict in extern(C++/D)
+                if (!sameParamsReturn)
                     return 0;
 
                 // Different attributes don't conflict in extern(D)
@@ -450,6 +450,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         f1.loc.toChars());
                 f2.type = Type.terror;
                 f2.errors = true;
+
                 return 0;
             });
         }

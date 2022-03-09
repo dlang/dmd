@@ -1,40 +1,8 @@
 /*
-https://issues.dlang.org/show_bug.cgi?id=18385
-
 TEST_OUTPUT:
 ---
-fail_compilation/fail2789.d(15): Error: function `fail2789.A2789.m()` conflicts with previous declaration at fail_compilation/fail2789.d(10)
----
-*/
-#line 7
-
-class A2789
-{
-    int m()
-    {
-        return 1;
-    }
-
-    float m()       // conflict
-    {
-        return 2.0;
-    }
-
-    float m() const // doen't conflict
-    {
-        return 3.0;
-    }
-
-    static void m() // no conflict
-    {
-    }
-}
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail2789.d(49): Error: function `fail2789.f4()` conflicts with previous declaration at fail_compilation/fail2789.d(48)
-fail_compilation/fail2789.d(55): Error: function `fail2789.f6()` conflicts with previous declaration at fail_compilation/fail2789.d(54)
+fail_compilation/fail2789.d(20): Error: function `fail2789.f4()` conflicts with previous declaration at fail_compilation/fail2789.d(19)
+fail_compilation/fail2789.d(26): Error: function `fail2789.f6()` conflicts with previous declaration at fail_compilation/fail2789.d(25)
 ---
 */
 
@@ -60,9 +28,9 @@ auto f6() { return ""; }    // string(), conflict
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2789.d(67): Error: function `fail2789.f_ExternC1()` conflicts with previous declaration at fail_compilation/fail2789.d(66)
-fail_compilation/fail2789.d(70): Deprecation: function `fail2789.f_ExternC2` cannot overload `extern(C)` function at fail_compilation/fail2789.d(69)
-fail_compilation/fail2789.d(73): Deprecation: function `fail2789.f_ExternC3` cannot overload `extern(C)` function at fail_compilation/fail2789.d(72)
+fail_compilation/fail2789.d(38): Error: function `fail2789.f_ExternC1()` conflicts with previous declaration at fail_compilation/fail2789.d(37)
+fail_compilation/fail2789.d(41): Deprecation: function `fail2789.f_ExternC2` cannot overload `extern(C)` function at fail_compilation/fail2789.d(40)
+fail_compilation/fail2789.d(44): Deprecation: function `fail2789.f_ExternC3` cannot overload `extern(C)` function at fail_compilation/fail2789.d(43)
 ---
 */
 
@@ -93,7 +61,7 @@ extern (C) void f_ExternC6(int sig) @nogc {}    // no error
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2789.d(103): Error: function `fail2789.mul14147(const(int[]) left, const(int[]) right)` conflicts with previous declaration at fail_compilation/fail2789.d(99)
+fail_compilation/fail2789.d(74): Error: function `fail2789.mul14147(const(int[]) left, const(int[]) right)` conflicts with previous declaration at fail_compilation/fail2789.d(70)
 ---
 */
 struct S14147(alias func)
