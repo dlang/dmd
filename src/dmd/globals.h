@@ -93,11 +93,7 @@ enum class FeatureState : signed char
 struct Param
 {
     bool obj;           // write object file
-    bool link;          // perform link
-    bool dll;           // generate shared dynamic library
-    bool lib;           // write library file instead of object file(s)
     bool multiobj;      // break one object file into multiple ones
-    bool oneobj;        // write one object file instead of multiple ones
     bool trace;         // insert profiling hooks
     bool tracegc;       // instrument calls to 'new'
     bool verbose;       // verbose compile
@@ -110,11 +106,7 @@ struct Param
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
     bool vin;           // identify 'in' parameters
-    unsigned char symdebug;  // insert debug symbolic information
-    bool symdebugref;   // insert debug information for all referenced types, too
-    bool optimize;      // run optimizer
     Diagnostic useDeprecated;
-    bool stackstomp;    // add stack stomping code
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
     FeatureState useDIP25;      // implement https://wiki.dlang.org/DIP25
@@ -123,12 +115,10 @@ struct Param
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
     Diagnostic warnings;
-    unsigned char pic;  // generate position-independent-code for shared libs
     bool color;         // use ANSI colors in console output
     bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     bool ctfe_cov;      // generate coverage data for ctfe
-    bool nofloat;       // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;      // rather than error on them
     bool useModuleInfo; // generate runtime module information
     bool useTypeInfo;   // generate runtime type information
@@ -213,10 +203,6 @@ struct Param
 
     unsigned versionlevel; // version level
     Array<const char *> *versionids;   // version identifiers
-
-    DString defaultlibname;     // default library for non-debug builds
-    DString debuglibname;       // default library for debug builds
-    DString mscrtlib;           // MS C runtime library
 
     DString moduleDepsFile;     // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file

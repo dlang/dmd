@@ -42,6 +42,7 @@ import dmd.blockexit;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmangle;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dmsc;
 import dmd.dstruct;
@@ -1295,7 +1296,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
  */
 private void specialFunctions(Obj objmod, FuncDeclaration fd)
 {
-    const libname = global.finalDefaultlibname();
+    const libname = finalDefaultlibname();
 
     Symbol* s = fd.toSymbol();  // backend symbol corresponding to fd
 
@@ -1341,8 +1342,8 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             if (!cmain)
                 objmod.includelib("uuid");
-            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
-                obj_includelib(global.params.mscrtlib);
+            if (dmdParams.mscrtlib.length && dmdParams.mscrtlib[0])
+                obj_includelib(dmdParams.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else if (target.objectFormat() == Target.ObjectFormat.omf)
@@ -1433,7 +1434,7 @@ tym_t totym(Type tx)
         case Tchar:     t = TYchar;     break;
         case Twchar:    t = TYwchar_t;  break;
         case Tdchar:
-            t = (global.params.symdebug == 1 || target.os & Target.OS.Posix) ? TYdchar : TYulong;
+            t = (dmdParams.symdebug == 1 || target.os & Target.OS.Posix) ? TYdchar : TYulong;
             break;
 
         case Taarray:   t = TYaarray;   break;

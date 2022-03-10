@@ -203,7 +203,7 @@ version (Windows)
  */
 public int runLINK()
 {
-    const phobosLibname = global.finalDefaultlibname();
+    const phobosLibname = finalDefaultlibname();
 
     void setExeFile()
     {
@@ -276,7 +276,7 @@ public int runLINK()
                 cmdbuf.writestring("/DEF:");
                 writeFilename(&cmdbuf, global.params.deffile);
             }
-            if (global.params.symdebug)
+            if (dmdParams.symdebug)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEBUG");
@@ -284,7 +284,7 @@ public int runLINK()
                 if (global.params.release)
                     cmdbuf.writestring(" /OPT:REF");
             }
-            if (global.params.dll)
+            if (dmdParams.dll)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DLL");
@@ -424,7 +424,7 @@ public int runLINK()
             }
             else
             {
-                if (global.params.symdebug)
+                if (dmdParams.symdebug)
                     cmdbuf.writestring("/co");
             }
             cmdbuf.writestring("/noi");
@@ -491,12 +491,12 @@ public int runLINK()
         {
             // If we are on Mac OS X and linking a dynamic library,
             // add the "-dynamiclib" flag
-            if (global.params.dll)
+            if (dmdParams.dll)
                 argv.push("-dynamiclib");
         }
         else version (Posix)
         {
-            if (global.params.dll)
+            if (dmdParams.dll)
                 argv.push("-shared");
         }
         // None of that a.out stuff. Use explicit exe file name, or
@@ -548,7 +548,7 @@ public int runLINK()
             n = FileName.name(n);
             if (const e = FileName.ext(n))
             {
-                if (global.params.dll)
+                if (dmdParams.dll)
                     ex = FileName.forceExt(ex, target.dll_ext);
                 else
                     ex = FileName.removeExt(n);
@@ -560,7 +560,7 @@ public int runLINK()
         }
         // Make sure path to exe file exists
         ensurePathToNameExists(Loc.initial, global.params.exefile);
-        if (global.params.symdebug)
+        if (dmdParams.symdebug)
             argv.push("-g");
         if (target.is64bit)
             argv.push("-m64");

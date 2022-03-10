@@ -23,6 +23,7 @@ import dmd.root.rmem;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dstruct;
 import dmd.globals;
 import dmd.glue;
@@ -158,7 +159,7 @@ extern (C++) type* Type_toCtype(Type t)
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
-            if (global.params.symdebug && !global.errors)
+            if (dmdParams.symdebug && !global.errors)
             {
                 foreach (v; sym.fields)
                 {
@@ -180,7 +181,7 @@ extern (C++) type* Type_toCtype(Type t)
                 }
             }
 
-            if (global.params.symdebugref)
+            if (dmdParams.symdebugref)
                 toDebug(sym);
 
             return t.ctype;
@@ -229,7 +230,7 @@ extern (C++) type* Type_toCtype(Type t)
                 t.ctype = Type_toCtype(symMemtype);
             }
 
-            if (global.params.symdebugref)
+            if (dmdParams.symdebugref)
                 toDebug(t.sym);
 
             return t.ctype;
@@ -261,7 +262,7 @@ extern (C++) type* Type_toCtype(Type t)
             /* Add in fields of the class
              * (after setting ctype to avoid infinite recursion)
              */
-            if (global.params.symdebug)
+            if (dmdParams.symdebug)
             {
                 foreach (v; t.sym.fields)
                 {
@@ -275,7 +276,7 @@ extern (C++) type* Type_toCtype(Type t)
                 }
             }
 
-            if (global.params.symdebugref)
+            if (dmdParams.symdebugref)
                 toDebug(t.sym);
             return t.ctype;
         }
