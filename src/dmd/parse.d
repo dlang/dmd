@@ -30,7 +30,7 @@ import dmd.tokens;
 
 /***********************************************************
  */
-class Parser(AST) : Lexer
+class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 {
     AST.ModuleDeclaration* md;
 
