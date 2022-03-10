@@ -1716,7 +1716,7 @@ $(GNAME ArrayMemberInitialization):
         ---
 
     $(P By default, an array literal is typed as a dynamic array, but the element
-        count is known at compile time. So an array literal can be
+        count is known at compile time. Therefore, an array literal can be
         implicitly converted to a static array of the same length.)
 
         -------------
