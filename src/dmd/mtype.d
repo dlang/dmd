@@ -7361,29 +7361,6 @@ bool isCopyable(Type t)
     return true;
 }
 
-/*******************************************
- * Decide if ref-return-scope should be `ref` `return scope`.
- * Params:
- *    returnByRef = if function returns by ref
- *    stc = storage class to possibly adjust by addition of STC.returnScope
- */
-void inferReturnScope(bool returnByRef, ref StorageClass stc)
-{
-    /* The old way was a determination based on whether the return
-     * value was by ref or not. The new way is `return scope` is set
-     * only if the `return` is immediately followed by `scope`, which
-     * is done by the parser.
-     * Keep the old way to not break pre-dip1000 code.
-     */
-    if (global.params.useDIP1000 != FeatureState.enabled &&
-        !returnByRef && isRefReturnScope(stc))
-    {
-        /* if `ref return scope`, evaluate to `ref` `return scope`
-         */
-        stc |= STC.returnScope;
-    }
-}
-
 /***************************************
  * Computes how a parameter may be returned.
  * Shrinking the representation is necessary because StorageClass is so wide
