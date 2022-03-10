@@ -548,7 +548,7 @@ enum // 64 bit only registers
     _RIP = 0xFF,   // some unique value
 }
 
-immutable REG[65] regtab64 =
+immutable REG[62] regtab64 =
 [
     {"RAX",  _RAX,   _r64 | _rax},
     {"RBX",  _RBX,   _r64},
@@ -3398,26 +3398,34 @@ void printOperands(OP* pop, scope OPND[] opnds)
 
 immutable(REG)* asm_reg_lookup(const(char)[] s)
 {
-    //dbg_printf("asm_reg_lookup('%s')\n",s);
-
-    for (int i = 0; i < regtab.length; i++)
+    // TODO: Switch this horrible mixin to static foreach, when the GDC
+    // bootstrap compiler supports it.
+    static string asm_reg_lookup_mixin(bool is64)()
     {
-        if (s == regtab[i].regstr)
+        string toString(size_t n)
         {
-            return &regtab[i];
-        }
-    }
-    if (target.is64bit)
-    {
-        for (int i = 0; i < regtab64.length; i++)
-        {
-            if (s == regtab64[i].regstr)
-            {
-                return &regtab64[i];
+            string ret;
+            while(n > 0) {
+                ret = '0' + n % 10 ~ ret;
+                n /= 10;
             }
+            return ret ? ret : "0";
         }
+
+        string ret = q{ switch(s) } ~ `{`;
+        foreach (_64, tab; is64 ? [regtab, regtab64] : [cast(immutable(REG)[])regtab])
+            foreach (j, reg; tab)
+                ret ~= `case "` ~ reg.regstr ~ `":` ~
+                    `return &regtab` ~ (_64 ? `64` : null) ~ `[` ~ toString(j) ~ `];`;
+
+        return ret ~ q{ default: return null; } ~ `}`;
     }
-    return null;
+    //dbg_printf("asm_reg_lookup('%s')\n",s);
+    if (target.is64bit)
+        mixin(asm_reg_lookup_mixin!(true));
+    mixin(asm_reg_lookup_mixin!(false));
+
+    /* mixin(asm_reg_lookup_mixin!(regtab)); */
 }
 
 
