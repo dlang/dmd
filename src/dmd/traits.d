@@ -2104,13 +2104,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        if (sc.func is null)
+        auto fd = sc.getEnclosingFunction();
+        if (!fd)
         {
             e.error("`__traits(parameters)` may only be used inside a function");
             return ErrorExp.get();
         }
-        assert(sc.func && sc.parent.isFuncDeclaration());
-        auto tf = sc.parent.isFuncDeclaration.type.isTypeFunction();
+
+        auto tf = fd.type.isTypeFunction();
         assert(tf);
         auto exps = new Expressions(0);
         int addParameterDG(size_t idx, Parameter x)
