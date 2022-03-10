@@ -5418,11 +5418,6 @@ elem *callfunc(const ref Loc loc,
         {
             if (ep)
             {
-                /* // BUG: implement
-                if (left_to_right && type_mangle(tfunc) == mTYman_cpp)
-                    ep = el_param(ehidden,ep);
-                else
-                */
                 if (left_to_right)
                     ep = el_param(ehidden,ep);
                 else
@@ -6846,7 +6841,7 @@ elem* constructVa_start(elem* e)
 
     e.Eoper = OPva_start;
     e.Ety = TYvoid;
-    // (OPparam &arg &va)  note arguments are swapped from 64 bit path
+    // (OPparam &arg &va)
     // call as (OPva_start &va)
     auto earg = e.EV.E1;
     e.EV.E1 = e.EV.E2;
