@@ -80,6 +80,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 compiles, $(D compiles))
     $(RELATIVE_LINK2 toType, $(D toType))
     $(RELATIVE_LINK2 initSymbol, $(D initSymbol))
+    $(RELATIVE_LINK2 parameters, $(D parameters))
 
 $(GNAME TraitsArguments):
     $(GLINK TraitsArgument)
@@ -1769,6 +1770,71 @@ $(H3 $(GNAME initSymbol))
 
             C c = cast(C) ptr;
             assert(c.i == 4);
+        }
+        ---
+
+$(H3 $(GNAME parameters))
+
+        $(P May only be used inside a function. Takes no arguments, and returns
+        a sequence of the enclosing function's parameters.)
+
+        $(P If the function is nested, the parameters returned are those of the
+        inner function, not the outer one.)
+
+        $(P When used inside a $(DDSUBLINK spec/statement, foreach-statement,
+        `foreach` statement) that calls an $(DDSUBLINK spec/statement,
+        foreach_over_struct_and_classes, `opApply` overload), the parameters
+        returned are those of the delegate passed to `opApply`.)
+
+        ---
+        int add(int x, int y)
+        {
+            return x + y;
+        }
+
+        int forwardToAdd(int x, int y)
+        {
+            return add(__traits(parameters));
+            // equivalent to;
+            //return add(x, y);
+        }
+
+        int nestedExample(int x)
+        {
+            // outer function's parameters
+            static assert(typeof(__traits(parameters)).length == 1);
+
+            int add(int x, int y)
+            {
+                // inner function's parameters
+                static assert(typeof(__traits(parameters)).length == 2);
+                return x + y;
+            }
+
+            return add(x, x);
+        }
+
+        class C
+        {
+            int opApply(int delegate(size_t, C) dg)
+            {
+                if (dg(0, this)) return 1;
+                return 0;
+            }
+        }
+
+        void foreachExample(C c, int x)
+        {
+            foreach(idx; 0..5)
+            {
+                // foreach does not call opApply
+                static assert(is(typeof(__traits(parameters)) == AliasSeq!(C, int)));
+            }
+            foreach(idx, elem; c)
+            {
+                // foreach calls opApply
+                static assert(is(typeof(__traits(parameters)) == AliasSeq!(size_t, C)));
+            }
         }
         ---
 
