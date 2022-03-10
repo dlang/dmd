@@ -399,7 +399,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
     {
         super(loc, null, decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", linkage, decl);
-        this.linkage = (linkage == LINK.system) ? target.systemLinkage() : linkage;
+        this.linkage = linkage;
     }
 
     static LinkDeclaration create(const ref Loc loc, LINK p, Dsymbols* decl)

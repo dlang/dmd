@@ -1514,7 +1514,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         TypeFunction tf = toTypeFunction(o, fd);
 
         if (tf)
-            link = tf.linkage;
+        {
+            link = fd ? fd.linkage : tf.linkage;
+        }
         else
         {
             auto s = getDsymbol(o);

@@ -6628,8 +6628,9 @@ struct ASTBase
         final switch (linkage)
         {
         case LINK.default_:
-        case LINK.system:
             return null;
+        case LINK.system:
+            return "System";
         case LINK.d:
             return "D";
         case LINK.c:
