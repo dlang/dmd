@@ -333,6 +333,297 @@ $(H3 $(GNAME toType))
 
         $(RATIONALE Provides the inverse operation of the $(DDSUBLINK spec/property, mangleof, `.mangleof`) property.)
 
+$(H3 $(GNAME isZeroInit))
+
+        $(P Takes one argument which must be a type. If the type's
+        $(DDSUBLINK spec/property, init, default initializer) is all zero
+        bits then `true` is returned, otherwise `false`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S1 { int x; }
+struct S2 { int x = -1; }
+
+static assert(__traits(isZeroInit, S1));
+static assert(!__traits(isZeroInit, S2));
+
+void test()
+{
+    int x = 3;
+    static assert(__traits(isZeroInit, typeof(x)));
+}
+
+// `isZeroInit` will always return true for a class C
+// because `C.init` is null reference.
+
+class C { int x = -1; }
+
+static assert(__traits(isZeroInit, C));
+
+// For initializing arrays of element type `void`.
+static assert(__traits(isZeroInit, void));
+---
+)
+
+$(H3 $(GNAME hasCopyConstructor))
+
+        $(P The argument is a type. If it is a struct with a copy constructor, returns $(D true). Otherwise, return $(D false). Note that a copy constructor is distinct from a postblit.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+
+import std.stdio;
+
+struct S
+{
+}
+
+class C
+{
+}
+
+struct P
+{
+    this(ref P rhs) {}
+}
+
+struct B
+{
+    this(this) {}
+}
+
+void main()
+{
+    writeln(__traits(hasCopyConstructor, S)); // false
+    writeln(__traits(hasCopyConstructor, C)); // false
+    writeln(__traits(hasCopyConstructor, P)); // true
+    writeln(__traits(hasCopyConstructor, B)); // false, this is a postblit
+}
+---
+)
+
+$(H3 $(GNAME hasPostblit))
+
+        $(P The argument is a type. If it is a struct with a postblit, returns $(D true). Otherwise, return $(D false). Note a postblit is distinct from a copy constructor.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+
+import std.stdio;
+
+struct S
+{
+}
+
+class C
+{
+}
+
+struct P
+{
+    this(ref P rhs) {}
+}
+
+struct B
+{
+    this(this) {}
+}
+
+
+void main()
+{
+    writeln(__traits(hasPostblit, S)); // false
+    writeln(__traits(hasPostblit, C)); // false
+    writeln(__traits(hasPostblit, P)); // false, this is a copy ctor
+    writeln(__traits(hasPostblit, B)); // true
+}
+---
+)
+
+$(H3 $(GNAME getAliasThis))
+
+    $(P Takes one argument, a type. If the type has `alias this` declarations,
+        returns a *ValueSeq* of the names (as `string`s) of the members used in
+        those declarations. Otherwise returns an empty sequence.
+    )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+alias AliasSeq(T...) = T;
+
+struct S1
+{
+    string var;
+    alias var this;
+}
+static assert(__traits(getAliasThis, S1) == AliasSeq!("var"));
+static assert(__traits(getAliasThis, int).length == 0);
+
+pragma(msg, __traits(getAliasThis, S1));
+pragma(msg, __traits(getAliasThis, int));
+---
+)
+
+        Prints:
+
+$(CONSOLE
+tuple("var")
+tuple()
+)
+
+$(H3 $(GNAME getPointerBitmap))
+
+    $(P The argument is a type.
+    The result is an array of $(D size_t) describing the memory used by an instance of the given type.
+    )
+    $(P The first element of the array is the size of the type (for classes it is
+    the $(GLINK classInstanceSize)).)
+    $(P The following elements describe the locations of GC managed pointers within the
+    memory occupied by an instance of the type.
+    For type T, there are $(D T.sizeof / size_t.sizeof) possible pointers represented
+    by the bits of the array values.)
+    $(P This array can be used by a precise GC to avoid false pointers.)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void main()
+{
+    static class C
+    {
+        // implicit virtual function table pointer not marked
+        // implicit monitor field not marked, usually managed manually
+        C next;
+        size_t sz;
+        void* p;
+        void function () fn; // not a GC managed pointer
+    }
+
+    static struct S
+    {
+        size_t val1;
+        void* p;
+        C c;
+        byte[] arr;          // { length, ptr }
+        void delegate () dg; // { context, func }
+    }
+
+    static assert (__traits(getPointerBitmap, C) == [6*size_t.sizeof, 0b010100]);
+    static assert (__traits(getPointerBitmap, S) == [7*size_t.sizeof, 0b0110110]);
+}
+---
+)
+
+$(H3 $(GNAME getVirtualFunctions))
+
+        $(P The same as $(GLINK getVirtualMethods), except that
+        final functions that do not override anything are included.
+        )
+
+$(H3 $(GNAME getVirtualMethods))
+
+        $(P The first argument is a class type or an expression of
+        class type.
+        The second argument is a string that matches the name of
+        one of the functions of that class.
+        The result is a symbol sequence of the virtual overloads of that function.
+        It does not include final functions that do not override anything.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+import std.stdio;
+
+class D
+{
+    this() { }
+    ~this() { }
+    void foo() { }
+    int foo(int) { return 2; }
+}
+
+void main()
+{
+    D d = new D();
+
+    foreach (t; __traits(getVirtualMethods, D, "foo"))
+        writeln(typeid(typeof(t)));
+
+    alias b = typeof(__traits(getVirtualMethods, D, "foo"));
+    foreach (t; b)
+        writeln(typeid(t));
+
+    auto i = __traits(getVirtualMethods, d, "foo")[1](1);
+    writeln(i);
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+void()
+int()
+void()
+int()
+2
+)
+
+$(H3 $(GNAME classInstanceSize))
+
+        $(P Takes a single argument, which must evaluate to either
+        a class type or an expression of class type.
+        The result
+        is of type $(CODE size_t), and the value is the number of
+        bytes in the runtime instance of the class type.
+        It is based on the static type of a class, not the
+        polymorphic type.
+        )
+
+$(H3 $(GNAME initSymbol))
+
+        $(P Takes a single argument, which must evaluate to a `class`, `struct` or `union` type.
+            Returns a `const(void)[]` that holds the initial state of any instance of the supplied type.
+            The slice is constructed for any type `T` as follows:
+
+            - `ptr` points to either the initializer symbol of `T`
+               or `null` if `T` is a zero-initialized struct / unions.
+
+            - `length` is equal to the size of an instance, i.e. `T.sizeof` for structs / unions and
+              $(RELATIVE_LINK2 classInstanceSize, $(D __traits(classInstanceSize, T)`)) for classes.
+        )
+
+        $(P
+            This trait matches the behaviour of `TypeInfo.initializer()` but can also be used when
+            `TypeInfo` is not available.
+        )
+
+        $(P
+            This traits is not available during $(DDSUBLINK glossary, ctfe, CTFE) because the actual address
+            of the initializer symbol will be set by the linker and hence is not available at compile time.
+        )
+
+        ---
+        class C
+        {
+            int i = 4;
+        }
+
+        /// Initializes a malloc'ed instance of `C`
+        void main()
+        {
+            const void[] initSym = __traits(initSymbol, C);
+
+            void* ptr = malloc(initSym.length);
+            scope (exit) free(ptr);
+
+            ptr[0..initSym.length] = initSym[];
+
+            C c = cast(C) ptr;
+            assert(c.i == 4);
+        }
+        ---
+
 
 $(H2 $(LNAME2 functions, Function Traits))
 
@@ -738,6 +1029,71 @@ static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "la
 ---
 )
 
+$(H3 $(GNAME parameters))
+
+        $(P May only be used inside a function. Takes no arguments, and returns
+        a sequence of the enclosing function's parameters.)
+
+        $(P If the function is nested, the parameters returned are those of the
+        inner function, not the outer one.)
+
+        $(P When used inside a $(DDSUBLINK spec/statement, foreach-statement,
+        `foreach` statement) that calls an $(DDSUBLINK spec/statement,
+        foreach_over_struct_and_classes, `opApply` overload), the parameters
+        returned are those of the delegate passed to `opApply`.)
+
+        ---
+        int add(int x, int y)
+        {
+            return x + y;
+        }
+
+        int forwardToAdd(int x, int y)
+        {
+            return add(__traits(parameters));
+            // equivalent to;
+            //return add(x, y);
+        }
+
+        int nestedExample(int x)
+        {
+            // outer function's parameters
+            static assert(typeof(__traits(parameters)).length == 1);
+
+            int add(int x, int y)
+            {
+                // inner function's parameters
+                static assert(typeof(__traits(parameters)).length == 2);
+                return x + y;
+            }
+
+            return add(x, x);
+        }
+
+        class C
+        {
+            int opApply(int delegate(size_t, C) dg)
+            {
+                if (dg(0, this)) return 1;
+                return 0;
+            }
+        }
+
+        void foreachExample(C c, int x)
+        {
+            foreach(idx; 0..5)
+            {
+                // foreach does not call opApply
+                static assert(is(typeof(__traits(parameters)) == AliasSeq!(C, int)));
+            }
+            foreach(idx, elem; c)
+            {
+                // foreach calls opApply
+                static assert(is(typeof(__traits(parameters)) == AliasSeq!(size_t, C)));
+            }
+        }
+        ---
+
 
 $(H2 $(LNAME2 symbols, Symbol Traits))
 
@@ -773,38 +1129,6 @@ void foo(T)(){}
 static assert(__traits(isTemplate,foo));
 static assert(!__traits(isTemplate,foo!int()));
 static assert(!__traits(isTemplate,"string"));
----
-)
-
-$(H3 $(GNAME isZeroInit))
-
-        $(P Takes one argument which must be a type. If the type's
-        $(DDSUBLINK spec/property, init, default initializer) is all zero
-        bits then `true` is returned, otherwise `false`.)
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-struct S1 { int x; }
-struct S2 { int x = -1; }
-
-static assert(__traits(isZeroInit, S1));
-static assert(!__traits(isZeroInit, S2));
-
-void test()
-{
-    int x = 3;
-    static assert(__traits(isZeroInit, typeof(x)));
-}
-
-// `isZeroInit` will always return true for a class C
-// because `C.init` is null reference.
-
-class C { int x = -1; }
-
-static assert(__traits(isZeroInit, C));
-
-// For initializing arrays of element type `void`.
-static assert(__traits(isZeroInit, void));
 ---
 )
 
@@ -873,83 +1197,6 @@ void main()
 ---
 )
 
-$(H3 $(GNAME hasCopyConstructor))
-
-        $(P The argument is a type. If it is a struct with a copy constructor, returns $(D true). Otherwise, return $(D false). Note that a copy constructor is distinct from a postblit.
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-
-import std.stdio;
-
-struct S
-{
-}
-
-class C
-{
-}
-
-struct P
-{
-    this(ref P rhs) {}
-}
-
-struct B
-{
-    this(this) {}
-}
-
-void main()
-{
-    writeln(__traits(hasCopyConstructor, S)); // false
-    writeln(__traits(hasCopyConstructor, C)); // false
-    writeln(__traits(hasCopyConstructor, P)); // true
-    writeln(__traits(hasCopyConstructor, B)); // false, this is a postblit
-}
----
-)
-
-$(H3 $(GNAME hasPostblit))
-
-        $(P The argument is a type. If it is a struct with a postblit, returns $(D true). Otherwise, return $(D false). Note a postblit is distinct from a copy constructor.
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-
-import std.stdio;
-
-struct S
-{
-}
-
-class C
-{
-}
-
-struct P
-{
-    this(ref P rhs) {}
-}
-
-struct B
-{
-    this(this) {}
-}
-
-
-void main()
-{
-    writeln(__traits(hasPostblit, S)); // false
-    writeln(__traits(hasPostblit, C)); // false
-    writeln(__traits(hasPostblit, P)); // false, this is a copy ctor
-    writeln(__traits(hasPostblit, B)); // true
-}
----
-)
-
 $(H3 $(GNAME identifier))
 
         $(P Takes one argument, a symbol. Returns the identifier
@@ -965,37 +1212,6 @@ pragma(msg, typeof(__traits(identifier, var))); // string
 writeln(var);                                   // 123
 writeln(__traits(identifier, var));             // "var"
 ---
-)
-
-$(H3 $(GNAME getAliasThis))
-
-    $(P Takes one argument, a type. If the type has `alias this` declarations,
-        returns a *ValueSeq* of the names (as `string`s) of the members used in
-        those declarations. Otherwise returns an empty sequence.
-    )
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-alias AliasSeq(T...) = T;
-
-struct S1
-{
-    string var;
-    alias var this;
-}
-static assert(__traits(getAliasThis, S1) == AliasSeq!("var"));
-static assert(__traits(getAliasThis, int).length == 0);
-
-pragma(msg, __traits(getAliasThis, S1));
-pragma(msg, __traits(getAliasThis, int));
----
-)
-
-        Prints:
-
-$(CONSOLE
-tuple("var")
-tuple()
 )
 
 $(SECTION3 $(GNAME getAttributes),
@@ -1161,47 +1377,6 @@ bar(T)()
 bar(int n)
 )
 
-$(H3 $(GNAME getPointerBitmap))
-
-    $(P The argument is a type.
-    The result is an array of $(D size_t) describing the memory used by an instance of the given type.
-    )
-    $(P The first element of the array is the size of the type (for classes it is
-    the $(GLINK classInstanceSize)).)
-    $(P The following elements describe the locations of GC managed pointers within the
-    memory occupied by an instance of the type.
-    For type T, there are $(D T.sizeof / size_t.sizeof) possible pointers represented
-    by the bits of the array values.)
-    $(P This array can be used by a precise GC to avoid false pointers.)
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-void main()
-{
-    static class C
-    {
-        // implicit virtual function table pointer not marked
-        // implicit monitor field not marked, usually managed manually
-        C next;
-        size_t sz;
-        void* p;
-        void function () fn; // not a GC managed pointer
-    }
-
-    static struct S
-    {
-        size_t val1;
-        void* p;
-        C c;
-        byte[] arr;          // { length, ptr }
-        void delegate () dg; // { context, func }
-    }
-
-    static assert (__traits(getPointerBitmap, C) == [6*size_t.sizeof, 0b010100]);
-    static assert (__traits(getPointerBitmap, S) == [7*size_t.sizeof, 0b0110110]);
-}
----
-)
-
 $(H3 $(GNAME getCppNamespaces))
     $(P The argument is a symbol.
     The result is a *ValueSeq* of strings, possibly empty, that correspond to the namespaces the symbol resides in.
@@ -1285,61 +1460,6 @@ version (CppRuntime_Microsoft)
         $(LI $(D "floatAbi") - Floating point ABI; may be $(D "hard"), $(D "soft"), or $(D "softfp"))
         $(LI $(D "objectFormat") - Target object format)
         )
-
-$(H3 $(GNAME getVirtualFunctions))
-
-        $(P The same as $(GLINK getVirtualMethods), except that
-        final functions that do not override anything are included.
-        )
-
-$(H3 $(GNAME getVirtualMethods))
-
-        $(P The first argument is a class type or an expression of
-        class type.
-        The second argument is a string that matches the name of
-        one of the functions of that class.
-        The result is a symbol sequence of the virtual overloads of that function.
-        It does not include final functions that do not override anything.
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-import std.stdio;
-
-class D
-{
-    this() { }
-    ~this() { }
-    void foo() { }
-    int foo(int) { return 2; }
-}
-
-void main()
-{
-    D d = new D();
-
-    foreach (t; __traits(getVirtualMethods, D, "foo"))
-        writeln(typeid(typeof(t)));
-
-    alias b = typeof(__traits(getVirtualMethods, D, "foo"));
-    foreach (t; b)
-        writeln(typeid(t));
-
-    auto i = __traits(getVirtualMethods, d, "foo")[1](1);
-    writeln(i);
-}
----
-)
-
-        Prints:
-
-$(CONSOLE
-void()
-int()
-void()
-int()
-2
-)
 
 $(H3 $(GNAME getUnitTests))
 
@@ -1473,17 +1593,6 @@ $(CONSOLE
 6
 8
 )
-
-$(H3 $(GNAME classInstanceSize))
-
-        $(P Takes a single argument, which must evaluate to either
-        a class type or an expression of class type.
-        The result
-        is of type $(CODE size_t), and the value is the number of
-        bytes in the runtime instance of the class type.
-        It is based on the static type of a class, not the
-        polymorphic type.
-        )
 
 $(H3 $(GNAME allMembers))
 
@@ -1728,115 +1837,6 @@ void main()
         $(LI Doing a finer grained specialization than template
         partial specialization allows for.)
         )
-
-$(H3 $(GNAME initSymbol))
-
-        $(P Takes a single argument, which must evaluate to a `class`, `struct` or `union` type.
-            Returns a `const(void)[]` that holds the initial state of any instance of the supplied type.
-            The slice is constructed for any type `T` as follows:
-
-            - `ptr` points to either the initializer symbol of `T`
-               or `null` if `T` is a zero-initialized struct / unions.
-
-            - `length` is equal to the size of an instance, i.e. `T.sizeof` for structs / unions and
-              $(RELATIVE_LINK2 classInstanceSize, $(D __traits(classInstanceSize, T)`)) for classes.
-        )
-
-        $(P
-            This trait matches the behaviour of `TypeInfo.initializer()` but can also be used when
-            `TypeInfo` is not available.
-        )
-
-        $(P
-            This traits is not available during $(DDSUBLINK glossary, ctfe, CTFE) because the actual address
-            of the initializer symbol will be set by the linker and hence is not available at compile time.
-        )
-
-        ---
-        class C
-        {
-            int i = 4;
-        }
-
-        /// Initializes a malloc'ed instance of `C`
-        void main()
-        {
-            const void[] initSym = __traits(initSymbol, C);
-
-            void* ptr = malloc(initSym.length);
-            scope (exit) free(ptr);
-
-            ptr[0..initSym.length] = initSym[];
-
-            C c = cast(C) ptr;
-            assert(c.i == 4);
-        }
-        ---
-
-$(H3 $(GNAME parameters))
-
-        $(P May only be used inside a function. Takes no arguments, and returns
-        a sequence of the enclosing function's parameters.)
-
-        $(P If the function is nested, the parameters returned are those of the
-        inner function, not the outer one.)
-
-        $(P When used inside a $(DDSUBLINK spec/statement, foreach-statement,
-        `foreach` statement) that calls an $(DDSUBLINK spec/statement,
-        foreach_over_struct_and_classes, `opApply` overload), the parameters
-        returned are those of the delegate passed to `opApply`.)
-
-        ---
-        int add(int x, int y)
-        {
-            return x + y;
-        }
-
-        int forwardToAdd(int x, int y)
-        {
-            return add(__traits(parameters));
-            // equivalent to;
-            //return add(x, y);
-        }
-
-        int nestedExample(int x)
-        {
-            // outer function's parameters
-            static assert(typeof(__traits(parameters)).length == 1);
-
-            int add(int x, int y)
-            {
-                // inner function's parameters
-                static assert(typeof(__traits(parameters)).length == 2);
-                return x + y;
-            }
-
-            return add(x, x);
-        }
-
-        class C
-        {
-            int opApply(int delegate(size_t, C) dg)
-            {
-                if (dg(0, this)) return 1;
-                return 0;
-            }
-        }
-
-        void foreachExample(C c, int x)
-        {
-            foreach(idx; 0..5)
-            {
-                // foreach does not call opApply
-                static assert(is(typeof(__traits(parameters)) == AliasSeq!(C, int)));
-            }
-            foreach(idx, elem; c)
-            {
-                // foreach calls opApply
-                static assert(is(typeof(__traits(parameters)) == AliasSeq!(size_t, C)));
-            }
-        }
-        ---
 
 $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
 
