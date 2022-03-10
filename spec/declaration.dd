@@ -104,21 +104,11 @@ $(GNAME Initializer):
 
 $(GNAME NonVoidInitializer):
     $(GLINK2 expression, AssignExpression)$(LEGACY_LNAME2 ExpInitializer)
-    $(GLINK ArrayInitializer)
+    $(GLINK2 expression, ArrayLiteral)$(LEGACY_LNAME2 ArrayInitializer)
     $(GLINK2 struct, StructInitializer)$(LEGACY_LNAME2 StructInitializer)
-
-$(GNAME ArrayInitializer):
-    $(D [) $(GLINK ArrayMemberInitializations)$(OPT) $(D ])
-
-$(GNAME ArrayMemberInitializations):
-    $(GLINK ArrayMemberInitialization)
-    $(GLINK ArrayMemberInitialization) $(D ,)
-    $(GLINK ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
-
-$(GNAME ArrayMemberInitialization):
-    $(GLINK NonVoidInitializer)
-    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK NonVoidInitializer)
 )
+
+$(P See also $(GLINK VoidInitializer).)
 
 $(H2 $(LNAME2 declaration_syntax, Declaration Syntax))
 
