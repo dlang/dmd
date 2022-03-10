@@ -150,7 +150,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
 
-    if (params.usage)
+    if (dmdParams.usage)
     {
         usage();
         return EXIT_SUCCESS;
@@ -202,7 +202,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         foreach (n; params)
         {
             s ~= q{
-                if (params.}~n~q{Usage)
+                if (dmdParams.}~n~q{Usage)
                     return printHelpUsage(CLIUsage.}~n~q{Usage);
             };
         }
@@ -1518,7 +1518,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     static string checkOptionsMixin(string usageFlag, string missingMsg)
     {
         return q{
-            final switch (checkOptions(arg[len - 1 .. $], params.}~usageFlag~","~
+            final switch (checkOptions(arg[len - 1 .. $], dmdParams.}~usageFlag~","~
                           `"`~missingMsg~`"`~q{))
             {
                 case CheckOptions.error:
@@ -1596,7 +1596,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 if (arg == "/?")
                 {
-                    params.usage = true;
+                    dmdParams.usage = true;
                     return false;
                 }
             }
@@ -1638,7 +1638,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 errorInvalidSwitch(p);
-                params.checkActionUsage = true;
+                dmdParams.checkActionUsage = true;
                 return false;
             }
         }
@@ -1701,7 +1701,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                   check(checkarg, "switch",    params.useSwitchError)))
             {
                 errorInvalidSwitch(p);
-                params.checkUsage = true;
+                dmdParams.checkUsage = true;
                 return false;
             }
         }
@@ -1958,14 +1958,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     break;
                 default:
                     errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                    params.mcpuUsage = true;
+                    dmdParams.mcpuUsage = true;
                     return false;
                 }
             }
             else
             {
                 errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                params.mcpuUsage = true;
+                dmdParams.mcpuUsage = true;
                 return false;
             }
         }
@@ -2027,7 +2027,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 error("Switch `%s` is invalid", p);
-                params.externStdUsage = true;
+                dmdParams.externStdUsage = true;
                 return false;
             }
         }
@@ -2065,7 +2065,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("Transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            dmdParams.transitionUsage = true;
                             return false;
                     }
                 }
@@ -2085,12 +2085,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("Transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            dmdParams.transitionUsage = true;
                             return false;
                     }
                 }
                 errorInvalidSwitch(p);
-                params.transitionUsage = true;
+                dmdParams.transitionUsage = true;
                 return false;
             }
         }
@@ -2105,7 +2105,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             if (!parseCLIOption!("preview", Usage.previews)(params, arg))
             {
                 error("Preview `%s` is invalid", p);
-                params.previewUsage = true;
+                dmdParams.previewUsage = true;
                 return false;
             }
 
@@ -2128,7 +2128,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             if (!parseCLIOption!("revert", Usage.reverts)(params, arg))
             {
                 error("Revert `%s` is invalid", p);
-                params.revertUsage = true;
+                dmdParams.revertUsage = true;
                 return false;
             }
         }
@@ -2228,7 +2228,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         break;
                     default:
                         errorInvalidSwitch(p);
-                        params.hcUsage = true;
+                        dmdParams.hcUsage = true;
                         return false;
                 }
                 break;
@@ -2458,7 +2458,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "--help" ||
                  arg == "-h")
         {
-            params.usage = true;
+            dmdParams.usage = true;
             return false;
         }
         else if (arg == "--r")
