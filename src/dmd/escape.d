@@ -1275,11 +1275,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     {
         if (log)
         {
-            printf("byref `%s`\n", v.toChars());
-            if (v.storage_class & STC.return_) printf(" return");
-            if (v.storage_class & STC.ref_)    printf(" ref");
-            if (v.storage_class & STC.scope_)  printf(" scope");
-            printf("\n");
+            printf("byref `%s` %s\n", v.toChars(), toChars(buildScopeRef(v.storage_class)));
         }
 
         // 'featureState' tells us whether to emit an error or a deprecation,
