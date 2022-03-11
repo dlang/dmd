@@ -549,14 +549,14 @@ private void _vwarningSupplemental(const ref Loc loc, const(char)* format, va_li
  */
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
-    __gshared const(char)* header = "Deprecation: ";
+    static immutable header = "Deprecation: ";
     if (global.params.useDeprecated == DiagnosticReporting.error)
-        verror(loc, format, ap, p1, p2, header);
+        verror(loc, format, ap, p1, p2, header.ptr);
     else if (global.params.useDeprecated == DiagnosticReporting.inform)
     {
         if (!global.gag)
         {
-            verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
+            verrorPrint(loc, Classification.deprecation, header.ptr, format, ap, p1, p2);
         }
         else
         {
