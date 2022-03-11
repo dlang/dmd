@@ -123,11 +123,10 @@ const(char)* class_str(SC c)
  *      pointer to string
  */
 
-@trusted
-const(char)* oper_str(uint oper)
+const(char)* oper_str(uint oper) pure
 {
     assert(oper < OPMAX);
-    return debtab[oper];
+    return &debtab[oper][0];
 }
 
 /*******************************
