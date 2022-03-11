@@ -2981,8 +2981,7 @@ public:
             Expression e2 = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            *pue = pointerDifference(e.loc, e.type, e1, e2);
-            result = (*pue).exp();
+            result = pointerDifference(pue, e.loc, e.type, e1, e2);
             return;
         }
         if (e.e1.type.ty == Tpointer && e.e2.type.isintegral())
@@ -2995,8 +2994,7 @@ public:
             Expression e2 = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            *pue = pointerArithmetic(e.loc, e.op, e.type, e1, e2);
-            result = (*pue).exp();
+            result = pointerArithmetic(pue, e.loc, e.op, e.type, e1, e2);
             return;
         }
         if (e.e2.type.ty == Tpointer && e.e1.type.isintegral() && e.op == EXP.add)
@@ -3009,8 +3007,7 @@ public:
             Expression e2 = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(e2))
                 return;
-            *pue = pointerArithmetic(e.loc, e.op, e.type, e2, e1);
-            result = (*pue).exp();
+            result = pointerArithmetic(pue, e.loc, e.op, e.type, e2, e1);
             return;
         }
         if (e.e1.type.ty == Tpointer || e.e2.type.ty == Tpointer)
@@ -3602,7 +3599,9 @@ public:
                       e.op == EXP.plusPlus ||
                       e.op == EXP.minusMinus))
             {
-                newval = pointerArithmetic(e.loc, e.op, e.type, oldval, newval).copy();
+                newval = pointerArithmetic(pue, e.loc, e.op, e.type, oldval, newval).copy();
+                if (newval == pue.exp())
+                    newval = pue.copy();
             }
             else
             {
@@ -3675,7 +3674,9 @@ public:
             UnionExp utmp = void;
             oldval = resolveSlice(oldval, &utmp);
 
-            newval = changeArrayLiteralLength(e.loc, cast(TypeArray)t, oldval, oldlen, newlen).copy();
+            newval = changeArrayLiteralLength(pue, e.loc, cast(TypeArray)t, oldval, oldlen, newlen);
+            if (newval == pue.exp())
+                newval = pue.copy();
 
             e1 = assignToLvalue(e, e1, newval);
             if (exceptionOrCant(e1))
