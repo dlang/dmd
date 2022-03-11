@@ -1707,9 +1707,10 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
                     {
                         Parameter p = tf.parameterList[i - j];
                         const stc = tf.parameterStorageClass(null, p);
-                        if ((stc & (STC.scope_)) && (stc & STC.return_))
+                        ScopeRef psr = buildScopeRef(stc);
+                        if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
                             arg.accept(this);
-                        else if ((stc & (STC.ref_)) && (stc & STC.return_))
+                        else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
                         {
                             if (tf.isref)
                             {
@@ -1967,9 +1968,10 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                         {
                             Parameter p = tf.parameterList[i - j];
                             const stc = tf.parameterStorageClass(null, p);
-                            if ((stc & (STC.out_ | STC.ref_)) && (stc & STC.return_))
+                            ScopeRef psr = buildScopeRef(stc);
+                            if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
                                 arg.accept(this);
-                            else if ((stc & STC.scope_) && (stc & STC.return_))
+                            else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
                             {
                                 if (auto de = arg.isDelegateExp())
                                 {
