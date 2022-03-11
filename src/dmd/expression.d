@@ -72,10 +72,15 @@ import dmd.typesem;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
+
 void emplaceExp(T : Expression, Args...)(void* p, Args args)
 {
-    scope tmp = new T(args);
-    memcpy(p, cast(void*)tmp, __traits(classInstanceSize, T));
+    static if (__VERSION__ < 2099)
+        const init = typeid(T).initializer;
+    else
+        const init = __traits(initSymbol, T);
+    p[0 .. __traits(classInstanceSize, T)] = init[];
+    (cast(T)p).__ctor(args);
 }
 
 void emplaceExp(T : UnionExp)(T* p, Expression e)
