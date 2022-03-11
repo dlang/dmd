@@ -415,4 +415,12 @@ enum class PINLINE : uint8_t
     always        // always inline
 };
 
+enum class FileType : uint8_t
+{
+    d,    /// normal D source file
+    dhdr, /// D header file (.di)
+    ddoc, /// Ddoc documentation file (.dd)
+    c,    /// C source file
+};
+
 typedef uinteger_t StorageClass;
