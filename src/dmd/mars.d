@@ -24,6 +24,7 @@ import core.stdc.string;
 
 import dmd.arraytypes;
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.builtin;
 import dmd.cond;
 import dmd.console;
@@ -367,7 +368,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 //            m.deleteObjFile();
 
         m.parse();
-        if (m.isHdrFile)
+        if (m.filetype == FileType.dhdr)
         {
             // Remove m's object file from list of object files
             for (size_t j = 0; j < params.objfiles.length; j++)
@@ -381,7 +382,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             if (params.objfiles.length == 0)
                 params.link = false;
         }
-        if (m.isDocFile)
+        if (m.filetype == FileType.ddoc)
         {
             anydocfiles = true;
             gendocfile(m);
@@ -419,7 +420,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
          */
         foreach (m; modules)
         {
-            if (m.isHdrFile)
+            if (m.filetype == FileType.dhdr)
                 continue;
             if (params.verbose)
                 message("import    %s", m.toChars());

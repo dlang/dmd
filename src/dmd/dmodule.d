@@ -75,7 +75,7 @@ void removeHdrFilesAndFail(ref Param params, ref Modules modules)
     {
         foreach (m; modules)
         {
-            if (m.isHdrFile)
+            if (m.filetype == FileType.dhdr)
                 continue;
             File.remove(m.hdrfile.toChars());
         }
@@ -354,9 +354,7 @@ extern (C++) final class Module : Package
     FileBuffer* srcBuffer;      // set during load(), free'd in parse()
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
-    bool isHdrFile;             // if it is a header (.di) file
-    bool isCFile;               // if it is a C (.c) file
-    bool isDocFile;             // if it is a documentation input file, not D source
+    FileType filetype;          // source file type
     bool hasAlwaysInlines;      // contains references to functions that must be inlined
     bool isPackageFile;         // if it is a package.d
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
@@ -942,7 +940,7 @@ extern (C++) final class Module : Package
         if (buf.length>= 4 && buf[0..4] == "Ddoc")
         {
             comment = buf.ptr + 4;
-            isDocFile = true;
+            filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();
             return this;
@@ -955,7 +953,7 @@ extern (C++) final class Module : Package
         if (FileName.equalsExt(arg, dd_ext))
         {
             comment = buf.ptr; // the optional Ddoc, if present, is handled above.
-            isDocFile = true;
+            filetype = FileType.ddoc;
             if (!docfile)
                 setDocfile();
             return this;
@@ -963,9 +961,7 @@ extern (C++) final class Module : Package
         /* If it has the extension ".di", it is a "header" file.
          */
         if (FileName.equalsExt(arg, hdr_ext))
-        {
-            isHdrFile = true;
-        }
+            filetype = FileType.dhdr;
 
         /// Promote `this` to a root module if requested via `-i`
         void checkCompiledImport()
@@ -982,7 +978,7 @@ extern (C++) final class Module : Package
          */
         if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext))
         {
-            isCFile = true;
+            filetype = FileType.c;
 
             scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c);
             p.nextToken();
@@ -1141,7 +1137,7 @@ extern (C++) final class Module : Package
         //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         if (_scope)
             return; // already done
-        if (isDocFile)
+        if (filetype == FileType.ddoc)
         {
             error("is a Ddoc file, cannot import it");
             return;

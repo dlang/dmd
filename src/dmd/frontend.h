@@ -1686,6 +1686,14 @@ public:
     }
 };
 
+enum class FileType : uint8_t
+{
+    d = 0u,
+    dhdr = 1u,
+    ddoc = 2u,
+    c = 3u,
+};
+
 struct FileBuffer final
 {
     _d_dynamicArray< uint8_t > data;
@@ -6133,9 +6141,7 @@ public:
     FileBuffer* srcBuffer;
     uint32_t errors;
     uint32_t numlines;
-    bool isHdrFile;
-    bool isCFile;
-    bool isDocFile;
+    FileType filetype;
     bool hasAlwaysInlines;
     bool isPackageFile;
     Package* pkg;
