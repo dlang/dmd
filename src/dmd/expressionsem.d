@@ -2513,7 +2513,7 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-private extern (C++) final class ExpressionSemanticVisitor : Visitor
+private extern (C++) class ExpressionSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
 
@@ -2587,7 +2587,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp;
             return;
         }
-
+        //This was rewritten during the semantic analysis of a with expression
+        if (exp.hasBeenRewritten)
+        {
+            result = exp.symbolWithIdent.expressionSemantic(sc);
+            return;
+        }
         Dsymbol scopesym;
         Dsymbol s = sc.search(exp.loc, exp.ident, &scopesym);
         if (s)
@@ -4029,7 +4034,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        //printf("td = %p, treq = %p\n", td, fd.treq);
+        //printf("td = %p, treq = %p\n", exp.td, exp.fd.treq);
         if (exp.td)
         {
             assert(exp.td.parameters && exp.td.parameters.dim);
@@ -7373,7 +7378,112 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         result = e;
     }
+    override void visit(WithExp exp)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("WithExp::semantic('%s')\n", exp.wrt.toChars());
+        }
+        //We need to know what the with(...) contains
+        exp.wrt = exp.wrt.expressionSemantic(sc);
+        exp.wrt = resolveProperties(sc, exp.wrt);
+        exp.wrt = exp.wrt.optimize(WANTvalue);
 
+        //This unpropitiative type is to initialize any temporary we declare, see below
+        DeclarationExp var;
+
+        /*
+            Just substituting the expression into identifiers we collect below is not good enough.
+
+            If wrt is an rvalue then we need to copy it (so it's only evaluated once).
+
+            To mimic a WithStatement, if we have something with pointer type, then we need to transform it
+            from expr to *(expr)
+        */
+
+        //TypeExp's are considered non-lvalues, but can't be copied to a temporary
+        if (!(exp.wrt.isLvalue() || exp.wrt.isTypeExp()))
+        {
+            auto tempVar = copyToTemp(STC.exptemp, "__withexp_temp", exp.wrt);
+            exp.wrt = new VarExp(exp.loc, tempVar);
+            var = (new DeclarationExp(exp.wrt.loc, tempVar)).expressionSemantic(sc).isDeclarationExp();
+            exp.wrt = exp.wrt.expressionSemantic(sc);
+            //N.B. a syntax copy might be needed in here for some edge case
+        }
+        Type base = exp.wrt.type.toBasetype();
+
+        if (base.isTypePointer())
+        {
+            exp.wrt = (new PtrExp(exp.loc, exp.wrt)).expressionSemantic(sc);
+        }
+
+        extern (C++) class IdentifierWalk : StoppableVisitor
+        {
+        private:
+            Scope* sc;
+            Expression withExpSym;
+        public:
+            alias visit = typeof(super).visit;
+            this(Scope* sc, Expression e)
+            {
+                this.sc = sc;
+                this.withExpSym = e;
+            }
+            void rewrite(IdentifierExp e)
+            {
+                Identifier ident = e.ident;
+                Dsymbol lsearch(const ref Loc loc, Identifier x)
+                {
+                    Dsymbol s = null;
+                    Expression eold = null;
+                    for (Expression e = withExpSym; e && e != eold; e = resolveAliasThis(sc, e, true))
+                    {
+                        if (auto sE = e.isScopeExp())
+                        {
+                            s = sE.sds;
+                        }
+                        else if (auto tE = e.isTypeExp())
+                        {
+                            s = tE.type.toBasetype.toDsymbol(null);
+                        }
+                        else
+                        {
+                            Type t = e.type.toBasetype();
+                            s = t.toDsymbol(null);
+                        }
+                        if (s)
+                        {
+                            s = s.search(loc, ident);
+                            if (s)
+                                return s;
+                        }
+                        eold = e;
+                    }
+                    return null;
+                }
+                if (auto p = lsearch(e.loc, ident))
+                {
+                    e.symbolWithIdent = new DotIdExp(e.loc, withExpSym, ident);
+                    e.hasBeenRewritten = true;
+                }
+            }
+            override void visit(IdentifierExp exp) {
+                rewrite(exp);
+            }
+            override void visit(Expression) {}
+        }
+        scope v = new IdentifierWalk(sc, exp.wrt);
+        import dmd.apply : walkPostorder;
+        //Rewrite identifiers beneath us as set out above
+        walkPostorder(exp.e1, v);
+        //If `var` was set then we need to use a CommaExp to initialize it properly
+        auto innerSema = (var ? new CommaExp(exp.loc, var, exp.e1) : exp.e1).expressionSemantic(sc);
+
+        if (innerSema.isError)
+            return setError();
+        result = innerSema;
+        return;
+    }
     override void visit(CastExp exp)
     {
         static if (LOGSEMANTIC)

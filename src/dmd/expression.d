@@ -2222,7 +2222,16 @@ extern (C++) final class ComplexExp : Expression
  */
 extern (C++) class IdentifierExp : Expression
 {
-    Identifier ident;
+    ///The pseudo-sumtype probably has to stay, but the interface is the stuff of nightmares.
+    //If you're reading this, dear reviewer, I haven't made it safe yet.
+    union
+    {
+        Identifier ident;
+        ///To support with expressions
+        DotIdExp   symbolWithIdent;
+    }
+    ///Safe to access ident
+    bool hasBeenRewritten = false;
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
@@ -2250,7 +2259,6 @@ extern (C++) class IdentifierExp : Expression
         v.visit(this);
     }
 }
-
 /***********************************************************
  * The dollar operator used when indexing or slicing an array. E.g `a[$]`, `a[1 .. $]` etc.
  *
@@ -5459,7 +5467,27 @@ extern (C++) final class VectorExp : UnaExp
         v.visit(this);
     }
 }
+extern (C++) final class WithExp : UnaExp
+{
+    //Same deal as a WithStatement.
+    Expression wrt;
 
+    extern (D) this(const ref Loc loc, Expression e, Expression w)
+    {
+        super(loc, EXP.withExp, __traits(classInstanceSize, WithExp), e);
+        this.wrt = w;
+    }
+
+    override WithExp syntaxCopy()
+    {
+        return new WithExp(this.loc, this.e1.syntaxCopy, this.wrt.syntaxCopy);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
 /***********************************************************
  * e1.array property for vectors.
  *

@@ -5162,6 +5162,11 @@ extern (C++) class ToElemVisitor : Visitor
         //printf("ClassReferenceExp.toElem() %p, value=%p, %s\n", e, e.value, e.toChars());
         result = el_ptr(toSymbol(e));
     }
+
+    override void visit(WithExp exp)
+    {
+        assert(0);
+    }
 }
 
 /******************************************

@@ -8448,7 +8448,20 @@ LagainStc:
             e = parseUnaryExp();
             e = new AST.DeleteExp(loc, e, false);
             break;
-
+        case TOK.with_:
+            {
+                if (!global.params.withExpressions)
+                    error("with expressions are not enabled — enable them with `-preview=withExpressions`");
+                //with expression - with(x) y;
+                nextToken();
+                check(TOK.leftParenthesis);
+                auto lhs = parseAssignExp();
+                check(TOK.rightParenthesis);
+                auto rhs = parseUnaryExp();
+                //First expression parameter to the constructor is y
+                e = new AST.WithExp(loc, rhs, lhs);
+                break;
+            }
         case TOK.cast_: // cast(type) expression
             {
                 nextToken();
@@ -9413,6 +9426,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.newAnonymousClass : PREC.unary,
     EXP.cast_ : PREC.unary,
     EXP.throw_ : PREC.unary,
+    EXP.withExp: PREC.unary,
 
     EXP.vector : PREC.unary,
     EXP.pow : PREC.pow,

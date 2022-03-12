@@ -166,6 +166,7 @@ extern (C++) struct Param
                             // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
                             // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
                             // Implementation: https://github.com/dlang/dmd/pull/9817
+    bool withExpressions = false;
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
