@@ -255,10 +255,6 @@ extern (C++) class Dsymbol : ASTNode
     DeprecatedDeclaration depdecl;           // customized deprecation message
     UserAttributeDeclaration userAttribDecl;    // user defined attributes
 
-    // !=null means there's a ddoc unittest associated with this symbol
-    // (only use this with ddoc)
-    UnitTestDeclaration ddocUnittest;
-
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
@@ -1248,6 +1244,29 @@ extern (C++) class Dsymbol : ASTNode
     private extern (D) __gshared const(char)*[void*] commentHashTable;
 
 
+    /**********************************
+     * Get ddoc unittest associated with this symbol.
+     * (only use this with ddoc)
+     * Returns: ddoc unittest, null if none
+     */
+    final UnitTestDeclaration ddocUnittest()
+    {
+        if (auto p = cast(void*)this in ddocUnittestHashTable)
+            return *p;
+        return null;
+    }
+
+    /**********************************
+     * Set ddoc unittest associated with this symbol.
+     */
+    final void ddocUnittest(UnitTestDeclaration utd)
+    {
+        ddocUnittestHashTable[cast(void*)this] = utd;
+    }
+
+    private extern (D) __gshared UnitTestDeclaration[void*] ddocUnittestHashTable;
+
+
     /****************************************
      * Returns true if this symbol is defined in a non-root module without instantiation.
      */
@@ -1279,6 +1298,7 @@ extern (C++) class Dsymbol : ASTNode
     static void deinitialize()
     {
         commentHashTable = commentHashTable.init;
+        ddocUnittestHashTable = ddocUnittestHashTable.init;
     }
 
     /************
