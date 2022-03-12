@@ -5893,7 +5893,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
                 override void visit(Dsymbol d)
                 {
                     if (d._scope)
+                    {
+                        d._scope.tinst = inst;
                         d._scope.minst = inst.minst;
+                    }
                 }
 
                 override void visit(ScopeDsymbol sds)
