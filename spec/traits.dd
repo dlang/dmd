@@ -1037,11 +1037,6 @@ $(H3 $(GNAME parameters))
         $(P If the function is nested, the parameters returned are those of the
         inner function, not the outer one.)
 
-        $(P When used inside a $(DDSUBLINK spec/statement, foreach-statement,
-        `foreach` statement) that calls an $(DDSUBLINK spec/statement,
-        foreach_over_struct_and_classes, `opApply` overload), the parameters
-        returned are those of the delegate passed to `opApply`.)
-
         ---
         int add(int x, int y)
         {
@@ -1083,13 +1078,12 @@ $(H3 $(GNAME parameters))
         {
             foreach(idx; 0..5)
             {
-                // foreach does not call opApply
                 static assert(is(typeof(__traits(parameters)) == AliasSeq!(C, int)));
             }
             foreach(idx, elem; c)
             {
-                // foreach calls opApply
-                static assert(is(typeof(__traits(parameters)) == AliasSeq!(size_t, C)));
+                //  __traits(parameters) sees past the delegate passed to opApply
+                static assert(is(typeof(__traits(parameters)) == AliasSeq!(C, int)));
             }
         }
         ---
