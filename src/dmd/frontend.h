@@ -3568,6 +3568,7 @@ private:
         inoutParam = 1024u,
         inoutQual = 2048u,
         isctor = 4096u,
+        isreturnscope = 8192u,
     };
 
 public:
@@ -3598,6 +3599,8 @@ public:
     void isref(bool v);
     bool isreturn() const;
     void isreturn(bool v);
+    bool isreturnscope() const;
+    void isreturnscope(bool v);
     bool isScopeQual() const;
     void isScopeQual(bool v);
     bool isreturninferred() const;
