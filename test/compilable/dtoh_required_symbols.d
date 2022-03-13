@@ -131,7 +131,7 @@ struct ExternCppStruct final
         st()
     {
     }
-    ExternCppStruct(ExternDStruct s, ExternDEnum e = (ExternDEnum)0, ExternDStructTemplate< > st = ExternDStructTemplate< >(0, NAN)) :
+    ExternCppStruct(ExternDStruct s, ExternDEnum e = (ExternDEnum)0, ExternDStructTemplate< > st = ExternDStructTemplate< >()) :
         s(s),
         e(e),
         st(st)
