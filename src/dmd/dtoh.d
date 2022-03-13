@@ -860,7 +860,7 @@ public:
             origType = vd.originalType;
         scope(exit) origType = null;
 
-        if (!vd.alignment.isDefault())
+        if (!vd.alignment.isDefault() && !vd.alignment.isUnknown())
         {
             buf.printf("// Ignoring var %s alignment %d", vd.toChars(), vd.alignment.get());
             buf.writenl();
