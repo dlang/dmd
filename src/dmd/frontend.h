@@ -402,14 +402,10 @@ typedef uint64_t size_t;
 template <typename T>
 struct Array final
 {
-    // Ignoring var length alignment 0
     size_t length;
-    // Ignoring var data alignment 0
     _d_dynamicArray< T > data;
-    // Ignoring var SMALLARRAYCAP alignment 0
     enum : int32_t { SMALLARRAYCAP = 1 };
 
-    // Ignoring var smallarray alignment 0
     T smallarray[SMALLARRAYCAP];
     Array(size_t dim);
     ~Array();
@@ -1442,9 +1438,7 @@ enum class MATCH
 template <typename T>
 struct Optional final
 {
-    // Ignoring var value alignment 0
     T value;
-    // Ignoring var present alignment 0
     bool present;
     Optional(T value);
     static Optional<T > create(T val);
@@ -1737,7 +1731,6 @@ struct File final
 template <typename K, typename V>
 struct AssocArray final
 {
-    // Ignoring var aa alignment 0
     AA* aa;
     AssocArray()
     {
@@ -5187,15 +5180,10 @@ struct StringEntry final
 template <typename T>
 struct StringTable final
 {
-    // Ignoring var table alignment 0
     _d_dynamicArray< StringEntry > table;
-    // Ignoring var pools alignment 0
     _d_dynamicArray< uint8_t* > pools;
-    // Ignoring var nfill alignment 0
     size_t nfill;
-    // Ignoring var count alignment 0
     size_t count;
-    // Ignoring var countTrigger alignment 0
     size_t countTrigger;
     ~StringTable();
     StringTable()
@@ -7774,27 +7762,16 @@ struct Target final
     template <typename T>
     struct FPTypeProperties final
     {
-        // Ignoring var max alignment 0
         real_t max;
-        // Ignoring var min_normal alignment 0
         real_t min_normal;
-        // Ignoring var nan alignment 0
         real_t nan;
-        // Ignoring var infinity alignment 0
         real_t infinity;
-        // Ignoring var epsilon alignment 0
         real_t epsilon;
-        // Ignoring var dig alignment 0
         d_int64 dig;
-        // Ignoring var mant_dig alignment 0
         d_int64 mant_dig;
-        // Ignoring var max_exp alignment 0
         d_int64 max_exp;
-        // Ignoring var min_exp alignment 0
         d_int64 min_exp;
-        // Ignoring var max_10_exp alignment 0
         d_int64 max_10_exp;
-        // Ignoring var min_10_exp alignment 0
         d_int64 min_10_exp;
         FPTypeProperties()
         {

@@ -65,9 +65,7 @@ enum class ExternDEnum
 template <>
 struct ExternDStructTemplate final
 {
-    // Ignoring var i alignment 0
     int32_t i;
-    // Ignoring var d alignment 0
     double d;
     ExternDStructTemplate()
     {
