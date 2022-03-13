@@ -18,6 +18,16 @@ struct DMDparams
     bool map;               // generate linker .map file
     bool vasm;              // print generated assembler for each function
 
+    bool usage;             // print usage and exit
+    bool mcpuUsage;         // print help on -mcpu switch
+    bool transitionUsage;   // print help on -transition switch
+    bool checkUsage;        // print help on -check switch
+    bool checkActionUsage;  // print help on -checkaction switch
+    bool revertUsage;       // print help on -revert switch
+    bool previewUsage;      // print help on -preview switch
+    bool externStdUsage;    // print help on -extern-std switch
+    bool hcUsage;           // print help on -HC switch
+
     // Hidden debug switches
     bool debugb;
     bool debugc;
@@ -27,4 +37,4 @@ struct DMDparams
     bool debugy;
 }
 
-shared DMDparams dmdParams = dmdParams.init;
+__gshared DMDparams dmdParams = dmdParams.init;
