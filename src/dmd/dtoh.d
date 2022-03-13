@@ -2681,6 +2681,18 @@ public:
     {
         if (vd._init && !vd._init.isVoidInitializer())
             return AST.initializerToExpression(vd._init);
+        else if (auto ts = vd.type.isTypeStruct())
+        {
+            if (!ts.sym.noDefaultCtor && !ts.sym.isUnionDeclaration())
+            {
+                // Generate a call to the default constructor that we've generated.
+                auto sle = new AST.StructLiteralExp(Loc.initial, ts.sym, new AST.Expressions(0));
+                sle.type = vd.type;
+                return sle;
+            }
+            else
+                return vd.type.defaultInitLiteral(Loc.initial);
+        }
         else
             return vd.type.defaultInitLiteral(Loc.initial);
     }
