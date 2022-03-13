@@ -106,7 +106,8 @@ struct Param
     bool vtemplatesListInstances; // collect and list statistics on template instantiations origins
     bool vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
-    bool vcomplex;      // identify complex/imaginary type usage
+    bool vcomplex;      // deprecate complex and imaginary types
+    bool previewComplex; // remove complex and imaginary types
     bool vin;           // identify 'in' parameters
     unsigned char symdebug;  // insert debug symbolic information
     bool symdebugref;   // insert debug information for all referenced types, too
