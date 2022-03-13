@@ -9,9 +9,9 @@
 
 #pragma once
 
-#include "root/dsystem.h"
-#include "root/dcompat.h"
-#include "root/rmem.h"
+#include "../root/dsystem.h"
+#include "../root/dcompat.h"
+#include "../root/rmem.h"
 
 class RootObject;
 
