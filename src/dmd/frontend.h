@@ -6576,6 +6576,8 @@ public:
     void accept(Visitor* v);
 };
 
+extern void printTemplateStats();
+
 extern void genCppHdrFiles(Array<Module* >& ms);
 
 class DebugSymbol final : public Dsymbol
