@@ -8346,7 +8346,7 @@ struct TemplateStats
     }
 }
 
-void printTemplateStats()
+extern (C++) void printTemplateStats()
 {
     static struct TemplateDeclarationStats
     {
