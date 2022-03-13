@@ -277,7 +277,7 @@ enum TFlags
     complex      = 0x20,
 }
 
-enum PKG : int
+enum PackageKind : int
 {
     unknown,      /// not yet determined whether it's a package.d or not
     module_,      /// already determined that's an actual package.d
@@ -291,7 +291,7 @@ enum ThreeState : ubyte
     yes,   /// state is true
 }
 
-enum TRUST : ubyte
+enum TrustKind : ubyte
 {
     default_   = 0,
     system     = 1,    // @system (same as TRUST.default)
@@ -299,7 +299,7 @@ enum TRUST : ubyte
     safe       = 3,    // @safe
 }
 
-enum PURE : ubyte
+enum PureKind : ubyte
 {
     impure      = 0,    // not pure at all
     fwdref      = 1,    // it's pure, but not known which level yet
@@ -334,7 +334,7 @@ enum VarArg : ubyte
  * Identify Statement types with this enum rather than
  * virtual functions
  */
-enum STMT : ubyte
+enum StatementKind : ubyte
 {
     Error,
     Peel,
@@ -393,7 +393,7 @@ enum InitKind : ubyte
 /// A linkage attribute as defined by `extern(XXX)`
 ///
 /// https://dlang.org/spec/attribute.html#linkage
-enum LINK : ubyte
+enum Linkage : ubyte
 {
     default_,
     d,
@@ -405,7 +405,7 @@ enum LINK : ubyte
 }
 
 /// Whether to mangle an external aggregate as a struct or class, as set by `extern(C++, struct)`
-enum CPPMANGLE : ubyte
+enum CppMangle : ubyte
 {
     def,      /// default
     asStruct, /// `extern(C++, struct)`
@@ -415,7 +415,7 @@ enum CPPMANGLE : ubyte
 /// Function match levels
 ///
 /// https://dlang.org/spec/function.html#function-overloading
-enum MATCH : int
+enum MatchLevel : int
 {
     nomatch,   /// no match
     convert,   /// match with conversions
@@ -424,7 +424,7 @@ enum MATCH : int
 }
 
 /// Inline setting as defined by `pragma(inline, XXX)`
-enum PINLINE : ubyte
+enum PragmaInline : ubyte
 {
     default_, /// as specified on the command line
     never,    /// never inline
