@@ -194,7 +194,6 @@ private:
 public:
     void _init(const Param& params);
     // Type sizes and support.
-    void setTriple(const char* _triple);
     unsigned alignsize(Type *type);
     unsigned fieldalign(Type *type);
     Type *va_listType(const Loc &loc, Scope *sc);  // get type of va_list

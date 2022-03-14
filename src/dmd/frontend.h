@@ -312,7 +312,6 @@ class ScopeGuardStatement;
 class SwitchErrorStatement;
 struct Token;
 struct code;
-struct Triple;
 class Object;
 class TypeInfo_Class;
 class TypeInfo;
@@ -7787,7 +7786,6 @@ private:
 public:
     void _init(const Param& params);
     void setCPU();
-    void setTriple(const Triple& triple);
     void deinitialize();
     uint32_t alignsize(Type* type);
     uint32_t fieldalign(Type* type);
