@@ -2030,19 +2030,27 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
                         return;
                     }
 
-                    if (dve.var.storage_class & STC.return_ || tf.isreturn)
-                    {
-                        if (dve.var.storage_class & STC.ref_ || tf.isref)
-                            dve.e1.accept(this);
-                        else if (dve.var.storage_class & STC.scope_ || tf.isScopeQual)
-                            escapeByValue(dve.e1, er, live);
-                    }
+                    StorageClass stc = dve.var.storage_class & (STC.return_ | STC.scope_ | STC.ref_);
+                    if (tf.isreturn)
+                        stc |= STC.return_;
+                    if (tf.isref)
+                        stc |= STC.ref_;
+                    if (tf.isScopeQual)
+                        stc |= STC.scope_;
+
+                    const psr = buildScopeRef(stc);
+                    if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
+                         dve.e1.accept(this);
+                    else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
+                         escapeByValue(dve.e1, er, live);
+
                     // If it's also a nested function that is 'return ref'
-                    FuncDeclaration fd = dve.var.isFuncDeclaration();
-                    if (fd && fd.isNested())
+                    if (FuncDeclaration fd = dve.var.isFuncDeclaration())
                     {
-                        if (tf.isreturn)
+                        if (fd.isNested() && tf.isreturn)
+                        {
                             er.byexp.push(e);
+                        }
                     }
                 }
                 // If it's a delegate, check it too
