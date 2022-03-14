@@ -280,4 +280,4 @@ void setTriple(ref Target target, const ref Triple triple)
     target.cpp.runtime = triple.cppenv;
 }
 
-shared DMDparams dmdParams = dmdParams.init;
+shared DMDparams driverParams = DMDparams.init;

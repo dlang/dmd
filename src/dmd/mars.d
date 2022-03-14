@@ -1770,7 +1770,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.pic = PIC.pie;
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
-            dmdParams.map = true;
+            driverParams.map = true;
         else if (arg == "-multiobj")
             params.multiobj = true;
         else if (startsWith(p + 1, "mixin="))
@@ -1784,7 +1784,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.symdebug = 1;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
-            if (dmdParams.dwarf)
+            if (driverParams.dwarf)
             {
                 error("`-gdwarf=<version>` can only be provided once");
                 break;
@@ -1794,7 +1794,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-gdwarf=".length;
             // Parse:
             //      -gdwarf=version
-            if (arg.length < len || !dmdParams.dwarf.parseDigits(arg[len .. $], 5) || dmdParams.dwarf < 3)
+            if (arg.length < len || !driverParams.dwarf.parseDigits(arg[len .. $], 5) || driverParams.dwarf < 3)
             {
                 error("`-gdwarf=<version>` requires a valid version [3|4|5]", p);
                 return false;
@@ -1807,7 +1807,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.symdebugref = true;
         }
         else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
-            dmdParams.alwaysframe = true;
+            driverParams.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
             params.stackstomp = true;
         else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
@@ -1867,7 +1867,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
         else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
-            dmdParams.vasm = true;
+            driverParams.vasm = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
@@ -2451,11 +2451,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "--b")
-            dmdParams.debugb = true;
+            driverParams.debugb = true;
         else if (arg == "--c")
-            dmdParams.debugc = true;
+            driverParams.debugc = true;
         else if (arg == "--f")
-            dmdParams.debugf = true;
+            driverParams.debugf = true;
         else if (arg == "--help" ||
                  arg == "-h")
         {
@@ -2463,16 +2463,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             return false;
         }
         else if (arg == "--r")
-            dmdParams.debugr = true;
+            driverParams.debugr = true;
         else if (arg == "--version")
         {
             params.logo = true;
             return false;
         }
         else if (arg == "--x")
-            dmdParams.debugx = true;
+            driverParams.debugx = true;
         else if (arg == "--y")
-            dmdParams.debugy = true;
+            driverParams.debugy = true;
         else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
         {
             params.linkswitches.push(p + 2 + (p[2] == '='));
@@ -2607,7 +2607,7 @@ private void reconcileCommands(ref Param params, ref Target target)
     {
         if (params.pic)
             error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
-        if (dmdParams.dwarf)
+        if (driverParams.dwarf)
             error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
     }
     else if (target.os == Target.OS.DragonFlyBSD)
