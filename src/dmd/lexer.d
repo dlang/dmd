@@ -2495,8 +2495,10 @@ class Lexer
             }
         }
         const isLong = (result == TOK.float80Literal || result == TOK.imaginary80Literal);
-        if (isOutOfRange && !isLong)
+        if (isOutOfRange && !isLong && (!Ccompile || hex))
         {
+            /* C11 6.4.4.2 doesn't actually care if it is not representable if it is not hex
+             */
             const char* suffix = (result == TOK.float32Literal || result == TOK.imaginary32Literal) ? "f" : "";
             error(scanloc, "number `%s%s` is not representable", sbufptr, suffix);
         }
