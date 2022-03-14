@@ -197,10 +197,8 @@ static assert(makeAggregate(5, true));
 int makeAlias(int a, bool b)
 {
     alias Params = __traits(parameters);
-    version (Fixed) {
     assert(Params[0] == 3);
     assert(Params[1] == true);
-    }
     return 1;
 }
 
@@ -219,7 +217,6 @@ mixin template checkParameters(int unique)
     mixin nestedCheckParameters!unique;
 
     alias Names = __traits(parameters);
-    version (Fixed)
     alias Types = typeof(Names);
 }
 
@@ -230,14 +227,11 @@ int makeAggregateMixin(immutable int a, const bool b)
     struct S
     {
         mixin checkParameters!1;
-        version (Fixed)
         typeof(Names) members;
     }
 
-    version (Fixed) {
     S s = S(Names);
     assert(s.members[0] == a);
     assert(s.members[1] == b);
-    }
     return 1;
 }

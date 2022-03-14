@@ -3658,7 +3658,7 @@ class Parser(AST) : Lexer
 
         case TOK.traits:
             if (AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp())
-                if (te.ident && te.args)
+                if (te.ident)
                 {
                     t = new AST.TypeTraits(token.loc, te);
                     break;
@@ -9611,5 +9611,3 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 
     return true;
 }
-
-
