@@ -40,18 +40,18 @@ void Log(ASTNode node, string functioncall = __FUNCTION__, string modulecall = _
                         return true;
                 }
                 return false;
-            }
-            if (!Exist())
-                return;
-            auto tmpstring = "debug/" ~ modulecall ~ "/" ~ functioncall ~ ".txt\0";
-            auto tmpfile = file.require(modulecall ~ " " ~ functioncall, fopen(tmpstring.ptr, "w+\0".ptr));
-            OutBuffer buf;
-            HdrGenState hgs;
-            static if (is(typeof(node) == Type))
-                toCBuffer(node, &buf, node.getTypeInfoIdent(), &hgs);
-            else
-                toCBuffer(node, &buf, &hgs);
-            fputs(buf.extractChars(), tmpfile);
+        }
+        if (!Exist())
+            return;
+        auto tmpstring = "debug/" ~ modulecall ~ "/" ~ functioncall ~ ".txt\0";
+        auto tmpfile = file.require(modulecall ~ " " ~ functioncall, fopen(tmpstring.ptr, "w+\0".ptr));
+        OutBuffer buf;
+        HdrGenState hgs;
+        static if (is(typeof(node) == Type))
+            toCBuffer(node, &buf, node.getTypeInfoIdent(), &hgs);
+        else
+            toCBuffer(node, &buf, &hgs);
+        fputs(buf.extractChars(), tmpfile);
     }
 }
 
