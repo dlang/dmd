@@ -617,3 +617,9 @@ nothrow:
 
 /// Collection of global state
 extern (C++) __gshared Global global;
+
+
+// FIXME: This should be removed when inline assembler codegen is decoupled
+// from frontend.
+version(DMDLIB) {}
+else extern (D) __gshared bool useInlineAsm;

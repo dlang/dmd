@@ -440,8 +440,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
-    backend_init();
-
     // Do semantic analysis
     foreach (m; modules)
     {
@@ -473,6 +471,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module.runDeferredSemantic2();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
+
+    // FIXME: Backend is needed for DMD inline assembler. We should remove
+    // codegen/glue code from inline assembler to seperate it from semantic
+    // analysis.
+    if (useInlineAsm)
+      backend_init();
 
     // Do pass 3 semantic analysis
     foreach (m; modules)
@@ -576,6 +580,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (params.addMain && !global.hasMainFunction)
         modules.push(moduleWithEmptyMain());
+
+    if (!useInlineAsm)
+      backend_init();
 
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
                          params.lib, params.obj, params.oneobj, params.multiobj,
