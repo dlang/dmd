@@ -32,24 +32,19 @@ nothrow:
             FileManager._init();
 
         auto readResult = File.read(filename);
-        if (readResult.success)
-        {
-            FileBuffer* fb;
-            if (auto val = files.lookup(filename))
-                fb = val.value;
-
-            if (!fb)
-                fb = FileBuffer.create();
-
-            fb.data = readResult.extractSlice();
-
-            return files.insert(filename, fb) == null ? null : fb;
-        }
-        else
-        {
+        if (!readResult.success)
             return null;
-        }
 
+        FileBuffer* fb;
+        if (auto val = files.lookup(filename))
+            fb = val.value;
+
+        if (!fb)
+            fb = FileBuffer.create();
+
+        fb.data = readResult.extractSlice();
+
+        return files.insert(filename, fb) == null ? null : fb;
     }
 
     /********************************************
