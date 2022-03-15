@@ -1687,45 +1687,6 @@ enum class FileType : uint8_t
     c = 3u,
 };
 
-struct FileBuffer final
-{
-    _d_dynamicArray< uint8_t > data;
-    static FileBuffer* create();
-    FileBuffer() :
-        data()
-    {
-    }
-    FileBuffer(_d_dynamicArray< uint8_t > data) :
-        data(data)
-        {}
-};
-
-struct File final
-{
-    struct ReadResult final
-    {
-        bool success;
-        FileBuffer buffer;
-        ReadResult() :
-            success(),
-            buffer()
-        {
-        }
-        ReadResult(bool success, FileBuffer buffer = FileBuffer()) :
-            success(success),
-            buffer(buffer)
-            {}
-    };
-
-    static ReadResult read(const char* name);
-    static bool write(const char* name, const void* data, size_t size);
-    static void remove(const char* name);
-    static bool update(const char* name, const void* data, size_t size);
-    File()
-    {
-    }
-};
-
 template <typename K, typename V>
 struct AssocArray final
 {
@@ -6162,7 +6123,6 @@ public:
     static Module* create(const char* filename, Identifier* ident, int32_t doDocComment, int32_t doHdrGen);
     static Module* load(const Loc& loc, Array<Identifier* >* packages, Identifier* ident);
     const char* kind() const;
-    bool loadSourceBuffer(const Loc& loc, File::ReadResult& readResult);
     bool read(const Loc& loc);
     Module* parse();
     void importAll(Scope* prevsc);
