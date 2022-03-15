@@ -138,46 +138,30 @@ nothrow:
      * Returns: the loaded source file if it was found in memory,
      *      otherwise `null`
      */
-    extern(D) FileBuffer* lookup(FileName filename)
+    extern(D) const(FileBuffer)* lookup(FileName filename)
     {
         if (!initialized)
             FileManager._init();
 
         const name = filename.toString;
         if (auto val = files.lookup(name))
-        {
-            // There is a chance that the buffer could've been
-            // stolen by a reader with extractSlice, so we should
-            // try and do our reading logic if that happens.
-            if (val !is null && val.value.data !is null)
-            {
-                return val.value;
-            }
-        }
+            return val.value;
 
-        auto res = FileName.exists(name);
-        if (res == 1)
-        {
-            auto readResult = File.read(name);
-            if (!readResult.success)
-                return null;
+        if (FileName.exists(name) != 1)
+            return null;
 
-            FileBuffer* fb;
-            if (auto val = files.lookup(name))
-                fb = val.value;
+        auto readResult = File.read(name);
+        if (!readResult.success)
+            return null;
 
-            if (!fb)
-                fb = FileBuffer.create();
+        FileBuffer* fb = new FileBuffer(readResult.extractSlice());
+        if (files.insert(name, fb) is null)
+            assert(0, "Insert after lookup failure should never return `null`");
 
-            fb.data = readResult.extractSlice();
-
-            return files.insert(name, fb) == null ? null : fb;
-        }
-
-        return null;
+        return fb;
     }
 
-    extern(C++) FileBuffer* lookup(const(char)* filename)
+    extern(C++) const(FileBuffer)* lookup(const(char)* filename)
     {
         return lookup(FileName(filename.toDString));
     }
@@ -196,9 +180,9 @@ nothrow:
             FileManager._init();
 
         const(char)[][] lines;
-        if (FileBuffer* buffer = lookup(file))
+        if (const buffer = lookup(file))
         {
-            ubyte[] slice = buffer.data[0 .. buffer.data.length];
+            const slice = buffer.data[0 .. buffer.data.length];
             size_t start, end;
             ubyte c;
             for (auto i = 0; i < slice.length; i++)

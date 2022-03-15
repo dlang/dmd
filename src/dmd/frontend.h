@@ -8041,7 +8041,7 @@ private:
     StringTable<FileBuffer* > files;
     static bool initialized;
 public:
-    FileBuffer* lookup(const char* filename);
+    const FileBuffer* lookup(const char* filename);
     FileBuffer* add(const char* filename, FileBuffer* filebuffer);
     static FileManager fileManager;
     static void _init();
