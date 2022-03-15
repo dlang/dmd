@@ -661,10 +661,20 @@ void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void loadPair87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 
-/* iasm.c */
-//void iasm_term();
-regm_t iasm_regs(block *bp);
+/**********************************
+ * Get registers used by a given block
+ * Params: bp = asm block
+ * Returns: mask of registers used by block bp.
+ */
+@system
+regm_t iasm_regs(block *bp)
+{
+    debug (debuga)
+        printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
 
+    refparam |= bp.bIasmrefparam;
+    return bp.usIasmregs;
+}
 
 /**********************************
  * Set value in regimmed for reg.

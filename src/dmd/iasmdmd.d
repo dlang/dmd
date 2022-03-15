@@ -260,22 +260,6 @@ AFTER_EMIT:
     return asmstate.errors ? new ErrorStatement() : s;
 }
 
-/**********************************
- * Called from back end.
- * Params: bp = asm block
- * Returns: mask of registers used by block bp.
- */
-extern (C++) public regm_t iasm_regs(block *bp)
-{
-    debug (debuga)
-        printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
-
-    refparam |= bp.bIasmrefparam;
-    return bp.usIasmregs;
-}
-
-
-
 private:
 
 enum ADDFWAIT = false;
