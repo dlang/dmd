@@ -48,6 +48,9 @@ nothrow:
         scope(exit) FileName.free(sdi.ptr);
 
         const sd = FileName.forceExt(filename, mars_ext);
+        // Special file name representing `stdin`, always assume its presence
+        if (sd == "__stdin.d")
+            return sd;
         if (FileName.exists(sd) == 1)
             return sd;
         scope(exit) FileName.free(sd.ptr);
@@ -146,6 +149,14 @@ nothrow:
         const name = filename.toString;
         if (auto val = files.lookup(name))
             return val.value;
+
+        if (name == "__stdin.d")
+        {
+            auto buffer = new FileBuffer(readFromStdin().extractSlice());
+            if (this.files.insert(name, buffer) is null)
+                assert(0, "stdin: Insert after lookup failure should never return `null`");
+            return buffer;
+        }
 
         if (FileName.exists(name) != 1)
             return null;
@@ -267,4 +278,47 @@ nothrow:
     {
         files._init();
     }
+}
+
+private FileBuffer readFromStdin() nothrow
+{
+    import core.stdc.stdio;
+    import dmd.errors;
+    import dmd.root.rmem;
+
+    enum bufIncrement = 128 * 1024;
+    size_t pos = 0;
+    size_t sz = bufIncrement;
+
+    ubyte* buffer = null;
+    for (;;)
+    {
+        buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 4); // +2 for sentinel and +2 for lexer
+
+        // Fill up buffer
+        do
+        {
+            assert(sz > pos);
+            size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
+            pos += rlen;
+            if (ferror(stdin))
+            {
+                import core.stdc.errno;
+                error(Loc.initial, "cannot read from stdin, errno = %d", errno);
+                fatal();
+            }
+            if (feof(stdin))
+            {
+                // We're done
+                assert(pos < sz + 2);
+                buffer[pos .. pos + 4] = '\0';
+                return FileBuffer(buffer[0 .. pos]);
+            }
+        } while (pos < sz);
+
+        // Buffer full, expand
+        sz += bufIncrement;
+    }
+
+    assert(0);
 }
