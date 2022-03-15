@@ -12575,6 +12575,13 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         Expression e = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
         return e;
     }
+    else if (sc.flags & SCOPE.Cfile && exp.ident == Id.__sizeof && exp.e1.isStringExp())
+    {
+        // Sizeof string literal includes the terminating 0
+        auto se = exp.e1.isStringExp();
+        Expression e = new IntegerExp(exp.loc, (se.len + 1) * se.sz, Type.tsize_t);
+        return e;
+    }
     else
     {
         if (exp.e1.isTypeExp() || exp.e1.isTemplateExp())
