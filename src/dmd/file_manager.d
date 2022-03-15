@@ -143,7 +143,8 @@ nothrow:
         if (!initialized)
             FileManager._init();
 
-        if (auto val = files.lookup(filename.toString))
+        const name = filename.toString;
+        if (auto val = files.lookup(name))
         {
             // There is a chance that the buffer could've been
             // stolen by a reader with extractSlice, so we should
@@ -154,7 +155,6 @@ nothrow:
             }
         }
 
-        const name = filename.toString;
         auto res = FileName.exists(name);
         if (res == 1)
         {
