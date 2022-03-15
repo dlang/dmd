@@ -4596,8 +4596,10 @@ extern (C++) final class TypeFunction : TypeNext
         if (global.gag && !global.params.showGaggedErrors)
             return null;
         // show qualification when toChars() is the same but types are different
-        auto at = arg.type.toChars();
-        bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.toChars()) == 0;
+        // https://issues.dlang.org/show_bug.cgi?id=19948
+        // when comparing the type with strcmp, we need to drop the qualifier
+        auto at = arg.type.mutableOf().toChars();
+        bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.mutableOf().toChars()) == 0;
         if (qual)
             at = arg.type.toPrettyChars(true);
         OutBuffer buf;
