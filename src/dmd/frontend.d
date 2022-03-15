@@ -396,17 +396,12 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
         m.read(Loc.initial);
     else
     {
-        File.ReadResult readResult = {
-            success: true,
-            buffer: FileBuffer(cast(ubyte[]) code.dup ~ '\0')
-        };
+        import dmd.file_manager : FileManager;
+        import dmd.root.filename : FileName;
 
-        if (m.loadSourceBuffer(Loc.initial, readResult))
-        {
-            import dmd.file_manager : FileManager;
-            import dmd.root.filename : FileName;
-            FileManager.fileManager.add(FileName(fileName), m.srcBuffer);
-        }
+        auto fb = new FileBuffer(cast(ubyte[]) code.dup ~ '\0');
+        FileManager.fileManager.add(FileName(fileName), fb);
+        m.srcBuffer = fb;
     }
 
     m = m.parseModule!AST();
@@ -678,4 +673,3 @@ nothrow:
         return false;
     }
 }
-

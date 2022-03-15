@@ -588,24 +588,17 @@ extern (C++) final class Module : Package
     }
 
     /**
-     * Loads the source buffer from the given read result into `this.srcBuffer`.
+     * Trigger the relevant semantic error when a file cannot be read
      *
-     * Will take ownership of the buffer located inside `readResult`.
+     * We special case `object.d` as a failure is likely to be a rare
+     * but difficult to diagnose case for the user. Packages also require
+     * special handling to avoid exposing the compiler's internals.
      *
      * Params:
-     *  loc = the location
-     *  readResult = the result of reading a file containing the source code
-     *
-     * Returns: `true` if successful
+     *  loc = The location at which the file read originated (e.g. import)
      */
-    bool loadSourceBuffer(const ref Loc loc, ref File.ReadResult readResult)
+    private void onFileReadError(const ref Loc loc)
     {
-        //printf("Module::loadSourceBuffer('%s') file '%s'\n", toChars(), srcfile.toChars());
-        // take ownership of buffer
-        srcBuffer = new FileBuffer(readResult.extractSlice());
-        if (readResult.success)
-            return true;
-
         if (FileName.equals(srcfile.toString(), "object.d"))
         {
             .error(loc, "cannot find source code for runtime library file 'object.d'");
@@ -619,7 +612,6 @@ extern (C++) final class Module : Package
             // have a valid location come from the command-line.
             // Error that their file cannot be found and return early.
             .error(loc, "cannot find input file `%s`", srcfile.toChars());
-            return false;
         }
         else
         {
@@ -651,7 +643,6 @@ extern (C++) final class Module : Package
 
             removeHdrFilesAndFail(global.params, Module.amodules);
         }
-        return false;
     }
 
     /**
@@ -664,7 +655,6 @@ extern (C++) final class Module : Package
      *  loc = the location
      *
      * Returns: `true` if successful
-     * See_Also: loadSourceBuffer
      */
     bool read(const ref Loc loc)
     {
@@ -672,29 +662,16 @@ extern (C++) final class Module : Package
             return true; // already read
 
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
-
-
-
-        bool success;
         if (auto readResult = FileManager.fileManager.lookup(srcfile))
         {
             srcBuffer = readResult;
-            success = true;
+            if (global.params.emitMakeDeps)
+                global.params.makeDeps.push(srcfile.toChars());
+            return true;
         }
-        else
-        {
-            auto readResult = File.read(srcfile.toChars());
-            if (loadSourceBuffer(loc, readResult))
-            {
-                FileManager.fileManager.add(srcfile, srcBuffer);
-                success = true;
-            }
-        }
-        if (success && global.params.emitMakeDeps)
-        {
-            global.params.makeDeps.push(srcfile.toChars());
-        }
-        return success;
+
+        this.onFileReadError(loc);
+        return false;
     }
 
     /// syntactic parse
