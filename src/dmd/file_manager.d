@@ -26,27 +26,6 @@ extern(C++) struct FileManager
     private __gshared bool initialized = false;
 
 nothrow:
-    extern(D) private FileBuffer* readToFileBuffer(const(char)[] filename)
-    {
-        if (!initialized)
-            FileManager._init();
-
-        auto readResult = File.read(filename);
-        if (!readResult.success)
-            return null;
-
-        FileBuffer* fb;
-        if (auto val = files.lookup(filename))
-            fb = val.value;
-
-        if (!fb)
-            fb = FileBuffer.create();
-
-        fb.data = readResult.extractSlice();
-
-        return files.insert(filename, fb) == null ? null : fb;
-    }
-
     /********************************************
     * Look for the source file if it's different from filename.
     * Look for .di, .d, directory, and along global.path.
@@ -178,7 +157,22 @@ nothrow:
         const name = filename.toString;
         auto res = FileName.exists(name);
         if (res == 1)
-            return readToFileBuffer(name);
+        {
+            auto readResult = File.read(name);
+            if (!readResult.success)
+                return null;
+
+            FileBuffer* fb;
+            if (auto val = files.lookup(name))
+                fb = val.value;
+
+            if (!fb)
+                fb = FileBuffer.create();
+
+            fb.data = readResult.extractSlice();
+
+            return files.insert(name, fb) == null ? null : fb;
+        }
 
         return null;
     }
