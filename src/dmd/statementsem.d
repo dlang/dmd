@@ -3916,12 +3916,10 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         }
 
         assert(sc.func);
-        // use setImpure/setGC when the deprecation cycle is over
-        PURE purity;
-        if (!(cas.stc & STC.pure_) && (purity = sc.func.isPureBypassingInference()) != PURE.impure && purity != PURE.fwdref)
-            cas.deprecation("`asm` statement is assumed to be impure - mark it with `pure` if it is not");
-        if (!(cas.stc & STC.nogc) && sc.func.isNogcBypassingInference())
-            cas.deprecation("`asm` statement is assumed to use the GC - mark it with `@nogc` if it does not");
+        if (!(cas.stc & STC.pure_) && sc.func.setImpure())
+            cas.error("`asm` statement is assumed to be impure - mark it with `pure` if it is not");
+        if (!(cas.stc & STC.nogc) && sc.func.setGC())
+            cas.error("`asm` statement is assumed to use the GC - mark it with `@nogc` if it does not");
         if (!(cas.stc & (STC.trusted | STC.safe)) && sc.func.setUnsafe())
             cas.error("`asm` statement is assumed to be `@system` - mark it with `@trusted` if it is not");
 
