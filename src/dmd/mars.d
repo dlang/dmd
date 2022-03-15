@@ -337,17 +337,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Create Modules
     Modules modules = createModules(files, libmodules, target);
     // Read files
-    // Start by "reading" the special file __stdin.d
-    foreach (m; modules)
-    {
-        if (m.srcfile.toString() == "__stdin.d")
-        {
-            auto buffer = new FileBuffer(readFromStdin().extractSlice());
-            m.src = buffer.data;
-            FileManager.fileManager.add(m.srcfile, buffer);
-        }
-    }
-
     foreach (m; modules)
     {
         m.read(Loc.initial);
@@ -792,45 +781,6 @@ version (NoMain) {} else
         else
             printf("%.*s", cast(int) data.length, data.ptr);
     }
-}
-
-private FileBuffer readFromStdin()
-{
-    enum bufIncrement = 128 * 1024;
-    size_t pos = 0;
-    size_t sz = bufIncrement;
-
-    ubyte* buffer = null;
-    for (;;)
-    {
-        buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 4); // +2 for sentinel and +2 for lexer
-
-        // Fill up buffer
-        do
-        {
-            assert(sz > pos);
-            size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
-            pos += rlen;
-            if (ferror(stdin))
-            {
-                import core.stdc.errno;
-                error(Loc.initial, "cannot read from stdin, errno = %d", errno);
-                fatal();
-            }
-            if (feof(stdin))
-            {
-                // We're done
-                assert(pos < sz + 2);
-                buffer[pos .. pos + 4] = '\0';
-                return FileBuffer(buffer[0 .. pos]);
-            }
-        } while (pos < sz);
-
-        // Buffer full, expand
-        sz += bufIncrement;
-    }
-
-    assert(0);
 }
 
 extern (C++) void generateJson(Modules* modules)
