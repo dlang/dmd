@@ -401,7 +401,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
 
         auto fb = new FileBuffer(cast(ubyte[]) code.dup ~ '\0');
         FileManager.fileManager.add(FileName(fileName), fb);
-        m.srcBuffer = fb;
+        m.src = fb.data;
     }
 
     m = m.parseModule!AST();

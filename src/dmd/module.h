@@ -71,7 +71,7 @@ public:
     FileName objfile;   // output .obj file
     FileName hdrfile;   // 'header' file
     FileName docfile;   // output documentation file
-    FileBuffer *srcBuffer; // set during load(), free'd in parse()
+    DArray<unsigned char> src; // Raw content of the file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
     FileType filetype;  // source file type

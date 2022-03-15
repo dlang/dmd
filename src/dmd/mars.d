@@ -342,9 +342,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         if (m.srcfile.toString() == "__stdin.d")
         {
-            auto buffer = readFromStdin();
-            m.srcBuffer = new FileBuffer(buffer.extractSlice());
-            FileManager.fileManager.add(m.srcfile, m.srcBuffer);
+            auto buffer = new FileBuffer(readFromStdin().extractSlice());
+            m.src = buffer.data;
+            FileManager.fileManager.add(m.srcfile, buffer);
         }
     }
 
@@ -2955,7 +2955,7 @@ Module moduleWithEmptyMain()
     auto result = new Module("__main.d", Identifier.idPool("__main"), false, false);
     // need 2 trailing nulls for sentinel and 2 for lexer
     auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
-    result.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-4]);
+    result.src = cast(ubyte[]) data[0 .. $-4];
     result.parse();
     result.importedFrom = result;
     result.importAll(null);
