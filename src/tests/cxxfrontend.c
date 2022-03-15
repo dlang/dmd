@@ -271,14 +271,13 @@ void test_semantic()
         "class Throwable { }\n"
         "class Error : Throwable { this(immutable(char)[]); }";
 
-    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
-    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
+    DArray<unsigned char> src = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
 
     Module *m = Module::create("object.d", Identifier::idPool("object"), 0, 0);
 
     unsigned errors = global.startGagging();
 
-    m->srcBuffer = srcBuffer;
+    m->src = src;
     m->parse();
     m->importedFrom = m;
     m->importAll(NULL);
@@ -309,14 +308,13 @@ void test_skip_importall()
         "module rootobject;\n"
         "class RootObject : Object { }";
 
-    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
-    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
+    DArray<unsigned char> src = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
 
     Module *m = Module::create("rootobject.d", Identifier::idPool("rootobject"), 0, 0);
 
     unsigned errors = global.startGagging();
 
-    m->srcBuffer = srcBuffer;
+    m->src = src;
     m->parse();
     m->importedFrom = m;
     dsymbolSemantic(m, NULL);
@@ -504,8 +502,7 @@ void test_cppmangle()
         "interface Interface { int MethodCPP(); int MethodD(); }\n"
         "class Derived : Base, Interface { int MethodCPP(); int MethodD() { return 3; } }";
 
-    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
-    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
+    DArray<unsigned char> src = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
 
     Module *m = Module::create("cppa.d", Identifier::idPool("cppa"), 0, 0);
 
@@ -513,7 +510,7 @@ void test_cppmangle()
     FuncDeclaration *fd;
     const char *mangle;
 
-    m->srcBuffer = srcBuffer;
+    m->src = src;
     m->parse();
     m->importedFrom = m;
     m->importAll(NULL);

@@ -351,7 +351,7 @@ extern (C++) final class Module : Package
     const FileName objfile;     // output .obj file
     const FileName hdrfile;     // 'header' file
     FileName docfile;           // output documentation file
-    FileBuffer* srcBuffer;      // set during load(), free'd in parse()
+    const(ubyte)[] src;         /// Raw content of the file
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
     FileType filetype;          // source file type
@@ -658,13 +658,13 @@ extern (C++) final class Module : Package
      */
     bool read(const ref Loc loc)
     {
-        if (srcBuffer)
+        if (this.src)
             return true; // already read
 
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
-        if (auto readResult = FileManager.fileManager.lookup(srcfile))
+        if (auto result = FileManager.fileManager.lookup(srcfile))
         {
-            srcBuffer = readResult;
+            this.src = result.data;
             if (global.params.emitMakeDeps)
                 global.params.makeDeps.push(srcfile.toChars());
             return true;
@@ -805,7 +805,7 @@ extern (C++) final class Module : Package
         //printf("Module::parse(srcname = '%s')\n", srcname);
         isPackageFile = (strcmp(srcfile.name(), package_d) == 0 ||
                          strcmp(srcfile.name(), package_di) == 0);
-        const(char)[] buf = cast(const(char)[]) srcBuffer.data;
+        const(char)[] buf = cast(const(char)[]) this.src;
 
         bool needsReencoding = true;
         bool hasBOM = true; //assume there's a BOM
@@ -987,8 +987,7 @@ extern (C++) final class Module : Package
             members = p.parseModuleContent();
             numlines = p.scanloc.linnum;
         }
-        srcBuffer.destroy();
-        srcBuffer = null;
+
         /* The symbol table into which the module is to be inserted.
          */
 
