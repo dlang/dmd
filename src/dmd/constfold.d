@@ -1348,14 +1348,6 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
         }
     }
 
-    static bool sliceBoundsCheck(uinteger_t lwr, uinteger_t upr, uinteger_t newlwr, uinteger_t newupr) pure
-    {
-        assert(lwr <= upr);
-        return !(newlwr <= newupr &&
-                 lwr <= newlwr &&
-                 newupr <= upr);
-    }
-
     if (e1.op == EXP.string_ && lwr.op == EXP.int64 && upr.op == EXP.int64)
     {
         StringExp es1 = cast(StringExp)e1;
@@ -1393,6 +1385,16 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
     else
         cantExp(ue);
     return ue;
+}
+
+/* Check whether slice `[newlwr .. newupr]` is in the range `[lwr .. upr]`
+ */
+bool sliceBoundsCheck(uinteger_t lwr, uinteger_t upr, uinteger_t newlwr, uinteger_t newupr) pure
+{
+    assert(lwr <= upr);
+    return !(newlwr <= newupr &&
+             lwr <= newlwr &&
+             newupr <= upr);
 }
 
 /* Set a slice of char/integer array literal 'existingAE' from a string 'newval'.
