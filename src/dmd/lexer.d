@@ -1976,6 +1976,11 @@ class Lexer
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
+                if (base == 8)
+                {
+                    base = 10; // the number is not an octal after all
+                    errorDigit = 0;
+                }
                 if (base <= 10 && n > 0 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
                 {
                     if (Ccompile && base == 10 &&
