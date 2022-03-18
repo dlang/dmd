@@ -643,7 +643,7 @@ UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expression e2)
         value = cast(d_int64)value >> count;
         break;
     case Tuns64:
-        value = cast(d_uns64)value >> count;
+        value = cast(ulong)value >> count;
         break;
     case Terror:
         emplaceExp!(ErrorExp)(&ue);
@@ -1130,7 +1130,7 @@ UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
                 result = cast(d_int64)r;
                 break;
             case Tuns64:
-                result = cast(d_uns64)r;
+                result = cast(ulong)r;
                 break;
             default:
                 assert(0);

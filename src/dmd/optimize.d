@@ -221,7 +221,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
         return;
     if (lengthVar._init && !lengthVar._init.isVoidInitializer())
         return; // we have previously calculated the length
-    d_uns64 len;
+    dinteger_t len;
     if (auto se = arr.isStringExp())
         len = se.len;
     else if (auto ale = arr.isArrayLiteralExp())
@@ -253,7 +253,7 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
     auto tsa = type.toBasetype().isTypeSArray();
     if (!tsa)
         return; // we don't know the length yet
-    d_uns64 len = tsa.dim.toInteger();
+    const len = tsa.dim.toInteger();
     Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
     lengthVar._init = new ExpInitializer(Loc.initial, dollar);
     lengthVar.storage_class |= STC.static_ | STC.const_;

@@ -1838,7 +1838,7 @@ extern (C++) final class IntegerExp : Expression
         const val = normalize(ty, value);
         value = val;
         return (ty == Tuns64)
-            ? real_t(cast(d_uns64)val)
+            ? real_t(cast(ulong)val)
             : real_t(cast(d_int64)val);
     }
 
@@ -1926,7 +1926,7 @@ extern (C++) final class IntegerExp : Expression
             break;
 
         case Tuns64:
-            result = cast(d_uns64)value;
+            result = cast(ulong)value;
             break;
 
         case Tpointer:
