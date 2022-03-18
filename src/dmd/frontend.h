@@ -7722,7 +7722,6 @@ public:
     LINK systemLinkage();
     TypeTuple* toArgTypes(Type* t);
     bool isReturnOnStack(TypeFunction* tf, bool needsThis);
-    uint64_t parameterSize(const Loc& loc, Type* t);
     bool preferPassByRef(Type* t);
 private:
     enum class TargetInfoKeys
