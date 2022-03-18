@@ -486,12 +486,6 @@ alias dinteger_t = ulong;
 alias sinteger_t = long;
 alias uinteger_t = ulong;
 
-alias d_int8 = int8_t;
-alias d_uns8 = uint8_t;
-alias d_int16 = int16_t;
-alias d_uns16 = uint16_t;
-alias d_int32 = int32_t;
-alias d_uns32 = uint32_t;
 alias d_int64 = int64_t;
 alias d_uns64 = uint64_t;
 

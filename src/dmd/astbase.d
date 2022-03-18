@@ -4551,30 +4551,30 @@ struct ASTBase
                 break;
 
             case Tint8:
-                value = cast(d_int8)value;
+                value = cast(byte)value;
                 break;
 
             case Tchar:
             case Tuns8:
-                value = cast(d_uns8)value;
+                value = cast(ubyte)value;
                 break;
 
             case Tint16:
-                value = cast(d_int16)value;
+                value = cast(short)value;
                 break;
 
             case Twchar:
             case Tuns16:
-                value = cast(d_uns16)value;
+                value = cast(ushort)value;
                 break;
 
             case Tint32:
-                value = cast(d_int32)value;
+                value = cast(int)value;
                 break;
 
             case Tdchar:
             case Tuns32:
-                value = cast(d_uns32)value;
+                value = cast(uint)value;
                 break;
 
             case Tint64:
