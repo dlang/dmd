@@ -570,7 +570,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
 
             Symbol *s = toSymbol(vd);
-            d_uns64 sz64 = vd.type.size(vd.loc);
+            const sz64 = vd.type.size(vd.loc);
             if (sz64 == SIZE_INVALID)
             {
                 vd.error("size overflow");

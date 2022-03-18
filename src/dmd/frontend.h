@@ -943,7 +943,7 @@ struct Ungag final
     }
 };
 
-typedef uint64_t d_uns64;
+typedef uint64_t uinteger_t;
 
 struct Visibility final
 {
@@ -1017,7 +1017,7 @@ public:
     virtual void importAll(Scope* sc);
     virtual Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 0);
     virtual bool overloadInsert(Dsymbol* s);
-    virtual d_uns64 size(const Loc& loc);
+    virtual uinteger_t size(const Loc& loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration* isThis();
     virtual bool isExport() const;
@@ -1411,8 +1411,6 @@ enum class EXP : uint8_t
 };
 
 typedef uint64_t dinteger_t;
-
-typedef uint64_t uinteger_t;
 
 struct complex_t final
 {
@@ -1869,8 +1867,8 @@ public:
     char* toPrettyChars(bool QualifyTypes = false);
     static void _init();
     static void deinitialize();
-    d_uns64 size();
-    virtual d_uns64 size(const Loc& loc);
+    uinteger_t size();
+    virtual uinteger_t size(const Loc& loc);
     virtual uint32_t alignsize();
     Type* trySemantic(const Loc& loc, Scope* sc);
     Type* merge2();
@@ -3360,7 +3358,7 @@ public:
     static TypeAArray* create(Type* t, Type* index);
     const char* kind() const;
     TypeAArray* syntaxCopy();
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     bool isZeroInit(const Loc& loc) /* const */;
     bool isBoolean() /* const */;
     bool hasPointers() /* const */;
@@ -3376,7 +3374,7 @@ public:
     uint32_t flags;
     const char* kind() const;
     TypeBasic* syntaxCopy();
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     uint32_t alignsize();
     bool isintegral();
     bool isfloating() /* const */;
@@ -3408,7 +3406,7 @@ public:
     AliasThisRec att;
     CPPMANGLE cppmangle;
     const char* kind() const;
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     TypeClass* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     ClassDeclaration* isClassHandle();
@@ -3429,7 +3427,7 @@ class TypeDArray final : public TypeArray
 public:
     const char* kind() const;
     TypeDArray* syntaxCopy();
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     uint32_t alignsize() /* const */;
     bool isString();
     bool isZeroInit(const Loc& loc) /* const */;
@@ -3446,7 +3444,7 @@ public:
     const char* kind() const;
     TypeDelegate* syntaxCopy();
     Type* addStorageClass(StorageClass stc);
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     uint32_t alignsize() /* const */;
     MATCH implicitConvTo(Type* to);
     bool isZeroInit(const Loc& loc) /* const */;
@@ -3461,7 +3459,7 @@ public:
     EnumDeclaration* sym;
     const char* kind() const;
     TypeEnum* syntaxCopy();
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     Type* memType(const Loc& loc = Loc::initial);
     uint32_t alignsize();
     Dsymbol* toDsymbol(Scope* sc);
@@ -3493,7 +3491,7 @@ class TypeError final : public Type
 public:
     const char* kind() const;
     TypeError* syntaxCopy();
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     Expression* defaultInitLiteral(const Loc& loc);
     void accept(Visitor* v);
 };
@@ -3591,7 +3589,7 @@ public:
     void addIdent(Identifier* ident);
     void addInst(TemplateInstance* inst);
     void addIndex(RootObject* e);
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     void accept(Visitor* v);
 };
 
@@ -3637,7 +3635,7 @@ public:
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
     bool isBoolean() /* const */;
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     uint32_t alignsize();
     void accept(Visitor* v);
 };
@@ -3650,7 +3648,7 @@ public:
     MATCH implicitConvTo(Type* to);
     bool hasPointers();
     bool isBoolean() /* const */;
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     void accept(Visitor* v);
 };
 
@@ -3660,7 +3658,7 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const;
     TypePointer* syntaxCopy();
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
     bool isscalar() /* const */;
@@ -3674,7 +3672,7 @@ class TypeReference final : public TypeNext
 public:
     const char* kind() const;
     TypeReference* syntaxCopy();
-    d_uns64 size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc) /* const */;
     bool isZeroInit(const Loc& loc) /* const */;
     void accept(Visitor* v);
 };
@@ -3695,7 +3693,7 @@ public:
     const char* kind() const;
     TypeSArray* syntaxCopy();
     bool isIncomplete();
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     uint32_t alignsize();
     bool isString();
     bool isZeroInit(const Loc& loc);
@@ -3729,7 +3727,7 @@ public:
     bool inuse;
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const;
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     uint32_t alignsize();
     TypeStruct* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
@@ -3775,7 +3773,7 @@ public:
     TypeTraits* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     void accept(Visitor* v);
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
 };
 
 class TypeTuple final : public Type
@@ -3802,7 +3800,7 @@ public:
     const char* kind() const;
     TypeTypeof* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     void accept(Visitor* v);
 };
 
@@ -3813,7 +3811,7 @@ public:
     static TypeVector* create(Type* basetype);
     const char* kind() const;
     TypeVector* syntaxCopy();
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     uint32_t alignsize();
     bool isintegral();
     bool isfloating();
@@ -5159,7 +5157,7 @@ public:
     size_t nonHiddenFields();
     bool determineSize(const Loc& loc);
     virtual void finalizeSize() = 0;
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     bool fill(const Loc& loc, Array<Expression* >* elements, bool ctorinit);
     Type* getType();
     bool isDeprecated() const;
@@ -5648,7 +5646,7 @@ public:
     Symbol* isym;
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const;
-    d_uns64 size(const Loc& loc);
+    uinteger_t size(const Loc& loc);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     bool isStatic() const;
     virtual bool isDelete();

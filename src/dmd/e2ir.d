@@ -1898,7 +1898,7 @@ extern (C++) class ToElemVisitor : Visitor
                 elem* eptr1, eptr2; // Pointer to data, to pass to memcmp
                 elem* elen1, elen2; // Length, for comparison
                 elem* esiz1, esiz2; // Data size, to pass to memcmp
-                d_uns64 sz = telement.size(); // Size of one element
+                const sz = telement.size(); // Size of one element
 
                 if (t1.ty == Tarray)
                 {

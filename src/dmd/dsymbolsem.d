@@ -891,7 +891,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.error("manifest constants must have initializers");
 
         bool isBlit = false;
-        d_uns64 sz;
+        uinteger_t sz;
         if (sc.flags & SCOPE.Cfile && !dsym._init)
         {
             addDefaultCInitializer(dsym);
