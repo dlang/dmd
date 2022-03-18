@@ -3571,10 +3571,10 @@ code *asm_db_parse(OP *pop)
         switch (asmstate.tokValue)
         {
             case TOK.int32Literal:
-                dt.ul = cast(d_int32)asmstate.tok.intvalue;
+                dt.ul = cast(int)asmstate.tok.intvalue;
                 goto L1;
             case TOK.uns32Literal:
-                dt.ul = cast(d_uns32)asmstate.tok.unsvalue;
+                dt.ul = cast(uint)asmstate.tok.unsvalue;
                 goto L1;
             case TOK.int64Literal:
                 dt.ul = asmstate.tok.intvalue;
@@ -3709,11 +3709,11 @@ int asm_getnum()
     switch (asmstate.tokValue)
     {
         case TOK.int32Literal:
-            v = cast(d_int32)asmstate.tok.intvalue;
+            v = cast(int)asmstate.tok.intvalue;
             break;
 
         case TOK.uns32Literal:
-            v = cast(d_uns32)asmstate.tok.unsvalue;
+            v = cast(uint)asmstate.tok.unsvalue;
             break;
 
         case TOK.identifier:
@@ -4476,12 +4476,12 @@ void asm_primary_exp(out OPND o1)
             break;
 
         case TOK.int32Literal:
-            o1.disp = cast(d_int32)asmstate.tok.intvalue;
+            o1.disp = cast(int)asmstate.tok.intvalue;
             asm_token();
             break;
 
         case TOK.uns32Literal:
-            o1.disp = cast(d_uns32)asmstate.tok.unsvalue;
+            o1.disp = cast(uint)asmstate.tok.unsvalue;
             asm_token();
             break;
 

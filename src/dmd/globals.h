@@ -346,12 +346,6 @@ typedef long long sinteger_t;
 typedef unsigned long long uinteger_t;
 #endif
 
-typedef int8_t                  d_int8;
-typedef uint8_t                 d_uns8;
-typedef int16_t                 d_int16;
-typedef uint16_t                d_uns16;
-typedef int32_t                 d_int32;
-typedef uint32_t                d_uns32;
 typedef int64_t                 d_int64;
 typedef uint64_t                d_uns64;
 
