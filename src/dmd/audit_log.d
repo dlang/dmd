@@ -33,7 +33,7 @@ void Log(ASTNode node, string functioncall = __FUNCTION__, string modulecall = _
         bool Exist()
         {
             auto paramCalls = global.params.calls;
-                for (size_t i = 0; i < global.params.calls.length; i++)
+                for (size_t i = 0; i < paramCalls.length; i++)
                 {
                     if (global.params.calls[i].toString() == functioncall
                        || global.params.calls[i].toString() ==  modulecall)
