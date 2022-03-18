@@ -1561,7 +1561,7 @@ auto sourceFiles()
             aav.d complex.d env.d longdouble.d man.d optional.d response.d speller.d string.d strtold.d
         "),
         rootHeaders: fileArray(env["ROOT"], "
-            array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
+            array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h filename.h longdouble.h
             object.h optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
