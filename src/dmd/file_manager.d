@@ -20,7 +20,7 @@ import dmd.identifier;
 enum package_d  = "package." ~ mars_ext;
 enum package_di = "package." ~ hdr_ext;
 
-extern(C++) struct FileManager
+struct FileManager
 {
     private StringTable!(FileBuffer*) files;
     private __gshared bool initialized = false;

@@ -311,7 +311,6 @@ class ScopeGuardStatement;
 class SwitchErrorStatement;
 struct Token;
 struct code;
-struct FileBuffer;
 class Object;
 class TypeInfo_Class;
 class TypeInfo;
@@ -5121,35 +5120,6 @@ enum class CPU : uint8_t
     native = 12u,
 };
 
-struct StringEntry final
-{
-    uint32_t hash;
-    uint32_t vptr;
-    StringEntry() :
-        hash(),
-        vptr()
-    {
-    }
-    StringEntry(uint32_t hash, uint32_t vptr = 0u) :
-        hash(hash),
-        vptr(vptr)
-        {}
-};
-
-template <typename T>
-struct StringTable final
-{
-    _d_dynamicArray< StringEntry > table;
-    _d_dynamicArray< uint8_t* > pools;
-    size_t nfill;
-    size_t count;
-    size_t countTrigger;
-    ~StringTable();
-    StringTable()
-    {
-    }
-};
-
 typedef _d_real longdouble;
 
 typedef uint64_t uint64_t;
@@ -8034,22 +8004,6 @@ extern void vdeprecationSupplemental(const Loc& loc, const char* format, va_list
 extern void fatal();
 
 extern void halt();
-
-struct FileManager final
-{
-private:
-    StringTable<FileBuffer* > files;
-    static bool initialized;
-public:
-    const FileBuffer* lookup(const char* filename);
-    FileBuffer* add(const char* filename, FileBuffer* filebuffer);
-    static FileManager fileManager;
-    static void _init();
-    void initialize();
-    FileManager()
-    {
-    }
-};
 
 struct Id final
 {
