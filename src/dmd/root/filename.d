@@ -1007,7 +1007,7 @@ nothrow:
                 // Have canonicalize_file_name, which malloc's memory.
                 // We need a dmd.root.rmem allocation though.
                 auto path = name.toCStringThen!((n) => canonicalize_file_name(n.ptr));
-                scope(exit) .free(path.ptr);
+                scope(exit) .free(path);
                 if (path !is null)
                     return xarraydup(path.toDString);
             }
