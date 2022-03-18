@@ -2411,7 +2411,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
         }
         if (ident == Id.__sizeof)
         {
-            d_uns64 sz = mt.size(loc);
+            const sz = mt.size(loc);
             if (sz == SIZE_INVALID)
                 return ErrorExp.get();
             e = new IntegerExp(loc, sz, Type.tsize_t);

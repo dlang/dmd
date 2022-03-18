@@ -4582,7 +4582,7 @@ struct ASTBase
                 break;
 
             case Tuns64:
-                value = cast(d_uns64)value;
+                value = cast(ulong)value;
                 break;
 
             case Tpointer:

@@ -254,9 +254,9 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
     if (!type.hasPointers())
         return;
 
-    Array!(d_uns64) data;
-    d_uns64 sz = getTypePointerBitmap(Loc.initial, type, &data);
-    if (sz == d_uns64.max)
+    Array!(ulong) data;
+    ulong sz = getTypePointerBitmap(Loc.initial, type, &data);
+    if (sz == ulong.max)
         return;
 
     const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
