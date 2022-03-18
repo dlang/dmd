@@ -14,7 +14,6 @@
 #include "root/ctfloat.h"
 #include "root/dcompat.h"
 #include "root/dsystem.h"
-#include "root/file.h"
 #include "root/filename.h"
 #include "root/longdouble.h"
 #include "root/object.h"
