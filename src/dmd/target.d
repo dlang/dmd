@@ -896,35 +896,6 @@ extern (C++) struct Target
         }
     }
 
-    /***
-     * Determine the size a value of type `t` will be when it
-     * is passed on the function parameter stack.
-     * Params:
-     *  loc = location to use for error messages
-     *  t = type of parameter
-     * Returns:
-     *  size used on parameter stack
-     */
-    extern (C++) ulong parameterSize(const ref Loc loc, Type t)
-    {
-        if (!is64bit &&
-            (os & (Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.OSX)))
-        {
-            /* These platforms use clang, which regards a struct
-             * with size 0 as being of size 0 on the parameter stack,
-             * even while sizeof(struct) is 1.
-             * It's an ABI incompatibility with gcc.
-             */
-            if (auto ts = t.isTypeStruct())
-            {
-                if (ts.sym.hasNoFields)
-                    return 0;
-            }
-        }
-        const sz = t.size(loc);
-        return is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
-    }
-
     /**
      * Decides whether an `in` parameter of the specified POD type is to be
      * passed by reference or by value. To be used with `-preview=in` only!
