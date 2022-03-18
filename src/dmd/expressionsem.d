@@ -6048,7 +6048,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                auto readResult = File.read(name);
+                auto readResult = File.read(name.toDString);
                 if (!readResult.success)
                 {
                     e.error("cannot read file `%s`", name);
@@ -6060,8 +6060,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     auto data = readResult.extractSlice();
                     se = new StringExp(e.loc, data);
 
-                    FileBuffer* fileBuffer = FileBuffer.create();
-                    fileBuffer.data = data;
+                    FileBuffer* fileBuffer = new FileBuffer(data);
                     global.fileManager.add(fileName, fileBuffer);
                 }
             }

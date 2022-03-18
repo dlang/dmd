@@ -323,7 +323,7 @@ private:
             if (FileName.exists(defverFile))
             {
                 // VS 2017
-                auto readResult = File.read(defverFile); // adds sentinel 0 at end of file
+                auto readResult = File.read(defverFile.toDString); // adds sentinel 0 at end of file
                 if (readResult.success)
                 {
                     auto ver = cast(char*)readResult.buffer.data.ptr;
