@@ -1934,6 +1934,8 @@ public:
                 buf.writestring("unsigned long long");
             else if (ed.ident == DMDType.c_long_double)
                 buf.writestring("long double");
+            else if (ed.ident == DMDType.c_char)
+                buf.writestring("char");
             else if (ed.ident == DMDType.c_wchar_t)
                 buf.writestring("wchar_t");
             else if (ed.ident == DMDType.c_complex_float)
@@ -2983,6 +2985,7 @@ struct DMDType
     __gshared Identifier c_longlong;
     __gshared Identifier c_ulonglong;
     __gshared Identifier c_long_double;
+    __gshared Identifier c_char;
     __gshared Identifier c_wchar_t;
     __gshared Identifier c_complex_float;
     __gshared Identifier c_complex_double;
@@ -2996,6 +2999,7 @@ struct DMDType
         c_ulonglong     = Identifier.idPool("__c_ulonglong");
         c_long_double   = Identifier.idPool("__c_long_double");
         c_wchar_t       = Identifier.idPool("__c_wchar_t");
+        c_char          = Identifier.idPool("__c_char");
         c_complex_float  = Identifier.idPool("__c_complex_float");
         c_complex_double = Identifier.idPool("__c_complex_double");
         c_complex_real = Identifier.idPool("__c_complex_real");

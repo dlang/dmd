@@ -443,6 +443,8 @@ public:
             c = "_J"; // VC++ long long
         else if (id == Id.__c_ulonglong)
             c = "_K"; // VC++ unsigned long long
+        else if (id == Id.__c_char)
+            c = "D";  // VC++ char
         else if (id == Id.__c_wchar_t)
         {
             c = (flags & IS_DMC) ? "_Y" : "_W";
