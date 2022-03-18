@@ -2636,9 +2636,13 @@ class Lexer
             scan(&tok);
         if (tok.value == TOK.int32Literal || tok.value == TOK.int64Literal)
         {
-            const lin = cast(int)(tok.unsvalue - 1);
-            if (lin != tok.unsvalue - 1)
+            const lin = cast(int)(tok.unsvalue);
+            if (lin != tok.unsvalue)
+            {
                 error("line number `%lld` out of range", cast(ulong)tok.unsvalue);
+                skipToNextLine();
+                return;
+            }
             else
                 linnum = lin;
         }
@@ -2649,12 +2653,11 @@ class Lexer
             goto Lerr;
         while (1)
         {
-            switch (*p)
+            scan(&tok);
+            switch (tok.value)
             {
-            case 0:
-            case 0x1A:
-            case '\n':
-            Lnewline:
+            case TOK.endOfFile:
+            case TOK.endOfLine:
                 if (!inTokenStringConstant)
                 {
                     this.scanloc.linnum = linnum;
@@ -2662,85 +2665,26 @@ class Lexer
                         this.scanloc.filename = filespec;
                 }
                 return;
-            case '\r':
-                p++;
-                if (*p != '\n')
-                {
-                    p--;
-                    goto Lnewline;
-                }
-                continue;
-            case ' ':
-            case '\t':
-            case '\v':
-            case '\f':
-                p++;
-                continue; // skip white space
-            case '_':
+            case TOK.file:
                 if (filespec || flags)
                     goto Lerr;
-                if (memcmp(p, "__FILE__".ptr, 8) == 0)
+                filespec = mem.xstrdup(scanloc.filename);
+                continue;
+            case TOK.string_:
+                if (filespec || flags)
+                    goto Lerr;
+                if (tok.ptr[0] != '"' || tok.postfix != 0)
+                    goto Lerr;
+                filespec = tok.ustring;
+                continue;
+            case TOK.int32Literal:
+                if (linemarker && tok.unsvalue >= 1 && tok.unsvalue <= 4)
                 {
-                    p += 8;
-                    filespec = mem.xstrdup(scanloc.filename);
+                    flags = true;   // linemarker flags seen
                     continue;
                 }
                 goto Lerr;
-            case '"':
-                if (filespec || flags)
-                    goto Lerr;
-                stringbuffer.setsize(0);
-                p++;
-                while (1)
-                {
-                    uint c;
-                    c = *p;
-                    switch (c)
-                    {
-                    case '\n':
-                    case '\r':
-                    case 0:
-                    case 0x1A:
-                        goto Lerr;
-                    case '"':
-                        stringbuffer.writeByte(0);
-                        filespec = mem.xstrdup(cast(const(char)*)stringbuffer[].ptr);
-                        p++;
-                        break;
-                    default:
-                        if (c & 0x80)
-                        {
-                            uint u = decodeUTF();
-                            if (u == PS || u == LS)
-                                goto Lerr;
-                        }
-                        stringbuffer.writeByte(c);
-                        p++;
-                        continue;
-                    }
-                    break;
-                }
-                continue;
-
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-                if (!linemarker)
-                    goto Lerr;
-                flags = true;   // linemarker flags seen
-                ++p;
-                if ('0' <= *p && *p <= '9')
-                    goto Lerr;  // only one digit allowed
-                continue;
-
             default:
-                if (*p & 0x80)
-                {
-                    uint u = decodeUTF();
-                    if (u == PS || u == LS)
-                        goto Lnewline;
-                }
                 goto Lerr;
             }
         }
@@ -2749,6 +2693,8 @@ class Lexer
             error(loc, "# integer [\"filespec\"] { 1 | 2 | 3 | 4 }\\n expected");
         else
             error(loc, "#line integer [\"filespec\"]\\n expected");
+        if (tok.value != TOK.endOfLine)
+            skipToNextLine();
     }
 
     /***************************************
@@ -2790,6 +2736,7 @@ class Lexer
             break;
         }
         endOfLine();
+        tokenizeNewlines = false;
     }
 
     /********************************************
