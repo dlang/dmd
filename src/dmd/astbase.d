@@ -4578,7 +4578,7 @@ struct ASTBase
                 break;
 
             case Tint64:
-                value = cast(d_int64)value;
+                value = cast(long)value;
                 break;
 
             case Tuns64:

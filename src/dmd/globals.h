@@ -346,7 +346,6 @@ typedef long long sinteger_t;
 typedef unsigned long long uinteger_t;
 #endif
 
-typedef int64_t                 d_int64;
 typedef uint64_t                d_uns64;
 
 // file location
