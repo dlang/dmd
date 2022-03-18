@@ -123,6 +123,7 @@ immutable Msgtable[] msgtable =
     { "__c_longlong" },
     { "__c_ulonglong" },
     { "__c_long_double" },
+    { "__c_char" },
     { "__c_wchar_t" },
     { "__c_complex_float" },
     { "__c_complex_double" },
