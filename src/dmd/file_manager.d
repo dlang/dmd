@@ -37,7 +37,7 @@ nothrow:
     *      the found file name or
     *      `null` if it is not different from filename.
     */
-    extern(D) static const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
+    static const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
     {
         //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
         /* Search along path[] for .di file, then .d file, then .i file, then .c file.
@@ -141,7 +141,7 @@ nothrow:
      * Returns: the loaded source file if it was found in memory,
      *      otherwise `null`
      */
-    extern(D) const(FileBuffer)* lookup(FileName filename)
+    const(FileBuffer)* lookup(FileName filename)
     {
         if (!initialized)
             FileManager._init();
@@ -172,11 +172,6 @@ nothrow:
         return fb;
     }
 
-    extern(C++) const(FileBuffer)* lookup(const(char)* filename)
-    {
-        return lookup(FileName(filename.toDString));
-    }
-
     /**
      * Looks up the given filename from the internal file buffer table, and returns the lines within the file.
      * If the file does not already exist within the table, it will be read from the filesystem.
@@ -185,7 +180,7 @@ nothrow:
      * Returns: the loaded source file if it was found in memory,
      *      otherwise `null`
      */
-    extern(D) const(char)[][] getLines(FileName file)
+    const(char)[][] getLines(FileName file)
     {
         if (!initialized)
             FileManager._init();
@@ -244,7 +239,7 @@ nothrow:
      *
      * Returns: The FileBuffer added, or null
      */
-    extern(D) FileBuffer* add(FileName filename, FileBuffer* filebuffer)
+    FileBuffer* add(FileName filename, FileBuffer* filebuffer)
     {
         if (!initialized)
             FileManager._init();
@@ -253,19 +248,10 @@ nothrow:
         return val == null ? null : val.value;
     }
 
-    extern(C++) FileBuffer* add(const(char)* filename, FileBuffer* filebuffer)
-    {
-        if (!initialized)
-            FileManager._init();
-
-        auto val = files.insert(filename.toDString, filebuffer);
-        return val == null ? null : val.value;
-    }
-
     __gshared fileManager = FileManager();
 
     // Initialize the global FileManager singleton
-    extern(C++) static __gshared void _init()
+    private void _init()
     {
         if (!initialized)
         {
