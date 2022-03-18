@@ -640,7 +640,7 @@ UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expression e2)
         value = cast(uint)value >> count;
         break;
     case Tint64:
-        value = cast(d_int64)value >> count;
+        value = cast(long)value >> count;
         break;
     case Tuns64:
         value = cast(ulong)value >> count;
@@ -1127,7 +1127,7 @@ UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
                 result = cast(uint)r;
                 break;
             case Tint64:
-                result = cast(d_int64)r;
+                result = cast(long)r;
                 break;
             case Tuns64:
                 result = cast(ulong)r;

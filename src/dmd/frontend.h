@@ -7695,12 +7695,12 @@ struct Target final
         real_t nan;
         real_t infinity;
         real_t epsilon;
-        d_int64 dig;
-        d_int64 mant_dig;
-        d_int64 max_exp;
-        d_int64 min_exp;
-        d_int64 max_10_exp;
-        d_int64 min_10_exp;
+        int64_t dig;
+        int64_t mant_dig;
+        int64_t max_exp;
+        int64_t min_exp;
+        int64_t max_10_exp;
+        int64_t min_10_exp;
         FPTypeProperties()
         {
         }

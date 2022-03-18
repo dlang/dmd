@@ -10336,7 +10336,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 // Need to divide the result by the stride
                 // Replace (ptr - ptr) with (ptr - ptr) / stride
-                d_int64 stride;
+                long stride;
 
                 // make sure pointer types are compatible
                 if (Expression ex = typeCombine(exp, sc))
@@ -10351,7 +10351,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     e = new IntegerExp(exp.loc, 0, Type.tptrdiff_t);
                 }
-                else if (stride == cast(d_int64)SIZE_INVALID)
+                else if (stride == cast(long)SIZE_INVALID)
                     e = ErrorExp.get();
                 else
                 {

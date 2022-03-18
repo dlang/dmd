@@ -61,7 +61,7 @@ extern (C++) struct Compiler
         union U
         {
             int int32value;
-            d_int64 int64value;
+            long int64value;
             float float32value;
             double float64value;
         }
@@ -77,7 +77,7 @@ extern (C++) struct Compiler
             break;
         case Tint64:
         case Tuns64:
-            u.int64value = cast(d_int64) e.toInteger();
+            u.int64value = cast(long) e.toInteger();
             break;
         case Tfloat32:
             u.float32value = cast(float) e.toReal();

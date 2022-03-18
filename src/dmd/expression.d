@@ -1839,7 +1839,7 @@ extern (C++) final class IntegerExp : Expression
         value = val;
         return (ty == Tuns64)
             ? real_t(cast(ulong)val)
-            : real_t(cast(d_int64)val);
+            : real_t(cast(long)val);
     }
 
     override real_t toImaginary()
@@ -1922,7 +1922,7 @@ extern (C++) final class IntegerExp : Expression
             break;
 
         case Tint64:
-            result = cast(d_int64)value;
+            result = cast(long)value;
             break;
 
         case Tuns64:
