@@ -1886,7 +1886,7 @@ public:
         {
             // Check for unsupported type painting operations
             Type elemtype = (cast(TypeArray)val.type).next;
-            d_uns64 elemsize = elemtype.size();
+            const elemsize = elemtype.size();
 
             // It's OK to cast from fixed length to fixed length array, eg &int[n] to int[d]*.
             if (val.type.ty == Tsarray && pointee.ty == Tsarray && elemsize == pointee.nextOf().size())
@@ -3038,7 +3038,7 @@ public:
         if (e.op == EXP.rightShift || e.op == EXP.leftShift || e.op == EXP.unsignedRightShift)
         {
             const sinteger_t i2 = e2.toInteger();
-            const d_uns64 sz = e1.type.size() * 8;
+            const uinteger_t sz = e1.type.size() * 8;
             if (i2 < 0 || i2 >= sz)
             {
                 e.error("shift by %lld is outside the range 0..%llu", i2, cast(ulong)sz - 1);

@@ -972,7 +972,7 @@ extern (C++) class Dsymbol : ASTNode
      * Returns:
      *  SIZE_INVALID when the size cannot be determined
      */
-    d_uns64 size(const ref Loc loc)
+    uinteger_t size(const ref Loc loc)
     {
         error("Dsymbol `%s` has no size", toChars());
         return SIZE_INVALID;

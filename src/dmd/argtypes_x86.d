@@ -325,7 +325,7 @@ extern (C++) TypeTuple toArgTypes_x86(Type t)
          *      nfields = number of fields in the aggregate (dimension for static arrays)
          *      getFieldInfo = get information about the nth field in the aggregate
          */
-        extern (D) void aggregate(d_uns64 sz, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
+        extern (D) void aggregate(uinteger_t sz, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
         {
             if (nfields == 0)
                 return memory();

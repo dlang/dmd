@@ -123,7 +123,7 @@ public:
     DString mangleOverride;     // overridden symbol with pragma(mangle, "...")
 
     const char *kind() const;
-    d_uns64 size(const Loc &loc);
+    uinteger_t size(const Loc &loc);
 
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
 

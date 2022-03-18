@@ -809,7 +809,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             if (e.e2.isConst() == 1)
             {
                 sinteger_t i2 = e.e2.toInteger();
-                d_uns64 sz = e.e1.type.size(e.e1.loc);
+                uinteger_t sz = e.e1.type.size(e.e1.loc);
                 assert(sz != SIZE_INVALID);
                 sz *= 8;
                 if (i2 < 0 || i2 >= sz)
@@ -895,7 +895,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (e.e2.isConst() == 1)
         {
             sinteger_t i2 = e.e2.toInteger();
-            d_uns64 sz = e.e1.type.size(e.e1.loc);
+            uinteger_t sz = e.e1.type.size(e.e1.loc);
             assert(sz != SIZE_INVALID);
             sz *= 8;
             if (i2 < 0 || i2 >= sz)
