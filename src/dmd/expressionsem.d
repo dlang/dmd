@@ -7118,6 +7118,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        exp.e1 = exp.e1.arrayFuncConv(sc);
+
         Type tb = exp.e1.type.toBasetype();
         switch (tb.ty)
         {
