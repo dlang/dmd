@@ -7443,6 +7443,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (exp.to && !exp.to.isTypeSArray() && !exp.to.isTypeFunction())
+            exp.e1 = exp.e1.arrayFuncConv(sc);
+
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (exp.e1.op == EXP.type)
             exp.e1 = resolveAliasThis(sc, exp.e1);
