@@ -333,7 +333,13 @@ Symbol *toSymbol(Dsymbol s)
             auto s = symbol_calloc(id, cast(uint)strlen(id));
 
             s.prettyIdent = fd.toPrettyChars(true);
-            s.Sclass = SCglobal;
+
+            /* Make C static functions SCstatic
+             */
+            s.Sclass = (fd.storage_class & STC.static_ && fd.isCsymbol())
+                ? SCstatic
+                : SCglobal;
+
             symbol_func(s);
             func_t *f = s.Sfunc;
             if (fd.isVirtual() && fd.vtblIndex != -1)
