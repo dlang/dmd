@@ -1127,7 +1127,7 @@ $(GNAME SpecialTokenSequence):
 )
 $(GRAMMAR_LEX
 $(GNAME Filespec):
-    $(B ") $(GLINK Characters)$(OPT) $(B ")
+    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ")
 )
 
         $(P Special token sequences are processed by the lexical analyzer, may
@@ -1145,10 +1145,6 @@ $(GNAME Filespec):
         $(P This sets the current source line number to $(GLINK IntegerLiteral),
         and optionally the current source file name to $(GLINK Filespec),
         beginning with the next line of source text.
-        )
-
-        $(P The backslash character is not treated specially inside
-        $(GLINK Filespec) strings.
         )
 
         $(P For example:
