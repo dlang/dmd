@@ -350,3 +350,42 @@ unittest
 
     assert(global.errors == 0);
 }
+
+// Issue https://issues.dlang.org/show_bug.cgi?id=22906
+@("semantics on non regular module")
+unittest
+{
+    import std.algorithm : each;
+    import std.conv : to;
+
+    import core.stdc.stdarg : va_list;
+
+    import dmd.frontend;
+    import dmd.globals : Loc, global;
+    import dmd.common.outbuffer;
+    import dmd.console : Color;
+
+    string[] diagnosticMessages;
+
+    nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
+                                   const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
+    {
+        OutBuffer tmp;
+        tmp.vprintf(format, ap);
+        diagnosticMessages ~= to!string(tmp.peekChars());
+        return true;
+    }
+
+    initDMD(&diagnosticHandler);
+    defaultImportPaths.each!addImport;
+
+    auto t = parseModule("test.dd", q{Ddoc});
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic();
+
+    assert(global.errors == 1);
+    assert(diagnosticMessages[0] == "is a Ddoc file, cannot import it");
+}
