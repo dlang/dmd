@@ -1209,14 +1209,14 @@ $(H3 $(LNAME2 ifti, Implicit Function Template Instantiation (IFTI)))
 $(H4 $(LNAME2 ifti-restrictions, Restrictions))
 
     $(P Function template type parameters that are to be implicitly
-        deduced may not have specializations:)
+        deduced must appear in the type of at least one function parameter:)
 
         ------
-        void $(CODE_HIGHLIGHT foo)(T : T*)(T t) { ... }
+        void foo(T : U*, U)(U t) { ... }
 
-        int x,y;
-        foo!(int*)(x);   // ok, T is not deduced from function argument
-        foo(&y);         // error, T has specialization
+        int x;
+        foo!(int*)(x);   // ok, U is deduced and T is specified explicitly
+        foo(x);         // error, only U can be deduced, not T
         ------
 
         $(P When the template parameters must be deduced, the
