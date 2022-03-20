@@ -44,6 +44,8 @@ fail_compilation/failcstuff1.c(503): Error: `=`, `;` or `,` expected to end decl
 fail_compilation/failcstuff1.c(504): Error: identifier or `(` expected
 fail_compilation/failcstuff1.c(504): Error: found `;` when expecting `)`
 fail_compilation/failcstuff1.c(505): Error: `=`, `;` or `,` expected to end declaration instead of `int`
+fail_compilation/failcstuff1.c(551): Error: missing comma or semicolon after declaration of `pluto`, found `p` instead
+fail_compilation/failcstuff1.c(601): Error: `=`, `;` or `,` expected to end declaration instead of `'s'`
 ---
 */
 
@@ -147,15 +149,12 @@ void test22102()
     int var2;
 }
 
-
 /****************************************************/
-
-/* TEST_OUTPUT:
----
-fail_compilation/failcstuff1.c(551): Error: missing comma or semicolon after declaration of `pluto`, found `p` instead
----
-*/
-
 #line 550
 
 int * pluto p;
+
+// https://issues.dlang.org/show_bug.cgi?id=22909
+#line 600
+
+char c22909 = u8's';
