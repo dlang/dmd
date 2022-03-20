@@ -187,14 +187,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // gets imported, it is unaffected by context.
         Scope* sc = Scope.createGlobal(mod); // create root scope
         //printf("Module = %p\n", sc.scopesym);
-        // Pass 3 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < mod.members.dim; i++)
+        if (mod.members)
         {
-            Dsymbol s = (*mod.members)[i];
-            //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
-            s.semantic3(sc);
+            // Pass 3 semantic routines: do initializers and function bodies
+            for (size_t i = 0; i < mod.members.dim; i++)
+            {
+                Dsymbol s = (*mod.members)[i];
+                //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
+                s.semantic3(sc);
 
-            mod.runDeferredSemantic2();
+                mod.runDeferredSemantic2();
+            }
         }
         if (mod.userAttribDecl)
         {
