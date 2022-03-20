@@ -371,6 +371,12 @@ class Lexer
                                 'd';
                     return;
                 }
+                else if (p[1] == '8' && p[2] == '\"') // C UTF-8 string literal
+                {
+                    p += 2;
+                    escapeStringConstant(t);
+                    return;
+                }
                 goto case_ident;
 
             case 'r':
