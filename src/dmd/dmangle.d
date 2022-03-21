@@ -1365,5 +1365,3 @@ extern (D) const(char)[] externallyMangledIdentifier(Declaration d)
     }
     return null;
 }
-
-

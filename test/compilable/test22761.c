@@ -15,4 +15,3 @@ long reg22344(adler, buf, len)
 
 void fn(int);
 void fn(const int x);
-

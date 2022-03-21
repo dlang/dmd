@@ -16,4 +16,3 @@ void test()
 {
     fun("abc");
 }
-

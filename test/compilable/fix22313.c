@@ -14,4 +14,3 @@ int castint(int x){
     int j = (Integer)(x);
     return x;
 }
-

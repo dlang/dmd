@@ -120,4 +120,3 @@ struct symtab_t
     SYMIDX symmax;              // max # of entries in tab[] possible
     T* tab;                     // local Symbol table
 }
-

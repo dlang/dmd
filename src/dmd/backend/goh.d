@@ -135,4 +135,3 @@ void listrds(vec_t, elem *, vec_t, Barray!(elem*)*);
 
 /* gslice.c */
 void sliceStructs(ref symtab_t symtab, block* startblock);
-

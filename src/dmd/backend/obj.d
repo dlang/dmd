@@ -786,5 +786,3 @@ string gen(string pattern, string arg)
     assert(i == length);
     return cast(string)result;
 }
-
-

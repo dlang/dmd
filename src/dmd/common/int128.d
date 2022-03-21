@@ -919,5 +919,3 @@ unittest
     assert(rol(C7_9, 1) == rol1(C7_9));
     assert(ror(C7_9, 1) == ror1(C7_9));
 }
-
-

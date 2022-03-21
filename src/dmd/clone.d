@@ -1691,5 +1691,3 @@ bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     }
     return true;
 }
-
-

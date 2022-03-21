@@ -22,4 +22,3 @@ struct Foo f = {3};
 struct Amy { int x; } *p;
 
 struct Amy b;
-

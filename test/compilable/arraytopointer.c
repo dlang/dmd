@@ -73,6 +73,3 @@ int testArrow()
     struct S a[3];
     return a->m;
 }
-
-
-

@@ -70,4 +70,3 @@ int main()
     pointers();
     return 0;
 }
-

@@ -71,4 +71,3 @@ struct Vector(T, int N)
             assert(false);
     }
 }
-

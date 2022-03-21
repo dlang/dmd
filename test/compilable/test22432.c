@@ -22,4 +22,3 @@ void test()
     int a[3];
     int x8 = (T)(a)[1]++;
 }
-

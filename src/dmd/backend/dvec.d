@@ -693,5 +693,3 @@ void vec_print(const vec_t v)
         }
     }
 }
-
-

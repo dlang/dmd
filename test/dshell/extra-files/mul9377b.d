@@ -37,4 +37,3 @@ template def()
 }
 
 def!().defint x;
-

@@ -14,4 +14,3 @@ $(GENERATED)/docs/%: $(GENERATED)/build
 
 $(GENERATED)/build: ../src/build.d
 	$(DMD) -of$@ ../src/build.d
-
