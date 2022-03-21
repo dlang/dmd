@@ -2806,7 +2806,6 @@ public:
     void* isTypeIsolatedCache;
     DsymbolTable* localsymtab;
     VarDeclaration* vthis;
-    bool isThis2;
     VarDeclaration* v_arguments;
     VarDeclaration* v_argptr;
     Array<VarDeclaration* >* parameters;
@@ -2815,24 +2814,15 @@ public:
     FuncDeclaration* overnext0;
     Loc endloc;
     int32_t vtblIndex;
-    bool naked;
-    bool generated;
-    bool hasAlwaysInlines;
-    uint8_t isCrtCtorDtor;
     ILS inlineStatusStmt;
     ILS inlineStatusExp;
     PINLINE inlining;
     int32_t inlineNest;
-    bool eh_none;
-    bool semantic3Errors;
     ForeachStatement* fes;
     BaseClass* interfaceVirtual;
-    bool introducing;
     Type* tintro;
-    bool inferRetType;
     StorageClass storage_class2;
     int32_t hasReturnExp;
-    bool nrvo_can;
     VarDeclaration* nrvo_var;
     Symbol* shidden;
     Array<ReturnStatement* >* returns;
@@ -2883,6 +2873,15 @@ public:
     bool isTrusted();
     bool isNogc();
     bool isNogcBypassingInference();
+    bool isNRVO() const;
+    bool isNaked() const;
+    bool isGenerated() const;
+    bool isIntroducing() const;
+    bool hasSemantic3Errors() const;
+    bool hasNoEH() const;
+    bool inferRetType() const;
+    bool hasDualContext() const;
+    bool hasAlwaysInlines() const;
     virtual bool isNested() const;
     AggregateDeclaration* isThis();
     bool needThis();
@@ -2948,6 +2947,17 @@ enum class FUNCFLAG : uint32_t
     printf = 512u,
     scanf = 1024u,
     noreturn = 2048u,
+    NRVO = 4096u,
+    naked = 8192u,
+    generated = 16384u,
+    introducing = 32768u,
+    semantic3Errors = 65536u,
+    noEH = 131072u,
+    inferRetType = 262144u,
+    dualContext = 524288u,
+    hasAlwaysInline = 1048576u,
+    CRTCtor = 2097152u,
+    CRTDtor = 4194304u,
 };
 
 class FuncAliasDeclaration final : public FuncDeclaration

@@ -292,7 +292,7 @@ extern (C++) abstract class Declaration : Dsymbol
                  * postblit. Print the first field that has
                  * a disabled postblit.
                  */
-                if (postblit.generated)
+                if (postblit.isGenerated())
                 {
                     auto sd = p.isStructDeclaration();
                     assert(sd);
@@ -334,7 +334,7 @@ extern (C++) abstract class Declaration : Dsymbol
 
         if (auto ctor = isCtorDeclaration())
         {
-            if (ctor.isCpCtor && ctor.generated)
+            if (ctor.isCpCtor && ctor.isGenerated())
             {
                 .error(loc, "Generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", parent.toPrettyChars());
                 return true;

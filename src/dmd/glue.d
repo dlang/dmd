@@ -676,7 +676,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next.ty == Terror)
         return;
 
-    if (fd.semantic3Errors)
+    if (fd.hasSemantic3Errors)
         return;
 
     if (global.errors)
@@ -689,7 +689,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (ud && !global.params.useUnitTests)
         return;
 
-    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration() && !fd.isCrtCtorDtor)
+    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration()
+        && !(fd.flags & (FUNCFLAG.CRTCtor | FUNCFLAG.CRTDtor)))
     {
         obj_append(fd);
         return;
@@ -754,7 +755,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isVirtual() && (fd.fensure || fd.frequire))
         f.Fflags3 |= Ffakeeh;
 
-    if (fd.eh_none)
+    if (fd.hasNoEH())
         // Same as config.ehmethod==EH_NONE, but only for this function
         f.Fflags3 |= Feh_none;
 
@@ -858,7 +859,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         __gshared uint hiddenparami;    // how many we've generated so far
 
         const(char)* name;
-        if (fd.nrvo_can && fd.nrvo_var)
+        if (fd.isNRVO() && fd.nrvo_var)
             name = fd.nrvo_var.ident.toChars();
         else
         {
@@ -867,7 +868,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
         shidden = symbol_name(name, SCparameter, thidden);
         shidden.Sflags |= SFLtrue | SFLfree;
-        if (fd.nrvo_can && fd.nrvo_var && fd.nrvo_var.nestedrefs.dim)
+        if (fd.isNRVO() && fd.nrvo_var && fd.nrvo_var.nestedrefs.dim)
             type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
         irs.shidden = shidden;
         fd.shidden = shidden;
@@ -875,9 +876,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     else
     {
         // Register return style cannot make nrvo.
-        // Auto functions keep the nrvo_can flag up to here,
+        // Auto functions keep the NRVO flag up to here,
         // so we should eliminate it before entering backend.
-        fd.nrvo_can = 0;
+        fd.flags &= ~FUNCFLAG.NRVO;
     }
 
     if (fd.vthis)
@@ -1038,7 +1039,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
      * 2. impact on function inlining
      * 3. what to do when writing out .di files, or other pretty printing
      */
-    if (global.params.trace && !fd.isCMain() && !fd.naked && !(fd.hasReturnExp & 8))
+    if (global.params.trace && !fd.isCMain() && !fd.isNaked() && !(fd.hasReturnExp & 8))
     {
         /* The profiler requires TLS, and TLS may not be set up yet when C main()
          * gets control (i.e. OSX), leading to a crash.
@@ -1190,10 +1191,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
 
-    if (fd.isCrtCtorDtor & 1)
+    if (fd.flags & FUNCFLAG.CRTCtor)
         objmod.setModuleCtorDtor(s, true);
 
-    if (fd.isCrtCtorDtor & 2)
+    if (fd.flags & FUNCFLAG.CRTDtor)
     {
         //See TargetC.initialize
         if(target.c.crtDestructorsSupported)

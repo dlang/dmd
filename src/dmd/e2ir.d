@@ -597,7 +597,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();
 
-        const bool nrvo = fd && fd.nrvo_can && fd.nrvo_var == se.var;
+        const bool nrvo = fd && fd.isNRVO() && fd.nrvo_var == se.var;
         if (nrvo)
             s = fd.shidden;
 
@@ -6808,7 +6808,7 @@ elem *genHalt(const ref Loc loc)
  */
 elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis2, elem** ethis, elem** eside)
 {
-    if (!fd.isThis2)
+    if (!fd.hasDualContext())
         return null;
 
     assert(ethis2 && ethis && *ethis);
