@@ -1897,7 +1897,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
 
         override void visit(ThisExp e)
         {
-            if (e.var && e.var.toParent2().isFuncDeclaration().isThis2)
+            if (e.var && e.var.toParent2().isFuncDeclaration().hasDualContext())
                 escapeByValue(e, er, live);
             else if (e.var)
                 er.byref.push(e.var);

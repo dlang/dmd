@@ -1046,7 +1046,7 @@ L1:
     if (e1.op == EXP.this_)
     {
         FuncDeclaration f = hasThis(sc);
-        if (f && f.isThis2)
+        if (f && f.hasDualContext())
         {
             if (f.followInstantiationContext(ad))
             {
@@ -1723,7 +1723,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         if (sc._module)
             sc._module.hasAlwaysInlines = true;
         if (sc.func)
-            sc.func.hasAlwaysInlines = true;
+            sc.func.flags |= FUNCFLAG.hasAlwaysInline;
     }
 
     const isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
@@ -4490,7 +4490,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (sd.ctor)
                 {
                     auto ctor = sd.ctor.isCtorDeclaration();
-                    if (ctor && ctor.isCpCtor && ctor.generated)
+                    if (ctor && ctor.isCpCtor && ctor.isGenerated())
                         sd.ctor = null;
                 }
 
@@ -5162,7 +5162,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // declare dual-context container
-        if (exp.f && exp.f.isThis2 && !sc.intypeof && sc.func)
+        if (exp.f && exp.f.hasDualContext() && !sc.intypeof && sc.func)
         {
             // check access to second `this`
             if (AggregateDeclaration ad2 = exp.f.isMember2())
@@ -6736,7 +6736,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         result = e;
         // declare dual-context container
-        if (f.isThis2 && !sc.intypeof && sc.func)
+        if (f.hasDualContext() && !sc.intypeof && sc.func)
         {
             // check access to second `this`
             if (AggregateDeclaration ad2 = f.isMember2())
@@ -13055,7 +13055,7 @@ Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, Aggre
         {
             n++;
             e1 = new VarExp(loc, f.vthis);
-            if (f.isThis2)
+            if (f.hasDualContext())
             {
                 // (*__this)[i]
                 if (n > 1)

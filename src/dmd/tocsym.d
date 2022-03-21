@@ -144,7 +144,7 @@ Symbol *toSymbol(Dsymbol s)
                 id = vd.ident.toString();
                 if (FuncDeclaration fd = vd.toParent2().isFuncDeclaration())
                 {
-                    if (fd.nrvo_can && fd.nrvo_var == vd)
+                    if (fd.isNRVO() && fd.nrvo_var == vd)
                     {
                         buf.writestring("__nrvo_");
                         buf.writestring(id);

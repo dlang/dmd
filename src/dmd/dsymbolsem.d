@@ -1776,7 +1776,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     else if (auto f = s.isFuncDeclaration())
                     {
-                        f.isCrtCtorDtor |= isCtor ? 1 : 2;
+                        f.flags |= isCtor ? FUNCFLAG.CRTCtor : FUNCFLAG.CRTDtor;
                         return 1;
                     }
                     else
@@ -3023,7 +3023,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         AggregateDeclaration ad = funcdecl.isThis();
         // Don't nest structs b/c of generated methods which should not access the outer scopes.
         // https://issues.dlang.org/show_bug.cgi?id=16627
-        if (ad && !funcdecl.generated)
+        if (ad && !funcdecl.isGenerated())
         {
             funcdecl.storage_class |= ad.storage_class & (STC.TYPECTOR | STC.synchronized_);
             ad.makeNested();
@@ -3061,12 +3061,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             funcdecl.inlining = pragmadecl.evalPragmaInline(sc);
 
         // check pragma(crt_constructor)
-        if (funcdecl.isCrtCtorDtor)
+        if (funcdecl.flags & (FUNCFLAG.CRTCtor | FUNCFLAG.CRTDtor))
         {
             if (funcdecl.linkage != LINK.c)
             {
                 funcdecl.error("must be `extern(C)` for `pragma(%s)`",
-                    funcdecl.isCrtCtorDtor == 1 ? "crt_constructor".ptr : "crt_destructor".ptr);
+                    (funcdecl.flags & FUNCFLAG.CRTCtor) ? "crt_constructor".ptr : "crt_destructor".ptr);
             }
         }
 
@@ -3524,7 +3524,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else
                 {
                     //printf("\tintroducing function %s\n", funcdecl.toChars());
-                    funcdecl.introducing = 1;
+                    funcdecl.flags |= FUNCFLAG.introducing;
                     if (cd.classKind == ClassKind.cpp && target.cpp.reverseOverloads)
                     {
                         /* Overloaded functions with same name are grouped and in reverse order.
@@ -5259,7 +5259,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, 0, tf);
                 ctor.storage_class |= STC.inference;
-                ctor.generated = true;
+                ctor.flags |= FUNCFLAG.generated;
                 ctor.fbody = new CompoundStatement(Loc.initial, new Statements());
 
                 cldec.members.push(ctor);

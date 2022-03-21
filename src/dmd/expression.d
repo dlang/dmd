@@ -170,7 +170,7 @@ FuncDeclaration hasThis(Scope* sc)
         {
             return null;
         }
-        if (!fd.isNested() || fd.isThis() || (fd.isThis2 && fd.isMember2()))
+        if (!fd.isNested() || fd.isThis() || (fd.hasDualContext() && fd.isMember2()))
             break;
 
         Dsymbol parent = fd.parent;
@@ -187,7 +187,7 @@ FuncDeclaration hasThis(Scope* sc)
         fd = parent.isFuncDeclaration();
     }
 
-    if (!fd.isThis() && !(fd.isThis2 && fd.isMember2()))
+    if (!fd.isThis() && !(fd.hasDualContext() && fd.isMember2()))
     {
         return null;
     }
@@ -1210,7 +1210,7 @@ extern (C++) abstract class Expression : ASTNode
                 scope bool function(DtorDeclaration) check, const string checkName
     ) {
         auto dd = f.isDtorDeclaration();
-        if (!dd || !dd.generated)
+        if (!dd || !dd.isGenerated())
             return;
 
         // DtorDeclaration without parents should fail at an earlier stage
@@ -1227,7 +1227,7 @@ extern (C++) abstract class Expression : ASTNode
         }
 
         dd.loc.errorSupplemental("%s`%s.~this` is %.*s because of the following field's destructors:",
-                            dd.generated ? "generated " : "".ptr,
+                            dd.isGenerated() ? "generated " : "".ptr,
                             ad.toChars,
                             cast(int) checkName.length, checkName.ptr);
 
@@ -1258,7 +1258,7 @@ extern (C++) abstract class Expression : ASTNode
             {
                 field.loc.errorSupplemental(" - %s %s", field.type.toChars(), field.toChars());
 
-                if (fieldSd.dtor.generated)
+                if (fieldSd.dtor.isGenerated())
                     checkOverridenDtor(sc, fieldSd.dtor, check, checkName);
                 else
                     fieldSd.dtor.loc.errorSupplemental("   %.*s `%s.~this` is declared here",
