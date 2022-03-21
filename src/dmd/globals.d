@@ -486,8 +486,6 @@ alias dinteger_t = ulong;
 alias sinteger_t = long;
 alias uinteger_t = ulong;
 
-alias d_uns64 = uint64_t;
-
 version (DMDLIB)
 {
     version = LocOffset;
