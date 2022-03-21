@@ -25,7 +25,7 @@ bool ptr22881()
     char *p1 = new char[4].ptr;
     p1[0 .. 4] = "str\0";
     char *s1 = p1[1 .. 3].ptr;
-    char *s2 = s1[1 .. 3].ptr;  // = p1[2 .. 4] 
+    char *s2 = s1[1 .. 3].ptr;  // = p1[2 .. 4]
     char *s3 = s2[1 .. 3].ptr;  // = p1[3 .. 5]
     return true;
 }
