@@ -3767,7 +3767,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            if (sd.hasRegularCtor() && nargs)
+            // https://issues.dlang.org/show_bug.cgi?id=22639
+            // If the new expression has arguments, we either should call a
+            // regular constructor of a copy constructor if the first argument
+            // is the same type as the struct
+            if (nargs && (sd.hasRegularCtor() || (sd.ctor && (*exp.arguments)[0].type.mutableOf() == sd.type.mutableOf())))
             {
                 FuncDeclaration f = resolveFuncCall(exp.loc, sc, sd.ctor, null, tb, exp.arguments, FuncResolveFlag.standard);
                 if (!f || f.errors)
@@ -4528,7 +4532,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                        If all constructors are copy constructors, then
                        try default construction.
                      */
-                    if (!sd.hasRegularCtor)
+                    if (!sd.hasRegularCtor &&
+                        // https://issues.dlang.org/show_bug.cgi?id=22639
+                        // we might still have a copy constructor that could be called
+                        (*exp.arguments)[0].type.mutableOf != sd.type.mutableOf())
                         goto Lx;
 
                     auto sle = new StructLiteralExp(exp.loc, sd, null, exp.e1.type);
