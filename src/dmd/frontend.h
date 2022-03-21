@@ -227,7 +227,6 @@ class TypeInfoClassDeclaration;
 class TypeFunction;
 class Initializer;
 struct IntRange;
-struct Macro;
 struct ModuleDeclaration;
 struct Escape;
 class WithStatement;
@@ -6005,7 +6004,7 @@ extern void printCtfePerformanceStats();
 struct MacroTable final
 {
 private:
-    Macro* mactab;
+    void* mactab;
 public:
     MacroTable()
     {
