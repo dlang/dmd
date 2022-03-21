@@ -1,0 +1,12 @@
+DW_AT_name        : global_static_int
+DW_AT_name        : global_int
+DW_AT_name        : C
+DW_AT_name        : C.this
+DW_AT_name        : S
+DW_AT_name        : S.s
+!DW_AT_name        : fix21155.global_static_int
+!DW_AT_name        : fix21155.global_int
+!DW_AT_name        : fix21155.C
+!DW_AT_name        : fix21155.C.this
+!DW_AT_name        : fix21155.S
+!DW_AT_name        : fix21155.S.s
