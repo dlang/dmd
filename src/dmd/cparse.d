@@ -981,7 +981,12 @@ final class CParser(AST) : Parser!AST
                     e = new AST.DotIdExp(loc, e, Id.__sizeof);
                     break;
                 }
+                // must be an expression
+                e = cparsePrimaryExp();
+                e = new AST.DotIdExp(loc, e, Id.__sizeof);
+                break;
             }
+
             e = cparseUnaryExp();
             e = new AST.DotIdExp(loc, e, Id.__sizeof);
             break;
