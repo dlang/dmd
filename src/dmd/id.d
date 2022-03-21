@@ -360,6 +360,8 @@ immutable Msgtable[] msgtable =
     { "core" },
     { "etc" },
     { "attribute" },
+    { "atomic" },
+    { "atomicOp" },
     { "math" },
     { "sin" },
     { "cos" },

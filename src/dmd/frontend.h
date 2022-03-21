@@ -8246,6 +8246,8 @@ struct Id final
     static Identifier* core;
     static Identifier* etc;
     static Identifier* attribute;
+    static Identifier* atomic;
+    static Identifier* atomicOp;
     static Identifier* math;
     static Identifier* sin;
     static Identifier* cos;

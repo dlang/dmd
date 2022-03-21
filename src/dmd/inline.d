@@ -2317,7 +2317,7 @@ private bool expNeedsDtor(Expression exp)
                 s = s.toAlias();
                 if (s != vd)
                     return Dsymbol_needsDtor(s);
-                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared | STC.manifest))
+                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.gshared | STC.manifest))
                     return;
                 if (vd.needsScopeDtor())
                 {
