@@ -4160,12 +4160,14 @@ final class CParser(AST) : Parser!AST
      *    ( expression )
      * Params:
      *    pt = starting token, updated to one past end of constant-expression if true
-     *    afterParenType = true if already seen ( type-name )
+     *    afterParenType = true if already seen `( type-name )`
      * Returns:
      *    true if matches ( type-name ) ...
      */
     private bool isCastExpression(ref Token* pt, bool afterParenType = false)
     {
+        enum log = false;
+        if (log) printf("isCastExpression(tk: `%s`, afterParenType: %d)\n", token.toChars(pt.value), afterParenType);
         auto t = pt;
         switch (t.value)
         {
@@ -4183,19 +4185,23 @@ final class CParser(AST) : Parser!AST
                 {
                     // ( type-name ) { initializer-list }
                     if (!isInitializer(tk))
+                    {
                         return false;
+                    }
                     t = tk;
                     break;
                 }
 
                 if (tk.value == TOK.leftParenthesis && peek(tk).value == TOK.rightParenthesis)
+                {
                     return false;    // (type-name)() is not a cast (it might be a function call)
+                }
 
                 if (!isCastExpression(tk, true))
                 {
                     if (afterParenType) // could be ( type-name ) ( unary-expression )
                         goto default;   // where unary-expression also matched type-name
-                    return false;
+                    return true;
                 }
                 // ( type-name ) cast-expression
                 t = tk;
@@ -4203,11 +4209,14 @@ final class CParser(AST) : Parser!AST
 
             default:
                 if (!afterParenType || !isUnaryExpression(t, afterParenType))
+                {
                     return false;
+                }
                 // if we've already seen ( type-name ), then this is a cast
                 break;
         }
         pt = t;
+        if (log) printf("isCastExpression true\n");
         return true;
     }
 
