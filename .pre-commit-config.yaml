@@ -8,6 +8,12 @@ repos:
         ^test/runnable/extra-files/.*$|
         ^test/compilable/extra-files/.*$|
       )$
+  - id: end-of-file-fixer
+    exclude: >
+      (?x)^(
+        ^test/runnable/extra-files/.*$|
+        ^test/compilable/extra-files/.*$|
+      )$
   - id: check-merge-conflict
   - id: check-added-large-files
   - id: detect-private-key
