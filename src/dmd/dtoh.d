@@ -3037,7 +3037,7 @@ void hashEndIf(ref OutBuffer buf)
 /// Writes `#define <content>` into the supplied buffer
 void hashDefine(ref OutBuffer buf, string content)
 {
-    buf.writestring("# define ");
+    buf.writestring("#define ");
     buf.writestringln(content);
 }
 
