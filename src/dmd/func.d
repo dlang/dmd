@@ -214,8 +214,8 @@ enum FUNCFLAG : uint
     inferRetType     = 0x40000, /// Return type is to be inferred
     dualContext      = 0x80000, /// has a dual-context 'this' parameter
     hasAlwaysInline  = 0x100000, /// Contains references to functions that must be inlined
-    CRTCtor          = 0x200000, /// Has attribute pragma(crt_constructor) (set in glue)
-    CRTDtor          = 0x400000, /// Has attribpute pragma(crt_destructor) (set in glue)
+    CRTCtor          = 0x200000, /// Has attribute pragma(crt_constructor)
+    CRTDtor          = 0x400000, /// Has attribute pragma(crt_destructor)
 }
 
 /***********************************************************
@@ -1512,6 +1512,16 @@ extern (C++) class FuncDeclaration : Declaration
     final bool hasAlwaysInlines() const scope @safe pure nothrow @nogc
     {
         return !!(this.flags & FUNCFLAG.hasAlwaysInline);
+    }
+
+    final bool isCrtCtor() const scope @safe pure nothrow @nogc
+    {
+        return !!(this.flags & FUNCFLAG.CRTCtor);
+    }
+
+    final bool isCrtDtor() const scope @safe pure nothrow @nogc
+    {
+        return !!(this.flags & FUNCFLAG.CRTDtor);
     }
 
     /**************************************
