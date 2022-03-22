@@ -4784,7 +4784,8 @@ final class CParser(AST) : Parser!AST
         scan(&n);
         if (n.value == TOK.identifier && n.ident == Id.pack)
             return pragmaPack(loc);
-        skipToNextLine();
+        if (n.value != TOK.endOfLine)
+            skipToNextLine();
     }
 
     /*********
@@ -4803,7 +4804,8 @@ final class CParser(AST) : Parser!AST
         if (n.value != TOK.leftParenthesis)
         {
             error(loc, "left parenthesis expected to follow `#pragma pack`");
-            skipToNextLine();
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
             return;
         }
 
@@ -4813,7 +4815,8 @@ final class CParser(AST) : Parser!AST
             {
                 error(loc, "right parenthesis expected to close `#pragma pack(`");
             }
-            skipToNextLine();
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
         }
 
         void setPackAlign(ref const Token t)
@@ -4940,7 +4943,8 @@ final class CParser(AST) : Parser!AST
         }
 
         error(loc, "unrecognized `#pragma pack(%s)`", n.toChars());
-        skipToNextLine();
+        if (n.value != TOK.endOfLine)
+            skipToNextLine();
     }
 
     //}
