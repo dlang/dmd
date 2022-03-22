@@ -651,6 +651,8 @@ public:
     bool inferRetType() const;
     bool hasDualContext() const;
     bool hasAlwaysInlines() const;
+    bool isCrtCtor() const;
+    bool isCrtDtor() const;
 
     virtual bool isNested() const;
     AggregateDeclaration *isThis();
