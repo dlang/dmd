@@ -3533,13 +3533,13 @@ private:
         isproperty = 4u,
         isref = 8u,
         isreturn = 16u,
-        isscope = 32u,
+        isScopeQual = 32u,
         isreturninferred = 64u,
         isscopeinferred = 128u,
         islive = 256u,
         incomplete = 512u,
-        inoutParam = 1024u,
-        inoutQual = 2048u,
+        isInOutParam = 1024u,
+        isInOutQual = 2048u,
         isctor = 4096u,
         isreturnscope = 8192u,
     };
@@ -3562,6 +3562,8 @@ public:
     Type* addStorageClass(StorageClass stc);
     Type* substWildTo(uint32_t _param_0);
     MATCH constConv(Type* to);
+    bool none() const;
+    void none(bool v);
     bool isnothrow() const;
     void isnothrow(bool v);
     bool isnogc() const;
@@ -3572,8 +3574,6 @@ public:
     void isref(bool v);
     bool isreturn() const;
     void isreturn(bool v);
-    bool isreturnscope() const;
-    void isreturnscope(bool v);
     bool isScopeQual() const;
     void isScopeQual(bool v);
     bool isreturninferred() const;
@@ -3588,9 +3588,11 @@ public:
     void isInOutParam(bool v);
     bool isInOutQual() const;
     void isInOutQual(bool v);
-    bool iswild() const;
     bool isctor() const;
     void isctor(bool v);
+    bool isreturnscope() const;
+    void isreturnscope(bool v);
+    bool iswild() const;
     bool attributesEqual(const TypeFunction* const other) const;
     void accept(Visitor* v);
 };
