@@ -2710,7 +2710,7 @@ extern (C++) class FuncDeclaration : Declaration
             }
 
             if (tf.parameterList.varargs || nparams >= 2 || argerr)
-                error("parameters must be `main()` or `main(string[] args)`");
+                error("parameter list must be empty or accept one parameter of type `string[]`");
         }
 
         else if (linkage == LINK.c)
