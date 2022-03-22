@@ -504,4 +504,3 @@ struct S21944
     int var;
 #1040 "cstuff1.c" 3 4
 };
-

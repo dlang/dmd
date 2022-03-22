@@ -7,4 +7,3 @@ fail_compilation/fail359.d(9): Error: no identifier for declarator `_BOOM`
 */
 #line 5 _BOOM
 void main() { }
-

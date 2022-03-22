@@ -55,4 +55,3 @@ void  except_reset();
 
 /* pdata.c */
 void win64_pdata(Symbol *sf);
-

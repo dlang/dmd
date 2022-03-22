@@ -384,4 +384,3 @@ bool I16() { return _tysize[TYnptr] == 2; }
 bool I32() { return _tysize[TYnptr] == 4; }
 @trusted
 bool I64() { return _tysize[TYnptr] == 8; }
-

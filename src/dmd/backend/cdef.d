@@ -979,4 +979,3 @@ enum
 
 int ClassInline(int c) { return c == SCinline || c == SCsinline || c == SCeinline; }
 int SymInline(Symbol* s) { return ClassInline(s.Sclass); }
-

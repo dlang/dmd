@@ -9,4 +9,3 @@ int __stdcall foostdcall2(int a) { return a; }
 int __stdcall (*fp1)(int a) = &foostdcall;
 
 int (__stdcall *fp2)(int a) = &foostdcall2;
-

@@ -9,4 +9,3 @@ $DMD -m${MODEL} -I${TEST_DIR} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} ${EXTRA_F
 ${OUTPUT_BASE}${EXE}
 
 rm_retry ${OUTPUT_BASE}{${OBJ},${EXE}}
-

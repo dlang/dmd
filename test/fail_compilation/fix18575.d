@@ -38,4 +38,3 @@ auto h(S s) {
 auto j(S s, S t) {
     return s.ghi(t);
 }
-

@@ -10,4 +10,3 @@ fn (void)
 {
   return oldval;
 }
-

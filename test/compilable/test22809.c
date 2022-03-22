@@ -13,4 +13,3 @@ struct Foo {
 
 int y = ((size_t)((char *)&((struct Foo *)1)->x - (char *)1));
 _Static_assert(((size_t)((char *)&((struct Foo *)0)->y - (char *)0))==4, "");
-

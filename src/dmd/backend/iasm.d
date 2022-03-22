@@ -503,4 +503,3 @@ struct OP
     ubyte usNumops;
     PTRNTAB ptb;
 }
-

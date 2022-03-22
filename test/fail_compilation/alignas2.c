@@ -36,4 +36,3 @@ struct B
     _Alignas(4) int bf : 3;
     _Alignas(8) int : 0;
 };
-

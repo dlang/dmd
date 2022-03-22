@@ -131,4 +131,3 @@ T testTemplate(T)(scope T input)
 }
 
 static assert(testTemplate!long(420) == 0);
-

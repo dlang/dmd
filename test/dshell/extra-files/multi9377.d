@@ -10,4 +10,3 @@ int main()
     pragma(msg, def!().mem.mangleof);
     return 0;
 }
-

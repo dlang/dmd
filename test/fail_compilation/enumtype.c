@@ -19,5 +19,3 @@ _Static_assert(sizeof(enum E1) == 4, "in");
 
 enum E2 { A2 = 0x8000000001LL };
 enum E3 { A3 = sizeof(enum E3) };
-
-

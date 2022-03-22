@@ -18,5 +18,3 @@ int* test(ref return scope S s)
 {
     return &s.x;
 }
-
-

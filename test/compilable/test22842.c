@@ -79,4 +79,3 @@ void mint3()
     // works if parentheses around (p) are removed
     unsigned x = (unsigned)(p) & 1;
 }
-

@@ -21,4 +21,3 @@ struct String {
 const(char)* foo1(scope const(char)* ptr) @safe { return ptr; }
 
 inout(char)* foo2(scope inout(char)* ptr) @safe { return ptr; }
-

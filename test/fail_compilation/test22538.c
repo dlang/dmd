@@ -39,4 +39,3 @@ static int stone1;
 
 int stone2;
 static int stone2 = 7;
-

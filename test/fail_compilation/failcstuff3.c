@@ -13,4 +13,3 @@ struct S22061
     int field;
 };
 typedef union S22061 S22061;
-

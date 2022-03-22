@@ -688,8 +688,3 @@ void regimmed_set(int reg, targ_size_t e)
     regcon.immed.mval |= 1 << (reg);
     //printf("regimmed_set %s %d\n", regm_str(1 << reg), cast(int)e);
 }
-
-
-
-
-
