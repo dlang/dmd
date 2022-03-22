@@ -3625,6 +3625,23 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             }
             e = e.castTo(sc, e.type.nextOf().pointerTo());
         }
+        else if (ident == Id._tupleof)
+        {
+            if (e.isTypeExp())
+            {
+                e.error("`.tupleof` cannot be used on type `%s`", mt.toChars);
+                return ErrorExp.get();
+            }
+            else
+            {
+                const length = cast(size_t)mt.dim.toUInteger();
+                auto exps = new Expressions();
+                exps.reserve(length);
+                foreach (i; 0 .. length)
+                    exps.push(new IndexExp(e.loc, e, new IntegerExp(e.loc, i, Type.tsize_t)));
+                e = new TupleExp(e.loc, exps);
+            }
+        }
         else
         {
             e = visitArray(mt);
