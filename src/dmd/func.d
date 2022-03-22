@@ -561,19 +561,8 @@ extern (C++) class FuncDeclaration : Declaration
                 vthis.storage_class |= STC.return_;
             if (tf.isScopeQual)
                 vthis.storage_class |= STC.scope_;
-
-            /* Add STC.returnScope like typesem.d does for TypeFunction parameters,
-             * at least it should be the same. At the moment, we'll just
-             * do existing practice. But we should examine how TypeFunction does
-             * it, for consistency.
-             */
-            if (global.params.useDIP1000 != FeatureState.enabled &&
-                !tf.isref && isRefReturnScope(vthis.storage_class))
-            {
-                /* if `ref return scope`, evaluate to `ref` `return scope`
-                 */
+            if (tf.isreturnscope)
                 vthis.storage_class |= STC.returnScope;
-            }
         }
         if (flags & FUNCFLAG.inferScope && !(vthis.storage_class & STC.scope_))
             vthis.storage_class |= STC.maybescope;
