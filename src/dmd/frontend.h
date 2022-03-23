@@ -5762,19 +5762,33 @@ public:
     enum : uint32_t { AdrOnStackNone = 4294967295u };
 
     uint32_t ctfeAdrOnStack;
-    bool isargptr;
-    bool ctorinit;
-    bool iscatchvar;
-    bool isowner;
-    bool setInCtorOnly;
-    bool onstack;
+private:
+    uint16_t bitFields;
+public:
     int8_t canassign;
-    bool overlapped;
-    bool overlapUnsafe;
-    bool doNotInferScope;
-    bool doNotInferReturn;
     uint8_t isdataseg;
-    bool isArgDtorVar;
+    bool isargptr() const;
+    bool isargptr(bool v);
+    bool ctorinit() const;
+    bool ctorinit(bool v);
+    bool iscatchvar() const;
+    bool iscatchvar(bool v);
+    bool isowner() const;
+    bool isowner(bool v);
+    bool setInCtorOnly() const;
+    bool setInCtorOnly(bool v);
+    bool onstack() const;
+    bool onstack(bool v);
+    bool overlapped() const;
+    bool overlapped(bool v);
+    bool overlapUnsafe() const;
+    bool overlapUnsafe(bool v);
+    bool doNotInferScope() const;
+    bool doNotInferScope(bool v);
+    bool doNotInferReturn() const;
+    bool doNotInferReturn(bool v);
+    bool isArgDtorVar() const;
+    bool isArgDtorVar(bool v);
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
     VarDeclaration* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);

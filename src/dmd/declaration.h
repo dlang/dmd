@@ -241,22 +241,33 @@ public:
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, ~0u if not allocated
     unsigned ctfeAdrOnStack;
-
-    bool isargptr;              // if parameter that _argptr points to
-    bool ctorinit;              // it has been initialized in a ctor
-    bool iscatchvar;            // this is the exception object variable in catch() clause
-    bool isowner;               // this is an Owner, despite it being `scope`
-    bool setInCtorOnly;         // field can only be set in a constructor, as it is const or immutable
-    bool onstack;               // it is a class that was allocated on the stack
-    char canassign;             // it can be assigned to
-    bool overlapped;            // if it is a field and has overlapping
-    bool overlapUnsafe;         // if it is an overlapping field and the overlaps are unsafe
-    bool doNotInferScope;       // do not infer 'scope' for this variable
-    bool doNotInferReturn;      // do not infer 'return' for this variable
-    unsigned char isdataseg;    // private data for isDataseg
-    bool isArgDtorVar;          // temporary created to handle scope destruction of a function argument
-
+private:
+    uint16_t bitFields;
 public:
+    int8_t canassign; // // it can be assigned to
+    uint8_t isdataseg; // private data for isDataseg
+    bool isargptr() const; // if parameter that _argptr points to
+    bool isargptr(bool v);
+    bool ctorinit() const; // it has been initialized in a ctor
+    bool ctorinit(bool v);
+    bool iscatchvar() const; // this is the exception object variable in catch() clause
+    bool iscatchvar(bool v);
+    bool isowner() const; // this is an Owner, despite it being `scope`
+    bool isowner(bool v);
+    bool setInCtorOnly() const; // field can only be set in a constructor, as it is const or immutable
+    bool setInCtorOnly(bool v);
+    bool onstack() const; // it is a class that was allocated on the stack
+    bool onstack(bool v);
+    bool overlapped() const; // if it is a field and has overlapping
+    bool overlapped(bool v);
+    bool overlapUnsafe() const; // if it is an overlapping field and the overlaps are unsafe
+    bool overlapUnsafe(bool v);
+    bool doNotInferScope() const; // do not infer 'scope' for this variable
+    bool doNotInferScope(bool v);
+    bool doNotInferReturn() const; // do not infer 'return' for this variable
+    bool doNotInferReturn(bool v);
+    bool isArgDtorVar() const; // temporary created to handle scope destruction of a function argument
+    bool isArgDtorVar(bool v);
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *);
     void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
