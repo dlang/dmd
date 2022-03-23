@@ -504,3 +504,7 @@ struct S21944
     int var;
 #1040 "cstuff1.c" 3 4
 };
+
+/********************************/
+
+#line 1050 "cstuff1.c" extra tokens ignored (should warn?)
