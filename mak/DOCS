@@ -171,6 +171,8 @@ DOCS=\
 	$(DOCDIR)\core_sys_dragonflybsd_sys_mman.html \
 	$(DOCDIR)\core_sys_dragonflybsd_sys_socket.html \
 	\
+	$(DOCDIR)\core_sys_elf_package.html \
+	\
 	$(DOCDIR)\core_sys_freebsd_dlfcn.html \
 	$(DOCDIR)\core_sys_freebsd_err.html \
 	$(DOCDIR)\core_sys_freebsd_pthread_np.html \
