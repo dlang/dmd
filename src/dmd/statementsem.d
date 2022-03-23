@@ -728,12 +728,12 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         Dsymbol sapply = null;                  // the inferred opApply() or front() function
         if (!inferForeachAggregate(sc, fs.op == TOK.foreach_, fs.aggr, sapply))
         {
-            const(char)* msg = "";
-            if (fs.aggr.type && isAggregate(fs.aggr.type))
-            {
-                msg = ", define `opApply()`, range primitives, or use `.tupleof`";
-            }
-            fs.error("invalid `foreach` aggregate `%s`%s", oaggr.toChars(), msg);
+            assert(oaggr.type);
+
+            fs.error("invalid `foreach` aggregate `%s` of type `%s`", oaggr.toChars(), oaggr.type.toPrettyChars());
+            if (isAggregate(fs.aggr.type))
+                fs.loc.errorSupplemental("maybe define `opApply()`, range primitives, or use `.tupleof`");
+
             return setError();
         }
 
