@@ -1942,7 +1942,7 @@ $(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
         When a parameter is passed by `ref` and has both the `return` and `scope` attributes,
         it gets $(LINK2 #return-scope-parameters, `return scope`) semantics if and only if the `return` and `scope`
         keywords appear adjacent to each other, in that order.
-        In other cases, the parameter gets $(LINK2 #return-ref-parameters, `return ref`) semantics
+        In all other cases, the parameter has $(LINK2 #return-ref-parameters, `return ref`) semantics
         and regular $(LINK2 #scope-parameters, `scope`) semantics:)
 
 ---
