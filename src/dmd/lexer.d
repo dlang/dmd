@@ -2635,7 +2635,6 @@ class Lexer
     {
         auto linnum = this.scanloc.linnum;
         const(char)* filespec = null;
-        const loc = this.loc();
         bool flags;
 
         if (!linemarker)
@@ -2645,7 +2644,7 @@ class Lexer
             const lin = cast(int)(tok.unsvalue);
             if (lin != tok.unsvalue)
             {
-                error("line number `%lld` out of range", cast(ulong)tok.unsvalue);
+                error(tok.loc, "line number `%lld` out of range", cast(ulong)tok.unsvalue);
                 skipToNextLine();
                 return;
             }
@@ -2656,7 +2655,12 @@ class Lexer
         {
         }
         else
-            goto Lerr;
+        {
+            error(tok.loc, "positive integer argument expected following `#line`");
+            if (tok.value != TOK.endOfLine)
+                skipToNextLine();
+            return;
+        }
         while (1)
         {
             scan(&tok);
@@ -2684,6 +2688,8 @@ class Lexer
                 filespec = tok.ustring;
                 continue;
             case TOK.int32Literal:
+                if (!filespec)
+                    goto Lerr;
                 if (linemarker && tok.unsvalue >= 1 && tok.unsvalue <= 4)
                 {
                     flags = true;   // linemarker flags seen
@@ -2695,10 +2701,12 @@ class Lexer
             }
         }
     Lerr:
-        if (linemarker)
-            error(loc, "# integer [\"filespec\"] { 1 | 2 | 3 | 4 }\\n expected");
-        else
-            error(loc, "#line integer [\"filespec\"]\\n expected");
+        if (filespec is null)
+            error(tok.loc, "invalid filename for `#line` directive");
+        else if (linemarker)
+            error(tok.loc, "invalid flag for line marker directive");
+        else if (!Ccompile)
+            error(tok.loc, "found `%s` when expecting new line following `#line` directive", tok.toChars());
         if (tok.value != TOK.endOfLine)
             skipToNextLine();
     }
