@@ -3162,11 +3162,9 @@ static if (1)
              */
             abbrev_table = AApair.create(debug_abbrev.buf.bufptr);
 
-        /* Write new entry into debug_abbrev.buf
-         */
-
+        // Write new entry into debug_abbrev.buf
         uint idx = cast(uint)debug_abbrev.buf.length();
-        abbrevcode++;
+        ++abbrevcode;
         debug_abbrev.buf.writeuLEB128(abbrevcode);
         size_t start = debug_abbrev.buf.length();
         debug_abbrev.buf.write(data, cast(uint)nbytes);
@@ -3177,14 +3175,16 @@ static if (1)
          */
 
         uint *pcode = abbrev_table.get(cast(uint)start, cast(uint)end);
-        if (!*pcode)                // if no code assigned yet
+        if (!*pcode)
         {
-            *pcode = abbrevcode;    // assign newly computed code
+            // if no code assigned yet, assign newly computed code
+            *pcode = abbrevcode;
         }
         else
-        {   // Reuse existing code
-            debug_abbrev.buf.setsize(idx);        // discard current
-            abbrevcode--;
+        {
+            // Reuse existing code and discard newly added abbreviation
+            debug_abbrev.buf.setsize(idx);
+            --abbrevcode;
         }
         return *pcode;
     }
