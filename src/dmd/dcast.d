@@ -2740,11 +2740,15 @@ Expression scaleFactor(BinExp be, Scope* sc)
     {
         // Need to adjust operator by the stride
         // Replace (ptr + int) with (ptr + (int * stride))
-        Type t = Type.tptrdiff_t;
+        Type t = Type.tsize_t;
 
         uinteger_t stride = t1b.nextOf().size(be.loc);
         if (!t.equals(t2b))
-            be.e2 = be.e2.castTo(sc, t);
+        {
+            be.e2 = be.e2.implicitCastTo(sc, t);
+            if (be.e2.type == Type.terror)
+                return ErrorExp.get();
+        }
         eoff = be.e2;
         be.e2 = new MulExp(be.loc, be.e2, new IntegerExp(Loc.initial, stride, t));
         be.e2.type = t;
@@ -2754,12 +2758,16 @@ Expression scaleFactor(BinExp be, Scope* sc)
     {
         // Need to adjust operator by the stride
         // Replace (int + ptr) with (ptr + (int * stride))
-        Type t = Type.tptrdiff_t;
+        Type t = Type.tsize_t;
         Expression e;
 
         uinteger_t stride = t2b.nextOf().size(be.loc);
         if (!t.equals(t1b))
-            e = be.e1.castTo(sc, t);
+        {
+            e = be.e1.implicitCastTo(sc, t);
+            if (e.type == Type.terror)
+                return ErrorExp.get();
+        }
         else
             e = be.e1;
         eoff = e;

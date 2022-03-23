@@ -15,7 +15,7 @@ fail_compilation/fail13902.d(38): Error: returning `& sa1` escapes a reference t
 fail_compilation/fail13902.d(39): Error: returning `&sa2[0][0]` escapes a reference to local variable `sa2`
 fail_compilation/fail13902.d(40): Error: returning `& x` escapes a reference to local variable `x`
 fail_compilation/fail13902.d(41): Error: returning `(& x+4)` escapes a reference to local variable `x`
-fail_compilation/fail13902.d(42): Error: returning `& x + cast(long)x * 4L` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(42): Error: returning `& x + cast(ulong)x * 4LU` escapes a reference to local variable `x`
 fail_compilation/fail13902.d(45): Error: returning `& y` escapes a reference to local variable `y`
 ---
 */
@@ -60,7 +60,7 @@ fail_compilation/fail13902.d(81): Error: returning `& sa1` escapes a reference t
 fail_compilation/fail13902.d(82): Error: returning `&sa2[0][0]` escapes a reference to local variable `sa2`
 fail_compilation/fail13902.d(83): Error: returning `& x` escapes a reference to local variable `x`
 fail_compilation/fail13902.d(84): Error: returning `(& x+4)` escapes a reference to local variable `x`
-fail_compilation/fail13902.d(85): Error: returning `& x + cast(long)x * 4L` escapes a reference to local variable `x`
+fail_compilation/fail13902.d(85): Error: returning `& x + cast(ulong)x * 4LU` escapes a reference to local variable `x`
 fail_compilation/fail13902.d(88): Error: returning `& y` escapes a reference to local variable `y`
 ---
 */
