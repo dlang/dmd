@@ -387,12 +387,11 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         !loc.filename.strstr(".d-mixin-") &&
         !global.params.mixinOut)
     {
-        import dmd.file_manager : FileManager;
         import dmd.root.filename : FileName;
         const fileName = FileName(loc.filename.toDString);
-        if (auto file = FileManager.fileManager.lookup(fileName))
+        if (auto file = global.fileManager.lookup(fileName))
         {
-            const(char)[][] lines = FileManager.fileManager.getLines(fileName);
+            const(char)[][] lines = global.fileManager.getLines(fileName);
             if (loc.linnum - 1 < lines.length)
             {
                 auto line = lines[loc.linnum - 1];
