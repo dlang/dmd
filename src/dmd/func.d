@@ -2779,7 +2779,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (auto ve = rs.exp.isVarExp())
             {
                 auto v = ve.var.isVarDeclaration();
-                if (!v || v.isOut() || v.isRef())
+                if (!v || v.isReference())
                     return false;
                 else if (nrvo_var is null)
                 {

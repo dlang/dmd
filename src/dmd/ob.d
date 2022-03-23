@@ -1747,7 +1747,7 @@ PtrState toPtrState(VarDeclaration v)
      */
 
     auto t = v.type;
-    if (v.isRef())
+    if (v.isReference())
     {
         return t.hasMutableFields() ? PtrState.Borrowed : PtrState.Readonly;
     }
@@ -1775,7 +1775,7 @@ bool hasPointersToMutableFields(Type t)
     {
         foreach (v; ts.sym.fields)
         {
-            if (v.isRef())
+            if (v.isReference())
             {
                 if (v.type.hasMutableFields())
                     return true;

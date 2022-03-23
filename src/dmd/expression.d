@@ -1288,7 +1288,7 @@ extern (C++) abstract class Expression : ASTNode
             return false; // magic variable never violates pure and safe
         if (v.isImmutable())
             return false; // always safe and pure to access immutables...
-        if (v.isConst() && !v.isRef() && (v.isDataseg() || v.isParameter()) && v.type.implicitConvTo(v.type.immutableOf()))
+        if (v.isConst() && !v.isReference() && (v.isDataseg() || v.isParameter()) && v.type.implicitConvTo(v.type.immutableOf()))
             return false; // or const global/parameter values which have no mutable indirections
         if (v.storage_class & STC.manifest)
             return false; // ...or manifest constants
