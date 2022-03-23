@@ -1051,6 +1051,7 @@ final class CParser(AST) : Parser!AST
                     return cparsePostfixOperators(ce);
                 }
                 else if (t.isTypeIdentifier() &&
+                         !isTypedef(t.isTypeIdentifier().ident) &&
                          token.value == TOK.leftParenthesis &&
                          !isCastExpression(pt))
                 {

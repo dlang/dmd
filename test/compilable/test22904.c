@@ -2,3 +2,8 @@
 
 int fn1() { return 0; }
 void fn2() { long x = (long) (fn1) (); }
+
+// https://issues.dlang.org/show_bug.cgi?id=22912
+
+typedef long my_long;
+void fn3() { long x = (my_long) (fn1) (); }
