@@ -396,11 +396,10 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
         m.read(Loc.initial);
     else
     {
-        import dmd.file_manager : FileManager;
         import dmd.root.filename : FileName;
 
         auto fb = new FileBuffer(cast(ubyte[]) code.dup ~ '\0');
-        FileManager.fileManager.add(FileName(fileName), fb);
+        global.fileManager.add(FileName(fileName), fb);
         m.src = fb.data;
     }
 

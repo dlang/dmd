@@ -6042,7 +6042,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         {
             auto fileName = FileName(name.toDString);
-            if (auto fmResult = FileManager.fileManager.lookup(fileName))
+            if (auto fmResult = global.fileManager.lookup(fileName))
             {
                 se = new StringExp(e.loc, fmResult.data);
             }
@@ -6062,7 +6062,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     FileBuffer* fileBuffer = FileBuffer.create();
                     fileBuffer.data = data;
-                    FileManager.fileManager.add(fileName, fileBuffer);
+                    global.fileManager.add(fileName, fileBuffer);
                 }
             }
         }
