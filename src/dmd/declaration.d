@@ -1060,24 +1060,49 @@ extern (C++) class VarDeclaration : Declaration
     enum AdrOnStackNone = ~0u;
     uint ctfeAdrOnStack;
 
-    bool isargptr;                  // if parameter that _argptr points to
-    bool ctorinit;                  // it has been initialized in a ctor
-    bool iscatchvar;                // this is the exception object variable in catch() clause
-    bool isowner;                   // this is an Owner, despite it being `scope`
-    bool setInCtorOnly;             // field can only be set in a constructor, as it is const or immutable
+    // `bool` fields that are compacted into bit fields in a string mixin
+    private extern (D) static struct BitFields
+    {
+        bool isargptr;                  // if parameter that _argptr points to
+        bool ctorinit;                  // it has been initialized in a ctor
+        bool iscatchvar;                // this is the exception object variable in catch() clause
+        bool isowner;                   // this is an Owner, despite it being `scope`
+        bool setInCtorOnly;             // field can only be set in a constructor, as it is const or immutable
 
-    // Both these mean the var is not rebindable once assigned,
-    // and the destructor gets run when it goes out of scope
-    bool onstack;                   // it is a class that was allocated on the stack
+        // Both these mean the var is not rebindable once assigned,
+        // and the destructor gets run when it goes out of scope
+        bool onstack;                   // it is a class that was allocated on the stack
 
+        bool overlapped;                // if it is a field and has overlapping
+        bool overlapUnsafe;             // if it is an overlapping field and the overlaps are unsafe
+        bool doNotInferScope;           // do not infer 'scope' for this variable
+        bool doNotInferReturn;          // do not infer 'return' for this variable
+
+        bool isArgDtorVar;              // temporary created to handle scope destruction of a function argument
+    }
+
+    private ushort bitFields;       // stores multiple booleans for BitFields
     byte canassign;                 // it can be assigned to
-    bool overlapped;                // if it is a field and has overlapping
-    bool overlapUnsafe;             // if it is an overlapping field and the overlaps are unsafe
-    bool doNotInferScope;           // do not infer 'scope' for this variable
-    bool doNotInferReturn;          // do not infer 'return' for this variable
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
 
-    bool isArgDtorVar;              // temporary created to handle scope destruction of a function argument
+    // Generate getter and setter functions for `bitFields`
+    extern (D) mixin(() {
+        string result = "extern (C++) pure nothrow @nogc @safe final {";
+        foreach (size_t i, mem; __traits(allMembers, BitFields))
+        {
+            result ~= "
+            /// set or get the corresponding BitFields member
+            bool "~mem~"() const { return !!(bitFields & (1 << "~i.stringof~")); }
+            /// ditto
+            bool "~mem~"(bool v)
+            {
+                v ? (bitFields |= (1 << "~i.stringof~")) : (bitFields &= ~(1 << "~i.stringof~"));
+                return v;
+            }";
+        }
+        return result ~ "}";
+    }());
+
 
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     in
