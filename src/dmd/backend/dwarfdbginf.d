@@ -1815,7 +1815,9 @@ static if (1)
         // See if there are any parameters
         int haveparameters = 0;
         uint formalcode = 0;
-        uint autocode = 0;
+        uint variablecode = 0;
+
+        DWARFAbbrev dwarfabbrev;
 
         for (SYMIDX si = 0; si < globsym.length; si++)
         {
@@ -1824,18 +1826,15 @@ static if (1)
             version (MARS)
                 if (sa.Sflags & SFLnodebug) continue;
 
-            __gshared ubyte[18] formal =
+            static immutable uint[14] formal_var_abbrev_suffix =
             [
-                DW_TAG_formal_parameter,
-                0,
-                DW_AT_name,        DW_FORM_string,
-                DW_AT_type,        DW_FORM_ref4,
-                DW_AT_artificial,  DW_FORM_flag,
+                DW_AT_name,       DW_FORM_string,
+                DW_AT_type,       DW_FORM_ref4,
+                DW_AT_artificial, DW_FORM_flag,
                 DW_AT_decl_file,   DW_FORM_data1,
                 DW_AT_decl_line,   DW_FORM_udata,
                 DW_AT_decl_column, DW_FORM_udata,
                 DW_AT_location,    DW_FORM_block1,
-                0,                0,
             ];
 
             switch (sa.Sclass)
@@ -1843,22 +1842,28 @@ static if (1)
                 case SCparameter:
                 case SCregpar:
                 case SCfastpar:
-                    dwarf_typidx(sa.Stype);
-                    formal[0] = DW_TAG_formal_parameter;
+                    // discard index
+                    cast(void)dwarf_typidx(sa.Stype);
                     if (!formalcode)
-                        formalcode = dwarf_abbrev_code(formal.ptr, formal.sizeof);
-                    haveparameters = 1;
+                    {
+                        dwarfabbrev.append(DW_TAG_formal_parameter, DW_CHILDREN_no);
+                        formalcode = dwarfabbrev.awrite!formal_var_abbrev_suffix;
+                    }
+                    haveparameters = DW_CHILDREN_yes;
                     break;
 
                 case SCauto:
                 case SCbprel:
                 case SCregister:
                 case SCpseudo:
-                    dwarf_typidx(sa.Stype);
-                    formal[0] = DW_TAG_variable;
-                    if (!autocode)
-                        autocode = dwarf_abbrev_code(formal.ptr, formal.sizeof);
-                    haveparameters = 1;
+                    // discard index
+                    cast(void)dwarf_typidx(sa.Stype);
+                    if (!variablecode)
+                    {
+                        dwarfabbrev.append(DW_TAG_variable, DW_CHILDREN_no);
+                        variablecode = dwarfabbrev.awrite!formal_var_abbrev_suffix;
+                    }
+                    haveparameters = DW_CHILDREN_yes;
                     break;
 
                 default:
@@ -1866,104 +1871,87 @@ static if (1)
             }
         }
 
-        OutBuffer abuf;
-        abuf.writeByte(DW_TAG_subprogram);
-        abuf.writeByte(haveparameters);          // have children?
-        if (haveparameters)
-        {
-            abuf.writeByte(DW_AT_sibling);  abuf.writeByte(DW_FORM_ref4);
-        }
-        abuf.writeByte(DW_AT_name);      abuf.writeByte(DW_FORM_string);
+        dwarfabbrev.append(DW_TAG_subprogram, haveparameters);
+        if (haveparameters == DW_CHILDREN_yes)
+            dwarfabbrev.append(DW_AT_sibling, DW_FORM_ref4);
 
-        if (config.dwarf >= 4)
-            abuf.writeuLEB128(DW_AT_linkage_name);
-        else
-            abuf.writeuLEB128(DW_AT_MIPS_linkage_name);
-        abuf.writeByte(DW_FORM_string);
+        dwarfabbrev.append(
+            config.dwarf >= 4
+                ? DW_AT_linkage_name
+                : DW_AT_MIPS_linkage_name,
+            DW_FORM_string
+        );
 
-        abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
-        abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_udata);
-        abuf.writeByte(DW_AT_decl_column); abuf.writeByte(DW_FORM_udata);
         if (ret_type)
-        {
-            abuf.writeByte(DW_AT_type);  abuf.writeByte(DW_FORM_ref4);
-        }
+            dwarfabbrev.append(DW_AT_type, DW_FORM_ref4);
+
         if (sfunc.Sclass == SCglobal)
-        {
-            abuf.writeByte(DW_AT_external);       abuf.writeByte(DW_FORM_flag);
-        }
-        if (sfunc.Sfunc.Fflags3 & Fpure)
-        {
-            abuf.writeByte(DW_AT_pure);
-            if (config.dwarf >= 4)
-                abuf.writeByte(DW_FORM_flag_present);
-            else
-                abuf.writeByte(DW_FORM_flag);
-        }
+            dwarfabbrev.append(DW_AT_external, DW_FORM_flag);
 
         if (sfunc.Sfunc.Fflags3 & Fmain)
         {
             if (config.dwarf >= 4)
             {
-                abuf.writeByte(DW_AT_main_subprogram);
-                abuf.writeByte(DW_FORM_flag_present);
+                dwarfabbrev.append(DW_AT_main_subprogram, DW_FORM_flag_present);
                 if (config.flags2 & CFG2genmain)
-                {
-                    abuf.writeByte(DW_AT_artificial);
-                    abuf.writeByte(DW_FORM_flag_present);
-                }
+                    dwarfabbrev.append(DW_AT_artificial, DW_FORM_flag_present);
             } else {
                 if (config.flags2 & CFG2genmain)
-                {
-                    abuf.writeByte(DW_AT_artificial);
-                    abuf.writeByte(DW_FORM_flag);
-                }
+                    dwarfabbrev.append(DW_AT_artificial, DW_FORM_flag);
             }
-
         }
         if (config.dwarf >= 5 && sfunc.Sflags & SFLexit)
-        {
-            abuf.writeuLEB128(DW_AT_noreturn);
-            abuf.writeByte(DW_FORM_flag_present);
-        }
+            dwarfabbrev.append(DW_AT_noreturn, DW_FORM_flag_present);
 
-        abuf.writeByte(DW_AT_low_pc);     abuf.writeByte(DW_FORM_addr);
-        abuf.writeByte(DW_AT_high_pc);    abuf.writeByte(DW_FORM_addr);
-        abuf.writeByte(DW_AT_frame_base); abuf.writeByte(DW_FORM_data4);
-        abuf.writeByte(0);                abuf.writeByte(0);
+        if (sfunc.Sfunc.Fflags3 & Fpure)
+            dwarfabbrev.append(
+                DW_AT_pure,
+                config.dwarf >= 4
+                    ? DW_FORM_flag_present
+                    : DW_FORM_flag
+            );
 
-        funcabbrevcode = dwarf_abbrev_code(abuf.buf, abuf.length());
+        funcabbrevcode = dwarfabbrev.awrite!([
+            DW_AT_name, DW_FORM_string,
+            DW_AT_decl_file, DW_FORM_data1,
+            DW_AT_decl_line, DW_FORM_udata,
+            DW_AT_decl_column, DW_FORM_udata,
+            DW_AT_low_pc, DW_FORM_addr,
+            DW_AT_high_pc, DW_FORM_addr,
+            DW_AT_frame_base, DW_FORM_data4,
+        ]);
 
         uint idxsibling = 0;
         uint siblingoffset;
 
         uint infobuf_offset = cast(uint)debug_info.buf.length();
-        debug_info.buf.writeuLEB128(funcabbrevcode);  // abbreviation code
-        if (haveparameters)
+        debug_info.buf.writeuLEB128(funcabbrevcode); // abbreviation code
+        if (haveparameters == DW_CHILDREN_yes)
         {
             siblingoffset = cast(uint)debug_info.buf.length();
-            debug_info.buf.write32(idxsibling);       // DW_AT_sibling
+            debug_info.buf.write32(idxsibling);                       // DW_AT_sibling
         }
 
         const(char)* name = getSymName(sfunc);
 
-        debug_info.buf.writeString(name);             // DW_AT_name
-        debug_info.buf.writeString(sfunc.Sident.ptr);    // DW_AT_MIPS_linkage_name
-        debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
-        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
-        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum);   // DW_AT_decl_column
+        debug_info.buf.writeString(sfunc.Sident.ptr);                 // DW_AT_MIPS_linkage_name
         if (ret_type)
-            debug_info.buf.write32(ret_type);         // DW_AT_type
+            debug_info.buf.write32(ret_type);                         // DW_AT_type
 
         if (sfunc.Sclass == SCglobal)
-            debug_info.buf.writeByte(1);              // DW_AT_external
+            debug_info.buf.writeByte(1);                              // DW_AT_external
 
-        if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
-            debug_info.buf.writeByte(true);           // DW_AT_pure
         if (config.dwarf < 4
             && sfunc.Sfunc.Fflags3 & Fmain
             && config.flags2 & CFG2genmain)
-            debug_info.buf.writeByte(true);           // DW_AT_artificial
+            debug_info.buf.writeByte(true);                           // DW_AT_artificial
+        if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
+            debug_info.buf.writeByte(true);                           // DW_AT_pure
+
+        debug_info.buf.writeString(name);                             // DW_AT_name
+        debug_info.buf.writeByte(filenum);                            // DW_AT_decl_file
+        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Slinnum);  // DW_AT_decl_line
+        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum); // DW_AT_decl_column
 
         // DW_AT_low_pc and DW_AT_high_pc
         dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset);
@@ -1999,7 +1987,7 @@ static if (1)
                     case SCregister:
                     case SCpseudo:
                     case SCbprel:
-                        vcode = autocode;
+                        vcode = variablecode;
                     L1:
                     {
                         uint soffset;
@@ -2019,7 +2007,7 @@ static if (1)
                             // BUG: register pairs not supported in Dwarf?
                             debug_info.buf.writeByte(DW_OP_reg0 + sa.Sreglsw);
                         }
-                        else if (sa.Sscope && vcode == autocode)
+                        else if (sa.Sscope && vcode == variablecode)
                         {
                             assert(sa.Sscope.Stype.Tnext && sa.Sscope.Stype.Tnext.Tty == TYstruct);
 
@@ -3112,6 +3100,39 @@ static if (1)
     {
         nothrow:
 
+        void append(const uint idx, const uint form) pure
+        {
+            abuf.writeuLEB128(idx);
+            abuf.writeuLEB128(form);
+        }
+
+        void append(const(uint)[] A)() pure
+        {
+            static immutable abbrev = toLEB128!A;
+            abuf.write(abbrev.ptr, abbrev.length);
+        }
+
+        uint awrite(const uint idx, const uint form)
+        {
+            append(idx, form);
+            return write();
+        }
+
+        uint awrite(const(uint)[] A)()
+        {
+            append!A;
+            return write();
+        }
+
+        uint write()
+        {
+            append(0, 0);
+            uint ret = dwarf_abbrev_code(abuf.buf, abuf.length());
+            abuf.reset();
+
+            return ret;
+        }
+
         static uint write(const(uint)[] A)()
         {
             static immutable abbrev = toLEB128!(A ~ [0u, 0u]);
@@ -3152,6 +3173,9 @@ static if (1)
             assert(toLEB128!([0x00, 0x40, 0xFFFF]) == [0x00, 0x40, 0xFF, 0xFF, 0x03]);
             assert(toLEB128!([0x00, 0x40, 0x79]) == [0x00, 0x40, 0x79]);
         }
+
+        private:
+        OutBuffer abuf;
     }
 
     uint dwarf_abbrev_code(const(ubyte)* data, size_t nbytes)
