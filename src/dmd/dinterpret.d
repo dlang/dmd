@@ -1873,7 +1873,9 @@ public:
         {
             fromType = (cast(TypeArray)e.var.type).next;
         }
-        if (e.var.isDataseg() && ((e.offset == 0 && isSafePointerCast(e.var.type, pointee)) || (fromType && isSafePointerCast(fromType, pointee))))
+        if (e.var.isDataseg() && ((e.offset == 0 && isSafePointerCast(e.var.type, pointee)) ||
+                                  (fromType && isSafePointerCast(fromType, pointee)) ||
+                                  (e.var.isCsymbol() && e.offset + pointee.size() <= e.var.type.size())))
         {
             result = e;
             return;
