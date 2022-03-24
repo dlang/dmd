@@ -793,7 +793,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) || (va.isRef() && !(va.storage_class & STC.temp)) || va.isDataseg()) &&
+            (va.enclosesLifetimeOf(v) || (va.isReference() && !(va.storage_class & STC.temp)) || va.isDataseg()) &&
             fd.setUnsafe())
         {
             if (!gag)
