@@ -1,7 +1,8 @@
 include ../common.mak
 
 TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor \
-	  future_message refcounted rt_trap_exceptions_drt catch_in_finally
+	  future_message refcounted rt_trap_exceptions_drt catch_in_finally \
+	  message_with_null
 
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions
@@ -77,6 +78,9 @@ $(ROOT)/catch_in_finally.done: STDERR_EXP="success."
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP="object.Exception@src/rt_trap_exceptions.d(12): this will abort"
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP2="src/rt_trap_exceptions.d:8 main"
 $(ROOT)/assert_fail.done: STDERR_EXP="success."
+
+$(ROOT)/message_with_null.done: STDERR_EXP=" world"
+
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>$(ROOT)/$*.stderr || true
