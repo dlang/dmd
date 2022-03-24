@@ -84,10 +84,18 @@ $(ROOT)/message_with_null.done: STDERR_EXP=" world"
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>$(ROOT)/$*.stderr || true
-	cat $(ROOT)/$*.stderr
-	$(NEGATE) grep -qF $(STDERR_EXP) < $(ROOT)/$*.stderr
-	if [ ! -z $(STDERR_EXP2) ] ; then \
-		$(NEGATE) grep -qF $(STDERR_EXP2) < $(ROOT)/$*.stderr; \
+
+	@if $(NEGATE) grep -qF $(STDERR_EXP) < $(ROOT)/$*.stderr ; then true ; else  \
+		echo 'Searched for pattern $(STDERR_EXP), NEGATE = $(NEGATE)' ;\
+		tail --bytes=5000 $(ROOT)/$*.stderr ;\
+		exit 1 ;\
+	fi
+	@if [ ! -z $(STDERR_EXP2) ] ; then \
+		if $(NEGATE) grep -qF $(STDERR_EXP2) < $(ROOT)/$*.stderr ; then true ; else \
+			echo 'Searched for '$(STDERR_EXP2)' NEGATE = $(NEGATE)' ;\
+			tail --bytes=5000 $(ROOT)/$*.stderr ;\
+			exit 1 ;\
+		fi \
 	fi
 	@touch $@
 
