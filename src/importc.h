@@ -19,6 +19,13 @@
  * ImportC assigns no semantics to `restrict`, so just ignore the keyword.
  */
 #define __restrict
+#define __restrict__
+
+/**********************
+ * Some old pre-Ansi headers use these
+ */
+#define __signed__ signed
+#define __asm__ asm
 
 /********************
  * This is a Microsoft C function calling convention not supported by ImportC,
