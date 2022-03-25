@@ -116,7 +116,7 @@ public:
     {
     public:
         int32_t x;
-        A* this;
+        A* outer;
     };
 
     typedef Inner I;
