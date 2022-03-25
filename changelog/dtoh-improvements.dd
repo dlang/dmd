@@ -1,0 +1,11 @@
+Improvements for the C++ header generation
+
+The following features/bugfixes/improvements were implemented for the
+experimental C++ header generator:
+
+- The implicitly generated context pointer for nested aggregates is now
+  emitted as `outer` instead of `this`
+
+
+Note: The header generator is still considered experimental, so please submit
+      any bugs encountered to [the bug tracker](https://issues.dlang.org).

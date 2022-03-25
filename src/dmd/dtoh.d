@@ -1655,7 +1655,16 @@ public:
             scope(exit) printf("[typeToBuffer(AST.Type, AST.Dsymbol) exit] %s sym %s\n", t.toChars(), s.toChars());
         }
 
-        this.ident = s.ident;
+        // The context pointer (represented as `ThisDeclaration`) is named
+        // `this` but accessible via `outer`
+        if (auto td = s.isThisDeclaration())
+        {
+            import dmd.id;
+            this.ident = Id.outer;
+        }
+        else
+            this.ident = s.ident;
+
         auto type = origType !is null ? origType : t;
         AST.Dsymbol customLength;
 
@@ -1702,7 +1711,12 @@ public:
         if (this.ident)
         {
             buf.writeByte(' ');
-            writeIdentifier(s, canFixup);
+            // Custom identifier doesn't need further checks
+            if (this.ident !is s.ident)
+                buf.writestring(this.ident.toString());
+            else
+                writeIdentifier(s, canFixup);
+
         }
         this.ident = null;
 
