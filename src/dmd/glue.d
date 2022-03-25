@@ -351,7 +351,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     }
     else
     {
-        objmod = Obj.init(&objbuf, srcfile, null);
+        objmod = Obj.initialize(&objbuf, srcfile, null);
     }
 
     el_reset();

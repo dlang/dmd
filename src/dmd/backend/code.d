@@ -139,7 +139,7 @@ struct LocalSection
     int alignment;              // alignment size
 
   nothrow:
-    void init()                 // initialize
+    void initialize()
     {   offset = 0;
         size = 0;
         alignment = 0;

@@ -183,7 +183,7 @@ void codgen(Symbol *sfunc)
     cod3_initregs();
     allregs = ALLREGS;
     pass = PASSinitial;
-    Alloca.init();
+    Alloca.initialize();
     anyiasm = 0;
 
     if (config.ehmethod == EHmethod.EH_DWARF)
@@ -216,7 +216,7 @@ tryagain:
     retsym = null;
 
     cgstate.stackclean = 1;
-    cgstate.funcarg.init();
+    cgstate.funcarg.initialize();
     cgstate.funcargtos = ~0;
     cgstate.accessedTLS = false;
     STACKALIGN = TARGET_STACKALIGN;
@@ -1266,10 +1266,10 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 {
     //printf("stackoffsets() %s\n", funcsym_p.Sident.ptr);
 
-    Para.init();        // parameter offset
-    Fast.init();        // SCfastpar offset
-    Auto.init();        // automatic & register offset
-    EEStack.init();     // for SCstack's
+    Para.initialize();        // parameter offset
+    Fast.initialize();        // SCfastpar offset
+    Auto.initialize();        // automatic & register offset
+    EEStack.initialize();     // for SCstack's
 
     // Set if doing optimization of auto layout
     bool doAutoOpt = estimate && config.flags4 & CFG4optimized;
