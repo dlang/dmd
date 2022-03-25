@@ -440,7 +440,6 @@ struct Blockx
     int next_index;             // value for next scope index
     uint flags;                 // value to OR into Bflags
     block* tryblock;            // current enclosing try block
-    elem* init;                 // static initializer
     ClassDeclaration_ classdec;
     Declaration_ member;        // member we're compiling for
     Module_ _module;            // module we're in

@@ -636,7 +636,7 @@ int ElfObj_string_literal_segment(uint sz)
 /******************************
  * Perform initialization that applies to all .o output files.
  *      Called before any other obj_xxx routines
- *      Called by Obj.init()
+ *      Called by Obj.initialize()
  * Params:
  *      objbuf = where to write the object file data
  *      filename = source file name
