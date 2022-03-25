@@ -1021,10 +1021,16 @@ final class CParser(AST) : Parser!AST
     {
         if (token.value == TOK.leftParenthesis)
         {
+            //printf("cparseCastExp()\n");
             auto tk = peek(&token);
-            if (tk.value == TOK.identifier &&
-                !isTypedef(tk.ident) &&
-                peek(tk).value == TOK.rightParenthesis)
+            bool iscast;
+            bool isexp;
+            if (tk.value == TOK.identifier)
+            {
+                iscast = isTypedef(tk.ident);
+                isexp = !iscast;
+            }
+            if (isexp)
             {
                 // ( identifier ) is an expression
                 return cparseUnaryExp();
@@ -1050,10 +1056,18 @@ final class CParser(AST) : Parser!AST
                     auto ce = new AST.CompoundLiteralExp(loc, t, ci);
                     return cparsePostfixOperators(ce);
                 }
-                else if (t.isTypeIdentifier() &&
-                         !isTypedef(t.isTypeIdentifier().ident) &&
-                         token.value == TOK.leftParenthesis &&
-                         !isCastExpression(pt))
+
+                if (iscast)
+                {
+                    // ( type-name ) cast-expression
+                    auto ce = cparseCastExp();
+                    return new AST.CastExp(loc, ce, t);
+                }
+
+                if (t.isTypeIdentifier() &&
+                    isexp &&
+                    token.value == TOK.leftParenthesis &&
+                    !isCastExpression(pt))
                 {
                     /* (t)(...)... might be a cast expression or a function call,
                      * with different grammars: a cast would be cparseCastExp(),
@@ -1067,12 +1081,10 @@ final class CParser(AST) : Parser!AST
                     AST.Expression e = new AST.CallExp(loc, ie, cparseArguments());
                     return cparsePostfixOperators(e);
                 }
-                else
-                {
-                    // ( type-name ) cast-expression
-                    auto ce = cparseCastExp();
-                    return new AST.CastExp(loc, ce, t);
-                }
+
+                // ( type-name ) cast-expression
+                auto ce = cparseCastExp();
+                return new AST.CastExp(loc, ce, t);
             }
         }
         return cparseUnaryExp();
