@@ -216,7 +216,7 @@ unittest
     import dmd.frontend;
     import dmd.globals : global;
 
-    initDMD(null, ["Foo"]);
+    initDMD(null, null, ["Foo"]);
     defaultImportPaths.each!addImport;
 
     auto t = parseModule("test.d", q{
