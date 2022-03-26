@@ -13,7 +13,7 @@ module dmd.frontend;
 import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
 import dmd.globals : CHECKENABLE, Loc, DiagnosticReporting;
-import dmd.errors : DiagnosticHandler, diagnosticHandler, Classification;
+import dmd.errors;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -96,12 +96,14 @@ Initializes the global variables of the DMD compiler.
 This needs to be done $(I before) calling any function.
 
 Params:
-    handler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
+    diagnosticHandler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
+    fatalErrorHandler = a delegate to configure what to do with fatal errors (default is to call exit(EXIT_FAILURE)).
     contractChecks = indicates which contracts should be enabled or not
     versionIdentifiers = a list of version identifiers that should be enabled
 */
 void initDMD(
-    DiagnosticHandler handler = null,
+    DiagnosticHandler diagnosticHandler = null,
+    FatalErrorHandler fatalErrorHandler = null,
     const string[] versionIdentifiers = [],
     ContractChecks contractChecks = ContractChecks()
 )
@@ -124,7 +126,8 @@ void initDMD(
     import dmd.objc : Objc;
     import dmd.target : target, defaultTargetOS;
 
-    diagnosticHandler = handler;
+    .diagnosticHandler = diagnosticHandler;
+    .fatalErrorHandler = fatalErrorHandler;
 
     global._init();
 
@@ -175,6 +178,7 @@ void deinitializeDMD()
     import dmd.target : target;
 
     diagnosticHandler = null;
+    fatalErrorHandler = null;
 
     global.deinitialize();
 
