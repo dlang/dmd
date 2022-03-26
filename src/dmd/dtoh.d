@@ -445,6 +445,9 @@ public:
      */
     private void writeIdentifier(const AST.Dsymbol s, const bool canFix = false)
     {
+        if (const mn = getMangleOverride(s))
+            return buf.writestring(mn);
+
         writeIdentifier(s.ident, s.loc, s.kind(), canFix);
     }
 
@@ -729,6 +732,11 @@ public:
             ignored("function %s because of linkage", fd.toPrettyChars());
             return checkVirtualFunction(fd);
         }
+        if (fd.mangleOverride && tf && tf.linkage != LINK.c)
+        {
+            ignored("function %s because C++ doesn't support explicit mangling", fd.toPrettyChars());
+            return checkVirtualFunction(fd);
+        }
         if (!adparent && !fd.fbody)
         {
             ignored("function %s because it is extern", fd.toPrettyChars());
@@ -946,6 +954,11 @@ public:
             if (vd.linkage != LINK.c && vd.linkage != LINK.cpp && !(tdparent && (this.linkage == LINK.c || this.linkage == LINK.cpp)))
             {
                 ignored("variable %s because of linkage", vd.toPrettyChars());
+                return;
+            }
+            if (vd.mangleOverride && vd.linkage != LINK.c)
+            {
+                ignored("variable %s because C++ doesn't support explicit mangling", vd.toPrettyChars());
                 return;
             }
             if (!isSupportedType(type))
@@ -2936,6 +2949,10 @@ public:
             scope(exit) printf("[writeFullName exit] %s\n", sym.toPrettyChars());
         }
 
+        // Explicit `pragma(mangle, "<some string>` overrides the declared name
+        if (auto mn = getMangleOverride(sym))
+            return buf.writestring(mn);
+
         /// Checks whether `sym` is nested in `par` and hence doesn't need the FQN
         static bool isNestedIn(AST.Dsymbol sym, AST.Dsymbol par)
         {
@@ -2983,6 +3000,15 @@ public:
             visitTi(ti);
         else
             buf.writestring(sym.ident.toString());
+    }
+
+    /// Returns: Explicit mangling for `sym` if present
+    extern(D) static const(char)[] getMangleOverride(const AST.Dsymbol sym)
+    {
+        if (auto decl = sym.isDeclaration())
+            return decl.mangleOverride;
+
+        return null;
     }
 }
 

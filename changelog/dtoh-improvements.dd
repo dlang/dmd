@@ -5,7 +5,10 @@ experimental C++ header generator:
 
 - The implicitly generated context pointer for nested aggregates is now
   emitted as `outer` instead of `this`
-
+- Explicit mangling via `pragma(mangle, "...")` is partially supported for
+  functions / variables. The mangling is used as the identifier of `extern(C)`
+  declarations because C doesn't mangle declaration names. `extern(C++)`
+  declarations are ignored because there's no portable alternative for C++.
 
 Note: The header generator is still considered experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
