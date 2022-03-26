@@ -871,7 +871,7 @@ version (SCPP)
                 section_64 *psechdr = &SecHdrTab64[pseg.SDshtidx]; // corresponding section
 
                 // Do zero-fill the second time through this loop
-                if (i ^ (psechdr.flags == S_ZEROFILL))
+                if (i ^ (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL))
                     continue;
 
                 int align_ = 1 << psechdr._align;
@@ -882,7 +882,7 @@ version (SCPP)
                 }
                 foffset = elf_align(align_, foffset);
                 vmaddr = (vmaddr + align_ - 1) & ~(align_ - 1);
-                if (psechdr.flags == S_ZEROFILL)
+                if (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL)
                 {
                     psechdr.offset = 0;
                     psechdr.size = pseg.SDoffset; // accumulated size
@@ -909,7 +909,7 @@ version (SCPP)
                 section *psechdr = &SecHdrTab[pseg.SDshtidx]; // corresponding section
 
                 // Do zero-fill the second time through this loop
-                if (i ^ (psechdr.flags == S_ZEROFILL))
+                if (i ^ (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL))
                     continue;
 
                 int align_ = 1 << psechdr._align;
@@ -920,7 +920,7 @@ version (SCPP)
                 }
                 foffset = elf_align(align_, foffset);
                 vmaddr = (vmaddr + align_ - 1) & ~(align_ - 1);
-                if (psechdr.flags == S_ZEROFILL)
+                if (psechdr.flags == S_ZEROFILL || psechdr.flags == S_THREAD_LOCAL_ZEROFILL)
                 {
                     psechdr.offset = 0;
                     psechdr.size = cast(uint)pseg.SDoffset; // accumulated size
@@ -1896,7 +1896,7 @@ int MachObj_getsegment(const(char)* sectname, const(char)* segname,
 
     if (!pseg.SDbuf)
     {
-        if (flags != S_ZEROFILL)
+        if (flags != S_ZEROFILL && flags != S_THREAD_LOCAL_ZEROFILL)
         {
             pseg.SDbuf = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
             assert(pseg.SDbuf);
@@ -2421,7 +2421,9 @@ void MachObj_lidata(int seg,targ_size_t offset,targ_size_t count)
 {
     //printf("MachObj_lidata(%d,%x,%d)\n",seg,offset,count);
     size_t idx = SegData[seg].SDshtidx;
-    if ((I64 ? SecHdrTab64[idx].flags : SecHdrTab[idx].flags) == S_ZEROFILL)
+
+    const flags = (I64 ? SecHdrTab64[idx].flags : SecHdrTab[idx].flags);
+    if (flags == S_ZEROFILL || flags == S_THREAD_LOCAL_ZEROFILL)
     {   // Use SDoffset to record size of bss section
         SegData[seg].SDoffset += count;
     }
