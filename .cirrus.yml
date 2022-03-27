@@ -93,6 +93,8 @@ macos12_task:
     OS: osx
     # 12 CPU cores and 24 GB of memory are available
     N: 12
+    # FIXME: Temporarily use LDC until a release with a fix for issue 22942 is available (probably 2.101)
+    HOST_DMD: ldc
     matrix:
       - TASK_NAME_SUFFIX: DMD (latest)
       - TASK_NAME_SUFFIX: DMD (coverage)
