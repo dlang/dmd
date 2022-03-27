@@ -2098,7 +2098,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // memtype is forward referenced, so try again later
                     deferDsymbolSemantic(ed, scx);
                     Module.dprogress = dprogress_save;
-                    //printf("\tdeferring %s\n", toChars());
+                    //printf("\tdeferring %s\n", ed.toChars());
                     ed.semanticRun = PASS.init;
                     return;
                 }
@@ -4573,14 +4573,48 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.symtab = new DsymbolTable();
 
             sd.members.foreachDsymbol( s => s.addMember(sc, sd) );
+
+            auto sc2 = sd.newScope(sc);
+
+            /* Set scope so if there are forward references, we still might be able to
+             * resolve individual members like enums.
+             */
+            sd.members.foreachDsymbol( s => s.setScope(sc2) );
+
+            sc2.pop();
+        }
+
+        static int resolveBaseTypes(Dsymbol s, StructDeclaration sd, Scope* scx)
+        {
+            auto v = s.isVarDeclaration();
+            if (!v || !v.type)
+                return 0;
+
+            v.type = v.type.typeSemantic(v.loc, v._scope);
+            auto tv = v.type.baseElemOf();
+            if (auto ts = tv.isTypeStruct())
+            {
+                if (sd == ts.sym)
+                    return 1;
+                if (ts.sym.sizeok == Sizeok.none)
+                {
+                    sd._scope = scx;
+                    ts.sym.dsymbolSemantic(ts.sym._scope);
+                    sd._scope = null;
+                    if (ts.sym.sizeok == Sizeok.none)
+                        return 1;
+                }
+            }
+            return 0;
+        }
+        for (size_t i = 0; i < sd.members.dim; i++)
+        {
+            if ((*sd.members)[i].apply(&resolveBaseTypes, sd, scx))
+                return deferDsymbolSemantic(sd, scx);
         }
 
         auto sc2 = sd.newScope(sc);
 
-        /* Set scope so if there are forward references, we still might be able to
-         * resolve individual members like enums.
-         */
-        sd.members.foreachDsymbol( s => s.setScope(sc2) );
         sd.members.foreachDsymbol( s => s.importAll(sc2) );
         sd.members.foreachDsymbol( (s) { s.dsymbolSemantic(sc2); sd.errors |= s.errors; } );
 
@@ -4616,7 +4650,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             sc2.pop();
 
-            //printf("\tdeferring %s\n", toChars());
+            //printf("\tdeferring struct %s\n", sd.toChars());
             return deferDsymbolSemantic(sd, scx);
         }
 
@@ -5215,7 +5249,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             sc2.pop();
 
-            //printf("\tdeferring %s\n", toChars());
+            //printf("\tdeferring %s\n", cldec.toChars());
             return deferDsymbolSemantic(cldec, scx);
         }
 
