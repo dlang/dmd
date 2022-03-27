@@ -1,11 +1,12 @@
+import core.memory;
 void main()
 {
-    string[string] aa;
-    string key = "a";
-
-    foreach (i; 0..100)
+	auto collections = GC.profileStats().numCollections;
+	// loop until we trigger a collection
+    for (;;)
     {
-        aa[key] = key;
-        key ~= "a";
+        cast(void)GC.malloc(100_000, GC.BlkAttr.NO_SCAN);
+        if (GC.profileStats().numCollections == collections+1)
+			break;
     }
 }

@@ -95,7 +95,7 @@ $(ROOT)/hospital.done: RUN_ARGS += --DRT-gcopt=fork:1
 
 $(ROOT)/issue22843: issue22843.d
 	$(DMD) $(UDFLAGS) -of$@ issue22843.d
-$(ROOT)/issue22843.done: RUN_ARGS += "--DRT-gcopt=fork:1 initReserve:0 minPoolSize:0"
+$(ROOT)/issue22843.done: RUN_ARGS += "--DRT-gcopt=fork:1 initReserve:0 minPoolSize:1"
 
 clean:
 	rm -rf $(ROOT)
