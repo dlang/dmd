@@ -23,12 +23,15 @@ $(ROOT)/%.done: $(ROOT)/%
 
 # https://issues.dlang.org/show_bug.cgi?id=22843
 # needs to run under valgrind
+# versions before 3.13.0 don't handle clone() correctly, skip them
 $(ROOT)/issue22843.done: $(ROOT)/issue22843
 	@echo Testing issue22843
-	$(QUIET)if command -v valgrind >/dev/null; then \
-		$(TIMELIMIT)valgrind --quiet --tool=none $(ROOT)/issue22843 $(RUN_ARGS); \
-	else \
+	$(QUIET)if ! command -v valgrind >/dev/null; then \
 		echo valgrind not installed, skipping; \
+	elif valgrind --version | grep -Eq 'valgrind-3.([0-9]|1[012])\b'; then \
+		echo valgrind version too old, skipping; \
+	else \
+		$(TIMELIMIT)valgrind --quiet --tool=none $(ROOT)/issue22843 $(RUN_ARGS); \
 	fi
 	@touch $@
 
