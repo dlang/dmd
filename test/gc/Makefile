@@ -4,6 +4,10 @@ TESTS := attributes sentinel sentinel1 sentinel2 printf memstomp invariant loggi
 		 precise precisegc forkgc forkgc2 \
 		 sigmaskgc startbackgc recoverfree nocollect concurrent precise_concurrent hospital
 
+ifeq ($(OS),linux)
+	TESTS+=issue22843
+endif
+
 SRC_GC = ../../src/core/internal/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) ../../src/rt/lifetime.d
 # ../../src/object.d causes duplicate symbols
@@ -15,6 +19,17 @@ all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS)
+	@touch $@
+
+# https://issues.dlang.org/show_bug.cgi?id=22843
+# needs to run under valgrind
+$(ROOT)/issue22843.done: $(ROOT)/issue22843
+	@echo Testing issue22843
+	$(QUIET)if command -v valgrind >/dev/null; then \
+		$(TIMELIMIT)valgrind --quiet --tool=none $(ROOT)/issue22843 $(RUN_ARGS); \
+	else \
+		echo valgrind not installed, skipping; \
+	fi
 	@touch $@
 
 $(ROOT)/sentinel: $(SRC)
@@ -77,6 +92,10 @@ $(ROOT)/nocollect: nocollect.d
 $(ROOT)/hospital: hospital.d
 	$(DMD) $(DFLAGS) -d -of$@ hospital.d
 $(ROOT)/hospital.done: RUN_ARGS += --DRT-gcopt=fork:1
+
+$(ROOT)/issue22843: issue22843.d
+	$(DMD) $(UDFLAGS) -of$@ issue22843.d
+$(ROOT)/issue22843.done: RUN_ARGS += "--DRT-gcopt=fork:1 initReserve:0 minPoolSize:0"
 
 clean:
 	rm -rf $(ROOT)
