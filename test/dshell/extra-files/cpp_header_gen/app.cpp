@@ -70,5 +70,7 @@ int main()
         // RequiresDummy dummy;
         acceptDummy(nullptr);
     }
+
+    assert(fromMixin(2, 4) == 8);
     return 0;
 }
