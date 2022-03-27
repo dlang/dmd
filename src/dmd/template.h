@@ -274,6 +274,7 @@ private:
     unsigned short _nest;                // for recursive pretty printing detection, 3 MSBs reserved for flags
 public:
     unsigned char inuse;                 // for recursive expansion detection
+    unsigned char numFailedGagged;
 
     TemplateInstance *syntaxCopy(Dsymbol *);
     Dsymbol *toAlias();                 // resolve real symbol

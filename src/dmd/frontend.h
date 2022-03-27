@@ -6475,6 +6475,7 @@ private:
     uint16_t _nest;
 public:
     uint8_t inuse;
+    uint8_t numFailedGagged;
 private:
     enum class Flag : uint32_t
     {

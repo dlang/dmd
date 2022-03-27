@@ -5822,6 +5822,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     private ushort _nest;       // for recursive pretty printing detection, 3 MSBs reserved for flags (below)
     ubyte inuse;                // for recursive expansion detection
+    ubyte numFailedGagged;
 
     private enum Flag : uint
     {
@@ -6103,6 +6104,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         /* Template functions may have different instantiations based on
          * "auto ref" parameters.
          */
+        if (ti.inst || ti._scope) // FIXME: hack around forward reference errors for cached TemplateInstances with inst = null
         if (auto fd = ti.toAlias().isFuncDeclaration())
         {
             if (!fd.errors)
