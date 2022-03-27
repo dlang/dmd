@@ -53,7 +53,7 @@ task:
       - TASK_NAME_SUFFIX: x86
         MODEL: 32
       - TASK_NAME_SUFFIX: x64
-  install_git_script: apt-get -q update && apt-get install -yq git-core
+  install_git_and_valgrind_script: apt-get -q update && apt-get install -yq git-core valgrind
   << : *COMMON_STEPS_TEMPLATE
 
 # Mac
