@@ -7311,7 +7311,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (checkNonAssignmentArrayOp(e.e1))
             return setError();
 
-        e.type = Type.tbool;
+        e.type = (sc && sc.flags & SCOPE.Cfile) ? Type.tint32 : Type.tbool;
         result = e;
     }
 
@@ -11270,7 +11270,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e1x = e1x.optimize(WANTvalue);
             if (e1x.toBool().hasValue(exp.op == EXP.orOr))
             {
-                result = IntegerExp.createBool(exp.op == EXP.orOr);
+                if (sc.flags & SCOPE.Cfile)
+                    result = new IntegerExp(exp.op == EXP.orOr);
+                else
+                    result = IntegerExp.createBool(exp.op == EXP.orOr);
                 return;
             }
         }
@@ -11315,7 +11318,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e2x.type.ty == Tvoid)
             exp.type = Type.tvoid;
         else
-            exp.type = Type.tbool;
+            exp.type = (sc && sc.flags & SCOPE.Cfile) ? Type.tint32 : Type.tbool;
 
         exp.e1 = e1x;
         exp.e2 = e2x;
@@ -11412,7 +11415,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (f1 || f2)
             return setError();
 
-        exp.type = Type.tbool;
+        exp.type = (sc && sc.flags & SCOPE.Cfile) ? Type.tint32 : Type.tbool;
 
         // Special handling for array comparisons
         Expression arrayLowering = null;
@@ -11690,7 +11693,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (f1 || f2)
             return setError();
 
-        exp.type = Type.tbool;
+        exp.type = (sc && sc.flags & SCOPE.Cfile) ? Type.tint32 : Type.tbool;
 
         if (!isArrayComparison)
         {
