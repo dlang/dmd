@@ -2956,7 +2956,6 @@ struct Gcx
             auto pid = fork();
             fork_needs_lock = true;
         }
-        assert(pid != -1);
         switch (pid)
         {
             case -1: // fork() failed, retry without forking
@@ -3027,7 +3026,7 @@ struct Gcx
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
         version (COLLECT_FORK)
-            bool doFork = shouldFork;
+            alias doFork = shouldFork;
         else
             enum doFork = false;
 
@@ -3082,6 +3081,7 @@ Lmark:
                     final switch (forkResult)
                     {
                         case ChildStatus.error:
+                            // fork() failed, retry without forking
                             disableFork();
                             goto Lmark;
                         case ChildStatus.running:
