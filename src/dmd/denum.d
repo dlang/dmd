@@ -163,6 +163,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (defaultval)
             return defaultval;
 
+        if (isCsymbol())
+            return memtype.defaultInit(loc, true);
+
         if (_scope)
             dsymbolSemantic(this, _scope);
         if (errors)
