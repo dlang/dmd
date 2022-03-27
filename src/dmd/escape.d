@@ -2294,3 +2294,37 @@ bool isReferenceToMutable(Parameter p, Type t)
     }
     return isReferenceToMutable(p.type);
 }
+
+/**********************************
+* Determine if `va` has a lifetime that lasts past
+* the destruction of `v`
+* Params:
+*     va = variable assigned to
+*     v = variable being assigned
+* Returns:
+*     true if it does
+*/
+private bool enclosesLifetimeOf(const VarDeclaration va, const VarDeclaration v) pure
+{
+    assert(va.sequenceNumber != va.sequenceNumber.init);
+    assert(v.sequenceNumber != v.sequenceNumber.init);
+    return va.sequenceNumber < v.sequenceNumber;
+}
+
+/***************************************
+ * Add variable `v` to maybes[]
+ *
+ * When a maybescope variable `v` is assigned to a maybescope variable `va`,
+ * we cannot determine if `this` is actually scope until the semantic
+ * analysis for the function is completed. Thus, we save the data
+ * until then.
+ * Params:
+ *     v = an `STC.maybescope` variable that was assigned to `this`
+ */
+private void addMaybe(VarDeclaration va, VarDeclaration v)
+{
+    //printf("add %s to %s's list of dependencies\n", v.toChars(), toChars());
+    if (!va.maybes)
+        va.maybes = new VarDeclarations();
+    va.maybes.push(v);
+}

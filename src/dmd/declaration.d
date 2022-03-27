@@ -1642,38 +1642,6 @@ extern (C++) class VarDeclaration : Declaration
     {
         v.visit(this);
     }
-
-    /**********************************
-     * Determine if `this` has a lifetime that lasts past
-     * the destruction of `v`
-     * Params:
-     *  v = variable to test against
-     * Returns:
-     *  true if it does
-     */
-    final bool enclosesLifetimeOf(VarDeclaration v) const pure
-    {
-        assert(this.sequenceNumber != this.sequenceNumber.init);
-        assert(v.sequenceNumber != v.sequenceNumber.init);
-        return (this.sequenceNumber < v.sequenceNumber);
-    }
-
-    /***************************************
-     * Add variable to maybes[].
-     * When a maybescope variable `v` is assigned to a maybescope variable `this`,
-     * we cannot determine if `this` is actually scope until the semantic
-     * analysis for the function is completed. Thus, we save the data
-     * until then.
-     * Params:
-     *  v = an STC.maybescope variable that was assigned to `this`
-     */
-    final void addMaybe(VarDeclaration v)
-    {
-        //printf("add %s to %s's list of dependencies\n", v.toChars(), toChars());
-        if (!maybes)
-            maybes = new VarDeclarations();
-        maybes.push(v);
-    }
 }
 
 /*******************************************************
