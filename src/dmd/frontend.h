@@ -5792,8 +5792,6 @@ public:
     Dsymbol* toAlias();
     VarDeclaration* isVarDeclaration();
     void accept(Visitor* v);
-    bool enclosesLifetimeOf(VarDeclaration* v) const;
-    void addMaybe(VarDeclaration* v);
 };
 
 class BitFieldDeclaration : public VarDeclaration

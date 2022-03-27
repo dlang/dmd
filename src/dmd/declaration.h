@@ -273,7 +273,6 @@ public:
     bool hasPointers();
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    bool enclosesLifetimeOf(VarDeclaration *v) const;
     void checkCtorConstInit();
     Dsymbol *toAlias();
     // Eliminate need for dynamic_cast
