@@ -43,7 +43,7 @@ extern "C" int32_t freeC();
 // Ignored function dtoh_mangling.bar because C++ doesn't support explicit mangling
 struct Data final
 {
-    extern "C" static int32_t memberC();
+    // Ignored function dtoh_mangling.Data.foo because of linkage
     // Ignored function dtoh_mangling.Data.bar because C++ doesn't support explicit mangling
     Data()
     {
@@ -84,7 +84,6 @@ extern (C++) void bar() {}
 pragma(mangle, "Aggregate")
 struct Data
 {
-    // FIXME: extern(C) member functions should be ignored
     pragma(mangle, "memberC")
     static int foo() { return 0; }
 

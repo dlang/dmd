@@ -170,3 +170,13 @@ ref RequiresDummy acceptDummy(RequiresDummy* dummy)
 {
     return *dummy;
 }
+
+mixin template CreateModuleMembers()
+{
+    int fromMixin(int a, int b)
+    {
+        return a * b;
+    }
+}
+
+mixin CreateModuleMembers!();
