@@ -229,3 +229,19 @@ struct EmptyStruct2
 
 static assert(EmptyStruct2.sizeof == 1);
 static assert(EmptyStruct2.noRet.offsetof == 0);
+
+// https://issues.dlang.org/show_bug.cgi?id=22858
+// Shouldn't mess with the alignment of other zero-sized types.
+
+struct S22858
+{
+    int a;
+    void*[0] arr;
+    char c;
+    noreturn[0] arr2;
+    char c2;
+}
+
+static assert (S22858.arr.offsetof % size_t.sizeof == 0);
+static assert (S22858.arr2.offsetof == S22858.c.offsetof + 1);
+static assert (S22858.arr2.offsetof == S22858.c2.offsetof);

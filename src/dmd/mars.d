@@ -564,7 +564,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     if (params.addMain && !global.hasMainFunction)
-        modules.push(moduleWithEmptyMain());
+    {
+        auto mainModule = moduleWithEmptyMain();
+        modules.push(mainModule);
+        if (!params.oneobj || modules.length == 1)
+            params.objfiles.push(mainModule.objfile.toChars());
+    }
 
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
                          params.lib, params.obj, params.oneobj, params.multiobj,

@@ -6272,9 +6272,6 @@ extern (C++) final class TypeClass : Type
 
     override MOD deduceWild(Type t, bool isRef)
     {
-        // If sym is forward referenced:
-        if (sym.semanticRun < PASS.semanticdone && !sym.isBaseInfoComplete())
-            sym.dsymbolSemantic(null);
         ClassDeclaration cd = t.isClassHandle();
         if (cd && (sym == cd || cd.isBaseOf(sym, null)))
             return Type.deduceWild(t, isRef);
@@ -7030,6 +7027,17 @@ extern (C++) final class Parameter : ASTNode
 
     extern (D) private static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
     {
+        // Workaround for failing covariance when finding a common type of delegates,
+        // some of which have parameters with inferred scope
+        // https://issues.dlang.org/show_bug.cgi?id=21285
+        // The root cause is that scopeinferred is not part of the mangle, and mangle
+        // is used for type equality checks
+        if (to & STC.returninferred)
+            to &= ~STC.return_;
+        // note: f(return int* x) currently 'infers' scope without inferring `return`, in that case keep STC.scope
+        if (to & STC.scopeinferred && !(to & STC.return_))
+            to &= ~STC.scope_;
+
         if (from == to)
             return true;
 

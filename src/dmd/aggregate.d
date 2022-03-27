@@ -547,7 +547,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         if (overflow) assert(0);
 
         // Skip no-op for noreturn without custom aligment
-        if (memsize != 0 || !alignment.isDefault())
+        if (memalignsize != 0 || !alignment.isDefault())
             alignmember(alignment, memalignsize, &ofs);
 
         uint memoffset = ofs;
