@@ -749,7 +749,7 @@ void setClosureVarOffset(FuncDeclaration fd)
          */
         if (fd.isNRVO() && fd.nrvo_var == v)
         {
-            fd.flags &= ~FUNCFLAG.NRVO;
+            fd.isNRVO = false;
         }
     }
 }

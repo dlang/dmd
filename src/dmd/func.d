@@ -1463,6 +1463,12 @@ extern (C++) class FuncDeclaration : Declaration
         return !!(this.flags & FUNCFLAG.NRVO);
     }
 
+    final void isNRVO(bool v) pure nothrow @safe @nogc
+    {
+        if (v) this.flags |= FUNCFLAG.NRVO;
+        else this.flags &= ~FUNCFLAG.NRVO;
+    }
+
     final bool isNaked() const scope @safe pure nothrow @nogc
     {
         return !!(this.flags & FUNCFLAG.naked);
@@ -1471,6 +1477,12 @@ extern (C++) class FuncDeclaration : Declaration
     final bool isGenerated() const scope @safe pure nothrow @nogc
     {
         return !!(this.flags & FUNCFLAG.generated);
+    }
+
+    final void isGenerated(bool v) pure nothrow @safe @nogc
+    {
+        if (v) this.flags |= FUNCFLAG.generated;
+        else this.flags &= ~FUNCFLAG.generated;
     }
 
     final bool isIntroducing() const scope @safe pure nothrow @nogc
