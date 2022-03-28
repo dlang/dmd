@@ -4071,7 +4071,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                     return e.expressionSemantic(sc);
                 }
             }
-            if (d.semanticRun == PASS.init)
+            if (d.semanticRun == PASS.initial)
                 d.dsymbolSemantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
@@ -4302,7 +4302,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             if (ident == Id.outer && mt.sym.vthis)
             {
-                if (mt.sym.vthis.semanticRun == PASS.init)
+                if (mt.sym.vthis.semanticRun == PASS.initial)
                     mt.sym.vthis.dsymbolSemantic(null);
 
                 if (auto cdp = mt.sym.toParentLocal().isClassDeclaration())
@@ -4555,7 +4555,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 }
             }
             //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
-            if (d.semanticRun == PASS.init)
+            if (d.semanticRun == PASS.initial)
                 d.dsymbolSemantic(null);
 
             // If static function, get the most visible overload.

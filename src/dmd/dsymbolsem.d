@@ -231,7 +231,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(AliasThis dsym)
     {
-        if (dsym.semanticRun != PASS.init)
+        if (dsym.semanticRun != PASS.initial)
             return;
 
         if (dsym._scope)
@@ -346,7 +346,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("linkage = %d\n", dsym.linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
-        //if (semanticRun > PASS.init)
+        //if (semanticRun > PASS.initial)
         //    return;
         //semanticRun = PSSsemantic;
 
@@ -1256,7 +1256,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(Import imp)
     {
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
-        if (imp.semanticRun > PASS.init)
+        if (imp.semanticRun > PASS.initial)
             return;
 
         if (imp._scope)
@@ -1433,7 +1433,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     void attribSemantic(AttribDeclaration ad)
     {
-        if (ad.semanticRun != PASS.init)
+        if (ad.semanticRun != PASS.initial)
             return;
         ad.semanticRun = PASS.semantic;
         Dsymbols* d = ad.include(sc);
@@ -1990,7 +1990,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(Module m)
     {
-        if (m.semanticRun != PASS.init)
+        if (m.semanticRun != PASS.initial)
             return;
         //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         m.semanticRun = PASS.semantic;
@@ -2099,7 +2099,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     deferDsymbolSemantic(ed, scx);
                     Module.dprogress = dprogress_save;
                     //printf("\tdeferring %s\n", toChars());
-                    ed.semanticRun = PASS.init;
+                    ed.semanticRun = PASS.initial;
                     return;
                 }
                 else
@@ -2503,7 +2503,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("sc.stc = %llx\n", sc.stc);
             printf("sc.module = %s\n", sc._module.toChars());
         }
-        if (tempdecl.semanticRun != PASS.init)
+        if (tempdecl.semanticRun != PASS.initial)
             return; // semantic() already run
 
         if (tempdecl._scope)
@@ -2648,11 +2648,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("+TemplateMixin.dsymbolSemantic('%s', this=%p)\n", tm.toChars(), tm);
             fflush(stdout);
         }
-        if (tm.semanticRun != PASS.init)
+        if (tm.semanticRun != PASS.initial)
         {
             // When a class/struct contains mixin members, and is done over
             // because of forward references, never reach here so semanticRun
-            // has been reset to PASS.init.
+            // has been reset to PASS.initial.
             static if (LOG)
             {
                 printf("\tsemantic done\n");
@@ -2678,7 +2678,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         if (!tm.findTempDecl(sc) || !tm.semanticTiargs(sc) || !tm.findBestMatch(sc, null))
         {
-            if (tm.semanticRun == PASS.init) // forward reference had occurred
+            if (tm.semanticRun == PASS.initial) // forward reference had occurred
             {
                 //printf("forward reference - deferring\n");
                 return deferDsymbolSemantic(tm, scx);
@@ -2865,7 +2865,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(Nspace ns)
     {
-        if (ns.semanticRun != PASS.init)
+        if (ns.semanticRun != PASS.initial)
             return;
         static if (LOG)
         {
@@ -2989,7 +2989,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             printf("type: %p, %s\n", funcdecl.type, funcdecl.type.toChars());
         }
 
-        if (funcdecl.semanticRun != PASS.init && funcdecl.isFuncLiteralDeclaration())
+        if (funcdecl.semanticRun != PASS.initial && funcdecl.isFuncLiteralDeclaration())
         {
             /* Member functions that have return types that are
              * forward references can have semantic() run more than
@@ -4524,7 +4524,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sd.errors)
             sd.type = Type.terror;
-        if (sd.semanticRun == PASS.init)
+        if (sd.semanticRun == PASS.initial)
             sd.type = sd.type.addSTC(sc.stc | sd.storage_class);
         sd.type = sd.type.typeSemantic(sd.loc, sc);
         if (auto ts = sd.type.isTypeStruct())
@@ -4538,7 +4538,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Ungag errors when not speculative
         Ungag ungag = sd.ungagSpeculative();
 
-        if (sd.semanticRun == PASS.init)
+        if (sd.semanticRun == PASS.initial)
         {
             sd.visibility = sc.visibility;
 
@@ -4746,7 +4746,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (cldec.errors)
             cldec.type = Type.terror;
-        if (cldec.semanticRun == PASS.init)
+        if (cldec.semanticRun == PASS.initial)
             cldec.type = cldec.type.addSTC(sc.stc | cldec.storage_class);
         cldec.type = cldec.type.typeSemantic(cldec.loc, sc);
         if (auto tc = cldec.type.isTypeClass())
@@ -4760,7 +4760,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Ungag errors when not speculative
         Ungag ungag = cldec.ungagSpeculative();
 
-        if (cldec.semanticRun == PASS.init)
+        if (cldec.semanticRun == PASS.initial)
         {
             cldec.visibility = sc.visibility;
 
@@ -5415,7 +5415,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Ungag errors when not speculative
         Ungag ungag = idec.ungagSpeculative();
 
-        if (idec.semanticRun == PASS.init)
+        if (idec.semanticRun == PASS.initial)
         {
             idec.visibility = sc.visibility;
 
@@ -5749,7 +5749,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         }
         return;
     }
-    if (tempinst.semanticRun != PASS.init)
+    if (tempinst.semanticRun != PASS.initial)
     {
         static if (LOG)
         {
@@ -5760,7 +5760,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
             global.gag = 0;
         tempinst.error(tempinst.loc, "recursive template expansion");
         if (tempinst.gagged)
-            tempinst.semanticRun = PASS.init;
+            tempinst.semanticRun = PASS.initial;
         else
             tempinst.inst = tempinst;
         tempinst.errors = true;
@@ -5799,7 +5799,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         {
             // https://issues.dlang.org/show_bug.cgi?id=13220
             // Roll back status for later semantic re-running
-            tempinst.semanticRun = PASS.init;
+            tempinst.semanticRun = PASS.initial;
         }
         else
             tempinst.inst = tempinst;
@@ -6033,7 +6033,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
 
     // Create our own scope for the template parameters
     Scope* _scope = tempdecl._scope;
-    if (tempdecl.semanticRun == PASS.init)
+    if (tempdecl.semanticRun == PASS.initial)
     {
         tempinst.error("template instantiation `%s` forward references template declaration `%s`", tempinst.toChars(), tempdecl.toChars());
         return;
@@ -6331,7 +6331,7 @@ Laftersemantic:
                 target_symbol_list.remove(target_symbol_list_idx);
                 tempinst.memberOf = null;                    // no longer a member
             }
-            tempinst.semanticRun = PASS.init;
+            tempinst.semanticRun = PASS.initial;
             tempinst.inst = null;
             tempinst.symtab = null;
         }

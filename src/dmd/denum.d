@@ -96,7 +96,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     override void setScope(Scope* sc)
     {
-        if (semanticRun > PASS.init)
+        if (semanticRun > PASS.initial)
             return;
         ScopeDsymbol.setScope(sc);
     }

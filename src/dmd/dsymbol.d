@@ -190,7 +190,7 @@ struct Visibility
 
 enum PASS : ubyte
 {
-    init,           // initial state
+    initial,        // initial state
     semantic,       // semantic() started
     semanticdone,   // semantic() done
     semantic2,      // semantic2() started
@@ -249,7 +249,7 @@ extern (C++) class Dsymbol : ASTNode
     Scope* _scope;          // !=null means context to use for semantic()
     const(char)* prettystring;  // cached value of toPrettyChars()
     bool errors;            // this symbol failed to pass semantic()
-    PASS semanticRun = PASS.init;
+    PASS semanticRun = PASS.initial;
     ushort localNum;        /// perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
 
     DeprecatedDeclaration depdecl;           // customized deprecation message
