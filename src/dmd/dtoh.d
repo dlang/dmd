@@ -730,12 +730,12 @@ public:
         if ((tf && tf.linkage != LINK.c && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))
         {
             ignored("function %s because of linkage", fd.toPrettyChars());
-            return checkVirtualFunction(fd);
+            return checkFunctionNeedsPlaceholder(fd);
         }
         if (fd.mangleOverride && tf && tf.linkage != LINK.c)
         {
             ignored("function %s because C++ doesn't support explicit mangling", fd.toPrettyChars());
-            return checkVirtualFunction(fd);
+            return checkFunctionNeedsPlaceholder(fd);
         }
         if (!adparent && !fd.fbody)
         {
@@ -750,7 +750,7 @@ public:
         if (tf && !isSupportedType(tf.next))
         {
             ignored("function %s because its return type cannot be mapped to C++", fd.toPrettyChars());
-            return checkVirtualFunction(fd);
+            return checkFunctionNeedsPlaceholder(fd);
         }
         if (tf) foreach (i, fparam; tf.parameterList)
         {
@@ -758,7 +758,7 @@ public:
             {
                 ignored("function %s because one of its parameters has type `%s` which cannot be mapped to C++",
                         fd.toPrettyChars(), fparam.type.toChars());
-                return checkVirtualFunction(fd);
+                return checkFunctionNeedsPlaceholder(fd);
             }
         }
 
@@ -830,9 +830,15 @@ public:
 
     }
 
-    /// Checks whether `fd` is a virtual function and emits a dummy declaration
-    /// if required to ensure proper vtable layout
-    private void checkVirtualFunction(AST.FuncDeclaration fd)
+    /++
+     + Checks whether `fd` is a function that requires a dummy declaration
+     + instead of simply emitting the declaration (because it would cause
+     + ABI / behaviour issues). This includes:
+     +
+     + - virtual functions to ensure proper vtable layout
+     + - destructors that would break RAII
+     +/
+    private void checkFunctionNeedsPlaceholder(AST.FuncDeclaration fd)
     {
         // Omit redundant declarations - the slot was already
         // reserved in the base class
@@ -844,6 +850,15 @@ public:
             __gshared int counter; // Ensure unique names in all cases
             buf.printf("virtual void __vtable_slot_%u();", counter++);
             buf.writenl();
+        }
+        else if (fd.isDtorDeclaration())
+        {
+            // Create inaccessible dtor to prevent code from keeping instances that
+            // need to be destroyed on the C++ side (but cannot call the dtor)
+            writeProtection(AST.Visibility.Kind.private_);
+            buf.writeByte('~');
+            buf.writestring(adparent.ident.toString());
+            buf.writestringln("();");
         }
     }
 

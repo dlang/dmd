@@ -159,3 +159,14 @@ struct InvalidNames(typename)
 }
 
 void useInvalid(InvalidNames!Pass) {}
+
+struct RequiresDummy
+{
+    extern(D):
+    ~this() {}
+}
+
+ref RequiresDummy acceptDummy(RequiresDummy* dummy)
+{
+    return *dummy;
+}

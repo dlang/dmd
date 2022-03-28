@@ -1115,6 +1115,7 @@ struct BitArray final
     enum : uint64_t { BitsPerChunk = 64LLU };
 
 private:
+    ~BitArray();
     size_t len;
     uint64_t* ptr;
 public:

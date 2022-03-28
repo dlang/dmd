@@ -9,6 +9,9 @@ experimental C++ header generator:
   functions / variables. The mangling is used as the identifier of `extern(C)`
   declarations because C doesn't mangle declaration names. `extern(C++)`
   declarations are ignored because there's no portable alternative for C++.
+- Emits destructors not easily accessible from C++ (e.g. `extern(D)`) as private
+  members, preventing the creation of instances that would not be destroyed
+  on the C++ side.
 
 Note: The header generator is still considered experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).
