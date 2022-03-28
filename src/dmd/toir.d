@@ -747,10 +747,7 @@ void setClosureVarOffset(FuncDeclaration fd)
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
-        if (fd.isNRVO() && fd.nrvo_var == v)
-        {
-            fd.isNRVO = false;
-        }
+        assert(!fd.isNRVO() || fd.nrvo_var != v);
     }
 }
 
