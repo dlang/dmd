@@ -504,6 +504,16 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     {
                         eint = ei;
                     }
+                    else if (auto se = ep.e1.isSymOffExp())
+                    {
+                        if (!se.var.isReference() &&
+                            !se.var.isImportedSymbol() &&
+                            se.var.isDataseg())
+                        {
+                            var = se.var.isVarDeclaration();
+                            offset += se.offset;
+                        }
+                    }
                 }
                 return false;
             }
@@ -541,8 +551,13 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     sinteger_t dim = ts.dim.toInteger();
                     if (index < 0 || index >= dim)
                     {
-                        e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
-                        return error();
+                        /* 0 for C static arrays means size is unknown, no need to check
+                         */
+                        if (!(dim == 0 && ve.var.isCsymbol()))
+                        {
+                            e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
+                            return error();
+                        }
                     }
 
                     import core.checkedint : mulu;
