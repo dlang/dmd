@@ -80,10 +80,10 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
     if (auto e = isExpression(oarg))
     {
-        if (e.op == EXP.dotVariable)
-            return (cast(DotVarExp)e).var;
-        if (e.op == EXP.dotTemplateDeclaration)
-            return (cast(DotTemplateExp)e).td;
+        if (auto dve = e.isDotVarExp())
+            return dve.var;
+        if (auto dte = e.isDotTemplateExp())
+            return dte.td;
     }
     return getDsymbol(oarg);
 }
@@ -1053,9 +1053,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else if (e.ident == Id.getMember)
         {
-            if (ex.op == EXP.dotIdentifier)
+            if (auto die = ex.isDotIdExp())
                 // Prevent semantic() from replacing Symbol with its initializer
-                (cast(DotIdExp)ex).wantsym = true;
+                die.wantsym = true;
             ex = ex.expressionSemantic(scx);
             return ex;
         }
@@ -2163,7 +2163,7 @@ private bool isSame(RootObject o1, RootObject o2, Scope* sc)
         {
             if (ea.op == EXP.function_)
             {
-                if (auto fe = cast(FuncExp)ea)
+                if (auto fe = ea.isFuncExp())
                     return fe.fd;
             }
         }
