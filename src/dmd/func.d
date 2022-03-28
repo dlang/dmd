@@ -2194,7 +2194,7 @@ extern (C++) class FuncDeclaration : Declaration
             vresult.parent = this;
         }
 
-        if (sc && vresult.semanticRun == PASS.init)
+        if (sc && vresult.semanticRun == PASS.initial)
         {
             TypeFunction tf = type.toTypeFunction();
             if (tf.isref)

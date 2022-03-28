@@ -833,7 +833,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("argument `%s` has no visibility", o.toChars());
             return ErrorExp.get();
         }
-        if (s.semanticRun == PASS.init)
+        if (s.semanticRun == PASS.initial)
             s.dsymbolSemantic(null);
 
         auto protName = visibilityToString(s.visible().kind); // TODO: How about package(names)

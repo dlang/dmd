@@ -3461,7 +3461,7 @@ extern (C++) final class ScopeExp : Expression
             //assert(ti.needsTypeInference(sc));
             if (ti.tempdecl &&
                 ti.semantictiargsdone &&
-                ti.semanticRun == PASS.init)
+                ti.semanticRun == PASS.initial)
             {
                 error("partial %s `%s` has no type", sds.kind(), toChars());
                 return true;
@@ -3859,7 +3859,7 @@ extern (C++) final class FuncExp : Expression
     {
         if (td)
             return new FuncExp(loc, td.syntaxCopy(null));
-        else if (fd.semanticRun == PASS.init)
+        else if (fd.semanticRun == PASS.initial)
             return new FuncExp(loc, fd.syntaxCopy(null));
         else // https://issues.dlang.org/show_bug.cgi?id=13481
              // Prevent multiple semantic analysis of lambda body.
@@ -4950,7 +4950,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
         // Same logic as ScopeExp.checkType()
         if (ti.tempdecl &&
             ti.semantictiargsdone &&
-            ti.semanticRun == PASS.init)
+            ti.semanticRun == PASS.initial)
         {
             error("partial %s `%s` has no type", ti.kind(), toChars());
             return true;
@@ -4962,7 +4962,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
     {
         if (ti.tempdecl &&
             ti.semantictiargsdone &&
-            ti.semanticRun == PASS.init)
+            ti.semanticRun == PASS.initial)
 
             error("partial %s `%s` has no value", ti.kind(), toChars());
         else

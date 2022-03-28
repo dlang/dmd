@@ -924,7 +924,7 @@ struct Loc final
 
 enum class PASS : uint8_t
 {
-    init = 0u,
+    initial = 0u,
     semantic = 1u,
     semanticdone = 2u,
     semantic2 = 3u,
