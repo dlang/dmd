@@ -13355,8 +13355,8 @@ Expression toBoolean(Expression exp, Scope* sc)
 
         default:
             // Default is 'yes' - do nothing
-            Expression e = exp;
-            Type t = exp.type;
+            Expression e = arrayFuncConv(exp, sc);
+            Type t = e.type;
             Type tb = t.toBasetype();
             Type att = null;
 
