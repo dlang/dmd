@@ -2879,8 +2879,10 @@ public:
     bool isNogc();
     bool isNogcBypassingInference();
     bool isNRVO() const;
+    void isNRVO(bool v);
     bool isNaked() const;
     bool isGenerated() const;
+    void isGenerated(bool v);
     bool isIntroducing() const;
     bool hasSemantic3Errors() const;
     bool hasNoEH() const;
