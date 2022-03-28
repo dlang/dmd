@@ -2799,6 +2799,8 @@ extern (C++) class FuncDeclaration : Declaration
                     // parameters and closure variables cannot be NRVOed.
                     if (v.isDataseg() || v.isParameter() || v.toParent2() != this)
                         return false;
+                    if (v.nestedrefs.length && needsClosure())
+                        return false;
                     // The variable type needs to be equivalent to the return type.
                     if (!v.type.equivalent(tf.next))
                         return false;
