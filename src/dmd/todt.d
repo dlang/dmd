@@ -1029,7 +1029,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
 /* ================================================================= */
 
-extern (C++) void Type_toDt(Type t, ref DtBuilder dtb)
+extern (C++) void Type_toDt(Type t, ref DtBuilder dtb, bool isCfile = false)
 {
     switch (t.ty)
     {
@@ -1046,7 +1046,7 @@ extern (C++) void Type_toDt(Type t, ref DtBuilder dtb)
             break;
 
         default:
-            Expression_toDt(t.defaultInit(Loc.initial), dtb);
+            Expression_toDt(t.defaultInit(Loc.initial, isCfile), dtb);
             break;
     }
 }

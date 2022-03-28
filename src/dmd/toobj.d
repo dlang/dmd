@@ -632,7 +632,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else
             {
-                Type_toDt(vd.type, dtb);
+                Type_toDt(vd.type, dtb, vd.isCsymbol());
             }
             s.Sdt = dtb.finish();
 

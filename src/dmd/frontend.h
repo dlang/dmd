@@ -3280,7 +3280,7 @@ public:
 
 extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type*& tx, NeedInterpret needInterpret);
 
-extern Expression* initializerToExpression(Initializer* init, Type* itype = nullptr);
+extern Expression* initializerToExpression(Initializer* init, Type* itype = nullptr, const bool isCfile = false);
 
 enum class DotExpFlag
 {
