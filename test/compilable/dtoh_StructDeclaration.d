@@ -45,6 +45,9 @@ struct S final
     int32_t b;
     int64_t c;
     _d_dynamicArray< int32_t > arr;
+private:
+    ~S();
+public:
     S() :
         a(),
         b(),
@@ -232,6 +235,7 @@ extern (C++) struct S
     int b;
     long c;
     int[] arr;
+    extern(D) ~this() {}
 }
 
 extern (C++) struct S2
