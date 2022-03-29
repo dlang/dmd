@@ -2369,7 +2369,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             ss._body = cs;
         }
 
-        if (ss.checkLabel())
+        if (!(sc.flags & SCOPE.Cfile) && ss.checkLabel())
         {
             sc.pop();
             return setError();
@@ -3844,7 +3844,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 fd.gotos = new GotoStatements();
             fd.gotos.push(gs);
         }
-        else if (gs.checkLabel())
+        else if (!(sc.flags & SCOPE.Cfile) && gs.checkLabel())
             return setError();
 
         result = gs;
