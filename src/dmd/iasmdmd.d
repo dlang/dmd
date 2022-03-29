@@ -2222,14 +2222,14 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
             else if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
-                if (e.op == EXP.variable)
+                if (auto ve = e.isVarExp())
                 {
-                    o1.s = (cast(VarExp)e).var;
+                    o1.s = ve.var;
                     return;
                 }
-                else if (e.op == EXP.function_)
+                else if (auto fe = e.isFuncExp())
                 {
-                    o1.s = (cast(FuncExp)e).fd;
+                    o1.s = fe.fd;
                     return;
                 }
             }
