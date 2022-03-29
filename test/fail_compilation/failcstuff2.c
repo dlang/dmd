@@ -1,12 +1,6 @@
 // check semantic analysis of C files
 /* TEST_OUTPUT:
 ---
-fail_compilation/failcstuff2.c(54): Error: `& var` has no effect
-fail_compilation/failcstuff2.c(55): Error: `*ptr` has no effect
-fail_compilation/failcstuff2.c(56): Error: `var` has no effect
-fail_compilation/failcstuff2.c(57): Error: `-var` has no effect
-fail_compilation/failcstuff2.c(58): Error: `~var` has no effect
-fail_compilation/failcstuff2.c(59): Error: `!var` has no effect
 fail_compilation/failcstuff2.c(113): Error: `cast(int)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(114): Error: `sizeof` is not a member of `int`
 fail_compilation/failcstuff2.c(115): Error: `cast(short)3` is not an lvalue and cannot be modified
