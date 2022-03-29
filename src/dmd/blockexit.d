@@ -99,9 +99,8 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                     result = BE.halt;
                     return;
                 }
-                if (s.exp.op == EXP.assert_)
+                if (AssertExp a = s.exp.isAssertExp())
                 {
-                    AssertExp a = cast(AssertExp)s.exp;
                     if (a.e1.toBool().hasValue(false)) // if it's an assert(0)
                     {
                         result = BE.halt;
