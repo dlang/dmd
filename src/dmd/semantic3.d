@@ -1230,7 +1230,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
 
             // Fix up forward-referenced gotos
-            if (funcdecl.gotos)
+            if (funcdecl.gotos && !funcdecl.isCsymbol())
             {
                 for (size_t i = 0; i < funcdecl.gotos.dim; ++i)
                 {
