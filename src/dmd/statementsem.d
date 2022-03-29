@@ -2310,12 +2310,12 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
                 needswitcherror = true;
         }
 
-        if (!sc.sw.sdefault && !(sc.flags & SCOPE.Cfile) &&
+        if (!sc.sw.sdefault &&
             (!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on))
         {
             ss.hasNoDefault = 1;
 
-            if (!ss.isFinal && (!ss._body || !ss._body.isErrorStatement()))
+            if (!ss.isFinal && (!ss._body || !ss._body.isErrorStatement()) && !(sc.flags & SCOPE.Cfile))
                 ss.error("`switch` statement without a `default`; use `final switch` or add `default: assert(0);` or add `default: break;`");
 
             // Generate runtime error if the default is hit
@@ -2323,7 +2323,11 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             CompoundStatement cs;
             Statement s;
 
-            if (global.params.useSwitchError == CHECKENABLE.on &&
+            if (sc.flags & SCOPE.Cfile)
+            {
+                s = new BreakStatement(ss.loc, null);   // default for C is `default: break;`
+            }
+            else if (global.params.useSwitchError == CHECKENABLE.on &&
                 global.params.checkAction != CHECKACTION.halt)
             {
                 if (global.params.checkAction == CHECKACTION.C)
