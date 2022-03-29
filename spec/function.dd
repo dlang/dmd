@@ -3007,26 +3007,57 @@ $(H2 $(LNAME2 main, $(D main()) Function))
 
         $(NOTE The runtime can remove any arguments prefixed `--DRT-`.)
 
+        $(NOTE The aforementioned return / parameter types may be annotated with $(D const),
+        $(D immutable). They may also be replaced by $(D enum)'s with matching base types.)
+
         $(P The main function must have D linkage.)
 
         $(P Attributes may be added as needed, e.g. `@safe`, `@nogc`, `nothrow`, etc.)
 
-    $(H3 $(LNAME2 betterc-main, BetterC $(D main()) Function))
+    $(H3 $(LNAME2 betterc-main, $(D extern(C) main()) Function))
 
-        $(P For $(B BetterC) programs, the main function is declared using
-        one of the following forms:)
+        $(P Programs may define an $(D extern(C) main) function as an alternative to the
+        standard $(RELATIVE_LINK2 main, entry point). This form is required for
+        $(DDLINK spec/betterc, Better C, $(B BetterC)) programs.)
 
-        $(UL
-        $(LI `extern (C) int main() { ... }`)
-        $(LI `extern (C) int main(int argc, char** argv) { ... }`)
+        $(P A C $(D main) function must be declared as follows:)
+
+        $(GRAMMAR
+        $(GNAME CMainFunction):
+            $(D extern (C)) $(GLINK MainReturnDecl) $(D main$(LPAREN)$(GLINK CmainParameters)$(OPT)$(RPAREN)) $(GLINK2 statement, BlockStatement)
+
+        $(GNAME CmainParameters):
+            $(D int) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier)
+            $(D int) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier)
         )
 
-        $(P This takes the place of the C main function and serves the identical purpose.)
+        $(P When defined, the first two parameters denote a C-style array (length + pointer)
+        that holds the arguments passed to the program by the OS. The third parameter is a POSIX
+        extension called $(D environ) and holds information about the current environment variables.)
 
-        $(P Module constructors, module destructors, and unittests are not run.)
+        $(NOTE The exemption for storage classes / $(D enum)'s defined for a D $(D main) function
+        also applies to C $(D main) functions.)
+
+        $(P This function takes the place of the C main function and is executed immediately without
+        any setup or teardown associated with a D $(D main) function. Programs reliant on module
+        constructors, module destructors, or unittests need to manually perform (de)initialization
+        using the appropriate $(DDSUBLINK phobos/core_runtime, Runtime, runtime functions).)
 
         $(IMPLEMENTATION_DEFINED Other system-specific entry points may exist, such as
         `WinMain` and `DllMain` on Windows systems.
+        )
+
+        $(NOTE Programs targeting platforms which require a different signature for $(D main) can use
+        a function with $(DDSUBLINK spec/pragma, mangle, explicit mangling):
+
+        ---
+        pragma(mangle, "main")
+        int myMain(int a, int b, int c)
+        {
+            return 0;
+        }
+        ---
+
         )
 
 
