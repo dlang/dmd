@@ -8472,6 +8472,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // OR it in, because it might already be set for C array indexing
                     exp.indexIsInBounds |= bounds.contains(getIntRange(exp.e2));
                 }
+                else if (sc.flags & SCOPE.Cfile && t1b.ty == Tsarray)
+                {
+                    if (auto ve = exp.e1.isVarExp())
+                    {
+                        /* Rewrite 0-length C array ve[exp.e2] as *(ve + exp.e2)
+                         */
+                        auto vp = ve.castTo(sc, t1b.isTypeSArray().next.pointerTo());
+                        auto e = new AddExp(exp.loc, vp, exp.e2);
+                        auto pe = new PtrExp(exp.loc, e);
+                        result = pe.expressionSemantic(sc).optimize(WANTvalue);
+                        return;
+                    }
+                }
             }
         }
 
