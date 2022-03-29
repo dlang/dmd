@@ -644,13 +644,13 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 switch (e.op)
                 {
                 case EXP.overloadSet:
-                    s = (cast(OverExp)e).vars;
+                    s = e.isOverExp().vars;
                     break;
                 case EXP.scope_:
-                    s = (cast(ScopeExp)e).sds;
+                    s = e.isScopeExp().sds;
                     break;
                 case EXP.variable:
-                    s = (cast(VarExp)e).var;
+                    s = e.isVarExp().var;
                     break;
                 default:
                     break;
@@ -937,13 +937,13 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
                 if (stc & STC.safe)
                     stc = (stc & ~STC.safe) | STC.trusted;
 
-                ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                SliceExp se = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
                                            new IntegerExp(loc, n, Type.tsize_t));
                 // Prevent redundant bounds check
-                (cast(SliceExp)ex).upperIsInBounds = true;
-                (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+                se.upperIsInBounds = true;
+                se.lowerIsLessThanUpper = true;
 
-                ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), ex);
+                ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), se);
             }
             e = Expression.combine(ex, e); // combine in reverse order
         }
