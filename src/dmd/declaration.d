@@ -1063,22 +1063,24 @@ extern (C++) class VarDeclaration : Declaration
     // `bool` fields that are compacted into bit fields in a string mixin
     private extern (D) static struct BitFields
     {
-        bool isargptr;                  // if parameter that _argptr points to
-        bool ctorinit;                  // it has been initialized in a ctor
-        bool iscatchvar;                // this is the exception object variable in catch() clause
-        bool isowner;                   // this is an Owner, despite it being `scope`
-        bool setInCtorOnly;             // field can only be set in a constructor, as it is const or immutable
+        bool isargptr;          /// if parameter that _argptr points to
+        bool ctorinit;          /// it has been initialized in a ctor
+        bool iscatchvar;        /// this is the exception object variable in catch() clause
+        bool isowner;           /// this is an Owner, despite it being `scope`
+        bool setInCtorOnly;     /// field can only be set in a constructor, as it is const or immutable
 
-        // Both these mean the var is not rebindable once assigned,
-        // and the destructor gets run when it goes out of scope
-        bool onstack;                   // it is a class that was allocated on the stack
+        /// It is a class that was allocated on the stack
+        ///
+        /// This means the var is not rebindable once assigned,
+        /// and the destructor gets run when it goes out of scope
+        bool onstack;
 
-        bool overlapped;                // if it is a field and has overlapping
-        bool overlapUnsafe;             // if it is an overlapping field and the overlaps are unsafe
-        bool doNotInferScope;           // do not infer 'scope' for this variable
-        bool doNotInferReturn;          // do not infer 'return' for this variable
+        bool overlapped;        /// if it is a field and has overlapping
+        bool overlapUnsafe;     /// if it is an overlapping field and the overlaps are unsafe
+        bool doNotInferScope;   /// do not infer 'scope' for this variable
+        bool doNotInferReturn;  /// do not infer 'return' for this variable
 
-        bool isArgDtorVar;              // temporary created to handle scope destruction of a function argument
+        bool isArgDtorVar;      /// temporary created to handle scope destruction of a function argument
     }
 
     private ushort bitFields;       // stores multiple booleans for BitFields
