@@ -1399,7 +1399,7 @@ bool ctfeIdentity(const ref Loc loc, EXP op, Expression e1, Expression e2)
         cmp = (es1.var == es2.var && es1.offset == es2.offset);
     }
     else if (e1.type.isreal())
-        cmp = RealIdentical(e1.toReal(), e2.toReal());
+        cmp = CTFloat.isIdentical(e1.toReal(), e2.toReal());
     else if (e1.type.isimaginary())
         cmp = RealIdentical(e1.toImaginary(), e2.toImaginary());
     else if (e1.type.iscomplex())
@@ -1407,6 +1407,34 @@ bool ctfeIdentity(const ref Loc loc, EXP op, Expression e1, Expression e2)
         complex_t v1 = e1.toComplex();
         complex_t v2 = e2.toComplex();
         cmp = RealIdentical(creall(v1), creall(v2)) && RealIdentical(cimagl(v1), cimagl(v1));
+    }
+    else if (e1.op == EXP.structLiteral || e2.op == EXP.structLiteral)
+    {
+        StructLiteralExp es1 = e1.isStructLiteralExp();
+        StructLiteralExp es2 = e2.isStructLiteralExp();
+
+        const length1 = es1.elements ? es1.elements.dim : 0;
+        const length2 = es2.elements ? es2.elements.dim : 0;
+
+        if (es1.sd != es2.sd || length1 != length2)
+            cmp = 0;
+        else
+        {
+            cmp = 1;
+            foreach (i; 0 .. length1)
+            {
+                Expression ee1 = (*es1.elements)[i];
+                Expression ee2 = (*es2.elements)[i];
+
+                if (ee1 == ee2)
+                    continue;
+                if (!ctfeIdentity(loc, EXP.identity, ee1, ee2))
+                {
+                    cmp = 0;
+                    break;
+                }
+            }
+        }
     }
     else
     {
