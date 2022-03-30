@@ -4198,30 +4198,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tthis = null;
         Expression e1org = exp.e1;
 
-        if (exp.e1.op == EXP.comma)
+        if (auto ce = exp.e1.isCommaExp())
         {
             /* Rewrite (a,b)(args) as (a,(b(args)))
              */
-            auto ce = cast(CommaExp)exp.e1;
             exp.e1 = ce.e2;
             ce.e2 = exp;
             result = ce.expressionSemantic(sc);
             return;
         }
-        if (exp.e1.op == EXP.delegate_)
+        if (DelegateExp de = exp.e1.isDelegateExp())
         {
-            DelegateExp de = cast(DelegateExp)exp.e1;
             exp.e1 = new DotVarExp(de.loc, de.e1, de.func, de.hasOverloads);
             visit(exp);
             return;
         }
-        if (exp.e1.op == EXP.function_)
+        if (FuncExp fe = exp.e1.isFuncExp())
         {
             if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments))
                 return setError();
 
             // Run e1 semantic even if arguments have any errors
-            FuncExp fe = cast(FuncExp)exp.e1;
             exp.e1 = callExpSemantic(fe, sc, exp.arguments);
             if (exp.e1.op == EXP.error)
             {
@@ -4249,9 +4246,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
          */
-        if (exp.e1.op == EXP.scope_)
+        if (ScopeExp se = exp.e1.isScopeExp())
         {
-            ScopeExp se = cast(ScopeExp)exp.e1;
             TemplateInstance ti = se.sds.isTemplateInstance();
             if (ti)
             {
@@ -4297,9 +4293,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          *  expr.foo!(tiargs)(funcargs)
          */
     Ldotti:
-        if (exp.e1.op == EXP.dotTemplateInstance)
+        if (DotTemplateInstanceExp se = exp.e1.isDotTemplateInstanceExp())
         {
-            DotTemplateInstanceExp se = cast(DotTemplateInstanceExp)exp.e1;
             TemplateInstance ti = se.ti;
             {
                 /* Attempt to instantiate ti. If that works, go with it.
@@ -4344,9 +4339,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            if (exp.e1.op == EXP.dotIdentifier)
+            if (DotIdExp die = exp.e1.isDotIdExp())
             {
-                DotIdExp die = cast(DotIdExp)exp.e1;
                 exp.e1 = die.expressionSemantic(sc);
                 /* Look for e1 having been rewritten to expr.opDispatch!(string)
                  * We handle such earlier, so go back.
@@ -4377,9 +4371,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             /* Look for e1 being a lazy parameter
              */
-            if (exp.e1.op == EXP.variable)
+            if (VarExp ve = exp.e1.isVarExp())
             {
-                VarExp ve = cast(VarExp)exp.e1;
                 if (ve.var.storage_class & STC.lazy_)
                 {
                     // lazy parameters can be called without violating purity and safety
@@ -4401,10 +4394,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e1 = new VarExp(se.loc, se.var, true);
                 exp.e1 = exp.e1.expressionSemantic(sc);
             }
-            else if (exp.e1.op == EXP.dot)
+            else if (DotExp de = exp.e1.isDotExp())
             {
-                DotExp de = cast(DotExp)exp.e1;
-
                 if (de.e2.op == EXP.overloadSet)
                 {
                     ethis = de.e1;
@@ -4850,10 +4841,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
         }
-        else if (exp.e1.op == EXP.overloadSet)
+        else if (auto oe = exp.e1.isOverExp())
         {
-            auto os = (cast(OverExp)exp.e1).vars;
-            exp.f = resolveOverloadSet(exp.loc, sc, os, tiargs, tthis, exp.arguments);
+            exp.f = resolveOverloadSet(exp.loc, sc, oe.vars, tiargs, tthis, exp.arguments);
             if (!exp.f)
                 return setError();
             if (ethis)
@@ -4877,11 +4867,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             const(char)* p;
             Dsymbol s;
             exp.f = null;
-            if (exp.e1.op == EXP.function_)
+            if (auto fe = exp.e1.isFuncExp())
             {
                 // function literal that direct called is always inferred.
-                assert((cast(FuncExp)exp.e1).fd);
-                exp.f = (cast(FuncExp)exp.e1).fd;
+                assert(fe.fd);
+                exp.f = fe.fd;
                 tf = cast(TypeFunction)exp.f.type;
                 p = "function literal";
             }
@@ -5011,11 +5001,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             t1 = tf;
         }
-        else if (exp.e1.op == EXP.variable)
+        else if (VarExp ve = exp.e1.isVarExp())
         {
             // Do overload resolution
-            VarExp ve = cast(VarExp)exp.e1;
-
             exp.f = ve.var.isFuncDeclaration();
             assert(exp.f);
             tiargs = null;
@@ -6199,10 +6187,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             const op = exp.e1.op;
             bool isEqualsCallExpression;
-            if (op == EXP.call)
+            if (const callExp = exp.e1.isCallExp())
             {
-                const callExp = cast(CallExp) exp.e1;
-
                 // https://issues.dlang.org/show_bug.cgi?id=20331
                 // callExp.f may be null if the assert contains a call to
                 // a function pointer or literal
@@ -7846,9 +7832,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
                 if (VarDeclaration v = expToVariable(exp.e1))
                 {
-                    if (exp.e1.op == EXP.dotVariable)
+                    if (DotVarExp dve = exp.e1.isDotVarExp())
                     {
-                        DotVarExp dve = cast(DotVarExp)exp.e1;
+
                         if ((dve.e1.op == EXP.this_ || dve.e1.op == EXP.super_) &&
                             !(v.storage_class & STC.ref_))
                         {
@@ -8139,10 +8125,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e2;
             return;
         }
-        if (exp.e2.op == EXP.template_)
+        if (auto te = exp.e2.isTemplateExp())
         {
-            auto td = (cast(TemplateExp)exp.e2).td;
-            Expression e = new DotTemplateExp(exp.loc, exp.e1, td);
+            Expression e = new DotTemplateExp(exp.loc, exp.e1, te.td);
             result = e.expressionSemantic(sc);
             return;
         }
@@ -10040,9 +10025,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.e1.op == EXP.slice)
+        if (SliceExp se = exp.e1.isSliceExp())
         {
-            SliceExp se = cast(SliceExp)exp.e1;
             if (se.e1.type.toBasetype().ty == Tsarray)
             {
                 exp.error("cannot append to static array `%s`", se.e1.type.toChars());
@@ -11844,8 +11828,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.econd.op == EXP.dotIdentifier)
-            (cast(DotIdExp)exp.econd).noderef = true;
+        if (auto die = exp.econd.isDotIdExp())
+            die.noderef = true;
 
         Expression ec = exp.econd.expressionSemantic(sc);
         ec = resolveProperties(sc, ec);
@@ -12673,9 +12657,8 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
 
     if (e.op == EXP.error)
         return e;
-    if (e.op == EXP.dotVariable)
+    if (DotVarExp dve = e.isDotVarExp())
     {
-        DotVarExp dve = cast(DotVarExp)e;
         if (FuncDeclaration fd = dve.var.isFuncDeclaration())
         {
             if (TemplateDeclaration td = fd.findTemplateDeclRoot())
@@ -12726,9 +12709,8 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
         }
     }
 
-    if (e.op == EXP.dotTemplateDeclaration)
+    if (DotTemplateExp dte = e.isDotTemplateExp())
     {
-        DotTemplateExp dte = cast(DotTemplateExp)e;
         exp.e1 = dte.e1; // pull semantic() result
 
         exp.ti.tempdecl = dte.td;
@@ -12757,10 +12739,8 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
         return new ScopeExp(exp.loc, exp.ti)
                .expressionSemantic(sc);
     }
-    else if (e.op == EXP.dot)
+    else if (DotExp de = e.isDotExp())
     {
-        DotExp de = cast(DotExp)e;
-
         if (de.e2.op == EXP.overloadSet)
         {
             if (!exp.findTempDecl(sc) || !exp.ti.semanticTiargs(sc))
@@ -12784,9 +12764,8 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
                    .expressionSemantic(sc);
         }
     }
-    else if (e.op == EXP.overloadSet)
+    else if (OverExp oe = e.isOverExp())
     {
-        OverExp oe = cast(OverExp)e;
         exp.ti.tempdecl = oe.vars;
         return new ScopeExp(exp.loc, exp.ti)
                .expressionSemantic(sc);
