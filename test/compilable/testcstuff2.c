@@ -675,3 +675,12 @@ void test22841()
     int v22841;
     { unsigned v22841; }
 }
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22961
+int main(argc, argv)
+        int argc;
+        char **argv;
+{
+        return 0;
+}

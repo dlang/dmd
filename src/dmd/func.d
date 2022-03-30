@@ -2749,8 +2749,10 @@ extern (C++) class FuncDeclaration : Declaration
             else
                 argerr = nparams != 0;
 
-            if (tf.parameterList.varargs)
-                argerr |= nparams != 0; // Allow implicitly variadic main() in C files
+            // Disallow variadic main() - except for K&R declarations in C files.
+            // E.g. int main(), int main(argc, argv) int argc, char** argc { ... }
+            if (tf.parameterList.varargs && (!this.isCsymbol() || (!tf.parameterList.hasIdentifierList && nparams)))
+                argerr |= true;
 
             if (argerr)
             {
