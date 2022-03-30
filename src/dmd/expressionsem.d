@@ -8182,11 +8182,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.e2 = e.e2.arrayFuncConv(sc);
 
         e.type = e.e2.type;
+        result = e;
+
+        if (sc.flags & SCOPE.Cfile)
+            return;
+
         if (e.type is Type.tvoid)
             discardValue(e.e1);
-        else if (!e.allowCommaExp && !e.isGenerated && !(sc.flags & SCOPE.Cfile))
+        else if (!e.allowCommaExp && !e.isGenerated)
             e.error("Using the result of a comma expression is not allowed");
-        result = e;
     }
 
     override void visit(IntervalExp e)

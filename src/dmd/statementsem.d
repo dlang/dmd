@@ -211,7 +211,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
             if (f.checkForwardRef(s.exp.loc))
                 s.exp = ErrorExp.get();
         }
-        if (discardValue(s.exp))
+
+        if (!(sc.flags & SCOPE.Cfile) && discardValue(s.exp))
             s.exp = ErrorExp.get();
 
         s.exp = s.exp.optimize(WANTvalue);
