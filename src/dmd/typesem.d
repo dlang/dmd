@@ -3083,7 +3083,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         //static int nest; if (++nest == 50) *(char*)0=0;
         if (sc is null)
         {
-            error(loc, "Invalid scope.");
+            error(loc, "invalid scope");
             return returnError();
         }
         if (mt.inuse)

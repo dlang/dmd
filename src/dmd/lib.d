@@ -99,7 +99,7 @@ class Library
 
         if (!libbuf.moveToFile(loc.filename))
         {
-            .error(loc, "Error writing file '%s'", loc.filename);
+            .error(loc, "error writing file '%s'", loc.filename);
             fatal();
         }
     }

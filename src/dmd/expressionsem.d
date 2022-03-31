@@ -7312,7 +7312,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // 3. Removal of keyword, "delete" can be used for other identities
         if (!exp.isRAII)
         {
-            error(exp.loc, "The `delete` keyword is obsolete.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.");
+            error(exp.loc, "the `delete` keyword is obsolete");
+            errorSupplemental(exp.loc, "use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead");
             return setError();
         }
 
