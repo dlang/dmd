@@ -818,7 +818,7 @@ extern (C++) class Dsymbol : ASTNode
              */
             if (auto i1 = isImport())
             {
-                if(auto i2 = s2.isImport())
+                if (auto i2 = s2.isImport())
                 {
                     if (sc.explicitVisibility && sc.visibility >  i2.visibility)
                     sds.symtab.update(this);
