@@ -669,7 +669,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     {
         // can be empty as in -conf=
         if (global.inifilename.length && !FileName.exists(global.inifilename))
-            error(Loc.initial, "Config file '%.*s' does not exist.",
+            error(Loc.initial, "config file '%.*s' does not exist.",
                   cast(int)global.inifilename.length, global.inifilename.ptr);
     }
     else

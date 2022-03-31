@@ -487,7 +487,7 @@ Symbol *toImport(Symbol *sym, Loc loc)
     int idlen;
     if (target.os & Target.OS.Posix)
     {
-        error(loc, "Could not generate import symbol for this platform");
+        error(loc, "could not generate import symbol for this platform");
         fatal();
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))

@@ -344,7 +344,7 @@ void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
                     if (!writeToEnv(environment, pns))
                     {
                         const loc = Loc(filename.xarraydup.ptr, lineNum, 0); // TODO: use r-value when `error` supports it
-                        error(loc, "Use `NAME=value` syntax, not `%s`", pn);
+                        error(loc, "use `NAME=value` syntax, not `%s`", pn);
                         fatal();
                     }
                     static if (LOG)

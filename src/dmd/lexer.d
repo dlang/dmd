@@ -2987,7 +2987,7 @@ private struct TimeStampInfo
         if (auto p = getenv("SOURCE_DATE_EPOCH"))
         {
             if (!ct.parseDigits(p.toDString()))
-                error(loc, "Value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
+                error(loc, "value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
         }
         else
             .time(&ct);
