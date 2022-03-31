@@ -238,6 +238,15 @@ Symbol *toSymbol(Dsymbol s)
                 }
                 s.Sclass = SCextern;
                 s.Sfl = FLextern;
+
+                /* Make C static variables SCstatic
+                 */
+                if (vd.storage_class & STC.static_ && vd.isCsymbol())
+                {
+                    s.Sclass = SCstatic;
+                    s.Sfl = FLdata;
+                }
+
                 /* if it's global or static, then it needs to have a qualified but unmangled name.
                  * This gives some explanation of the separation in treating name mangling.
                  * It applies to PDB format, but should apply to CV as PDB derives from CV.
