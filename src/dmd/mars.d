@@ -334,6 +334,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.path = buildPath(params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
+    {
+        import dmd.preprocessorinterface : preprocessorStore, registerDmdPreprocessors;
+        registerDmdPreprocessors(preprocessorStore);
+    }
     // Create Modules
     Modules modules = createModules(files, libmodules, target);
     // Read files

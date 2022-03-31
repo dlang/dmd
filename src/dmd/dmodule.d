@@ -347,7 +347,7 @@ extern (C++) final class Module : Package
 
     const(char)[] arg;           // original argument name
     ModuleDeclaration* md;      // if !=null, the contents of the ModuleDeclaration declaration
-    const FileName srcfile;     // input source file
+    FileName srcfile;     // input source file
     const FileName objfile;     // output .obj file
     const FileName hdrfile;     // 'header' file
     FileName docfile;           // output documentation file
@@ -458,7 +458,8 @@ extern (C++) final class Module : Package
                  !FileName.equalsExt(srcfilename, hdr_ext) &&
                  !FileName.equalsExt(srcfilename, c_ext) &&
                  !FileName.equalsExt(srcfilename, i_ext) &&
-                 !FileName.equalsExt(srcfilename, dd_ext))
+                 !FileName.equalsExt(srcfilename, dd_ext) &&
+                 !FileName.equalsExt(srcfilename, h_ext))
         {
 
             error("source file name '%.*s' must have .%.*s extension",
@@ -506,7 +507,7 @@ extern (C++) final class Module : Package
         // Look for the source file
         if (const result = FileManager.lookForSourceFile(filename, global.path ? (*global.path)[] : null))
             filename = result; // leaks
-
+        //printf("Loaded %s\n", filename.ptr);
         auto m = new Module(loc, filename, ident, 0, 0);
 
         if (!m.read(loc))
@@ -660,7 +661,36 @@ extern (C++) final class Module : Package
     {
         if (this.src)
             return true; // already read
+        //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
 
+        //Preprocess C files
+        if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, h_ext))
+        {
+            //
+            import dmd.preprocessorinterface;
+            this.filetype = FileType.c;
+            //collect supplemental errors
+            string[] tmp;
+            auto pp = preprocessorStore.lookForCompatiblePreprocessor(target, tmp);
+            const path = FileManager.lookForSourceFile(arg, global.path ? (*global.path)[] : null);
+            assert(path); //Should've been checked already
+            if (pp) {
+                auto preRes = pp.preprocess(path);
+                if (preRes.isEmpty())
+                {
+                    error(loc, "Preprocessing of %.*s failed", cast(int) path.length, path.ptr);
+                }
+                //This actually changes the srcfile of the module, that might not be ideal.
+                srcfile = FileName(preRes.get.resultPath);
+            } else {
+                this.error("could not be preprocessed because no suitable preprocessor is available");
+                foreach(str; tmp)
+                {
+                    errorSupplemental(this.loc, "%.*s", cast(int) str.length, str.ptr);
+                }
+                return false;
+            }
+        }
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
         if (auto result = global.fileManager.lookup(srcfile))
         {
@@ -953,7 +983,7 @@ extern (C++) final class Module : Package
         /* If it has the extension ".c", it is a "C" file.
          * If it has the extension ".i", it is a preprocessed "C" file.
          */
-        if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext))
+        if (FileName.equalsExt(arg, c_ext) || FileName.equalsExt(arg, i_ext) || FileName.equalsExt(arg, h_ext))
         {
             filetype = FileType.c;
 

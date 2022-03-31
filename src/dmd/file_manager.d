@@ -70,6 +70,11 @@ nothrow:
             return sc;
         scope(exit) FileName.free(sc.ptr);
 
+        const speculativeHeader = FileName.forceExt(filename, h_ext);
+        if (FileName.exists(speculativeHeader) == 1)
+            return speculativeHeader;
+        scope(exit) FileName.free(speculativeHeader.ptr);
+
         if (FileName.exists(filename) == 2)
         {
             /* The filename exists and it's a directory.

@@ -6086,7 +6086,7 @@ public:
     static AggregateDeclaration* moduleinfo;
     _d_dynamicArray< const char > arg;
     ModuleDeclaration* md;
-    const FileName srcfile;
+    FileName srcfile;
     const FileName objfile;
     const FileName hdrfile;
     FileName docfile;
