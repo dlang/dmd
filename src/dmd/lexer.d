@@ -68,7 +68,7 @@ class Lexer
     ubyte long_doublesize;      /// size of C long double, 8 or D real.sizeof
     ubyte wchar_tsize;          /// size of C wchar_t, 2 or 4
 
-    private
+    protected
     {
         const(char)* base;      // pointer to start of buffer
         const(char)* end;       // pointer to last element of buffer
@@ -77,12 +77,7 @@ class Lexer
         bool doDocComment;      // collect doc comment information
         bool anyToken;          // seen at least one token
         bool commentToken;      // comments are TOK.comment's
-        bool tokenizeNewlines;  // newlines are turned into TOK.endOfLine's
-
-        version (DMDLIB)
-        {
-            bool whitespaceToken;   // tokenize whitespaces
-        }
+        bool newLineSpecial;  // newlines are turned into TOK.endOfLine's
 
         int inTokenStringConstant; // can be larger than 1 when in nested q{} strings
         int lastDocLine;        // last line of previous doc comment
@@ -117,7 +112,7 @@ class Lexer
         line = p;
         this.doDocComment = doDocComment;
         this.commentToken = commentToken;
-        this.tokenizeNewlines = false;
+        this.newLineSpecial = false;
         this.inTokenStringConstant = 0;
         this.lastDocLine = 0;
         //initKeywords();
@@ -148,13 +143,6 @@ class Lexer
 
     version (DMDLIB)
     {
-        this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset,
-            bool doDocComment, bool commentToken, bool whitespaceToken)
-        {
-            this(filename, base, begoffset, endoffset, doDocComment, commentToken);
-            this.whitespaceToken = whitespaceToken;
-        }
-
         bool empty() const pure @property @nogc @safe
         {
             return front() == TOK.endOfFile;
@@ -185,7 +173,7 @@ class Lexer
     }
 
     /// Frees the given token by returning it to the freelist.
-    private void releaseToken(Token* token) pure nothrow @nogc @safe
+    protected void releaseToken(Token* token) pure nothrow @nogc @safe
     {
         if (mem.isGCEnabled)
             *token = Token.init;
@@ -193,7 +181,7 @@ class Lexer
         tokenFreelist = token;
     }
 
-    final TOK nextToken()
+    TOK nextToken()
     {
         prevloc = token.loc;
         if (token.next)
@@ -213,7 +201,7 @@ class Lexer
     /***********************
      * Look ahead at next token's value.
      */
-    final TOK peekNext()
+    TOK peekNext()
     {
         return peek(&token).value;
     }
@@ -221,7 +209,7 @@ class Lexer
     /***********************
      * Look 2 tokens ahead at value.
      */
-    final TOK peekNext2()
+    TOK peekNext2()
     {
         Token* t = peek(&token);
         return peek(t).value;
@@ -232,7 +220,7 @@ class Lexer
      * Params:
      *  t = the token to set the resulting Token to
      */
-    final void scan(Token* t)
+    void scan(Token* t)
     {
         const lastLine = scanloc.linnum;
         Loc startLoc;
@@ -265,45 +253,21 @@ class Lexer
                 while (*p == ' ')
                     p++;
             LendSkipFourSpaces:
-                version (DMDLIB)
-                {
-                    if (whitespaceToken)
-                    {
-                        t.value = TOK.whitespace;
-                        return;
-                    }
-                }
                 continue; // skip white space
             case '\t':
             case '\v':
             case '\f':
                 p++;
-                version (DMDLIB)
-                {
-                    if (whitespaceToken)
-                    {
-                        t.value = TOK.whitespace;
-                        return;
-                    }
-                }
                 continue; // skip white space
             case '\r':
                 p++;
                 if (*p != '\n') // if CR stands by itself
                 {
                     endOfLine();
-                    if (tokenizeNewlines)
+                    if (newLineSpecial)
                     {
                         t.value = TOK.endOfLine;
-                        tokenizeNewlines = false;
-                        return;
-                    }
-                }
-                version (DMDLIB)
-                {
-                    if (whitespaceToken)
-                    {
-                        t.value = TOK.whitespace;
+                        newLineSpecial = false;
                         return;
                     }
                 }
@@ -311,19 +275,11 @@ class Lexer
             case '\n':
                 p++;
                 endOfLine();
-                if (tokenizeNewlines)
+                if (newLineSpecial)
                 {
                     t.value = TOK.endOfLine;
-                    tokenizeNewlines = false;
+                    newLineSpecial = false;
                     return;
-                }
-                version (DMDLIB)
-                {
-                    if (whitespaceToken)
-                    {
-                        t.value = TOK.whitespace;
-                        return;
-                    }
                 }
                 continue; // skip white space
             case '0':
@@ -668,12 +624,8 @@ class Lexer
                     }
                     if (commentToken)
                     {
-                        version (DMDLIB) {}
-                        else
-                        {
-                            p++;
-                            endOfLine();
-                        }
+                        p++;
+                        endOfLine();
                         t.loc = startLoc;
                         t.value = TOK.comment;
                         return;
@@ -1066,7 +1018,7 @@ class Lexer
                     // https://issues.dlang.org/show_bug.cgi?id=22825
                     // Special token sequences are terminated by newlines,
                     // and should not be skipped over.
-                    this.tokenizeNewlines = true;
+                    this.newLineSpecial = true;
                     p++;
                     if (parseSpecialTokenSequence())
                         continue;
@@ -1086,10 +1038,10 @@ class Lexer
                         {
                             endOfLine();
                             p++;
-                            if (tokenizeNewlines)
+                            if (newLineSpecial)
                             {
                                 t.value = TOK.endOfLine;
-                                tokenizeNewlines = false;
+                                newLineSpecial = false;
                                 return;
                             }
                             continue;
@@ -1106,7 +1058,7 @@ class Lexer
         }
     }
 
-    final Token* peek(Token* ct)
+    Token* peek(Token* ct)
     {
         Token* t;
         if (ct.next)
@@ -1124,7 +1076,7 @@ class Lexer
      * tk is on the opening (.
      * Look ahead and return token that is past the closing ).
      */
-    final Token* peekPastParen(Token* tk)
+    Token* peekPastParen(Token* tk)
     {
         //printf("peekPastParen()\n");
         int parens = 1;
@@ -1167,7 +1119,7 @@ class Lexer
     /*******************************************
      * Parse escape sequence.
      */
-    private uint escapeSequence()
+    protected uint escapeSequence()
     {
         return Lexer.escapeSequence(token.loc, p, Ccompile);
     }
@@ -1184,7 +1136,7 @@ class Lexer
      * Returns:
      *  the escape sequence as a single character
      */
-    private static dchar escapeSequence(const ref Loc loc, ref const(char)* sequence, bool Ccompile)
+    protected static dchar escapeSequence(const ref Loc loc, ref const(char)* sequence, bool Ccompile)
     {
         const(char)* p = sequence; // cache sequence reference on stack
         scope(exit) sequence = p;
@@ -1332,7 +1284,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    private void wysiwygStringConstant(Token* result)
+    protected void wysiwygStringConstant(Token* result)
     {
         result.value = TOK.string_;
         Loc start = loc();
@@ -1398,7 +1350,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    private void delimitedStringConstant(Token* result)
+    protected void delimitedStringConstant(Token* result)
     {
         result.value = TOK.string_;
         Loc start = loc();
@@ -1559,7 +1511,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    private void tokenStringConstant(Token* result)
+    protected void tokenStringConstant(Token* result)
     {
         result.value = TOK.string_;
 
@@ -1606,7 +1558,7 @@ class Lexer
     *   D https://dlang.org/spec/lex.html#double_quoted_strings
     *   ImportC C11 6.4.5
     */
-    private void escapeStringConstant(Token* t)
+    protected void escapeStringConstant(Token* t)
     {
         t.value = TOK.string_;
 
@@ -1691,7 +1643,7 @@ class Lexer
      * Reference:
      *    https://dlang.org/spec/lex.html#characterliteral
      */
-    private TOK charConstant(Token* t)
+    protected TOK charConstant(Token* t)
     {
         TOK tk = TOK.charLiteral;
         //printf("Lexer::charConstant\n");
@@ -1788,7 +1740,7 @@ class Lexer
      * Reference:
      *  C11 6.4.4.4
      */
-    private void clexerCharConstant(ref Token t, char prefix)
+    protected void clexerCharConstant(ref Token t, char prefix)
     {
         escapeStringConstant(&t);
         const(char)[] str = t.ustring[0 .. t.len];
@@ -1862,7 +1814,7 @@ class Lexer
     /***************************************
      * Get postfix of string literal.
      */
-    private void stringPostfix(Token* t) pure @nogc
+    protected void stringPostfix(Token* t) pure @nogc
     {
         switch (*p)
         {
@@ -1888,7 +1840,7 @@ class Lexer
      *      TKnum
      *      TKdouble,...
      */
-    private TOK number(Token* t)
+    protected TOK number(Token* t)
     {
         int base = 10;
         const start = p;
@@ -2203,7 +2155,7 @@ class Lexer
      * Returns:
      *  token value
      */
-    private TOK cnumber(int base, uinteger_t n)
+    protected TOK cnumber(int base, uinteger_t n)
     {
         /* C11 6.4.4.1
          * Parse trailing suffixes:
@@ -2388,7 +2340,7 @@ class Lexer
      *      Exponent overflow not detected.
      *      Too much requested precision is not detected.
      */
-    private TOK inreal(Token* t)
+    protected TOK inreal(Token* t)
     {
         //printf("Lexer::inreal()\n");
         debug
@@ -2750,7 +2702,7 @@ class Lexer
             break;
         }
         endOfLine();
-        tokenizeNewlines = false;
+        newLineSpecial = false;
     }
 
     /********************************************
@@ -2758,7 +2710,7 @@ class Lexer
      * Issue error messages for invalid sequences.
      * Return decoded character, advance p to last character in UTF sequence.
      */
-    private uint decodeUTF()
+    protected uint decodeUTF()
     {
         const s = p;
         assert(*s & 0x80);
@@ -2789,7 +2741,7 @@ class Lexer
      * If newParagraph is true, an extra newline will be
      * added between adjoining doc comments.
      */
-    private void getDocComment(Token* t, uint lineComment, bool newParagraph) pure
+    protected void getDocComment(Token* t, uint lineComment, bool newParagraph) pure
     {
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */
@@ -2951,7 +2903,7 @@ class Lexer
     /**************************
      * `p` should be at start of next line
      */
-    private void endOfLine() pure @nogc @safe
+    protected void endOfLine() pure @nogc @safe
     {
         scanloc.linnum++;
         line = p;
@@ -2961,10 +2913,10 @@ class Lexer
 
 /******************************* Private *****************************************/
 
-private:
+public /*package (dmd)*/:
 
 /// Support for `__DATE__`, `__TIME__`, and `__TIMESTAMP__`
-private struct TimeStampInfo
+public /*package (dmd)*/ struct TimeStampInfo
 {
     private __gshared bool initdone = false;
 
@@ -2999,13 +2951,13 @@ private struct TimeStampInfo
     }
 }
 
-private enum LS = 0x2028;       // UTF line separator
-private enum PS = 0x2029;       // UTF paragraph separator
+public /*package (dmd)*/ enum LS = 0x2028;       // UTF line separator
+public /*package (dmd)*/ enum PS = 0x2029;       // UTF paragraph separator
 
 /********************************************
  * Do our own char maps
  */
-private static immutable cmtable = ()
+public /*package (dmd)*/ static immutable cmtable = ()
 {
     ubyte[256] table;
     foreach (const c; 0 .. table.length)
@@ -3058,7 +3010,7 @@ private static immutable cmtable = ()
     return table;
 }();
 
-private
+public /*package (dmd)*/
 {
     enum CMoctal  = 0x1;
     enum CMhex    = 0x2;
@@ -3068,44 +3020,44 @@ private
     enum CMsinglechar = 0x20;
 }
 
-private bool isoctal(const char c) pure @nogc @safe
+public /*package (dmd)*/ bool isoctal(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-private bool ishex(const char c) pure @nogc @safe
+public /*package (dmd)*/ bool ishex(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-private bool isidchar(const char c) pure @nogc @safe
+public /*package (dmd)*/ bool isidchar(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-private bool isZeroSecond(const char c) pure @nogc @safe
+public /*package (dmd)*/ bool isZeroSecond(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMzerosecond) != 0;
 }
 
-private bool isDigitSecond(const char c) pure @nogc @safe
+public /*package (dmd)*/ bool isDigitSecond(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMdigitsecond) != 0;
 }
 
-private bool issinglechar(const char c) pure @nogc @safe
+public /*package (dmd)*/ bool issinglechar(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-private bool c_isxdigit(const int c) pure @nogc @safe
+public /*package (dmd)*/ bool c_isxdigit(const int c) pure @nogc @safe
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'f') ||
             ( c >= 'A' && c <= 'F'));
 }
 
-private bool c_isalnum(const int c) pure @nogc @safe
+public /*package (dmd)*/ bool c_isalnum(const int c) pure @nogc @safe
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'z') ||
