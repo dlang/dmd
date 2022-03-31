@@ -1162,23 +1162,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         dsym.edtor = dsym.callScopeDtor(sc);
         if (dsym.edtor)
         {
-            /* If dsym is a local variable, who's type is a struct with a scope destructor,
-             * then make dsym scope, too.
-             */
-            if (global.params.useDIP1000 == FeatureState.enabled &&
-                !(dsym.storage_class & (STC.parameter | STC.temp | STC.field | STC.in_ | STC.foreach_ | STC.result | STC.manifest)) &&
-                !dsym.isDataseg() &&
-                !dsym.doNotInferScope &&
-                dsym.type.hasPointers())
-            {
-                auto tv = dsym.type.baseElemOf();
-                if (tv.ty == Tstruct &&
-                    tv.isTypeStruct().sym.dtor.storage_class & STC.scope_)
-                {
-                    dsym.storage_class |= STC.scope_;
-                }
-            }
-
             if (sc.func && dsym.storage_class & (STC.static_ | STC.gshared))
                 dsym.edtor = dsym.edtor.expressionSemantic(sc._module._scope);
             else
