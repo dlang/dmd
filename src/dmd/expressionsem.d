@@ -6421,7 +6421,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 else if (t)
                 {
-                    result = new IntegerExp(exp.loc, t.alignsize, Type.tsize_t);
+                    // Note similarity to getProperty() implementation of __xalignof
+                    const explicitAlignment = t.alignment();
+                    const naturalAlignment = t.alignsize();
+                    const actualAlignment = (explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get());
+                    result = new IntegerExp(exp.loc, actualAlignment, Type.tsize_t);
                 }
                 else if (s)
                 {
