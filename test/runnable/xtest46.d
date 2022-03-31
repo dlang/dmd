@@ -3905,6 +3905,10 @@ void test3632()
     enum ctD = test!double();
     auto rtR = test!real();
     enum ctR = test!real();
+
+    assert(float.nan !is -float.nan);
+    assert(double.nan !is -double.nan);
+    assert(real.nan !is -real.nan);
 }
 
 /***************************************************/
