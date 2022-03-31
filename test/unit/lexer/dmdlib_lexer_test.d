@@ -1,6 +1,6 @@
-module lexer.lexer_dmdlib;
+module lexer.dmdlib_lexer_test;
 
-import dmd.lexer : Lexer;
+import dmd.dmdlib_lexer;
 import dmd.tokens : TOK;
 
 unittest
@@ -16,7 +16,8 @@ unittest
         TOK.rightCurly,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false, false);
+    LexerConfig config = { doc : false, comm : CommentOptions.None, ws : WhitespaceOptions.None };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -39,7 +40,8 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, false);
+    LexerConfig config = { doc : false, comm : CommentOptions.All, ws : WhitespaceOptions.None };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -65,7 +67,8 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
+    LexerConfig config = { doc : false, comm : CommentOptions.All, ws : WhitespaceOptions.All };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -89,10 +92,11 @@ unittest
         TOK.rightCurly,
         TOK.whitespace,
         TOK.comment,
-        TOK.whitespace,
+        TOK.endOfLine,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
+    LexerConfig config = { doc : false, comm : CommentOptions.All, ws : WhitespaceOptions.All };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -115,9 +119,9 @@ unittest
         TOK.identifier,
         TOK.leftParenthesis,
         TOK.rightParenthesis,
-        TOK.whitespace,
+        TOK.endOfLine,
         TOK.leftCurly,
-        TOK.whitespace,
+        TOK.endOfLine,
         TOK.whitespace,
         TOK.int32,
         TOK.whitespace,
@@ -129,14 +133,15 @@ unittest
         TOK.semicolon,
         TOK.whitespace,
         TOK.comment,
-        TOK.whitespace,
+        TOK.endOfLine,
         TOK.rightCurly,
         TOK.whitespace,
         TOK.comment,
-        TOK.whitespace,
+        TOK.endOfLine,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
+    LexerConfig config = { doc : false, comm : CommentOptions.All, ws : WhitespaceOptions.All };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -154,24 +159,121 @@ unittest
         ~ "\v\f\r// another comment\n\n";
 
     TOK[] expected = [
-        TOK.whitespace,
-        TOK.whitespace,
+        TOK.endOfLine,
+        TOK.endOfLine,
         TOK.semicolon,
         TOK.whitespace,
         TOK.semicolon,
         TOK.whitespace,
-        TOK.whitespace,
+        TOK.endOfLine,
         TOK.comment,
+        TOK.endOfLine,
         TOK.whitespace,
         TOK.whitespace,
-        TOK.whitespace,
-        TOK.whitespace,
+        TOK.endOfLine,
         TOK.comment,
-        TOK.whitespace,
-        TOK.whitespace,
+        TOK.endOfLine,
+        TOK.endOfLine,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true, true);
+    LexerConfig config = { doc : false, comm : CommentOptions.All, ws : WhitespaceOptions.All };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
+    TOK[] result;
+
+    while (lexer.nextToken != TOK.endOfFile)
+        result ~= lexer.token.value;
+
+    assert(result == expected);
+}
+
+unittest
+{
+    immutable code =
+        "\n"
+        ~ "\n;"
+        ~ "\t;\t\r// some comment\n"
+        ~ "\v\f\r// another comment\n\n"
+        ~ "/* and other comments *//* .. */";
+
+    TOK[] expected = [
+        TOK.endOfLine,
+        TOK.endOfLine,
+        TOK.semicolon,
+        TOK.semicolon,
+        TOK.endOfLine,
+        TOK.comment,
+        TOK.endOfLine,
+        TOK.endOfLine,
+        TOK.comment,
+        TOK.endOfLine,
+        TOK.endOfLine,
+        TOK.comment,
+    ];
+
+    LexerConfig config = { doc : false, comm : CommentOptions.AllCondensed, ws : WhitespaceOptions.OnlyNewLines };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
+    TOK[] result;
+
+    while (lexer.nextToken != TOK.endOfFile)
+        result ~= lexer.token.value;
+
+    import std.stdio : writeln;
+    writeln(result);
+
+    assert(result == expected);
+}
+
+unittest
+{
+    immutable code =
+        "\n"
+        ~ "\n;"
+        ~ "\t;\t\r// some comment\n"
+        ~ "\v\f\r// another comment\n\n"
+        ~ "/* and other comments *//* .. */";
+
+    TOK[] expected = [
+        TOK.endOfLine,
+        TOK.semicolon,
+        TOK.whitespace,
+        TOK.semicolon,
+        TOK.whitespace,
+        TOK.endOfLine,
+        TOK.comment,
+        TOK.endOfLine,
+        TOK.whitespace,
+        TOK.endOfLine,
+        TOK.comment,
+        TOK.endOfLine,
+        TOK.comment,
+    ];
+
+    LexerConfig config = { doc : false, comm : CommentOptions.AllCondensed, ws : WhitespaceOptions.AllCondensed };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
+    TOK[] result;
+
+    while (lexer.nextToken != TOK.endOfFile)
+        result ~= lexer.token.value;
+
+    import std.stdio : writeln;
+    writeln(result);
+
+    assert(result == expected);
+}
+
+unittest
+{
+    immutable code =
+        "// some comment\n"
+        ~ "// another comment\n\n"
+        ~ "/* and other comments *//* .. */";
+
+    TOK[] expected = [
+        TOK.comment,
+    ];
+
+    LexerConfig config = { doc : false, comm : CommentOptions.AllCondensed, ws : WhitespaceOptions.None };
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, config);
     TOK[] result;
 
     while (lexer.nextToken != TOK.endOfFile)
@@ -193,7 +295,7 @@ unittest
         TOK.rightCurly,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false);
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, false, false);
     lexer.nextToken;
 
     TOK[] result;
@@ -214,7 +316,7 @@ unittest
         TOK.comment,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, true);
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, false, true);
     lexer.nextToken;
 
     TOK[] result;
@@ -240,7 +342,7 @@ unittest
         TOK.reserved,
     ];
 
-    Lexer lexer = new Lexer(null, code.ptr, 0, code.length, false, false);
+    ConfigurableLexer lexer = new ConfigurableLexer(null, code.ptr, 0, code.length, false, false);
 
     TOK[] result;
 
