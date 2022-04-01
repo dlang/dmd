@@ -186,7 +186,7 @@ void except_fillInEHTable(Symbol *s)
 
             if (config.ehmethod == EHmethod.EH_DM)
             {
-            //printf("DHandlerInfo: offset = %x", (int)(b.Boffset - startblock.Boffset));
+            //printf("DHandlerInfo: offset = %x", cast(int)(b.Boffset - startblock.Boffset));
             dtb.dword(cast(int)(b.Boffset - startblock.Boffset));    // offset to start of block
 
             // Compute ending offset

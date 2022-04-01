@@ -643,7 +643,7 @@ extern (C++) class ToElemVisitor : Visitor
                     if (fd.vthis)
                     {
                         Symbol *vs = toSymbol(fd.vthis);
-                        //printf("vs = %s, offset = %x, %p\n", vs.Sident, (int)vs.Soffset, vs);
+                        //printf("vs = %s, offset = %x, %p\n", vs.Sident, cast(int)vs.Soffset, vs);
                         soffset -= vs.Soffset;
                     }
                     //printf("\tSoffset = x%x, sthis.Soffset = x%x\n", s.Soffset, irs.sthis.Soffset);

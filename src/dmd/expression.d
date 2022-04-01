@@ -2684,7 +2684,7 @@ extern (C++) final class StringExp : Expression
         const len2 = se2.len;
 
         assert(this.sz == se2.sz, "Comparing string expressions of different sizes");
-        //printf("sz = %d, len1 = %d, len2 = %d\n", sz, (int)len1, (int)len2);
+        //printf("sz = %d, len1 = %d, len2 = %d\n", sz, cast(int)len1, cast(int)len2);
         if (len1 == len2)
         {
             switch (sz)

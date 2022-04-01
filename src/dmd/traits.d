@@ -1278,7 +1278,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 s = s.isImport().mod;
             }
-            //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s.scope);
+            //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s._scope);
             udad = s.userAttribDecl;
         }
         else

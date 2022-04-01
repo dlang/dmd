@@ -994,7 +994,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     // Decide if 'then' or 'else' code should be included
     override Dsymbols* include(Scope* sc)
     {
-        //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+        //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
 
         if (errors)
             return null;
@@ -1057,7 +1057,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
      */
     override Dsymbols* include(Scope* sc)
     {
-        //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+        //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
 
         if (errors || onStack)
             return null;

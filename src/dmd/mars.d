@@ -302,7 +302,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         stdout.printPredefinedVersions();
         stdout.printGlobalConfigs();
     }
-    //printf("%d source files\n",files.dim);
+    //printf("%d source files\n", cast(int) files.dim);
 
     // Build import search path
 
