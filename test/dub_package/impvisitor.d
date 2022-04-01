@@ -108,7 +108,7 @@ void main()
         auto m = new ASTBase.Module(fn.toStringz, id, false, false);
         auto file = File(fn, "rb");
         // Create a buffer with four '\0' past the end for lexer
-        auto input = cast(char[]) new ubyte[file.size() + 4];
+        auto input = cast(char[]) new ubyte[cast(size_t) file.size() + 4];
         input = file.rawRead(input);
 
         //writeln("Started parsing...");

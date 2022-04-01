@@ -61,7 +61,7 @@ void main()
     auto m = new ASTBase.Module(&(fname.dup)[0], id, false, false);
     auto file = File(fname, "rb");
     // Create a buffer with four '\0' past the end for lexer
-    auto input = cast(char[]) new ubyte[file.size() + 4];
+    auto input = cast(char[]) new ubyte[cast(size_t) file.size() + 4];
     input = file.rawRead(input);
 
     scope p = new Parser!ASTBase(m, input, false);
