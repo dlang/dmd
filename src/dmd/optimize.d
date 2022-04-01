@@ -541,14 +541,14 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         if (auto ae = e.e1.isIndexExp())
         {
             // Convert &array[n] to &array+n
-            if (ae.e2.isIntegerExp() && ae.e1.isVarExp())
+            if (auto ie = ae.e2.isIntegerExp())
             {
-                sinteger_t index = ae.e2.toInteger();
-                VarExp ve = ae.e1.isVarExp();
-                if (ve.type.isTypeSArray() && !ve.var.isImportedSymbol())
+                auto ve = ae.e1.isVarExp();
+                if (ve && ve.type.isTypeSArray() && !ve.var.isImportedSymbol())
                 {
                     TypeSArray ts = ve.type.isTypeSArray();
                     sinteger_t dim = ts.dim.toInteger();
+                    sinteger_t index = ie.toInteger();
                     if (index < 0 || index >= dim)
                     {
                         /* 0 for C static arrays means size is unknown, no need to check
