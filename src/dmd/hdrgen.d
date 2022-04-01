@@ -2754,7 +2754,7 @@ bool stcToBuffer(OutBuffer* buf, StorageClass stc)
     }
     if (stc & STC.returninferred)
     {
-        //buf.writestring("return-inferred ");
+        //buf.writestring((stc & STC.returnScope) ? "return-scope-inferred " : "return-ref-inferred ");
         stc &= ~(STC.return_ | STC.returninferred);
     }
 

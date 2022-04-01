@@ -2033,7 +2033,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                  * Check arg to see if it matters.
                  */
                 if (global.params.useDIP1000 == FeatureState.enabled)
-                    err |= checkParamArgumentReturn(sc, firstArg, arg, false);
+                    err |= checkParamArgumentReturn(sc, firstArg, arg, p, false);
             }
             else if (tf.parameterEscapes(tthis, p))
             {
@@ -9849,7 +9849,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * `reorderSettingAAElem` creates a tree of comma expressions, however,
          * `checkAssignExp` expects only AssignExps.
          */
-        checkAssignEscape(sc, Expression.extractLast(res, tmp), false);
+        checkAssignEscape(sc, Expression.extractLast(res, tmp), false, false);
 
         if (auto ae = res.isConstructExp())
         {
@@ -10169,7 +10169,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto res = exp.reorderSettingAAElem(sc);
         if ((exp.op == EXP.concatenateElemAssign || exp.op == EXP.concatenateDcharAssign) &&
             global.params.useDIP1000 == FeatureState.enabled)
-            checkAssignEscape(sc, res, false);
+            checkAssignEscape(sc, res, false, false);
         result = res;
     }
 
