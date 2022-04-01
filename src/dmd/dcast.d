@@ -432,7 +432,7 @@ MATCH implicitConvTo(Expression e, Type t)
                 return MATCH.nomatch;
             goto case Tuns8;
         case Tuns8:
-            //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
+            //printf("value = %llu %llu\n", cast(dinteger_t)cast(ubyte)value, value);
             if (cast(ubyte)value != value)
                 return MATCH.nomatch;
             break;
@@ -492,8 +492,8 @@ MATCH implicitConvTo(Expression e, Type t)
             break;
 
         case Tpointer:
-            //printf("type = %s\n", type.toBasetype()->toChars());
-            //printf("t = %s\n", t.toBasetype()->toChars());
+            //printf("type = %s\n", type.toBasetype().toChars());
+            //printf("t = %s\n", t.toBasetype().toChars());
             if (ty == Tpointer && e.type.toBasetype().nextOf().ty == t.toBasetype().nextOf().ty)
             {
                 /* Allow things like:
@@ -2077,7 +2077,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (auto tsa = tb.isTypeSArray())
         {
             size_t dim2 = cast(size_t)tsa.dim.toInteger();
-            //printf("dim from = %d, to = %d\n", (int)se.len, (int)dim2);
+            //printf("dim from = %d, to = %d\n", cast(int)se.len, cast(int)dim2);
 
             // Changing dimensions
             if (dim2 != se.len)

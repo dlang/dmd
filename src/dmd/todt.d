@@ -844,7 +844,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             if (offset < b.offset)
                 dtb.nzeros(b.offset - offset);
             membersToDt(si.sym, dtb, elements, firstFieldIndex, concreteType, ppb);
-            //printf("b.offset = %d, b.sym.structsize = %d\n", (int)b.offset, (int)b.sym.structsize);
+            //printf("b.offset = %d, b.sym.structsize = %d\n", cast(int)b.offset, cast(int)b.sym.structsize);
             offset = b.offset + b.sym.structsize;
         }
     }

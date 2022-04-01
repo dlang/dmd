@@ -108,8 +108,8 @@ class Lexer
         size_t endoffset, bool doDocComment, bool commentToken) pure
     {
         scanloc = Loc(filename, 1, 1);
-        //printf("Lexer::Lexer(%p,%d)\n",base,length);
-        //printf("lexer.filename = %s\n", filename);
+        // debug printf("Lexer::Lexer(%p)\n", base);
+        // debug printf("lexer.filename = %s\n", filename);
         token = Token.init;
         this.base = base;
         this.end = base + endoffset;
@@ -2926,7 +2926,7 @@ class Lexer
      */
     static const(char)* combineComments(const(char)[] c1, const(char)[] c2, bool newParagraph) pure
     {
-        //printf("Lexer::combineComments('%s', '%s', '%i')\n", c1, c2, newParagraph);
+        //debug printf("Lexer::combineComments('%*.s', '%*.s', '%i')\n", cast(int) c1.length, c1.ptr, cast(int) c2.length, c2.ptr, newParagraph);
         const(int) newParagraphSize = newParagraph ? 1 : 0; // Size of the combining '\n'
         if (!c1)
             return c2.ptr;

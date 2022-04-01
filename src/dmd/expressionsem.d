@@ -713,7 +713,7 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
  */
 Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 {
-    //printf("e1 = %s %s\n", Token::toChars(e1.op), e1.toChars());
+    //printf("e1 = %s %s\n", Token.toChars(e1.op), e1.toChars());
 
     Expression handleOverloadSet(OverloadSet os)
     {
@@ -3261,7 +3261,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // printf("apply fix for issue 9490: add `this.` to `%s`...\n", e.toChars());
                 e = new DotVarExp(exp.loc, new ThisExp(exp.loc), ve.var, false);
             }
-            //printf("e = %s %s\n", Token::toChars(e.op), e.toChars());
+            //printf("e = %s %s\n", Token.toChars(e.op), e.toChars());
             e = e.expressionSemantic(sc);
         }
         else if (t)
@@ -6388,7 +6388,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         static if (LOGSEMANTIC)
         {
             printf("DotIdExp::semantic(this = %p, '%s')\n", exp, exp.toChars());
-            //printf("e1.op = %d, '%s'\n", e1.op, Token::toChars(e1.op));
+            //printf("e1.op = %d, '%s'\n", e1.op, Token.toChars(e1.op));
         }
 
         if (sc.flags & SCOPE.Cfile)
@@ -8956,7 +8956,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     Parameter arg = Parameter.getNth(tt.arguments, u);
                     //printf("[%d] iexps.dim = %d, ", u, iexps.dim);
-                    //printf("e = (%s %s, %s), ", Token::tochars[e.op], e.toChars(), e.type.toChars());
+                    //printf("e = (%s %s, %s), ", Token.toChars[e.op], e.toChars(), e.type.toChars());
                     //printf("arg = (%s, %s)\n", arg.toChars(), arg.type.toChars());
 
                     if (!arg || !e.type.implicitConvTo(arg.type))
@@ -10124,7 +10124,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
                 if (isRecursiveAliasThis(exp.att1, exp.e1.type))
                     return null;
-                //printf("att %s e1 = %s\n", Token::toChars(e.op), e.e1.type.toChars());
+                //printf("att %s e1 = %s\n", Token.toChars(e.op), e.e1.type.toChars());
                 Expression e1 = new DotIdExp(exp.loc, exp.e1, ad1.aliasthis.ident);
                 BinExp be = cast(BinExp)exp.copy();
                 be.e1 = e1;
@@ -10142,7 +10142,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
                 if (isRecursiveAliasThis(exp.att2, exp.e2.type))
                     return null;
-                //printf("att %s e2 = %s\n", Token::toChars(e.op), e.e2.type.toChars());
+                //printf("att %s e2 = %s\n", Token.toChars(e.op), e.e2.type.toChars());
                 Expression e2 = new DotIdExp(exp.loc, exp.e2, ad2.aliasthis.ident);
                 BinExp be = cast(BinExp)exp.copy();
                 be.e2 = e2;

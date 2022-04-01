@@ -1059,7 +1059,7 @@ Initializer inferType(Initializer init, Scope* sc)
 
     Initializer visitC(CInitializer i)
     {
-        //printf(CInitializer::inferType()\n");
+        //printf("CInitializer.inferType()\n");
         error(i.loc, "TODO C inferType initializers not supported yet");
         return new ErrorInitializer();
     }

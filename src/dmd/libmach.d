@@ -189,13 +189,13 @@ final class LibMach : Library
                 if (s + namelen + 1 - symtab > symtab_size)
                     return corrupt(__LINE__);
                 uint moff = Port.readlongLE(symtab + 4 + i * 8 + 4);
-                //printf("symtab[%d] moff = x%x  x%x, name = %s\n", i, moff, moff + sizeof(Header), name);
+                //printf("symtab[%d] moff = x%x  x%x, name = %s\n", i, moff, moff + MachLibHeader.sizeof, name);
                 for (uint m = mstart; 1; m++)
                 {
                     if (m == objmodules.dim)
                         return corrupt(__LINE__);       // didn't find it
                     MachObjModule* om = objmodules[m];
-                    //printf("\tom offset = x%x\n", (char *)om.base - (char *)buf);
+                    //printf("\tom offset = x%x\n", cast(char *)om.base - cast(char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name[0 .. namelen], 1);

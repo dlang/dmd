@@ -680,7 +680,7 @@ extern (C++) void halt()
  */
 private void colorSyntaxHighlight(ref OutBuffer buf)
 {
-    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.length, buf.data);
+    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.length, buf[].ptr);
     bool inBacktick = false;
     size_t iCodeStart = 0;
     size_t offset = 0;
@@ -754,7 +754,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
-    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf.data);
+    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);
     res.reserve(buf.length);
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Other);
@@ -799,7 +799,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     }
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Default);
-    //printf("res = '%.*s'\n", cast(int)buf.length, buf.data);
+    //printf("res = '%.*s'\n", cast(int)buf.length, buf[].ptr);
     buf.setsize(0);
     buf.write(&res);
     global.endGagging(gaggedErrorsSave);
