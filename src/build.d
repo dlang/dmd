@@ -576,8 +576,19 @@ alias dmdPGO = makeRule!((builder, rule) {
             // Run dmd test suite to get data
             scope cmd = ["ldc-profdata", "merge", "--output=merged.data"];
             import std.file : dirEntries;
-            auto files = dirEntries(pgoState.pgoDataPath, "*.raw", SpanMode.shallow).array;
-            files.each!(f => cmd ~= f);
+            auto files = dirEntries(pgoState.pgoDataPath, "*.raw", SpanMode.shallow).map!(f => f.name);
+
+            // Use a separate file to work around the windows command limit
+            version (Windows)
+            {{
+                const listFile = buildPath(env["G"], "pgo_file_list.txt");
+                File list = File(listFile, "w");
+                foreach (file; files)
+                    list.writeln(file);
+                cmd ~= [ "--input-files=" ~ listFile ];
+            }}
+            else
+                cmd = chain(cmd, files).array;
             log("%-(%s %)", cmd);
             if (spawnProcess(cmd, null, Config.init, pgoState.pgoDataPath).wait())
                 abortBuild("Merge failed");
