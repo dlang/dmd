@@ -1835,7 +1835,7 @@ segidx_t MsCoffObj_data_start(Symbol *sdata, targ_size_t datasize, segidx_t seg)
 {
     targ_size_t alignbytes;
 
-    //printf("MsCoffObj_data_start(%s,size %d,seg %d)\n",sdata.Sident.ptr,(int)datasize,seg);
+    //printf("MsCoffObj_data_start(%s,size %d,seg %d)\n",sdata.Sident.ptr,cast(int)datasize,seg);
     //symbol_print(sdata);
 
     assert(sdata.Sseg);
@@ -1929,7 +1929,7 @@ void MsCoffObj_pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
             symbuf.write((&s)[0 .. 1]);
             break;
     }
-    //printf("%p\n", *(void**)symbuf.buf);
+    //printf("%p\n", *cast(void**)symbuf.buf);
     s.Sxtrnnum = 1;
 }
 
@@ -2430,7 +2430,7 @@ int elf_align(int size, int foffset)
     if (size <= 1)
         return foffset;
     int offset = (foffset + size - 1) & ~(size - 1);
-    //printf("offset = x%lx, foffset = x%lx, size = x%lx\n", offset, foffset, (int)size);
+    //printf("offset = x%lx, foffset = x%lx, size = x%lx\n", offset, foffset, cast(int)size);
     if (offset > foffset)
         fobjbuf.writezeros(offset - foffset);
     return offset;

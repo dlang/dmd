@@ -1013,7 +1013,7 @@ else
         ln.reset();
 
     L1:
-        //printf("offset = x%x, line = %d\n", (int)offset, linnum);
+        //printf("offset = x%x, line = %d\n", cast(int)offset, linnum);
         ln.data.write16(linnum);
         if (_tysize[TYint] == 2)
             ln.data.write16(cast(int)offset);

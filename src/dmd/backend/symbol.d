@@ -334,7 +334,7 @@ Symbol * symbol_calloc(const(char)* id)
 Symbol * symbol_calloc(const(char)* id, uint len)
 {   Symbol *s;
 
-    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n",sizeof(symbol),sizeof(s.Sident),(int)len);
+    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)len);
     s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - s.Sident.length + len + 1 + 5);
     memset(s,0,Symbol.sizeof - s.Sident.length);
 version (SCPP_HTOD)

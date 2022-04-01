@@ -2939,7 +2939,7 @@ private bool optim_loglog(elem **pe)
             any = false;
     }
 
-    //printf("n = %d, count = %d, min = %d, max = %d\n", (int)n, last - first + 1, (int)emin, (int)emax);
+    //printf("n = %d, count = %d, min = %d, max = %d\n", cast(int)n, last - first + 1, cast(int)emin, cast(int)emax);
     if (any && last - first > 2 && emax - emin < REGSIZE * 8)
     {
         /**
@@ -3517,14 +3517,14 @@ elem * elstruct(elem *e, goal_t goal)
 
     if (!e.ET)
         return e;
-    //printf("\tnumbytes = %d\n", (int)type_size(e.ET));
+    //printf("\tnumbytes = %d\n", cast(int)type_size(e.ET));
 
     type *t = e.ET;
     tym_t tym = ~0;
     tym_t ty = tybasic(t.Tty);
 
     uint sz = (e.Eoper == OPstrpar && type_zeroSize(t, global_tyf)) ? 0 : cast(uint)type_size(t);
-    //printf("\tsz = %d\n", (int)sz);
+    //printf("\tsz = %d\n", cast(int)sz);
 
     type *targ1 = null;
     type *targ2 = null;

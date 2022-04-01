@@ -4675,7 +4675,7 @@ static if (0)
 @trusted
 targ_size_t cod3_spoff()
 {
-    //printf("spoff = x%x, localsize = x%x\n", (int)spoff, (int)localsize);
+    //printf("spoff = x%x, localsize = x%x\n", cast(int)spoff, cast(int)localsize);
     return spoff + localsize;
 }
 
@@ -5182,7 +5182,7 @@ void cod3_adjSymOffsets()
                 break;
 
             case SCfastpar:
-//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, (int)s.Soffset, (int)Fast.size, (int)BPoff);
+//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)Fast.size, cast(int)BPoff);
                 s.Soffset += Fast.size + BPoff;
                 break;
 
@@ -5191,7 +5191,7 @@ void cod3_adjSymOffsets()
                 if (s.Sfl == FLfast)
                     s.Soffset += Fast.size + BPoff;
                 else
-//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, (int)s.Soffset, (int)Auto.size, (int)BPoff, (int)EBPtoESP);
+//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)Auto.size, cast(int)BPoff, cast(int)EBPtoESP);
 //              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
                     s.Soffset += Auto.size + BPoff;
                 break;
@@ -5265,7 +5265,7 @@ void assignaddrc(code *c)
         {
             if (c.Iop == (ESCAPE | ESCadjesp))
             {
-                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,(long)c.IEV1.Vint);
+                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,cast(long)c.IEV1.Vint);
                 EBPtoESP += c.IEV1.Vint;
                 c.Iop = NOP;
             }
@@ -6968,7 +6968,7 @@ else
 }
 }
                     case ESCadjesp:
-                        //printf("adjust ESP %ld\n", (long)c.IEV1.Vint);
+                        //printf("adjust ESP %ld\n", cast(long)c.IEV1.Vint);
                         break;
 
                     default:

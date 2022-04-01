@@ -955,7 +955,7 @@ else
         }
     }
 
-    //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
+    //printf("Fast.size = x%x, Auto.size = x%x\n", cast(int)Fast.size, cast(int)Auto.size);
 
     cgstate.funcarg.alignment = STACKALIGN;
     /* If the function doesn't need the extra alignment, don't do it.
@@ -1349,7 +1349,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 Fast.offset = _align(sz,Fast.offset);
                 s.Soffset = Fast.offset;
                 Fast.offset += sz;
-                //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s.Sident,(int)sz,(int)s.Soffset, s);
+                //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n", s.Sident, cast(int) sz, cast(int) s.Soffset, s);
 
                 if (alignsize > Fast.alignment)
                     Fast.alignment = alignsize;
@@ -1368,7 +1368,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 Auto.offset = _align(sz,Auto.offset);
                 s.Soffset = Auto.offset;
                 Auto.offset += sz;
-                //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s.Sident,sz,(long)s.Soffset);
+                //printf("auto    '%s' sz = %d, auto offset =  x%lx\n", s.Sident,sz, cast(long) s.Soffset);
 
                 if (alignsize > Auto.alignment)
                     Auto.alignment = alignsize;
@@ -1377,7 +1377,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             case SCstack:
                 EEStack.offset = _align(sz,EEStack.offset);
                 s.Soffset = EEStack.offset;
-                //printf("EEStack.offset =  x%lx\n",(long)s.Soffset);
+                //printf("EEStack.offset =  x%lx\n",cast(long)s.Soffset);
                 EEStack.offset += sz;
                 break;
 
@@ -1399,7 +1399,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                          (tyaggregate(s.ty()) || tyvector(s.ty())))))
                     Para.offset = (Para.offset + (alignsize - 1)) & ~(alignsize - 1);
                 s.Soffset = Para.offset;
-                //printf("%s param offset =  x%lx, alignsize = %d\n",s.Sident,(long)s.Soffset, (int)alignsize);
+                //printf("%s param offset =  x%lx, alignsize = %d\n", s.Sident, cast(long) s.Soffset, cast(int) alignsize);
                 Para.offset += (s.Sflags & SFLdouble)
                             ? type_size(tstypes[TYdouble])   // float passed as double
                             : type_size(s.Stype);
@@ -1460,7 +1460,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             }
             Auto.offset = _align(sz,Auto.offset);
             s.Soffset = Auto.offset;
-            //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s.Sident,sz,(long)s.Soffset);
+            //printf("auto    '%s' sz = %d, auto offset =  x%lx\n", s.Sident, sz, cast(long) s.Soffset);
             Auto.offset += sz;
             if (s.Srange && !(s.Sflags & SFLspill))
                 vec_setbit(si,tbl);

@@ -531,7 +531,7 @@ void cv8_linnum(Srcpos srcpos, uint offset)
         const sfilename = srcpos.Sfilename;
     else
         const sfilename = srcpos_name(srcpos);
-    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", sfilename, (int)srcpos.Slinnum, (uint)offset);
+    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", sfilename, cast(int)srcpos.Slinnum, cast(uint)offset);
 
     if (!sfilename)
         return;
@@ -640,7 +640,7 @@ L1:
     uint u = 0;
     while (u + 8 <= length)
     {
-        //printf("\t%x\n", *(uint *)(p + u));
+        //printf("\t%x\n", *cast(uint *)(p + u));
         if (off == *cast(uint *)(p + u))
         {
             //printf("\tfound %x\n", u);

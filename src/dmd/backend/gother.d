@@ -379,7 +379,7 @@ private void conpropwalk(elem *n,vec_t IN)
     /* propagate a constant.                                */
     if (op == OPvar && sytab[n.EV.Vsym.Sclass] & SCRD)
     {
-        //printf("const prop: %s\n", n.EV.Vsym.Sident);
+        //printf("const prop: %s\n", n.EV.Vsym.Sident.ptr);
         Barray!(elem*) rdl;
         listrds(IN,n,null,&rdl);
 
