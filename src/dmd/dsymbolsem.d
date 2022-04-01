@@ -6477,10 +6477,10 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 
     // Ungag errors when not instantiated DeclDefs scope alias
     auto ungag = Ungag(global.gag);
-    //printf("%s parent = %s, gag = %d, instantiated = %d\n", toChars(), parent, global.gag, isInstantiated());
-    if (ds.parent && global.gag && !ds.isInstantiated() && !ds.toParent2().isFuncDeclaration())
+    //printf("%s parent = %s, gag = %d, instantiated = %d\n", ds.toChars(), ds.parent.toChars(), global.gag, ds.isInstantiated() !is null);
+    if (ds.parent && global.gag && !ds.isInstantiated() && !ds.toParent2().isFuncDeclaration() && (sc.minst || sc.tinst))
     {
-        //printf("%s type = %s\n", toPrettyChars(), type.toChars());
+        //printf("%s type = %s\n", ds.toPrettyChars(), ds.type.toChars());
         global.gag = 0;
     }
 
@@ -6554,13 +6554,13 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     }
     if (s) // it's a symbolic alias
     {
-        //printf("alias %s resolved to %s %s\n", toChars(), s.kind(), s.toChars());
+        //printf("alias %s resolved to %s %s\n", ds.toChars(), s.kind(), s.toChars());
         ds.type = null;
         ds.aliassym = s;
     }
     else    // it's a type alias
     {
-        //printf("alias %s resolved to type %s\n", toChars(), type.toChars());
+        //printf("alias %s resolved to type %s\n", ds.toChars(), ds.type.toChars());
         ds.type = ds.type.typeSemantic(ds.loc, sc);
         ds.aliassym = null;
     }
