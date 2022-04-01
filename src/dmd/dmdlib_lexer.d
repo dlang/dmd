@@ -73,6 +73,21 @@ class ConfigurableLexer : Lexer
         this.config = config;
     }
 
+    bool empty() const pure @property @nogc @safe
+    {
+        return front() == TOK.endOfFile;
+    }
+
+    TOK front() const pure @property @nogc @safe
+    {
+        return token.value;
+    }
+
+    void popFront()
+    {
+        nextToken();
+    }
+
     final bool skipCondensed(TOK last, TOK current) nothrow
     {
         return (config.comm == CommentOptions.AllCondensed && last == TOK.comment && current == TOK.comment) ||
@@ -168,10 +183,10 @@ class ConfigurableLexer : Lexer
                 if (*p != '\n') // if CR stands by itself
                 {
                     endOfLine();
-                    if (newLineSpecial)
+                    if (tokenizeNewlines)
                     {
                         t.value = TOK.endOfLine;
-                        newLineSpecial = false;
+                        tokenizeNewlines = false;
                         return;
                     }
                     else if (config.ws == WhitespaceOptions.OnlyNewLines ||
@@ -192,10 +207,10 @@ class ConfigurableLexer : Lexer
             case '\n':
                 p++;
                 endOfLine();
-                if (newLineSpecial)
+                if (tokenizeNewlines)
                 {
                     t.value = TOK.endOfLine;
-                    newLineSpecial = false;
+                    tokenizeNewlines = false;
                     return;
                 }
                 else if (config.ws == WhitespaceOptions.OnlyNewLines ||
@@ -943,7 +958,7 @@ class ConfigurableLexer : Lexer
                     // https://issues.dlang.org/show_bug.cgi?id=22825
                     // Special token sequences are terminated by newlines,
                     // and should not be skipped over.
-                    this.newLineSpecial = true;
+                    this.tokenizeNewlines = true;
                     p++;
                     if (parseSpecialTokenSequence())
                         continue;
@@ -963,10 +978,10 @@ class ConfigurableLexer : Lexer
                         {
                             endOfLine();
                             p++;
-                            if (newLineSpecial)
+                            if (tokenizeNewlines)
                             {
                                 t.value = TOK.endOfLine;
-                                newLineSpecial = false;
+                                tokenizeNewlines = false;
                                 return;
                             }
                             continue;

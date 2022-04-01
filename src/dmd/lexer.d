@@ -77,7 +77,7 @@ class Lexer
         bool doDocComment;      // collect doc comment information
         bool anyToken;          // seen at least one token
         bool commentToken;      // comments are TOK.comment's
-        bool newLineSpecial;  // newlines are turned into TOK.endOfLine's
+        bool tokenizeNewlines;  // newlines are turned into TOK.endOfLine's
 
         int inTokenStringConstant; // can be larger than 1 when in nested q{} strings
         int lastDocLine;        // last line of previous doc comment
@@ -112,7 +112,7 @@ class Lexer
         line = p;
         this.doDocComment = doDocComment;
         this.commentToken = commentToken;
-        this.newLineSpecial = false;
+        this.tokenizeNewlines = false;
         this.inTokenStringConstant = 0;
         this.lastDocLine = 0;
         //initKeywords();
@@ -138,24 +138,6 @@ class Lexer
                 break;
             }
             endOfLine();
-        }
-    }
-
-    version (DMDLIB)
-    {
-        bool empty() const pure @property @nogc @safe
-        {
-            return front() == TOK.endOfFile;
-        }
-
-        TOK front() const pure @property @nogc @safe
-        {
-            return token.value;
-        }
-
-        void popFront()
-        {
-            nextToken();
         }
     }
 
@@ -264,10 +246,10 @@ class Lexer
                 if (*p != '\n') // if CR stands by itself
                 {
                     endOfLine();
-                    if (newLineSpecial)
+                    if (tokenizeNewlines)
                     {
                         t.value = TOK.endOfLine;
-                        newLineSpecial = false;
+                        tokenizeNewlines = false;
                         return;
                     }
                 }
@@ -275,10 +257,10 @@ class Lexer
             case '\n':
                 p++;
                 endOfLine();
-                if (newLineSpecial)
+                if (tokenizeNewlines)
                 {
                     t.value = TOK.endOfLine;
-                    newLineSpecial = false;
+                    tokenizeNewlines = false;
                     return;
                 }
                 continue; // skip white space
@@ -1018,7 +1000,7 @@ class Lexer
                     // https://issues.dlang.org/show_bug.cgi?id=22825
                     // Special token sequences are terminated by newlines,
                     // and should not be skipped over.
-                    this.newLineSpecial = true;
+                    this.tokenizeNewlines = true;
                     p++;
                     if (parseSpecialTokenSequence())
                         continue;
@@ -1038,10 +1020,10 @@ class Lexer
                         {
                             endOfLine();
                             p++;
-                            if (newLineSpecial)
+                            if (tokenizeNewlines)
                             {
                                 t.value = TOK.endOfLine;
-                                newLineSpecial = false;
+                                tokenizeNewlines = false;
                                 return;
                             }
                             continue;
@@ -2702,7 +2684,7 @@ class Lexer
             break;
         }
         endOfLine();
-        newLineSpecial = false;
+        tokenizeNewlines = false;
     }
 
     /********************************************
@@ -2913,10 +2895,10 @@ class Lexer
 
 /******************************* Private *****************************************/
 
-public /*package (dmd)*/:
+public:
 
 /// Support for `__DATE__`, `__TIME__`, and `__TIMESTAMP__`
-public /*package (dmd)*/ struct TimeStampInfo
+public struct TimeStampInfo
 {
     private __gshared bool initdone = false;
 
@@ -2951,13 +2933,13 @@ public /*package (dmd)*/ struct TimeStampInfo
     }
 }
 
-public /*package (dmd)*/ enum LS = 0x2028;       // UTF line separator
-public /*package (dmd)*/ enum PS = 0x2029;       // UTF paragraph separator
+public enum LS = 0x2028;       // UTF line separator
+public enum PS = 0x2029;       // UTF paragraph separator
 
 /********************************************
  * Do our own char maps
  */
-public /*package (dmd)*/ static immutable cmtable = ()
+public static immutable cmtable = ()
 {
     ubyte[256] table;
     foreach (const c; 0 .. table.length)
@@ -3010,7 +2992,7 @@ public /*package (dmd)*/ static immutable cmtable = ()
     return table;
 }();
 
-public /*package (dmd)*/
+public
 {
     enum CMoctal  = 0x1;
     enum CMhex    = 0x2;
@@ -3020,44 +3002,44 @@ public /*package (dmd)*/
     enum CMsinglechar = 0x20;
 }
 
-public /*package (dmd)*/ bool isoctal(const char c) pure @nogc @safe
+public bool isoctal(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-public /*package (dmd)*/ bool ishex(const char c) pure @nogc @safe
+public bool ishex(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-public /*package (dmd)*/ bool isidchar(const char c) pure @nogc @safe
+public bool isidchar(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-public /*package (dmd)*/ bool isZeroSecond(const char c) pure @nogc @safe
+public bool isZeroSecond(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMzerosecond) != 0;
 }
 
-public /*package (dmd)*/ bool isDigitSecond(const char c) pure @nogc @safe
+public bool isDigitSecond(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMdigitsecond) != 0;
 }
 
-public /*package (dmd)*/ bool issinglechar(const char c) pure @nogc @safe
+public bool issinglechar(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-public /*package (dmd)*/ bool c_isxdigit(const int c) pure @nogc @safe
+public bool c_isxdigit(const int c) pure @nogc @safe
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'f') ||
             ( c >= 'A' && c <= 'F'));
 }
 
-public /*package (dmd)*/ bool c_isalnum(const int c) pure @nogc @safe
+public bool c_isalnum(const int c) pure @nogc @safe
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'z') ||
