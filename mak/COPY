@@ -15,6 +15,7 @@ COPY=\
 	$(IMPDIR)\core\cpuid.d \
 	$(IMPDIR)\core\demangle.d \
 	$(IMPDIR)\core\exception.d \
+	$(IMPDIR)\core\int128.d \
 	$(IMPDIR)\core\lifetime.d \
 	$(IMPDIR)\core\math.d \
 	$(IMPDIR)\core\memory.d \
