@@ -1,0 +1,19 @@
+Added `.tupleof` property for static arrays
+
+The `.tupleof` property may now be used with instances of static arrays, yielding an $(DDSUBLINK spec/template, variadic-templates, expression sequence) of all the array's elements.
+
+Note that this is only for static array *values*, it remains an error when used upon a type so as to not break older code lacking suitable checks. As a workaround use `typeof((T[N]).init.tupleof)`.
+
+---
+void foo(int x, int y) { /* ... */ }
+void bar(int[2] xs)
+{
+    foo(xs.tupleof);
+}
+
+ubyte[] encoded = iota!int(10)
+    .map!(x => only(nativeToBigEndian(x).tupleof))
+    .joiner
+    .array
+;
+---
