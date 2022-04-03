@@ -1538,6 +1538,13 @@ public:
             }
             else if (hgs.tpltMember == 0 && global.params.hdrStripPlainFunctions)
             {
+                if (!f.fbody)
+                {
+                    // this can happen on interfaces / abstract functions, see `allowsContractWithoutBody`
+                    if (f.fensures || f.frequires)
+                        buf.writenl();
+                    contractsToBuffer(f);
+                }
                 buf.writeByte(';');
                 buf.writenl();
             }
@@ -1548,19 +1555,9 @@ public:
             bodyToBuffer(f);
     }
 
-    void bodyToBuffer(FuncDeclaration f)
+    /// Returns: whether `do` is needed to write the function body
+    bool contractsToBuffer(FuncDeclaration f)
     {
-        if (!f.fbody || (hgs.hdrgen && global.params.hdrStripPlainFunctions && !hgs.autoMember && !hgs.tpltMember))
-        {
-            buf.writeByte(';');
-            buf.writenl();
-            return;
-        }
-        const savetlpt = hgs.tpltMember;
-        const saveauto = hgs.autoMember;
-        hgs.tpltMember = 0;
-        hgs.autoMember = 0;
-        buf.writenl();
         bool requireDo = false;
         // in{}
         if (f.frequires)
@@ -1619,6 +1616,29 @@ public:
                 }
             }
         }
+        return requireDo;
+    }
+
+    void bodyToBuffer(FuncDeclaration f)
+    {
+        if (!f.fbody || (hgs.hdrgen && global.params.hdrStripPlainFunctions && !hgs.autoMember && !hgs.tpltMember))
+        {
+            if (!f.fbody && (f.fensures || f.frequires))
+            {
+                buf.writenl();
+                contractsToBuffer(f);
+            }
+            buf.writeByte(';');
+            buf.writenl();
+            return;
+        }
+        const savetlpt = hgs.tpltMember;
+        const saveauto = hgs.autoMember;
+        hgs.tpltMember = 0;
+        hgs.autoMember = 0;
+        buf.writenl();
+        bool requireDo = contractsToBuffer(f);
+
         if (requireDo)
         {
             buf.writestring("do");
