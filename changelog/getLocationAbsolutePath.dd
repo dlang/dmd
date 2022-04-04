@@ -1,0 +1,7 @@
+The trait `getLocation` has been modified to accept a parameter to ask for an absolute path.
+
+Let `symbol` be a symbol known to the compiler, and *file* be the file in which it's declared:
+
+`__traits(getLocation, symbol)[0]` is the relative path to *file* to as it has always been.
+
+`__traits(getLocation, symbol, true)[0]` is now the absolute path to *file*.

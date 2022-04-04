@@ -1981,9 +1981,25 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.getLocation)
     {
-        if (dim != 1)
-            return dimError(1);
+        if (dim > 2) {
+            e.error("`getLocation` accepts at most 2 parameters, not %zu", dim);
+            return ErrorExp.get();
+        }
+
         auto arg0 = (*e.args)[0];
+        bool useAbsolutePath = false;
+        auto useAbsolutePathArg = dim == 2 ? (*e.args)[1] : null;
+        if (auto expr = isExpression(useAbsolutePathArg))
+        {
+            auto ctfeRes = expr.ctfeInterpret();
+            if (!ctfeRes.type.equals(Type.tbool))
+            {
+                expr.error("The second parameter of `getOverloads` must have type `bool`, not `%s`", ctfeRes.type.toChars());
+                return ErrorExp.get();
+            }
+            useAbsolutePath = ctfeRes.toBool().get();
+        }
+
         Dsymbol s = getDsymbolWithoutExpCtx(arg0);
         if (!s || !s.loc.isValid())
         {
@@ -2004,7 +2020,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         auto exps = new Expressions(3);
-        (*exps)[0] = new StringExp(e.loc, s.loc.filename.toDString());
+
+        import dmd.root.filename : FileName;
+        auto internalPath = s.loc.filename;
+
+        (*exps)[0] = new StringExp(e.loc, (useAbsolutePath ? FileName.toAbsolute(internalPath) : internalPath).toDString());
         (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
         (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
         auto tup = new TupleExp(e.loc, exps);

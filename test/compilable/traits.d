@@ -316,3 +316,18 @@ extern(C++, `inst`)
 mixin GetNamespaceTestTemplatedMixin!() GNTT;
 
 static assert (__traits(getCppNamespaces, GNTT.foo) == Seq!(`inst`,/*`decl`,*/ `f`));
+
+struct I22987
+{
+  int x;
+}
+
+enum I22987Res = __traits(getLocation, I22987, true);
+enum filePath = I22987Res[0];
+static assert(I22987Res[1] == 318);
+static assert(I22987Res[2] == 1);
+//Make sure the path is absolute
+version(Windows)
+    static assert(filePath[1..3] == ":\\");
+else
+    static assert(filePath[0] == '/');
