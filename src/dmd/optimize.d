@@ -551,9 +551,10 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     sinteger_t dim = ts.dim.toInteger();
                     if (index < 0 || index >= dim)
                     {
-                        /* 0 for C static arrays means size is unknown, no need to check
+                        /* 0 for C static arrays means size is unknown, no need to check,
+                         * and address one past the end is OK, too
                          */
-                        if (!(dim == 0 && ve.var.isCsymbol()))
+                        if (!((dim == 0 || dim == index) && ve.var.isCsymbol()))
                         {
                             e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
                             return error();
@@ -585,9 +586,10 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     sinteger_t dim = ts.dim.toInteger();
                     if (index < 0 || index >= dim)
                     {
-                        /* 0 for C static arrays means size is unknown, no need to check
+                        /* 0 for C static arrays means size is unknown, no need to check,
+                         * and address one past the end is OK, too
                          */
-                        if (!(dim == 0 && ve.var.isCsymbol()))
+                        if (!((dim == 0 || dim == index) && ve.var.isCsymbol()))
                         {
                             e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
                             return error();

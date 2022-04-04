@@ -1,6 +1,6 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test22935.c(18): Error: array index 4 is out of bounds `[0..4]`
+fail_compilation/test22935.c(18): Error: array index 5 is out of bounds `[0..4]`
 ---
 */
 
@@ -15,4 +15,4 @@ _Static_assert((unsigned long)((char *)&((struct S *)0)->text[0] - (char *)0) ==
 _Static_assert((unsigned long)((char *)&((struct S *)0)->text[2] - (char *)0) == 3, "2");
 _Static_assert((unsigned long)((char *)&((struct S *)4)->text[2] - (char *)0) == 7, "3");
 
-int tmp2 = ((unsigned long)((char *)&((struct S *)0)->text[4] - (char *)0));
+int tmp2 = ((unsigned long)((char *)&((struct S *)0)->text[5] - (char *)0));
