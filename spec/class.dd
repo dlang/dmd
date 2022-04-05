@@ -145,7 +145,7 @@ void foo(B b)
         without the subclasses needing to recompile or relink.
         )
 
-$(H2 $(LNAME2 field_properties, Field Properties))
+$(H3 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
         from the beginning of the class instantiation.
@@ -171,13 +171,13 @@ void test(Foo foo)
 }
 ------
 
-$(H2 $(LNAME2 class_properties, Class Properties))
+$(H2 $(LNAME2 class_properties, Class Instance Properties))
 
         $(P The $(D .tupleof) property is an
         $(DDSUBLINK spec/template, variadic-templates, expression sequence)
         of all the fields in the class, excluding the hidden fields and
-        the fields in the base class.
-        `.tupleof` is not available for `extern(Objective-C)` classes due to
+        the fields in the base class.)
+        $(NOTE `.tupleof` is not available for `extern(Objective-C)` classes due to
         their fields having a dynamic offset.
         )
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -197,6 +197,11 @@ void main()
 }
 ---
 )
+
+        $(P The $(RELATIVE_LINK2 outer-property, `.outer` property) for
+        a nested class instance provides either the parent class instance,
+        or the parent function's context pointer when there is no parent
+        class.)
 
         $(P The properties $(D .__vptr) and $(D .__monitor) give access
         to the class object's vtbl[] and monitor, respectively, but
