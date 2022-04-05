@@ -133,7 +133,7 @@ RTInfo!(C)
 }
 NoPointersBitmapPayload!1$?:32=u|64=LU$
 {
-	enum $?:32=uint|64=ulong$[1] NoPointersBitmapPayload = 0$?:32=u|64=LU$;
+	enum $?:32=uint|64=ulong$[1] NoPointersBitmapPayload = [0$?:32=u|64=LU$];
 
 }
 values!(__c_wchar_t)
