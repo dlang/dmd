@@ -846,6 +846,16 @@ $(GNAME TemplateSequenceParameter):
         $(DDLINK articles/ctarguments, Compile-time Sequences, compile-time sequence)
         of any mix of types, values or symbols, or none.
     )
+
+    $(P The elements of an $(I AliasSeq) are automatically expanded
+        when it is referenced in a declaration or expression.
+        An $(I AliasSeq) can be
+        $(DDSUBLINK articles/ctarguments, auto-expansion, used as arguments)
+        to instantiate a template.
+    )
+
+$(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
+
     $(UL
     $(LI An $(I AliasSeq) whose elements consist entirely of types is
         called a type sequence or $(I TypeSeq).)
@@ -854,10 +864,7 @@ $(GNAME TemplateSequenceParameter):
     $(LI `typeof` can be used on a *ValueSeq* to obtain a *TypeSeq*.)
     )
 
-    $(P The elements of an $(I AliasSeq) are automatically expanded
-        when it is referenced in a declaration or expression.
-        An $(I AliasSeq) can be used as arguments to instantiate a
-        template. A *ValueSeq* can be used as arguments to call a
+    $(P A *ValueSeq* can be used as arguments to call a
         function:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -904,6 +911,12 @@ $(GNAME TemplateSequenceParameter):
         $(DDSUBLINK articles/ctarguments, type-seq-instantiation, declare variables).
         Parameters or variables declared with a *TypeSeq* are called an
         *lvalue sequence*.)
+    $(UL
+        $(LI `.tupleof` can be $(DDSUBLINK spec/class, class_properties, used on a class)
+            or struct instance to obtain an lvalue sequence of its fields.)
+        $(LI `.tupleof` can be used on a static array instance to obtain an lvalue
+            sequence of its elements.)
+    )
 
 $(H4 $(LNAME2 seq-ops, Sequence Operations))
 
