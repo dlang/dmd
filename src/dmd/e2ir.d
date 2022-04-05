@@ -4849,10 +4849,42 @@ extern (C++) class ToElemVisitor : Visitor
              * GC heap may be allocated. However, currently it's implemented
              * to return null for 0 length.
              */
-            if (dim)
-                e = el_combine(e, ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis));
 
-            e = el_combine(e, el_var(stmp));
+            if (dim)
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=22864
+                 *
+                 * We need to first execute the initializers of the array and then
+                 * allocate memory for the dynamic array. Otherwise,
+                 * if we first allocate and then emplace the initialziers
+                 * the GC will try to destroy uninitialized memory if any of the
+                 * initializers throw.
+                 *
+                 * This code generates:
+                 *
+                 *  S slot[N];
+                 *  slot[0] = ale.elements[0]
+                 *  slot[1] = ale.elements[1]
+                 *  ....
+                 *  slot[N-1] = ale.elelents[N-1]
+                 *  void* mem = _d_arrayliteralTX(ti, dim)
+                 *  memcpy(mem, slot.ptr, N*sizeof(S))
+                 *
+                 * If any of the array initializers throw, the call to _d_arrayliteralTX
+                 * will not be performed anymore.
+                 */
+
+                Symbol *stmp2;
+                e = el_combine(ExpressionsToStaticArray(ale.loc, ale.elements, &stmp2, 0, ale.basis), e);
+                auto size = dim * ale.type.nextOf().size();
+                auto nbytes = el_long(TYsize_t, size);
+                elem *emem = el_bin(OPmemcpy, TYnptr, el_var(stmp), el_param(el_ptr(stmp2), nbytes));
+                e = el_combine(e, emem);
+            }
+            else
+            {
+                e = el_combine(e, el_var(stmp));
+            }
         }
         else
         {
