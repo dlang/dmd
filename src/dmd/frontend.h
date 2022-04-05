@@ -3528,28 +3528,90 @@ class TypeFunction final : public TypeNext
 public:
     ParameterList parameterList;
 private:
-    enum class FunctionFlag : uint32_t
+    struct BitFields final
     {
-        none = 0u,
-        isnothrow = 1u,
-        isnogc = 2u,
-        isproperty = 4u,
-        isref = 8u,
-        isreturn = 16u,
-        isScopeQual = 32u,
-        isreturninferred = 64u,
-        isscopeinferred = 128u,
-        islive = 256u,
-        incomplete = 512u,
-        isInOutParam = 1024u,
-        isInOutQual = 2048u,
-        isctor = 4096u,
-        isreturnscope = 8192u,
+        bool isnothrow;
+        bool isnogc;
+        bool isproperty;
+        bool isref;
+        bool isreturn;
+        bool isScopeQual;
+        bool isreturninferred;
+        bool isscopeinferred;
+        bool islive;
+        bool incomplete;
+        bool isInOutParam;
+        bool isInOutQual;
+        bool isctor;
+        bool isreturnscope;
+        BitFields() :
+            isnothrow(),
+            isnogc(),
+            isproperty(),
+            isref(),
+            isreturn(),
+            isScopeQual(),
+            isreturninferred(),
+            isscopeinferred(),
+            islive(),
+            incomplete(),
+            isInOutParam(),
+            isInOutQual(),
+            isctor(),
+            isreturnscope()
+        {
+        }
+        BitFields(bool isnothrow, bool isnogc = false, bool isproperty = false, bool isref = false, bool isreturn = false, bool isScopeQual = false, bool isreturninferred = false, bool isscopeinferred = false, bool islive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isctor = false, bool isreturnscope = false) :
+            isnothrow(isnothrow),
+            isnogc(isnogc),
+            isproperty(isproperty),
+            isref(isref),
+            isreturn(isreturn),
+            isScopeQual(isScopeQual),
+            isreturninferred(isreturninferred),
+            isscopeinferred(isscopeinferred),
+            islive(islive),
+            incomplete(incomplete),
+            isInOutParam(isInOutParam),
+            isInOutQual(isInOutQual),
+            isctor(isctor),
+            isreturnscope(isreturnscope)
+            {}
     };
 
 public:
+    bool isnothrow() const;
+    bool isnothrow(bool v);
+    bool isnogc() const;
+    bool isnogc(bool v);
+    bool isproperty() const;
+    bool isproperty(bool v);
+    bool isref() const;
+    bool isref(bool v);
+    bool isreturn() const;
+    bool isreturn(bool v);
+    bool isScopeQual() const;
+    bool isScopeQual(bool v);
+    bool isreturninferred() const;
+    bool isreturninferred(bool v);
+    bool isscopeinferred() const;
+    bool isscopeinferred(bool v);
+    bool islive() const;
+    bool islive(bool v);
+    bool incomplete() const;
+    bool incomplete(bool v);
+    bool isInOutParam() const;
+    bool isInOutParam(bool v);
+    bool isInOutQual() const;
+    bool isInOutQual(bool v);
+    bool isctor() const;
+    bool isctor(bool v);
+    bool isreturnscope() const;
+    bool isreturnscope(bool v);
+private:
+    uint16_t bitFields;
+public:
     LINK linkage;
-    FunctionFlag funcFlags;
     TRUST trust;
     PURE purity;
     int8_t inuse;
@@ -3565,36 +3627,6 @@ public:
     Type* addStorageClass(StorageClass stc);
     Type* substWildTo(uint32_t _param_0);
     MATCH constConv(Type* to);
-    bool none() const;
-    void none(bool v);
-    bool isnothrow() const;
-    void isnothrow(bool v);
-    bool isnogc() const;
-    void isnogc(bool v);
-    bool isproperty() const;
-    void isproperty(bool v);
-    bool isref() const;
-    void isref(bool v);
-    bool isreturn() const;
-    void isreturn(bool v);
-    bool isScopeQual() const;
-    void isScopeQual(bool v);
-    bool isreturninferred() const;
-    void isreturninferred(bool v);
-    bool isscopeinferred() const;
-    void isscopeinferred(bool v);
-    bool islive() const;
-    void islive(bool v);
-    bool incomplete() const;
-    void incomplete(bool v);
-    bool isInOutParam() const;
-    void isInOutParam(bool v);
-    bool isInOutQual() const;
-    void isInOutQual(bool v);
-    bool isctor() const;
-    void isctor(bool v);
-    bool isreturnscope() const;
-    void isreturnscope(bool v);
     bool iswild() const;
     bool attributesEqual(const TypeFunction* const other) const;
     void accept(Visitor* v);
@@ -5762,11 +5794,6 @@ public:
     enum : uint32_t { AdrOnStackNone = 4294967295u };
 
     uint32_t ctfeAdrOnStack;
-private:
-    uint16_t bitFields;
-public:
-    int8_t canassign;
-    uint8_t isdataseg;
     bool isargptr() const;
     bool isargptr(bool v);
     bool ctorinit() const;
@@ -5789,6 +5816,11 @@ public:
     bool doNotInferReturn(bool v);
     bool isArgDtorVar() const;
     bool isArgDtorVar(bool v);
+private:
+    uint16_t bitFields;
+public:
+    int8_t canassign;
+    uint8_t isdataseg;
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
     VarDeclaration* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion);
