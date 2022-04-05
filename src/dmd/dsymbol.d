@@ -957,14 +957,7 @@ extern (C++) class Dsymbol : ASTNode
                 TemplateInstance ti = st.isTemplateInstance();
                 sm = s.search(loc, ti.name);
                 if (!sm)
-                {
-                    sm = s.search_correct(ti.name);
-                    if (sm)
-                        .error(loc, "template identifier `%s` is not a member of %s `%s`, did you mean %s `%s`?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
-                    else
-                        .error(loc, "template identifier `%s` is not a member of %s `%s`", ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
-                }
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
