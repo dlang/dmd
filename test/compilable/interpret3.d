@@ -2473,12 +2473,12 @@ static assert(checkPass("foobar") == 1);
 
 struct Toq
 {
-    const(char)* m;
+    char* m;
 }
 
 Toq ptrRet(bool b)
 {
-    string x = "abc";
+    char[] x = "abc".dup;
     return Toq(b ? x[0 .. 1].ptr : null);
 }
 

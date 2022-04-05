@@ -1331,6 +1331,10 @@ private bool hasNonConstPointers(Expression e)
     }
     if (auto ae = e.isAddrExp())
     {
+        if (ae.type.nextOf().isImmutable() || ae.type.nextOf().isConst())
+        {
+            return false;
+        }
         if (auto se = ae.e1.isStructLiteralExp())
         {
             if (!(se.stageflags & stageSearchPointers))
