@@ -2117,10 +2117,13 @@ abstract final class Scheduler
 
             /// Stores whether the current build is stopping because some step failed
             static shared bool aborting;
+            if (atomicLoad(aborting))
+                return; // Abort but let other jobs finish
+
             scope (failure) atomicStore(aborting, true);
 
-            // Build the current rule unless another one failed
-            if (!atomicLoad(aborting) && target.run(depUpdated))
+            // Build the current rule
+            if (target.run(depUpdated))
             {
                 // Propagate that this rule's targets were (re)built
                 foreach (parent; requiredBy)
