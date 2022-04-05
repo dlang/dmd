@@ -1218,7 +1218,8 @@ class Outer
         }
     }
 }
-
+---
+---
 void func()
 {
     int m;
@@ -1254,7 +1255,8 @@ class Outer
         }
     }
 }
-
+---
+---
 void func()
 {
     int m;
@@ -1284,6 +1286,7 @@ if it is nested inside a class.)
         A non-static nested class can only be instantiated when the necessary
         context pointer information is available:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class Outer
 {
@@ -1292,17 +1295,30 @@ class Outer
     static class SInner { }
 }
 
-void func()
+void main()
+{
+    Outer o = new Outer;        // Ok
+    //Outer.Inner oi = new Outer.Inner; // Error, no 'this' for Outer
+    Outer.SInner os = new Outer.SInner; // Ok
+}
+---
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void main()
 {
     class Nested { }
 
-    Outer o = new Outer;        // Ok
-    Outer.Inner oi = new Outer.Inner;   // Error, no 'this' for Outer
-    Outer.SInner os = new Outer.SInner; // Ok
-
     Nested n = new Nested;      // Ok
+
+    static f()
+    {
+        //Nested sn = new Nested; // Error, no 'this' for Nested
+    }
 }
 ------
+)
 
 $(H3 $(LNAME2 nested-explicit, Explicit Instantiation))
 
@@ -1310,6 +1326,7 @@ $(H3 $(LNAME2 nested-explicit, Explicit Instantiation))
         inner class instance by prefixing it to the $(I NewExpression):
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 class Outer
 {
@@ -1324,14 +1341,15 @@ class Outer
     }
 }
 
-int bar()
+void main()
 {
     Outer o = new Outer;
     o.a = 3;
-    Outer.Inner oi = $(CODE_HIGHLIGHT o).new Inner;
-    return oi.foo();    // returns 3
+    Outer.Inner oi = o.new Inner;
+    assert(oi.foo() == 3);
 }
 ---------
+)
 
         $(P Here $(D o) supplies the `this` reference to the inner class
         instance of $(D Outer).
@@ -1339,11 +1357,10 @@ int bar()
 
 $(H3 $(LNAME2 outer-property, `outer` Property))
 
-        $(P For a nested class instance, the $(D .outer) property is the
-        $(D this) reference for the enclosing class's instance. If there
-        is no enclosing class context, $(D .outer) would be a $(D void*)
-        to the enclosing function frame.
-        )
+        $(P For a nested class instance, the $(D .outer) property provides
+        the $(D this) reference of the enclosing class's instance.
+        If there is no accessible parent class instance, the property
+        provides a $(D void*) to the enclosing function frame.)
 
 ----
 class Outer
@@ -1361,7 +1378,11 @@ class Outer
         Inner1 i = new Inner1;
         assert(i.getOuter() is this);
     }
-
+}
+---
+---
+class Outer
+{
     void bar()
     {
         // x is referenced from nested scope, so
@@ -1383,7 +1404,11 @@ class Outer
         Inner2 i = new Inner2;
         assert(i.getOuter() is this);
     }
-
+}
+---
+---
+class Outer
+{
     // baz cannot access an instance of Outer
     static void baz()
     {
