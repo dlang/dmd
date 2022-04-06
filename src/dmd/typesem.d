@@ -3619,8 +3619,10 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 e.error("`%s` is not an expression", e.toChars());
                 return ErrorExp.get();
             }
-            else if (checkUnsafeDotExp(sc, e, ident, flag))
+            else if (mt.dim.toUInteger() < 1 && checkUnsafeDotExp(sc, e, ident, flag))
             {
+                // .ptr on static array is @safe unless size is 0
+                // https://issues.dlang.org/show_bug.cgi?id=20853
                 return ErrorExp.get();
             }
             e = e.castTo(sc, e.type.nextOf().pointerTo());
