@@ -906,8 +906,8 @@ void main()
 $(H4 $(LNAME2 front-seq, Multiple Element Values))
 
     $(P Multiple loop variables are allowed if the `front` property returns a type that
-        expands to an $(DDSUBLINK spec/template, variadic-templates, expression sequence)
-        whose size matches the number of variables. Each variable is assigned
+        expands to a $(DDSUBLINK spec/template, homogeneous_sequences, value sequence)
+        whose length matches the number of variables. Each variable is assigned
         to the corresponding value in the sequence.
     )
 
@@ -919,11 +919,10 @@ $(H4 $(LNAME2 front-seq, Multiple Element Values))
             alias items this; // decay to a value sequence
         }
 
-        // Infinite range whose element is a fixed tuple
+        // Infinite range with a repeating element, which is a tuple
         struct TupleRange
         {
             enum front = Tuple!(char, bool, int)('a', true, 2);
-
             enum bool empty = false;
 
             void popFront() {}
@@ -1076,19 +1075,20 @@ hi has type string
 
 $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
-        $(P $(D ref) can be used to update the original elements for some
-        kinds of container. Arrays support this:
+        $(P $(D ref) can be used to modify the elements of the *ForeachAggregate*.
+        This works for containers that expose lvalue elements, and
+        $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequences).
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     --------------
     uint[2] a = [7, 8];
 
-    foreach (ref uint u; a)
+    foreach (ref u; a)
     {
         u++;
     }
-    foreach (uint u; a)
+    foreach (u; a)
     {
         writeln(u);
     }
