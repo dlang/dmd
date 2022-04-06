@@ -184,8 +184,8 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 class Foo { int x; long y; }
 
-static assert(Foo.tupleof[0].stringof == "x");
-static assert(typeof(Foo.tupleof).stringof == `(int, long)`);
+static assert(__traits(identifier, Foo.tupleof[0]) == "x");
+static assert(is(typeof(Foo.tupleof)[1] == long));
 
 void main()
 {
