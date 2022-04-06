@@ -2024,7 +2024,10 @@ extern (C++) class ToElemVisitor : Visitor
             elem *es2 = toElem(ie.e2, irs);
             es2 = addressElem(es2, ie.e2.type);
             e = el_param(es1, es2);
-            elem *ecount = el_long(TYsize_t, t1.size());
+            elem *ecount;
+            // In case of `real`, don't compare padding bits
+            // https://issues.dlang.org/show_bug.cgi?id=3632
+            ecount = el_long(TYsize_t, (t1.ty == TY.Tfloat80) ? (t1.size() - target.realpad) : t1.size());
             e = el_bin(OPmemcmp, TYint, e, ecount);
             e = el_bin(eop, TYint, e, el_long(TYint, 0));
             elem_setLoc(e, ie.loc);
@@ -3881,7 +3884,6 @@ extern (C++) class ToElemVisitor : Visitor
                 e = el_una(OPbool, ttym, e);
                 return Lret(ce, e);
             }
-
             default:
                 break;
         }
