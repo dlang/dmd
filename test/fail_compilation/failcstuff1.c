@@ -46,7 +46,6 @@ fail_compilation/failcstuff1.c(504): Error: found `;` when expecting `)`
 fail_compilation/failcstuff1.c(505): Error: `=`, `;` or `,` expected to end declaration instead of `int`
 fail_compilation/failcstuff1.c(551): Error: missing comma or semicolon after declaration of `pluto`, found `p` instead
 fail_compilation/failcstuff1.c(601): Error: `=`, `;` or `,` expected to end declaration instead of `'s'`
-fail_compilation/failcstuff1.c(605): Error: invalid flag for line marker directive
 ---
 */
 
@@ -159,7 +158,3 @@ int * pluto p;
 #line 600
 
 char c22909 = u8's';
-
-/****************************************************/
-
-#650 "fail_compilation/failcstuff1.c" invalid

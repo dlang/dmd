@@ -296,6 +296,8 @@ struct Global
 
     FileManager* fileManager;
 
+    FileName (*preprocess)(FileName);
+
     /* Start gagging. Return the current number of gagged errors
      */
     unsigned startGagging();

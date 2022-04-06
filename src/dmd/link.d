@@ -33,9 +33,22 @@ import dmd.target;
 import dmd.vsoptions;
 
 version (Posix) extern (C) int pipe(int*);
-version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);
-version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*, const char*);
-version (Windows) extern (C) int spawnv(int, const char*, const char**);
+
+version (Windows)
+{
+    /* https://www.digitalmars.com/rtl/process.html#_spawn
+     * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/spawnvp-wspawnvp?view=msvc-170
+     */
+    extern (C)
+    {
+        int spawnlp(int, const char*, const char*, const char*, const char*);
+        int spawnl(int, const char*, const char*, const char*, const char*);
+        int spawnv(int, const char*, const char**);
+        int spawnvp(int, const char*, const char**);
+        enum _P_WAIT = 0;
+    }
+}
+
 // Workaround lack of 'vfork' in older druntime binding for non-Glibc
 version (Posix) extern(C) pid_t vfork();
 version (CRuntime_Microsoft)
@@ -996,6 +1009,98 @@ public int runProgram()
                 });
             return -1;
         }
+        waitpid(childpid, &status, 0);
+        if (WIFEXITED(status))
+        {
+            status = WEXITSTATUS(status);
+            //printf("--- errorlevel %d\n", status);
+        }
+        else if (WIFSIGNALED(status))
+        {
+            error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
+            status = 1;
+        }
+        return status;
+    }
+    else
+    {
+        assert(0);
+    }
+}
+
+/***************************************
+ * Run the C preprocessor.
+ * Params:
+ *    cpp = name of C preprocessor program
+ *    filename = C source file name
+ *    output = preprocessed output file name
+ * Returns:
+ *    exit status.
+ */
+public int runPreprocessor(string cpp, const(char)[] filename, const(char)[] output)
+{
+    //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
+    if (global.params.verbose)
+    {
+        OutBuffer buf;
+        buf.writestring(cpp);
+        buf.writeByte(' ');
+        buf.writestring(filename);
+        buf.writeByte(' ');
+        buf.writestring(output);
+        message(buf.peekChars());
+    }
+
+    version (Windows)
+    {
+        // Build argv[]
+        Strings argv;
+        if (target.objectFormat() == Target.ObjectFormat.coff)
+        {
+            argv.push("cl".ptr);            // null terminated copy
+            argv.push("/P".ptr);            // preprocess only
+            argv.push("/nologo".ptr);       // don't print logo
+            argv.push(filename.xarraydup.ptr);   // and the input
+            argv.push(null);                     // argv[] always ends with a null
+            // spawnlp returns intptr_t in some systems, not int
+            return spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+        }
+        else if (target.objectFormat() == Target.ObjectFormat.omf)
+        {
+            argv.push("sppn".xarraydup.ptr);     // Digital Mars C preprocessor
+            argv.push(filename.xarraydup.ptr);   // and the input file
+            argv.push(null);                     // argv[] always ends with a null
+            // spawnlp returns intptr_t in some systems, not int
+            return spawnvp(_P_WAIT, "sppn".ptr, argv.tdata());
+        }
+        else
+        {
+            assert(0);
+        }
+    }
+    else version (Posix)
+    {
+        // Build argv[]
+        Strings argv;
+        argv.push(cpp.xarraydup.ptr);       // null terminated copy
+        argv.push(filename.xarraydup.ptr);  // and the input
+        if (target.os == Target.OS.FreeBSD)
+            argv.push("-o");                // specify output file
+        argv.push(output.xarraydup.ptr);    // and the output
+        argv.push(null);                    // argv[] always ends with a null
+
+        pid_t childpid = fork();
+        if (childpid == 0)
+        {
+            const(char)[] fn = argv[0].toDString();
+            fn.toCStringThen!((fnp) {
+                    execvp(fnp.ptr, argv.tdata());
+                    // If execv returns, it failed to execute
+                    perror(fnp.ptr);
+                });
+            return -1;
+        }
+        int status;
         waitpid(childpid, &status, 0);
         if (WIFEXITED(status))
         {

@@ -14,7 +14,7 @@ void assert(int b, int line)
 
 /*********************************************/
 
-static void dummy() { } // so staticFunc() isn't at offset 0
+static void dummy() { } /* so staticFunc() is not at offset 0 */
 
 static int staticFunc(int i) { return i * 2; }
 
