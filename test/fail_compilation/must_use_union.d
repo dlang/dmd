@@ -14,4 +14,3 @@ void test()
 {
     fun();
 }
-

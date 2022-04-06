@@ -15,4 +15,3 @@ void test()
 {
     (fun(), sideEffect());
 }
-
