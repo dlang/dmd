@@ -794,6 +794,15 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
 
         Dsymbol p = v.toParent2();
 
+        if (vaIsFirstRef && v.isParameter() &&
+            !(v.storage_class & STC.return_) &&
+            fd.flags & FUNCFLAG.returnInprocess &&
+            p == fd)
+        {
+            //if (log) printf("inferring 'return' for parameter %s in function %s\n", v.toChars(), fd.toChars());
+            inferReturn(fd, v, /*returnScope:*/ false);
+        }
+
         // If va's lifetime encloses v's, then error
         if (va &&
             !(vaIsFirstRef && (v.storage_class & STC.return_)) &&
