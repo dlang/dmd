@@ -171,11 +171,11 @@ void test(Foo foo)
 }
 ------
 
-$(H2 $(LNAME2 class_properties, Class Instance Properties))
+$(H2 $(LNAME2 class_properties, Class Properties))
 
         $(P The $(D .tupleof) property is an
-        $(DDSUBLINK spec/template, variadic-templates, expression sequence)
-        of all the fields in the class, excluding the hidden fields and
+        $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
+        of all the non-static fields in the class, excluding the hidden fields and
         the fields in the base class.)
         $(NOTE `.tupleof` is not available for `extern(Objective-C)` classes due to
         their fields having a dynamic offset.
@@ -184,19 +184,30 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 class Foo { int x; long y; }
 
+static assert(__traits(identifier, Foo.tupleof[0]) == "x");
+static assert(is(typeof(Foo.tupleof)[1] == long));
+
 void main()
 {
-    auto foo = new Foo;
     import std.stdio;
-    static assert(typeof(foo.tupleof).stringof == `(int, long)`);
 
+    auto foo = new Foo;
     foo.tupleof[0] = 1; // set foo.x to 1
     foo.tupleof[1] = 2; // set foo.y to 2
-    foreach (x; foo.tupleof)
-        write(x);       // prints 12
+    foreach (ref x; foo.tupleof)
+        x++;
+    assert(foo.x == 2);
+    assert(foo.y == 3);
+
+    auto bar = new Foo;
+    bar.tupleof = foo.tupleof; // copy fields
+    assert(bar.x == 2);
+    assert(bar.y == 3);
 }
 ---
 )
+
+$(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
 
         $(P The $(RELATIVE_LINK2 outer-property, `.outer` property) for
         a nested class instance provides either the parent class instance,
