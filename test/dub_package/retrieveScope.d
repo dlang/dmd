@@ -63,8 +63,8 @@ int main()
 {
     auto dmdParentDir = dirName(dirName(dirName(__FILE_FULL_PATH__)));
     global.path = new Strings();
-    global.path.push((dmdParentDir ~ "/phobos").ptr);
-    global.path.push((dmdParentDir ~ "/druntime/import").ptr);
+    global.path.push((dmdParentDir ~ "/phobos\0").ptr);
+    global.path.push((dmdParentDir ~ "/druntime/import\0").ptr);
 
     /* comment for error output in parsing & semantic */
     diagnosticHandler = (const ref Loc location,
@@ -78,7 +78,7 @@ int main()
     initDMD(diagnosticHandler);
 
     Strings libmodules;
-    Module m = createModule((dirName(__FILE_FULL_PATH__) ~ "/testfiles/correct.d").ptr,
+    Module m = createModule((dirName(__FILE_FULL_PATH__) ~ "/testfiles/correct.d\0").ptr,
                                 libmodules);
     m.importedFrom = m; // m.isRoot() == true
 

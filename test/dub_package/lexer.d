@@ -17,8 +17,8 @@ void main()
         TOK.rightCurly
     ];
 
-    immutable sourceCode = "void test() {} // foobar";
-    scope lexer = new Lexer("test", sourceCode.ptr, 0, sourceCode.length, 0, 0);
+    immutable sourceCode = "void test() {} // foobar\0\0\0\0";
+    scope lexer = new Lexer("test", sourceCode.ptr, 0, sourceCode.length - 4, 0, 0);
     lexer.nextToken;
 
     TOK[] result;

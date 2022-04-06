@@ -398,7 +398,8 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     {
         import dmd.root.filename : FileName;
 
-        auto fb = new FileBuffer(cast(ubyte[]) code.dup ~ '\0');
+        auto buf = cast(ubyte[]) (code.dup ~ "\0\0\0\0");
+        auto fb = new FileBuffer(buf[0 .. $-4]);
         global.fileManager.add(FileName(fileName), fb);
         m.src = fb.data;
     }

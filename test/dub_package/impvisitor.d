@@ -73,6 +73,7 @@ extern(C++) class ImportVisitor(AST) : PermissiveVisitor!AST
 void main()
 {
     import std.stdio;
+    import std.string : toStringz;
     import std.file;
     import std.path : buildPath, dirName;
 
@@ -104,8 +105,11 @@ void main()
         ASTBase.Type._init();
 
         auto id = Identifier.idPool(fn);
-        auto m = new ASTBase.Module(&(fn.dup)[0], id, false, false);
-        auto input = readText(fn);
+        auto m = new ASTBase.Module(fn.toStringz, id, false, false);
+        auto file = File(fn, "rb");
+        // Create a buffer with four '\0' past the end for lexer
+        auto input = cast(char[]) new ubyte[cast(size_t) file.size() + 4];
+        input = file.rawRead(input);
 
         //writeln("Started parsing...");
         scope p = new Parser!ASTBase(m, input, false);

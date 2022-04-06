@@ -98,7 +98,8 @@ class Lexer
      *
      * Params:
      *  filename = used for error messages
-     *  base = source code, must be terminated by a null (0) or EOF (0x1A) character
+     *  base = source code, must be terminated by a null (0) or EOF (0x1A) plus 3 characters
+               because the skipping 4 spaces optimization. (e.g. source ~ "\0\0\0\0")
      *  begoffset = starting offset into base[]
      *  endoffset = the last offset to read into base[]
      *  doDocComment = handle documentation comments
