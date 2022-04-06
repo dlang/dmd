@@ -207,6 +207,8 @@ void main()
 ---
 )
 
+$(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
+
         $(P The $(RELATIVE_LINK2 outer-property, `.outer` property) for
         a nested class instance provides either the parent class instance,
         or the parent function's context pointer when there is no parent
