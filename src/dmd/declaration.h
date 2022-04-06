@@ -28,6 +28,7 @@ struct Ensure
 class FuncDeclaration;
 class StructDeclaration;
 struct IntRange;
+struct AttributeViolation;
 
 //enum STC : ulong from astenums.d:
 
@@ -611,6 +612,10 @@ public:
     FuncDeclarations siblingCallers;
 
     FuncDeclarations *inlinedNestedCallees;
+
+private:
+    AttributeViolation* safetyViolation;
+public:
 
     unsigned flags;                     // FUNCFLAGxxxxx
 
