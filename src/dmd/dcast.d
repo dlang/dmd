@@ -1107,6 +1107,10 @@ MATCH implicitConvTo(Expression e, Type t)
 
     MATCH visitCond(CondExp e)
     {
+        auto result = visit(e);
+        if (result != MATCH.nomatch)
+            return result;
+
         MATCH m1 = e.e1.implicitConvTo(t);
         MATCH m2 = e.e2.implicitConvTo(t);
         //printf("CondExp: m1 %d m2 %d\n", m1, m2);
