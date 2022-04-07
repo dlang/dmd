@@ -2281,10 +2281,7 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
         return null;
     }
 
-    Type t = o.isType();
-    Expression e = t ? t.typeToExpression() : o.isExpression();
-
-    return (!e && t) ? t : e;
+    return o;
 }
 
 

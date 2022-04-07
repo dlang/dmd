@@ -800,6 +800,22 @@ extern (C++) class Dsymbol : ASTNode
             if (isAliasDeclaration() && !_scope)
                 setScope(sc);
             Dsymbol s2 = sds.symtabLookup(this,ident);
+            /* https://issues.dlang.org/show_bug.cgi?id=17434
+             *
+             * If we are trying to add an import to the symbol table
+             * that has already been introduced, then keep the one with
+             * larger visibility. This is fine for imports because if
+             * we have multiple imports of the same file, if a single one
+             * is public then the symbol is reachable.
+             */
+            if (auto i1 = isImport())
+            {
+                if (auto i2 = s2.isImport())
+                {
+                    if (sc.explicitVisibility && sc.visibility > i2.visibility)
+                        sds.symtab.update(this);
+                }
+            }
 
             // If using C tag/prototype/forward declaration rules
             if (sc.flags & SCOPE.Cfile && !this.isImport())
@@ -933,14 +949,7 @@ extern (C++) class Dsymbol : ASTNode
                 TemplateInstance ti = st.isTemplateInstance();
                 sm = s.search(loc, ti.name);
                 if (!sm)
-                {
-                    sm = s.search_correct(ti.name);
-                    if (sm)
-                        .error(loc, "template identifier `%s` is not a member of %s `%s`, did you mean %s `%s`?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
-                    else
-                        .error(loc, "template identifier `%s` is not a member of %s `%s`", ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
-                }
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
