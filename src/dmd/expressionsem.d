@@ -56,6 +56,7 @@ import dmd.initsem;
 import dmd.inline;
 import dmd.intrange;
 import dmd.mtype;
+import dmd.mustuse;
 import dmd.nspace;
 import dmd.opover;
 import dmd.optimize;
@@ -8177,7 +8178,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
 
         if (e.type is Type.tvoid)
+        {
+            checkMustUse(e.e1, sc);
             discardValue(e.e1);
+        }
         else if (!e.allowCommaExp && !e.isGenerated)
             e.error("Using the result of a comma expression is not allowed");
     }

@@ -8398,6 +8398,7 @@ struct Id final
     static Identifier* udaGNUAbiTag;
     static Identifier* udaSelector;
     static Identifier* udaOptional;
+    static Identifier* udaMustUse;
     static Identifier* TRUE;
     static Identifier* FALSE;
     static Identifier* dllimport;

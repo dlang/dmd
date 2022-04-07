@@ -51,6 +51,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
 import dmd.mtype;
+import dmd.mustuse;
 import dmd.nogc;
 import dmd.nspace;
 import dmd.objc;
@@ -2046,6 +2047,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         ed.semanticRun = PASS.semantic;
         UserAttributeDeclaration.checkGNUABITag(ed, sc.linkage);
+        checkMustUseReserved(ed);
 
         if (!ed.members && !ed.memtype) // enum ident;
         {
@@ -3056,6 +3058,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcdecl.visibility = sc.visibility;
         funcdecl.userAttribDecl = sc.userAttribDecl;
         UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl.linkage);
+        checkMustUseReserved(funcdecl);
 
         if (!funcdecl.originalType)
             funcdecl.originalType = funcdecl.type.syntaxCopy();
@@ -4770,6 +4773,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         cldec.semanticRun = PASS.semantic;
         UserAttributeDeclaration.checkGNUABITag(cldec, sc.linkage);
+        checkMustUseReserved(cldec);
 
         if (cldec.baseok < Baseok.done)
         {
@@ -5475,6 +5479,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 idec.classKind = ClassKind.cpp;
             idec.cppnamespace = sc.namespace;
             UserAttributeDeclaration.checkGNUABITag(idec, sc.linkage);
+            checkMustUseReserved(idec);
 
             if (sc.linkage == LINK.objc)
                 objc.setObjc(idec);
