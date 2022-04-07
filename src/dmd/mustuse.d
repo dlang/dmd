@@ -66,17 +66,13 @@ bool checkMustUse(Expression e, Scope* sc)
  */
 void checkMustUseReserved(Dsymbol sym)
 {
+    import dmd.attrib : foreachUdaNoSemantic;
     import dmd.errors : error;
     import dmd.id : Id;
 
-    if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
-        return;
-
     // Can't use foreachUda (and by extension hasMustUseAttribute) while
     // semantic analysis of `sym` is still in progress
-    // TODO: factor out common code from this function and checkGNUABITag
-    foreach (exp; *sym.userAttribDecl.atts)
-    {
+    foreachUdaNoSemantic(sym, (exp) {
         if (isMustUseAttribute(exp))
         {
             if (sym.isFuncDeclaration())
@@ -92,7 +88,8 @@ void checkMustUseReserved(Dsymbol sym)
                 sym.errors = true;
             }
         }
-    }
+        return 0; // continue
+    });
 }
 
 /**
