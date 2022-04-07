@@ -6033,7 +6033,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto fileName = FileName(name.toDString);
             if (auto fmResult = global.fileManager.lookup(fileName))
             {
-                se = new StringExp(e.loc, fmResult.data);
+                se = new StringExp(e.loc, fmResult);
             }
             else
             {
@@ -6048,9 +6048,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // take ownership of buffer (probably leaking)
                     auto data = readResult.extractSlice();
                     se = new StringExp(e.loc, data);
-
-                    FileBuffer* fileBuffer = new FileBuffer(data);
-                    global.fileManager.add(fileName, fileBuffer);
+                    global.fileManager.add(fileName, data);
                 }
             }
         }
