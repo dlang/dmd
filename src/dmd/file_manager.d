@@ -22,7 +22,7 @@ enum package_di = "package." ~ hdr_ext;
 
 final class FileManager
 {
-    private StringTable!(FileBuffer*) files;
+    private StringTable!(const(ubyte)[]) files;
 
     ///
     public this () nothrow
@@ -146,7 +146,7 @@ nothrow:
      * Returns: the loaded source file if it was found in memory,
      *      otherwise `null`
      */
-    const(FileBuffer)* lookup(FileName filename)
+    const(ubyte)[] lookup(FileName filename)
     {
         const name = filename.toString;
         if (auto val = files.lookup(name))
@@ -154,7 +154,7 @@ nothrow:
 
         if (name == "__stdin.d")
         {
-            auto buffer = new FileBuffer(readFromStdin().extractSlice());
+            auto buffer = readFromStdin().extractSlice();
             if (this.files.insert(name, buffer) is null)
                 assert(0, "stdin: Insert after lookup failure should never return `null`");
             return buffer;
@@ -167,7 +167,7 @@ nothrow:
         if (!readResult.success)
             return null;
 
-        FileBuffer* fb = new FileBuffer(readResult.extractSlice());
+        auto fb = readResult.extractSlice();
         if (files.insert(name, fb) is null)
             assert(0, "Insert after lookup failure should never return `null`");
 
@@ -187,17 +187,17 @@ nothrow:
         const(char)[][] lines;
         if (const buffer = lookup(file))
         {
-            const slice = buffer.data[0 .. buffer.data.length];
+            const slice = buffer;
             size_t start, end;
-            ubyte c;
             for (auto i = 0; i < slice.length; i++)
             {
-                c = slice[i];
+                const c = slice[i];
                 if (c == '\n' || c == '\r')
                 {
                     if (i != 0)
                     {
                         end = i;
+                        // Appending lines one at a time will certainly be slow
                         lines ~= cast(const(char)[])slice[start .. end];
                     }
                     // Check for Windows-style CRLF newlines
@@ -234,13 +234,16 @@ nothrow:
     }
 
     /**
-     * Adds a FileBuffer to the table.
-     *
-     * Returns: The FileBuffer added, or null
+     * Adds the contents of a file to the table.
+     * Params:
+     *  filename = name of the file
+     *  buffer = contents of the file
+     * Returns:
+     *  the buffer added, or null
      */
-    FileBuffer* add(FileName filename, FileBuffer* filebuffer)
+    const(ubyte)[] add(FileName filename, const(ubyte)[] buffer)
     {
-        auto val = files.insert(filename.toString, filebuffer);
+        auto val = files.insert(filename.toString, buffer);
         return val == null ? null : val.value;
     }
 }

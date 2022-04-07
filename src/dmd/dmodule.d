@@ -664,7 +664,7 @@ extern (C++) final class Module : Package
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
         if (auto result = global.fileManager.lookup(srcfile))
         {
-            this.src = result.data;
+            this.src = result;
             if (global.params.emitMakeDeps)
                 global.params.makeDeps.push(srcfile.toChars());
             return true;
