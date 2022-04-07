@@ -130,18 +130,20 @@ Symbol *toSymbol(Dsymbol s)
             //printf("VarDeclaration.toSymbol(%s)\n", vd.toChars());
             assert(!vd.needThis());
 
-            const(char)[] id;
             import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             bool isNRVO = false;
+            const(char)[] id = vd.ident.toString();
             if (vd.isDataseg())
             {
-                mangleToBuffer(vd, &buf);
-                id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
+                if (!(vd.linkage == LINK.c && vd.isCsymbol() && vd.storage_class & STC.extern_))
+                {
+                    mangleToBuffer(vd, &buf);
+                    id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
+                }
             }
             else
             {
-                id = vd.ident.toString();
                 if (FuncDeclaration fd = vd.toParent2().isFuncDeclaration())
                 {
                     if (fd.isNRVO() && fd.nrvo_var == vd)
