@@ -112,12 +112,12 @@ struct Ungag
 {
     uint oldgag;
 
-    extern (D) this(uint old)
+    extern (D) this(uint old) nothrow
     {
         this.oldgag = old;
     }
 
-    extern (C++) ~this()
+    extern (C++) ~this() nothrow
     {
         global.gag = oldgag;
     }
@@ -1613,7 +1613,7 @@ public:
         return os;
     }
 
-    void importScope(Dsymbol s, Visibility visibility)
+    void importScope(Dsymbol s, Visibility visibility) nothrow
     {
         //printf("%s.ScopeDsymbol::importScope(%s, %d)\n", toChars(), s.toChars(), visibility);
         // No circular or redundant import's
@@ -1640,7 +1640,7 @@ public:
         }
     }
 
-    extern (D) final void addAccessiblePackage(Package p, Visibility visibility)
+    extern (D) final void addAccessiblePackage(Package p, Visibility visibility) nothrow
     {
         auto pary = visibility.kind == Visibility.Kind.private_ ? &privateAccessiblePackages : &accessiblePackages;
         if (pary.length <= p.tag)
@@ -1648,7 +1648,7 @@ public:
         (*pary)[p.tag] = true;
     }
 
-    bool isPackageAccessible(Package p, Visibility visibility, int flags = 0)
+    bool isPackageAccessible(Package p, Visibility visibility, int flags = 0) nothrow
     {
         if (p.tag < accessiblePackages.length && accessiblePackages[p.tag] ||
             visibility.kind == Visibility.Kind.private_ && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
@@ -1663,7 +1663,7 @@ public:
         return false;
     }
 
-    override final bool isforwardRef()
+    override final bool isforwardRef() nothrow
     {
         return (members is null);
     }
@@ -1751,7 +1751,7 @@ public:
      * Returns:
      *   null if already in table, `s` if inserted
      */
-    Dsymbol symtabInsert(Dsymbol s)
+    Dsymbol symtabInsert(Dsymbol s) nothrow
     {
         return symtab.insert(s);
     }
@@ -1764,7 +1764,7 @@ public:
      * Returns:
      *   Dsymbol if found, null if not
      */
-    Dsymbol symtabLookup(Dsymbol s, Identifier id)
+    Dsymbol symtabLookup(Dsymbol s, Identifier id) nothrow
     {
         return symtab.lookup(id);
     }
@@ -1847,7 +1847,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
 {
     WithStatement withstate;
 
-    extern (D) this(WithStatement withstate)
+    extern (D) this(WithStatement withstate) nothrow
     {
         this.withstate = withstate;
     }
@@ -1907,7 +1907,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
     private RootObject arrayContent;
     Scope* sc;
 
-    extern (D) this(Scope* sc, Expression exp)
+    extern (D) this(Scope* sc, Expression exp) nothrow
     {
         super(exp.loc, null);
         assert(exp.op == EXP.index || exp.op == EXP.slice || exp.op == EXP.array);
@@ -1915,13 +1915,13 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         this.arrayContent = exp;
     }
 
-    extern (D) this(Scope* sc, TypeTuple type)
+    extern (D) this(Scope* sc, TypeTuple type) nothrow
     {
         this.sc = sc;
         this.arrayContent = type;
     }
 
-    extern (D) this(Scope* sc, TupleDeclaration td)
+    extern (D) this(Scope* sc, TupleDeclaration td) nothrow
     {
         this.sc = sc;
         this.arrayContent = td;
@@ -2118,7 +2118,7 @@ extern (C++) final class OverloadSet : Dsymbol
 {
     Dsymbols a;     // array of Dsymbols
 
-    extern (D) this(Identifier ident, OverloadSet os = null)
+    extern (D) this(Identifier ident, OverloadSet os = null) nothrow
     {
         super(ident);
         if (os)
@@ -2127,7 +2127,7 @@ extern (C++) final class OverloadSet : Dsymbol
         }
     }
 
-    void push(Dsymbol s)
+    void push(Dsymbol s) nothrow
     {
         a.push(s);
     }
@@ -2161,12 +2161,13 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
      * Can be `null` before being lazily initialized.
      */
     ScopeDsymbol forward;
-    extern (D) this(ScopeDsymbol forward)
+    extern (D) this(ScopeDsymbol forward) nothrow
     {
         super(null);
         this.forward = forward;
     }
-    override Dsymbol symtabInsert(Dsymbol s)
+
+    override Dsymbol symtabInsert(Dsymbol s) nothrow
     {
         assert(forward);
         if (auto d = s.isDeclaration())
@@ -2197,7 +2198,7 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
      * and
      *     static foreach (i; [0]) { enum i = 2; }
      */
-    override Dsymbol symtabLookup(Dsymbol s, Identifier id)
+    override Dsymbol symtabLookup(Dsymbol s, Identifier id) nothrow
     {
         assert(forward);
         // correctly diagnose clashing foreach loop variables.
@@ -2228,7 +2229,7 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 
     override const(char)* kind()const{ return "local scope"; }
 
-    override inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout
+    override inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout nothrow
     {
         return this;
     }
@@ -2243,13 +2244,13 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
 extern (C++) final class ExpressionDsymbol : Dsymbol
 {
     Expression exp;
-    this(Expression exp)
+    this(Expression exp) nothrow
     {
         super();
         this.exp = exp;
     }
 
-    override inout(ExpressionDsymbol) isExpressionDsymbol() inout
+    override inout(ExpressionDsymbol) isExpressionDsymbol() inout nothrow
     {
         return this;
     }
@@ -2268,7 +2269,7 @@ extern (C++) final class AliasAssign : Dsymbol
     Dsymbol aliassym; /// replace previous RHS of AliasDeclaration with `aliassym`
                       /// only one of type and aliassym can be != null
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliassym)
+    extern (D) this(const ref Loc loc, Identifier ident, Type type, Dsymbol aliassym) nothrow
     {
         super(loc, null);
         this.ident = ident;
@@ -2307,6 +2308,8 @@ extern (C++) final class AliasAssign : Dsymbol
 extern (C++) final class DsymbolTable : RootObject
 {
     AssocArray!(Identifier, Dsymbol) tab;
+
+  nothrow:
 
    /***************************
     * Look up Identifier in symbol table
