@@ -255,27 +255,27 @@ extern (C++) class Dsymbol : ASTNode
     DeprecatedDeclaration depdecl;           // customized deprecation message
     UserAttributeDeclaration userAttribDecl;    // user defined attributes
 
-    final extern (D) this()
+    final extern (D) this() nothrow
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
         loc = Loc(null, 0, 0);
     }
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Identifier ident) nothrow
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.loc = Loc(null, 0, 0);
         this.ident = ident;
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(const ref Loc loc, Identifier ident) nothrow
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.loc = loc;
         this.ident = ident;
     }
 
-    static Dsymbol create(Identifier ident)
+    static Dsymbol create(Identifier ident) nothrow
     {
         return new Dsymbol(ident);
     }
@@ -1390,16 +1390,16 @@ private:
     BitArray accessiblePackages, privateAccessiblePackages;// whitelists of accessible (imported) packages
 
 public:
-    final extern (D) this()
+    final extern (D) this() nothrow
     {
     }
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Identifier ident) nothrow
     {
         super(ident);
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(const ref Loc loc, Identifier ident) nothrow
     {
         super(loc, ident);
     }

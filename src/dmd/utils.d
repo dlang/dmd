@@ -19,6 +19,7 @@ import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.string;
 
+nothrow:
 
 /**
  * Normalize path by turning forward slashes into backslashes

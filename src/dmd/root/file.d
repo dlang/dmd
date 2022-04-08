@@ -26,10 +26,14 @@ import dmd.root.string;
 import dmd.common.file;
 import dmd.common.string;
 
+nothrow:
+
 /// Owns a (rmem-managed) file buffer.
 struct FileBuffer
 {
     ubyte[] data;
+
+  nothrow:
 
     this(this) @disable;
 
