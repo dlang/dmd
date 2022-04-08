@@ -1540,14 +1540,14 @@ bool isCoreUda(Dsymbol sym, Identifier ident)
 /**
  * Iterates the UDAs attached to the given symbol.
  *
- * If `dg` returns `!= 0`, it will stop the iteration and return that
- * value, otherwise it will return 0.
- *
  * Params:
  *  sym = the symbol to get the UDAs from
  *  sc = scope to use for semantic analysis of UDAs
- *  dg = called once for each UDA. If `dg` returns `!= 0`, it will stop the
- *      iteration and return that value, otherwise it will return `0`.
+ *  dg = called once for each UDA
+ *
+ * Returns:
+ *  If `dg` returns `!= 0`, stops the iteration and returns that value.
+ *  Otherwise, returns 0.
  */
 int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
 {
@@ -1581,13 +1581,13 @@ int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
  * Use this function instead of `foreachUda` if semantic analysis of `sym` is
  * still in progress.
  *
- * If `dg` returns `!= 0`, it will stop the iteration and return that
- * value, otherwise it will return 0.
- *
  * Params:
  *  sym = the symbol to get the UDAs from
- *  dg = called once for each UDA. If `dg` returns `!= 0`, it will stop the
- *      iteration and return that value, otherwise it will return `0`.
+ *  dg = called once for each UDA
+ *
+ * Returns:
+ *  If `dg` returns `!= 0`, stops the iteration and returns that value.
+ *  Otherwise, returns 0.
  */
 int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
 {
