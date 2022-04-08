@@ -2122,7 +2122,7 @@ class Lexer
                 // can't translate invalid octal value, just show a generic message
                 error("octal literals larger than 7 are no longer supported");
             else
-                error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!%llo%.*s` instead",
+                error("octal literals `0%llo%.*s` are no longer supported, use `std.conv.octal!\"%llo%.*s\"` instead",
                     n, cast(int)(p - psuffix), psuffix, n, cast(int)(p - psuffix), psuffix);
         }
         TOK result;
