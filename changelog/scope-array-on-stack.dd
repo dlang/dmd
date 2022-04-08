@@ -1,0 +1,26 @@
+Array literals assigned to `scope` array variables are now allocated on the stack
+
+Formerly, they were always allocated with the Garbage Collector, making it unavailable in `@nogc` or `-betterC` code.
+This led to frequent use of the following workaround:
+
+---
+void main() @nogc
+{
+    int[3] buffer = [10, 20, 30];
+    int[] arr = buffer[];
+}
+---
+
+This can now be written in a single line:
+
+---
+void main() @nogc
+{
+    scope int[] arr = [10, 20, 30];
+}
+---
+
+This only applies to array elements that are Plain Old Data though, because proper destruction cannot be ensured when the array is not managed by the GC.
+
+Note: checking that a `scope` variable actually doesn't escape is only done in `@safe` code.
+In a `@system` function, it's your own risk when you corrupt memory by returning a `scope int[]`.

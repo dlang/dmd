@@ -3868,7 +3868,7 @@ elem* toElem(Expression e, IRState *irs)
         elem *e;
         if (dim > 0)
         {
-            if (tb.ty == Tsarray ||
+            if (ale.onstack || tb.ty == Tsarray ||
                 irs.Cfile && tb.ty == Tpointer)
             {
                 Symbol *stmp = null;
