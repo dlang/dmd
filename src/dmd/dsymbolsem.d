@@ -102,8 +102,12 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
  */
 extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
 {
+    import dmd.timetrace_sema;
     scope v = new DsymbolSemanticVisitor(sc);
-    dsym.accept(v);
+    scope vtimetrace = new SemanticTimeTraceVisitor!DsymbolSemanticVisitor(v);
+    dsym.accept(vtimetrace);
+    //scope v = new DsymbolSemanticVisitor(sc);
+    //dsym.accept(v);
 }
 
 /***************************************************

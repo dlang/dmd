@@ -225,6 +225,10 @@ extern (C++) struct Param
     const(char)[] resfile;
     const(char)[] exefile;
     const(char)[] mapfile;
+
+    bool timeTrace;
+    uint timeTraceGranularity = 500;
+    const(char)* timeTraceFile;
 }
 
 extern (C++) struct structalign_t

@@ -1537,9 +1537,9 @@ auto sourceFiles()
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d
             semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
-            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
-            transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
-            cparse.d
+            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d
+            timetrace_sema.d traits.d transitivevisitor.d typesem.d typinf.d utils.d
+            visitor.d foreachvar.d cparse.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
@@ -1567,7 +1567,7 @@ auto sourceFiles()
             rootobject.d stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            bitfields.d file.d int128.d outbuffer.d string.d
+            bitfields.d file.d int128.d outbuffer.d string.d timetrace.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h

@@ -335,6 +335,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.path = buildPath(params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
+    if (params.timeTrace)
+    {
+        import dmd.common.timetrace;
+        initializeTimeTrace(params.timeTraceGranularity, 0, argv[0]);
+    }
     // Create Modules
     Modules modules = createModules(files, libmodules, target);
     // Read files
@@ -607,7 +612,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             }
         }
     }
-
+    if (params.timeTrace)
+    {
+        import dmd.common.timetrace;
+        const s = params.timeTraceFile;
+        writeTimeTraceProfile(s ? "" : s);
+        deinitializeTimeTrace();
+    }
     // Output the makefile dependencies
     if (params.makeDeps.doOutput)
         emitMakeDeps(params);
@@ -1729,6 +1740,27 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-fPIE")
         {
             driverParams.pic = PIC.pie;
+        }
+        else if (arg == "--ftime-trace")
+            params.timeTrace = true;
+        else if (startsWith(p + 1, "--ftime-trace-granularity="))
+        {
+            enum len = "--ftime-trace-granularity".length;
+            // Parse:
+            //      -gdwarf=version
+            if (arg.length < len || !params.timeTraceGranularity.parseDigits(arg[len .. $]))
+            {
+                error("`--ftime-trace-granularity` requires a positive number of microseconds", p);
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "--ftime-trace-file="))
+        {
+            enum l = "--ftime-trace-file=".length;
+            auto tmp = p + l + 1;
+            if (!tmp[0])
+                goto Lnoarg;
+            params.timeTraceFile = mem.xstrdup(tmp);
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
             driverParams.map = true;

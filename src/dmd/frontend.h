@@ -574,6 +574,9 @@ struct Param final
     _d_dynamicArray< const char > resfile;
     _d_dynamicArray< const char > exefile;
     _d_dynamicArray< const char > mapfile;
+    bool timeTrace;
+    uint32_t timeTraceGranularity;
+    const char* timeTraceFile;
     Param() :
         obj(true),
         multiobj(),
@@ -670,7 +673,10 @@ struct Param final
         deffile(),
         resfile(),
         exefile(),
-        mapfile()
+        mapfile(),
+        timeTrace(),
+        timeTraceGranularity(500u),
+        timeTraceFile()
     {
     }
     Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool fixImmutableConv = false, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = true, bool fixAliasThis = false, bool inclusiveInContracts = false, bool ehnogc = false, FeatureState dtorFields = (FeatureState)-1, bool fieldwise = false, bool bitfields = false, FeatureState rvalueRefParam = (FeatureState)-1, CppStdRevision cplusplus = (CppStdRevision)201103u, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
@@ -774,7 +780,10 @@ struct Param final
         deffile(deffile),
         resfile(resfile),
         exefile(exefile),
-        mapfile(mapfile)
+        mapfile(mapfile),
+        timeTrace(timeTrace),
+        timeTraceGranularity(timeTraceGranularity),
+        timeTraceFile(timeTraceFile)
         {}
 };
 
@@ -8076,6 +8085,18 @@ extern _d_real creall(complex_t x);
 extern _d_real cimagl(complex_t x);
 
 extern void browse(const char* url);
+
+extern void initializeTimeTrace(uint32_t timeGranularity, uint32_t memoryGranularity, const char* processName);
+
+extern void deinitializeTimeTrace();
+
+extern bool timeTraceProfilerEnabled();
+
+extern void writeTimeTraceProfile(const char* filename_cstr);
+
+extern void timeTraceProfilerBegin(const char* name_ptr, const char* detail_ptr, Loc loc);
+
+extern void timeTraceProfilerEnd();
 
 extern void error(const Loc& loc, const char* format, ...);
 
