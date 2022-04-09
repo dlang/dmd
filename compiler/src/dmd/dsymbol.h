@@ -194,7 +194,6 @@ public:
     Symbol *csym;               // symbol for code generator
     Loc loc;                    // where defined
     Scope *_scope;               // !=NULL means context to use for semantic()
-    const utf8_t *prettystring;
 private:
     DsymbolAttributes* atts;
 public:

@@ -459,7 +459,6 @@ public:
     Symbol* csym;
     const Loc loc;
     Scope* _scope;
-    const char* prettystring;
 private:
     DsymbolAttributes* atts;
 public:
