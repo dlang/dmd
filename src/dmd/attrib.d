@@ -1496,12 +1496,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         if (global.params.cplusplus < CppStdRevision.cpp11)
             return;
 
-        // Avoid `if` at the call site
-        if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
-            return;
-
-        foreach (exp; *sym.userAttribDecl.atts)
-        {
+        foreachUdaNoSemantic(sym, (exp) {
             if (isGNUABITag(exp))
             {
                 if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
@@ -1515,9 +1510,10 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
                     sym.errors = true;
                 }
                 // Only one `@gnuAbiTag` is allowed by semantic2
-                return;
+                return 1; // break
             }
-        }
+            return 0; // continue
+        });
     }
 }
 
@@ -1544,14 +1540,14 @@ bool isCoreUda(Dsymbol sym, Identifier ident)
 /**
  * Iterates the UDAs attached to the given symbol.
  *
- * If `dg` returns `!= 0`, it will stop the iteration and return that
- * value, otherwise it will return 0.
- *
  * Params:
  *  sym = the symbol to get the UDAs from
  *  sc = scope to use for semantic analysis of UDAs
- *  dg = called once for each UDA. If `dg` returns `!= 0`, it will stop the
- *      iteration and return that value, otherwise it will return `0`.
+ *  dg = called once for each UDA
+ *
+ * Returns:
+ *  If `dg` returns `!= 0`, stops the iteration and returns that value.
+ *  Otherwise, returns 0.
  */
 int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
 {
@@ -1576,4 +1572,33 @@ int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
             return 0;
         });
     });
+}
+
+/**
+ * Iterates the UDAs attached to the given symbol, without performing semantic
+ * analysis.
+ *
+ * Use this function instead of `foreachUda` if semantic analysis of `sym` is
+ * still in progress.
+ *
+ * Params:
+ *  sym = the symbol to get the UDAs from
+ *  dg = called once for each UDA
+ *
+ * Returns:
+ *  If `dg` returns `!= 0`, stops the iteration and returns that value.
+ *  Otherwise, returns 0.
+ */
+int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
+{
+    if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
+        return 0;
+
+    foreach (exp; *sym.userAttribDecl.atts)
+    {
+        if (auto result = dg(exp))
+            return result;
+    }
+
+    return 0;
 }
