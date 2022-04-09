@@ -11,7 +11,7 @@
 module dmd.file_manager;
 
 import dmd.root.stringtable : StringTable;
-import dmd.root.file : File, FileBuffer;
+import dmd.root.file : File, Buffer;
 import dmd.root.filename : FileName;
 import dmd.root.string : toDString;
 import dmd.globals;
@@ -248,7 +248,7 @@ nothrow:
     }
 }
 
-private FileBuffer readFromStdin() nothrow
+private Buffer readFromStdin() nothrow
 {
     import core.stdc.stdio;
     import dmd.errors;
@@ -280,7 +280,7 @@ private FileBuffer readFromStdin() nothrow
                 // We're done
                 assert(pos < sz + 2);
                 buffer[pos .. pos + 4] = '\0';
-                return FileBuffer(buffer[0 .. pos]);
+                return Buffer(buffer[0 .. pos]);
             }
         } while (pos < sz);
 

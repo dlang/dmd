@@ -378,7 +378,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     const(char)[] fileName,
     const(char)[] code = null)
 {
-    import dmd.root.file : File, FileBuffer;
+    import dmd.root.file : File, Buffer;
 
     import dmd.globals : Loc, global;
     import dmd.parse : Parser;
