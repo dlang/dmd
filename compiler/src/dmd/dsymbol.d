@@ -266,7 +266,6 @@ extern (C++) class Dsymbol : ASTNode
     Dsymbol parent;
     Symbol* csym;           // symbol for code generator
     Scope* _scope;          // !=null means context to use for semantic()
-    const(char)* prettystring;  // cached value of toPrettyChars()
     private DsymbolAttributes* atts; /// attached attribute declarations
     const Loc loc;          // where defined
     bool errors;            // this symbol failed to pass semantic()
@@ -655,15 +654,10 @@ extern (C++) class Dsymbol : ASTNode
 
     const(char)* toPrettyChars(bool QualifyTypes = false)
     {
-        if (prettystring && !QualifyTypes)
-            return prettystring; // value cached for speed
-
         //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
         if (!parent)
         {
             auto s = toChars();
-            if (!QualifyTypes)
-                prettystring = s;
             return s;
         }
 
@@ -683,8 +677,6 @@ extern (C++) class Dsymbol : ASTNode
         addQualifiers(this);
         auto s = buf.extractSlice(true).ptr;
 
-        if (!QualifyTypes)
-            prettystring = s;
         return s;
     }
 

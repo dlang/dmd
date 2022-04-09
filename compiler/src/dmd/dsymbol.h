@@ -193,7 +193,6 @@ public:
     Dsymbol *parent;
     Symbol *csym;               // symbol for code generator
     Scope *_scope;               // !=NULL means context to use for semantic()
-    const utf8_t *prettystring;
 private:
     DsymbolAttributes* atts;
 public:

@@ -458,7 +458,6 @@ public:
     Dsymbol* parent;
     Symbol* csym;
     Scope* _scope;
-    const char* prettystring;
 private:
     DsymbolAttributes* atts;
 public:
