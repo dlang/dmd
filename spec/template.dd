@@ -914,8 +914,8 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
     $(UL
         $(LI `.tupleof` can be $(DDSUBLINK spec/class, class_properties, used on a class)
             or struct instance to obtain an lvalue sequence of its fields.)
-        $(LI `.tupleof` can be used on a static array instance to obtain an lvalue
-            sequence of its elements.)
+        $(LI `.tupleof` can be $(DDSUBLINK spec/arrays, array-properties, used on a static array)
+            instance to obtain an lvalue sequence of its elements.)
     )
 
 $(H4 $(LNAME2 seq-ops, Sequence Operations))
