@@ -12805,129 +12805,125 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
         return false;
     }
 
-    //printf("checkSharedAccess() %s\n", e.toChars());
+    //printf("checkSharedAccess() `%s` returnRef: %d\n", e.toChars(), returnRef);
 
-    static extern(C++) final class SharedCheckVisitor : SemanticTimeTransitiveVisitor
+    /* In case we don't know which expression triggered it,
+     * e.g. for `visit(Type)` overload
+     */
+    Expression original = e;
+
+    bool check(Expression e, bool allowRef)
     {
-        /// In case we don't know which expression triggered it,
-        /// e.g. for `visit(Type)` overload
-        Expression original;
-        /// Where the result is stored (`true` == error)
-        bool result;
-        /// Whether we should allow one level of dereferencing
-        bool allowRef;
-
-        /// Ctor
-        this(Expression oe, bool allowRef_)
-        {
-            this.original = oe;
-            this.allowRef = allowRef_;
-        }
-
-        void sharedError(Expression e)
+        bool sharedError(Expression e)
         {
             // https://dlang.org/phobos/core_atomic.html
             e.error("direct access to shared `%s` is not allowed, see `core.atomic`", e.toChars());
-            this.result = true;
+            return true;
         }
-
-        /// Introduce base class overrides
-        alias visit = SemanticTimeTransitiveVisitor.visit;
 
         // Error by default
-        override void visit(Expression e)
+        bool visit(Expression e)
         {
             if (e.type.isShared())
-                this.sharedError(e);
+                return sharedError(e);
+            return false;
         }
 
-        /// Ditto
-        override void visit(Type t)
+        bool visitNew(NewExp e)
         {
+            if (e.thisexp)
+                check(e.thisexp, false);
             // Note: This handles things like `new shared(Throwable).msg`,
             // where accessing `msg` would violate `shared`.
-            if (t.isShared())
-                this.sharedError(this.original);
+            if (e.newtype.isShared())
+                return sharedError(original);
+            return false;
         }
 
-        // Those have no indirections / can be ignored
-        override void visit(ErrorExp e) {}
-        override void visit(ComplexExp e) {}
-        override void visit(IntegerExp e) {}
-        override void visit(NullExp e) {}
-
-        override void visit(VarExp e)
+        bool visitVar(VarExp e)
         {
-            if (!this.allowRef && e.var.type.isShared())
-                this.sharedError(e);
+            if (!allowRef && e.var.type.isShared())
+                return sharedError(e);
+            return false;
         }
 
-        override void visit(AddrExp e)
+        bool visitAddr(AddrExp e)
         {
-            this.allowRef = true;
-            e.e1.accept(this);
+            return check(e.e1, true);
         }
 
-        override void visit(PtrExp e)
+        bool visitPtr(PtrExp e)
         {
-            if (!this.allowRef && e.type.isShared())
-                return this.sharedError(e);
+            if (!allowRef && e.type.isShared())
+                return sharedError(e);
 
             if (e.e1.type.isShared())
-                return this.sharedError(e);
+                return sharedError(e);
 
-            this.allowRef = false;
-            e.e1.accept(this);
+            return check(e.e1, false);
         }
 
-        override void visit(DotVarExp e)
+        bool visitDotVar(DotVarExp e)
         {
             auto fd = e.var.isFuncDeclaration();
             const sharedFunc = fd && fd.type.isShared;
 
-            if (!this.allowRef && e.type.isShared() && !sharedFunc)
-                return this.sharedError(e);
+            if (!allowRef && e.type.isShared() && !sharedFunc)
+                return sharedError(e);
 
-            // Allow to use `DotVarExp` within value types
-            if (e.e1.type.ty == Tsarray || e.e1.type.ty == Tstruct)
-                return e.e1.accept(this);
+            // Allow using `DotVarExp` within value types
+            if (e.e1.type.isTypeSArray() || e.e1.type.isTypeStruct())
+                return check(e.e1, allowRef);
 
             // If we end up with a single `VarExp`, it might be a `ref` param
             // `shared ref T` param == `shared(T)*`.
             if (auto ve = e.e1.isVarExp())
             {
-                this.allowRef = this.allowRef && (ve.var.storage_class & STC.ref_);
-                return e.e1.accept(this);
+                return check(e.e1, allowRef && (ve.var.storage_class & STC.ref_));
             }
 
-            this.allowRef = false;
-            return e.e1.accept(this);
+            return check(e.e1, false);
         }
 
-        override void visit(IndexExp e)
+        bool visitIndex(IndexExp e)
         {
-            if (!this.allowRef && e.type.isShared())
-                return this.sharedError(e);
+            if (!allowRef && e.type.isShared())
+                return sharedError(e);
 
             if (e.e1.type.isShared())
-                return this.sharedError(e);
+                return sharedError(e);
 
-            this.allowRef = false;
-            e.e1.accept(this);
+            return check(e.e1, false);
         }
 
-        override void visit(CommaExp e)
+        bool visitComma(CommaExp e)
         {
             // Cannot be `return ref` since we can't use the return,
             // but it's better to show that error than an unrelated `shared` one
-            this.allowRef = true;
-            e.e2.accept(this);
+            return check(e.e2, true);
+        }
+
+        switch (e.op)
+        {
+            default:              return visit(e);
+
+            // Those have no indirections / can be ignored
+            case EXP.call:
+            case EXP.error:
+            case EXP.complex80:
+            case EXP.int64:
+            case EXP.null_:       return false;
+
+            case EXP.variable:    return visitVar(e.isVarExp());
+            case EXP.new_:        return visitNew(e.isNewExp());
+            case EXP.address:     return visitAddr(e.isAddrExp());
+            case EXP.star:        return visitPtr(e.isPtrExp());
+            case EXP.dotVariable: return visitDotVar(e.isDotVarExp());
+            case EXP.index:       return visitIndex(e.isIndexExp());
         }
     }
 
-    scope visitor = new SharedCheckVisitor(e, returnRef);
-    e.accept(visitor);
-    return visitor.result;
+    return check(e, returnRef);
 }
 
 
