@@ -1443,7 +1443,7 @@ extern (C++) class ToElemVisitor : Visitor
             if (irs.params.checkAction == CHECKACTION.C)
             {
                 auto econd = toElem(ae.e1, irs);
-                auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
+                auto ea = callCAssert(irs, ae.loc, ae.e1, ae.msg, null);
                 auto eo = el_bin(OPoror, TYvoid, econd, ea);
                 elem_setLoc(eo, ae.loc);
                 result = eo;
