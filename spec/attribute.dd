@@ -223,6 +223,7 @@ $(GNAME AlignAttribute):
         sets it to the default, which matches the default member alignment
         of the companion C compiler.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 struct S
 {
@@ -232,10 +233,11 @@ struct S
     long c;   // placed at offset 8
 }
 static assert(S.alignof == 8);
+static assert(S.c.offsetof == 8);
 static assert(S.sizeof == 16);
 --------
-
-        $(P $(I AssignExpression) specifies the alignment
+)
+        $(P The $(I AssignExpression) form specifies the alignment
         which matches the behavior of the companion C compiler when non-default
         alignments are used. It must be a positive power of 2.
         )
@@ -244,6 +246,7 @@ static assert(S.sizeof == 16);
         fields are packed together.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 struct S
 {
@@ -253,13 +256,15 @@ struct S
     long c;   // placed at offset 5
 }
 static assert(S.alignof == 1);
+static assert(S.c.offsetof == 5);
 static assert(S.sizeof == 13);
 --------
-
+)
         $(P The natural alignment of an aggregate is the maximum alignment of its
         fields. It can be overridden by setting the alignment outside of the
         aggregate.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 align (2) struct S
 {
@@ -269,12 +274,14 @@ align (2) struct S
     long c;   // placed at offset 5
 }
 static assert(S.alignof == 2);
+static assert(S.c.offsetof == 5);
 static assert(S.sizeof == 14);
 --------
-
+)
         $(P Setting the alignment of a field aligns it to that power of 2, regardless
         of the size of the field.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 struct S
 {
@@ -283,9 +290,19 @@ struct S
     align (16) short c; // placed at offset 16
 }
 static assert(S.alignof == 16);
+static assert(S.c.offsetof == 16);
 static assert(S.sizeof == 32);
 --------
+)
+        $(P The $(I AlignAttribute) is reset to the default when
+        entering a function scope or a non-anonymous struct, union, class, and restored
+        when exiting that scope.
+        It is not inherited from a base class.
+        )
 
+        $(P See also: $(DDSUBLINK spec/struct, struct_layout, Struct Layout).)
+
+$(H3 $(LNAME2 align_gc, GC Compatibility))
 
         $(P Do not align references or pointers that were allocated
         using $(GLINK2 expression, NewExpression) on boundaries that are not
@@ -294,15 +311,26 @@ static assert(S.sizeof == 32);
         byte boundaries.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+  align(1):
+    byte b;
+    int* p;
+}
+
+static assert(S.p.offsetof == 1);
+
+@safe void main()
+{
+    S s;
+    s.p = new int; // error: can't modify misaligned pointer in @safe code
+}
+---
+)
         $(UNDEFINED_BEHAVIOR If any pointers and references to GC
         allocated objects are not aligned on `size_t` byte boundaries.)
-
-        $(P The $(I AlignAttribute) is reset to the default when
-        entering a function scope or a non-anonymous struct, union, class, and restored
-        when exiting that scope.
-        It is not inherited from a base class.
-        )
-
 
 
 $(H2 $(LNAME2 deprecated, $(D deprecated) Attribute))
