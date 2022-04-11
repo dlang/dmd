@@ -18,7 +18,7 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 static, $(D static))
     $(RELATIVE_LINK2 linkage, $(D extern))
     $(RELATIVE_LINK2 abstract, $(D abstract))
-    $(D final)
+    $(RELATIVE_LINK2 final, `final`)
     $(RELATIVE_LINK2 override, $(D override))
     $(D synchronized)
     $(RELATIVE_LINK2 auto, $(D auto))
@@ -375,7 +375,8 @@ attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
 
         $(P Symbols with $(D private) visibility can only be accessed from
         within the same module.
-        Private member functions are implicitly final and cannot be overridden.
+        Private member functions are implicitly $(DDSUBLINK spec/function, final, `final`)
+        and cannot be overridden.
         )
 
         $(P $(D package) extends private so that package members can be accessed
@@ -662,6 +663,15 @@ $(P
         they can still provide $(SINGLEQUOTE base class functionality),
         e.g. through $(D super.foo()) in a derived class.
         Note that the class is still abstract and cannot be instantiated directly.
+)
+
+$(H2 $(LNAME2 final, `final` Attribute))
+
+$(UL
+$(LI A class can be declared $(DDSUBLINK spec/class, final, `final`) to prevent
+    subclassing.)
+$(LI A class method can be declared $(DDSUBLINK spec/function, final, `final`)
+    to prevent a derived class overriding it.)
 )
 
 $(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))

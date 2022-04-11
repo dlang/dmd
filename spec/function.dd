@@ -1012,6 +1012,9 @@ void test()
         has its parameters changed, and all derived classes need to have
         their overriding functions updated.)
 
+        $(P The $(LNAME2 final, `final`) method attribute
+        prevents a subclass from overriding the method.)
+
         $(P The following are not virtual:)
         $(UL
         $(LI Struct and union member functions)
@@ -3730,7 +3733,7 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         ---
 
         $(RATIONALE This provides a way to add external functions to a class as if they were
-        public final member functions.
+        public $(RELATIVE_LINK2 final, `final`) member functions.
         This enables minimizing the number of functions in a class to only the essentials that
         are needed to take care of the object's private state, without the temptation to add
         a kitchen-sink's worth of member functions.

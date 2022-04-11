@@ -1208,7 +1208,8 @@ final class A { }
 class B : A { }  // error, class A is final
 ---
 
-        $(P Methods of a final class are `final` by default.)
+        $(P Methods of a final class are always
+        $(DDSUBLINK spec/function, final, `final`).)
 
 $(H2 $(LNAME2 nested, Nested Classes))
 
