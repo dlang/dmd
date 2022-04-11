@@ -237,7 +237,7 @@ static assert(S.c.offsetof == 8);
 static assert(S.sizeof == 16);
 --------
 )
-        $(P The $(I AssignExpression) form specifies the alignment
+        $(P The $(I AssignExpression) specifies the alignment
         which matches the behavior of the companion C compiler when non-default
         alignments are used. It must be a positive power of 2.
         )
