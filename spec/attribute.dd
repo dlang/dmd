@@ -672,6 +672,7 @@ $(LI A class can be declared $(DDSUBLINK spec/class, final, `final`) to prevent
     subclassing.)
 $(LI A class method can be declared $(DDSUBLINK spec/function, final, `final`)
     to prevent a derived class overriding it.)
+$(LI Interfaces can define $(DDSUBLINK spec/interface, method-bodies, `final` methods).)
 )
 
 $(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
