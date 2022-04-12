@@ -2320,6 +2320,75 @@ void testshdup()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21673
+float4 _mm_move_ss(float4 a, float4 b)
+{
+    a.ptr[0] = b.array[0];
+    return a;
+}
+
+void test21673()
+{
+    float4 A = [1.0f, 2.0f, 3.0f, 4.0f];
+    float4 B = [5.0f, 6.0f, 7.0f, 8.0f];
+    float4 R = _mm_move_ss(A, B);
+    float[4] correct = [5.0f, 2.0f, 3.0f, 4.0f];
+    assert(R.array == correct);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21676
+double2 loadUnaligned21676(const(double)* pvec)
+{
+    double2 result;
+    foreach(i; 0..2)
+    {
+        result[i] = pvec[i];
+    }
+    return result;
+}
+
+double2 _mm_setr_pd(double e1, double e0)
+{
+    double[2] result = [e1, e0];
+    return loadUnaligned21676(result.ptr);
+}
+
+double2 fun(double2 a, double2 b)
+{
+    a[0] = (a[0] < b[0]) ? a[0] : b[0];
+    return a;
+}
+
+void test21676()
+{
+    double2 A = _mm_setr_pd(1.0, 2.0);
+    double2 B = _mm_setr_pd(4.0, 1.0);
+    double2 C = fun(A, B);
+    assert(C.array[0] == 1.0);
+    assert(C.array[1] == 2.0);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=23009
+double2 _mm_loadl_pd(double2 a, const(double)* mem_addr)
+{
+    a[0] = *mem_addr;
+    return a;
+}
+
+void test23009()
+{
+    double A = 7.0;
+    double2 B;
+    B[0] = 4.0;
+    B[1] = -5.0;
+    double2 R = _mm_loadl_pd(B, &A);
+    double[2] correct = [ 7.0, -5.0 ];
+    assert(R.array == correct);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -2373,6 +2442,10 @@ int main()
     test22438();
     testsroa();
     testshdup();
+
+    test21673();
+    test21676();
+    test23009();
 
     return 0;
 }
