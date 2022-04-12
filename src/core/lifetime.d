@@ -1388,7 +1388,7 @@ void copyEmplace(S, T)(ref S source, ref T target) @system
     S s1 = S(1);
     S s2 = void;
     copyEmplace(s1, s2);
-    assert (s2 == S(1));
+    assert(s2 == S(1));
 }
 
 version (DigitalMars) version (X86) version (Posix) version = DMD_X86_Posix;
