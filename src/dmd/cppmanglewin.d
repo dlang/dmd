@@ -1214,10 +1214,11 @@ extern(D):
                 break;
             case LINK.d:
             case LINK.default_:
-            case LINK.system:
             case LINK.objc:
                 tmp.visit(cast(Type)type);
                 break;
+            case LINK.system:
+                assert(0);
             }
         }
         tmp.flags &= ~IS_NOT_TOP_TYPE;

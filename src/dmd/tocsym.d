@@ -374,7 +374,8 @@ Symbol *toSymbol(Dsymbol s)
             }
             else
             {
-                final switch (fd.linkage)
+                const l = fd.linkage == LINK.system ? target.systemLinkage() : fd.linkage;
+                final switch (l)
                 {
                     case LINK.windows:
                         t.Tmangle = target.is64bit ? mTYman_c : mTYman_std;

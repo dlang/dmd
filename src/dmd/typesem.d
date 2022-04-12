@@ -1220,6 +1220,9 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             tf.islive = true;
 
         tf.linkage = sc.linkage;
+        if (tf.linkage == LINK.system)
+            tf.linkage = target.systemLinkage();
+
         version (none)
         {
             /* If the parent is @safe, then this function defaults to safe
