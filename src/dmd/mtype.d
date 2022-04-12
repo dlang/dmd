@@ -4685,6 +4685,16 @@ extern (C++) final class TypeFunction : TypeNext
             match = MATCH.convert; // match ... with a "conversion" match level
         }
 
+        // https://issues.dlang.org/show_bug.cgi?id=22997
+        if (parameterList.varargs == VarArg.none && nparams > nargs && !parameterList[nargs].defaultArg)
+        {
+            OutBuffer buf;
+            buf.printf("too few arguments, expected `%d`, got `%d`", cast(int)nparams, cast(int)nargs);
+            if (pMessage)
+                *pMessage = buf.extractChars();
+            goto Nomatch;
+        }
+
         foreach (u, p; parameterList)
         {
             if (u == nargs)
