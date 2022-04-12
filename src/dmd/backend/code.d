@@ -356,12 +356,12 @@ extern __gshared
 }
 
 /* cgcod.c */
-extern __gshared int pass;
-enum
+extern __gshared BackendPass pass;
+enum BackendPass
 {
-    PASSinitial,     // initial pass through code generator
-    PASSreg,         // register assignment pass
-    PASSfinal,       // final pass
+    initial,    /// initial pass through code generator
+    reg,        /// register assignment pass
+    final_,     /// final pass
 }
 
 extern __gshared int dfoidx;

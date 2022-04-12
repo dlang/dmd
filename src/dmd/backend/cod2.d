@@ -2914,7 +2914,7 @@ version (SCPP)
                             goto L1;
                         }
 
-                        if (pass != PASSfinal && (!forregs || forregs & (mSI | mDI)))
+                        if (pass != BackendPass.final_ && (!forregs || forregs & (mSI | mDI)))
                         {
                             // e1 might get into SI or DI in a later pass,
                             // so don't put CX into a register

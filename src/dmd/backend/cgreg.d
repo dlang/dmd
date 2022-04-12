@@ -758,8 +758,8 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
 @trusted
 void cgreg_unregister(regm_t conflict)
 {
-    if (pass == PASSfinal)
-        pass = PASSreg;                         // have to codegen at least one more time
+    if (pass == BackendPass.final_)
+        pass = BackendPass.reg;                         // have to codegen at least one more time
     for (int i = 0; i < globsym.length; i++)
     {   Symbol *s = globsym[i];
         if (s.Sfl == FLreg && s.Sregm & conflict)
