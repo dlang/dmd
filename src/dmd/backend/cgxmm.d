@@ -1246,7 +1246,7 @@ static if (0)
                 if (n == 3)
                 {
                     version (MARS)
-                        if (pass == PASSfinal)
+                        if (pass == BackendPass.final_)
                             error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
                     cs.IFL2 = FLconst;
                     cs.IEV2.Vsize_t = 0;

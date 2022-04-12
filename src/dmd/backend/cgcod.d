@@ -129,7 +129,7 @@ bool calledFinally;     // true if called a BC_finally block
 /* Register contents    */
 con_t regcon;
 
-int pass;                       // PASSxxxx
+BackendPass pass;
 
 private Symbol *retsym;          // set to symbol that should be placed in
                                 // register AX
@@ -182,7 +182,7 @@ void codgen(Symbol *sfunc)
     tym_t functy = tybasic(sfunc.ty());
     cod3_initregs();
     allregs = ALLREGS;
-    pass = PASSinitial;
+    pass = BackendPass.initial;
     Alloca.initialize();
     anyiasm = 0;
 
@@ -201,7 +201,7 @@ tryagain:
     debug
     if (debugr)
         printf("------------------ PASS%s -----------------\n",
-            (pass == PASSinitial) ? "init".ptr : ((pass == PASSreg) ? "reg".ptr : "final".ptr));
+            (pass == BackendPass.initial) ? "init".ptr : ((pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
 
     lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
 
@@ -317,7 +317,7 @@ tryagain:
     }
     else
     {
-        pass = PASSfinal;
+        pass = BackendPass.final_;
         for (block* b = startblock; b; b = b.Bnext)
             blcodgen(b);                // generate the code for each block
     }
@@ -325,7 +325,7 @@ tryagain:
     assert(!regcon.cse.mops);           // should have all been used
 
     // See which variables we can put into registers
-    if (pass != PASSfinal &&
+    if (pass != BackendPass.final_ &&
         !anyiasm)                               // possible LEA or LES opcodes
     {
         allregs |= cod3_useBP();                // see if we can use EBP
@@ -335,12 +335,12 @@ tryagain:
         {
             allregs |= mask(PICREG);            // EBX can now be used
             cgreg_assign(retsym);
-            pass = PASSreg;
+            pass = BackendPass.reg;
         }
         else if (cgreg_assign(retsym))          // if we found some registers
-            pass = PASSreg;
+            pass = BackendPass.reg;
         else
-            pass = PASSfinal;
+            pass = BackendPass.final_;
         for (block* b = startblock; b; b = b.Bnext)
         {
             code_free(b.Bcode);
@@ -2038,7 +2038,7 @@ void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym
 
 static if (0)
 {
-        if (pass == PASSfinal)
+        if (pass == BackendPass.final_)
         {
             printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
@@ -2102,7 +2102,7 @@ L3:
             if (!regcon.indexregs && r & ~mLSW)
                 r &= ~mLSW;
 
-            if (pass == PASSfinal && r & ~lastretregs && !I16)
+            if (pass == BackendPass.final_ && r & ~lastretregs && !I16)
             {   // Try not to always allocate the same register,
                 // to schedule better
 
@@ -2395,7 +2395,7 @@ bool cssave(elem *e,regm_t regm,uint opsflag)
     /*if (e.Ecount && e.Ecount == e.Ecomsub)*/
     if (e.Ecount && e.Ecomsub)
     {
-        if (!opsflag && pass != PASSfinal && (I32 || I64))
+        if (!opsflag && pass != BackendPass.final_ && (I32 || I64))
             return false;
 
         //printf("cssave(e = %p, regm = %s, opsflag = x%x)\n", e, regm_str(regm), opsflag);
@@ -2456,7 +2456,7 @@ bool evalinregister(elem *e)
                                     /* to be generated              */
     {
         if ((I32 || I64) &&
-            //pass == PASSfinal && // bug 8987
+            //pass == BackendPass.final_ && // bug 8987
             sz <= REGSIZE)
         {
             // Do it only if at least 2 registers are available
@@ -2499,7 +2499,7 @@ bool evalinregister(elem *e)
 regm_t getscratch()
 {
     regm_t scratch = 0;
-    if (pass == PASSfinal)
+    if (pass == BackendPass.final_)
     {
         scratch = allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
                   regcon.immed.mval | regcon.params | mfuncreg);
