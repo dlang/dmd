@@ -1843,7 +1843,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 mtype.sym = e.isScopeExp().sds;
                 break;
             case EXP.tuple:
-                TupleExp te = e.toTupleExp();
+                TupleExp te = e.isTupleExp();
                 Objects* elems = new Objects(te.exps.dim);
                 foreach (i; 0 .. elems.dim)
                 {

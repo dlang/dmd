@@ -967,11 +967,6 @@ extern (C++) abstract class Expression : ASTNode
         return null;
     }
 
-    TupleExp toTupleExp()
-    {
-        return null;
-    }
-
     /***************************************
      * Return !=0 if expression is an lvalue.
      */
@@ -2886,11 +2881,6 @@ extern (C++) final class TupleExp : Expression
     static TupleExp create(const ref Loc loc, Expressions* exps)
     {
         return new TupleExp(loc, exps);
-    }
-
-    override TupleExp toTupleExp()
-    {
-        return this;
     }
 
     override TupleExp syntaxCopy()

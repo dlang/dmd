@@ -2874,7 +2874,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc = sc.endCTFE();
             resolved = resolved.ctfeInterpret();
             StringExp name = resolved.toStringExp();
-            TupleExp tup = name ? null : resolved.toTupleExp();
+            TupleExp tup = name ? null : resolved.isTupleExp();
             if (!tup && !name)
             {
                 error(ns.loc, "expected string expression for namespace name, got `%s`", ns.identExp.toChars());
