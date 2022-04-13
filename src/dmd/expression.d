@@ -1660,6 +1660,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(MixinExp)     isMixinExp() { return op == EXP.mixin_ ? cast(typeof(return))this : null; }
         inout(ImportExp)    isImportExp() { return op == EXP.import_ ? cast(typeof(return))this : null; }
         inout(AssertExp)    isAssertExp() { return op == EXP.assert_ ? cast(typeof(return))this : null; }
+        inout(ThrowExp)     isThrowExp() { return op == EXP.throw_ ? cast(typeof(return))this : null; }
         inout(DotIdExp)     isDotIdExp() { return op == EXP.dotIdentifier ? cast(typeof(return))this : null; }
         inout(DotTemplateExp) isDotTemplateExp() { return op == EXP.dotTemplateDeclaration ? cast(typeof(return))this : null; }
         inout(DotVarExp)    isDotVarExp() { return op == EXP.dotVariable ? cast(typeof(return))this : null; }

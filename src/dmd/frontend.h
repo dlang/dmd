@@ -147,6 +147,7 @@ class IsExp;
 class MixinExp;
 class ImportExp;
 class AssertExp;
+class ThrowExp;
 class DotIdExp;
 class DotTemplateExp;
 class DotVarExp;
@@ -1527,6 +1528,7 @@ public:
     MixinExp* isMixinExp();
     ImportExp* isImportExp();
     AssertExp* isAssertExp();
+    ThrowExp* isThrowExp();
     DotIdExp* isDotIdExp();
     DotTemplateExp* isDotTemplateExp();
     DotVarExp* isDotVarExp();
