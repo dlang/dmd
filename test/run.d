@@ -369,7 +369,7 @@ Goes through the target list and replaces short-hand targets with their expanded
 Special targets:
 - clean -> removes resultsDir + immediately stops the runner
 */
-auto predefinedTargets(string[] targets)
+Target[] predefinedTargets(string[] targets)
 {
     static findFiles(string dir)
     {
@@ -443,7 +443,7 @@ auto predefinedTargets(string[] targets)
 }
 
 // Removes targets that do not need updating (i.e. their .out file exists and is newer than the source file)
-auto filterTargets(Target[] targets, const string[string] env)
+Target[] filterTargets(Target[] targets, const string[string] env)
 {
     bool error;
     foreach (target; targets)
@@ -497,7 +497,7 @@ Params:
     key = key to check for existence and write into the new env
     default_ = fallback value if the key doesn't exist in the global environment
 */
-auto setDefault(string[string] env, string key, string default_)
+string setDefault(string[string] env, string key, string default_)
 {
     if (key in environment)
         env[key] = environment[key];
@@ -567,14 +567,14 @@ string[string] getEnvironment()
 }
 
 // Logging primitive
-auto log(T...)(T args)
+void log(T...)(T args)
 {
     if (verbose)
         writefln(args);
 }
 
 // Add the executable filename extension to the given `name` for the current OS.
-auto exeName(T)(T name)
+string exeName(string name)
 {
     version(Windows)
         name ~= ".exe";
@@ -582,7 +582,7 @@ auto exeName(T)(T name)
 }
 
 // Add the object filename extension to the given `name` for the current OS.
-auto objName(T)(T name)
+string objName(string name)
 {
     version(Windows)
         return name ~ ".obj";
