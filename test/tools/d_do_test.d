@@ -2112,7 +2112,7 @@ string printTestFailure(string testLogName, scope ref File outfile, string extra
 
     writeln("==============================");
     writefln("Test '%s' failed. The logged output:", testLogName);
-    const output = readText(output_file_temp);
+    const output = cast(string) read(output_file_temp);
     write(output);
     if (!output.endsWith("\n"))
           writeln();
