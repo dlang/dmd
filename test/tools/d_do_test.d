@@ -2027,9 +2027,8 @@ int runGDBTestWithLock(const ref EnvData envData, int delegate() fun)
 int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
     string output_dir, string output_file)
 {
-    const testScriptDir = buildPath(dmdTestDir, input_dir);
-    const testScriptPath = buildPath(testScriptDir, test_name ~ ".d");
-    const testOutDir = buildPath(output_dir, test_name);
+    const testOutBase = buildPath(output_dir, test_name);
+    const testOutDir = buildPath(testOutBase, "work");
     const testLogName = format("%s/%s.d", input_dir, test_name);
 
     writefln(" ... %s", testLogName);
@@ -2038,35 +2037,10 @@ int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
         rmdirRecurse(testOutDir);
     mkdirRecurse(testOutDir);
 
-    const testScriptExe = buildPath(testOutDir, "run" ~ envData.exe);
+    const testScriptExe = buildPath(testOutBase, "run" ~ envData.exe);
 
     auto outfile = File(output_file, "w");
     enum keepFilesOpen = Config.retainStdout | Config.retainStderr;
-
-    //
-    // compile the test
-    //
-    {
-        const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
-            envData.picFlag ~ [
-            "-od" ~ testOutDir,
-            "-of" ~ testScriptExe,
-            "-I=" ~ buildPath(dmdTestDir, "tools"),
-            buildPath(envData.results_dir, "dshell" ~ envData.obj),
-            testScriptPath,
-        ];
-        outfile.writeln("[COMPILE_TEST] ", escapeShellCommand(compile));
-        outfile.flush();
-        // Note that spawnprocess closes the file, so it will need to be re-opened
-        // below when we run the test
-        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile, null, keepFilesOpen);
-        const exitCode = wait(compileProc);
-        if (exitCode != 0)
-        {
-            printTestFailure(testLogName, outfile);
-            return exitCode;
-        }
-    }
 
     //
     // run the test
@@ -2079,6 +2053,7 @@ int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
             "TEST_NAME": test_name,
         ];
         auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, env, keepFilesOpen);
+        // auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, env, keepFilesOpen, dmdTestDir);
         const exitCode = wait(runTestProc);
 
         if (exitCode == 125) // = DISABLED from tools/dshell_prebuilt.d
