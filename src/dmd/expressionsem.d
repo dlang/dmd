@@ -3229,7 +3229,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         Type t = cle.type.typeSemantic(cle.loc, sc);
         auto init = initializerSemantic(cle.initializer, sc, t, INITnointerpret);
-        auto e = initializerToExpression(init, t);
+        auto e = initializerToExpression(init, t, (sc.flags & SCOPE.Cfile) != 0);
         if (!e)
         {
             error(cle.loc, "cannot convert initializer `%s` to expression", init.toChars());
