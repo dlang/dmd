@@ -2360,5 +2360,5 @@ private bool setUnsafeDIP1000(FuncDeclaration f)
 {
     return global.params.useDIP1000 == FeatureState.enabled
         ? f.setUnsafe()
-        : f.checkUnsafe();
+        : f.isSafeBypassingInference();
 }
