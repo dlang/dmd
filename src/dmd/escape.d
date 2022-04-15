@@ -316,8 +316,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
     {
-        const unsafe = global.params.useDIP1000 == FeatureState.enabled ? sc.func.setUnsafe() : sc.func.checkUnsafe();
-        if (unsafe)
+        if (isUnsafe(sc.func))
         {
             if (!gag)
             {
@@ -786,7 +785,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 {
                     va.doNotInferReturn = true;
                 }
-                else if (global.params.useDIP1000 == FeatureState.enabled ? fd.setUnsafe() : fd.checkUnsafe())
+                else if (isUnsafe(fd))
                 {
                     if (!gag)
                         previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
@@ -1051,8 +1050,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                  */
                 !(p.parent == sc.func))
             {
-                const unsafe = global.params.useDIP1000 == FeatureState.enabled ? sc.func.setUnsafe() : sc.func.checkUnsafe();
-                if (unsafe)     // https://issues.dlang.org/show_bug.cgi?id=20868
+                if (isUnsafe(sc.func))     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
                     // Only look for errors if in module listed on command line
                     if (!gag)
@@ -1270,9 +1268,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
                )
             {
-                const unsafe = global.params.useDIP1000 == FeatureState.enabled ? sc.func.setUnsafe() : sc.func.checkUnsafe();
                 // https://issues.dlang.org/show_bug.cgi?id=17029
-                if (unsafe)
+                if (isUnsafe(sc.func))
                 {
                     if (!gag)
                         previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
@@ -2356,4 +2353,12 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
     if (!va.maybes)
         va.maybes = new VarDeclarations();
     va.maybes.push(v);
+}
+
+
+private bool isUnsafe(FuncDeclaration f)
+{
+    return global.params.useDIP1000 == FeatureState.enabled
+        ? f.setUnsafe()
+        : f.checkUnsafe();
 }
