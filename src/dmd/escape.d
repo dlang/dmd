@@ -316,7 +316,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
     {
-        if (isUnsafe(sc.func))
+        if (setUnsafeDIP1000(sc.func))
         {
             if (!gag)
             {
@@ -785,7 +785,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 {
                     va.doNotInferReturn = true;
                 }
-                else if (isUnsafe(fd))
+                else if (setUnsafeDIP1000(fd))
                 {
                     if (!gag)
                         previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
@@ -1050,7 +1050,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                  */
                 !(p.parent == sc.func))
             {
-                if (isUnsafe(sc.func))     // https://issues.dlang.org/show_bug.cgi?id=20868
+                if (setUnsafeDIP1000(sc.func))     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
                     // Only look for errors if in module listed on command line
                     if (!gag)
@@ -1269,7 +1269,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                )
             {
                 // https://issues.dlang.org/show_bug.cgi?id=17029
-                if (isUnsafe(sc.func))
+                if (setUnsafeDIP1000(sc.func))
                 {
                     if (!gag)
                         previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
@@ -2356,7 +2356,7 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
 }
 
 
-private bool isUnsafe(FuncDeclaration f)
+private bool setUnsafeDIP1000(FuncDeclaration f)
 {
     return global.params.useDIP1000 == FeatureState.enabled
         ? f.setUnsafe()
