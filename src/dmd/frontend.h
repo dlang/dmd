@@ -220,6 +220,7 @@ class LineInitExp;
 class ModuleInitExp;
 class FuncInitExp;
 class PrettyFuncInitExp;
+class ObjcClassReferenceExp;
 class ClassReferenceExp;
 class ThrownExceptionExp;
 class UnaExp;
@@ -1600,6 +1601,7 @@ public:
     ModuleInitExp* isModuleInitExp();
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
+    ObjcClassReferenceExp* isObjcClassReferenceExp();
     ClassReferenceExp* isClassReferenceExp();
     ThrownExceptionExp* isThrownExceptionExp();
     UnaExp* isUnaExp();
