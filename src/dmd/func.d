@@ -1445,6 +1445,13 @@ extern (C++) class FuncDeclaration : Declaration
         return false;
     }
 
+    /**
+     * Like setUnsafe, but doesn't change any state
+     */
+    final bool checkUnsafe() {
+        return type.toTypeFunction().trust == TRUST.safe;
+    }
+
     final bool isNogc()
     {
         //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAG.nogcInprocess));

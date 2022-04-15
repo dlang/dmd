@@ -316,7 +316,8 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
      */
     void unsafeAssign(VarDeclaration v, const char* desc)
     {
-        if (sc.func.setUnsafe())
+        const unsafe = global.params.useDIP1000 == FeatureState.enabled ? sc.func.setUnsafe() : sc.func.checkUnsafe();
+        if (unsafe)
         {
             if (!gag)
             {
@@ -785,7 +786,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 {
                     va.doNotInferReturn = true;
                 }
-                else if (fd.setUnsafe())
+                else if (global.params.useDIP1000 == FeatureState.enabled ? fd.setUnsafe() : fd.checkUnsafe())
                 {
                     if (!gag)
                         previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
@@ -1050,7 +1051,8 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                  */
                 !(p.parent == sc.func))
             {
-                if (sc.func.setUnsafe())     // https://issues.dlang.org/show_bug.cgi?id=20868
+                const unsafe = global.params.useDIP1000 == FeatureState.enabled ? sc.func.setUnsafe() : sc.func.checkUnsafe();
+                if (unsafe)     // https://issues.dlang.org/show_bug.cgi?id=20868
                 {
                     // Only look for errors if in module listed on command line
                     if (!gag)
@@ -1268,8 +1270,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
                )
             {
+                const unsafe = global.params.useDIP1000 == FeatureState.enabled ? sc.func.setUnsafe() : sc.func.checkUnsafe();
                 // https://issues.dlang.org/show_bug.cgi?id=17029
-                if (sc.func.setUnsafe())
+                if (unsafe)
                 {
                     if (!gag)
                         previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
