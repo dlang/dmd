@@ -2880,7 +2880,6 @@ public:
     bool isSafe();
     bool isSafeBypassingInference();
     bool isTrusted();
-    bool checkUnsafe();
     bool isNogc();
     bool isNogcBypassingInference();
     bool isNRVO() const;
