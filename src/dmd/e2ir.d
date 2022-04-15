@@ -498,40 +498,23 @@ void clearStringTab()
 }
 private __gshared StringTable!(Symbol*) *stringTab;
 
-elem *toElem(Expression e, IRState *irs)
+/*********************************************
+ * Convert Expression to backend elem.
+ * Params:
+ *      e = expression tree
+ *      irs = context
+ * Returns:
+ *      backend elem tree
+ */
+elem* toElem(Expression e, IRState *irs)
 {
-    scope v = new ToElemVisitor(irs);
-    e.accept(v);
-    return v.result;
-}
-
-private:
-
-extern (C++) class ToElemVisitor : Visitor
-{
-    IRState *irs;
-    elem *result;
-
-    this(IRState *irs)
-    {
-        this.irs = irs;
-        result = null;
-    }
-
-    alias visit = Visitor.visit;
-
-    /***************************************
-     */
-
-    override void visit(Expression e)
+    elem* visit(Expression e)
     {
         printf("[%s] %s: %s\n", e.loc.toChars(), EXPtoString(e.op).ptr, e.toChars());
         assert(0);
     }
 
-    /************************************
-     */
-    override void visit(SymbolExp se)
+    elem* visitSymbol(SymbolExp se) // VarExp and SymOffExp
     {
         elem *e;
         Type tb = (se.op == EXP.symbolOffset) ? se.var.type.toBasetype() : se.type.toBasetype();
@@ -543,16 +526,14 @@ extern (C++) class ToElemVisitor : Visitor
         if (se.op == EXP.variable && se.var.needThis())
         {
             se.error("need `this` to access member `%s`", se.toChars());
-            result = el_long(TYsize_t, 0);
-            return;
+            return el_long(TYsize_t, 0);
         }
 
         /* The magic variable __ctfe is always false at runtime
          */
         if (se.op == EXP.variable && v && v.ident == Id.ctfe)
         {
-            result = el_long(totym(se.type), 0);
-            return;
+            return el_long(totym(se.type), 0);
         }
 
         if (FuncLiteralDeclaration fld = se.var.isFuncLiteralDeclaration())
@@ -588,8 +569,7 @@ extern (C++) class ToElemVisitor : Visitor
                 auto length = el_long(TYsize_t, ad.structsize);
                 auto slice = el_pair(TYdarray, length, ptr);
                 elem_setLoc(slice, se.loc);
-                result = slice;
-                return;
+                return slice;
             }
         }
 
@@ -767,13 +747,10 @@ extern (C++) class ToElemVisitor : Visitor
             }
         }
         elem_setLoc(e,se.loc);
-        result = e;
+        return e;
     }
 
-    /**************************************
-     */
-
-    override void visit(FuncExp fe)
+    elem* visitFunc(FuncExp fe)
     {
         //printf("FuncExp.toElem() %s\n", fe.toChars());
         FuncLiteralDeclaration fld = fe.fd;
@@ -804,39 +781,38 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_pair(TYdelegate, ethis, e);
         }
         elem_setLoc(e, fe.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DeclarationExp de)
+    elem* visitDeclaration(DeclarationExp de)
     {
         //printf("DeclarationExp.toElem() %s\n", de.toChars());
-        result = Dsymbol_toElem(de.declaration, irs);
+        return Dsymbol_toElem(de.declaration, irs);
     }
 
     /***************************************
      */
 
-    override void visit(TypeidExp e)
+    elem* visitTypeid(TypeidExp e)
     {
         //printf("TypeidExp.toElem() %s\n", e.toChars());
         if (Type t = isType(e.obj))
         {
-            result = getTypeInfo(e.loc, t, irs);
-            result = el_bin(OPadd, result.Ety, result, el_long(TYsize_t, t.vtinfo.offset));
-            return;
+            elem* result = getTypeInfo(e.loc, t, irs);
+            return el_bin(OPadd, result.Ety, result, el_long(TYsize_t, t.vtinfo.offset));
         }
         if (Expression ex = isExpression(e.obj))
         {
             auto tc = ex.type.toBasetype().isTypeClass();
             assert(tc);
             // generate **classptr to get the classinfo
-            result = toElem(ex, irs);
+            elem* result = toElem(ex, irs);
             result = el_una(OPind,TYnptr,result);
             result = el_una(OPind,TYnptr,result);
             // Add extra indirection for interfaces
             if (tc.sym.isInterfaceDeclaration())
                 result = el_una(OPind,TYnptr,result);
-            return;
+            return result;
         }
         assert(0);
     }
@@ -844,7 +820,7 @@ extern (C++) class ToElemVisitor : Visitor
     /***************************************
      */
 
-    override void visit(ThisExp te)
+    elem* visitThis(ThisExp te)
     {
         //printf("ThisExp.toElem()\n");
         assert(irs.sthis);
@@ -870,23 +846,23 @@ extern (C++) class ToElemVisitor : Visitor
             ethis.ET = Type_toCtype(te.type);
         }
         elem_setLoc(ethis,te.loc);
-        result = ethis;
+        return ethis;
     }
 
     /***************************************
      */
 
-    override void visit(IntegerExp ie)
+    elem* visitInteger(IntegerExp ie)
     {
         elem *e = el_long(totym(ie.type), ie.getInteger());
         elem_setLoc(e,ie.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(RealExp re)
+    elem* visitReal(RealExp re)
     {
         //printf("RealExp.toElem(%p) %s\n", re, re.toChars());
         elem *e = el_long(TYint, 0);
@@ -914,13 +890,13 @@ extern (C++) class ToElemVisitor : Visitor
                 assert(0);
         }
         e.Ety = ty;
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(ComplexExp ce)
+    elem* visitComplex(ComplexExp ce)
     {
 
         //printf("ComplexExp.toElem(%p) %s\n", ce, ce.toChars());
@@ -981,21 +957,21 @@ extern (C++) class ToElemVisitor : Visitor
                 assert(0);
         }
         e.Ety = ty;
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(NullExp ne)
+    elem* visitNull(NullExp ne)
     {
-        result = el_long(totym(ne.type), 0);
+        return el_long(totym(ne.type), 0);
     }
 
     /***************************************
      */
 
-    override void visit(StringExp se)
+    elem* visitString(StringExp se)
     {
         //printf("StringExp.toElem() %s, type = %s\n", se.toChars(), se.type.toChars());
 
@@ -1031,10 +1007,10 @@ extern (C++) class ToElemVisitor : Visitor
             assert(0);
         }
         elem_setLoc(e,se.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(NewExp ne)
+    elem* visitNew(NewExp ne)
     {
         //printf("NewExp.toElem() %s\n", ne.toChars());
         Type t = ne.type.toBasetype();
@@ -1334,7 +1310,7 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem_setLoc(e,ne.loc);
-        result = e;
+        return e;
     }
 
     //////////////////////////// Unary ///////////////////////////////
@@ -1342,7 +1318,7 @@ extern (C++) class ToElemVisitor : Visitor
     /***************************************
      */
 
-    override void visit(NegExp ne)
+    elem* visitNeg(NegExp ne)
     {
         elem *e = toElem(ne.e1, irs);
         Type tb1 = ne.e1.type.toBasetype();
@@ -1369,13 +1345,13 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem_setLoc(e,ne.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(ComExp ce)
+    elem* visitCom(ComExp ce)
     {
         elem *e1 = toElem(ce.e1, irs);
         Type tb1 = ce.e1.type.toBasetype();
@@ -1408,32 +1384,32 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem_setLoc(e,ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(NotExp ne)
+    elem* visitNot(NotExp ne)
     {
         elem *e = el_una(OPnot, totym(ne.type), toElem(ne.e1, irs));
         elem_setLoc(e,ne.loc);
-        result = e;
+        return e;
     }
 
 
     /***************************************
      */
 
-    override void visit(HaltExp he)
+    elem* visitHalt(HaltExp he)
     {
-        result = genHalt(he.loc);
+        return genHalt(he.loc);
     }
 
     /********************************************
      */
 
-    override void visit(AssertExp ae)
+    elem* visitAssert(AssertExp ae)
     {
         // https://dlang.org/spec/expression.html#assert_expressions
         //printf("AssertExp.toElem() %s\n", toChars());
@@ -1446,8 +1422,7 @@ extern (C++) class ToElemVisitor : Visitor
                 auto ea = callCAssert(irs, ae.loc, ae.e1, ae.msg, null);
                 auto eo = el_bin(OPoror, TYvoid, econd, ea);
                 elem_setLoc(eo, ae.loc);
-                result = eo;
-                return;
+                return eo;
             }
 
             if (irs.params.checkAction == CHECKACTION.halt)
@@ -1459,8 +1434,7 @@ extern (C++) class ToElemVisitor : Visitor
                 auto ea = genHalt(ae.loc);
                 auto eo = el_bin(OPoror, TYvoid, econd, ea);
                 elem_setLoc(eo, ae.loc);
-                result = eo;
-                return;
+                return eo;
             }
 
             e = toElem(ae.e1, irs);
@@ -1557,20 +1531,20 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_long(TYint, 0);
         }
         elem_setLoc(e,ae.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(ThrowExp te)
+    elem* visitThrow(ThrowExp te)
     {
         //printf("ThrowExp.toElem() '%s'\n", te.toChars());
 
         elem *e = toElemDtor(te.e1, irs);
         const rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM.THROWDWARF : RTLSYM.THROWC;
         elem *sym = el_var(getRtlsym(rtlthrow));
-        result = el_bin(OPcall, TYnoreturn, sym, e);
+        return el_bin(OPcall, TYnoreturn, sym, e);
     }
 
-    override void visit(PostExp pe)
+    elem* visitPost(PostExp pe)
     {
         //printf("PostExp.toElem() '%s'\n", pe.toChars());
         elem *e = toElem(pe.e1, irs);
@@ -1578,7 +1552,7 @@ extern (C++) class ToElemVisitor : Visitor
         e = el_bin((pe.op == EXP.plusPlus) ? OPpostinc : OPpostdec,
                     e.Ety,e,einc);
         elem_setLoc(e,pe.loc);
-        result = e;
+        return e;
     }
 
     //////////////////////////// Binary ///////////////////////////////
@@ -1681,17 +1655,17 @@ extern (C++) class ToElemVisitor : Visitor
     /***************************************
      */
 
-    override void visit(AddExp e)
+    elem* visitAdd(AddExp e)
     {
-        result = toElemBin(e, OPadd);
+        return toElemBin(e, OPadd);
     }
 
     /***************************************
      */
 
-    override void visit(MinExp e)
+    elem* visitMin(MinExp e)
     {
-        result = toElemBin(e, OPmin);
+        return toElemBin(e, OPmin);
     }
 
     /*****************************************
@@ -1712,7 +1686,7 @@ extern (C++) class ToElemVisitor : Visitor
      * https://dlang.org/spec/expression.html#cat_expressions
      */
 
-    override void visit(CatExp ce)
+    elem* visitCat(CatExp ce)
     {
         /* Do this check during code gen rather than semantic() because concatenation is
          * allowed in CTFE, and cannot distinguish that in semantic().
@@ -1720,8 +1694,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (irs.params.betterC)
         {
             error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
-            result = el_long(TYint, 0);
-            return;
+            return el_long(TYint, 0);
         }
 
         Type tb1 = ce.e1.type.toBasetype();
@@ -1767,37 +1740,37 @@ extern (C++) class ToElemVisitor : Visitor
             toTraceGC(irs, e, ce.loc);
         }
         elem_setLoc(e,ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(MulExp e)
+    elem* visitMul(MulExp e)
     {
-        result = toElemBin(e, OPmul);
+        return toElemBin(e, OPmul);
     }
 
     /************************************
      */
 
-    override void visit(DivExp e)
+    elem* visitDiv(DivExp e)
     {
-        result = toElemBin(e, OPdiv);
+        return toElemBin(e, OPdiv);
     }
 
     /***************************************
      */
 
-    override void visit(ModExp e)
+    elem* visitMod(ModExp e)
     {
-        result = toElemBin(e, OPmod);
+        return toElemBin(e, OPmod);
     }
 
     /***************************************
      */
 
-    override void visit(CmpExp ce)
+    elem* visitCmp(CmpExp ce)
     {
         //printf("CmpExp.toElem() %s\n", ce.toChars());
 
@@ -1851,10 +1824,10 @@ extern (C++) class ToElemVisitor : Visitor
             else
                 e = toElemBin(ce,eop);
         }
-        result = e;
+        return e;
     }
 
-    override void visit(EqualExp ee)
+    elem* visitEqual(EqualExp ee)
     {
         //printf("EqualExp.toElem() %s\n", ee.toChars());
 
@@ -1950,8 +1923,7 @@ extern (C++) class ToElemVisitor : Visitor
                 e = el_combine(earr2, e);
                 e = el_combine(earr1, e);
                 elem_setLoc(e, ee.loc);
-                result = e;
-                return;
+                return e;
             }
 
             elem *ea1 = eval_Darray(ee.e1);
@@ -1978,15 +1950,14 @@ extern (C++) class ToElemVisitor : Visitor
             if (ee.op == EXP.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
             elem_setLoc(e, ee.loc);
-            result = e;
-            return;
+            return e;
         }
         else
             e = toElemBin(ee, eop);
-        result = e;
+        return e;
     }
 
-    override void visit(IdentityExp ie)
+    elem* visitIdentity(IdentityExp ie)
     {
         Type t1 = ie.e1.type.toBasetype();
         Type t2 = ie.e2.type.toBasetype();
@@ -2047,13 +2018,13 @@ extern (C++) class ToElemVisitor : Visitor
         else
             e = toElemBin(ie, eop);
 
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(InExp ie)
+    elem* visitIn(InExp ie)
     {
         elem *key = toElem(ie.e1, irs);
         elem *aa = toElem(ie.e2, irs);
@@ -2067,13 +2038,13 @@ extern (C++) class ToElemVisitor : Visitor
         elem *e = el_bin(OPcall, totym(ie.type), el_var(s), ep);
 
         elem_setLoc(e, ie.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(RemoveExp re)
+    elem* visitRemove(RemoveExp re)
     {
         auto taa = re.e1.type.toBasetype().isTypeAArray();
         assert(taa);
@@ -2087,13 +2058,13 @@ extern (C++) class ToElemVisitor : Visitor
         elem *e = el_bin(OPcall, TYnptr, el_var(s), ep);
 
         elem_setLoc(e, re.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(AssignExp ae)
+    elem* visitAssign(AssignExp ae)
     {
         version (none)
         {
@@ -2102,10 +2073,10 @@ extern (C++) class ToElemVisitor : Visitor
             if (ae.op == EXP.construct) printf("ConstructExp.toElem('%s')\n", ae.toChars());
         }
 
-        void setResult(elem* e)
+        elem* setResult(elem* e)
         {
             elem_setLoc(e, ae.loc);
-            result = e;
+            return e;
         }
 
         Type t1b = ae.e1.type.toBasetype();
@@ -2387,7 +2358,7 @@ extern (C++) class ToElemVisitor : Visitor
 
         elem *e1x;
 
-        void setResult2(elem* e)
+        elem* setResult2(elem* e)
         {
             return setResult(el_combine(e, e1x));
         }
@@ -2682,25 +2653,25 @@ extern (C++) class ToElemVisitor : Visitor
     /***************************************
      */
 
-    override void visit(AddAssignExp e)
+    elem* visitAddAssign(AddAssignExp e)
     {
         //printf("AddAssignExp.toElem() %s\n", e.toChars());
-        result = toElemBinAssign(e, OPaddass);
+        return toElemBinAssign(e, OPaddass);
     }
 
 
     /***************************************
      */
 
-    override void visit(MinAssignExp e)
+    elem* visitMinAssign(MinAssignExp e)
     {
-        result = toElemBinAssign(e, OPminass);
+        return toElemBinAssign(e, OPminass);
     }
 
     /***************************************
      */
 
-    override void visit(CatAssignExp ce)
+    elem* visitCatAssign(CatAssignExp ce)
     {
         //printf("CatAssignExp.toElem('%s')\n", ce.toChars());
         elem *e;
@@ -2813,45 +2784,45 @@ extern (C++) class ToElemVisitor : Visitor
         e = el_combine(e, ev);
 
         elem_setLoc(e, ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(DivAssignExp e)
+    elem* visitDivAssign(DivAssignExp e)
     {
-        result = toElemBinAssign(e, OPdivass);
+        return toElemBinAssign(e, OPdivass);
     }
 
     /***************************************
      */
 
-    override void visit(ModAssignExp e)
+    elem* visitModAssign(ModAssignExp e)
     {
-        result = toElemBinAssign(e, OPmodass);
+        return toElemBinAssign(e, OPmodass);
     }
 
     /***************************************
      */
 
-    override void visit(MulAssignExp e)
+    elem* visitMulAssign(MulAssignExp e)
     {
-        result = toElemBinAssign(e, OPmulass);
+        return toElemBinAssign(e, OPmulass);
     }
 
     /***************************************
      */
 
-    override void visit(ShlAssignExp e)
+    elem* visitShlAssign(ShlAssignExp e)
     {
-        result = toElemBinAssign(e, OPshlass);
+        return toElemBinAssign(e, OPshlass);
     }
 
     /***************************************
      */
 
-    override void visit(ShrAssignExp e)
+    elem* visitShrAssign(ShrAssignExp e)
     {
         //printf("ShrAssignExp.toElem() %s, %s\n", e.e1.type.toChars(), e.e1.toChars());
         Type t1 = e.e1.type;
@@ -2862,45 +2833,45 @@ extern (C++) class ToElemVisitor : Visitor
             CastExp ce = cast(CastExp)e.e1;
             t1 = ce.e1.type;
         }
-        result = toElemBinAssign(e, t1.isunsigned() ? OPshrass : OPashrass);
+        return toElemBinAssign(e, t1.isunsigned() ? OPshrass : OPashrass);
     }
 
     /***************************************
      */
 
-    override void visit(UshrAssignExp e)
+    elem* visitUshrAssign(UshrAssignExp e)
     {
-        result = toElemBinAssign(e, OPshrass);
+        return toElemBinAssign(e, OPshrass);
     }
 
     /***************************************
      */
 
-    override void visit(AndAssignExp e)
+    elem* visitAndAssign(AndAssignExp e)
     {
-        result = toElemBinAssign(e, OPandass);
+        return toElemBinAssign(e, OPandass);
     }
 
     /***************************************
      */
 
-    override void visit(OrAssignExp e)
+    elem* visitOrAssign(OrAssignExp e)
     {
-        result = toElemBinAssign(e, OPorass);
+        return toElemBinAssign(e, OPorass);
     }
 
     /***************************************
      */
 
-    override void visit(XorAssignExp e)
+    elem* visitXorAssign(XorAssignExp e)
     {
-        result = toElemBinAssign(e, OPxorass);
+        return toElemBinAssign(e, OPxorass);
     }
 
     /***************************************
      */
 
-    override void visit(LogicalExp aae)
+    elem* visitLogical(LogicalExp aae)
     {
         tym_t tym = totym(aae.type);
 
@@ -2913,66 +2884,66 @@ extern (C++) class ToElemVisitor : Visitor
         if (irs.params.cov && aae.e2.loc.linnum)
             e.EV.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.EV.E2);
 
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(XorExp e)
+    elem* visitXor(XorExp e)
     {
-        result = toElemBin(e, OPxor);
+        return toElemBin(e, OPxor);
     }
 
     /***************************************
      */
 
-    override void visit(AndExp e)
+    elem* visitAnd(AndExp e)
     {
-        result = toElemBin(e, OPand);
+        return toElemBin(e, OPand);
     }
 
     /***************************************
      */
 
-    override void visit(OrExp e)
+    elem* visitOr(OrExp e)
     {
-        result = toElemBin(e, OPor);
+        return toElemBin(e, OPor);
     }
 
     /***************************************
      */
 
-    override void visit(ShlExp e)
+    elem* visitShl(ShlExp e)
     {
-        result = toElemBin(e, OPshl);
+        return toElemBin(e, OPshl);
     }
 
     /***************************************
      */
 
-    override void visit(ShrExp e)
+    elem* visitShr(ShrExp e)
     {
-        result = toElemBin(e, e.e1.type.isunsigned() ? OPshr : OPashr);
+        return toElemBin(e, e.e1.type.isunsigned() ? OPshr : OPashr);
     }
 
     /***************************************
      */
 
-    override void visit(UshrExp se)
+    elem* visitUshr(UshrExp se)
     {
         elem *eleft  = toElem(se.e1, irs);
         eleft.Ety = touns(eleft.Ety);
         elem *eright = toElem(se.e2, irs);
         elem *e = el_bin(OPshr, totym(se.type), eleft, eright);
         elem_setLoc(e, se.loc);
-        result = e;
+        return e;
     }
 
     /****************************************
      */
 
-    override void visit(CommaExp ce)
+    elem* visitComma(CommaExp ce)
     {
         assert(ce.e1 && ce.e2);
         elem *eleft  = toElem(ce.e1, irs);
@@ -2980,13 +2951,13 @@ extern (C++) class ToElemVisitor : Visitor
         elem *e = el_combine(eleft, eright);
         if (e)
             elem_setLoc(e, ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(CondExp ce)
+    elem* visitCond(CondExp ce)
     {
         elem *ec = toElem(ce.econd, irs);
 
@@ -3032,26 +3003,26 @@ extern (C++) class ToElemVisitor : Visitor
                 e.ET = Type_toCtype(ce.e1.type);
         }
         elem_setLoc(e, ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(TypeExp e)
+    elem* visitType(TypeExp e)
     {
         //printf("TypeExp.toElem()\n");
         e.error("type `%s` is not an expression", e.toChars());
-        result = el_long(TYint, 0);
+        return el_long(TYint, 0);
     }
 
-    override void visit(ScopeExp e)
+    elem* visitScope(ScopeExp e)
     {
         e.error("`%s` is not an expression", e.sds.toChars());
-        result = el_long(TYint, 0);
+        return el_long(TYint, 0);
     }
 
-    override void visit(DotVarExp dve)
+    elem* visitDotVar(DotVarExp dve)
     {
         // *(&e + offset)
 
@@ -3061,8 +3032,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (!v)
         {
             dve.error("`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
-            result = el_long(TYint, 0);
-            return;
+            return el_long(TYint, 0);
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=12900
@@ -3109,10 +3079,10 @@ extern (C++) class ToElemVisitor : Visitor
             e.ET = Type_toCtype(dve.type);
         }
         elem_setLoc(e,dve.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DelegateExp de)
+    elem* visitDelegate(DelegateExp de)
     {
         int directcall = 0;
         //printf("DelegateExp.toElem() '%s'\n", de.toChars());
@@ -3213,19 +3183,19 @@ extern (C++) class ToElemVisitor : Visitor
         elem_setLoc(e, de.loc);
         if (eeq)
             e = el_combine(eeq, e);
-        result = e;
+        return e;
     }
 
-    override void visit(DotTypeExp dte)
+    elem* visitDotType(DotTypeExp dte)
     {
         // Just a pass-thru to e1
         //printf("DotTypeExp.toElem() %s\n", dte.toChars());
         elem *e = toElem(dte.e1, irs);
         elem_setLoc(e, dte.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(CallExp ce)
+    elem* visitCall(CallExp ce)
     {
         //printf("[%s] CallExp.toElem('%s') %p, %s\n", ce.loc.toChars(), ce.toChars(), ce, ce.type.toChars());
         assert(ce.e1.type);
@@ -3436,10 +3406,10 @@ extern (C++) class ToElemVisitor : Visitor
         elem_setLoc(ecall, ce.loc);
         if (eeq)
             ecall = el_combine(eeq, ecall);
-        result = ecall;
+        return ecall;
     }
 
-    override void visit(AddrExp ae)
+    elem* visitAddr(AddrExp ae)
     {
         //printf("AddrExp.toElem('%s')\n", ae.toChars());
         if (auto sle = ae.e1.isStructLiteralExp())
@@ -3450,8 +3420,7 @@ extern (C++) class ToElemVisitor : Visitor
             elem *e = el_ptr(toSymbol(sle.origin));
             e.ET = Type_toCtype(ae.type);
             elem_setLoc(e, ae.loc);
-            result = e;
-            return;
+            return e;
         }
         else
         {
@@ -3459,12 +3428,11 @@ extern (C++) class ToElemVisitor : Visitor
             e = addressElem(e, ae.e1.type);
             e.Ety = totym(ae.type);
             elem_setLoc(e, ae.loc);
-            result = e;
-            return;
+            return e;
         }
     }
 
-    override void visit(PtrExp pe)
+    elem* visitPtr(PtrExp pe)
     {
         //printf("PtrExp.toElem() %s\n", pe.toChars());
         elem *e = toElem(pe.e1, irs);
@@ -3480,10 +3448,10 @@ extern (C++) class ToElemVisitor : Visitor
             e.ET = Type_toCtype(pe.type);
         }
         elem_setLoc(e, pe.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DeleteExp de)
+    elem* visitDelete(DeleteExp de)
     {
         Type tb;
 
@@ -3521,10 +3489,10 @@ extern (C++) class ToElemVisitor : Visitor
         e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtl)), e);
         toTraceGC(irs, e, de.loc);
         elem_setLoc(e, de.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(VectorExp ve)
+    elem* visitVector(VectorExp ve)
     {
         version (none)
         {
@@ -3590,11 +3558,12 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_una(OPvecfill, totym(ve.type), e1);
         }
         elem_setLoc(e, ve.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(VectorArrayExp vae)
+    elem* visitVectorArray(VectorArrayExp vae)
     {
+        elem* result;
         // Generate code for `vec.array`
         if (auto ve = vae.e1.isVectorExp())
         {
@@ -3627,9 +3596,10 @@ extern (C++) class ToElemVisitor : Visitor
         }
         result.Ety = totym(vae.type);
         elem_setLoc(result, vae.loc);
+        return result;
     }
 
-    override void visit(CastExp ce)
+    elem* visitCast(CastExp ce)
     {
         version (none)
         {
@@ -3640,18 +3610,18 @@ extern (C++) class ToElemVisitor : Visitor
         }
         elem *e = toElem(ce.e1, irs);
 
-        result = toElemCast(ce, e, false);
+        return toElemCast(ce, e, false);
     }
 
-    override void visit(ArrayLengthExp ale)
+    elem* visitArrayLength(ArrayLengthExp ale)
     {
         elem *e = toElem(ale.e1, irs);
         e = el_una(target.is64bit ? OP128_64 : OP64_32, totym(ale.type), e);
         elem_setLoc(e, ale.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DelegatePtrExp dpe)
+    elem* visitDelegatePtr(DelegatePtrExp dpe)
     {
         // *cast(void**)(&dg)
         elem *e = toElem(dpe.e1, irs);
@@ -3659,10 +3629,10 @@ extern (C++) class ToElemVisitor : Visitor
         e = addressElem(e, tb1);
         e = el_una(OPind, totym(dpe.type), e);
         elem_setLoc(e, dpe.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DelegateFuncptrExp dfpe)
+    elem* visitDelegateFuncptr(DelegateFuncptrExp dfpe)
     {
         // *cast(void**)(&dg + size_t.sizeof)
         elem *e = toElem(dfpe.e1, irs);
@@ -3671,10 +3641,10 @@ extern (C++) class ToElemVisitor : Visitor
         e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, target.is64bit ? 8 : 4));
         e = el_una(OPind, totym(dfpe.type), e);
         elem_setLoc(e, dfpe.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(SliceExp se)
+    elem* visitSlice(SliceExp se)
     {
         //printf("SliceExp.toElem() se = %s %s\n", se.type.toChars(), se.toChars());
         Type tb = se.type.toBasetype();
@@ -3805,10 +3775,10 @@ extern (C++) class ToElemVisitor : Visitor
                    tb.nextOf().isBaseOf(t1.nextOf(), &offset) && offset == 0);
         }
         elem_setLoc(e, se.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(IndexExp ie)
+    elem* visitIndex(IndexExp ie)
     {
         elem *e;
         elem *n1 = toElem(ie.e1, irs);
@@ -3916,11 +3886,11 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_combine(eb, e);
         }
         elem_setLoc(e, ie.loc);
-        result = e;
+        return e;
     }
 
 
-    override void visit(TupleExp te)
+    elem* visitTuple(TupleExp te)
     {
         //printf("TupleExp.toElem() %s\n", te.toChars());
         elem *e = null;
@@ -3931,7 +3901,7 @@ extern (C++) class ToElemVisitor : Visitor
             elem *ep = toElem(el, irs);
             e = el_combine(e, ep);
         }
-        result = e;
+        return e;
     }
 
     static elem *tree_insert(Elems *args, size_t low, size_t high)
@@ -3944,7 +3914,7 @@ extern (C++) class ToElemVisitor : Visitor
                         tree_insert(args, mid, high));
     }
 
-    override void visit(ArrayLiteralExp ale)
+    elem* visitArrayLiteral(ArrayLiteralExp ale)
     {
         size_t dim = ale.elements ? ale.elements.dim : 0;
 
@@ -4007,10 +3977,10 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem_setLoc(e, ale.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(AssocArrayLiteralExp aale)
+    elem* visitAssocArrayLiteral(AssocArrayLiteralExp aale)
     {
         //printf("AssocArrayLiteralExp.toElem() %s\n", aale.toChars());
 
@@ -4051,38 +4021,129 @@ extern (C++) class ToElemVisitor : Visitor
 
             e = el_combine(evalues, e);
             e = el_combine(ekeys, e);
-            result = e;
-            return;
+            return e;
         }
         else
         {
             elem *e = el_long(TYnptr, 0);      // empty associative array is the null pointer
             if (t.ty != Taarray)
                 e = addressElem(e, Type.tvoidptr);
-            result = e;
-            return;
+            return e;
         }
     }
 
-    override void visit(StructLiteralExp sle)
+    elem* visitStructLiteral(StructLiteralExp sle)
     {
         //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
-        result = toElemStructLit(sle, irs, EXP.construct, sle.sym, true);
+        return toElemStructLit(sle, irs, EXP.construct, sle.sym, true);
     }
 
-    override void visit(ObjcClassReferenceExp e)
+    elem* visitObjcClassReference(ObjcClassReferenceExp e)
     {
-        result = objc.toElem(e);
+        return objc.toElem(e);
     }
 
     /*****************************************************/
     /*                   CTFE stuff                      */
     /*****************************************************/
 
-    override void visit(ClassReferenceExp e)
+    elem* visitClassReference(ClassReferenceExp e)
     {
         //printf("ClassReferenceExp.toElem() %p, value=%p, %s\n", e, e.value, e.toChars());
-        result = el_ptr(toSymbol(e));
+        return el_ptr(toSymbol(e));
+    }
+
+    switch (e.op)
+    {
+        default:                return visit(e);
+
+        case EXP.negate:        return visitNeg(e.isNegExp());
+        case EXP.tilde:         return visitCom(e.isComExp());
+        case EXP.not:           return visitNot(e.isNotExp());
+        case EXP.plusPlus:
+        case EXP.minusMinus:    return visitPost(e.isPostExp());
+        case EXP.add:           return visitAdd(e.isAddExp());
+        case EXP.min:           return visitMin(e.isMinExp());
+        case EXP.concatenate:   return visitCat(e.isCatExp());
+        case EXP.mul:           return visitMul(e.isMulExp());
+        case EXP.div:           return visitDiv(e.isDivExp());
+        case EXP.mod:           return visitMod(e.isModExp());
+        case EXP.lessThan:
+        case EXP.lessOrEqual:
+        case EXP.greaterThan:
+        case EXP.greaterOrEqual: return visitCmp(cast(CmpExp) e);
+        case EXP.notEqual:
+        case EXP.equal:         return visitEqual(e.isEqualExp());
+        case EXP.notIdentity:
+        case EXP.identity:      return visitIdentity(e.isIdentityExp());
+        case EXP.in_:           return visitIn(e.isInExp());
+        case EXP.assign:        return visitAssign(e.isAssignExp());
+        case EXP.construct:     return visitAssign(e.isConstructExp());
+        case EXP.blit:          return visitAssign(e.isBlitExp());
+        case EXP.addAssign:     return visitAddAssign(e.isAddAssignExp());
+        case EXP.minAssign:     return visitMinAssign(e.isMinAssignExp());
+        case EXP.concatenateDcharAssign: return visitCatAssign(e.isCatDcharAssignExp());
+        case EXP.concatenateElemAssign:  return visitCatAssign(e.isCatElemAssignExp());
+        case EXP.concatenateAssign:      return visitCatAssign(e.isCatAssignExp());
+        case EXP.divAssign:     return visitDivAssign(e.isDivAssignExp());
+        case EXP.modAssign:     return visitModAssign(e.isModAssignExp());
+        case EXP.mulAssign:     return visitMulAssign(e.isMulAssignExp());
+        case EXP.leftShiftAssign: return visitShlAssign(e.isShlAssignExp());
+        case EXP.rightShiftAssign: return visitShrAssign(e.isShrAssignExp());
+        case EXP.unsignedRightShiftAssign: return visitUshrAssign(e.isUshrAssignExp());
+        case EXP.andAssign:     return visitAndAssign(e.isAndAssignExp());
+        case EXP.orAssign:      return visitOrAssign(e.isOrAssignExp());
+        case EXP.xorAssign:     return visitXorAssign(e.isXorAssignExp());
+        case EXP.andAnd:
+        case EXP.orOr:          return visitLogical(e.isLogicalExp());
+        case EXP.xor:           return visitXor(e.isXorExp());
+        case EXP.and:           return visitAnd(e.isAndExp());
+        case EXP.or:            return visitOr(e.isOrExp());
+        case EXP.leftShift:     return visitShl(e.isShlExp());
+        case EXP.rightShift:    return visitShr(e.isShrExp());
+        case EXP.unsignedRightShift: return visitUshr(e.isUshrExp());
+        case EXP.address:       return visitAddr(e.isAddrExp());
+        case EXP.variable:      return visitSymbol(e.isVarExp());
+        case EXP.symbolOffset:  return visitSymbol(e.isSymOffExp());
+        case EXP.int64:         return visitInteger(e.isIntegerExp());
+        case EXP.float64:       return visitReal(e.isRealExp());
+        case EXP.complex80:     return visitComplex(e.isComplexExp());
+        case EXP.this_:         return visitThis(e.isThisExp());
+        case EXP.super_:        return visitThis(e.isSuperExp());
+        case EXP.null_:         return visitNull(e.isNullExp());
+        case EXP.string_:       return visitString(e.isStringExp());
+        case EXP.arrayLiteral:  return visitArrayLiteral(e.isArrayLiteralExp());
+        case EXP.assocArrayLiteral:     return visitAssocArrayLiteral(e.isAssocArrayLiteralExp());
+        case EXP.structLiteral: return visitStructLiteral(e.isStructLiteralExp());
+        case EXP.type:          return visitType(e.isTypeExp());
+        case EXP.scope_:        return visitScope(e.isScopeExp());
+        case EXP.new_:          return visitNew(e.isNewExp());
+        case EXP.tuple:         return visitTuple(e.isTupleExp());
+        case EXP.function_:     return visitFunc(e.isFuncExp());
+        case EXP.declaration:   return visitDeclaration(e.isDeclarationExp());
+        case EXP.typeid_:       return visitTypeid(e.isTypeidExp());
+        case EXP.halt:          return visitHalt(e.isHaltExp());
+        case EXP.comma:         return visitComma(e.isCommaExp());
+        case EXP.assert_:       return visitAssert(e.isAssertExp());
+        case EXP.throw_:        return visitThrow(e.isThrowExp());
+        case EXP.dotVariable:   return visitDotVar(e.isDotVarExp());
+        case EXP.delegate_:     return visitDelegate(e.isDelegateExp());
+        case EXP.dotType:       return visitDotType(e.isDotTypeExp());
+        case EXP.call:          return visitCall(e.isCallExp());
+        case EXP.star:          return visitPtr(e.isPtrExp());
+        case EXP.delete_:       return visitDelete(e.isDeleteExp());
+        case EXP.cast_:         return visitCast(e.isCastExp());
+        case EXP.vector:        return visitVector(e.isVectorExp());
+        case EXP.vectorArray:   return visitVectorArray(e.isVectorArrayExp());
+        case EXP.slice:         return visitSlice(e.isSliceExp());
+        case EXP.arrayLength:   return visitArrayLength(e.isArrayLengthExp());
+        case EXP.delegatePointer:       return visitDelegatePtr(e.isDelegatePtrExp());
+        case EXP.delegateFunctionPointer:       return visitDelegateFuncptr(e.isDelegateFuncptrExp());
+        case EXP.index:         return visitIndex(e.isIndexExp());
+        case EXP.remove:        return visitRemove(e.isRemoveExp());
+        case EXP.question:      return visitCond(e.isCondExp());
+        case EXP.objcClassReference:    return visitObjcClassReference(e.isObjcClassReferenceExp());
+        case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
     }
 }
 
@@ -4300,6 +4361,8 @@ elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exp
     return e;
 }
 
+/***************************************************
+ */
 elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
 {
     tym_t ftym;
