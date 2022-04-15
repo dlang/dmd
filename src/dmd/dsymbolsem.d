@@ -5024,6 +5024,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     cldec.com = true;
                 if (cldec.baseClass.isCPPclass())
                     cldec.classKind = ClassKind.cpp;
+                if (cldec.classKind != cldec.baseClass.classKind)
+                    cldec.error("with %s linkage cannot inherit from class `%s` with %s linkage",
+                        cldec.classKind.toChars(), cldec.baseClass.toChars(), cldec.baseClass.classKind.toChars());
+
                 if (cldec.baseClass.stack)
                     cldec.stack = true;
                 cldec.enclosing = cldec.baseClass.enclosing;
