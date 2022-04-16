@@ -13,13 +13,14 @@
 module dmd.console;
 
 import core.stdc.stdio;
-extern (C) int isatty(int) nothrow;
 
 version (Windows)
 {
     import core.sys.windows.winbase;
     import core.sys.windows.wincon;
     import core.sys.windows.windef;
+
+    private extern (C) int isatty(int) @trusted @nogc nothrow;
 }
 else version (Posix)
 {
