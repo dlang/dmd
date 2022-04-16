@@ -140,6 +140,7 @@ Options:
     }
 
     verifyCompilerExists(env);
+    prepareOutputDirectory(env);
 
     if (runUnitTests)
     {
@@ -221,13 +222,12 @@ void verifyCompilerExists(const string[string] env)
     }
 }
 
-/**
-Builds the binary of the tools required by the testsuite.
-Does nothing if the tools already exist and are newer than their source.
-*/
-void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
+/// Creates the necessary directories and files for the test runner(s)
+void prepareOutputDirectory(const string[string] env)
 {
-    resultsDir.mkdirRecurse;
+    // ensure output directories exist
+    foreach (dir; testDirs)
+        resultsDir.buildPath(dir).mkdirRecurse;
 
     version (Windows)
     {{
@@ -253,7 +253,14 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
             wrapper.write(`[ -z "${`, key, `+x}" ] && export `, key, `='`, value, "' ;\n");
         }
     }}
+}
 
+/**
+Builds the binaries of the tools required by the testsuite.
+Does nothing if the tools already exist and are newer than their source.
+*/
+void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
+{
     shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {
@@ -313,10 +320,6 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
     }
     if (failCount > 0)
         quitSilently(1); // error already printed
-
-    // ensure output directories exist
-    foreach (dir; testDirs)
-        resultsDir.buildPath(dir).mkdirRecurse;
 }
 
 /// A single target to execute.
