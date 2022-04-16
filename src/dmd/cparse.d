@@ -2399,15 +2399,13 @@ final class CParser(AST) : Parser!AST
                 if (idx.length > 2 && idx[0] == '_' && idx[1] == '_')  // leading double underscore
                     importBuiltins = true;  // probably one of those compiler extensions
                 t = null;
-                if (scw & SCW.xtypedef)
-                {
-                    /* Punch through to what the typedef is, to support things like:
-                     *  typedef T* T;
-                     */
-                    auto pt = lookupTypedef(previd);
-                    if (pt && *pt)      // if previd is a known typedef
-                        t = *pt;
-                }
+
+                /* Punch through to what the typedef is, to support things like:
+                 *  typedef T* T;
+                 */
+                auto pt = lookupTypedef(previd);
+                if (pt && *pt)      // if previd is a known typedef
+                    t = *pt;
 
                 if (!t)
                     t = new AST.TypeIdentifier(loc, previd);
