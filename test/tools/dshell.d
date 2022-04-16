@@ -1,7 +1,7 @@
 /**
 A small library to help write D shell-like test scripts.
 */
-module dshell_prebuilt;
+module dshell;
 
 public import core.stdc.stdlib : exit;
 
@@ -17,6 +17,11 @@ public import std.file;
 public import std.regex;
 public import std.stdio;
 public import std.process;
+
+shared static this()
+{
+    dshellPrebuiltInit("dshell", environment["TEST_NAME"]);
+}
 
 /**
 Emulates bash environment variables. Variables set here will be availble for BASH-like expansion.

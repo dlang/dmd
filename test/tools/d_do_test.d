@@ -2038,18 +2038,6 @@ int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
         rmdirRecurse(testOutDir);
     mkdirRecurse(testOutDir);
 
-    // create the "dshell" module for the tests
-    {
-        auto dshellFile = File(buildPath(testOutDir, "dshell.d"), "w");
-        dshellFile.writeln(`module dshell;
-public import dshell_prebuilt;
-static this()
-{
-    dshellPrebuiltInit("` ~ input_dir ~ `", "`, test_name , `");
-}
-`);
-    }
-
     const testScriptExe = buildPath(testOutDir, "run" ~ envData.exe);
 
     auto outfile = File(output_file, "w");
@@ -2063,12 +2051,8 @@ static this()
             envData.picFlag ~ [
             "-od" ~ testOutDir,
             "-of" ~ testScriptExe,
-            "-I=" ~ testScriptDir,
-            "-I=" ~ testOutDir,
-            "-I=" ~ buildPath(dmdTestDir, "tools", "dshell_prebuilt"),
-            "-i",
-            // Causing linker errors for some reason?
-            "-i=-dshell_prebuilt", buildPath(envData.results_dir, "dshell_prebuilt" ~ envData.obj),
+            "-I=" ~ buildPath(dmdTestDir, "tools"),
+            buildPath(envData.results_dir, "dshell" ~ envData.obj),
             testScriptPath,
         ];
         outfile.writeln("[COMPILE_TEST] ", escapeShellCommand(compile));
@@ -2091,7 +2075,10 @@ static this()
         const runTest = [testScriptExe];
         outfile.writeln("\n[RUN_TEST] ", escapeShellCommand(runTest));
         outfile.flush();
-        auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, null, keepFilesOpen);
+        string[string] env = [
+            "TEST_NAME": test_name,
+        ];
+        auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, env, keepFilesOpen);
         const exitCode = wait(runTestProc);
 
         if (exitCode == 125) // = DISABLED from tools/dshell_prebuilt.d
