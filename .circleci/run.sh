@@ -164,7 +164,7 @@ check_clean_git()
 check_run_individual()
 {
     local build_path=generated/linux/$BUILD/$MODEL
-    "${build_path}/dmd" -I./test -i -run ./test/run.d test/runnable/template2962.d ./test/compilable/test14275.d
+    "${build_path}/dmd" -I./test -i -run ./test/run.d "BUILD=$BUILD" "MODEL=$MODEL" test/runnable/template2962.d ./test/compilable/test14275.d
 }
 
 # Checks the D build.d script
