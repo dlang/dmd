@@ -4513,6 +4513,7 @@ extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
 
 enum class MODFlags
 {
+    none = 0,
     const_ = 1,
     immutable_ = 4,
     shared_ = 2,

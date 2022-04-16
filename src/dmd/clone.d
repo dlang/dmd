@@ -912,8 +912,8 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
                 ex = new DotVarExp(loc, ex, v);
 
                 // This is a hack so we can call destructors on const/immutable objects.
-                // Do it as a type 'paint'.
-                ex = new CastExp(loc, ex, v.type.mutableOf());
+                // Do it as a type 'paint', `cast()`
+                ex = new CastExp(loc, ex, MODFlags.none);
                 if (stc & STC.safe)
                     stc = (stc & ~STC.safe) | STC.trusted;
 

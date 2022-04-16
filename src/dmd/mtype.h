@@ -109,6 +109,7 @@ enum class TY : uint8_t
  */
 enum MODFlags
 {
+    MODnone      = 0, // default (mutable)
     MODconst     = 1, // type is const
     MODimmutable = 4, // type is immutable
     MODshared    = 2, // type is shared
