@@ -483,8 +483,7 @@ bool checkParamArgumentReturn(ref Scope sc, Expression firstArg, Expression arg,
     // Note: taking address of scope pointer is not allowed
     // `assign(ref int** x, return ref scope int* i) {x = &i};`
     // Thus no return ref/return scope ambiguity here
-    const byRef = param.isReference() && !(param.storageClass & STC.scope_)
-        && !(param.storageClass & STC.returnScope); // fixme: it's possible to infer returnScope without scope with vaIsFirstRef
+    const byRef = param.isReference() && !(param.storageClass & STC.scope_);
 
     auto e = new AssignExp(arg.loc, firstArg, arg);
     return checkAssignEscape(sc, e, gag, byRef);
@@ -1479,7 +1478,7 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
     if (!fd.returnInprocess)
         return false;
 
-    if (returnScope && !(v.isScope() || v.maybeScope))
+    if (returnScope && !inferScope(v))
         return false;
 
     //printf("for function '%s' inferring 'return' for variable '%s', returnScope: %d\n", fd.toChars(), v.toChars(), returnScope);
@@ -1491,10 +1490,19 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
         /* v is the 'this' reference, so mark the function
          */
         fd.storage_class |= newStcs;
+        if (returnScope && !fd.isScope)
+        {
+            fd.storage_class |= STC.scope_ | STC.scopeinferred;
+        }
         if (auto tf = fd.type.isTypeFunction())
         {
             //printf("'this' too %p %s\n", tf, sc.func.toChars());
             tf.isreturnscope = returnScope;
+            if (returnScope && !tf.isScopeQual)
+            {
+                tf.isScopeQual = true;
+                tf.isscopeinferred = true;
+            }
             tf.isreturn = true;
             tf.isreturninferred = true;
         }
@@ -1509,6 +1517,10 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
                 if (p.ident == v.ident)
                 {
                     p.storageClass |= newStcs;
+                    if (returnScope && !(p.storageClass & STC.scope_))
+                    {
+                        p.storageClass |= STC.scope_ | STC.scopeinferred;
+                    }
                     break;              // there can be only one
                 }
             }
