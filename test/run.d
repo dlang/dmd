@@ -139,19 +139,18 @@ Options:
         stdout.flush();
     }
 
+    verifyCompilerExists(env);
+
     if (runUnitTests)
     {
-        verifyCompilerExists(env);
         ensureToolsExists(env, TestTools.unitTestRunner);
         return spawnProcess(unitTestRunnerCommand ~ args, env, Config.none, scriptDir).wait();
     }
 
+    ensureToolsExists(env, EnumMembers!TestTools);
+
     if (args == ["tools"])
-    {
-        verifyCompilerExists(env);
-        ensureToolsExists(env, EnumMembers!TestTools);
         return 0;
-    }
 
     // default target
     if (!args.length)
@@ -185,10 +184,7 @@ Options:
 
     if (targets.length > 0)
     {
-        verifyCompilerExists(env);
-
         string[] failedTargets;
-        ensureToolsExists(env, EnumMembers!TestTools);
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
