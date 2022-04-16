@@ -53,7 +53,7 @@ enum TestTools
     unitTestRunner = TestTool("unit_test_runner", [toolsDir.buildPath("paths")]),
     testRunner = TestTool("d_do_test", ["-I" ~ toolsDir, "-i", "-version=NoMain"]),
     jsonSanitizer = TestTool("sanitize_json"),
-    dshellPrebuilt = TestTool("dshell_prebuilt", null, Yes.linksWithTests),
+    dshellPrebuilt = TestTool("dshell", null, Yes.linksWithTests),
 }
 
 immutable struct TestTool
@@ -264,18 +264,14 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
     shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {
+        const string sourceFile = toolsDir.buildPath(tool ~ ".d");
+
         string targetBin;
-        string sourceFile;
         if (tool.linksWithTests)
-        {
             targetBin = resultsDir.buildPath(tool).objName;
-            sourceFile = toolsDir.buildPath(tool, tool ~ ".d");
-        }
         else
-        {
             targetBin = resultsDir.buildPath(tool).exeName;
-            sourceFile = toolsDir.buildPath(tool ~ ".d");
-        }
+
         if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
             log("%s is already up-to-date", tool);
         else
@@ -304,7 +300,7 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
                 command = [
                     hostDMD,
                     "-m"~model,
-                    "-of"~targetBin,
+                    "-of="~targetBin,
                     sourceFile
                 ] ~ getPicFlags(env) ~ tool.extraArgs;
             }
