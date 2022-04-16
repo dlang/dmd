@@ -12,6 +12,7 @@ generated/
 -trace.log
 *.lst
 .dub
+dub.selections.json
 
 # Visual Studio files
 *.exe
@@ -26,6 +27,7 @@ src/vcbuild/.vs
 *.user
 *.ilk
 ipch
+.vscode
 
 # Xcode files
 DerivedData/
@@ -48,3 +50,6 @@ src/optabgen.dSYM/
 # IntelliJ IDEA / CLion
 .idea/
 dmd.iml
+
+# Deliberately ignored files
+untracked_files/
