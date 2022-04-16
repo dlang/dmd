@@ -4621,7 +4621,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);
 
-        if (global.params.useTypeInfo && Type.dtypeinfo)  // these functions are used for TypeInfo
+        if (!(sc2.flags & SCOPE.Cfile) &&
+            global.params.useTypeInfo && Type.dtypeinfo)  // these functions are used for TypeInfo
         {
             sd.xeq = buildXopEquals(sd, sc2);
             sd.xcmp = buildXopCmp(sd, sc2);
