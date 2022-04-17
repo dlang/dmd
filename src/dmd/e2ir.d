@@ -810,7 +810,7 @@ extern (C++) class ToElemVisitor : Visitor
     override void visit(DeclarationExp de)
     {
         //printf("DeclarationExp.toElem() %s\n", de.toChars());
-        result = Dsymbol_toElem(de.declaration);
+        result = Dsymbol_toElem(de.declaration, irs);
     }
 
     /***************************************
@@ -4878,106 +4878,6 @@ extern (C++) class ToElemVisitor : Visitor
         result = e;
     }
 
-    /**************************************
-     * Mirrors logic in Dsymbol_canThrow().
-     */
-    elem *Dsymbol_toElem(Dsymbol s)
-    {
-        elem *e = null;
-
-        void symbolDg(Dsymbol s)
-        {
-            e = el_combine(e, Dsymbol_toElem(s));
-        }
-
-        //printf("Dsymbol_toElem() %s\n", s.toChars());
-        if (auto vd = s.isVarDeclaration())
-        {
-            s = s.toAlias();
-            if (s != vd)
-                return Dsymbol_toElem(s);
-            if (vd.storage_class & STC.manifest)
-                return null;
-            else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
-                toObjFile(vd, false);
-            else
-            {
-                Symbol *sp = toSymbol(s);
-                symbol_add(sp);
-                //printf("\tadding symbol '%s'\n", sp.Sident);
-                if (vd._init)
-                {
-                    if (auto ie = vd._init.isExpInitializer())
-                        e = toElem(ie.exp, irs);
-                }
-
-                /* Mark the point of construction of a variable that needs to be destructed.
-                 */
-                if (vd.needsScopeDtor())
-                {
-                    elem *edtor = toElem(vd.edtor, irs);
-                    elem *ed = null;
-                    if (irs.isNothrow())
-                    {
-                        ed = edtor;
-                    }
-                    else
-                    {
-                        // Construct special elems to deal with exceptions
-                        e = el_ctor_dtor(e, edtor, &ed);
-                    }
-
-                    // ed needs to be inserted into the code later
-                    irs.varsInScope.push(ed);
-                }
-            }
-        }
-        else if (auto cd = s.isClassDeclaration())
-        {
-            irs.deferToObj.push(s);
-        }
-        else if (auto sd = s.isStructDeclaration())
-        {
-            irs.deferToObj.push(sd);
-        }
-        else if (auto fd = s.isFuncDeclaration())
-        {
-            //printf("function %s\n", fd.toChars());
-            irs.deferToObj.push(fd);
-        }
-        else if (auto ad = s.isAttribDeclaration())
-        {
-            ad.include(null).foreachDsymbol(&symbolDg);
-        }
-        else if (auto tm = s.isTemplateMixin())
-        {
-            //printf("%s\n", tm.toChars());
-            tm.members.foreachDsymbol(&symbolDg);
-        }
-        else if (auto td = s.isTupleDeclaration())
-        {
-            foreach (o; *td.objects)
-            {
-                if (o.dyncast() == DYNCAST.expression)
-                {   Expression eo = cast(Expression)o;
-                    if (eo.op == EXP.dSymbol)
-                    {   DsymbolExp se = cast(DsymbolExp)eo;
-                        e = el_combine(e, Dsymbol_toElem(se.s));
-                    }
-                }
-            }
-        }
-        else if (auto ed = s.isEnumDeclaration())
-        {
-            irs.deferToObj.push(ed);
-        }
-        else if (auto ti = s.isTemplateInstance())
-        {
-            irs.deferToObj.push(ti);
-        }
-        return e;
-    }
-
     /*************************************************
      * Allocate a static array, and initialize its members with elems[].
      * Return the initialization expression, and the symbol for the static array in *psym.
@@ -5164,6 +5064,107 @@ extern (C++) class ToElemVisitor : Visitor
         //printf("ClassReferenceExp.toElem() %p, value=%p, %s\n", e, e.value, e.toChars());
         result = el_ptr(toSymbol(e));
     }
+}
+
+/**************************************
+ * Mirrors logic in Dsymbol_canThrow().
+ */
+private
+elem *Dsymbol_toElem(Dsymbol s, IRState* irs)
+{
+    elem *e = null;
+
+    void symbolDg(Dsymbol s)
+    {
+        e = el_combine(e, Dsymbol_toElem(s, irs));
+    }
+
+    //printf("Dsymbol_toElem() %s\n", s.toChars());
+    if (auto vd = s.isVarDeclaration())
+    {
+        s = s.toAlias();
+        if (s != vd)
+            return Dsymbol_toElem(s, irs);
+        if (vd.storage_class & STC.manifest)
+            return null;
+        else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
+            toObjFile(vd, false);
+        else
+        {
+            Symbol *sp = toSymbol(s);
+            symbol_add(sp);
+            //printf("\tadding symbol '%s'\n", sp.Sident);
+            if (vd._init)
+            {
+                if (auto ie = vd._init.isExpInitializer())
+                    e = toElem(ie.exp, irs);
+            }
+
+            /* Mark the point of construction of a variable that needs to be destructed.
+             */
+            if (vd.needsScopeDtor())
+            {
+                elem *edtor = toElem(vd.edtor, irs);
+                elem *ed = null;
+                if (irs.isNothrow())
+                {
+                    ed = edtor;
+                }
+                else
+                {
+                    // Construct special elems to deal with exceptions
+                    e = el_ctor_dtor(e, edtor, &ed);
+                }
+
+                // ed needs to be inserted into the code later
+                irs.varsInScope.push(ed);
+            }
+        }
+    }
+    else if (auto cd = s.isClassDeclaration())
+    {
+        irs.deferToObj.push(s);
+    }
+    else if (auto sd = s.isStructDeclaration())
+    {
+        irs.deferToObj.push(sd);
+    }
+    else if (auto fd = s.isFuncDeclaration())
+    {
+        //printf("function %s\n", fd.toChars());
+        irs.deferToObj.push(fd);
+    }
+    else if (auto ad = s.isAttribDeclaration())
+    {
+        ad.include(null).foreachDsymbol(&symbolDg);
+    }
+    else if (auto tm = s.isTemplateMixin())
+    {
+        //printf("%s\n", tm.toChars());
+        tm.members.foreachDsymbol(&symbolDg);
+    }
+    else if (auto td = s.isTupleDeclaration())
+    {
+        foreach (o; *td.objects)
+        {
+            if (o.dyncast() == DYNCAST.expression)
+            {   Expression eo = cast(Expression)o;
+                if (eo.op == EXP.dSymbol)
+                {   DsymbolExp se = cast(DsymbolExp)eo;
+                    e = el_combine(e, Dsymbol_toElem(se.s, irs));
+                }
+            }
+        }
+    }
+    else if (auto ed = s.isEnumDeclaration())
+    {
+        irs.deferToObj.push(ed);
+    }
+    else if (auto ti = s.isTemplateInstance())
+    {
+        irs.deferToObj.push(ti);
+    }
+    return e;
 }
 
 /******************************************
