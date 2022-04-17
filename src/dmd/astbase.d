@@ -434,6 +434,11 @@ struct ASTBase
             this.exp = exp;
             this.msg = msg;
         }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 
     extern (C++) final class DebugSymbol : Dsymbol
