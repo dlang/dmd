@@ -288,6 +288,18 @@ _Static_assert(sizeof(A) == 1, "A should be size 1");
     $(P Arrays can have `register` storage class, and may be enregistered by the compiler. C11 6.3.2.1-3)
 
 
+    $(H3 $(LNAME2 typeof, typeof Operator))
+
+    $(P The `typeof` operator may be used as a type specifier:)
+$(GRAMMAR
+$(GNAME type-specifier):
+    $(GNAME typeof-specifier)
+
+$(GNAME typeof-specifier):
+    $(D typeof $(LPAREN)) $(GNAME expression) $(D $(RPAREN))
+    $(D typeof $(LPAREN)) $(GNAME type-name) $(D $(RPAREN))
+)
+
     $(H3 $(LNAME2 __import, Import Declarations))
 
     $(P Modules can be imported with a $(I CImportDeclaration):)
