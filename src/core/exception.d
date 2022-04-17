@@ -218,17 +218,17 @@ private void rangeMsgPut(ref char[] r, scope const(char)[] e) @nogc nothrow pure
  */
 class AssertError : Error
 {
-    @safe pure nothrow this( string file, size_t line )
+    @safe pure nothrow @nogc this( string file, size_t line )
     {
         this(cast(Throwable)null, file, line);
     }
 
-    @safe pure nothrow this( Throwable next, string file = __FILE__, size_t line = __LINE__ )
+    @safe pure nothrow @nogc this( Throwable next, string file = __FILE__, size_t line = __LINE__ )
     {
         this( "Assertion failure", file, line, next);
     }
 
-    @safe pure nothrow this( string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    @safe pure nothrow @nogc this( string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
         super( msg, file, line, next );
     }
