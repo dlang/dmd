@@ -3933,7 +3933,7 @@ elem* toElem(Expression e, IRState *irs)
             e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
             e = el_combine(e, el_ptr(stmp));
         }
-        else if (ale.elements)
+        else if (ale.elements && dim)
         {
             /* Instead of passing the initializers on the stack, allocate the
              * array and assign the members inline.
@@ -3949,12 +3949,7 @@ elem* toElem(Expression e, IRState *irs)
             Symbol *stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
             e = el_bin(OPeq, TYnptr, el_var(stmp), e);
 
-            /* Note: Even if dm == 0, the druntime function will be called so
-             * GC heap may be allocated. However, currently it's implemented
-             * to return null for 0 length.
-             */
-            if (dim)
-                e = el_combine(e, ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis));
+            e = el_combine(e, ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis));
 
             e = el_combine(e, el_var(stmp));
         }
