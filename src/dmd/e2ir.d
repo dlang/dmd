@@ -1284,7 +1284,7 @@ extern (C++) class ToElemVisitor : Visitor
 
                 // Allocate array of dimensions on the stack
                 Symbol *sdata = null;
-                elem *earray = ExpressionsToStaticArray(ne.loc, ne.arguments, &sdata);
+                elem *earray = ExpressionsToStaticArray(irs, ne.loc, ne.arguments, &sdata);
 
                 e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.dim), el_ptr(sdata));
                 if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
@@ -2600,7 +2600,7 @@ extern (C++) class ToElemVisitor : Visitor
                     e1 = el_bin(OPeq, TYnptr, el_var(stmp), e1);
 
                     // Eliminate _d_arrayliteralTX call in ae.e2.
-                    e = ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis);
+                    e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
                     e = el_combine(e1, e);
                 }
                 return setResult2(e);
@@ -4828,7 +4828,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (tb.ty == Tsarray && dim)
         {
             Symbol *stmp = null;
-            e = ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis);
+            e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
             e = el_combine(e, el_ptr(stmp));
         }
         else if (ale.elements)
@@ -4852,7 +4852,7 @@ extern (C++) class ToElemVisitor : Visitor
              * to return null for 0 length.
              */
             if (dim)
-                e = el_combine(e, ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis));
+                e = el_combine(e, ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis));
 
             e = el_combine(e, el_var(stmp));
         }
@@ -4878,118 +4878,6 @@ extern (C++) class ToElemVisitor : Visitor
         result = e;
     }
 
-    /*************************************************
-     * Allocate a static array, and initialize its members with elems[].
-     * Return the initialization expression, and the symbol for the static array in *psym.
-     */
-    elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym)
-    {
-        // Create a static array of type telem[dim]
-        const dim = elems.dim;
-        assert(dim);
-
-        Type tsarray = telem.sarrayOf(dim);
-        const szelem = telem.size();
-        .type *te = Type_toCtype(telem);   // stmp[] element type
-
-        Symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
-        *psym = stmp;
-
-        elem *e = null;
-        foreach (i, ep; *elems)
-        {
-            /* Generate: *(&stmp + i * szelem) = element[i]
-             */
-            elem *ev = el_ptr(stmp);
-            ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
-            ev = el_una(OPind, te.Tty, ev);
-            elem *eeq = elAssign(ev, ep, null, te);
-            e = el_combine(e, eeq);
-        }
-        return e;
-    }
-
-    /*************************************************
-     * Allocate a static array, and initialize its members with
-     * exps[].
-     * Return the initialization expression, and the symbol for the static array in *psym.
-     */
-    elem *ExpressionsToStaticArray(const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
-    {
-        // Create a static array of type telem[dim]
-        const dim = exps.dim;
-        assert(dim);
-
-        Type telem = ((*exps)[0] ? (*exps)[0] : basis).type;
-        const szelem = telem.size();
-        .type *te = Type_toCtype(telem);   // stmp[] element type
-
-        if (!*psym)
-        {
-            Type tsarray2 = telem.sarrayOf(dim);
-            *psym = symbol_genauto(Type_toCtype(tsarray2));
-            offset = 0;
-        }
-        Symbol *stmp = *psym;
-
-        elem *e = null;
-        for (size_t i = 0; i < dim; )
-        {
-            Expression el = (*exps)[i];
-            if (!el)
-                el = basis;
-            if (el.op == EXP.arrayLiteral &&
-                el.type.toBasetype().ty == Tsarray)
-            {
-                ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
-                if (ale.elements && ale.elements.dim)
-                {
-                    elem *ex = ExpressionsToStaticArray(
-                        ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);
-                    e = el_combine(e, ex);
-                }
-                i++;
-                continue;
-            }
-
-            size_t j = i + 1;
-            if (el.isConst() || el.op == EXP.null_)
-            {
-                // If the trivial elements are same values, do memcpy.
-                while (j < dim)
-                {
-                    Expression en = (*exps)[j];
-                    if (!en)
-                        en = basis;
-                    if (!el.equals(en))
-                        break;
-                    j++;
-                }
-            }
-
-            /* Generate: *(&stmp + i * szelem) = element[i]
-             */
-            elem *ep = toElem(el, irs);
-            elem *ev = tybasic(stmp.Stype.Tty) == TYnptr ? el_var(stmp) : el_ptr(stmp);
-            ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, offset + i * szelem));
-
-            elem *eeq;
-            if (j == i + 1)
-            {
-                ev = el_una(OPind, te.Tty, ev);
-                eeq = elAssign(ev, ep, null, te);
-            }
-            else
-            {
-                elem *edim = el_long(TYsize_t, j - i);
-                eeq = setArray(el, ev, edim, telem, ep, irs, EXP.blit);
-            }
-            e = el_combine(e, eeq);
-            i = j;
-        }
-        return e;
-    }
-
     override void visit(AssocArrayLiteralExp aale)
     {
         //printf("AssocArrayLiteralExp.toElem() %s\n", aale.toChars());
@@ -5006,10 +4894,10 @@ extern (C++) class ToElemVisitor : Visitor
             Type ta = t;
 
             Symbol *skeys = null;
-            elem *ekeys = ExpressionsToStaticArray(aale.loc, aale.keys, &skeys);
+            elem *ekeys = ExpressionsToStaticArray(irs, aale.loc, aale.keys, &skeys);
 
             Symbol *svalues = null;
-            elem *evalues = ExpressionsToStaticArray(aale.loc, aale.values, &svalues);
+            elem *evalues = ExpressionsToStaticArray(irs, aale.loc, aale.values, &svalues);
 
             elem *ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
             elem *ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
@@ -5163,6 +5051,118 @@ elem *Dsymbol_toElem(Dsymbol s, IRState* irs)
     else if (auto ti = s.isTemplateInstance())
     {
         irs.deferToObj.push(ti);
+    }
+    return e;
+}
+
+/*************************************************
+ * Allocate a static array, and initialize its members with elems[].
+ * Return the initialization expression, and the symbol for the static array in *psym.
+ */
+elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym)
+{
+    // Create a static array of type telem[dim]
+    const dim = elems.dim;
+    assert(dim);
+
+    Type tsarray = telem.sarrayOf(dim);
+    const szelem = telem.size();
+    .type *te = Type_toCtype(telem);   // stmp[] element type
+
+    Symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
+    *psym = stmp;
+
+    elem *e = null;
+    foreach (i, ep; *elems)
+    {
+        /* Generate: *(&stmp + i * szelem) = element[i]
+         */
+        elem *ev = el_ptr(stmp);
+        ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
+        ev = el_una(OPind, te.Tty, ev);
+        elem *eeq = elAssign(ev, ep, null, te);
+        e = el_combine(e, eeq);
+    }
+    return e;
+}
+
+/*************************************************
+ * Allocate a static array, and initialize its members with
+ * exps[].
+ * Return the initialization expression, and the symbol for the static array in *psym.
+ */
+elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
+{
+    // Create a static array of type telem[dim]
+    const dim = exps.dim;
+    assert(dim);
+
+    Type telem = ((*exps)[0] ? (*exps)[0] : basis).type;
+    const szelem = telem.size();
+    .type *te = Type_toCtype(telem);   // stmp[] element type
+
+    if (!*psym)
+    {
+        Type tsarray2 = telem.sarrayOf(dim);
+        *psym = symbol_genauto(Type_toCtype(tsarray2));
+        offset = 0;
+    }
+    Symbol *stmp = *psym;
+
+    elem *e = null;
+    for (size_t i = 0; i < dim; )
+    {
+        Expression el = (*exps)[i];
+        if (!el)
+            el = basis;
+        if (el.op == EXP.arrayLiteral &&
+            el.type.toBasetype().ty == Tsarray)
+        {
+            ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
+            if (ale.elements && ale.elements.dim)
+            {
+                elem *ex = ExpressionsToStaticArray(irs,
+                    ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);
+                e = el_combine(e, ex);
+            }
+            i++;
+            continue;
+        }
+
+        size_t j = i + 1;
+        if (el.isConst() || el.op == EXP.null_)
+        {
+            // If the trivial elements are same values, do memcpy.
+            while (j < dim)
+            {
+                Expression en = (*exps)[j];
+                if (!en)
+                    en = basis;
+                if (!el.equals(en))
+                    break;
+                j++;
+            }
+        }
+
+        /* Generate: *(&stmp + i * szelem) = element[i]
+         */
+        elem *ep = toElem(el, irs);
+        elem *ev = tybasic(stmp.Stype.Tty) == TYnptr ? el_var(stmp) : el_ptr(stmp);
+        ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, offset + i * szelem));
+
+        elem *eeq;
+        if (j == i + 1)
+        {
+            ev = el_una(OPind, te.Tty, ev);
+            eeq = elAssign(ev, ep, null, te);
+        }
+        else
+        {
+            elem *edim = el_long(TYsize_t, j - i);
+            eeq = setArray(el, ev, edim, telem, ep, irs, EXP.blit);
+        }
+        e = el_combine(e, eeq);
+        i = j;
     }
     return e;
 }
