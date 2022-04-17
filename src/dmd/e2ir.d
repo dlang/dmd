@@ -3643,874 +3643,6 @@ extern (C++) class ToElemVisitor : Visitor
         result = toElemCast(ce, e, false);
     }
 
-    elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
-    {
-        tym_t ftym;
-        tym_t ttym;
-        OPER eop;
-
-        Type tfrom = ce.e1.type.toBasetype();
-        Type t = ce.to.toBasetype();         // skip over typedef's
-
-        TY fty;
-        TY tty;
-        if (t.equals(tfrom) ||
-            t.equals(Type.tvoid)) // https://issues.dlang.org/show_bug.cgi?id=18573
-                                  // Remember to pop value left on FPU stack
-            return e;
-
-        fty = tfrom.ty;
-        tty = t.ty;
-        //printf("fty = %d\n", fty);
-
-        static elem* Lret(CastExp ce, elem* e)
-        {
-            // Adjust for any type paints
-            Type t = ce.type.toBasetype();
-            e.Ety = totym(t);
-            if (tyaggregate(e.Ety))
-                e.ET = Type_toCtype(t);
-
-            elem_setLoc(e, ce.loc);
-            return e;
-        }
-
-        static elem* Lpaint(CastExp ce, elem* e, tym_t ttym)
-        {
-            e.Ety = ttym;
-            return Lret(ce, e);
-        }
-
-        static elem* Lzero(CastExp ce, elem* e, tym_t ttym)
-        {
-            e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
-            return Lret(ce, e);
-        }
-
-        static elem* Leop(CastExp ce, elem* e, OPER eop, tym_t ttym)
-        {
-            e = el_una(eop, ttym, e);
-            return Lret(ce, e);
-        }
-
-        if (tty == Tpointer && fty == Tarray)
-        {
-            if (e.Eoper == OPvar)
-            {
-                // e1 . *(&e1 + 4)
-                e = el_una(OPaddr, TYnptr, e);
-                e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize(TYnptr)));
-                e = el_una(OPind,totym(t),e);
-            }
-            else
-            {
-                // e1 . (uint)(e1 >> 32)
-                if (target.is64bit)
-                {
-                    e = el_bin(OPshr, TYucent, e, el_long(TYint, 64));
-                    e = el_una(OP128_64, totym(t), e);
-                }
-                else
-                {
-                    e = el_bin(OPshr, TYullong, e, el_long(TYint, 32));
-                    e = el_una(OP64_32, totym(t), e);
-                }
-            }
-            return Lret(ce, e);
-        }
-
-        if (tty == Tpointer && fty == Tsarray)
-        {
-            // e1 . &e1
-            e = el_una(OPaddr, TYnptr, e);
-            return Lret(ce, e);
-        }
-
-        // Convert from static array to dynamic array
-        if (tty == Tarray && fty == Tsarray)
-        {
-            e = sarray_toDarray(ce.loc, tfrom, t, e);
-            return Lret(ce, e);
-        }
-
-        // Convert from dynamic array to dynamic array
-        if (tty == Tarray && fty == Tarray)
-        {
-            uint fsize = cast(uint)tfrom.nextOf().size();
-            uint tsize = cast(uint)t.nextOf().size();
-
-            if (fsize != tsize)
-            {   // Array element sizes do not match, so we must adjust the dimensions
-                if (tsize != 0 && fsize % tsize == 0)
-                {
-                    // Set array dimension to (length * (fsize / tsize))
-                    // Generate pair(e.length * (fsize/tsize), es.ptr)
-
-                    elem *es = el_same(&e);
-
-                    elem *eptr = el_una(OPmsw, TYnptr, es);
-                    elem *elen = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
-                    elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
-                    e = el_pair(totym(ce.type), elen2, eptr);
-                }
-                else
-                {
-                    assert(false, "This case should have been rewritten to `__ArrayCast` in the semantic phase");
-                }
-            }
-            return Lret(ce, e);
-        }
-
-        // Casting between class/interface may require a runtime check
-        if (fty == Tclass && tty == Tclass)
-        {
-            ClassDeclaration cdfrom = tfrom.isClassHandle();
-            ClassDeclaration cdto   = t.isClassHandle();
-
-            int offset;
-            if (cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
-            {
-                /* The offset from cdfrom => cdto is known at compile time.
-                 * Cases:
-                 *  - class => base class (upcast)
-                 *  - class => base interface (upcast)
-                 */
-
-                //printf("offset = %d\n", offset);
-                if (offset == ClassDeclaration.OFFSET_FWDREF)
-                {
-                    assert(0, "unexpected forward reference");
-                }
-                else if (offset)
-                {
-                    /* Rewrite cast as (e ? e + offset : null)
-                     */
-                    if (ce.e1.op == EXP.this_)
-                    {
-                        // Assume 'this' is never null, so skip null check
-                        e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
-                    }
-                    else
-                    {
-                        elem *etmp = el_same(&e);
-                        elem *ex = el_bin(OPadd, TYnptr, etmp, el_long(TYsize_t, offset));
-                        ex = el_bin(OPcolon, TYnptr, ex, el_long(TYnptr, 0));
-                        e = el_bin(OPcond, TYnptr, e, ex);
-                    }
-                }
-                else
-                {
-                    // Casting from derived class to base class is a no-op
-                }
-            }
-            else if (cdfrom.classKind == ClassKind.cpp)
-            {
-                if (cdto.classKind == ClassKind.cpp)
-                {
-                    /* Casting from a C++ interface to a C++ interface
-                     * is always a 'paint' operation
-                     */
-                    return Lret(ce, e);                  // no-op
-                }
-
-                /* Casting from a C++ interface to a class
-                 * always results in null because there is no runtime
-                 * information available to do it.
-                 *
-                 * Casting from a C++ interface to a non-C++ interface
-                 * always results in null because there's no way one
-                 * can be derived from the other.
-                 */
-                e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
-                return Lret(ce, e);
-            }
-            else
-            {
-                /* The offset from cdfrom => cdto can only be determined at runtime.
-                 * Cases:
-                 *  - class     => derived class (downcast)
-                 *  - interface => derived class (downcast)
-                 *  - class     => foreign interface (cross cast)
-                 *  - interface => base or foreign interface (cross cast)
-                 */
-                const rtl = cdfrom.isInterfaceDeclaration()
-                            ? RTLSYM.INTERFACE_CAST
-                            : RTLSYM.DYNAMIC_CAST;
-                elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
-                e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
-            }
-            return Lret(ce, e);
-        }
-
-        if (fty == Tvector && tty == Tsarray)
-        {
-            if (tfrom.size() == t.size())
-            {
-                if (e.Eoper != OPvar && e.Eoper != OPind)
-                {
-                    // can't perform array ops on it unless it's in memory
-                    e = addressElem(e, tfrom);
-                    e = el_una(OPind, TYarray, e);
-                    e.ET = Type_toCtype(t);
-                }
-                return Lret(ce, e);
-            }
-        }
-
-        ftym = tybasic(e.Ety);
-        ttym = tybasic(totym(t));
-        if (ftym == ttym)
-            return Lret(ce, e);
-
-        /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
-         * generic equivalent (as far as casting goes)
-         */
-        switch (tty)
-        {
-            case Tpointer:
-                if (fty == Tdelegate)
-                    return Lpaint(ce, e, ttym);
-                tty = target.is64bit ? Tuns64 : Tuns32;
-                break;
-
-            case Tchar:     tty = Tuns8;    break;
-            case Twchar:    tty = Tuns16;   break;
-            case Tdchar:    tty = Tuns32;   break;
-            case Tvoid:     return Lpaint(ce, e, ttym);
-
-            case Tbool:
-            {
-                // Construct e?true:false
-                e = el_una(OPbool, ttym, e);
-                return Lret(ce, e);
-            }
-            default:
-                break;
-        }
-
-        switch (fty)
-        {
-            case Tnull:
-            {
-                // typeof(null) is same with void* in binary level.
-                return Lzero(ce, e, ttym);
-            }
-            case Tpointer:  fty = target.is64bit ? Tuns64 : Tuns32;  break;
-            case Tchar:     fty = Tuns8;    break;
-            case Twchar:    fty = Tuns16;   break;
-            case Tdchar:    fty = Tuns32;   break;
-
-            // noreturn expression will throw/abort and never produce a
-            //  value to cast, hence we discard the cast
-            case Tnoreturn:
-                return Lret(ce, e);
-
-            default:
-                break;
-        }
-
-        static int X(int fty, int tty) { return fty * TMAX + tty; }
-
-        while (true)
-        {
-            switch (X(fty,tty))
-            {
-                /* ============================= */
-
-                case X(Tbool,Tint8):
-                case X(Tbool,Tuns8):
-                    return Lpaint(ce, e, ttym);
-                case X(Tbool,Tint16):
-                case X(Tbool,Tuns16):
-                case X(Tbool,Tint32):
-                case X(Tbool,Tuns32):
-                    if (isLvalue)
-                    {
-                        eop = OPu8_16;
-                        return Leop(ce, e, eop, ttym);
-                    }
-                    else
-                    {
-                        e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
-                        fty = Tuns8;
-                        continue;
-                    }
-
-                case X(Tbool,Tint64):
-                case X(Tbool,Tuns64):
-                case X(Tbool,Tint128):
-                case X(Tbool,Tuns128):
-                case X(Tbool,Tfloat32):
-                case X(Tbool,Tfloat64):
-                case X(Tbool,Tfloat80):
-                case X(Tbool,Tcomplex32):
-                case X(Tbool,Tcomplex64):
-                case X(Tbool,Tcomplex80):
-                    e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
-                    fty = Tuns8;
-                    continue;
-
-                case X(Tbool,Timaginary32):
-                case X(Tbool,Timaginary64):
-                case X(Tbool,Timaginary80):
-                    return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint8,Tuns8):    return Lpaint(ce, e, ttym);
-                case X(Tint8,Tint16):
-                case X(Tint8,Tuns16):
-                case X(Tint8,Tint32):
-                case X(Tint8,Tuns32):   eop = OPs8_16;  return Leop(ce, e, eop, ttym);
-                case X(Tint8,Tint64):
-                case X(Tint8,Tuns64):
-                case X(Tint8,Tint128):
-                case X(Tint8,Tuns128):
-                case X(Tint8,Tfloat32):
-                case X(Tint8,Tfloat64):
-                case X(Tint8,Tfloat80):
-                case X(Tint8,Tcomplex32):
-                case X(Tint8,Tcomplex64):
-                case X(Tint8,Tcomplex80):
-                    e = el_una(OPs8_16, TYint, e);
-                    fty = Tint32;
-                    continue;
-                case X(Tint8,Timaginary32):
-                case X(Tint8,Timaginary64):
-                case X(Tint8,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns8,Tint8):    return Lpaint(ce, e, ttym);
-                case X(Tuns8,Tint16):
-                case X(Tuns8,Tuns16):
-                case X(Tuns8,Tint32):
-                case X(Tuns8,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
-                case X(Tuns8,Tint64):
-                case X(Tuns8,Tuns64):
-                case X(Tuns8,Tint128):
-                case X(Tuns8,Tuns128):
-                case X(Tuns8,Tfloat32):
-                case X(Tuns8,Tfloat64):
-                case X(Tuns8,Tfloat80):
-                case X(Tuns8,Tcomplex32):
-                case X(Tuns8,Tcomplex64):
-                case X(Tuns8,Tcomplex80):
-                    e = el_una(OPu8_16, TYuint, e);
-                    fty = Tuns32;
-                    continue;
-                case X(Tuns8,Timaginary32):
-                case X(Tuns8,Timaginary64):
-                case X(Tuns8,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint16,Tint8):
-                case X(Tint16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
-                case X(Tint16,Tuns16):  return Lpaint(ce, e, ttym);
-                case X(Tint16,Tint32):
-                case X(Tint16,Tuns32):  eop = OPs16_32; return Leop(ce, e, eop, ttym);
-                case X(Tint16,Tint64):
-                case X(Tint16,Tuns64):
-                case X(Tint16,Tint128):
-                case X(Tint16,Tuns128):
-                    e = el_una(OPs16_32, TYint, e);
-                    fty = Tint32;
-                    continue;
-                case X(Tint16,Tfloat32):
-                case X(Tint16,Tfloat64):
-                case X(Tint16,Tfloat80):
-                case X(Tint16,Tcomplex32):
-                case X(Tint16,Tcomplex64):
-                case X(Tint16,Tcomplex80):
-                    e = el_una(OPs16_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tint16,Timaginary32):
-                case X(Tint16,Timaginary64):
-                case X(Tint16,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns16,Tint8):
-                case X(Tuns16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
-                case X(Tuns16,Tint16):  return Lpaint(ce, e, ttym);
-                case X(Tuns16,Tint32):
-                case X(Tuns16,Tuns32):  eop = OPu16_32; return Leop(ce, e, eop, ttym);
-                case X(Tuns16,Tint64):
-                case X(Tuns16,Tuns64):
-                case X(Tuns16,Tint128):
-                case X(Tuns16,Tuns128):
-                case X(Tuns16,Tfloat64):
-                case X(Tuns16,Tfloat32):
-                case X(Tuns16,Tfloat80):
-                case X(Tuns16,Tcomplex32):
-                case X(Tuns16,Tcomplex64):
-                case X(Tuns16,Tcomplex80):
-                    e = el_una(OPu16_32, TYuint, e);
-                    fty = Tuns32;
-                    continue;
-                case X(Tuns16,Timaginary32):
-                case X(Tuns16,Timaginary64):
-                case X(Tuns16,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint32,Tint8):
-                case X(Tint32,Tuns8):   e = el_una(OP32_16, TYshort, e);
-                    fty = Tint16;
-                    continue;
-                case X(Tint32,Tint16):
-                case X(Tint32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
-                case X(Tint32,Tuns32):  return Lpaint(ce, e, ttym);
-                case X(Tint32,Tint64):
-                case X(Tint32,Tuns64):  eop = OPs32_64; return Leop(ce, e, eop, ttym);
-                case X(Tint32,Tint128):
-                case X(Tint32,Tuns128):
-                    e = el_una(OPs32_64, TYullong, e);
-                    fty = Tint64;
-                    continue;
-                case X(Tint32,Tfloat32):
-                case X(Tint32,Tfloat64):
-                case X(Tint32,Tfloat80):
-                case X(Tint32,Tcomplex32):
-                case X(Tint32,Tcomplex64):
-                case X(Tint32,Tcomplex80):
-                    e = el_una(OPs32_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tint32,Timaginary32):
-                case X(Tint32,Timaginary64):
-                case X(Tint32,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns32,Tint8):
-                case X(Tuns32,Tuns8):   e = el_una(OP32_16, TYshort, e);
-                    fty = Tuns16;
-                    continue;
-                case X(Tuns32,Tint16):
-                case X(Tuns32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
-                case X(Tuns32,Tint32):  return Lpaint(ce, e, ttym);
-                case X(Tuns32,Tint64):
-                case X(Tuns32,Tuns64):  eop = OPu32_64; return Leop(ce, e, eop, ttym);
-                case X(Tuns32,Tint128):
-                case X(Tuns32,Tuns128):
-                    e = el_una(OPs32_64, TYullong, e);
-                    fty = Tuns64;
-                    continue;
-                case X(Tuns32,Tfloat32):
-                case X(Tuns32,Tfloat64):
-                case X(Tuns32,Tfloat80):
-                case X(Tuns32,Tcomplex32):
-                case X(Tuns32,Tcomplex64):
-                case X(Tuns32,Tcomplex80):
-                    e = el_una(OPu32_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tuns32,Timaginary32):
-                case X(Tuns32,Timaginary64):
-                case X(Tuns32,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint64,Tint8):
-                case X(Tint64,Tuns8):
-                case X(Tint64,Tint16):
-                case X(Tint64,Tuns16):  e = el_una(OP64_32, TYint, e);
-                    fty = Tint32;
-                    continue;
-                case X(Tint64,Tint32):
-                case X(Tint64,Tuns32):  eop = OP64_32; return Leop(ce, e, eop, ttym);
-                case X(Tint64,Tuns64):  return Lpaint(ce, e, ttym);
-                case X(Tint64,Tint128):
-                case X(Tint64,Tuns128):  eop = OPs64_128; return Leop(ce, e, eop, ttym);
-                case X(Tint64,Tfloat32):
-                case X(Tint64,Tfloat64):
-                case X(Tint64,Tfloat80):
-                case X(Tint64,Tcomplex32):
-                case X(Tint64,Tcomplex64):
-                case X(Tint64,Tcomplex80):
-                    e = el_una(OPs64_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tint64,Timaginary32):
-                case X(Tint64,Timaginary64):
-                case X(Tint64,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns64,Tint8):
-                case X(Tuns64,Tuns8):
-                case X(Tuns64,Tint16):
-                case X(Tuns64,Tuns16):  e = el_una(OP64_32, TYint, e);
-                    fty = Tint32;
-                    continue;
-                case X(Tuns64,Tint32):
-                case X(Tuns64,Tuns32):  eop = OP64_32;  return Leop(ce, e, eop, ttym);
-                case X(Tuns64,Tint64):  return Lpaint(ce, e, ttym);
-                case X(Tuns64,Tint128):
-                case X(Tuns64,Tuns128):  eop = OPu64_128; return Leop(ce, e, eop, ttym);
-                case X(Tuns64,Tfloat32):
-                case X(Tuns64,Tfloat64):
-                case X(Tuns64,Tfloat80):
-                case X(Tuns64,Tcomplex32):
-                case X(Tuns64,Tcomplex64):
-                case X(Tuns64,Tcomplex80):
-                    e = el_una(OPu64_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tuns64,Timaginary32):
-                case X(Tuns64,Timaginary64):
-                case X(Tuns64,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint128,Tint8):
-                case X(Tint128,Tuns8):
-                case X(Tint128,Tint16):
-                case X(Tint128,Tuns16):
-                case X(Tint128,Tint32):
-                case X(Tint128,Tuns32):
-                    e = el_una(OP128_64, TYllong, e);
-                    fty = Tint64;
-                    continue;
-                case X(Tint128,Tint64):
-                case X(Tint128,Tuns64):  eop = OP128_64; return Leop(ce, e, eop, ttym);
-                case X(Tint128,Tuns128): return Lpaint(ce, e, ttym);
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Tint128,Tfloat32):
-                case X(Tint128,Tfloat64):
-                case X(Tint128,Tfloat80):
-                case X(Tint128,Tcomplex32):
-                case X(Tint128,Tcomplex64):
-                case X(Tint128,Tcomplex80):
-                    e = el_una(OPs64_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-            }
-                case X(Tint128,Timaginary32):
-                case X(Tint128,Timaginary64):
-                case X(Tint128,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns128,Tint8):
-                case X(Tuns128,Tuns8):
-                case X(Tuns128,Tint16):
-                case X(Tuns128,Tuns16):
-                case X(Tuns128,Tint32):
-                case X(Tuns128,Tuns32):
-                    e = el_una(OP128_64, TYllong, e);
-                    fty = Tint64;
-                    continue;
-                case X(Tuns128,Tint64):
-                case X(Tuns128,Tuns64):  eop = OP128_64;  return Leop(ce, e, eop, ttym);
-                case X(Tuns128,Tint128):  return Lpaint(ce, e, ttym);
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Tuns128,Tfloat32):
-                case X(Tuns128,Tfloat64):
-                case X(Tuns128,Tfloat80):
-                case X(Tuns128,Tcomplex32):
-                case X(Tuns128,Tcomplex64):
-                case X(Tuns128,Tcomplex80):
-                    e = el_una(OPu64_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-            }
-                case X(Tuns128,Timaginary32):
-                case X(Tuns128,Timaginary64):
-                case X(Tuns128,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tfloat32,Tint8):
-                case X(Tfloat32,Tuns8):
-                case X(Tfloat32,Tint16):
-                case X(Tfloat32,Tuns16):
-                case X(Tfloat32,Tint32):
-                case X(Tfloat32,Tuns32):
-                case X(Tfloat32,Tint64):
-                case X(Tfloat32,Tuns64):
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Tfloat32,Tint128):
-                case X(Tfloat32,Tuns128):
-            }
-                case X(Tfloat32,Tfloat80):
-                    e = el_una(OPf_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tfloat32,Tfloat64): eop = OPf_d; return Leop(ce, e, eop, ttym);
-                case X(Tfloat32,Timaginary32):
-                case X(Tfloat32,Timaginary64):
-                case X(Tfloat32,Timaginary80): return Lzero(ce, e, ttym);
-                case X(Tfloat32,Tcomplex32):
-                case X(Tfloat32,Tcomplex64):
-                case X(Tfloat32,Tcomplex80):
-                    e = el_bin(OPadd,TYcfloat,el_long(TYifloat,0),e);
-                    fty = Tcomplex32;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Tfloat64,Tint8):
-                case X(Tfloat64,Tuns8):    e = el_una(OPd_s16, TYshort, e);
-                    fty = Tint16;
-                    continue;
-                case X(Tfloat64,Tint16):   eop = OPd_s16; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tuns16):   eop = OPd_u16; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tint32):   eop = OPd_s32; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tuns32):   eop = OPd_u32; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tint64):   eop = OPd_s64; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tuns64):   eop = OPd_u64; return Leop(ce, e, eop, ttym);
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Tfloat64,Tint128):
-                case X(Tfloat64,Tuns128):
-            }
-                case X(Tfloat64,Tfloat32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tfloat80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Timaginary32):
-                case X(Tfloat64,Timaginary64):
-                case X(Tfloat64,Timaginary80):  return Lzero(ce, e, ttym);
-                case X(Tfloat64,Tcomplex32):
-                case X(Tfloat64,Tcomplex64):
-                case X(Tfloat64,Tcomplex80):
-                    e = el_bin(OPadd,TYcdouble,el_long(TYidouble,0),e);
-                    fty = Tcomplex64;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Tfloat80,Tint8):
-                case X(Tfloat80,Tuns8):
-                case X(Tfloat80,Tint16):
-                case X(Tfloat80,Tuns16):
-                case X(Tfloat80,Tint32):
-                case X(Tfloat80,Tuns32):
-                case X(Tfloat80,Tint64):
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Tfloat80,Tint128):
-                case X(Tfloat80,Tuns128):
-            }
-                case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tfloat80,Tuns64):
-                    eop = OPld_u64; return Leop(ce, e, eop, ttym);
-                case X(Tfloat80,Tfloat64): eop = OPld_d; return Leop(ce, e, eop, ttym);
-                case X(Tfloat80,Timaginary32):
-                case X(Tfloat80,Timaginary64):
-                case X(Tfloat80,Timaginary80): return Lzero(ce, e, ttym);
-                case X(Tfloat80,Tcomplex32):
-                case X(Tfloat80,Tcomplex64):
-                case X(Tfloat80,Tcomplex80):
-                    e = el_bin(OPadd,TYcldouble,e,el_long(TYildouble,0));
-                    fty = Tcomplex80;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Timaginary32,Tint8):
-                case X(Timaginary32,Tuns8):
-                case X(Timaginary32,Tint16):
-                case X(Timaginary32,Tuns16):
-                case X(Timaginary32,Tint32):
-                case X(Timaginary32,Tuns32):
-                case X(Timaginary32,Tint64):
-                case X(Timaginary32,Tuns64):
-                case X(Timaginary32,Tfloat32):
-                case X(Timaginary32,Tfloat64):
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Timaginary32,Tint128):
-                case X(Timaginary32,Tuns128):
-            }
-                case X(Timaginary32,Tfloat80):  return Lzero(ce, e, ttym);
-                case X(Timaginary32,Timaginary64): eop = OPf_d; return Leop(ce, e, eop, ttym);
-                case X(Timaginary32,Timaginary80):
-                    e = el_una(OPf_d, TYidouble, e);
-                    fty = Timaginary64;
-                    continue;
-                case X(Timaginary32,Tcomplex32):
-                case X(Timaginary32,Tcomplex64):
-                case X(Timaginary32,Tcomplex80):
-                    e = el_bin(OPadd,TYcfloat,el_long(TYfloat,0),e);
-                    fty = Tcomplex32;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Timaginary64,Tint8):
-                case X(Timaginary64,Tuns8):
-                case X(Timaginary64,Tint16):
-                case X(Timaginary64,Tuns16):
-                case X(Timaginary64,Tint32):
-                case X(Timaginary64,Tuns32):
-                case X(Timaginary64,Tint64):
-                case X(Timaginary64,Tuns64):
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Timaginary64,Tint128):
-                case X(Timaginary64,Tuns128):
-            }
-                case X(Timaginary64,Tfloat32):
-                case X(Timaginary64,Tfloat64):
-                case X(Timaginary64,Tfloat80):  return Lzero(ce, e, ttym);
-                case X(Timaginary64,Timaginary32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
-                case X(Timaginary64,Timaginary80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
-                case X(Timaginary64,Tcomplex32):
-                case X(Timaginary64,Tcomplex64):
-                case X(Timaginary64,Tcomplex80):
-                    e = el_bin(OPadd,TYcdouble,el_long(TYdouble,0),e);
-                    fty = Tcomplex64;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Timaginary80,Tint8):
-                case X(Timaginary80,Tuns8):
-                case X(Timaginary80,Tint16):
-                case X(Timaginary80,Tuns16):
-                case X(Timaginary80,Tint32):
-                case X(Timaginary80,Tuns32):
-                case X(Timaginary80,Tint64):
-                case X(Timaginary80,Tuns64):
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Timaginary80,Tint128):
-                case X(Timaginary80,Tuns128):
-            }
-                case X(Timaginary80,Tfloat32):
-                case X(Timaginary80,Tfloat64):
-                case X(Timaginary80,Tfloat80):  return Lzero(ce, e, ttym);
-                case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
-                    fty = Timaginary64;
-                    continue;
-                case X(Timaginary80,Timaginary64): eop = OPld_d; return Leop(ce, e, eop, ttym);
-                case X(Timaginary80,Tcomplex32):
-                case X(Timaginary80,Tcomplex64):
-                case X(Timaginary80,Tcomplex80):
-                    e = el_bin(OPadd,TYcldouble,el_long(TYldouble,0),e);
-                    fty = Tcomplex80;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Tcomplex32,Tint8):
-                case X(Tcomplex32,Tuns8):
-                case X(Tcomplex32,Tint16):
-                case X(Tcomplex32,Tuns16):
-                case X(Tcomplex32,Tint32):
-                case X(Tcomplex32,Tuns32):
-                case X(Tcomplex32,Tint64):
-                case X(Tcomplex32,Tuns64):
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Tcomplex32,Tint128):
-                case X(Tcomplex32,Tuns128):
-            }
-                case X(Tcomplex32,Tfloat32):
-                case X(Tcomplex32,Tfloat64):
-                case X(Tcomplex32,Tfloat80):
-                    e = el_una(OPc_r, TYfloat, e);
-                    fty = Tfloat32;
-                    continue;
-                case X(Tcomplex32,Timaginary32):
-                case X(Tcomplex32,Timaginary64):
-                case X(Tcomplex32,Timaginary80):
-                    e = el_una(OPc_i, TYifloat, e);
-                    fty = Timaginary32;
-                    continue;
-                case X(Tcomplex32,Tcomplex64):
-                case X(Tcomplex32,Tcomplex80):
-                    e = el_una(OPf_d, TYcdouble, e);
-                    fty = Tcomplex64;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Tcomplex64,Tint8):
-                case X(Tcomplex64,Tuns8):
-                case X(Tcomplex64,Tint16):
-                case X(Tcomplex64,Tuns16):
-                case X(Tcomplex64,Tint32):
-                case X(Tcomplex64,Tuns32):
-                case X(Tcomplex64,Tint64):
-                case X(Tcomplex64,Tuns64):
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Tcomplex64,Tint128):
-                case X(Tcomplex64,Tuns128):
-            }
-                case X(Tcomplex64,Tfloat32):
-                case X(Tcomplex64,Tfloat64):
-                case X(Tcomplex64,Tfloat80):
-                    e = el_una(OPc_r, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tcomplex64,Timaginary32):
-                case X(Tcomplex64,Timaginary64):
-                case X(Tcomplex64,Timaginary80):
-                    e = el_una(OPc_i, TYidouble, e);
-                    fty = Timaginary64;
-                    continue;
-                case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   return Leop(ce, e, eop, ttym);
-                case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  return Leop(ce, e, eop, ttym);
-
-                    /* ============================= */
-
-                case X(Tcomplex80,Tint8):
-                case X(Tcomplex80,Tuns8):
-                case X(Tcomplex80,Tint16):
-                case X(Tcomplex80,Tuns16):
-                case X(Tcomplex80,Tint32):
-                case X(Tcomplex80,Tuns32):
-                case X(Tcomplex80,Tint64):
-                case X(Tcomplex80,Tuns64):
-            static if (0)       // cent <=> floating point not supported yet
-            {
-                case X(Tcomplex80,Tint128):
-                case X(Tcomplex80,Tuns128):
-            }
-                case X(Tcomplex80,Tfloat32):
-                case X(Tcomplex80,Tfloat64):
-                case X(Tcomplex80,Tfloat80):
-                    e = el_una(OPc_r, TYldouble, e);
-                    fty = Tfloat80;
-                    continue;
-                case X(Tcomplex80,Timaginary32):
-                case X(Tcomplex80,Timaginary64):
-                case X(Tcomplex80,Timaginary80):
-                    e = el_una(OPc_i, TYildouble, e);
-                    fty = Timaginary80;
-                    continue;
-                case X(Tcomplex80,Tcomplex32):
-                case X(Tcomplex80,Tcomplex64):
-                    e = el_una(OPld_d, TYcdouble, e);
-                    fty = Tcomplex64;
-                    continue;
-
-                    /* ============================= */
-
-                default:
-                    if (fty == tty)
-                        return Lpaint(ce, e, ttym);
-                    //dump(0);
-                    //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
-                    // This error should really be pushed to the front end
-                    ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
-                    e = el_long(TYint, 0);
-                    return e;
-
-            }
-        }
-    }
-
     override void visit(ArrayLengthExp ale)
     {
         elem *e = toElem(ale.e1, irs);
@@ -4954,10 +4086,11 @@ extern (C++) class ToElemVisitor : Visitor
     }
 }
 
+private:
+
 /**************************************
  * Mirrors logic in Dsymbol_canThrow().
  */
-private
 elem *Dsymbol_toElem(Dsymbol s, IRState* irs)
 {
     elem *e = null;
@@ -5165,6 +4298,874 @@ elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exp
         i = j;
     }
     return e;
+}
+
+elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
+{
+    tym_t ftym;
+    tym_t ttym;
+    OPER eop;
+
+    Type tfrom = ce.e1.type.toBasetype();
+    Type t = ce.to.toBasetype();         // skip over typedef's
+
+    TY fty;
+    TY tty;
+    if (t.equals(tfrom) ||
+        t.equals(Type.tvoid)) // https://issues.dlang.org/show_bug.cgi?id=18573
+                              // Remember to pop value left on FPU stack
+        return e;
+
+    fty = tfrom.ty;
+    tty = t.ty;
+    //printf("fty = %d\n", fty);
+
+    static elem* Lret(CastExp ce, elem* e)
+    {
+        // Adjust for any type paints
+        Type t = ce.type.toBasetype();
+        e.Ety = totym(t);
+        if (tyaggregate(e.Ety))
+            e.ET = Type_toCtype(t);
+
+        elem_setLoc(e, ce.loc);
+        return e;
+    }
+
+    static elem* Lpaint(CastExp ce, elem* e, tym_t ttym)
+    {
+        e.Ety = ttym;
+        return Lret(ce, e);
+    }
+
+    static elem* Lzero(CastExp ce, elem* e, tym_t ttym)
+    {
+        e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
+        return Lret(ce, e);
+    }
+
+    static elem* Leop(CastExp ce, elem* e, OPER eop, tym_t ttym)
+    {
+        e = el_una(eop, ttym, e);
+        return Lret(ce, e);
+    }
+
+    if (tty == Tpointer && fty == Tarray)
+    {
+        if (e.Eoper == OPvar)
+        {
+            // e1 . *(&e1 + 4)
+            e = el_una(OPaddr, TYnptr, e);
+            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize(TYnptr)));
+            e = el_una(OPind,totym(t),e);
+        }
+        else
+        {
+            // e1 . (uint)(e1 >> 32)
+            if (target.is64bit)
+            {
+                e = el_bin(OPshr, TYucent, e, el_long(TYint, 64));
+                e = el_una(OP128_64, totym(t), e);
+            }
+            else
+            {
+                e = el_bin(OPshr, TYullong, e, el_long(TYint, 32));
+                e = el_una(OP64_32, totym(t), e);
+            }
+        }
+        return Lret(ce, e);
+    }
+
+    if (tty == Tpointer && fty == Tsarray)
+    {
+        // e1 . &e1
+        e = el_una(OPaddr, TYnptr, e);
+        return Lret(ce, e);
+    }
+
+    // Convert from static array to dynamic array
+    if (tty == Tarray && fty == Tsarray)
+    {
+        e = sarray_toDarray(ce.loc, tfrom, t, e);
+        return Lret(ce, e);
+    }
+
+    // Convert from dynamic array to dynamic array
+    if (tty == Tarray && fty == Tarray)
+    {
+        uint fsize = cast(uint)tfrom.nextOf().size();
+        uint tsize = cast(uint)t.nextOf().size();
+
+        if (fsize != tsize)
+        {   // Array element sizes do not match, so we must adjust the dimensions
+            if (tsize != 0 && fsize % tsize == 0)
+            {
+                // Set array dimension to (length * (fsize / tsize))
+                // Generate pair(e.length * (fsize/tsize), es.ptr)
+
+                elem *es = el_same(&e);
+
+                elem *eptr = el_una(OPmsw, TYnptr, es);
+                elem *elen = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
+                elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
+                e = el_pair(totym(ce.type), elen2, eptr);
+            }
+            else
+            {
+                assert(false, "This case should have been rewritten to `__ArrayCast` in the semantic phase");
+            }
+        }
+        return Lret(ce, e);
+    }
+
+    // Casting between class/interface may require a runtime check
+    if (fty == Tclass && tty == Tclass)
+    {
+        ClassDeclaration cdfrom = tfrom.isClassHandle();
+        ClassDeclaration cdto   = t.isClassHandle();
+
+        int offset;
+        if (cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
+        {
+            /* The offset from cdfrom => cdto is known at compile time.
+             * Cases:
+             *  - class => base class (upcast)
+             *  - class => base interface (upcast)
+             */
+
+            //printf("offset = %d\n", offset);
+            if (offset == ClassDeclaration.OFFSET_FWDREF)
+            {
+                assert(0, "unexpected forward reference");
+            }
+            else if (offset)
+            {
+                /* Rewrite cast as (e ? e + offset : null)
+                 */
+                if (ce.e1.op == EXP.this_)
+                {
+                    // Assume 'this' is never null, so skip null check
+                    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
+                }
+                else
+                {
+                    elem *etmp = el_same(&e);
+                    elem *ex = el_bin(OPadd, TYnptr, etmp, el_long(TYsize_t, offset));
+                    ex = el_bin(OPcolon, TYnptr, ex, el_long(TYnptr, 0));
+                    e = el_bin(OPcond, TYnptr, e, ex);
+                }
+            }
+            else
+            {
+                // Casting from derived class to base class is a no-op
+            }
+        }
+        else if (cdfrom.classKind == ClassKind.cpp)
+        {
+            if (cdto.classKind == ClassKind.cpp)
+            {
+                /* Casting from a C++ interface to a C++ interface
+                 * is always a 'paint' operation
+                 */
+                return Lret(ce, e);                  // no-op
+            }
+
+            /* Casting from a C++ interface to a class
+             * always results in null because there is no runtime
+             * information available to do it.
+             *
+             * Casting from a C++ interface to a non-C++ interface
+             * always results in null because there's no way one
+             * can be derived from the other.
+             */
+            e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
+            return Lret(ce, e);
+        }
+        else
+        {
+            /* The offset from cdfrom => cdto can only be determined at runtime.
+             * Cases:
+             *  - class     => derived class (downcast)
+             *  - interface => derived class (downcast)
+             *  - class     => foreign interface (cross cast)
+             *  - interface => base or foreign interface (cross cast)
+             */
+            const rtl = cdfrom.isInterfaceDeclaration()
+                        ? RTLSYM.INTERFACE_CAST
+                        : RTLSYM.DYNAMIC_CAST;
+            elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
+            e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
+        }
+        return Lret(ce, e);
+    }
+
+    if (fty == Tvector && tty == Tsarray)
+    {
+        if (tfrom.size() == t.size())
+        {
+            if (e.Eoper != OPvar && e.Eoper != OPind)
+            {
+                // can't perform array ops on it unless it's in memory
+                e = addressElem(e, tfrom);
+                e = el_una(OPind, TYarray, e);
+                e.ET = Type_toCtype(t);
+            }
+            return Lret(ce, e);
+        }
+    }
+
+    ftym = tybasic(e.Ety);
+    ttym = tybasic(totym(t));
+    if (ftym == ttym)
+        return Lret(ce, e);
+
+    /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
+     * generic equivalent (as far as casting goes)
+     */
+    switch (tty)
+    {
+        case Tpointer:
+            if (fty == Tdelegate)
+                return Lpaint(ce, e, ttym);
+            tty = target.is64bit ? Tuns64 : Tuns32;
+            break;
+
+        case Tchar:     tty = Tuns8;    break;
+        case Twchar:    tty = Tuns16;   break;
+        case Tdchar:    tty = Tuns32;   break;
+        case Tvoid:     return Lpaint(ce, e, ttym);
+
+        case Tbool:
+        {
+            // Construct e?true:false
+            e = el_una(OPbool, ttym, e);
+            return Lret(ce, e);
+        }
+        default:
+            break;
+    }
+
+    switch (fty)
+    {
+        case Tnull:
+        {
+            // typeof(null) is same with void* in binary level.
+            return Lzero(ce, e, ttym);
+        }
+        case Tpointer:  fty = target.is64bit ? Tuns64 : Tuns32;  break;
+        case Tchar:     fty = Tuns8;    break;
+        case Twchar:    fty = Tuns16;   break;
+        case Tdchar:    fty = Tuns32;   break;
+
+        // noreturn expression will throw/abort and never produce a
+        //  value to cast, hence we discard the cast
+        case Tnoreturn:
+            return Lret(ce, e);
+
+        default:
+            break;
+    }
+
+    static int X(int fty, int tty) { return fty * TMAX + tty; }
+
+    while (true)
+    {
+        switch (X(fty,tty))
+        {
+            /* ============================= */
+
+            case X(Tbool,Tint8):
+            case X(Tbool,Tuns8):
+                return Lpaint(ce, e, ttym);
+            case X(Tbool,Tint16):
+            case X(Tbool,Tuns16):
+            case X(Tbool,Tint32):
+            case X(Tbool,Tuns32):
+                if (isLvalue)
+                {
+                    eop = OPu8_16;
+                    return Leop(ce, e, eop, ttym);
+                }
+                else
+                {
+                    e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
+                    fty = Tuns8;
+                    continue;
+                }
+
+            case X(Tbool,Tint64):
+            case X(Tbool,Tuns64):
+            case X(Tbool,Tint128):
+            case X(Tbool,Tuns128):
+            case X(Tbool,Tfloat32):
+            case X(Tbool,Tfloat64):
+            case X(Tbool,Tfloat80):
+            case X(Tbool,Tcomplex32):
+            case X(Tbool,Tcomplex64):
+            case X(Tbool,Tcomplex80):
+                e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
+                fty = Tuns8;
+                continue;
+
+            case X(Tbool,Timaginary32):
+            case X(Tbool,Timaginary64):
+            case X(Tbool,Timaginary80):
+                return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint8,Tuns8):    return Lpaint(ce, e, ttym);
+            case X(Tint8,Tint16):
+            case X(Tint8,Tuns16):
+            case X(Tint8,Tint32):
+            case X(Tint8,Tuns32):   eop = OPs8_16;  return Leop(ce, e, eop, ttym);
+            case X(Tint8,Tint64):
+            case X(Tint8,Tuns64):
+            case X(Tint8,Tint128):
+            case X(Tint8,Tuns128):
+            case X(Tint8,Tfloat32):
+            case X(Tint8,Tfloat64):
+            case X(Tint8,Tfloat80):
+            case X(Tint8,Tcomplex32):
+            case X(Tint8,Tcomplex64):
+            case X(Tint8,Tcomplex80):
+                e = el_una(OPs8_16, TYint, e);
+                fty = Tint32;
+                continue;
+            case X(Tint8,Timaginary32):
+            case X(Tint8,Timaginary64):
+            case X(Tint8,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns8,Tint8):    return Lpaint(ce, e, ttym);
+            case X(Tuns8,Tint16):
+            case X(Tuns8,Tuns16):
+            case X(Tuns8,Tint32):
+            case X(Tuns8,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
+            case X(Tuns8,Tint64):
+            case X(Tuns8,Tuns64):
+            case X(Tuns8,Tint128):
+            case X(Tuns8,Tuns128):
+            case X(Tuns8,Tfloat32):
+            case X(Tuns8,Tfloat64):
+            case X(Tuns8,Tfloat80):
+            case X(Tuns8,Tcomplex32):
+            case X(Tuns8,Tcomplex64):
+            case X(Tuns8,Tcomplex80):
+                e = el_una(OPu8_16, TYuint, e);
+                fty = Tuns32;
+                continue;
+            case X(Tuns8,Timaginary32):
+            case X(Tuns8,Timaginary64):
+            case X(Tuns8,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint16,Tint8):
+            case X(Tint16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
+            case X(Tint16,Tuns16):  return Lpaint(ce, e, ttym);
+            case X(Tint16,Tint32):
+            case X(Tint16,Tuns32):  eop = OPs16_32; return Leop(ce, e, eop, ttym);
+            case X(Tint16,Tint64):
+            case X(Tint16,Tuns64):
+            case X(Tint16,Tint128):
+            case X(Tint16,Tuns128):
+                e = el_una(OPs16_32, TYint, e);
+                fty = Tint32;
+                continue;
+            case X(Tint16,Tfloat32):
+            case X(Tint16,Tfloat64):
+            case X(Tint16,Tfloat80):
+            case X(Tint16,Tcomplex32):
+            case X(Tint16,Tcomplex64):
+            case X(Tint16,Tcomplex80):
+                e = el_una(OPs16_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tint16,Timaginary32):
+            case X(Tint16,Timaginary64):
+            case X(Tint16,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns16,Tint8):
+            case X(Tuns16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
+            case X(Tuns16,Tint16):  return Lpaint(ce, e, ttym);
+            case X(Tuns16,Tint32):
+            case X(Tuns16,Tuns32):  eop = OPu16_32; return Leop(ce, e, eop, ttym);
+            case X(Tuns16,Tint64):
+            case X(Tuns16,Tuns64):
+            case X(Tuns16,Tint128):
+            case X(Tuns16,Tuns128):
+            case X(Tuns16,Tfloat64):
+            case X(Tuns16,Tfloat32):
+            case X(Tuns16,Tfloat80):
+            case X(Tuns16,Tcomplex32):
+            case X(Tuns16,Tcomplex64):
+            case X(Tuns16,Tcomplex80):
+                e = el_una(OPu16_32, TYuint, e);
+                fty = Tuns32;
+                continue;
+            case X(Tuns16,Timaginary32):
+            case X(Tuns16,Timaginary64):
+            case X(Tuns16,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint32,Tint8):
+            case X(Tint32,Tuns8):   e = el_una(OP32_16, TYshort, e);
+                fty = Tint16;
+                continue;
+            case X(Tint32,Tint16):
+            case X(Tint32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
+            case X(Tint32,Tuns32):  return Lpaint(ce, e, ttym);
+            case X(Tint32,Tint64):
+            case X(Tint32,Tuns64):  eop = OPs32_64; return Leop(ce, e, eop, ttym);
+            case X(Tint32,Tint128):
+            case X(Tint32,Tuns128):
+                e = el_una(OPs32_64, TYullong, e);
+                fty = Tint64;
+                continue;
+            case X(Tint32,Tfloat32):
+            case X(Tint32,Tfloat64):
+            case X(Tint32,Tfloat80):
+            case X(Tint32,Tcomplex32):
+            case X(Tint32,Tcomplex64):
+            case X(Tint32,Tcomplex80):
+                e = el_una(OPs32_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tint32,Timaginary32):
+            case X(Tint32,Timaginary64):
+            case X(Tint32,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns32,Tint8):
+            case X(Tuns32,Tuns8):   e = el_una(OP32_16, TYshort, e);
+                fty = Tuns16;
+                continue;
+            case X(Tuns32,Tint16):
+            case X(Tuns32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
+            case X(Tuns32,Tint32):  return Lpaint(ce, e, ttym);
+            case X(Tuns32,Tint64):
+            case X(Tuns32,Tuns64):  eop = OPu32_64; return Leop(ce, e, eop, ttym);
+            case X(Tuns32,Tint128):
+            case X(Tuns32,Tuns128):
+                e = el_una(OPs32_64, TYullong, e);
+                fty = Tuns64;
+                continue;
+            case X(Tuns32,Tfloat32):
+            case X(Tuns32,Tfloat64):
+            case X(Tuns32,Tfloat80):
+            case X(Tuns32,Tcomplex32):
+            case X(Tuns32,Tcomplex64):
+            case X(Tuns32,Tcomplex80):
+                e = el_una(OPu32_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tuns32,Timaginary32):
+            case X(Tuns32,Timaginary64):
+            case X(Tuns32,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint64,Tint8):
+            case X(Tint64,Tuns8):
+            case X(Tint64,Tint16):
+            case X(Tint64,Tuns16):  e = el_una(OP64_32, TYint, e);
+                fty = Tint32;
+                continue;
+            case X(Tint64,Tint32):
+            case X(Tint64,Tuns32):  eop = OP64_32; return Leop(ce, e, eop, ttym);
+            case X(Tint64,Tuns64):  return Lpaint(ce, e, ttym);
+            case X(Tint64,Tint128):
+            case X(Tint64,Tuns128):  eop = OPs64_128; return Leop(ce, e, eop, ttym);
+            case X(Tint64,Tfloat32):
+            case X(Tint64,Tfloat64):
+            case X(Tint64,Tfloat80):
+            case X(Tint64,Tcomplex32):
+            case X(Tint64,Tcomplex64):
+            case X(Tint64,Tcomplex80):
+                e = el_una(OPs64_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tint64,Timaginary32):
+            case X(Tint64,Timaginary64):
+            case X(Tint64,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns64,Tint8):
+            case X(Tuns64,Tuns8):
+            case X(Tuns64,Tint16):
+            case X(Tuns64,Tuns16):  e = el_una(OP64_32, TYint, e);
+                fty = Tint32;
+                continue;
+            case X(Tuns64,Tint32):
+            case X(Tuns64,Tuns32):  eop = OP64_32;  return Leop(ce, e, eop, ttym);
+            case X(Tuns64,Tint64):  return Lpaint(ce, e, ttym);
+            case X(Tuns64,Tint128):
+            case X(Tuns64,Tuns128):  eop = OPu64_128; return Leop(ce, e, eop, ttym);
+            case X(Tuns64,Tfloat32):
+            case X(Tuns64,Tfloat64):
+            case X(Tuns64,Tfloat80):
+            case X(Tuns64,Tcomplex32):
+            case X(Tuns64,Tcomplex64):
+            case X(Tuns64,Tcomplex80):
+                e = el_una(OPu64_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tuns64,Timaginary32):
+            case X(Tuns64,Timaginary64):
+            case X(Tuns64,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint128,Tint8):
+            case X(Tint128,Tuns8):
+            case X(Tint128,Tint16):
+            case X(Tint128,Tuns16):
+            case X(Tint128,Tint32):
+            case X(Tint128,Tuns32):
+                e = el_una(OP128_64, TYllong, e);
+                fty = Tint64;
+                continue;
+            case X(Tint128,Tint64):
+            case X(Tint128,Tuns64):  eop = OP128_64; return Leop(ce, e, eop, ttym);
+            case X(Tint128,Tuns128): return Lpaint(ce, e, ttym);
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tint128,Tfloat32):
+            case X(Tint128,Tfloat64):
+            case X(Tint128,Tfloat80):
+            case X(Tint128,Tcomplex32):
+            case X(Tint128,Tcomplex64):
+            case X(Tint128,Tcomplex80):
+                e = el_una(OPs64_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+        }
+            case X(Tint128,Timaginary32):
+            case X(Tint128,Timaginary64):
+            case X(Tint128,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns128,Tint8):
+            case X(Tuns128,Tuns8):
+            case X(Tuns128,Tint16):
+            case X(Tuns128,Tuns16):
+            case X(Tuns128,Tint32):
+            case X(Tuns128,Tuns32):
+                e = el_una(OP128_64, TYllong, e);
+                fty = Tint64;
+                continue;
+            case X(Tuns128,Tint64):
+            case X(Tuns128,Tuns64):  eop = OP128_64;  return Leop(ce, e, eop, ttym);
+            case X(Tuns128,Tint128):  return Lpaint(ce, e, ttym);
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tuns128,Tfloat32):
+            case X(Tuns128,Tfloat64):
+            case X(Tuns128,Tfloat80):
+            case X(Tuns128,Tcomplex32):
+            case X(Tuns128,Tcomplex64):
+            case X(Tuns128,Tcomplex80):
+                e = el_una(OPu64_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+        }
+            case X(Tuns128,Timaginary32):
+            case X(Tuns128,Timaginary64):
+            case X(Tuns128,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tfloat32,Tint8):
+            case X(Tfloat32,Tuns8):
+            case X(Tfloat32,Tint16):
+            case X(Tfloat32,Tuns16):
+            case X(Tfloat32,Tint32):
+            case X(Tfloat32,Tuns32):
+            case X(Tfloat32,Tint64):
+            case X(Tfloat32,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tfloat32,Tint128):
+            case X(Tfloat32,Tuns128):
+        }
+            case X(Tfloat32,Tfloat80):
+                e = el_una(OPf_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tfloat32,Tfloat64): eop = OPf_d; return Leop(ce, e, eop, ttym);
+            case X(Tfloat32,Timaginary32):
+            case X(Tfloat32,Timaginary64):
+            case X(Tfloat32,Timaginary80): return Lzero(ce, e, ttym);
+            case X(Tfloat32,Tcomplex32):
+            case X(Tfloat32,Tcomplex64):
+            case X(Tfloat32,Tcomplex80):
+                e = el_bin(OPadd,TYcfloat,el_long(TYifloat,0),e);
+                fty = Tcomplex32;
+                continue;
+
+                /* ============================= */
+
+            case X(Tfloat64,Tint8):
+            case X(Tfloat64,Tuns8):    e = el_una(OPd_s16, TYshort, e);
+                fty = Tint16;
+                continue;
+            case X(Tfloat64,Tint16):   eop = OPd_s16; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tuns16):   eop = OPd_u16; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tint32):   eop = OPd_s32; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tuns32):   eop = OPd_u32; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tint64):   eop = OPd_s64; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tuns64):   eop = OPd_u64; return Leop(ce, e, eop, ttym);
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tfloat64,Tint128):
+            case X(Tfloat64,Tuns128):
+        }
+            case X(Tfloat64,Tfloat32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tfloat80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Timaginary32):
+            case X(Tfloat64,Timaginary64):
+            case X(Tfloat64,Timaginary80):  return Lzero(ce, e, ttym);
+            case X(Tfloat64,Tcomplex32):
+            case X(Tfloat64,Tcomplex64):
+            case X(Tfloat64,Tcomplex80):
+                e = el_bin(OPadd,TYcdouble,el_long(TYidouble,0),e);
+                fty = Tcomplex64;
+                continue;
+
+                /* ============================= */
+
+            case X(Tfloat80,Tint8):
+            case X(Tfloat80,Tuns8):
+            case X(Tfloat80,Tint16):
+            case X(Tfloat80,Tuns16):
+            case X(Tfloat80,Tint32):
+            case X(Tfloat80,Tuns32):
+            case X(Tfloat80,Tint64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tfloat80,Tint128):
+            case X(Tfloat80,Tuns128):
+        }
+            case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tfloat80,Tuns64):
+                eop = OPld_u64; return Leop(ce, e, eop, ttym);
+            case X(Tfloat80,Tfloat64): eop = OPld_d; return Leop(ce, e, eop, ttym);
+            case X(Tfloat80,Timaginary32):
+            case X(Tfloat80,Timaginary64):
+            case X(Tfloat80,Timaginary80): return Lzero(ce, e, ttym);
+            case X(Tfloat80,Tcomplex32):
+            case X(Tfloat80,Tcomplex64):
+            case X(Tfloat80,Tcomplex80):
+                e = el_bin(OPadd,TYcldouble,e,el_long(TYildouble,0));
+                fty = Tcomplex80;
+                continue;
+
+                /* ============================= */
+
+            case X(Timaginary32,Tint8):
+            case X(Timaginary32,Tuns8):
+            case X(Timaginary32,Tint16):
+            case X(Timaginary32,Tuns16):
+            case X(Timaginary32,Tint32):
+            case X(Timaginary32,Tuns32):
+            case X(Timaginary32,Tint64):
+            case X(Timaginary32,Tuns64):
+            case X(Timaginary32,Tfloat32):
+            case X(Timaginary32,Tfloat64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Timaginary32,Tint128):
+            case X(Timaginary32,Tuns128):
+        }
+            case X(Timaginary32,Tfloat80):  return Lzero(ce, e, ttym);
+            case X(Timaginary32,Timaginary64): eop = OPf_d; return Leop(ce, e, eop, ttym);
+            case X(Timaginary32,Timaginary80):
+                e = el_una(OPf_d, TYidouble, e);
+                fty = Timaginary64;
+                continue;
+            case X(Timaginary32,Tcomplex32):
+            case X(Timaginary32,Tcomplex64):
+            case X(Timaginary32,Tcomplex80):
+                e = el_bin(OPadd,TYcfloat,el_long(TYfloat,0),e);
+                fty = Tcomplex32;
+                continue;
+
+                /* ============================= */
+
+            case X(Timaginary64,Tint8):
+            case X(Timaginary64,Tuns8):
+            case X(Timaginary64,Tint16):
+            case X(Timaginary64,Tuns16):
+            case X(Timaginary64,Tint32):
+            case X(Timaginary64,Tuns32):
+            case X(Timaginary64,Tint64):
+            case X(Timaginary64,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Timaginary64,Tint128):
+            case X(Timaginary64,Tuns128):
+        }
+            case X(Timaginary64,Tfloat32):
+            case X(Timaginary64,Tfloat64):
+            case X(Timaginary64,Tfloat80):  return Lzero(ce, e, ttym);
+            case X(Timaginary64,Timaginary32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
+            case X(Timaginary64,Timaginary80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
+            case X(Timaginary64,Tcomplex32):
+            case X(Timaginary64,Tcomplex64):
+            case X(Timaginary64,Tcomplex80):
+                e = el_bin(OPadd,TYcdouble,el_long(TYdouble,0),e);
+                fty = Tcomplex64;
+                continue;
+
+                /* ============================= */
+
+            case X(Timaginary80,Tint8):
+            case X(Timaginary80,Tuns8):
+            case X(Timaginary80,Tint16):
+            case X(Timaginary80,Tuns16):
+            case X(Timaginary80,Tint32):
+            case X(Timaginary80,Tuns32):
+            case X(Timaginary80,Tint64):
+            case X(Timaginary80,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Timaginary80,Tint128):
+            case X(Timaginary80,Tuns128):
+        }
+            case X(Timaginary80,Tfloat32):
+            case X(Timaginary80,Tfloat64):
+            case X(Timaginary80,Tfloat80):  return Lzero(ce, e, ttym);
+            case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
+                fty = Timaginary64;
+                continue;
+            case X(Timaginary80,Timaginary64): eop = OPld_d; return Leop(ce, e, eop, ttym);
+            case X(Timaginary80,Tcomplex32):
+            case X(Timaginary80,Tcomplex64):
+            case X(Timaginary80,Tcomplex80):
+                e = el_bin(OPadd,TYcldouble,el_long(TYldouble,0),e);
+                fty = Tcomplex80;
+                continue;
+
+                /* ============================= */
+
+            case X(Tcomplex32,Tint8):
+            case X(Tcomplex32,Tuns8):
+            case X(Tcomplex32,Tint16):
+            case X(Tcomplex32,Tuns16):
+            case X(Tcomplex32,Tint32):
+            case X(Tcomplex32,Tuns32):
+            case X(Tcomplex32,Tint64):
+            case X(Tcomplex32,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tcomplex32,Tint128):
+            case X(Tcomplex32,Tuns128):
+        }
+            case X(Tcomplex32,Tfloat32):
+            case X(Tcomplex32,Tfloat64):
+            case X(Tcomplex32,Tfloat80):
+                e = el_una(OPc_r, TYfloat, e);
+                fty = Tfloat32;
+                continue;
+            case X(Tcomplex32,Timaginary32):
+            case X(Tcomplex32,Timaginary64):
+            case X(Tcomplex32,Timaginary80):
+                e = el_una(OPc_i, TYifloat, e);
+                fty = Timaginary32;
+                continue;
+            case X(Tcomplex32,Tcomplex64):
+            case X(Tcomplex32,Tcomplex80):
+                e = el_una(OPf_d, TYcdouble, e);
+                fty = Tcomplex64;
+                continue;
+
+                /* ============================= */
+
+            case X(Tcomplex64,Tint8):
+            case X(Tcomplex64,Tuns8):
+            case X(Tcomplex64,Tint16):
+            case X(Tcomplex64,Tuns16):
+            case X(Tcomplex64,Tint32):
+            case X(Tcomplex64,Tuns32):
+            case X(Tcomplex64,Tint64):
+            case X(Tcomplex64,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tcomplex64,Tint128):
+            case X(Tcomplex64,Tuns128):
+        }
+            case X(Tcomplex64,Tfloat32):
+            case X(Tcomplex64,Tfloat64):
+            case X(Tcomplex64,Tfloat80):
+                e = el_una(OPc_r, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tcomplex64,Timaginary32):
+            case X(Tcomplex64,Timaginary64):
+            case X(Tcomplex64,Timaginary80):
+                e = el_una(OPc_i, TYidouble, e);
+                fty = Timaginary64;
+                continue;
+            case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   return Leop(ce, e, eop, ttym);
+            case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  return Leop(ce, e, eop, ttym);
+
+                /* ============================= */
+
+            case X(Tcomplex80,Tint8):
+            case X(Tcomplex80,Tuns8):
+            case X(Tcomplex80,Tint16):
+            case X(Tcomplex80,Tuns16):
+            case X(Tcomplex80,Tint32):
+            case X(Tcomplex80,Tuns32):
+            case X(Tcomplex80,Tint64):
+            case X(Tcomplex80,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tcomplex80,Tint128):
+            case X(Tcomplex80,Tuns128):
+        }
+            case X(Tcomplex80,Tfloat32):
+            case X(Tcomplex80,Tfloat64):
+            case X(Tcomplex80,Tfloat80):
+                e = el_una(OPc_r, TYldouble, e);
+                fty = Tfloat80;
+                continue;
+            case X(Tcomplex80,Timaginary32):
+            case X(Tcomplex80,Timaginary64):
+            case X(Tcomplex80,Timaginary80):
+                e = el_una(OPc_i, TYildouble, e);
+                fty = Timaginary80;
+                continue;
+            case X(Tcomplex80,Tcomplex32):
+            case X(Tcomplex80,Tcomplex64):
+                e = el_una(OPld_d, TYcdouble, e);
+                fty = Tcomplex64;
+                continue;
+
+                /* ============================= */
+
+            default:
+                if (fty == tty)
+                    return Lpaint(ce, e, ttym);
+                //dump(0);
+                //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
+                // This error should really be pushed to the front end
+                ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                e = el_long(TYint, 0);
+                return e;
+
+        }
+    }
 }
 
 /******************************************
