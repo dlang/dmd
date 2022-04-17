@@ -280,6 +280,9 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 void toObjFile(Dsymbol ds, bool multiobj)
 {
     //printf("toObjFile(%s)\n", ds.toChars());
+
+    bool isCfile = ds.isCsymbol();
+
     extern (C++) final class ToObjFile : Visitor
     {
         alias visit = Visitor.visit;
@@ -616,7 +619,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             auto dtb = DtBuilder(0);
             if (config.objfmt == OBJ_MACH && target.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread)
             {
-                tlsToDt(vd, s, sz, dtb);
+                tlsToDt(vd, s, sz, dtb, isCfile);
             }
             else if (!sz)
             {
@@ -628,7 +631,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             else if (vd._init)
             {
-                initializerToDt(vd, dtb);
+                initializerToDt(vd, dtb, vd.isCsymbol());
             }
             else
             {
@@ -860,9 +863,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
         }
 
     private:
-        static void initializerToDt(VarDeclaration vd, ref DtBuilder dtb)
+        static void initializerToDt(VarDeclaration vd, ref DtBuilder dtb, bool isCfile)
         {
-            Initializer_toDt(vd._init, dtb);
+            Initializer_toDt(vd._init, dtb, isCfile);
 
             // Look for static array that is block initialized
             ExpInitializer ie = vd._init.isExpInitializer();
@@ -911,7 +914,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          *      sz = data size of s
          *      dtb = where to put the data
          */
-        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, ref DtBuilder dtb)
+        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, ref DtBuilder dtb, bool isCfile)
         {
             assert(config.objfmt == OBJ_MACH && target.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread);
 
@@ -921,7 +924,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (sz == 0)
                 tlvInitDtb.nzeros(1);
             else if (vd._init)
-                initializerToDt(vd, tlvInitDtb);
+                initializerToDt(vd, tlvInitDtb, isCfile);
             else
                 Type_toDt(vd.type, tlvInitDtb);
 

@@ -4656,7 +4656,7 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
     {
         static if (LOGDEFAULTINIT)
         {
-            printf("TypeBasic::defaultInit() '%s'\n", mt.toChars());
+            printf("TypeBasic::defaultInit() '%s' isCfile: %d\n", mt.toChars(), isCfile);
         }
         dinteger_t value = 0;
 
@@ -4714,7 +4714,7 @@ extern (C++) Expression defaultInit(Type mt, const ref Loc loc, const bool isCfi
     {
         static if (LOGDEFAULTINIT)
         {
-            printf("TypeSArray::defaultInit() '%s'\n", mt.toChars());
+            printf("TypeSArray::defaultInit() '%s' isCfile %d\n", mt.toChars(), isCfile);
         }
         if (mt.next.ty == Tvoid)
             return mt.tuns8.defaultInit(loc, isCfile);
