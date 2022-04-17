@@ -83,6 +83,8 @@ $(GNAME LinkageAttribute):
     $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D $(RPAREN))
     $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(GLINK2 type, QualifiedIdentifier) $(D $(RPAREN))
     $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(GLINK NamespaceList) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D class) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D struct) $(D $(RPAREN))
 
 $(GNAME LinkageType):
     $(D C)
@@ -104,7 +106,9 @@ $(GNAME NamespaceList):
         extensible by the implementation ($(D they are not keywords)).
         $(D C) and $(D D) must be supplied, the others are what
         makes sense for the implementation.
-        $(D C++) offers limited compatibility with C++.
+        $(D C++) offers limited compatibility with C++, see the
+        $(LINK2 cpp_interface.html, Interfacing to C++)
+        documentation for more information.
         $(D Objective-C) offers compatibility with Objective-C,
         see the $(LINK2 objc_interface.html, Interfacing to Objective-C)
         documentation for more information.
