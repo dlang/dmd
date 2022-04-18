@@ -3625,7 +3625,6 @@ public:
     void purityLevel();
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
-    bool parameterEscapes(Type* tthis, Parameter* p);
     StorageClass parameterStorageClass(Type* tthis, Parameter* p);
     Type* addStorageClass(StorageClass stc);
     Type* substWildTo(uint32_t _param_0);

@@ -4360,29 +4360,6 @@ extern (C++) final class TypeFunction : TypeNext
         return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
     }
 
-    /***************************
-     * Examine function signature for parameter p and see if
-     * the value of p can 'escape' the scope of the function.
-     * This is useful to minimize the needed annotations for the parameters.
-     * Params:
-     *  tthis = type of `this` parameter, null if none
-     *  p = parameter to this function
-     * Returns:
-     *  true if escapes via assignment to global or through a parameter
-     */
-    bool parameterEscapes(Type tthis, Parameter p)
-    {
-        /* Scope parameters do not escape.
-         * Allow 'lazy' to imply 'scope' -
-         * lazy parameters can be passed along
-         * as lazy parameters to the next function, but that isn't
-         * escaping.
-         */
-        if (parameterStorageClass(tthis, p) & (STC.scope_ | STC.lazy_))
-            return false;
-        return true;
-    }
-
     /************************************
      * Take the specified storage class for p,
      * and use the function signature to infer whether
@@ -4410,7 +4387,7 @@ extern (C++) final class TypeFunction : TypeNext
 
         /* If haven't inferred the return type yet, can't infer storage classes
          */
-        if (!nextOf())
+        if (!nextOf() || !isnothrow())
             return stc;
 
         purityLevel();
@@ -4461,37 +4438,12 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        /* Inferring STC.return_ here has false positives
-         * for pure functions, producing spurious error messages
-         * about escaping references.
-         * Give up on it for now.
-         */
-        version (none)
-        {
-            stc |= STC.scope_;
-
-            Type tret = nextOf().toBasetype();
-            if (isref || tret.hasPointers())
-            {
-                /* The result has references, so p could be escaping
-                 * that way.
-                 */
-                stc |= STC.return_;
-            }
-        }
+        // Check escaping through return value
+        Type tret = nextOf().toBasetype();
+        if (isref || tret.hasPointers())
+            return stc | STC.scope_ | STC.return_ | STC.returnScope;
         else
-        {
-            // Check escaping through return value
-            Type tret = nextOf().toBasetype();
-            if (isref || tret.hasPointers() || !isnothrow())
-            {
-                return stc;
-            }
-
-            stc |= STC.scope_;
-        }
-
-        return stc;
+            return stc | STC.scope_;
     }
 
     override Type addStorageClass(StorageClass stc)
