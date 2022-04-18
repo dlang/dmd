@@ -838,7 +838,8 @@ extern (C++) class Dsymbol : ASTNode
         }
         if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
         {
-            if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
+            if (ident == Id.__sizeof ||
+                !(sc && sc.flags & SCOPE.Cfile) && (ident == Id.__xalignof || ident == Id._mangleof))
             {
                 error("`.%s` property cannot be redefined", ident.toChars());
                 errors = true;
