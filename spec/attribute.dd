@@ -645,26 +645,116 @@ auto i = 6.8;   // declare i as a double
 $(H2 $(LNAME2 scope, $(D scope) Attribute))
 
 $(P
-        The $(D scope) attribute is used for local variables and implements the
-        RAII (Resource Acquisition Is Initialization) protocol.
+        The $(D scope) attribute is used for parameters or local variables with a type that contains low-level pointers.
+        It signifies that the variable's pointer values will not escape the function
+        (in case of a $(DDSUBLINK spec/function, scope-parameters, scope parameters)) or
+        $(DDSUBLINK spec/statement, scope-statement, scope statement) that the variable is declared in,
+        for example by returning it or assigning it to a variable outside of its scope.
+)
+
+$(P
+        When applied to a global variable or a variable with a type that has no pointers, `scope` does nothing and is ignored.
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+scope int* x; // does nothing
+
+void main()
+{
+    scope float y;  // does nothing
+    scope int[2] z; // does nothing (static array is value type)
+    scope int[] w;  // scope dynamic array
+}
+---
+)
+
+$(P
+        The $(D scope) attribute is part of the variable declaration, not of the type, and it only applies to the first level of indirection.
+        For example, it is impossible to declare a variable as a dynamic array of scope pointers, because `scope` only applies to the `.ptr`
+        of the array itself, not its elements. `scope` affects various types as follows:
+
+        $(TABLE_2COLS ,
+        $(THEAD Type of local variable, What `scope` applies to)
+
+        $(TROW Any $(DDSUBLINK spec/type, basic-data-types, Basic Data Type), nothing)
+        $(TROW $(DDSUBLINK spec/arrays, pointers, Pointer) `T*`, the pointer value)
+        $(TROW $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Array) `T[]`, the `.ptr` to the elements)
+        $(TROW $(DDSUBLINK spec/arrays, static-arrays, Static Array) `T[n]`, each element `T`)
+        $(TROW $(GLINK2 hash-map, Associative Array) `K[V]`, the pointer to the implementation defined structure)
+        $(TROW `struct` or `union`, each of its member variables)
+        $(TROW `function` pointer, the pointer value)
+        $(TROW $(DDSUBLINK spec/function, closures, delegate), both the `.funcptr` and `.ptr` (closure context) pointer values)
+        $(TROW `class` or `interface`, the class reference)
+        $(TROW $(GLINK2 enum, enum), the base type)
+        )
+
+        Example:
+)
+
+---
+struct S
+{
+    string str; // note: string = immutable(char)[]
+    string* strPtr;
+}
+
+string escape(scope S s, scope S* sPtr, string[2] sarray, scope string[] darray)
+{
+    return s.str;        // invalid, scope applies to struct members
+    return *s.strPtr;    // valid, scope struct member is dereferenced
+    return sPtr.str;     // valid, struct pointer is dereferenced
+    return *sPtr.strPtr; // valid, two pointers are dereferenced
+    return sarray[0];    // invalid, scope applies to static array elements
+    return sarray[1];    // invalid, ditto
+    return darray[0];    // valid, scope applies to array pointer, not elements
+}
+---
+
+$(H3 $(LNAME2 scope-class-var, $(D scope) variables with `class` type))
+$(P
+        When used on variables with a `class` type, `scope` signifies the RAII
+        (Resource Acquisition Is Initialization) protocol.
         This means that the destructor for an object is automatically called when the
         reference to it goes out of scope. The destructor is called even
         if the scope is exited via a thrown exception, thus $(D scope)
         is used to guarantee cleanup.
 )
 $(P
-        If there is more than one $(D scope) variable going out of scope
+        When a class is constructed with `new` and assigned to a local `scope` variable,
+        it may be allocated on the stack and permitted in a `@nogc` context.
+)
+$(P
+        If there is more than one `scope` class variable going out of scope
         at the same point, then the destructors are called in the reverse
         order that the variables were constructed.
 )
 $(P
-        $(D scope) cannot be applied to globals, statics, data members, ref
-        or out parameters. Arrays of $(D scope)s are not allowed, and $(D scope)
-        function return values are not allowed. Assignment to a $(D scope),
-        other than initialization, is not allowed.
-        $(D Rationale:) These restrictions may get relaxed in the future
-        if a compelling reason to appears.
+        If there is more than one `scope` class variable going out of scope
+        at the same point, then the destructors are called in the reverse
+        order that the variables were constructed.
 )
+$(P
+        Assignment to a $(D scope) variable with class type,
+        other than initialization, is not allowed, because that would complicate
+        proper destruction of the variable.
+)
+
+---
+class C {}
+
+void main() @nogc
+{
+    {
+        scope c0 = new C(); // allocated on the stack
+        scope c1 = new C();
+
+        c1 = c0; // not allowed
+
+        // destructor of `c1` and `c0` are called here in that order
+    }
+}
+---
 
 $(H2 $(LNAME2 abstract, $(D abstract) Attribute))
 
@@ -720,7 +810,6 @@ $(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
         An expression is considered to be discarded if and only if either of the
         following is true:
     )
-
     $(UL
         $(LI
             it is the top-level $(GLINK2 expression, Expression) in an $(GLINK2
