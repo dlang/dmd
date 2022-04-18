@@ -612,7 +612,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!sz)
             {
                 const ty = vd.type.toBasetype().ty;
-                if (ty != Tsarray && ty != Tnoreturn)
+                if (ty != Tsarray && ty != Tnoreturn && !vd.isCsymbol())
                     assert(0); // this shouldn't be possible
             }
 
@@ -626,6 +626,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 /* Give it a byte of data
                  * so we can take the 'address' of this symbol
                  * and avoid problematic behavior of object file format
+                 * Note that gcc will give 0 size C objects a `comm a:byte:00h`
                  */
                 dtb.nzeros(1);
             }
