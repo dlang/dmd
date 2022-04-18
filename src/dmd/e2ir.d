@@ -3927,36 +3927,34 @@ elem* toElem(Expression e, IRState *irs)
         }
 
         elem *e;
-        if (tb.ty == Tsarray && dim)
+        if (dim > 0)
         {
-            Symbol *stmp = null;
-            e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
-            e = el_combine(e, el_ptr(stmp));
-        }
-        else if (ale.elements)
-        {
-            /* Instead of passing the initializers on the stack, allocate the
-             * array and assign the members inline.
-             * Avoids the whole variadic arg mess.
-             */
+            if (tb.ty == Tsarray)
+            {
+                Symbol *stmp = null;
+                e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
+                e = el_combine(e, el_ptr(stmp));
+            }
+            else
+            {
+                /* Instead of passing the initializers on the stack, allocate the
+                * array and assign the members inline.
+                * Avoids the whole variadic arg mess.
+                */
 
-            // call _d_arrayliteralTX(ti, dim)
-            e = el_bin(OPcall, TYnptr,
-                el_var(getRtlsym(RTLSYM.ARRAYLITERALTX)),
-                el_param(el_long(TYsize_t, dim), getTypeInfo(ale.loc, ale.type, irs)));
-            toTraceGC(irs, e, ale.loc);
+                // call _d_arrayliteralTX(ti, dim)
+                e = el_bin(OPcall, TYnptr,
+                    el_var(getRtlsym(RTLSYM.ARRAYLITERALTX)),
+                    el_param(el_long(TYsize_t, dim), getTypeInfo(ale.loc, ale.type, irs)));
+                toTraceGC(irs, e, ale.loc);
 
-            Symbol *stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
-            e = el_bin(OPeq, TYnptr, el_var(stmp), e);
+                Symbol *stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
+                e = el_bin(OPeq, TYnptr, el_var(stmp), e);
 
-            /* Note: Even if dm == 0, the druntime function will be called so
-             * GC heap may be allocated. However, currently it's implemented
-             * to return null for 0 length.
-             */
-            if (dim)
                 e = el_combine(e, ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis));
 
-            e = el_combine(e, el_var(stmp));
+                e = el_combine(e, el_var(stmp));
+            }
         }
         else
         {
