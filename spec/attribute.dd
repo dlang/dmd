@@ -645,32 +645,52 @@ auto i = 6.8;   // declare i as a double
 $(H2 $(LNAME2 scope, $(D scope) Attribute))
 
 $(P
-        The $(D scope) attribute is used for parameters or local variables with a type that contains low-level pointers.
-        It signifies that the variable's pointer values will not escape the function
-        (in case of a $(DDSUBLINK spec/function, scope-parameters, scope parameters)) or
-        $(DDSUBLINK spec/statement, scope-statement, scope statement) that the variable is declared in,
-        for example by returning it or assigning it to a variable outside of its scope.
+        The `scope` attribute signifies a variable's pointer values will not escape the scope that the variable is declared in.
 )
 
 $(P
-        When applied to a global variable or a variable with a type that has no pointers, `scope` does nothing and is ignored.
+        If the variable has a type that does not contain any indirections, the `scope` attribute is ignored.
+)
+
+$(P
+        When applied to a global variable, `scope` is also ignored, since there is no scope larger than global scope that pointers could escape to.
 )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-scope int* x; // does nothing
+scope int* x; // scope ignored, global variable
 
 void main()
 {
-    scope float y;  // does nothing
-    scope int[2] z; // does nothing (static array is value type)
+    static int* x; // scope ignored, global variable
+    scope float y;  // scope ignored, no indirections
+    scope int[2] z; // scope ignored, static array is value type
     scope int[] w;  // scope dynamic array
 }
 ---
 )
 
 $(P
-        The $(D scope) attribute is part of the variable declaration, not of the type, and it only applies to the first level of indirection.
+        When applied to a local variable with a type that has indirections,
+        its value may not be assigned to a variable with longer lifetime:
+
+        $(UL
+            $(LI Variables outside the $(DDSUBLINK spec/statement, scope-statement, scope statement) that the variable is declared in)
+            $(LI Variables declared before the `scope` variable$(COMMA) since local variables are destructed in the reverse order that they are declared in.)
+            $(LI `__gshared` or `static` variables)
+        )
+
+        Other operations implicitly assigning them to variables with longer lifetime are also disallowed:
+
+        $(UL
+            $(LI Returning a `scope` variable from a function)
+            $(LI Assigning a `scope` variable to a non-scope parameter by calling a function)
+            $(LI Putting a `scope` variable in an array literal)
+        )
+)
+
+$(P
+        The `scope` attribute is part of the variable declaration, not of the type, and it only applies to the first level of indirection.
         For example, it is impossible to declare a variable as a dynamic array of scope pointers, because `scope` only applies to the `.ptr`
         of the array itself, not its elements. `scope` affects various types as follows:
 
@@ -710,6 +730,55 @@ string escape(scope S s, scope S* sPtr, string[2] sarray, scope string[] darray)
     return darray[0];    // valid, scope applies to array pointer, not elements
 }
 ---
+
+$(P
+    A "`scope` value" is the value of a `scope` variable, or any generated value that is (or could be) allocated on the stack:
+    $(UL
+        $(LI The address of a function local variable / parameter)
+        $(LI A struct member accessed through the implicit `this` parameter)
+        $(LI The return value of a $(DDSUBLINK spec/function, ref-functions, Ref Function))
+        $(LI The variadic parameter from  $(DDSUBLINK spec/function, typesafe_variadic_functions, Typesafe Variadic Functions))
+    )
+
+    When a local variable is assigned a `scope` value, it is inferred `scope`, even when the variable has an explicit type and does not use the `auto` keyword.
+)
+
+---
+int* escape(ref int x, int y, scope int* z)
+{
+    scope int* w;
+
+    auto xPtr = &x; // inferred `scope int*`
+    int* yPtr = &y; // also inferred `scope int*`
+    int* zCopy = z; // inferred `scope int*`
+    int* wCopy = w; // inferred `scope int*`
+
+    return yPtr; // error
+}
+
+void variadic(int[] a...)
+{
+    int[] x = a; // inferred `scope int[]`
+}
+
+struct S
+{
+    int x;
+
+    // this method may be called on a stack-allocated instance of S
+    void f()
+    {
+        int* p = &x; // inferred `scope int* p`
+        int* q = &this.x; // equivalent
+    }
+}
+---
+
+$(P
+    $(DDSUBLINK spec/function, scope-parameters, scope parameters) are treated the same as scope local variables,
+    except that returning them is allowed when the function has $(DDSUBLINK spec/function, function-attribute-inference, Function Attribute Inference).
+    In that case, they are inferred as $(DDSUBLINK spec/function, return-scope-parameters, return scope parameters).
+)
 
 $(H3 $(LNAME2 scope-class-var, $(D scope) variables with `class` type))
 $(P
