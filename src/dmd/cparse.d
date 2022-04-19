@@ -2744,6 +2744,11 @@ final class CParser(AST) : Parser!AST
         Specifier specifier;
         specifier.packalign.setDefault();
         auto tspec = cparseSpecifierQualifierList(LVL.global, specifier);
+        if (tspec && specifier.mod & MOD.xconst)
+        {
+            tspec = toConst(tspec);
+            specifier.mod = MOD.xnone;      // 'used' it
+        }
         Identifier id;
         return cparseDeclarator(DTR.xabstract, tspec, id, specifier);
     }
