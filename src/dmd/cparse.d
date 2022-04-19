@@ -259,6 +259,7 @@ final class CParser(AST) : Parser!AST
         case TOK.plusPlus:
         case TOK.minusMinus:
         case TOK.sizeof_:
+        case TOK._Generic:
         Lexp:
             auto exp = cparseExpression();
             if (token.value == TOK.identifier && exp.op == EXP.identifier)
