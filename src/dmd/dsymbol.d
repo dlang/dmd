@@ -2524,6 +2524,7 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
 
         if (i1)                         // vd is the definition
         {
+            vd2.storage_class |= STC.extern_;  // so toObjFile() won't emit it
             sds.symtab.update(vd);      // replace vd2 with the definition
             return vd;
         }
