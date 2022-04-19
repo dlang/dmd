@@ -4743,14 +4743,40 @@ extern (C++) final class TypeFunction : TypeNext
                                 m = MATCH.exact;
                             else
                             {
-                                m = MATCH.nomatch;
                                 if (pMessage)
                                 {
+                                    /* https://issues.dlang.org/show_bug.cgi?id=22202
+                                     *
+                                     * If a function was deduced by semantic on the CallExp,
+                                     * it means that resolveFuncCall completed succesfully.
+                                     * Therefore, there exists a callable copy constructor,
+                                     * however, it cannot be called because scope constraints
+                                     * such as purity, safety or nogc.
+                                     */
                                     OutBuffer buf;
-                                    buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
-                                           argStruct.toChars(), targ.toChars(), tprm.toChars());
+                                    auto callExp = e.isCallExp();
+                                    if (auto f = callExp.f)
+                                    {
+                                        char[] s;
+                                        if (!f.isPure && sc.func.setImpure())
+                                            s ~= "pure ";
+                                        if (!f.isSafe() && !f.isTrusted() && sc.func.setUnsafe())
+                                            s ~= "@safe ";
+                                        if (!f.isNogc && sc.func.setGC())
+                                            s ~= "nogc ";
+                                        s[$-1] = '\0';
+                                        buf.printf("`%s` copy constructor cannot be called from a `%s` context", f.type.toChars(), s.ptr);
+
+                                    }
+                                    else
+                                    {
+                                        buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
+                                               argStruct.toChars(), targ.toChars(), tprm.toChars());
+                                    }
+
                                     *pMessage = buf.extractChars();
                                 }
+                                m = MATCH.nomatch;
                                 goto Nomatch;
                             }
                         }
