@@ -2306,7 +2306,8 @@ extern (C++) Type merge(Type type)
         case Tident:
         case Tinstance:
         case Tmixin:
-            return type;
+        case Ttag:
+            return type;        // don't merge placeholder types
 
         case Tsarray:
             // prevents generating the mangle if the array dim is not yet known
