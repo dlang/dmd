@@ -53,7 +53,7 @@ enum TestTools
     unitTestRunner = TestTool("tools/unit_test_runner", [toolsDir.buildPath("paths")]),
     testRunner = TestTool("tools/d_do_test", ["-g", "-I" ~ toolsDir, "-i", "-version=NoMain"]),
     jsonSanitizer = TestTool("tools/sanitize_json"),
-    dshellPrebuilt = TestTool("tools/dshell", [ "-c" ], buildPath("tools", "dshell".objName)),
+    dshellPrebuilt = TestTool("tools/dshell_prebuilt", [ "-c" ], buildPath("tools", "dshell_prebuilt".objName)),
 }
 
 immutable struct TestTool
@@ -313,8 +313,20 @@ TestTool[] listDshellScripts()
     foreach (const entry; dirEntries(dshellDir, "*.d", SpanMode.shallow))
     {
         const name = entry.name[scriptDir.length + 1 .. $ - 2];
+        const impDir = buildPath(resultsDir, name);
+        const source = buildPath(impDir, "dshell.d");
+
+        mkdirRecurse(impDir);
+        File(source, "w").writeln(`module dshell;
+public import dshell_prebuilt;
+static this()
+{
+    dshellPrebuiltInit("dshell", "`, baseName(name) , `");
+}
+`);
         const binary = buildPath(name, runner);
-        list ~= TestTool(name, args, binary);
+
+        list ~= TestTool(name, args ~ ("-I" ~ impDir) ~ source, binary);
     }
 
     return list;

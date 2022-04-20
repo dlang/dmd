@@ -2049,10 +2049,7 @@ int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
         const runTest = [testScriptExe];
         outfile.writeln("\n[RUN_TEST] ", escapeShellCommand(runTest));
         outfile.flush();
-        string[string] env = [
-            "TEST_NAME": test_name,
-        ];
-        auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, env, keepFilesOpen);
+        auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, null, keepFilesOpen);
         // auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile, env, keepFilesOpen, dmdTestDir);
         const exitCode = wait(runTestProc);
 
