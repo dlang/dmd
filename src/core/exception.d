@@ -19,29 +19,6 @@ void __switch_errorT()(string file = __FILE__, size_t line = __LINE__) @trusted
         assert(0, "No appropriate switch clause found");
 }
 
-version (D_BetterC)
-{
-    // When compiling with -betterC we use template functions so if they are
-    // used the bodies are copied into the user's program so there is no need
-    // for the D runtime during linking.
-
-    // In the future we might want to convert all functions in this module to
-    // templates even for ordinary builds instead of providing them as an
-    // extern(C) library.
-
-    void onOutOfMemoryError()(void* pretend_sideffect = null) @nogc nothrow pure @trusted
-    {
-        assert(0, "Memory allocation failed");
-    }
-    alias onOutOfMemoryErrorNoGC = onOutOfMemoryError;
-
-    void onInvalidMemoryOperationError()(void* pretend_sideffect = null) @nogc nothrow pure @trusted
-    {
-        assert(0, "Invalid memory operation");
-    }
-}
-else:
-
 /**
  * Thrown on a range error.
  */
@@ -692,26 +669,49 @@ extern (C) void onFinalizeError( TypeInfo info, Throwable e, string file = __FIL
     throw staticError!FinalizeError(info, e, file, line);
 }
 
-/**
- * A callback for out of memory errors in D.  An $(LREF OutOfMemoryError) will be
- * thrown.
- *
- * Throws:
- *  $(LREF OutOfMemoryError).
- */
-extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc /* dmd @@@BUG11461@@@ */
+version (D_BetterC)
 {
-    // NOTE: Since an out of memory condition exists, no allocation must occur
-    //       while generating this object.
-    throw staticError!OutOfMemoryError();
-}
+    // When compiling with -betterC we use template functions so if they are
+    // used the bodies are copied into the user's program so there is no need
+    // for the D runtime during linking.
 
-extern (C) void onOutOfMemoryErrorNoGC() @trusted nothrow @nogc
+    // In the future we might want to convert all functions in this module to
+    // templates even for ordinary builds instead of providing them as an
+    // extern(C) library.
+
+    void onOutOfMemoryError()(void* pretend_sideffect = null) @nogc nothrow pure @trusted
+    {
+        assert(0, "Memory allocation failed");
+    }
+    alias onOutOfMemoryErrorNoGC = onOutOfMemoryError;
+
+    void onInvalidMemoryOperationError()(void* pretend_sideffect = null) @nogc nothrow pure @trusted
+    {
+        assert(0, "Invalid memory operation");
+    }
+}
+else
 {
-    // suppress stacktrace until they are @nogc
-    throw staticError!OutOfMemoryError(false);
-}
+    /**
+     * A callback for out of memory errors in D.  An $(LREF OutOfMemoryError) will be
+     * thrown.
+     *
+     * Throws:
+     *  $(LREF OutOfMemoryError).
+     */
+    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc /* dmd @@@BUG11461@@@ */
+    {
+        // NOTE: Since an out of memory condition exists, no allocation must occur
+        //       while generating this object.
+        throw staticError!OutOfMemoryError();
+    }
 
+    extern (C) void onOutOfMemoryErrorNoGC() @trusted nothrow @nogc
+    {
+        // suppress stacktrace until they are @nogc
+        throw staticError!OutOfMemoryError(false);
+    }
+}
 
 /**
  * A callback for invalid memory operations in D.  An
