@@ -124,8 +124,10 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
     switch (asmstate.tokValue)
     {
         case cast(TOK)ASMTKnaked:
+            import dmd.func : FUNCFLAG;
+
             s.naked = true;
-            sc.func.naked = true;
+            sc.func.flags |= FUNCFLAG.naked;
             asm_token();
             break;
 
@@ -259,22 +261,6 @@ AFTER_EMIT:
     }
     return asmstate.errors ? new ErrorStatement() : s;
 }
-
-/**********************************
- * Called from back end.
- * Params: bp = asm block
- * Returns: mask of registers used by block bp.
- */
-extern (C++) public regm_t iasm_regs(block *bp)
-{
-    debug (debuga)
-        printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
-
-    refparam |= bp.bIasmrefparam;
-    return bp.usIasmregs;
-}
-
-
 
 private:
 
@@ -2236,14 +2222,14 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
             else if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
-                if (e.op == EXP.variable)
+                if (auto ve = e.isVarExp())
                 {
-                    o1.s = (cast(VarExp)e).var;
+                    o1.s = ve.var;
                     return;
                 }
-                else if (e.op == EXP.function_)
+                else if (auto fe = e.isFuncExp())
                 {
-                    o1.s = (cast(FuncExp)e).fd;
+                    o1.s = fe.fd;
                     return;
                 }
             }
@@ -2358,7 +2344,8 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
               * We could leave it on unless fd.nrvo_var==v,
               * but fd.nrvo_var isn't set yet
               */
-             fd.nrvo_can = false;
+            import dmd.func : FUNCFLAG;
+            fd.flags &= ~FUNCFLAG.NRVO;
         }
 
         if (v.isParameter())
@@ -3587,10 +3574,10 @@ code *asm_db_parse(OP *pop)
         switch (asmstate.tokValue)
         {
             case TOK.int32Literal:
-                dt.ul = cast(d_int32)asmstate.tok.intvalue;
+                dt.ul = cast(int)asmstate.tok.intvalue;
                 goto L1;
             case TOK.uns32Literal:
-                dt.ul = cast(d_uns32)asmstate.tok.unsvalue;
+                dt.ul = cast(uint)asmstate.tok.unsvalue;
                 goto L1;
             case TOK.int64Literal:
                 dt.ul = asmstate.tok.intvalue;
@@ -3725,11 +3712,11 @@ int asm_getnum()
     switch (asmstate.tokValue)
     {
         case TOK.int32Literal:
-            v = cast(d_int32)asmstate.tok.intvalue;
+            v = cast(int)asmstate.tok.intvalue;
             break;
 
         case TOK.uns32Literal:
-            v = cast(d_uns32)asmstate.tok.unsvalue;
+            v = cast(uint)asmstate.tok.unsvalue;
             break;
 
         case TOK.identifier:
@@ -4492,12 +4479,12 @@ void asm_primary_exp(out OPND o1)
             break;
 
         case TOK.int32Literal:
-            o1.disp = cast(d_int32)asmstate.tok.intvalue;
+            o1.disp = cast(int)asmstate.tok.intvalue;
             asm_token();
             break;
 
         case TOK.uns32Literal:
-            o1.disp = cast(d_uns32)asmstate.tok.unsvalue;
+            o1.disp = cast(uint)asmstate.tok.unsvalue;
             asm_token();
             break;
 

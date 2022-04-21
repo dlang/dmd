@@ -30,7 +30,7 @@ import dmd.tokens;
 
 /***********************************************************
  */
-class Parser(AST) : Lexer
+class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 {
     AST.ModuleDeclaration* md;
 
@@ -707,7 +707,7 @@ class Parser(AST) : Lexer
                      tk.value == TOK.out_ || tk.value == TOK.do_ || tk.value == TOK.goesTo ||
                      tk.value == TOK.identifier && tk.ident == Id._body))
                 {
-                    // @@@DEPRECATED@@@
+                    // @@@DEPRECATED_2.117@@@
                     // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                     // Deprecated in 2.097 - Can be removed from 2.117
                     // The deprecation period is longer than usual as `body`
@@ -987,23 +987,9 @@ class Parser(AST) : Lexer
                 nextToken();
                 if (token.value == TOK.assign)
                 {
-                    nextToken();
-                    if (token.value == TOK.identifier)
-                        s = new AST.DebugSymbol(token.loc, token.ident);
-                    else if (token.value == TOK.int32Literal || token.value == TOK.int64Literal)
-                        s = new AST.DebugSymbol(token.loc, cast(uint)token.unsvalue);
-                    else
-                    {
-                        error("identifier or integer expected, not `%s`", token.toChars());
-                        s = null;
-                    }
-                    nextToken();
-                    if (token.value != TOK.semicolon)
-                        error("semicolon expected");
-                    nextToken();
+                    s = parseDebugSpecification();
                     break;
                 }
-
                 condition = parseDebugCondition();
                 goto Lcondition;
 
@@ -1012,20 +998,7 @@ class Parser(AST) : Lexer
                 nextToken();
                 if (token.value == TOK.assign)
                 {
-                    nextToken();
-                    if (token.value == TOK.identifier)
-                        s = new AST.VersionSymbol(token.loc, token.ident);
-                    else if (token.value == TOK.int32Literal || token.value == TOK.int64Literal)
-                        s = new AST.VersionSymbol(token.loc, cast(uint)token.unsvalue);
-                    else
-                    {
-                        error("identifier or integer expected, not `%s`", token.toChars());
-                        s = null;
-                    }
-                    nextToken();
-                    if (token.value != TOK.semicolon)
-                        error("semicolon expected");
-                    nextToken();
+                    s = parseVersionSpecification();
                     break;
                 }
                 condition = parseVersionCondition();
@@ -1211,6 +1184,15 @@ class Parser(AST) : Lexer
      */
     private StorageClass appendStorageClass(StorageClass orig, StorageClass added)
     {
+        void checkConflictSTCGroup(bool at = false)(StorageClass group)
+        {
+            if (added & group && orig & group & ((orig & group) - 1))
+                error(
+                    at ? "conflicting attribute `@%s`"
+                       : "conflicting attribute `%s`",
+                    token.toChars());
+        }
+
         if (orig & added)
         {
             OutBuffer buf;
@@ -1253,24 +1235,9 @@ class Parser(AST) : Lexer
             return orig;
         }
 
-        if (added & (STC.const_ | STC.immutable_ | STC.manifest))
-        {
-            StorageClass u = orig & (STC.const_ | STC.immutable_ | STC.manifest);
-            if (u & (u - 1))
-                error("conflicting attribute `%s`", Token.toChars(token.value));
-        }
-        if (added & (STC.gshared | STC.shared_ | STC.tls))
-        {
-            StorageClass u = orig & (STC.gshared | STC.shared_ | STC.tls);
-            if (u & (u - 1))
-                error("conflicting attribute `%s`", Token.toChars(token.value));
-        }
-        if (added & STC.safeGroup)
-        {
-            StorageClass u = orig & STC.safeGroup;
-            if (u & (u - 1))
-                error("conflicting attribute `@%s`", token.toChars());
-        }
+        checkConflictSTCGroup(STC.const_ | STC.immutable_ | STC.manifest);
+        checkConflictSTCGroup(STC.gshared | STC.shared_);
+        checkConflictSTCGroup!true(STC.safeGroup);
 
         return orig;
     }
@@ -1977,7 +1944,6 @@ class Parser(AST) : Lexer
         case TOK.wcharLiteral:
         case TOK.dcharLiteral:
         case TOK.string_:
-        case TOK.hexadecimalString:
         case TOK.file:
         case TOK.fileFullPath:
         case TOK.line:
@@ -2204,6 +2170,26 @@ class Parser(AST) : Lexer
         return qualified;
     }
 
+    private AST.DebugSymbol parseDebugSpecification()
+    {
+        AST.DebugSymbol s;
+        nextToken();
+        if (token.value == TOK.identifier)
+            s = new AST.DebugSymbol(token.loc, token.ident);
+        else if (token.value == TOK.int32Literal || token.value == TOK.int64Literal)
+            s = new AST.DebugSymbol(token.loc, cast(uint)token.unsvalue);
+        else
+        {
+            error("identifier or integer expected, not `%s`", token.toChars());
+            s = null;
+        }
+        nextToken();
+        if (token.value != TOK.semicolon)
+            error("semicolon expected");
+        nextToken();
+        return s;
+    }
+
     /**************************************
      * Parse a debug conditional
      */
@@ -2228,6 +2214,29 @@ class Parser(AST) : Lexer
             check(TOK.rightParenthesis);
         }
         return new AST.DebugCondition(loc, mod, level, id);
+    }
+
+    /**************************************
+     * Parse a version specification
+     */
+    private AST.VersionSymbol parseVersionSpecification()
+    {
+        AST.VersionSymbol s;
+        nextToken();
+        if (token.value == TOK.identifier)
+            s = new AST.VersionSymbol(token.loc, token.ident);
+        else if (token.value == TOK.int32Literal || token.value == TOK.int64Literal)
+            s = new AST.VersionSymbol(token.loc, cast(uint)token.unsvalue);
+        else
+        {
+            error("identifier or integer expected, not `%s`", token.toChars());
+            s = null;
+        }
+        nextToken();
+        if (token.value != TOK.semicolon)
+            error("semicolon expected");
+        nextToken();
+        return s;
     }
 
     /**************************************
@@ -2678,7 +2687,7 @@ class Parser(AST) : Lexer
         }
         nextToken();
 
-        /* @@@DEPRECATED_2.098@@@
+        /* @@@DEPRECATED_2.108@@@
          * After deprecation period (2.108), remove all code in the version(all) block.
          */
         version (all)
@@ -4407,7 +4416,7 @@ class Parser(AST) : Lexer
                     (tk.value == TOK.leftParenthesis || tk.value == TOK.leftCurly || tk.value == TOK.in_ || tk.value == TOK.out_ || tk.value == TOK.goesTo ||
                      tk.value == TOK.do_ || tk.value == TOK.identifier && tk.ident == Id._body))
                 {
-                    // @@@DEPRECATED@@@
+                    // @@@DEPRECATED_2.117@@@
                     // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                     // Deprecated in 2.097 - Can be removed from 2.117
                     // The deprecation period is longer than usual as `body`
@@ -4859,7 +4868,7 @@ class Parser(AST) : Lexer
                         {
                             OutBuffer buf;
                             AST.stcToBuffer(&buf, remStc);
-                            // @@@DEPRECATED_2.093@@@
+                            // @@@DEPRECATED_2.103@@@
                             // Deprecated in 2020-07, can be made an error in 2.103
                             deprecation("storage class `%s` has no effect in type aliases", buf.peekChars());
                         }
@@ -5086,7 +5095,7 @@ class Parser(AST) : Lexer
         case TOK.identifier:
             if (token.ident == Id._body)
             {
-                // @@@DEPRECATED@@@
+                // @@@DEPRECATED_2.117@@@
                 // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                 // Deprecated in 2.097 - Can be removed from 2.117
                 // The deprecation period is longer than usual as `body`
@@ -5629,7 +5638,6 @@ LagainStc:
         case TOK.true_:
         case TOK.false_:
         case TOK.string_:
-        case TOK.hexadecimalString:
         case TOK.leftParenthesis:
         case TOK.cast_:
         case TOK.mul:
@@ -6061,10 +6069,14 @@ LagainStc:
             nextToken();
             if (token.value == TOK.assign)
             {
-                error("debug conditions can only be declared at module scope");
-                nextToken();
-                nextToken();
-                goto Lerror;
+                if (auto ds = parseDebugSpecification())
+                {
+                    if (ds.ident)
+                        ds.error("declaration must be at module level");
+                    else
+                        ds.error("level declaration must be at module level");
+                }
+                break;
             }
             cond = parseDebugCondition();
             goto Lcondition;
@@ -6073,10 +6085,14 @@ LagainStc:
             nextToken();
             if (token.value == TOK.assign)
             {
-                error("version conditions can only be declared at module scope");
-                nextToken();
-                nextToken();
-                goto Lerror;
+                if (auto vs = parseVersionSpecification())
+                {
+                    if (vs.ident)
+                        vs.error("declaration must be at module level");
+                    else
+                        vs.error("level declaration must be at module level");
+                }
+                break;
             }
             cond = parseVersionCondition();
             goto Lcondition;
@@ -7112,7 +7128,6 @@ LagainStc:
                     case TOK.wcharLiteral:
                     case TOK.dcharLiteral:
                     case TOK.string_:
-                    case TOK.hexadecimalString:
                     case TOK.file:
                     case TOK.fileFullPath:
                     case TOK.line:
@@ -7406,7 +7421,7 @@ LagainStc:
             case TOK.identifier:
                 if (t.ident == Id._body)
                 {
-                    // @@@DEPRECATED@@@
+                    // @@@DEPRECATED_2.117@@@
                     // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                     // Deprecated in 2.097 - Can be removed from 2.117
                     // The deprecation period is longer than usual as `body`
@@ -7993,7 +8008,6 @@ LagainStc:
             break;
 
         case TOK.string_:
-        case TOK.hexadecimalString:
             {
                 // cat adjacent strings
                 auto s = token.ustring;
@@ -8003,7 +8017,7 @@ LagainStc:
                 {
                     const prev = token;
                     nextToken();
-                    if (token.value == TOK.string_ || token.value == TOK.hexadecimalString)
+                    if (token.value == TOK.string_)
                     {
                         if (token.postfix)
                         {
@@ -8451,6 +8465,9 @@ LagainStc:
             break;
 
         case TOK.delete_:
+            // @@@DEPRECATED_2.109@@@
+            // Use of `delete` keyword has been an error since 2.099.
+            // Remove from the parser after 2.109.
             nextToken();
             e = parseUnaryExp();
             e = new AST.DeleteExp(loc, e, false);
@@ -9208,12 +9225,7 @@ LagainStc:
         const loc = token.loc;
 
         nextToken();
-        AST.Expressions* newargs = null;
         AST.Expressions* arguments = null;
-        if (token.value == TOK.leftParenthesis)
-        {
-            newargs = parseArguments();
-        }
 
         // An anonymous nested class starts with "class"
         if (token.value == TOK.class_)
@@ -9243,7 +9255,7 @@ LagainStc:
             }
 
             auto cd = new AST.ClassDeclaration(loc, id, baseclasses, members, false);
-            auto e = new AST.NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
+            auto e = new AST.NewAnonClassExp(loc, thisexp, cd, arguments);
             return e;
         }
 
@@ -9268,7 +9280,7 @@ LagainStc:
             arguments = parseArguments();
         }
 
-        auto e = new AST.NewExp(loc, thisexp, newargs, t, arguments);
+        auto e = new AST.NewExp(loc, thisexp, t, arguments);
         return e;
     }
 

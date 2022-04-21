@@ -10,4 +10,3 @@ int main()
 void fn(void)
 {
 }
-

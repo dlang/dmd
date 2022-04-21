@@ -1,6 +1,6 @@
 // https://issues.dlang.org/show_bug.cgi?id=22860
 class C1
-{   
+{
     SumType!(C1, C2) field;
 }
 

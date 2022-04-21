@@ -205,7 +205,7 @@ static if (0)
             assert(n == 0);
         }
     }
-    //printf("deh.dim = %d\n", (int)deh.dim);
+    //printf("deh.dim = %d\n", cast(int)deh.dim);
 
 static if (1)
 {
@@ -593,4 +593,3 @@ void unittest_dwarfeh()
     unittest_LEB128();
     unittest_actionTableInsert();
 }
-

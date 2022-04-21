@@ -1118,7 +1118,7 @@ static if (1)
                         1,      // DW_LNS_fixed_advance_pc
                         0,      // DW_LNS_set_prologue_end
                         0,      // DW_LNS_set_epilogue_begin
-                        0,      // DW_LNS_set_isa
+                        1,      // DW_LNS_set_isa
                     ];
                     static if (hversion >= 5)
                     {
@@ -1195,17 +1195,16 @@ static if (1)
             static immutable ubyte[21] abbrevHeader =
             [
                 1,                      // abbreviation code
-                DW_TAG_compile_unit,
-                1,
-                DW_AT_producer,  DW_FORM_string,
-                DW_AT_language,  DW_FORM_data1,
-                DW_AT_name,      DW_FORM_string,
-                DW_AT_comp_dir,  DW_FORM_string,
-                DW_AT_low_pc,    DW_FORM_addr,
-                DW_AT_entry_pc,  DW_FORM_addr,
-                DW_AT_ranges,    DW_FORM_data4,
-                DW_AT_stmt_list, DW_FORM_data4,
-                0,               0,
+                DW_TAG_compile_unit, DW_CHILDREN_yes,
+                DW_AT_producer,      DW_FORM_string,
+                DW_AT_language,      DW_FORM_data1,
+                DW_AT_name,          DW_FORM_string,
+                DW_AT_comp_dir,      DW_FORM_string,
+                DW_AT_low_pc,        DW_FORM_addr,
+                DW_AT_entry_pc,      DW_FORM_addr,
+                DW_AT_ranges,        DW_FORM_data4,
+                DW_AT_stmt_list,     DW_FORM_data4,
+                0,                   0,
             ];
 
             debug_abbrev.buf.write(abbrevHeader.ptr,abbrevHeader.sizeof);
@@ -1682,11 +1681,6 @@ static if (1)
 
         rewrite32(debug_line.buf, 0, cast(uint) debug_line.buf.length() - 4);
 
-        // Bugzilla 3502, workaround OSX's ld64-77 bug.
-        // Don't emit the the debug_line section if nothing has been written to the line table.
-        if (*cast(uint*) &debug_line.buf.buf[lineHeaderLengthOffset] + 10 == debug_line.buf.length())
-            debug_line.buf.reset();
-
         /* ================================================= */
 
         debug_abbrev.buf.writeByte(0);
@@ -1821,7 +1815,9 @@ static if (1)
         // See if there are any parameters
         int haveparameters = 0;
         uint formalcode = 0;
-        uint autocode = 0;
+        uint variablecode = 0;
+
+        DWARFAbbrev dwarfabbrev;
 
         for (SYMIDX si = 0; si < globsym.length; si++)
         {
@@ -1830,18 +1826,15 @@ static if (1)
             version (MARS)
                 if (sa.Sflags & SFLnodebug) continue;
 
-            __gshared ubyte[18] formal =
+            static immutable uint[14] formal_var_abbrev_suffix =
             [
-                DW_TAG_formal_parameter,
-                0,
-                DW_AT_name,        DW_FORM_string,
-                DW_AT_type,        DW_FORM_ref4,
-                DW_AT_artificial,  DW_FORM_flag,
+                DW_AT_name,       DW_FORM_string,
+                DW_AT_type,       DW_FORM_ref4,
+                DW_AT_artificial, DW_FORM_flag,
                 DW_AT_decl_file,   DW_FORM_data1,
                 DW_AT_decl_line,   DW_FORM_udata,
                 DW_AT_decl_column, DW_FORM_udata,
                 DW_AT_location,    DW_FORM_block1,
-                0,                0,
             ];
 
             switch (sa.Sclass)
@@ -1849,22 +1842,28 @@ static if (1)
                 case SCparameter:
                 case SCregpar:
                 case SCfastpar:
-                    dwarf_typidx(sa.Stype);
-                    formal[0] = DW_TAG_formal_parameter;
+                    // discard index
+                    cast(void)dwarf_typidx(sa.Stype);
                     if (!formalcode)
-                        formalcode = dwarf_abbrev_code(formal.ptr, formal.sizeof);
-                    haveparameters = 1;
+                    {
+                        dwarfabbrev.append(DW_TAG_formal_parameter, DW_CHILDREN_no);
+                        formalcode = dwarfabbrev.awrite!formal_var_abbrev_suffix;
+                    }
+                    haveparameters = DW_CHILDREN_yes;
                     break;
 
                 case SCauto:
                 case SCbprel:
                 case SCregister:
                 case SCpseudo:
-                    dwarf_typidx(sa.Stype);
-                    formal[0] = DW_TAG_variable;
-                    if (!autocode)
-                        autocode = dwarf_abbrev_code(formal.ptr, formal.sizeof);
-                    haveparameters = 1;
+                    // discard index
+                    cast(void)dwarf_typidx(sa.Stype);
+                    if (!variablecode)
+                    {
+                        dwarfabbrev.append(DW_TAG_variable, DW_CHILDREN_no);
+                        variablecode = dwarfabbrev.awrite!formal_var_abbrev_suffix;
+                    }
+                    haveparameters = DW_CHILDREN_yes;
                     break;
 
                 default:
@@ -1872,104 +1871,87 @@ static if (1)
             }
         }
 
-        OutBuffer abuf;
-        abuf.writeByte(DW_TAG_subprogram);
-        abuf.writeByte(haveparameters);          // have children?
-        if (haveparameters)
-        {
-            abuf.writeByte(DW_AT_sibling);  abuf.writeByte(DW_FORM_ref4);
-        }
-        abuf.writeByte(DW_AT_name);      abuf.writeByte(DW_FORM_string);
+        dwarfabbrev.append(DW_TAG_subprogram, haveparameters);
+        if (haveparameters == DW_CHILDREN_yes)
+            dwarfabbrev.append(DW_AT_sibling, DW_FORM_ref4);
 
-        if (config.dwarf >= 4)
-            abuf.writeuLEB128(DW_AT_linkage_name);
-        else
-            abuf.writeuLEB128(DW_AT_MIPS_linkage_name);
-        abuf.writeByte(DW_FORM_string);
+        dwarfabbrev.append(
+            config.dwarf >= 4
+                ? DW_AT_linkage_name
+                : DW_AT_MIPS_linkage_name,
+            DW_FORM_string
+        );
 
-        abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
-        abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_udata);
-        abuf.writeByte(DW_AT_decl_column); abuf.writeByte(DW_FORM_udata);
         if (ret_type)
-        {
-            abuf.writeByte(DW_AT_type);  abuf.writeByte(DW_FORM_ref4);
-        }
+            dwarfabbrev.append(DW_AT_type, DW_FORM_ref4);
+
         if (sfunc.Sclass == SCglobal)
-        {
-            abuf.writeByte(DW_AT_external);       abuf.writeByte(DW_FORM_flag);
-        }
-        if (sfunc.Sfunc.Fflags3 & Fpure)
-        {
-            abuf.writeByte(DW_AT_pure);
-            if (config.dwarf >= 4)
-                abuf.writeByte(DW_FORM_flag_present);
-            else
-                abuf.writeByte(DW_FORM_flag);
-        }
+            dwarfabbrev.append(DW_AT_external, DW_FORM_flag);
 
         if (sfunc.Sfunc.Fflags3 & Fmain)
         {
             if (config.dwarf >= 4)
             {
-                abuf.writeByte(DW_AT_main_subprogram);
-                abuf.writeByte(DW_FORM_flag_present);
+                dwarfabbrev.append(DW_AT_main_subprogram, DW_FORM_flag_present);
                 if (config.flags2 & CFG2genmain)
-                {
-                    abuf.writeByte(DW_AT_artificial);
-                    abuf.writeByte(DW_FORM_flag_present);
-                }
+                    dwarfabbrev.append(DW_AT_artificial, DW_FORM_flag_present);
             } else {
                 if (config.flags2 & CFG2genmain)
-                {
-                    abuf.writeByte(DW_AT_artificial);
-                    abuf.writeByte(DW_FORM_flag);
-                }
+                    dwarfabbrev.append(DW_AT_artificial, DW_FORM_flag);
             }
-
         }
         if (config.dwarf >= 5 && sfunc.Sflags & SFLexit)
-        {
-            abuf.writeuLEB128(DW_AT_noreturn);
-            abuf.writeByte(DW_FORM_flag_present);
-        }
+            dwarfabbrev.append(DW_AT_noreturn, DW_FORM_flag_present);
 
-        abuf.writeByte(DW_AT_low_pc);     abuf.writeByte(DW_FORM_addr);
-        abuf.writeByte(DW_AT_high_pc);    abuf.writeByte(DW_FORM_addr);
-        abuf.writeByte(DW_AT_frame_base); abuf.writeByte(DW_FORM_data4);
-        abuf.writeByte(0);                abuf.writeByte(0);
+        if (sfunc.Sfunc.Fflags3 & Fpure)
+            dwarfabbrev.append(
+                DW_AT_pure,
+                config.dwarf >= 4
+                    ? DW_FORM_flag_present
+                    : DW_FORM_flag
+            );
 
-        funcabbrevcode = dwarf_abbrev_code(abuf.buf, abuf.length());
+        funcabbrevcode = dwarfabbrev.awrite!([
+            DW_AT_name, DW_FORM_string,
+            DW_AT_decl_file, DW_FORM_data1,
+            DW_AT_decl_line, DW_FORM_udata,
+            DW_AT_decl_column, DW_FORM_udata,
+            DW_AT_low_pc, DW_FORM_addr,
+            DW_AT_high_pc, DW_FORM_addr,
+            DW_AT_frame_base, DW_FORM_data4,
+        ]);
 
         uint idxsibling = 0;
         uint siblingoffset;
 
         uint infobuf_offset = cast(uint)debug_info.buf.length();
-        debug_info.buf.writeuLEB128(funcabbrevcode);  // abbreviation code
-        if (haveparameters)
+        debug_info.buf.writeuLEB128(funcabbrevcode); // abbreviation code
+        if (haveparameters == DW_CHILDREN_yes)
         {
             siblingoffset = cast(uint)debug_info.buf.length();
-            debug_info.buf.write32(idxsibling);       // DW_AT_sibling
+            debug_info.buf.write32(idxsibling);                       // DW_AT_sibling
         }
 
         const(char)* name = getSymName(sfunc);
 
-        debug_info.buf.writeString(name);             // DW_AT_name
-        debug_info.buf.writeString(sfunc.Sident.ptr);    // DW_AT_MIPS_linkage_name
-        debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
-        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
-        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum);   // DW_AT_decl_column
+        debug_info.buf.writeString(sfunc.Sident.ptr);                 // DW_AT_MIPS_linkage_name
         if (ret_type)
-            debug_info.buf.write32(ret_type);         // DW_AT_type
+            debug_info.buf.write32(ret_type);                         // DW_AT_type
 
         if (sfunc.Sclass == SCglobal)
-            debug_info.buf.writeByte(1);              // DW_AT_external
+            debug_info.buf.writeByte(1);                              // DW_AT_external
 
-        if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
-            debug_info.buf.writeByte(true);           // DW_AT_pure
         if (config.dwarf < 4
             && sfunc.Sfunc.Fflags3 & Fmain
             && config.flags2 & CFG2genmain)
-            debug_info.buf.writeByte(true);           // DW_AT_artificial
+            debug_info.buf.writeByte(true);                           // DW_AT_artificial
+        if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
+            debug_info.buf.writeByte(true);                           // DW_AT_pure
+
+        debug_info.buf.writeString(name);                             // DW_AT_name
+        debug_info.buf.writeByte(filenum);                            // DW_AT_decl_file
+        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Slinnum);  // DW_AT_decl_line
+        debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum); // DW_AT_decl_column
 
         // DW_AT_low_pc and DW_AT_high_pc
         dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset);
@@ -2005,7 +1987,7 @@ static if (1)
                     case SCregister:
                     case SCpseudo:
                     case SCbprel:
-                        vcode = autocode;
+                        vcode = variablecode;
                     L1:
                     {
                         uint soffset;
@@ -2025,7 +2007,7 @@ static if (1)
                             // BUG: register pairs not supported in Dwarf?
                             debug_info.buf.writeByte(DW_OP_reg0 + sa.Sreglsw);
                         }
-                        else if (sa.Sscope && vcode == autocode)
+                        else if (sa.Sscope && vcode == variablecode)
                         {
                             assert(sa.Sscope.Stype.Tnext && sa.Sscope.Stype.Tnext.Tty == TYstruct);
 
@@ -2167,7 +2149,6 @@ static if (1)
         if (tyfunc(tym) && s.Sclass != SCtypedef)
             return;
 
-        OutBuffer abuf;
         uint code;
         uint typidx;
         uint soffset;
@@ -2176,14 +2157,13 @@ static if (1)
             case SCglobal:
                 typidx = dwarf_typidx(t);
 
-                abuf.writeByte(DW_TAG_variable);
-                abuf.writeByte(DW_CHILDREN_no);
-                abuf.writeByte(DW_AT_name);         abuf.writeByte(DW_FORM_string);
-                abuf.writeByte(DW_AT_type);         abuf.writeByte(DW_FORM_ref4);
-                abuf.writeByte(DW_AT_external);     abuf.writeByte(DW_FORM_flag);
-                abuf.writeByte(DW_AT_location);     abuf.writeByte(DW_FORM_block1);
-                abuf.writeByte(0);                  abuf.writeByte(0);
-                code = dwarf_abbrev_code(abuf.buf, abuf.length());
+                code = DWARFAbbrev.write!([
+                    DW_TAG_variable, DW_CHILDREN_no,
+                    DW_AT_name,      DW_FORM_string,
+                    DW_AT_type,      DW_FORM_ref4,
+                    DW_AT_external,  DW_FORM_flag,
+                    DW_AT_location,  DW_FORM_block1,
+                ]);
 
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
                 debug_info.buf.writeString(getSymName(s));// DW_AT_name
@@ -2269,82 +2249,62 @@ static if (1)
         type *tbase;
         const(char)* p;
 
-        static immutable ubyte[10] abbrevTypeBasic =
+        static immutable ubyte[8] abbrevTypeBasic =
         [
-            DW_TAG_base_type,       DW_CHILDREN_no,
-            DW_AT_name,             DW_FORM_string,
-            DW_AT_byte_size,        DW_FORM_data1,
-            DW_AT_encoding,         DW_FORM_data1,
-            0,                      0,
+            DW_TAG_base_type, DW_CHILDREN_no,
+            DW_AT_name,       DW_FORM_string,
+            DW_AT_byte_size,  DW_FORM_data1,
+            DW_AT_encoding,   DW_FORM_data1,
         ];
-        static immutable ubyte[10] abbrevWchar =
+        static immutable ubyte[4] abbrevTypePointer =
         [
-            DW_TAG_base_type,       DW_CHILDREN_no,
-            DW_AT_name,             DW_FORM_string,
-            DW_AT_byte_size,        DW_FORM_data1,
-            DW_AT_encoding,         DW_FORM_data1,
-            0,                      0,
+            DW_TAG_pointer_type, DW_CHILDREN_no,
+            DW_AT_type,          DW_FORM_ref4,
         ];
-        static immutable ubyte[6] abbrevTypePointer =
+        static immutable ubyte[2] abbrevTypePointerVoid =
         [
-            DW_TAG_pointer_type,    DW_CHILDREN_no,
-            DW_AT_type,             DW_FORM_ref4,
-            0,                      0,
+            DW_TAG_pointer_type, DW_CHILDREN_no,
         ];
-        static immutable ubyte[4] abbrevTypePointerVoid =
+        static immutable ubyte[4] abbrevTypeRef =
         [
-            DW_TAG_pointer_type,    DW_CHILDREN_no,
-            0,                      0,
+            DW_TAG_reference_type, DW_CHILDREN_no,
+            DW_AT_type,            DW_FORM_ref4,
         ];
-        static immutable ubyte[6] abbrevTypeRef =
+        static immutable ubyte[4] abbrevTypeConst =
         [
-            DW_TAG_reference_type,  DW_CHILDREN_no,
-            DW_AT_type,             DW_FORM_ref4,
-            0,                      0,
+            DW_TAG_const_type, DW_CHILDREN_no,
+            DW_AT_type,        DW_FORM_ref4,
         ];
-        static immutable ubyte[6] abbrevTypeConst =
+        static immutable ubyte[2] abbrevTypeConstVoid =
         [
-            DW_TAG_const_type,      DW_CHILDREN_no,
-            DW_AT_type,             DW_FORM_ref4,
-            0,                      0,
+            DW_TAG_const_type, DW_CHILDREN_no,
         ];
-        static immutable ubyte[4] abbrevTypeConstVoid =
+        static immutable ubyte[4] abbrevTypeVolatile =
         [
-            DW_TAG_const_type,      DW_CHILDREN_no,
-            0,                      0,
+            DW_TAG_volatile_type, DW_CHILDREN_no,
+            DW_AT_type,           DW_FORM_ref4,
         ];
-        static immutable ubyte[6] abbrevTypeVolatile =
+        static immutable ubyte[2] abbrevTypeVolatileVoid =
         [
-            DW_TAG_volatile_type,   DW_CHILDREN_no,
-            DW_AT_type,             DW_FORM_ref4,
-            0,                      0,
+            DW_TAG_volatile_type, DW_CHILDREN_no,
         ];
-        static immutable ubyte[4] abbrevTypeVolatileVoid =
+        static immutable ubyte[4] abbrevTypeShared =
         [
-            DW_TAG_volatile_type,   DW_CHILDREN_no,
-            0,                      0,
+            DW_TAG_shared_type, DW_CHILDREN_no,
+            DW_AT_type,         DW_FORM_ref4,
         ];
-        static immutable ubyte[6] abbrevTypeShared =
+        static immutable ubyte[2] abbrevTypeSharedVoid =
         [
-            DW_TAG_shared_type,     DW_CHILDREN_no,
-            DW_AT_type,             DW_FORM_ref4,
-            0,                      0,
+            DW_TAG_shared_type, DW_CHILDREN_no,
         ];
-        static immutable ubyte[4] abbrevTypeSharedVoid =
+        static immutable ubyte[4] abbrevTypeImmutable =
         [
-            DW_TAG_shared_type,     DW_CHILDREN_no,
-            0,                      0,
+            DW_TAG_immutable_type, DW_CHILDREN_no,
+            DW_AT_type,            DW_FORM_ref4,
         ];
-        static immutable ubyte[6] abbrevTypeImmutable =
+        static immutable ubyte[2] abbrevTypeImmutableVoid =
         [
-            DW_TAG_immutable_type,  DW_CHILDREN_no,
-            DW_AT_type,             DW_FORM_ref4,
-            0,                      0,
-        ];
-        static immutable ubyte[4] abbrevTypeImmutableVoid =
-        [
-            DW_TAG_immutable_type,  DW_CHILDREN_no,
-            0,                      0,
+            DW_TAG_immutable_type, DW_CHILDREN_no,
         ];
 
         if (!t)
@@ -2372,26 +2332,26 @@ static if (1)
                 if (mty == mTYconst)
                 {
                     code = nextidx
-                        ? dwarf_abbrev_code(abbrevTypeConst)
-                        : dwarf_abbrev_code(abbrevTypeConstVoid);
+                        ? DWARFAbbrev.write!(abbrevTypeConst)
+                        : DWARFAbbrev.write!(abbrevTypeConstVoid);
                 }
                 else if (mty == mTYvolatile)
                 {
                     code = nextidx
-                        ? dwarf_abbrev_code(abbrevTypeVolatile)
-                        : dwarf_abbrev_code(abbrevTypeVolatileVoid);
+                        ? DWARFAbbrev.write!(abbrevTypeVolatile)
+                        : DWARFAbbrev.write!(abbrevTypeVolatileVoid);
                 }
                 else if (mty == mTYshared)
                 {
                     code = nextidx
-                        ? dwarf_abbrev_code(abbrevTypeShared)
-                        : dwarf_abbrev_code(abbrevTypeSharedVoid);
+                        ? DWARFAbbrev.write!(abbrevTypeShared)
+                        : DWARFAbbrev.write!(abbrevTypeSharedVoid);
                 }
                 else if (mty == mTYimmutable && config.dwarf >= 5)
                 {
                     code = nextidx
-                        ? dwarf_abbrev_code(abbrevTypeImmutable)
-                        : dwarf_abbrev_code(abbrevTypeImmutableVoid);
+                        ? DWARFAbbrev.write!(abbrevTypeImmutable)
+                        : DWARFAbbrev.write!(abbrevTypeImmutableVoid);
                 }
                 else
                     continue;
@@ -2416,21 +2376,19 @@ static if (1)
         ubyte ate;
         ate = tyuns(t.Tty) ? DW_ATE_unsigned : DW_ATE_signed;
 
-        static immutable ubyte[8] abbrevTypeStruct =
+        static immutable ubyte[6] abbrevTypeStruct =
         [
-            DW_TAG_structure_type,  DW_CHILDREN_yes,
-            DW_AT_name,             DW_FORM_string,
-            DW_AT_byte_size,        DW_FORM_data1,
-            0,                      0,
+            DW_TAG_structure_type, DW_CHILDREN_yes,
+            DW_AT_name,            DW_FORM_string,
+            DW_AT_byte_size,       DW_FORM_data1,
         ];
 
-        static immutable ubyte[10] abbrevTypeMember =
+        static immutable ubyte[8] abbrevTypeMember =
         [
-            DW_TAG_member,          DW_CHILDREN_no,
-            DW_AT_name,             DW_FORM_string,
-            DW_AT_type,             DW_FORM_ref4,
+            DW_TAG_member,              DW_CHILDREN_no,
+            DW_AT_name,                 DW_FORM_string,
+            DW_AT_type,                 DW_FORM_ref4,
             DW_AT_data_member_location, DW_FORM_block1,
-            0,                      0,
         ];
 
         switch (ty)
@@ -2438,8 +2396,8 @@ static if (1)
             Lnptr:
                 nextidx = dwarf_typidx(t.Tnext);
                 code = nextidx
-                    ? dwarf_abbrev_code(abbrevTypePointer.ptr, (abbrevTypePointer).sizeof)
-                    : dwarf_abbrev_code(abbrevTypePointerVoid.ptr, (abbrevTypePointerVoid).sizeof);
+                    ? DWARFAbbrev.write!(abbrevTypePointer)
+                    : DWARFAbbrev.write!(abbrevTypePointerVoid);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
                 if (nextidx)
@@ -2470,7 +2428,7 @@ static if (1)
                         type_free(tdata);
                     }
 
-                    code = dwarf_abbrev_code(abbrevTypeStruct.ptr, (abbrevTypeStruct).sizeof);
+                    code = DWARFAbbrev.write!(abbrevTypeStruct);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);        // abbreviation code
 
@@ -2482,7 +2440,7 @@ static if (1)
                     debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
                     // length
-                    code = dwarf_abbrev_code(abbrevTypeMember.ptr, (abbrevTypeMember).sizeof);
+                    code = DWARFAbbrev.write!(abbrevTypeMember);
                     debug_info.buf.writeuLEB128(code);        // abbreviation code
                     debug_info.buf.writeString("length");     // DW_AT_name
                     debug_info.buf.write32(lenidx);           // DW_AT_type
@@ -2523,14 +2481,14 @@ static if (1)
                     type_free(tp);
                 }
 
-                code = dwarf_abbrev_code(abbrevTypeStruct.ptr, (abbrevTypeStruct).sizeof);
+                code = DWARFAbbrev.write!(abbrevTypeStruct);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);       // abbreviation code
                 debug_info.buf.writeString(t.Tident);    // DW_AT_name
                 debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
                 // ptr
-                code = dwarf_abbrev_code(abbrevTypeMember.ptr, (abbrevTypeMember).sizeof);
+                code = DWARFAbbrev.write!(abbrevTypeMember);
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
                 debug_info.buf.writeString("ptr");        // DW_AT_name
                 debug_info.buf.write32(pvoididx);         // DW_AT_type
@@ -2555,7 +2513,7 @@ static if (1)
             case TYref:
                 nextidx = dwarf_typidx(t.Tnext);
                 assert(nextidx);
-                code = dwarf_abbrev_code(abbrevTypeRef.ptr, (abbrevTypeRef).sizeof);
+                code = DWARFAbbrev.write!(abbrevTypeRef);
                 idx = cast(uint)cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
                 debug_info.buf.write32(nextidx);          // DW_AT_type
@@ -2574,14 +2532,14 @@ static if (1)
                     pvoididx = dwarf_typidx(tp);    // void*
                 }
 
-                code = dwarf_abbrev_code(abbrevTypeStruct.ptr, (abbrevTypeStruct).sizeof);
+                code = DWARFAbbrev.write!(abbrevTypeStruct);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
                 debug_info.buf.writeString(t.Tident);      // DW_AT_name
                 debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
                 // ptr
-                code = dwarf_abbrev_code(abbrevTypeMember.ptr, (abbrevTypeMember).sizeof);
+                code = DWARFAbbrev.write!(abbrevTypeMember);
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
                 debug_info.buf.writeString("ptr");        // DW_AT_name
                 debug_info.buf.write32(pvoididx);         // DW_AT_type
@@ -2640,7 +2598,7 @@ static if (1)
             Lsignedstr:
                 p = tystring[ty];
             Lsigned:
-                code = dwarf_abbrev_code(abbrevTypeBasic.ptr, (abbrevTypeBasic).sizeof);
+                code = DWARFAbbrev.write!(abbrevTypeBasic);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
                 debug_info.buf.writeString(p);            // DW_AT_name
@@ -2714,17 +2672,6 @@ static if (1)
                 abuf.writeByte(0);
                 code = dwarf_abbrev_code(abuf.buf, abuf.length());
 
-                uint paramcode;
-                if (params)
-                {
-                    abuf.reset();
-                    abuf.writeByte(DW_TAG_formal_parameter);
-                    abuf.writeByte(0);
-                    abuf.writeByte(DW_AT_type);     abuf.writeByte(DW_FORM_ref4);
-                    abuf.writeByte(0);              abuf.writeByte(0);
-                    paramcode = dwarf_abbrev_code(abuf.buf, abuf.length());
-                }
-
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);
                 debug_info.buf.writeByte(1);            // DW_AT_prototyped
@@ -2733,6 +2680,11 @@ static if (1)
 
                 if (params)
                 {
+                    uint paramcode = DWARFAbbrev.write!([
+                            DW_TAG_formal_parameter, DW_CHILDREN_no,
+                            DW_AT_type,              DW_FORM_ref4
+                    ]);
+
                     uint *pparamidx = cast(uint *)(functypebuf.buf + functypebufidx);
                     //printf("2: functypebufidx = %x, pparamidx = %p, size = %x\n", functypebufidx, pparamidx, functypebuf.length());
                     for (param_t *p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
@@ -2753,37 +2705,33 @@ static if (1)
 
             case TYarray:
             {
-                static immutable ubyte[6] abbrevTypeArray =
+                static immutable ubyte[4] abbrevTypeArray =
                 [
-                    DW_TAG_array_type,      DW_CHILDREN_yes,    // child (the subrange type)
-                    DW_AT_type,             DW_FORM_ref4,
-                    0,                      0,
+                    DW_TAG_array_type, DW_CHILDREN_yes, // child (the subrange type)
+                    DW_AT_type,        DW_FORM_ref4,
                 ];
-                static immutable ubyte[4] abbrevTypeArrayVoid =
+                static immutable ubyte[2] abbrevTypeArrayVoid =
                 [
-                    DW_TAG_array_type,      DW_CHILDREN_yes,    // child (the subrange type)
-                    0,                      0,
+                    DW_TAG_array_type, DW_CHILDREN_yes, // child (the subrange type)
                 ];
-                static immutable ubyte[8] abbrevTypeSubrange =
+                static immutable ubyte[6] abbrevTypeSubrange =
                 [
-                    DW_TAG_subrange_type,   DW_CHILDREN_no,
-                    DW_AT_type,             DW_FORM_ref4,
-                    DW_AT_upper_bound,      DW_FORM_data4,
-                    0,                      0,
+                    DW_TAG_subrange_type, DW_CHILDREN_no,
+                    DW_AT_type,           DW_FORM_ref4,
+                    DW_AT_upper_bound,    DW_FORM_data4,
                 ];
-                static immutable ubyte[6] abbrevTypeSubrange2 =
+                static immutable ubyte[4] abbrevTypeSubrange2 =
                 [
-                    DW_TAG_subrange_type,   DW_CHILDREN_no,
-                    DW_AT_type,             DW_FORM_ref4,
-                    0,                      0,
+                    DW_TAG_subrange_type, DW_CHILDREN_no,
+                    DW_AT_type,           DW_FORM_ref4,
                 ];
                 uint code2 = (t.Tflags & TFsizeunknown)
-                    ? dwarf_abbrev_code(abbrevTypeSubrange2.ptr, (abbrevTypeSubrange2).sizeof)
-                    : dwarf_abbrev_code(abbrevTypeSubrange.ptr, (abbrevTypeSubrange).sizeof);
+                    ? DWARFAbbrev.write!(abbrevTypeSubrange2)
+                    : DWARFAbbrev.write!(abbrevTypeSubrange);
                 uint idxbase = dwarf_typidx(tssize);
                 nextidx = dwarf_typidx(t.Tnext);
-                uint code1 = nextidx ? dwarf_abbrev_code(abbrevTypeArray.ptr, (abbrevTypeArray).sizeof)
-                                     : dwarf_abbrev_code(abbrevTypeArrayVoid.ptr, (abbrevTypeArrayVoid).sizeof);
+                uint code1 = nextidx ? DWARFAbbrev.write!(abbrevTypeArray)
+                                     : DWARFAbbrev.write!(abbrevTypeArrayVoid);
                 idx = cast(uint)debug_info.buf.length();
 
                 debug_info.buf.writeuLEB128(code1);       // DW_TAG_array_type
@@ -2832,22 +2780,11 @@ static if (1)
             case TYullong2:  tbase = tstypes[TYullong]; goto Lvector;
             Lvector:
             {
-                static immutable ubyte[9] abbrevTypeArray2 =
-                [
-                    DW_TAG_array_type,      DW_CHILDREN_yes,    // child (the subrange type)
-                    (DW_AT_GNU_vector & 0x7F) | 0x80, DW_AT_GNU_vector >> 7,
-                    DW_FORM_flag,
-                    DW_AT_type,             DW_FORM_ref4,
-                    0,                      0,
-                ];
-                static immutable ubyte[6] abbrevSubRange =
-                [
-                    DW_TAG_subrange_type,   DW_CHILDREN_no,
-                    DW_AT_upper_bound,      DW_FORM_data1,  // length of vector
-                    0,                      0,
-                ];
-
-                uint code2 = dwarf_abbrev_code(abbrevTypeArray2.ptr, (abbrevTypeArray2).sizeof);
+                uint code2 = DWARFAbbrev.write!([
+                    DW_TAG_array_type, DW_CHILDREN_yes, // child (the subrange type)
+                    DW_AT_GNU_vector,  DW_FORM_flag,
+                    DW_AT_type,        DW_FORM_ref4,
+                ]);
                 uint idxbase = dwarf_typidx(tbase);
 
                 idx = cast(uint)debug_info.buf.length();
@@ -2857,7 +2794,10 @@ static if (1)
                 debug_info.buf.write32(idxbase);          // DW_AT_type
 
                 // vector length stored as subrange type
-                code2 = dwarf_abbrev_code(abbrevSubRange.ptr, (abbrevSubRange).sizeof);
+                code2 = DWARFAbbrev.write!([
+                    DW_TAG_subrange_type, DW_CHILDREN_no,
+                    DW_AT_upper_bound,    DW_FORM_data1, // length of vector
+                ]);
                 debug_info.buf.writeuLEB128(code2);       // DW_TAG_subrange_type
                 ubyte dim = cast(ubyte)(tysize(t.Tty) / tysize(tbase.Tty));
                 debug_info.buf.writeByte(dim - 1);        // DW_AT_upper_bound
@@ -2868,7 +2808,7 @@ static if (1)
 
             case TYwchar_t:
             {
-                uint code3 = dwarf_abbrev_code(abbrevWchar.ptr, (abbrevWchar).sizeof);
+                uint code3 = DWARFAbbrev.write!(abbrevTypeBasic);
                 idx = cast(uint)debug_info.buf.length();
 
                 debug_info.buf.writeuLEB128(code3);       // abbreviation code
@@ -2968,34 +2908,20 @@ static if (1)
 
                     code = dwarf_abbrev_code(abuf.buf, abuf.length());
 
-                    uint membercode;
-                    abuf.reset();
-                    abuf.writeByte(DW_TAG_member);
-                    abuf.writeByte(DW_CHILDREN_no);
-                    abuf.writeByte(DW_AT_name);
-                    abuf.writeByte(DW_FORM_string);
-                    abuf.writeByte(DW_AT_type);
-                    abuf.writeByte(DW_FORM_ref4);
-                    abuf.writeByte(DW_AT_data_member_location);
-                    abuf.writeByte(DW_FORM_block1);
-                    abuf.writeByte(0);
-                    abuf.writeByte(0);
-                    membercode = dwarf_abbrev_code(abuf.buf, abuf.length());
+                    uint membercode = DWARFAbbrev.write!([
+                        DW_TAG_member,              DW_CHILDREN_no,
+                        DW_AT_name,                 DW_FORM_string,
+                        DW_AT_type,                 DW_FORM_ref4,
+                        DW_AT_data_member_location, DW_FORM_block1
+                    ]);
 
                     uint baseclasscode;
                     if (st.Sbase)
-                    {
-                        abuf.reset();
-                        abuf.writeByte(DW_TAG_inheritance);
-                        abuf.writeByte(DW_CHILDREN_no);
-                        abuf.writeByte(DW_AT_type);
-                        abuf.writeByte(DW_FORM_ref4);
-                        abuf.writeByte(DW_AT_data_member_location);
-                        abuf.writeByte(DW_FORM_block1);
-                        abuf.writeByte(0);
-                        abuf.writeByte(0);
-                        baseclasscode = dwarf_abbrev_code(abuf.buf, abuf.length());
-                    }
+                        baseclasscode = DWARFAbbrev.write!([
+                            DW_TAG_inheritance,         DW_CHILDREN_no,
+                            DW_AT_type,                 DW_FORM_ref4,
+                            DW_AT_data_member_location, DW_FORM_block1
+                        ]);
 
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
@@ -3057,21 +2983,6 @@ static if (1)
 
             case TYenum:
             {
-                static immutable ubyte[8] abbrevTypeEnum =
-                [
-                    DW_TAG_enumeration_type,DW_CHILDREN_yes,    // child (the subrange type)
-                    DW_AT_name,             DW_FORM_string,
-                    DW_AT_byte_size,        DW_FORM_data1,
-                    0,                      0,
-                ];
-                static immutable ubyte[8] abbrevTypeEnumMember =
-                [
-                    DW_TAG_enumerator,      DW_CHILDREN_no,
-                    DW_AT_name,             DW_FORM_string,
-                    DW_AT_const_value,      DW_FORM_data1,
-                    0,                      0,
-                ];
-
                 Symbol *s = t.Ttag;
                 enum_t *se = s.Senum;
                 type *tbase2 = s.Stype.Tnext;
@@ -3083,14 +2994,11 @@ static if (1)
 
                 if (se.SEflags & SENforward)
                 {
-                    static immutable ubyte[8] abbrevTypeEnumForward =
-                    [
-                        DW_TAG_enumeration_type,    DW_CHILDREN_no,
-                        DW_AT_name,                 DW_FORM_string,
-                        DW_AT_declaration,          DW_FORM_flag,
-                        0,                          0,
-                    ];
-                    code = dwarf_abbrev_code(abbrevTypeEnumForward.ptr, abbrevTypeEnumForward.sizeof);
+                    code = DWARFAbbrev.write!([
+                        DW_TAG_enumeration_type, DW_CHILDREN_no,
+                        DW_AT_name,              DW_FORM_string,
+                        DW_AT_declaration,       DW_FORM_flag,
+                    ]);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
                     debug_info.buf.writeString(getSymName(s));    // DW_AT_name
@@ -3098,12 +3006,14 @@ static if (1)
                     break;                  // don't set Stypidx
                 }
 
-                OutBuffer abuf;             // for abbrev
-                abuf.write(abbrevTypeEnum.ptr, abbrevTypeEnum.sizeof);
-                code = dwarf_abbrev_code(abuf.buf, abuf.length());
+                code = DWARFAbbrev.write!([
+                    DW_TAG_enumeration_type, DW_CHILDREN_yes, // child (the subrange type)
+                    DW_AT_name,              DW_FORM_string,
+                    DW_AT_byte_size,         DW_FORM_data1,
+                ]);
 
                 uint membercode;
-                abuf.reset();
+                OutBuffer abuf;
                 abuf.writeByte(DW_TAG_enumerator);
                 abuf.writeByte(DW_CHILDREN_no);
                 abuf.writeByte(DW_AT_name);
@@ -3186,9 +3096,86 @@ static if (1)
 
     /* ======================= Abbreviation Codes ====================== */
 
-    extern(D) uint dwarf_abbrev_code(const(ubyte)[] data)
+    extern(D) private struct DWARFAbbrev
     {
-        return dwarf_abbrev_code(data.ptr, data.length);
+        nothrow:
+
+        void append(const uint idx, const uint form) pure
+        {
+            abuf.writeuLEB128(idx);
+            abuf.writeuLEB128(form);
+        }
+
+        void append(const(uint)[] A)() pure
+        {
+            static immutable abbrev = toLEB128!A;
+            abuf.write(abbrev.ptr, abbrev.length);
+        }
+
+        uint awrite(const uint idx, const uint form)
+        {
+            append(idx, form);
+            return write();
+        }
+
+        uint awrite(const(uint)[] A)()
+        {
+            append!A;
+            return write();
+        }
+
+        uint write()
+        {
+            append(0, 0);
+            uint ret = dwarf_abbrev_code(abuf.buf, abuf.length());
+            abuf.reset();
+
+            return ret;
+        }
+
+        static uint write(const(uint)[] A)()
+        {
+            static immutable abbrev = toLEB128!(A ~ [0u, 0u]);
+            return dwarf_abbrev_code(abbrev.ptr, abbrev.length);
+        }
+
+        private static auto toLEB128(const(uint)[] abbrev)() pure @safe
+        {
+            size_t getLEB128Length(const(uint)[] arr)
+            {
+                size_t len;
+                foreach(uint e; arr)
+                    do ++len;
+                    while (e >>= 7);
+                return len;
+            }
+            ubyte[getLEB128Length(abbrev)] ret;
+            size_t offset;
+
+            foreach(uint e; abbrev)
+                do
+                {
+                    ubyte b = e & 0x7F;
+
+                    e >>= 7;
+                    if (e)
+                        b |= 0x80;
+                    ret[offset] = b;
+                    ++offset;
+                } while (e);
+
+            return ret;
+        }
+
+        unittest
+        {
+            assert(toLEB128!([0x00, 0x40, 0x81]) == [0x00, 0x40, 0x81, 0x01]);
+            assert(toLEB128!([0x00, 0x40, 0xFFFF]) == [0x00, 0x40, 0xFF, 0xFF, 0x03]);
+            assert(toLEB128!([0x00, 0x40, 0x79]) == [0x00, 0x40, 0x79]);
+        }
+
+        private:
+        OutBuffer abuf;
     }
 
     uint dwarf_abbrev_code(const(ubyte)* data, size_t nbytes)
@@ -3199,11 +3186,9 @@ static if (1)
              */
             abbrev_table = AApair.create(debug_abbrev.buf.bufptr);
 
-        /* Write new entry into debug_abbrev.buf
-         */
-
+        // Write new entry into debug_abbrev.buf
         uint idx = cast(uint)debug_abbrev.buf.length();
-        abbrevcode++;
+        ++abbrevcode;
         debug_abbrev.buf.writeuLEB128(abbrevcode);
         size_t start = debug_abbrev.buf.length();
         debug_abbrev.buf.write(data, cast(uint)nbytes);
@@ -3214,14 +3199,16 @@ static if (1)
          */
 
         uint *pcode = abbrev_table.get(cast(uint)start, cast(uint)end);
-        if (!*pcode)                // if no code assigned yet
+        if (!*pcode)
         {
-            *pcode = abbrevcode;    // assign newly computed code
+            // if no code assigned yet, assign newly computed code
+            *pcode = abbrevcode;
         }
         else
-        {   // Reuse existing code
-            debug_abbrev.buf.setsize(idx);        // discard current
-            abbrevcode--;
+        {
+            // Reuse existing code and discard newly added abbreviation
+            debug_abbrev.buf.setsize(idx);
+            --abbrevcode;
         }
         return *pcode;
     }

@@ -1013,7 +1013,7 @@ else
         ln.reset();
 
     L1:
-        //printf("offset = x%x, line = %d\n", (int)offset, linnum);
+        //printf("offset = x%x, line = %d\n", cast(int)offset, linnum);
         ln.data.write16(linnum);
         if (_tysize[TYint] == 2)
             ln.data.write16(cast(int)offset);
@@ -1261,16 +1261,15 @@ void OmfObj_dosseg()
 @trusted
 private void obj_comment(ubyte x, const(char)* string, size_t len)
 {
+    import dmd.common.string : SmallBuffer;
     char[128] buf = void;
+    auto sb = SmallBuffer!char(2 + len, buf[]);
+    char *library = sb.ptr;
 
-    char *library = (2 + len <= buf.sizeof) ? buf.ptr : cast(char *) malloc(2 + len);
-    assert(library);
     library[0] = 0;
     library[1] = x;
     memcpy(library + 2,string,len);
     objrecord(COMENT,library,cast(uint)(len + 2));
-    if (library != buf.ptr)
-        free(library);
 }
 
 /*******************************

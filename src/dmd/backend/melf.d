@@ -459,5 +459,3 @@ struct Elf64_Rela
 enum GRP_COMDAT   = 1;
 enum GRP_MASKOS   = 0x0ff0_0000;
 enum GRP_MASKPROC = 0xf000_0000;
-
-

@@ -464,7 +464,7 @@ public:
             if (ids.fd && e.var == ids.fd.vthis)
             {
                 result = new VarExp(e.loc, ids.vthis);
-                if (ids.fd.isThis2)
+                if (ids.fd.hasDualContext())
                     result = new AddrExp(e.loc, result);
                 result.type = e.type;
                 return;
@@ -497,7 +497,7 @@ public:
                 assert(fdv);
                 result = new VarExp(e.loc, ids.vthis);
                 result.type = ids.vthis.type;
-                if (ids.fd.isThis2)
+                if (ids.fd.hasDualContext())
                 {
                     // &__this
                     result = new AddrExp(e.loc, result);
@@ -507,7 +507,7 @@ public:
                 {
                     auto f = s.isFuncDeclaration();
                     AggregateDeclaration ad;
-                    if (f && f.isThis2)
+                    if (f && f.hasDualContext())
                     {
                         if (f.hasNestedFrameRefs())
                         {
@@ -589,7 +589,7 @@ public:
                 return;
             }
             result = new VarExp(e.loc, ids.vthis);
-            if (ids.fd.isThis2)
+            if (ids.fd.hasDualContext())
             {
                 // __this[0]
                 result.type = ids.vthis.type;
@@ -609,7 +609,7 @@ public:
         {
             assert(ids.vthis);
             result = new VarExp(e.loc, ids.vthis);
-            if (ids.fd.isThis2)
+            if (ids.fd.hasDualContext())
             {
                 // __this[0]
                 result.type = ids.vthis.type;
@@ -722,28 +722,10 @@ public:
             auto ne = e.copy().isNewExp();
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
             ne.argprefix = doInlineAs!Expression(e.argprefix, ids);
-            ne.newargs = arrayExpressionDoInline(e.newargs);
             ne.arguments = arrayExpressionDoInline(e.arguments);
             result = ne;
 
             semanticTypeInfo(null, e.type);
-        }
-
-        override void visit(DeleteExp e)
-        {
-            visit(cast(UnaExp)e);
-
-            Type tb = e.e1.type.toBasetype();
-            if (tb.ty == Tarray)
-            {
-                Type tv = tb.nextOf().baseElemOf();
-                if (auto ts = tv.isTypeStruct())
-                {
-                    auto sd = ts.sym;
-                    if (sd.dtor)
-                        semanticTypeInfo(null, ts);
-                }
-            }
         }
 
         override void visit(UnaExp e)
@@ -1270,7 +1252,7 @@ public:
         if (e.op == EXP.construct && e.e2.op == EXP.call)
         {
             auto ce = e.e2.isCallExp();
-            if (ce.f && ce.f.nrvo_can && ce.f.nrvo_var) // NRVO
+            if (ce.f && ce.f.isNRVO() && ce.f.nrvo_var) // NRVO
             {
                 if (auto ve = e.e1.isVarExp())
                 {
@@ -1555,7 +1537,7 @@ public:
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests ||
             fd.flags & FUNCFLAG.inlineScanned)
             return;
-        if (fd.fbody && !fd.naked)
+        if (fd.fbody && !fd.isNaked())
         {
             auto againsave = again;
             auto parentsave = parent;
@@ -1959,7 +1941,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     {
         Expression e0;
         ethis = Expression.extractLast(ethis, e0);
-        assert(vthis2 || !fd.isThis2);
+        assert(vthis2 || !fd.hasDualContext());
         if (vthis2)
         {
             // void*[2] __this = [ethis, this]
@@ -2335,7 +2317,7 @@ private bool expNeedsDtor(Expression exp)
                 s = s.toAlias();
                 if (s != vd)
                     return Dsymbol_needsDtor(s);
-                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared | STC.manifest))
+                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.gshared | STC.manifest))
                     return;
                 if (vd.needsScopeDtor())
                 {

@@ -3477,7 +3477,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
         if (numpara > cgstate.funcarg.size)
         {   // New high water mark
-            //printf("increasing size from %d to %d\n", (int)cgstate.funcarg.size, (int)numpara);
+            //printf("increasing size from %d to %d\n", cast(int)cgstate.funcarg.size, cast(int)numpara);
             cgstate.funcarg.size = numpara;
         }
         usefuncarg = true;
@@ -3776,7 +3776,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         keepmsk |= mAX;
     }
 
-    //printf("funcargtos2 = %d\n", (int)funcargtos);
+    //printf("funcargtos2 = %d\n", cast(int)funcargtos);
     assert(!usefuncarg || (funcargtos == 0 && cgstate.funcargtos == 0));
     cgstate.stackclean--;
 
@@ -4256,7 +4256,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     targ_size_t sz = _align(stackalign, szb);       // size after alignment
     assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
     assert((sz & (REGSIZE - 1)) == 0);
-    //printf("szb = %d sz = %d\n", (int)szb, (int)sz);
+    //printf("szb = %d sz = %d\n", cast(int)szb, cast(int)sz);
 
     code cs;
     cs.Iflags = 0;

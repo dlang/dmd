@@ -37,6 +37,7 @@ __gshared TaskPool taskPool;
 /// Array of build rules through which all other build rules can be reached
 immutable rootRules = [
     &dmdDefault,
+    &dmdPGO,
     &autoTesterBuild,
     &runDmdUnittest,
     &clean,
@@ -96,6 +97,7 @@ Examples
     ./build.d unittest      # runs internal unittests
     ./build.d clean         # remove all generated files
     ./build.d generated/linux/release/64/dmd.conf
+    ./build.d dmd-pgo       # builds dmd with PGO data, currently only LDC is supported
 
 Important variables:
 --------------------
@@ -163,7 +165,6 @@ Command-line parameters
     if (!flags["DFLAGS"].canFind("-color=off") &&
         [env["HOST_DMD_RUN"], "-color=on", "-h"].tryRun().status == 0)
         flags["DFLAGS"] ~= "-color=on";
-
     // default target
     if (!args.length)
         args = ["dmd"];
@@ -475,17 +476,145 @@ alias dmdDefault = makeRule!((builder, rule) => builder
     .description("Build dmd")
     .deps([dmdExe(null, null, null), dmdConf])
 );
+struct PGOState
+{
+    //Does the host compiler actually support PGO, if not print a message
+    static bool checkPGO(string x)
+    {
+        switch (env["HOST_DMD_KIND"])
+        {
+            case "dmd":
+                abortBuild(`DMD does not support PGO!`);
+                break;
+            case "ldc":
+                return true;
+                break;
+            case "gdc":
+                abortBuild(`PGO (or AutoFDO) builds are not yet supported for gdc`);
+                break;
+            default:
+                assert(false, "Unknown host compiler kind: " ~ env["HOST_DMD_KIND"]);
+        }
+        assert(0);
+    }
+    this(string set)
+    {
+        hostKind = set;
+        profDirPath = buildPath(env["G"], "dmd_profdata");
+        mkdirRecurse(profDirPath);
+    }
+    string profDirPath;
+    string hostKind;
+    string[] pgoGenerateFlags() const
+    {
+        switch(hostKind)
+        {
+            case "ldc":
+                return ["-fprofile-instr-generate=" ~ pgoDataPath ~ "/data.%p.raw"];
+            default:
+                return [""];
+        }
+    }
+    string[] pgoUseFlags() const
+    {
+        switch(hostKind)
+        {
+            case "ldc":
+                return ["-fprofile-instr-use=" ~ buildPath(pgoDataPath(), "merged.data")];
+            default:
+                return [""];
+        }
+    }
+    string pgoDataPath() const
+    {
+        return profDirPath;
+    }
+}
+ // Compiles the test runner
+alias testRunner = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
+    .msg("(DC) RUN.D")
+    .sources([ testDir.buildPath( "run.d") ])
+    .target(env["GENERATED"].buildPath("run".exeName))
+    .command([ env["HOST_DMD_RUN"], "-of=" ~ rundRule.target, "-i", "-I" ~ testDir] ~ rundRule.sources));
+
+
+alias dmdPGO = makeRule!((builder, rule) {
+    const dmdKind = env["HOST_DMD_KIND"];
+    PGOState pgoState = PGOState(dmdKind);
+
+    alias buildInstrumentedDmd = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
+        .msg("Built dmd with PGO instrumentation")
+        .deps([dmdExe(null, pgoState.pgoGenerateFlags(), pgoState.pgoGenerateFlags()), dmdConf]));
+
+    alias genDmdData = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
+        .msg("Compiling dmd testsuite to generate PGO data")
+        .sources([ testDir.buildPath( "run.d") ])
+        .deps([buildInstrumentedDmd, testRunner])
+        .commandFunction({
+            // Run dmd test suite to get data
+            const scope cmd = [ testRunner.targets[0], "compilable", "-j" ~ jobs.to!string ];
+            log("%-(%s %)", cmd);
+            if (spawnProcess(cmd, null, Config.init, testDir).wait())
+                stderr.writeln("dmd tests failed! This will not end the PGO build because some data may have been gathered");
+        }));
+    alias genPhobosData = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
+        .msg("Compiling phobos testsuite to generate PGO data")
+        .deps([buildInstrumentedDmd])
+        .commandFunction({
+            // Run phobos unittests
+            //TODO makefiles
+            //generated/linux/release/64/unittest/test_runner builds the unittests without running them.
+            const scope cmd = ["make", "-C", "../phobos", "-j" ~ jobs.to!string, "-fposix.mak", "generated/linux/release/64/unittest/test_runner", "DMD_DIR="~dmdRepo];
+            log("%-(%s %)", cmd);
+            if (spawnProcess(cmd, null, Config.init, dmdRepo).wait())
+                stderr.writeln("Phobos Tests failed! This will not end the PGO build because some data may have been gathered");
+        }));
+    alias finalDataMerge = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
+        .msg("Merging PGO data")
+        .deps([genDmdData])
+        .commandFunction({
+            // Run dmd test suite to get data
+            scope cmd = ["ldc-profdata", "merge", "--output=merged.data"];
+            import std.file : dirEntries;
+            auto files = dirEntries(pgoState.pgoDataPath, "*.raw", SpanMode.shallow).map!(f => f.name);
+
+            // Use a separate file to work around the windows command limit
+            version (Windows)
+            {{
+                const listFile = buildPath(env["G"], "pgo_file_list.txt");
+                File list = File(listFile, "w");
+                foreach (file; files)
+                    list.writeln(file);
+                cmd ~= [ "--input-files=" ~ listFile ];
+            }}
+            else
+                cmd = chain(cmd, files).array;
+            log("%-(%s %)", cmd);
+            if (spawnProcess(cmd, null, Config.init, pgoState.pgoDataPath).wait())
+                abortBuild("Merge failed");
+            files.each!(f => remove(f));
+        }));
+    builder
+        .name("dmd-pgo")
+        .description("Build dmd with PGO data collected from the dmd and phobos testsuites")
+        .msg("Build with collected PGO data")
+        .condition(() => PGOState.checkPGO(dmdKind))
+        .deps([finalDataMerge])
+        .commandFunction({
+            auto addArgs = pgoState.pgoUseFlags ~ "-wi";
+            auto cmd = [env["HOST_DMD_RUN"], "-run", "src/build.d", "ENABLE_RELEASE=1",
+            "ENABLE_LTO=1",
+            "DFLAGS="~joiner(addArgs, " ").to!string, "--force", "-j"~jobs.to!string];
+            log("%-(%s %)", cmd);
+            if (spawnProcess(cmd, null, Config.init).wait())
+                abortBuild("PGO Compilation failed");
+        });
+}
+);
 
 /// Run's the test suite (unittests & `run.d`)
 alias runTests = makeRule!((testBuilder, testRule)
 {
-    // Precompiles the test runner
-    alias runner = methodInit!(BuildRule, (rundBuilder, rundRule) => rundBuilder
-        .msg("(DMD) RUN.D")
-        .sources([ testDir.buildPath( "run.d") ])
-        .target(env["GENERATED"].buildPath("run".exeName))
-        .command([ env["HOST_DMD"], "-of=" ~ rundRule.target, "-i", "-I" ~ testDir] ~ rundRule.sources));
-
     // Reference header assumes Linux64
     auto headerCheck = env["OS"] == "linux" && env["MODEL"] == "64"
                     ? [ runCxxHeadersTest ] : null;
@@ -494,10 +623,10 @@ alias runTests = makeRule!((testBuilder, testRule)
         .name("test")
         .description("Run the test suite using test/run.d")
         .msg("(RUN) TEST")
-        .deps([dmdDefault, runDmdUnittest, runner] ~ headerCheck)
+        .deps([dmdDefault, runDmdUnittest, testRunner] ~ headerCheck)
         .commandFunction({
             // Use spawnProcess to avoid output redirection for `command`s
-            const scope cmd = [ runner.targets[0], "-j" ~ jobs.to!string ];
+            const scope cmd = [ testRunner.targets[0], "-j" ~ jobs.to!string ];
             log("%-(%s %)", cmd);
             if (spawnProcess(cmd, null, Config.init, testDir).wait())
                 abortBuild("Tests failed!");
@@ -525,10 +654,12 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
     builder
         .name("cxx-headers")
         .description("Build the C++ frontend headers ")
-        .msg("(DC) CXX-HEADERS")
+        .msg("(DMD) CXX-HEADERS")
         .deps([dmdDefault])
         .target(env["G"].buildPath("frontend.h"))
-        .command([dmdExeFile] ~ flags["DFLAGS"] ~
+        .command([dmdExeFile] ~
+            flags["DFLAGS"]
+              .filter!(f => startsWith(f, "-debug=", "-version=", "-I", "-J")).array ~
             // Ignore warnings because of invalid C++ identifiers in the source code
             ["-J" ~ env["RES"], "-c", "-o-", "-wi", "-HCf="~rule.target,
             // Enforce the expected target architecture
@@ -602,7 +733,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-frontend")
         .description("Build the C++ frontend")
         .msg("(CXX) CXX-FRONTEND")
-        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.commonHeaders ~ .sources.rootHeaders /* Andrei ~ .sources.dmd.driver ~ .sources.dmd.frontend ~ .sources.root*/)
+        .sources(srcDir.buildPath("tests", "cxxfrontend.cc") ~ .sources.frontendHeaders ~ .sources.commonHeaders ~ .sources.rootHeaders /* Andrei ~ .sources.dmd.driver ~ .sources.dmd.frontend ~ .sources.root*/)
         .target(env["G"].buildPath("cxxfrontend").objName)
         // No explicit if since CXX_KIND will always be either g++ or clang++
         .command([ env["CXX"], "-xc++", "-std=c++11",
@@ -612,7 +743,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
     alias cxxUnittestExe = methodInit!(BuildRule, (exeBuilder, exeRule) => exeBuilder
         .name("cxx-unittest")
         .description("Build the C++ unittests")
-        .msg("(DMD) CXX-UNITTEST")
+        .msg("(DC) CXX-UNITTEST")
         .deps([lexer(null, null), cxxFrontend])
         .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common)
         .target(env["G"].buildPath("cxx-unittest").exeName)
@@ -1399,7 +1530,7 @@ auto sourceFiles()
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
             dtemplate.d dtoh.d dversion.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
             imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
-            mtype.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
+            mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d
             semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
@@ -1432,7 +1563,7 @@ auto sourceFiles()
             rootobject.d stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            file.d int128.d outbuffer.d string.d
+            bitfields.d file.d int128.d outbuffer.d string.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h
@@ -1441,7 +1572,7 @@ auto sourceFiles()
             aav.d complex.d env.d longdouble.d man.d optional.d response.d speller.d string.d strtold.d
         "),
         rootHeaders: fileArray(env["ROOT"], "
-            array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h file.h filename.h longdouble.h
+            array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h filename.h longdouble.h
             object.h optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
@@ -1986,10 +2117,13 @@ abstract final class Scheduler
 
             /// Stores whether the current build is stopping because some step failed
             static shared bool aborting;
+            if (atomicLoad(aborting))
+                return; // Abort but let other jobs finish
+
             scope (failure) atomicStore(aborting, true);
 
-            // Build the current rule unless another one failed
-            if (!atomicLoad(aborting) && target.run(depUpdated))
+            // Build the current rule
+            if (target.run(depUpdated))
             {
                 // Propagate that this rule's targets were (re)built
                 foreach (parent; requiredBy)

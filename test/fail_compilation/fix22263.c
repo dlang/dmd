@@ -43,4 +43,3 @@ int x5;
 
 int x6 = 6;
 int x6 = 6;
-

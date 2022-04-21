@@ -99,8 +99,8 @@ struct IRState
         this.target = target;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
-            && !(fd && fd.eh_none);
-        this.Cfile = m.isCFile;
+            && !(fd && fd.hasNoEH);
+        this.Cfile = m.filetype == FileType.c;
     }
 
     FuncDeclaration getFunc()
@@ -114,7 +114,7 @@ struct IRState
      */
     bool arrayBoundsCheck()
     {
-        if (m.isCFile)
+        if (m.filetype == FileType.c)
             return false;
         bool result;
         final switch (global.params.useArrayBounds)
@@ -422,7 +422,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
  */
 elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
-    if (fd && fd.isThis2)
+    if (fd && fd.hasDualContext())
     {
         if (ctxt2)
             ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, tysize(TYnptr)));
@@ -450,7 +450,7 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
     {
         ethis = getEthis(loc, irs, ad);
     }
-    else if (thisfd.vthis && !thisfd.isThis2 &&
+    else if (thisfd.vthis && !thisfd.hasDualContext() &&
           (adp == thisfd.toParent2() ||
            (adp.isClassDeclaration() &&
             adp.isClassDeclaration().isBaseOf(thisfd.toParent2().isClassDeclaration(), &offset)
@@ -747,10 +747,7 @@ void setClosureVarOffset(FuncDeclaration fd)
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
-        if (fd.nrvo_can && fd.nrvo_var == v)
-        {
-            fd.nrvo_can = false;
-        }
+        assert(!fd.isNRVO() || fd.nrvo_var != v);
     }
 }
 

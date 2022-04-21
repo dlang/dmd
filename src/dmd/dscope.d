@@ -174,7 +174,7 @@ struct Scope
             m = m.parent;
         m.addMember(null, sc.scopesym);
         m.parent = null; // got changed by addMember()
-        if (_module.isCFile)
+        if (_module.filetype == FileType.c)
             sc.flags |= SCOPE.Cfile;
         // Create the module scope underneath the global scope
         sc = sc.push(_module);
@@ -692,7 +692,7 @@ struct Scope
     }
 
     /********************************************
-     * Search enclosing scopes for ClassDeclaration.
+     * Search enclosing scopes for ClassDeclaration or StructDeclaration.
      */
     extern (C++) AggregateDeclaration getStructClassScope()
     {

@@ -65,5 +65,12 @@ int main()
     invalidNames.register_ = Pass::inline_;
     invalidNames.foo(Pass::inline_);
 
+    {
+        // Disallowed, would skip the dtor
+        // RequiresDummy dummy;
+        acceptDummy(nullptr);
+    }
+
+    assert(fromMixin(2, 4) == 8);
     return 0;
 }

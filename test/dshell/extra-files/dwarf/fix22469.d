@@ -30,4 +30,3 @@ extern(C) void main()
 	cdouble cd;
 	creal cr;
 }
-

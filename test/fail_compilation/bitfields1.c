@@ -21,4 +21,3 @@ struct T
 
 struct E1 { :0; int x; };
 struct E2 { int x; :0; };
-

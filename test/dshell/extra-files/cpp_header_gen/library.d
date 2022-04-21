@@ -159,3 +159,24 @@ struct InvalidNames(typename)
 }
 
 void useInvalid(InvalidNames!Pass) {}
+
+struct RequiresDummy
+{
+    extern(D):
+    ~this() {}
+}
+
+ref RequiresDummy acceptDummy(RequiresDummy* dummy)
+{
+    return *dummy;
+}
+
+mixin template CreateModuleMembers()
+{
+    int fromMixin(int a, int b)
+    {
+        return a * b;
+    }
+}
+
+mixin CreateModuleMembers!();

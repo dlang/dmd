@@ -29,7 +29,6 @@ import dmd.glue;
 import dmd.id;
 import dmd.mtype;
 import dmd.tocvdebug;
-import dmd.visitor;
 
 
 /*******************
@@ -78,59 +77,48 @@ tym_t modToTym(MOD mod) pure
  */
 extern (C++) type* Type_toCtype(Type t)
 {
-    if (!t.ctype)
-    {
-        scope ToCtypeVisitor v = new ToCtypeVisitor();
-        t.accept(v);
-    }
-    return t.ctype;
-}
+    if (t.ctype)
+        return t.ctype;
 
-private extern (C++) final class ToCtypeVisitor : Visitor
-{
-    alias visit = Visitor.visit;
-public:
-    extern (D) this()
+    static type* visit(Type t)
     {
+        type* tr = type_fake(totym(t));
+        tr.Tcount++;
+        return tr;
     }
 
-    override void visit(Type t)
+    static type* visitSArray(TypeSArray t)
     {
-        t.ctype = type_fake(totym(t));
-        t.ctype.Tcount++;
+        return type_static_array(t.dim.toInteger(), Type_toCtype(t.next));
     }
 
-    override void visit(TypeSArray t)
+    static type* visitDArray(TypeDArray t)
     {
-        t.ctype = type_static_array(t.dim.toInteger(), Type_toCtype(t.next));
+        type* tr = type_dyn_array(Type_toCtype(t.next));
+        tr.Tident = t.toPrettyChars(true);
+        return tr;
     }
 
-    override void visit(TypeDArray t)
+    static type* visitAArray(TypeAArray t)
     {
-        t.ctype = type_dyn_array(Type_toCtype(t.next));
-        t.ctype.Tident = t.toPrettyChars(true);
+        type* tr = type_assoc_array(Type_toCtype(t.index), Type_toCtype(t.next));
+        tr.Tident = t.toPrettyChars(true);
+        return tr;
     }
 
-    override void visit(TypeAArray t)
-    {
-        t.ctype = type_assoc_array(Type_toCtype(t.index), Type_toCtype(t.next));
-        t.ctype.Tident = t.toPrettyChars(true);
-    }
-
-    override void visit(TypePointer t)
+    static type* visitPointer(TypePointer t)
     {
         //printf("TypePointer::toCtype() %s\n", t.toChars());
-        t.ctype = type_pointer(Type_toCtype(t.next));
+        return type_pointer(Type_toCtype(t.next));
     }
 
-    override void visit(TypeFunction t)
+    static type* visitFunction(TypeFunction t)
     {
         const nparams = t.parameterList.length;
+        import dmd.common.string : SmallBuffer;
         type*[10] tmp = void;
-        type** ptypes = (nparams <= tmp.length)
-                        ? tmp.ptr
-                        : cast(type**)Mem.check(malloc((type*).sizeof * nparams));
-        type*[] types = ptypes[0 .. nparams];
+        auto sb = SmallBuffer!(type*)(nparams, tmp[]);
+        type*[] types = sb[];
 
         foreach (i; 0 .. nparams)
         {
@@ -147,18 +135,17 @@ public:
             }
             types[i] = tp;
         }
-        t.ctype = type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
-        if (types.ptr != tmp.ptr)
-            free(types.ptr);
+        return type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
     }
 
-    override void visit(TypeDelegate t)
+    static type* visitDelegate(TypeDelegate t)
     {
-        t.ctype = type_delegate(Type_toCtype(t.next));
-        t.ctype.Tident = t.toPrettyChars(true);
+        type* tr = type_delegate(Type_toCtype(t.next));
+        tr.Tident = t.toPrettyChars(true);
+        return tr;
     }
 
-    override void visit(TypeStruct t)
+    static type* visitStruct(TypeStruct t)
     {
         //printf("TypeStruct::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
@@ -196,22 +183,23 @@ public:
             if (global.params.symdebugref)
                 toDebug(sym);
 
-            return;
+            return t.ctype;
         }
 
         // Copy mutable version of backend type and add modifiers
         type* mctype = Type_toCtype(t.castMod(0));
-        t.ctype = type_alloc(tybasic(mctype.Tty));
-        t.ctype.Tcount++;
-        if (t.ctype.Tty == TYstruct)
+        type* tr = type_alloc(tybasic(mctype.Tty));
+        tr.Tcount++;
+        if (tr.Tty == TYstruct)
         {
-            t.ctype.Ttag = mctype.Ttag; // structure tag name
+            tr.Ttag = mctype.Ttag; // structure tag name
         }
-        t.ctype.Tty |= modToTym(t.mod);
+        tr.Tty |= modToTym(t.mod);
         //printf("t = %p, Tflags = x%x\n", ctype, ctype.Tflags);
+        return tr;
     }
 
-    override void visit(TypeEnum t)
+    static type* visitEnum(TypeEnum t)
     {
         //printf("TypeEnum::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
@@ -230,7 +218,7 @@ public:
             {
                 t.ctype = type_fake(totym(t));
                 t.ctype.Tcount++;
-                return;
+                return t.ctype;
             }
             else if (symMemtype.toBasetype().ty == Tint32)
             {
@@ -244,7 +232,7 @@ public:
             if (global.params.symdebugref)
                 toDebug(t.sym);
 
-            return;
+            return t.ctype;
         }
 
         // Copy mutable version of backend type and add modifiers
@@ -253,18 +241,17 @@ public:
         {
             Classsym* s = mctype.Ttag;
             assert(s);
-            t.ctype = type_allocn(TYenum, mctype.Tnext);
-            t.ctype.Ttag = s; // enum tag name
-            t.ctype.Tcount++;
-            t.ctype.Tty |= modToTym(t.mod);
+            type* tr = type_allocn(TYenum, mctype.Tnext);
+            tr.Ttag = s; // enum tag name
+            tr.Tcount++;
+            tr.Tty |= modToTym(t.mod);
+            return tr;
         }
-        else
-            t.ctype = mctype;
-
         //printf("t = %p, Tflags = x%x\n", t, t.Tflags);
+        return mctype;
     }
 
-    override void visit(TypeClass t)
+    static type* visitClass(TypeClass t)
     {
         if (t.mod == 0)
         {
@@ -290,13 +277,32 @@ public:
 
             if (global.params.symdebugref)
                 toDebug(t.sym);
-            return;
+            return t.ctype;
         }
 
         // Copy mutable version of backend type and add modifiers
         type* mctype = Type_toCtype(t.castMod(0));
-        t.ctype = type_allocn(tybasic(mctype.Tty), mctype.Tnext); // pointer to class instance
-        t.ctype.Tcount++;
-        t.ctype.Tty |= modToTym(t.mod);
+        type* tr = type_allocn(tybasic(mctype.Tty), mctype.Tnext); // pointer to class instance
+        tr.Tcount++;
+        tr.Tty |= modToTym(t.mod);
+        return tr;
     }
+
+    type* tr;
+    switch (t.ty)
+    {
+        default:        tr = visit        (t);                  break;
+        case Tsarray:   tr = visitSArray  (t.isTypeSArray());   break;
+        case Tarray:    tr = visitDArray  (t.isTypeDArray());   break;
+        case Taarray:   tr = visitAArray  (t.isTypeAArray());   break;
+        case Tpointer:  tr = visitPointer (t.isTypePointer());  break;
+        case Tfunction: tr = visitFunction(t.isTypeFunction()); break;
+        case Tdelegate: tr = visitDelegate(t.isTypeDelegate()); break;
+        case Tstruct:   tr = visitStruct  (t.isTypeStruct());   break;
+        case Tenum:     tr = visitEnum    (t.isTypeEnum());     break;
+        case Tclass:    tr = visitClass   (t.isTypeClass());    break;
+    }
+
+    t.ctype = tr;
+    return tr;
 }

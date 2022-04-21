@@ -176,7 +176,7 @@ public:
 
     override void visit(TypeBasic type)
     {
-        //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeBasic); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         if (checkImmutableShared(type, loc))
             return;
 
@@ -277,7 +277,7 @@ public:
 
     override void visit(TypeVector type)
     {
-        //printf("visit(TypeVector); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeVector); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type))
             return;
         mangleModifier(type);
@@ -289,7 +289,7 @@ public:
     override void visit(TypeSArray type)
     {
         // This method can be called only for static variable type mangling.
-        //printf("visit(TypeSArray); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeSArray); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type))
             return;
         // first dimension always mangled as const pointer
@@ -313,7 +313,7 @@ public:
     // There is not way to map int C++ (*arr)[2][1] to D
     override void visit(TypePointer type)
     {
-        //printf("visit(TypePointer); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypePointer); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         if (checkImmutableShared(type, loc))
             return;
 
@@ -416,7 +416,7 @@ public:
     {
         if (checkTypeSaved(type))
             return;
-        //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeStruct); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         mangleModifier(type);
         const agg = type.sym.isStructDeclaration();
         if (type.sym.isUnionDeclaration())
@@ -430,7 +430,7 @@ public:
 
     override void visit(TypeEnum type)
     {
-        //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeEnum); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         const id = type.sym.ident;
         string c;
         if (id == Id.__c_long_double)
@@ -443,6 +443,8 @@ public:
             c = "_J"; // VC++ long long
         else if (id == Id.__c_ulonglong)
             c = "_K"; // VC++ unsigned long long
+        else if (id == Id.__c_char)
+            c = "D";  // VC++ char
         else if (id == Id.__c_wchar_t)
         {
             c = (flags & IS_DMC) ? "_Y" : "_W";
@@ -477,7 +479,7 @@ public:
     // const(Object) mangled as Object const* const
     override void visit(TypeClass type)
     {
-        //printf("visit(TypeClass); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeClass); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type))
             return;
         if (flags & IS_NOT_TOP_TYPE)
@@ -1212,10 +1214,11 @@ extern(D):
                 break;
             case LINK.d:
             case LINK.default_:
-            case LINK.system:
             case LINK.objc:
                 tmp.visit(cast(Type)type);
                 break;
+            case LINK.system:
+                assert(0);
             }
         }
         tmp.flags &= ~IS_NOT_TOP_TYPE;

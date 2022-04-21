@@ -18,4 +18,3 @@ alias c = __vector(ulong[4]);
 alias d = __vector(uint[8]);
 alias e = __vector(ushort[16]);
 alias f = __vector(ubyte[32]);
-

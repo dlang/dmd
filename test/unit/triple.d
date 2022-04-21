@@ -4,6 +4,7 @@ module triple;
 
 import support : afterEach, defaultImportPaths;
 import dmd.target;
+import dmd.dmdparams;
 @afterEach deinitializeFrontend()
 {
     import dmd.frontend : deinitializeDMD;

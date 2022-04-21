@@ -24,6 +24,7 @@ import core.stdc.string;
 
 import dmd.arraytypes;
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.builtin;
 import dmd.cond;
 import dmd.console;
@@ -301,7 +302,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         stdout.printPredefinedVersions();
         stdout.printGlobalConfigs();
     }
-    //printf("%d source files\n",files.dim);
+    //printf("%d source files\n", cast(int) files.dim);
 
     // Build import search path
 
@@ -336,17 +337,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Create Modules
     Modules modules = createModules(files, libmodules, target);
     // Read files
-    // Start by "reading" the special file __stdin.d
-    foreach (m; modules)
-    {
-        if (m.srcfile.toString() == "__stdin.d")
-        {
-            auto buffer = readFromStdin();
-            m.srcBuffer = new FileBuffer(buffer.extractSlice());
-            FileManager.fileManager.add(m.srcfile, m.srcBuffer);
-        }
-    }
-
     foreach (m; modules)
     {
         m.read(Loc.initial);
@@ -367,7 +357,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 //            m.deleteObjFile();
 
         m.parse();
-        if (m.isHdrFile)
+        if (m.filetype == FileType.dhdr)
         {
             // Remove m's object file from list of object files
             for (size_t j = 0; j < params.objfiles.length; j++)
@@ -381,7 +371,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             if (params.objfiles.length == 0)
                 params.link = false;
         }
-        if (m.isDocFile)
+        if (m.filetype == FileType.ddoc)
         {
             anydocfiles = true;
             gendocfile(m);
@@ -419,7 +409,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
          */
         foreach (m; modules)
         {
-            if (m.isHdrFile)
+            if (m.filetype == FileType.dhdr)
                 continue;
             if (params.verbose)
                 message("import    %s", m.toChars());
@@ -679,7 +669,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     {
         // can be empty as in -conf=
         if (global.inifilename.length && !FileName.exists(global.inifilename))
-            error(Loc.initial, "Config file '%.*s' does not exist.",
+            error(Loc.initial, "config file '%.*s' does not exist.",
                   cast(int)global.inifilename.length, global.inifilename.ptr);
     }
     else
@@ -687,7 +677,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         global.inifilename = findConfFile(params.argv0, iniName);
     }
     // Read the configuration file
-    const iniReadResult = global.inifilename.toCStringThen!(fn => File.read(fn.ptr));
+    const iniReadResult = File.read(global.inifilename);
     const inifileBuffer = iniReadResult.buffer.data;
     /* Need path of configuration file, for use in expanding @P macro
      */
@@ -796,45 +786,6 @@ version (NoMain) {} else
         else
             printf("%.*s", cast(int) data.length, data.ptr);
     }
-}
-
-private FileBuffer readFromStdin()
-{
-    enum bufIncrement = 128 * 1024;
-    size_t pos = 0;
-    size_t sz = bufIncrement;
-
-    ubyte* buffer = null;
-    for (;;)
-    {
-        buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 4); // +2 for sentinel and +2 for lexer
-
-        // Fill up buffer
-        do
-        {
-            assert(sz > pos);
-            size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
-            pos += rlen;
-            if (ferror(stdin))
-            {
-                import core.stdc.errno;
-                error(Loc.initial, "cannot read from stdin, errno = %d", errno);
-                fatal();
-            }
-            if (feof(stdin))
-            {
-                // We're done
-                assert(pos < sz + 2);
-                buffer[pos .. pos + 4] = '\0';
-                return FileBuffer(buffer[0 .. pos]);
-            }
-        } while (pos < sz);
-
-        // Buffer full, expand
-        sz += bufIncrement;
-    }
-
-    assert(0);
 }
 
 extern (C++) void generateJson(Modules* modules)
@@ -1232,6 +1183,8 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
         VersionCondition.addPredefinedGlobalIdent("D_PreConditions");
     if (params.useOut == CHECKENABLE.on)
         VersionCondition.addPredefinedGlobalIdent("D_PostConditions");
+    if (params.useInvariants == CHECKENABLE.on)
+        VersionCondition.addPredefinedGlobalIdent("D_Invariants");
     if (params.useArrayBounds == CHECKENABLE.off)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     if (params.betterC)
@@ -1774,7 +1727,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.pic = PIC.pie;
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
-            dmdParams.map = true;
+            driverParams.map = true;
         else if (arg == "-multiobj")
             params.multiobj = true;
         else if (startsWith(p + 1, "mixin="))
@@ -1788,7 +1741,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.symdebug = 1;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
-            if (dmdParams.dwarf)
+            if (driverParams.dwarf)
             {
                 error("`-gdwarf=<version>` can only be provided once");
                 break;
@@ -1798,7 +1751,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-gdwarf=".length;
             // Parse:
             //      -gdwarf=version
-            if (arg.length < len || !dmdParams.dwarf.parseDigits(arg[len .. $], 5) || dmdParams.dwarf < 3)
+            if (arg.length < len || !driverParams.dwarf.parseDigits(arg[len .. $], 5) || driverParams.dwarf < 3)
             {
                 error("`-gdwarf=<version>` requires a valid version [3|4|5]", p);
                 return false;
@@ -1811,7 +1764,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.symdebugref = true;
         }
         else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
-            dmdParams.alwaysframe = true;
+            driverParams.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
             params.stackstomp = true;
         else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
@@ -1871,7 +1824,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
         else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
-            dmdParams.vasm = true;
+            driverParams.vasm = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
             params.vtls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
@@ -2455,11 +2408,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "--b")
-            dmdParams.debugb = true;
+            driverParams.debugb = true;
         else if (arg == "--c")
-            dmdParams.debugc = true;
+            driverParams.debugc = true;
         else if (arg == "--f")
-            dmdParams.debugf = true;
+            driverParams.debugf = true;
         else if (arg == "--help" ||
                  arg == "-h")
         {
@@ -2467,16 +2420,16 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             return false;
         }
         else if (arg == "--r")
-            dmdParams.debugr = true;
+            driverParams.debugr = true;
         else if (arg == "--version")
         {
             params.logo = true;
             return false;
         }
         else if (arg == "--x")
-            dmdParams.debugx = true;
+            driverParams.debugx = true;
         else if (arg == "--y")
-            dmdParams.debugy = true;
+            driverParams.debugy = true;
         else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
         {
             params.linkswitches.push(p + 2 + (p[2] == '='));
@@ -2611,7 +2564,7 @@ private void reconcileCommands(ref Param params, ref Target target)
     {
         if (params.pic)
             error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
-        if (dmdParams.dwarf)
+        if (driverParams.dwarf)
             error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
     }
     else if (target.os == Target.OS.DragonFlyBSD)
@@ -2959,7 +2912,7 @@ Module moduleWithEmptyMain()
     auto result = new Module("__main.d", Identifier.idPool("__main"), false, false);
     // need 2 trailing nulls for sentinel and 2 for lexer
     auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
-    result.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-4]);
+    result.src = cast(ubyte[]) data[0 .. $-4];
     result.parse();
     result.importedFrom = result;
     result.importAll(null);

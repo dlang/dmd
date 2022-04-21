@@ -19,6 +19,8 @@ import dmd.root.string;
 version (Windows)
     private extern (C) int putenv(const char*) nothrow;
 
+nothrow:
+
 /**
 Construct a variable from `name` and `value` and put it in the environment while saving
 the previous value of the environment variable into a global list so it can be restored later.
@@ -67,7 +69,7 @@ string allocNameValue(const(char)[] name, const(char)[] value) nothrow
 private __gshared string[string] envNameValues;
 
 /// Restore the original environment.
-void restoreEnvVars()
+void restoreEnvVars() nothrow
 {
     foreach (var; envNameValues.values)
     {

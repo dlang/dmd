@@ -605,5 +605,3 @@ list_t list_build(void *p,...)
     va_end(ap);
     return alist;
 }
-
-

@@ -185,4 +185,3 @@ bool findConsume(R1, E, R2)(ref R1 r1, E e, R2 r2) if (is(typeof(r1.front == e))
     }
     return false;
 }
-

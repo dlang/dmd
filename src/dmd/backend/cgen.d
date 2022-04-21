@@ -331,7 +331,7 @@ bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
 
 void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,reg_t *preg,regm_t flags)
 {
-    //printf("regwithvalue(value = %lld)\n", (long long)value);
+    //printf("regwithvalue(value = %lld)\n", cast(long)value);
     reg_t reg;
     if (!preg)
         preg = &reg;

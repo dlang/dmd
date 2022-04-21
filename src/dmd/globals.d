@@ -15,6 +15,7 @@ import core.stdc.stdint;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.common.outbuffer;
+import dmd.file_manager;
 import dmd.identifier;
 
 /// Defines a setting for how compiler warnings and deprecations are handled
@@ -161,11 +162,11 @@ extern (C++) struct Param
     FeatureState dtorFields; // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
-    bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
-                            // https://dconf.org/2019/talks/alexandrescu.html
-                            // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
-                            // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
-                            // Implementation: https://github.com/dlang/dmd/pull/9817
+    FeatureState rvalueRefParam; // allow rvalues to be arguments to ref parameters
+                                 // https://dconf.org/2019/talks/alexandrescu.html
+                                 // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
+                                 // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
+                                 // Implementation: https://github.com/dlang/dmd/pull/9817
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
@@ -329,6 +330,9 @@ extern (C++) struct Global
     bool hasMainFunction; /// Whether a main function has already been compiled in (for -main switch)
     uint varSequenceNumber = 1; /// Relative lifetime of `VarDeclaration` within a function, used for `scope` checks
 
+    /// Cache files read from disk
+    FileManager fileManager;
+
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
   nothrow:
@@ -383,6 +387,7 @@ extern (C++) struct Global
 
     extern (C++) void _init()
     {
+        this.fileManager = new FileManager();
         version (MARS)
         {
             vendor = "Digital Mars D";
@@ -485,15 +490,6 @@ alias dinteger_t = ulong;
 // Signed and unsigned variants
 alias sinteger_t = long;
 alias uinteger_t = ulong;
-
-alias d_int8 = int8_t;
-alias d_uns8 = uint8_t;
-alias d_int16 = int16_t;
-alias d_uns16 = uint16_t;
-alias d_int32 = int32_t;
-alias d_uns32 = uint32_t;
-alias d_int64 = int64_t;
-alias d_uns64 = uint64_t;
 
 version (DMDLIB)
 {

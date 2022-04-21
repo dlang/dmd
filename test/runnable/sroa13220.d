@@ -60,7 +60,7 @@ mixin template VectorOps(VectorType, ArrayType: BaseType[N], BaseType, size_t N)
         array[] = x;
     }
 
-    ref inout(BaseType) opIndex(size_t i) inout pure nothrow @safe @nogc
+    ref inout(BaseType) opIndex(size_t i) return inout pure nothrow @safe @nogc
     {
         return array[i];
     }

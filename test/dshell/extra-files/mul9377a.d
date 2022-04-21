@@ -8,4 +8,3 @@ void abc()
     foo();
     bar();
 }
-

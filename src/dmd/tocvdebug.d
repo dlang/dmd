@@ -1014,7 +1014,7 @@ int cvMember(Dsymbol s, ubyte *p)
                 int count = 0;
                 int mlen = 2;
                 {
-                    if (fd.introducing)
+                    if (fd.isIntroducing())
                         mlen += 4;
                     mlen += cgcv.sz_idx * 2;
                     count++;
@@ -1043,7 +1043,7 @@ int cvMember(Dsymbol s, ubyte *p)
                         attribute |= 2*4;
                     else if (fd.isVirtual())
                     {
-                        if (fd.introducing)
+                        if (fd.isIntroducing())
                         {
                             if (fd.isAbstract())
                                 attribute |= 6*4;
@@ -1065,7 +1065,7 @@ int cvMember(Dsymbol s, ubyte *p)
                     q += cgcv.sz_idx;
                     TOIDX(q, cv4_memfunctypidx(fd));
                     q += cgcv.sz_idx;
-                    if (fd.introducing)
+                    if (fd.isIntroducing())
                     {
                         TOLONG(q, fd.vtblIndex * target.ptrsize);
                         q += 4;

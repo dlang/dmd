@@ -686,7 +686,7 @@ private extern (C++) class S2irVisitor : Visitor
                 assert(e);
 
                 if (writetohp ||
-                    (func.nrvo_can && func.nrvo_var))
+                    (func.isNRVO() && func.nrvo_var))
                 {
                     // Return value via hidden pointer passed as parameter
                     // Write exp; return shidden;

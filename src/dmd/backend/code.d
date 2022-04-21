@@ -139,7 +139,7 @@ struct LocalSection
     int alignment;              // alignment size
 
   nothrow:
-    void init()                 // initialize
+    void initialize()
     {   offset = 0;
         size = 0;
         alignment = 0;
@@ -356,12 +356,12 @@ extern __gshared
 }
 
 /* cgcod.c */
-extern __gshared int pass;
-enum
+extern __gshared BackendPass pass;
+enum BackendPass
 {
-    PASSinitial,     // initial pass through code generator
-    PASSreg,         // register assignment pass
-    PASSfinal,       // final pass
+    initial,    /// initial pass through code generator
+    reg,        /// register assignment pass
+    final_,     /// final pass
 }
 
 extern __gshared int dfoidx;
@@ -661,10 +661,20 @@ void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void loadPair87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 
-/* iasm.c */
-//void iasm_term();
-regm_t iasm_regs(block *bp);
+/**********************************
+ * Get registers used by a given block
+ * Params: bp = asm block
+ * Returns: mask of registers used by block bp.
+ */
+@system
+regm_t iasm_regs(block *bp)
+{
+    debug (debuga)
+        printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
 
+    refparam |= bp.bIasmrefparam;
+    return bp.usIasmregs;
+}
 
 /**********************************
  * Set value in regimmed for reg.
@@ -678,8 +688,3 @@ void regimmed_set(int reg, targ_size_t e)
     regcon.immed.mval |= 1 << (reg);
     //printf("regimmed_set %s %d\n", regm_str(1 << reg), cast(int)e);
 }
-
-
-
-
-

@@ -4,6 +4,7 @@ Allow main to return noreturn.
 
 ARG_SETS: -version=Use_D_Main
 ARG_SETS: -version=Use_C_Main
+ARG_SETS: -version=Use_Extended_C_Main
 ARG_SETS(windows64): -version=Use_Win_Main
 ARG_SETS(windows64): -version=Use_Dll_Main -shared
 
@@ -20,7 +21,14 @@ noreturn main()
 }
 
 version (Use_C_Main)
-extern(C) noreturn main(int* argc, const char** argv)
+extern(C) noreturn main(int argc, const char** argv)
+{
+	// puts("Hello, World!");
+	assert(false);
+}
+
+version (Use_Extended_C_Main)
+extern(C) noreturn main(int argc, const char** argv, const char** env)
 {
 	// puts("Hello, World!");
 	assert(false);

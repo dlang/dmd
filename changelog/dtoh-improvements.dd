@@ -1,0 +1,19 @@
+Improvements for the C++ header generation
+
+The following features/bugfixes/improvements were implemented for the
+experimental C++ header generator:
+
+- The implicitly generated context pointer for nested aggregates is now
+  emitted as `outer` instead of `this`
+- Explicit mangling via `pragma(mangle, "...")` is partially supported for
+  functions / variables. The mangling is used as the identifier of `extern(C)`
+  declarations because C doesn't mangle declaration names. `extern(C++)`
+  declarations are ignored because there's no portable alternative for C++.
+- Emits destructors not easily accessible from C++ (e.g. `extern(D)`) as private
+  members, preventing the creation of instances that would not be destroyed
+  on the C++ side.
+- No longer generates `extern(C)` functions in aggregates that are emitted
+  with D mangling.
+
+Note: The header generator is still considered experimental, so please submit
+      any bugs encountered to [the bug tracker](https://issues.dlang.org).

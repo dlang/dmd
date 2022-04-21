@@ -432,7 +432,7 @@ MATCH implicitConvTo(Expression e, Type t)
                 return MATCH.nomatch;
             goto case Tuns8;
         case Tuns8:
-            //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
+            //printf("value = %llu %llu\n", cast(dinteger_t)cast(ubyte)value, value);
             if (cast(ubyte)value != value)
                 return MATCH.nomatch;
             break;
@@ -492,8 +492,8 @@ MATCH implicitConvTo(Expression e, Type t)
             break;
 
         case Tpointer:
-            //printf("type = %s\n", type.toBasetype()->toChars());
-            //printf("t = %s\n", t.toBasetype()->toChars());
+            //printf("type = %s\n", type.toBasetype().toChars());
+            //printf("t = %s\n", t.toBasetype().toChars());
             if (ty == Tpointer && e.type.toBasetype().nextOf().ty == t.toBasetype().nextOf().ty)
             {
                 /* Allow things like:
@@ -1107,6 +1107,10 @@ MATCH implicitConvTo(Expression e, Type t)
 
     MATCH visitCond(CondExp e)
     {
+        auto result = visit(e);
+        if (result != MATCH.nomatch)
+            return result;
+
         MATCH m1 = e.e1.implicitConvTo(t);
         MATCH m2 = e.e2.implicitConvTo(t);
         //printf("CondExp: m1 %d m2 %d\n", m1, m2);
@@ -1151,7 +1155,6 @@ MATCH implicitConvTo(Expression e, Type t)
          * return from new() to t using the same algorithm as in CallExp, with the function
          * 'arguments' being:
          *    thisexp
-         *    newargs
          *    arguments
          *    .init
          * 'member' need to be pure.
@@ -1895,7 +1898,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (e.committed && tb.ty == Tsarray && typeb.ty == Tarray)
         {
             se = e.copy().isStringExp();
-            d_uns64 szx = tb.nextOf().size();
+            uinteger_t szx = tb.nextOf().size();
             assert(szx <= 255);
             se.sz = cast(ubyte)szx;
             se.len = cast(size_t)tb.isTypeSArray().dim.toInteger();
@@ -2060,7 +2063,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 }
 
                 {
-                    d_uns64 szx = tb.nextOf().size();
+                    uinteger_t szx = tb.nextOf().size();
                     assert(szx <= 255);
                     se.setData(buffer.extractSlice().ptr, newlen, cast(ubyte)szx);
                 }
@@ -2078,7 +2081,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (auto tsa = tb.isTypeSArray())
         {
             size_t dim2 = cast(size_t)tsa.dim.toInteger();
-            //printf("dim from = %d, to = %d\n", (int)se.len, (int)dim2);
+            //printf("dim from = %d, to = %d\n", cast(int)se.len, cast(int)dim2);
 
             // Changing dimensions
             if (dim2 != se.len)
@@ -2444,7 +2447,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         {
             printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
         }
-        __gshared const(char)* msg = "cannot form delegate due to covariant return type";
+        static immutable msg = "cannot form delegate due to covariant return type";
 
         Type tb = t.toBasetype();
         Type typeb = e.type.toBasetype();
@@ -2454,7 +2457,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             int offset;
             e.func.tookAddressOf++;
             if (e.func.tintro && e.func.tintro.nextOf().isBaseOf(e.func.type.nextOf(), &offset) && offset)
-                e.error("%s", msg);
+                e.error("%s", msg.ptr);
             auto result = e.copy();
             result.type = t;
             return result;
@@ -2470,7 +2473,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     int offset;
                     if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
-                        e.error("%s", msg);
+                        e.error("%s", msg.ptr);
                     if (f != e.func)    // if address not already marked as taken
                         f.tookAddressOf++;
                     auto result = new DelegateExp(e.loc, e.e1, f, false, e.vthis2);
@@ -2478,7 +2481,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     return result;
                 }
                 if (e.func.tintro)
-                    e.error("%s", msg);
+                    e.error("%s", msg.ptr);
             }
         }
 
@@ -2743,7 +2746,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
         // Replace (ptr + int) with (ptr + (int * stride))
         Type t = Type.tptrdiff_t;
 
-        d_uns64 stride = t1b.nextOf().size(be.loc);
+        uinteger_t stride = t1b.nextOf().size(be.loc);
         if (!t.equals(t2b))
             be.e2 = be.e2.castTo(sc, t);
         eoff = be.e2;
@@ -2758,7 +2761,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
         Type t = Type.tptrdiff_t;
         Expression e;
 
-        d_uns64 stride = t2b.nextOf().size(be.loc);
+        uinteger_t stride = t2b.nextOf().size(be.loc);
         if (!t.equals(t1b))
             e = be.e1.castTo(sc, t);
         else
@@ -3881,4 +3884,3 @@ IntRange getIntRange(Expression e)
         case EXP.negate             : return visitNeg(e.isNegExp());
     }
 }
-

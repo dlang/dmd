@@ -137,7 +137,7 @@ export HOST_DMD:=$(subst \,/,$(HOST_DMD))
 RUNNER:=$(RESULTS_DIR)/run$(EXE)
 EXECUTE_RUNNER:=$(RUNNER) --environment
 
-# N determines the amount of parallel jobs, see ci.sh
+# N determines the amount of parallel jobs, see ci/run.sh
 ifneq ($(N),)
     EXECUTE_RUNNER:=$(EXECUTE_RUNNER) --jobs=$N
 endif

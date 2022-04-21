@@ -604,7 +604,7 @@ int32_t *patchAddr64(int seg, targ_size_t offset)
 @trusted
 void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
 {
-    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (uint)offset, seg, value);
+    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", cast(uint)offset, seg, value);
     if (I64)
     {
         int32_t *p = cast(int32_t *)(fobjbuf.buf + SecHdrTab64[pseg.SDshtidx].offset + offset);
@@ -1107,7 +1107,7 @@ version (SCPP)
                                 int32_t *p = patchAddr64(seg, r.offset);
                                 // Absolute address; add in addr of start of targ seg
 //printf("*p = x%x, .addr = x%x, Soffset = x%x\n", *p, cast(int)SecHdrTab64[SegData[s.Sseg].SDshtidx].addr, cast(int)s.Soffset);
-//printf("pseg = x%x, r.offset = x%x\n", (int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
+//printf("pseg = x%x, r.offset = x%x\n", cast(int)SecHdrTab64[pseg.SDshtidx].addr, cast(int)r.offset);
                                 *p += SecHdrTab64[SegData[s.Sseg].SDshtidx].addr;
                                 *p += s.Soffset;
                                 *p -= SecHdrTab64[pseg.SDshtidx].addr + r.offset + 4;
@@ -2742,7 +2742,7 @@ static if (0)
                 indirectsymbuf2.write((&s)[0 .. 1]);
 
              L2:
-                //printf("MachObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, (int)offset, s.Sident.ptr, (int)val, pointersSeg);
+                //printf("MachObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val, pointersSeg);
                 if (flags & CFindirect)
                 {
                     Relocation rel = void;
@@ -2934,7 +2934,7 @@ void MachObj_write_pointerRef(Symbol* s, uint off)
  */
 int mach_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 {
-    //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, (int)offset, s.Sident.ptr, (int)val);
+    //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, cast(int)offset, s.Sident.ptr, cast(int)val);
     MachObj_reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
     return 4;
 }

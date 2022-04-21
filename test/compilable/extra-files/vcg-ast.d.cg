@@ -140,7 +140,7 @@ values!(__c_wchar_t)
 	pure nothrow @safe __c_wchar_t[] values()
 	{
 		__c_wchar_t[] values = null;
-		values ~= cast(__c_wchar_t)'\U0000ffff';
+		values ~= cast(__c_wchar_t)'\uffff';
 		return values;
 	}
 

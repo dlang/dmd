@@ -80,7 +80,7 @@ extern (C++) struct Target
     import dmd.dscope : Scope;
     import dmd.expression : Expression;
     import dmd.func : FuncDeclaration;
-    import dmd.globals : Loc, d_int64;
+    import dmd.globals : Loc;
     import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
     import dmd.root.ctfloat : real_t;
@@ -152,18 +152,18 @@ extern (C++) struct Target
      */
     extern (C++) struct FPTypeProperties(T)
     {
-        real_t max;                         /// largest representable value that's not infinity
-        real_t min_normal;                  /// smallest representable normalized value that's not 0
-        real_t nan;                         /// NaN value
-        real_t infinity;                    /// infinity value
-        real_t epsilon;                     /// smallest increment to the value 1
+        real_t max;         /// largest representable value that's not infinity
+        real_t min_normal;  /// smallest representable normalized value that's not 0
+        real_t nan;         /// NaN value
+        real_t infinity;    /// infinity value
+        real_t epsilon;     /// smallest increment to the value 1
 
-        d_int64 dig;                        /// number of decimal digits of precision
-        d_int64 mant_dig;                   /// number of bits in mantissa
-        d_int64 max_exp;                    /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
-        d_int64 min_exp;                    /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
-        d_int64 max_10_exp;                 /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
-        d_int64 min_10_exp;                 /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
+        long dig;           /// number of decimal digits of precision
+        long mant_dig;      /// number of bits in mantissa
+        long max_exp;       /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
+        long min_exp;       /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
+        long max_10_exp;    /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
+        long min_10_exp;    /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
 
         extern (D) void initialize()
         {
@@ -331,17 +331,6 @@ extern (C++) struct Target
             default:
                 break;
         }
-    }
-
-    void setTriple(const ref Triple triple)
-    {
-        cpu     = triple.cpu;
-        is64bit = triple.is64bit;
-        isLP64  = triple.isLP64;
-        os      = triple.os;
-        osMajor = triple.osMajor;
-        c.runtime   = triple.cenv;
-        cpp.runtime = triple.cppenv;
     }
 
     /**
@@ -907,35 +896,6 @@ extern (C++) struct Target
         }
     }
 
-    /***
-     * Determine the size a value of type `t` will be when it
-     * is passed on the function parameter stack.
-     * Params:
-     *  loc = location to use for error messages
-     *  t = type of parameter
-     * Returns:
-     *  size used on parameter stack
-     */
-    extern (C++) ulong parameterSize(const ref Loc loc, Type t)
-    {
-        if (!is64bit &&
-            (os & (Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.OSX)))
-        {
-            /* These platforms use clang, which regards a struct
-             * with size 0 as being of size 0 on the parameter stack,
-             * even while sizeof(struct) is 1.
-             * It's an ABI incompatibility with gcc.
-             */
-            if (auto ts = t.isTypeStruct())
-            {
-                if (ts.sym.hasNoFields)
-                    return 0;
-            }
-        }
-        const sz = t.size(loc);
-        return is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
-    }
-
     /**
      * Decides whether an `in` parameter of the specified POD type is to be
      * passed by reference or by value. To be used with `-preview=in` only!
@@ -1148,7 +1108,11 @@ struct TargetC
         Gcc_Clang,            /// gcc and clang
     }
     bool  crtDestructorsSupported = true; /// Not all platforms support crt_destructor
+    ubyte boolsize;           /// size of a C `_Bool` type
+    ubyte shortsize;          /// size of a C `short` or `unsigned short` type
+    ubyte intsize;            /// size of a C `int` or `unsigned int` type
     ubyte longsize;           /// size of a C `long` or `unsigned long` type
+    ubyte long_longsize;      /// size of a C `long long` or `unsigned long long` type
     ubyte long_doublesize;    /// size of a C `long double`
     ubyte wchar_tsize;        /// size of a C `wchar_t` type
     Runtime runtime;          /// vendor of the C runtime to link against
@@ -1157,6 +1121,10 @@ struct TargetC
     extern (D) void initialize(ref const Param params, ref const Target target)
     {
         const os = target.os;
+        boolsize = 1;
+        shortsize = 2;
+        intsize = 4;
+        long_longsize = 8;
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             longsize = 4;
         else if (os == Target.OS.OSX)
@@ -1399,246 +1367,6 @@ struct TargetObjC
     {
         if (target.os == Target.OS.OSX && target.is64bit)
             supported = true;
-    }
-}
-
-/**
- Sets CPU Operating System, and optionally C/C++ runtime environment from the given triple
- e.g.
-    x86_64+avx2-apple-darwin20.3.0
-    x86-unknown-linux-musl-clang
-    x64-windows-msvc
-    x64-pc-windows-msvc
- */
-struct Triple
-{
-    private const(char)[] source;
-    CPU               cpu;
-    bool              is64bit;
-    bool              isLP64;
-    Target.OS         os;
-    ubyte             osMajor;
-    TargetC.Runtime   cenv;
-    TargetCPP.Runtime cppenv;
-
-    this(const(char)* _triple)
-    {
-        import dmd.root.string : toDString, toCStringThen;
-        const(char)[] triple = _triple.toDString();
-        const(char)[] next()
-        {
-            size_t i = 0;
-            const tmp = triple;
-            while (triple.length && triple[0] != '-')
-            {
-                triple = triple[1 .. $];
-                ++i;
-            }
-            if (triple.length && triple[0] == '-')
-            {
-                triple = triple[1 .. $];
-            }
-            return tmp[0 .. i];
-        }
-
-        parseArch(next);
-        const(char)[] vendorOrOS = next();
-        const(char)[] _os;
-        if (tryParseVendor(vendorOrOS))
-            _os = next();
-        else
-            _os = vendorOrOS;
-        os = parseOS(_os, osMajor);
-
-        const(char)[] _cenv = next();
-        if (_cenv.length)
-            cenv = parseCEnv(_cenv);
-        else if (this.os == Target.OS.Windows)
-            cenv = TargetC.Runtime.Microsoft;
-        const(char)[] _cppenv = next();
-        if (_cppenv.length)
-            cppenv = parseCPPEnv(_cppenv);
-        else if (this.os == Target.OS.Windows)
-            cppenv = TargetCPP.Runtime.Microsoft;
-    }
-    private extern(D):
-
-    void unknown(const(char)[] unk, const(char)* what)
-    {
-        import dmd.errors : error;
-        import dmd.root.string : toCStringThen;
-        import dmd.globals : Loc;
-        unk.toCStringThen!(p => error(Loc.initial,"unknown %s `%s` for `-target`", what, p.ptr));
-    }
-
-    void parseArch(const(char)[] arch)
-    {
-        bool matches(const(char)[] str)
-        {
-            import dmd.root.string : startsWith;
-            if (!arch.ptr.startsWith(str))
-                return false;
-            arch = arch[str.length .. $];
-            return true;
-        }
-
-        if (matches("x86_64"))
-            is64bit = true;
-        else if (matches("x86"))
-            is64bit = false;
-        else if (matches("x64"))
-            is64bit = true;
-        else if (matches("x32"))
-        {
-            is64bit = true;
-            isLP64 = false;
-        }
-        else
-            return unknown(arch, "architecture");
-
-        if (!arch.length)
-            return;
-
-        switch (arch)
-        {
-            case "+sse2": cpu = CPU.sse2; break;
-            case "+avx":  cpu = CPU.avx;  break;
-            case "+avx2": cpu = CPU.avx2; break;
-            default:
-                unknown(arch, "architecture feature");
-        }
-    }
-
-    // try parsing vendor if present
-    bool tryParseVendor(const(char)[] vendor)
-    {
-        switch (vendor)
-        {
-            case "unknown": return true;
-            case "apple":   return true;
-            case "pc":      return true;
-            case "amd":     return true;
-            default:        return false;
-        }
-    }
-
-    /********************************
-     * Parse OS and osMajor version number.
-     * Params:
-     *  _os = string to check for operating system followed by version number
-     *  osMajor = set to version number (if any), otherwise set to 0.
-     *            Set to 255 if version number is 255 or larger and error is generated
-     * Returns:
-     *  detected operating system, Target.OS.none if none
-     */
-    Target.OS parseOS(const(char)[] _os, out ubyte osMajor)
-    {
-        import dmd.errors : error;
-        import dmd.globals : Loc;
-
-        bool matches(const(char)[] str)
-        {
-            import dmd.root.string : startsWith;
-            if (!_os.ptr.startsWith(str))
-                return false;
-            _os = _os[str.length .. $];
-            return true;
-        }
-        Target.OS os;
-        if (matches("darwin"))
-            os = Target.OS.OSX;
-        else if (matches("dragonfly"))
-            os =  Target.OS.DragonFlyBSD;
-        else if (matches("freebsd"))
-            os =  Target.OS.FreeBSD;
-        else if (matches("openbsd"))
-            os =  Target.OS.OpenBSD;
-        else if (matches("linux"))
-            os =  Target.OS.linux;
-        else if (matches("windows"))
-            os =  Target.OS.Windows;
-        else
-        {
-            unknown(_os, "operating system");
-            return Target.OS.none;
-        }
-
-        bool overflow;
-        auto major = parseNumber(_os, overflow);
-        if (overflow || major >= 255)
-        {
-            error(Loc.initial, "OS version overflowed max of 254");
-            major = 255;
-        }
-        osMajor = cast(ubyte)major;
-
-        /* Note that anything after the number up to the end or '-',
-         * such as '.3.4.hello.betty', is ignored
-         */
-
-        return os;
-    }
-
-    /*******************************
-     * Parses a decimal number out of the str and returns it.
-     * Params:
-     *  str = string to parse the number from, updated to text after the number
-     *  overflow = set to true iff an overflow happens
-     * Returns:
-     *  parsed number
-     */
-    private pure static
-    uint parseNumber(ref const(char)[] str, ref bool overflow)
-    {
-        auto s = str;
-        ulong n;
-        while (s.length)
-        {
-            const c = s[0];
-            if (c < '0' || '9' < c)
-                break;
-            n = n * 10 + (c - '0');
-            overflow |= (n > uint.max); // sticky overflow check
-            s = s[1 .. $];              // consume digit
-        }
-        str = s;
-        return cast(uint)n;
-    }
-
-    TargetC.Runtime parseCEnv(const(char)[] cenv)
-    {
-        with (TargetC.Runtime) switch (cenv)
-        {
-            case "musl":         return Musl;
-            case "msvc":         return Microsoft;
-            case "bionic":       return Bionic;
-            case "digital_mars": return DigitalMars;
-            case "newlib":       return Newlib;
-            case "uclibc":       return UClibc;
-            case "glibc":        return Glibc;
-            default:
-            {
-                unknown(cenv, "C runtime environment");
-                return Unspecified;
-            }
-        }
-    }
-
-    TargetCPP.Runtime parseCPPEnv(const(char)[] cppenv)
-    {
-        with (TargetCPP.Runtime) switch (cppenv)
-        {
-            case "clang":        return Clang;
-            case "gcc":          return Gcc;
-            case "msvc":         return Microsoft;
-            case "sun":          return Sun;
-            case "digital_mars": return DigitalMars;
-            default:
-            {
-                unknown(cppenv, "C++ runtime environment");
-                return Unspecified;
-            }
-        }
     }
 }
 

@@ -353,14 +353,10 @@ if (1)
     else
         enum tmp_length = 6;
     SymInfo[tmp_length] tmp = void;
-    SymInfo* sip;
-    if (sia_length <= tmp.length / 3)
-        sip = tmp.ptr;
-    else
-    {
-        sip = cast(SymInfo *)malloc(3 * sia_length * SymInfo.sizeof);
-        assert(sip);
-    }
+
+    import dmd.common.string : SmallBuffer;
+    auto sb = SmallBuffer!(SymInfo)(3 * sia_length, tmp[]);
+    SymInfo* sip = sb.ptr;
     memset(sip, 0, 3 * sia_length * SymInfo.sizeof);
     SymInfo[] sia = sip[0 .. sia_length];
     SymInfo[] sia2 = sip[sia_length .. sia_length * 3];
@@ -428,12 +424,12 @@ if (1)
     }
 
     if (!anySlice)
-        goto Ldone;
+        return;
 
     foreach (b; BlockRange(startblock))
     {
         if (b.BC == BCasm)
-            goto Ldone;
+            return;
         if (b.Belem)
             sliceStructs_Gather(symtab, sia, b.Belem);
     }
@@ -494,7 +490,7 @@ if (1)
             }
         }
         if (!any)
-            goto Ldone;
+            return;
     }
 
     foreach (si; 0 .. symtab.length)
@@ -520,9 +516,6 @@ if (1)
         printf("after slicing done\n");
     }
 
-Ldone:
-    if (sip != tmp.ptr)
-        free(sip);
 }
 }
 

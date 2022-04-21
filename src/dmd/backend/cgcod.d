@@ -129,7 +129,7 @@ bool calledFinally;     // true if called a BC_finally block
 /* Register contents    */
 con_t regcon;
 
-int pass;                       // PASSxxxx
+BackendPass pass;
 
 private Symbol *retsym;          // set to symbol that should be placed in
                                 // register AX
@@ -182,8 +182,8 @@ void codgen(Symbol *sfunc)
     tym_t functy = tybasic(sfunc.ty());
     cod3_initregs();
     allregs = ALLREGS;
-    pass = PASSinitial;
-    Alloca.init();
+    pass = BackendPass.initial;
+    Alloca.initialize();
     anyiasm = 0;
 
     if (config.ehmethod == EHmethod.EH_DWARF)
@@ -201,7 +201,7 @@ tryagain:
     debug
     if (debugr)
         printf("------------------ PASS%s -----------------\n",
-            (pass == PASSinitial) ? "init".ptr : ((pass == PASSreg) ? "reg".ptr : "final".ptr));
+            (pass == BackendPass.initial) ? "init".ptr : ((pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
 
     lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
 
@@ -216,7 +216,7 @@ tryagain:
     retsym = null;
 
     cgstate.stackclean = 1;
-    cgstate.funcarg.init();
+    cgstate.funcarg.initialize();
     cgstate.funcargtos = ~0;
     cgstate.accessedTLS = false;
     STACKALIGN = TARGET_STACKALIGN;
@@ -317,7 +317,7 @@ tryagain:
     }
     else
     {
-        pass = PASSfinal;
+        pass = BackendPass.final_;
         for (block* b = startblock; b; b = b.Bnext)
             blcodgen(b);                // generate the code for each block
     }
@@ -325,7 +325,7 @@ tryagain:
     assert(!regcon.cse.mops);           // should have all been used
 
     // See which variables we can put into registers
-    if (pass != PASSfinal &&
+    if (pass != BackendPass.final_ &&
         !anyiasm)                               // possible LEA or LES opcodes
     {
         allregs |= cod3_useBP();                // see if we can use EBP
@@ -335,12 +335,12 @@ tryagain:
         {
             allregs |= mask(PICREG);            // EBX can now be used
             cgreg_assign(retsym);
-            pass = PASSreg;
+            pass = BackendPass.reg;
         }
         else if (cgreg_assign(retsym))          // if we found some registers
-            pass = PASSreg;
+            pass = BackendPass.reg;
         else
-            pass = PASSfinal;
+            pass = BackendPass.final_;
         for (block* b = startblock; b; b = b.Bnext)
         {
             code_free(b.Bcode);
@@ -955,7 +955,7 @@ else
         }
     }
 
-    //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
+    //printf("Fast.size = x%x, Auto.size = x%x\n", cast(int)Fast.size, cast(int)Auto.size);
 
     cgstate.funcarg.alignment = STACKALIGN;
     /* If the function doesn't need the extra alignment, don't do it.
@@ -1266,10 +1266,10 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 {
     //printf("stackoffsets() %s\n", funcsym_p.Sident.ptr);
 
-    Para.init();        // parameter offset
-    Fast.init();        // SCfastpar offset
-    Auto.init();        // automatic & register offset
-    EEStack.init();     // for SCstack's
+    Para.initialize();        // parameter offset
+    Fast.initialize();        // SCfastpar offset
+    Auto.initialize();        // automatic & register offset
+    EEStack.initialize();     // for SCstack's
 
     // Set if doing optimization of auto layout
     bool doAutoOpt = estimate && config.flags4 & CFG4optimized;
@@ -1349,7 +1349,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 Fast.offset = _align(sz,Fast.offset);
                 s.Soffset = Fast.offset;
                 Fast.offset += sz;
-                //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s.Sident,(int)sz,(int)s.Soffset, s);
+                //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n", s.Sident, cast(int) sz, cast(int) s.Soffset, s);
 
                 if (alignsize > Fast.alignment)
                     Fast.alignment = alignsize;
@@ -1368,7 +1368,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 Auto.offset = _align(sz,Auto.offset);
                 s.Soffset = Auto.offset;
                 Auto.offset += sz;
-                //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s.Sident,sz,(long)s.Soffset);
+                //printf("auto    '%s' sz = %d, auto offset =  x%lx\n", s.Sident,sz, cast(long) s.Soffset);
 
                 if (alignsize > Auto.alignment)
                     Auto.alignment = alignsize;
@@ -1377,7 +1377,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             case SCstack:
                 EEStack.offset = _align(sz,EEStack.offset);
                 s.Soffset = EEStack.offset;
-                //printf("EEStack.offset =  x%lx\n",(long)s.Soffset);
+                //printf("EEStack.offset =  x%lx\n",cast(long)s.Soffset);
                 EEStack.offset += sz;
                 break;
 
@@ -1399,7 +1399,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                          (tyaggregate(s.ty()) || tyvector(s.ty())))))
                     Para.offset = (Para.offset + (alignsize - 1)) & ~(alignsize - 1);
                 s.Soffset = Para.offset;
-                //printf("%s param offset =  x%lx, alignsize = %d\n",s.Sident,(long)s.Soffset, (int)alignsize);
+                //printf("%s param offset =  x%lx, alignsize = %d\n", s.Sident, cast(long) s.Soffset, cast(int) alignsize);
                 Para.offset += (s.Sflags & SFLdouble)
                             ? type_size(tstypes[TYdouble])   // float passed as double
                             : type_size(s.Stype);
@@ -1460,7 +1460,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             }
             Auto.offset = _align(sz,Auto.offset);
             s.Soffset = Auto.offset;
-            //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s.Sident,sz,(long)s.Soffset);
+            //printf("auto    '%s' sz = %d, auto offset =  x%lx\n", s.Sident, sz, cast(long) s.Soffset);
             Auto.offset += sz;
             if (s.Srange && !(s.Sflags & SFLspill))
                 vec_setbit(si,tbl);
@@ -2038,7 +2038,7 @@ void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym
 
 static if (0)
 {
-        if (pass == PASSfinal)
+        if (pass == BackendPass.final_)
         {
             printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
@@ -2102,7 +2102,7 @@ L3:
             if (!regcon.indexregs && r & ~mLSW)
                 r &= ~mLSW;
 
-            if (pass == PASSfinal && r & ~lastretregs && !I16)
+            if (pass == BackendPass.final_ && r & ~lastretregs && !I16)
             {   // Try not to always allocate the same register,
                 // to schedule better
 
@@ -2395,7 +2395,7 @@ bool cssave(elem *e,regm_t regm,uint opsflag)
     /*if (e.Ecount && e.Ecount == e.Ecomsub)*/
     if (e.Ecount && e.Ecomsub)
     {
-        if (!opsflag && pass != PASSfinal && (I32 || I64))
+        if (!opsflag && pass != BackendPass.final_ && (I32 || I64))
             return false;
 
         //printf("cssave(e = %p, regm = %s, opsflag = x%x)\n", e, regm_str(regm), opsflag);
@@ -2456,7 +2456,7 @@ bool evalinregister(elem *e)
                                     /* to be generated              */
     {
         if ((I32 || I64) &&
-            //pass == PASSfinal && // bug 8987
+            //pass == BackendPass.final_ && // bug 8987
             sz <= REGSIZE)
         {
             // Do it only if at least 2 registers are available
@@ -2499,7 +2499,7 @@ bool evalinregister(elem *e)
 regm_t getscratch()
 {
     regm_t scratch = 0;
-    if (pass == PASSfinal)
+    if (pass == BackendPass.final_)
     {
         scratch = allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
                   regcon.immed.mval | regcon.params | mfuncreg);

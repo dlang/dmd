@@ -103,7 +103,6 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
-    virtual TupleExp *toTupleExp();
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -234,7 +233,10 @@ public:
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
     ClassReferenceExp* isClassReferenceExp();
-    virtual BinAssignExp* isBinAssignExp();
+    ThrownExceptionExp* isThrownExceptionExp();
+    UnaExp* isUnaExp();
+    BinExp* isBinExp();
+    BinAssignExp* isBinAssignExp();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -374,13 +376,14 @@ public:
     static StringExp *create(const Loc &loc, const void *s, size_t len);
     static void emplace(UnionExp *pue, const Loc &loc, const char *s);
     bool equals(const RootObject *o) const;
+    char32_t getCodeUnit(size_t i) const;
+    void setCodeUnit(size_t i, char32_t c);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
     Optional<bool> toBool();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    unsigned charAt(uinteger_t i) const;
     void accept(Visitor *v) { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
@@ -402,7 +405,6 @@ public:
     Expressions *exps;
 
     static TupleExp *create(const Loc &loc, Expressions *exps);
-    TupleExp *toTupleExp();
     TupleExp *syntaxCopy();
     bool equals(const RootObject *o) const;
 
@@ -519,10 +521,9 @@ public:
 class NewExp : public Expression
 {
 public:
-    /* thisexp.new(newargs) newtype(arguments)
+    /* newtype(arguments)
      */
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
-    Expressions *newargs;       // Array of Expression's to call new operator
     Type *newtype;
     Expressions *arguments;     // Array of Expression's
 
@@ -532,7 +533,7 @@ public:
     bool onstack;               // allocate on stack
     bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
-    static NewExp *create(const Loc &loc, Expression *thisexp, Expressions *newargs, Type *newtype, Expressions *arguments);
+    static NewExp *create(const Loc &loc, Expression *thisexp, Type *newtype, Expressions *arguments);
     NewExp *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -541,10 +542,9 @@ public:
 class NewAnonClassExp : public Expression
 {
 public:
-    /* thisexp.new(newargs) class baseclasses { } (arguments)
+    /* class baseclasses { } (arguments)
      */
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
-    Expressions *newargs;       // Array of Expression's to call new operator
     ClassDeclaration *cd;       // class being instantiated
     Expressions *arguments;     // Array of Expression's to call class constructor
 
@@ -716,7 +716,6 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    BinAssignExp* isBinAssignExp();
     void accept(Visitor *v) { v->visit(this); }
 };
 

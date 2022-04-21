@@ -387,12 +387,11 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         !loc.filename.strstr(".d-mixin-") &&
         !global.params.mixinOut)
     {
-        import dmd.file_manager : FileManager;
         import dmd.root.filename : FileName;
         const fileName = FileName(loc.filename.toDString);
-        if (auto file = FileManager.fileManager.lookup(fileName))
+        if (auto file = global.fileManager.lookup(fileName))
         {
-            const(char)[][] lines = FileManager.fileManager.getLines(fileName);
+            const(char)[][] lines = global.fileManager.getLines(fileName);
             if (loc.linnum - 1 < lines.length)
             {
                 auto line = lines[loc.linnum - 1];
@@ -549,14 +548,14 @@ private void _vwarningSupplemental(const ref Loc loc, const(char)* format, va_li
  */
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
-    __gshared const(char)* header = "Deprecation: ";
+    static immutable header = "Deprecation: ";
     if (global.params.useDeprecated == DiagnosticReporting.error)
-        verror(loc, format, ap, p1, p2, header);
+        verror(loc, format, ap, p1, p2, header.ptr);
     else if (global.params.useDeprecated == DiagnosticReporting.inform)
     {
         if (!global.gag)
         {
-            verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
+            verrorPrint(loc, Classification.deprecation, header.ptr, format, ap, p1, p2);
         }
         else
         {
@@ -650,15 +649,26 @@ private void _vdeprecationSupplemental(const ref Loc loc, const(char)* format, v
 }
 
 /**
- * Call this after printing out fatal error messages to clean up and exit
- * the compiler.
+ * The type of the fatal error handler
+ * Returns: true if error handling is done, false to do exit(EXIT_FAILURE)
+ */
+alias FatalErrorHandler = bool delegate();
+
+/**
+ * The fatal error handler.
+ * If non-null it will be called for every fatal() call issued by the compiler.
+ */
+__gshared FatalErrorHandler fatalErrorHandler;
+
+/**
+ * Call this after printing out fatal error messages to clean up and exit the
+ * compiler. You can also set a fatalErrorHandler to override this behaviour.
  */
 extern (C++) void fatal()
 {
-    version (none)
-    {
-        halt();
-    }
+    if (fatalErrorHandler && fatalErrorHandler())
+        return;
+
     exit(EXIT_FAILURE);
 }
 
@@ -681,7 +691,7 @@ extern (C++) void halt()
  */
 private void colorSyntaxHighlight(ref OutBuffer buf)
 {
-    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.length, buf.data);
+    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.length, buf[].ptr);
     bool inBacktick = false;
     size_t iCodeStart = 0;
     size_t offset = 0;
@@ -755,7 +765,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
-    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf.data);
+    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);
     res.reserve(buf.length);
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Other);
@@ -800,7 +810,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     }
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Default);
-    //printf("res = '%.*s'\n", cast(int)buf.length, buf.data);
+    //printf("res = '%.*s'\n", cast(int)buf.length, buf[].ptr);
     buf.setsize(0);
     buf.write(&res);
     global.endGagging(gaggedErrorsSave);

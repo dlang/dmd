@@ -232,13 +232,13 @@ final class LibElf : Library
                 if (s - symtab > symtab_size)
                     return corrupt(__LINE__);
                 uint moff = Port.readlongBE(symtab + 4 + i * 4);
-                //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name.ptr);
+                //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + ElfLibHeader.sizeof, name.ptr);
                 for (uint m = mstart; 1; m++)
                 {
                     if (m == objmodules.dim)
                         return corrupt(__LINE__);  // didn't find it
                     ElfObjModule* om = objmodules[m];
-                    //printf("\t%x\n", (char *)om.base - (char *)buf);
+                    //printf("\t%x\n", cast(char *)om.base - cast(char *)buf);
                     if (moff + ElfLibHeader.sizeof == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);

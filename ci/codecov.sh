@@ -11,7 +11,10 @@ then
 fi
 
 # CodeCov gets confused by lst files which it can't match
-rm -rf test/runnable/extra-files test/*.lst
+rm -rf test/runnable/extra-files \
+    test/*.lst \
+    ./*test_results-runner.lst \
+    __main.lst
 
 # Save the file from URL passed as $1 to the location in $2
 doCurl()
@@ -27,9 +30,6 @@ UPLOADER_ARGS=""
 case "$UPLOADER_OS" in
 
     windows)
-        # -C workaround proposed in https://github.com/codecov/codecov-bash/issues/287
-        UPLOADER_ARGS="-C \"$BUILD_SOURCEVERSION\""
-
         UPLOADER="$UPLOADER.exe"
     ;;
 

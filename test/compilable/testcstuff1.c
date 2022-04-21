@@ -180,8 +180,9 @@ _Static_assert(s5(4) == 5, "s5(4) == 5");
 void tokens()
 <%
     char c = 'c';
+    char* cs = u8"utf8-string";
     unsigned short w = L'w';
-    //unsigned short* ws = L"wstring";
+    unsigned short* ws = L"wstring";
     int LLL1[1];
     int LLL2<:1:>;
 %>
@@ -504,3 +505,6 @@ struct S21944
 #1040 "cstuff1.c" 3 4
 };
 
+/********************************/
+
+#line 1050 "cstuff1.c" extra tokens ignored (should warn?)

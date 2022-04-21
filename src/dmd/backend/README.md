@@ -109,4 +109,3 @@ Code Generation
 * **drtlsym.d**       compiler runtime function symbols
 * **out.d**           transition from intermediate representation to code generator
 * **xmm.d**           xmm opcodes
-

@@ -156,7 +156,7 @@ void mkdirFor(string filename)
 Run the given command. The `tryRun` variants return the exit code, whereas the `run` variants
 will assert on a non-zero exit code.
 */
-auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
+int tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
             File stderr = std.stdio.stderr, string[string] env = null)
 {
     std.stdio.stdout.write("[RUN]");
@@ -182,7 +182,7 @@ auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
 }
 
 /// ditto
-auto tryRun(string cmd, File stdout = std.stdio.stdout,
+int tryRun(string cmd, File stdout = std.stdio.stdout,
             File stderr = std.stdio.stderr, string[string] env = null)
 {
     return tryRun(parseCommand(cmd), stdout, stderr, env);

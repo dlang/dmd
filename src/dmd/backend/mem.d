@@ -67,4 +67,3 @@ else
     @trusted
     void mem_ffree(void *) { }
 }
-

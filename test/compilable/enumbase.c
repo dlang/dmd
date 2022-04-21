@@ -23,4 +23,3 @@ enum U2: unsigned {
 enum U3: unsigned long {
     U3_A = 1,
 };
-

@@ -108,31 +108,31 @@ void backend_init()
         exe,
         false, //params.trace,
         params.nofloat,
-        dmdParams.vasm,
+        driverParams.vasm,
         params.verbose,
         params.optimize,
         params.symdebug,
-        dmdParams.alwaysframe,
+        driverParams.alwaysframe,
         params.stackstomp,
         target.cpu >= CPU.avx2 ? 2 : target.cpu >= CPU.avx ? 1 : 0,
         params.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable,
-        dmdParams.dwarf,
+        driverParams.dwarf,
         global.versionString(),
         exfmt,
         params.addMain
     );
 
     out_config_debug(
-        dmdParams.debugb,
-        dmdParams.debugc,
-        dmdParams.debugf,
-        dmdParams.debugr,
+        driverParams.debugb,
+        driverParams.debugc,
+        driverParams.debugf,
+        driverParams.debugr,
         false,
-        dmdParams.debugx,
-        dmdParams.debugy
+        driverParams.debugx,
+        driverParams.debugy
     );
 }
 

@@ -590,4 +590,3 @@ void util_set64(exefmt_t exe)
     _tyalignsize[TYrestrictPtr] = _tyalignsize[TYnptr];
     _tyalignsize[TYfgPtr] = _tyalignsize[TYnptr];
 }
-

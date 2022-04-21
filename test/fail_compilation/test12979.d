@@ -18,4 +18,3 @@ void test3()
         ret;
     }
 }
-

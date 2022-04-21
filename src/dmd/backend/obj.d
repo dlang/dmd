@@ -191,7 +191,7 @@ else
       {
         nothrow:
 
-        Obj init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname)
+        Obj initialize(OutBuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
             mixin(genRetVal("init(objbuf, filename, csegname)"));
         }
@@ -786,5 +786,3 @@ string gen(string pattern, string arg)
     assert(i == length);
     return cast(string)result;
 }
-
-

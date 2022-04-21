@@ -667,3 +667,20 @@ struct S22401
 const int c22401[1] = {0};
 const struct S22401 d22401 = {c22401};
 
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22841
+
+void test22841()
+{
+    int v22841;
+    { unsigned v22841; }
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22961
+int main(argc, argv)
+        int argc;
+        char **argv;
+{
+        return 0;
+}

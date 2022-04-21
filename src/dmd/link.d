@@ -259,7 +259,7 @@ public int runLINK()
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, global.params.mapfile);
             }
-            else if (dmdParams.map)
+            else if (driverParams.map)
             {
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, getMapFilename());
@@ -378,7 +378,7 @@ public int runLINK()
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
-            else if (dmdParams.map)
+            else if (driverParams.map)
             {
                 writeFilename(&cmdbuf, getMapFilename());
             }
@@ -409,7 +409,7 @@ public int runLINK()
                 cmdbuf.writestring("/RC:");
                 writeFilename(&cmdbuf, global.params.resfile);
             }
-            if (dmdParams.map || global.params.mapfile)
+            if (driverParams.map || global.params.mapfile)
                 cmdbuf.writestring("/m");
             version (none)
             {
@@ -587,7 +587,7 @@ public int runLINK()
             argv.push("-Xlinker");
             argv.push("-no_compact_unwind");
         }
-        if (dmdParams.map || global.params.mapfile.length)
+        if (driverParams.map || global.params.mapfile.length)
         {
             argv.push("-Xlinker");
             version (OSX)

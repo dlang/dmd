@@ -1,12 +1,6 @@
 // check semantic analysis of C files
 /* TEST_OUTPUT:
 ---
-fail_compilation/failcstuff2.c(54): Error: `& var` has no effect
-fail_compilation/failcstuff2.c(55): Error: `*ptr` has no effect
-fail_compilation/failcstuff2.c(56): Error: `var` has no effect
-fail_compilation/failcstuff2.c(57): Error: `-var` has no effect
-fail_compilation/failcstuff2.c(58): Error: `~var` has no effect
-fail_compilation/failcstuff2.c(59): Error: `!var` has no effect
 fail_compilation/failcstuff2.c(113): Error: `cast(int)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(114): Error: `sizeof` is not a member of `int`
 fail_compilation/failcstuff2.c(115): Error: `cast(short)3` is not an lvalue and cannot be modified
@@ -24,10 +18,6 @@ fail_compilation/failcstuff2.c(126): Error: `makeS22067().field` is not an lvalu
 fail_compilation/failcstuff2.c(127): Error: `makeS22067().field` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(153): Error: `cast(short)var` is not an lvalue and cannot be modified
 fail_compilation/failcstuff2.c(154): Error: `cast(long)var` is not an lvalue and cannot be modified
-fail_compilation/failcstuff2.c(204): Error: variable `var` is used as a type
-fail_compilation/failcstuff2.c(203):        variable `var` is declared here
-fail_compilation/failcstuff2.c(205): Error: variable `var` is used as a type
-fail_compilation/failcstuff2.c(203):        variable `var` is declared here
 fail_compilation/failcstuff2.c(254): Error: identifier or `(` expected before `)`
 fail_compilation/failcstuff2.c(255): Error: identifier or `(` expected
 fail_compilation/failcstuff2.c(308): Error: cannot modify `const` expression `(*s).p`
@@ -95,15 +85,6 @@ void test22068()
     int var;
     ++(short) var;
     --(long long) var;
-}
-
-#line 200
-/***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=21992
-void test21992(int var)
-{
-    var = (var) ~ 1234;
-    var = (var) ! 1234;
 }
 
 /***************************************************/

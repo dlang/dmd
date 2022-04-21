@@ -353,7 +353,8 @@ private char[] lookupInEnvironment(scope const(char)* cp) nothrow {
     }
     else
     {
-        auto readResult = File.read(cp);
+        import dmd.root.string : toDString;
+        auto readResult = File.read(cp.toDString());
         if (!readResult.success)
             return null;
         // take ownership of buffer (leaking)

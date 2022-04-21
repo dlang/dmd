@@ -13,4 +13,3 @@ void test()
         mov ECX,-EAX;
     }
 }
-

@@ -80,10 +80,10 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
     if (auto e = isExpression(oarg))
     {
-        if (e.op == EXP.dotVariable)
-            return (cast(DotVarExp)e).var;
-        if (e.op == EXP.dotTemplateDeclaration)
-            return (cast(DotTemplateExp)e).td;
+        if (auto dve = e.isDotVarExp())
+            return dve.var;
+        if (auto dte = e.isDotTemplateExp())
+            return dte.td;
     }
     return getDsymbol(oarg);
 }
@@ -166,28 +166,28 @@ shared static this()
 /**
  * get an array of size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument
- * Returns: the size of the type in bytes, d_uns64.max on error
+ * Returns: the size of the type in bytes, ulong.max on error
  */
-d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
+ulong getTypePointerBitmap(Loc loc, Type t, Array!(ulong)* data)
 {
-    d_uns64 sz;
+    ulong sz;
     if (t.ty == Tclass && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
         sz = (cast(TypeClass)t).sym.AggregateDeclaration.size(loc);
     else
         sz = t.size(loc);
     if (sz == SIZE_INVALID)
-        return d_uns64.max;
+        return ulong.max;
 
     const sz_size_t = Type.tsize_t.size(loc);
     if (sz > sz.max - sz_size_t)
     {
         error(loc, "size overflow for type `%s`", t.toChars());
-        return d_uns64.max;
+        return ulong.max;
     }
 
-    d_uns64 bitsPerWord = sz_size_t * 8;
-    d_uns64 cntptr = (sz + sz_size_t - 1) / sz_size_t;
-    d_uns64 cntdata = (cntptr + bitsPerWord - 1) / bitsPerWord;
+    ulong bitsPerWord = sz_size_t * 8;
+    ulong cntptr = (sz + sz_size_t - 1) / sz_size_t;
+    ulong cntdata = (cntptr + bitsPerWord - 1) / bitsPerWord;
 
     data.setDim(cast(size_t)cntdata);
     data.zero();
@@ -196,15 +196,15 @@ d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
     {
         alias visit = Visitor.visit;
     public:
-        extern (D) this(Array!(d_uns64)* _data, d_uns64 _sz_size_t)
+        extern (D) this(Array!(ulong)* _data, ulong _sz_size_t)
         {
             this.data = _data;
             this.sz_size_t = _sz_size_t;
         }
 
-        void setpointer(d_uns64 off)
+        void setpointer(ulong off)
         {
-            d_uns64 ptroff = off / sz_size_t;
+            ulong ptroff = off / sz_size_t;
             (*data)[cast(size_t)(ptroff / (8 * sz_size_t))] |= 1L << (ptroff % (8 * sz_size_t));
         }
 
@@ -242,12 +242,12 @@ d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
 
         override void visit(TypeSArray t)
         {
-            d_uns64 arrayoff = offset;
-            d_uns64 nextsize = t.next.size();
+            ulong arrayoff = offset;
+            ulong nextsize = t.next.size();
             if (nextsize == SIZE_INVALID)
                 error = true;
-            d_uns64 dim = t.dim.toInteger();
-            for (d_uns64 i = 0; i < dim; i++)
+            ulong dim = t.dim.toInteger();
+            for (ulong i = 0; i < dim; i++)
             {
                 offset = arrayoff + i * nextsize;
                 t.next.accept(this);
@@ -340,7 +340,7 @@ d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
 
         override void visit(TypeStruct t)
         {
-            d_uns64 structoff = offset;
+            ulong structoff = offset;
             foreach (v; t.sym.fields)
             {
                 offset = structoff + v.offset;
@@ -355,7 +355,7 @@ d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
         // a "toplevel" class is treated as an instance, while TypeClass fields are treated as references
         void visitClass(TypeClass t)
         {
-            d_uns64 classoff = offset;
+            ulong classoff = offset;
             // skip vtable-ptr and monitor
             if (t.sym.baseClass)
                 visitClass(cast(TypeClass)t.sym.baseClass.type);
@@ -367,9 +367,9 @@ d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
             offset = classoff;
         }
 
-        Array!(d_uns64)* data;
-        d_uns64 offset;
-        d_uns64 sz_size_t;
+        Array!(ulong)* data;
+        ulong offset;
+        ulong sz_size_t;
         bool error;
     }
 
@@ -378,7 +378,7 @@ d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
         pbv.visitClass(cast(TypeClass)t);
     else
         t.accept(pbv);
-    return pbv.error ? d_uns64.max : sz;
+    return pbv.error ? ulong.max : sz;
 }
 
 /**
@@ -406,9 +406,9 @@ private Expression pointerBitmap(TraitsExp e)
         return ErrorExp.get();
     }
 
-    Array!(d_uns64) data;
-    d_uns64 sz = getTypePointerBitmap(e.loc, t, &data);
-    if (sz == d_uns64.max)
+    Array!(ulong) data;
+    ulong sz = getTypePointerBitmap(e.loc, t, &data);
+    if (sz == ulong.max)
         return ErrorExp.get();
 
     auto exps = new Expressions(data.dim + 1);
@@ -568,11 +568,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isDeprecated)
     {
-        if (global.params.vcomplex)
-        {
-            if (isTypeX(t => t.iscomplex() || t.isimaginary()).toBool().hasValue(true))
-                return True();
-        }
+        if (isTypeX(t => t.iscomplex() || t.isimaginary()).toBool().hasValue(true))
+            return True();
         return isDsymX(t => t.isDeprecated());
     }
     if (e.ident == Id.isFuture)
@@ -836,7 +833,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("argument `%s` has no visibility", o.toChars());
             return ErrorExp.get();
         }
-        if (s.semanticRun == PASS.init)
+        if (s.semanticRun == PASS.initial)
             s.dsymbolSemantic(null);
 
         auto protName = visibilityToString(s.visible().kind); // TODO: How about package(names)
@@ -1056,9 +1053,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else if (e.ident == Id.getMember)
         {
-            if (ex.op == EXP.dotIdentifier)
+            if (auto die = ex.isDotIdExp())
                 // Prevent semantic() from replacing Symbol with its initializer
-                (cast(DotIdExp)ex).wantsym = true;
+                die.wantsym = true;
             ex = ex.expressionSemantic(scx);
             return ex;
         }
@@ -1281,7 +1278,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 s = s.isImport().mod;
             }
-            //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s.scope);
+            //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s._scope);
             udad = s.userAttribDecl;
         }
         else
@@ -1517,7 +1514,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         TypeFunction tf = toTypeFunction(o, fd);
 
         if (tf)
-            link = tf.linkage;
+        {
+            link = fd ? fd.linkage : tf.linkage;
+        }
         else
         {
             auto s = getDsymbol(o);
@@ -2130,7 +2129,7 @@ private bool isSame(RootObject o1, RootObject o2, Scope* sc)
         {
             if (ea.op == EXP.function_)
             {
-                if (auto fe = cast(FuncExp)ea)
+                if (auto fe = ea.isFuncExp())
                     return fe.fd;
             }
         }

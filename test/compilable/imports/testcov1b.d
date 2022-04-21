@@ -19,5 +19,3 @@ class ArraySet(Key, int div = 1)
 	return 0;
   }
 }
-
-
