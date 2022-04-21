@@ -91,8 +91,8 @@ ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @
 
     static if (hasElaborateCopyConstructor!T)
     {
-        foreach (i; 0 .. y.length)
-            copyEmplace(y[i], x[length + i]);
+        foreach (i, ref elem; y)
+            copyEmplace(elem, x[length + i]);
     }
     else
     {
