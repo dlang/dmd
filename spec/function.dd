@@ -378,13 +378,30 @@ int foo();
 $(H2 $(LNAME2 pure-functions, Pure Functions))
 
         $(P Pure functions are annotated with the `pure` attribute.
-        )
+        Pure functions cannot directly access global or static
+        mutable state.
+        Pure functions can only call pure functions.)
 
-        $(P Pure functions cannot directly access global or static
-            mutable state.
+        $(P Pure functions can:)
+        $(UL
+        $(LI Modify the local state of the function.)
+        $(LI Throw exceptions.)
         )
+        ---
+        int x;
+        immutable int y;
+        const int* pz;
 
-        $(P Pure functions can only call pure functions.)
+        pure int foo(int i)
+        {
+            i++;     // ok, modifying local state
+            x = i;   // error, modifying global state
+            i = x;   // error, reading mutable global state
+            i = y;   // ok, reading immutable global state
+            i = *pz; // error, reading const global state
+            throw new Exception("failed"); // ok
+        }
+        ---
 
         $(P A pure function can override an impure function,
             but cannot be overridden by an impure function.
@@ -396,12 +413,18 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
             argument.
         )
 
+            $(SPEC_RUNNABLE_EXAMPLE_RUN
             ---
-            pure int foo(int[] arr) { arr[] += 1; return arr.length; }
+            pure size_t foo(int[] arr)
+            {
+                arr[] += 1;
+                return arr.length;
+            }
             int[] a = [1, 2, 3];
             foo(a);
             assert(a == [2, 3, 4]);
             ---
+            )
 
         $(P A $(I strongly pure function) has no parameters with mutable indirections
             and cannot modify any program state external to the function.
@@ -409,6 +432,7 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
 
             ---
             struct S { double x; }
+
             pure int foo(immutable(int)[] arr, int num, S val)
             {
                 //arr[num] = 1; // compile error
@@ -420,7 +444,7 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
 
         $(P A strongly pure function can call a weakly pure function.)
 
-        $(P Pure functions can modify the local state of the function.)
+$(H3 $(LNAME2 pure-special-cases, Special Cases))
 
         $(P A pure function can:)
 
@@ -439,28 +463,14 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
         controlled by a $(GLINK2 version, DebugCondition).
         )
 
-        $(BEST_PRACTICE this relaxation of purity checks in DebugConditions is
+        $(BEST_PRACTICE this relaxation of purity checks in *DebugCondition*s is
         intended solely to make debugging programs easier.)
 
-        $(P A pure function can throw exceptions.)
-
         ---
-        import std.stdio;
-        int x;
-        immutable int y;
-        const int* pz;
-
-        pure int foo(int i,
-                     char* p,
-                     const char* q,
-                     immutable int* s)
+        pure int foo(int i)
         {
-            debug writeln("in foo()"); // ok, impure code allowed in debug statement
-            x = i;   // error, modifying global state
-            i = x;   // error, reading mutable global state
-            i = y;   // ok, reading immutable global state
-            i = *pz; // error, reading const global state
-            return i;
+            debug writeln("i = ", i); // ok, impure code allowed in debug statement
+            ...
         }
         ---
 
@@ -493,50 +503,69 @@ $(H2 $(LNAME2 pure-functions, Pure Functions))
         }
         ---
 
+$(H3 $(LNAME2 pure-factory-functions, Pure Factory Functions))
+
         $(P A $(I pure factory function) is a strongly pure function
         that returns a result that has mutable indirections.
         All mutable
-        memory returned by the call may not be referenced by any other part of the
+        memory returned by the call cannot be referenced by any other part of the
         program, i.e. it is newly allocated by the function.
-        Nor may the mutable
-        references of the result refer to any object that
-        existed before the function call. For example:)
+        The mutable
+        references of the result similarly cannot refer to any object that
+        existed before the function call.
+        This allows the result to be implicitly cast to any qualifier.
+        For example:)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct List { int payload; List* next; }
+
         pure List* make(int a, int b)
         {
             auto result = new List(a, null);
             result.next = new List(b, result);
             return result;
         }
+
+        void main()
+        {
+            auto list = make(1, 2);
+            pragma(msg, typeof(list));       // List*
+
+            immutable ilist = make(1, 2);
+            pragma(msg, typeof(ilist));      // immutable List*
+            pragma(msg, typeof(ilist.next)); // immutable List*
+        }
         ---
         )
 
-        $(P All references in `make`'s result refer to other `List`
+        $(P All references in `make`'s result refer to `List`
         objects created by `make`, and no other part of the program refers to
-        any of these objects.
-        This restriction does not apply to any Exception or Error thrown from the function.
+        any of these objects. Hence the result can initialize an immutable
+        variable.)
+
+        $(P This does not affect any *Exception* or *Error* thrown from the function.
         )
 
-
-        $(P Pure destructors do not benefit of special elision.)
+$(H3 $(LNAME2 pure-optimization, Optimization))
 
         $(IMPLEMENTATION_DEFINED An implementation may assume that a strongly pure
         function that returns a result
         without mutable indirections will have the same effect for all invocations
         with equivalent arguments. It is allowed to memoize the result of the
         function under the assumption that equivalent parameters always produce
-        equivalent results.
+        equivalent results.)
+
+        $(P
         A strongly pure function may still have behavior
         inconsistent with memoization by e.g. using `cast`s or by changing behavior
         depending on the address of its parameters. An implementation is currently
         not required to enforce validity of memoization in all cases.
-        If a strongly pure function throws an Exception or an Error, the
+        If a strongly pure function throws an *Exception* or an *Error*, the
         assumptions related to memoization do not carry to the thrown
         exception.)
 
+        $(P Pure destructors do not benefit of special elision.)
 
 
 $(H2 $(LNAME2 nothrow-functions, Nothrow Functions))
@@ -983,11 +1012,14 @@ void test()
         has its parameters changed, and all derived classes need to have
         their overriding functions updated.)
 
+        $(P The $(LNAME2 final, `final`) method attribute
+        prevents a subclass from overriding the method.)
+
         $(P The following are not virtual:)
         $(UL
         $(LI Struct and union member functions)
         $(LI `final` member functions)
-        $(LI $(DDSUBLINK attribute, static, `static`) member functions)
+        $(LI $(DDSUBLINK spec/attribute, static, `static`) member functions)
         $(LI Member functions which are $(D private) or $(D package))
         $(LI Member template functions)
         )
@@ -1805,15 +1837,6 @@ void venus()
         {
             return &i; // ok
         };
-}
----
-
-$(P `inout ref` parameters imply the `return` attribute.)
-
----
-inout(int)* neptune(inout ref int i)
-{
-    return &i;  // ok
 }
 ---
 
@@ -2955,39 +2978,89 @@ $(H3 $(LNAME2 anonymous, Anonymous Functions and Anonymous Delegates))
 $(H2 $(LNAME2 main, $(D main()) Function))
 
         $(P For console programs, $(D main()) serves as the entry point.
-        It gets called after all the module initializers are run, and
-        after any unittests are run.
+        It gets called after all the $(DDSUBLINK spec/module, staticorder, module initializers)
+        are run, and after any $(DDLINK spec/unittest, Unit Tests, unittests) are run.
         After it returns, all the module destructors are run.
-        $(D main()) must be declared using one of the following forms:
+        $(D main()) must be declared as follows:
+        )
+
+        $(GRAMMAR
+        $(GNAME MainFunction):
+            $(GLINK MainReturnDecl) $(D main$(LPAREN)$(RPAREN)) $(GLINK2 statement, BlockStatement)
+            $(GLINK MainReturnDecl) $(D main$(LPAREN)string[]) $(GLINK_LEX Identifier)$(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
+
+        $(GNAME MainReturnDecl):
+            $(D void)
+            $(D int)
+            $(GLINK2 type, noreturn)
+            $(RELATIVE_LINK2 auto-functions, $(D auto))
         )
 
         $(UL
-        $(LI `void main() { ... }`)
-        $(LI `void main(string[] args) { ... }`)
-        $(LI `int main() { ... }`)
-        $(LI `int main(string[] args) { ... }`)
+        $(LI If `main` returns `void`, the OS will receive a zero value on success.)
+        $(LI If `main` returns `void` or `noreturn`, the OS will receive a non-zero
+        value on abnormal termination, such as an uncaught exception.)
+        $(LI If `main` is declared as `auto`, the inferred return type must be
+        one of `void`, `int` and `noreturn`.)
         )
+
+        $(P If the $(D string[]) parameter is declared, the parameter will hold
+        arguments passed to the program by the OS. The first argument is typically
+        the executable name, followed by any command-line arguments.)
+
+        $(NOTE The runtime can remove any arguments prefixed `--DRT-`.)
+
+        $(NOTE The aforementioned return / parameter types may be annotated with $(D const),
+        $(D immutable). They may also be replaced by $(D enum)'s with matching base types.)
 
         $(P The main function must have D linkage.)
 
         $(P Attributes may be added as needed, e.g. `@safe`, `@nogc`, `nothrow`, etc.)
 
-    $(H3 $(LNAME2 betterc-main, BetterC $(D main()) Function))
+    $(H3 $(LNAME2 betterc-main, $(D extern(C) main()) Function))
 
-        $(P For $(B BetterC) programs, the main function is declared using
-        one of the following forms:)
+        $(P Programs may define an $(D extern(C) main) function as an alternative to the
+        standard $(RELATIVE_LINK2 main, entry point). This form is required for
+        $(DDLINK spec/betterc, Better C, $(B BetterC)) programs.)
 
-        $(UL
-        $(LI `extern (C) int main() { ... }`)
-        $(LI `extern (C) int main(int argc, char** argv) { ... }`)
+        $(P A C $(D main) function must be declared as follows:)
+
+        $(GRAMMAR
+        $(GNAME CMainFunction):
+            $(D extern (C)) $(GLINK MainReturnDecl) $(D main$(LPAREN)$(GLINK CmainParameters)$(OPT)$(RPAREN)) $(GLINK2 statement, BlockStatement)
+
+        $(GNAME CmainParameters):
+            $(D int) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier)
+            $(D int) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier)
         )
 
-        $(P This takes the place of the C main function and serves the identical purpose.)
+        $(P When defined, the first two parameters denote a C-style array (length + pointer)
+        that holds the arguments passed to the program by the OS. The third parameter is a POSIX
+        extension called $(D environ) and holds information about the current environment variables.)
 
-        $(P Module constructors, module destructors, and unittests are not run.)
+        $(NOTE The exemption for storage classes / $(D enum)'s defined for a D $(D main) function
+        also applies to C $(D main) functions.)
+
+        $(P This function takes the place of the C main function and is executed immediately without
+        any setup or teardown associated with a D $(D main) function. Programs reliant on module
+        constructors, module destructors, or unittests need to manually perform (de)initialization
+        using the appropriate $(DDSUBLINK phobos/core_runtime, Runtime, runtime functions).)
 
         $(IMPLEMENTATION_DEFINED Other system-specific entry points may exist, such as
         `WinMain` and `DllMain` on Windows systems.
+        )
+
+        $(NOTE Programs targeting platforms which require a different signature for $(D main) can use
+        a function with $(DDSUBLINK spec/pragma, mangle, explicit mangling):
+
+        ---
+        pragma(mangle, "main")
+        int myMain(int a, int b, int c)
+        {
+            return 0;
+        }
+        ---
+
         )
 
 
@@ -3051,7 +3124,7 @@ void main()
     $(LI Expressions may not reference any global or local
         static variables.)
 
-    $(LI $(DDSUBLINK iasm, asmstatements, AsmStatements) are not permitted)
+    $(LI $(DDSUBLINK spec/iasm, asmstatements, AsmStatements) are not permitted)
 
     $(LI Non-portable casts (eg, from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
@@ -3185,14 +3258,14 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
         )
 
         $(OL
-        $(LI $(DDSUBLINK expression, ArrayLiteral, constructing an array) on the heap)
+        $(LI $(DDSUBLINK spec/expression, ArrayLiteral, constructing an array) on the heap)
         $(LI resizing an array by writing to its $(D .length) property)
-        $(LI $(DDSUBLINK expression, CatExpression, array concatenation))
-        $(LI $(DDSUBLINK expression, simple_assignment_expressions, array appending))
-        $(LI $(DDSUBLINK expression, AssocArrayLiteral, constructing an associative array))
-        $(LI $(DDSUBLINK expression, IndexExpression, indexing) an associative array
+        $(LI $(DDSUBLINK spec/expression, CatExpression, array concatenation))
+        $(LI $(DDSUBLINK spec/expression, simple_assignment_expressions, array appending))
+        $(LI $(DDSUBLINK spec/expression, AssocArrayLiteral, constructing an associative array))
+        $(LI $(DDSUBLINK spec/expression, IndexExpression, indexing) an associative array
             $(NOTE because it may throw $(D RangeError) if the specified key is not present))
-        $(LI $(DDSUBLINK expression, NewExpression, allocating an object with `new`) on the heap)
+        $(LI $(DDSUBLINK spec/expression, NewExpression, allocating an object with `new`) on the heap)
         $(LI calling functions that are not `@nogc`, unless the call is
             in a $(GLINK2 version, ConditionalStatement)
             controlled by a $(GLINK2 version, DebugCondition))
@@ -3660,7 +3733,7 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         ---
 
         $(RATIONALE This provides a way to add external functions to a class as if they were
-        public final member functions.
+        public $(RELATIVE_LINK2 final, `final`) member functions.
         This enables minimizing the number of functions in a class to only the essentials that
         are needed to take care of the object's private state, without the temptation to add
         a kitchen-sink's worth of member functions.

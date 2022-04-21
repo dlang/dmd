@@ -725,26 +725,37 @@ $(GNAME InExpression):
     $(GLINK ShiftExpression) $(D ! in) $(GLINK ShiftExpression)
 )
 
-$(P An associative array can be tested to see if an element is in the array:)
+$(P A container such as an associative array
+    $(DDSUBLINK spec/hash-map, testing_membership, can be tested) to see if it contains a certain key:)
 
         -------------
         int foo[string];
         ...
         if ("hello" in foo)
-            ...
+        {
+            // the string was found
+        }
         -------------
 
-    $(P The $(D in) expression has the same precedence as the
-        relational expressions $(D <), $(D <)$(D =),
-        etc.
-        The return value of the $(I InExpression) is $(D null)
-        if the element is not in the array;
-        if it is in the array it is a pointer to the element.
+    $(P The result of an $(I InExpression) is a pointer for associative
+        arrays.
+        The pointer is $(D null) if the container has no matching key.
+        If there is a match, the pointer points to a value associated
+        with the key.
     )
 
     $(P The $(D !in) expression is the logical negation of the $(D in)
         operation.
     )
+
+    $(P The $(D in) expression has the same precedence as the
+        relational expressions $(D <), $(D <)$(D =), etc.)
+
+    $(NOTE When $(DDSUBLINK spec/operatoroverloading, binary, overloading)
+        `in`, normally only $(TT opBinaryRight) would be defined. This is
+        because the operation is usually not defined by the key type but by
+        the container, which appears on the right hand side of the `in`
+        operator.)
 
 $(H2 $(LNAME2 shift_expressions, Shift Expressions))
 
@@ -864,13 +875,12 @@ $(GNAME CatExpression):
     $(GLINK AddExpression) $(D ~) $(GLINK MulExpression)
 )
 
-    $(P A $(I CatExpression) concatenates arrays, producing
-        a dynamic array with the result. The arrays must be
-        arrays of the same element type. If one operand is an array
-        and the other is of that array's element type, that element
-        is converted to an array of length 1 of that element,
-        and then the concatenation is performed.
-    )
+    $(P A $(I CatExpression) concatenates a container's data with other data, producing
+        a new container.)
+
+    $(P For a dynamic array, the other operand must either be another array or a
+        single value that implicitly converts to the element type of the array.
+        See $(DDSUBLINK spec/arrays, array-concatenation, Array Concatenation).)
 
 $(H2 $(LNAME2 mul_expressions, Mul Expressions))
 
@@ -945,7 +955,7 @@ $(GNAME UnaryExpression):
 
 $(TABLE
     $(THEAD Operator, Description)
-    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK arrays, pointers, pointers))
+    $(TROW `&`, Take memory address of an $(RELATIVE_LINK2 .define-lvalue, lvalue) - see $(DDSUBLINK spec/arrays, pointers, pointers))
     $(TROW `++`, Increment before use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement before use)
     $(TROW `*`, Dereference/indirection - typically for pointers)
@@ -973,13 +983,10 @@ $(H3 $(LNAME2 new_expressions, New Expressions))
 
 $(GRAMMAR
 $(GNAME NewExpression):
-    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type)
-    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
-    $(D new) $(GLINK AllocatorArguments)$(OPT) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D new) $(GLINK2 type, Type)
+    $(D new) $(GLINK2 type, Type) $(D [) $(GLINK AssignExpression) $(D ])
+    $(D new) $(GLINK2 type, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
     $(GLINK2 class, NewAnonClassExpression)
-
-$(GNAME AllocatorArguments):
-    $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
 
 $(GNAME ArgumentList):
     $(GLINK AssignExpression)
@@ -988,19 +995,12 @@ $(GNAME ArgumentList):
 )
 
     $(P $(I NewExpression)s are used to allocate memory on the garbage
-        collected heap (default) or using a class or struct specific allocator.
-    )
-
-    $(DDOC_DEPRECATED If $(I AllocatorArguments) is provided, then
-        the $(I ArgumentList) is passed to the class or struct specific
-        $(DDSUBLINK spec/class, allocators, allocator function) after the size argument.
+        collected heap.
     )
 
     $(P If a $(I NewExpression) is used as an initializer for
         a function local variable with $(D scope) storage class,
-        and the $(I ArgumentList) to $(D new) is empty, then
-        the instance is allocated on the stack rather than the heap
-        or using the class specific allocator.
+        then the instance is allocated on the stack.
     )
 
 $(H3 $(LNAME2 new_multidimensional, Multidimensional Arrays))
@@ -1079,8 +1079,7 @@ $(GNAME DeleteExpression):
 
     $(P If $(I UnaryExpression) is a variable allocated
         on the stack, the class destructor (if any) is called for that
-        instance. Neither the garbage collector nor any class deallocator
-        is called.
+        instance. The garbage collector is not called.
     )
 
     $(UNDEFINED_BEHAVIOR
@@ -1467,48 +1466,59 @@ $(H3 $(LNAME2 slice_to_static_array, Slice Conversion to Static Array))
         -------------
 
         If both $(CODE a) and $(CODE b) are integers (which may be constant-folded),
-        the slice expression can be converted to a static array type
+        the slice expression can be converted to a static array of type
         $(D T[b - a]).
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        int[] arr = [1, 2, 3];
+        int[2] sa = arr[1 .. 3];
+
+        assert(sa == [2, 3]);
+        //sa = arr[0 .. 3]; // error, cannot match length
+        ---
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        void foo(int[2] a)
-        {
-            assert(a == [2, 3]);
-        }
         void bar(ref int[2] a)
         {
             assert(a == [2, 3]);
-            a[0] = 4;
-            a[1] = 5;
-            assert(a == [4, 5]);
+            a = [4, 5];
         }
-        void baz(int[3] a) {}
 
         void main()
         {
             int[] arr = [1, 2, 3];
 
-            foo(arr[1 .. 3]);
-            assert(arr == [1, 2, 3]);
-
+            // slicing an lvalue gives an lvalue
             bar(arr[1 .. 3]);
             assert(arr == [1, 4, 5]);
-
-            //baz(arr[1 .. 3]); // cannot match length
         }
         -------------
         )
 
-$(P The following forms of slice expression can be convertible to a static array
-type:)
+    $(P Certain other forms of slice expression can be implicitly converted to a static array
+        when the slice length can be known at compile-time.
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        -------------
+        int[] da = [1, 2, 3];
+        int i = da[0]; // runtime variable
+
+        int[2] sa = da[i .. i + 2];
+        assert(sa == [2, 3]);
+        -------------
+        )
+
+    $(P The table below shows all the forms recognized:)
 
         $(DL
         $(DT $(D e)) $(DD An expression that contains no side effects.)
         $(DT $(D a), $(D b)) $(DD Integers (that may be constant-folded).)
         )
 
-        $(TABLE2 Computing array lengths during compilation,
+        $(TABLE2 ,
         $(THEAD Form, The length calculated at compile time)
         $(TROW $(D arr[]), The compile time length of $(D arr) if it's known.)
         $(TROW $(D arr[a .. b]),               $(D b - a))
@@ -1680,15 +1690,24 @@ $(H3 $(LNAME2 array_literals, Array Literals))
 
 $(GRAMMAR
 $(GNAME ArrayLiteral):
-    $(D [) $(GLINK ArgumentList)$(OPT) $(D ])
+    $(D [) $(I ArrayMemberInitializations)$(OPT) $(D ])
+
+$(GNAME ArrayMemberInitializations):
+    $(I ArrayMemberInitialization)
+    $(I ArrayMemberInitialization) $(D ,)
+    $(I ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
+
+$(GNAME ArrayMemberInitialization):
+    $(GLINK2 declaration, NonVoidInitializer)
+    $(GLINK AssignExpression) $(D :) $(GLINK2 declaration, NonVoidInitializer)
 )
 
-    $(P Array literals are a comma-separated list of $(GLINK AssignExpression)s
+    $(P An array literal is a comma-separated list of expressions
         between square brackets $(D [) and $(D ]).
-        The $(I AssignExpression)s form the elements of a dynamic array,
-        the length of the array is the number of elements.
-        The common type of the all elements is taken to be the type of
-        the array element, and all elements are implicitly converted
+        The expressions form the elements of a dynamic array.
+        The length of the array is the number of elements.
+        The common type of all the elements is taken to be the
+        array element type, and each expression is implicitly converted
         to that type.)
 
         ---
@@ -1697,41 +1716,20 @@ $(GNAME ArrayLiteral):
         ---
 
     $(P By default, an array literal is typed as a dynamic array, but the element
-        count is known at compile time. So all array literals can be
-        implicitly converted to static array types. Slicing a dynamic array with
-        statically known bounds also allows conversion to a static array.)
+        count is known at compile time. Therefore, an array literal can be
+        implicitly converted to a static array of the same length.)
 
-        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        void foo(long[2] a)
-        {
-            assert(a == [2, 3]);
-        }
-        void bar(ref long[2] a)
-        {
-            assert(a == [2, 3]);
-            a = [4, 5];
-            assert(a == [4, 5]);
-        }
-
-        void main()
-        {
-            long[] arr = [1, 2, 3];
-
-            foo(arr[1 .. 3]);
-            assert(arr == [1, 2, 3]);
-
-            bar(arr[1 .. 3]);
-            assert(arr == [1, 4, 5]);
-
-            //foo(arr[0 .. 3]); // cannot match length
-        }
+        int[2] sa = [1, 2];
         -------------
-        )
 
-    $(P If any of the arguments in the $(GLINK ArgumentList) are
-        a $(I ValueSeq), then the elements of the $(I ValueSeq)
-        are inserted as arguments in place of the sequence.
+    $(NOTE Slicing a dynamic array with a statically known slice length also
+        $(RELATIVE_LINK2 slice_to_static_array, allows conversion) to a static array.)
+
+    $(P If any $(I ArrayMemberInitialization) is a
+        $(DDSUBLINK spec/template, TemplateParameterSequence, ValueSeq),
+        then the elements of the $(I ValueSeq)
+        are inserted as expressions in place of the sequence.
     )
 
     $(P Escaping array literals are allocated on the memory managed heap.
@@ -1743,6 +1741,27 @@ $(GNAME ArrayLiteral):
             return [1, 2, 3];
         }
         ---
+
+    $(P To initialize an element at a particular index, use the
+        *AssignExpression* `:` *NonVoidInitializer* syntax.
+        The *AssignExpression* must be known at compile-time.
+        Any missing elements will be initialized to the default value
+        of the element type.
+        Note that if the array type is not specified, the literal will
+        be parsed as an
+        $(RELATIVE_LINK2 associative_array_literals, associative array).)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        int n = 4;
+        auto aa = [0:1, 3:n]; // associative array `int[int]`
+
+        int[] a = [1, 3:n, 5];
+        assert(a == [1, 0, 0, n, 5]);
+
+        //int[] e = [n:2]; // error, n not known at compile-time
+        ---
+        )
 
 $(H3 $(LNAME2 cast_array_literal, Casting))
 
@@ -2281,9 +2300,14 @@ $(GNAME TypeSpecialization):
 )
 
     $(P $(I IsExpression)s are evaluated at compile time and are
-        used for checking for valid types, comparing types for equivalence,
-        determining if one type can be implicitly converted to another,
-        and deducing the subtypes of a type.
+        used for:)
+    $(UL
+    $(LI checking for valid types)
+    $(LI comparing types for equivalence)
+    $(LI determining if one type can be implicitly converted to another)
+    $(LI deducing the subtypes of a type)
+    )
+    $(P
         The result of an $(I IsExpression) is a boolean of value `true`
         if the condition is satisfied. If the condition is not satisfied,
         the result is a boolean of value `false`.
@@ -2294,30 +2318,23 @@ $(GNAME TypeSpecialization):
         If it is not semantically correct, the condition is not satisfied.
     )
 
-    $(P $(IDENTIFIER) is declared to be an alias of the resulting
-        type if the condition is satisfied. The $(IDENTIFIER) forms
-        can only be used if the $(I IsExpression) appears in a
-        $(GLINK2 version, StaticIfCondition).
-    )
-
     $(P $(I TypeSpecialization) is the type that $(I Type) is being
         compared against.
     )
 
-    $(P The forms of the $(I IsExpression) are:
-    )
+$(H4 $(LNAME2 basic-forms, Basic Forms))
 
-    $(OL
+        $(H5 $(LNAME2 is-type, $(D is $(LPAREN)) $(I Type) $(D $(RPAREN))))
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(D $(RPAREN))$(BR)
+        $(P
         The condition is satisfied if $(D Type) is semantically
         correct (it must be syntactically correct regardless).
-
+        )
 -------------
-alias int func(int);    // func is a alias to a function type
+alias int Func(int);    // Func is a alias to a function type
 void foo()
 {
-    if (is(func[]))     // not satisfied because arrays of
+    if (is(Func[]))     // not satisfied because arrays of
                         // functions are not allowed
         writeln("satisfied");
     else
@@ -2327,14 +2344,15 @@ void foo()
         ...
 }
 -------------
-        )
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+        $(H5 $(LNAME2 is-type-convert, $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D $(RPAREN))))
+
+        $(P
         The condition is satisfied if $(I Type) is semantically
         correct and it is the same as
         or can be implicitly converted to $(I TypeSpecialization).
         $(I TypeSpecialization) is only allowed to be a $(I Type).
-
+        )
 -------------
 alias Bar = short;
 void foo()
@@ -2346,32 +2364,13 @@ void foo()
         writeln("not satisfied");
 }
 -------------
-        )
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+        $(H5 $(LNAME2 is-type-equal, $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
+        $(P
         The condition is satisfied if $(I Type) is semantically correct and is
         the same type as $(I TypeSpecialization).
-
-        If $(I TypeSpecialization) is one of
-
-                $(D struct)
-                $(D union)
-                $(D class)
-                $(D interface)
-                $(D enum)
-                $(D function)
-                $(D delegate)
-                $(D const)
-                $(D immutable)
-                $(D shared)
-                $(D module)
-                $(D package)
-
-        then the condition is satisfied if $(I Type) is one of those. $(DDSUBLINK
-        spec/module, package-module, Package modules) are considered to be both
-        packages and modules.
-
+        )
 -------------
 alias Bar = short;
 void foo()
@@ -2383,13 +2382,54 @@ void foo()
         writeln("not satisfied");
 }
 -------------
-        )
+        $(P
+        If $(I TypeSpecialization) is one of
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D $(RPAREN))$(BR)
+                $(D struct)
+                $(D union)
+                $(D class)
+                $(D interface)
+                $(D enum)
+                $(D __vector)
+                $(D function)
+                $(D delegate)
+                $(D const)
+                $(D immutable)
+                $(D shared)
+                $(D module)
+                $(D package)
+
+        then the condition is satisfied if $(I Type) is one of those.
+        )
+---
+static assert(is(Object == class));
+
+int i;
+static assert(!is(i == const));
+---
+        $(P $(DDSUBLINK
+        spec/module, package-module, Package modules) are considered to be both
+        packages and modules.
+        )
+        $(P $(B See also:) $(DDLINK spec/traits, Traits, Traits).)
+
+$(H4 $(LNAME2 is-identifier, Identifier Forms))
+
+    $(P *Identifier* is declared to be an alias of the resulting
+        type if the condition is satisfied. The *Identifier* forms
+        can only be used if the $(I IsExpression) appears in a
+        $(GLINK2 version, StaticIfCondition) or $(GLINK2 version, StaticAssert).
+    )
+
+        $(H5 $(LNAME2 is-type-identifier, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D $(RPAREN))))
+
+        $(P
         The condition is satisfied if $(I Type) is semantically
         correct. If so, $(I Identifier)
         is declared to be an alias of $(I Type).
+        )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------
 alias Bar = short;
 void foo()
@@ -2399,16 +2439,21 @@ void foo()
     else
         alias S = long;
 
-    writeln(typeid(S)); // prints "short"
-    if (is(Bar T))      // error, Identifier T form can
-                        // only be in StaticIfConditions
-        ...
+    pragma(msg, S); // short
+
+    // if T was defined, it remains in scope
+    if (is(T))
+        pragma(msg, T); // short
+
+    //if (is(Bar U)) {} // error, cannot declare U here
 }
 -------------
+)
+
+        $(H5 $(LNAME2 is-identifier-convert, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))
         )
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
-
+        $(P
         The condition is satisfied if $(I Type) is semantically
         correct and it is the same as
         or can be implicitly converted to $(I TypeSpecialization).
@@ -2416,55 +2461,81 @@ void foo()
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
         dependent on $(I Identifier), the deduced type.
+        )
 
--------------
-alias Bar = int;
-alias Abc = long*;
-void foo()
-{
+    ---
+    alias Bar = int;
+
     static if (is(Bar T : int))
         alias S = T;
     else
         alias S = long;
 
     writeln(typeid(S));  // prints "int"
+    ---
+    ---
+    alias Abc = long*;
 
     static if (is(Abc U : U*))
     {
         U u;
         writeln(typeid(typeof(u)));  // prints "long"
     }
-}
--------------
+    ---
 
+        $(P
         The way the type of $(I Identifier) is determined is analogous
         to the way template parameter types are determined by
         $(GLINK2 template, TemplateTypeParameterSpecialization).
         )
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+        $(H5 $(LNAME2 is-identifier-equal, $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))))
 
-
+        $(P
         The condition is satisfied if $(I Type) is semantically
         correct and is the same as $(I TypeSpecialization).
         The $(I Identifier) is declared to be either an alias of the
         $(I TypeSpecialization) or, if $(I TypeSpecialization) is
         dependent on $(I Identifier), the deduced type.
+        )
 
+    ---
+    alias Bar = short;
+
+    static if (is(Bar T == int))   // not satisfied, short is not int
+        alias S = T;
+
+    alias U = T;                   // error, T is not defined
+    ---
+
+        $(P
         If $(I TypeSpecialization) is one of
-               $(D struct)
+                $(D struct)
                 $(D union)
                 $(D class)
                 $(D interface)
                 $(D enum)
+                $(D __vector)
                 $(D function)
                 $(D delegate)
-           $(D const)
+                $(D const)
                 $(D immutable)
                 $(D shared)
 
         then the condition is satisfied if $(I Type) is one of those.
+        *TypeSpecialization* can also match the following keywords:
+        )
+        $(TABLE
+        $(THEAD keyword, condition)
+        $(TROW `super`, `true` if *Type* is a class or interface)
+        $(TROW `return`,
+            $(ARGS `true` is *Type* is a function, delegate or function pointer))
+        $(TROW `__parameters`,
+            $(ARGS `true` is *Type* is a function, delegate or function pointer))
+        )
+        $(P
         Furthermore, $(I Identifier) is set to be an alias of the type:
+        )
 
         $(TABLE_2COLS ,
         $(THEAD keyword, alias type for $(I Identifier))
@@ -2475,6 +2546,7 @@ void foo()
         $(TROW $(D interface), $(I Type))
         $(TROW $(D super), $(I TypeSeq) of base classes and interfaces)
         $(TROW $(D enum), the base type of the enum)
+        $(TROW $(D __vector), the static array type of the vector)
         $(TROW $(D function), $(ARGS $(I TypeSeq) of the function parameter types.
              For C- and D-style variadic functions,
              only the non-variadic parameters are included.
@@ -2495,75 +2567,83 @@ void foo()
 
         )
 
--------------
-alias Bar = short;
-enum E : byte { Emember }
-void foo()
-{
-    static if (is(Bar T == int))   // not satisfied, short is not int
-        alias S = T;
-    alias U = T;                   // error, T is not defined
+    ---
+    enum E : byte { Emember }
 
     static if (is(E V == enum))    // satisfied, E is an enum
         V v;                       // v is declared to be a byte
-}
--------------
 
-        )
+    pragma(msg, V); // byte
+    ---
 
-        $(LI $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
-             $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
-             $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
-             $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(H4 $(LNAME2 is-parameter-list, Parameter List Forms))
 
+$(GRAMMAR
+$(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+$(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+)
+
+        $(P
         More complex types can be pattern matched; the
-        $(GLINK2 template, TemplateParameterList) declares symbols based on the
+        $(I TemplateParameterList) declares symbols based on the
         parts of the pattern that are matched, analogously to the
         way implied template parameters are matched.
+        )
 
----
-import std.stdio, std.typecons;
+$(P $(B Example:) Matching a Template Instantiation))
 
-void main()
-{
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    struct Tuple(T...)
+    {
+        // ...
+    }
     alias Tup = Tuple!(int, string);
-    alias AA = long[string];
 
     static if (is(Tup : Template!Args, alias Template, Args...))
     {
         writeln(__traits(isSame, Template, Tuple)); // true
-        writeln(is(Template!(int, string) == Tup));  // true
+        writeln(is(Template!(int, string) == Tup));  // true, same struct
         writeln(typeid(Args[0]));  // int
         writeln(typeid(Args[1]));  // immutable(char)[]
     }
+    ---
+)
+
+$(P $(B Example:) Matching an Associative Array)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    alias AA = long[string];
 
     static if (is(AA T : T[U], U : string))
     {
-        writeln(typeid(T));  // long
-        writeln(typeid(U));  // string
+        pragma(msg, T);  // long
+        pragma(msg, U);  // string
     }
 
-    static if (is(AA A : A[B], B : int))
-    {
-        assert(0);  // should not match, as B is not an int
-    }
+    // no match, B is not an int
+    static assert(!is(AA A : A[B], B : int));
+    ---
+)
 
+$(P $(B Example:) Matching a Static Array)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
     static if (is(int[10] W : W[len], int len))
     {
         writeln(typeid(W));  // int
         writeln(len);        // 10
     }
 
-    static if (is(int[10] X : X[len], int len : 5))
-    {
-        assert(0);  // should not match, len should be 10
-    }
-}
----
+    // no match, len should be 10
+    static assert(!is(int[10] X : X[len], int len : 5));
+    ---
+)
 
-        )
-
-    )
 
 $(H2 $(LNAME2 specialkeywords, Special Keywords))
 

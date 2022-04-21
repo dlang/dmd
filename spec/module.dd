@@ -20,8 +20,6 @@ $(GNAME DeclDef):
     $(GLINK2 class, Constructor)
     $(GLINK2 class, Destructor)
     $(GLINK2 struct, Postblit)
-    $(GLINK2 class, Allocator)
-    $(GLINK2 class, Deallocator)
     $(GLINK2 class, Invariant)
     $(GLINK2 unittest, UnitTest)
     $(GLINK2 class, AliasThis)

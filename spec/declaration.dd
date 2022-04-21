@@ -4,19 +4,36 @@ $(SPEC_S Declarations,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 grammar, Grammar))
+
 $(GRAMMAR
 $(GNAME Declaration):
     $(GLINK2 function, FuncDeclaration)
     $(GLINK VarDeclarations)
     $(GLINK AliasDeclaration)
     $(GLINK AliasAssign)
-    $(GLINK2 struct, AggregateDeclaration)
+    $(GLINK AggregateDeclaration)
     $(GLINK2 enum, EnumDeclaration)
     $(GLINK2 module, ImportDeclaration)
     $(GLINK2 version, ConditionalDeclaration)
     $(GLINK2 version, StaticForeachDeclaration)
     $(GLINK2 version, StaticAssert)
 )
+
+$(P See also $(GLINK2 module, DeclDef).
+)
+
+$(H3 $(LNAME2 aggregates, Aggregates))
+
+$(GRAMMAR
+$(GNAME AggregateDeclaration):
+    $(GLINK2 class, ClassDeclaration)
+    $(GLINK2 interface, InterfaceDeclaration)
+    $(GLINK2 struct, StructDeclaration)
+    $(GLINK2 struct, UnionDeclaration)
+)
+
+$(H3 $(LNAME2 variable-declarations, Variable Declarations))
 
 $(GRAMMAR
 $(GNAME VarDeclarations):
@@ -35,10 +52,7 @@ $(GNAME DeclaratorIdentifierList):
     $(GLINK DeclaratorIdentifier)
     $(GLINK DeclaratorIdentifier) $(D ,) $(GSELF DeclaratorIdentifierList)
 
-$(GNAME DeclaratorIdentifier):
-    $(GLINK VarDeclaratorIdentifier)
-
-$(GNAME VarDeclaratorIdentifier):
+$(GNAME DeclaratorIdentifier):$(LEGACY_LNAME2 VarDeclaratorIdentifier)
     $(GLINK_LEX Identifier)
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK Initializer)
 
@@ -48,6 +62,8 @@ $(GNAME Declarator):
 $(GNAME VarDeclarator):
     $(GLINK2 type, TypeSuffixes)$(OPT) $(GLINK_LEX Identifier)
 )
+
+$(H3 $(LNAME2 storage-classes, Storage Classes))
 
 $(GRAMMAR
 $(GNAME StorageClasses):
@@ -79,43 +95,20 @@ $(MULTICOLS 5,     $(GLINK2 attribute, LinkageAttribute)
     $(D ref))
 )
 
+$(H3 $(LNAME2 initializers, Initializers))
+
 $(GRAMMAR
 $(GNAME Initializer):
     $(GLINK VoidInitializer)
     $(GLINK NonVoidInitializer)
 
 $(GNAME NonVoidInitializer):
-    $(GLINK ExpInitializer)
-    $(GLINK ArrayInitializer)
-    $(GLINK StructInitializer)
-
-$(GNAME ExpInitializer):
-    $(GLINK2 expression, AssignExpression)
-
-$(GNAME ArrayInitializer):
-    $(D [) $(GLINK ArrayMemberInitializations)$(OPT) $(D ])
-
-$(GNAME ArrayMemberInitializations):
-    $(GLINK ArrayMemberInitialization)
-    $(GLINK ArrayMemberInitialization) $(D ,)
-    $(GLINK ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
-
-$(GNAME ArrayMemberInitialization):
-    $(GLINK NonVoidInitializer)
-    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK NonVoidInitializer)
-
-$(GNAME StructInitializer):
-    $(D {) $(GLINK StructMemberInitializers)$(OPT) $(D })
-
-$(GNAME StructMemberInitializers):
-    $(GLINK StructMemberInitializer)
-    $(GLINK StructMemberInitializer) $(D ,)
-    $(GLINK StructMemberInitializer) $(D ,) $(GSELF StructMemberInitializers)
-
-$(GNAME StructMemberInitializer):
-    $(GLINK NonVoidInitializer)
-    $(GLINK_LEX Identifier) $(D :) $(GLINK NonVoidInitializer)
+    $(GLINK2 expression, AssignExpression)$(LEGACY_LNAME2 ExpInitializer)
+    $(GLINK2 expression, ArrayLiteral)$(LEGACY_LNAME2 ArrayInitializer)
+    $(GLINK2 struct, StructInitializer)$(LEGACY_LNAME2 StructInitializer)
 )
+
+$(P See also $(GLINK VoidInitializer).)
 
 $(H2 $(LNAME2 declaration_syntax, Declaration Syntax))
 

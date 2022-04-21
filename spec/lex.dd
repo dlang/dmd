@@ -291,7 +291,6 @@ $(GNAME StringLiteral):
     $(GLINK AlternateWysiwygString)
     $(GLINK DoubleQuotedString)
 
-    $(GLINK HexString)
     $(GLINK DelimitedString)
     $(GLINK TokenString)
 )
@@ -342,18 +341,6 @@ $(GNAME EscapeSequence):
     $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
     $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
     $(B \\) $(GLINK2 entity, NamedCharacterEntity)
-
-$(GNAME HexString):
-    $(B x") $(GLINK HexStringChars)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
-
-$(GNAME HexStringChars):
-    $(GLINK HexStringChar)
-    $(GLINK HexStringChar) $(GSELF HexStringChars)
-
-$(GNAME HexStringChar):
-    $(GLINK HexDigit)
-    $(GLINK WhiteSpace)
-    $(GLINK EndOfLine)
 
 $(GNAME StringPostfix):
     $(B c)
@@ -408,7 +395,7 @@ $(GNAME TokenStringToken):
 
         $(P
         A string literal is either a double quoted string, a wysiwyg quoted
-        string, a delimited string, a token string, or a hex string.
+        string, a delimited string, or a token string.
         )
 
         $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
@@ -467,23 +454,6 @@ $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
         "        // string is 3 characters,
                  // 'a', 'b', and a linefeed
         ---
-
-$(H3 $(LNAME2 hex_strings, Hex Strings))
-
-        $(P Hex strings allow string literals to be created using hex data.
-        The hex data need not form valid UTF characters.
-        )
-
-$(D_CODE
-x"0A"              // same as "\x0A"
-x"00 FBCD 32FD 0A" // same as
-                   // "\x00\xFB\xCD\x32\xFD\x0A"
-)
-
-$(P Whitespace and newlines are ignored, so the hex data can be easily
-formatted. The number of hex characters must be a multiple of 2.)
-
-$(P Note: Hex Strings are $(B deprecated). Please use $(REF hexString, std,conv) instead.)
 
 $(H3 $(LNAME2 delimited_strings, Delimited Strings))
 
@@ -586,36 +556,39 @@ $(H2 $(LNAME2 escape_sequences, Escape Sequences))
 
     $(LONGTABLE_2COLS 0.8, Escape Sequences,
     $(THEAD Sequence, Meaning),
-    $(TROW $(D \'), Literal single-quote: $(D '))
-    $(TROW $(D \"), Literal double-quote: $(D "))
-    $(TROW $(D \?), Literal question mark: $(D ?))
-    $(TROW $(D \\), Literal backslash: $(D \))
-    $(TROW $(D \0), Binary zero (NUL, U+0000).)
-    $(TROW $(D \a), BEL (alarm) character (U+0007).)
-    $(TROW $(D \b), Backspace (U+0008).)
-    $(TROW $(D \f), Form feed (FF) (U+000C).)
-    $(TROW $(D \n), End-of-line (U+000A).)
-    $(TROW $(D \r), Carriage return (U+000D).)
-    $(TROW $(D \t), Horizontal tab (U+0009).)
-    $(TROW $(D \v), Vertical tab (U+000B).)
-    $(TROW $(D \x)$(I nn), Byte value in hexadecimal$(COMMA) where $(I nn) is
-        specified as two hexadecimal digits.$(BR)For example: $(D \xFF)
-        represents the character with the value 255.)
-    $(TROW $(D \)$(I n)$(BR)$(D \)$(I nn)$(BR)$(D \)$(I nnn), Byte value in
-        octal.$(BR)For example: $(D \101) represents the character with the
+    $(TROW `\'`, Literal single-quote: $(D '))
+    $(TROW `\"`, Literal double-quote: $(D "))
+    $(TROW `\?`, Literal question mark: $(D ?))
+    $(TROW `\\`, Literal backslash: `\`)
+    $(TROW `\0`, Binary zero (NUL, U+0000).)
+    $(TROW `\a`, BEL (alarm) character (U+0007).)
+    $(TROW `\b`, Backspace (U+0008).)
+    $(TROW `\f`, Form feed (FF) (U+000C).)
+    $(TROW `\n`, End-of-line (U+000A).)
+    $(TROW `\r`, Carriage return (U+000D).)
+    $(TROW `\t`, Horizontal tab (U+0009).)
+    $(TROW `\v`, Vertical tab (U+000B).)
+    $(TROW `\x`$(I nn), Byte value in hexadecimal$(COMMA) where $(I nn) is
+        specified as two hexadecimal digits.$(BR)For example: `\xFF`
+        represents the character with the value 255.$(BR)
+        See also: $(REF hexString, std,conv).)
+    $(TROW `\`$(I n)$(BR)`\`$(I nn)$(BR)`\`$(I nnn), Byte value in
+        octal.$(BR)For example: `\101` represents the character with the
         value 65 ($(D 'A')). Analogous to hexadecimal characters$(COMMA)
-        the largest byte value is $(D \377) (= $(D \xFF) in hexadecimal
-        or $(D 255) in decimal))
-    $(TROW $(D \u)$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
+        the largest byte value is `\377` (= `\xFF` in hexadecimal
+        or $(D 255) in decimal)$(BR)
+        See also: $(REF octal, std,conv).)
+    $(TROW `\u`$(I nnnn), Unicode character U+$(I nnnn)$(COMMA) where
         $(I nnnn) are four hexadecimal digits.$(BR)For example$(COMMA)
-        $(D \u03B3) represents the Unicode character $(GAMMA) (U+03B3 - GREEK SMALL LETTER GAMMA).)
-    $(TROW $(D \U)$(I nnnnnnnn), Unicode character U+$(I nnnnnnnn)$(COMMA)
+        `\u03B3` represents the Unicode character $(GAMMA) (U+03B3 - GREEK SMALL LETTER GAMMA).)
+    $(TROW `\U`$(I nnnnnnnn), Unicode character U+$(I nnnnnnnn)$(COMMA)
         where $(I nnnnnnnn) are 8 hexadecimal digits.$(BR)For example$(COMMA)
-        $(D \U0001F603) represents the Unicode character U+1F603 (SMILING FACE
+        `\U0001F603` represents the Unicode character U+1F603 (SMILING FACE
         WITH OPEN MOUTH).)
-    $(TROW $(D \)$(I name), Named character entity from the HTML5
-        specification. These names begin with $(CODE_AMP) and end with $(D ;), e.g.$(COMMA) $(D $(AMP)euro;).
-        See $(GLINK2 entity, NamedCharacterEntity).)
+    $(TROW `\`$(I name), $(ARGS Named character entity from the HTML5
+        specification. $(BR)
+        These names begin with $(CODE_AMP) and end with $(D ;), e.g.$(COMMA) $(D $(AMP)euro;).
+        See $(GLINK2 entity, NamedCharacterEntity).))
     )
 
 $(H2 $(LNAME2 characterliteral, Character Literals))
@@ -995,7 +968,7 @@ $(MULTICOLS 4,
     $(LINK2 expression.html#AssertExpression, $(D assert))
     $(LINK2 attribute.html#auto, $(D auto))
 
-    $(LINK2 function.html#BodyStatement, $(D body))
+    $(GDEPRECATED $(LINK2 function.html#BodyStatement, $(D body)))
     $(LINK2 type.html, $(D bool))
     $(LINK2 statement.html#BreakStatement, $(D break))
     $(LINK2 type.html, $(D byte))
@@ -1004,7 +977,7 @@ $(MULTICOLS 4,
     $(LINK2 expression.html#CastExpression, $(D cast))
     $(LINK2 statement.html#TryStatement, $(D catch))
     $(GDEPRECATED $(LINK2 type.html, $(D cdouble)))
-    $(LINK2 type.html, $(D cent))
+    $(GDEPRECATED $(LINK2 type.html, $(D cent)))
     $(GDEPRECATED $(LINK2 type.html, $(D cfloat)))
     $(LINK2 type.html, $(D char))
     $(LINK2 class.html, $(D class))
@@ -1093,7 +1066,7 @@ $(MULTICOLS 4,
     $(LINK2 type.html#Typeof, $(D typeof))
 
     $(LINK2 type.html, $(D ubyte))
-    $(LINK2 type.html, $(D ucent))
+    $(GDEPRECATED $(LINK2 type.html, $(D ucent)))
     $(LINK2 type.html, $(D uint))
     $(LINK2 type.html, $(D ulong))
     $(LINK2 struct.html, $(D union))
@@ -1154,12 +1127,16 @@ $(GNAME SpecialTokenSequence):
 )
 $(GRAMMAR_LEX
 $(GNAME Filespec):
-    $(B ") $(GLINK Characters)$(OPT) $(B ")
+    $(B ") $(GLINK DoubleQuotedCharacters)$(OPT) $(B ")
 )
 
         $(P Special token sequences are processed by the lexical analyzer, may
         appear between any other tokens, and do not affect the syntax
         parsing.
+        )
+
+        $(P Special token sequences are terminated by the first newline that
+            follows the first $(D #) token at the beginning of the sequence.
         )
 
         $(P There is currently only one special token sequence, $(D #line).
@@ -1168,10 +1145,6 @@ $(GNAME Filespec):
         $(P This sets the current source line number to $(GLINK IntegerLiteral),
         and optionally the current source file name to $(GLINK Filespec),
         beginning with the next line of source text.
-        )
-
-        $(P The backslash character is not treated specially inside
-        $(GLINK Filespec) strings.
         )
 
         $(P For example:

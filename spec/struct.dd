@@ -4,23 +4,19 @@ $(SPEC_S Structs and Unions,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 intro, Introduction))
+
     $(P Whereas classes are reference types, structs are value types.
     Structs and unions are simple aggregations of data and their
     associated operations on that data.
     )
 
 $(GRAMMAR
-$(GNAME AggregateDeclaration):
-    $(GLINK2 class, ClassDeclaration)
-    $(GLINK2 interface, InterfaceDeclaration)
-    $(GLINK StructDeclaration)
-    $(GLINK UnionDeclaration)
-
 $(GNAME StructDeclaration):
     $(D struct) $(GLINK_LEX Identifier) $(D ;)
     $(D struct) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
     $(GLINK2 template, StructTemplateDeclaration)
-    $(GLINK AnonStructDeclaration)
+    $(I AnonStructDeclaration)
 
 $(GNAME AnonStructDeclaration):
     $(D struct) $(GLINK AggregateBody)
@@ -29,7 +25,7 @@ $(GNAME UnionDeclaration):
     $(D union) $(GLINK_LEX Identifier) $(D ;)
     $(D union) $(GLINK_LEX Identifier) $(GLINK AggregateBody)
     $(GLINK2 template, UnionTemplateDeclaration)
-    $(GLINK AnonUnionDeclaration)
+    $(I AnonUnionDeclaration)
 
 $(GNAME AnonUnionDeclaration):
     $(D union) $(GLINK AggregateBody)
@@ -106,7 +102,7 @@ $(H2 $(LNAME2 POD, Plain Old Data))
     $(OL
     $(LI it is not nested)
     $(LI it has no postblits, copy constructors, destructors, or assignment operators)
-    $(LI it has no `ref` fields or fields that are themselves non-POD)
+    $(LI it has no fields that are themselves non-POD)
     )
 
     $(BEST_PRACTICE Structs or unions that interface with C code should be POD.)
@@ -114,7 +110,7 @@ $(H2 $(LNAME2 POD, Plain Old Data))
 
 $(H2 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
 
-    $(P Opaque struct and union declarations do not have a $(GLINK AggregateBody):)
+    $(P Opaque struct and union declarations do not have an $(GLINK AggregateBody):)
 
 ---
 struct S;
@@ -140,7 +136,9 @@ S* p;     // ok, knowledge of members is not necessary
         $(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
 
 
-$(H2 $(LNAME2 default_struct_init, Default Initialization of Structs))
+$(H2 $(LNAME2 initialization, Initialization))
+
+$(H3 $(LNAME2 default_struct_init, Default Initialization of Structs))
 
         $(P Struct fields are by default initialized to whatever the
         $(GLINK2 declaration, Initializer) for the field is, and if none is supplied, to
@@ -158,10 +156,24 @@ $(H2 $(LNAME2 default_struct_init, Default Initialization of Structs))
 
         $(P The default initializers may not contain references to mutable data.)
 
-$(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
+$(H3 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
-        $(P If a $(GLINK2 declaration, StructInitializer) is supplied, the
-        fields are initialized by the $(GLINK2 declaration, StructMemberInitializer) syntax.
+$(GRAMMAR
+$(GNAME StructInitializer):
+    $(D {) $(I StructMemberInitializers)$(OPT) $(D })
+
+$(GNAME StructMemberInitializers):
+    $(I StructMemberInitializer)
+    $(I StructMemberInitializer) $(D ,)
+    $(I StructMemberInitializer) $(D ,) $(GSELF StructMemberInitializers)
+
+$(GNAME StructMemberInitializer):
+    $(GLINK2 declaration, NonVoidInitializer)
+    $(GLINK_LEX Identifier) $(D :) $(GLINK2 declaration, NonVoidInitializer)
+)
+
+        $(P If a $(I StructInitializer) is supplied, the
+        fields are initialized by the $(I StructMemberInitializer) syntax.
         $(I StructMemberInitializers) with the $(I Identifier : NonVoidInitializer) syntax
         may be appear in any order, where $(I Identifier) is the field identifier.
         $(I StructMemberInitializer)s with the $(GLINK2 declaration, NonVoidInitializer) syntax
@@ -190,14 +202,12 @@ $(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
         ---
         )
 
-$(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
+$(H3 $(LNAME2 default_union_init, Default Initialization of Unions))
 
         $(P Unions are by default initialized to whatever the
         $(GLINK2 declaration, Initializer) for the first field is, and if none is supplied, to
         the default initializer for the first field's type.
-        )
-
-        $(P If the union is larger than the first field, the remaining bits
+        If the union is larger than the first field, the remaining bits
         are set to 0.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -206,6 +216,8 @@ $(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
         U x; // x.a is set to 4, x.b to an implementation-defined value
         ---
         )
+
+        $(P It is an error to supply initializers for members other than the first one.)
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
@@ -219,10 +231,10 @@ $(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
         $(IMPLEMENTATION_DEFINED The values the fields other than the
         default initialized field are set to.)
 
-$(H2 $(LNAME2 static_union_init, Static Initialization of Unions))
+$(H3 $(LNAME2 static_union_init, Static Initialization of Unions))
 
         $(P Unions are initialized similarly to structs, except that only
-        one initializer is allowed.)
+        one member initializer is allowed.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
@@ -244,7 +256,7 @@ $(H2 $(LNAME2 static_union_init, Static Initialization of Unions))
         $(IMPLEMENTATION_DEFINED The values the fields other than the
         initialized field are set to.)
 
-$(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
+$(H3 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
 
         $(P The $(RELATIVE_LINK2 static_struct_init, static initializer syntax)
         can also be used to initialize non-static variables.
@@ -273,7 +285,7 @@ S s = t;  // s.a is set to 3
 ----
 )
 
-        $(P If the struct has a $(LINK2 #struct-constructor, constructor), and
+        $(P If the struct has a $(RELATIVE_LINK2 struct-constructor, constructor), and
         the struct is initialized with a value that is of a different type,
         then the constructor is called:)
 
@@ -293,7 +305,8 @@ S s = 3; // sets s.a to 3 using S's constructor
 ----
 )
 
-        $(P If the struct does not have a constructor but $(D opCall) is
+        $(P If the struct does not have a constructor but
+        $(DDSUBLINK spec/operatoroverloading, FunctionCall, `opCall`) is
         overridden for the struct, and the struct is initialized with a value
         that is of a different type, then the $(D opCall) operator is called:)
 
@@ -323,7 +336,7 @@ S t = s; // sets t.a to 3, S.opCall(S) is not called
 
 $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
-        $(P Struct literals consist of the name of the struct followed
+        $(P A struct literal consists of the name of the struct followed
         by a parenthesized argument list:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -360,16 +373,16 @@ $(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
 )
 
-$(H2 $(LNAME2 struct_instance_properties, Struct Instance Properties))
+$(H3 $(LNAME2 struct_instance_properties, Struct Instance Properties))
 
 $(TABLE2 Struct Instance Properties,
 $(THEAD Name, Description)
-$(TROW $(D .tupleof), An $(DDSUBLINK spec/template, variadic-templates, expression sequence)
+$(TROW $(D .tupleof), An $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
     of all struct fields - see
     $(DDSUBLINK spec/class, class_properties, Class Properties) for a class-based example.)
 )
 
-$(H2 $(LNAME2 struct_field_properties, Struct Field Properties))
+$(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
@@ -407,8 +420,8 @@ $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors
 
         $(P Struct constructors are used to initialize an instance of a struct when a more
         complex construction is needed than is allowed by
-        $(LINK2 #static_struct_init, static initialization) or a
-        $(LINK2 #struct-literal, struct literal).
+        $(RELATIVE_LINK2 static_struct_init, static initialization) or a
+        $(RELATIVE_LINK2 struct-literal, struct literal).
         )
 
         $(P Constructors are defined with a function name of `this` and have no return value.
@@ -728,7 +741,7 @@ $(H3 $(LNAME2 field-init, Field initialization inside a constructor))
         ---
         )
 
-        $(P If the field type has an $(LINK2 operatoroverloading.html#assignment, `opAssign`)
+        $(P If the field type has an $(DDSUBLINK spec/operatoroverloading, assignment, `opAssign`)
         method, it will not be used for initialization.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1549,13 +1562,13 @@ $(GNAME Invariant):
     $(P Struct $(I Invariant)s must hold
     at the entry and exit of all public or exported non-static member functions.
     The order of application of invariants is:
+    )
     $(OL
     $(LI preconditions)
     $(LI invariant)
     $(LI function body)
     $(LI invariant)
     $(LI postconditions)
-    )
     )
 
     $(P The invariant need not hold if the struct instance is implicitly constructed using
@@ -1666,8 +1679,8 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
         these conditions hold:)
 
         $(UL
-        $(LI it has a $(LINK2 #struct-destructor, destructor))
-        $(LI it has a $(LINK2 #struct-postblit, postblit))
+        $(LI it has a $(RELATIVE_LINK2 struct-destructor, destructor))
+        $(LI it has a $(RELATIVE_LINK2 struct-postblit, postblit))
         $(LI it has a field with an identity assignment overload)
         )
 

@@ -68,7 +68,6 @@ $(UL
             $(LI $(GLINK SharedStaticDestructor)s)
             $(LI $(RELATIVE_LINK2 invariants, Class Invariants))
             $(LI $(DDSUBLINK spec/unittest, unittest, Unit Tests))
-            $(LI $(RELATIVE_LINK2 allocators, Class Allocators))
             $(LI $(RELATIVE_LINK2 alias-this, Alias This))
         )
         )
@@ -146,7 +145,7 @@ void foo(B b)
         without the subclasses needing to recompile or relink.
         )
 
-$(H2 $(LNAME2 field_properties, Field Properties))
+$(H3 $(LNAME2 field_properties, Field Properties))
 
         $(P The $(D .offsetof) property gives the offset in bytes of the field
         from the beginning of the class instantiation.
@@ -175,29 +174,45 @@ void test(Foo foo)
 $(H2 $(LNAME2 class_properties, Class Properties))
 
         $(P The $(D .tupleof) property is an
-        $(DDSUBLINK spec/template, variadic-templates, expression sequence)
-        of all the fields in the class, excluding the hidden fields and
-        the fields in the base class.
-        `.tupleof` is not available for `extern(Objective-C)` classes due to
+        $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
+        of all the non-static fields in the class, excluding the hidden fields and
+        the fields in the base class.)
+        $(NOTE `.tupleof` is not available for `extern(Objective-C)` classes due to
         their fields having a dynamic offset.
         )
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 class Foo { int x; long y; }
 
+static assert(__traits(identifier, Foo.tupleof[0]) == "x");
+static assert(is(typeof(Foo.tupleof)[1] == long));
+
 void main()
 {
-    auto foo = new Foo;
     import std.stdio;
-    static assert(typeof(foo.tupleof).stringof == `(int, long)`);
 
+    auto foo = new Foo;
     foo.tupleof[0] = 1; // set foo.x to 1
     foo.tupleof[1] = 2; // set foo.y to 2
-    foreach (x; foo.tupleof)
-        write(x);       // prints 12
+    foreach (ref x; foo.tupleof)
+        x++;
+    assert(foo.x == 2);
+    assert(foo.y == 3);
+
+    auto bar = new Foo;
+    bar.tupleof = foo.tupleof; // copy fields
+    assert(bar.x == 2);
+    assert(bar.y == 3);
 }
 ---
 )
+
+$(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
+
+        $(P The $(RELATIVE_LINK2 outer-property, `.outer` property) for
+        a nested class instance provides either the parent class instance,
+        or the parent function's context pointer when there is no parent
+        class.)
 
         $(P The properties $(D .__vptr) and $(D .__monitor) give access
         to the class object's vtbl[] and monitor, respectively, but
@@ -1006,74 +1021,6 @@ $(GNAME Invariant):
     )
 
 
-$(H2 $(LNAME2 allocators, Class Allocators))
-$(B Note): Class allocators are deprecated in D2.
-$(GRAMMAR
-$(GNAME Allocator):
-    $(D new) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
-)
-
-$(P A class member function of the form:)
-
-------
-new(size_t size)
-{
-    ...
-}
-------
-
-        is called a class allocator.
-        The class allocator can have any number of parameters, provided
-        the first one is of type `size_t`.
-        Any number can be defined for a class, the correct one is
-        determined by the usual function overloading rules.
-        When a new expression:
-
-------
-new Foo;
-------
-
-        is executed, and Foo is a class that has
-        an allocator, the allocator is called with the first argument
-        set to the size in bytes of the memory to be allocated for the
-        instance.
-        The allocator must allocate the memory and return it as a
-        $(D void*).
-        If the allocator fails, it must not return a $(D null), but
-        must throw an exception.
-        If there is more than one parameter to the allocator, the
-        additional arguments are specified within parentheses after
-        the $(D new) in the $(I NewExpression):
-
-------
-class Foo
-{
-    this(string a) { ... }
-
-    new(size_t size, int x, int y)
-    {
-        ...
-    }
-}
-
-...
-
-new(1,2) Foo(a);        // calls new(Foo.sizeof,1,2)
-------
-
-        $(P Derived classes inherit any allocator from their base class,
-        if one is not specified.
-        )
-
-        $(P The class allocator is not called if the instance is created
-        on the stack.
-        )
-
-        $(P See also
-        $(LINK2 https://wiki.dlang.org/Memory_Management#Explicit_Class_Instance_Allocation,
-        Explicit Class Instance Allocation).
-        )
-
 $(H2 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
 
 $(GRAMMAR
@@ -1261,7 +1208,8 @@ final class A { }
 class B : A { }  // error, class A is final
 ---
 
-        $(P Methods of a final class are `final` by default.)
+        $(P Methods of a final class are always
+        $(DDSUBLINK spec/function, final, `final`).)
 
 $(H2 $(LNAME2 nested, Nested Classes))
 
@@ -1282,7 +1230,8 @@ class Outer
         }
     }
 }
-
+---
+---
 void func()
 {
     int m;
@@ -1318,7 +1267,8 @@ class Outer
         }
     }
 }
-
+---
+---
 void func()
 {
     int m;
@@ -1348,6 +1298,7 @@ if it is nested inside a class.)
         A non-static nested class can only be instantiated when the necessary
         context pointer information is available:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class Outer
 {
@@ -1356,17 +1307,30 @@ class Outer
     static class SInner { }
 }
 
-void func()
+void main()
+{
+    Outer o = new Outer;        // Ok
+    //Outer.Inner oi = new Outer.Inner; // Error, no 'this' for Outer
+    Outer.SInner os = new Outer.SInner; // Ok
+}
+---
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void main()
 {
     class Nested { }
 
-    Outer o = new Outer;        // Ok
-    Outer.Inner oi = new Outer.Inner;   // Error, no 'this' for Outer
-    Outer.SInner os = new Outer.SInner; // Ok
-
     Nested n = new Nested;      // Ok
+
+    static f()
+    {
+        //Nested sn = new Nested; // Error, no 'this' for Nested
+    }
 }
 ------
+)
 
 $(H3 $(LNAME2 nested-explicit, Explicit Instantiation))
 
@@ -1374,6 +1338,7 @@ $(H3 $(LNAME2 nested-explicit, Explicit Instantiation))
         inner class instance by prefixing it to the $(I NewExpression):
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 class Outer
 {
@@ -1388,14 +1353,15 @@ class Outer
     }
 }
 
-int bar()
+void main()
 {
     Outer o = new Outer;
     o.a = 3;
-    Outer.Inner oi = $(CODE_HIGHLIGHT o).new Inner;
-    return oi.foo();    // returns 3
+    Outer.Inner oi = o.new Inner;
+    assert(oi.foo() == 3);
 }
 ---------
+)
 
         $(P Here $(D o) supplies the `this` reference to the inner class
         instance of $(D Outer).
@@ -1403,11 +1369,10 @@ int bar()
 
 $(H3 $(LNAME2 outer-property, `outer` Property))
 
-        $(P For a nested class instance, the $(D .outer) property is the
-        $(D this) reference for the enclosing class's instance. If there
-        is no enclosing class context, $(D .outer) would be a $(D void*)
-        to the enclosing function frame.
-        )
+        $(P For a nested class instance, the $(D .outer) property provides
+        the $(D this) reference of the enclosing class's instance.
+        If there is no accessible parent class instance, the property
+        provides a $(D void*) to the enclosing function frame.)
 
 ----
 class Outer
@@ -1425,7 +1390,11 @@ class Outer
         Inner1 i = new Inner1;
         assert(i.getOuter() is this);
     }
-
+}
+---
+---
+class Outer
+{
     void bar()
     {
         // x is referenced from nested scope, so
@@ -1447,7 +1416,11 @@ class Outer
         Inner2 i = new Inner2;
         assert(i.getOuter() is this);
     }
-
+}
+---
+---
+class Outer
+{
     // baz cannot access an instance of Outer
     static void baz()
     {
@@ -1479,7 +1452,7 @@ $(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
 
 $(GRAMMAR
 $(GNAME NewAnonClassExpression):
-    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK SuperClassOrInterface)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D new) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK SuperClassOrInterface)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME ConstructorArgs):
     $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
@@ -1490,7 +1463,7 @@ which is equivalent to:
 $(GRAMMAR_INFORMATIVE
 $(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClassOrInterface) $(I Interfaces) $(I AggregateBody)
 // ...
-$(D new) $(I AllocatorArguments) $(I Identifier) $(I ConstructorArgs)
+$(D new) $(I Identifier) $(I ConstructorArgs)
 )
 
 where $(I Identifier) is the name generated for the anonymous nested class.

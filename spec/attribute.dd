@@ -18,7 +18,7 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 static, $(D static))
     $(RELATIVE_LINK2 linkage, $(D extern))
     $(RELATIVE_LINK2 abstract, $(D abstract))
-    $(D final)
+    $(RELATIVE_LINK2 final, `final`)
     $(RELATIVE_LINK2 override, $(D override))
     $(D synchronized)
     $(RELATIVE_LINK2 auto, $(D auto))
@@ -83,6 +83,8 @@ $(GNAME LinkageAttribute):
     $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D $(RPAREN))
     $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(GLINK2 type, QualifiedIdentifier) $(D $(RPAREN))
     $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(GLINK NamespaceList) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D class) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C) $(D ++) $(D ,) $(D struct) $(D $(RPAREN))
 
 $(GNAME LinkageType):
     $(D C)
@@ -104,7 +106,9 @@ $(GNAME NamespaceList):
         extensible by the implementation ($(D they are not keywords)).
         $(D C) and $(D D) must be supplied, the others are what
         makes sense for the implementation.
-        $(D C++) offers limited compatibility with C++.
+        $(D C++) offers limited compatibility with C++, see the
+        $(LINK2 cpp_interface.html, Interfacing to C++)
+        documentation for more information.
         $(D Objective-C) offers compatibility with Objective-C,
         see the $(LINK2 objc_interface.html, Interfacing to Objective-C)
         documentation for more information.
@@ -375,7 +379,8 @@ attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
 
         $(P Symbols with $(D private) visibility can only be accessed from
         within the same module.
-        Private member functions are implicitly final and cannot be overridden.
+        Private member functions are implicitly $(DDSUBLINK spec/function, final, `final`)
+        and cannot be overridden.
         )
 
         $(P $(D package) extends private so that package members can be accessed
@@ -521,11 +526,11 @@ void main() { foo(); /* error, foo is disabled */ }
 
 $(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attribute))
 
-    $(P See $(DDSUBLINK function, function-safety, Function Safety).)
+    $(P See $(DDSUBLINK spec/function, function-safety, Function Safety).)
 
 $(H2 $(LNAME2 nogc, $(D @nogc) Attribute))
 
-    $(P See $(DDSUBLINK function, nogc-functions, No-GC Functions).)
+    $(P See $(DDSUBLINK spec/function, nogc-functions, No-GC Functions).)
 
 $(H2 $(LNAME2 property, $(D @property) Attribute))
 
@@ -606,7 +611,7 @@ auto i = 6.8;   // declare i as a double
 ---
 
     $(P For functions, the `auto` attribute means return type inference.
-        See $(DDSUBLINK function, auto-functions, Auto Functions).
+        See $(DDSUBLINK spec/function, auto-functions, Auto Functions).
     )
 
 $(H2 $(LNAME2 scope, $(D scope) Attribute))
@@ -663,6 +668,82 @@ $(P
         e.g. through $(D super.foo()) in a derived class.
         Note that the class is still abstract and cannot be instantiated directly.
 )
+
+$(H2 $(LNAME2 final, `final` Attribute))
+
+$(UL
+$(LI A class can be declared $(DDSUBLINK spec/class, final, `final`) to prevent
+    subclassing.)
+$(LI A class method can be declared $(DDSUBLINK spec/function, final, `final`)
+    to prevent a derived class overriding it.)
+$(LI Interfaces can define $(DDSUBLINK spec/interface, method-bodies, `final` methods).)
+)
+
+$(H2 $(LNAME2 mustuse-attribute, `@mustuse` Attribute))
+
+    $(P
+        The `@mustuse` attribute is a compiler-recognized $(RELATIVE_LINK2 uda,
+        UDA) defined in the D runtime module $(DPLLINK phobos/core_attribute.html,
+        `core.attribute`).
+    )
+
+
+    $(P
+        An expression is considered to be discarded if and only if either of the
+        following is true:
+    )
+
+    $(UL
+        $(LI
+            it is the top-level $(GLINK2 expression, Expression) in an $(GLINK2
+            statement, ExpressionStatement), or
+        )
+        $(LI
+            it is the $(GLINK2 expression, AssignExpression) on the left-hand
+            side of the comma in a $(GLINK2 expression, CommaExpression).
+        )
+    )
+
+    $(P
+        It is a compile-time error to discard an expression if all of the
+        following are true:
+    )
+
+    $(UL
+        $(LI
+            it is not an assignment expression, an increment expression, or a
+            decrement expression; and
+        )
+
+        $(LI
+            its type is a `struct` or `union` type whose declaration is
+            annotated with `@mustuse`.
+        )
+    )
+
+    $(P
+        "Assignment expression" means either a $(DDSUBLINK spec/expression,
+        simple_assignment_expressions, simple assignment expression) or an
+        $(DDSUBLINK spec/expression, assignment_operator_expression, assignment
+        operator expression).
+    )
+
+    $(P
+        "Increment expression" means a $(GLINK2 expression, UnaryExpression) or
+        $(GLINK2 expression, PostfixExpression) whose operator is `++`.
+    )
+
+    $(P
+        "Decrement expression" means a $(GLINK2 expression, UnaryExpression) or
+        $(GLINK2 expression, PostfixExpression) whose operator is `--`.
+    )
+
+    $(P
+        It is a compile-time error to attach `@mustuse` to a function
+        declaration or to any aggregate declaration other than a `struct` or
+        `union` declaration. The purpose of this rule is to reserve such usage
+        for possible future expansion.
+    )
 
 $(H2 $(LNAME2 uda, User-Defined Attributes))
 

@@ -40,7 +40,7 @@ static assert(is(typeof(aa) == string[uint]));
 assert(aa[2] == "hi");
 ---
 )
-    $(P See $(DDSUBLINK expression, associative_array_literals, Associative Array Literals).)
+    $(P See $(DDSUBLINK spec/expression, associative_array_literals, Associative Array Literals).)
 
 $(H2 $(LNAME2 removing_keys, Removing Keys))
 

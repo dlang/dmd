@@ -154,13 +154,13 @@ $(H3 $(LNAME2 crtdtor, $(D pragma crt_destructor)))
 
     $(P `pragma(crt_destructor)` works the same as `pragma(crt_constructor)` except:)
 
-    $(P Annotates a function so it is run after the D runtime library is terminated
-        and before the C runtime library is terminated.
-        Calling C's `exit()` function also causes the annotated functions to run.
+    $(OL
+        $(LI Annotates a function so it is run after the D runtime library is terminated
+             and before the C runtime library is terminated.
+             Calling C's `exit()` function also causes the annotated functions to run.)
+        $(LI The order in which the annotated functions are run is the reverse of those functions
+             annotated with `pragma(crt_constructor)`.)
     )
-
-    $(P The order in which the annotated functions are run is the reverse of those functions
-        annotated with `pragma(crt_constructor)`.)
 
     $(IMPLEMENTATION_DEFINED This uses the mechanism C compilers use to run
         code after `main()` returns or `exit()` is called. C++ compilers use it to run static
@@ -272,7 +272,11 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
 
     $(P Overrides the default mangling for a symbol.)
 
-    $(P There must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
+    $(P For variables and functions there must be one $(ASSIGNEXPRESSION) and it must evaluate at compile time to a string literal.
+        For aggregates there may be one or two $(ASSIGNEXPRESSION)s, one of which must evaluate at compile time to a string literal and
+        one which must evaluate to a symbol. If that symbol is a $(I TemplateInstance), the aggregate is treated as a template
+        that has the signature and arguments of the $(I TemplateInstance). The identifier of the symbol is used when no string is supplied.
+        Both arguments may be used used when an aggregate's name is a D keyword.
     )
 
     $(P It only applies to function and variable symbols. Other symbols are ignored.)
@@ -291,6 +295,18 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
         ---
         pragma(mangle, "body")
         extern(C) void body_func();
+        pragma(mangle, "function")
+        extern(C++) struct _function {}
+        template ScopeClass(C)
+        {
+            pragma(mangle, C.stringof, C)
+            struct ScopeClass { char[__traits(classInstanceSize, C)] buffer; }
+        }
+        extern(C++)
+        {
+            class MyClassA(T) {}
+            void func(ref ScopeClass!(MyClassA!int)); // mangles as MyClass<int>&
+        }
         ---
     )
 

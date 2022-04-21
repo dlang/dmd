@@ -325,7 +325,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
                 command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))))
         $(TROW $(ARGS $(D D_TypeInfo)) , $(ARGS Runtime type information (a.k.a `TypeInfo`) is supported.  Evaluates to `false` when compiling with
                 command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))))
-        $(TROW $(ARGS $(D D_Coverage)) , $(ARGS $(DDLINK code_coverage, Code coverage analysis, Code coverage analysis) instrumentation
+        $(TROW $(ARGS $(D D_Coverage)) , $(ARGS $(DDLINK articles/code_coverage, Code coverage analysis, Code coverage analysis) instrumentation
                 (command line switch $(DDSUBLINK dmd, switch-cov, $(TT -cov))) is being generated))
         $(TROW $(ARGS $(D D_Ddoc)) , $(ARGS $(DDLINK spec/ddoc, Embedded Documentation, Ddoc) documentation
                 (command line switch $(DDSUBLINK dmd, switch-D, $(TT -D))) is being generated))
@@ -354,6 +354,9 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D unittest)) , $(ARGS $(DDLINK spec/unittest, Unit Tests, Unit tests) are enabled
                 (command line switch $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)))))
         $(TROW $(ARGS $(D assert)) , $(ARGS Checks are being emitted for $(GLINK2 expression, AssertExpression)s))
+        $(TROW $(ARGS $(D D_PreConditions)) , $(ARGS Checks are being emitted for $(DDSUBLINK spec/function, contracts, in contracts)))
+        $(TROW $(ARGS $(D D_PostConditions)) , $(ARGS Checks are being emitted for $(DDSUBLINK spec/function, contracts, out contracts)))
+        $(TROW $(ARGS $(D D_Invariants)) , $(ARGS Checks are being emitted for $(DDSUBLINK spec/class, invariants, class invariants) and $(DDSUBLINK spec/struct, Invariant, struct invariants)))
         $(TROW $(ARGS $(D none)) , $(ARGS Never defined; used to just disable a section of code))
         $(TROW $(ARGS $(D all)) , $(ARGS Always defined; used as the opposite of $(D none)))
         )

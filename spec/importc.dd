@@ -122,6 +122,9 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(P $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-11.1.0/cpp/Preprocessor-Output.html, linemarker)
     directives are normally embedded in the output of C preprocessors.)
 
+    $(H3 $(LNAME2 pragma, pragma))
+
+    $(P Pragma directives are ignored.)
 
 $(H2 $(LNAME2 implementation, Implementation))
 
@@ -242,10 +245,12 @@ $(H2 $(LNAME2 extensions, Extensions))
     $(P Any declarations in scope can be accessed, not just
     declarations that lexically precede a reference.)
 
+
     $(H3 $(LNAME2 ctfe, Compile Time Function Execution))
 
     $(P Evaluating constant expressions includes executing functions in the
     same manner as D's CTFE can.)
+
 
     $(H3 $(LNAME2 inlining, Function Inlining))
 
@@ -282,6 +287,77 @@ _Static_assert(sizeof(A) == 1, "A should be size 1");
 
     $(P Arrays can have `register` storage class, and may be enregistered by the compiler. C11 6.3.2.1-3)
 
+
+    $(H3 $(LNAME2 __import, Import Declarations))
+
+    $(P Modules can be imported with a $(I CImportDeclaration):)
+
+$(GRAMMAR
+$(GNAME CImportDeclaration):
+    $(D __import) $(GLINK2 module, ImportList) $(D ;)
+)
+
+    $(P Imports enable ImportC code to directly access D declarations and functions
+    without the necessity of creating a $(TT .h) file representing those declarations.
+    The tedium and brittleness of keeping the $(TT .h) file up-to-date with the D
+    declarations is eliminated.
+    D functions are available to be inlined.
+    )
+
+    $(P Imports also enable ImportC code to directly import other C files without
+    needing to create a .h file for them, either.
+    Imported C functions become available to be inlined.
+    )
+
+    $(P The $(I ImportList) works the same as it does for D.)
+
+    $(P The ordering of $(I CImportDeclaration)s has no significance.)
+
+    $(P An ImportC file can be imported, the name of the C file to be
+    imported is derived from the module name.)
+
+    $(P All the global symbols in the ImportC file become available to the
+    importing module.)
+
+    $(P If a name is referred to in the importing file is not found,
+    the global symbols in each imported file are searched for the name.
+    If it is found in exactly one module, that becomes the resolution of the
+    name. If it is found in multiple modules, it is an error.)
+
+    $(NOTE Since ImportC has no scope resolution operator, only global symbols
+    can be found, and a qualification cannot be added to specifiy which module
+    a symbols is in.)
+
+    $(P Preprocessor symbols in the imported module are not available to the
+    importing module, and preprocessing symbols in the importing file are not
+    available to the imported module.)
+
+    $(P A D module can be imported, in the same manner as that
+    of a $(GLINK2 module, ImportDeclaration).)
+
+    $(P Imports can be circular.)
+
+$(CCODE
+__import core.stdc.stdarg; // get D declaration of va_list
+__import mycode;           // import mycode.c
+
+int foo()
+{
+    va_list x;    // picks up va_list from core.stdc.stdarg
+    return 1 + A; // returns 4
+})
+
+    $(P $(TT mycode.c) looks like:)
+
+$(CCODE
+enum E { A = 3; }
+)
+
+    $(BEST_PRACTICE Avoid using preprocessor $(TT #define)s like $(TT #define A 3).
+    Use the enum form shown in the above example.
+    Prefer $(TT const) declarations over $(TT #define)s.
+    Rewrite function-style preprocessor macros as inline functions.
+    )
 
 $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
 
@@ -354,6 +430,46 @@ $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
     static assert(E.min == 0 && E.max == 2);
     ---
 
+    $(H3 $(LNAME2 tag-symbols, Tag Symbols))
+
+    $(P Tag symbols are the identifiers that appear after the `struct`, `union`, and `enum`
+    keywords, (C11 6.7.2.3). In C, they are placed in a different symbol table from other
+    identifiers. This means two different symbols can use the same name:)
+
+    $(CCODE
+    int S;
+    struct S { int a, b; };
+    S = 3;
+    struct S *ps;
+    )
+
+    $(P D does not make this distinction. Given a tag symbol that is the only declaration of an
+    identifier, that's what the D compiler recognizes. Given a tag symbol and a non-tag symbol
+    that share an identifier, the D compiler recognizes the non-tag symbol. This is normally
+    not a problem due to the common C practice of applying `typedef`, as in:)
+
+    $(CCODE
+    typedef struct S { int a, b; } S;
+    )
+
+    $(P The D compiler recognizes the `typedef` applied to `S`, and the code compiles as expected. But when `typedef` is absent, as in:)
+
+    $(CCODE
+    int S;
+    struct S { int a, b; };
+    )
+
+    $(P the most pragmatic workaround is to add a `typedef` to the C code:)
+
+    $(CCODE
+    int S;
+    struct S { int a, b; };
+    typedef struct S S_t;    // add this typedef
+    )
+
+    $(P Then the D compiler can access the struct tag symbol via `S_t`.)
+
+
 $(H2 $(LNAME2 wrapping, Wrapping C Code))
 
     $(P Many difficulties with adapting C code to ImportC can be done without
@@ -378,6 +494,7 @@ $(H2 $(LNAME2 wrapping, Wrapping C Code))
     )
 
     $(P Then, `import file_ic;` instead of `import file;`, and use `S_t` when $(CCODE struct S) is desired.)
+
 
 $(H2 $(LNAME2 warnings, Warnings))
 
@@ -438,8 +555,21 @@ $(H2 $(LNAME2 other-solutions, Other Solutions))
 
 $(H2 $(LNAME2 internals, How ImportC Works))
 
-    $(P This is a description of how ImportC is implemented, intended
-    to remove the mystery of various design choices.)
+    $(P ImportC's implementation is based on the idea that D's semantics are very similar
+    to C's. ImportC gets its own parser, which converts the C syntax into the same AST
+    (Abstract Syntax Tree) that D uses. The lexer for ImportC is the same as for D, but with
+    some modifications here and there, such as the keywords and integer literals being different.
+    Where the semantics of C differ from D, there are adjustments in the semantic analysis
+    code in the D compiler.)
+
+    $(P This co-opting of the D semantic implementation allows ImportC to be able to do things
+    like handle forward references, CTFE (Compile Time Function Execution), and inlining of C functions
+    into D code. Being able to handle forward references means it is not necessary to even
+    write a .h file to be able to import C declarations into D. Being able to perform CTFE is
+    very handy for testing that ImportC is working without needing to generate an executable.
+    But, in general, the strong temptation to add D features to ImportC has been resisted.)
+
+    $(P The optimizer and code generator are, of course, the same as D uses.)
 
 $(SPEC_SUBNAV_PREV_NEXT betterc, Better C, ob, Live Functions)
 )

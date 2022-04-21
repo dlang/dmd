@@ -81,7 +81,7 @@ assert(i == 4);
         )
 
         $(BEST_PRACTICE Most conventional uses for pointers can be replaced with
-        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK function, parameters, parameters),
+        dynamic arrays, $(D ref) and $(D out) $(DDSUBLINK spec/function, parameters, parameters),
         and reference types.
         )
 
@@ -162,7 +162,7 @@ int[2] = [1, 2];
 ---
     $(P `[]` is an empty array literal.)
 
-    $(P See $(DDSUBLINK expression, array_literals, Array Literals).)
+    $(P See $(DDSUBLINK spec/expression, array_literals, Array Literals).)
 
 $(LEGACY_LNAME2 usage)
 $(H2 $(LNAME2 assignment, Array Assignment))
@@ -409,19 +409,18 @@ $(H2 $(LNAME2 array-concatenation, Array Concatenation))
         to concatenate arrays:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----------
-int[] a;
-int[] b;
-int[] c;
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a = [1, 2];
+assert(a ~ 3 == [1, 2, 3]); // concatenate array with a single value
 
-a = b ~ c; // Create an array from the concatenation
-           // of the b and c arrays
----------
+int[] b = a ~ [3, 4];
+assert(b == [1, 2, 3, 4]); // concatenate two arrays
+---
 )
 
-        $(P Many languages overload the + operator to mean concatenation.
-        This confusingly leads to, does:
+        $(P Many languages overload the + operator for concatenation.
+        This confusingly leads to a dilemma - does:
         )
 
 ---------
@@ -436,20 +435,31 @@ a = b ~ c; // Create an array from the concatenation
         concatenation.
         )
 
+        $(P Concatenation always creates a copy of its operands, even
+        if one of the operands is a 0 length array, so:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+auto b = [7];
+auto a = b;      // a refers to b
+assert(a is b);
+
+a = b ~ []; // a refers to a copy of b
+assert(a !is b);
+assert(a == b);
+---------
+)
+
+        $(P See also: $(DDSUBLINK spec/expression, identity_expressions, `is` operator).)
+
+$(H2 $(LNAME2 array-appending, Array Appending))
+
         $(P Similarly, the ~= operator means append, as in:
         )
 
 ---------
 a ~= b; // a becomes the concatenation of a and b
----------
-
-        $(P Concatenation always creates a copy of its operands, even
-        if one of the operands is a 0 length array, so:
-        )
-
----------
-a = b;           // a refers to b
-a = b ~ c[0..0]; // a refers to a copy of b
 ---------
 
         $(P Appending does not always create a copy, see $(RELATIVE_LINK2 resize,
@@ -553,6 +563,8 @@ static assert(!__traits(compiles, matrix[5][2])); // Array index out of bounds.
 ---------
 )
 
+$(P More information can be found at $(LINK2 https://wiki.dlang.org/Dense_multidimensional_arrays, Dlang Wiki - Dense Multidimensional Arrays).)
+
 $(H2 $(LNAME2 array-properties, Array Properties))
 
         $(P Static array properties are:)
@@ -568,6 +580,21 @@ Returns an array literal with each element of the literal being the $(D .init) p
         $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
+        $(TROW $(D .tupleof), $(ARGS Returns an $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence) of each element in the array:
+            $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
+            void foo(int, int, int) { /* ... */ }
+
+            int[3] ia = [1, 2, 3];
+            foo(ia.tupleof); // same as `foo(1, 2, 3);`
+
+            float[3] fa;
+            //fa = ia; // error
+            fa.tupleof = ia.tupleof;
+            assert(fa == [1F, 2F, 3F]);
+            ---
+            )
+            ))
         )
 
         $(P Dynamic array properties are:)
@@ -735,7 +762,7 @@ assert(cap == array.capacity);
 
 $(H3 $(LNAME2 func-as-property, Functions as Array Properties))
 
-        $(P See $(DDSUBLINK function, pseudo-member, Uniform Function Call Syntax (UFCS)).)
+        $(P See $(DDSUBLINK spec/function, pseudo-member, Uniform Function Call Syntax (UFCS)).)
 
 $(H2 $(LNAME2 bounds, Array Bounds Checking))
 
@@ -798,7 +825,7 @@ int x = foo[3]; // error, out of bounds
             The runtime behavior is part of the language semantics.
         )
 
-        $(P See also $(DDSUBLINK function, safe-functions, Safe Functions).)
+        $(P See also $(DDSUBLINK spec/function, safe-functions, Safe Functions).)
 
 $(H3 $(LNAME2 disable-bounds-check, Disabling Array Bounds Checking))
 

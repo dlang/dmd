@@ -4,6 +4,8 @@ $(SPEC_S Interfaces,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 declarations, Interface Declarations))
+
     $(P An $(I Interface) describes a list of functions that a class which inherits
     from the interface must implement.)
 
@@ -43,12 +45,12 @@ $(GNAME BaseInterfaceList):
     )
 
 ------
-interface D
+interface I
 {
     void foo();
 }
 
-class A : D, D  // error, duplicate interface
+class A : I, I  // error, duplicate interface
 {
 }
 ------
@@ -56,23 +58,24 @@ class A : D, D  // error, duplicate interface
 $(P An instance of an interface cannot be created.)
 
 ------
-interface D
+interface I
 {
     void foo();
 }
 
 ...
 
-D d = new D();  // error, cannot create instance of interface
+I iface = new I();  // error, cannot create instance of interface
 ------
 
+$(H3 $(LNAME2 method-bodies, Interface Method Bodies))
 
     $(P Virtual interface member functions do not have implementations.
     Interfaces are expected to implement static or final functions.
     )
 
 ------
-interface D
+interface I
 {
     void bar() { }  // error, implementation not allowed
     static void foo() { } // ok
@@ -85,7 +88,7 @@ interface D
      )
 
 ---
-interface D
+interface I
 {
     void foo(T)() { }  // ok, it's implicitly final
 }
@@ -95,119 +98,123 @@ interface D
     static interface member functions.)
 
 ------
-interface D
+interface I
 {
     void bar();
     static void foo() { }
     final void abc() { }
 }
 
-class C : D
+class C : I
 {
     void bar() { } // ok
-    void foo() { } // error, cannot override static D.foo()
-    void abc() { } // error, cannot override final D.abc()
+    void foo() { } // error, cannot override static I.foo()
+    void abc() { } // error, cannot override final I.abc()
 }
 ------
 
+$(H3 $(LNAME2 implementing-interfaces, Implementing Interfaces))
 
-    $(P All interface functions must be defined in a class that inherits
+    $(P All virtual interface functions must be defined in a class that inherits
     from that interface:
     )
 ------
-interface D
+interface I
 {
     void foo();
 }
 
-class A : D
+class A : I
 {
     void foo() { }  // ok, provides implementation
 }
 
-class B : D
+class B : I
 {
-    int foo() { }   // error, no void foo() implementation
+    int foo() { }   // error, no `void foo()` implementation
 }
 ------
 
-$(P Interfaces can be inherited and functions overridden:)
+$(P Interfaces can be inherited from a base class, and interface functions overridden:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
-interface D
+interface I
 {
     int foo();
 }
 
-class A : D
+class A : I
 {
     int foo() { return 1; }
 }
 
 class B : A
 {
-    override
-    int foo() { return 2; }
+    override int foo() { return 2; }
 }
 
-...
-
 B b = new B();
-b.foo();            // returns 2
-D d = b;    // ok since B inherits A's D implementation
-d.foo();            // returns 2;
+assert(b.foo() == 2);
+
+I i = b;    // ok since B inherits A's I implementation
+assert(i.foo() == 2);
 ------
+)
+
+$(H4 $(LNAME2 reimplementing-interfaces, Reimplementing Interfaces))
 
     $(P Interfaces can be reimplemented in derived classes:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
-interface D
+interface I
 {
     int foo();
 }
 
-class A : D
+class A : I
 {
     int foo() { return 1; }
 }
 
-class B : A, D
+class B : A, I
 {
-    int foo() { return 2; }
+    override int foo() { return 2; }
 }
 
-...
-
 B b = new B();
-b.foo();            // returns 2
-D d = b;
-d.foo();            // returns 2
+assert(b.foo() == 2);
+I i = b;
+assert(i.foo() == 2);
+
 A a = b;
-D d2 = a;
-d2.foo();           // returns 2, even though it is A's D, not B's D
+I i2 = a;
+assert(i2.foo() == 2); // i2 has A's virtual pointer for foo which points to B.foo
 ------
+)
 
     $(P A reimplemented interface must implement all the interface
     functions, it does not inherit them from a super class:
     )
 
 ------
-interface D
+interface I
 {
     int foo();
 }
 
-class A : D
+class A : I
 {
     int foo() { return 1; }
 }
 
-class B : A, D
+class B : A, I
 {
-}       // error, no foo() for interface D
+}       // error, no foo() for interface I
 ------
 
-$(SECTION2 $(LEGACY_LNAME2 InterfaceContracts, interface-contracts, Interfaces with Contracts),
+$(SECTION3 $(LEGACY_LNAME2 InterfaceContracts, interface-contracts, Interface Method Contracts),
 
     $(P Interface member functions can have contracts even though there
     is no body for the function. The contracts are inherited by any
@@ -226,7 +233,7 @@ interface I
 ---
 )
 
-$(SECTION2 $(LEGACY_LNAME2 ConstInterface, const-interface, Const and Immutable Interfaces),
+$(SECTION3 $(LEGACY_LNAME2 ConstInterface, const-interface, Const and Immutable Interfaces),
     $(P If an interface has $(CODE const) or $(CODE immutable) storage
     class, then all members of the interface are
     $(CODE const) or $(CODE immutable).

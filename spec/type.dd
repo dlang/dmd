@@ -107,8 +107,8 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D uint), $(D 0u), unsigned 32 bits)
     $(TROW $(D long), $(D 0L), signed 64 bits)
     $(TROW $(D ulong), $(D 0uL), unsigned 64 bits)
-    $(TROW $(D cent), $(D 0), signed 128 bits (reserved for future use))
-    $(TROW $(D ucent), $(D 0u), unsigned 128 bits (reserved for future use))
+    $(TROW $(D cent), $(D 0), signed 128 bits)
+    $(TROW $(D ucent), $(D 0u), unsigned 128 bits)
     $(TROW $(D float), $(D float.nan), 32 bit floating point)
     $(TROW $(D double), $(D double.nan), 64 bit floating point)
     $(TROW $(D real), $(D real.nan), largest floating point size available)
@@ -134,9 +134,9 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
 
     $(UL
-    $(LI $(DDSUBLINK arrays, pointers, Pointer))
-    $(LI $(DDSUBLINK arrays, static-arrays, Static Array))
-    $(LI $(DDSUBLINK arrays, dynamic-arrays, Dynamic Array))
+    $(LI $(DDSUBLINK spec/arrays, pointers, Pointer))
+    $(LI $(DDSUBLINK spec/arrays, static-arrays, Static Array))
+    $(LI $(DDSUBLINK spec/arrays, dynamic-arrays, Dynamic Array))
     $(LI $(DDLINK spec/hash-map, Associative Array, Associative Array))
     $(LI $(DDLINK spec/function, Functions, Functions))
     $(LI $(RELATIVE_LINK2 delegates, Delegates))
@@ -468,6 +468,10 @@ $(GNAME Typeof):
         }
         --------------------
 
+        $(P If *Expression* is a
+        $(DDSUBLINK spec/template, variadic-templates, $(I ValueSeq))
+        it will produce a *TypeSeq* containing the types of each element.)
+
         $(P Special cases: )
     $(OL
         $(LI $(D typeof(this)) will generate the type of what $(D this)
@@ -511,6 +515,15 @@ $(GNAME Typeof):
             @property int foo() { return 1; }
         }
         typeof(S.foo) n;  // n is declared to be an int
+        --------------------
+
+        $(P If the expression is a $(DDLINK, spec/template, Template, Template),
+        $(D typeof) gives the type $(D void).
+        )
+
+        --------------------
+        template t {}
+        static assert(is(typeof(t) == void));
         --------------------
 
         $(BEST_PRACTICE
