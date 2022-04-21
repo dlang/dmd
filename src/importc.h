@@ -19,6 +19,13 @@
  * ImportC assigns no semantics to `restrict`, so just ignore the keyword.
  */
 #define __restrict
+#define __restrict__
+
+/**********************
+ * Some old pre-Ansi headers use these
+ */
+#define __signed__ signed
+#define __asm__ asm
 
 /********************
  * This is a Microsoft C function calling convention not supported by ImportC,
@@ -47,4 +54,4 @@
 /****************************
  * Define it to do what other C compilers do.
  */
-#define __builtin_offset(t,i) ((size_t)((char *)&((t *)0)->i - (char *)0))
+#define __builtin_offsetof(t,i) ((size_t)((char *)&((t *)0)->i - (char *)0))

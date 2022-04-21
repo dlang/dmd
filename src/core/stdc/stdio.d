@@ -897,12 +897,14 @@ else version (CRuntime_Microsoft)
 
     extern shared void function() _fcloseallp;
 
+    FILE* __acrt_iob_func(int hnd);     // VS2015+, reimplemented in msvc.d for VS2013-
+
     ///
-    shared FILE* stdin;  // = &__iob_func()[0];
+    FILE* stdin()() { return __acrt_iob_func(0); }
     ///
-    shared FILE* stdout; // = &__iob_func()[1];
+    FILE* stdout()() { return __acrt_iob_func(1); }
     ///
-    shared FILE* stderr; // = &__iob_func()[2];
+    FILE* stderr()() { return __acrt_iob_func(2); }
 }
 else version (CRuntime_Glibc)
 {
@@ -981,7 +983,7 @@ else version (NetBSD)
         _IONBF = 2,
     }
 
-    private extern __gshared FILE[3] __sF;
+    private extern shared FILE[3] __sF;
     @property auto __stdin()() { return &__sF[0]; }
     @property auto __stdout()() { return &__sF[1]; }
     @property auto __stderr()() { return &__sF[2]; }
@@ -1004,7 +1006,7 @@ else version (OpenBSD)
         _IONBF = 2,
     }
 
-    private extern __gshared FILE[3] __sF;
+    private extern shared FILE[3] __sF;
     @property auto __stdin()() { return &__sF[0]; }
     @property auto __stdout()() { return &__sF[1]; }
     @property auto __stderr()() { return &__sF[2]; }
@@ -1059,11 +1061,11 @@ else version (Solaris)
     private extern shared FILE[_NFILE] __iob;
 
     ///
-    shared stdin = &__iob[0];
+    @property auto stdin()() { return &__iob[0]; }
     ///
-    shared stdout = &__iob[1];
+    @property auto stdout()() { return &__iob[1]; }
     ///
-    shared stderr = &__iob[2];
+    @property auto stderr()() { return &__iob[2]; }
 }
 else version (CRuntime_Bionic)
 {
@@ -1080,11 +1082,11 @@ else version (CRuntime_Bionic)
     private extern shared FILE[3] __sF;
 
     ///
-    shared stdin  = &__sF[0];
+    @property auto stdin()() { return &__sF[0]; }
     ///
-    shared stdout = &__sF[1];
+    @property auto stdout()() { return &__sF[1]; }
     ///
-    shared stderr = &__sF[2];
+    @property auto stderr()() { return &__sF[2]; }
 }
 else version (CRuntime_Musl)
 {

@@ -107,6 +107,12 @@ test_uuid:
 test_aa:
 	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\aa\src\test_aa.d
 
+test_betterc:
+	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
+
+test_betterc_mingw:
+	"$(MAKE)" -f test\betterc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" MINGW=_mingw test
+
 test_cpuid:
 	"$(MAKE)" -f test\cpuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
@@ -129,9 +135,11 @@ custom_gc:
 test_shared:
 	$(MAKE) -f test\shared\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
-test_mingw: test_shared test_aa test_cpuid test_exceptions test_hash test_gc custom_gc
+test_common: test_shared test_aa test_cpuid test_exceptions test_hash test_gc custom_gc
 
-test_all: test_mingw test_uuid test_stdcpp
+test_mingw: test_common test_betterc_mingw
+
+test_all: test_common test_betterc test_uuid test_stdcpp
 
 ################### zip/install/clean ##########################
 

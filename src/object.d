@@ -2649,13 +2649,18 @@ class Throwable : Object
 
     /**
      * Get the message describing the error.
-     * Base behavior is to return the `Throwable.msg` field.
-     * Override to return some other error message.
+     *
+     * This getter is an alternative way to access the Exception's message,
+     * with the added advantage of being override-able in subclasses.
+     * Subclasses are hence free to do their own memory managements without
+     * being tied to the requirement of providing a `string` in a field.
+     *
+     * The default behavior is to return the `Throwable.msg` field.
      *
      * Returns:
-     *  Error message
+     *  A message representing the cause of the `Throwable`
      */
-    @__future const(char)[] message() const
+    @__future const(char)[] message() const @safe nothrow
     {
         return this.msg;
     }
@@ -2825,8 +2830,8 @@ extern (C)
 
     private struct AA { void* impl; }
     // size_t _aaLen(in AA aa) pure nothrow @nogc;
-    private void* _aaGetY(AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey) pure nothrow;
-    private void* _aaGetX(AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey, out bool found) pure nothrow;
+    private void* _aaGetY(scope AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey) pure nothrow;
+    private void* _aaGetX(scope AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey, out bool found) pure nothrow;
     // inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valsz, in void* pkey);
     inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t valsz, const TypeInfo tiValueArray) pure nothrow;
     inout(void[]) _aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow;
@@ -4440,7 +4445,11 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == class))
         }
     }
     else
-        rt_finalize(cast(void*)obj);
+    {
+        // Bypass overloaded opCast
+        auto ptr = (() @trusted => *cast(void**) &obj)();
+        rt_finalize(ptr);
+    }
 }
 
 /// ditto
@@ -4700,6 +4709,18 @@ nothrow unittest
     auto c = new C;
     destroy(c);
     assert(C.dtorCount == 1);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=22832
+nothrow unittest
+{
+    static struct A {}
+    static class B
+    {
+        A opCast(T : A)() { return A(); }
+    }
+
+    destroy(B.init);
 }
 
 /// ditto
