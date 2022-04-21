@@ -828,6 +828,8 @@ dmd -cov -unittest myprog.d
     /// Returns all available reverts
     static immutable reverts = [
         Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
+        Feature("dip1000", "useDIP1000",
+                "revert DIP1000 changes https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
         Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
         Feature("markdown", "markdown", "disable Markdown replacements in Ddoc"),
         Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
