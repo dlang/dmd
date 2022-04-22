@@ -4883,6 +4883,7 @@ they are only intended to be instantiated by the compiler, not the user.
 public import core.internal.entrypoint : _d_cmain;
 
 public import core.internal.array.appending : _d_arrayappendT;
+public import core.internal.array.appending : _d_arrayappendTTrace;
 public import core.internal.array.appending : _d_arrayappendcTXImpl;
 public import core.internal.array.comparison : __cmp;
 public import core.internal.array.equality : __equals;

@@ -104,6 +104,22 @@ ref Tarr _d_arrayappendT(Tarr : T[], T)(return ref scope Tarr x, scope Tarr y) @
     return x;
 }
 
+/**
+ * TraceGC wrapper around $(REF _d_arrayappendT, core,internal,array,appending).
+ */
+ref Tarr _d_arrayappendTTrace(Tarr : T[], T)(string file, int line, string funcname, return ref scope Tarr x, scope Tarr y) @trusted
+{
+    version (D_TypeInfo)
+    {
+        import core.internal.array.utils: TraceHook, gcStatsPure, accumulatePure;
+        mixin(TraceHook!(Tarr.stringof, "_d_arrayappendT"));
+
+        return _d_arrayappendT(x, y);
+    }
+    else
+        assert(0, "Cannot append to array if compiling without support for runtime type information!");
+}
+
 @safe unittest
 {
     double[] arr1;
