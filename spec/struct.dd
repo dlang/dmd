@@ -971,7 +971,7 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     is initialized by copy, an error will be issued. The same rule applies to overlapped fields
     (anonymous unions).)
 
-    $(P A `struct` that defines a copy constructor is not $(RELATIVE_LINK2 POD, POD).
+    $(P A `struct` that defines a copy constructor is not $(RELATIVE_LINK2 POD, POD).)
 
 $(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
 
