@@ -516,11 +516,11 @@ runtime error.)
 void main() { foo(); /* error, foo is disabled */ }
 ---
 
-        $(P $(DDSUBLINK spec/struct, Struct-Constructor, Disabling struct no-arg constructor)
-        disallows default construction of the struct.
+        $(P $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
+        inside a struct disallows default construction.
         )
 
-        $(P $(DDSUBLINK spec/struct, StructPostblit, Disabling struct postblit)
+        $(P $(DDSUBLINK spec/struct, disable-copy, Disabling a struct copy constructor)
         makes the struct not copyable.
         )
 

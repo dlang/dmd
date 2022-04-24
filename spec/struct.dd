@@ -934,6 +934,7 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     ---
     )
 
+    $(LNAME2 disable-copy)
     $(P When a copy constructor is defined for a `struct` (or marked `@disable`), the compiler no
     longer implicitly generates default copy/blitting constructors for that `struct`:
     )
@@ -953,11 +954,24 @@ $(H3 $(LEGACY_LNAME2 StructCopyConstructor, struct-copy-constructor, Struct Copy
     }
     ---
 
+    ---
+    struct A
+    {
+        @disable this(ref A);
+    }
+
+    void main()
+    {
+        A a;
+        A b = a; // error: copy constructor is disabled
+    }
+    ---
+
     $(P If a `union S` has fields that define a copy constructor, whenever an object of type `S`
     is initialized by copy, an error will be issued. The same rule applies to overlapped fields
     (anonymous unions).)
 
-    $(P A `struct` that defines a copy constructor is not a POD.)
+    $(P A `struct` that defines a copy constructor is not $(RELATIVE_LINK2 POD, POD).)
 
 $(H4 $(LNAME2 copy-constructor-attributes, Copy Constructor Attributes))
 
