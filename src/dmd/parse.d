@@ -289,6 +289,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return true;
     }
 
+    /************************************
+     * Parse declarations and definitions
+     * Params:
+     *  once = !=0 means parse exactly one decl or def
+     *  pLastDecl = set to last decl or def parsed
+     *  pAttrs = keep track of attributes
+     * Returns:
+     *  array of declared symbols
+     */
     AST.Dsymbols* parseDeclDefs(int once, AST.Dsymbol* pLastDecl = null, PrefixAttributes!AST* pAttrs = null)
     {
         AST.Dsymbol lastDecl = null; // used to link unittest to its previous declaration
@@ -4298,7 +4307,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * These can be:
      *      1. declarations at global/class level
      *      2. declarations at statement level
-     * Return array of Declaration *'s.
+     * Returns:
+     *  array of Declarations.
      */
     private AST.Dsymbols* parseDeclarations(bool autodecl, PrefixAttributes!AST* pAttrs, const(char)* comment)
     {
@@ -4459,6 +4469,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             else if (t != tfirst)
                 error("multiple declarations must have the same type, not `%s` and `%s`", tfirst.toChars(), t.toChars());
 
+            if (token.value == TOK.colon && !ident && t.ty != Tfunction)
+            {
+                // Unnamed bit field
+                ident = Identifier.generateAnonymousId("BitField");
+            }
+
             bool isThis = (t.ty == Tident && (cast(AST.TypeIdentifier)t).ident == Id.This && token.value == TOK.assign);
             if (ident)
                 checkCstyleTypeSyntax(loc, t, alt, ident);
@@ -4591,6 +4607,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             else if (ident)
             {
+                AST.Expression width;
+                if (token.value == TOK.colon)
+                {
+                    nextToken();
+                    width = parseCondExp();
+                }
+
                 AST.Initializer _init = null;
                 if (token.value == TOK.assign)
                 {
@@ -4598,12 +4621,25 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     _init = parseInitializer();
                 }
 
-                auto v = new AST.VarDeclaration(loc, t, ident, _init);
-                v.storage_class = storage_class;
-                if (pAttrs)
-                    pAttrs.storageClass = STC.undefined_;
-
-                AST.Dsymbol s = v;
+                AST.Dsymbol s;
+                if (width)
+                {
+                    if (!global.params.bitfields)
+                        error("use -preview=bitfields for bitfield support");
+                    if (_init)
+                        error("initializer not allowed for bit-field declaration");
+                    if (storage_class)
+                        error("storage class not allowed for bit-field declaration");
+                    s = new AST.BitFieldDeclaration(width.loc, t, ident, width);
+                }
+                else
+                {
+                    auto v = new AST.VarDeclaration(loc, t, ident, _init);
+                    v.storage_class = storage_class;
+                    if (pAttrs)
+                        pAttrs.storageClass = STC.undefined_;
+                    s = v;
+                }
 
                 if (tpl && _init)
                 {
@@ -4616,7 +4652,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     auto ax = new AST.Dsymbols();
                     ax.push(s);
-                    s = new AST.AlignDeclaration(v.loc, ealign, ax);
+                    s = new AST.AlignDeclaration(s.loc, ealign, ax);
                 }
                 if (link != linkage)
                 {
@@ -4646,12 +4682,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 default:
                     if (loc.linnum != token.loc.linnum)
                     {
-                        error("semicolon needed to end declaration of `%s`, instead of `%s`", v.toChars(), token.toChars());
-                        errorSupplemental(loc, "`%s` declared here", v.toChars());
+                        error("semicolon needed to end declaration of `%s`, instead of `%s`", s.toChars(), token.toChars());
+                        errorSupplemental(loc, "`%s` declared here", s.toChars());
                     }
                     else
                     {
-                        error("semicolon needed to end declaration of `%s` instead of `%s`", v.toChars(), token.toChars());
+                        error("semicolon needed to end declaration of `%s` instead of `%s`", s.toChars(), token.toChars());
                     }
                     break;
                 }
