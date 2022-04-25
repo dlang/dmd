@@ -205,6 +205,8 @@ COPY=\
 	$(IMPDIR)\core\sys\dragonflybsd\sys\socket.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\sysctl.d \
 	\
+	$(IMPDIR)\core\sys\elf\package.d \
+	\
 	$(IMPDIR)\core\sys\linux\config.d \
 	$(IMPDIR)\core\sys\linux\dlfcn.d \
 	$(IMPDIR)\core\sys\linux\elf.d \

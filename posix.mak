@@ -222,6 +222,9 @@ $(DOC_OUTPUT_DIR)/core_sys_dragonflybsd_netinet_%.html : src/core/sys/dragonflyb
 $(DOC_OUTPUT_DIR)/core_sys_dragonflybsd_sys_%.html : src/core/sys/dragonflybsd/sys/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOC_OUTPUT_DIR)/core_sys_elf_%.html : src/core/sys/elf/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOC_OUTPUT_DIR)/core_sys_freebsd_%.html : src/core/sys/freebsd/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 

@@ -204,6 +204,8 @@ SRCS=\
 	src\core\sys\dragonflybsd\sys\socket.d \
 	src\core\sys\dragonflybsd\sys\sysctl.d \
 	\
+	src\core\sys\elf\package.d \
+	\
 	src\core\sys\linux\config.d \
 	src\core\sys\linux\dlfcn.d \
 	src\core\sys\linux\elf.d \
