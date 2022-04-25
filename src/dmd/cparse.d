@@ -213,16 +213,12 @@ final class CParser(AST) : Parser!AST
                     goto Lexp;
 
                 case TOK.leftParenthesis:
-                {
-                    /* If tokens look like a function call, assume it is one,
-                     * As any type-name won't be resolved until semantic, this
-                     * could be rewritten later.
-                     */
-                    auto tk = &token;
-                    if (isFunctionCall(tk))
-                        goto Lexp;
-                    goto default;
-                }
+                    if (auto pt = lookupTypedef(token.ident))
+                    {
+                        if (*pt)
+                            goto Ldeclaration;
+                    }
+                    goto Lexp;  // function call
 
                 default:
                 {
