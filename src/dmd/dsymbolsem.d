@@ -1204,6 +1204,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.errors)
             return;
 
+        if (!dsym.parent.isStructDeclaration() && !dsym.parent.isClassDeclaration())
+        {
+            dsym.error("bit-field must be member of struct, union, or class");
+        }
+
         sc = sc.startCTFE();
         auto width = dsym.width.expressionSemantic(sc);
         sc = sc.endCTFE();
