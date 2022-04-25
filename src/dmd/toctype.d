@@ -159,7 +159,7 @@ extern (C++) type* Type_toCtype(Type t)
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
-            if (dmdParams.symdebug && !global.errors)
+            if (driverParams.symdebug && !global.errors)
             {
                 foreach (v; sym.fields)
                 {
@@ -181,7 +181,7 @@ extern (C++) type* Type_toCtype(Type t)
                 }
             }
 
-            if (dmdParams.symdebugref)
+            if (driverParams.symdebugref)
                 toDebug(sym);
 
             return t.ctype;
@@ -230,7 +230,7 @@ extern (C++) type* Type_toCtype(Type t)
                 t.ctype = Type_toCtype(symMemtype);
             }
 
-            if (dmdParams.symdebugref)
+            if (driverParams.symdebugref)
                 toDebug(t.sym);
 
             return t.ctype;
@@ -262,7 +262,7 @@ extern (C++) type* Type_toCtype(Type t)
             /* Add in fields of the class
              * (after setting ctype to avoid infinite recursion)
              */
-            if (dmdParams.symdebug)
+            if (driverParams.symdebug)
             {
                 foreach (v; t.sym.fields)
                 {
@@ -276,7 +276,7 @@ extern (C++) type* Type_toCtype(Type t)
                 }
             }
 
-            if (dmdParams.symdebugref)
+            if (driverParams.symdebugref)
                 toDebug(t.sym);
             return t.ctype;
         }

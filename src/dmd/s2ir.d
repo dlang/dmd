@@ -1312,7 +1312,7 @@ private extern (C++) class S2irVisitor : Visitor
             }
             else
             {
-                if (!dmdParams.optimize)
+                if (!driverParams.optimize)
                 {
                     /* If this is reached at runtime, there's a bug
                      * in the computation of s.bodyFallsThru. Inserting a HALT

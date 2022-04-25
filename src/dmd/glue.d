@@ -1342,8 +1342,8 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             if (!cmain)
                 objmod.includelib("uuid");
-            if (dmdParams.mscrtlib.length && dmdParams.mscrtlib[0])
-                obj_includelib(dmdParams.mscrtlib);
+            if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+                obj_includelib(driverParams.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else if (target.objectFormat() == Target.ObjectFormat.omf)
@@ -1434,7 +1434,7 @@ tym_t totym(Type tx)
         case Tchar:     t = TYchar;     break;
         case Twchar:    t = TYwchar_t;  break;
         case Tdchar:
-            t = (dmdParams.symdebug == 1 || target.os & Target.OS.Posix) ? TYdchar : TYulong;
+            t = (driverParams.symdebug == 1 || target.os & Target.OS.Posix) ? TYdchar : TYulong;
             break;
 
         case Taarray:   t = TYaarray;   break;

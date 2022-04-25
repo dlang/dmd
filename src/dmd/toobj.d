@@ -334,9 +334,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (dmdParams.symdebugref)
+            if (driverParams.symdebugref)
                 Type_toCtype(cd.type); // calls toDebug() only once
-            else if (dmdParams.symdebug)
+            else if (driverParams.symdebug)
                 toDebug(cd);
 
             assert(cd.semanticRun >= PASS.semantic3done);     // semantic() should have been run to completion
@@ -446,9 +446,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!id.members)
                 return;
 
-            if (dmdParams.symdebugref)
+            if (driverParams.symdebugref)
                 Type_toCtype(id.type); // calls toDebug() only once
-            else if (dmdParams.symdebug)
+            else if (driverParams.symdebug)
                 toDebug(id);
 
             // Put out the members
@@ -496,9 +496,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // do not output forward referenced structs's
             if (!sd.isAnonymous() && sd.members)
             {
-                if (dmdParams.symdebugref)
+                if (driverParams.symdebugref)
                     Type_toCtype(sd.type); // calls toDebug() only once
-                else if (dmdParams.symdebug)
+                else if (driverParams.symdebug)
                     toDebug(sd);
 
                 if (global.params.useTypeInfo && Type.dtypeinfo)
@@ -674,9 +674,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (ed.isAnonymous())
                 return;
 
-            if (dmdParams.symdebugref)
+            if (driverParams.symdebugref)
                 Type_toCtype(ed.type); // calls toDebug() only once
-            else if (dmdParams.symdebug)
+            else if (driverParams.symdebug)
                 toDebug(ed);
 
             if (global.params.useTypeInfo && Type.dtypeinfo)

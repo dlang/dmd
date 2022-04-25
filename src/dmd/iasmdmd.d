@@ -1432,7 +1432,7 @@ code *asm_emit(Loc loc,
         CodeBuilder cdb;
         cdb.ctor();
 
-        if (dmdParams.symdebug)
+        if (driverParams.symdebug)
         {
             cdb.genlinnum(Srcpos.create(loc.filename, loc.linnum, loc.charnum));
         }
@@ -2375,7 +2375,7 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
             asmerr("cannot directly load TLS variable `%s`", v.toChars());
             return;
         }
-        else if (v.isDataseg() && dmdParams.pic != PIC.fixed)
+        else if (v.isDataseg() && driverParams.pic != PIC.fixed)
         {
             asmerr("cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
             return;
@@ -3506,7 +3506,7 @@ code *asm_da_parse(OP *pop)
             else
                 label.iasm = true;
 
-            if (dmdParams.symdebug)
+            if (driverParams.symdebug)
                 cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
             cdb.genasm(cast(_LabelDsymbol*)label);
         }
@@ -3690,7 +3690,7 @@ code *asm_db_parse(OP *pop)
 
     CodeBuilder cdb;
     cdb.ctor();
-    if (dmdParams.symdebug)
+    if (driverParams.symdebug)
         cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
     cdb.genasm(bytes.peekChars(), cast(uint)bytes.length);
     code *c = cdb.finish();

@@ -353,7 +353,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
-//        if (!dmdParams.oneobj || modi == 0 || m.isDocFile)
+//        if (!driverParams.oneobj || modi == 0 || m.isDocFile)
 //            m.deleteObjFile();
 
         m.parse();
@@ -369,7 +369,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 }
             }
             if (params.objfiles.length == 0)
-                dmdParams.link = false;
+                driverParams.link = false;
         }
         if (m.filetype == FileType.ddoc)
         {
@@ -388,11 +388,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 }
             }
             if (params.objfiles.length == 0)
-                dmdParams.link = false;
+                driverParams.link = false;
         }
     }
 
-    if (anydocfiles && modules.dim && (dmdParams.oneobj || params.objname))
+    if (anydocfiles && modules.dim && (driverParams.oneobj || params.objname))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
@@ -557,7 +557,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
-    if (dmdParams.lib && params.objfiles.length == 0)
+    if (driverParams.lib && params.objfiles.length == 0)
     {
         error(Loc.initial, "no input files");
         return EXIT_FAILURE;
@@ -567,12 +567,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         auto mainModule = moduleWithEmptyMain();
         modules.push(mainModule);
-        if (!params.oneobj || modules.length == 1)
+        if (!driverParams.oneobj || modules.length == 1)
             params.objfiles.push(mainModule.objfile.toChars());
     }
 
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
-                         dmdParams.lib, params.obj, dmdParams.oneobj, params.multiobj,
+                         driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
                          params.verbose);
 
     backend_term();
@@ -582,12 +582,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     int status = EXIT_SUCCESS;
     if (!params.objfiles.length)
     {
-        if (dmdParams.link)
+        if (driverParams.link)
             error(Loc.initial, "no object files to link");
     }
     else
     {
-        if (dmdParams.link)
+        if (driverParams.link)
             status = runLINK();
         if (params.run)
         {
@@ -599,7 +599,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 foreach (m; modules)
                 {
                     m.deleteObjFile();
-                    if (dmdParams.oneobj)
+                    if (driverParams.oneobj)
                         break;
                 }
                 params.exefile.toCStringThen!(ef => File.remove(ef.ptr));
@@ -740,11 +740,11 @@ version (NoMain) {} else
         OutBuffer buf;
 
         // start by resolving and writing the target (which is sometimes resolved during link phase)
-        if (dmdParams.link && params.exefile)
+        if (driverParams.link && params.exefile)
         {
             buf.writeEscapedMakePath(&params.exefile[0]);
         }
-        else if (dmdParams.lib)
+        else if (driverParams.lib)
         {
             const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
             libname = FileName.forceExt(libname,target.lib_ext);
@@ -1115,35 +1115,35 @@ const(char)[] parse_conf_arg(Strings* args)
  */
 private void setDefaultLibrary(ref Param params, const ref Target target)
 {
-    if (dmdParams.defaultlibname is null)
+    if (driverParams.defaultlibname is null)
     {
         if (target.os == Target.OS.Windows)
         {
             if (target.is64bit)
-                dmdParams.defaultlibname = "phobos64";
+                driverParams.defaultlibname = "phobos64";
             else if (!target.omfobj)
-                dmdParams.defaultlibname = "phobos32mscoff";
+                driverParams.defaultlibname = "phobos32mscoff";
             else
-                dmdParams.defaultlibname = "phobos";
+                driverParams.defaultlibname = "phobos";
         }
         else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
-            dmdParams.defaultlibname = "libphobos2.a";
+            driverParams.defaultlibname = "libphobos2.a";
         }
         else if (target.os == Target.OS.OSX)
         {
-            dmdParams.defaultlibname = "phobos2";
+            driverParams.defaultlibname = "phobos2";
         }
         else
         {
             assert(0, "fix this");
         }
     }
-    else if (!dmdParams.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
-        dmdParams.defaultlibname = null;
+    else if (!driverParams.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
+        driverParams.defaultlibname = null;
 
-    if (dmdParams.debuglibname is null)
-        dmdParams.debuglibname = dmdParams.defaultlibname;
+    if (driverParams.debuglibname is null)
+        driverParams.debuglibname = driverParams.defaultlibname;
 }
 
 /**
@@ -1173,8 +1173,8 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
         VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
     if (params.cov)
         VersionCondition.addPredefinedGlobalIdent("D_Coverage");
-    if (dmdParams.pic != PIC.fixed)
-        VersionCondition.addPredefinedGlobalIdent(dmdParams.pic == PIC.pic ? "D_PIC" : "D_PIE");
+    if (driverParams.pic != PIC.fixed)
+        VersionCondition.addPredefinedGlobalIdent(driverParams.pic == PIC.pic ? "D_PIC" : "D_PIE");
     if (params.useUnitTests)
         VersionCondition.addPredefinedGlobalIdent("unittest");
     if (params.useAssert == CHECKENABLE.on)
@@ -1571,7 +1571,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
             params.useDeprecated = DiagnosticReporting.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
-            dmdParams.link = false;
+            driverParams.link = false;
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
         {
             /* Parse:
@@ -1717,14 +1717,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "-shared")
-            dmdParams.dll = true;
+            driverParams.dll = true;
         else if (arg == "-fPIC")
         {
-            dmdParams.pic = PIC.pic;
+            driverParams.pic = PIC.pic;
         }
         else if (arg == "-fPIE")
         {
-            dmdParams.pic = PIC.pie;
+            driverParams.pic = PIC.pie;
         }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
             driverParams.map = true;
@@ -1738,7 +1738,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.mixinFile = mem.xstrdup(tmp);
         }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
-            dmdParams.symdebug = 1;
+            driverParams.symdebug = 1;
         else if (startsWith(p + 1, "gdwarf")) // https://dlang.org/dmd.html#switch-gdwarf
         {
             if (driverParams.dwarf)
@@ -1746,7 +1746,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 error("`-gdwarf=<version>` can only be provided once");
                 break;
             }
-            dmdParams.symdebug = 1;
+            driverParams.symdebug = 1;
 
             enum len = "-gdwarf=".length;
             // Parse:
@@ -1759,14 +1759,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-gf")
         {
-            if (!dmdParams.symdebug)
-                dmdParams.symdebug = 1;
-            dmdParams.symdebugref = true;
+            if (!driverParams.symdebug)
+                driverParams.symdebug = 1;
+            driverParams.symdebugref = true;
         }
         else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
             driverParams.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
-            dmdParams.stackstomp = true;
+            driverParams.stackstomp = true;
         else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
         {
             // ignore, already handled in C main
@@ -1797,7 +1797,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
-            dmdParams.mscrtlib = arg[10 .. $];
+            driverParams.mscrtlib = arg[10 .. $];
         }
         else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile
         {
@@ -2095,7 +2095,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
             params.warnings = DiagnosticReporting.inform;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
-            dmdParams.optimize = true;
+            driverParams.optimize = true;
         else if (p[1] == 'o')
         {
             const(char)* path;
@@ -2292,9 +2292,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.ehnogc = true;
         }
         else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
-            dmdParams.lib = true;
+            driverParams.lib = true;
         else if (arg == "-nofloat")
-            dmdParams.nofloat = true;
+            driverParams.nofloat = true;
         else if (arg == "-quiet")
         {
             // Ignore
@@ -2437,11 +2437,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
         {
-            dmdParams.defaultlibname = (p + 1 + 11).toDString;
+            driverParams.defaultlibname = (p + 1 + 11).toDString;
         }
         else if (startsWith(p + 1, "debuglib="))     // https://dlang.org/dmd.html#switch-debuglib
         {
-            dmdParams.debuglibname = (p + 1 + 9).toDString;
+            driverParams.debuglibname = (p + 1 + 9).toDString;
         }
         else if (startsWith(p + 1, "deps"))          // https://dlang.org/dmd.html#switch-deps
         {
@@ -2558,11 +2558,11 @@ private void reconcileCommands(ref Param params, ref Target target)
 {
     if (target.os == Target.OS.OSX)
     {
-        dmdParams.pic = PIC.pic;
+        driverParams.pic = PIC.pic;
     }
     else if (target.os == Target.OS.Windows)
     {
-        if (dmdParams.pic)
+        if (driverParams.pic)
             error(Loc.initial, "`-fPIC` and `-fPIE` cannot be used when targetting windows");
         if (driverParams.dwarf)
             error(Loc.initial, "`-gdwarf` cannot be used when targetting windows");
@@ -2575,7 +2575,7 @@ private void reconcileCommands(ref Param params, ref Target target)
 
     if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
-        if (dmdParams.lib && dmdParams.dll)
+        if (driverParams.lib && driverParams.dll)
             error(Loc.initial, "cannot mix `-lib` and `-shared`");
     }
     if (target.os == Target.OS.Windows)
@@ -2590,13 +2590,13 @@ private void reconcileCommands(ref Param params, ref Target target)
             }
         }
 
-        if (!dmdParams.mscrtlib)
+        if (!driverParams.mscrtlib)
         {
             version (Windows)
             {
                 VSOptions vsopt;
                 vsopt.initialize();
-                dmdParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
+                driverParams.mscrtlib = vsopt.defaultRuntimeLibrary(target.is64bit).toDString;
             }
             else
                 error(Loc.initial, "must supply `-mscrtlib` manually when cross compiling to windows");
@@ -2606,7 +2606,7 @@ private void reconcileCommands(ref Param params, ref Target target)
     {
         if (target.omfobj)
             error(Loc.initial, "`-m32omf` can only be used when targetting windows");
-        if (dmdParams.mscrtlib)
+        if (driverParams.mscrtlib)
             error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }
 
@@ -2683,12 +2683,12 @@ private void reconcileCommands(ref Param params, ref Target target)
 version (NoMain) {} else
 private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const char[] obj_ext)
 {
-    if (!params.obj || dmdParams.lib)
-        dmdParams.link = false;
-    if (dmdParams.link)
+    if (!params.obj || driverParams.lib)
+        driverParams.link = false;
+    if (driverParams.link)
     {
         params.exefile = params.objname;
-        dmdParams.oneobj = true;
+        driverParams.oneobj = true;
         if (params.objname)
         {
             /* Use this to name the one object file with the same
@@ -2710,7 +2710,7 @@ private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const cha
         error(Loc.initial, "flags conflict with -run");
         fatal();
     }
-    else if (dmdParams.lib)
+    else if (driverParams.lib)
     {
         params.libname = params.objname;
         params.objname = null;
@@ -2722,7 +2722,7 @@ private void reconcileLinkRunLib(ref Param params, size_t numSrcFiles, const cha
     {
         if (params.objname && numSrcFiles)
         {
-            dmdParams.oneobj = true;
+            driverParams.oneobj = true;
             //error("multiple source files, but only one .obj name");
             //fatal();
         }

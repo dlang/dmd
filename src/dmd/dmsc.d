@@ -91,12 +91,12 @@ void backend_init()
     }
 
     bool exe;
-    if (dmdParams.dll || dmdParams.pic != PIC.fixed)
+    if (driverParams.dll || driverParams.pic != PIC.fixed)
     {
     }
     else if (params.run)
         exe = true;         // EXE file only optimizations
-    else if (dmdParams.link && !params.deffile)
+    else if (driverParams.link && !params.deffile)
         exe = true;         // EXE file only optimizations
     else if (params.exefile.length &&
              params.exefile.length >= 4 &&
@@ -107,15 +107,15 @@ void backend_init()
         (target.is64bit ? 64 : 32) | (target.objectFormat() == Target.ObjectFormat.coff ? 1 : 0),
         exe,
         false, //params.trace,
-        dmdParams.nofloat,
-        dmdParams.vasm,
+        driverParams.nofloat,
+        driverParams.vasm,
         params.verbose,
-        dmdParams.optimize,
-        dmdParams.symdebug,
-        dmdParams.alwaysframe,
-        dmdParams.stackstomp,
+        driverParams.optimize,
+        driverParams.symdebug,
+        driverParams.alwaysframe,
+        driverParams.stackstomp,
         target.cpu >= CPU.avx2 ? 2 : target.cpu >= CPU.avx ? 1 : 0,
-        dmdParams.pic,
+        driverParams.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable,

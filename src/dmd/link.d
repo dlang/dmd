@@ -276,7 +276,7 @@ public int runLINK()
                 cmdbuf.writestring("/DEF:");
                 writeFilename(&cmdbuf, global.params.deffile);
             }
-            if (dmdParams.symdebug)
+            if (driverParams.symdebug)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEBUG");
@@ -284,7 +284,7 @@ public int runLINK()
                 if (global.params.release)
                     cmdbuf.writestring(" /OPT:REF");
             }
-            if (dmdParams.dll)
+            if (driverParams.dll)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DLL");
@@ -424,7 +424,7 @@ public int runLINK()
             }
             else
             {
-                if (dmdParams.symdebug)
+                if (driverParams.symdebug)
                     cmdbuf.writestring("/co");
             }
             cmdbuf.writestring("/noi");
@@ -491,12 +491,12 @@ public int runLINK()
         {
             // If we are on Mac OS X and linking a dynamic library,
             // add the "-dynamiclib" flag
-            if (dmdParams.dll)
+            if (driverParams.dll)
                 argv.push("-dynamiclib");
         }
         else version (Posix)
         {
-            if (dmdParams.dll)
+            if (driverParams.dll)
                 argv.push("-shared");
         }
         // None of that a.out stuff. Use explicit exe file name, or
@@ -548,7 +548,7 @@ public int runLINK()
             n = FileName.name(n);
             if (const e = FileName.ext(n))
             {
-                if (dmdParams.dll)
+                if (driverParams.dll)
                     ex = FileName.forceExt(ex, target.dll_ext);
                 else
                     ex = FileName.removeExt(n);
@@ -560,7 +560,7 @@ public int runLINK()
         }
         // Make sure path to exe file exists
         ensurePathToNameExists(Loc.initial, global.params.exefile);
-        if (dmdParams.symdebug)
+        if (driverParams.symdebug)
             argv.push("-g");
         if (target.is64bit)
             argv.push("-m64");

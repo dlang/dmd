@@ -865,7 +865,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
         fd.csym.Sscope = sclosure;
 
-        if (dmdParams.symdebug)
+        if (driverParams.symdebug)
             toDebugClosure(Closstru.Ttag);
 
         // Allocate memory for the closure
@@ -940,7 +940,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
  */
 void buildCapture(FuncDeclaration fd)
 {
-    if (!dmdParams.symdebug)
+    if (!driverParams.symdebug)
         return;
     if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets

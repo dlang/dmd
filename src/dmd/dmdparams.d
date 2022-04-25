@@ -312,7 +312,7 @@ extern (D) const(char)[] finalDefaultlibname()
 {
     import dmd.globals : global;
     return global.params.betterC ? null :
-        dmdParams.symdebug ? dmdParams.debuglibname : dmdParams.defaultlibname;
+        driverParams.symdebug ? driverParams.debuglibname : driverParams.defaultlibname;
 }
 
-__gshared DMDparams dmdParams = dmdParams.init;
+__gshared DMDparams driverParams = DMDparams.init;
