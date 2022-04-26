@@ -303,6 +303,8 @@ void cv_udt(const char* id, uint typidx)
 
 void toDebug(EnumDeclaration ed)
 {
+    if (target.os != Target.OS.Windows)
+        return;
     //printf("EnumDeclaration::toDebug('%s')\n", ed.toChars());
 
     assert(config.fulltypes >= CV4);
@@ -459,6 +461,9 @@ int cv_mem_p(Dsymbol s, CvFieldList *pmc)
 
 void toDebug(StructDeclaration sd)
 {
+    if (target.os != Target.OS.Windows)
+        return;
+
     idx_t typidx1 = 0;
 
     //printf("StructDeclaration::toDebug('%s')\n", sd.toChars());
@@ -592,6 +597,8 @@ void toDebug(StructDeclaration sd)
 
 void toDebug(ClassDeclaration cd)
 {
+    if (target.os != Target.OS.Windows)
+        return;
     idx_t typidx1 = 0;
 
     //printf("ClassDeclaration::toDebug('%s')\n", cd.toChars());
@@ -814,6 +821,9 @@ private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint o
 
 void toDebugClosure(Symbol* closstru)
 {
+    if (target.os != Target.OS.Windows)
+        return;
+
     //printf("toDebugClosure('%s')\n", fd.toChars());
 
     assert(config.fulltypes >= CV4);
