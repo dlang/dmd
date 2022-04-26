@@ -573,7 +573,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
         }
         else if (sc.flags & SCOPE.Cfile && i.exp.isStringExp() &&
             tta && (tta.next.ty == Tint8 || tta.next.ty == Tuns8) &&
-            ti.ty == Tpointer && ti.nextOf().ty == Tchar)
+            ti.ty == Tsarray && ti.nextOf().ty == Tchar)
         {
             /* unsigned char bbb[1] = "";
              *   signed char ccc[1] = "";
