@@ -1,8 +1,8 @@
 /**
  * Defines enums common to dmd and dmd as parse library.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astenums.d, _astenums.d)
  * Documentation:  https://dlang.org/phobos/dmd_astenums.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astenums.d
@@ -28,6 +28,7 @@ enum Baseok : ubyte
 
 enum MODFlags : int
 {
+    none         = 0,    // default (mutable)
     const_       = 1,    // type is const
     immutable_   = 4,    // type is immutable
     shared_      = 2,    // type is shared
@@ -38,70 +39,116 @@ enum MODFlags : int
 
 alias MOD = ubyte;
 
-enum STC : ulong
+enum STC : ulong  // transfer changes to declaration.h
 {
-    undefined_          = 0L,
-    static_             = (1L << 0),
-    extern_             = (1L << 1),
-    const_              = (1L << 2),
-    final_              = (1L << 3),
-    abstract_           = (1L << 4),
-    parameter           = (1L << 5),
-    field               = (1L << 6),
-    override_           = (1L << 7),
-    auto_               = (1L << 8),
-    synchronized_       = (1L << 9),
-    deprecated_         = (1L << 10),
-    in_                 = (1L << 11),   // in parameter
-    out_                = (1L << 12),   // out parameter
-    lazy_               = (1L << 13),   // lazy parameter
-    foreach_            = (1L << 14),   // variable for foreach loop
-                          //(1L << 15)
-    variadic            = (1L << 16),   // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
-    ctorinit            = (1L << 17),   // can only be set inside constructor
-    templateparameter   = (1L << 18),   // template parameter
-    scope_              = (1L << 19),
-    immutable_          = (1L << 20),
-    ref_                = (1L << 21),
-    init                = (1L << 22),   // has explicit initializer
-    manifest            = (1L << 23),   // manifest constant
-    nodtor              = (1L << 24),   // don't run destructor
-    nothrow_            = (1L << 25),   // never throws exceptions
-    pure_               = (1L << 26),   // pure function
-    tls                 = (1L << 27),   // thread local
-    alias_              = (1L << 28),   // alias parameter
-    shared_             = (1L << 29),   // accessible from multiple threads
-    gshared             = (1L << 30),   // accessible from multiple threads, but not typed as "shared"
-    wild                = (1L << 31),   // for "wild" type constructor
-    property            = (1L << 32),
-    safe                = (1L << 33),
-    trusted             = (1L << 34),
-    system              = (1L << 35),
-    ctfe                = (1L << 36),   // can be used in CTFE, even if it is static
-    disable             = (1L << 37),   // for functions that are not callable
-    result              = (1L << 38),   // for result variables passed to out contracts
-    nodefaultctor       = (1L << 39),   // must be set inside constructor
-    temp                = (1L << 40),   // temporary variable
-    rvalue              = (1L << 41),   // force rvalue for variables
-    nogc                = (1L << 42),   // @nogc
-    volatile_           = (1L << 43),   // destined for volatile in the back end
-    return_             = (1L << 44),   // 'return ref' or 'return scope' for function parameters
-    autoref             = (1L << 45),   // Mark for the already deduced 'auto ref' parameter
-    inference           = (1L << 46),   // do attribute inference
-    exptemp             = (1L << 47),   // temporary variable that has lifetime restricted to an expression
-    maybescope          = (1L << 48),   // parameter might be 'scope'
-    scopeinferred       = (1L << 49),   // 'scope' has been inferred and should not be part of mangling
-    future              = (1L << 50),   // introducing new base class function
-    local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
-    returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
-    live                = (1L << 53),   // function @live attribute
-    register            = (1L << 54),   // `register` storage class
+    undefined_          = 0,
+
+    static_             = 1,   /// `static`
+    extern_             = 2,   /// `extern`
+    const_              = 4,   /// `const`
+    final_              = 8,   /// `final`
+
+    abstract_           = 0x10,   /// `abstract`
+    parameter           = 0x20,   /// is function parameter
+    field               = 0x40,   /// is field of struct, union or class
+    override_           = 0x80,   /// `override`
+
+    auto_               = 0x100,   /// `auto`
+    synchronized_       = 0x200,   /// `synchronized`
+    deprecated_         = 0x400,   /// `deprecated`
+    in_                 = 0x800,   /// `in` parameter
+
+    out_                = 0x1000,   /// `out` parameter
+    lazy_               = 0x2000,   /// `lazy` parameter
+    foreach_            = 0x4000,   /// variable for foreach loop
+    variadic            = 0x8000,   /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
+
+    //                  = 0x1_0000,
+    templateparameter   = 0x2_0000,   /// template parameter
+    ref_                = 0x4_0000,   /// `ref`
+    scope_              = 0x8_0000,   /// `scope`
+
+    maybescope          = 0x10_0000,   /// parameter might be `scope`
+    scopeinferred       = 0x20_0000,   /// `scope` has been inferred and should not be part of mangling, `scope_` must also be set
+    return_             = 0x40_0000,   /// 'return ref' or 'return scope' for function parameters
+    returnScope         = 0x80_0000,   /// if `ref return scope` then resolve to `ref` and `return scope`
+
+    returninferred      = 0x100_0000,   /// `return` has been inferred and should not be part of mangling, `return_` must also be set
+    immutable_          = 0x200_0000,   /// `immutable`
+    //                  = 0x400_0000,
+    manifest            = 0x800_0000,   /// manifest constant
+
+    nodtor              = 0x1000_0000,   /// do not run destructor
+    nothrow_            = 0x2000_0000,   /// `nothrow` meaning never throws exceptions
+    pure_               = 0x4000_0000,   /// `pure` function
+    tls                 = 0x8000_0000,   /// thread local
+
+    alias_              = 0x1_0000_0000,   /// `alias` parameter
+    shared_             = 0x2_0000_0000,   /// accessible from multiple threads
+    gshared             = 0x4_0000_0000,   /// accessible from multiple threads, but not typed as `shared`
+    wild                = 0x8_0000_0000,   /// for wild type constructor
+
+    property            = 0x10_0000_0000,   /// `@property`
+    safe                = 0x20_0000_0000,   /// `@safe`
+    trusted             = 0x40_0000_0000,   /// `@trusted`
+    system              = 0x80_0000_0000,   /// `@system`
+
+    ctfe                = 0x100_0000_0000,   /// can be used in CTFE, even if it is static
+    disable             = 0x200_0000_0000,   /// for functions that are not callable
+    result              = 0x400_0000_0000,   /// for result variables passed to out contracts
+    nodefaultctor       = 0x800_0000_0000,   /// must be set inside constructor
+
+    temp                = 0x1000_0000_0000,   /// temporary variable
+    rvalue              = 0x2000_0000_0000,   /// force rvalue for variables
+    nogc                = 0x4000_0000_0000,   /// `@nogc`
+    autoref             = 0x8000_0000_0000,   /// Mark for the already deduced `auto ref` parameter
+
+    inference           = 0x1_0000_0000_0000,   /// do attribute inference
+    exptemp             = 0x2_0000_0000_0000,   /// temporary variable that has lifetime restricted to an expression
+    future              = 0x4_0000_0000_0000,   /// introducing new base class function
+    local               = 0x8_0000_0000_0000,   /// do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+
+    live                = 0x10_0000_0000_0000,   /// function `@live` attribute
+    register            = 0x20_0000_0000_0000,   /// `register` storage class (ImportC)
+    volatile_           = 0x40_0000_0000_0000,   /// destined for volatile in the back end
 
     safeGroup = STC.safe | STC.trusted | STC.system,
     IOR  = STC.in_ | STC.ref_ | STC.out_,
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                 safeGroup),
+
+    /* These are visible to the user, i.e. are expressed by the user
+     */
+    visibleStorageClasses =
+        (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
+         STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
+         STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
+         STC.property | STC.safeGroup | STC.disable | STC.local | STC.live),
+
+    /* These storage classes "flow through" to the inner scope of a Dsymbol
+     */
+    flowThruAggregate = STC.safeGroup,    /// for an AggregateDeclaration
+    flowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
+                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
+
+}
+
+alias StorageClass = ulong;
+
+/********
+ * Determine if it's the ambigous case of where `return` attaches to.
+ * Params:
+ *   stc = STC flags
+ * Returns:
+ *   true if (`ref` | `out`) and `scope` and `return`
+ */
+@safe pure @nogc nothrow
+bool isRefReturnScope(const ulong stc)
+{
+    return (stc & (STC.scope_ | STC.return_)) == (STC.scope_ | STC.return_) &&
+           stc & (STC.ref_ | STC.out_);
 }
 
 /* This is different from the one in declaration.d, make that fix a separate PR */
@@ -238,11 +285,11 @@ enum PKG : int
     package_,     /// already determined that's an actual package
 }
 
-enum StructPOD : int
+enum ThreeState : ubyte
 {
-    no,    /// struct is not POD
-    yes,   /// struct is POD
-    fwd,   /// POD not yet computed
+    none,  /// state is not yet computed
+    no,    /// state is false
+    yes,   /// state is true
 }
 
 enum TRUST : ubyte
@@ -258,8 +305,7 @@ enum PURE : ubyte
     impure      = 0,    // not pure at all
     fwdref      = 1,    // it's pure, but not known which level yet
     weak        = 2,    // no mutable globals are read or written
-    const_      = 3,    // parameters are values or const
-    strong      = 4,    // parameters are values or immutable
+    const_      = 3,    // parameters are values or const = strongly pure
 }
 
 // Whether alias this dependency is recursive or not
@@ -345,3 +391,52 @@ enum InitKind : ubyte
     C_,
 }
 
+/// A linkage attribute as defined by `extern(XXX)`
+///
+/// https://dlang.org/spec/attribute.html#linkage
+enum LINK : ubyte
+{
+    default_,
+    d,
+    c,
+    cpp,
+    windows,
+    objc,
+    system,
+}
+
+/// Whether to mangle an external aggregate as a struct or class, as set by `extern(C++, struct)`
+enum CPPMANGLE : ubyte
+{
+    def,      /// default
+    asStruct, /// `extern(C++, struct)`
+    asClass,  /// `extern(C++, class)`
+}
+
+/// Function match levels
+///
+/// https://dlang.org/spec/function.html#function-overloading
+enum MATCH : int
+{
+    nomatch,   /// no match
+    convert,   /// match with conversions
+    constant,  /// match with conversion to const
+    exact,     /// exact match
+}
+
+/// Inline setting as defined by `pragma(inline, XXX)`
+enum PINLINE : ubyte
+{
+    default_, /// as specified on the command line
+    never,    /// never inline
+    always,   /// always inline
+}
+
+/// Source file type
+enum FileType : ubyte
+{
+    d,    /// normal D source file
+    dhdr, /// D header file (.di)
+    ddoc, /// Ddoc documentation file (.dd)
+    c,    /// C source file
+}

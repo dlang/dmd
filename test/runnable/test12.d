@@ -832,7 +832,7 @@ void test38()
 
 
 /**************************************/
-// http://www.digitalmars.com/d/archives/digitalmars/D/bugs/2409.html
+// https://www.digitalmars.com/d/archives/digitalmars/D/bugs/2409.html
 
 class C39
 {
@@ -1246,4 +1246,3 @@ int main(string[] argv)
     printf("Success\n");
     return 0;
 }
-

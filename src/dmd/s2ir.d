@@ -1,9 +1,9 @@
 /**
  * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
  * Documentation: $(LINK https://dlang.org/phobos/dmd_s2ir.html)
  * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/src/dmd/s2ir.d)
@@ -90,7 +90,7 @@ private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
 
 private bool isAssertFalse(const Expression e) nothrow
 {
-    return e ? e.type == Type.tnoreturn && (e.op == TOK.halt || e.op == TOK.assert_) : false;
+    return e ? e.type == Type.tnoreturn && (e.op == EXP.halt || e.op == EXP.assert_) : false;
 }
 
 private bool isAssertFalse(const Statement s) nothrow
@@ -646,7 +646,7 @@ private extern (C++) class S2irVisitor : Visitor
                  */
                 else if (auto ce = s.exp.isCallExp())
                 {
-                    if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
+                    if (ce.e1.op == EXP.variable || ce.e1.op == EXP.star)
                     {
                         Type t = ce.e1.type.toBasetype();
                         if (t.ty == Tdelegate)
@@ -686,7 +686,7 @@ private extern (C++) class S2irVisitor : Visitor
                 assert(e);
 
                 if (writetohp ||
-                    (func.nrvo_can && func.nrvo_var))
+                    (func.isNRVO() && func.nrvo_var))
                 {
                     // Return value via hidden pointer passed as parameter
                     // Write exp; return shidden;
@@ -853,7 +853,7 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(WithStatement s)
     {
         //printf("WithStatement.toIR()\n");
-        if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
+        if (s.exp.op == EXP.scope_ || s.exp.op == EXP.type)
         {
         }
         else
@@ -889,7 +889,7 @@ private extern (C++) class S2irVisitor : Visitor
 
         incUsage(irs, s.loc);
         elem *e = toElemDtor(s.exp, irs);
-        const int rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM_THROWDWARF : RTLSYM_THROWC;
+        const rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM.THROWDWARF : RTLSYM.THROWC;
         e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtlthrow)),e);
         block_appendexp(blx.curblock, e);
         block_next(blx, BCexit, null);          // throw never returns
@@ -991,7 +991,7 @@ private extern (C++) class S2irVisitor : Visitor
             else
             {
                 //  jcatchvar = __dmd_catch_begin(__exception_object);
-                elem *ebegin = el_var(getRtlsym(RTLSYM_BEGIN_CATCH));
+                elem *ebegin = el_var(getRtlsym(RTLSYM.BEGIN_CATCH));
                 elem *e = el_bin(OPcall, TYnptr, ebegin, el_var(seo));
                 elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock.jcatchvar), e);
             }
@@ -1035,7 +1035,7 @@ private extern (C++) class S2irVisitor : Visitor
                     if (i == 0)
                     {
                         // rewrite ebegin to use __cxa_begin_catch
-                        Symbol *s2 = getRtlsym(RTLSYM_CXA_BEGIN_CATCH);
+                        Symbol *s2 = getRtlsym(RTLSYM.CXA_BEGIN_CATCH);
                         ebegin.EV.Vsym = s2;
                     }
                 }
@@ -1275,7 +1275,7 @@ private extern (C++) class S2irVisitor : Visitor
             /* Add code to BC_ret block:
              *  (!_flag && _Unwind_Resume(exception_object));
              */
-            elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_UNWIND_RESUME)), el_var(seo));
+            elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.UNWIND_RESUME)), el_var(seo));
             eu = el_bin(OPandand, TYvoid, el_una(OPnot, TYbool, el_var(sflag)), eu);
             assert(!retblock.Belem);
             retblock.Belem = eu;

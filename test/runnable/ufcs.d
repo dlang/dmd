@@ -196,6 +196,7 @@ void test5()
     {
         // f5_1 .. f5_5 are symbols which declared in module scope
         assert(100.f5_1() == 1);
+        assert(001.f5_1() == 1); // https://issues.dlang.org/show_bug.cgi?id=8346
         assert("s".f5_2() == 2);
         assert(1.4.f5_3() == 3);
         assert(100.f5_4() == 1);
@@ -421,8 +422,6 @@ class C5 : B5
 /*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=662
 
-import std.string, std.conv;
-
 enum Etest
 {
     a,b,c,d
@@ -447,6 +446,10 @@ int test(Etest test)
 //{
 //  return cast(int)i;
 //}
+string to(T)(int i) {
+    assert(i == 22);
+    return "22";
+}
 
 void test682()
 {
@@ -464,12 +467,53 @@ void test682()
 /*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=3382
 
-import std.range, std.algorithm;
-
 @property T twice(T)(T x){ return x * x; }
 char toupper(char c){ return ('a'<=c && c<='z') ? cast(char)(c - 'a' + 'A') : c; }
 
 @property ref T setter(T)(ref T x, T v){ x = v; return x; }
+
+auto iota(T)(T min, T max)
+{
+    static struct Result
+    {
+        T cur, end;
+
+        T front() { return cur; }
+        bool empty() { return front == end; }
+        void popFront() { cur++; }
+    }
+    return Result(min, max);
+}
+
+auto map(string s, R)(R range)
+{
+    static struct Result
+    {
+        R source;
+        auto front() { auto a = source.front; return mixin(s); }
+        alias source this;
+    }
+    return Result(range);
+}
+
+auto filter(string s, R)(R range)
+{
+    static struct Result
+    {
+        R source;
+        alias source this;
+        void popFront()
+        {
+            while (true)
+            {
+                auto a = source.front;
+                if (mixin(s)) break;
+                source.popFront();
+            }
+        }
+    }
+    return Result(range);
+}
 
 void test3382()
 {
@@ -485,10 +529,23 @@ void test3382()
 /*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6185
 
+ref T front(T)(T[] array) { return array[0]; }
+bool empty(T)(T[] array) { return array.length == 0; }
+void popFront(T)(ref T[] array) { array = array[1..$]; }
+
+bool equal(T, U)(T t, U u)
+{
+    while (true)
+    {
+        if (t.empty) return u.empty;
+        if (u.empty || t.front != u.front) return false;
+        t.popFront();
+        u.popFront();
+    }
+}
+
 void test6185()
 {
-    import std.algorithm;
-
     auto r1 = [1,2,3].map!"a*2";
     assert(equal(r1, [2,4,6]));
 

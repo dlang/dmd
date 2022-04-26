@@ -1,4 +1,4 @@
-// EXTRA_OBJC_SOURCES
+// EXTRA_OBJC_SOURCES:
 /* TEST_OUTPUT:
 ---
 fail_compilation/objc_offsetof.d(13): Error: no property `offsetof` for member `a` of type `int`

@@ -169,6 +169,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.CallExp) { assert(0); }
     override void visit(AST.DotIdExp) { assert(0); }
     override void visit(AST.AssertExp) { assert(0); }
+    override void visit(AST.ThrowExp) { assert(0); }
     override void visit(AST.MixinExp) { assert(0); }
     override void visit(AST.ImportExp) { assert(0); }
     override void visit(AST.DotTemplateInstanceExp) { assert(0); }
@@ -214,6 +215,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.ShrAssignExp) { assert(0); }
     override void visit(AST.UshrAssignExp) { assert(0); }
     override void visit(AST.CatAssignExp) { assert(0); }
+    override void visit(AST.GenericExp) { assert(0); }
     override void visit(AST.TemplateParameter) { assert(0); }
     override void visit(AST.TemplateAliasParameter) { assert(0); }
     override void visit(AST.TemplateTypeParameter) { assert(0); }

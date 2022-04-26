@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/deprecate12979c.d(12): Deprecation: `asm` statement is assumed to use the GC - mark it with `@nogc` if it does not
+fail_compilation/deprecate12979c.d(12): Error: `asm` statement is assumed to use the GC - mark it with `@nogc` if it does not
 ---
 */
 

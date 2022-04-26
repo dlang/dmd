@@ -42,7 +42,6 @@ struct _d_dynamicArray final
 struct Child;
 class Struct;
 enum class Enum;
-struct OuterStruct;
 class ExternDClass;
 struct ExternDStruct;
 template <typename T>
@@ -51,10 +50,25 @@ template <typename T>
 class TemplStruct;
 template <typename T>
 class ExternDTemplClass;
+struct OnlyByRef;
 
 struct Parent
 {
     virtual void bar();
+};
+
+struct OuterStruct final
+{
+    struct NestedStruct final
+    {
+        NestedStruct()
+        {
+        }
+    };
+
+    OuterStruct()
+    {
+    }
 };
 
 struct ExternDStructRequired final
@@ -72,7 +86,6 @@ struct ExternDStructRequired final
 template <typename T>
 struct ExternDTemplStruct final
 {
-    // Ignoring var member alignment 0
     T member;
     ExternDTemplStruct()
     {
@@ -104,20 +117,6 @@ enum class Enum
 
 extern OuterStruct::NestedStruct* nestedStrPtr;
 
-struct OuterStruct final
-{
-    struct NestedStruct final
-    {
-        NestedStruct()
-        {
-        }
-    };
-
-    OuterStruct()
-    {
-    }
-};
-
 extern ExternDClass* externDClassPtr;
 
 extern ExternDStruct* externDStrPtr;
@@ -129,7 +128,6 @@ extern TemplClass<int32_t >* templClass;
 template <typename T>
 class TemplClass
 {
-    // Ignoring var member alignment 0
 public:
     T member;
 };
@@ -139,7 +137,6 @@ extern TemplStruct<int32_t >* templStruct;
 template <typename T>
 class TemplStruct
 {
-    // Ignoring var member alignment 0
 public:
     T member;
 };
@@ -147,6 +144,8 @@ public:
 extern ExternDTemplClass<int32_t >* externTemplClass;
 
 extern ExternDTemplStruct<int32_t > externTemplStruct;
+
+extern void foo(OnlyByRef& obr);
 
 ---
 */
@@ -255,3 +254,9 @@ extern(D) struct ExternDTemplStruct(T)
 {
     T member;
 }
+
+//******************************************************
+
+extern(D) struct OnlyByRef {}
+
+void foo(ref OnlyByRef obr) {}

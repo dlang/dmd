@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2022 by The D Language Foundation, All Rights Reserved
  * written by Iain Buclaw
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/target.h
  */
 
@@ -20,13 +20,12 @@ class ClassDeclaration;
 class Dsymbol;
 class Expression;
 class FuncDeclaration;
-class Parameter;
 class Statement;
 class Type;
 class TypeTuple;
 class TypeFunction;
 
-enum class CPU
+enum class CPU : unsigned char
 {
     x87,
     mmx,
@@ -59,10 +58,27 @@ struct TargetC
         UClibc,
         WASI,
     };
+
+    enum class BitFieldStyle : unsigned char
+    {
+        Unspecified,
+        DM,                   // Digital Mars 32 bit C compiler
+        MS,                   // Microsoft 32 and 64 bit C compilers
+                              // https://docs.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-160
+                              // https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
+        Gcc_Clang,            // gcc and clang
+    };
+
+    uint8_t crtDestructorsSupported; // Not all platforms support crt_destructor
+    uint8_t boolsize;            // size of a C '_Bool' type
+    uint8_t shortsize;           // size of a C 'short' or 'unsigned short' type
+    uint8_t intsize;             // size of a C 'int' or 'unsigned int' type
     uint8_t longsize;            // size of a C 'long' or 'unsigned long' type
+    uint8_t long_longsize;       // size of a C 'long long' or 'unsigned long long' type
     uint8_t long_doublesize;     // size of a C 'long double'
     uint8_t wchar_tsize;         // size of a C 'wchar_t' type
     Runtime runtime;
+    BitFieldStyle bitFieldStyle; // different C compilers do it differently
 };
 
 struct TargetCPP
@@ -79,6 +95,7 @@ struct TargetCPP
     bool reverseOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
     bool exceptions;          // set if catching C++ exceptions is supported
     bool twoDtorInVtable;     // target C++ ABI puts deleting and non-deleting destructor into vtable
+    bool splitVBasetable;     // set if C++ ABI uses separate tables for virtual functions and virtual bases
     bool wrapDtorInExternD;   // set if C++ dtors require a D wrapper to be callable from runtime
     Runtime runtime;
 
@@ -86,7 +103,7 @@ struct TargetCPP
     const char *typeInfoMangle(ClassDeclaration *cd);
     const char *thunkMangle(FuncDeclaration *fd, int offset);
     const char *typeMangle(Type *t);
-    Type *parameterType(Parameter *p);
+    Type *parameterType(Type *p);
     bool fundamentalType(const Type *t, bool& isFundamental);
     unsigned derivedClassOffset(ClassDeclaration *baseClass);
 };
@@ -147,7 +164,7 @@ struct Target
     DString lib_ext;    /// extension for static library files
     DString dll_ext;    /// extension for dynamic library files
     bool run_noext;     /// allow -run sources without extensions
-    bool mscoff;        /// for Win32: write COFF object files instead of OMF
+    bool omfobj;        /// for Win32: write OMF object files instead of COFF
 
     template <typename T>
     struct FPTypeProperties
@@ -158,12 +175,12 @@ struct Target
         real_t infinity;
         real_t epsilon;
 
-        d_int64 dig;
-        d_int64 mant_dig;
-        d_int64 max_exp;
-        d_int64 min_exp;
-        d_int64 max_10_exp;
-        d_int64 min_10_exp;
+        int64_t dig;
+        int64_t mant_dig;
+        int64_t max_exp;
+        int64_t min_exp;
+        int64_t max_10_exp;
+        int64_t min_10_exp;
     };
 
     FPTypeProperties<float> FloatProperties;
@@ -177,21 +194,20 @@ private:
 public:
     void _init(const Param& params);
     // Type sizes and support.
-    void setTriple(const char* _triple);
     unsigned alignsize(Type *type);
     unsigned fieldalign(Type *type);
     Type *va_listType(const Loc &loc, Scope *sc);  // get type of va_list
     int isVectorTypeSupported(int sz, Type *type);
-    bool isVectorOpSupported(Type *type, unsigned op, Type *t2 = NULL);
+    bool isVectorOpSupported(Type *type, EXP op, Type *t2 = NULL);
     // ABI and backend.
     LINK systemLinkage();
     TypeTuple *toArgTypes(Type *t);
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
-    d_uns64 parameterSize(const Loc& loc, Type *t);
     bool preferPassByRef(Type *t);
     Expression *getTargetInfo(const char* name, const Loc& loc);
     bool isCalleeDestroyingArgs(TypeFunction* tf);
     bool libraryObjectMonitors(FuncDeclaration *fd, Statement *fbody);
+    bool supportsLinkerDirective() const;
     void addPredefinedGlobalIdentifiers() const;
 };
 

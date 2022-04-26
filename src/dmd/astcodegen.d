@@ -73,6 +73,7 @@ struct ASTCodegen
     alias Tuns64                    = dmd.mtype.Tuns64;
     alias Tvoid                     = dmd.mtype.Tvoid;
     alias Twchar                    = dmd.mtype.Twchar;
+    alias Tnoreturn                 = dmd.mtype.Tnoreturn;
 
     alias Timaginary32              = dmd.mtype.Timaginary32;
     alias Timaginary64              = dmd.mtype.Timaginary64;

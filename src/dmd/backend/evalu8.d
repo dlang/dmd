@@ -1,11 +1,13 @@
 /**
+ * Constant folding
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
  */
 
@@ -35,6 +37,8 @@ import dmd.backend.global;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.common.int128;
 
 version (SCPP)
 {
@@ -176,7 +180,7 @@ version (SCPP)
                 case TYulong4:
                 case TYllong2:
                 case TYullong2:
-                    b = e.EV.Vcent.lsw || e.EV.Vcent.msw;
+                    b = e.EV.Vcent.lo || e.EV.Vcent.hi;
                     break;
 
                 case TYfloat4:
@@ -369,7 +373,7 @@ elem * evalu8(elem *e, goal_t goal)
     uns = tyuns(tym) | tyuns(tym2);
 
   /*elem_print(e);*/
-  /*dbg_printf("x%lx ",l1); WROP(op); dbg_printf("x%lx = ",l2);*/
+  //dbg_printf("x%lx %s x%lx = ", l1, oper_str(op), l2);
 static if (0)
 {
   if (0 && e2)
@@ -553,6 +557,11 @@ static if (0)
                     default:
                         assert(0);
                 }
+                break;
+
+            case TYcent:
+            case TYucent:
+                e.EV.Vcent = dmd.common.int128.add(e1.EV.Vcent, e2.EV.Vcent);
                 break;
 
             default:
@@ -747,6 +756,11 @@ static if (0)
                 }
                 break;
 
+            case TYcent:
+            case TYucent:
+                e.EV.Vcent = dmd.common.int128.sub(e1.EV.Vcent, e2.EV.Vcent);
+                break;
+
             default:
                 if (_tysize[TYint] == 2 &&
                     tyfv(tym) && _tysize[tym2] == 2)
@@ -760,7 +774,9 @@ static if (0)
         }
         break;
     case OPmul:
-        if (tyintegral(tym) || typtr(tym))
+        if (tym == TYcent || tym == TYucent)
+            e.EV.Vcent = dmd.common.int128.mul(e1.EV.Vcent, e2.EV.Vcent);
+        else if (tyintegral(tym) || typtr(tym))
             e.EV.Vllong = l1 * l2;
         else
         {   switch (tym)
@@ -931,7 +947,14 @@ static if (0)
                 goto div0;
         }
         if (uns)
-            e.EV.Vullong = (cast(targ_ullong) l1) / (cast(targ_ullong) l2);
+        {
+            if (tym == TYucent)
+                e.EV.Vcent = dmd.common.int128.udiv(e1.EV.Vcent, e2.EV.Vcent);
+            else
+                e.EV.Vullong = (cast(targ_ullong) l1) / (cast(targ_ullong) l2);
+        }
+        else if (tym == TYcent)
+            e.EV.Vcent = dmd.common.int128.div(e1.EV.Vcent, e2.EV.Vcent);
         else
         {   switch (tym)
             {
@@ -1131,7 +1154,14 @@ else
         }
 }
         if (uns)
-            e.EV.Vullong = (cast(targ_ullong) l1) % (cast(targ_ullong) l2);
+        {
+            if (tym == TYucent)
+                dmd.common.int128.udivmod(e1.EV.Vcent, e2.EV.Vcent, e.EV.Vcent);
+            else
+                e.EV.Vullong = (cast(targ_ullong) l1) % (cast(targ_ullong) l2);
+        }
+        else if (tym == TYcent)
+            dmd.common.int128.divmod(e1.EV.Vcent, e2.EV.Vcent, e.EV.Vcent);
         else
         {
             // BUG: what do we do for imaginary, complex?
@@ -1195,6 +1225,7 @@ else
     {
         targ_llong rem, quo;
 
+        assert(!(tym == TYcent || tym == TYucent));     // not yet
         assert(!tyfloating(tym));
         if (!boolres(e2))
             goto div0;
@@ -1219,8 +1250,8 @@ else
                 e.EV.Vllong = (rem << 32) | (quo & 0xFFFFFFFF);
                 break;
             case 8:
-                e.EV.Vcent.lsw = quo;
-                e.EV.Vcent.msw = rem;
+                e.EV.Vcent.lo = quo;
+                e.EV.Vcent.hi = rem;
                 break;
             default:
                 assert(0);
@@ -1228,19 +1259,31 @@ else
         break;
     }
     case OPand:
-        e.EV.Vllong = l1 & l2;
+        if (tym == TYcent || tym == TYucent)
+            e.EV.Vcent = dmd.common.int128.and(e1.EV.Vcent, e2.EV.Vcent);
+        else
+            e.EV.Vllong = l1 & l2;
         break;
     case OPor:
-        e.EV.Vllong = l1 | l2;
+        if (tym == TYcent || tym == TYucent)
+            e.EV.Vcent = dmd.common.int128.or(e1.EV.Vcent, e2.EV.Vcent);
+        else
+            e.EV.Vllong = l1 | l2;
         break;
     case OPxor:
-        e.EV.Vllong = l1 ^ l2;
+        if (tym == TYcent || tym == TYucent)
+            e.EV.Vcent = dmd.common.int128.xor(e1.EV.Vcent, e2.EV.Vcent);
+        else
+            e.EV.Vllong = l1 ^ l2;
         break;
     case OPnot:
         e.EV.Vint = boolres(e1) ^ true;
         break;
     case OPcom:
-        e.EV.Vllong = ~l1;
+        if (tym == TYcent || tym == TYucent)
+            e.EV.Vcent = dmd.common.int128.com(e1.EV.Vcent);
+        else
+            e.EV.Vllong = ~l1;
         break;
     case OPcomma:
         e.EV = e2.EV;
@@ -1252,12 +1295,19 @@ else
         e.EV.Vint = boolres(e1) && boolres(e2);
         break;
     case OPshl:
-        if (cast(targ_ullong) i2 < targ_ullong.sizeof * 8)
+        if (tym == TYcent || tym == TYucent)
+            e.EV.Vcent = dmd.common.int128.shl(e1.EV.Vcent, i2);
+        else if (cast(targ_ullong) i2 < targ_ullong.sizeof * 8)
             e.EV.Vllong = l1 << i2;
         else
             e.EV.Vllong = 0;
         break;
     case OPshr:
+        if (tym == TYcent || tym == TYucent)
+        {
+            e.EV.Vcent = dmd.common.int128.shr(e1.EV.Vcent, i2);
+            break;
+        }
         if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
             i2 = targ_ullong.sizeof * 8;
 version (SCPP)
@@ -1287,6 +1337,11 @@ version (MARS)
 version (MARS)
 {
     case OPashr:
+        if (tym == TYcent || tym == TYucent)
+        {
+            e.EV.Vcent = dmd.common.int128.sar(e1.EV.Vcent, i2);
+            break;
+        }
         if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
             i2 = targ_ullong.sizeof * 8;
         // Always signed
@@ -1317,8 +1372,8 @@ version (MARS)
                 }
                 else
                 {
-                    e.EV.Vcent.lsw = l1;
-                    e.EV.Vcent.msw = l2;
+                    e.EV.Vcent.lo = l1;
+                    e.EV.Vcent.hi = l2;
                 }
                 break;
 
@@ -1364,8 +1419,8 @@ version (MARS)
                 }
                 else
                 {
-                    e.EV.Vcent.lsw = l2;
-                    e.EV.Vcent.msw = l1;
+                    e.EV.Vcent.lo = l2;
+                    e.EV.Vcent.hi = l1;
                 }
                 break;
             default:
@@ -1411,6 +1466,12 @@ version (MARS)
                 e.EV.Vcldouble.re = -e.EV.Vcldouble.re;
                 e.EV.Vcldouble.im = -e.EV.Vcldouble.im;
                 break;
+
+            case TYcent:
+            case TYucent:
+                e.EV.Vcent = dmd.common.int128.neg(e1.EV.Vcent);
+                break;
+
             default:
                 e.EV.Vllong = -l1;
                 break;
@@ -1445,6 +1506,10 @@ else
             case TYcldouble:
                 e.EV.Vldouble = Complex_ld.abs(e1.EV.Vcldouble);
                 break;
+            case TYcent:
+            case TYucent:
+                e.EV.Vcent = cast(long)e1.EV.Vcent.hi < 0 ? dmd.common.int128.neg(e1.EV.Vcent) : e1.EV.Vcent;
+                break;
             default:
                 e.EV.Vllong = l1 < 0 ? -l1 : l1;
                 break;
@@ -1472,12 +1537,17 @@ else
         int b;
         if (uns)
         {
-            b = cast(int)((cast(targ_ullong) l1) <= (cast(targ_ullong) l2));
+            if (tym == TYucent)
+                b = dmd.common.int128.ule(e1.EV.Vcent, e2.EV.Vcent);
+            else
+                b = cast(int)((cast(targ_ullong) l1) <= (cast(targ_ullong) l2));
         }
         else
         {
             if (tyfloating(tym))
                 b = cast(int)(!unordered(d1, d2) && d1 <= d2);
+            else if (tym == TYcent)
+                b = dmd.common.int128.le(e1.EV.Vcent, e2.EV.Vcent);
             else
                 b = cast(int)(l1 <= l2);
         }
@@ -1499,12 +1569,17 @@ else
         int b;
         if (uns)
         {
-            b = cast(int)((cast(targ_ullong) l1) < (cast(targ_ullong) l2));
+            if (tym == TYucent)
+                b = dmd.common.int128.ult(e1.EV.Vcent, e2.EV.Vcent);
+            else
+                b = cast(int)((cast(targ_ullong) l1) < (cast(targ_ullong) l2));
         }
         else
         {
             if (tyfloating(tym))
                 b = cast(int)(!unordered(d1, d2) && d1 < d2);
+            else if (tym == TYcent)
+                b = dmd.common.int128.lt(e1.EV.Vcent, e2.EV.Vcent);
             else
                 b = cast(int)(l1 < l2);
         }
@@ -1550,6 +1625,8 @@ else
             }
             //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1.EV.Vcldouble.re, e1.EV.Vcldouble.im, e2.EV.Vcldouble.re, e2.EV.Vcldouble.im);
         }
+        else if (tym == TYcent || tym == TYucent)
+            b = cast(int)(e1.EV.Vcent == e2.EV.Vcent);
         else
             b = cast(int)(l1 == l2);
         e.EV.Vint = (op == OPne) ^ b;
@@ -1718,17 +1795,17 @@ else
         break;
 
     case OP128_64:
-        e.EV.Vllong = e1.EV.Vcent.lsw;
+        e.EV.Vllong = e1.EV.Vcent.lo;
         break;
     case OPs64_128:
-        e.EV.Vcent.lsw = e1.EV.Vllong;
-        e.EV.Vcent.msw = 0;
-        if (cast(targ_llong)e.EV.Vcent.lsw < 0)
-            e.EV.Vcent.msw = ~cast(targ_ullong)0;
+        e.EV.Vcent.lo = e1.EV.Vllong;
+        e.EV.Vcent.hi = 0;
+        if (cast(targ_llong)e.EV.Vcent.lo < 0)
+            e.EV.Vcent.hi = ~cast(targ_ullong)0;
         break;
     case OPu64_128:
-        e.EV.Vcent.lsw = e1.EV.Vullong;
-        e.EV.Vcent.msw = 0;
+        e.EV.Vcent.lo = e1.EV.Vullong;
+        e.EV.Vcent.hi = 0;
         break;
 
     case OPmsw:
@@ -1741,7 +1818,7 @@ else
                 e.EV.Vllong = (l1 >> 32) & 0xFFFFFFFF;
                 break;
             case 16:
-                e.EV.Vllong = e1.EV.Vcent.msw;
+                e.EV.Vllong = e1.EV.Vcent.hi;
                 break;
             default:
                 assert(0);
@@ -1758,8 +1835,13 @@ else
         }
         else if (tysize(tym) == 4)
             e.EV.Vint = core.bitop.bswap(cast(uint) i1);
-        else
+        else if (tysize(tym) == 8)
             e.EV.Vllong = core.bitop.bswap(cast(ulong) l1);
+        else
+        {
+            e.EV.Vcent.hi = core.bitop.bswap(e1.EV.Vcent.lo);
+            e.EV.Vcent.lo = core.bitop.bswap(e1.EV.Vcent.hi);
+        }
         break;
 
     case OPpopcnt:
@@ -1800,7 +1882,9 @@ else
                 n &= 0x3F;
                 e.EV.Vullong = cast(targ_ullong)((l1 << n) | ((l1 & 0xFFFFFFFFFFFFFFFFL) >> (64 - n)));
                 break;
-            //case 16:
+            case 16:
+                e.EV.Vcent = dmd.common.int128.rol(e1.EV.Vcent, n);
+                break;
             default:
                 assert(0);
         }

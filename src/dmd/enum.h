@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/enum.h
  */
 
@@ -49,7 +49,6 @@ public:
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isDeprecated() const;                // is Dsymbol deprecated?
     Visibility visible();
-    Expression *getMaxMinValue(const Loc &loc, Identifier *id);
     bool isSpecial() const;
     Expression *getDefaultValue(const Loc &loc);
     Type *getMemtype(const Loc &loc);
@@ -81,7 +80,6 @@ public:
 
     EnumMember *syntaxCopy(Dsymbol *s);
     const char *kind() const;
-    Expression *getVarExp(const Loc &loc, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }
     void accept(Visitor *v) { v->visit(this); }

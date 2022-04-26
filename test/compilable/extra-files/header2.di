@@ -1,3 +1,5 @@
+=== ${RESULTS_DIR}/compilable/testheader2.di
+// D import file generated from 'compilable/extra-files/header2.d'
 class C
 {
 }
@@ -9,7 +11,7 @@ void foo2(const C2 c);
 struct Foo3
 {
 	int k;
-	@trusted @nogc @live @disable ~this();
+	@nogc @live @trusted @disable ~this();
 	this(this);
 }
 class C3

@@ -1,9 +1,9 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
  * Documentation:  https://dlang.org/phobos/dmd_toir.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toir.d
@@ -17,7 +17,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 
 import dmd.backend.cdef;
@@ -34,6 +34,7 @@ import dmd.backend.type;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmangle;
@@ -84,6 +85,7 @@ struct IRState
     const Param* params;            // command line parameters
     const Target* target;           // target
     bool mayThrow;                  // the expression being evaluated may throw
+    bool Cfile;                     // use C semantics
 
     this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
         const Param* params, const Target* target)
@@ -97,7 +99,8 @@ struct IRState
         this.target = target;
         mayThrow = global.params.useExceptions
             && ClassDeclaration.throwable
-            && !(fd && fd.eh_none);
+            && !(fd && fd.hasNoEH);
+        this.Cfile = m.filetype == FileType.c;
     }
 
     FuncDeclaration getFunc()
@@ -111,6 +114,8 @@ struct IRState
      */
     bool arrayBoundsCheck()
     {
+        if (m.filetype == FileType.c)
+            return false;
         bool result;
         final switch (global.params.useArrayBounds)
         {
@@ -417,7 +422,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
  */
 elem *fixEthis2(elem *ethis, FuncDeclaration fd, bool ctxt2 = false)
 {
-    if (fd && fd.isThis2)
+    if (fd && fd.hasDualContext())
     {
         if (ctxt2)
             ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, tysize(TYnptr)));
@@ -445,7 +450,7 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
     {
         ethis = getEthis(loc, irs, ad);
     }
-    else if (thisfd.vthis && !thisfd.isThis2 &&
+    else if (thisfd.vthis && !thisfd.hasDualContext() &&
           (adp == thisfd.toParent2() ||
            (adp.isClassDeclaration() &&
             adp.isClassDeclaration().isBaseOf(thisfd.toParent2().isClassDeclaration(), &offset)
@@ -492,8 +497,9 @@ int intrinsic_op(FuncDeclaration fd)
         return op;
     //printf("intrinsic_op(%s)\n", name);
 
-    // Look for [core|std].module.function as id3.id2.id1 ...
     const Identifier id3 = fd.ident;
+
+    // Look for [core|std].module.function as id3.id2.id1 ...
     auto m = fd.getModule();
     if (!m || !m.md)
         return op;
@@ -717,14 +723,14 @@ void setClosureVarOffset(FuncDeclaration fd)
              */
             memsize = target.ptrsize * 2;
             memalignsize = memsize;
-            xalign = STRUCTALIGN_DEFAULT;
+            xalign.setDefault();
         }
         else if (v.storage_class & (STC.out_ | STC.ref_))
         {
             // reference parameters are just pointers
             memsize = target.ptrsize;
             memalignsize = memsize;
-            xalign = STRUCTALIGN_DEFAULT;
+            xalign.setDefault();
         }
         else
         {
@@ -741,10 +747,7 @@ void setClosureVarOffset(FuncDeclaration fd)
         /* Can't do nrvo if the variable is put in a closure, since
          * what the shidden points to may no longer exist.
          */
-        if (fd.nrvo_can && fd.nrvo_var == v)
-        {
-            fd.nrvo_can = false;
-        }
+        assert(!fd.isNRVO() || fd.nrvo_var != v);
     }
 }
 
@@ -849,7 +852,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         typeof(Type.size()) lastsize;
         if (vlast.storage_class & STC.lazy_)
             lastsize = target.ptrsize * 2;
-        else if (vlast.isRef() || vlast.isOut())
+        else if (vlast.isReference)
             lastsize = target.ptrsize;
         else
             lastsize = vlast.type.size();
@@ -866,7 +869,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
-        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_ALLOCMEMORY)), e);
+        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM.ALLOCMEMORY)), e);
         toTraceGC(irs, e, fd.loc);
 
         // Assign block of memory to sclosure
@@ -938,7 +941,7 @@ void buildCapture(FuncDeclaration fd)
 {
     if (!global.params.symdebug)
         return;
-    if (!target.mscoff)  // toDebugClosure only implemented for CodeView,
+    if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets
 
     if (fd.closureVars.dim && !fd.needsClosure)

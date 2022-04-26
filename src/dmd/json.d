@@ -1,9 +1,9 @@
 /**
  * Code for generating .json descriptions of the module when passing the `-X` flag to dmd.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/json.d, _json.d)
  * Documentation:  https://dlang.org/phobos/dmd_json.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/json.d
@@ -33,7 +33,7 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.string;
 import dmd.target;
@@ -302,8 +302,7 @@ public:
             //property(name, "impure");
             break;
         case PURE.weak:     return property(name, "weak");
-        case PURE.const_:   return property(name, "const");
-        case PURE.strong:   return property(name, "strong");
+        case PURE.const_:   return property(name, "strong");
         case PURE.fwdref:   return property(name, "fwdref");
         }
     }
@@ -320,10 +319,7 @@ public:
             // Should not be printed
             //property(name, "d");
             break;
-        case LINK.system:
-            // Should not be printed
-            //property(name, "system");
-            break;
+        case LINK.system:   return property(name, "system");
         case LINK.c:        return property(name, "c");
         case LINK.cpp:      return property(name, "cpp");
         case LINK.windows:  return property(name, "windows");
@@ -333,7 +329,7 @@ public:
 
     extern(D) void propertyStorageClass(const char[] name, StorageClass stc)
     {
-        stc &= STCStorageClass;
+        stc &= STC.visibleStorageClasses;
         if (stc)
         {
             propertyStart(name);
@@ -794,8 +790,8 @@ public:
             property("init", d._init.toString());
         if (d.isField())
             property("offset", d.offset);
-        if (d.alignment && d.alignment != STRUCTALIGN_DEFAULT)
-            property("align", d.alignment);
+        if (!d.alignment.isUnknown() && !d.alignment.isDefault())
+            property("align", d.alignment.get());
         objectEnd();
     }
 

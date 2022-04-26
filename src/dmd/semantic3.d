@@ -1,9 +1,9 @@
 /**
  * Performs the semantic3 stage, which deals with function bodies.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic3.d, _semantic3.d)
  * Documentation:  https://dlang.org/phobos/dmd_semantic3.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/semantic3.d
@@ -55,14 +55,14 @@ import dmd.objc;
 import dmd.opover;
 import dmd.parse;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.utf;
 import dmd.sideeffect;
 import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.utf;
 import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
@@ -104,53 +104,53 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (tempinst.semanticRun >= PASS.semantic3)
             return;
         tempinst.semanticRun = PASS.semantic3;
-        if (!tempinst.errors && tempinst.members)
+        if (tempinst.errors || !tempinst.members)
+            return;
+
+        TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
+        assert(tempdecl);
+
+        sc = tempdecl._scope;
+        sc = sc.push(tempinst.argsym);
+        sc = sc.push(tempinst);
+        sc.tinst = tempinst;
+        sc.minst = tempinst.minst;
+
+        int needGagging = (tempinst.gagged && !global.gag);
+        uint olderrors = global.errors;
+        int oldGaggedErrors = -1; // dead-store to prevent spurious warning
+        /* If this is a gagged instantiation, gag errors.
+         * Future optimisation: If the results are actually needed, errors
+         * would already be gagged, so we don't really need to run semantic
+         * on the members.
+         */
+        if (needGagging)
+            oldGaggedErrors = global.startGagging();
+
+        for (size_t i = 0; i < tempinst.members.dim; i++)
         {
-            TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
-            assert(tempdecl);
-
-            sc = tempdecl._scope;
-            sc = sc.push(tempinst.argsym);
-            sc = sc.push(tempinst);
-            sc.tinst = tempinst;
-            sc.minst = tempinst.minst;
-
-            int needGagging = (tempinst.gagged && !global.gag);
-            uint olderrors = global.errors;
-            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
-            /* If this is a gagged instantiation, gag errors.
-             * Future optimisation: If the results are actually needed, errors
-             * would already be gagged, so we don't really need to run semantic
-             * on the members.
-             */
-            if (needGagging)
-                oldGaggedErrors = global.startGagging();
-
-            for (size_t i = 0; i < tempinst.members.dim; i++)
-            {
-                Dsymbol s = (*tempinst.members)[i];
-                s.semantic3(sc);
-                if (tempinst.gagged && global.errors != olderrors)
-                    break;
-            }
-
-            if (global.errors != olderrors)
-            {
-                if (!tempinst.errors)
-                {
-                    if (!tempdecl.literal)
-                        tempinst.error(tempinst.loc, "error instantiating");
-                    if (tempinst.tinst)
-                        tempinst.tinst.printInstantiationTrace();
-                }
-                tempinst.errors = true;
-            }
-            if (needGagging)
-                global.endGagging(oldGaggedErrors);
-
-            sc = sc.pop();
-            sc.pop();
+            Dsymbol s = (*tempinst.members)[i];
+            s.semantic3(sc);
+            if (tempinst.gagged && global.errors != olderrors)
+                break;
         }
+
+        if (global.errors != olderrors)
+        {
+            if (!tempinst.errors)
+            {
+                if (!tempdecl.literal)
+                    tempinst.error(tempinst.loc, "error instantiating");
+                if (tempinst.tinst)
+                    tempinst.tinst.printInstantiationTrace();
+            }
+            tempinst.errors = true;
+        }
+        if (needGagging)
+            global.endGagging(oldGaggedErrors);
+
+        sc = sc.pop();
+        sc.pop();
     }
 
     override void visit(TemplateMixin tmix)
@@ -162,18 +162,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             printf("TemplateMixin.semantic3('%s')\n", tmix.toChars());
         }
-        if (tmix.members)
+        if (!tmix.members)
+            return;
+
+        sc = sc.push(tmix.argsym);
+        sc = sc.push(tmix);
+        for (size_t i = 0; i < tmix.members.dim; i++)
         {
-            sc = sc.push(tmix.argsym);
-            sc = sc.push(tmix);
-            for (size_t i = 0; i < tmix.members.dim; i++)
-            {
-                Dsymbol s = (*tmix.members)[i];
-                s.semantic3(sc);
-            }
-            sc = sc.pop();
-            sc.pop();
+            Dsymbol s = (*tmix.members)[i];
+            s.semantic3(sc);
         }
+        sc = sc.pop();
+        sc.pop();
     }
 
     override void visit(Module mod)
@@ -187,14 +187,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // gets imported, it is unaffected by context.
         Scope* sc = Scope.createGlobal(mod); // create root scope
         //printf("Module = %p\n", sc.scopesym);
-        // Pass 3 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < mod.members.dim; i++)
+        if (mod.members)
         {
-            Dsymbol s = (*mod.members)[i];
-            //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
-            s.semantic3(sc);
+            // Pass 3 semantic routines: do initializers and function bodies
+            for (size_t i = 0; i < mod.members.dim; i++)
+            {
+                Dsymbol s = (*mod.members)[i];
+                //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
+                s.semantic3(sc);
 
-            mod.runDeferredSemantic2();
+                mod.runDeferredSemantic2();
+            }
         }
         if (mod.userAttribDecl)
         {
@@ -235,6 +238,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (funcdecl.errors || isError(funcdecl.parent))
         {
             funcdecl.errors = true;
+
+            // Mark that the return type could not be inferred
+            if (funcdecl.inferRetType)
+            {
+                assert(funcdecl.type);
+                auto tf = funcdecl.type.isTypeFunction();
+
+                // Only change the return type s.t. other analysis is
+                // still possible e.g. missmatched parameter types
+                if (tf && !tf.next)
+                    tf.next = Type.terror;
+            }
             return;
         }
         //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", funcdecl.parent.toChars(), funcdecl.toChars(), funcdecl, sc, funcdecl.loc.toChars());
@@ -260,7 +275,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Disable generated opAssign, because some members forbid identity assignment.
                     funcdecl.storage_class |= STC.disable;
                     funcdecl.fbody = null;   // remove fbody which contains the error
-                    funcdecl.semantic3Errors = false;
+                    funcdecl.flags &= ~FUNCFLAG.semantic3Errors;
                 }
                 return;
             }
@@ -270,7 +285,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (funcdecl.semanticRun >= PASS.semantic3)
             return;
         funcdecl.semanticRun = PASS.semantic3;
-        funcdecl.semantic3Errors = false;
+        funcdecl.flags &= ~FUNCFLAG.semantic3Errors;
 
         if (!funcdecl.type || funcdecl.type.ty != Tfunction)
             return;
@@ -312,8 +327,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.scontinue = null;
             sc2.sw = null;
             sc2.fes = funcdecl.fes;
-            sc2.linkage = LINK.d;
-            sc2.stc &= STCFlowThruFunction;
+            sc2.linkage = funcdecl.isCsymbol() ? LINK.c : LINK.d;
+            sc2.stc &= STC.flowThruFunction;
             sc2.visibility = Visibility(Visibility.Kind.public_);
             sc2.explicitVisibility = 0;
             sc2.aligndecl = null;
@@ -365,7 +380,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             // Reverts: https://issues.dlang.org/show_bug.cgi?id=5710
             // No compiler supports this, and there was never any spec for it.
-            if (funcdecl.isThis2)
+            // @@@DEPRECATED_2.116@@@
+            // Deprecated in 2.096, can be made an error in 2.116.
+            // The deprecation period is longer than usual as dual-context
+            // functions may be widely used by dmd-compiled projects.
+            // It also gives more time for the implementation of dual-context
+            // functions to be reworked as a frontend-only feature.
+            if (funcdecl.hasDualContext())
             {
                 funcdecl.deprecation("function requires a dual-context, which is deprecated");
                 if (auto ti = sc2.parent ? sc2.parent.isInstantiated() : null)
@@ -450,7 +471,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         stc |= STC.variadic;
                         auto vtypeb = vtype.toBasetype();
-                        if (vtypeb.ty == Tarray)
+                        if (vtypeb.ty == Tarray || vtypeb.ty == Tclass)
                         {
                             /* Since it'll be pointing into the stack for the array
                              * contents, it needs to be `scope`
@@ -462,7 +483,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if ((funcdecl.flags & FUNCFLAG.inferScope) && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
 
-                    stc |= fparam.storageClass & (STC.IOR | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                    stc |= fparam.storageClass & (STC.IOR | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor | STC.returnScope);
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
@@ -582,7 +603,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (!funcdecl.fbody)
                     funcdecl.fbody = new CompoundStatement(Loc.initial, new Statements());
 
-                if (funcdecl.naked)
+                if (funcdecl.isNaked())
                 {
                     fpreinv = null;         // can't accommodate with no stack frame
                     fpostinv = null;
@@ -598,8 +619,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         f.next = Type.tvoid;
                     if (f.checkRetType(funcdecl.loc))
                         funcdecl.fbody = new ErrorStatement();
+                    else
+                        funcdecl.checkMain(); // Check main() parameters and return type
                 }
-                if (global.params.vcomplex && f.next !is null)
+
+                if (f.next !is null)
                     f.next.checkComplexTransition(funcdecl.loc, sc);
 
                 if (funcdecl.returns && !funcdecl.fbody.isErrorStatement())
@@ -607,7 +631,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     for (size_t i = 0; i < funcdecl.returns.dim;)
                     {
                         Expression exp = (*funcdecl.returns)[i].exp;
-                        if (exp.op == TOK.variable && (cast(VarExp)exp).var == funcdecl.vresult)
+                        if (exp.op == EXP.variable && (cast(VarExp)exp).var == funcdecl.vresult)
                         {
                             if (addReturn0())
                                 exp.type = Type.tint32;
@@ -630,7 +654,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 // handle NRVO
                 if (!target.isReturnOnStack(f, funcdecl.needThis()) || !funcdecl.checkNRVO())
-                    funcdecl.nrvo_can = 0;
+                    funcdecl.flags &= ~FUNCFLAG.NRVO;
 
                 if (funcdecl.fbody.isErrorStatement())
                 {
@@ -731,14 +755,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 // Check for errors related to 'nothrow'.
                 const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
                 if (f.isnothrow && blockexit & BE.throw_)
-                    error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
 
                 if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.flags & FUNCFLAG.hasCatches))
                 {
                     /* Don't generate unwind tables for this function
                      * https://issues.dlang.org/show_bug.cgi?id=17997
                      */
-                    funcdecl.eh_none = true;
+                    funcdecl.flags |= FUNCFLAG.noEH;
                 }
 
                 if (funcdecl.flags & FUNCFLAG.nothrowInprocess)
@@ -777,8 +801,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     assert(!funcdecl.returnLabel);
                 }
-                else if (f.next.ty == Tnoreturn)
+                else if (f.next.toBasetype().ty == Tnoreturn)
                 {
+                    // Fallthrough despite being declared as noreturn? return is already rejected when evaluating the ReturnStatement
+                    if (blockexit & BE.fallthru)
+                    {
+                        funcdecl.error("is typed as `%s` but does return", f.next.toChars());
+                        funcdecl.loc.errorSupplemental("`noreturn` functions must either throw, abort or loop indefinitely");
+                    }
                 }
                 else
                 {
@@ -807,7 +837,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         ReturnStatement rs = (*funcdecl.returns)[i];
                         Expression exp = rs.exp;
-                        if (exp.op == TOK.error)
+                        if (exp.op == EXP.error)
                             continue;
                         if (tret.ty == Terror)
                         {
@@ -897,7 +927,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             /* https://issues.dlang.org/show_bug.cgi?id=10789
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
-                            if (!funcdecl.nrvo_can)
+                            if (!funcdecl.isNRVO())
                                 exp = doCopyOrMove(sc2, exp, f.next);
 
                             if (tret.hasPointers())
@@ -966,7 +996,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 freq = freq.statementSemantic(sc2);
                 freq.blockExit(funcdecl, false);
 
-                funcdecl.eh_none = false;
+                funcdecl.flags &= ~FUNCFLAG.noEH;
 
                 sc2 = sc2.pop();
 
@@ -1000,7 +1030,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 fens = fens.statementSemantic(sc2);
                 fens.blockExit(funcdecl, false);
 
-                funcdecl.eh_none = false;
+                funcdecl.flags &= ~FUNCFLAG.noEH;
 
                 sc2 = sc2.pop();
 
@@ -1112,7 +1142,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                     foreach (v; *funcdecl.parameters)
                     {
-                        if (v.storage_class & (STC.ref_ | STC.out_ | STC.lazy_))
+                        if (v.isReference() || (v.storage_class & STC.lazy_))
                             continue;
                         if (v.needsScopeDtor())
                         {
@@ -1125,14 +1155,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                             s = s.statementSemantic(sc2);
 
-                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
+                            immutable bool isnothrow = f.isnothrow && !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
                             const blockexit = s.blockExit(funcdecl, isnothrow);
                             if (blockexit & BE.throw_)
-                                funcdecl.eh_none = false;
-                            if (f.isnothrow && isnothrow && blockexit & BE.throw_)
-                                error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
-                            if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
-                                f.isnothrow = false;
+                            {
+                                funcdecl.flags &= ~FUNCFLAG.noEH;
+                                if (isnothrow)
+                                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
+                                else if (funcdecl.flags & FUNCFLAG.nothrowInprocess)
+                                    f.isnothrow = false;
+                            }
 
                             if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
                                 sbody = new CompoundStatement(Loc.initial, sbody, s);
@@ -1163,7 +1195,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             {
                                 // 'this' is the monitor
                                 vsync = new VarExp(funcdecl.loc, funcdecl.vthis);
-                                if (funcdecl.isThis2)
+                                if (funcdecl.hasDualContext())
                                 {
                                     vsync = new PtrExp(funcdecl.loc, vsync);
                                     vsync = new IndexExp(funcdecl.loc, vsync, IntegerExp.literal!0);
@@ -1198,7 +1230,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
 
             // Fix up forward-referenced gotos
-            if (funcdecl.gotos)
+            if (funcdecl.gotos && !funcdecl.isCsymbol())
             {
                 for (size_t i = 0; i < funcdecl.gotos.dim; ++i)
                 {
@@ -1206,7 +1238,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
-            if (funcdecl.naked && (funcdecl.fensures || funcdecl.frequires))
+            if (funcdecl.isNaked() && (funcdecl.fensures || funcdecl.frequires))
                 funcdecl.error("naked assembly functions with contracts are not supported");
 
             sc2.ctorflow.callSuper = CSX.none;
@@ -1253,6 +1285,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (funcdecl.type == f)
                     f = cast(TypeFunction)f.copy();
                 f.isreturn = true;
+                f.isreturnscope = cast(bool) (funcdecl.storage_class & STC.returnScope);
                 if (funcdecl.storage_class & STC.returninferred)
                     f.isreturninferred = true;
             }
@@ -1263,17 +1296,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Eliminate maybescope's
         {
             // Create and fill array[] with maybe candidates from the `this` and the parameters
-            VarDeclaration[] array = void;
-
             VarDeclaration[10] tmp = void;
             size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.dim : 0);
-            if (dim <= tmp.length)
-                array = tmp[0 .. dim];
-            else
-            {
-                auto ptr = cast(VarDeclaration*)mem.xmalloc(dim * VarDeclaration.sizeof);
-                array = ptr[0 .. dim];
-            }
+
+            import dmd.common.string : SmallBuffer;
+            auto sb = SmallBuffer!VarDeclaration(dim, tmp[]);
+            VarDeclaration[] array = sb[];
+
             size_t n = 0;
             if (funcdecl.vthis)
                 array[n++] = funcdecl.vthis;
@@ -1284,11 +1313,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     array[n++] = v;
                 }
             }
-
             eliminateMaybeScopes(array[0 .. n]);
-
-            if (dim > tmp.length)
-                mem.xfree(array.ptr);
         }
 
         // Infer STC.scope_
@@ -1326,7 +1351,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             sc = sc.push();
             if (funcdecl.isCtorDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=#15665
-                sc.flags |= SCOPE.ctor;
+                f.isctor = true;
             sc.stc = 0;
             sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             funcdecl.type = f.typeSemantic(funcdecl.loc, sc);
@@ -1345,7 +1370,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
          */
         funcdecl.semanticRun = PASS.semantic3done;
-        funcdecl.semantic3Errors = (global.errors != oldErrors) || (funcdecl.fbody && funcdecl.fbody.isErrorStatement());
+        if ((global.errors != oldErrors) || (funcdecl.fbody && funcdecl.fbody.isErrorStatement()))
+            funcdecl.flags |= FUNCFLAG.semantic3Errors;
+        else
+            funcdecl.flags &= ~FUNCFLAG.semantic3Errors;
         if (funcdecl.type.ty == Terror)
             funcdecl.errors = true;
         //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent.toChars(), toChars(), sc, loc.toChars());
@@ -1368,79 +1396,79 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (ctor.fbody && ad && ad.fieldDtor && global.params.dtorFields && !global.params.betterC && !ctor.type.toTypeFunction.isnothrow)
+        if (!ctor.fbody || !ad || !ad.fieldDtor || !global.params.dtorFields || global.params.betterC || ctor.type.toTypeFunction.isnothrow)
+            return visit(cast(FuncDeclaration)ctor);
+
+        /* Generate:
+         *   this.fieldDtor()
+         */
+        Expression e = new ThisExp(ctor.loc);
+        e.type = ad.type.mutableOf();
+        e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
+        auto ce = new CallExp(ctor.loc, e);
+        auto sexp = new ExpStatement(ctor.loc, ce);
+        auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+
+        // @@@DEPRECATED_2.106@@@
+        // Allow negligible attribute violations to allow for a smooth
+        // transition. Remove this after the usual deprecation period
+        // after 2.106.
+        if (global.params.dtorFields == FeatureState.default_)
+        {
+            auto ctf = cast(TypeFunction) ctor.type;
+            auto dtf = cast(TypeFunction) ad.fieldDtor.type;
+
+            const ngErr = ctf.isnogc && !dtf.isnogc;
+            const puErr = ctf.purity && !dtf.purity;
+            const saErr = ctf.trust == TRUST.safe && dtf.trust <= TRUST.system;
+
+            if (ngErr || puErr || saErr)
+            {
+                // storage_class is apparently not set for dtor & ctor
+                OutBuffer ob;
+                stcToBuffer(&ob,
+                    (ngErr ? STC.nogc : 0) |
+                    (puErr ? STC.pure_ : 0) |
+                    (saErr ? STC.system : 0)
+                );
+                ctor.loc.deprecation("`%s` has stricter attributes than its destructor (`%s`)", ctor.toPrettyChars(), ob.peekChars());
+                ctor.loc.deprecationSupplemental("The destructor will be called if an exception is thrown");
+                ctor.loc.deprecationSupplemental("Either make the constructor `nothrow` or adjust the field destructors");
+
+                ce.ignoreAttributes = true;
+            }
+        }
+
+        version (all)
         {
             /* Generate:
-             *   this.fieldDtor()
+             *   try { ctor.fbody; }
+             *   catch (Exception __o)
+             *   { this.fieldDtor(); throw __o; }
+             * This differs from the alternate scope(failure) version in that an Exception
+             * is caught rather than a Throwable. This enables the optimization whereby
+             * the try-catch can be removed if ctor.fbody is nothrow. (nothrow only
+             * applies to Exception.)
              */
-            Expression e = new ThisExp(ctor.loc);
-            e.type = ad.type.mutableOf();
-            e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
-            auto ce = new CallExp(ctor.loc, e);
-            auto sexp = new ExpStatement(ctor.loc, ce);
-            auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+            Identifier id = Identifier.generateId("__o");
+            auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
+            auto handler = new CompoundStatement(ctor.loc, ss, ts);
 
-            // @@@DEPRECATED_2096@@@
-            // Allow negligible attribute violations to allow for a smooth
-            // transition. Remove this after the usual deprecation period
-            // after 2.106.
-            if (global.params.dtorFields == FeatureState.default_)
-            {
-                auto ctf = cast(TypeFunction) ctor.type;
-                auto dtf = cast(TypeFunction) ad.fieldDtor.type;
+            auto catches = new Catches();
+            auto ctch = new Catch(ctor.loc, getException(), id, handler);
+            catches.push(ctch);
 
-                const ngErr = ctf.isnogc && !dtf.isnogc;
-                const puErr = ctf.purity && !dtf.purity;
-                const saErr = ctf.trust == TRUST.safe && dtf.trust <= TRUST.system;
-
-                if (ngErr || puErr || saErr)
-                {
-                    // storage_class is apparently not set for dtor & ctor
-                    OutBuffer ob;
-                    stcToBuffer(&ob,
-                        (ngErr ? STC.nogc : 0) |
-                        (puErr ? STC.pure_ : 0) |
-                        (saErr ? STC.system : 0)
-                    );
-                    ctor.loc.deprecation("`%s` has stricter attributes than its destructor (`%s`)", ctor.toPrettyChars(), ob.peekChars());
-                    ctor.loc.deprecationSupplemental("The destructor will be called if an exception is thrown");
-                    ctor.loc.deprecationSupplemental("Either make the constructor `nothrow` or adjust the field destructors");
-
-                    ce.ignoreAttributes = true;
-                }
-            }
-
-            version (all)
-            {
-                /* Generate:
-                 *   try { ctor.fbody; }
-                 *   catch (Exception __o)
-                 *   { this.fieldDtor(); throw __o; }
-                 * This differs from the alternate scope(failure) version in that an Exception
-                 * is caught rather than a Throwable. This enables the optimization whereby
-                 * the try-catch can be removed if ctor.fbody is nothrow. (nothrow only
-                 * applies to Exception.)
-                 */
-                Identifier id = Identifier.generateId("__o");
-                auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
-                auto handler = new CompoundStatement(ctor.loc, ss, ts);
-
-                auto catches = new Catches();
-                auto ctch = new Catch(ctor.loc, getException(), id, handler);
-                catches.push(ctch);
-
-                ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
-            }
-            else
-            {
-                /* Generate:
-                 *   scope (failure) { this.fieldDtor(); }
-                 * Hopefully we can use this version someday when scope(failure) catches
-                 * Exception instead of Throwable.
-                 */
-                auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
-                ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
-            }
+            ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
+        }
+        else
+        {
+            /* Generate:
+             *   scope (failure) { this.fieldDtor(); }
+             * Hopefully we can use this version someday when scope(failure) catches
+             * Exception instead of Throwable.
+             */
+            auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
+            ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
         }
         visit(cast(FuncDeclaration)ctor);
     }
@@ -1455,32 +1483,32 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             printf("Nspace::semantic3('%s')\n", ns.toChars());
         }
-        if (ns.members)
+        if (!ns.members)
+            return;
+
+        sc = sc.push(ns);
+        sc.linkage = LINK.cpp;
+        foreach (s; *ns.members)
         {
-            sc = sc.push(ns);
-            sc.linkage = LINK.cpp;
-            foreach (s; *ns.members)
-            {
-                s.semantic3(sc);
-            }
-            sc.pop();
+            s.semantic3(sc);
         }
+        sc.pop();
     }
 
     override void visit(AttribDeclaration ad)
     {
         Dsymbols* d = ad.include(sc);
-        if (d)
+        if (!d)
+            return;
+
+        Scope* sc2 = ad.newScope(sc);
+        for (size_t i = 0; i < d.dim; i++)
         {
-            Scope* sc2 = ad.newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic3(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
+            Dsymbol s = (*d)[i];
+            s.semantic3(sc2);
         }
+        if (sc2 != sc)
+            sc2.pop();
     }
 
     override void visit(AggregateDeclaration ad)
@@ -1568,5 +1596,57 @@ private struct FuncDeclSem3
                 }
             }
         }
+    }
+}
+
+extern (C++) void semanticTypeInfoMembers(StructDeclaration sd)
+{
+    if (sd.xeq &&
+        sd.xeq._scope &&
+        sd.xeq.semanticRun < PASS.semantic3done)
+    {
+        uint errors = global.startGagging();
+        sd.xeq.semantic3(sd.xeq._scope);
+        if (global.endGagging(errors))
+            sd.xeq = sd.xerreq;
+    }
+
+    if (sd.xcmp &&
+        sd.xcmp._scope &&
+        sd.xcmp.semanticRun < PASS.semantic3done)
+    {
+        uint errors = global.startGagging();
+        sd.xcmp.semantic3(sd.xcmp._scope);
+        if (global.endGagging(errors))
+            sd.xcmp = sd.xerrcmp;
+    }
+
+    FuncDeclaration ftostr = search_toString(sd);
+    if (ftostr &&
+        ftostr._scope &&
+        ftostr.semanticRun < PASS.semantic3done)
+    {
+        ftostr.semantic3(ftostr._scope);
+    }
+
+    if (sd.xhash &&
+        sd.xhash._scope &&
+        sd.xhash.semanticRun < PASS.semantic3done)
+    {
+        sd.xhash.semantic3(sd.xhash._scope);
+    }
+
+    if (sd.postblit &&
+        sd.postblit._scope &&
+        sd.postblit.semanticRun < PASS.semantic3done)
+    {
+        sd.postblit.semantic3(sd.postblit._scope);
+    }
+
+    if (sd.dtor &&
+        sd.dtor._scope &&
+        sd.dtor.semanticRun < PASS.semantic3done)
+    {
+        sd.dtor.semantic3(sd.dtor._scope);
     }
 }

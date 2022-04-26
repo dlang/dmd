@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -dip1008
+// REQUIRED_ARGS: -preview=dip1008
 // https://issues.dlang.org/show_bug.cgi?id=19317
 
 class MyException: Exception {

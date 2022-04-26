@@ -1,9 +1,9 @@
 /**
  * Associative array implementation.
  *
- * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:   Walter Bright, http://www.digitalmars.com
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:   Walter Bright, https://www.digitalmars.com
+ * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/aav.d, root/_aav.d)
  * Documentation:  https://dlang.org/phobos/dmd_root_aav.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/aav.d
@@ -14,13 +14,15 @@ module dmd.root.aav;
 import core.stdc.string;
 import dmd.root.rmem;
 
+nothrow:
+
 private size_t hash(size_t a) pure nothrow @nogc @safe
 {
     a ^= (a >> 20) ^ (a >> 12);
     return a ^ (a >> 7) ^ (a >> 4);
 }
 
-struct KeyValueTemplate(K,V)
+private struct KeyValueTemplate(K,V)
 {
     K key;
     V value;
@@ -31,15 +33,17 @@ alias Value = void*;
 
 alias KeyValue = KeyValueTemplate!(Key, Value);
 
-struct aaA
+private struct aaA
 {
+private:
     aaA* next;
     KeyValue keyValue;
     alias keyValue this;
 }
 
-struct AA
+private struct AA
 {
+private:
     aaA** b;
     size_t b_length;
     size_t nodes; // total number of aaA nodes

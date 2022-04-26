@@ -2,9 +2,9 @@
  * Constants and data structures specific to the x86 platform.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.d, backend/code_x86.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_code_x86.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/code_x86.d
@@ -290,22 +290,25 @@ enum
     CFoffset64  =  0x40000,     // offset is 64 bits
     CFpc32      =  0x80000,     // I64: PC relative 32 bit fixup
 
-    CFvex       =  0x100000,    // vex prefix
-    CFvex3      =  0x200000,    // 3 byte vex prefix
+    CFvex       =  0x10_0000,    // vex prefix
+    CFvex3      =  0x20_0000,    // 3 byte vex prefix
 
-    CFjmp5      =  0x400000,    // always a 5 byte jmp
-    CFswitch    =  0x800000,    // kludge for switch table fixups
+    CFjmp5      =  0x40_0000,    // always a 5 byte jmp
+    CFswitch    =  0x80_0000,    // kludge for switch table fixups
 
-    CFindirect  = 0x1000000,    // OSX32: indirect fixups
+    CFindirect  = 0x100_0000,    // OSX32: indirect fixups
 
     /* These are for CFpc32 fixups, they're the negative of the offset of the fixup
      * from the program counter
      */
-    CFREL       = 0x7000000,
+    CFREL       = 0x700_0000,
 
     CFSEG       = CFes | CFss | CFds | CFcs | CFfs | CFgs,
     CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
 }
+
+@trusted
+extern (C) void CF_print(uint cf);
 
 struct code
 {
@@ -577,4 +580,3 @@ void getlvalue_msw(code *);
 void getlvalue_lsw(code *);
 void getlvalue(ref CodeBuilder cdb, code *pcs, elem *e, regm_t keepmsk);
 void loadea(ref CodeBuilder cdb, elem *e, code *cs, uint op, uint reg, targ_size_t offset, regm_t keepmsk, regm_t desmsk);
-

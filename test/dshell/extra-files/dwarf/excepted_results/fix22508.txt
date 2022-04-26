@@ -1,0 +1,6 @@
+DW_AT_name        : fix22508.istr_a
+DW_AT_name        : int[string]
+DW_AT_name        : fix22508.stri_a
+DW_AT_name        : string[int]
+DW_AT_name        : fix22508.ii_a
+DW_AT_name        : int[int]

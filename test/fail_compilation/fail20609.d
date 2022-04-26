@@ -1,17 +1,17 @@
 /*
   TEST_OUTPUT:
   ---
-  fail_compilation/fail20609.d(26): Error: none of the overloads of `this` are callable using argument types `(int)`, candidates are:
-fail_compilation/fail20609.d(23):        `fail20609.Foo.this(string[] args)`
-fail_compilation/fail20609.d(27): Error: none of the overloads of `this` are callable using argument types `(int)`, candidates are:
-fail_compilation/fail20609.d(22):        `fail20609.Foo.this(Object _param_0)`
-fail_compilation/fail20609.d(23):        `fail20609.Foo.this(string[] args)`
-fail_compilation/fail20609.d(37): Error: none of the overloads of `this` are callable using argument types `(int)`, candidates are:
+fail_compilation/fail20609.d(26): Error: none of the overloads of `this` are callable using argument types `(int)`
+fail_compilation/fail20609.d(23):        Candidate is: `fail20609.Foo.this(string[] args)`
+fail_compilation/fail20609.d(27): Error: none of the overloads of `this` are callable using argument types `(int)`
+fail_compilation/fail20609.d(22):        Candidates are: `fail20609.Foo.this(Object _param_0)`
+fail_compilation/fail20609.d(23):                        `fail20609.Foo.this(string[] args)`
+fail_compilation/fail20609.d(37): Error: none of the overloads of `this` are callable using argument types `(int)`
 fail_compilation/fail20609.d(37):        All possible candidates are marked as `deprecated` or `@disable`
 fail_compilation/fail20609.d(43): Error: undefined identifier `deprecatedTypo_`
 fail_compilation/fail20609.d(44): Error: undefined identifier `deprecatedTypo_`, did you mean function `deprecatedTypo`?
 fail_compilation/fail20609.d(45): Error: undefined identifier `disabledTypo_`
-  ---
+---
  */
 
 // Only show `this(string[])` in non-deprecated context.

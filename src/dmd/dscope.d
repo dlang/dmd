@@ -3,9 +3,9 @@
  *
  * Not to be confused with the `scope` storage class.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dscope.d, _dscope.d)
  * Documentation:  https://dlang.org/phobos/dmd_dscope.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dscope.d
@@ -33,7 +33,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.speller;
 import dmd.statement;
@@ -59,7 +59,6 @@ enum SCOPE
     compile       = 0x0100,   /// inside __traits(compile)
     ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
                                           /// https://issues.dlang.org/show_bug.cgi?id=15907
-    onlysafeaccess = 0x0400,  /// unsafe access is not allowed for @safe code
     Cfile         = 0x0800,   /// C semantics apply
     free          = 0x8000,   /// is on free list
 
@@ -74,7 +73,7 @@ enum SCOPE
 /// Flags that are carried along with a scope push()
 private enum PersistentFlags =
     SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
-    SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
+    SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility |
     SCOPE.printf | SCOPE.scanf | SCOPE.Cfile;
 
 struct Scope
@@ -175,7 +174,7 @@ struct Scope
             m = m.parent;
         m.addMember(null, sc.scopesym);
         m.parent = null; // got changed by addMember()
-        if (_module.isCFile)
+        if (_module.filetype == FileType.c)
             sc.flags |= SCOPE.Cfile;
         // Create the module scope underneath the global scope
         sc = sc.push(_module);
@@ -464,7 +463,7 @@ struct Scope
                     if (flags & TagNameSpace)
                     {
                         // ImportC: if symbol is not a tag, look for it in tag table
-                        if (!s.isStructDeclaration())
+                        if (!s.isScopeDsymbol())
                         {
                             auto ps = cast(void*)s in sc._module.tagSymTab;
                             if (!ps)
@@ -665,6 +664,19 @@ struct Scope
     }
 
     /********************************************
+     * Search enclosing scopes for ScopeDsymbol.
+     */
+    ScopeDsymbol getScopesym()
+    {
+        for (Scope* sc = &this; sc; sc = sc.enclosing)
+        {
+            if (sc.scopesym)
+                return sc.scopesym;
+        }
+        return null; // not found
+    }
+
+    /********************************************
      * Search enclosing scopes for ClassDeclaration.
      */
     extern (C++) ClassDeclaration getClassScope()
@@ -680,7 +692,7 @@ struct Scope
     }
 
     /********************************************
-     * Search enclosing scopes for ClassDeclaration.
+     * Search enclosing scopes for ClassDeclaration or StructDeclaration.
      */
     extern (C++) AggregateDeclaration getStructClassScope()
     {
@@ -694,6 +706,31 @@ struct Scope
                 return ad;
         }
         return null;
+    }
+
+    /********************************************
+     * Find the lexically enclosing function (if any).
+     *
+     * This function skips through generated FuncDeclarations,
+     * e.g. rewritten foreach bodies.
+     *
+     * Returns: the function or null
+     */
+    inout(FuncDeclaration) getEnclosingFunction() inout
+    {
+        if (!this.func)
+            return null;
+
+        auto fd = cast(FuncDeclaration) this.func;
+
+        // Look through foreach bodies rewritten as delegates
+        while (fd.fes)
+        {
+            assert(fd.fes.func);
+            fd = fd.fes.func;
+        }
+
+        return cast(inout(FuncDeclaration)) fd;
     }
 
     /*******************************************
@@ -717,12 +754,21 @@ struct Scope
         }
     }
 
+    /******************************
+     */
     structalign_t alignment()
     {
         if (aligndecl)
-            return aligndecl.getAlignment(&this);
+        {
+            auto ad = aligndecl.getAlignment(&this);
+            return ad.salign;
+        }
         else
-            return STRUCTALIGN_DEFAULT;
+        {
+            structalign_t sa;
+            sa.setDefault();
+            return sa;
+        }
     }
 
     /**********************************

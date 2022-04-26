@@ -9,4 +9,3 @@ void recursive(string name)()
     static if (name.length <= (4 << 20))
         recursive!(name ~ name);
 }
-

@@ -27,30 +27,23 @@ shared string unitTestRunnerCommand;
 // These long-running runnable tests will be put in front, in this order, to
 // make parallelization more effective.
 immutable slowRunnableTests = [
-    "test17338.d",
-    "testthread2.d",
-    "sctor.d",
-    "sctor2.d",
-    "sdtor.d",
-    "test9259.d",
-    "test11447c.d",
-    "template4.d",
-    "template9.d",
-    "ifti.d",
-    "test12.d",
-    "test22.d",
-    "test23.d",
-    "test28.d",
     "test34.d",
+    "test28.d",
+    "issue8671.d",
+    "test20855.d",
+    "test18545.d",
     "test42.d",
-    "test17072.d",
-    "testgc3.d",
-    "link2644.d",
-    "link13415.d",
-    "link14558.d",
-    "hospital.d",
-    "interpret.d",
+    "lazy.d",
+    "xtest46_gc.d",
+    "argufilem.d",
     "xtest46.d",
+    "sdtor.d",
+    "arrayop.d",
+    "testgc3.d",
+    "link14588.d",
+    "link13415.d",
+    "paranoia.d",
+    "template9.d",
 ];
 
 enum toolsDir = testPath("tools");
@@ -88,10 +81,10 @@ int main(string[] args)
 int tryMain(string[] args)
 {
     bool runUnitTests, dumpEnvironment;
-    int jobs = totalCPUs;
+    int jobs = 2 * totalCPUs;
     auto res = getopt(args,
         std.getopt.config.passThrough,
-        "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
+        "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(jobs), &jobs,
         "v", "Verbose command output", (cast(bool*) &verbose),
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
         "u|unit-tests", "Runs the unit tests", &runUnitTests,
@@ -140,24 +133,25 @@ Options:
     if (verbose || dumpEnvironment)
     {
         writefln("================================================================================");
-        foreach (key, value; env)
-            writefln("%s=%s", key, value);
+        foreach (key; env.keys.sort())
+            writefln("%s=%s", key, env[key]);
         writefln("================================================================================");
+        stdout.flush();
     }
+
+    verifyCompilerExists(env);
+    prepareOutputDirectory(env);
 
     if (runUnitTests)
     {
-        verifyCompilerExists(env);
         ensureToolsExists(env, TestTools.unitTestRunner);
-        return spawnProcess(unitTestRunnerCommand ~ args).wait();
+        return spawnProcess(unitTestRunnerCommand ~ args, env, Config.none, scriptDir).wait();
     }
 
+    ensureToolsExists(env, EnumMembers!TestTools);
+
     if (args == ["tools"])
-    {
-        verifyCompilerExists(env);
-        ensureToolsExists(env, EnumMembers!TestTools);
         return 0;
-    }
 
     // default target
     if (!args.length)
@@ -191,17 +185,17 @@ Options:
 
     if (targets.length > 0)
     {
-        verifyCompilerExists(env);
-
         string[] failedTargets;
-        ensureToolsExists(env, EnumMembers!TestTools);
         foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
             int status = spawnProcess(target.args, env, Config.none, scriptDir).wait;
             if (status != 0)
             {
-                const name = target.normalizedTestName;
+                const string name = target.filename
+                            ? target.normalizedTestName
+                            : "`unit` tests";
+
                 writeln(">>> TARGET FAILED: ", name);
                 failedTargets ~= name;
             }
@@ -228,14 +222,45 @@ void verifyCompilerExists(const string[string] env)
     }
 }
 
+/// Creates the necessary directories and files for the test runner(s)
+void prepareOutputDirectory(const string[string] env)
+{
+    // ensure output directories exist
+    foreach (dir; testDirs)
+        resultsDir.buildPath(dir).mkdirRecurse;
+
+    version (Windows)
+    {{
+        // Environment variables are not properly propagated when using bash from WSL
+        // Create an additional configuration file that exports `env` entries if missing
+
+        File wrapper = File(env["RESULTS_DIR"] ~ "/setup_env.sh", "wb");
+
+        foreach (const key, string value; env)
+        {
+            // Detect windows paths and translate them to POSIX compatible relative paths
+            static immutable PATHS = [
+                "DMD",
+                "HOST_DMD",
+                "LIB",
+                "RESULTS_DIR",
+            ];
+
+            if (PATHS.canFind(key))
+                value = relativePosixPath(value, scriptDir);
+
+            // Export as env. variable if unset
+            wrapper.write(`[ -z "${`, key, `+x}" ] && export `, key, `='`, value, "' ;\n");
+        }
+    }}
+}
+
 /**
-Builds the binary of the tools required by the testsuite.
+Builds the binaries of the tools required by the testsuite.
 Does nothing if the tools already exist and are newer than their source.
 */
 void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
 {
-    resultsDir.mkdirRecurse;
-
     shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {
@@ -273,12 +298,15 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
             }
             else
             {
+                string model = env["MODEL"];
+                if (model == "32omf") model = "32";
+
                 command = [
                     hostDMD,
-                    "-m"~env["MODEL"],
+                    "-m"~model,
                     "-of"~targetBin,
                     sourceFile
-                ] ~ tool.extraArgs;
+                ] ~ getPicFlags(env) ~ tool.extraArgs;
             }
 
             writefln("Executing: %-(%s %)", command);
@@ -292,10 +320,6 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
     }
     if (failCount > 0)
         quitSilently(1); // error already printed
-
-    // ensure output directories exist
-    foreach (dir; testDirs)
-        resultsDir.buildPath(dir).mkdirRecurse;
 }
 
 /// A single target to execute.
@@ -344,7 +368,7 @@ Goes through the target list and replaces short-hand targets with their expanded
 Special targets:
 - clean -> removes resultsDir + immediately stops the runner
 */
-auto predefinedTargets(string[] targets)
+Target[] predefinedTargets(string[] targets)
 {
     static findFiles(string dir)
     {
@@ -418,7 +442,7 @@ auto predefinedTargets(string[] targets)
 }
 
 // Removes targets that do not need updating (i.e. their .out file exists and is newer than the source file)
-auto filterTargets(Target[] targets, const string[string] env)
+Target[] filterTargets(Target[] targets, const string[string] env)
 {
     bool error;
     foreach (target; targets)
@@ -472,7 +496,7 @@ Params:
     key = key to check for existence and write into the new env
     default_ = fallback value if the key doesn't exist in the global environment
 */
-auto setDefault(string[string] env, string key, string default_)
+string setDefault(string[string] env, string key, string default_)
 {
     if (key in environment)
         env[key] = environment[key];
@@ -518,15 +542,11 @@ string[string] getEnvironment()
         auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`../../druntime`));
         auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../phobos`));
 
-        // default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+        // default to PIC, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.
-        bool pic;
-        version(X86_64)
-            pic = true;
-        else version(X86)
+        bool pic = true;
+        if (environment.get("PIC", "") == "0")
             pic = false;
-        if (environment.get("PIC", "0") == "1")
-            pic = true;
 
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
         env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
@@ -546,14 +566,14 @@ string[string] getEnvironment()
 }
 
 // Logging primitive
-auto log(T...)(T args)
+void log(T...)(T args)
 {
     if (verbose)
         writefln(args);
 }
 
 // Add the executable filename extension to the given `name` for the current OS.
-auto exeName(T)(T name)
+string exeName(string name)
 {
     version(Windows)
         name ~= ".exe";
@@ -561,7 +581,7 @@ auto exeName(T)(T name)
 }
 
 // Add the object filename extension to the given `name` for the current OS.
-auto objName(T)(T name)
+string objName(string name)
 {
     version(Windows)
         return name ~ ".obj";

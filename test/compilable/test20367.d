@@ -1,7 +1,5 @@
 // https://issues.dlang.org/show_bug.cgi?id=20367
 
-import std.stdio;
-
 struct A
 {
 	int x;

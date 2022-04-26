@@ -1,9 +1,9 @@
 /**
  * A library in the COFF format, used on 32-bit and 64-bit Windows targets.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d, _libmscoff.d)
  * Documentation:  https://dlang.org/phobos/dmd_libmscoff.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libmscoff.d
@@ -34,7 +34,7 @@ import dmd.utils;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.string;
@@ -156,7 +156,7 @@ final class LibMSCoff : Library
                     return corrupt(__LINE__);
                 if (offset + size > buflen)
                     return corrupt(__LINE__);
-                //printf("header.object_name = '%.*s'\n", cast(int)MSCOFF_OBJECT_NAME_SIZE, header.object_name);
+                //printf("header.object_name = '%.*s'\n", cast(int)MSCOFF_OBJECT_NAME_SIZE, header.object_name.ptr);
                 if (memcmp(cast(char*)header.object_name, cast(char*)"/               ", MSCOFF_OBJECT_NAME_SIZE) == 0)
                 {
                     if (!flm)
@@ -240,7 +240,7 @@ final class LibMSCoff : Library
                         memcpy(oname, longnames + foff, i);
                         oname[i] = 0;
                         om.name = oname[0 .. i];
-                        //printf("\tname = '%s'\n", om.name);
+                        //printf("\tname = '%s'\n", om.name.ptr);
                     }
                     else
                     {
@@ -295,7 +295,7 @@ final class LibMSCoff : Library
                     if (m == objmodules.dim)
                         return corrupt(__LINE__);       // didn't find it
                     MSCoffObjModule* om = objmodules[m];
-                    //printf("\tom offset = x%x\n", (char *)om.base - (char *)buf);
+                    //printf("\tom offset = x%x\n", cast(char *)om.base - cast(char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);
@@ -507,7 +507,7 @@ private:
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
-            //printf("objsymbols[%d] = '%s', offset = %u\n", i, os.name, os.om.offset);
+            //printf("objsymbols[%d] = '%s', offset = %u\n", cast(int) i, os.name.ptr, os.om.offset);
             if (i)
             {
                 // Should be sorted in module order
@@ -558,7 +558,7 @@ private:
         /*** Write out longnames Member ***/
         if (libbuf.length & 1)
             libbuf.writeByte('\n');
-        //printf("libbuf %x longnames %x\n", (int)libbuf.length, (int)LongnamesMemberOffset);
+        //printf("libbuf %x longnames %x\n", cast(int)libbuf.length, cast(int)LongnamesMemberOffset);
         assert(libbuf.length == LongnamesMemberOffset);
         // header
         memset(&h, ' ', MSCoffLibHeader.sizeof);
@@ -586,7 +586,7 @@ private:
             MSCoffObjModule* om2 = objmodules[i];
             if (libbuf.length & 1)
                 libbuf.writeByte('\n'); // module alignment
-            //printf("libbuf %x om %x\n", (int)libbuf.length, (int)om2.offset);
+            //printf("libbuf %x om %x\n", cast(int)libbuf.length, cast(int)om2.offset);
             assert(libbuf.length == om2.offset);
             if (om2.scan)
             {

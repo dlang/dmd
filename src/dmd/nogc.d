@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#nogc-functions, No-GC Functions)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/nogc.d, _nogc.d)
  * Documentation:  https://dlang.org/phobos/dmd_nogc.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/nogc.d
@@ -71,6 +71,7 @@ public:
         if (!e.f)
             return;
 
+        // Treat lowered hook calls as their original expressions.
         auto fd = stripHookTraceImpl(e.f);
         if (fd.ident == Id._d_arraysetlengthT)
         {
@@ -122,8 +123,6 @@ public:
         }
         if (e.onstack)
             return;
-        if (e.allocator)
-            return;
         if (global.params.ehnogc && e.thrownew)
             return;                     // separate allocator is called for this, not the GC
         if (f.setGC())
@@ -138,39 +137,15 @@ public:
 
     override void visit(DeleteExp e)
     {
-        if (e.e1.op == TOK.variable)
+        if (VarExp ve = e.e1.isVarExp())
         {
-            VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
+            VarDeclaration v = ve.var.isVarDeclaration();
             if (v && v.onstack)
                 return; // delete for scope allocated class object
         }
 
-        Type tb = e.e1.type.toBasetype();
-        AggregateDeclaration ad = null;
-        switch (tb.ty)
-        {
-        case Tclass:
-            ad = (cast(TypeClass)tb).sym;
-            break;
-
-        case Tpointer:
-            tb = (cast(TypePointer)tb).next.toBasetype();
-            if (tb.ty == Tstruct)
-                ad = (cast(TypeStruct)tb).sym;
-            break;
-
-        default:
-            break;
-        }
-
-        if (f.setGC())
-        {
-            e.error("cannot use `delete` in `@nogc` %s `%s`",
-                f.kind(), f.toPrettyChars());
-            err = true;
-            return;
-        }
-        f.printGCUsage(e.loc, "`delete` requires the GC");
+        // Semantic should have already handled this case.
+        assert(0);
     }
 
     override void visit(IndexExp e)
@@ -191,7 +166,7 @@ public:
 
     override void visit(AssignExp e)
     {
-        if (e.e1.op == TOK.arrayLength)
+        if (e.e1.op == EXP.arrayLength)
         {
             if (f.setGC())
             {
@@ -232,7 +207,7 @@ public:
 Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
-    if (e && e.op != TOK.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&
+    if (e && e.op != EXP.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&
            (f.type.ty == Tfunction &&
             (cast(TypeFunction)f.type).isnogc || (f.flags & FUNCFLAG.nogcInprocess) || global.params.vgc) &&
            !(sc.flags & SCOPE.debug_))

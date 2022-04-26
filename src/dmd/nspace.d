@@ -36,9 +36,9 @@
  * are valid D identifier.
  *
  * See_Also:    https://github.com/dlang/dmd/pull/10031
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/nspace.d, _nspace.d)
  * Documentation:  https://dlang.org/phobos/dmd_nspace.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/nspace.d
@@ -48,6 +48,7 @@ module dmd.nspace;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
@@ -145,12 +146,12 @@ extern (C++) final class Nspace : ScopeDsymbol
         return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
-    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, ref FieldState fieldState, bool isunion)
     {
         //printf("Nspace::setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
             dsymbolSemantic(this, null); // try to resolve it
-        members.foreachDsymbol( s => s.setFieldOffset(ad, poffset, isunion) );
+        members.foreachDsymbol( s => s.setFieldOffset(ad, fieldState, isunion) );
     }
 
     override const(char)* kind() const

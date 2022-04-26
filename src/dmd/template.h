@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/template.h
  */
 
@@ -131,7 +131,7 @@ public:
     virtual bool declareParameter(Scope *sc) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
     virtual RootObject *specialization() = 0;
-    virtual RootObject *defaultArg(Loc instLoc, Scope *sc) = 0;
+    virtual RootObject *defaultArg(const Loc &instLoc, Scope *sc) = 0;
     virtual bool hasDefaultArg() = 0;
 
     /* Create dummy argument based on parameter.
@@ -154,7 +154,7 @@ public:
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
-    RootObject *defaultArg(Loc instLoc, Scope *sc);
+    RootObject *defaultArg(const Loc &instLoc, Scope *sc);
     bool hasDefaultArg();
     RootObject *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
@@ -186,7 +186,7 @@ public:
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
-    RootObject *defaultArg(Loc instLoc, Scope *sc);
+    RootObject *defaultArg(const Loc &instLoc, Scope *sc);
     bool hasDefaultArg();
     RootObject *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
@@ -207,7 +207,7 @@ public:
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
-    RootObject *defaultArg(Loc instLoc, Scope *sc);
+    RootObject *defaultArg(const Loc &instLoc, Scope *sc);
     bool hasDefaultArg();
     RootObject *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
@@ -224,7 +224,7 @@ public:
     bool declareParameter(Scope *sc);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
-    RootObject *defaultArg(Loc instLoc, Scope *sc);
+    RootObject *defaultArg(const Loc &instLoc, Scope *sc);
     bool hasDefaultArg();
     RootObject *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
@@ -284,6 +284,7 @@ public:
     Identifier *getIdent();
     hash_t toHash();
 
+    bool isDiscardable();
     bool needsCodegen();
 
     TemplateInstance *isTemplateInstance() { return this; }
@@ -299,7 +300,7 @@ public:
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     bool hasPointers();
-    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     const char *toChars() const;
 
     TemplateMixin *isTemplateMixin() { return this; }
@@ -313,3 +314,4 @@ Tuple *isTuple(RootObject *o);
 Parameter *isParameter(RootObject *o);
 TemplateParameter *isTemplateParameter(RootObject *o);
 bool isError(const RootObject *const o);
+void printTemplateStats();

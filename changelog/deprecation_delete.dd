@@ -1,0 +1,8 @@
+The deprecation period of the `delete` keyword has been ended.
+
+See the $(LINK2 $(ROOT_DIR)deprecate.html#delete, Deprecated Features) for more information.
+
+Starting with this release, using the `delete` keyword will result in a compiler error.
+
+As a replacement, users are encouraged to use $(REF1 destroy, object)
+if feasible, or $(REF __delete, core,memory) as a last resort.

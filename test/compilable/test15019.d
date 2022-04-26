@@ -1,3 +1,4 @@
+// COMPILABLE_MATH_TEST
 // https://issues.dlang.org/show_bug.cgi?id=15019
 // dmd -m32 -c all.d
 
@@ -71,4 +72,3 @@ struct Vector(T, int N)
             assert(false);
     }
 }
-

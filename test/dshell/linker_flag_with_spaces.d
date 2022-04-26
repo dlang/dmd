@@ -4,7 +4,7 @@ int main()
 {
     version (DigitalMars)
     {
-        if (OS == "windows" && MODEL == "32")
+        if (OS == "windows" && MODEL == "32omf")
         {
             writeln("Skipping test when using Optlink.");
             return DISABLED;

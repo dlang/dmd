@@ -3,9 +3,9 @@
  *
  * This 'glues' either the DMC or GCC back-end to the front-end.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/gluelayer.d, _gluelayer.d)
  * Documentation:  https://dlang.org/phobos/dmd_gluelayer.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/gluelayer.d
@@ -32,21 +32,6 @@ version (NoBackend)
 
     extern (C++)
     {
-        version (NoMain) {} else
-        {
-            import dmd.lib : Library;
-
-            // glue
-            void obj_write_deferred(Library library)        {}
-            void obj_start(const(char)* srcfile)            {}
-            void obj_end(Library library, const(char)* objfilename) {}
-            void genObjFile(Module m, bool multiobj)        {}
-
-            // msc
-            void backend_init() {}
-            void backend_term() {}
-        }
-
         // iasm
         Statement asmSemantic(AsmStatement s, Scope* sc)
         {
@@ -65,8 +50,6 @@ version (NoBackend)
 }
 else version (MARS)
 {
-    import dmd.lib : Library;
-
     public import dmd.backend.cc : block, Blockx, Symbol;
     public import dmd.backend.type : type;
     public import dmd.backend.el : elem;
@@ -74,14 +57,6 @@ else version (MARS)
 
     extern (C++)
     {
-        void obj_write_deferred(Library library);
-        void obj_start(const(char)* srcfile);
-        void obj_end(Library library, const(char)* objfilename);
-        void genObjFile(Module m, bool multiobj);
-
-        void backend_init();
-        void backend_term();
-
         Statement asmSemantic(AsmStatement s, Scope* sc);
 
         void toObjFile(Dsymbol ds, bool multiobj);

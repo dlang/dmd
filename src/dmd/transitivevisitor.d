@@ -17,7 +17,9 @@ import core.stdc.stdio;
 extern(C++) class ParseTimeTransitiveVisitor(AST) : PermissiveVisitor!AST
 {
     alias visit = PermissiveVisitor!AST.visit;
-    mixin ParseVisitMethods!AST;
+
+    mixin ParseVisitMethods!AST __methods;
+    alias visit = __methods.visit;
 }
 
 /* This mixin implements the AST traversal logic for parse time AST nodes. The same code
@@ -879,8 +881,6 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.NewDeclaration d)
     {
         //printf("Visiting NewDeclaration\n");
-        visitParameters(d.parameterList.parameters);
-        visitFuncBody(d);
     }
 
 //   Initializers
@@ -963,8 +963,6 @@ package mixin template ParseVisitMethods(AST)
         //printf("Visiting NewExp\n");
         if (e.thisexp)
             e.thisexp.accept(this);
-        if (e.newargs && e.newargs.dim)
-            visitArgs(e.newargs);
         visitType(e.newtype);
         if (e.arguments && e.arguments.dim)
             visitArgs(e.arguments);
@@ -975,8 +973,6 @@ package mixin template ParseVisitMethods(AST)
         //printf("Visiting NewAnonClassExp\n");
         if (e.thisexp)
             e.thisexp.accept(this);
-        if (e.newargs && e.newargs.dim)
-            visitArgs(e.newargs);
         if (e.arguments && e.arguments.dim)
             visitArgs(e.arguments);
         if (e.cd)
@@ -1129,6 +1125,24 @@ package mixin template ParseVisitMethods(AST)
         e.econd.accept(this);
         e.e1.accept(this);
         e.e2.accept(this);
+    }
+
+    override void visit(AST.GenericExp e)
+    {
+        //printf("Visiting GenericExp\n");
+        e.cntlExp.accept(this);
+        foreach (i; 0 .. (*e.types).length)
+        {
+            if (auto t = (*e.types)[i])  // null means default case
+                t.accept(this);
+            (*e.exps )[i].accept(this);
+        }
+    }
+
+    override void visit(AST.ThrowExp e)
+    {
+        //printf("Visiting ThrowExp\n");
+        e.e1.accept(this);
     }
 
 // Template Parameter

@@ -3,26 +3,17 @@ Improvements for the C++ header generation
 The following features/bugfixes/improvements were implemented for the
 experimental C++ header generator:
 
-- Declarations from template mixins are emitted into the instantation context
-- (Superclass) methods aliases are emitted as `using ...` instead of `typedef ...`
-- `extern(D)` symbols are no longer emitted by accident in certain situations
-- `extern(D)` structs and classes are emitted if referenced by an exported symbol
-- Symbols referenced from template declarations are emitted before their first use
-- Forward declarations consistently include `template<...>`
-- `extern(C++, class)`, `extern(C++, struct)` affects forward declarations
-- Renamed or local imports are emitted as `using ...` when possible
-- Complex types are emitted as `_Complex`.
-- Declarations are emitted before the first member access
-- Global variables with invalid names in C++ are omitted
-- Initializers of `union` variables/parameters omit non-active members
-- Typecasts are emitted as C style, not D's `cast(...) ...`
-- Structs are always tagged as `final` because D disallows `struct` inheritance
-- Symbol names always include template parameters and enclosing declarations
-  when required
-- Properly emits (static / enum) members of templated aggregates
-- Properly emits static arrays in template declarations
-- No longer omits the parent aggregate when referencing `__gshared` variables
-- No longer uses D syntax for expressions nested in unary / binary expressions
+- The implicitly generated context pointer for nested aggregates is now
+  emitted as `outer` instead of `this`
+- Explicit mangling via `pragma(mangle, "...")` is partially supported for
+  functions / variables. The mangling is used as the identifier of `extern(C)`
+  declarations because C doesn't mangle declaration names. `extern(C++)`
+  declarations are ignored because there's no portable alternative for C++.
+- Emits destructors not easily accessible from C++ (e.g. `extern(D)`) as private
+  members, preventing the creation of instances that would not be destroyed
+  on the C++ side.
+- No longer generates `extern(C)` functions in aggregates that are emitted
+  with D mangling.
 
-Note: The header generator is still considerer experimental, so please submit
+Note: The header generator is still considered experimental, so please submit
       any bugs encountered to [the bug tracker](https://issues.dlang.org).

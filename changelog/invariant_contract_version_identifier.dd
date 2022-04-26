@@ -1,0 +1,22 @@
+Support contract invariant version identifier.
+
+Sometimes it is useful to compile code only when invariants are enabled. This
+feature provides the reserved version identifier D_Invariants which evaluates to
+true or false when invariants are compiled in or not respectively.
+
+---
+bool hit;
+
+class Foo
+{
+    this() {}
+    invariant { hit = true; }
+}
+
+void main()
+{
+    cast(void) new Foo();
+
+    version(D_Invariants) assert(hit); // runs if invariants are compiled in
+}
+---

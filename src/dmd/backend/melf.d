@@ -1,7 +1,9 @@
 
 /**
+ * Declarations for ELF file format
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Translation to D of Linux's melf.h
  *
@@ -457,5 +459,3 @@ struct Elf64_Rela
 enum GRP_COMDAT   = 1;
 enum GRP_MASKOS   = 0x0ff0_0000;
 enum GRP_MASKPROC = 0xf000_0000;
-
-

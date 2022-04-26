@@ -1,5 +1,6 @@
-
-/* Mach-O object file format
+/**
+ * Mach-O object file format
+ *
  * Translated to D from mach.h
  */
 

@@ -1,4 +1,4 @@
-/*
+/+
 REQUIRED_ARGS: -HC=silent -c -o- -Icompilable/extra-files
 PERMUTE_ARGS:
 EXTRA_FILES: extra-files/dtoh_imports.d extra-files/dtoh_imports2.d
@@ -119,8 +119,21 @@ struct PrivateImport final
     {
     }
 };
+
+typedef /* noreturn */ char Impossible[0];
+
+template <typename T>
+struct Array final
+{
+    uint32_t length;
+    Array()
+    {
+    }
+};
+
+typedef Array<char > DString;
 ---
-*/
++/
 
 extern (C++):
 
@@ -191,3 +204,13 @@ struct PrivateImport
     import dtoh_imports;
 
 }
+
+alias Impossible = noreturn;
+
+struct Array(T)
+{
+    uint length;
+    alias opDollar = length;
+    alias dim = length;
+}
+alias DString = Array!(char);

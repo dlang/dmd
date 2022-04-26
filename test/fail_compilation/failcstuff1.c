@@ -1,14 +1,12 @@
 // check the expression parser
-/* TEST_OUTPUT
+/* TEST_OUTPUT:
 ---
-fail_compilation/failcstuff1.c(51): Error: attributes should be specified before the function definition
 fail_compilation/failcstuff1.c(100): Error: no members for `enum E21962`
 fail_compilation/failcstuff1.c(101): Error: no members for anonymous enum
 fail_compilation/failcstuff1.c(152): Error: `;` or `,` expected
 fail_compilation/failcstuff1.c(153): Error: `void` has no value
 fail_compilation/failcstuff1.c(153): Error: missing comma
 fail_compilation/failcstuff1.c(153): Error: `;` or `,` expected
-fail_compilation/failcstuff1.c(154): Error: empty struct-declaration-list for `struct Anonymous`
 fail_compilation/failcstuff1.c(157): Error: identifier not allowed in abstract-declarator
 fail_compilation/failcstuff1.c(203): Error: storage class not allowed in specifier-qualified-list
 fail_compilation/failcstuff1.c(204): Error: storage class not allowed in specifier-qualified-list
@@ -25,15 +23,30 @@ fail_compilation/failcstuff1.c(260): Error: identifier or `(` expected
 fail_compilation/failcstuff1.c(301): Error: illegal type combination
 fail_compilation/failcstuff1.c(352): Error: found `2` when expecting `:`
 fail_compilation/failcstuff1.c(352): Error: found `:` instead of statement
-fail_compilation/failcstuff1.c(403): Error: left operand is not assignable
-fail_compilation/failcstuff1.c(404): Error: left operand is not assignable
-fail_compilation/failcstuff1.c(405): Error: increment operand is not assignable
-fail_compilation/failcstuff1.c(406): Error: decrement operand is not assignable
-fail_compilation/failcstuff1.c(407): Error: increment operand is not assignable
-fail_compilation/failcstuff1.c(408): Error: decrement operand is not assignable
-fail_compilation/failcstuff1.c(409): Error: cannot take address of unary operand
-fail_compilation/failcstuff1.c(453): Error: increment operand is not assignable
-fail_compilation/failcstuff1.c(454): Error: decrement operand is not assignable
+fail_compilation/failcstuff1.c(400): Error: `enum ENUM` has no members
+fail_compilation/failcstuff1.c(450): Error: static array parameters are not supported
+fail_compilation/failcstuff1.c(450): Error: static or type qualifier used in non-outermost array type derivation
+fail_compilation/failcstuff1.c(451): Error: static or type qualifier used in non-outermost array type derivation
+fail_compilation/failcstuff1.c(451): Error: array type has incomplete element type `int[0]`
+fail_compilation/failcstuff1.c(452): Error: array type has incomplete element type `int[0]`
+fail_compilation/failcstuff1.c(453): Error: array type has incomplete element type `int[0]`
+fail_compilation/failcstuff1.c(454): Error: found `const` when expecting `,`
+fail_compilation/failcstuff1.c(458): Error: static array parameters are not supported
+fail_compilation/failcstuff1.c(458): Error: static or type qualifier used outside of function prototype
+fail_compilation/failcstuff1.c(459): Error: static or type qualifier used outside of function prototype
+fail_compilation/failcstuff1.c(460): Error: variable length arrays are not supported
+fail_compilation/failcstuff1.c(460): Error: variable length array used outside of function prototype
+fail_compilation/failcstuff1.c(461): Error: array type has incomplete element type `int[0]`
+fail_compilation/failcstuff1.c(462): Error: `=`, `;` or `,` expected to end declaration instead of `const`
+fail_compilation/failcstuff1.c(502): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(502): Error: found `;` when expecting `)`
+fail_compilation/failcstuff1.c(503): Error: `=`, `;` or `,` expected to end declaration instead of `int`
+fail_compilation/failcstuff1.c(504): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(504): Error: found `;` when expecting `)`
+fail_compilation/failcstuff1.c(505): Error: `=`, `;` or `,` expected to end declaration instead of `int`
+fail_compilation/failcstuff1.c(551): Error: missing comma or semicolon after declaration of `pluto`, found `p` instead
+fail_compilation/failcstuff1.c(601): Error: `=`, `;` or `,` expected to end declaration instead of `'s'`
+fail_compilation/failcstuff1.c(605): Error: invalid flag for line marker directive
 ---
 */
 
@@ -106,29 +119,47 @@ void test22035()
     case 1 2:
 }
 
-// https://issues.dlang.org/show_bug.cgi?id=22067
+// https://issues.dlang.org/show_bug.cgi?id=21932
 #line 400
-void test22067()
-{
-    int var;
-    (int) var = 1;
-    sizeof(var) = 2;
-    ++(short)3;
-    --4;
-    (5)++;
-    ((int)var)--;
-    (&6);
-}
+enum ENUM;
 
-// https://issues.dlang.org/show_bug.cgi?id=22068
+// https://issues.dlang.org/show_bug.cgi?id=22103
 #line 450
-void test22068()
+void test22103a(int array[4][static 4]);
+void test22103b(int array[4][restrict]);
+void test22103c(int array[4][]);
+void test22103d(int array[][]);
+void test22103e(int array[4] const);
+
+void test22103e()
 {
-    int var;
-    ++(short) var;
-    --(long long) var;
+    int array1[static volatile 4];
+    int array2[restrict 4];
+    int array3[4][*];
+    int array4[][];
+    int array4[4] const;
 }
 
-// https://issues.dlang.org/show_bug.cgi?id=22086
+// https://issues.dlang.org/show_bug.cgi?id=22102
 #line 500
-typedef union U22086 U22086;
+void test22102()
+{
+    int(0);
+    int var1;
+    int();
+    int var2;
+}
+
+/****************************************************/
+#line 550
+
+int * pluto p;
+
+// https://issues.dlang.org/show_bug.cgi?id=22909
+#line 600
+
+char c22909 = u8's';
+
+/****************************************************/
+
+#650 "fail_compilation/failcstuff1.c" invalid

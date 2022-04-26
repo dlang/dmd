@@ -1,3 +1,6 @@
+Hello World
+=== ${RESULTS_DIR}/compilable/testheader1.di
+// D import file generated from 'compilable/extra-files/header1.d'
 module foo.bar;
 import core.vararg;
 void writeln(T...)(T)
@@ -111,7 +114,7 @@ template Foo(T, int V)
 				break;
 			}
 		}
-		enum Label 
+		enum Label
 		{
 			A,
 			B,
@@ -475,7 +478,7 @@ class TestClass
 	{
 		return aa;
 	}
-	@trusted @nogc @disable ~this();
+	@nogc @trusted @disable ~this();
 }
 class FooA
 {
@@ -508,7 +511,7 @@ ref @safe int foo(return ref int a);
 ref @safe int* foo(return ref scope int* a);
 struct SafeS
 {
-	@safe 
+	@safe
 	{
 		ref SafeS foo() return;
 		scope SafeS foo2() return;
@@ -517,7 +520,7 @@ struct SafeS
 	}
 }
 void test13x(@(10) int a, @(20) int, @(tuple(30), tuple(40)) int[] arr...);
-enum Test14UDA1 ;
+enum Test14UDA1;
 struct Test14UDA2
 {
 	string str;
@@ -528,3 +531,29 @@ struct Test14UDA4(string v)
 }
 void test14x(@(Test14UDA1) int, @Test14UDA2("1") int, @test14uda3("2") int, @(Test14UDA4!"3") int);
 void test15x(@(20) void delegate(int) @safe dg);
+T throwStuff(T)(T t)
+{
+	if (false)
+		test13x(1, throw new Exception(""), 2);
+	return t ? t : throw new Exception("Bad stuff happens!");
+}
+class C12344
+{
+	abstract int c12344(int x)
+	in (x > 0)
+	out(result)
+	{
+		assert(result > 0);
+	}
+	;
+}
+interface I12344
+{
+	int i12344(int x)
+	in (x > 0)
+	out(result)
+	{
+		assert(result > 0);
+	}
+	;
+}

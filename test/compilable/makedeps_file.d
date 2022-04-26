@@ -26,7 +26,7 @@ enum selection = selectImport(false);
 
 // Test CTFE import expression
 enum text = import(selection);
-static assert(text == "Imported text");
+static assert(text == "Imported text\x0a");
 
 void func()
 {

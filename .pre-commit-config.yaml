@@ -1,0 +1,25 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.2.0
+  hooks:
+  - id: trailing-whitespace
+    exclude: >
+      (?x)^(
+        ^test/runnable/extra-files/.*$|
+        ^test/compilable/extra-files/.*$|
+      )$
+  - id: end-of-file-fixer
+    exclude: >
+      (?x)^(
+        ^test/runnable/extra-files/.*$|
+        ^test/compilable/extra-files/.*$|
+      )$
+  - id: check-merge-conflict
+  - id: check-added-large-files
+  - id: detect-private-key
+  - id: no-commit-to-branch
+    args: [--branch, master]
+- repo: https://github.com/sirosen/check-jsonschema
+  rev: 0.14.2
+  hooks:
+    - id: check-github-workflows

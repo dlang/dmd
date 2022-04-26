@@ -1,9 +1,9 @@
 /**
  * Lazily evaluate static conditions for `static if`, `static assert` and template constraints.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/staticcond.d, _staticcond.d)
  * Documentation:  https://dlang.org/phobos/dmd_staticcond.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/staticcond.d
@@ -22,7 +22,7 @@ import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.root.array;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.tokens;
 
 
@@ -48,19 +48,19 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
 
     bool impl(Expression e)
     {
-        if (e.op == TOK.not)
+        if (e.isNotExp())
         {
             NotExp ne = cast(NotExp)e;
             return !impl(ne.e1);
         }
 
-        if (e.op == TOK.andAnd || e.op == TOK.orOr)
+        if (e.op == EXP.andAnd || e.op == EXP.orOr)
         {
             LogicalExp aae = cast(LogicalExp)e;
             bool result = impl(aae.e1);
             if (errors)
                 return false;
-            if (e.op == TOK.andAnd)
+            if (e.op == EXP.andAnd)
             {
                 if (!result)
                     return false;
@@ -74,7 +74,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
             return !errors && result;
         }
 
-        if (e.op == TOK.question)
+        if (e.op == EXP.question)
         {
             CondExp ce = cast(CondExp)e;
             bool result = impl(ce.econd);
@@ -99,7 +99,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
         e = e.optimize(WANTvalue);
 
         if (nerrors != global.errors ||
-            e.op == TOK.error ||
+            e.isErrorExp() ||
             e.type.toBasetype() == Type.terror)
         {
             errors = true;
@@ -108,18 +108,17 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
 
         e = e.ctfeInterpret();
 
-        if (e.isBool(true))
-            return true;
-        else if (e.isBool(false))
+        const opt = e.toBool();
+        if (opt.isEmpty())
         {
-            if (negatives)
-                negatives.push(before);
+            e.error("expression `%s` is not constant", e.toChars());
+            errors = true;
             return false;
         }
 
-        e.error("expression `%s` is not constant", e.toChars());
-        errors = true;
-        return false;
+        if (negatives && !opt.get())
+            negatives.push(before);
+        return opt.get();
     }
     return impl(e);
 }
@@ -171,27 +170,27 @@ private uint visualizeFull(Expression original, Expression instantiated,
     // returns true if satisfied
     bool impl(Expression orig, Expression e, bool inverted, bool orOperand, bool unreached)
     {
-        TOK op = orig.op;
+        EXP op = orig.op;
 
         // lower all 'not' to the bottom
         // !(A && B) -> !A || !B
         // !(A || B) -> !A && !B
         if (inverted)
         {
-            if (op == TOK.andAnd)
-                op = TOK.orOr;
-            else if (op == TOK.orOr)
-                op = TOK.andAnd;
+            if (op == EXP.andAnd)
+                op = EXP.orOr;
+            else if (op == EXP.orOr)
+                op = EXP.andAnd;
         }
 
-        if (op == TOK.not)
+        if (op == EXP.not)
         {
             NotExp no = cast(NotExp)orig;
             NotExp ne = cast(NotExp)e;
             assert(ne);
             return impl(no.e1, ne.e1, !inverted, orOperand, unreached);
         }
-        else if (op == TOK.andAnd)
+        else if (op == EXP.andAnd)
         {
             BinExp bo = cast(BinExp)orig;
             BinExp be = cast(BinExp)e;
@@ -200,7 +199,7 @@ private uint visualizeFull(Expression original, Expression instantiated,
             const r2 = impl(bo.e2, be.e2, inverted, false, unreached || !r1);
             return r1 && r2;
         }
-        else if (op == TOK.orOr)
+        else if (op == EXP.orOr)
         {
             if (!orOperand) // do not indent A || B || C twice
                 indent++;
@@ -214,7 +213,7 @@ private uint visualizeFull(Expression original, Expression instantiated,
                 indent--;
             return r1 || r2;
         }
-        else if (op == TOK.question)
+        else if (op == EXP.question)
         {
             CondExp co = cast(CondExp)orig;
             CondExp ce = cast(CondExp)e;
@@ -308,24 +307,24 @@ private uint visualizeShort(Expression original, Expression instantiated,
 
     bool impl(Expression orig, Expression e, bool inverted)
     {
-        TOK op = orig.op;
+        EXP op = orig.op;
 
         if (inverted)
         {
-            if (op == TOK.andAnd)
-                op = TOK.orOr;
-            else if (op == TOK.orOr)
-                op = TOK.andAnd;
+            if (op == EXP.andAnd)
+                op = EXP.orOr;
+            else if (op == EXP.orOr)
+                op = EXP.andAnd;
         }
 
-        if (op == TOK.not)
+        if (op == EXP.not)
         {
             NotExp no = cast(NotExp)orig;
             NotExp ne = cast(NotExp)e;
             assert(ne);
             return impl(no.e1, ne.e1, !inverted);
         }
-        else if (op == TOK.andAnd)
+        else if (op == EXP.andAnd)
         {
             BinExp bo = cast(BinExp)orig;
             BinExp be = cast(BinExp)e;
@@ -334,7 +333,7 @@ private uint visualizeShort(Expression original, Expression instantiated,
             r = r && impl(bo.e2, be.e2, inverted);
             return r;
         }
-        else if (op == TOK.orOr)
+        else if (op == EXP.orOr)
         {
             BinExp bo = cast(BinExp)orig;
             BinExp be = cast(BinExp)e;
@@ -346,7 +345,7 @@ private uint visualizeShort(Expression original, Expression instantiated,
                 stack.setDim(lbefore); // purge added positive items
             return r;
         }
-        else if (op == TOK.question)
+        else if (op == EXP.question)
         {
             CondExp co = cast(CondExp)orig;
             CondExp ce = cast(CondExp)e;

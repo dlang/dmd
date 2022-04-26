@@ -17,6 +17,7 @@ import std.conv;
 import std.string;
 import std.stdio;
 import std.ascii;
+import std.file;
 
 // colors for syntax highlighting, default values are
 // my preferences in Microsoft Visual Studio editor
@@ -47,11 +48,10 @@ void main(string[] args)
         args ~= args[1] ~ ".htm";
 
     // load keywords
+    assert("d2html.kwd".exists, "file d2html.kwd does not exist");
     auto kwd = File("d2html.kwd");
-
     foreach (word; kwd.byLine())
         keywords[word.idup] = true;
-
     kwd.close();
 
     // open input and output files
@@ -94,7 +94,7 @@ void main(string[] args)
                     if (c == 9)
                     {
                         // expand tabs to spaces
-                        auto spaces = tabsize -
+                        immutable spaces = tabsize -
                                      (src.tell() - linestart) % tabsize;
 
                         for (int i = 0; i < spaces; i++)
@@ -290,7 +290,7 @@ void main(string[] args)
                             else if (c == 9)
                             {
                                 // expand tabs
-                                auto spaces2 = tabsize -
+                                immutable spaces2 = tabsize -
                                               (src.tell() - linestart) % tabsize;
 
                                 for (int i2 = 0; i2 < spaces2; i2++)
@@ -318,7 +318,7 @@ void main(string[] args)
                             else if (c == 9)
                             {
                                 // expand tabs
-                                auto spaces3 = tabsize -
+                                immutable spaces3 = tabsize -
                                               (src.tell() - linestart) % tabsize;
 
                                 for (int i3 = 0; i3 < spaces3; i3++)

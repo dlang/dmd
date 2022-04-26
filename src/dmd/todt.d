@@ -2,9 +2,9 @@
  * Put initializers and objects created from CTFE into a `dt_t` data structure
  * so the backend puts them into the data segment.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/todt.d, _todt.d)
  * Documentation:  https://dlang.org/phobos/dmd_todt.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/todt.d
@@ -16,13 +16,13 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.root.array;
+import dmd.root.complex;
 import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.backend.type;
-import dmd.complex;
 import dmd.ctfeexpr;
 import dmd.declaration;
 import dmd.dclass;
@@ -63,7 +63,7 @@ alias Dts = Array!(dt_t*);
 
 /* ================================================================ */
 
-extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
+extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isCfile)
 {
     void visitError(ErrorInitializer)
     {
@@ -112,14 +112,14 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
             assert(length < ai.dim);
             auto dtb = DtBuilder(0);
-            Initializer_toDt(ai.value[i], dtb);
+            Initializer_toDt(ai.value[i], dtb, isCfile);
             if (dts[length])
                 error(ai.loc, "duplicate initializations for index `%d`", length);
             dts[length] = dtb.finish();
             length++;
         }
 
-        Expression edefault = tb.nextOf().defaultInit(Loc.initial);
+        Expression edefault = tb.nextOf().defaultInit(Loc.initial, isCfile);
 
         const n = tn.numberOfElems(ai.loc);
 
@@ -149,7 +149,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                 size_t tadim = cast(size_t)ta.dim.toInteger();
                 if (ai.dim < tadim)
                 {
-                    if (edefault.isBool(false))
+                    if (edefault.toBool().hasValue(false))
                     {
                         // pad out end of array
                         dtbarray.nzeros(cast(uint)(size * (tadim - ai.dim)));
@@ -243,7 +243,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                 else
                 {
                     ++i;
-                    Initializer_toDt(di.initializer, dtb);
+                    Initializer_toDt(di.initializer, dtb, isCfile);
                 }
             }
         }
@@ -266,14 +266,35 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
 extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 {
+    dtb.checkInitialized();
+
     void nonConstExpError(Expression e)
     {
         version (none)
         {
-            printf("Expression.toDt() %d\n", e.op);
+            printf("Expression.toDt() op = %d e = %s \n", e.op, e.toChars());
         }
         e.error("non-constant expression `%s`", e.toChars());
         dtb.nzeros(1);
+    }
+
+    void visitSlice(SliceExp e)
+    {
+        version (none)
+        {
+            printf("SliceExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
+        }
+        if (!e.lwr && !e.upr)
+            return Expression_toDt(e.e1, dtb);
+        if (auto strExp = e.e1.isStringExp())
+        {
+            auto lwr = e.lwr.isIntegerExp();
+            auto upr = e.upr.isIntegerExp();
+            if (lwr && upr && lwr.toInteger() == 0 && upr.toInteger() == strExp.len)
+                return Expression_toDt(e.e1, dtb);
+        }
+
+        nonConstExpError(e);
     }
 
     void visitCast(CastExp e)
@@ -516,7 +537,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
         assert(sle.sd.nonHiddenFields() <= sle.elements.dim);
-        membersToDt(sle.sd, dtb, sle.elements, 0, null);
+        membersToDt(sle.sd, dtb, sle.elements, 0, null, null);
     }
 
     void visitSymOff(SymOffExp e)
@@ -545,17 +566,26 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                 return;
             }
             v.inuse++;
-            Initializer_toDt(v._init, dtb);
+            Initializer_toDt(v._init, dtb, v.isCsymbol());
             v.inuse--;
             return;
         }
 
         if (auto sd = e.var.isSymbolDeclaration())
+        {
             if (sd.dsym)
             {
-                StructDeclaration_toDt(sd.dsym, dtb);
+
+                if (auto s = sd.dsym.isStructDeclaration())
+                    StructDeclaration_toDt(s, dtb);
+                else if (auto c = sd.dsym.isClassDeclaration())
+                    // Should be unreachable ATM, but just to be sure
+                    ClassDeclaration_toDt(c, dtb);
+                else
+                    assert(false);
                 return;
             }
+        }
 
         return nonConstExpError(e);
     }
@@ -618,24 +648,32 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         assert(0);
     }
 
+    void visitNoreturn(Expression e)
+    {
+        // Noreturn field with default initializer
+        assert(e);
+    }
+
     switch (e.op)
     {
         default:                 return nonConstExpError(e);
-        case TOK.cast_:          return visitCast          (e.isCastExp());
-        case TOK.address:        return visitAddr          (e.isAddrExp());
-        case TOK.int64:          return visitInteger       (e.isIntegerExp());
-        case TOK.float64:        return visitReal          (e.isRealExp());
-        case TOK.complex80:      return visitComplex       (e.isComplexExp());
-        case TOK.null_:          return visitNull          (e.isNullExp());
-        case TOK.string_:        return visitString        (e.isStringExp());
-        case TOK.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
-        case TOK.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
-        case TOK.symbolOffset:   return visitSymOff        (e.isSymOffExp());
-        case TOK.variable:       return visitVar           (e.isVarExp());
-        case TOK.function_:      return visitFunc          (e.isFuncExp());
-        case TOK.vector:         return visitVector        (e.isVectorExp());
-        case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
-        case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
+        case EXP.cast_:          return visitCast          (e.isCastExp());
+        case EXP.address:        return visitAddr          (e.isAddrExp());
+        case EXP.int64:          return visitInteger       (e.isIntegerExp());
+        case EXP.float64:        return visitReal          (e.isRealExp());
+        case EXP.complex80:      return visitComplex       (e.isComplexExp());
+        case EXP.null_:          return visitNull          (e.isNullExp());
+        case EXP.string_:        return visitString        (e.isStringExp());
+        case EXP.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
+        case EXP.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
+        case EXP.symbolOffset:   return visitSymOff        (e.isSymOffExp());
+        case EXP.variable:       return visitVar           (e.isVarExp());
+        case EXP.function_:      return visitFunc          (e.isFuncExp());
+        case EXP.vector:         return visitVector        (e.isVectorExp());
+        case EXP.classReference: return visitClassReference(e.isClassReferenceExp());
+        case EXP.typeid_:        return visitTypeid        (e.isTypeidExp());
+        case EXP.assert_:        return visitNoreturn      (e);
+        case EXP.slice:          return visitSlice         (e.isSliceExp());
     }
 }
 
@@ -647,7 +685,7 @@ extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 {
     //printf("ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 
-    membersToDt(cd, dtb, null, 0, cd);
+    membersToDt(cd, dtb, null, 0, cd, null);
 
     //printf("-ClassDeclaration.toDt(this = '%s')\n", cd.toChars());
 }
@@ -655,7 +693,7 @@ extern (C++) void ClassDeclaration_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 extern (C++) void StructDeclaration_toDt(StructDeclaration sd, ref DtBuilder dtb)
 {
     //printf("+StructDeclaration.toDt(), this='%s'\n", sd.toChars());
-    membersToDt(sd, dtb, null, 0, null);
+    membersToDt(sd, dtb, null, 0, null, null);
 
     //printf("-StructDeclaration.toDt(), this='%s'\n", sd.toChars());
 }
@@ -692,9 +730,9 @@ extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
  * have to use this optimized version to reduce memory footprint.
  * Params:
  *      ad = aggregate with members
- *      pdt = tail of initializer list to start appending initialized data to
+ *      dtb = initializer list to append initialized data to
  *      elements = values to use as initializers, null means use default initializers
- *      firstFieldIndex = starting place is elements[firstFieldIndex]
+ *      firstFieldIndex = starting place in elements[firstFieldIndex]; always 0 for structs
  *      concreteType = structs: null, classes: most derived class
  *      ppb = pointer that moves through BaseClass[] from most derived class
  * Returns:
@@ -704,18 +742,43 @@ extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         Expressions* elements, size_t firstFieldIndex,
         ClassDeclaration concreteType,
-        BaseClass*** ppb = null)
+        BaseClass*** ppb)
 {
-    //printf("membersToDt(ad = '%s', concrete = '%s', ppb = %p)\n", ad.toChars(), concreteType ? concreteType.toChars() : "null", ppb);
     ClassDeclaration cd = ad.isClassDeclaration();
+    const bool isCtype = ad.isCsymbol();
     version (none)
     {
-        printf(" interfaces.length = %d\n", cast(int)cd.interfaces.length);
-        foreach (i, b; cd.vtblInterfaces[])
+        printf("membersToDt(ad = '%s', concrete = '%s', ppb = %p)\n", ad.toChars(), concreteType ? concreteType.toChars() : "null", ppb);
+        version (none)
         {
-            printf("  vbtblInterfaces[%d] b = %p, b.sym = %s\n", cast(int)i, b, b.sym.toChars());
+            printf(" interfaces.length = %d\n", cast(int)cd.interfaces.length);
+            foreach (i, b; cd.vtblInterfaces[])
+            {
+                printf("  vbtblInterfaces[%d] b = %p, b.sym = %s\n", cast(int)i, b, b.sym.toChars());
+            }
+        }
+        version (all)
+        {
+            foreach (i, field; ad.fields)
+            {
+                if (auto bf = field.isBitFieldDeclaration())
+                    printf("  fields[%d]: %s %2d bitoffset %2d width %2d\n", cast(int)i, bf.toChars(), bf.offset, bf.bitOffset, bf.fieldWidth);
+                else
+                    printf("  fields[%d]: %s %2d\n", cast(int)i, field.toChars(), field.offset);
+            }
+        }
+        version (none)
+        {
+            printf("  firstFieldIndex: %d\n", cast(int)firstFieldIndex);
+            foreach (i; 0 .. elements.length)
+            {
+                auto e = (*elements)[i];
+                printf("  elements[%d]: %s\n", cast(int)i, e ? e.toChars() : "null");
+            }
         }
     }
+    dtb.checkInitialized();
+    //printf("+dtb.length: %d\n", dtb.length);
 
     /* Order:
      *  { base class } or { __vptr, __monitor }
@@ -728,10 +791,11 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     {
         if (ClassDeclaration cdb = cd.baseClass)
         {
+            // Insert { base class }
             size_t index = 0;
             for (ClassDeclaration c = cdb.baseClass; c; c = c.baseClass)
                 index += c.fields.dim;
-            membersToDt(cdb, dtb, elements, index, concreteType);
+            membersToDt(cdb, dtb, elements, index, concreteType, null);
             offset = cdb.structsize;
         }
         else if (InterfaceDeclaration id = cd.isInterfaceDeclaration())
@@ -758,6 +822,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         }
         else
         {
+            // Insert { __vptr, __monitor }
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
             offset = target.ptrsize;
             if (cd.hasMonitor())
@@ -783,30 +848,87 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             if (offset < b.offset)
                 dtb.nzeros(b.offset - offset);
             membersToDt(si.sym, dtb, elements, firstFieldIndex, concreteType, ppb);
-            //printf("b.offset = %d, b.sym.structsize = %d\n", (int)b.offset, (int)b.sym.structsize);
+            //printf("b.offset = %d, b.sym.structsize = %d\n", cast(int)b.offset, cast(int)b.sym.structsize);
             offset = b.offset + b.sym.structsize;
         }
     }
     else
         offset = 0;
+    // `offset` now is where the fields start
 
     assert(!elements ||
            firstFieldIndex <= elements.dim &&
            firstFieldIndex + ad.fields.dim <= elements.dim);
 
+    uint bitByteOffset = 0;     // byte offset of bit field
+    uint bitOffset = 0;         // starting bit number
+    ulong bitFieldValue = 0;    // in-flight bit field value
+    uint bitFieldSize;          // in-flight size in bytes of bit field
+
+    void finishInFlightBitField()
+    {
+        if (bitOffset)
+        {
+            //printf("finishInFlightBitField() offset %d bitOffset %d bitFieldSize %d bitFieldValue x%llx\n", offset, bitOffset, bitFieldSize, bitFieldValue);
+            assert(bitFieldSize);
+
+            // advance to start of bit field
+            if (offset < bitByteOffset)
+            {
+                dtb.nzeros(bitByteOffset - offset);
+                offset = bitByteOffset;
+            }
+
+            dtb.nbytes(bitFieldSize, cast(char*)&bitFieldValue);
+            offset += bitFieldSize;
+            bitOffset = 0;
+            bitFieldValue = 0;
+            bitFieldSize = 0;
+        }
+    }
+
+    static if (0)
+    {
+        foreach (i, field; ad.fields)
+        {
+            if (elements && !(*elements)[firstFieldIndex + i])
+                continue;       // no element for this field
+
+            if (!elements || !(*elements)[firstFieldIndex + i])
+            {
+                if (field._init && field._init.isVoidInitializer())
+                    continue;   // void initializer for this field
+            }
+
+            VarDeclaration vd = field;
+            auto bf = vd.isBitFieldDeclaration();
+            if (bf)
+                printf("%s\t offset: %d width: %u bit: %u\n", bf.toChars(), bf.offset, bf.fieldWidth, bf.bitOffset);
+            else
+                printf("%s\t offset: %d\n", vd.toChars(), vd.offset);
+        }
+    }
+
     foreach (i, field; ad.fields)
     {
+        // skip if no element for this field
         if (elements && !(*elements)[firstFieldIndex + i])
             continue;
 
+        // If void initializer
         if (!elements || !(*elements)[firstFieldIndex + i])
         {
             if (field._init && field._init.isVoidInitializer())
                 continue;
         }
 
+        /* This loop finds vd, the closest field that starts at `offset + bitOffset` or later
+         */
         VarDeclaration vd;
-        size_t k;
+        // Cache some extra information about vd
+        BitFieldDeclaration bf; // bit field version of vd
+        size_t k;               // field index of vd
+        uint vdBitOffset;       // starting bit number of vd; 0 if not a bit field
         foreach (j; i .. ad.fields.length)
         {
             VarDeclaration v2 = ad.fields[j];
@@ -821,32 +943,84 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 if (v2._init && v2._init.isVoidInitializer())
                     continue;
             }
+            //printf(" checking v2 %s %d\n", v2.toChars(), v2.offset);
+
+            auto bf2 = v2.isBitFieldDeclaration();
+            uint v2BitOffset = bf2 ? bf2.bitOffset : 0;
+
+            if (v2.offset * 8 + v2BitOffset < offset * 8 + vdBitOffset)
+                continue;
 
             // find the nearest field
-            if (!vd || v2.offset < vd.offset)
+            if (!vd ||
+                v2.offset * 8 + v2BitOffset < vd.offset * 8 + vdBitOffset)
             {
+                // v2 is nearer, so remember the details
+                //printf(" v2 %s is nearer\n", v2.toChars());
                 vd = v2;
+                bf = bf2;
+                vdBitOffset = v2BitOffset;
                 k = j;
-                assert(vd == v2 || !vd.isOverlappedWith(v2));
             }
         }
         if (!vd)
+        {
             continue;
+        }
 
-        assert(offset <= vd.offset);
+        if (!bf || bf.offset != offset)
+        {
+            finishInFlightBitField();
+        }
+        if (bf)
+        {
+            switch (target.c.bitFieldStyle)
+            {
+                case TargetC.BitFieldStyle.Gcc_Clang:
+                    bitFieldSize = (bf.bitOffset + bf.fieldWidth + 7) / 8;
+                    break;
+
+                case TargetC.BitFieldStyle.DM:
+                case TargetC.BitFieldStyle.MS:
+                    // This relies on all bit fields in the same storage location have the same type
+                    bitFieldSize = cast(uint)vd.type.size();
+                    break;
+
+                default:
+                    assert(0);
+            }
+        }
+
+        //printf("offset: %u, vd: %s vd.offset: %u\n", offset, vd.toChars(), vd.offset);
+        if (vd.offset < offset)
+            continue;           // a union field
         if (offset < vd.offset)
+        {
             dtb.nzeros(vd.offset - offset);
+            offset = vd.offset;
+        }
 
         auto dtbx = DtBuilder(0);
         if (elements)
         {
             Expression e = (*elements)[firstFieldIndex + k];
+            //printf("elements initializer %s\n", e.toChars());
             if (auto tsa = vd.type.toBasetype().isTypeSArray())
-                toDtElem(tsa, dtbx, e);
+                toDtElem(tsa, dtbx, e, isCtype);
+            else if (bf)
+            {
+                auto ie = e.isIntegerExp();
+                assert(ie);
+                auto value = ie.getInteger();
+                const width = bf.fieldWidth;
+                const mask = (1L << width) - 1;
+                bitFieldValue = (bitFieldValue & ~(mask << bitOffset)) | ((value & mask) << bitOffset);
+                //printf("bitFieldValue x%llx\n", bitFieldValue);
+            }
             else
                 Expression_toDt(e, dtbx);    // convert e to an initializer dt
         }
-        else
+        else if (!bf)
         {
             if (Initializer init = vd._init)
             {
@@ -859,9 +1033,9 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 auto ei = init.isExpInitializer();
                 auto tsa = vd.type.toBasetype().isTypeSArray();
                 if (ei && tsa)
-                    toDtElem(tsa, dtbx, ei.exp);
+                    toDtElem(tsa, dtbx, ei.exp, isCtype);
                 else
-                    Initializer_toDt(init, dtbx);
+                    Initializer_toDt(init, dtbx, isCtype);
             }
             else if (offset <= vd.offset)
             {
@@ -872,27 +1046,39 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 continue;
         }
 
-        dtb.cat(dtbx);
-        offset = cast(uint)(vd.offset + vd.type.size());
+        if (!dtbx.isZeroLength())
+            dtb.cat(dtbx);
+        if (bf)
+        {
+            bitByteOffset = bf.offset;
+            bitOffset = bf.bitOffset + bf.fieldWidth;
+        }
+        else
+        {
+            offset = cast(uint)(vd.offset + vd.type.size());
+        }
     }
+
+    finishInFlightBitField();
 
     if (offset < ad.structsize)
         dtb.nzeros(ad.structsize - offset);
+    //printf("-dtb.length: %d\n", dtb.length);
 }
 
 
 /* ================================================================= */
 
-extern (C++) void Type_toDt(Type t, ref DtBuilder dtb)
+extern (C++) void Type_toDt(Type t, ref DtBuilder dtb, bool isCtype = false)
 {
     switch (t.ty)
     {
         case Tvector:
-            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null);
+            toDtElem(t.isTypeVector().basetype.isTypeSArray(), dtb, null, isCtype);
             break;
 
         case Tsarray:
-            toDtElem(t.isTypeSArray(), dtb, null);
+            toDtElem(t.isTypeSArray(), dtb, null, isCtype);
             break;
 
         case Tstruct:
@@ -900,12 +1086,12 @@ extern (C++) void Type_toDt(Type t, ref DtBuilder dtb)
             break;
 
         default:
-            Expression_toDt(t.defaultInit(Loc.initial), dtb);
+            Expression_toDt(t.defaultInit(Loc.initial, isCtype), dtb);
             break;
     }
 }
 
-private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
+private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCtype)
 {
     //printf("TypeSArray.toDtElem() tsa = %s\n", tsa.toChars());
     if (tsa.size(Loc.initial) == 0)
@@ -928,7 +1114,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
             tbn = tnext.toBasetype();
         }
         if (!e)                             // if not already supplied
-            e = tsa.defaultInit(Loc.initial);    // use default initializer
+            e = tsa.defaultInit(Loc.initial, isCtype);    // use default initializer
 
         if (!e.type.implicitConvTo(tnext))    // https://issues.dlang.org/show_bug.cgi?id=14996
         {
@@ -970,7 +1156,7 @@ extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, ref DtBui
     size_t firstFieldIndex = 0;
     for (ClassDeclaration c = cd.baseClass; c; c = c.baseClass)
         firstFieldIndex += c.fields.dim;
-    membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd);
+    membersToDt(cd, dtb, ce.value.elements, firstFieldIndex, cd, null);
 }
 
 /****************************************************
@@ -1293,7 +1479,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         /* Put out:
-         *  char[] name;
+         *  char[] mangledName;
          *  void[] init;
          *  hash_t function(in void*) xtoHash;
          *  bool function(in void*, in void*) xopEquals;
@@ -1310,9 +1496,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
          *  xgetRTInfo
          */
 
-        const name = sd.toPrettyChars();
-        const namelen = strlen(name);
-        dtb.size(namelen);
+        const mangledName = tc.deco;
+        const mangledNameLen = strlen(mangledName);
+        dtb.size(mangledNameLen);
         dtb.xoff(d.csym, Type.typeinfostruct.structsize);
 
         // void[] init;
@@ -1410,8 +1596,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         else
             dtb.size(0);
 
-        // Put out name[] immediately following TypeInfo_Struct
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        // Put out mangledName[] immediately following TypeInfo_Struct
+        dtb.nbytes(cast(uint)(mangledNameLen + 1), mangledName);
     }
 
     override void visit(TypeInfoClassDeclaration d)
