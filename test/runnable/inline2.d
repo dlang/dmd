@@ -18,4 +18,3 @@ int main()
         Primes.lookup(2);
         return 0;
 }
-

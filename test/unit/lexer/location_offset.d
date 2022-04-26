@@ -341,7 +341,6 @@ enum Test[string] tests = [
 
     "identifier" : Test("identifier", "foo"),
     "string_" : Test("string literal", `"foo"`),
-    "hexadecimalString" : Test("hexadecimal string literal", `x"61"`),
     "this_" : Test("this"),
     "super_" : Test("super"),
 
@@ -482,6 +481,7 @@ enum ignoreTokens
     arrayLiteral,
     assocArrayLiteral,
     structLiteral,
+    compoundLiteral,
     classReference,
     thrownException,
     delegatePointer,
@@ -515,6 +515,8 @@ enum ignoreTokens
     vectorArray,
 
     wchar_tLiteral,
+    endOfLine,
+    whitespace,
     inline,
     register,
     restrict,
@@ -534,8 +536,10 @@ enum ignoreTokens
     _Static_assert,
     _Thread_local,
 
+    _import,
     __cdecl,
     __declspec,
+    __stdcall,
     __attribute__,
 
     max_,

@@ -39,9 +39,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-union U1;
-union U2;
-
 union U1
 {
     int32_t a;

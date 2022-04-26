@@ -1,9 +1,10 @@
+// PERMUTE_ARGS: -O
 // https://issues.dlang.org/show_bug.cgi?id=20855
 
 string exp()
 {
     string s = "a = b + c * d + a;";
-    foreach (i; 0 .. 10)
+    foreach (i; 0 .. 9)
 	s = s ~ s;
     return s;
 }
@@ -21,6 +22,6 @@ int main()
 {
     int a = test();
     printf("a = %d\n", a);
-    assert(test() == 14337);
+    assert(test() == 7169);
     return 0;
 }

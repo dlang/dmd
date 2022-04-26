@@ -18,7 +18,7 @@ struct Foo {
  * Params:
  *      x = something cool
  */
-int foo(int x) { 
+int foo(int x) {
     int a = 0;
 
     if (a == 1) {
@@ -58,4 +58,3 @@ int main(string[] args) {
 }
 
 int bar() {return 0;}
-

@@ -1,15 +1,7 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -wi -o- -transition=vmarkdown
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
-
-/*
-TEST_OUTPUT:
-----
-compilable/ddoc_markdown_breaks_verbose.d(21): Ddoc: converted '___' to a thematic break
-compilable/ddoc_markdown_breaks_verbose.d(21): Ddoc: converted '- - -' to a thematic break
-compilable/ddoc_markdown_breaks_verbose.d(21): Ddoc: converted '***' to a thematic break
-----
-*/
+// OUTPUT_FILES: ${RESULTS_DIR}/compilable/ddoc_markdown_breaks_verbose.html
+// TEST_OUTPUT_FILE: extra-files/ddoc_markdown_breaks_verbose.html
 
 /++
 Thematic Breaks

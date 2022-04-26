@@ -1,6 +1,8 @@
 /**
+ * A complex number implementation
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   public domain
  * License:     public domain

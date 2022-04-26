@@ -1,9 +1,9 @@
 /**
  * Provides a visitor class visiting all AST nodes present in the compiler.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/visitor.d, _visitor.d)
  * Documentation:  https://dlang.org/phobos/dmd_visitor.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor.d
@@ -12,6 +12,7 @@
 module dmd.visitor;
 
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.parsetimevisitor;
 import dmd.tokens;
 import dmd.transitivevisitor;
@@ -65,6 +66,7 @@ public:
     void visit(ASTCodegen.ErrorExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ComplexExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.StructLiteralExp e) { visit(cast(ASTCodegen.Expression)e); }
+    void visit(ASTCodegen.CompoundLiteralExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ObjcClassReferenceExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.SymOffExp e) { visit(cast(ASTCodegen.SymbolExp)e); }
     void visit(ASTCodegen.OverExp e) { visit(cast(ASTCodegen.Expression)e); }
@@ -157,6 +159,12 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
                     el.accept(this);
             e.stageflags = old;
         }
+    }
+
+    override void visit(ASTCodegen.CompoundLiteralExp e)
+    {
+        if (e.initializer)
+            e.initializer.accept(this);
     }
 
     override void visit(ASTCodegen.DotTemplateExp e)

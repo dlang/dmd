@@ -19,7 +19,7 @@ import imports.makedeps_a;
 
 // Test import expression
 enum text = import("makedeps-import.txt");
-static assert(text == "Imported text");
+static assert(text == "Imported text\x0a");
 
 void func()
 {

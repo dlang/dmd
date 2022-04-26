@@ -1,13 +1,7 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -o- -transition=vmarkdown
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
-
-/*
-TEST_OUTPUT:
-----
-compilable/ddoc_markdown_code_verbose.d(19): Ddoc: adding code block for language 'ruby'
-----
-*/
+// TEST_OUTPUT_FILE: extra-files/ddoc_markdown_code_verbose.html
+// OUTPUT_FILES: ${RESULTS_DIR}/compilable/ddoc_markdown_code_verbose.html
 
 /++
 Code:

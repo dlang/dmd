@@ -5,6 +5,7 @@ version (D_SIMD)
 {
 
 import core.simd;
+import core.stdc.stdio;
 import core.stdc.string;
 
 alias TypeTuple(T...) = T;
@@ -2230,6 +2231,164 @@ void test19443()
 
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=22438
+
+struct T22438 { int x; double d; }
+
+T22438 foo22438(int x, double d) { return T22438(x, d); }
+
+struct S22438 { T22438 t; string r; }
+
+void test22438()
+{
+    S22438 s = S22438(foo22438(10, 3.14), "str");
+    assert(s.t.x == 10);
+    assert(s.t.d == 3.14);
+    assert(s.r == "str");
+}
+
+/*****************************************/
+
+__gshared int testsroa_x;
+
+template SROA(T1, T2)
+{
+    struct FPoint
+    {
+        T1 x;
+        T2 y;
+    }
+
+    void sroa(FPoint p1, ref FPoint quad)
+    {
+        quad = FPoint(p1.x, p1.y);
+    }
+
+    void testit()
+    {
+        FPoint p1 = FPoint(1, 2);
+
+        FPoint quad;
+        sroa(p1, quad);
+
+        if (quad != p1)
+        {
+            printf("failing iteration %d\n", testsroa_x);
+            assert(0);
+        }
+        ++testsroa_x;
+    }
+}
+
+void testsroa()
+{
+    SROA!(int,   int  ).testit();
+    SROA!(int,   float).testit();
+    SROA!(float, float).testit();
+    SROA!(float, int  ).testit();
+
+    SROA!(long,   long  ).testit();
+    SROA!(long,   double).testit();
+    SROA!(double, double).testit();
+    SROA!(double, long  ).testit();
+}
+
+/*****************************************/
+
+// https://github.com/AuburnSounds/intel-intrinsics/blob/master/source/inteli/pmmintrin.d
+
+alias __m128 = float4;
+
+__m128 _mm_setr_ps (float e3, float e2, float e1, float e0) pure @trusted
+{
+    float[4] result = [e3, e2, e1, e0];
+    return loadUnaligned!(float4)(cast(float4*)result.ptr);
+}
+
+__m128 _mm_movehdup_ps (__m128 a) pure @trusted
+{
+    a.ptr[0] = a.array[1];
+    a.ptr[2] = a.array[3];
+    return a;
+}
+
+void testshdup()
+{
+    __m128 A = _mm_movehdup_ps(_mm_setr_ps(1, 2, 3, 4));
+    float[4] correct = [2.0f, 2, 4, 4 ];
+    assert(A.array == correct);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21673
+float4 _mm_move_ss(float4 a, float4 b)
+{
+    a.ptr[0] = b.array[0];
+    return a;
+}
+
+void test21673()
+{
+    float4 A = [1.0f, 2.0f, 3.0f, 4.0f];
+    float4 B = [5.0f, 6.0f, 7.0f, 8.0f];
+    float4 R = _mm_move_ss(A, B);
+    float[4] correct = [5.0f, 2.0f, 3.0f, 4.0f];
+    assert(R.array == correct);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=21676
+double2 loadUnaligned21676(const(double)* pvec)
+{
+    double2 result;
+    foreach(i; 0..2)
+    {
+        result[i] = pvec[i];
+    }
+    return result;
+}
+
+double2 _mm_setr_pd(double e1, double e0)
+{
+    double[2] result = [e1, e0];
+    return loadUnaligned21676(result.ptr);
+}
+
+double2 fun(double2 a, double2 b)
+{
+    a[0] = (a[0] < b[0]) ? a[0] : b[0];
+    return a;
+}
+
+void test21676()
+{
+    double2 A = _mm_setr_pd(1.0, 2.0);
+    double2 B = _mm_setr_pd(4.0, 1.0);
+    double2 C = fun(A, B);
+    assert(C.array[0] == 1.0);
+    assert(C.array[1] == 2.0);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=23009
+double2 _mm_loadl_pd(double2 a, const(double)* mem_addr)
+{
+    a[0] = *mem_addr;
+    return a;
+}
+
+void test23009()
+{
+    double A = 7.0;
+    double2 B;
+    B[0] = 4.0;
+    B[1] = -5.0;
+    double2 R = _mm_loadl_pd(B, &A);
+    double[2] correct = [ 7.0, -5.0 ];
+    assert(R.array == correct);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -2280,6 +2439,13 @@ int main()
     test19632();
     test19788();
     test19443();
+    test22438();
+    testsroa();
+    testshdup();
+
+    test21673();
+    test21676();
+    test23009();
 
     return 0;
 }

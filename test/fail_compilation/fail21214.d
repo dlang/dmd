@@ -13,4 +13,3 @@ __vector(__vector(int[2])[2]) v2x2;
 __vector(__vector(int[2])[4]) v2x4;
 __vector(__vector(int[4])[2]) v4x2;
 __vector(__vector(int[4])[4]) v4x4;
-

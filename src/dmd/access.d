@@ -3,9 +3,9 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/attribute.html#visibility_attributes, Visibility Attributes)
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/access.d, _access.d)
  * Documentation:  https://dlang.org/phobos/dmd_access.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/access.d
@@ -14,6 +14,7 @@
 module dmd.access;
 
 import dmd.aggregate;
+import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
@@ -50,15 +51,7 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 
     if (!symbolIsVisible(sc, smember))
     {
-        // when in @safe code or with -preview=dip1000
-        if (sc.flags & SCOPE.onlysafeaccess)
-        {
-            // if there is a func. ask for it's opinion of safety, and if it considers the access @safe accept it.
-            if (sc.func && !sc.func.setUnsafe())
-                return false;
-        }
-
-        ad.error(loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
+        ad.error(loc, "%s `%s` is not accessible", smember.kind(), smember.toChars());
         //printf("smember = %s %s, vis = %d, semanticRun = %d\n",
         //        smember.kind(), smember.toPrettyChars(), smember.visible() smember.semanticRun);
         return true;
@@ -196,21 +189,21 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Dsymbol d)
     if (!e)
         return false;
 
-    if (e.type.ty == Tclass)
+    if (auto tc = e.type.isTypeClass())
     {
         // Do access check
-        ClassDeclaration cd = (cast(TypeClass)e.type).sym;
-        if (e.op == TOK.super_)
+        ClassDeclaration cd = tc.sym;
+        if (e.op == EXP.super_)
         {
             if (ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration())
                 cd = cd2;
         }
         return checkAccess(cd, loc, sc, d);
     }
-    else if (e.type.ty == Tstruct)
+    else if (auto ts = e.type.isTypeStruct())
     {
         // Do access check
-        StructDeclaration cd = (cast(TypeStruct)e.type).sym;
+        StructDeclaration cd = ts.sym;
         return checkAccess(cd, loc, sc, d);
     }
     return false;

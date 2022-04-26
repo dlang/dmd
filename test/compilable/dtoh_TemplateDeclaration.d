@@ -39,13 +39,55 @@ struct _d_dynamicArray final
 };
 #endif
 
+typedef uint$?:32=32|64=64$_t size_t;
+
+struct Outer final
+{
+    int32_t a;
+    struct Member final
+    {
+        typedef int32_t Nested;
+        Member()
+        {
+        }
+    };
+
+    Outer() :
+        a()
+    {
+    }
+    Outer(int32_t a) :
+        a(a)
+        {}
+};
+
+enum : int32_t { SomeOtherLength = 1 };
+
+struct ActualBuffer final
+{
+    ActualBuffer()
+    {
+    }
+};
+
 template <typename T>
 struct A final
 {
-    // Ignoring var x alignment 0
     T x;
+    enum : int32_t { Enum = 42 };
+
+    static int32_t GsharedNum;
+    const int32_t MemNum;
     void foo();
     A()
+    {
+    }
+};
+
+template <typename T>
+struct NotInstantiated final
+{
+    NotInstantiated()
     {
     }
 };
@@ -65,7 +107,6 @@ struct B final
 template <typename T>
 struct Foo final
 {
-    // Ignoring var val alignment 0
     T val;
     Foo()
     {
@@ -75,7 +116,6 @@ struct Foo final
 template <typename T>
 struct Bar final
 {
-    // Ignoring var v alignment 0
     Foo<T > v;
     Bar()
     {
@@ -93,9 +133,7 @@ struct Array final
     void get() const;
     template <typename T>
     bool opCast() const;
-    // Ignoring var i alignment 0
     typename T::Member i;
-    // Ignoring var j alignment 0
     typename Outer::Member::Nested j;
     void visit(typename T::Member::Nested i);
     Array()
@@ -111,7 +149,6 @@ extern A<A<int32_t > > aaint;
 template <typename T>
 class Parent
 {
-    // Ignoring var parentMember alignment 0
 public:
     T parentMember;
     void parentFinal();
@@ -121,17 +158,16 @@ public:
 template <typename T>
 class Child final : public Parent<T >
 {
-    // Ignoring var childMember alignment 0
 public:
     T childMember;
     void parentVirtual();
     T childFinal();
 };
 
-extern void withDefTempl(A<int32_t > a = A<int32_t >(2));
+extern void withDefTempl(A<int32_t > a = A<int32_t >(2, 13));
 
 template <typename T>
-extern void withDefTempl2(A<T > a = static_cast<A<T >>(A!T(2)));
+extern void withDefTempl2(A<T > a = static_cast<A<T >>(A<T >(2)));
 
 class ChildInt : public Parent<int32_t >
 {
@@ -155,15 +191,55 @@ struct HasMixinsTemplate final
 };
 
 extern HasMixinsTemplate<bool > hmti;
+
+template <typename T>
+struct NotAA final
+{
+    enum : int32_t { length = 12 };
+
+    T buffer[length];
+    T otherBuffer[SomeOtherLength];
+    T calcBuffer[foo(1)];
+    NotAA()
+    {
+    }
+};
+
+template <typename Buffer>
+struct BufferTmpl final
+{
+    Buffer buffer;
+    Buffer buffer2;
+    BufferTmpl()
+    {
+    }
+};
+
+struct ImportedBuffer final
+{
+    typedef ActualBuffer Buffer;
+    ActualBuffer buffer2;
+    ImportedBuffer()
+    {
+    }
+};
 ---
 */
 
 extern (C++) struct A(T)
 {
     T x;
-    // enum Num = 42; // dtoh segfaults at enum
-
+    enum Enum = 42;
+    __gshared GsharedNum = 43;
+    immutable MemNum = 13;
     void foo() {}
+}
+
+// Invalid declarations accepted because it's not instantiated
+extern (C++) struct NotInstantiated(T)
+{
+    enum T noInit;
+    enum missingSem = T.init;
 }
 
 extern (C++) struct B
@@ -207,7 +283,6 @@ extern (C++) struct Array(T)
     void visit(T.Member.Nested i) {}
 }
 
-// Not emitted yet even though it is used above
 struct Outer
 {
     int a;
@@ -221,7 +296,7 @@ struct Outer
 
 extern(C++) T foo(T, U)(U u) { return T.init; }
 
-extern(C++) A!(A!int) aaint;
+extern(C++) __gshared A!(A!int) aaint;
 
 extern(C++) class Parent(T)
 {
@@ -271,3 +346,38 @@ struct HasMixinsTemplate(T)
 }
 
 __gshared HasMixinsTemplate!bool hmti;
+
+/// Declarations that look like associative arrays
+
+extern(D) enum SomeOtherLength = 1;
+
+struct NotAA(T)
+{
+    private:
+    enum length = 12;
+    public:
+    T[length] buffer;
+    T[SomeOtherLength] otherBuffer;
+    T[foo(1)] calcBuffer;
+}
+
+// Same name but hidden by the template paramter
+extern (D) struct Buffer {}
+extern (D) struct ActualBuffer {}
+
+struct BufferTmpl(Buffer)
+{
+    Buffer buffer;
+    mixin BufferMixin!();
+}
+
+struct ImportedBuffer
+{
+    alias Buffer = ActualBuffer;
+    mixin BufferMixin!();
+}
+
+mixin template BufferMixin()
+{
+    Buffer buffer2;
+}

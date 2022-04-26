@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -Icompilable/imports
+// EXTRA_FILES: imports/pkg11847/mod11847.d imports/pkg11847/package.d
 import pkg11847;
 import pkg11847.mod11847;
 

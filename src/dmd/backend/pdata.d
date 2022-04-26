@@ -1,14 +1,14 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Generates the .pdata and .xdata sections for Win64
  *
- * Copyright:   Copyright (C) 2012-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Compiler implementation of the
+ * $(LINK2 https://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 2012-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/pdata.d, backend/pdata.d)
  */
-
-// This module generates the .pdata and .xdata sections for Win64
 
 module dmd.backend.pdata;
 
@@ -60,7 +60,7 @@ enum ALLOCA_LIMIT = 0x10000;
  * to walk the stack and unwind exceptions.
  * Absent it, it is assumed to be a "leaf function" where [RSP] is the return address.
  * Creates an instance of struct RUNTIME_FUNCTION:
- *   http://msdn.microsoft.com/en-US/library/ft9x1kdx(v=vs.80).aspx
+ *   https://msdn.microsoft.com/en-US/library/ft9x1kdx%28v=vs.100%29.aspx
  *
  * Params:
  *      sf = function to generate unwind data for
@@ -139,7 +139,7 @@ private Symbol *win64_unwind(Symbol *sf)
 
 /************************************************************************
  * Creates an instance of struct UNWIND_INFO:
- *   http://msdn.microsoft.com/en-US/library/ddssxxy8(v=vs.80).aspx
+ *   https://msdn.microsoft.com/en-US/library/ddssxxy8%28v=vs.100%29.aspx
  */
 
 enum UWOP

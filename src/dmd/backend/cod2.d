@@ -1,11 +1,19 @@
 /**
+ * Code generation 2
+ *
+ * Includes:
+ * - math operators (+ - * / %) and functions (abs, cos, sqrt)
+ * - 'string' functions (strlen, memcpy, memset)
+ * - pointers (address of / dereference)
+ * - struct assign, constructor, destructor
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod2.d, backend/cod2.d)
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod2.d
  */
@@ -596,13 +604,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         debug
         if (_tysize[ty2] != REGSIZE)
         {
-            printf("e = %p, e.Eoper = ",e);
-            WROP(e.Eoper);
-            printf(" e1.Ety = ");
-            WRTYxx(ty1);
-            printf(" e2.Ety = ");
-            WRTYxx(ty2);
-            printf("\n");
+            printf("e = %p, e.Eoper = %s e1.Ety = %s e2.Ety = %s\n", e, oper_str(e.Eoper), tym_str(ty1), tym_str(ty2));
             elem_print(e);
         }
 
@@ -2912,7 +2914,7 @@ version (SCPP)
                             goto L1;
                         }
 
-                        if (pass != PASSfinal && (!forregs || forregs & (mSI | mDI)))
+                        if (pass != BackendPass.final_ && (!forregs || forregs & (mSI | mDI)))
                         {
                             // e1 might get into SI or DI in a later pass,
                             // so don't put CX into a register
@@ -3354,7 +3356,7 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-            debug WRTYxx(tym);
+            debug printf("%s\n", tym_str(tym));
             assert(0);
         }
     }
@@ -4551,6 +4553,38 @@ else
     {   // ES:DI points past what we want
 
         cdb.genc2(0x81,(rex << 16) | modregrm(3,5,DI), type_size(e.ET));   // SUB DI,numbytes
+
+        const tym = tybasic(e.Ety);
+        if (tym == TYucent && I64)
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=22175
+             * The trouble happens when the struct size does not fit exactly into
+             * 2 registers. Then the type of e becomes a TYucent, not a TYstruct,
+             * and we need to dereference DI to get the ucent
+             */
+
+            // dereference DI
+            code cs;
+            cs.Iop = 0x8B;
+            regm_t retregs = *pretregs;
+            reg_t reg;
+            allocreg(cdb,&retregs,&reg,tym);
+
+            reg_t msreg = findregmsw(retregs);
+            buildEA(&cs,DI,-1,1,REGSIZE);
+            code_newreg(&cs,msreg);
+            cs.Irex |= REX_W;
+            cdb.gen(&cs);       // MOV msreg,REGSIZE[DI]        // msreg is never DI
+
+            reg_t lsreg = findreglsw(retregs);
+            buildEA(&cs,DI,-1,1,0);
+            code_newreg(&cs,lsreg);
+            cs.Irex |= REX_W;
+            cdb.gen(&cs);       // MOV lsreg,[DI];
+            fixresult(cdb,e,retregs,pretregs);
+            return;
+        }
+
         regm_t retregs = mDI;
         if (*pretregs & mMSW && !(config.exe & EX_flat))
             retregs |= mES;

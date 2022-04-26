@@ -1,9 +1,9 @@
 /**
  * Break down a D type into basic (register) types for the x86_64 System V ABI.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * Authors:     Martin Kinkelin
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/argtypes_sysv_x64.d, _argtypes_sysv_x64.d)
  * Documentation:  https://dlang.org/phobos/dmd_argtypes_sysv_x64.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/argtypes_sysv_x64.d
@@ -11,6 +11,7 @@
 
 module dmd.argtypes_sysv_x64;
 
+import dmd.astenums;
 import dmd.declaration;
 import dmd.globals;
 import dmd.mtype;
@@ -190,6 +191,12 @@ extern (C++) final class ToClassesVisitor : Visitor
         t.toBasetype().accept(this);
     }
 
+    override void visit(TypeNoreturn t)
+    {
+        // Treat as void
+        return visit(Type.tvoid);
+    }
+
     override void visit(TypeBasic t)
     {
         switch (t.ty)
@@ -280,8 +287,8 @@ extern (C++) final class ToClassesVisitor : Visitor
     {
         // treat as struct with N fields
 
-        Type baseElemType = t.next.toBasetype();
-        if (baseElemType.ty == Tstruct && !(cast(TypeStruct) baseElemType).sym.isPOD())
+        auto baseElemType = t.next.toBasetype().isTypeStruct();
+        if (baseElemType && !baseElemType.sym.isPOD())
             return memory();
 
         classifyStaticArrayElements(0, t);
@@ -328,9 +335,6 @@ extern (C++) final class ToClassesVisitor : Visitor
 
     extern(D) void classifyFields(uint baseOffset, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
     {
-        if (nfields == 0)
-            return memory();
-
         // classify each field (recursively for aggregates) and merge all classes per eightbyte
         foreach (n; 0 .. nfields)
         {
@@ -343,10 +347,17 @@ extern (C++) final class ToClassesVisitor : Visitor
             if (foffset & (ftypeAlignment - 1)) // not aligned
                 return memory();
 
-            if (ftype.ty == Tstruct)
-                classifyStructFields(foffset, cast(TypeStruct) ftype);
-            else if (ftype.ty == Tsarray)
-                classifyStaticArrayElements(foffset, cast(TypeSArray) ftype);
+            if (auto ts = ftype.isTypeStruct())
+                classifyStructFields(foffset, ts);
+            else if (auto tsa = ftype.isTypeSArray())
+                classifyStaticArrayElements(foffset, tsa);
+            else if (ftype.toBasetype().isTypeNoreturn())
+            {
+                // Ignore noreturn members with sizeof = 0
+                // Potential custom alignment changes are factored in above
+                nfields--;
+                continue;
+            }
             else
             {
                 const fEightbyteStart = foffset / 8;
@@ -372,6 +383,9 @@ extern (C++) final class ToClassesVisitor : Visitor
                 }
             }
         }
+
+        if (nfields == 0)
+            return memory();
     }
 
     void finalizeAggregate()

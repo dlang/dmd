@@ -1,9 +1,9 @@
 /**
  * Do mangling for C++ linkage for Digital Mars C++ and Microsoft Visual C++.
  *
- * Copyright: Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors: Walter Bright, http://www.digitalmars.com
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright: Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors: Walter Bright, https://www.digitalmars.com
+ * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmanglewin.d, _cppmanglewin.d)
  * Documentation:  https://dlang.org/phobos/dmd_cppmanglewin.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cppmanglewin.d
@@ -15,7 +15,8 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
-import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
+import dmd.astenums;
+import dmd.cppmangle : isAggregateDtor, isCppOperator, CppOperator;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum : isSpecialEnumIdent;
@@ -29,7 +30,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
@@ -41,11 +42,23 @@ extern (C++):
 
 const(char)* toCppMangleMSVC(Dsymbol s)
 {
-    scope VisualCPPMangler v = new VisualCPPMangler(!target.mscoff);
+    scope VisualCPPMangler v = new VisualCPPMangler(false, s.loc);
     return v.mangleOf(s);
 }
 
 const(char)* cppTypeInfoMangleMSVC(Dsymbol s)
+{
+    //printf("cppTypeInfoMangle(%s)\n", s.toChars());
+    assert(0);
+}
+
+const(char)* toCppMangleDMC(Dsymbol s)
+{
+    scope VisualCPPMangler v = new VisualCPPMangler(true, s.loc);
+    return v.mangleOf(s);
+}
+
+const(char)* cppTypeInfoMangleDMC(Dsymbol s)
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     assert(0);
@@ -61,16 +74,17 @@ const(char)* cppTypeInfoMangleMSVC(Dsymbol s)
  *      true if type is shared or immutable
  *      false otherwise
  */
-private bool checkImmutableShared(Type type)
+private extern (D) bool checkImmutableShared(Type type, Loc loc)
 {
     if (type.isImmutable() || type.isShared())
     {
-        error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
+        error(loc, "Internal Compiler Error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
         fatal();
         return true;
     }
     return false;
 }
+
 private final class VisualCPPMangler : Visitor
 {
     enum VC_SAVED_TYPE_CNT = 10u;
@@ -79,6 +93,7 @@ private final class VisualCPPMangler : Visitor
     alias visit = Visitor.visit;
     Identifier[VC_SAVED_IDENT_CNT] saved_idents;
     Type[VC_SAVED_TYPE_CNT] saved_types;
+    Loc loc; /// location for use in error messages
 
     // IS_NOT_TOP_TYPE: when we mangling one argument, we can call visit several times (for base types of arg type)
     // but we must save only arg type:
@@ -111,10 +126,11 @@ private final class VisualCPPMangler : Visitor
         flags |= (rvl.flags & IS_DMC);
         saved_idents[] = rvl.saved_idents[];
         saved_types[] = rvl.saved_types[];
+        loc = rvl.loc;
     }
 
 public:
-    extern (D) this(bool isdmc)
+    extern (D) this(bool isdmc, Loc loc)
     {
         if (isdmc)
         {
@@ -122,20 +138,21 @@ public:
         }
         saved_idents[] = null;
         saved_types[] = null;
+        this.loc = loc;
     }
 
     override void visit(Type type)
     {
-        if (checkImmutableShared(type))
+        if (checkImmutableShared(type, loc))
             return;
 
-        error(Loc.initial, "Internal Compiler Error: type `%s` cannot be mapped to C++\n", type.toChars());
+        error(loc, "Internal Compiler Error: type `%s` cannot be mapped to C++\n", type.toChars());
         fatal(); //Fatal, because this error should be handled in frontend
     }
 
     override void visit(TypeNull type)
     {
-        if (checkImmutableShared(type))
+        if (checkImmutableShared(type, loc))
             return;
         if (checkTypeSaved(type))
             return;
@@ -147,7 +164,7 @@ public:
 
     override void visit(TypeNoreturn type)
     {
-        if (checkImmutableShared(type))
+        if (checkImmutableShared(type, loc))
             return;
         if (checkTypeSaved(type))
             return;
@@ -159,8 +176,8 @@ public:
 
     override void visit(TypeBasic type)
     {
-        //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (checkImmutableShared(type))
+        //printf("visit(TypeBasic); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
+        if (checkImmutableShared(type, loc))
             return;
 
         if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
@@ -260,7 +277,7 @@ public:
 
     override void visit(TypeVector type)
     {
-        //printf("visit(TypeVector); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeVector); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type))
             return;
         mangleModifier(type);
@@ -272,7 +289,7 @@ public:
     override void visit(TypeSArray type)
     {
         // This method can be called only for static variable type mangling.
-        //printf("visit(TypeSArray); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeSArray); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type))
             return;
         // first dimension always mangled as const pointer
@@ -296,8 +313,8 @@ public:
     // There is not way to map int C++ (*arr)[2][1] to D
     override void visit(TypePointer type)
     {
-        //printf("visit(TypePointer); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (checkImmutableShared(type))
+        //printf("visit(TypePointer); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
+        if (checkImmutableShared(type, loc))
             return;
 
         assert(type.next);
@@ -329,7 +346,7 @@ public:
                 buf.writeByte('Q'); // const
             else
                 buf.writeByte('P'); // mutable
-            if (target.is64bit)
+            if (target.isLP64)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
             mangleArray(cast(TypeSArray)type.next);
@@ -348,7 +365,7 @@ public:
             {
                 buf.writeByte('P'); // mutable
             }
-            if (target.is64bit)
+            if (target.isLP64)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
             type.next.accept(this);
@@ -361,11 +378,11 @@ public:
         if (checkTypeSaved(type))
             return;
 
-        if (checkImmutableShared(type))
+        if (checkImmutableShared(type, loc))
             return;
 
         buf.writeByte('A'); // mutable
-        if (target.is64bit)
+        if (target.isLP64)
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
         assert(type.next);
@@ -399,7 +416,7 @@ public:
     {
         if (checkTypeSaved(type))
             return;
-        //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeStruct); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         mangleModifier(type);
         const agg = type.sym.isStructDeclaration();
         if (type.sym.isUnionDeclaration())
@@ -413,7 +430,7 @@ public:
 
     override void visit(TypeEnum type)
     {
-        //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeEnum); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         const id = type.sym.ident;
         string c;
         if (id == Id.__c_long_double)
@@ -426,6 +443,8 @@ public:
             c = "_J"; // VC++ long long
         else if (id == Id.__c_ulonglong)
             c = "_K"; // VC++ unsigned long long
+        else if (id == Id.__c_char)
+            c = "D";  // VC++ char
         else if (id == Id.__c_wchar_t)
         {
             c = (flags & IS_DMC) ? "_Y" : "_W";
@@ -433,7 +452,7 @@ public:
 
         if (c.length)
         {
-            if (checkImmutableShared(type))
+            if (checkImmutableShared(type, loc))
                 return;
 
             if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
@@ -460,7 +479,7 @@ public:
     // const(Object) mangled as Object const* const
     override void visit(TypeClass type)
     {
-        //printf("visit(TypeClass); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+        //printf("visit(TypeClass); is_not_top_type = %d\n", cast(int)(flags & IS_NOT_TOP_TYPE));
         if (checkTypeSaved(type))
             return;
         if (flags & IS_NOT_TOP_TYPE)
@@ -469,7 +488,7 @@ public:
             buf.writeByte('Q');
         else
             buf.writeByte('P');
-        if (target.is64bit)
+        if (target.isLP64)
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
         mangleModifier(type);
@@ -537,7 +556,7 @@ extern(D):
             {
                 mangleVisibility(d, "AIQ");
             }
-            if (target.is64bit)
+            if (target.isLP64)
                 buf.writeByte('E');
             if (d.type.isConst())
             {
@@ -558,7 +577,7 @@ extern(D):
             // <flags> ::= Y <calling convention flag>
             buf.writeByte('Y');
         }
-        const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || isPrimaryDtor(d));
+        const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || isAggregateDtor(d));
         buf.writestring(args);
     }
 
@@ -590,14 +609,14 @@ extern(D):
         }
         Type t = d.type;
 
-        if (checkImmutableShared(t))
+        if (checkImmutableShared(t, loc))
             return;
 
         const cv_mod = t.isConst() ? 'B' : 'A';
         if (t.ty != Tpointer)
             t = t.mutableOf();
         t.accept(this);
-        if ((t.ty == Tpointer || t.ty == Treference || t.ty == Tclass) && target.is64bit)
+        if ((t.ty == Tpointer || t.ty == Treference || t.ty == Tclass) && target.isLP64)
         {
             buf.writeByte('E');
         }
@@ -617,7 +636,7 @@ extern(D):
         string mangle;
         if (sym.isCtorDeclaration())
             mangle = "?0";
-        else if (sym.isPrimaryDtor())
+        else if (sym.isAggregateDtor())
             mangle = "?1";
         else if (!sym.ident)
             return null;
@@ -747,7 +766,7 @@ extern(D):
      *      tv              = template value
      *      is_dmc_template = use DMC mangling
      */
-    void manlgeTemplateValue(RootObject o,TemplateValueParameter tv, Dsymbol sym,bool is_dmc_template)
+    void mangleTemplateValue(RootObject o, TemplateValueParameter tv, Dsymbol sym, bool is_dmc_template)
     {
         if (!tv.valType.isintegral())
         {
@@ -798,7 +817,7 @@ extern(D):
             buf.writeByte('1');
             mangleFunction(d.isFuncDeclaration());
         }
-        else if (e && e.op == TOK.variable && (cast(VarExp)e).var.isVarDeclaration())
+        else if (e && e.op == EXP.variable && (cast(VarExp)e).var.isVarDeclaration())
         {
             buf.writeByte('$');
             if (flags & IS_DMC)
@@ -941,7 +960,7 @@ extern(D):
             }
         }
 
-        scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
+        scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false, loc);
         tmp.buf.writeByte('?');
         tmp.buf.writeByte('$');
         tmp.buf.writestring(symName);
@@ -975,7 +994,7 @@ extern(D):
             }
             if (tv)
             {
-                tmp.manlgeTemplateValue(o, tv, actualti, is_dmc_template);
+                tmp.mangleTemplateValue(o, tv, actualti, is_dmc_template);
             }
             else
             if (!tp || tp.isTemplateTypeParameter())
@@ -1126,7 +1145,7 @@ extern(D):
     {
         if (flags & IGNORE_CONST)
             return;
-        if (checkImmutableShared(type))
+        if (checkImmutableShared(type, loc))
             return;
 
         if (type.isConst())
@@ -1173,7 +1192,7 @@ extern(D):
     {
         scope VisualCPPMangler tmp = new VisualCPPMangler(this);
         // Calling convention
-        if (target.is64bit) // always Microsoft x64 calling convention
+        if (target.isLP64) // always Microsoft x64 calling convention
         {
             tmp.buf.writeByte('A');
         }
@@ -1195,10 +1214,11 @@ extern(D):
                 break;
             case LINK.d:
             case LINK.default_:
-            case LINK.system:
             case LINK.objc:
                 tmp.visit(cast(Type)type);
                 break;
+            case LINK.system:
+                assert(0);
             }
         }
         tmp.flags &= ~IS_NOT_TOP_TYPE;
@@ -1241,11 +1261,22 @@ extern(D):
         {
             foreach (n, p; type.parameterList)
             {
-                Type t = target.cpp.parameterType(p);
+                Type t = p.type.merge2();
+                if (p.isReference())
+                    t = t.referenceTo();
+                else if (p.storageClass & STC.lazy_)
+                {
+                    // Mangle as delegate
+                    auto tf = new TypeFunction(ParameterList(), t, LINK.d);
+                    auto td = new TypeDelegate(tf);
+                    t = td.merge();
+                }
+                else if (Type cpptype = target.cpp.parameterType(t))
+                    t = cpptype;
                 if (t.ty == Tsarray)
                 {
-                    error(Loc.initial, "Internal Compiler Error: unable to pass static array to `extern(C++)` function.");
-                    error(Loc.initial, "Use pointer instead.");
+                    error(loc, "Internal Compiler Error: unable to pass static array to `extern(C++)` function.");
+                    errorSupplemental(loc, "Use pointer instead.");
                     assert(0);
                 }
                 tmp.flags &= ~IS_NOT_TOP_TYPE;

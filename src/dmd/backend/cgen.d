@@ -2,9 +2,9 @@
  * Generate code instructions
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.d, backend/cgen.d)
  * Documentation:  https://dlang.org/phobos/dmd_backend_cgen.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgen.d
@@ -331,7 +331,7 @@ bool reghasvalue(regm_t regm,targ_size_t value,reg_t *preg)
 
 void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value,reg_t *preg,regm_t flags)
 {
-    //printf("regwithvalue(value = %lld)\n", (long long)value);
+    //printf("regwithvalue(value = %lld)\n", cast(long)value);
     reg_t reg;
     if (!preg)
         preg = &reg;

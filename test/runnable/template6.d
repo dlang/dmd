@@ -1,5 +1,5 @@
 // This is a copy of the engine here:
-//   http://www.digitalmars.com/d/2.0/templates-revisited.html
+//   https://www.digitalmars.com/d/2.0/templates-revisited.html
 // which is a cut down version of the file here:
 //   http://www.dsource.org/projects/ddl/browser/trunk/meta/regex.d
 // which has this copyright notice:

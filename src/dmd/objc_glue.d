@@ -1,9 +1,9 @@
 /**
  * Glue code for Objective-C interop.
  *
- * Copyright:   Copyright (C) 2015-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 2015-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc_glue.d, _objc_glue.d)
  * Documentation:  https://dlang.org/phobos/dmd_objc_glue.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/objc_glue.d
@@ -17,6 +17,7 @@ import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
@@ -38,7 +39,6 @@ import dmd.backend.cdef;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.mach;
@@ -757,7 +757,7 @@ static:
     {
         enum assertMessage = "imaginary types are not supported by Objective-C";
 
-        with (ENUMTY) switch (type.ty)
+        with (TY) switch (type.ty)
         {
             case Tvoid: return "v";
             case Tbool: return "B";
@@ -1184,7 +1184,7 @@ private:
             dtb.xoff(Symbols.getIVarOffset(classDeclaration, var, true), 0); // pointer to ivar offset
             dtb.xoff(Symbols.getMethVarName(var.ident), 0); // name
             dtb.xoff(Symbols.getMethVarType(var.type), 0); // type string
-            dtb.dword(var.alignment);
+            dtb.dword(var.alignment.isDefault() ? -1 : var.alignment.get());
             dtb.dword(cast(int) var.size(var.loc));
         }
 

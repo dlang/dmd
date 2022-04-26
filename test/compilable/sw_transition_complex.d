@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS:
+// REQUIRED_ARGS: -unittest
 
 /*
 TEST_OUTPUT:
@@ -147,8 +147,8 @@ void test14488c(E *e, S *s)
 deprecated void test18212(creal c){}
 deprecated unittest
 {
-    ireal = 2i;
-    creal = 2 + 3i;
+    ireal a = 2i;
+    creal b = 2 + 3i;
 }
 deprecated struct Foo
 {

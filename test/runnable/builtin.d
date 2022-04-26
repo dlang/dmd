@@ -1,6 +1,5 @@
-
-import std.stdio;
-import std.math;
+// RUNNABLE_PHOBOS_TEST
+import core.math;
 import core.bitop;
 
 version (DigitalMars)
@@ -11,30 +10,31 @@ version (DigitalMars)
         version = AnyX86;
 }
 
+bool isClose(real lhs, real rhs, real maxRelDiff = 1e-09L, real maxAbsDiff = 0.0)
+{
+    if (lhs == rhs)
+        return true;
+    if (lhs == lhs.infinity || rhs == rhs.infinity ||
+        lhs == -lhs.infinity || rhs == -rhs.infinity)
+        return false;
+
+    auto diff = fabs(lhs - rhs);
+    return diff <= maxRelDiff*fabs(lhs)
+        || diff <= maxRelDiff*fabs(rhs)
+        || diff <= maxAbsDiff;
+}
+
 /*******************************************/
 
 void test1()
 {
-    writefln("%a", sin(6.8L));
     auto f = 6.8L;
-    writefln("%a", sin(f));
     assert(sin(f) == sin(6.8L));
     static assert(isClose(sin(6.8L), 0x1.f9f8d9aea10fdf1cp-2));
 
-    writefln("%a", cos(6.8L));
     f = 6.8L;
-    writefln("%a", cos(f));
     assert(cos(f) == cos(6.8L));
     static assert(isClose(cos(6.8L), 0x1.bd21aaf88dcfa13ap-1));
-
-    writefln("%a", tan(6.8L));
-    f = 6.8L;
-    writefln("%a", tan(f));
-    version (Win64)
-    { }
-    else
-        assert(tan(f) == tan(6.8L));
-    static assert(isClose(tan(6.8L), 0x1.22fd752af75cd08cp-1));
 }
 
 /*******************************************/
@@ -112,7 +112,5 @@ int main()
     test1();
     test2();
     test3();
-
-    printf("Success\n");
     return 0;
 }

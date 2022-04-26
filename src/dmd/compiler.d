@@ -1,9 +1,9 @@
 /**
  * Describes a back-end compiler and implements compiler-specific actions.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/compiler.d, _compiler.d)
  * Documentation:  https://dlang.org/phobos/dmd_compiler.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/compiler.d
@@ -12,6 +12,7 @@
 module dmd.compiler;
 
 import dmd.astcodegen;
+import dmd.astenums;
 import dmd.arraytypes;
 import dmd.dmodule;
 import dmd.dscope;
@@ -59,8 +60,8 @@ extern (C++) struct Compiler
     {
         union U
         {
-            d_int32 int32value;
-            d_int64 int64value;
+            int int32value;
+            long int64value;
             float float32value;
             double float64value;
         }
@@ -72,11 +73,11 @@ extern (C++) struct Compiler
         {
         case Tint32:
         case Tuns32:
-            u.int32value = cast(d_int32) e.toInteger();
+            u.int32value = cast(int) e.toInteger();
             break;
         case Tint64:
         case Tuns64:
-            u.int64value = cast(d_int64) e.toInteger();
+            u.int64value = cast(long) e.toInteger();
             break;
         case Tfloat32:
             u.float32value = cast(float) e.toReal();

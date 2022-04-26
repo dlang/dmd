@@ -51,7 +51,8 @@ void test3()
 void test4()
 {
     static int a[3] = {1, 2, 3};
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
         if (a[i] != i + 1)
         {
@@ -66,9 +67,11 @@ void test4()
 void test5()
 {
     static int b[3][2] = { 1,2,3,4,5,6 };
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        int j;
+        for (j = 0; j < 2; ++j)
         {
             if (b[i][j] != i * 2 + j + 1)
             {
@@ -84,9 +87,11 @@ void test5()
 void test6()
 {
     static int c[3][2] = { {1,2},{3,4},{5,6} };
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        int j;
+        for (j = 0; j < 2; ++j)
         {
             if (c[i][j] != i * 2 + j + 1)
             {
@@ -102,9 +107,11 @@ void test6()
 void test7()
 {
     static int d[3][2] = { {1,2},3,4,{5,6} };
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        int j;
+        for (j = 0; j < 2; ++j)
         {
             if (d[i][j] != i * 2 + j + 1)
             {
@@ -120,9 +127,11 @@ void test7()
 void test8()
 {
     static int d[3][2] = { {1,2} };
-    for (int i = 0; i < 3; ++i)
+    int i;
+    for (i = 0; i < 3; ++i)
     {
-        for (int j = 0; j < 2; ++j)
+        int j;
+        for (j = 0; j < 2; ++j)
         {
             if (i == 0)
             {
@@ -139,6 +148,50 @@ void test8()
             }
         }
     }
+}
+
+/*********************************/
+
+void test8a()
+{
+    int i;
+    static int a[3] = { 1,2,3 };
+    // Casting to an array type is not allowed by C11, but
+    // CompoundLiterals are not there yet to test this
+    // grammar
+    i = ((int[3])a)[2];
+    if (i != 3) { printf("test8a\n"); exit(1); }
+}
+
+/*********************************/
+
+void test8b()
+{
+    struct S { int a, b; };
+    static struct S ax[3] = { 0x11,0x22,0x33,0 };
+    //printf("%x %x %x %x %x %x\n", ax[0].a, ax[0].b, ax[1].a, ax[1].b, ax[2].a, ax[2].b);
+    if (ax[0].a != 0x11 ||
+        ax[0].b != 0x22 ||
+        ax[1].a != 0x33 ||
+        ax[1].b != 0 ||
+        ax[2].a != 0 ||
+        ax[2].b != 0) { printf("test8b(ax)\n"); exit(1); }
+    static struct S ay[3] = { {0x11,0x22},0x33,0 };
+    //printf("%x %x %x %x %x %x\n", ay[0].a, ay[0].b, ay[1].a, ay[1].b, ay[2].a, ay[2].b);
+    if (ay[0].a != 0x11 ||
+        ay[0].b != 0x22 ||
+        ay[1].a != 0x33 ||
+        ay[1].b != 0 ||
+        ay[2].a != 0 ||
+        ay[2].b != 0) { printf("test8b(ay)\n"); exit(1); }
+    static struct S az[3] = { 0x11,0x22,{0x33,0} };
+    //printf("%x %x %x %x %x %x\n", az[0].a, az[0].b, az[1].a, az[1].b, az[2].a, az[2].b);
+    if (az[0].a != 0x11 ||
+        az[0].b != 0x22 ||
+        az[1].a != 0x33 ||
+        az[1].b != 0 ||
+        az[2].a != 0 ||
+        az[2].b != 0) { printf("test8b(az)\n"); exit(1); }
 }
 
 /*********************************/
@@ -166,6 +219,37 @@ void test10()
 
 /*********************************/
 
+void test11()
+{
+    struct S { int a, b; };
+    struct S s = { 1, 2 };
+    if (s.a != 1 || s.b != 2) { printf("xx\n"); exit(1); }
+    static struct S s2 = { 1, };
+    if (s2.a != 1 || s2.b != 0) { printf("xx\n"); exit(1); }
+
+    struct T { int a; struct { int b, c; }; };
+    struct T t = { 1, 2, 3 };
+    if (t.a != 1 || t.b != 2 || t.c != 3) { printf("xx\n"); exit(1); }
+
+    struct U { int a; union { int b, c; }; int d; };
+    struct U u = { 1, 2, 3 };
+    if (u.a != 1 ||
+        u.b != 2 ||
+        u.c != 2 ||
+        u.d != 3) { printf("%d %d %d %d\n", u.a, u.b, u.c, u.d); exit(1); }
+}
+
+/*********************************/
+
+void test12()
+{
+    int i;
+    i = (int) { 3 };
+    if (i != 3) { printf("test12\n"); exit(1); }
+}
+
+/*********************************/
+
 int main()
 {
     test1();
@@ -176,9 +260,12 @@ int main()
     test6();
     test7();
     test8();
+    test8a();
+    test8b();
     test9();
     test10();
+    test11();
+    test12();
 
     return 0;
 }
-

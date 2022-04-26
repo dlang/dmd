@@ -1,9 +1,9 @@
 /**
  * Defines initializers of variables, e.g. the array literal in `int[3] x = [0, 1, 2]`.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/init.d, _init.d)
  * Documentation:  https://dlang.org/phobos/dmd_init.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/init.d
@@ -15,6 +15,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.ast_node;
 import dmd.dsymbol;
 import dmd.expression;
@@ -22,7 +23,7 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
@@ -36,25 +37,17 @@ enum NeedInterpret : int
 alias INITnointerpret = NeedInterpret.INITnointerpret;
 alias INITinterpret = NeedInterpret.INITinterpret;
 
-/*************
- * Discriminant for which kind of initializer
- */
-enum InitKind : ubyte
-{
-    void_,
-    error,
-    struct_,
-    array,
-    exp,
-    C_,
-}
-
 /***********************************************************
  */
 extern (C++) class Initializer : ASTNode
 {
     Loc loc;
     InitKind kind;
+
+    override DYNCAST dyncast() const nothrow pure
+    {
+        return DYNCAST.initializer;
+    }
 
 
     extern (D) this(const ref Loc loc, InitKind kind)
@@ -71,33 +64,33 @@ extern (C++) class Initializer : ASTNode
         return buf.extractChars();
     }
 
-    final inout(ErrorInitializer) isErrorInitializer() inout pure
+    final inout(ErrorInitializer) isErrorInitializer() inout @nogc nothrow pure
     {
         // Use void* cast to skip dynamic casting call
         return kind == InitKind.error ? cast(inout ErrorInitializer)cast(void*)this : null;
     }
 
-    final inout(VoidInitializer) isVoidInitializer() inout pure
+    final inout(VoidInitializer) isVoidInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.void_ ? cast(inout VoidInitializer)cast(void*)this : null;
     }
 
-    final inout(StructInitializer) isStructInitializer() inout pure
+    final inout(StructInitializer) isStructInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.struct_ ? cast(inout StructInitializer)cast(void*)this : null;
     }
 
-    final inout(ArrayInitializer) isArrayInitializer() inout pure
+    final inout(ArrayInitializer) isArrayInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.array ? cast(inout ArrayInitializer)cast(void*)this : null;
     }
 
-    final inout(ExpInitializer) isExpInitializer() inout pure
+    final inout(ExpInitializer) isExpInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
     }
 
-    final inout(CInitializer) isCInitializer() inout pure
+    final inout(CInitializer) isCInitializer() inout @nogc nothrow pure
     {
         return kind == InitKind.C_ ? cast(inout CInitializer)cast(void*)this : null;
     }

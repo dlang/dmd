@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 
-//http://d.puremagic.com/issues/show_bug.cgi?id=5415
+//https://issues.dlang.org/show_bug.cgi?id=5415
 
 @safe
 void pointercast()
@@ -31,7 +31,7 @@ void pointercast2()
 
 @safe
 void pointerarithmetic()
-{//http://d.puremagic.com/issues/show_bug.cgi?id=4132
+{//https://issues.dlang.org/show_bug.cgi?id=4132
     void* a;
     int b;
 
@@ -197,11 +197,6 @@ void safeexception()
         try {}
         catch(Throwable e) {}
     }));
-
-    static assert(!__traits(compiles, () @safe {
-        try {}
-        catch {}
-    }));
 }
 
 @safe
@@ -278,7 +273,7 @@ void use__gshared()
 
 @safe
 void voidinitializers()
-{//http://d.puremagic.com/issues/show_bug.cgi?id=4885
+{//https://issues.dlang.org/show_bug.cgi?id=4885
     static assert(!__traits(compiles, () @safe { uint* ptr = void; } ));
     static assert( __traits(compiles, () @safe { uint i = void; } ));
     static assert( __traits(compiles, () @safe { uint[2] a = void; } ));
@@ -295,14 +290,14 @@ void voidinitializers()
 
 @safe
 void pointerindex()
-{//http://d.puremagic.com/issues/show_bug.cgi?id=9195
+{//https://issues.dlang.org/show_bug.cgi?id=9195
     static assert(!__traits(compiles, () @safe { int* p; auto a = p[30]; }));
     static assert( __traits(compiles, () @safe{ int* p; auto a = p[0]; }));
 }
 
 @safe
 void basiccast()
-{//http://d.puremagic.com/issues/show_bug.cgi?id=5088
+{//https://issues.dlang.org/show_bug.cgi?id=5088
     auto a = cast(int)cast(const int)1;
     auto b = cast(real)cast(const int)1;
     auto c = cast(real)cast(const real)2.0;
@@ -495,4 +490,3 @@ void main()
 {
     test14162();
 }
-

@@ -1,9 +1,9 @@
 /**
  * Generate debug info in the CV4 debug format.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocvdebug.d)
  * Documentation:  https://dlang.org/phobos/dmd_tocvdebug.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/tocvdebug.d
@@ -22,6 +22,7 @@ import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.apply;
+import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -614,7 +615,7 @@ void toDebug(ClassDeclaration cd)
 
     if (cd.parent.isAggregateDeclaration()) // if class is nested
         property |= 8;
-    if (cd.ctor || cd.dtors.dim)
+    if (cd.ctor || cd.dtor)
         property |= 2;          // class has ctors and/or dtors
 //    if (st.Sopoverload)
 //      property |= 4;          // class has overloaded operators
@@ -1121,9 +1122,99 @@ private extern (C++) class CVMember : Visitor
             }
             else if (vd.isStatic())
             {
-                if (config.fulltypes == CV8)
-                    result += 2;
-                result += 6 + cv_stringbytes(id);
+                int count = 0;
+                int mlen = 2;
+                {
+                    if (fd.isIntroducing())
+                        mlen += 4;
+                    mlen += cgcv.sz_idx * 2;
+                    count++;
+                }
+
+                // Allocate and fill it in
+                debtyp_t *d = debtyp_alloc(mlen);
+                ubyte *q = d.data.ptr;
+                TOWORD(q,config.fulltypes == CV8 ? LF_METHODLIST_V2 : LF_METHODLIST);
+                q += 2;
+        //      for (s = sf; s; s = s.Sfunc.Foversym)
+                {
+                    uint attribute = visibilityToCVAttr(fd.visible().kind);
+
+                    /* 0*4 vanilla method
+                     * 1*4 virtual method
+                     * 2*4 static method
+                     * 3*4 friend method
+                     * 4*4 introducing virtual method
+                     * 5*4 pure virtual method
+                     * 6*4 pure introducing virtual method
+                     * 7*4 reserved
+                     */
+
+                    if (fd.isStatic())
+                        attribute |= 2*4;
+                    else if (fd.isVirtual())
+                    {
+                        if (fd.isIntroducing())
+                        {
+                            if (fd.isAbstract())
+                                attribute |= 6*4;
+                            else
+                                attribute |= 4*4;
+                        }
+                        else
+                        {
+                            if (fd.isAbstract())
+                                attribute |= 5*4;
+                            else
+                                attribute |= 1*4;
+                        }
+                    }
+                    else
+                        attribute |= 0*4;
+
+                    TOIDX(q,attribute);
+                    q += cgcv.sz_idx;
+                    TOIDX(q, cv4_memfunctypidx(fd));
+                    q += cgcv.sz_idx;
+                    if (fd.isIntroducing())
+                    {
+                        TOLONG(q, fd.vtblIndex * target.ptrsize);
+                        q += 4;
+                    }
+                }
+                assert(q - d.data.ptr == mlen);
+
+                idx_t typidx = cv_debtyp(d);
+                if (typidx)
+                {
+                    switch (config.fulltypes)
+                    {
+                        case CV8:
+                            TOWORD(p,LF_METHOD_V3);
+                            goto Lmethod;
+                        case CV4:
+                            TOWORD(p,LF_METHOD);
+                        Lmethod:
+                            TOWORD(p + 2,count);
+                            result = 4;
+                            TOIDX(p + result, typidx);
+                            result += cgcv.sz_idx;
+                            result += cv_namestring(p + result, id);
+                            break;
+
+                        default:
+                            assert(0);
+                    }
+                }
+                result = cv_align(p + result, result);
+                debug
+                {
+                    int save = result;
+                    result = 0;
+                    p = null;
+                    visit(fd);
+                    assert(result == save);
+                }
             }
             result = cv_align(null, result);
             return;

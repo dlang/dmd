@@ -1,9 +1,9 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2021 by The D Language Foundation, All Rights Reserved
- * http://www.digitalmars.com
+ * Copyright (C) 2013-2022 by The D Language Foundation, All Rights Reserved
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/visitor.h
  */
 
@@ -139,6 +139,7 @@ class OverDeclaration;
 class VarDeclaration;
 class SymbolDeclaration;
 class ThisDeclaration;
+class BitFieldDeclaration;
 
 class TypeInfoDeclaration;
 class TypeInfoStructDeclaration;
@@ -196,6 +197,7 @@ class TupleExp;
 class ArrayLiteralExp;
 class AssocArrayLiteralExp;
 class StructLiteralExp;
+class CompoundLiteralExp;
 class ObjcClassReferenceExp;
 class TypeExp;
 class ScopeExp;
@@ -218,6 +220,7 @@ class BinAssignExp;
 class MixinExp;
 class ImportExp;
 class AssertExp;
+class ThrowExp;
 class DotIdExp;
 class DotTemplateExp;
 class DotVarExp;
@@ -291,6 +294,7 @@ class PrettyFuncInitExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
+class GenericExp;
 
 class TemplateParameter;
 class TemplateTypeParameter;
@@ -381,6 +385,7 @@ public:
     virtual void visit(ClassDeclaration *s) { visit((AggregateDeclaration *)s); }
     virtual void visit(InterfaceDeclaration *s) { visit((ClassDeclaration *)s); }
     virtual void visit(TemplateMixin *s) { visit((TemplateInstance *)s); }
+    virtual void visit(BitFieldDeclaration *s) { visit((VarDeclaration *)s); }
 
     // Statements
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
@@ -487,6 +492,7 @@ public:
     virtual void visit(SymbolExp *e) { visit((Expression *)e); }
     virtual void visit(TupleExp *e) { visit((Expression *)e); }
     virtual void visit(ThisExp *e) { visit((Expression *)e); }
+    virtual void visit(GenericExp *e) { visit((Expression *)e); }
 
     // Miscellaneous
     virtual void visit(VarExp *e) { visit((SymbolExp *)e); }
@@ -506,6 +512,7 @@ public:
     virtual void visit(CallExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotIdExp *e) { visit((UnaExp *)e); }
     virtual void visit(AssertExp *e) { visit((UnaExp *)e); }
+    virtual void visit(ThrowExp *e) { visit((UnaExp *)e); }
     virtual void visit(ImportExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotTemplateInstanceExp *e) { visit((UnaExp *)e); }
     virtual void visit(ArrayExp *e) { visit((UnaExp *)e); }
@@ -622,6 +629,7 @@ public:
     virtual void visit(ErrorExp *e) { visit((Expression *)e); }
     virtual void visit(ComplexExp *e) { visit((Expression *)e); }
     virtual void visit(StructLiteralExp *e) { visit((Expression *)e); }
+    virtual void visit(CompoundLiteralExp *e) { visit((Expression *)e); }
     virtual void visit(ObjcClassReferenceExp *e) { visit((Expression *)e); }
     virtual void visit(SymOffExp *e) { visit((SymbolExp *)e); }
     virtual void visit(OverExp *e) { visit((Expression *)e); }

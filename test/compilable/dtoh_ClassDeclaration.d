@@ -39,9 +39,13 @@ struct _d_dynamicArray final
 };
 #endif
 
-class C;
-class A;
-struct Inner;
+class ForwardClass;
+
+class BaseClass
+{
+public:
+    virtual void memberFun(ForwardClass* sds);
+};
 
 class C
 {
@@ -78,7 +82,9 @@ public:
     int32_t a;
     C* c;
     virtual void foo();
-    extern "C" virtual void bar();
+private:
+    virtual void __vtable_slot_0();
+public:
     virtual void baz(int32_t x = 42);
     struct
     {
@@ -112,7 +118,7 @@ public:
     {
     public:
         int32_t x;
-        A* this;
+        A* outer;
     };
 
     typedef Inner I;
@@ -135,14 +141,15 @@ public:
 class B : public A, public I1, public I2
 {
 public:
+    using A::bar;
     void foo();
     void bar();
 };
 
 class Parent
 {
-    virtual void __vtable_slot_0();
     virtual void __vtable_slot_1();
+    virtual void __vtable_slot_2();
 public:
     virtual void foo();
 };
@@ -176,6 +183,10 @@ public:
     using VisitorInter::stat;
     virtual void vir(bool b);
     virtual void vir(char d);
+};
+
+class ForwardClass : public BaseClass
+{
 };
 ---
 +/
@@ -277,6 +288,7 @@ interface I2 : I1
 
 class B : A, I1, I2
 {
+    alias bar = A.bar;
     override void foo() {}
     override void bar() {}
 }
@@ -325,4 +337,13 @@ mixin template Methods()
     extern(C++) void vir(bool b) {}
 
     extern(C++) void vir(char d) {}
+}
+
+class ForwardClass : BaseClass
+{
+}
+
+class BaseClass
+{
+    void memberFun(ForwardClass sds);
 }

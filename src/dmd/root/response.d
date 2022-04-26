@@ -3,10 +3,10 @@
  *
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  *              Some portions copyright (c) 1994-1995 by Symantec
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/response.d, root/_response.d)
  * Documentation:  https://dlang.org/phobos/dmd_root_response.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/response.d
@@ -353,7 +353,8 @@ private char[] lookupInEnvironment(scope const(char)* cp) nothrow {
     }
     else
     {
-        auto readResult = File.read(cp);
+        import dmd.root.string : toDString;
+        auto readResult = File.read(cp.toDString());
         if (!readResult.success)
             return null;
         // take ownership of buffer (leaking)

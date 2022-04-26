@@ -2,7 +2,6 @@
 https://issues.dlang.org/show_bug.cgi?id=21799
 
 PERMUTE_ARGS:
-TRANSFORM_OUTPUT: remove_lines( Deprecation: The `delete` keyword has been deprecated)
 **/
 
 int main()
@@ -44,9 +43,11 @@ void testDeleteD()
 	char[] res;
 	ChildD cd = new ChildD();
 	cd.ptr = &res;
-	delete cd;
-
-	assert(res == "BA", cast(string) res);
+	if (!__ctfe)
+	{
+		destroy(cd);
+		assert(res == "BA", cast(string) res);
+	}
 }
 
 void testDeleteDScope()
@@ -68,9 +69,11 @@ void testDeleteWithoutD()
 	char[] res;
 	ChildWithoutDtorD cd = new ChildWithoutDtorD();
 	cd.ptr = &res;
-	delete cd;
-
-	assert(res == "BA", cast(string) res);
+	if (!__ctfe)
+	{
+		destroy(cd);
+		assert(res == "BA", cast(string) res);
+	}
 }
 
 /*************************************************/
@@ -106,9 +109,11 @@ void testDeleteCpp()
 	char[] res;
 	ChildCpp cc = new ChildCpp();
 	cc.ptr = &res;
-	delete cc;
-
-	assert(res == "DC", cast(string) res);
+	if (!__ctfe)
+	{
+		destroy(cc);
+		assert(res == "DC", cast(string) res);
+	}
 }
 
 void testDeleteCppScope()
@@ -138,9 +143,11 @@ void testDeleteWithoutCpp()
 	char[] res;
 	ChildWithoutDtorCpp cd = new ChildWithoutDtorCpp();
 	cd.ptr = &res;
-	delete cd;
-
-	assert(res == "DC", cast(string) res);
+	if (!__ctfe)
+	{
+		destroy(cd);
+		assert(res == "DC", cast(string) res);
+	}
 }
 
 /*************************************************/
@@ -164,15 +171,18 @@ void testThrowingDtor()
 	ThrowingChildD tcd = new ThrowingChildD();
 	tcd.ptr = &res;
 
-	try
+	if (!__ctfe)
 	{
-		delete tcd;
-		assert(false, "No exception thrown!");
-	}
-	catch (Exception e)
-	{
-		assert(e is ThrowingChildD.ex);
-	}
+		try
+		{
+			destroy(tcd);
+			assert(false, "No exception thrown!");
+		}
+		catch (Exception e)
+		{
+			assert(e is ThrowingChildD.ex);
+		}
 
-	assert(res == "", cast(string) res);
+		assert(res == "", cast(string) res);
+	}
 }

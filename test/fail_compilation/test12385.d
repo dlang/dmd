@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test12385.d(29): Error: cannot modify `immutable` expression `BundledState("bla", 3).x`
+fail_compilation/test12385.d(29): Error: cannot modify `immutable` expression `unbundled.x`
 ---
 */
 

@@ -1,11 +1,13 @@
 /**
+ * Symbols for the back end
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
  */
 
@@ -103,7 +105,7 @@ version (COMPILE)
 {
     if (!s) return;
     printf("symbol %p '%s'\n ",s,s.Sident.ptr);
-    printf(" Sclass = "); WRclass(cast(SC) s.Sclass);
+    printf(" Sclass = %s ", class_str(cast(SC) s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = "); WRFL(cast(FL) s.Sfl);
     printf(" Sseg = %d\n",s.Sseg);
@@ -332,7 +334,7 @@ Symbol * symbol_calloc(const(char)* id)
 Symbol * symbol_calloc(const(char)* id, uint len)
 {   Symbol *s;
 
-    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n",sizeof(symbol),sizeof(s.Sident),(int)len);
+    //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)len);
     s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - s.Sident.length + len + 1 + 5);
     memset(s,0,Symbol.sizeof - s.Sident.length);
 version (SCPP_HTOD)
@@ -494,11 +496,11 @@ void symbol_func(Symbol *s)
 
 /***************************************
  * Add a field to a struct s.
- * Input:
- *      s       the struct symbol
- *      name    field name
- *      t       the type of the field
- *      offset  offset of the field
+ * Params:
+ *      s      = the struct symbol
+ *      name   = field name
+ *      t      = the type of the field
+ *      offset = offset of the field
  */
 
 @trusted
@@ -507,6 +509,59 @@ void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
     Symbol *s2 = symbol_name(name, SCmember, t);
     s2.Smemoff = offset;
     list_append(&s.Sstruct.Sfldlst, s2);
+}
+
+/***************************************
+ * Add a bit field to a struct s.
+ * Params:
+ *      s      = the struct symbol
+ *      name   = field name
+ *      t      = the type of the field
+ *      offset = offset of the field
+ *      fieldWidth = width of bit field
+ *      bitOffset  = bit number of start of field
+ */
+
+@trusted
+void symbol_struct_addBitField(Symbol *s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
+{
+    //printf("symbol_struct_addBitField() s: %s\n", s.Sident.ptr);
+    Symbol *s2 = symbol_name(name, SCfield, t);
+    s2.Smemoff = offset;
+    s2.Swidth = cast(ubyte)fieldWidth;
+    s2.Sbit = cast(ubyte)bitOffset;
+    list_append(&s.Sstruct.Sfldlst, s2);
+    symbol_struct_hasBitFields(s);
+}
+
+/***************************************
+ * Mark struct s as having bit fields
+ * Params:
+ *      s      = the struct symbol
+ */
+@trusted
+void symbol_struct_hasBitFields(Symbol *s)
+{
+    s.Sstruct.Sflags |= STRbitfields;
+}
+
+/***************************************
+ * Add a base class to a struct s.
+ * Input:
+ *      s       the struct/class symbol
+ *      t       the type of the base class
+ *      offset  offset of the base class in the struct/class
+ */
+
+@trusted
+void symbol_struct_addBaseClass(Symbol *s, type *t, uint offset)
+{
+    assert(t && t.Tty == TYstruct);
+    auto bc = cast(baseclass_t*)mem_fmalloc(baseclass_t.sizeof);
+    bc.BCbase = t.Ttag;
+    bc.BCoffset = offset;
+    bc.BCnext = s.Sstruct.Sbase;
+    s.Sstruct.Sbase = bc;
 }
 
 /********************************
@@ -1809,7 +1864,7 @@ debug
 static if (0)
 {
         if (tyfunc(s.Stype.Tty))
-        {   Outbuffer buf;
+        {   OutBuffer buf;
             char *p1;
 
             p1 = param_tostring(&buf,s.Stype);

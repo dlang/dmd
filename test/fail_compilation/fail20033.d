@@ -2,17 +2,22 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20033.d(36): Deprecation: `alias byKeyValue this` is deprecated - This was a bad idea
-fail_compilation/fail20033.d(37): Deprecation: `alias byKeyValue this` is deprecated
-fail_compilation/fail20033.d(39): Deprecation: `alias byKeyValue this` is deprecated - This was a bad idea
-fail_compilation/fail20033.d(40): Deprecation: `alias byKeyValue this` is deprecated
+fail_compilation/fail20033.d(38): Deprecation: `alias byKeyValue this` is deprecated - This was a bad idea
+fail_compilation/fail20033.d(39): Deprecation: `alias byKeyValue this` is deprecated
+fail_compilation/fail20033.d(41): Deprecation: `alias byKeyValue this` is deprecated - This was a bad idea
+fail_compilation/fail20033.d(42): Deprecation: `alias byKeyValue this` is deprecated
 ---
 */
 #line 1
-struct Test {
-    import std.typecons : Tuple;
-    alias KVT = Tuple!(string, "key", string, "value");
+struct Tuple(T...)
+{
+    T values;
+    alias values this;
+}
 
+alias KVT = Tuple!(string, string);
+
+struct Test {
     struct Range {
         bool empty () { return false; }
         KVT front() { return KVT.init; }
@@ -26,9 +31,6 @@ struct Test {
 }
 
 struct Test2 {
-    import std.typecons : Tuple;
-    alias KVT = Tuple!(string, "key", string, "value");
-
     struct Range {
         bool empty () { return false; }
         KVT front() { return KVT.init; }

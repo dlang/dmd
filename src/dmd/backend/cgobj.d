@@ -1,14 +1,13 @@
 /**
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.d, backend/cgobj.d)
  */
-
 module dmd.backend.cgobj;
 
 version (SCPP)
@@ -38,10 +37,11 @@ import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.common.outbuffer;
 
 extern (C++):
 
@@ -325,7 +325,7 @@ else
 
         int cseg;               // our internal segment number
         int seg;                // segment/public index
-        Outbuffer data;         // linnum/offset data
+        OutBuffer data;         // linnum/offset data
 
         void reset() nothrow
         {
@@ -352,7 +352,7 @@ struct Objstate
 {
     const(char)* modname;
     char *csegname;
-    Outbuffer *buf;     // output buffer
+    OutBuffer *buf;     // output buffer
 
     int fdsegattr;      // far data segment attribute
     int csegattr;       // code segment attribute
@@ -447,7 +447,7 @@ __gshared
 @trusted
 void objrecord(uint rectyp, const(char)* record, uint reclen)
 {
-    Outbuffer *o = obj.buf;
+    auto o = obj.buf;
 
     //printf("rectyp = x%x, record[0] = x%x, reclen = x%x\n",rectyp,record[0],reclen);
     o.reserve(reclen + 4);
@@ -688,7 +688,7 @@ segidx_t OmfObj_seg_debugT()
  */
 
 @trusted
-Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
+Obj OmfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 {
         //printf("OmfObj_init()\n");
         Obj mobj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
@@ -1013,7 +1013,7 @@ else
         ln.reset();
 
     L1:
-        //printf("offset = x%x, line = %d\n", (int)offset, linnum);
+        //printf("offset = x%x, line = %d\n", cast(int)offset, linnum);
         ln.data.write16(linnum);
         if (_tysize[TYint] == 2)
             ln.data.write16(cast(int)offset);
@@ -1203,7 +1203,7 @@ version (MARS)
 
         const slice = ln.data[];
         const pend = slice.ptr + slice.length;
-        for (const(ubyte)* p = slice.ptr; p < pend; )
+        for (auto p = slice.ptr; p < pend; )
         {
             srcpos.Slinnum = *cast(ushort *)p;
             p += 2;
@@ -1261,16 +1261,15 @@ void OmfObj_dosseg()
 @trusted
 private void obj_comment(ubyte x, const(char)* string, size_t len)
 {
+    import dmd.common.string : SmallBuffer;
     char[128] buf = void;
+    auto sb = SmallBuffer!char(2 + len, buf[]);
+    char *library = sb.ptr;
 
-    char *library = (2 + len <= buf.sizeof) ? buf.ptr : cast(char *) malloc(2 + len);
-    assert(library);
     library[0] = 0;
     library[1] = x;
     memcpy(library + 2,string,len);
     objrecord(COMENT,library,cast(uint)(len + 2));
-    if (library != buf.ptr)
-        free(library);
 }
 
 /*******************************

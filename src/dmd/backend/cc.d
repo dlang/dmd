@@ -1,11 +1,13 @@
 /**
+ * Common definitions
+ *
  * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ *              Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
  */
 
@@ -148,7 +150,6 @@ else
 //struct block;
 //struct Classsym;
 //struct Nspacesym;
-//struct Outbuffer;
 //struct Aliassym;
 //struct dt_t;
 //typedef struct TYPE type;
@@ -178,7 +179,7 @@ struct Srcpos
 {
 nothrow:
     uint Slinnum;           // 0 means no info available
-    uint Scharnum;
+    uint Scharnum;          // 0 means no info available
     version (SCPP)
     {
         Sfile **Sfilptr;            // file
@@ -201,7 +202,7 @@ nothrow:
 
         const(char*) name() const { return Sfilename; }
 
-        static Srcpos create(const(char)* filename, uint linnum, int charnum)
+        static Srcpos create(const(char)* filename, uint linnum, uint charnum)
         {
             // Cannot have constructor because Srcpos is used in a union
             Srcpos sp;
@@ -439,7 +440,6 @@ struct Blockx
     int next_index;             // value for next scope index
     uint flags;                 // value to OR into Bflags
     block* tryblock;            // current enclosing try block
-    elem* init;                 // static initializer
     ClassDeclaration_ classdec;
     Declaration_ member;        // member we're compiling for
     Module_ _module;            // module we're in
@@ -748,7 +748,7 @@ enum
     Fjmonitor        = 0x100,   // Mars synchronized function
     Fnosideeff       = 0x200,   // function has no side effects
     F3badoparrow     = 0x400,   // bad operator->()
-    Fmain            = 0x800,   // function is main() or wmain()
+    Fmain            = 0x800,   // function is D main
     Fnested          = 0x1000,  // D nested function with 'this'
     Fmember          = 0x2000,  // D member function with 'this'
     Fnotailrecursion = 0x4000,  // no tail recursion optimizations
@@ -1434,7 +1434,7 @@ struct Symbol
     }
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
-    uint lnoscopestart;         // life time of var
+    Srcpos lposscopestart;        // life time of var
     uint lnoscopeend;           // the line after the scope
 
     /**

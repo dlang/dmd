@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/module.h
  */
 
@@ -71,18 +71,17 @@ public:
     FileName objfile;   // output .obj file
     FileName hdrfile;   // 'header' file
     FileName docfile;   // output documentation file
-    FileBuffer *srcBuffer; // set during load(), free'd in parse()
+    DArray<unsigned char> src; // Raw content of the file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
-    bool isHdrFile;     // if it is a header (.di) file
-    bool isCFile;       // if it is a C (.c) file
-    bool isDocFile;     // if it is a documentation input file, not D source
+    FileType filetype;  // source file type
     bool hasAlwaysInlines; // contains references to functions that must be inlined
     bool isPackageFile; // if it is a package.d
     Package *pkg;       // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
+    void* tagSymTab;            // ImportC: tag symbols that conflict with other symbols used as the index
     bool selfImports();         // returns true if module imports itself
 
     int rootimports;            // 0: don't know, 1: does not, 2: does
@@ -118,7 +117,7 @@ public:
 
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
 
-    static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
+    static Module *load(const Loc &loc, Identifiers *packages, Identifier *ident);
 
     const char *kind() const;
     bool read(const Loc &loc); // read file, returns 'true' if succeed, 'false' otherwise.

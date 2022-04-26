@@ -1,13 +1,7 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -o- -transition=vmarkdown
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
-
-/*
-TEST_OUTPUT:
-----
-compilable/ddoc_markdown_quote_verbose.d(17): Ddoc: starting quote block with '> Great, just what I need.. another D in programming. -- Segfault'
-----
-*/
+// TEST_OUTPUT_FILE: extra-files/ddoc_markdown_quote_verbose.html
+// OUTPUT_FILES: ${RESULTS_DIR}/compilable/ddoc_markdown_quote_verbose.html
 
 /++
 Quote Block:

@@ -1,10 +1,10 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
- * http://www.digitalmars.com
+ * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
+ * https://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/dmd/declaration.h
  */
 
@@ -29,66 +29,80 @@ class FuncDeclaration;
 class StructDeclaration;
 struct IntRange;
 
-#define STCundefined    0ULL
-#define STCstatic       1ULL
-#define STCextern       2ULL
-#define STCconst        4ULL
-#define STCfinal        8ULL
-#define STCabstract     0x10ULL
-#define STCparameter    0x20ULL
-#define STCfield        0x40ULL
-#define STCoverride     0x80ULL
-#define STCauto         0x100ULL
-#define STCsynchronized 0x200ULL
-#define STCdeprecated   0x400ULL
-#define STCin           0x800ULL         // in parameter
-#define STCout          0x1000ULL        // out parameter
-#define STClazy         0x2000ULL        // lazy parameter
-#define STCforeach      0x4000ULL        // variable for foreach loop
-#define STCvariadic     0x10000ULL       // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
-#define STCctorinit     0x20000ULL       // can only be set inside constructor
-#define STCtemplateparameter  0x40000ULL // template parameter
-#define STCscope        0x80000ULL
-#define STCimmutable    0x100000ULL
-#define STCref          0x200000ULL
-#define STCinit         0x400000ULL      // has explicit initializer
-#define STCmanifest     0x800000ULL      // manifest constant
-#define STCnodtor       0x1000000ULL     // don't run destructor
-#define STCnothrow      0x2000000ULL     // never throws exceptions
-#define STCpure         0x4000000ULL     // pure function
-#define STCtls          0x8000000ULL     // thread local
-#define STCalias        0x10000000ULL    // alias parameter
-#define STCshared       0x20000000ULL    // accessible from multiple threads
-// accessible from multiple threads
-// but not typed as "shared"
-#define STCgshared      0x40000000ULL
-#define STCwild         0x80000000ULL    // for "wild" type constructor
+//enum STC : ulong from astenums.d:
+
+    #define STCundefined          0ULL
+
+    #define STCstatic             1ULL    /// `static`
+    #define STCextern             2ULL    /// `extern`
+    #define STCconst              4ULL    /// `const`
+    #define STCfinal              8ULL    /// `final`
+
+    #define STCabstract           0x10ULL    /// `abstract`
+    #define STCparameter          0x20ULL    /// is function parameter
+    #define STCfield              0x40ULL    /// is field of struct, union or class
+    #define STCoverride           0x80ULL    /// `override`
+
+    #define STCauto               0x100ULL    /// `auto`
+    #define STCsynchronized       0x200ULL    /// `synchronized`
+    #define STCdeprecated         0x400ULL    /// `deprecated`
+    #define STCin                 0x800ULL    /// `in` parameter
+
+    #define STCout                0x1000ULL    /// `out` parameter
+    #define STClazy               0x2000ULL    /// `lazy` parameter
+    #define STCforeach            0x4000ULL    /// variable for foreach loop
+    #define STCvariadic           0x8000ULL    /// the `variadic` parameter in: T foo(T a, U b, V variadic...)
+
+    //                            0x10000ULL
+    #define STCtemplateparameter  0x20000ULL    /// template parameter
+    #define STCref                0x40000ULL    /// `ref`
+    #define STCscope              0x80000ULL    /// `scope`
+
+    #define STCmaybescope         0x100000ULL    /// parameter might be `scope`
+    #define STCscopeinferred      0x200000ULL    /// `scope` has been inferred and should not be part of mangling, `scope` must also be set
+    #define STCreturn             0x400000ULL    /// 'return ref' or 'return scope' for function parameters
+    #define STCreturnScope        0x800000ULL    /// if `ref return scope` then resolve to `ref` and `return scope`
+
+    #define STCreturninferred     0x1000000ULL    /// `return` has been inferred and should not be part of mangling, `return` must also be set
+    #define STCimmutable          0x2000000ULL    /// `immutable`
+    //                            0x4000000ULL
+    #define STCmanifest           0x8000000ULL    /// manifest constant
+
+    #define STCnodtor             0x10000000ULL    /// do not run destructor
+    #define STCnothrow            0x20000000ULL    /// `nothrow` meaning never throws exceptions
+    #define STCpure               0x40000000ULL    /// `pure` function
+
+    #define STCalias              0x100000000ULL    /// `alias` parameter
+    #define STCshared             0x200000000ULL    /// accessible from multiple threads
+    #define STCgshared            0x400000000ULL    /// accessible from multiple threads, but not typed as `shared`
+    #define STCwild               0x800000000ULL    /// for wild type constructor
+
+    #define STCproperty           0x1000000000ULL    /// `@property`
+    #define STCsafe               0x2000000000ULL    /// `@safe`
+    #define STCtrusted            0x4000000000ULL    /// `@trusted`
+    #define STCsystem             0x8000000000ULL    /// `@system`
+
+    #define STCctfe               0x10000000000ULL    /// can be used in CTFE, even if it is static
+    #define STCdisable            0x20000000000ULL    /// for functions that are not callable
+    #define STCresult             0x40000000000ULL    /// for result variables passed to out contracts
+    #define STCnodefaultctor      0x80000000000ULL    /// must be set inside constructor
+
+    #define STCtemp               0x100000000000ULL    /// temporary variable
+    #define STCrvalue             0x200000000000ULL    /// force rvalue for variables
+    #define STCnogc               0x400000000000ULL    /// `@nogc`
+    #define STCautoref            0x800000000000ULL    /// Mark for the already deduced `auto ref` parameter
+
+    #define STCinference          0x1000000000000ULL    /// do attribute inference
+    #define STCexptemp            0x2000000000000ULL    /// temporary variable that has lifetime restricted to an expression
+    #define STCfuture             0x4000000000000ULL    /// introducing new base class function
+    #define STClocal              0x8000000000000ULL    /// do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+
+    #define STClive               0x10000000000000ULL    /// function `@live` attribute
+    #define STCregister           0x20000000000000ULL    /// `register` storage class (ImportC)
+    #define STCvolatile           0x40000000000000ULL    /// destined for volatile in the back end
+
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
 #define STC_FUNCATTR    (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
-
-#define STCproperty      0x100000000ULL
-#define STCsafe          0x200000000ULL
-#define STCtrusted       0x400000000ULL
-#define STCsystem        0x800000000ULL
-#define STCctfe          0x1000000000ULL  // can be used in CTFE, even if it is static
-#define STCdisable       0x2000000000ULL  // for functions that are not callable
-#define STCresult        0x4000000000ULL  // for result variables passed to out contracts
-#define STCnodefaultctor 0x8000000000ULL  // must be set inside constructor
-#define STCtemp          0x10000000000ULL // temporary variable
-#define STCrvalue        0x20000000000ULL // force rvalue for variables
-#define STCnogc          0x40000000000ULL // @nogc
-#define STCvolatile      0x80000000000ULL // destined for volatile in the back end
-#define STCreturn        0x100000000000ULL // 'return ref' or 'return scope' for function parameters
-#define STCautoref       0x200000000000ULL // Mark for the already deduced 'auto ref' parameter
-#define STCinference     0x400000000000ULL // do attribute inference
-#define STCexptemp       0x800000000000ULL // temporary variable that has lifetime restricted to an expression
-#define STCmaybescope    0x1000000000000ULL // parameter might be 'scope'
-#define STCscopeinferred 0x2000000000000ULL // 'scope' has been inferred and should not be part of mangling
-#define STCfuture        0x4000000000000ULL // introducing new base class function
-#define STClocal         0x8000000000000ULL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
-#define STCreturninferred 0x10000000000000ULL   // 'return' has been inferred and should not be part of mangling
-#define STClive          0x20000000000000ULL   // function @live attribute
-#define STCregister      0x40000000000000ULL   // `register` storage class
 
 void ObjectNotFound(Identifier *id);
 
@@ -104,10 +118,11 @@ public:
     LINK linkage;
     short inuse;                // used to detect cycles
     uint8_t adFlags;
+    Symbol* isym;               // import version of csym
     DString mangleOverride;     // overridden symbol with pragma(mangle, "...")
 
     const char *kind() const;
-    d_uns64 size(const Loc &loc);
+    uinteger_t size(const Loc &loc);
 
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
 
@@ -116,7 +131,6 @@ public:
     virtual bool isDataseg();
     virtual bool isThreadlocal();
     virtual bool isCodeseg() const;
-    bool isCtorinit() const     { return (storage_class & STCctorinit) != 0; }
     bool isFinal() const        { return (storage_class & STCfinal) != 0; }
     virtual bool isAbstract()   { return (storage_class & STCabstract) != 0; }
     bool isConst() const        { return (storage_class & STCconst) != 0; }
@@ -134,6 +148,7 @@ public:
     bool isIn()  const  { return (storage_class & STCin) != 0; }
     bool isOut() const  { return (storage_class & STCout) != 0; }
     bool isRef() const  { return (storage_class & STCref) != 0; }
+    bool isReference() const { return (storage_class & (STCref | STCout)) != 0; }
 
     bool isFuture() const { return (storage_class & STCfuture) != 0; }
 
@@ -172,7 +187,7 @@ public:
     Dsymbol *overnext;          // next in overload list
     Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
 
-    static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
+    static AliasDeclaration *create(const Loc &loc, Identifier *id, Type *type);
     AliasDeclaration *syntaxCopy(Dsymbol *);
     bool overloadInsert(Dsymbol *s);
     const char *kind() const;
@@ -226,30 +241,42 @@ public:
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, ~0u if not allocated
     unsigned ctfeAdrOnStack;
-
-    bool isargptr;              // if parameter that _argptr points to
-    bool ctorinit;              // it has been initialized in a ctor
-    bool iscatchvar;            // this is the exception object variable in catch() clause
-    bool isowner;               // this is an Owner, despite it being `scope`
-    bool onstack;               // it is a class that was allocated on the stack
-    bool mynew;                 // it is a class new'd with custom operator new
-    char canassign;             // it can be assigned to
-    bool overlapped;            // if it is a field and has overlapping
-    bool overlapUnsafe;         // if it is an overlapping field and the overlaps are unsafe
-    bool doNotInferScope;       // do not infer 'scope' for this variable
-    bool doNotInferReturn;      // do not infer 'return' for this variable
-    unsigned char isdataseg;    // private data for isDataseg
-    bool isArgDtorVar;          // temporary created to handle scope destruction of a function argument
-
+private:
+    uint16_t bitFields;
 public:
+    int8_t canassign; // // it can be assigned to
+    uint8_t isdataseg; // private data for isDataseg
+    bool isargptr() const; // if parameter that _argptr points to
+    bool isargptr(bool v);
+    bool ctorinit() const; // it has been initialized in a ctor
+    bool ctorinit(bool v);
+    bool iscatchvar() const; // this is the exception object variable in catch() clause
+    bool iscatchvar(bool v);
+    bool isowner() const; // this is an Owner, despite it being `scope`
+    bool isowner(bool v);
+    bool setInCtorOnly() const; // field can only be set in a constructor, as it is const or immutable
+    bool setInCtorOnly(bool v);
+    bool onstack() const; // it is a class that was allocated on the stack
+    bool onstack(bool v);
+    bool overlapped() const; // if it is a field and has overlapping
+    bool overlapped(bool v);
+    bool overlapUnsafe() const; // if it is an overlapping field and the overlaps are unsafe
+    bool overlapUnsafe(bool v);
+    bool doNotInferScope() const; // do not infer 'scope' for this variable
+    bool doNotInferScope(bool v);
+    bool doNotInferReturn() const; // do not infer 'return' for this variable
+    bool doNotInferReturn(bool v);
+    bool isArgDtorVar() const; // temporary created to handle scope destruction of a function argument
+    bool isArgDtorVar(bool v);
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *);
-    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
+    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion);
     const char *kind() const;
     AggregateDeclaration *isThis();
     bool needThis();
     bool isExport() const;
     bool isImportedSymbol() const;
+    bool isCtorinit() const;
     bool isDataseg();
     bool isThreadlocal();
     bool isCTFE();
@@ -257,11 +284,25 @@ public:
     bool hasPointers();
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    bool enclosesLifetimeOf(VarDeclaration *v) const;
     void checkCtorConstInit();
     Dsymbol *toAlias();
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+/**************************************************************/
+
+class BitFieldDeclaration : public VarDeclaration
+{
+public:
+    Expression *width;
+
+    unsigned fieldWidth;
+    unsigned bitOffset;
+
+    BitFieldDeclaration *syntaxCopy(Dsymbol*);
+    BitFieldDeclaration *isBitFieldDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -272,7 +313,7 @@ public:
 class SymbolDeclaration : public Declaration
 {
 public:
-    StructDeclaration *dsym;
+    AggregateDeclaration *dsym;
 
     // Eliminate need for dynamic_cast
     SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
@@ -480,7 +521,7 @@ enum class BUILTIN : unsigned char
     toPrecReal
 };
 
-Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
+Expression *eval_builtin(const Loc &loc, FuncDeclaration *fd, Expressions *arguments);
 BUILTIN isBuiltin(FuncDeclaration *fd);
 
 class FuncDeclaration : public Declaration
@@ -504,11 +545,12 @@ public:
     VarDeclaration *vresult;            // result variable for out contracts
     LabelDsymbol *returnLabel;          // where the return goes
 
+    void *isTypeIsolatedCache;          // An AA on the D side to cache an expensive check result
+
     // used to prevent symbols in different
     // scopes from having the same name
     DsymbolTable *localsymtab;
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
-    bool isThis2;                       // has a dual-context 'this' parameter
     VarDeclaration *v_arguments;        // '_arguments' parameter
 
     VarDeclaration *v_argptr;           // '_argptr' variable
@@ -518,29 +560,20 @@ public:
     FuncDeclaration *overnext0;         // next in overload list (only used during IFTI)
     Loc endloc;                         // location of closing curly bracket
     int vtblIndex;                      // for member functions, index into vtbl[]
-    bool naked;                         // true if naked
-    bool generated;                     // true if function was generated by the compiler rather than
-                                        // supplied by the user
-    bool hasAlwaysInlines;              // contains references to functions that must be inlined
-    unsigned char isCrtCtorDtor;        // has attribute pragma(crt_constructor(1)/crt_destructor(2))
-                                        // not set before the glue layer
+
     ILS inlineStatusStmt;
     ILS inlineStatusExp;
     PINLINE inlining;
 
     int inlineNest;                     // !=0 if nested inline
-    bool eh_none;                       /// true if no exception unwinding is needed
 
     // true if errors in semantic3 this function's frame ptr
-    bool semantic3Errors;
     ForeachStatement *fes;              // if foreach body, this is the foreach
     BaseClass* interfaceVirtual;        // if virtual, but only appears in interface vtbl[]
-    bool introducing;                   // true if 'introducing' function
     // if !=NULL, then this is the type
     // of the 'introducing' function
     // this one is overriding
     Type *tintro;
-    bool inferRetType;                  // true if return type is to be inferred
     StorageClass storage_class2;        // storage class for template onemember's
 
     // Things that should really go into Scope
@@ -552,8 +585,6 @@ public:
     // 16 if there are multiple return statements
     int hasReturnExp;
 
-    // Support for NRVO (named return value optimization)
-    bool nrvo_can;                      // true means we can do it
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 
@@ -587,7 +618,7 @@ public:
     // integration.
     ObjcFuncDeclaration objc;
 
-    static FuncDeclaration *create(const Loc &loc, const Loc &endloc, Identifier *id, StorageClass storage_class, Type *type);
+    static FuncDeclaration *create(const Loc &loc, const Loc &endloc, Identifier *id, StorageClass storage_class, Type *type, bool noreturn = false);
     FuncDeclaration *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
@@ -621,6 +652,19 @@ public:
 
     bool isNogc();
     bool isNogcBypassingInference();
+    bool isNRVO() const;
+    void isNRVO(bool v);
+    bool isNaked() const;
+    bool isGenerated() const;
+    void isGenerated(bool v);
+    bool isIntroducing() const;
+    bool hasSemantic3Errors() const;
+    bool hasNoEH() const;
+    bool inferRetType() const;
+    bool hasDualContext() const;
+    bool hasAlwaysInlines() const;
+    bool isCrtCtor() const;
+    bool isCrtDtor() const;
 
     virtual bool isNested() const;
     AggregateDeclaration *isThis();
@@ -808,9 +852,6 @@ public:
 class NewDeclaration : public FuncDeclaration
 {
 public:
-    Parameters *parameters;
-    VarArg varargs;
-
     NewDeclaration *syntaxCopy(Dsymbol *);
     const char *kind() const;
     bool isVirtual() const;

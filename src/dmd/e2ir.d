@@ -1,9 +1,9 @@
 /**
  * Converts expressions to Intermediate Representation (IR) for the backend.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/e2ir.d, _e2ir.d)
  * Documentation: https://dlang.org/phobos/dmd_e2ir.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/e2ir.d
@@ -24,6 +24,7 @@ import dmd.root.stringtable;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.canthrow;
 import dmd.ctfeexpr;
@@ -40,10 +41,12 @@ import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.glue;
+import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
 import dmd.mtype;
 import dmd.objc_glue;
+import dmd.printast;
 import dmd.s2ir;
 import dmd.sideeffect;
 import dmd.statement;
@@ -88,7 +91,7 @@ void* mem_malloc2(uint);
  */
 bool ISREF(Declaration var)
 {
-    if (var.isOut() || var.isRef())
+    if (var.isReference())
     {
         return true;
     }
@@ -100,7 +103,7 @@ bool ISREF(Declaration var)
  */
 bool ISX64REF(Declaration var)
 {
-    if (var.isOut() || var.isRef())
+    if (var.isReference())
     {
         return false;
     }
@@ -225,7 +228,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
              * But the checksum algorithm is unknown. Just invent our own.
              */
 
-            import dmd.root.outbuffer : OutBuffer;
+            import dmd.common.outbuffer : OutBuffer;
             OutBuffer buf;
             buf.writestring("__");
 
@@ -316,39 +319,39 @@ Symbol *toStringSymbol(StringExp se)
 
 void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
 {
-    static immutable int[2][25] map =
+    static immutable RTLSYM[2][25] map =
     [
-        [ RTLSYM_NEWCLASS, RTLSYM_TRACENEWCLASS ],
-        [ RTLSYM_NEWITEMT, RTLSYM_TRACENEWITEMT ],
-        [ RTLSYM_NEWITEMIT, RTLSYM_TRACENEWITEMIT ],
-        [ RTLSYM_NEWARRAYT, RTLSYM_TRACENEWARRAYT ],
-        [ RTLSYM_NEWARRAYIT, RTLSYM_TRACENEWARRAYIT ],
-        [ RTLSYM_NEWARRAYMTX, RTLSYM_TRACENEWARRAYMTX ],
-        [ RTLSYM_NEWARRAYMITX, RTLSYM_TRACENEWARRAYMITX ],
+        [ RTLSYM.NEWCLASS, RTLSYM.TRACENEWCLASS ],
+        [ RTLSYM.NEWITEMT, RTLSYM.TRACENEWITEMT ],
+        [ RTLSYM.NEWITEMIT, RTLSYM.TRACENEWITEMIT ],
+        [ RTLSYM.NEWARRAYT, RTLSYM.TRACENEWARRAYT ],
+        [ RTLSYM.NEWARRAYIT, RTLSYM.TRACENEWARRAYIT ],
+        [ RTLSYM.NEWARRAYMTX, RTLSYM.TRACENEWARRAYMTX ],
+        [ RTLSYM.NEWARRAYMITX, RTLSYM.TRACENEWARRAYMITX ],
 
-        [ RTLSYM_DELCLASS, RTLSYM_TRACEDELCLASS ],
-        [ RTLSYM_CALLFINALIZER, RTLSYM_TRACECALLFINALIZER ],
-        [ RTLSYM_CALLINTERFACEFINALIZER, RTLSYM_TRACECALLINTERFACEFINALIZER ],
-        [ RTLSYM_DELINTERFACE, RTLSYM_TRACEDELINTERFACE ],
-        [ RTLSYM_DELARRAYT, RTLSYM_TRACEDELARRAYT ],
-        [ RTLSYM_DELMEMORY, RTLSYM_TRACEDELMEMORY ],
-        [ RTLSYM_DELSTRUCT, RTLSYM_TRACEDELSTRUCT ],
+        [ RTLSYM.DELCLASS, RTLSYM.TRACEDELCLASS ],
+        [ RTLSYM.CALLFINALIZER, RTLSYM.TRACECALLFINALIZER ],
+        [ RTLSYM.CALLINTERFACEFINALIZER, RTLSYM.TRACECALLINTERFACEFINALIZER ],
+        [ RTLSYM.DELINTERFACE, RTLSYM.TRACEDELINTERFACE ],
+        [ RTLSYM.DELARRAYT, RTLSYM.TRACEDELARRAYT ],
+        [ RTLSYM.DELMEMORY, RTLSYM.TRACEDELMEMORY ],
+        [ RTLSYM.DELSTRUCT, RTLSYM.TRACEDELSTRUCT ],
 
-        [ RTLSYM_ARRAYLITERALTX, RTLSYM_TRACEARRAYLITERALTX ],
-        [ RTLSYM_ASSOCARRAYLITERALTX, RTLSYM_TRACEASSOCARRAYLITERALTX ],
+        [ RTLSYM.ARRAYLITERALTX, RTLSYM.TRACEARRAYLITERALTX ],
+        [ RTLSYM.ASSOCARRAYLITERALTX, RTLSYM.TRACEASSOCARRAYLITERALTX ],
 
-        [ RTLSYM_ARRAYCATT, RTLSYM_TRACEARRAYCATT ],
-        [ RTLSYM_ARRAYCATNTX, RTLSYM_TRACEARRAYCATNTX ],
+        [ RTLSYM.ARRAYCATT, RTLSYM.TRACEARRAYCATT ],
+        [ RTLSYM.ARRAYCATNTX, RTLSYM.TRACEARRAYCATNTX ],
 
-        [ RTLSYM_ARRAYAPPENDCD, RTLSYM_TRACEARRAYAPPENDCD ],
-        [ RTLSYM_ARRAYAPPENDWD, RTLSYM_TRACEARRAYAPPENDWD ],
-        [ RTLSYM_ARRAYAPPENDT, RTLSYM_TRACEARRAYAPPENDT ],
-        [ RTLSYM_ARRAYAPPENDCTX, RTLSYM_TRACEARRAYAPPENDCTX ],
+        [ RTLSYM.ARRAYAPPENDCD, RTLSYM.TRACEARRAYAPPENDCD ],
+        [ RTLSYM.ARRAYAPPENDWD, RTLSYM.TRACEARRAYAPPENDWD ],
+        [ RTLSYM.ARRAYAPPENDT, RTLSYM.TRACEARRAYAPPENDT ],
+        [ RTLSYM.ARRAYAPPENDCTX, RTLSYM.TRACEARRAYAPPENDCTX ],
 
-        [ RTLSYM_ARRAYSETLENGTHT, RTLSYM_TRACEARRAYSETLENGTHT ],
-        [ RTLSYM_ARRAYSETLENGTHIT, RTLSYM_TRACEARRAYSETLENGTHIT ],
+        [ RTLSYM.ARRAYSETLENGTHT, RTLSYM.TRACEARRAYSETLENGTHT ],
+        [ RTLSYM.ARRAYSETLENGTHIT, RTLSYM.TRACEARRAYSETLENGTHIT ],
 
-        [ RTLSYM_ALLOCMEMORY, RTLSYM_TRACEALLOCMEMORY ],
+        [ RTLSYM.ALLOCMEMORY, RTLSYM.TRACEALLOCMEMORY ],
     ];
 
     if (irs.params.tracegc && loc.filename)
@@ -362,7 +365,7 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
          * gc, but by a manual reference counting mechanism implementend in druntime.
          * If that is the case, then there is nothing to trace.
          */
-        if (s == getRtlsym(RTLSYM_NEWTHROW))
+        if (s == getRtlsym(RTLSYM.NEWTHROW))
             return;
         foreach (ref m; map)
         {
@@ -495,61 +498,42 @@ void clearStringTab()
 }
 private __gshared StringTable!(Symbol*) *stringTab;
 
-elem *toElem(Expression e, IRState *irs)
+/*********************************************
+ * Convert Expression to backend elem.
+ * Params:
+ *      e = expression tree
+ *      irs = context
+ * Returns:
+ *      backend elem tree
+ */
+elem* toElem(Expression e, IRState *irs)
 {
-    scope v = new ToElemVisitor(irs);
-    e.accept(v);
-    return v.result;
-}
-
-private:
-
-extern (C++) class ToElemVisitor : Visitor
-{
-    IRState *irs;
-    elem *result;
-
-    this(IRState *irs)
+    elem* visit(Expression e)
     {
-        this.irs = irs;
-        result = null;
-    }
-
-    alias visit = Visitor.visit;
-
-    /***************************************
-     */
-
-    override void visit(Expression e)
-    {
-        printf("[%s] %s: %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
+        printf("[%s] %s: %s\n", e.loc.toChars(), EXPtoString(e.op).ptr, e.toChars());
         assert(0);
     }
 
-    /************************************
-     */
-    override void visit(SymbolExp se)
+    elem* visitSymbol(SymbolExp se) // VarExp and SymOffExp
     {
         elem *e;
-        Type tb = (se.op == TOK.symbolOffset) ? se.var.type.toBasetype() : se.type.toBasetype();
-        int offset = (se.op == TOK.symbolOffset) ? cast(int)(cast(SymOffExp)se).offset : 0;
+        Type tb = (se.op == EXP.symbolOffset) ? se.var.type.toBasetype() : se.type.toBasetype();
+        int offset = (se.op == EXP.symbolOffset) ? cast(int)(cast(SymOffExp)se).offset : 0;
         VarDeclaration v = se.var.isVarDeclaration();
 
         //printf("[%s] SymbolExp.toElem('%s') %p, %s\n", se.loc.toChars(), se.toChars(), se, se.type.toChars());
         //printf("\tparent = '%s'\n", se.var.parent ? se.var.parent.toChars() : "null");
-        if (se.op == TOK.variable && se.var.needThis())
+        if (se.op == EXP.variable && se.var.needThis())
         {
             se.error("need `this` to access member `%s`", se.toChars());
-            result = el_long(TYsize_t, 0);
-            return;
+            return el_long(TYsize_t, 0);
         }
 
         /* The magic variable __ctfe is always false at runtime
          */
-        if (se.op == TOK.variable && v && v.ident == Id.ctfe)
+        if (se.op == EXP.variable && v && v.ident == Id.ctfe)
         {
-            result = el_long(totym(se.type), 0);
-            return;
+            return el_long(totym(se.type), 0);
         }
 
         if (FuncLiteralDeclaration fld = se.var.isFuncLiteralDeclaration())
@@ -568,11 +552,32 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         Symbol *s = toSymbol(se.var);
+
+        // VarExp generated for `__traits(initSymbol, Aggregate)`?
+        if (auto symDec = se.var.isSymbolDeclaration())
+        {
+            if (se.type.isTypeDArray())
+            {
+                assert(se.type == Type.tvoid.arrayOf().constOf(), se.toString());
+
+                // Generate s[0 .. Aggregate.sizeof] for non-zero initialised aggregates
+                // Otherwise create (null, Aggregate.sizeof)
+                auto ad = symDec.dsym;
+                auto ptr = (ad.isStructDeclaration() && ad.type.isZeroInit(Loc.initial))
+                        ? el_long(TYnptr, 0)
+                        : el_ptr(s);
+                auto length = el_long(TYsize_t, ad.structsize);
+                auto slice = el_pair(TYdarray, length, ptr);
+                elem_setLoc(slice, se.loc);
+                return slice;
+            }
+        }
+
         FuncDeclaration fd = null;
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();
 
-        const bool nrvo = fd && fd.nrvo_can && fd.nrvo_var == se.var;
+        const bool nrvo = fd && fd.isNRVO() && fd.nrvo_var == se.var;
         if (nrvo)
             s = fd.shidden;
 
@@ -618,7 +623,7 @@ extern (C++) class ToElemVisitor : Visitor
                     if (fd.vthis)
                     {
                         Symbol *vs = toSymbol(fd.vthis);
-                        //printf("vs = %s, offset = %x, %p\n", vs.Sident, (int)vs.Soffset, vs);
+                        //printf("vs = %s, offset = %x, %p\n", vs.Sident, cast(int)vs.Soffset, vs);
                         soffset -= vs.Soffset;
                     }
                     //printf("\tSoffset = x%x, sthis.Soffset = x%x\n", s.Soffset, irs.sthis.Soffset);
@@ -628,11 +633,11 @@ extern (C++) class ToElemVisitor : Visitor
                     soffset += offset;
 
                 e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
-                if (se.op == TOK.variable)
+                if (se.op == EXP.variable)
                     e = el_una(OPind, TYnptr, e);
                 if (ISREF(se.var) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
                     e = el_una(OPind, s.Stype.Tty, e);
-                else if (se.op == TOK.symbolOffset && nrvo)
+                else if (se.op == EXP.symbolOffset && nrvo)
                 {
                     e = el_una(OPind, TYnptr, e);
                     e = el_bin(OPadd, e.Ety, e, el_long(TYsize_t, offset));
@@ -648,7 +653,7 @@ extern (C++) class ToElemVisitor : Visitor
             assert(irs.sclosure);
             e = el_var(irs.sclosure);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
-            if (se.op == TOK.variable)
+            if (se.op == EXP.variable)
             {
                 e = el_una(OPind, totym(se.type), e);
                 if (tybasic(e.Ety) == TYstruct)
@@ -660,12 +665,12 @@ extern (C++) class ToElemVisitor : Visitor
                 e.Ety = TYnptr;
                 e = el_una(OPind, s.Stype.Tty, e);
             }
-            else if (se.op == TOK.symbolOffset && nrvo)
+            else if (se.op == EXP.symbolOffset && nrvo)
             {
                 e = el_una(OPind, TYnptr, e);
                 e = el_bin(OPadd, e.Ety, e, el_long(TYsize_t, offset));
             }
-            else if (se.op == TOK.symbolOffset)
+            else if (se.op == EXP.symbolOffset)
             {
                 e = el_bin(OPadd, e.Ety, e, el_long(TYsize_t, offset));
             }
@@ -680,21 +685,28 @@ extern (C++) class ToElemVisitor : Visitor
 
         if (se.var.isImportedSymbol())
         {
-            assert(se.op == TOK.variable);
-            e = el_var(toImport(se.var));
-            e = el_una(OPind,s.Stype.Tty,e);
+            assert(se.op == EXP.variable);
+            if (target.os & Target.OS.Posix)
+            {
+                e = el_var(s);
+            }
+            else
+            {
+                e = el_var(toImport(se.var));
+                e = el_una(OPind,s.Stype.Tty,e);
+            }
         }
         else if (ISREF(se.var))
         {
             // Out parameters are really references
             e = el_var(s);
             e.Ety = TYnptr;
-            if (se.op == TOK.variable)
+            if (se.op == EXP.variable)
                 e = el_una(OPind, s.Stype.Tty, e);
             else if (offset)
                 e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
         }
-        else if (se.op == TOK.variable)
+        else if (se.op == EXP.variable)
             e = el_var(s);
         else
         {
@@ -702,7 +714,7 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_bin(OPadd, e.Ety, e, el_long(TYsize_t, offset));
         }
     L1:
-        if (se.op == TOK.variable)
+        if (se.op == EXP.variable)
         {
             if (nrvo)
             {
@@ -735,13 +747,10 @@ extern (C++) class ToElemVisitor : Visitor
             }
         }
         elem_setLoc(e,se.loc);
-        result = e;
+        return e;
     }
 
-    /**************************************
-     */
-
-    override void visit(FuncExp fe)
+    elem* visitFunc(FuncExp fe)
     {
         //printf("FuncExp.toElem() %s\n", fe.toChars());
         FuncLiteralDeclaration fld = fe.fd;
@@ -772,39 +781,38 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_pair(TYdelegate, ethis, e);
         }
         elem_setLoc(e, fe.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DeclarationExp de)
+    elem* visitDeclaration(DeclarationExp de)
     {
         //printf("DeclarationExp.toElem() %s\n", de.toChars());
-        result = Dsymbol_toElem(de.declaration);
+        return Dsymbol_toElem(de.declaration, irs);
     }
 
     /***************************************
      */
 
-    override void visit(TypeidExp e)
+    elem* visitTypeid(TypeidExp e)
     {
         //printf("TypeidExp.toElem() %s\n", e.toChars());
         if (Type t = isType(e.obj))
         {
-            result = getTypeInfo(e.loc, t, irs);
-            result = el_bin(OPadd, result.Ety, result, el_long(TYsize_t, t.vtinfo.offset));
-            return;
+            elem* result = getTypeInfo(e.loc, t, irs);
+            return el_bin(OPadd, result.Ety, result, el_long(TYsize_t, t.vtinfo.offset));
         }
         if (Expression ex = isExpression(e.obj))
         {
             auto tc = ex.type.toBasetype().isTypeClass();
             assert(tc);
             // generate **classptr to get the classinfo
-            result = toElem(ex, irs);
+            elem* result = toElem(ex, irs);
             result = el_una(OPind,TYnptr,result);
             result = el_una(OPind,TYnptr,result);
             // Add extra indirection for interfaces
             if (tc.sym.isInterfaceDeclaration())
                 result = el_una(OPind,TYnptr,result);
-            return;
+            return result;
         }
         assert(0);
     }
@@ -812,7 +820,7 @@ extern (C++) class ToElemVisitor : Visitor
     /***************************************
      */
 
-    override void visit(ThisExp te)
+    elem* visitThis(ThisExp te)
     {
         //printf("ThisExp.toElem()\n");
         assert(irs.sthis);
@@ -838,23 +846,23 @@ extern (C++) class ToElemVisitor : Visitor
             ethis.ET = Type_toCtype(te.type);
         }
         elem_setLoc(ethis,te.loc);
-        result = ethis;
+        return ethis;
     }
 
     /***************************************
      */
 
-    override void visit(IntegerExp ie)
+    elem* visitInteger(IntegerExp ie)
     {
         elem *e = el_long(totym(ie.type), ie.getInteger());
         elem_setLoc(e,ie.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(RealExp re)
+    elem* visitReal(RealExp re)
     {
         //printf("RealExp.toElem(%p) %s\n", re, re.toChars());
         elem *e = el_long(TYint, 0);
@@ -882,13 +890,13 @@ extern (C++) class ToElemVisitor : Visitor
                 assert(0);
         }
         e.Ety = ty;
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(ComplexExp ce)
+    elem* visitComplex(ComplexExp ce)
     {
 
         //printf("ComplexExp.toElem(%p) %s\n", ce, ce.toChars());
@@ -949,21 +957,21 @@ extern (C++) class ToElemVisitor : Visitor
                 assert(0);
         }
         e.Ety = ty;
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(NullExp ne)
+    elem* visitNull(NullExp ne)
     {
-        result = el_long(totym(ne.type), 0);
+        return el_long(totym(ne.type), 0);
     }
 
     /***************************************
      */
 
-    override void visit(StringExp se)
+    elem* visitString(StringExp se)
     {
         //printf("StringExp.toElem() %s, type = %s\n", se.toChars(), se.type.toChars());
 
@@ -999,10 +1007,10 @@ extern (C++) class ToElemVisitor : Visitor
             assert(0);
         }
         elem_setLoc(e,se.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(NewExp ne)
+    elem* visitNew(NewExp ne)
     {
         //printf("NewExp.toElem() %s\n", ne.toChars());
         Type t = ne.type.toBasetype();
@@ -1030,28 +1038,19 @@ extern (C++) class ToElemVisitor : Visitor
             elem *ezprefix = null;
             elem *ez = null;
 
-            if (ne.allocator || ne.onstack)
+            if (ne.onstack)
             {
-                if (ne.onstack)
-                {
-                    /* Create an instance of the class on the stack,
-                     * and call it stmp.
-                     * Set ex to be the &stmp.
-                     */
-                    .type *tc = type_struct_class(tclass.sym.toChars(),
-                            tclass.sym.alignsize, tclass.sym.structsize,
-                            null, null,
-                            false, false, true, false);
-                    tc.Tcount--;
-                    Symbol *stmp = symbol_genauto(tc);
-                    ex = el_ptr(stmp);
-                }
-                else
-                {
-                    ex = el_var(toSymbol(ne.allocator));
-                    ex = callfunc(ne.loc, irs, 1, ne.type, ex, ne.allocator.type,
-                            ne.allocator, ne.allocator.type, null, ne.newargs);
-                }
+                /* Create an instance of the class on the stack,
+                 * and call it stmp.
+                 * Set ex to be the &stmp.
+                 */
+                .type *tc = type_struct_class(tclass.sym.toChars(),
+                        tclass.sym.alignsize, tclass.sym.structsize,
+                        null, null,
+                        false, false, true, false);
+                tc.Tcount--;
+                Symbol *stmp = symbol_genauto(tc);
+                ex = el_ptr(stmp);
 
                 Symbol *si = toInitializer(tclass.sym);
                 elem *ei = el_var(si);
@@ -1074,7 +1073,7 @@ extern (C++) class ToElemVisitor : Visitor
             else
             {
                 Symbol *csym = toSymbol(cd);
-                const rtl = global.params.ehnogc && ne.thrownew ? RTLSYM_NEWTHROW : RTLSYM_NEWCLASS;
+                const rtl = global.params.ehnogc && ne.thrownew ? RTLSYM.NEWTHROW : RTLSYM.NEWCLASS;
                 ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),el_ptr(csym));
                 toTraceGC(irs, ex, ne.loc);
                 ectype = null;
@@ -1178,26 +1177,14 @@ extern (C++) class ToElemVisitor : Visitor
             elem *ezprefix = null;
             elem *ez = null;
 
-            if (ne.allocator)
-            {
+            // call _d_newitemT(ti)
+            e = getTypeInfo(ne.loc, ne.newtype, irs);
 
-                ex = el_var(toSymbol(ne.allocator));
-                ex = callfunc(ne.loc, irs, 1, ne.type, ex, ne.allocator.type,
-                            ne.allocator, ne.allocator.type, null, ne.newargs);
+            const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
+            ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
+            toTraceGC(irs, ex, ne.loc);
 
-                ectype = tclass;
-            }
-            else
-            {
-                // call _d_newitemT(ti)
-                e = getTypeInfo(ne.loc, ne.newtype, irs);
-
-                int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
-                ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
-                toTraceGC(irs, ex, ne.loc);
-
-                ectype = null;
-            }
+            ectype = null;
 
             elem *ev = el_same(&ex);
 
@@ -1233,7 +1220,7 @@ extern (C++) class ToElemVisitor : Visitor
             else
             {
                 StructLiteralExp sle = StructLiteralExp.create(ne.loc, sd, ne.arguments, t);
-                ez = toElemStructLit(sle, irs, TOK.construct, ev.EV.Vsym, false);
+                ez = toElemStructLit(sle, irs, EXP.construct, ev.EV.Vsym, false);
             }
             //elem_print(ex);
             //elem_print(ey);
@@ -1257,7 +1244,7 @@ extern (C++) class ToElemVisitor : Visitor
 
                 // call _d_newT(ti, arg)
                 e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
-                int rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
+                const rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYT : RTLSYM.NEWARRAYIT;
                 e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
             }
@@ -1273,13 +1260,13 @@ extern (C++) class ToElemVisitor : Visitor
 
                 // Allocate array of dimensions on the stack
                 Symbol *sdata = null;
-                elem *earray = ExpressionsToStaticArray(ne.loc, ne.arguments, &sdata);
+                elem *earray = ExpressionsToStaticArray(irs, ne.loc, ne.arguments, &sdata);
 
                 e = el_pair(TYdarray, el_long(TYsize_t, ne.arguments.dim), el_ptr(sdata));
                 if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                     e = addressElem(e, Type.tsize_t.arrayOf());
                 e = el_param(e, getTypeInfo(ne.loc, ne.type, irs));
-                int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
+                const rtl = t.isZeroInit(Loc.initial) ? RTLSYM.NEWARRAYMTX : RTLSYM.NEWARRAYMITX;
                 e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
 
@@ -1294,7 +1281,7 @@ extern (C++) class ToElemVisitor : Visitor
             // call _d_newitemT(ti)
             e = getTypeInfo(ne.loc, ne.newtype, irs);
 
-            int rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
+            const rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM.NEWITEMT : RTLSYM.NEWITEMIT;
             e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
             toTraceGC(irs, e, ne.loc);
 
@@ -1323,7 +1310,7 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem_setLoc(e,ne.loc);
-        result = e;
+        return e;
     }
 
     //////////////////////////// Unary ///////////////////////////////
@@ -1331,7 +1318,7 @@ extern (C++) class ToElemVisitor : Visitor
     /***************************************
      */
 
-    override void visit(NegExp ne)
+    elem* visitNeg(NegExp ne)
     {
         elem *e = toElem(ne.e1, irs);
         Type tb1 = ne.e1.type.toBasetype();
@@ -1346,8 +1333,8 @@ extern (C++) class ToElemVisitor : Visitor
                 elem *ez = el_calloc();
                 ez.Eoper = OPconst;
                 ez.Ety = e.Ety;
-                ez.EV.Vcent.lsw = 0;
-                ez.EV.Vcent.msw = 0;
+                ez.EV.Vcent.lo = 0;
+                ez.EV.Vcent.hi = 0;
                 e = el_bin(OPmin, totym(ne.type), ez, e);
                 break;
             }
@@ -1358,13 +1345,13 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem_setLoc(e,ne.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(ComExp ce)
+    elem* visitCom(ComExp ce)
     {
         elem *e1 = toElem(ce.e1, irs);
         Type tb1 = ce.e1.type.toBasetype();
@@ -1385,8 +1372,8 @@ extern (C++) class ToElemVisitor : Visitor
                 elem *ec = el_calloc();
                 ec.Eoper = OPconst;
                 ec.Ety = e1.Ety;
-                ec.EV.Vcent.lsw = ~0L;
-                ec.EV.Vcent.msw = ~0L;
+                ec.EV.Vcent.lo = ~0L;
+                ec.EV.Vcent.hi = ~0L;
                 e = el_bin(OPxor, ty, e1, ec);
                 break;
             }
@@ -1397,32 +1384,32 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem_setLoc(e,ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(NotExp ne)
+    elem* visitNot(NotExp ne)
     {
         elem *e = el_una(OPnot, totym(ne.type), toElem(ne.e1, irs));
         elem_setLoc(e,ne.loc);
-        result = e;
+        return e;
     }
 
 
     /***************************************
      */
 
-    override void visit(HaltExp he)
+    elem* visitHalt(HaltExp he)
     {
-        result = genHalt(he.loc);
+        return genHalt(he.loc);
     }
 
     /********************************************
      */
 
-    override void visit(AssertExp ae)
+    elem* visitAssert(AssertExp ae)
     {
         // https://dlang.org/spec/expression.html#assert_expressions
         //printf("AssertExp.toElem() %s\n", toChars());
@@ -1432,11 +1419,10 @@ extern (C++) class ToElemVisitor : Visitor
             if (irs.params.checkAction == CHECKACTION.C)
             {
                 auto econd = toElem(ae.e1, irs);
-                auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
+                auto ea = callCAssert(irs, ae.loc, ae.e1, ae.msg, null);
                 auto eo = el_bin(OPoror, TYvoid, econd, ea);
                 elem_setLoc(eo, ae.loc);
-                result = eo;
-                return;
+                return eo;
             }
 
             if (irs.params.checkAction == CHECKACTION.halt)
@@ -1448,8 +1434,7 @@ extern (C++) class ToElemVisitor : Visitor
                 auto ea = genHalt(ae.loc);
                 auto eo = el_bin(OPoror, TYvoid, econd, ea);
                 elem_setLoc(eo, ae.loc);
-                result = eo;
-                return;
+                return eo;
             }
 
             e = toElem(ae.e1, irs);
@@ -1465,7 +1450,7 @@ extern (C++) class ToElemVisitor : Visitor
                 !(cast(TypeClass)t1).sym.isCPPclass())
             {
                 ts = symbol_genauto(Type_toCtype(t1));
-                einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DINVARIANT)), el_var(ts));
+                einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DINVARIANT)), el_var(ts));
             }
             else if (irs.params.useInvariants == CHECKENABLE.on &&
                 t1.ty == Tpointer &&
@@ -1514,18 +1499,18 @@ extern (C++) class ToElemVisitor : Visitor
                     if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                         emsg = addressElem(emsg, Type.tvoid.arrayOf(), false);
 
-                    ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG));
+                    ea = el_var(getRtlsym(ud ? RTLSYM.DUNITTEST_MSG : RTLSYM.DASSERT_MSG));
                     ea = el_bin(OPcall, TYnoreturn, ea, el_params(el_long(TYint, ae.loc.linnum), efilename, emsg, null));
                 }
                 else
                 {
-                    ea = el_var(getRtlsym(ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT));
+                    ea = el_var(getRtlsym(ud ? RTLSYM.DUNITTEST : RTLSYM.DASSERT));
                     ea = el_bin(OPcall, TYnoreturn, ea, el_param(el_long(TYint, ae.loc.linnum), efilename));
                 }
             }
             else
             {
-                auto eassert = el_var(getRtlsym(ud ? RTLSYM_DUNITTESTP : RTLSYM_DASSERTP));
+                auto eassert = el_var(getRtlsym(ud ? RTLSYM.DUNITTESTP : RTLSYM.DASSERTP));
                 auto efile = toEfilenamePtr(m);
                 auto eline = el_long(TYint, ae.loc.linnum);
                 ea = el_bin(OPcall, TYnoreturn, eassert, el_param(eline, efile));
@@ -1546,18 +1531,28 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_long(TYint, 0);
         }
         elem_setLoc(e,ae.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(PostExp pe)
+    elem* visitThrow(ThrowExp te)
+    {
+        //printf("ThrowExp.toElem() '%s'\n", te.toChars());
+
+        elem *e = toElemDtor(te.e1, irs);
+        const rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM.THROWDWARF : RTLSYM.THROWC;
+        elem *sym = el_var(getRtlsym(rtlthrow));
+        return el_bin(OPcall, TYnoreturn, sym, e);
+    }
+
+    elem* visitPost(PostExp pe)
     {
         //printf("PostExp.toElem() '%s'\n", pe.toChars());
         elem *e = toElem(pe.e1, irs);
         elem *einc = toElem(pe.e2, irs);
-        e = el_bin((pe.op == TOK.plusPlus) ? OPpostinc : OPpostdec,
+        e = el_bin((pe.op == EXP.plusPlus) ? OPpostinc : OPpostdec,
                     e.Ety,e,einc);
         elem_setLoc(e,pe.loc);
-        result = e;
+        return e;
     }
 
     //////////////////////////// Binary ///////////////////////////////
@@ -1589,6 +1584,7 @@ extern (C++) class ToElemVisitor : Visitor
     elem *toElemBinAssign(BinAssignExp be, int op)
     {
         //printf("toElemBinAssign() '%s'\n", be.toChars());
+        //printAST(be);
 
         Type tb1 = be.e1.type.toBasetype();
         Type tb2 = be.e2.type.toBasetype();
@@ -1602,11 +1598,11 @@ extern (C++) class ToElemVisitor : Visitor
 
         elem *el;
         elem *ev;
-        if (be.e1.op == TOK.cast_)
+        if (be.e1.op == EXP.cast_)
         {
             int depth = 0;
             Expression e1 = be.e1;
-            while (e1.op == TOK.cast_)
+            while (e1.op == EXP.cast_)
             {
                 ++depth;
                 e1 = (cast(CastExp)e1).e1;
@@ -1633,6 +1629,15 @@ extern (C++) class ToElemVisitor : Visitor
         else
         {
             el = toElem(be.e1, irs);
+
+            if (el.Eoper == OPbit)
+            {
+                elem *er = toElem(be.e2, irs);
+                elem* e = el_bin(op, tym, el, er);
+                elem_setLoc(e,be.loc);
+                return e;
+            }
+
             el = addressElem(el, be.e1.type.pointerTo());
             ev = el_same(&el);
 
@@ -1650,17 +1655,17 @@ extern (C++) class ToElemVisitor : Visitor
     /***************************************
      */
 
-    override void visit(AddExp e)
+    elem* visitAdd(AddExp e)
     {
-        result = toElemBin(e, OPadd);
+        return toElemBin(e, OPadd);
     }
 
     /***************************************
      */
 
-    override void visit(MinExp e)
+    elem* visitMin(MinExp e)
     {
-        result = toElemBin(e, OPmin);
+        return toElemBin(e, OPmin);
     }
 
     /*****************************************
@@ -1678,10 +1683,10 @@ extern (C++) class ToElemVisitor : Visitor
     }
 
     /***************************************
-     * http://dlang.org/spec/expression.html#cat_expressions
+     * https://dlang.org/spec/expression.html#cat_expressions
      */
 
-    override void visit(CatExp ce)
+    elem* visitCat(CatExp ce)
     {
         /* Do this check during code gen rather than semantic() because concatenation is
          * allowed in CTFE, and cannot distinguish that in semantic().
@@ -1689,8 +1694,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (irs.params.betterC)
         {
             error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
-            result = el_long(TYint, 0);
-            return;
+            return el_long(TYint, 0);
         }
 
         Type tb1 = ce.e1.type.toBasetype();
@@ -1699,7 +1703,7 @@ extern (C++) class ToElemVisitor : Visitor
         Type ta = (tb1.ty == Tarray || tb1.ty == Tsarray) ? tb1 : tb2;
 
         elem *e;
-        if (ce.e1.op == TOK.concatenate)
+        if (ce.e1.op == EXP.concatenate)
         {
             CatExp ex = ce;
 
@@ -1710,7 +1714,7 @@ extern (C++) class ToElemVisitor : Visitor
             {
                 ex = cast(CatExp)ex.e1;
                 elems.shift(array_toDarray(ex.e2.type, toElem(ex.e2, irs)));
-            } while (ex.e1.op == TOK.concatenate);
+            } while (ex.e1.op == EXP.concatenate);
             elems.shift(array_toDarray(ex.e1.type, toElem(ex.e1, irs)));
 
             // We can't use ExpressionsToStaticArray because each exp needs
@@ -1723,7 +1727,7 @@ extern (C++) class ToElemVisitor : Visitor
             if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
                 ep = addressElem(ep, Type.tvoid.arrayOf());
             ep = el_param(ep, getTypeInfo(ce.loc, ta, irs));
-            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATNTX)), ep);
+            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCATNTX)), ep);
             toTraceGC(irs, e, ce.loc);
             e = el_combine(earr, e);
         }
@@ -1732,41 +1736,41 @@ extern (C++) class ToElemVisitor : Visitor
             elem *e1 = eval_Darray(ce.e1);
             elem *e2 = eval_Darray(ce.e2);
             elem *ep = el_params(e2, e1, getTypeInfo(ce.loc, ta, irs), null);
-            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATT)), ep);
+            e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYCATT)), ep);
             toTraceGC(irs, e, ce.loc);
         }
         elem_setLoc(e,ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(MulExp e)
+    elem* visitMul(MulExp e)
     {
-        result = toElemBin(e, OPmul);
+        return toElemBin(e, OPmul);
     }
 
     /************************************
      */
 
-    override void visit(DivExp e)
+    elem* visitDiv(DivExp e)
     {
-        result = toElemBin(e, OPdiv);
+        return toElemBin(e, OPdiv);
     }
 
     /***************************************
      */
 
-    override void visit(ModExp e)
+    elem* visitMod(ModExp e)
     {
-        result = toElemBin(e, OPmod);
+        return toElemBin(e, OPmod);
     }
 
     /***************************************
      */
 
-    override void visit(CmpExp ce)
+    elem* visitCmp(CmpExp ce)
     {
         //printf("CmpExp.toElem() %s\n", ce.toChars());
 
@@ -1776,12 +1780,12 @@ extern (C++) class ToElemVisitor : Visitor
 
         switch (ce.op)
         {
-            case TOK.lessThan:     eop = OPlt;     break;
-            case TOK.greaterThan:     eop = OPgt;     break;
-            case TOK.lessOrEqual:     eop = OPle;     break;
-            case TOK.greaterOrEqual:     eop = OPge;     break;
-            case TOK.equal:  eop = OPeqeq;   break;
-            case TOK.notEqual: eop = OPne;   break;
+            case EXP.lessThan:     eop = OPlt;     break;
+            case EXP.greaterThan:     eop = OPgt;     break;
+            case EXP.lessOrEqual:     eop = OPle;     break;
+            case EXP.greaterOrEqual:     eop = OPge;     break;
+            case EXP.equal:  eop = OPeqeq;   break;
+            case EXP.notEqual: eop = OPne;   break;
 
             default:
                 printf("%s\n", ce.toChars());
@@ -1820,10 +1824,10 @@ extern (C++) class ToElemVisitor : Visitor
             else
                 e = toElemBin(ce,eop);
         }
-        result = e;
+        return e;
     }
 
-    override void visit(EqualExp ee)
+    elem* visitEqual(EqualExp ee)
     {
         //printf("EqualExp.toElem() %s\n", ee.toChars());
 
@@ -1833,8 +1837,8 @@ extern (C++) class ToElemVisitor : Visitor
         OPER eop;
         switch (ee.op)
         {
-            case TOK.equal:          eop = OPeqeq;   break;
-            case TOK.notEqual:       eop = OPne;     break;
+            case EXP.equal:          eop = OPeqeq;   break;
+            case EXP.notEqual:       eop = OPne;     break;
             default:
                 printf("%s\n", ee.toChars());
                 assert(0);
@@ -1867,7 +1871,7 @@ extern (C++) class ToElemVisitor : Visitor
                 elem* eptr1, eptr2; // Pointer to data, to pass to memcmp
                 elem* elen1, elen2; // Length, for comparison
                 elem* esiz1, esiz2; // Data size, to pass to memcmp
-                d_uns64 sz = telement.size(); // Size of one element
+                const sz = telement.size(); // Size of one element
 
                 if (t1.ty == Tarray)
                 {
@@ -1905,22 +1909,21 @@ extern (C++) class ToElemVisitor : Visitor
 
                 elem *elen = t2.ty == Tsarray ? elen2 : elen1;
                 elem *esizecheck = el_bin(eop, TYint, el_same(&elen), el_long(TYsize_t, 0));
-                e = el_bin(ee.op == TOK.equal ? OPoror : OPandand, TYint, esizecheck, e);
+                e = el_bin(ee.op == EXP.equal ? OPoror : OPandand, TYint, esizecheck, e);
 
                 if (t1.ty == Tsarray && t2.ty == Tsarray)
                     assert(t1.size() == t2.size());
                 else
                 {
                     elem *elencmp = el_bin(eop, TYint, elen1, elen2);
-                    e = el_bin(ee.op == TOK.equal ? OPandand : OPoror, TYint, elencmp, e);
+                    e = el_bin(ee.op == EXP.equal ? OPandand : OPoror, TYint, elencmp, e);
                 }
 
                 // Ensure left-to-right order of evaluation
                 e = el_combine(earr2, e);
                 e = el_combine(earr1, e);
                 elem_setLoc(e, ee.loc);
-                result = e;
-                return;
+                return e;
             }
 
             elem *ea1 = eval_Darray(ee.e1);
@@ -1928,9 +1931,9 @@ extern (C++) class ToElemVisitor : Visitor
 
             elem *ep = el_params(getTypeInfo(ee.loc, telement.arrayOf(), irs),
                     ea2, ea1, null);
-            int rtlfunc = RTLSYM_ARRAYEQ2;
+            const rtlfunc = RTLSYM.ARRAYEQ2;
             e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
-            if (ee.op == TOK.notEqual)
+            if (ee.op == EXP.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
             elem_setLoc(e,ee.loc);
         }
@@ -1944,18 +1947,17 @@ extern (C++) class ToElemVisitor : Visitor
             // aaEqual(ti, e1, e2)
             elem *ep = el_params(ea2, ea1, ti, null);
             e = el_bin(OPcall, TYnptr, el_var(s), ep);
-            if (ee.op == TOK.notEqual)
+            if (ee.op == EXP.notEqual)
                 e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
             elem_setLoc(e, ee.loc);
-            result = e;
-            return;
+            return e;
         }
         else
             e = toElemBin(ee, eop);
-        result = e;
+        return e;
     }
 
-    override void visit(IdentityExp ie)
+    elem* visitIdentity(IdentityExp ie)
     {
         Type t1 = ie.e1.type.toBasetype();
         Type t2 = ie.e2.type.toBasetype();
@@ -1963,8 +1965,8 @@ extern (C++) class ToElemVisitor : Visitor
         OPER eop;
         switch (ie.op)
         {
-            case TOK.identity:       eop = OPeqeq;   break;
-            case TOK.notIdentity:    eop = OPne;     break;
+            case EXP.identity:       eop = OPeqeq;   break;
+            case EXP.notIdentity:    eop = OPne;     break;
             default:
                 printf("%s\n", ie.toChars());
                 assert(0);
@@ -1983,7 +1985,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0 && canSkipCompare)
         {
             // we can skip the compare if the structs are empty
-            e = el_long(TYbool, ie.op == TOK.identity);
+            e = el_long(TYbool, ie.op == EXP.identity);
         }
         else if (t1.ty == Tstruct || t1.isfloating())
         {
@@ -1993,7 +1995,10 @@ extern (C++) class ToElemVisitor : Visitor
             elem *es2 = toElem(ie.e2, irs);
             es2 = addressElem(es2, ie.e2.type);
             e = el_param(es1, es2);
-            elem *ecount = el_long(TYsize_t, t1.size());
+            elem *ecount;
+            // In case of `real`, don't compare padding bits
+            // https://issues.dlang.org/show_bug.cgi?id=3632
+            ecount = el_long(TYsize_t, (t1.ty == TY.Tfloat80) ? (t1.size() - target.realpad) : t1.size());
             e = el_bin(OPmemcmp, TYint, e, ecount);
             e = el_bin(eop, TYint, e, el_long(TYint, 0));
             elem_setLoc(e, ie.loc);
@@ -2013,13 +2018,13 @@ extern (C++) class ToElemVisitor : Visitor
         else
             e = toElemBin(ie, eop);
 
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(InExp ie)
+    elem* visitIn(InExp ie)
     {
         elem *key = toElem(ie.e1, irs);
         elem *aa = toElem(ie.e2, irs);
@@ -2033,13 +2038,13 @@ extern (C++) class ToElemVisitor : Visitor
         elem *e = el_bin(OPcall, totym(ie.type), el_var(s), ep);
 
         elem_setLoc(e, ie.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(RemoveExp re)
+    elem* visitRemove(RemoveExp re)
     {
         auto taa = re.e1.type.toBasetype().isTypeAArray();
         assert(taa);
@@ -2053,25 +2058,25 @@ extern (C++) class ToElemVisitor : Visitor
         elem *e = el_bin(OPcall, TYnptr, el_var(s), ep);
 
         elem_setLoc(e, re.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(AssignExp ae)
+    elem* visitAssign(AssignExp ae)
     {
         version (none)
         {
-            if (ae.op == TOK.blit)      printf("BlitExp.toElem('%s')\n", ae.toChars());
-            if (ae.op == TOK.assign)    printf("AssignExp.toElem('%s')\n", ae.toChars());
-            if (ae.op == TOK.construct) printf("ConstructExp.toElem('%s')\n", ae.toChars());
+            if (ae.op == EXP.blit)      printf("BlitExp.toElem('%s')\n", ae.toChars());
+            if (ae.op == EXP.assign)    printf("AssignExp.toElem('%s')\n", ae.toChars());
+            if (ae.op == EXP.construct) printf("ConstructExp.toElem('%s')\n", ae.toChars());
         }
 
-        void setResult(elem* e)
+        elem* setResult(elem* e)
         {
             elem_setLoc(e, ae.loc);
-            result = e;
+            return e;
         }
 
         Type t1b = ae.e1.type.toBasetype();
@@ -2168,7 +2173,7 @@ extern (C++) class ToElemVisitor : Visitor
                     c1 = el_bin(OPandand, TYint, c1, c2);
 
                     // Construct: (c1 || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, ae.loc, el_copytree(elwr), el_copytree(eupr), el_copytree(enbytesx));
+                    auto ea = buildArraySliceError(irs, ae.loc, el_copytree(elwr), el_copytree(eupr), el_copytree(enbytesx));
                     elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                     einit = el_combine(einit, eb);
                 }
@@ -2206,9 +2211,9 @@ extern (C++) class ToElemVisitor : Visitor
                  */
                 bool postblit = false;
                 if (needsPostblit(t1.nextOf()) &&
-                    (ae.e2.op == TOK.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                     ae.e2.op == TOK.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                     ae.e2.op != TOK.slice && ae.e2.isLvalue()))
+                    (ae.e2.op == EXP.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
+                     ae.e2.op == EXP.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
+                     ae.e2.op != EXP.slice && ae.e2.isLvalue()))
                 {
                     postblit = true;
                 }
@@ -2265,7 +2270,7 @@ extern (C++) class ToElemVisitor : Visitor
                         }
 
                         // Construct: (c || arrayBoundsError)
-                        echeck = el_bin(OPoror, TYvoid, c, buildArrayBoundsError(irs, ae.loc, null, el_copytree(eleny), el_copytree(elen)));
+                        echeck = el_bin(OPoror, TYvoid, c, buildRangeError(irs, ae.loc));
                     }
                     else
                     {
@@ -2279,7 +2284,7 @@ extern (C++) class ToElemVisitor : Visitor
                      */
                     elem* e = el_bin(OPmemcpy, TYnptr, epto, el_param(epfr, nbytes));
                     //elem* e = el_params(nbytes, epfr, epto, null);
-                    //e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_MEMCPY)),e);
+                    //e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM.MEMCPY)),e);
                     e = el_pair(eto.Ety, el_copytree(elen), e);
 
                     /* Combine: eto, efrom, echeck, e
@@ -2287,12 +2292,12 @@ extern (C++) class ToElemVisitor : Visitor
                     e = el_combine(el_combine(eto, efrom), el_combine(echeck, e));
                     return setResult(e);
                 }
-                else if ((postblit || destructor) && ae.op != TOK.blit)
+                else if ((postblit || destructor) &&
+                    ae.op != EXP.blit &&
+                    ae.op != EXP.construct)
                 {
                     /* Generate:
-                     *      _d_arrayassign(ti, efrom, eto)
-                     * or:
-                     *      _d_arrayctor(ti, efrom, eto)
+                     *     _d_arrayassign(ti, efrom, eto)
                      */
                     el_free(esize);
                     elem *eti = getTypeInfo(ae.e1.loc, t1.nextOf().toBasetype(), irs);
@@ -2302,7 +2307,7 @@ extern (C++) class ToElemVisitor : Visitor
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(eto, efrom, eti, null);
-                    int rtl = (ae.op == TOK.construct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
+                    auto rtl = RTLSYM.ARRAYASSIGN;
                     elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
                     return setResult(e);
                 }
@@ -2317,7 +2322,7 @@ extern (C++) class ToElemVisitor : Visitor
                         efrom = addressElem(efrom, Type.tvoid.arrayOf());
                     }
                     elem *ep = el_params(eto, efrom, esize, null);
-                    elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(RTLSYM_ARRAYCOPY)), ep);
+                    elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(RTLSYM.ARRAYCOPY)), ep);
                     return setResult(e);
                 }
             }
@@ -2328,7 +2333,7 @@ extern (C++) class ToElemVisitor : Visitor
          */
         if (ae.memset == MemorySet.referenceInit)
         {
-            assert(ae.op == TOK.construct || ae.op == TOK.blit);
+            assert(ae.op == EXP.construct || ae.op == EXP.blit);
             auto ve = ae.e1.isVarExp();
             assert(ve);
             assert(ve.var.storage_class & (STC.out_ | STC.ref_));
@@ -2343,7 +2348,7 @@ extern (C++) class ToElemVisitor : Visitor
                 es = el_una(OPaddr, TYnptr, es);
             es.Ety = TYnptr;
             e = el_bin(OPeq, TYnptr, es, e);
-            assert(!(t1b.ty == Tstruct && ae.e2.op == TOK.int64));
+            assert(!(t1b.ty == Tstruct && ae.e2.op == EXP.int64));
 
             return setResult(e);
         }
@@ -2353,13 +2358,13 @@ extern (C++) class ToElemVisitor : Visitor
 
         elem *e1x;
 
-        void setResult2(elem* e)
+        elem* setResult2(elem* e)
         {
             return setResult(el_combine(e, e1x));
         }
 
         // Create a reference to e1.
-        if (e1.Eoper == OPvar)
+        if (e1.Eoper == OPvar || e1.Eoper == OPbit)
             e1x = el_copytree(e1);
         else
         {
@@ -2383,7 +2388,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (auto ve = ae.e1.isVarExp())
             if (ve.var.storage_class & STC.lazy_)
             {
-                assert(ae.op == TOK.construct || ae.op == TOK.blit);
+                assert(ae.op == EXP.construct || ae.op == EXP.blit);
                 elem* e = el_bin(OPeq, tym, e1, toElem(ae.e2, irs));
                 return setResult2(e);
             }
@@ -2393,7 +2398,7 @@ extern (C++) class ToElemVisitor : Visitor
          * If the former, because of aliasing of the return value with
          * function arguments, it'll fail.
          */
-        if (ae.op == TOK.construct && ae.e2.op == TOK.call)
+        if (ae.op == EXP.construct && ae.e2.op == EXP.call)
         {
             CallExp ce = cast(CallExp)ae.e2;
             TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
@@ -2413,7 +2418,7 @@ extern (C++) class ToElemVisitor : Visitor
              * and copy the temporary into v
              */
             if (e1.Eoper == OPvar && // no closure variables https://issues.dlang.org/show_bug.cgi?id=17622
-                ae.e1.op == TOK.variable && ce.e1.op == TOK.dotVariable)
+                ae.e1.op == EXP.variable && ce.e1.op == EXP.dotVariable)
             {
                 auto dve = cast(DotVarExp)ce.e1;
                 auto fd = dve.var.isFuncDeclaration();
@@ -2429,12 +2434,12 @@ extern (C++) class ToElemVisitor : Visitor
             }
         }
 
-        //if (ae.op == TOK.construct) printf("construct\n");
+        //if (ae.op == EXP.construct) printf("construct\n");
         if (auto t1s = t1b.isTypeStruct())
         {
-            if (ae.e2.op == TOK.int64)
+            if (ae.e2.op == EXP.int64)
             {
-                assert(ae.op == TOK.blit);
+                assert(ae.op == EXP.blit);
 
                 /* Implement:
                  *  (struct = 0)
@@ -2459,7 +2464,7 @@ extern (C++) class ToElemVisitor : Visitor
             {
                 auto ex = e1.Eoper == OPind ? e1.EV.E1 : e1;
                 if (ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
-                    (ae.op == TOK.construct || ae.op == TOK.blit))
+                    (ae.op == EXP.construct || ae.op == EXP.blit))
                 {
                     elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
                     el_free(e1);
@@ -2475,8 +2480,8 @@ extern (C++) class ToElemVisitor : Visitor
                          * Just be careful to return false for -0.0
                          */
                         if (!e ||
-                            e.op == TOK.int64 && e.isIntegerExp().toInteger() == 0 ||
-                            e.op == TOK.null_)
+                            e.op == EXP.int64 && e.isIntegerExp().toInteger() == 0 ||
+                            e.op == EXP.null_)
                             continue;
                         return false;
                     }
@@ -2507,7 +2512,7 @@ extern (C++) class ToElemVisitor : Visitor
         }
         else if (t1b.ty == Tsarray)
         {
-            if (ae.op == TOK.blit && ae.e2.op == TOK.int64)
+            if (ae.op == EXP.blit && ae.e2.op == EXP.int64)
             {
                 /* Implement:
                  *  (sarray = 0)
@@ -2549,9 +2554,9 @@ extern (C++) class ToElemVisitor : Visitor
              * as:
              *      e1[0] = x, e1[1..2] = a, e1[3] = b, ...;
              */
-            if (ae.op == TOK.construct &&   // https://issues.dlang.org/show_bug.cgi?id=11238
+            if (ae.op == EXP.construct &&   // https://issues.dlang.org/show_bug.cgi?id=11238
                                            // avoid aliasing issue
-                ae.e2.op == TOK.arrayLiteral)
+                ae.e2.op == EXP.arrayLiteral)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)ae.e2;
                 elem* e;
@@ -2566,13 +2571,13 @@ extern (C++) class ToElemVisitor : Visitor
                     e1 = el_bin(OPeq, TYnptr, el_var(stmp), e1);
 
                     // Eliminate _d_arrayliteralTX call in ae.e2.
-                    e = ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis);
+                    e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
                     e = el_combine(e1, e);
                 }
                 return setResult2(e);
             }
 
-            if (ae.op == TOK.assign)
+            if (ae.op == EXP.assign)
             {
                 if (auto ve1 = ae.e1.isVectorArrayExp())
                 {
@@ -2591,9 +2596,9 @@ extern (C++) class ToElemVisitor : Visitor
              * destructors on old assigned elements.
              */
             bool lvalueElem = false;
-            if (ae.e2.op == TOK.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                ae.e2.op == TOK.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
-                ae.e2.op != TOK.slice && ae.e2.isLvalue())
+            if (ae.e2.op == EXP.slice && (cast(UnaExp)ae.e2).e1.isLvalue() ||
+                ae.e2.op == EXP.cast_  && (cast(UnaExp)ae.e2).e1.isLvalue() ||
+                ae.e2.op != EXP.slice && ae.e2.isLvalue())
             {
                 lvalueElem = true;
             }
@@ -2601,30 +2606,16 @@ extern (C++) class ToElemVisitor : Visitor
             elem *e2 = toElem(ae.e2, irs);
 
             if (!postblit && !destructor ||
-                ae.op == TOK.construct && !lvalueElem && postblit ||
-                ae.op == TOK.blit ||
+                ae.op == EXP.construct && !lvalueElem && postblit ||
+                ae.op == EXP.blit ||
                 type_size(e1.ET) == 0)
             {
                 elem* e = elAssign(e1, e2, ae.e1.type, null);
                 return setResult2(e);
             }
-            else if (ae.op == TOK.construct)
+            else if (ae.op == EXP.construct)
             {
-                e1 = sarray_toDarray(ae.e1.loc, ae.e1.type, null, e1);
-                e2 = sarray_toDarray(ae.e2.loc, ae.e2.type, null, e2);
-
-                /* Generate:
-                 *      _d_arrayctor(ti, e2, e1)
-                 */
-                elem *eti = getTypeInfo(ae.e1.loc, t1b.nextOf().toBasetype(), irs);
-                if (irs.target.os == Target.OS.Windows && irs.target.is64bit)
-                {
-                    e1 = addressElem(e1, Type.tvoid.arrayOf());
-                    e2 = addressElem(e2, Type.tvoid.arrayOf());
-                }
-                elem *ep = el_params(e1, e2, eti, null);
-                elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCTOR)), ep);
-                return setResult2(e);
+                assert(0, "Trying reference _d_arrayctor, this should not happen!");
             }
             else
             {
@@ -2646,7 +2637,7 @@ extern (C++) class ToElemVisitor : Visitor
                     e2 = addressElem(e2, Type.tvoid.arrayOf());
                 }
                 elem *ep = el_params(etmp, e1, e2, eti, null);
-                int rtl = lvalueElem ? RTLSYM_ARRAYASSIGN_L : RTLSYM_ARRAYASSIGN_R;
+                const rtl = lvalueElem ? RTLSYM.ARRAYASSIGN_L : RTLSYM.ARRAYASSIGN_R;
                 elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
                 return setResult2(e);
             }
@@ -2662,25 +2653,25 @@ extern (C++) class ToElemVisitor : Visitor
     /***************************************
      */
 
-    override void visit(AddAssignExp e)
+    elem* visitAddAssign(AddAssignExp e)
     {
         //printf("AddAssignExp.toElem() %s\n", e.toChars());
-        result = toElemBinAssign(e, OPaddass);
+        return toElemBinAssign(e, OPaddass);
     }
 
 
     /***************************************
      */
 
-    override void visit(MinAssignExp e)
+    elem* visitMinAssign(MinAssignExp e)
     {
-        result = toElemBinAssign(e, OPminass);
+        return toElemBinAssign(e, OPminass);
     }
 
     /***************************************
      */
 
-    override void visit(CatAssignExp ce)
+    elem* visitCatAssign(CatAssignExp ce)
     {
         //printf("CatAssignExp.toElem('%s')\n", ce.toChars());
         elem *e;
@@ -2700,23 +2691,23 @@ extern (C++) class ToElemVisitor : Visitor
 
         switch (ce.op)
         {
-            case TOK.concatenateDcharAssign:
+            case EXP.concatenateDcharAssign:
             {
                 // Append dchar to char[] or wchar[]
                 assert(tb2.ty == Tdchar &&
                       (tb1n.ty == Tchar || tb1n.ty == Twchar));
 
                 elem *ep = el_params(e2, el_copytree(ev), null);
-                int rtl = (tb1.nextOf().ty == Tchar)
-                        ? RTLSYM_ARRAYAPPENDCD
-                        : RTLSYM_ARRAYAPPENDWD;
+                const rtl = (tb1.nextOf().ty == Tchar)
+                        ? RTLSYM.ARRAYAPPENDCD
+                        : RTLSYM.ARRAYAPPENDWD;
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
                 toTraceGC(irs, e, ce.loc);
                 elem_setLoc(e, ce.loc);
                 break;
             }
 
-            case TOK.concatenateAssign:
+            case EXP.concatenateAssign:
             {
                 // Append array
                 assert(tb2.ty == Tarray || tb2.ty == Tsarray);
@@ -2732,12 +2723,12 @@ extern (C++) class ToElemVisitor : Visitor
                 else
                     e2 = useOPstrpar(e2);
                 elem *ep = el_params(e2, el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
-                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
+                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYAPPENDT)), ep);
                 toTraceGC(irs, e, ce.loc);
                 break;
             }
 
-            case TOK.concatenateElemAssign:
+            case EXP.concatenateElemAssign:
             {
                 // Append element
                 assert(tb1n.equals(tb2));
@@ -2760,7 +2751,7 @@ extern (C++) class ToElemVisitor : Visitor
                 // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
                 elem *ep = el_param(el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs));
                 ep = el_param(el_long(TYsize_t, 1), ep);
-                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
+                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYAPPENDCTX)), ep);
                 toTraceGC(irs, e, ce.loc);
                 Symbol *stmp = symbol_genauto(Type_toCtype(tb1));
                 e = el_bin(OPeq, TYdarray, el_var(stmp), e);
@@ -2793,166 +2784,166 @@ extern (C++) class ToElemVisitor : Visitor
         e = el_combine(e, ev);
 
         elem_setLoc(e, ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(DivAssignExp e)
+    elem* visitDivAssign(DivAssignExp e)
     {
-        result = toElemBinAssign(e, OPdivass);
+        return toElemBinAssign(e, OPdivass);
     }
 
     /***************************************
      */
 
-    override void visit(ModAssignExp e)
+    elem* visitModAssign(ModAssignExp e)
     {
-        result = toElemBinAssign(e, OPmodass);
+        return toElemBinAssign(e, OPmodass);
     }
 
     /***************************************
      */
 
-    override void visit(MulAssignExp e)
+    elem* visitMulAssign(MulAssignExp e)
     {
-        result = toElemBinAssign(e, OPmulass);
+        return toElemBinAssign(e, OPmulass);
     }
 
     /***************************************
      */
 
-    override void visit(ShlAssignExp e)
+    elem* visitShlAssign(ShlAssignExp e)
     {
-        result = toElemBinAssign(e, OPshlass);
+        return toElemBinAssign(e, OPshlass);
     }
 
     /***************************************
      */
 
-    override void visit(ShrAssignExp e)
+    elem* visitShrAssign(ShrAssignExp e)
     {
         //printf("ShrAssignExp.toElem() %s, %s\n", e.e1.type.toChars(), e.e1.toChars());
         Type t1 = e.e1.type;
-        if (e.e1.op == TOK.cast_)
+        if (e.e1.op == EXP.cast_)
         {
             /* Use the type before it was integrally promoted to int
              */
             CastExp ce = cast(CastExp)e.e1;
             t1 = ce.e1.type;
         }
-        result = toElemBinAssign(e, t1.isunsigned() ? OPshrass : OPashrass);
+        return toElemBinAssign(e, t1.isunsigned() ? OPshrass : OPashrass);
     }
 
     /***************************************
      */
 
-    override void visit(UshrAssignExp e)
+    elem* visitUshrAssign(UshrAssignExp e)
     {
-        result = toElemBinAssign(e, OPshrass);
+        return toElemBinAssign(e, OPshrass);
     }
 
     /***************************************
      */
 
-    override void visit(AndAssignExp e)
+    elem* visitAndAssign(AndAssignExp e)
     {
-        result = toElemBinAssign(e, OPandass);
+        return toElemBinAssign(e, OPandass);
     }
 
     /***************************************
      */
 
-    override void visit(OrAssignExp e)
+    elem* visitOrAssign(OrAssignExp e)
     {
-        result = toElemBinAssign(e, OPorass);
+        return toElemBinAssign(e, OPorass);
     }
 
     /***************************************
      */
 
-    override void visit(XorAssignExp e)
+    elem* visitXorAssign(XorAssignExp e)
     {
-        result = toElemBinAssign(e, OPxorass);
+        return toElemBinAssign(e, OPxorass);
     }
 
     /***************************************
      */
 
-    override void visit(LogicalExp aae)
+    elem* visitLogical(LogicalExp aae)
     {
         tym_t tym = totym(aae.type);
 
         elem *el = toElem(aae.e1, irs);
         elem *er = toElemDtor(aae.e2, irs);
-        elem *e = el_bin(aae.op == TOK.andAnd ? OPandand : OPoror,tym,el,er);
+        elem *e = el_bin(aae.op == EXP.andAnd ? OPandand : OPoror,tym,el,er);
 
         elem_setLoc(e, aae.loc);
 
         if (irs.params.cov && aae.e2.loc.linnum)
             e.EV.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.EV.E2);
 
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(XorExp e)
+    elem* visitXor(XorExp e)
     {
-        result = toElemBin(e, OPxor);
+        return toElemBin(e, OPxor);
     }
 
     /***************************************
      */
 
-    override void visit(AndExp e)
+    elem* visitAnd(AndExp e)
     {
-        result = toElemBin(e, OPand);
+        return toElemBin(e, OPand);
     }
 
     /***************************************
      */
 
-    override void visit(OrExp e)
+    elem* visitOr(OrExp e)
     {
-        result = toElemBin(e, OPor);
+        return toElemBin(e, OPor);
     }
 
     /***************************************
      */
 
-    override void visit(ShlExp e)
+    elem* visitShl(ShlExp e)
     {
-        result = toElemBin(e, OPshl);
+        return toElemBin(e, OPshl);
     }
 
     /***************************************
      */
 
-    override void visit(ShrExp e)
+    elem* visitShr(ShrExp e)
     {
-        result = toElemBin(e, e.e1.type.isunsigned() ? OPshr : OPashr);
+        return toElemBin(e, e.e1.type.isunsigned() ? OPshr : OPashr);
     }
 
     /***************************************
      */
 
-    override void visit(UshrExp se)
+    elem* visitUshr(UshrExp se)
     {
         elem *eleft  = toElem(se.e1, irs);
         eleft.Ety = touns(eleft.Ety);
         elem *eright = toElem(se.e2, irs);
         elem *e = el_bin(OPshr, totym(se.type), eleft, eright);
         elem_setLoc(e, se.loc);
-        result = e;
+        return e;
     }
 
     /****************************************
      */
 
-    override void visit(CommaExp ce)
+    elem* visitComma(CommaExp ce)
     {
         assert(ce.e1 && ce.e2);
         elem *eleft  = toElem(ce.e1, irs);
@@ -2960,13 +2951,13 @@ extern (C++) class ToElemVisitor : Visitor
         elem *e = el_combine(eleft, eright);
         if (e)
             elem_setLoc(e, ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(CondExp ce)
+    elem* visitCond(CondExp ce)
     {
         elem *ec = toElem(ce.econd, irs);
 
@@ -3012,26 +3003,26 @@ extern (C++) class ToElemVisitor : Visitor
                 e.ET = Type_toCtype(ce.e1.type);
         }
         elem_setLoc(e, ce.loc);
-        result = e;
+        return e;
     }
 
     /***************************************
      */
 
-    override void visit(TypeExp e)
+    elem* visitType(TypeExp e)
     {
         //printf("TypeExp.toElem()\n");
         e.error("type `%s` is not an expression", e.toChars());
-        result = el_long(TYint, 0);
+        return el_long(TYint, 0);
     }
 
-    override void visit(ScopeExp e)
+    elem* visitScope(ScopeExp e)
     {
         e.error("`%s` is not an expression", e.sds.toChars());
-        result = el_long(TYint, 0);
+        return el_long(TYint, 0);
     }
 
-    override void visit(DotVarExp dve)
+    elem* visitDotVar(DotVarExp dve)
     {
         // *(&e + offset)
 
@@ -3041,8 +3032,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (!v)
         {
             dve.error("`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
-            result = el_long(TYint, 0);
-            return;
+            return el_long(TYint, 0);
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=12900
@@ -3078,15 +3068,21 @@ extern (C++) class ToElemVisitor : Visitor
         if (v.storage_class & (STC.out_ | STC.ref_))
             e = el_una(OPind, TYnptr, e);
         e = el_una(OPind, totym(dve.type), e);
+        if (auto bf = v.isBitFieldDeclaration())
+        {
+            // Insert special bitfield operator
+            auto mos = el_long(TYuint, bf.fieldWidth * 256 + bf.bitOffset);
+            e = el_bin(OPbit, e.Ety, e, mos);
+        }
         if (tybasic(e.Ety) == TYstruct)
         {
             e.ET = Type_toCtype(dve.type);
         }
         elem_setLoc(e,dve.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DelegateExp de)
+    elem* visitDelegate(DelegateExp de)
     {
         int directcall = 0;
         //printf("DelegateExp.toElem() '%s'\n", de.toChars());
@@ -3124,7 +3120,7 @@ extern (C++) class ToElemVisitor : Visitor
         if (de.func.isNested() && !de.func.isThis())
         {
             ep = el_ptr(sfunc);
-            if (de.e1.op == TOK.null_)
+            if (de.e1.op == EXP.null_)
                 ethis = toElem(de.e1, irs);
             else
                 ethis = getEthis(de.loc, irs, de.func, de.func.toParentLocal());
@@ -3141,7 +3137,7 @@ extern (C++) class ToElemVisitor : Visitor
             if (ethis2)
                 ethis2 = setEthis2(de.loc, irs, de.func, ethis2, &ethis, &eeq);
 
-            if (de.e1.op == TOK.super_ || de.e1.op == TOK.dotType)
+            if (de.e1.op == EXP.super_ || de.e1.op == EXP.dotType)
                 directcall = 1;
 
             if (!de.func.isThis())
@@ -3187,19 +3183,19 @@ extern (C++) class ToElemVisitor : Visitor
         elem_setLoc(e, de.loc);
         if (eeq)
             e = el_combine(eeq, e);
-        result = e;
+        return e;
     }
 
-    override void visit(DotTypeExp dte)
+    elem* visitDotType(DotTypeExp dte)
     {
         // Just a pass-thru to e1
         //printf("DotTypeExp.toElem() %s\n", dte.toChars());
         elem *e = toElem(dte.e1, irs);
         elem_setLoc(e, dte.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(CallExp ce)
+    elem* visitCall(CallExp ce)
     {
         //printf("[%s] CallExp.toElem('%s') %p, %s\n", ce.loc.toChars(), ce.toChars(), ce, ce.type.toChars());
         assert(ce.e1.type);
@@ -3213,7 +3209,7 @@ extern (C++) class ToElemVisitor : Visitor
         elem *ec;
         FuncDeclaration fd = null;
         bool dctor = false;
-        if (ce.e1.op == TOK.dotVariable && t1.ty != Tdelegate)
+        if (ce.e1.op == EXP.dotVariable && t1.ty != Tdelegate)
         {
             DotVarExp dve = cast(DotVarExp)ce.e1;
 
@@ -3247,10 +3243,10 @@ extern (C++) class ToElemVisitor : Visitor
             if (fd && fd.isCtorDeclaration())
             {
                 //printf("test30 %s\n", dve.e1.toChars());
-                if (dve.e1.op == TOK.comma)
+                if (dve.e1.op == EXP.comma)
                 {
                     //printf("test30a\n");
-                    if ((cast(CommaExp)dve.e1).e1.op == TOK.declaration && (cast(CommaExp)dve.e1).e2.op == TOK.variable)
+                    if ((cast(CommaExp)dve.e1).e1.op == EXP.declaration && (cast(CommaExp)dve.e1).e2.op == EXP.variable)
                     {   // dve.e1: (declaration , var)
 
                         //printf("test30b\n");
@@ -3301,7 +3297,7 @@ extern (C++) class ToElemVisitor : Visitor
                 }
             }
         }
-        else if (ce.e1.op == TOK.variable)
+        else if (ce.e1.op == EXP.variable)
         {
             fd = (cast(VarExp)ce.e1).var.isFuncDeclaration();
             version (none)
@@ -3410,10 +3406,10 @@ extern (C++) class ToElemVisitor : Visitor
         elem_setLoc(ecall, ce.loc);
         if (eeq)
             ecall = el_combine(eeq, ecall);
-        result = ecall;
+        return ecall;
     }
 
-    override void visit(AddrExp ae)
+    elem* visitAddr(AddrExp ae)
     {
         //printf("AddrExp.toElem('%s')\n", ae.toChars());
         if (auto sle = ae.e1.isStructLiteralExp())
@@ -3424,8 +3420,7 @@ extern (C++) class ToElemVisitor : Visitor
             elem *e = el_ptr(toSymbol(sle.origin));
             e.ET = Type_toCtype(ae.type);
             elem_setLoc(e, ae.loc);
-            result = e;
-            return;
+            return e;
         }
         else
         {
@@ -3433,12 +3428,11 @@ extern (C++) class ToElemVisitor : Visitor
             e = addressElem(e, ae.e1.type);
             e.Ety = totym(ae.type);
             elem_setLoc(e, ae.loc);
-            result = e;
-            return;
+            return e;
         }
     }
 
-    override void visit(PtrExp pe)
+    elem* visitPtr(PtrExp pe)
     {
         //printf("PtrExp.toElem() %s\n", pe.toChars());
         elem *e = toElem(pe.e1, irs);
@@ -3454,15 +3448,15 @@ extern (C++) class ToElemVisitor : Visitor
             e.ET = Type_toCtype(pe.type);
         }
         elem_setLoc(e, pe.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DeleteExp de)
+    elem* visitDelete(DeleteExp de)
     {
         Type tb;
 
         //printf("DeleteExp.toElem()\n");
-        if (de.e1.op == TOK.index)
+        if (de.e1.op == EXP.index)
         {
             IndexExp ae = cast(IndexExp)de.e1;
             tb = ae.e1.type.toBasetype();
@@ -3471,64 +3465,23 @@ extern (C++) class ToElemVisitor : Visitor
         //e1.type.print();
         elem *e = toElem(de.e1, irs);
         tb = de.e1.type.toBasetype();
-        int rtl;
+        RTLSYM rtl;
         switch (tb.ty)
         {
-            case Tarray:
-            {
-                e = addressElem(e, de.e1.type);
-                rtl = RTLSYM_DELARRAYT;
-
-                /* See if we need to run destructors on the array contents
-                 */
-                elem *et = null;
-                Type tv = tb.nextOf().baseElemOf();
-                if (auto ts = tv.isTypeStruct())
-                {
-                    // FIXME: ts can be non-mutable, but _d_delarray_t requests TypeInfo_Struct.
-                    StructDeclaration sd = ts.sym;
-                    if (sd.dtor)
-                        et = getTypeInfo(de.e1.loc, tb.nextOf(), irs);
-                }
-                if (!et)                            // if no destructors needed
-                    et = el_long(TYnptr, 0);        // pass null for TypeInfo
-                e = el_params(et, e, null);
-                // call _d_delarray_t(e, et);
-                break;
-            }
             case Tclass:
-                if (de.e1.op == TOK.variable)
+                if (de.e1.op == EXP.variable)
                 {
                     VarExp ve = cast(VarExp)de.e1;
                     if (ve.var.isVarDeclaration() &&
                         ve.var.isVarDeclaration().onstack)
                     {
-                        rtl = RTLSYM_CALLFINALIZER;
+                        rtl = RTLSYM.CALLFINALIZER;
                         if (tb.isClassHandle().isInterfaceDeclaration())
-                            rtl = RTLSYM_CALLINTERFACEFINALIZER;
+                            rtl = RTLSYM.CALLINTERFACEFINALIZER;
                         break;
                     }
                 }
-                e = addressElem(e, de.e1.type);
-                rtl = RTLSYM_DELCLASS;
-                if (tb.isClassHandle().isInterfaceDeclaration())
-                    rtl = RTLSYM_DELINTERFACE;
-                break;
-
-            case Tpointer:
-                e = addressElem(e, de.e1.type);
-                rtl = RTLSYM_DELMEMORY;
-                tb = (cast(TypePointer)tb).next.toBasetype();
-                if (auto ts = tb.isTypeStruct())
-                {
-                    if (ts.sym.dtor)
-                    {
-                        rtl = RTLSYM_DELSTRUCT;
-                        elem *et = getTypeInfo(de.e1.loc, tb, irs);
-                        e = el_params(et, e, null);
-                    }
-                }
-                break;
+                goto default;
 
             default:
                 assert(0);
@@ -3536,10 +3489,10 @@ extern (C++) class ToElemVisitor : Visitor
         e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtl)), e);
         toTraceGC(irs, e, de.loc);
         elem_setLoc(e, de.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(VectorExp ve)
+    elem* visitVector(VectorExp ve)
     {
         version (none)
         {
@@ -3550,7 +3503,7 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem* e;
-        if (ve.e1.op == TOK.arrayLiteral)
+        if (ve.e1.op == EXP.arrayLiteral)
         {
             e = el_calloc();
             e.Eoper = OPconst;
@@ -3605,17 +3558,18 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_una(OPvecfill, totym(ve.type), e1);
         }
         elem_setLoc(e, ve.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(VectorArrayExp vae)
+    elem* visitVectorArray(VectorArrayExp vae)
     {
+        elem* result;
         // Generate code for `vec.array`
         if (auto ve = vae.e1.isVectorExp())
         {
             // https://issues.dlang.org/show_bug.cgi?id=19607
             // When viewing a vector literal as an array, build the underlying array directly.
-            if (ve.e1.op == TOK.arrayLiteral)
+            if (ve.e1.op == EXP.arrayLiteral)
                 result = toElem(ve.e1, irs);
             else
             {
@@ -3623,7 +3577,7 @@ extern (C++) class ToElemVisitor : Visitor
                 type* tarray = Type_toCtype(vae.type);
                 Symbol* stmp = symbol_genauto(tarray);
                 result = setArray(ve.e1, el_ptr(stmp), el_long(TYsize_t, tarray.Tdim),
-                                  ve.e1.type, toElem(ve.e1, irs), irs, TOK.blit);
+                                  ve.e1.type, toElem(ve.e1, irs), irs, EXP.blit);
                 result = el_combine(result, el_var(stmp));
                 result.ET = tarray;
             }
@@ -3642,9 +3596,10 @@ extern (C++) class ToElemVisitor : Visitor
         }
         result.Ety = totym(vae.type);
         elem_setLoc(result, vae.loc);
+        return result;
     }
 
-    override void visit(CastExp ce)
+    elem* visitCast(CastExp ce)
     {
         version (none)
         {
@@ -3655,751 +3610,18 @@ extern (C++) class ToElemVisitor : Visitor
         }
         elem *e = toElem(ce.e1, irs);
 
-        result = toElemCast(ce, e, false);
+        return toElemCast(ce, e, false);
     }
 
-    elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
-    {
-        tym_t ftym;
-        tym_t ttym;
-        OPER eop;
-
-        Type tfrom = ce.e1.type.toBasetype();
-        Type t = ce.to.toBasetype();         // skip over typedef's
-
-        TY fty;
-        TY tty;
-        if (t.equals(tfrom) ||
-            t.equals(Type.tvoid)) // https://issues.dlang.org/show_bug.cgi?id=18573
-                                  // Remember to pop value left on FPU stack
-            return e;
-
-        fty = tfrom.ty;
-        tty = t.ty;
-        //printf("fty = %d\n", fty);
-
-        static elem* Lret(CastExp ce, elem* e)
-        {
-            // Adjust for any type paints
-            Type t = ce.type.toBasetype();
-            e.Ety = totym(t);
-            if (tyaggregate(e.Ety))
-                e.ET = Type_toCtype(t);
-
-            elem_setLoc(e, ce.loc);
-            return e;
-        }
-
-        static elem* Lpaint(CastExp ce, elem* e, tym_t ttym)
-        {
-            e.Ety = ttym;
-            return Lret(ce, e);
-        }
-
-        static elem* Lzero(CastExp ce, elem* e, tym_t ttym)
-        {
-            e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
-            return Lret(ce, e);
-        }
-
-        static elem* Leop(CastExp ce, elem* e, OPER eop, tym_t ttym)
-        {
-            e = el_una(eop, ttym, e);
-            return Lret(ce, e);
-        }
-
-        if (tty == Tpointer && fty == Tarray)
-        {
-            if (e.Eoper == OPvar)
-            {
-                // e1 . *(&e1 + 4)
-                e = el_una(OPaddr, TYnptr, e);
-                e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize(TYnptr)));
-                e = el_una(OPind,totym(t),e);
-            }
-            else
-            {
-                // e1 . (uint)(e1 >> 32)
-                if (target.is64bit)
-                {
-                    e = el_bin(OPshr, TYucent, e, el_long(TYint, 64));
-                    e = el_una(OP128_64, totym(t), e);
-                }
-                else
-                {
-                    e = el_bin(OPshr, TYullong, e, el_long(TYint, 32));
-                    e = el_una(OP64_32, totym(t), e);
-                }
-            }
-            return Lret(ce, e);
-        }
-
-        if (tty == Tpointer && fty == Tsarray)
-        {
-            // e1 . &e1
-            e = el_una(OPaddr, TYnptr, e);
-            return Lret(ce, e);
-        }
-
-        // Convert from static array to dynamic array
-        if (tty == Tarray && fty == Tsarray)
-        {
-            e = sarray_toDarray(ce.loc, tfrom, t, e);
-            return Lret(ce, e);
-        }
-
-        // Convert from dynamic array to dynamic array
-        if (tty == Tarray && fty == Tarray)
-        {
-            uint fsize = cast(uint)tfrom.nextOf().size();
-            uint tsize = cast(uint)t.nextOf().size();
-
-            if (fsize != tsize)
-            {   // Array element sizes do not match, so we must adjust the dimensions
-                if (tsize != 0 && fsize % tsize == 0)
-                {
-                    // Set array dimension to (length * (fsize / tsize))
-                    // Generate pair(e.length * (fsize/tsize), es.ptr)
-
-                    elem *es = el_same(&e);
-
-                    elem *eptr = el_una(OPmsw, TYnptr, es);
-                    elem *elen = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
-                    elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
-                    e = el_pair(totym(ce.type), elen2, eptr);
-                }
-                else
-                {
-                    assert(false, "This case should have been rewritten to `__ArrayCast` in the semantic phase");
-                }
-            }
-            return Lret(ce, e);
-        }
-
-        // Casting between class/interface may require a runtime check
-        if (fty == Tclass && tty == Tclass)
-        {
-            ClassDeclaration cdfrom = tfrom.isClassHandle();
-            ClassDeclaration cdto   = t.isClassHandle();
-
-            int offset;
-            if (cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
-            {
-                /* The offset from cdfrom => cdto is known at compile time.
-                 * Cases:
-                 *  - class => base class (upcast)
-                 *  - class => base interface (upcast)
-                 */
-
-                //printf("offset = %d\n", offset);
-                if (offset == ClassDeclaration.OFFSET_FWDREF)
-                {
-                    assert(0, "unexpected forward reference");
-                }
-                else if (offset)
-                {
-                    /* Rewrite cast as (e ? e + offset : null)
-                     */
-                    if (ce.e1.op == TOK.this_)
-                    {
-                        // Assume 'this' is never null, so skip null check
-                        e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
-                    }
-                    else
-                    {
-                        elem *etmp = el_same(&e);
-                        elem *ex = el_bin(OPadd, TYnptr, etmp, el_long(TYsize_t, offset));
-                        ex = el_bin(OPcolon, TYnptr, ex, el_long(TYnptr, 0));
-                        e = el_bin(OPcond, TYnptr, e, ex);
-                    }
-                }
-                else
-                {
-                    // Casting from derived class to base class is a no-op
-                }
-            }
-            else if (cdfrom.classKind == ClassKind.cpp)
-            {
-                if (cdto.classKind == ClassKind.cpp)
-                {
-                    /* Casting from a C++ interface to a C++ interface
-                     * is always a 'paint' operation
-                     */
-                    return Lret(ce, e);                  // no-op
-                }
-
-                /* Casting from a C++ interface to a class
-                 * always results in null because there is no runtime
-                 * information available to do it.
-                 *
-                 * Casting from a C++ interface to a non-C++ interface
-                 * always results in null because there's no way one
-                 * can be derived from the other.
-                 */
-                e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
-                return Lret(ce, e);
-            }
-            else
-            {
-                /* The offset from cdfrom => cdto can only be determined at runtime.
-                 * Cases:
-                 *  - class     => derived class (downcast)
-                 *  - interface => derived class (downcast)
-                 *  - class     => foreign interface (cross cast)
-                 *  - interface => base or foreign interface (cross cast)
-                 */
-                int rtl = cdfrom.isInterfaceDeclaration()
-                            ? RTLSYM_INTERFACE_CAST
-                            : RTLSYM_DYNAMIC_CAST;
-                elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
-                e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
-            }
-            return Lret(ce, e);
-        }
-
-        if (fty == Tvector && tty == Tsarray)
-        {
-            if (tfrom.size() == t.size())
-            {
-                if (e.Eoper != OPvar && e.Eoper != OPind)
-                {
-                    // can't perform array ops on it unless it's in memory
-                    e = addressElem(e, tfrom);
-                    e = el_una(OPind, TYarray, e);
-                    e.ET = Type_toCtype(t);
-                }
-                return Lret(ce, e);
-            }
-        }
-
-        ftym = tybasic(e.Ety);
-        ttym = tybasic(totym(t));
-        if (ftym == ttym)
-            return Lret(ce, e);
-
-        /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
-         * generic equivalent (as far as casting goes)
-         */
-        switch (tty)
-        {
-            case Tpointer:
-                if (fty == Tdelegate)
-                    return Lpaint(ce, e, ttym);
-                tty = target.is64bit ? Tuns64 : Tuns32;
-                break;
-
-            case Tchar:     tty = Tuns8;    break;
-            case Twchar:    tty = Tuns16;   break;
-            case Tdchar:    tty = Tuns32;   break;
-            case Tvoid:     return Lpaint(ce, e, ttym);
-
-            case Tbool:
-            {
-                // Construct e?true:false
-                e = el_una(OPbool, ttym, e);
-                return Lret(ce, e);
-            }
-
-            default:
-                break;
-        }
-
-        switch (fty)
-        {
-            case Tnull:
-            {
-                // typeof(null) is same with void* in binary level.
-                return Lzero(ce, e, ttym);
-            }
-            case Tpointer:  fty = target.is64bit ? Tuns64 : Tuns32;  break;
-            case Tchar:     fty = Tuns8;    break;
-            case Twchar:    fty = Tuns16;   break;
-            case Tdchar:    fty = Tuns32;   break;
-
-            default:
-                break;
-        }
-
-        static int X(int fty, int tty) { return fty * TMAX + tty; }
-
-        while (true)
-        {
-            switch (X(fty,tty))
-            {
-                /* ============================= */
-
-                case X(Tbool,Tint8):
-                case X(Tbool,Tuns8):
-                    return Lpaint(ce, e, ttym);
-                case X(Tbool,Tint16):
-                case X(Tbool,Tuns16):
-                case X(Tbool,Tint32):
-                case X(Tbool,Tuns32):
-                    if (isLvalue)
-                    {
-                        eop = OPu8_16;
-                        return Leop(ce, e, eop, ttym);
-                    }
-                    else
-                    {
-                        e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
-                        fty = Tuns8;
-                        continue;
-                    }
-
-                case X(Tbool,Tint64):
-                case X(Tbool,Tuns64):
-                case X(Tbool,Tfloat32):
-                case X(Tbool,Tfloat64):
-                case X(Tbool,Tfloat80):
-                case X(Tbool,Tcomplex32):
-                case X(Tbool,Tcomplex64):
-                case X(Tbool,Tcomplex80):
-                    e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
-                    fty = Tuns8;
-                    continue;
-
-                case X(Tbool,Timaginary32):
-                case X(Tbool,Timaginary64):
-                case X(Tbool,Timaginary80):
-                    return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint8,Tuns8):    return Lpaint(ce, e, ttym);
-                case X(Tint8,Tint16):
-                case X(Tint8,Tuns16):
-                case X(Tint8,Tint32):
-                case X(Tint8,Tuns32):   eop = OPs8_16;  return Leop(ce, e, eop, ttym);
-                case X(Tint8,Tint64):
-                case X(Tint8,Tuns64):
-                case X(Tint8,Tfloat32):
-                case X(Tint8,Tfloat64):
-                case X(Tint8,Tfloat80):
-                case X(Tint8,Tcomplex32):
-                case X(Tint8,Tcomplex64):
-                case X(Tint8,Tcomplex80):
-                    e = el_una(OPs8_16, TYint, e);
-                    fty = Tint32;
-                    continue;
-                case X(Tint8,Timaginary32):
-                case X(Tint8,Timaginary64):
-                case X(Tint8,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns8,Tint8):    return Lpaint(ce, e, ttym);
-                case X(Tuns8,Tint16):
-                case X(Tuns8,Tuns16):
-                case X(Tuns8,Tint32):
-                case X(Tuns8,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
-                case X(Tuns8,Tint64):
-                case X(Tuns8,Tuns64):
-                case X(Tuns8,Tfloat32):
-                case X(Tuns8,Tfloat64):
-                case X(Tuns8,Tfloat80):
-                case X(Tuns8,Tcomplex32):
-                case X(Tuns8,Tcomplex64):
-                case X(Tuns8,Tcomplex80):
-                    e = el_una(OPu8_16, TYuint, e);
-                    fty = Tuns32;
-                    continue;
-                case X(Tuns8,Timaginary32):
-                case X(Tuns8,Timaginary64):
-                case X(Tuns8,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint16,Tint8):
-                case X(Tint16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
-                case X(Tint16,Tuns16):  return Lpaint(ce, e, ttym);
-                case X(Tint16,Tint32):
-                case X(Tint16,Tuns32):  eop = OPs16_32; return Leop(ce, e, eop, ttym);
-                case X(Tint16,Tint64):
-                case X(Tint16,Tuns64):  e = el_una(OPs16_32, TYint, e);
-                    fty = Tint32;
-                    continue;
-                case X(Tint16,Tfloat32):
-                case X(Tint16,Tfloat64):
-                case X(Tint16,Tfloat80):
-                case X(Tint16,Tcomplex32):
-                case X(Tint16,Tcomplex64):
-                case X(Tint16,Tcomplex80):
-                    e = el_una(OPs16_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tint16,Timaginary32):
-                case X(Tint16,Timaginary64):
-                case X(Tint16,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns16,Tint8):
-                case X(Tuns16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
-                case X(Tuns16,Tint16):  return Lpaint(ce, e, ttym);
-                case X(Tuns16,Tint32):
-                case X(Tuns16,Tuns32):  eop = OPu16_32; return Leop(ce, e, eop, ttym);
-                case X(Tuns16,Tint64):
-                case X(Tuns16,Tuns64):
-                case X(Tuns16,Tfloat64):
-                case X(Tuns16,Tfloat32):
-                case X(Tuns16,Tfloat80):
-                case X(Tuns16,Tcomplex32):
-                case X(Tuns16,Tcomplex64):
-                case X(Tuns16,Tcomplex80):
-                    e = el_una(OPu16_32, TYuint, e);
-                    fty = Tuns32;
-                    continue;
-                case X(Tuns16,Timaginary32):
-                case X(Tuns16,Timaginary64):
-                case X(Tuns16,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint32,Tint8):
-                case X(Tint32,Tuns8):   e = el_una(OP32_16, TYshort, e);
-                    fty = Tint16;
-                    continue;
-                case X(Tint32,Tint16):
-                case X(Tint32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
-                case X(Tint32,Tuns32):  return Lpaint(ce, e, ttym);
-                case X(Tint32,Tint64):
-                case X(Tint32,Tuns64):  eop = OPs32_64; return Leop(ce, e, eop, ttym);
-                case X(Tint32,Tfloat32):
-                case X(Tint32,Tfloat64):
-                case X(Tint32,Tfloat80):
-                case X(Tint32,Tcomplex32):
-                case X(Tint32,Tcomplex64):
-                case X(Tint32,Tcomplex80):
-                    e = el_una(OPs32_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tint32,Timaginary32):
-                case X(Tint32,Timaginary64):
-                case X(Tint32,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns32,Tint8):
-                case X(Tuns32,Tuns8):   e = el_una(OP32_16, TYshort, e);
-                    fty = Tuns16;
-                    continue;
-                case X(Tuns32,Tint16):
-                case X(Tuns32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
-                case X(Tuns32,Tint32):  return Lpaint(ce, e, ttym);
-                case X(Tuns32,Tint64):
-                case X(Tuns32,Tuns64):  eop = OPu32_64; return Leop(ce, e, eop, ttym);
-                case X(Tuns32,Tfloat32):
-                case X(Tuns32,Tfloat64):
-                case X(Tuns32,Tfloat80):
-                case X(Tuns32,Tcomplex32):
-                case X(Tuns32,Tcomplex64):
-                case X(Tuns32,Tcomplex80):
-                    e = el_una(OPu32_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tuns32,Timaginary32):
-                case X(Tuns32,Timaginary64):
-                case X(Tuns32,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tint64,Tint8):
-                case X(Tint64,Tuns8):
-                case X(Tint64,Tint16):
-                case X(Tint64,Tuns16):  e = el_una(OP64_32, TYint, e);
-                    fty = Tint32;
-                    continue;
-                case X(Tint64,Tint32):
-                case X(Tint64,Tuns32):  eop = OP64_32; return Leop(ce, e, eop, ttym);
-                case X(Tint64,Tuns64):  return Lpaint(ce, e, ttym);
-                case X(Tint64,Tfloat32):
-                case X(Tint64,Tfloat64):
-                case X(Tint64,Tfloat80):
-                case X(Tint64,Tcomplex32):
-                case X(Tint64,Tcomplex64):
-                case X(Tint64,Tcomplex80):
-                    e = el_una(OPs64_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tint64,Timaginary32):
-                case X(Tint64,Timaginary64):
-                case X(Tint64,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tuns64,Tint8):
-                case X(Tuns64,Tuns8):
-                case X(Tuns64,Tint16):
-                case X(Tuns64,Tuns16):  e = el_una(OP64_32, TYint, e);
-                    fty = Tint32;
-                    continue;
-                case X(Tuns64,Tint32):
-                case X(Tuns64,Tuns32):  eop = OP64_32;  return Leop(ce, e, eop, ttym);
-                case X(Tuns64,Tint64):  return Lpaint(ce, e, ttym);
-                case X(Tuns64,Tfloat32):
-                case X(Tuns64,Tfloat64):
-                case X(Tuns64,Tfloat80):
-                case X(Tuns64,Tcomplex32):
-                case X(Tuns64,Tcomplex64):
-                case X(Tuns64,Tcomplex80):
-                    e = el_una(OPu64_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tuns64,Timaginary32):
-                case X(Tuns64,Timaginary64):
-                case X(Tuns64,Timaginary80): return Lzero(ce, e, ttym);
-
-                    /* ============================= */
-
-                case X(Tfloat32,Tint8):
-                case X(Tfloat32,Tuns8):
-                case X(Tfloat32,Tint16):
-                case X(Tfloat32,Tuns16):
-                case X(Tfloat32,Tint32):
-                case X(Tfloat32,Tuns32):
-                case X(Tfloat32,Tint64):
-                case X(Tfloat32,Tuns64):
-                case X(Tfloat32,Tfloat80): e = el_una(OPf_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tfloat32,Tfloat64): eop = OPf_d; return Leop(ce, e, eop, ttym);
-                case X(Tfloat32,Timaginary32):
-                case X(Tfloat32,Timaginary64):
-                case X(Tfloat32,Timaginary80): return Lzero(ce, e, ttym);
-                case X(Tfloat32,Tcomplex32):
-                case X(Tfloat32,Tcomplex64):
-                case X(Tfloat32,Tcomplex80):
-                    e = el_bin(OPadd,TYcfloat,el_long(TYifloat,0),e);
-                    fty = Tcomplex32;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Tfloat64,Tint8):
-                case X(Tfloat64,Tuns8):    e = el_una(OPd_s16, TYshort, e);
-                    fty = Tint16;
-                    continue;
-                case X(Tfloat64,Tint16):   eop = OPd_s16; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tuns16):   eop = OPd_u16; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tint32):   eop = OPd_s32; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tuns32):   eop = OPd_u32; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tint64):   eop = OPd_s64; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tuns64):   eop = OPd_u64; return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tfloat32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Tfloat80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
-                case X(Tfloat64,Timaginary32):
-                case X(Tfloat64,Timaginary64):
-                case X(Tfloat64,Timaginary80):  return Lzero(ce, e, ttym);
-                case X(Tfloat64,Tcomplex32):
-                case X(Tfloat64,Tcomplex64):
-                case X(Tfloat64,Tcomplex80):
-                    e = el_bin(OPadd,TYcdouble,el_long(TYidouble,0),e);
-                    fty = Tcomplex64;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Tfloat80,Tint8):
-                case X(Tfloat80,Tuns8):
-                case X(Tfloat80,Tint16):
-                case X(Tfloat80,Tuns16):
-                case X(Tfloat80,Tint32):
-                case X(Tfloat80,Tuns32):
-                case X(Tfloat80,Tint64):
-                case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tfloat80,Tuns64):
-                    eop = OPld_u64; return Leop(ce, e, eop, ttym);
-                case X(Tfloat80,Tfloat64): eop = OPld_d; return Leop(ce, e, eop, ttym);
-                case X(Tfloat80,Timaginary32):
-                case X(Tfloat80,Timaginary64):
-                case X(Tfloat80,Timaginary80): return Lzero(ce, e, ttym);
-                case X(Tfloat80,Tcomplex32):
-                case X(Tfloat80,Tcomplex64):
-                case X(Tfloat80,Tcomplex80):
-                    e = el_bin(OPadd,TYcldouble,e,el_long(TYildouble,0));
-                    fty = Tcomplex80;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Timaginary32,Tint8):
-                case X(Timaginary32,Tuns8):
-                case X(Timaginary32,Tint16):
-                case X(Timaginary32,Tuns16):
-                case X(Timaginary32,Tint32):
-                case X(Timaginary32,Tuns32):
-                case X(Timaginary32,Tint64):
-                case X(Timaginary32,Tuns64):
-                case X(Timaginary32,Tfloat32):
-                case X(Timaginary32,Tfloat64):
-                case X(Timaginary32,Tfloat80):  return Lzero(ce, e, ttym);
-                case X(Timaginary32,Timaginary64): eop = OPf_d; return Leop(ce, e, eop, ttym);
-                case X(Timaginary32,Timaginary80):
-                    e = el_una(OPf_d, TYidouble, e);
-                    fty = Timaginary64;
-                    continue;
-                case X(Timaginary32,Tcomplex32):
-                case X(Timaginary32,Tcomplex64):
-                case X(Timaginary32,Tcomplex80):
-                    e = el_bin(OPadd,TYcfloat,el_long(TYfloat,0),e);
-                    fty = Tcomplex32;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Timaginary64,Tint8):
-                case X(Timaginary64,Tuns8):
-                case X(Timaginary64,Tint16):
-                case X(Timaginary64,Tuns16):
-                case X(Timaginary64,Tint32):
-                case X(Timaginary64,Tuns32):
-                case X(Timaginary64,Tint64):
-                case X(Timaginary64,Tuns64):
-                case X(Timaginary64,Tfloat32):
-                case X(Timaginary64,Tfloat64):
-                case X(Timaginary64,Tfloat80):  return Lzero(ce, e, ttym);
-                case X(Timaginary64,Timaginary32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
-                case X(Timaginary64,Timaginary80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
-                case X(Timaginary64,Tcomplex32):
-                case X(Timaginary64,Tcomplex64):
-                case X(Timaginary64,Tcomplex80):
-                    e = el_bin(OPadd,TYcdouble,el_long(TYdouble,0),e);
-                    fty = Tcomplex64;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Timaginary80,Tint8):
-                case X(Timaginary80,Tuns8):
-                case X(Timaginary80,Tint16):
-                case X(Timaginary80,Tuns16):
-                case X(Timaginary80,Tint32):
-                case X(Timaginary80,Tuns32):
-                case X(Timaginary80,Tint64):
-                case X(Timaginary80,Tuns64):
-                case X(Timaginary80,Tfloat32):
-                case X(Timaginary80,Tfloat64):
-                case X(Timaginary80,Tfloat80):  return Lzero(ce, e, ttym);
-                case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
-                    fty = Timaginary64;
-                    continue;
-                case X(Timaginary80,Timaginary64): eop = OPld_d; return Leop(ce, e, eop, ttym);
-                case X(Timaginary80,Tcomplex32):
-                case X(Timaginary80,Tcomplex64):
-                case X(Timaginary80,Tcomplex80):
-                    e = el_bin(OPadd,TYcldouble,el_long(TYldouble,0),e);
-                    fty = Tcomplex80;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Tcomplex32,Tint8):
-                case X(Tcomplex32,Tuns8):
-                case X(Tcomplex32,Tint16):
-                case X(Tcomplex32,Tuns16):
-                case X(Tcomplex32,Tint32):
-                case X(Tcomplex32,Tuns32):
-                case X(Tcomplex32,Tint64):
-                case X(Tcomplex32,Tuns64):
-                case X(Tcomplex32,Tfloat32):
-                case X(Tcomplex32,Tfloat64):
-                case X(Tcomplex32,Tfloat80):
-                    e = el_una(OPc_r, TYfloat, e);
-                    fty = Tfloat32;
-                    continue;
-                case X(Tcomplex32,Timaginary32):
-                case X(Tcomplex32,Timaginary64):
-                case X(Tcomplex32,Timaginary80):
-                    e = el_una(OPc_i, TYifloat, e);
-                    fty = Timaginary32;
-                    continue;
-                case X(Tcomplex32,Tcomplex64):
-                case X(Tcomplex32,Tcomplex80):
-                    e = el_una(OPf_d, TYcdouble, e);
-                    fty = Tcomplex64;
-                    continue;
-
-                    /* ============================= */
-
-                case X(Tcomplex64,Tint8):
-                case X(Tcomplex64,Tuns8):
-                case X(Tcomplex64,Tint16):
-                case X(Tcomplex64,Tuns16):
-                case X(Tcomplex64,Tint32):
-                case X(Tcomplex64,Tuns32):
-                case X(Tcomplex64,Tint64):
-                case X(Tcomplex64,Tuns64):
-                case X(Tcomplex64,Tfloat32):
-                case X(Tcomplex64,Tfloat64):
-                case X(Tcomplex64,Tfloat80):
-                    e = el_una(OPc_r, TYdouble, e);
-                    fty = Tfloat64;
-                    continue;
-                case X(Tcomplex64,Timaginary32):
-                case X(Tcomplex64,Timaginary64):
-                case X(Tcomplex64,Timaginary80):
-                    e = el_una(OPc_i, TYidouble, e);
-                    fty = Timaginary64;
-                    continue;
-                case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   return Leop(ce, e, eop, ttym);
-                case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  return Leop(ce, e, eop, ttym);
-
-                    /* ============================= */
-
-                case X(Tcomplex80,Tint8):
-                case X(Tcomplex80,Tuns8):
-                case X(Tcomplex80,Tint16):
-                case X(Tcomplex80,Tuns16):
-                case X(Tcomplex80,Tint32):
-                case X(Tcomplex80,Tuns32):
-                case X(Tcomplex80,Tint64):
-                case X(Tcomplex80,Tuns64):
-                case X(Tcomplex80,Tfloat32):
-                case X(Tcomplex80,Tfloat64):
-                case X(Tcomplex80,Tfloat80):
-                    e = el_una(OPc_r, TYldouble, e);
-                    fty = Tfloat80;
-                    continue;
-                case X(Tcomplex80,Timaginary32):
-                case X(Tcomplex80,Timaginary64):
-                case X(Tcomplex80,Timaginary80):
-                    e = el_una(OPc_i, TYildouble, e);
-                    fty = Timaginary80;
-                    continue;
-                case X(Tcomplex80,Tcomplex32):
-                case X(Tcomplex80,Tcomplex64):
-                    e = el_una(OPld_d, TYcdouble, e);
-                    fty = Tcomplex64;
-                    continue;
-
-                    /* ============================= */
-
-                default:
-                    if (fty == tty)
-                        return Lpaint(ce, e, ttym);
-                    //dump(0);
-                    //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
-                    // This error should really be pushed to the front end
-                    ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
-                    e = el_long(TYint, 0);
-                    return e;
-
-            }
-        }
-    }
-
-    override void visit(ArrayLengthExp ale)
+    elem* visitArrayLength(ArrayLengthExp ale)
     {
         elem *e = toElem(ale.e1, irs);
         e = el_una(target.is64bit ? OP128_64 : OP64_32, totym(ale.type), e);
         elem_setLoc(e, ale.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DelegatePtrExp dpe)
+    elem* visitDelegatePtr(DelegatePtrExp dpe)
     {
         // *cast(void**)(&dg)
         elem *e = toElem(dpe.e1, irs);
@@ -4407,10 +3629,10 @@ extern (C++) class ToElemVisitor : Visitor
         e = addressElem(e, tb1);
         e = el_una(OPind, totym(dpe.type), e);
         elem_setLoc(e, dpe.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(DelegateFuncptrExp dfpe)
+    elem* visitDelegateFuncptr(DelegateFuncptrExp dfpe)
     {
         // *cast(void**)(&dg + size_t.sizeof)
         elem *e = toElem(dfpe.e1, irs);
@@ -4419,10 +3641,10 @@ extern (C++) class ToElemVisitor : Visitor
         e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, target.is64bit ? 8 : 4));
         e = el_una(OPind, totym(dfpe.type), e);
         elem_setLoc(e, dfpe.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(SliceExp se)
+    elem* visitSlice(SliceExp se)
     {
         //printf("SliceExp.toElem() se = %s %s\n", se.type.toChars(), se.toChars());
         Type tb = se.type.toBasetype();
@@ -4502,7 +3724,9 @@ extern (C++) class ToElemVisitor : Visitor
                 if (c1)
                 {
                     // Construct: (c1 || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, se.loc, el_copytree(elwr2), el_copytree(eupr2), el_copytree(elen));
+                    // if lowerIsLessThanUpper (e.g. arr[-1..0]), elen is null here
+                    elen = elen ? elen : el_long(TYsize_t, 0);
+                    auto ea = buildArraySliceError(irs, se.loc, el_copytree(elwr2), el_copytree(eupr2), el_copytree(elen));
                     elem *eb = el_bin(OPoror, TYvoid, c1, ea);
 
                     elwr = el_combine(elwr, eb);
@@ -4551,10 +3775,10 @@ extern (C++) class ToElemVisitor : Visitor
                    tb.nextOf().isBaseOf(t1.nextOf(), &offset) && offset == 0);
         }
         elem_setLoc(e, se.loc);
-        result = e;
+        return e;
     }
 
-    override void visit(IndexExp ie)
+    elem* visitIndex(IndexExp ie)
     {
         elem *e;
         elem *n1 = toElem(ie.e1, irs);
@@ -4604,7 +3828,7 @@ extern (C++) class ToElemVisitor : Visitor
                 elem *n = el_same(&e);
 
                 // Construct: ((e || arrayBoundsError), n)
-                auto ea = buildArrayBoundsError(irs, ie.loc, null, null, null); // FIXME
+                auto ea = buildRangeError(irs, ie.loc);
                 e = el_bin(OPoror,TYvoid,e,ea);
                 e = el_bin(OPcomma, TYnptr, e, n);
             }
@@ -4639,7 +3863,7 @@ extern (C++) class ToElemVisitor : Visitor
                     n2x = el_bin(OPlt, TYint, n2x, elength);
 
                     // Construct: (n2x || arrayBoundsError)
-                    auto ea = buildArrayBoundsError(irs, ie.loc, null, el_copytree(n2), el_copytree(elength));
+                    auto ea = buildArrayIndexError(irs, ie.loc, el_copytree(n2), el_copytree(elength));
                     eb = el_bin(OPoror,TYvoid,n2x,ea);
                 }
             }
@@ -4662,11 +3886,11 @@ extern (C++) class ToElemVisitor : Visitor
             e = el_combine(eb, e);
         }
         elem_setLoc(e, ie.loc);
-        result = e;
+        return e;
     }
 
 
-    override void visit(TupleExp te)
+    elem* visitTuple(TupleExp te)
     {
         //printf("TupleExp.toElem() %s\n", te.toChars());
         elem *e = null;
@@ -4677,7 +3901,7 @@ extern (C++) class ToElemVisitor : Visitor
             elem *ep = toElem(el, irs);
             e = el_combine(e, ep);
         }
-        result = e;
+        return e;
     }
 
     static elem *tree_insert(Elems *args, size_t low, size_t high)
@@ -4690,7 +3914,7 @@ extern (C++) class ToElemVisitor : Visitor
                         tree_insert(args, mid, high));
     }
 
-    override void visit(ArrayLiteralExp ale)
+    elem* visitArrayLiteral(ArrayLiteralExp ale)
     {
         size_t dim = ale.elements ? ale.elements.dim : 0;
 
@@ -4703,36 +3927,34 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem *e;
-        if (tb.ty == Tsarray && dim)
+        if (dim > 0)
         {
-            Symbol *stmp = null;
-            e = ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis);
-            e = el_combine(e, el_ptr(stmp));
-        }
-        else if (ale.elements)
-        {
-            /* Instead of passing the initializers on the stack, allocate the
-             * array and assign the members inline.
-             * Avoids the whole variadic arg mess.
-             */
+            if (tb.ty == Tsarray)
+            {
+                Symbol *stmp = null;
+                e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
+                e = el_combine(e, el_ptr(stmp));
+            }
+            else
+            {
+                /* Instead of passing the initializers on the stack, allocate the
+                * array and assign the members inline.
+                * Avoids the whole variadic arg mess.
+                */
 
-            // call _d_arrayliteralTX(ti, dim)
-            e = el_bin(OPcall, TYnptr,
-                el_var(getRtlsym(RTLSYM_ARRAYLITERALTX)),
-                el_param(el_long(TYsize_t, dim), getTypeInfo(ale.loc, ale.type, irs)));
-            toTraceGC(irs, e, ale.loc);
+                // call _d_arrayliteralTX(ti, dim)
+                e = el_bin(OPcall, TYnptr,
+                    el_var(getRtlsym(RTLSYM.ARRAYLITERALTX)),
+                    el_param(el_long(TYsize_t, dim), getTypeInfo(ale.loc, ale.type, irs)));
+                toTraceGC(irs, e, ale.loc);
 
-            Symbol *stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
-            e = el_bin(OPeq, TYnptr, el_var(stmp), e);
+                Symbol *stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
+                e = el_bin(OPeq, TYnptr, el_var(stmp), e);
 
-            /* Note: Even if dm == 0, the druntime function will be called so
-             * GC heap may be allocated. However, currently it's implemented
-             * to return null for 0 length.
-             */
-            if (dim)
-                e = el_combine(e, ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis));
+                e = el_combine(e, ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis));
 
-            e = el_combine(e, el_var(stmp));
+                e = el_combine(e, el_var(stmp));
+            }
         }
         else
         {
@@ -4753,222 +3975,10 @@ extern (C++) class ToElemVisitor : Visitor
         }
 
         elem_setLoc(e, ale.loc);
-        result = e;
-    }
-
-    /**************************************
-     * Mirrors logic in Dsymbol_canThrow().
-     */
-    elem *Dsymbol_toElem(Dsymbol s)
-    {
-        elem *e = null;
-
-        void symbolDg(Dsymbol s)
-        {
-            e = el_combine(e, Dsymbol_toElem(s));
-        }
-
-        //printf("Dsymbol_toElem() %s\n", s.toChars());
-        if (auto vd = s.isVarDeclaration())
-        {
-            s = s.toAlias();
-            if (s != vd)
-                return Dsymbol_toElem(s);
-            if (vd.storage_class & STC.manifest)
-                return null;
-            else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
-                toObjFile(vd, false);
-            else
-            {
-                Symbol *sp = toSymbol(s);
-                symbol_add(sp);
-                //printf("\tadding symbol '%s'\n", sp.Sident);
-                if (vd._init)
-                {
-                    if (auto ie = vd._init.isExpInitializer())
-                        e = toElem(ie.exp, irs);
-                }
-
-                /* Mark the point of construction of a variable that needs to be destructed.
-                 */
-                if (vd.needsScopeDtor())
-                {
-                    elem *edtor = toElem(vd.edtor, irs);
-                    elem *ed = null;
-                    if (irs.isNothrow())
-                    {
-                        ed = edtor;
-                    }
-                    else
-                    {
-                        // Construct special elems to deal with exceptions
-                        e = el_ctor_dtor(e, edtor, &ed);
-                    }
-
-                    // ed needs to be inserted into the code later
-                    irs.varsInScope.push(ed);
-                }
-            }
-        }
-        else if (auto cd = s.isClassDeclaration())
-        {
-            irs.deferToObj.push(s);
-        }
-        else if (auto sd = s.isStructDeclaration())
-        {
-            irs.deferToObj.push(sd);
-        }
-        else if (auto fd = s.isFuncDeclaration())
-        {
-            //printf("function %s\n", fd.toChars());
-            irs.deferToObj.push(fd);
-        }
-        else if (auto ad = s.isAttribDeclaration())
-        {
-            ad.include(null).foreachDsymbol(&symbolDg);
-        }
-        else if (auto tm = s.isTemplateMixin())
-        {
-            //printf("%s\n", tm.toChars());
-            tm.members.foreachDsymbol(&symbolDg);
-        }
-        else if (auto td = s.isTupleDeclaration())
-        {
-            foreach (o; *td.objects)
-            {
-                if (o.dyncast() == DYNCAST.expression)
-                {   Expression eo = cast(Expression)o;
-                    if (eo.op == TOK.dSymbol)
-                    {   DsymbolExp se = cast(DsymbolExp)eo;
-                        e = el_combine(e, Dsymbol_toElem(se.s));
-                    }
-                }
-            }
-        }
-        else if (auto ed = s.isEnumDeclaration())
-        {
-            irs.deferToObj.push(ed);
-        }
-        else if (auto ti = s.isTemplateInstance())
-        {
-            irs.deferToObj.push(ti);
-        }
         return e;
     }
 
-    /*************************************************
-     * Allocate a static array, and initialize its members with elems[].
-     * Return the initialization expression, and the symbol for the static array in *psym.
-     */
-    elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym)
-    {
-        // Create a static array of type telem[dim]
-        const dim = elems.dim;
-        assert(dim);
-
-        Type tsarray = telem.sarrayOf(dim);
-        const szelem = telem.size();
-        .type *te = Type_toCtype(telem);   // stmp[] element type
-
-        Symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
-        *psym = stmp;
-
-        elem *e = null;
-        foreach (i, ep; *elems)
-        {
-            /* Generate: *(&stmp + i * szelem) = element[i]
-             */
-            elem *ev = el_ptr(stmp);
-            ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
-            ev = el_una(OPind, te.Tty, ev);
-            elem *eeq = elAssign(ev, ep, null, te);
-            e = el_combine(e, eeq);
-        }
-        return e;
-    }
-
-    /*************************************************
-     * Allocate a static array, and initialize its members with
-     * exps[].
-     * Return the initialization expression, and the symbol for the static array in *psym.
-     */
-    elem *ExpressionsToStaticArray(const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
-    {
-        // Create a static array of type telem[dim]
-        const dim = exps.dim;
-        assert(dim);
-
-        Type telem = ((*exps)[0] ? (*exps)[0] : basis).type;
-        const szelem = telem.size();
-        .type *te = Type_toCtype(telem);   // stmp[] element type
-
-        if (!*psym)
-        {
-            Type tsarray2 = telem.sarrayOf(dim);
-            *psym = symbol_genauto(Type_toCtype(tsarray2));
-            offset = 0;
-        }
-        Symbol *stmp = *psym;
-
-        elem *e = null;
-        for (size_t i = 0; i < dim; )
-        {
-            Expression el = (*exps)[i];
-            if (!el)
-                el = basis;
-            if (el.op == TOK.arrayLiteral &&
-                el.type.toBasetype().ty == Tsarray)
-            {
-                ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
-                if (ale.elements && ale.elements.dim)
-                {
-                    elem *ex = ExpressionsToStaticArray(
-                        ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);
-                    e = el_combine(e, ex);
-                }
-                i++;
-                continue;
-            }
-
-            size_t j = i + 1;
-            if (el.isConst() || el.op == TOK.null_)
-            {
-                // If the trivial elements are same values, do memcpy.
-                while (j < dim)
-                {
-                    Expression en = (*exps)[j];
-                    if (!en)
-                        en = basis;
-                    if (!el.equals(en))
-                        break;
-                    j++;
-                }
-            }
-
-            /* Generate: *(&stmp + i * szelem) = element[i]
-             */
-            elem *ep = toElem(el, irs);
-            elem *ev = tybasic(stmp.Stype.Tty) == TYnptr ? el_var(stmp) : el_ptr(stmp);
-            ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, offset + i * szelem));
-
-            elem *eeq;
-            if (j == i + 1)
-            {
-                ev = el_una(OPind, te.Tty, ev);
-                eeq = elAssign(ev, ep, null, te);
-            }
-            else
-            {
-                elem *edim = el_long(TYsize_t, j - i);
-                eeq = setArray(el, ev, edim, telem, ep, irs, TOK.blit);
-            }
-            e = el_combine(e, eeq);
-            i = j;
-        }
-        return e;
-    }
-
-    override void visit(AssocArrayLiteralExp aale)
+    elem* visitAssocArrayLiteral(AssocArrayLiteralExp aale)
     {
         //printf("AssocArrayLiteralExp.toElem() %s\n", aale.toChars());
 
@@ -4984,10 +3994,10 @@ extern (C++) class ToElemVisitor : Visitor
             Type ta = t;
 
             Symbol *skeys = null;
-            elem *ekeys = ExpressionsToStaticArray(aale.loc, aale.keys, &skeys);
+            elem *ekeys = ExpressionsToStaticArray(irs, aale.loc, aale.keys, &skeys);
 
             Symbol *svalues = null;
-            elem *evalues = ExpressionsToStaticArray(aale.loc, aale.values, &svalues);
+            elem *evalues = ExpressionsToStaticArray(irs, aale.loc, aale.values, &svalues);
 
             elem *ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
             elem *ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
@@ -5001,7 +4011,7 @@ extern (C++) class ToElemVisitor : Visitor
                                 null);
 
             // call _d_assocarrayliteralTX(ti, keys, values)
-            e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_ASSOCARRAYLITERALTX)),e);
+            e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM.ASSOCARRAYLITERALTX)),e);
             toTraceGC(irs, e, aale.loc);
             if (t != ta)
                 e = addressElem(e, ta);
@@ -5009,38 +4019,1213 @@ extern (C++) class ToElemVisitor : Visitor
 
             e = el_combine(evalues, e);
             e = el_combine(ekeys, e);
-            result = e;
-            return;
+            return e;
         }
         else
         {
             elem *e = el_long(TYnptr, 0);      // empty associative array is the null pointer
             if (t.ty != Taarray)
                 e = addressElem(e, Type.tvoidptr);
-            result = e;
-            return;
+            return e;
         }
     }
 
-    override void visit(StructLiteralExp sle)
+    elem* visitStructLiteral(StructLiteralExp sle)
     {
         //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
-        result = toElemStructLit(sle, irs, TOK.construct, sle.sym, true);
+        return toElemStructLit(sle, irs, EXP.construct, sle.sym, true);
     }
 
-    override void visit(ObjcClassReferenceExp e)
+    elem* visitObjcClassReference(ObjcClassReferenceExp e)
     {
-        result = objc.toElem(e);
+        return objc.toElem(e);
     }
 
     /*****************************************************/
     /*                   CTFE stuff                      */
     /*****************************************************/
 
-    override void visit(ClassReferenceExp e)
+    elem* visitClassReference(ClassReferenceExp e)
     {
         //printf("ClassReferenceExp.toElem() %p, value=%p, %s\n", e, e.value, e.toChars());
-        result = el_ptr(toSymbol(e));
+        return el_ptr(toSymbol(e));
+    }
+
+    switch (e.op)
+    {
+        default:                return visit(e);
+
+        case EXP.negate:        return visitNeg(e.isNegExp());
+        case EXP.tilde:         return visitCom(e.isComExp());
+        case EXP.not:           return visitNot(e.isNotExp());
+        case EXP.plusPlus:
+        case EXP.minusMinus:    return visitPost(e.isPostExp());
+        case EXP.add:           return visitAdd(e.isAddExp());
+        case EXP.min:           return visitMin(e.isMinExp());
+        case EXP.concatenate:   return visitCat(e.isCatExp());
+        case EXP.mul:           return visitMul(e.isMulExp());
+        case EXP.div:           return visitDiv(e.isDivExp());
+        case EXP.mod:           return visitMod(e.isModExp());
+        case EXP.lessThan:
+        case EXP.lessOrEqual:
+        case EXP.greaterThan:
+        case EXP.greaterOrEqual: return visitCmp(cast(CmpExp) e);
+        case EXP.notEqual:
+        case EXP.equal:         return visitEqual(e.isEqualExp());
+        case EXP.notIdentity:
+        case EXP.identity:      return visitIdentity(e.isIdentityExp());
+        case EXP.in_:           return visitIn(e.isInExp());
+        case EXP.assign:        return visitAssign(e.isAssignExp());
+        case EXP.construct:     return visitAssign(e.isConstructExp());
+        case EXP.blit:          return visitAssign(e.isBlitExp());
+        case EXP.addAssign:     return visitAddAssign(e.isAddAssignExp());
+        case EXP.minAssign:     return visitMinAssign(e.isMinAssignExp());
+        case EXP.concatenateDcharAssign: return visitCatAssign(e.isCatDcharAssignExp());
+        case EXP.concatenateElemAssign:  return visitCatAssign(e.isCatElemAssignExp());
+        case EXP.concatenateAssign:      return visitCatAssign(e.isCatAssignExp());
+        case EXP.divAssign:     return visitDivAssign(e.isDivAssignExp());
+        case EXP.modAssign:     return visitModAssign(e.isModAssignExp());
+        case EXP.mulAssign:     return visitMulAssign(e.isMulAssignExp());
+        case EXP.leftShiftAssign: return visitShlAssign(e.isShlAssignExp());
+        case EXP.rightShiftAssign: return visitShrAssign(e.isShrAssignExp());
+        case EXP.unsignedRightShiftAssign: return visitUshrAssign(e.isUshrAssignExp());
+        case EXP.andAssign:     return visitAndAssign(e.isAndAssignExp());
+        case EXP.orAssign:      return visitOrAssign(e.isOrAssignExp());
+        case EXP.xorAssign:     return visitXorAssign(e.isXorAssignExp());
+        case EXP.andAnd:
+        case EXP.orOr:          return visitLogical(e.isLogicalExp());
+        case EXP.xor:           return visitXor(e.isXorExp());
+        case EXP.and:           return visitAnd(e.isAndExp());
+        case EXP.or:            return visitOr(e.isOrExp());
+        case EXP.leftShift:     return visitShl(e.isShlExp());
+        case EXP.rightShift:    return visitShr(e.isShrExp());
+        case EXP.unsignedRightShift: return visitUshr(e.isUshrExp());
+        case EXP.address:       return visitAddr(e.isAddrExp());
+        case EXP.variable:      return visitSymbol(e.isVarExp());
+        case EXP.symbolOffset:  return visitSymbol(e.isSymOffExp());
+        case EXP.int64:         return visitInteger(e.isIntegerExp());
+        case EXP.float64:       return visitReal(e.isRealExp());
+        case EXP.complex80:     return visitComplex(e.isComplexExp());
+        case EXP.this_:         return visitThis(e.isThisExp());
+        case EXP.super_:        return visitThis(e.isSuperExp());
+        case EXP.null_:         return visitNull(e.isNullExp());
+        case EXP.string_:       return visitString(e.isStringExp());
+        case EXP.arrayLiteral:  return visitArrayLiteral(e.isArrayLiteralExp());
+        case EXP.assocArrayLiteral:     return visitAssocArrayLiteral(e.isAssocArrayLiteralExp());
+        case EXP.structLiteral: return visitStructLiteral(e.isStructLiteralExp());
+        case EXP.type:          return visitType(e.isTypeExp());
+        case EXP.scope_:        return visitScope(e.isScopeExp());
+        case EXP.new_:          return visitNew(e.isNewExp());
+        case EXP.tuple:         return visitTuple(e.isTupleExp());
+        case EXP.function_:     return visitFunc(e.isFuncExp());
+        case EXP.declaration:   return visitDeclaration(e.isDeclarationExp());
+        case EXP.typeid_:       return visitTypeid(e.isTypeidExp());
+        case EXP.halt:          return visitHalt(e.isHaltExp());
+        case EXP.comma:         return visitComma(e.isCommaExp());
+        case EXP.assert_:       return visitAssert(e.isAssertExp());
+        case EXP.throw_:        return visitThrow(e.isThrowExp());
+        case EXP.dotVariable:   return visitDotVar(e.isDotVarExp());
+        case EXP.delegate_:     return visitDelegate(e.isDelegateExp());
+        case EXP.dotType:       return visitDotType(e.isDotTypeExp());
+        case EXP.call:          return visitCall(e.isCallExp());
+        case EXP.star:          return visitPtr(e.isPtrExp());
+        case EXP.delete_:       return visitDelete(e.isDeleteExp());
+        case EXP.cast_:         return visitCast(e.isCastExp());
+        case EXP.vector:        return visitVector(e.isVectorExp());
+        case EXP.vectorArray:   return visitVectorArray(e.isVectorArrayExp());
+        case EXP.slice:         return visitSlice(e.isSliceExp());
+        case EXP.arrayLength:   return visitArrayLength(e.isArrayLengthExp());
+        case EXP.delegatePointer:       return visitDelegatePtr(e.isDelegatePtrExp());
+        case EXP.delegateFunctionPointer:       return visitDelegateFuncptr(e.isDelegateFuncptrExp());
+        case EXP.index:         return visitIndex(e.isIndexExp());
+        case EXP.remove:        return visitRemove(e.isRemoveExp());
+        case EXP.question:      return visitCond(e.isCondExp());
+        case EXP.objcClassReference:    return visitObjcClassReference(e.isObjcClassReferenceExp());
+        case EXP.classReference:        return visitClassReference(e.isClassReferenceExp());
+    }
+}
+
+private:
+
+/**************************************
+ * Mirrors logic in Dsymbol_canThrow().
+ */
+elem *Dsymbol_toElem(Dsymbol s, IRState* irs)
+{
+    elem *e = null;
+
+    void symbolDg(Dsymbol s)
+    {
+        e = el_combine(e, Dsymbol_toElem(s, irs));
+    }
+
+    //printf("Dsymbol_toElem() %s\n", s.toChars());
+    if (auto vd = s.isVarDeclaration())
+    {
+        s = s.toAlias();
+        if (s != vd)
+            return Dsymbol_toElem(s, irs);
+        if (vd.storage_class & STC.manifest)
+            return null;
+        else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
+            toObjFile(vd, false);
+        else
+        {
+            Symbol *sp = toSymbol(s);
+            symbol_add(sp);
+            //printf("\tadding symbol '%s'\n", sp.Sident);
+            if (vd._init)
+            {
+                if (auto ie = vd._init.isExpInitializer())
+                    e = toElem(ie.exp, irs);
+            }
+
+            /* Mark the point of construction of a variable that needs to be destructed.
+             */
+            if (vd.needsScopeDtor())
+            {
+                elem *edtor = toElem(vd.edtor, irs);
+                elem *ed = null;
+                if (irs.isNothrow())
+                {
+                    ed = edtor;
+                }
+                else
+                {
+                    // Construct special elems to deal with exceptions
+                    e = el_ctor_dtor(e, edtor, &ed);
+                }
+
+                // ed needs to be inserted into the code later
+                irs.varsInScope.push(ed);
+            }
+        }
+    }
+    else if (auto cd = s.isClassDeclaration())
+    {
+        irs.deferToObj.push(s);
+    }
+    else if (auto sd = s.isStructDeclaration())
+    {
+        irs.deferToObj.push(sd);
+    }
+    else if (auto fd = s.isFuncDeclaration())
+    {
+        //printf("function %s\n", fd.toChars());
+        irs.deferToObj.push(fd);
+    }
+    else if (auto ad = s.isAttribDeclaration())
+    {
+        ad.include(null).foreachDsymbol(&symbolDg);
+    }
+    else if (auto tm = s.isTemplateMixin())
+    {
+        //printf("%s\n", tm.toChars());
+        tm.members.foreachDsymbol(&symbolDg);
+    }
+    else if (auto td = s.isTupleDeclaration())
+    {
+        foreach (o; *td.objects)
+        {
+            if (o.dyncast() == DYNCAST.expression)
+            {   Expression eo = cast(Expression)o;
+                if (eo.op == EXP.dSymbol)
+                {   DsymbolExp se = cast(DsymbolExp)eo;
+                    e = el_combine(e, Dsymbol_toElem(se.s, irs));
+                }
+            }
+        }
+    }
+    else if (auto ed = s.isEnumDeclaration())
+    {
+        irs.deferToObj.push(ed);
+    }
+    else if (auto ti = s.isTemplateInstance())
+    {
+        irs.deferToObj.push(ti);
+    }
+    return e;
+}
+
+/*************************************************
+ * Allocate a static array, and initialize its members with elems[].
+ * Return the initialization expression, and the symbol for the static array in *psym.
+ */
+elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym)
+{
+    // Create a static array of type telem[dim]
+    const dim = elems.dim;
+    assert(dim);
+
+    Type tsarray = telem.sarrayOf(dim);
+    const szelem = telem.size();
+    .type *te = Type_toCtype(telem);   // stmp[] element type
+
+    Symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
+    *psym = stmp;
+
+    elem *e = null;
+    foreach (i, ep; *elems)
+    {
+        /* Generate: *(&stmp + i * szelem) = element[i]
+         */
+        elem *ev = el_ptr(stmp);
+        ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
+        ev = el_una(OPind, te.Tty, ev);
+        elem *eeq = elAssign(ev, ep, null, te);
+        e = el_combine(e, eeq);
+    }
+    return e;
+}
+
+/*************************************************
+ * Allocate a static array, and initialize its members with
+ * exps[].
+ * Return the initialization expression, and the symbol for the static array in *psym.
+ */
+elem *ExpressionsToStaticArray(IRState* irs, const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
+{
+    // Create a static array of type telem[dim]
+    const dim = exps.dim;
+    assert(dim);
+
+    Type telem = ((*exps)[0] ? (*exps)[0] : basis).type;
+    const szelem = telem.size();
+    .type *te = Type_toCtype(telem);   // stmp[] element type
+
+    if (!*psym)
+    {
+        Type tsarray2 = telem.sarrayOf(dim);
+        *psym = symbol_genauto(Type_toCtype(tsarray2));
+        offset = 0;
+    }
+    Symbol *stmp = *psym;
+
+    elem *e = null;
+    for (size_t i = 0; i < dim; )
+    {
+        Expression el = (*exps)[i];
+        if (!el)
+            el = basis;
+        if (el.op == EXP.arrayLiteral &&
+            el.type.toBasetype().ty == Tsarray)
+        {
+            ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
+            if (ale.elements && ale.elements.dim)
+            {
+                elem *ex = ExpressionsToStaticArray(irs,
+                    ale.loc, ale.elements, &stmp, cast(uint)(offset + i * szelem), ale.basis);
+                e = el_combine(e, ex);
+            }
+            i++;
+            continue;
+        }
+
+        size_t j = i + 1;
+        if (el.isConst() || el.op == EXP.null_)
+        {
+            // If the trivial elements are same values, do memcpy.
+            while (j < dim)
+            {
+                Expression en = (*exps)[j];
+                if (!en)
+                    en = basis;
+                if (!el.equals(en))
+                    break;
+                j++;
+            }
+        }
+
+        /* Generate: *(&stmp + i * szelem) = element[i]
+         */
+        elem *ep = toElem(el, irs);
+        elem *ev = tybasic(stmp.Stype.Tty) == TYnptr ? el_var(stmp) : el_ptr(stmp);
+        ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, offset + i * szelem));
+
+        elem *eeq;
+        if (j == i + 1)
+        {
+            ev = el_una(OPind, te.Tty, ev);
+            eeq = elAssign(ev, ep, null, te);
+        }
+        else
+        {
+            elem *edim = el_long(TYsize_t, j - i);
+            eeq = setArray(el, ev, edim, telem, ep, irs, EXP.blit);
+        }
+        e = el_combine(e, eeq);
+        i = j;
+    }
+    return e;
+}
+
+/***************************************************
+ */
+elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
+{
+    tym_t ftym;
+    tym_t ttym;
+    OPER eop;
+
+    Type tfrom = ce.e1.type.toBasetype();
+    Type t = ce.to.toBasetype();         // skip over typedef's
+
+    TY fty;
+    TY tty;
+    if (t.equals(tfrom) ||
+        t.equals(Type.tvoid)) // https://issues.dlang.org/show_bug.cgi?id=18573
+                              // Remember to pop value left on FPU stack
+        return e;
+
+    fty = tfrom.ty;
+    tty = t.ty;
+    //printf("fty = %d\n", fty);
+
+    static elem* Lret(CastExp ce, elem* e)
+    {
+        // Adjust for any type paints
+        Type t = ce.type.toBasetype();
+        e.Ety = totym(t);
+        if (tyaggregate(e.Ety))
+            e.ET = Type_toCtype(t);
+
+        elem_setLoc(e, ce.loc);
+        return e;
+    }
+
+    static elem* Lpaint(CastExp ce, elem* e, tym_t ttym)
+    {
+        e.Ety = ttym;
+        return Lret(ce, e);
+    }
+
+    static elem* Lzero(CastExp ce, elem* e, tym_t ttym)
+    {
+        e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
+        return Lret(ce, e);
+    }
+
+    static elem* Leop(CastExp ce, elem* e, OPER eop, tym_t ttym)
+    {
+        e = el_una(eop, ttym, e);
+        return Lret(ce, e);
+    }
+
+    if (tty == Tpointer && fty == Tarray)
+    {
+        if (e.Eoper == OPvar)
+        {
+            // e1 . *(&e1 + 4)
+            e = el_una(OPaddr, TYnptr, e);
+            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize(TYnptr)));
+            e = el_una(OPind,totym(t),e);
+        }
+        else
+        {
+            // e1 . (uint)(e1 >> 32)
+            if (target.is64bit)
+            {
+                e = el_bin(OPshr, TYucent, e, el_long(TYint, 64));
+                e = el_una(OP128_64, totym(t), e);
+            }
+            else
+            {
+                e = el_bin(OPshr, TYullong, e, el_long(TYint, 32));
+                e = el_una(OP64_32, totym(t), e);
+            }
+        }
+        return Lret(ce, e);
+    }
+
+    if (tty == Tpointer && fty == Tsarray)
+    {
+        // e1 . &e1
+        e = el_una(OPaddr, TYnptr, e);
+        return Lret(ce, e);
+    }
+
+    // Convert from static array to dynamic array
+    if (tty == Tarray && fty == Tsarray)
+    {
+        e = sarray_toDarray(ce.loc, tfrom, t, e);
+        return Lret(ce, e);
+    }
+
+    // Convert from dynamic array to dynamic array
+    if (tty == Tarray && fty == Tarray)
+    {
+        uint fsize = cast(uint)tfrom.nextOf().size();
+        uint tsize = cast(uint)t.nextOf().size();
+
+        if (fsize != tsize)
+        {   // Array element sizes do not match, so we must adjust the dimensions
+            if (tsize != 0 && fsize % tsize == 0)
+            {
+                // Set array dimension to (length * (fsize / tsize))
+                // Generate pair(e.length * (fsize/tsize), es.ptr)
+
+                elem *es = el_same(&e);
+
+                elem *eptr = el_una(OPmsw, TYnptr, es);
+                elem *elen = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, e);
+                elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
+                e = el_pair(totym(ce.type), elen2, eptr);
+            }
+            else
+            {
+                assert(false, "This case should have been rewritten to `__ArrayCast` in the semantic phase");
+            }
+        }
+        return Lret(ce, e);
+    }
+
+    // Casting between class/interface may require a runtime check
+    if (fty == Tclass && tty == Tclass)
+    {
+        ClassDeclaration cdfrom = tfrom.isClassHandle();
+        ClassDeclaration cdto   = t.isClassHandle();
+
+        int offset;
+        if (cdto.isBaseOf(cdfrom, &offset) && offset != ClassDeclaration.OFFSET_RUNTIME)
+        {
+            /* The offset from cdfrom => cdto is known at compile time.
+             * Cases:
+             *  - class => base class (upcast)
+             *  - class => base interface (upcast)
+             */
+
+            //printf("offset = %d\n", offset);
+            if (offset == ClassDeclaration.OFFSET_FWDREF)
+            {
+                assert(0, "unexpected forward reference");
+            }
+            else if (offset)
+            {
+                /* Rewrite cast as (e ? e + offset : null)
+                 */
+                if (ce.e1.op == EXP.this_)
+                {
+                    // Assume 'this' is never null, so skip null check
+                    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
+                }
+                else
+                {
+                    elem *etmp = el_same(&e);
+                    elem *ex = el_bin(OPadd, TYnptr, etmp, el_long(TYsize_t, offset));
+                    ex = el_bin(OPcolon, TYnptr, ex, el_long(TYnptr, 0));
+                    e = el_bin(OPcond, TYnptr, e, ex);
+                }
+            }
+            else
+            {
+                // Casting from derived class to base class is a no-op
+            }
+        }
+        else if (cdfrom.classKind == ClassKind.cpp)
+        {
+            if (cdto.classKind == ClassKind.cpp)
+            {
+                /* Casting from a C++ interface to a C++ interface
+                 * is always a 'paint' operation
+                 */
+                return Lret(ce, e);                  // no-op
+            }
+
+            /* Casting from a C++ interface to a class
+             * always results in null because there is no runtime
+             * information available to do it.
+             *
+             * Casting from a C++ interface to a non-C++ interface
+             * always results in null because there's no way one
+             * can be derived from the other.
+             */
+            e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
+            return Lret(ce, e);
+        }
+        else
+        {
+            /* The offset from cdfrom => cdto can only be determined at runtime.
+             * Cases:
+             *  - class     => derived class (downcast)
+             *  - interface => derived class (downcast)
+             *  - class     => foreign interface (cross cast)
+             *  - interface => base or foreign interface (cross cast)
+             */
+            const rtl = cdfrom.isInterfaceDeclaration()
+                        ? RTLSYM.INTERFACE_CAST
+                        : RTLSYM.DYNAMIC_CAST;
+            elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
+            e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
+        }
+        return Lret(ce, e);
+    }
+
+    if (fty == Tvector && tty == Tsarray)
+    {
+        if (tfrom.size() == t.size())
+        {
+            if (e.Eoper != OPvar && e.Eoper != OPind)
+            {
+                // can't perform array ops on it unless it's in memory
+                e = addressElem(e, tfrom);
+                e = el_una(OPind, TYarray, e);
+                e.ET = Type_toCtype(t);
+            }
+            return Lret(ce, e);
+        }
+    }
+
+    ftym = tybasic(e.Ety);
+    ttym = tybasic(totym(t));
+    if (ftym == ttym)
+        return Lret(ce, e);
+
+    /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
+     * generic equivalent (as far as casting goes)
+     */
+    switch (tty)
+    {
+        case Tpointer:
+            if (fty == Tdelegate)
+                return Lpaint(ce, e, ttym);
+            tty = target.is64bit ? Tuns64 : Tuns32;
+            break;
+
+        case Tchar:     tty = Tuns8;    break;
+        case Twchar:    tty = Tuns16;   break;
+        case Tdchar:    tty = Tuns32;   break;
+        case Tvoid:     return Lpaint(ce, e, ttym);
+
+        case Tbool:
+        {
+            // Construct e?true:false
+            e = el_una(OPbool, ttym, e);
+            return Lret(ce, e);
+        }
+        default:
+            break;
+    }
+
+    switch (fty)
+    {
+        case Tnull:
+        {
+            // typeof(null) is same with void* in binary level.
+            return Lzero(ce, e, ttym);
+        }
+        case Tpointer:  fty = target.is64bit ? Tuns64 : Tuns32;  break;
+        case Tchar:     fty = Tuns8;    break;
+        case Twchar:    fty = Tuns16;   break;
+        case Tdchar:    fty = Tuns32;   break;
+
+        // noreturn expression will throw/abort and never produce a
+        //  value to cast, hence we discard the cast
+        case Tnoreturn:
+            return Lret(ce, e);
+
+        default:
+            break;
+    }
+
+    static int X(int fty, int tty) { return fty * TMAX + tty; }
+
+    while (true)
+    {
+        switch (X(fty,tty))
+        {
+            /* ============================= */
+
+            case X(Tbool,Tint8):
+            case X(Tbool,Tuns8):
+                return Lpaint(ce, e, ttym);
+            case X(Tbool,Tint16):
+            case X(Tbool,Tuns16):
+            case X(Tbool,Tint32):
+            case X(Tbool,Tuns32):
+                if (isLvalue)
+                {
+                    eop = OPu8_16;
+                    return Leop(ce, e, eop, ttym);
+                }
+                else
+                {
+                    e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
+                    fty = Tuns8;
+                    continue;
+                }
+
+            case X(Tbool,Tint64):
+            case X(Tbool,Tuns64):
+            case X(Tbool,Tint128):
+            case X(Tbool,Tuns128):
+            case X(Tbool,Tfloat32):
+            case X(Tbool,Tfloat64):
+            case X(Tbool,Tfloat80):
+            case X(Tbool,Tcomplex32):
+            case X(Tbool,Tcomplex64):
+            case X(Tbool,Tcomplex80):
+                e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
+                fty = Tuns8;
+                continue;
+
+            case X(Tbool,Timaginary32):
+            case X(Tbool,Timaginary64):
+            case X(Tbool,Timaginary80):
+                return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint8,Tuns8):    return Lpaint(ce, e, ttym);
+            case X(Tint8,Tint16):
+            case X(Tint8,Tuns16):
+            case X(Tint8,Tint32):
+            case X(Tint8,Tuns32):   eop = OPs8_16;  return Leop(ce, e, eop, ttym);
+            case X(Tint8,Tint64):
+            case X(Tint8,Tuns64):
+            case X(Tint8,Tint128):
+            case X(Tint8,Tuns128):
+            case X(Tint8,Tfloat32):
+            case X(Tint8,Tfloat64):
+            case X(Tint8,Tfloat80):
+            case X(Tint8,Tcomplex32):
+            case X(Tint8,Tcomplex64):
+            case X(Tint8,Tcomplex80):
+                e = el_una(OPs8_16, TYint, e);
+                fty = Tint32;
+                continue;
+            case X(Tint8,Timaginary32):
+            case X(Tint8,Timaginary64):
+            case X(Tint8,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns8,Tint8):    return Lpaint(ce, e, ttym);
+            case X(Tuns8,Tint16):
+            case X(Tuns8,Tuns16):
+            case X(Tuns8,Tint32):
+            case X(Tuns8,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
+            case X(Tuns8,Tint64):
+            case X(Tuns8,Tuns64):
+            case X(Tuns8,Tint128):
+            case X(Tuns8,Tuns128):
+            case X(Tuns8,Tfloat32):
+            case X(Tuns8,Tfloat64):
+            case X(Tuns8,Tfloat80):
+            case X(Tuns8,Tcomplex32):
+            case X(Tuns8,Tcomplex64):
+            case X(Tuns8,Tcomplex80):
+                e = el_una(OPu8_16, TYuint, e);
+                fty = Tuns32;
+                continue;
+            case X(Tuns8,Timaginary32):
+            case X(Tuns8,Timaginary64):
+            case X(Tuns8,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint16,Tint8):
+            case X(Tint16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
+            case X(Tint16,Tuns16):  return Lpaint(ce, e, ttym);
+            case X(Tint16,Tint32):
+            case X(Tint16,Tuns32):  eop = OPs16_32; return Leop(ce, e, eop, ttym);
+            case X(Tint16,Tint64):
+            case X(Tint16,Tuns64):
+            case X(Tint16,Tint128):
+            case X(Tint16,Tuns128):
+                e = el_una(OPs16_32, TYint, e);
+                fty = Tint32;
+                continue;
+            case X(Tint16,Tfloat32):
+            case X(Tint16,Tfloat64):
+            case X(Tint16,Tfloat80):
+            case X(Tint16,Tcomplex32):
+            case X(Tint16,Tcomplex64):
+            case X(Tint16,Tcomplex80):
+                e = el_una(OPs16_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tint16,Timaginary32):
+            case X(Tint16,Timaginary64):
+            case X(Tint16,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns16,Tint8):
+            case X(Tuns16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
+            case X(Tuns16,Tint16):  return Lpaint(ce, e, ttym);
+            case X(Tuns16,Tint32):
+            case X(Tuns16,Tuns32):  eop = OPu16_32; return Leop(ce, e, eop, ttym);
+            case X(Tuns16,Tint64):
+            case X(Tuns16,Tuns64):
+            case X(Tuns16,Tint128):
+            case X(Tuns16,Tuns128):
+            case X(Tuns16,Tfloat64):
+            case X(Tuns16,Tfloat32):
+            case X(Tuns16,Tfloat80):
+            case X(Tuns16,Tcomplex32):
+            case X(Tuns16,Tcomplex64):
+            case X(Tuns16,Tcomplex80):
+                e = el_una(OPu16_32, TYuint, e);
+                fty = Tuns32;
+                continue;
+            case X(Tuns16,Timaginary32):
+            case X(Tuns16,Timaginary64):
+            case X(Tuns16,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint32,Tint8):
+            case X(Tint32,Tuns8):   e = el_una(OP32_16, TYshort, e);
+                fty = Tint16;
+                continue;
+            case X(Tint32,Tint16):
+            case X(Tint32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
+            case X(Tint32,Tuns32):  return Lpaint(ce, e, ttym);
+            case X(Tint32,Tint64):
+            case X(Tint32,Tuns64):  eop = OPs32_64; return Leop(ce, e, eop, ttym);
+            case X(Tint32,Tint128):
+            case X(Tint32,Tuns128):
+                e = el_una(OPs32_64, TYullong, e);
+                fty = Tint64;
+                continue;
+            case X(Tint32,Tfloat32):
+            case X(Tint32,Tfloat64):
+            case X(Tint32,Tfloat80):
+            case X(Tint32,Tcomplex32):
+            case X(Tint32,Tcomplex64):
+            case X(Tint32,Tcomplex80):
+                e = el_una(OPs32_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tint32,Timaginary32):
+            case X(Tint32,Timaginary64):
+            case X(Tint32,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns32,Tint8):
+            case X(Tuns32,Tuns8):   e = el_una(OP32_16, TYshort, e);
+                fty = Tuns16;
+                continue;
+            case X(Tuns32,Tint16):
+            case X(Tuns32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
+            case X(Tuns32,Tint32):  return Lpaint(ce, e, ttym);
+            case X(Tuns32,Tint64):
+            case X(Tuns32,Tuns64):  eop = OPu32_64; return Leop(ce, e, eop, ttym);
+            case X(Tuns32,Tint128):
+            case X(Tuns32,Tuns128):
+                e = el_una(OPs32_64, TYullong, e);
+                fty = Tuns64;
+                continue;
+            case X(Tuns32,Tfloat32):
+            case X(Tuns32,Tfloat64):
+            case X(Tuns32,Tfloat80):
+            case X(Tuns32,Tcomplex32):
+            case X(Tuns32,Tcomplex64):
+            case X(Tuns32,Tcomplex80):
+                e = el_una(OPu32_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tuns32,Timaginary32):
+            case X(Tuns32,Timaginary64):
+            case X(Tuns32,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint64,Tint8):
+            case X(Tint64,Tuns8):
+            case X(Tint64,Tint16):
+            case X(Tint64,Tuns16):  e = el_una(OP64_32, TYint, e);
+                fty = Tint32;
+                continue;
+            case X(Tint64,Tint32):
+            case X(Tint64,Tuns32):  eop = OP64_32; return Leop(ce, e, eop, ttym);
+            case X(Tint64,Tuns64):  return Lpaint(ce, e, ttym);
+            case X(Tint64,Tint128):
+            case X(Tint64,Tuns128):  eop = OPs64_128; return Leop(ce, e, eop, ttym);
+            case X(Tint64,Tfloat32):
+            case X(Tint64,Tfloat64):
+            case X(Tint64,Tfloat80):
+            case X(Tint64,Tcomplex32):
+            case X(Tint64,Tcomplex64):
+            case X(Tint64,Tcomplex80):
+                e = el_una(OPs64_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tint64,Timaginary32):
+            case X(Tint64,Timaginary64):
+            case X(Tint64,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns64,Tint8):
+            case X(Tuns64,Tuns8):
+            case X(Tuns64,Tint16):
+            case X(Tuns64,Tuns16):  e = el_una(OP64_32, TYint, e);
+                fty = Tint32;
+                continue;
+            case X(Tuns64,Tint32):
+            case X(Tuns64,Tuns32):  eop = OP64_32;  return Leop(ce, e, eop, ttym);
+            case X(Tuns64,Tint64):  return Lpaint(ce, e, ttym);
+            case X(Tuns64,Tint128):
+            case X(Tuns64,Tuns128):  eop = OPu64_128; return Leop(ce, e, eop, ttym);
+            case X(Tuns64,Tfloat32):
+            case X(Tuns64,Tfloat64):
+            case X(Tuns64,Tfloat80):
+            case X(Tuns64,Tcomplex32):
+            case X(Tuns64,Tcomplex64):
+            case X(Tuns64,Tcomplex80):
+                e = el_una(OPu64_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tuns64,Timaginary32):
+            case X(Tuns64,Timaginary64):
+            case X(Tuns64,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tint128,Tint8):
+            case X(Tint128,Tuns8):
+            case X(Tint128,Tint16):
+            case X(Tint128,Tuns16):
+            case X(Tint128,Tint32):
+            case X(Tint128,Tuns32):
+                e = el_una(OP128_64, TYllong, e);
+                fty = Tint64;
+                continue;
+            case X(Tint128,Tint64):
+            case X(Tint128,Tuns64):  eop = OP128_64; return Leop(ce, e, eop, ttym);
+            case X(Tint128,Tuns128): return Lpaint(ce, e, ttym);
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tint128,Tfloat32):
+            case X(Tint128,Tfloat64):
+            case X(Tint128,Tfloat80):
+            case X(Tint128,Tcomplex32):
+            case X(Tint128,Tcomplex64):
+            case X(Tint128,Tcomplex80):
+                e = el_una(OPs64_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+        }
+            case X(Tint128,Timaginary32):
+            case X(Tint128,Timaginary64):
+            case X(Tint128,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tuns128,Tint8):
+            case X(Tuns128,Tuns8):
+            case X(Tuns128,Tint16):
+            case X(Tuns128,Tuns16):
+            case X(Tuns128,Tint32):
+            case X(Tuns128,Tuns32):
+                e = el_una(OP128_64, TYllong, e);
+                fty = Tint64;
+                continue;
+            case X(Tuns128,Tint64):
+            case X(Tuns128,Tuns64):  eop = OP128_64;  return Leop(ce, e, eop, ttym);
+            case X(Tuns128,Tint128):  return Lpaint(ce, e, ttym);
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tuns128,Tfloat32):
+            case X(Tuns128,Tfloat64):
+            case X(Tuns128,Tfloat80):
+            case X(Tuns128,Tcomplex32):
+            case X(Tuns128,Tcomplex64):
+            case X(Tuns128,Tcomplex80):
+                e = el_una(OPu64_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+        }
+            case X(Tuns128,Timaginary32):
+            case X(Tuns128,Timaginary64):
+            case X(Tuns128,Timaginary80): return Lzero(ce, e, ttym);
+
+                /* ============================= */
+
+            case X(Tfloat32,Tint8):
+            case X(Tfloat32,Tuns8):
+            case X(Tfloat32,Tint16):
+            case X(Tfloat32,Tuns16):
+            case X(Tfloat32,Tint32):
+            case X(Tfloat32,Tuns32):
+            case X(Tfloat32,Tint64):
+            case X(Tfloat32,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tfloat32,Tint128):
+            case X(Tfloat32,Tuns128):
+        }
+            case X(Tfloat32,Tfloat80):
+                e = el_una(OPf_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tfloat32,Tfloat64): eop = OPf_d; return Leop(ce, e, eop, ttym);
+            case X(Tfloat32,Timaginary32):
+            case X(Tfloat32,Timaginary64):
+            case X(Tfloat32,Timaginary80): return Lzero(ce, e, ttym);
+            case X(Tfloat32,Tcomplex32):
+            case X(Tfloat32,Tcomplex64):
+            case X(Tfloat32,Tcomplex80):
+                e = el_bin(OPadd,TYcfloat,el_long(TYifloat,0),e);
+                fty = Tcomplex32;
+                continue;
+
+                /* ============================= */
+
+            case X(Tfloat64,Tint8):
+            case X(Tfloat64,Tuns8):    e = el_una(OPd_s16, TYshort, e);
+                fty = Tint16;
+                continue;
+            case X(Tfloat64,Tint16):   eop = OPd_s16; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tuns16):   eop = OPd_u16; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tint32):   eop = OPd_s32; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tuns32):   eop = OPd_u32; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tint64):   eop = OPd_s64; return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tuns64):   eop = OPd_u64; return Leop(ce, e, eop, ttym);
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tfloat64,Tint128):
+            case X(Tfloat64,Tuns128):
+        }
+            case X(Tfloat64,Tfloat32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Tfloat80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
+            case X(Tfloat64,Timaginary32):
+            case X(Tfloat64,Timaginary64):
+            case X(Tfloat64,Timaginary80):  return Lzero(ce, e, ttym);
+            case X(Tfloat64,Tcomplex32):
+            case X(Tfloat64,Tcomplex64):
+            case X(Tfloat64,Tcomplex80):
+                e = el_bin(OPadd,TYcdouble,el_long(TYidouble,0),e);
+                fty = Tcomplex64;
+                continue;
+
+                /* ============================= */
+
+            case X(Tfloat80,Tint8):
+            case X(Tfloat80,Tuns8):
+            case X(Tfloat80,Tint16):
+            case X(Tfloat80,Tuns16):
+            case X(Tfloat80,Tint32):
+            case X(Tfloat80,Tuns32):
+            case X(Tfloat80,Tint64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tfloat80,Tint128):
+            case X(Tfloat80,Tuns128):
+        }
+            case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tfloat80,Tuns64):
+                eop = OPld_u64; return Leop(ce, e, eop, ttym);
+            case X(Tfloat80,Tfloat64): eop = OPld_d; return Leop(ce, e, eop, ttym);
+            case X(Tfloat80,Timaginary32):
+            case X(Tfloat80,Timaginary64):
+            case X(Tfloat80,Timaginary80): return Lzero(ce, e, ttym);
+            case X(Tfloat80,Tcomplex32):
+            case X(Tfloat80,Tcomplex64):
+            case X(Tfloat80,Tcomplex80):
+                e = el_bin(OPadd,TYcldouble,e,el_long(TYildouble,0));
+                fty = Tcomplex80;
+                continue;
+
+                /* ============================= */
+
+            case X(Timaginary32,Tint8):
+            case X(Timaginary32,Tuns8):
+            case X(Timaginary32,Tint16):
+            case X(Timaginary32,Tuns16):
+            case X(Timaginary32,Tint32):
+            case X(Timaginary32,Tuns32):
+            case X(Timaginary32,Tint64):
+            case X(Timaginary32,Tuns64):
+            case X(Timaginary32,Tfloat32):
+            case X(Timaginary32,Tfloat64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Timaginary32,Tint128):
+            case X(Timaginary32,Tuns128):
+        }
+            case X(Timaginary32,Tfloat80):  return Lzero(ce, e, ttym);
+            case X(Timaginary32,Timaginary64): eop = OPf_d; return Leop(ce, e, eop, ttym);
+            case X(Timaginary32,Timaginary80):
+                e = el_una(OPf_d, TYidouble, e);
+                fty = Timaginary64;
+                continue;
+            case X(Timaginary32,Tcomplex32):
+            case X(Timaginary32,Tcomplex64):
+            case X(Timaginary32,Tcomplex80):
+                e = el_bin(OPadd,TYcfloat,el_long(TYfloat,0),e);
+                fty = Tcomplex32;
+                continue;
+
+                /* ============================= */
+
+            case X(Timaginary64,Tint8):
+            case X(Timaginary64,Tuns8):
+            case X(Timaginary64,Tint16):
+            case X(Timaginary64,Tuns16):
+            case X(Timaginary64,Tint32):
+            case X(Timaginary64,Tuns32):
+            case X(Timaginary64,Tint64):
+            case X(Timaginary64,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Timaginary64,Tint128):
+            case X(Timaginary64,Tuns128):
+        }
+            case X(Timaginary64,Tfloat32):
+            case X(Timaginary64,Tfloat64):
+            case X(Timaginary64,Tfloat80):  return Lzero(ce, e, ttym);
+            case X(Timaginary64,Timaginary32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
+            case X(Timaginary64,Timaginary80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
+            case X(Timaginary64,Tcomplex32):
+            case X(Timaginary64,Tcomplex64):
+            case X(Timaginary64,Tcomplex80):
+                e = el_bin(OPadd,TYcdouble,el_long(TYdouble,0),e);
+                fty = Tcomplex64;
+                continue;
+
+                /* ============================= */
+
+            case X(Timaginary80,Tint8):
+            case X(Timaginary80,Tuns8):
+            case X(Timaginary80,Tint16):
+            case X(Timaginary80,Tuns16):
+            case X(Timaginary80,Tint32):
+            case X(Timaginary80,Tuns32):
+            case X(Timaginary80,Tint64):
+            case X(Timaginary80,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Timaginary80,Tint128):
+            case X(Timaginary80,Tuns128):
+        }
+            case X(Timaginary80,Tfloat32):
+            case X(Timaginary80,Tfloat64):
+            case X(Timaginary80,Tfloat80):  return Lzero(ce, e, ttym);
+            case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
+                fty = Timaginary64;
+                continue;
+            case X(Timaginary80,Timaginary64): eop = OPld_d; return Leop(ce, e, eop, ttym);
+            case X(Timaginary80,Tcomplex32):
+            case X(Timaginary80,Tcomplex64):
+            case X(Timaginary80,Tcomplex80):
+                e = el_bin(OPadd,TYcldouble,el_long(TYldouble,0),e);
+                fty = Tcomplex80;
+                continue;
+
+                /* ============================= */
+
+            case X(Tcomplex32,Tint8):
+            case X(Tcomplex32,Tuns8):
+            case X(Tcomplex32,Tint16):
+            case X(Tcomplex32,Tuns16):
+            case X(Tcomplex32,Tint32):
+            case X(Tcomplex32,Tuns32):
+            case X(Tcomplex32,Tint64):
+            case X(Tcomplex32,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tcomplex32,Tint128):
+            case X(Tcomplex32,Tuns128):
+        }
+            case X(Tcomplex32,Tfloat32):
+            case X(Tcomplex32,Tfloat64):
+            case X(Tcomplex32,Tfloat80):
+                e = el_una(OPc_r, TYfloat, e);
+                fty = Tfloat32;
+                continue;
+            case X(Tcomplex32,Timaginary32):
+            case X(Tcomplex32,Timaginary64):
+            case X(Tcomplex32,Timaginary80):
+                e = el_una(OPc_i, TYifloat, e);
+                fty = Timaginary32;
+                continue;
+            case X(Tcomplex32,Tcomplex64):
+            case X(Tcomplex32,Tcomplex80):
+                e = el_una(OPf_d, TYcdouble, e);
+                fty = Tcomplex64;
+                continue;
+
+                /* ============================= */
+
+            case X(Tcomplex64,Tint8):
+            case X(Tcomplex64,Tuns8):
+            case X(Tcomplex64,Tint16):
+            case X(Tcomplex64,Tuns16):
+            case X(Tcomplex64,Tint32):
+            case X(Tcomplex64,Tuns32):
+            case X(Tcomplex64,Tint64):
+            case X(Tcomplex64,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tcomplex64,Tint128):
+            case X(Tcomplex64,Tuns128):
+        }
+            case X(Tcomplex64,Tfloat32):
+            case X(Tcomplex64,Tfloat64):
+            case X(Tcomplex64,Tfloat80):
+                e = el_una(OPc_r, TYdouble, e);
+                fty = Tfloat64;
+                continue;
+            case X(Tcomplex64,Timaginary32):
+            case X(Tcomplex64,Timaginary64):
+            case X(Tcomplex64,Timaginary80):
+                e = el_una(OPc_i, TYidouble, e);
+                fty = Timaginary64;
+                continue;
+            case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   return Leop(ce, e, eop, ttym);
+            case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  return Leop(ce, e, eop, ttym);
+
+                /* ============================= */
+
+            case X(Tcomplex80,Tint8):
+            case X(Tcomplex80,Tuns8):
+            case X(Tcomplex80,Tint16):
+            case X(Tcomplex80,Tuns16):
+            case X(Tcomplex80,Tint32):
+            case X(Tcomplex80,Tuns32):
+            case X(Tcomplex80,Tint64):
+            case X(Tcomplex80,Tuns64):
+        static if (0)       // cent <=> floating point not supported yet
+        {
+            case X(Tcomplex80,Tint128):
+            case X(Tcomplex80,Tuns128):
+        }
+            case X(Tcomplex80,Tfloat32):
+            case X(Tcomplex80,Tfloat64):
+            case X(Tcomplex80,Tfloat80):
+                e = el_una(OPc_r, TYldouble, e);
+                fty = Tfloat80;
+                continue;
+            case X(Tcomplex80,Timaginary32):
+            case X(Tcomplex80,Timaginary64):
+            case X(Tcomplex80,Timaginary80):
+                e = el_una(OPc_i, TYildouble, e);
+                fty = Timaginary80;
+                continue;
+            case X(Tcomplex80,Tcomplex32):
+            case X(Tcomplex80,Tcomplex64):
+                e = el_una(OPld_d, TYcdouble, e);
+                fty = Tcomplex64;
+                continue;
+
+                /* ============================= */
+
+            default:
+                if (fty == tty)
+                    return Lpaint(ce, e, ttym);
+                //dump(0);
+                //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
+                // This error should really be pushed to the front end
+                ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                e = el_long(TYint, 0);
+                return e;
+
+        }
     }
 }
 
@@ -5106,7 +5291,15 @@ elem *callfunc(const ref Loc loc,
         ec = el_same(&ethis);
         ethis = el_una(target.is64bit ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
-        ec = el_una(OPind, totym(tf), ec);
+        tym_t tym;
+        /* Delegates use the same calling convention as member functions.
+         * For extern(C++) on Win32 this differs from other functions.
+         */
+        if (tf.linkage == LINK.cpp && !target.is64bit && target.os == Target.OS.Windows)
+            tym = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYmfunc;
+        else
+            tym = totym(tf);
+        ec = el_una(OPind, tym, ec);
     }
 
     const ty = fd ? toSymbol(fd).Stype.Tty : ec.Ety;
@@ -5114,12 +5307,19 @@ elem *callfunc(const ref Loc loc,
                                            // (TYnpfunc, TYjfunc, TYfpfunc, TYf16func)
     elem* ep = null;
     const op = fd ? intrinsic_op(fd) : NotIntrinsic;
+
+    // Check for noreturn expression pretending to yield function/delegate pointers
+    if (tybasic(ec.Ety) == TYnoreturn)
+    {
+        // Discard unreachable argument evaluation + function call
+        return ec;
+    }
     if (arguments && arguments.dim)
     {
         if (op == OPvector)
         {
             Expression arg = (*arguments)[0];
-            if (arg.op != TOK.int64)
+            if (arg.op != EXP.int64)
                 arg.error("simd operator must be an integer constant, not `%s`", arg.toChars());
         }
 
@@ -5130,11 +5330,10 @@ elem *callfunc(const ref Loc loc,
             elem*[2] elems_array = void;
         else
             elem*[10] elems_array = void;
-        import core.stdc.stdlib : malloc, free;
-        auto pe = (n <= elems_array.length)
-                  ? elems_array.ptr
-                  : cast(elem**)Mem.check(malloc(arguments.dim * (elem*).sizeof));
-        elem*[] elems = pe[0 .. n];
+
+        import dmd.common.string : SmallBuffer;
+        auto pe = SmallBuffer!(elem*)(n, elems_array[]);
+        elem*[] elems = pe[];
 
         /* Fill elems[] with arguments converted to elems
          */
@@ -5227,8 +5426,19 @@ elem *callfunc(const ref Loc loc,
             }
 
             elems[i] = ea;
+
+            // Passing an expression of noreturn, meaning that the argument
+            // evaluation will throw / abort / loop indefinetly. Hence skip the
+            // call and only evaluate up to the current argument
+            if (tybasic(ea.Ety) == TYnoreturn)
+            {
+                return el_combines(cast(void**) elems.ptr, cast(int) i + 1);
+            }
+
         }
-        if (!left_to_right)
+        if (!left_to_right &&
+            !irs.Cfile)     // C11 leaves evaluation order implementation-defined, but
+                            // try to match evaluation order of other C compilers
         {
             eside = fixArgumentEvaluationOrder(elems);
         }
@@ -5242,9 +5452,6 @@ elem *callfunc(const ref Loc loc,
             reverse(elems);
 
         ep = el_params(cast(void**)elems.ptr, cast(int)n);
-
-        if (elems.ptr != elems_array.ptr)
-            free(elems.ptr);
     }
 
     objc.setupMethodSelector(fd, &esel);
@@ -5423,18 +5630,8 @@ elem *callfunc(const ref Loc loc,
         }
         else if (op == OPind)
             e = el_una(op,mTYvolatile | tyret,ep);
-        else if (op == OPva_start && target.is64bit)
-        {
-            // (OPparam &va &arg)
-            // call as (OPva_start &va)
-            ep.Eoper = cast(ubyte)op;
-            ep.Ety = tyret;
-            e = ep;
-
-            elem *earg = e.EV.E2;
-            e.EV.E2 = null;
-            e = el_combine(earg, e);
-        }
+        else if (op == OPva_start)
+            e = constructVa_start(ep);
         else if (op == OPtoPrec)
         {
             static int X(int fty, int tty) { return fty * TMAX + tty; }
@@ -5479,23 +5676,13 @@ elem *callfunc(const ref Loc loc,
     }
     else
     {
-        /* Do not do "no side effect" calls if a hidden parameter is passed,
-         * as the return value is stored through the hidden parameter, which
-         * is a side effect.
-         */
-        //printf("1: fd = %p prity = %d, nothrow = %d, retmethod = %d, use-assert = %d\n",
-        //       fd, (fd ? fd.isPure() : tf.purity), tf.isnothrow, retmethod, irs.params.useAssert);
-        //printf("\tfd = %s, tf = %s\n", fd.toChars(), tf.toChars());
-        /* assert() has 'implicit side effect' so disable this optimization.
-         */
-        int ns = ((fd ? callSideEffectLevel(fd)
-                      : callSideEffectLevel(t)) == 2 &&
-                  retmethod != RET.stack &&
-                  irs.params.useAssert == CHECKENABLE.off && irs.params.optimize);
+        // `OPcallns` used to be passed here for certain pure functions,
+        // but optimizations based on pure have to be retought, see:
+        // https://issues.dlang.org/show_bug.cgi?id=22277
         if (ep)
-            e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
+            e = el_bin(OPcall, tyret, ec, ep);
         else
-            e = el_una(ns ? OPucallns : OPucall, tyret, ec);
+            e = el_una(OPucall, tyret, ec);
 
         if (tf.parameterList.varargs != VarArg.none)
             e.Eflags |= EFLAGS_variadic;
@@ -5805,11 +5992,8 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
         uint fsize = cast(uint)tfrom.nextOf().size();
         uint tsize = cast(uint)tto.nextOf().size();
 
-        if ((dim * fsize) % tsize != 0)
-        {
-            // have to change to Internal Compiler Error?
-            error(loc, "cannot cast %s to %s since sizes don't line up", tfrom.toChars(), tto.toChars());
-        }
+        // Should have been caught by Expression::castTo
+        assert(tsize != 0 && (dim * fsize) % tsize == 0);
         dim = (dim * fsize) / tsize;
     }
     elem *elen = el_long(TYsize_t, dim);
@@ -5817,9 +6001,6 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
     e = el_pair(TYdarray, elen, e);
     return e;
 }
-
-/************************************
- */
 
 elem *getTypeInfo(Loc loc, Type t, IRState *irs)
 {
@@ -5867,41 +6048,41 @@ StructDeclaration needsDtor(Type t)
  *      tb     = type of evalue
  *      evalue = value to write
  *      irs    = context
- *      op     = TOK.blit, TOK.assign, or TOK.construct
+ *      op     = EXP.blit, EXP.assign, or EXP.construct
  * Returns:
  *      created IR code
  */
 elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *evalue, IRState *irs, int op)
 {
-    assert(op == TOK.blit || op == TOK.assign || op == TOK.construct);
+    assert(op == EXP.blit || op == EXP.assign || op == EXP.construct);
     const sz = cast(uint)tb.size();
     Type tb2 = tb;
 
 Lagain:
-    int r;
+    RTLSYM r;
     switch (tb2.ty)
     {
         case Tfloat80:
         case Timaginary80:
-            r = RTLSYM_MEMSET80;
+            r = RTLSYM.MEMSET80;
             break;
         case Tcomplex80:
-            r = RTLSYM_MEMSET160;
+            r = RTLSYM.MEMSET160;
             break;
         case Tcomplex64:
-            r = RTLSYM_MEMSET128;
+            r = RTLSYM.MEMSET128;
             break;
         case Tfloat32:
         case Timaginary32:
             if (!target.is64bit)
                 goto default;          // legacy binary compatibility
-            r = RTLSYM_MEMSETFLOAT;
+            r = RTLSYM.MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
             if (!target.is64bit)
                 goto default;          // legacy binary compatibility
-            r = RTLSYM_MEMSETDOUBLE;
+            r = RTLSYM.MEMSETDOUBLE;
             break;
 
         case Tstruct:
@@ -5920,30 +6101,31 @@ Lagain:
         }
 
         case Tvector:
-            r = RTLSYM_MEMSETSIMD;
+            r = RTLSYM.MEMSETSIMD;
             break;
 
         default:
             switch (sz)
             {
-                case 1:      r = RTLSYM_MEMSET8;    break;
-                case 2:      r = RTLSYM_MEMSET16;   break;
-                case 4:      r = RTLSYM_MEMSET32;   break;
-                case 8:      r = RTLSYM_MEMSET64;   break;
-                case 16:     r = target.is64bit ? RTLSYM_MEMSET128ii : RTLSYM_MEMSET128; break;
-                default:     r = RTLSYM_MEMSETN;    break;
+                case 1:      r = RTLSYM.MEMSET8;    break;
+                case 2:      r = RTLSYM.MEMSET16;   break;
+                case 4:      r = RTLSYM.MEMSET32;   break;
+                case 8:      r = RTLSYM.MEMSET64;   break;
+                case 16:     r = target.is64bit ? RTLSYM.MEMSET128ii : RTLSYM.MEMSET128; break;
+                default:     r = RTLSYM.MEMSETN;    break;
             }
 
             /* Determine if we need to do postblit
              */
-            if (op != TOK.blit)
+            if (op != EXP.blit)
             {
                 if (needsPostblit(tb) || needsDtor(tb))
                 {
                     /* Need to do postblit/destructor.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
-                    r = (op == TOK.construct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
+                    assert(op != EXP.construct, "Trying reference _d_arraysetctor, this should not happen!");
+                    r = RTLSYM.ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
                     elem *eti = getTypeInfo(exp.loc, tb.unSharedOf().mutableOf(), irs);
@@ -5953,7 +6135,7 @@ Lagain:
                 }
             }
 
-            if (target.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM_MEMSETN)
+            if (target.is64bit && tybasic(evalue.Ety) == TYstruct && r != RTLSYM.MEMSETN)
             {
                 /* If this struct is in-memory only, i.e. cannot necessarily be passed as
                  * a gp register parameter.
@@ -5968,17 +6150,17 @@ Lagain:
                     if (!t1 && !t2)
                     {
                         if (irs.target.os & Target.OS.Posix || sz > 8)
-                            r = RTLSYM_MEMSETN;
+                            r = RTLSYM.MEMSETN;
                     }
                     else if (irs.target.os & Target.OS.Posix &&
-                             r == RTLSYM_MEMSET128ii &&
+                             r == RTLSYM.MEMSET128ii &&
                              tyfloating(t1.Tty) &&
                              tyfloating(t2.Tty))
-                        r = RTLSYM_MEMSET128;
+                        r = RTLSYM.MEMSET128;
                 }
             }
 
-            if (r == RTLSYM_MEMSETN)
+            if (r == RTLSYM.MEMSETN)
             {
                 // void *_memsetn(void *p, void *value, int dim, int sizelem)
                 evalue = addressElem(evalue, tb);
@@ -5992,7 +6174,7 @@ Lagain:
     if (sz > 1 && sz <= 8 &&
         evalue.Eoper == OPconst && el_allbits(evalue, 0))
     {
-        r = RTLSYM_MEMSET8;
+        r = RTLSYM.MEMSET8;
         edim = el_bin(OPmul, TYsize_t, edim, el_long(TYsize_t, sz));
     }
 
@@ -6001,22 +6183,22 @@ Lagain:
         evalue = addressElem(evalue, tb);
     }
     // cast to the proper parameter type
-    else if (r != RTLSYM_MEMSETN)
+    else if (r != RTLSYM.MEMSETN)
     {
         tym_t tym;
         switch (r)
         {
-            case RTLSYM_MEMSET8:      tym = TYchar;     break;
-            case RTLSYM_MEMSET16:     tym = TYshort;    break;
-            case RTLSYM_MEMSET32:     tym = TYlong;     break;
-            case RTLSYM_MEMSET64:     tym = TYllong;    break;
-            case RTLSYM_MEMSET80:     tym = TYldouble;  break;
-            case RTLSYM_MEMSET160:    tym = TYcldouble; break;
-            case RTLSYM_MEMSET128:    tym = TYcdouble;  break;
-            case RTLSYM_MEMSET128ii:  tym = TYucent;    break;
-            case RTLSYM_MEMSETFLOAT:  tym = TYfloat;    break;
-            case RTLSYM_MEMSETDOUBLE: tym = TYdouble;   break;
-            case RTLSYM_MEMSETSIMD:   tym = TYfloat4;   break;
+            case RTLSYM.MEMSET8:      tym = TYchar;     break;
+            case RTLSYM.MEMSET16:     tym = TYshort;    break;
+            case RTLSYM.MEMSET32:     tym = TYlong;     break;
+            case RTLSYM.MEMSET64:     tym = TYllong;    break;
+            case RTLSYM.MEMSET80:     tym = TYldouble;  break;
+            case RTLSYM.MEMSET160:    tym = TYcldouble; break;
+            case RTLSYM.MEMSET128:    tym = TYcdouble;  break;
+            case RTLSYM.MEMSET128ii:  tym = TYucent;    break;
+            case RTLSYM.MEMSETFLOAT:  tym = TYfloat;    break;
+            case RTLSYM.MEMSETDOUBLE: tym = TYdouble;   break;
+            case RTLSYM.MEMSETSIMD:   tym = TYfloat4;   break;
             default:
                 assert(0);
         }
@@ -6028,7 +6210,7 @@ Lagain:
     evalue = useOPstrpar(evalue);
 
     // Be careful about parameter side effect ordering
-    if (r == RTLSYM_MEMSET8)
+    if (r == RTLSYM.MEMSET8)
     {
         elem *e = el_param(edim, evalue);
         return el_bin(OPmemset,TYnptr,eptr,e);
@@ -6088,15 +6270,15 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
 
 /*************************************************
  * Params:
- *      op = TOK.assign, TOK.construct, TOK.blit
+ *      op = EXP.assign, EXP.construct, EXP.blit
  *      fillHoles = Fill in alignment holes with zero. Set to
  *                  false if allocated by operator new, as the holes are already zeroed.
  */
 
-elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
+elem *toElemStructLit(StructLiteralExp sle, IRState *irs, EXP op, Symbol *sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp.toElem() %s\n", sle.loc.toChars(), sle.toChars());
-    //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == TOK.blit, sym, fillHoles);
+    //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == EXP.blit, sym, fillHoles);
 
     Type forcetype = null;
     if (sle.stype)
@@ -6242,13 +6424,14 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
 
     // CTFE may fill the hidden pointer by NullExp.
     {
+        VarDeclaration vbf;
         foreach (i, el; *sle.elements)
         {
             if (!el)
                 continue;
 
             VarDeclaration v = sle.sd.fields[i];
-            assert(!v.isThisDeclaration() || el.op == TOK.null_);
+            assert(!v.isThisDeclaration() || el.op == EXP.null_);
 
             elem *e1;
             if (tybasic(stmp.Stype.Tty) == TYnptr)
@@ -6276,7 +6459,7 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
                 else
                 {
                     elem *edim = el_long(TYsize_t, t1b.size() / t2b.size());
-                    e1 = setArray(el, e1, edim, t2b, ep, irs, op == TOK.construct ? TOK.blit : op);
+                    e1 = setArray(el, e1, edim, t2b, ep, irs, op == EXP.construct ? EXP.blit : op);
                 }
             }
             else
@@ -6285,6 +6468,27 @@ elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, b
                 e1 = el_una(OPind, ty, e1);
                 if (tybasic(ty) == TYstruct)
                     e1.ET = Type_toCtype(v.type);
+                if (auto bf = v.isBitFieldDeclaration())
+                {
+                    if (!vbf || vbf.offset + vbf.type.size() <= v.offset)
+                    {
+                        /* Initialize entire location the bitfield is in
+                         * ep = (ep & ((1 << bf.fieldWidth) - 1)) << bf.bitOffset
+                         */
+                        tym_t e1ty = e1.Ety;
+                        auto ex = el_bin(OPand, e1ty, ep, el_long(e1ty, (1L << bf.fieldWidth) - 1));
+                        ep = el_bin(OPshl, e1ty, ex, el_long(e1ty, bf.bitOffset));
+                        vbf = v;
+                    }
+                    else
+                    {
+                        // Insert special bitfield operator
+                        auto mos = el_long(TYuint, bf.fieldWidth * 256 + bf.bitOffset);
+                        e1 = el_bin(OPbit, e1.Ety, e1, mos);
+                    }
+                }
+                else
+                    vbf = null;
                 e1 = elAssign(e1, ep, v.type, e1.ET);
             }
             e = el_combine(e, e1);
@@ -6449,28 +6653,83 @@ elem *filelinefunction(IRState *irs, const ref Loc loc)
 }
 
 /******************************************************
- * Construct elem to run when an array bounds check fails.
+ * Construct elem to run when an array bounds check fails. (Without additional context)
  * Params:
  *      irs = to get function from
  *      loc = to get file/line from
- *      lwr = lower bound passed, if slice (array[lwr .. upr]). null otherwise.
- *      upr = upper bound passed if slice (array[lwr .. upr]), index if not a slice (array[upr])
+ * Returns:
+ *      elem generated
+ */
+elem* buildRangeError(IRState *irs, const ref Loc loc)
+{
+    final switch (irs.params.checkAction)
+    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array overflow");
+    case CHECKACTION.halt:
+        return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DARRAYP)), el_params(el_long(TYint, loc.linnum), efile, null));
+    }
+}
+
+/******************************************************
+ * Construct elem to run when an array slice is created that is out of bounds
+ * Params:
+ *      irs = to get function from
+ *      loc = to get file/line from
+ *      lower = lower bound in slice
+ *      upper = upper bound in slice
  *      elength = length of array
  * Returns:
  *      elem generated
  */
-elem *buildArrayBoundsError(IRState *irs, const ref Loc loc, elem* lwr, elem* upr, elem* elength)
-{
-    if (irs.params.checkAction == CHECKACTION.C)
+elem* buildArraySliceError(IRState *irs, const ref Loc loc, elem* lower, elem* upper, elem* length) {
+    final switch (irs.params.checkAction)
     {
-        return callCAssert(irs, loc, null, null, "array overflow");
-    }
-    if (irs.params.checkAction == CHECKACTION.halt)
-    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array slice out of bounds");
+    case CHECKACTION.halt:
         return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        assert(upper);
+        assert(lower);
+        assert(length);
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DARRAY_SLICEP)), el_params(length, upper, lower, el_long(TYint, loc.linnum), efile, null));
     }
-    auto eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
+}
 
+/******************************************************
+ * Construct elem to run when an out of bounds array index is accessed
+ * Params:
+ *      irs = to get function from
+ *      loc = to get file/line from
+ *      index = index in the array
+ *      elength = length of array
+ * Returns:
+ *      elem generated
+ */
+elem* buildArrayIndexError(IRState *irs, const ref Loc loc, elem* index, elem* length) {
+    final switch (irs.params.checkAction)
+    {
+    case CHECKACTION.C:
+        return callCAssert(irs, loc, null, null, "array index out of bounds");
+    case CHECKACTION.halt:
+        return genHalt(loc);
+    case CHECKACTION.context:
+    case CHECKACTION.D:
+        assert(length);
+        const efile = irs.locToFileElem(loc);
+        return el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DARRAY_INDEXP)), el_params(length, index, el_long(TYint, loc.linnum), efile, null));
+    }
+}
+
+/// Returns: elem representing a C-string (char*) to the filename
+elem* locToFileElem(const IRState *irs, const ref Loc loc) {
     elem* efile;
     if (loc.filename)
     {
@@ -6480,20 +6739,7 @@ elem *buildArrayBoundsError(IRState *irs, const ref Loc loc, elem* lwr, elem* up
     }
     else
         efile = toEfilenamePtr(cast(Module)irs.blx._module);
-    auto eline = el_long(TYint, loc.linnum);
-    if(upr is null)
-    {
-        upr = el_long(TYsize_t, 0);
-    }
-    if(lwr is null)
-    {
-        lwr = el_long(TYsize_t, 0);
-    }
-    if(elength is null)
-    {
-        elength = el_long(TYsize_t, 0);
-    }
-    return el_bin(OPcall, TYvoid, eassert, el_params(elength, upr, lwr, eline, efile, null));
+    return efile;
 }
 
 /****************************************
@@ -6574,7 +6820,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     {
         // __assert_rtn(func, file, line, msg);
         elem* efunc = getFuncName();
-        auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_RTN));
+        auto eassert = el_var(getRtlsym(RTLSYM.C__ASSERT_RTN));
         ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, eline, efilename, efunc, null));
     }
     else
@@ -6583,13 +6829,13 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
         {
             // __assert_fail(exp, file, line, func);
             elem* efunc = getFuncName();
-            auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_FAIL));
+            auto eassert = el_var(getRtlsym(RTLSYM.C__ASSERT_FAIL));
             ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, efilename, eline, efunc, null));
         }
         else
         {
             // [_]_assert(msg, file, line);
-            const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
+            const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM.C_ASSERT : RTLSYM.C__ASSERT;
             auto eassert = el_var(getRtlsym(rtlsym));
             ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
         }
@@ -6627,7 +6873,7 @@ elem *genHalt(const ref Loc loc)
  */
 elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis2, elem** ethis, elem** eside)
 {
-    if (!fd.isThis2)
+    if (!fd.hasDualContext())
         return null;
 
     assert(ethis2 && ethis && *ethis);
@@ -6644,4 +6890,37 @@ elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis
     *eside = el_combine(eeq1, *eside);
 
     return ethis2;
+}
+
+/*******************************
+ * Construct OPva_start node
+ * Params:
+ *      e = function parameters
+ * Returns:
+ *      OPva_start node
+ */
+private
+elem* constructVa_start(elem* e)
+{
+    assert(e.Eoper == OPparam);
+
+    e.Eoper = OPva_start;
+    e.Ety = TYvoid;
+    if (target.is64bit)
+    {
+        // (OPparam &va &arg)
+        // call as (OPva_start &va)
+        auto earg = e.EV.E2;
+        e.EV.E2 = null;
+        return el_combine(earg, e);
+    }
+    else // 32 bit
+    {
+        // (OPparam &arg &va)  note arguments are swapped from 64 bit path
+        // call as (OPva_start &va)
+        auto earg = e.EV.E1;
+        e.EV.E1 = e.EV.E2;
+        e.EV.E2 = null;
+        return el_combine(earg, e);
+    }
 }

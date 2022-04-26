@@ -1,10 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Intermediate representation for static data
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Compiler implementation of the
+ * $(LINK2 https://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/dt.d
  * Documentation:  https://dlang.org/phobos/dmd_backend_dt.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/dt.d
@@ -156,7 +158,7 @@ uint dt_size(const(dt_t)* dtstart)
 
 bool dtallzeros(const(dt_t)* dt)
 {
-    return dt.dt == DT_azeros && !dt.DTnext;
+    return dt && dt.dt == DT_azeros && !dt.DTnext;
 }
 
 /************************************
@@ -207,6 +209,23 @@ nothrow:
     this(int dummy)
     {
         pTail = &head;
+    }
+
+    /************************************
+     * Useful for checking if DtBuilder got initialized.
+     */
+    void checkInitialized()
+    {
+        if (!head)
+            assert(pTail == &head);
+    }
+
+    /************************************
+     * Print state of DtBuilder for debugging.
+     */
+    void print() @trusted
+    {
+        debug printf("DtBuilder: %p head: %p, pTail: %p\n", &head, head, pTail);
     }
 
     /*************************
@@ -280,8 +299,10 @@ nothrow:
     void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)
     {
         dt_t *dt = dt_calloc(DT_abytes);
-        dt.DTnbytes = size + nzeros;
-        dt.DTpbytes = cast(byte *) mem_malloc(size + nzeros);
+        const n = size + nzeros;
+        assert(n >= size);      // overflow check
+        dt.DTnbytes = n;
+        dt.DTpbytes = cast(byte *) mem_malloc(n);
         dt.Dty = cast(ubyte)ty;
         dt.DTalign = _align;
         dt.DTabytes = offset;
@@ -478,10 +499,13 @@ nothrow:
      */
     void cat(ref DtBuilder dtb)
     {
-        assert(!*pTail);
-        *pTail = dtb.head;
-        pTail = dtb.pTail;
-        assert(!*pTail);
+        if (dtb.head) // if non-zero length
+        {
+            assert(!*pTail);
+            *pTail = dtb.head;
+            pTail = dtb.pTail; // if dtb is zero length, this will point pTail to dtb.head, oops
+            assert(!*pTail);
+        }
     }
 
     /**************************************
@@ -540,7 +564,9 @@ nothrow:
             return;
         }
 
-        char *p = cast(char *)mem_malloc(size * count);
+        const n = size * count;
+        assert(n >= size);
+        char *p = cast(char *)mem_malloc(n);
         size_t offset = 0;
 
         for (dt_t *dtn = dt; dtn; dtn = dtn.DTnext)

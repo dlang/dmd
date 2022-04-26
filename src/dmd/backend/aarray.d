@@ -1,11 +1,13 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Associative Array implementation
  *
- * Copyright:   Copyright (C) 2000-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright), Dave Fladebo
+ * Compiler implementation of the
+ * $(LINK2 https://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 2000-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright), Dave Fladebo
  * License:     Distributed under the Boost Software License, Version 1.0.
- *              http://www.boost.org/LICENSE_1_0.txt
+ *              https://www.boost.org/LICENSE_1_0.txt
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/aarray.d
  */
 

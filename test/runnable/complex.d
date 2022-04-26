@@ -5,10 +5,8 @@ TEST_OUTPUT:
 ---
 */
 
-import core.stdc.math : isnan;
-import std.math : signbit;
+import core.stdc.math : isnan, signbit;
 import core.stdc.stdio;
-import std.stdio;
 
 template AliasSeq(T...) { alias T AliasSeq; }
 
@@ -434,12 +432,9 @@ void test16()
      creal d = n + 3i;
      creal e = m + 3i;
 
-     // should print "111"
-     writeln(signbit(c.re), signbit(d.re), signbit(e.re));
-
-     assert(signbit(c.re) == 1);
-     assert(signbit(d.re) == 1);
-     assert(signbit(e.re) == 1);
+     assert(signbit(c.re) != 0);
+     assert(signbit(d.re) != 0);
+     assert(signbit(e.re) != 0);
 }
 
 /************************************/

@@ -39,9 +39,6 @@ struct _d_dynamicArray final
 };
 #endif
 
-struct Foo;
-struct FooCpp;
-
 static int32_t const Anon = 10;
 
 static bool const Anon2 = true;
@@ -236,7 +233,7 @@ extern(C++) enum c = [2: 3];
 extern(C) void foo();
 extern(C++) enum d = &foo;
 
-immutable bool e_b;
+__gshared immutable bool e_b;
 extern(C++) enum e = &e_b;
 
 // Opaque enums require C++ 11

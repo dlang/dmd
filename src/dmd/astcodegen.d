@@ -41,6 +41,7 @@ struct ASTCodegen
     alias typeToExpression          = dmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
     alias Ensure                    = dmd.func.Ensure; // workaround for bug in older DMD frontends
+    alias ErrorExp                  = dmd.expression.ErrorExp;
 
     alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;
@@ -72,6 +73,7 @@ struct ASTCodegen
     alias Tuns64                    = dmd.mtype.Tuns64;
     alias Tvoid                     = dmd.mtype.Tvoid;
     alias Twchar                    = dmd.mtype.Twchar;
+    alias Tnoreturn                 = dmd.mtype.Tnoreturn;
 
     alias Timaginary32              = dmd.mtype.Timaginary32;
     alias Timaginary64              = dmd.mtype.Timaginary64;
@@ -95,4 +97,6 @@ struct ASTCodegen
     alias isExpression              = dmd.dtemplate.isExpression;
     alias isTuple                   = dmd.dtemplate.isTuple;
 
+    alias IgnoreErrors              = dmd.dsymbol.IgnoreErrors;
+    alias PASS                      = dmd.dsymbol.PASS;
 }

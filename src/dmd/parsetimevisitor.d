@@ -90,6 +90,7 @@ public:
     void visit(AST.ClassDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
     void visit(AST.InterfaceDeclaration s) { visit(cast(AST.ClassDeclaration)s); }
     void visit(AST.TemplateMixin s) { visit(cast(AST.TemplateInstance)s); }
+    void visit(AST.BitFieldDeclaration s) { visit(cast(AST.VarDeclaration)s); }
 
     //============================================================================================
     // Statements
@@ -141,7 +142,6 @@ public:
     void visit(AST.TypeError t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeNull t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeNoreturn t) { visit(cast(AST.Type)t); }
-    void visit(AST.TypeTag t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeVector t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeEnum t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTuple t) { visit(cast(AST.Type)t); }
@@ -151,6 +151,7 @@ public:
     void visit(AST.TypeQualified t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeTraits t) { visit(cast(AST.Type)t); }
     void visit(AST.TypeMixin t) { visit(cast(AST.Type)t); }
+    void visit(AST.TypeTag t) { visit(cast(AST.Type)t); }
 
     // TypeNext
     void visit(AST.TypeReference t) { visit(cast(AST.TypeNext)t); }
@@ -199,6 +200,7 @@ public:
     void visit(AST.SymbolExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.TupleExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ThisExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.GenericExp e) { visit(cast(AST.Expression)e); }
 
     // Miscellaneous
     void visit(AST.VarExp e) { visit(cast(AST.SymbolExp)e); }
@@ -218,6 +220,7 @@ public:
     void visit(AST.CallExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.DotIdExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.AssertExp e) { visit(cast(AST.UnaExp)e); }
+    void visit(AST.ThrowExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.ImportExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.DotTemplateInstanceExp e) { visit(cast(AST.UnaExp)e); }
     void visit(AST.ArrayExp e) { visit(cast(AST.UnaExp)e); }

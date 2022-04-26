@@ -3,9 +3,9 @@
  *
  * Not to be confused with the `scope` storage class.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dscope.d, _dscope.d)
  * Documentation:  https://dlang.org/phobos/dmd_dscope.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dscope.d
@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astenums;
 import dmd.attrib;
 import dmd.ctorflow;
 import dmd.dclass;
@@ -32,7 +33,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.speller;
 import dmd.statement;
@@ -58,7 +59,6 @@ enum SCOPE
     compile       = 0x0100,   /// inside __traits(compile)
     ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
                                           /// https://issues.dlang.org/show_bug.cgi?id=15907
-    onlysafeaccess = 0x0400,  /// unsafe access is not allowed for @safe code
     Cfile         = 0x0800,   /// C semantics apply
     free          = 0x8000,   /// is on free list
 
@@ -73,7 +73,7 @@ enum SCOPE
 /// Flags that are carried along with a scope push()
 private enum PersistentFlags =
     SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
-    SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
+    SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility |
     SCOPE.printf | SCOPE.scanf | SCOPE.Cfile;
 
 struct Scope
@@ -174,7 +174,7 @@ struct Scope
             m = m.parent;
         m.addMember(null, sc.scopesym);
         m.parent = null; // got changed by addMember()
-        if (_module.isCFile)
+        if (_module.filetype == FileType.c)
             sc.flags |= SCOPE.Cfile;
         // Create the module scope underneath the global scope
         sc = sc.push(_module);
@@ -460,6 +460,17 @@ struct Scope
 
                 if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
                 {
+                    if (flags & TagNameSpace)
+                    {
+                        // ImportC: if symbol is not a tag, look for it in tag table
+                        if (!s.isScopeDsymbol())
+                        {
+                            auto ps = cast(void*)s in sc._module.tagSymTab;
+                            if (!ps)
+                                goto NotFound;
+                            s = *ps;
+                        }
+                    }
                     if (!(flags & (SearchImportsOnly | IgnoreErrors)) &&
                         ident == Id.length && sc.scopesym.isArrayScopeSymbol() &&
                         sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
@@ -472,6 +483,7 @@ struct Scope
                     return s;
                 }
 
+            NotFound:
                 if (global.params.fixAliasThis)
                 {
                     Expression exp = new ThisExp(loc);
@@ -576,7 +588,7 @@ struct Scope
      */
     extern (D) static const(char)* search_correct_C(Identifier ident)
     {
-        import dmd.mtype : Twchar;
+        import dmd.astenums : Twchar;
         TOK tok;
         if (ident == Id.NULL)
             tok = TOK.null_;
@@ -608,8 +620,16 @@ struct Scope
         return null;
     }
 
+    /******************************
+     * Add symbol s to innermost symbol table.
+     * Params:
+     *  s = symbol to insert
+     * Returns:
+     *  null if already in table, `s` if not
+     */
     extern (D) Dsymbol insert(Dsymbol s)
     {
+        //printf("insert() %s\n", s.toChars());
         if (VarDeclaration vd = s.isVarDeclaration())
         {
             if (lastVar)
@@ -631,7 +651,29 @@ struct Scope
         //printf("\t\tscopesym = %p\n", scopesym);
         if (!scopesym.symtab)
             scopesym.symtab = new DsymbolTable();
-        return scopesym.symtabInsert(s);
+        if (!(flags & SCOPE.Cfile))
+            return scopesym.symtabInsert(s);
+
+        // ImportC insert
+        if (!scopesym.symtabInsert(s)) // if already in table
+        {
+            Dsymbol s2 = scopesym.symtabLookup(s, s.ident); // s2 is existing entry
+            return handleTagSymbols(this, s, s2, scopesym);
+        }
+        return s; // inserted
+    }
+
+    /********************************************
+     * Search enclosing scopes for ScopeDsymbol.
+     */
+    ScopeDsymbol getScopesym()
+    {
+        for (Scope* sc = &this; sc; sc = sc.enclosing)
+        {
+            if (sc.scopesym)
+                return sc.scopesym;
+        }
+        return null; // not found
     }
 
     /********************************************
@@ -650,7 +692,7 @@ struct Scope
     }
 
     /********************************************
-     * Search enclosing scopes for ClassDeclaration.
+     * Search enclosing scopes for ClassDeclaration or StructDeclaration.
      */
     extern (C++) AggregateDeclaration getStructClassScope()
     {
@@ -664,6 +706,31 @@ struct Scope
                 return ad;
         }
         return null;
+    }
+
+    /********************************************
+     * Find the lexically enclosing function (if any).
+     *
+     * This function skips through generated FuncDeclarations,
+     * e.g. rewritten foreach bodies.
+     *
+     * Returns: the function or null
+     */
+    inout(FuncDeclaration) getEnclosingFunction() inout
+    {
+        if (!this.func)
+            return null;
+
+        auto fd = cast(FuncDeclaration) this.func;
+
+        // Look through foreach bodies rewritten as delegates
+        while (fd.fes)
+        {
+            assert(fd.fes.func);
+            fd = fd.fes.func;
+        }
+
+        return cast(inout(FuncDeclaration)) fd;
     }
 
     /*******************************************
@@ -687,12 +754,21 @@ struct Scope
         }
     }
 
+    /******************************
+     */
     structalign_t alignment()
     {
         if (aligndecl)
-            return aligndecl.getAlignment(&this);
+        {
+            auto ad = aligndecl.getAlignment(&this);
+            return ad.salign;
+        }
         else
-            return STRUCTALIGN_DEFAULT;
+        {
+            structalign_t sa;
+            sa.setDefault();
+            return sa;
+        }
     }
 
     /**********************************

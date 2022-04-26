@@ -10,5 +10,5 @@ int main()
         enum limit = 2023652;
     else
         enum limit = 1763328;
-    return size > limit * 11 / 10;
+    return size > limit * 13 / 10;
 }

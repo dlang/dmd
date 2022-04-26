@@ -18,4 +18,3 @@ void main()
     default: assert(0);
     }
 }
-

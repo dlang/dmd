@@ -1,0 +1,28 @@
+`scope` as a type constraint on class, struct, and enum declarations is deprecated.
+
+`scope` as a type constraint on class declarations was meant to force users
+of a class to `scope` allocate it, which resulted in the class being placed
+on the stack rather than GC-allocated. While it has been scheduled for
+deprecation for quite some time, the compiler will emit a deprecation warning
+on usage starting from this release.
+
+`scope` as a type constraint on struct or enum declarations has never had any
+effect, and has been deprecated as well.
+
+---
+scope class C { }  // Deprecation: `scope` as a type constraint is deprecated. Use `scope` at the usage site.
+scope struct S { } // Ditto
+scope enum E { }   // Ditto
+---
+
+Using `scope` to stack-allocate `class` is still suported,
+only the type constraint is deprecated.
+
+---
+class C { }
+
+void main () @nogc
+{
+    scope c = new C;
+}
+---

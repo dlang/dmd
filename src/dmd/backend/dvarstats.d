@@ -1,18 +1,16 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Support for lexical scope of local variables
  *
- * Copyright:   Copyright (C) 2015-2021 by The D Language Foundation, All Rights Reserved
+ * Compiler implementation of the
+ * $(LINK2 https://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 2015-2022 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvarstats.d, backend/dvarstats.d)
  */
 
 module dmd.backend.dvarstats;
-
-/******************************************
- * support for lexical scope of local variables
- */
 
 import core.stdc.string;
 import core.stdc.stdlib;
@@ -97,11 +95,11 @@ public void startFunction()
 //  no support for gathering stats from different files)
 private bool isLexicalScopeVar(Symbol* sa)
 {
-    if (sa.lnoscopestart <= 0 || sa.lnoscopestart > sa.lnoscopeend)
+    if (sa.lposscopestart.Slinnum <= 0 || sa.lposscopestart.Slinnum > sa.lnoscopeend)
         return false;
 
     // is it inside the function? Unfortunately we cannot verify the source file in case of inlining
-    if (sa.lnoscopestart < funcsym_p.Sfunc.Fstartline.Slinnum)
+    if (sa.lposscopestart.Slinnum < funcsym_p.Sfunc.Fstartline.Slinnum)
         return false;
     if (sa.lnoscopeend > funcsym_p.Sfunc.Fendline.Slinnum)
         return false;
@@ -134,7 +132,7 @@ private static extern(D) SYMIDX findParentScope(ref Barray!LifeTime lifetimes, S
     {
         for(SYMIDX sj = si; sj; --sj)
             if(isParentScope(lifetimes, sj - 1, si))
-               return sj;
+                return sj;
     }
     return SYMIDX.max;
 }
@@ -238,7 +236,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     for (SYMIDX si = 0; si < dupcnt; si++)
     {
         lifeTimes[si].sym = sortedSymtab[uniquecnt + si];
-        lifeTimes[si].offCreate = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopestart);
+        lifeTimes[si].offCreate = cast(int)getLineOffset(lifeTimes[si].sym.lposscopestart.Slinnum);
         lifeTimes[si].offDestroy = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopeend);
     }
     qsort(lifeTimes[].ptr, dupcnt, (lifeTimes[0]).sizeof, &cmpLifeTime);

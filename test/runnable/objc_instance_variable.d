@@ -50,4 +50,3 @@ void main()
     // if non-fragile instance variables didn't work this would be `4`.
     assert(getInstanceVariableC(bar) == 3);
 }
-

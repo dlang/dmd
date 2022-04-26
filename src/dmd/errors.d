@@ -1,9 +1,9 @@
 /**
  * Functions for raising errors.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
  * Documentation:  https://dlang.org/phobos/dmd_errors.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/errors.d
@@ -16,7 +16,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.globals;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
@@ -387,29 +387,32 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         !loc.filename.strstr(".d-mixin-") &&
         !global.params.mixinOut)
     {
-        import dmd.filecache : FileCache;
-        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename.toDString());
-
-        if (loc.linnum - 1 < fllines.lines.length)
+        import dmd.root.filename : FileName;
+        const fileName = FileName(loc.filename.toDString);
+        if (auto file = global.fileManager.lookup(fileName))
         {
-            auto line = fllines.lines[loc.linnum - 1];
-            if (loc.charnum < line.length)
+            const(char)[][] lines = global.fileManager.getLines(fileName);
+            if (loc.linnum - 1 < lines.length)
             {
-                fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
-                // The number of column bytes and the number of display columns
-                // occupied by a character are not the same for non-ASCII charaters.
-                // https://issues.dlang.org/show_bug.cgi?id=21849
-                size_t c = 0;
-                while (c < loc.charnum - 1)
+                auto line = lines[loc.linnum - 1];
+                if (loc.charnum < line.length)
                 {
-                    import dmd.utf : utf_decodeChar;
-                    dchar u;
-                    const msg = utf_decodeChar(line, c, u);
-                    assert(msg is null, msg);
-                    fputc(' ', stderr);
+                    fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
+                    // The number of column bytes and the number of display columns
+                    // occupied by a character are not the same for non-ASCII charaters.
+                    // https://issues.dlang.org/show_bug.cgi?id=21849
+                    size_t c = 0;
+                    while (c < loc.charnum - 1)
+                    {
+                        import dmd.root.utf : utf_decodeChar;
+                        dchar u;
+                        const msg = utf_decodeChar(line, c, u);
+                        assert(msg is null, msg);
+                        fputc(' ', stderr);
+                    }
+                    fputc('^', stderr);
+                    fputc('\n', stderr);
                 }
-                fputc('^', stderr);
-                fputc('\n', stderr);
             }
         }
     }
@@ -545,14 +548,14 @@ private void _vwarningSupplemental(const ref Loc loc, const(char)* format, va_li
  */
 extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
-    __gshared const(char)* header = "Deprecation: ";
+    static immutable header = "Deprecation: ";
     if (global.params.useDeprecated == DiagnosticReporting.error)
-        verror(loc, format, ap, p1, p2, header);
+        verror(loc, format, ap, p1, p2, header.ptr);
     else if (global.params.useDeprecated == DiagnosticReporting.inform)
     {
         if (!global.gag)
         {
-            verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
+            verrorPrint(loc, Classification.deprecation, header.ptr, format, ap, p1, p2);
         }
         else
         {
@@ -646,15 +649,26 @@ private void _vdeprecationSupplemental(const ref Loc loc, const(char)* format, v
 }
 
 /**
- * Call this after printing out fatal error messages to clean up and exit
- * the compiler.
+ * The type of the fatal error handler
+ * Returns: true if error handling is done, false to do exit(EXIT_FAILURE)
+ */
+alias FatalErrorHandler = bool delegate();
+
+/**
+ * The fatal error handler.
+ * If non-null it will be called for every fatal() call issued by the compiler.
+ */
+__gshared FatalErrorHandler fatalErrorHandler;
+
+/**
+ * Call this after printing out fatal error messages to clean up and exit the
+ * compiler. You can also set a fatalErrorHandler to override this behaviour.
  */
 extern (C++) void fatal()
 {
-    version (none)
-    {
-        halt();
-    }
+    if (fatalErrorHandler && fatalErrorHandler())
+        return;
+
     exit(EXIT_FAILURE);
 }
 
@@ -677,7 +691,7 @@ extern (C++) void halt()
  */
 private void colorSyntaxHighlight(ref OutBuffer buf)
 {
-    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.length, buf.data);
+    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.length, buf[].ptr);
     bool inBacktick = false;
     size_t iCodeStart = 0;
     size_t offset = 0;
@@ -751,7 +765,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
-    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf.data);
+    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);
     res.reserve(buf.length);
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Other);
@@ -796,7 +810,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     }
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Default);
-    //printf("res = '%.*s'\n", cast(int)buf.length, buf.data);
+    //printf("res = '%.*s'\n", cast(int)buf.length, buf[].ptr);
     buf.setsize(0);
     buf.write(&res);
     global.endGagging(gaggedErrorsSave);

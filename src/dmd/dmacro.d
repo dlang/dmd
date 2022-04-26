@@ -1,9 +1,9 @@
 /**
  * Text macro processor for Ddoc.
  *
- * Copyright:   Copyright (C) 1999-2021 by The D Language Foundation, All Rights Reserved
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (C) 1999-2022 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmacro.d, _dmacro.d)
  * Documentation:  https://dlang.org/phobos/dmd_dmacro.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmacro.d
@@ -16,7 +16,7 @@ import core.stdc.string;
 import dmd.doc;
 import dmd.errors;
 import dmd.globals;
-import dmd.root.outbuffer;
+import dmd.common.outbuffer;
 import dmd.root.rmem;
 
 extern (C++) struct MacroTable
@@ -31,18 +31,12 @@ extern (C++) struct MacroTable
     extern (D) void define(const(char)[] name, const(char)[] text)
     {
         //printf("MacroTable::define('%.*s' = '%.*s')\n", cast(int)name.length, name.ptr, text.length, text.ptr);
-        Macro* table;
-        for (table = mactab; table; table = table.next)
+        if (auto table = name in mactab)
         {
-            if (table.name == name)
-            {
-                table.text = text;
-                return;
-            }
+            (*table).text = text;
+            return;
         }
-        table = new Macro(name, text);
-        table.next = mactab;
-        mactab = table;
+        mactab[name] = new Macro(name, text);
     }
 
     /*****************************************************
@@ -266,20 +260,16 @@ extern (C++) struct MacroTable
 
     extern (D) Macro* search(const(char)[] name)
     {
-        Macro* table;
         //printf("Macro::search(%.*s)\n", cast(int)name.length, name.ptr);
-        for (table = mactab; table; table = table.next)
+        if (auto table = name in mactab)
         {
-            if (table.name == name)
-            {
-                //printf("\tfound %d\n", table.textlen);
-                break;
-            }
+            //printf("\tfound %d\n", table.textlen);
+            return *table;
         }
-        return table;
+        return null;
     }
 
-    Macro* mactab;
+    private Macro*[const(char)[]] mactab;
 }
 
 /* ************************************************************************ */
@@ -288,7 +278,6 @@ private:
 
 struct Macro
 {
-    Macro* next;            // next in list
     const(char)[] name;     // macro name
     const(char)[] text;     // macro replacement text
     int inuse;              // macro is in use (don't expand)
