@@ -6792,14 +6792,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (sc.flags & SCOPE.Cfile)
         {
-            /* Special handling for &"string"
-             * since C regards a string literal as an lvalue
+            /* Special handling for &"string"/&(T[]){0, 1}
+             * since C regards string/array literals as lvalues
              */
-            if (auto se = exp.e1.isStringExp())
+            auto e = exp.e1;
+            if(e.isStringExp() || e.isArrayLiteralExp())
             {
-                se.type = typeSemantic(se.type, Loc.initial, sc).pointerTo();
-                result = se;
-                return;
+                e.type = typeSemantic(e.type, Loc.initial, sc);
+                // if type is already a pointer exp is an illegal expression of the form `&(&"")`
+                if (!e.type.isTypePointer())
+                {
+                    e.type = e.type.pointerTo();
+                    result = e;
+                    return;
+                }
+                else
+                {
+                    // `toLvalue` call further below is upon exp.e1, omitting & from the error message
+                    exp.toLvalue(sc, null);
+                    return setError();
+                }
             }
         }
 
