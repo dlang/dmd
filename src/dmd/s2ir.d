@@ -26,6 +26,7 @@ import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dstruct;
@@ -1311,7 +1312,7 @@ private extern (C++) class S2irVisitor : Visitor
             }
             else
             {
-                if (!irs.params.optimize)
+                if (!driverParams.optimize)
                 {
                     /* If this is reached at runtime, there's a bug
                      * in the computation of s.bodyFallsThru. Inserting a HALT
