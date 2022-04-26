@@ -4032,7 +4032,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         if (ad && (!ctd.parent.isTemplateInstance() || ctd.parent.isTemplateMixin()))
         {
-            if (sd)
+            if (!sd)
+            {
+                if (dim == 0 && tf.parameterList.varargs == VarArg.none)
+                    ad.defaultCtor = ctd;
+                return;
+            }
+
+            if (dim == 0 && tf.parameterList.varargs == VarArg.none) // empty default ctor w/o any varargs
             {
                 if (ctd.fbody || !(ctd.storage_class & STC.disable))
                 {
