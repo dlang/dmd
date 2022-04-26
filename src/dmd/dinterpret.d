@@ -6130,7 +6130,7 @@ public:
             return;
         }
 
-        if (result.isStringExp())
+        if (result.isStringExp() || result.isArrayLiteralExp())
             return;
 
         if (result.op != EXP.address)
