@@ -1466,26 +1466,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         sc = sc.push();
-        sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.gshared);
+        sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
         sc.inunion = scd.isunion ? scd : null;
         sc.flags = 0;
         for (size_t i = 0; i < scd.decl.dim; i++)
         {
-            sc = sc.push();
-            sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
-            sc.inunion = scd.isunion ? scd : null;
-            sc.flags = 0;
-            for (size_t i = 0; i < scd.decl.dim; i++)
+            Dsymbol s = (*scd.decl)[i];
+            if (auto var = s.isVarDeclaration)
             {
-                Dsymbol s = (*scd.decl)[i];
-                if (auto var = s.isVarDeclaration)
-                {
-                    if (scd.isunion)
-                        var.overlapped = true;
-                }
-                s.dsymbolSemantic(sc);
+                if (scd.isunion)
+                    var.overlapped = true;
             }
-            sc = sc.pop();
+            s.dsymbolSemantic(sc);
         }
         sc = sc.pop();
     }
@@ -1656,27 +1648,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 e = resolveProperties(sc, e);
                 sc = sc.endCTFE();
                 e = ctfeInterpretForPragmaMsg(e);
-                if (e.op == TOK.error)
+                if (e.op == EXP.error)
                 {
-                    Expression e = (*pd.args)[i];
-                    sc = sc.startCTFE();
-                    e = e.expressionSemantic(sc);
-                    e = resolveProperties(sc, e);
-                    sc = sc.endCTFE();
-                    e = ctfeInterpretForPragmaMsg(e);
-                    if (e.op == EXP.error)
-                    {
-                        errorSupplemental(pd.loc, "while evaluating `pragma(msg, %s)`", (*pd.args)[i].toChars());
-                        return;
-                    }
-                    StringExp se = e.toStringExp();
-                    if (se)
-                    {
-                        se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, se.peekString().ptr);
-                    }
-                    else
-                        fprintf(stderr, "%s", e.toChars());
+                    errorSupplemental(pd.loc, "while evaluating `pragma(msg, %s)`", (*pd.args)[i].toChars());
+                    return;
+                }
+                StringExp se = e.toStringExp();
+                if (se)
+                {
+                    se = se.toUTF8(sc);
+                    fprintf(stderr, "%.*s", cast(int)se.len, se.peekString().ptr);
                 }
                 else
                     fprintf(stderr, "%s", e.toChars());
