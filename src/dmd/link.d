@@ -297,8 +297,8 @@ public int runLINK()
 
             VSOptions vsopt;
             // if a runtime library (msvcrtNNN.lib) from the mingw folder is selected explicitly, do not detect VS and use lld
-            if (global.params.mscrtlib.length <= 6 ||
-                global.params.mscrtlib[0..6] != "msvcrt" || !isdigit(global.params.mscrtlib[6]))
+            if (driverParams.mscrtlib.length <= 6 ||
+                driverParams.mscrtlib[0..6] != "msvcrt" || !isdigit(driverParams.mscrtlib[6]))
                 vsopt.initialize();
 
             const(char)* linkcmd = getenv(target.is64bit ? "LINKCMD64" : "LINKCMD");
