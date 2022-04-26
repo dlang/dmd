@@ -51,14 +51,6 @@ enum CHECKACTION : ubyte
     context,      /// call D assert with the error context on failure
 }
 
-/// Position Indepent Code setting
-enum PIC : ubyte
-{
-    fixed,              /// located at a specific address
-    pic,                /// Position Independent Code
-    pie,                /// Position Independent Executable
-}
-
 /**
 Each flag represents a field that can be included in the JSON output.
 
@@ -103,11 +95,7 @@ enum FeatureState : byte
 extern (C++) struct Param
 {
     bool obj = true;        // write object file
-    bool link = true;       // perform link
-    bool dll;               // generate shared dynamic library
-    bool lib;               // write library file instead of object file(s)
     bool multiobj;          // break one object file into multiple ones
-    bool oneobj;            // write one object file instead of multiple ones
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
     bool verbose;           // verbose compile
@@ -120,11 +108,7 @@ extern (C++) struct Param
     bool vfield;            // identify non-mutable field variables
     bool vcomplex = true;   // identify complex/imaginary type usage
     bool vin;               // identify 'in' parameters
-    ubyte symdebug;         // insert debug symbolic information
-    bool symdebugref;       // insert debug information for all referenced types, too
-    bool optimize;          // run optimizer
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
-    bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     FeatureState useDIP25;  // implement https://wiki.dlang.org/DIP25
@@ -133,12 +117,10 @@ extern (C++) struct Param
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
     DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
-    PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool ctfe_cov = false;  // generate coverage data for ctfe
-    bool nofloat;           // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;  // rather than error on them
     bool useModuleInfo = true;   // generate runtime module information
     bool useTypeInfo = true;     // generate runtime type information
@@ -235,10 +217,6 @@ extern (C++) struct Param
 
     uint versionlevel;                  // version level
     Array!(const(char)*)* versionids;   // version identifiers
-
-    const(char)[] defaultlibname;        // default library for non-debug builds
-    const(char)[] debuglibname;          // default library for debug builds
-    const(char)[] mscrtlib;              // MS C runtime library
 
     const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
@@ -468,15 +446,6 @@ extern (C++) struct Global
     extern(C++) const(char*) versionChars()
     {
         return _version.ptr;
-    }
-
-    /**
-    Returns: the final defaultlibname based on the command-line parameters
-    */
-    extern (D) const(char)[] finalDefaultlibname() const
-    {
-        return params.betterC ? null :
-            params.symdebug ? params.debuglibname : params.defaultlibname;
     }
 }
 

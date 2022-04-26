@@ -993,6 +993,7 @@ extern (C++) struct Target
      */
     extern (C++) Expression getTargetInfo(const(char)* name, const ref Loc loc)
     {
+        import dmd.dmdparams : driverParams;
         import dmd.expression : IntegerExp, StringExp;
         import dmd.root.string : toDString;
 
@@ -1017,7 +1018,7 @@ extern (C++) struct Target
                 {
                     if (omfobj)
                         return stringExp("snn");
-                    return stringExp(params.mscrtlib);
+                    return stringExp(driverParams.mscrtlib);
                 }
                 return stringExp("");
             case cppStd.stringof:
