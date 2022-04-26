@@ -1940,17 +1940,17 @@ $(GNAME FunctionLiteralBody2):
 
         -------------
         int abc(int delegate(int i));
-        int def(int function(int s));
+        int def(uint function(uint s));
 
         void test()
         {
             int b = 3;
 
-            abc( int(int c) { return 6 + b; } );  // inferred to delegate
-            def( uint(uint c) { return c * 2; } ); // inferred to function
-          //def( int(int c) { return c * b; } );  // error!
-            // Because the FunctionLiteralBody accesses b, then the function literal type
-            // is inferred to delegate. But def cannot accept a delegate argument.
+            abc( (int c) { return 6 + b; } );  // inferred as delegate
+            def( (uint c) { return c * 2; } ); // inferred as function
+            //def( (uint c) { return c * b; } );  // error!
+            // Because the FunctionLiteralBody accesses b, the function literal type
+            // is inferred as delegate. But def cannot accept a delegate argument.
         }
         -------------
 
