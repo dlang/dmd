@@ -268,6 +268,7 @@ final class CParser(AST) : Parser!AST
         case TOK.minusMinus:
         case TOK.sizeof_:
         case TOK._Generic:
+        case TOK._assert:
         Lexp:
             auto exp = cparseExpression();
             if (token.value == TOK.identifier && exp.op == EXP.identifier)
@@ -780,6 +781,14 @@ final class CParser(AST) : Parser!AST
 
         case TOK._Generic:
             e = cparseGenericSelection();
+            break;
+
+        case TOK._assert:  // __check(assign-exp) extension
+            nextToken();
+            check(TOK.leftParenthesis, "`__check`");
+            e = parseAssignExp();
+            check(TOK.rightParenthesis);
+            e = new AST.AssertExp(loc, e, null);
             break;
 
         default:
