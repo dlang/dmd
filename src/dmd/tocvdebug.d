@@ -91,7 +91,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
     AggregateDeclaration ad = fd.isMemberLocal();
     if (!ad)
         return cv4_typidx(t);
-    
+
     // It's a member function, which gets a special type record
 
     const idx_t thisidx = fd.isStatic()
