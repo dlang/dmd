@@ -2995,7 +2995,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             buffer.write4(0);
             e.setData(buffer.extractData(), newlen, 4);
             if (sc && sc.flags & SCOPE.Cfile)
-                e.type = Type.tuns32.pointerTo();
+                e.type = Type.tuns32.sarrayOf(e.len + 1);
             else
                 e.type = Type.tdchar.immutableOf().arrayOf();
             e.committed = 1;
@@ -3020,7 +3020,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             buffer.writeUTF16(0);
             e.setData(buffer.extractData(), newlen, 2);
             if (sc && sc.flags & SCOPE.Cfile)
-                e.type = Type.tuns16.pointerTo();
+                e.type = Type.tuns16.sarrayOf(e.len + 1);
             else
                 e.type = Type.twchar.immutableOf().arrayOf();
             e.committed = 1;
@@ -3032,7 +3032,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         default:
             if (sc && sc.flags & SCOPE.Cfile)
-                e.type = Type.tchar.pointerTo();
+                e.type = Type.tchar.sarrayOf(e.len + 1);
             else
                 e.type = Type.tchar.immutableOf().arrayOf();
             break;
@@ -6797,15 +6797,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (auto se = exp.e1.isStringExp())
             {
-                if (auto tp = se.type.toBasetype().isTypePointer())
-                {
-                    /* Switch from pointer-to-char to pointer-to-static-array-of-char
-                     */
-                    auto ts = new TypeSArray(tp.nextOf(), new IntegerExp(Loc.initial, se.len + 1, Type.tsize_t));
-                    se.type = typeSemantic(ts, Loc.initial, sc).pointerTo();
-                    result = se;
-                    return;
-                }
+                se.type = typeSemantic(se.type, Loc.initial, sc).pointerTo();
+                result = se;
+                return;
             }
         }
 
@@ -11979,7 +11973,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         // C11 6.5.1.1 Generic Selection
 
-        auto ec = exp.cntlExp.expressionSemantic(sc);
+        auto ec = exp.cntlExp.expressionSemantic(sc).arrayFuncConv(sc);
         bool errors = ec.isErrorExp() !is null;
         auto tc = ec.type;
 
@@ -12620,13 +12614,6 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         // For `x.max` and `x.min` get the max/min of the bitfield, not the max/min of its type
         auto bf = exp.e1.isDotVarExp().var.isBitFieldDeclaration();
         return new IntegerExp(exp.loc, bf.getMinMax(exp.ident), bf.type);
-    }
-    else if (cfile && exp.ident == Id.__sizeof && exp.e1.isStringExp())
-    {
-        // Sizeof string literal includes the terminating 0
-        auto se = exp.e1.isStringExp();
-        Expression e = new IntegerExp(exp.loc, (se.len + 1) * se.sz, Type.tsize_t);
-        return e;
     }
     else
     {
