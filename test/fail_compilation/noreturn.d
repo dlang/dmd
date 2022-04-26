@@ -3,20 +3,21 @@ REQUIRED_ARGS: -w -o-
 
 TEST_OUTPUT:
 ---
-fail_compilation\noreturn.d(38): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation\noreturn.d(42):        called from here: `assign()`
-fail_compilation\noreturn.d(49): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation\noreturn.d(49):        called from here: `foo(n)`
-fail_compilation\noreturn.d(53):        called from here: `calling()`
-fail_compilation\noreturn.d(59): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation\noreturn.d(62):        called from here: `nested()`
-fail_compilation\noreturn.d(68): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation\noreturn.d(78):        called from here: `casting(0)`
-fail_compilation\noreturn.d(69): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation\noreturn.d(79):        called from here: `casting(1)`
-fail_compilation\noreturn.d(72): Error: `"Accessed expression of type `noreturn`"`
-fail_compilation\noreturn.d(80):        called from here: `casting(2)`
-fail_compilation/noreturn.d(120): Error: uncaught CTFE exception `object.Exception("")`
+fail_compilation/noreturn.d(39): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(43):        called from here: `assign()`
+fail_compilation/noreturn.d(50): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(50):        called from here: `foo(n)`
+fail_compilation/noreturn.d(54):        called from here: `calling()`
+fail_compilation/noreturn.d(60): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(63):        called from here: `nested()`
+fail_compilation/noreturn.d(73): Deprecation: `n` has no effect
+fail_compilation/noreturn.d(69): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(79):        called from here: `casting(0)`
+fail_compilation/noreturn.d(70): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(80):        called from here: `casting(1)`
+fail_compilation/noreturn.d(73): Error: `"Accessed expression of type `noreturn`"`
+fail_compilation/noreturn.d(81):        called from here: `casting(2)`
+fail_compilation/noreturn.d(121): Error: uncaught CTFE exception `object.Exception("")`
 ---
 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1034.md
 */
