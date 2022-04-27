@@ -1902,49 +1902,49 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return Identifier.idPool(sident);
         }
 
-        if (ns.ident is null)
+        if (ns.ident !is null)
+            return attribSemantic(ns);
+
+        ns.cppnamespace = sc.namespace;
+        sc = sc.startCTFE();
+        ns.exp = ns.exp.expressionSemantic(sc);
+        ns.exp = resolveProperties(sc, ns.exp);
+        sc = sc.endCTFE();
+        ns.exp = ns.exp.ctfeInterpret();
+        // Can be either a tuple of strings or a string itself
+        if (auto te = ns.exp.isTupleExp())
         {
-            ns.cppnamespace = sc.namespace;
-            sc = sc.startCTFE();
-            ns.exp = ns.exp.expressionSemantic(sc);
-            ns.exp = resolveProperties(sc, ns.exp);
-            sc = sc.endCTFE();
-            ns.exp = ns.exp.ctfeInterpret();
-            // Can be either a tuple of strings or a string itself
-            if (auto te = ns.exp.isTupleExp())
+            expandTuples(te.exps);
+            CPPNamespaceDeclaration current = ns.cppnamespace;
+            for (size_t d = 0; d < te.exps.dim; ++d)
             {
-                expandTuples(te.exps);
-                CPPNamespaceDeclaration current = ns.cppnamespace;
-                for (size_t d = 0; d < te.exps.dim; ++d)
+                auto exp = (*te.exps)[d];
+                auto prev = d ? current : ns.cppnamespace;
+                current = (d + 1) != te.exps.dim
+                    ? new CPPNamespaceDeclaration(ns.loc, exp, null)
+                    : ns;
+                current.exp = exp;
+                current.cppnamespace = prev;
+                if (auto se = exp.toStringExp())
                 {
-                    auto exp = (*te.exps)[d];
-                    auto prev = d ? current : ns.cppnamespace;
-                    current = (d + 1) != te.exps.dim
-                        ? new CPPNamespaceDeclaration(ns.loc, exp, null)
-                        : ns;
-                    current.exp = exp;
-                    current.cppnamespace = prev;
-                    if (auto se = exp.toStringExp())
-                    {
-                        current.ident = identFromSE(se);
-                        if (current.ident is null)
-                            return; // An error happened in `identFromSE`
-                    }
-                    else
-                        ns.exp.error("`%s`: index %llu is not a string constant, it is a `%s`",
-                                     ns.exp.toChars(), cast(ulong) d, ns.exp.type.toChars());
+                    current.ident = identFromSE(se);
+                    if (current.ident is null)
+                        return; // An error happened in `identFromSE`
                 }
+                else
+                    ns.exp.error("`%s`: index %llu is not a string constant, it is a `%s`",
+                                 ns.exp.toChars(), cast(ulong) d, ns.exp.type.toChars());
             }
-            else if (auto se = ns.exp.toStringExp())
-                ns.ident = identFromSE(se);
-            // Empty Tuple
-            else if (ns.exp.isTypeExp() && ns.exp.isTypeExp().type.toBasetype().isTypeTuple())
-            {
-            }
-            else
-                ns.exp.error("compile time string constant (or tuple) expected, not `%s`",
-                             ns.exp.toChars());
         }
+        else if (auto se = ns.exp.toStringExp())
+            ns.ident = identFromSE(se);
+        // Empty Tuple
+        else if (ns.exp.isTypeExp() && ns.exp.isTypeExp().type.toBasetype().isTypeTuple())
+        {
+        }
+        else
+            ns.exp.error("compile time string constant (or tuple) expected, not `%s`",
+                         ns.exp.toChars());
         attribSemantic(ns);
     }
 
