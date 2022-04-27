@@ -1644,6 +1644,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (!pd.args)
                 return noDeclarations();
+
             for (size_t i = 0; i < pd.args.dim; i++)
             {
                 Expression e = (*pd.args)[i];
@@ -1667,6 +1668,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     fprintf(stderr, "%s", e.toChars());
             }
             fprintf(stderr, "\n");
+
             return noDeclarations();
         }
         else if (pd.ident == Id.lib)
