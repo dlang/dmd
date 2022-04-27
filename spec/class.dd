@@ -1452,16 +1452,20 @@ $(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
 
 $(GRAMMAR
 $(GNAME NewAnonClassExpression):
-    $(D new) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK SuperClassOrInterface)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D new) $(D class) $(GLINK ConstructorArgs)$(OPT) $(GLINK AnonBaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
 
 $(GNAME ConstructorArgs):
     $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+
+$(GNAME AnonBaseClassList):
+    $(GLINK SuperClassOrInterface)
+    $(GLINK SuperClassOrInterface) $(D ,) $(GLINK Interfaces)
 )
 
 which is equivalent to:
 
 $(GRAMMAR_INFORMATIVE
-$(D class) $(GLINK_LEX Identifier) $(D :) $(I SuperClassOrInterface) $(I Interfaces) $(I AggregateBody)
+$(D class) $(GLINK_LEX Identifier) $(D :) $(I AnonBaseClassList) $(I AggregateBody)
 // ...
 $(D new) $(I Identifier) $(I ConstructorArgs)
 )
