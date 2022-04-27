@@ -1466,24 +1466,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
 
-        if (scd.decl)
+        if (!scd.decl)
+            return;
+
+        sc = sc.push();
+        sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
+        sc.inunion = scd.isunion ? scd : null;
+        sc.flags = 0;
+        for (size_t i = 0; i < scd.decl.dim; i++)
         {
-            sc = sc.push();
-            sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
-            sc.inunion = scd.isunion ? scd : null;
-            sc.flags = 0;
-            for (size_t i = 0; i < scd.decl.dim; i++)
+            Dsymbol s = (*scd.decl)[i];
+            if (auto var = s.isVarDeclaration)
             {
-                Dsymbol s = (*scd.decl)[i];
-                if (auto var = s.isVarDeclaration)
-                {
-                    if (scd.isunion)
-                        var.overlapped = true;
-                }
-                s.dsymbolSemantic(sc);
+                if (scd.isunion)
+                    var.overlapped = true;
             }
-            sc = sc.pop();
+            s.dsymbolSemantic(sc);
         }
+        sc = sc.pop();
     }
 
     override void visit(PragmaDeclaration pd)
