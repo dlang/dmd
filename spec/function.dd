@@ -1940,78 +1940,91 @@ class C
 
 $(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
 
-        $(P Parameters marked as `ref return scope` come in two forms:)
-
----
-U xerxes(ref return scope V v);      // (1) ref and return scope
-ref U sargon(ref return scope V v);  // (2) return ref and scope
----
-
-        $(P The first form attaches the `return` to the `scope`, and has
-        $(LINK2 #return-scope-parameters, return scope parameter) semantics
-        for the value of the `ref` parameter.)
-
-        $(P The second form attaches the `return` to the `ref`, and has
-        $(LINK2 #return-ref-parameters, return ref parameter) semantics
-        with additional
-        $(LINK2 https://dlang.org/spec/memory-safe-d.html#scope-return-params, scope parameter)
-        semantics.)
-
-        $(P Although a struct constructor returns a reference to the instance
-        being constructed, it is treated as form (1).)
-
-        $(P The lexical order of the attributes `ref`, `return`, and `scope` is not significant.)
-
         $(P It is not possible to have both `return ref` and `return scope` semantics
-        for the same parameter.)
+        for the same parameter.
+        When a parameter is passed by `ref` and has both the `return` and `scope` storage classes,
+        it gets $(LINK2 #return-scope-parameters, `return scope`) semantics if and only if the `return` and `scope`
+        keywords appear adjacent to each other, in that order.
+        In all other cases, the parameter has $(LINK2 #return-ref-parameters, `return ref`) semantics
+        and regular $(LINK2 #scope-parameters, `scope`) semantics:)
 
 ---
-@safe:
+U xerxes(       ref return scope V v) // (1) ref and return scope
+U sargon(return ref        scope V v) // (2) return ref and scope
 
 struct S
 {
-    this(return scope ref int* p) { ptr = p; }
+    // note: in struct member functions, the implicit `this` parameter
+    // is passed by `ref`
 
+    U xerxes() return scope;        // return scope
+    U sargon()        scope return; // return ref, `return` comes after `scope`
+    U xerxes() return const scope;  // return ref, `return` and `scope` are not adjacent
+}
+---
+
+$(P Example of combinations of `return scope`, `return ref`, and `scope` semantics:)
+---
+@safe:
+
+int* globalPtr;
+
+struct S
+{
     int  val;
     int* ptr;
+
+    this(return scope ref int* p) { ptr = p; }
+
+    // note: `this` is passed by `ref` in structs
+
+    int* retRefA() scope return
+    {
+        globalPtr = this.ptr; // disallowed, `this` is `scope`
+        return &this.val; // allowed, `return` means `return ref`
+    }
+
+    ref int retRefB() scope return
+    {
+        globalPtr = this.ptr; // disallowed, `this` is `scope`
+        return  this.val; // allowed, `return` means `return ref`
+    }
+
+    int* retScopeA() return scope
+    {
+        return &this.val; // disallowed, escaping a reference to `this`
+        return this.ptr;  // allowed, returning a `return scope` pointer
+    }
+
+    ref int retScopeB() return scope
+    {
+        return this.val;  // disallowed, escaping a reference to `this`
+        return *this.ptr; // allowed, returning a `return scope` pointer
+    }
 }
 
-int* foo1(ref return scope S s);
-int  foo2(ref return scope S s);
-
-ref int* foo3(ref return scope S s);
-ref int  foo4(ref return scope S s);
-
-int* test1(scope S s)
+int* retRefA(return ref scope S s)
 {
-    return foo1(s);  // Error: scope variable `s` may not be returned
-    return foo3(s);  // Error: scope variable `s` may not be returned
+    globalPtr = s.ptr; // disallowed, `s` is `scope`
+    return &s.val; // allowed, returning a reference to `return ref s`
 }
 
-int test2(S s)
+ref int retRefB(return ref scope S s)
 {
-    return foo2(s);
-    return foo4(s);
+    globalPtr = s.ptr; // disallowed, `s` is `scope`
+    return s.val;
 }
 
-ref int* test3(S s)
+int* retScopeA(ref return scope S s)
 {
-    return foo3(s);  // Error: returning `foo3(s)` escapes a reference to parameter `s`
+    return &s.val; // disallowed, escaping a reference to `s`
+    return s.ptr;  // allowed, returning a `return scope` pointer
 }
 
-ref int test4(S s)
+ref int retScopeB(ref return scope S s)
 {
-    return foo4(s);  // Error: returning `foo4(s)` escapes a reference to parameter `s`
-}
-
-S test5(ref scope int* p)
-{
-    return S(p); // Error: scope variable `p` may not be returned
-}
-
-S test6(ref return scope int* p)
-{
-    return S(p);
+    return s.val;  // disallowed, escaping a reference to `s`
+    return *s.ptr; // allowed, returning a `return scope` pointer
 }
 ---
 
