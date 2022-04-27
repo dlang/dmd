@@ -2015,6 +2015,48 @@ S test6(ref return scope int* p)
 }
 ---
 
+$(H3 $(LNAME2 pure-scope-inference, Inferred `scope` parameters in `pure` functions))
+
+    When a parameter is not marked or inferred `scope`, it may still be `@safe` to assign it a `scope` pointer in a function call.
+    The following conditions need to be met:
+
+    $(UL
+    $(LI The function is $(RELATIVE_LINK2 pure-functions, `pure`), hence the argument cannot be assigned to a global variable)
+    $(LI The function is $(RELATIVE_LINK2 nothrow-functions, `nothrow`), hence the argument cannot be assigned to a thrown `Exception` object)
+    $(LI None of the other parameters have mutable indirections, hence the argument cannot be assigned to a longer-lived variable)
+    )
+
+    Then, the parameter is still treated as `scope` or `return scope` depending on the return type of the function:
+    $(UL
+    $(LI If the function returns by `ref` or has a return type that contains pointers, the argument could be returned, so it is treated as `return scope`)
+    $(LI Otherwise, the argument cannot escape the function, so it is treated as `scope`)
+    )
+
+---
+@safe:
+
+int dereference(int* x) pure nothrow;
+int* identity(int* x) pure nothrow;
+int* identityThrow(int* x) pure;
+void assignToRef(int* x, ref int* escapeHatch) pure nothrow;
+void assignToPtr(int* x, int** escapeHatch) pure nothrow;
+void cannotAssignTo(int* x, const ref int* noEscapeHatch) pure nothrow;
+
+int* globalPtr;
+
+int* test(scope int* ptr)
+{
+    int result = dereference(ptr); // allowed, treated as `scope`
+    int* ptr2 = identity(ptr); // allowed, treated as `return scope`
+    int* ptr3 = identityThrow(ptr); // not allowed, can throw an `Exception`
+    assignToRef(ptr, globalPtr); // not allowed, mutable second parameter
+    assignToPtr(ptr, &globalPtr); // not allowed, mutable second parameter
+    cannotAssignTo(ptr, globalPtr); // allowed
+
+    return ptr2; // not allowed, ptr2 is inferred `scope` now
+}
+---
+
 $(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
 
 See also: $(GLINK2_ALTTEXT attribute, UserDefinedAttribute, User-Defined Attributes)
