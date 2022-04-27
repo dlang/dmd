@@ -38,6 +38,7 @@ import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmangle;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
@@ -864,7 +865,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
         fd.csym.Sscope = sclosure;
 
-        if (global.params.symdebug)
+        if (driverParams.symdebug)
             toDebugClosure(Closstru.Ttag);
 
         // Allocate memory for the closure
@@ -939,7 +940,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
  */
 void buildCapture(FuncDeclaration fd)
 {
-    if (!global.params.symdebug)
+    if (!driverParams.symdebug)
         return;
     if (target.objectFormat() != Target.ObjectFormat.coff)  // toDebugClosure only implemented for CodeView,
         return;                 //  but optlink crashes for negative field offsets

@@ -13,12 +13,37 @@ module dmd.dmdparams;
 
 import dmd.target;
 
+/// Position Indepent Code setting
+enum PIC : ubyte
+{
+    fixed,              /// located at a specific address
+    pic,                /// Position Independent Code
+    pie,                /// Position Independent Executable
+}
+
 struct DMDparams
 {
     bool alwaysframe;       // always emit standard stack frame
     ubyte dwarf;            // DWARF version
     bool map;               // generate linker .map file
     bool vasm;              // print generated assembler for each function
+
+    bool dll;               // generate shared dynamic library
+    bool lib;               // write library file instead of object file(s)
+    bool link = true;       // perform link
+    bool oneobj;            // write one object file instead of multiple ones
+
+    bool optimize;          // run optimizer
+    bool nofloat;           // code should not pull in floating point support
+    PIC pic = PIC.fixed;    // generate fixed, pic or pie code
+    bool stackstomp;        // add stack stomping code
+
+    ubyte symdebug;         // insert debug symbolic information
+    bool symdebugref;       // insert debug information for all referenced types, too
+
+    const(char)[] defaultlibname;   // default library for non-debug builds
+    const(char)[] debuglibname;     // default library for debug builds
+    const(char)[] mscrtlib;         // MS C runtime library
 
     // Hidden debug switches
     bool debugb;
@@ -280,4 +305,14 @@ void setTriple(ref Target target, const ref Triple triple)
     target.cpp.runtime = triple.cppenv;
 }
 
-shared DMDparams driverParams = DMDparams.init;
+/**
+Returns: the final defaultlibname based on the command-line parameters
+*/
+extern (D) const(char)[] finalDefaultlibname()
+{
+    import dmd.globals : global;
+    return global.params.betterC ? null :
+        driverParams.symdebug ? driverParams.debuglibname : driverParams.defaultlibname;
+}
+
+__gshared DMDparams driverParams = DMDparams.init;

@@ -365,13 +365,6 @@ enum class FeatureState : int8_t
     enabled = 1,
 };
 
-enum class PIC : uint8_t
-{
-    fixed = 0u,
-    pic = 1u,
-    pie = 2u,
-};
-
 enum class CppStdRevision : uint32_t
 {
     cpp98 = 199711u,
@@ -455,11 +448,7 @@ enum class MessageStyle : uint8_t
 struct Param final
 {
     bool obj;
-    bool link;
-    bool dll;
-    bool lib;
     bool multiobj;
-    bool oneobj;
     bool trace;
     bool tracegc;
     bool verbose;
@@ -472,11 +461,7 @@ struct Param final
     bool vfield;
     bool vcomplex;
     bool vin;
-    uint8_t symdebug;
-    bool symdebugref;
-    bool optimize;
     DiagnosticReporting useDeprecated;
-    bool stackstomp;
     bool useUnitTests;
     bool useInline;
     FeatureState useDIP25;
@@ -485,12 +470,10 @@ struct Param final
     bool release;
     bool preservePaths;
     DiagnosticReporting warnings;
-    PIC pic;
     bool color;
     bool cov;
     uint8_t covPercent;
     bool ctfe_cov;
-    bool nofloat;
     bool ignoreUnsupportedPragmas;
     bool useModuleInfo;
     bool useTypeInfo;
@@ -562,9 +545,6 @@ struct Param final
     Array<const char* >* debugids;
     uint32_t versionlevel;
     Array<const char* >* versionids;
-    _d_dynamicArray< const char > defaultlibname;
-    _d_dynamicArray< const char > debuglibname;
-    _d_dynamicArray< const char > mscrtlib;
     _d_dynamicArray< const char > moduleDepsFile;
     OutBuffer* moduleDeps;
     bool emitMakeDeps;
@@ -584,11 +564,7 @@ struct Param final
     _d_dynamicArray< const char > mapfile;
     Param() :
         obj(true),
-        link(true),
-        dll(),
-        lib(),
         multiobj(),
-        oneobj(),
         trace(),
         tracegc(),
         verbose(),
@@ -601,23 +577,17 @@ struct Param final
         vfield(),
         vcomplex(true),
         vin(),
-        symdebug(),
-        symdebugref(),
-        optimize(),
         useDeprecated((DiagnosticReporting)1u),
-        stackstomp(),
         useUnitTests(),
         useInline(false),
         useDIP1021(),
         release(),
         preservePaths(),
         warnings((DiagnosticReporting)2u),
-        pic((PIC)0u),
         color(),
         cov(),
         covPercent(),
         ctfe_cov(false),
-        nofloat(),
         ignoreUnsupportedPragmas(),
         useModuleInfo(true),
         useTypeInfo(true),
@@ -685,9 +655,6 @@ struct Param final
         debugids(),
         versionlevel(),
         versionids(),
-        defaultlibname(),
-        debuglibname(),
-        mscrtlib(),
         moduleDepsFile(),
         moduleDeps(),
         emitMakeDeps(),
@@ -707,13 +674,9 @@ struct Param final
         mapfile()
     {
     }
-    Param(bool obj, bool link = true, bool dll = false, bool lib = false, bool multiobj = false, bool oneobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, uint8_t symdebug = 0u, bool symdebugref = false, bool optimize = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool stackstomp = false, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, PIC pic = (PIC)0u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool nofloat = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = true, bool fixAliasThis = false, bool inclusiveInContracts = false, bool ehnogc = false, FeatureState dtorFields = (FeatureState)-1, bool fieldwise = false, bool bitfields = false, FeatureState rvalueRefParam = (FeatureState)-1, CppStdRevision cplusplus = (CppStdRevision)201103u, bool markdown = true, bool vmarkdown = false, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, bool doDocComments = false, _d_dynamicArray< const char > docdir = {}, _d_dynamicArray< const char > docname = {}, Array<const char* > ddocfiles = Array<const char* >(), bool doHdrGeneration = false, _d_dynamicArray< const char > hdrdir = {}, _d_dynamicArray< const char > hdrname = {}, bool hdrStripPlainFunctions = true, CxxHeaderMode doCxxHdrGeneration = (CxxHeaderMode)0u, _d_dynamicArray< const char > cxxhdrdir = {}, _d_dynamicArray< const char > cxxhdrname = {}, bool doJsonGeneration = false, _d_dynamicArray< const char > jsonfilename = {}, JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, OutBuffer* mixinOut = nullptr, const char* mixinFile = nullptr, int32_t mixinLines = 0, uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, _d_dynamicArray< const char > defaultlibname = {}, _d_dynamicArray< const char > debuglibname = {}, _d_dynamicArray< const char > mscrtlib = {}, _d_dynamicArray< const char > moduleDepsFile = {}, OutBuffer* moduleDeps = nullptr, bool emitMakeDeps = false, _d_dynamicArray< const char > makeDepsFile = {}, Array<const char* > makeDeps = Array<const char* >(), MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool verbose = false, bool vcg_ast = false, bool showColumns = false, bool vtls = false, bool vtemplates = false, bool vtemplatesListInstances = false, bool vgc = false, bool vfield = false, bool vcomplex = true, bool vin = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, FeatureState useDIP25 = (FeatureState)-1, FeatureState useDIP1000 = (FeatureState)-1, bool useDIP1021 = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool color = false, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = false, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool noSharedAccess = false, bool previewIn = false, bool shortenedMethods = false, bool betterC = false, bool addMain = false, bool allInst = false, bool fix16997 = true, bool fixAliasThis = false, bool inclusiveInContracts = false, bool ehnogc = false, FeatureState dtorFields = (FeatureState)-1, bool fieldwise = false, bool bitfields = false, FeatureState rvalueRefParam = (FeatureState)-1, CppStdRevision cplusplus = (CppStdRevision)201103u, bool markdown = true, bool vmarkdown = false, bool showGaggedErrors = false, bool printErrorContext = false, bool manual = false, bool usage = false, bool mcpuUsage = false, bool transitionUsage = false, bool checkUsage = false, bool checkActionUsage = false, bool revertUsage = false, bool previewUsage = false, bool externStdUsage = false, bool hcUsage = false, bool logo = false, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, uint32_t errorLimit = 20u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* >* imppath = nullptr, Array<const char* >* fileImppath = nullptr, _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, bool doDocComments = false, _d_dynamicArray< const char > docdir = {}, _d_dynamicArray< const char > docname = {}, Array<const char* > ddocfiles = Array<const char* >(), bool doHdrGeneration = false, _d_dynamicArray< const char > hdrdir = {}, _d_dynamicArray< const char > hdrname = {}, bool hdrStripPlainFunctions = true, CxxHeaderMode doCxxHdrGeneration = (CxxHeaderMode)0u, _d_dynamicArray< const char > cxxhdrdir = {}, _d_dynamicArray< const char > cxxhdrname = {}, bool doJsonGeneration = false, _d_dynamicArray< const char > jsonfilename = {}, JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, OutBuffer* mixinOut = nullptr, const char* mixinFile = nullptr, int32_t mixinLines = 0, uint32_t debuglevel = 0u, Array<const char* >* debugids = nullptr, uint32_t versionlevel = 0u, Array<const char* >* versionids = nullptr, _d_dynamicArray< const char > moduleDepsFile = {}, OutBuffer* moduleDeps = nullptr, bool emitMakeDeps = false, _d_dynamicArray< const char > makeDepsFile = {}, Array<const char* > makeDeps = Array<const char* >(), MessageStyle messageStyle = (MessageStyle)0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
-        link(link),
-        dll(dll),
-        lib(lib),
         multiobj(multiobj),
-        oneobj(oneobj),
         trace(trace),
         tracegc(tracegc),
         verbose(verbose),
@@ -726,11 +689,7 @@ struct Param final
         vfield(vfield),
         vcomplex(vcomplex),
         vin(vin),
-        symdebug(symdebug),
-        symdebugref(symdebugref),
-        optimize(optimize),
         useDeprecated(useDeprecated),
-        stackstomp(stackstomp),
         useUnitTests(useUnitTests),
         useInline(useInline),
         useDIP25(useDIP25),
@@ -739,12 +698,10 @@ struct Param final
         release(release),
         preservePaths(preservePaths),
         warnings(warnings),
-        pic(pic),
         color(color),
         cov(cov),
         covPercent(covPercent),
         ctfe_cov(ctfe_cov),
-        nofloat(nofloat),
         ignoreUnsupportedPragmas(ignoreUnsupportedPragmas),
         useModuleInfo(useModuleInfo),
         useTypeInfo(useTypeInfo),
@@ -816,9 +773,6 @@ struct Param final
         debugids(debugids),
         versionlevel(versionlevel),
         versionids(versionids),
-        defaultlibname(defaultlibname),
-        debuglibname(debuglibname),
-        mscrtlib(mscrtlib),
         moduleDepsFile(moduleDepsFile),
         moduleDeps(moduleDeps),
         emitMakeDeps(emitMakeDeps),

@@ -1244,7 +1244,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(Import imp)
     {
-        //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+        static if (LOG)
+        {
+            printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+            scope(exit)
+                printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
+        }
         if (imp.semanticRun > PASS.initial)
             return;
 
@@ -1354,8 +1359,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // don't list pseudo modules __entrypoint.d, __main.d
         // https://issues.dlang.org/show_bug.cgi?id=11117
         // https://issues.dlang.org/show_bug.cgi?id=11164
-        if (global.params.moduleDeps is null || imp.id == Id.object || sc._module.ident == Id.object ||
-            sc._module.ident.toString() != "__main")
+        if (global.params.moduleDeps is null || (imp.id == Id.object && sc._module.ident == Id.object) ||
+            strcmp(sc._module.ident.toChars(), "__main") == 0)
             return;
 
         /* The grammar of the file is:
@@ -1417,7 +1422,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (imp.aliasId)
             ob.printf(" -> %s", imp.aliasId.toChars());
         ob.writenl();
-        //printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
     }
 
     void attribSemantic(AttribDeclaration ad)
