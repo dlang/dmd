@@ -1244,7 +1244,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(Import imp)
     {
-        //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+        static if (LOG)
+        {
+            printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
+            scope(exit)
+                printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
+        }
         if (imp.semanticRun > PASS.initial)
             return;
 
@@ -1354,70 +1359,69 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // don't list pseudo modules __entrypoint.d, __main.d
         // https://issues.dlang.org/show_bug.cgi?id=11117
         // https://issues.dlang.org/show_bug.cgi?id=11164
-        if (global.params.moduleDeps !is null && !(imp.id == Id.object && sc._module.ident == Id.object) &&
-            strcmp(sc._module.ident.toChars(), "__main") != 0)
+        if (global.params.moduleDeps is null || (imp.id == Id.object && sc._module.ident == Id.object) ||
+            strcmp(sc._module.ident.toChars(), "__main") == 0)
+            return;
+
+        /* The grammar of the file is:
+         *      ImportDeclaration
+         *          ::= BasicImportDeclaration [ " : " ImportBindList ] [ " -> "
+         *      ModuleAliasIdentifier ] "\n"
+         *
+         *      BasicImportDeclaration
+         *          ::= ModuleFullyQualifiedName " (" FilePath ") : " Protection|"string"
+         *              " [ " static" ] : " ModuleFullyQualifiedName " (" FilePath ")"
+         *
+         *      FilePath
+         *          - any string with '(', ')' and '\' escaped with the '\' character
+         */
+        OutBuffer* ob = global.params.moduleDeps;
+        Module imod = sc._module;
+        if (!global.params.moduleDepsFile)
+            ob.writestring("depsImport ");
+        ob.writestring(imod.toPrettyChars());
+        ob.writestring(" (");
+        escapePath(ob, imod.srcfile.toChars());
+        ob.writestring(") : ");
+        // use visibility instead of sc.visibility because it couldn't be
+        // resolved yet, see the comment above
+        visibilityToBuffer(ob, imp.visibility);
+        ob.writeByte(' ');
+        if (imp.isstatic)
         {
-            /* The grammar of the file is:
-             *      ImportDeclaration
-             *          ::= BasicImportDeclaration [ " : " ImportBindList ] [ " -> "
-             *      ModuleAliasIdentifier ] "\n"
-             *
-             *      BasicImportDeclaration
-             *          ::= ModuleFullyQualifiedName " (" FilePath ") : " Protection|"string"
-             *              " [ " static" ] : " ModuleFullyQualifiedName " (" FilePath ")"
-             *
-             *      FilePath
-             *          - any string with '(', ')' and '\' escaped with the '\' character
-             */
-            OutBuffer* ob = global.params.moduleDeps;
-            Module imod = sc._module;
-            if (!global.params.moduleDepsFile)
-                ob.writestring("depsImport ");
-            ob.writestring(imod.toPrettyChars());
-            ob.writestring(" (");
-            escapePath(ob, imod.srcfile.toChars());
-            ob.writestring(") : ");
-            // use visibility instead of sc.visibility because it couldn't be
-            // resolved yet, see the comment above
-            visibilityToBuffer(ob, imp.visibility);
+            stcToBuffer(ob, STC.static_);
             ob.writeByte(' ');
-            if (imp.isstatic)
-            {
-                stcToBuffer(ob, STC.static_);
-                ob.writeByte(' ');
-            }
-            ob.writestring(": ");
-            foreach (pid; imp.packages)
-            {
-                ob.printf("%s.", pid.toChars());
-            }
-            ob.writestring(imp.id.toString());
-            ob.writestring(" (");
-            if (imp.mod)
-                escapePath(ob, imp.mod.srcfile.toChars());
-            else
-                ob.writestring("???");
-            ob.writeByte(')');
-            foreach (i, name; imp.names)
-            {
-                if (i == 0)
-                    ob.writeByte(':');
-                else
-                    ob.writeByte(',');
-                Identifier _alias = imp.aliases[i];
-                if (!_alias)
-                {
-                    ob.printf("%s", name.toChars());
-                    _alias = name;
-                }
-                else
-                    ob.printf("%s=%s", _alias.toChars(), name.toChars());
-            }
-            if (imp.aliasId)
-                ob.printf(" -> %s", imp.aliasId.toChars());
-            ob.writenl();
         }
-        //printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
+        ob.writestring(": ");
+        foreach (pid; imp.packages)
+        {
+            ob.printf("%s.", pid.toChars());
+        }
+        ob.writestring(imp.id.toString());
+        ob.writestring(" (");
+        if (imp.mod)
+            escapePath(ob, imp.mod.srcfile.toChars());
+        else
+            ob.writestring("???");
+        ob.writeByte(')');
+        foreach (i, name; imp.names)
+        {
+            if (i == 0)
+                ob.writeByte(':');
+            else
+                ob.writeByte(',');
+            Identifier _alias = imp.aliases[i];
+            if (!_alias)
+            {
+                ob.printf("%s", name.toChars());
+                _alias = name;
+            }
+            else
+                ob.printf("%s=%s", _alias.toChars(), name.toChars());
+        }
+        if (imp.aliasId)
+            ob.printf(" -> %s", imp.aliasId.toChars());
+        ob.writenl();
     }
 
     void attribSemantic(AttribDeclaration ad)
@@ -1462,24 +1466,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
 
-        if (scd.decl)
+        if (!scd.decl)
+            return;
+
+        sc = sc.push();
+        sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
+        sc.inunion = scd.isunion ? scd : null;
+        sc.flags = 0;
+        for (size_t i = 0; i < scd.decl.dim; i++)
         {
-            sc = sc.push();
-            sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
-            sc.inunion = scd.isunion ? scd : null;
-            sc.flags = 0;
-            for (size_t i = 0; i < scd.decl.dim; i++)
+            Dsymbol s = (*scd.decl)[i];
+            if (auto var = s.isVarDeclaration)
             {
-                Dsymbol s = (*scd.decl)[i];
-                if (auto var = s.isVarDeclaration)
-                {
-                    if (scd.isunion)
-                        var.overlapped = true;
-                }
-                s.dsymbolSemantic(sc);
+                if (scd.isunion)
+                    var.overlapped = true;
             }
-            sc = sc.pop();
+            s.dsymbolSemantic(sc);
         }
+        sc = sc.pop();
     }
 
     override void visit(PragmaDeclaration pd)
@@ -1638,32 +1642,33 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         if (pd.ident == Id.msg)
         {
-            if (pd.args)
+            if (!pd.args)
+                return noDeclarations();
+
+            for (size_t i = 0; i < pd.args.dim; i++)
             {
-                for (size_t i = 0; i < pd.args.dim; i++)
+                Expression e = (*pd.args)[i];
+                sc = sc.startCTFE();
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
+                sc = sc.endCTFE();
+                e = ctfeInterpretForPragmaMsg(e);
+                if (e.op == EXP.error)
                 {
-                    Expression e = (*pd.args)[i];
-                    sc = sc.startCTFE();
-                    e = e.expressionSemantic(sc);
-                    e = resolveProperties(sc, e);
-                    sc = sc.endCTFE();
-                    e = ctfeInterpretForPragmaMsg(e);
-                    if (e.op == EXP.error)
-                    {
-                        errorSupplemental(pd.loc, "while evaluating `pragma(msg, %s)`", (*pd.args)[i].toChars());
-                        return;
-                    }
-                    StringExp se = e.toStringExp();
-                    if (se)
-                    {
-                        se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, se.peekString().ptr);
-                    }
-                    else
-                        fprintf(stderr, "%s", e.toChars());
+                    errorSupplemental(pd.loc, "while evaluating `pragma(msg, %s)`", (*pd.args)[i].toChars());
+                    return;
                 }
-                fprintf(stderr, "\n");
+                StringExp se = e.toStringExp();
+                if (se)
+                {
+                    se = se.toUTF8(sc);
+                    fprintf(stderr, "%.*s", cast(int)se.len, se.peekString().ptr);
+                }
+                else
+                    fprintf(stderr, "%s", e.toChars());
             }
+            fprintf(stderr, "\n");
+
             return noDeclarations();
         }
         else if (pd.ident == Id.lib)
@@ -1897,49 +1902,49 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return Identifier.idPool(sident);
         }
 
-        if (ns.ident is null)
+        if (ns.ident !is null)
+            return attribSemantic(ns);
+
+        ns.cppnamespace = sc.namespace;
+        sc = sc.startCTFE();
+        ns.exp = ns.exp.expressionSemantic(sc);
+        ns.exp = resolveProperties(sc, ns.exp);
+        sc = sc.endCTFE();
+        ns.exp = ns.exp.ctfeInterpret();
+        // Can be either a tuple of strings or a string itself
+        if (auto te = ns.exp.isTupleExp())
         {
-            ns.cppnamespace = sc.namespace;
-            sc = sc.startCTFE();
-            ns.exp = ns.exp.expressionSemantic(sc);
-            ns.exp = resolveProperties(sc, ns.exp);
-            sc = sc.endCTFE();
-            ns.exp = ns.exp.ctfeInterpret();
-            // Can be either a tuple of strings or a string itself
-            if (auto te = ns.exp.isTupleExp())
+            expandTuples(te.exps);
+            CPPNamespaceDeclaration current = ns.cppnamespace;
+            for (size_t d = 0; d < te.exps.dim; ++d)
             {
-                expandTuples(te.exps);
-                CPPNamespaceDeclaration current = ns.cppnamespace;
-                for (size_t d = 0; d < te.exps.dim; ++d)
+                auto exp = (*te.exps)[d];
+                auto prev = d ? current : ns.cppnamespace;
+                current = (d + 1) != te.exps.dim
+                    ? new CPPNamespaceDeclaration(ns.loc, exp, null)
+                    : ns;
+                current.exp = exp;
+                current.cppnamespace = prev;
+                if (auto se = exp.toStringExp())
                 {
-                    auto exp = (*te.exps)[d];
-                    auto prev = d ? current : ns.cppnamespace;
-                    current = (d + 1) != te.exps.dim
-                        ? new CPPNamespaceDeclaration(ns.loc, exp, null)
-                        : ns;
-                    current.exp = exp;
-                    current.cppnamespace = prev;
-                    if (auto se = exp.toStringExp())
-                    {
-                        current.ident = identFromSE(se);
-                        if (current.ident is null)
-                            return; // An error happened in `identFromSE`
-                    }
-                    else
-                        ns.exp.error("`%s`: index %llu is not a string constant, it is a `%s`",
-                                     ns.exp.toChars(), cast(ulong) d, ns.exp.type.toChars());
+                    current.ident = identFromSE(se);
+                    if (current.ident is null)
+                        return; // An error happened in `identFromSE`
                 }
+                else
+                    ns.exp.error("`%s`: index %llu is not a string constant, it is a `%s`",
+                                 ns.exp.toChars(), cast(ulong) d, ns.exp.type.toChars());
             }
-            else if (auto se = ns.exp.toStringExp())
-                ns.ident = identFromSE(se);
-            // Empty Tuple
-            else if (ns.exp.isTypeExp() && ns.exp.isTypeExp().type.toBasetype().isTypeTuple())
-            {
-            }
-            else
-                ns.exp.error("compile time string constant (or tuple) expected, not `%s`",
-                             ns.exp.toChars());
         }
+        else if (auto se = ns.exp.toStringExp())
+            ns.ident = identFromSE(se);
+        // Empty Tuple
+        else if (ns.exp.isTypeExp() && ns.exp.isTypeExp().type.toBasetype().isTypeTuple())
+        {
+        }
+        else
+            ns.exp.error("compile time string constant (or tuple) expected, not `%s`",
+                         ns.exp.toChars());
         attribSemantic(ns);
     }
 
@@ -2860,6 +2865,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         static if (LOG)
         {
             printf("+Nspace::semantic('%s')\n", ns.toChars());
+            scope(exit) printf("-Nspace::semantic('%s')\n", ns.toChars());
         }
         if (ns._scope)
         {
@@ -2936,36 +2942,34 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Link does not matter here, if the UDA is present it will error
         UserAttributeDeclaration.checkGNUABITag(ns, LINK.cpp);
 
-        if (ns.members)
+        if (!ns.members)
         {
-            assert(sc);
-            sc = sc.push(ns);
-            sc.linkage = LINK.cpp; // note that namespaces imply C++ linkage
-            sc.parent = ns;
-            foreach (s; *ns.members)
-            {
-                if (repopulateMembers)
-                {
-                    s.addMember(sc, sc.scopesym);
-                    s.setScope(sc);
-                }
-                s.importAll(sc);
-            }
-            foreach (s; *ns.members)
-            {
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.dsymbolSemantic(sc);
-            }
-            sc.pop();
+            ns.semanticRun = PASS.semanticdone;
+            return;
         }
+        assert(sc);
+        sc = sc.push(ns);
+        sc.linkage = LINK.cpp; // note that namespaces imply C++ linkage
+        sc.parent = ns;
+        foreach (s; *ns.members)
+        {
+            if (repopulateMembers)
+            {
+                s.addMember(sc, sc.scopesym);
+                s.setScope(sc);
+            }
+            s.importAll(sc);
+        }
+        foreach (s; *ns.members)
+        {
+            static if (LOG)
+            {
+                printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
+            }
+            s.dsymbolSemantic(sc);
+        }
+        sc.pop();
         ns.semanticRun = PASS.semanticdone;
-        static if (LOG)
-        {
-            printf("-Nspace::semantic('%s')\n", ns.toChars());
-        }
     }
 
     void funcDeclarationSemantic(FuncDeclaration funcdecl)
