@@ -448,6 +448,10 @@ dmd -cov -unittest myprog.d
         Option("ignore",
             "ignore unsupported pragmas"
         ),
+        Option("import-local=<importer>:<imported>",
+            "look for imports in imported but only for files in importer",
+            `Look for imports in $(I imported) but only for files in $(I importer).`,
+        ),
         Option("inline",
             "do function inlining",
             `Inline functions at the discretion of the compiler.
