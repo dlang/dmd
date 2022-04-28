@@ -2865,6 +2865,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         static if (LOG)
         {
             printf("+Nspace::semantic('%s')\n", ns.toChars());
+            scope(exit) printf("-Nspace::semantic('%s')\n", ns.toChars());
         }
         if (ns._scope)
         {
@@ -2941,36 +2942,34 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Link does not matter here, if the UDA is present it will error
         UserAttributeDeclaration.checkGNUABITag(ns, LINK.cpp);
 
-        if (ns.members)
+        if (!ns.members)
         {
-            assert(sc);
-            sc = sc.push(ns);
-            sc.linkage = LINK.cpp; // note that namespaces imply C++ linkage
-            sc.parent = ns;
-            foreach (s; *ns.members)
-            {
-                if (repopulateMembers)
-                {
-                    s.addMember(sc, sc.scopesym);
-                    s.setScope(sc);
-                }
-                s.importAll(sc);
-            }
-            foreach (s; *ns.members)
-            {
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.dsymbolSemantic(sc);
-            }
-            sc.pop();
+            ns.semanticRun = PASS.semanticdone;
+            return;
         }
+        assert(sc);
+        sc = sc.push(ns);
+        sc.linkage = LINK.cpp; // note that namespaces imply C++ linkage
+        sc.parent = ns;
+        foreach (s; *ns.members)
+        {
+            if (repopulateMembers)
+            {
+                s.addMember(sc, sc.scopesym);
+                s.setScope(sc);
+            }
+            s.importAll(sc);
+        }
+        foreach (s; *ns.members)
+        {
+            static if (LOG)
+            {
+                printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
+            }
+            s.dsymbolSemantic(sc);
+        }
+        sc.pop();
         ns.semanticRun = PASS.semanticdone;
-        static if (LOG)
-        {
-            printf("-Nspace::semantic('%s')\n", ns.toChars());
-        }
     }
 
     void funcDeclarationSemantic(FuncDeclaration funcdecl)
