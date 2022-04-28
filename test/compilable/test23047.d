@@ -1,11 +1,9 @@
-/* REQUIRED_ARGS: -O
+/* REQUIRED_ARGS: -defaultlib= -c -O
  */
 
 // https://issues.dlang.org/show_bug.cgi?id=23047
 
-import core.simd;
-
-version (D_SIMD):
+alias long2 = __vector(long[2]);
 
 long2 _mm_srl_epi64 ()
 {
