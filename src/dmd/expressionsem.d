@@ -3261,7 +3261,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // to fix https://issues.dlang.org/show_bug.cgi?id=9490
             VarExp ve = e.isVarExp();
             if (ve && ve.var && exp.parens && !ve.var.isStatic() && !(sc.stc & STC.static_) &&
-                sc.func && sc.func.needThis && ve.var.toParent2().isAggregateDeclaration())
+                sc.func && sc.func.needThis && ve.var.isMember2())
             {
                 // printf("apply fix for issue 9490: add `this.` to `%s`...\n", e.toChars());
                 e = new DotVarExp(exp.loc, new ThisExp(exp.loc), ve.var, false);
@@ -4677,7 +4677,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (exp.f.needThis())
             {
-                AggregateDeclaration ad = exp.f.toParentLocal().isAggregateDeclaration();
+                AggregateDeclaration ad = exp.f.isMemberLocal();
                 ue.e1 = getRightThis(exp.loc, sc, ad, ue.e1, exp.f);
                 if (ue.e1.op == EXP.error)
                 {
@@ -6688,7 +6688,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.type = e.type.typeSemantic(e.loc, sc);
 
         FuncDeclaration f = e.func.toAliasFunc();
-        AggregateDeclaration ad = f.toParentLocal().isAggregateDeclaration();
+        AggregateDeclaration ad = f.isMemberLocal();
         if (f.needThis())
             e.e1 = getRightThis(e.loc, sc, ad, e.e1, f);
         if (e.e1.op == EXP.error)
