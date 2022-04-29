@@ -893,7 +893,10 @@ extern (C++) class Dsymbol : ASTNode
             {
                 // @@@DEPRECATED_2.100@@@
                 // Should be an error in 2.110.
-                .deprecation(loc, "declaring a member named `%s` is deprecated", ident.toChars());
+                auto ad = sds.isAggregateDeclaration();
+                // Limit to D classes / structs, Objective-C classes have a standard `init` method
+                if (!ad || ad.classKind == ClassKind.d)
+                    .deprecation(loc, "declaring a member named `%s` is deprecated", ident.toChars());
             }
         }
     }

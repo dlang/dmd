@@ -318,19 +318,19 @@ void test14()
 
 template A15(T) {
     public interface Init {
-        public T init();
+        public T initialize();
     }
 }
 template A15(T : int) {
     public class Init {
-        public T init() {
+        public T initialize() {
             return 42;
         };
     }
 }
 template A15(T : float) {
     public class Init {
-        public T init() {
+        public T initialize() {
             return 3.25;
         };
     }
@@ -338,13 +338,13 @@ template A15(T : float) {
 
 template TB15(T, U) {
     private U initializer;
-    private void setInitializer(U init) {
-        initializer = init;
+    private void setInitializer(U initialize) {
+        initializer = initialize;
     }
     public class B {
         private T _value;
         public this() {
-            this._value = initializer.init();
+            this._value = initializer.initialize();
         }
         public T value() {
             return this._value;
@@ -353,8 +353,8 @@ template TB15(T, U) {
 }
 template TB15(T) {
     private alias TB15!(T, A15!(T).Init) tb;
-    private void setInitializer(A15!(T).Init init) {
-        tb.setInitializer(init);
+    private void setInitializer(A15!(T).Init initialize) {
+        tb.setInitializer(initialize);
     }
     public class B : tb.B {
     }

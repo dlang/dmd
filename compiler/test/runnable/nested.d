@@ -1020,7 +1020,7 @@ class C40
 {
     int a = 4;
 
-    void init()
+    void initialize()
     {
         I40 i = new class() I40
         {
@@ -1037,7 +1037,7 @@ class C40
 void test40()
 {
     C40 c = new C40();
-    c.init();
+    c.initialize();
 }
 
 /*******************************************/
@@ -1045,7 +1045,7 @@ void test40()
 class C41
 {   int a = 3;
 
-    void init()
+    void initialize()
     {
         class N
         {
@@ -1067,7 +1067,7 @@ class C41
 void test41()
 {
    C41 c = new C41();
-   c.init();
+   c.initialize();
 }
 
 /*******************************************/
@@ -1075,11 +1075,11 @@ void test41()
 class C42
 {   int a = 3;
 
-    void init()
+    void initialize()
     {
         class N
         {
-            void init()
+            void initialize()
             {
                 class M
                 {
@@ -1093,7 +1093,7 @@ class C42
             }
         }
         N n = new N();
-        n.init();
+        n.initialize();
     }
     void func()
     {
@@ -1104,7 +1104,7 @@ class C42
 void test42()
 {
    C42 c = new C42();
-   c.init();
+   c.initialize();
 }
 
 
