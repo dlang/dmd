@@ -1,4 +1,4 @@
-Added ability to specify that a function is to be used only in CTFE
+The ability to specify that a function is to be used only in CTFE has been added to the compiler
 
 Previously, DMD emitted functions which are only used in CTFE into
 generated object files. Although the linker usually removes those unused functions,
@@ -10,7 +10,7 @@ this still causes some problems:
 * The linker may not be able to remove these functions in some cases, e.g when
   building shared libraries.
 
-As a solution, `pragma(ctfe`) now allows to specify that a function is only meant to
+The solution, `pragma(ctfe)`, can be used to specify that a function is only meant to
 be used in CTFE:
 
 -------

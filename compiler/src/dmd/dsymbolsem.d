@@ -97,13 +97,16 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
     return 0;
 }
 
+/*************************************
+ * Mark `s` as only used for CTFE, so no code is generated for it
+ *
+ * Params:
+ *     s = symbol to set compileTimeOnly
+ */
 private void setCompileTimeOnly(Dsymbol s)
 {
     if (auto fd = s.isFuncDeclaration())
         fd.flags |= FUNCFLAG.compileTimeOnly;
-
-    if (auto ad = s.isAttribDeclaration())
-        ad.include(null).foreachDsymbol( (s) { setCompileTimeOnly(s); } );
 }
 
 /*************************************
@@ -1567,7 +1570,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             foreach (s; (*pd.decl)[])
             {
                 s.dsymbolSemantic(sc2);
-                if (pd.ident == Id.Pctfe)
+                if (pd.ident == Id.pragmaCtfe)
                 {
                     setCompileTimeOnly(s);
                     continue;
@@ -1800,7 +1803,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             return declarations();
         }
-        else if (pd.ident == Id.printf || pd.ident == Id.scanf || pd.ident == Id.Pctfe)
+        else if (pd.ident == Id.printf || pd.ident == Id.scanf || pd.ident == Id.pragmaCtfe)
         {
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");

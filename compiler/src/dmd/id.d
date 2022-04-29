@@ -331,7 +331,7 @@ immutable Msgtable[] msgtable =
     { "startaddress" },
     { "crt_constructor" },
     { "crt_destructor" },
-    { "Pctfe", "ctfe" },
+    { "pragmaCtfe", "ctfe" },
 
     // For special functions
     { "tohash", "toHash" },
