@@ -144,7 +144,6 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
         default:
             assert(0);
     }
-    return cv4_typidx(t);
 }
 
 enum CV4_NAMELENMAX = 0x3b9f;                   // found by trial and error
