@@ -984,9 +984,9 @@ bool findCondition(Identifiers* ids, Identifier ident) @safe nothrow pure
 // Helper for printing dependency information
 private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
 {
-    if (!global.params.moduleDeps || global.params.moduleDepsFile)
+    if (!global.params.moduleDeps.buffer || global.params.moduleDeps.name)
         return;
-    OutBuffer* ob = global.params.moduleDeps;
+    OutBuffer* ob = global.params.moduleDeps.buffer;
     Module imod = sc ? sc._module : condition.mod;
     if (!imod)
         return;

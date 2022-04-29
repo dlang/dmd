@@ -71,7 +71,7 @@ void semantic3OnDependencies(Module m)
  */
 void removeHdrFilesAndFail(ref Param params, ref Modules modules) nothrow
 {
-    if (params.doHdrGeneration)
+    if (params.dihdr.doOutput)
     {
         foreach (m; modules)
         {
@@ -472,7 +472,7 @@ extern (C++) final class Module : Package
         if (doDocComment)
             setDocfile();
         if (doHdrGen)
-            hdrfile = setOutfilename(global.params.hdrname, global.params.hdrdir, arg, hdr_ext);
+            hdrfile = setOutfilename(global.params.dihdr.name, global.params.dihdr.dir, arg, hdr_ext);
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
@@ -584,7 +584,7 @@ extern (C++) final class Module : Package
 
     extern (D) void setDocfile()
     {
-        docfile = setOutfilename(global.params.docname, global.params.docdir, arg, doc_ext);
+        docfile = setOutfilename(global.params.ddoc.name, global.params.ddoc.dir, arg, doc_ext);
     }
 
     /**
@@ -665,8 +665,8 @@ extern (C++) final class Module : Package
         if (auto result = global.fileManager.lookup(srcfile))
         {
             this.src = result;
-            if (global.params.emitMakeDeps)
-                global.params.makeDeps.push(srcfile.toChars());
+            if (global.params.makeDeps.doOutput)
+                global.params.makeDeps.files.push(srcfile.toChars());
             return true;
         }
 
