@@ -2958,7 +2958,7 @@ void disassemble(uint c)
             sz2 = 8;
         }
         else
-            p2 = ereg[reg] + opsize;
+            p2 = ereg[r] + opsize;
         p3 = immed16(code, c + 1, sz2);
     }
     else if (opcode >= 0xD8 && opcode <= 0xDF)
@@ -3594,7 +3594,7 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[11] cases64 =      // 64 bit code gen
+    string[13] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
@@ -3607,6 +3607,8 @@ unittest
         "0F 33               rdpmc",
         "0F 34               sysenter",
         "0F 35               sysexit",
+        "BE 12 00 00 00      mov  ESI,012h",
+        "BF 00 00 00 00      mov  EDI,0",
     ];
 
     char[BUFMAX] buf;
