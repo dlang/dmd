@@ -3391,7 +3391,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 v.dsymbolSemantic(null);
                 if (v.isField())
                 {
-                    auto ad = v.toParent().isAggregateDeclaration();
+                    auto ad = v.isMember();
                     objc.checkOffsetof(e, ad);
                     ad.size(e.loc);
                     if (ad.sizeok != Sizeok.done)
