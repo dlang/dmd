@@ -2834,7 +2834,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         //if (!sc.func && Module.deferred.dim > deferred_dim) {}
 
-        AggregateDeclaration ad = tm.toParent().isAggregateDeclaration();
+        AggregateDeclaration ad = tm.isMember();
         if (sc.func && !ad)
         {
             tm.semantic2(sc2);

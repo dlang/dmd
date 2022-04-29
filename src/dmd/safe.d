@@ -53,7 +53,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     {
         if (sc.intypeof || !sc.func || !sc.func.isSafeBypassingInference())
             return false;
-        auto ad = v.toParent2().isAggregateDeclaration();
+        auto ad = v.isMember2();
         if (!ad)
             return false;
 
