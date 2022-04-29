@@ -2,15 +2,21 @@
 /*
 TEST_OUTPUT:
 ---
+compilable/test17954.d(32): Deprecation: declaring a member named `init` is deprecated
+compilable/test17954.d(14): Deprecation: declaring a member named `init` is deprecated
+compilable/test17954.d(19): Deprecation: declaring a member named `init` is deprecated
 compilable/test17954.d(26): Deprecation: declaring a member named `init` is deprecated
-compilable/test17954.d(13): Deprecation: declaring a member named `init` is deprecated
-compilable/test17954.d(20): Deprecation: declaring a member named `init` is deprecated
 ---
 */
 
-struct S1
+struct S0
 {
     int init;
+}
+
+struct S1
+{
+    void init() { }
 }
 
 struct S2
