@@ -234,7 +234,7 @@ $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
         $(P Non-static member functions can have, in addition to the usual
         $(GLINK2 function, FunctionAttribute)s, the attributes
-        $(D const), $(D immutable), $(D shared), or $(D inout).
+        $(D const), $(D immutable), $(D shared), $(D inout), $(D scope) or $(D return scope).
         These attributes apply to the hidden $(I this) parameter.
         )
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
@@ -249,6 +249,10 @@ class C
     void foo() immutable
     {
         a = 3; // error, 'this' is immutable
+    }
+    C bar() @safe scope
+    {
+        return this; // error, 'this' is scope
     }
 }
 ---
