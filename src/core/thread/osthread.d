@@ -1267,6 +1267,9 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
  *       must be called after thread_attachThis:
  *
  *       extern (C) void rt_moduleTlsCtor();
+ *
+ * See_Also:
+ *     $(REF thread_detachThis, core,thread,threadbase)
  */
 extern(C) Thread thread_attachThis()
 {
