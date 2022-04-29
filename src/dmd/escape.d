@@ -1892,236 +1892,239 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
 void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
 {
     //printf("[%s] escapeByRef, e: %s\n", e.loc.toChars(), e.toChars());
-    extern (C++) final class EscapeRefVisitor : Visitor
+    void visit(Expression e)
     {
-        alias visit = Visitor.visit;
-    public:
-        EscapeByResults* er;
-        bool live;
+    }
 
-        extern (D) this(EscapeByResults* er, bool live)
+    void visitVar(VarExp e)
+    {
+        auto v = e.var.isVarDeclaration();
+        if (v)
         {
-            this.er = er;
-            this.live = live;
-        }
-
-        override void visit(Expression e)
-        {
-        }
-
-        override void visit(VarExp e)
-        {
-            auto v = e.var.isVarDeclaration();
-            if (v)
+            if (v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
             {
-                if (v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
+                /* If compiler generated ref temporary
+                    *   (ref v = ex; ex)
+                    * look at the initializer instead
+                    */
+                if (ExpInitializer ez = v._init.isExpInitializer())
                 {
-                    /* If compiler generated ref temporary
-                     *   (ref v = ex; ex)
-                     * look at the initializer instead
-                     */
-                    if (ExpInitializer ez = v._init.isExpInitializer())
-                    {
-                        if (auto ce = ez.exp.isConstructExp())
-                            ce.e2.accept(this);
-                        else
-                            ez.exp.accept(this);
-                    }
-                }
-                else
-                    er.byref.push(v);
-            }
-        }
-
-        override void visit(ThisExp e)
-        {
-            if (e.var && e.var.toParent2().isFuncDeclaration().hasDualContext())
-                escapeByValue(e, er, live);
-            else if (e.var)
-                er.byref.push(e.var);
-        }
-
-        override void visit(PtrExp e)
-        {
-            escapeByValue(e.e1, er, live);
-        }
-
-        override void visit(IndexExp e)
-        {
-            Type tb = e.e1.type.toBasetype();
-            if (auto ve = e.e1.isVarExp())
-            {
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (tb.ty == Tarray || tb.ty == Tsarray)
-                {
-                    if (v && v.storage_class & STC.variadic)
-                    {
-                        er.byref.push(v);
-                        return;
-                    }
-                }
-            }
-            if (tb.ty == Tsarray)
-            {
-                e.e1.accept(this);
-            }
-            else if (tb.ty == Tarray)
-            {
-                escapeByValue(e.e1, er, live);
-            }
-        }
-
-        override void visit(StructLiteralExp e)
-        {
-            if (e.elements)
-            {
-                foreach (ex; *e.elements)
-                {
-                    if (ex)
-                        ex.accept(this);
-                }
-            }
-            er.byexp.push(e);
-        }
-
-        override void visit(DotVarExp e)
-        {
-            Type t1b = e.e1.type.toBasetype();
-            if (t1b.ty == Tclass)
-                escapeByValue(e.e1, er, live);
-            else
-                e.e1.accept(this);
-        }
-
-        override void visit(BinAssignExp e)
-        {
-            e.e1.accept(this);
-        }
-
-        override void visit(AssignExp e)
-        {
-            e.e1.accept(this);
-        }
-
-        override void visit(CommaExp e)
-        {
-            e.e2.accept(this);
-        }
-
-        override void visit(CondExp e)
-        {
-            e.e1.accept(this);
-            e.e2.accept(this);
-        }
-
-        override void visit(CallExp e)
-        {
-            //printf("escapeByRef.CallExp(): %s\n", e.toChars());
-            /* If the function returns by ref, check each argument that is
-             * passed as 'return ref'.
-             */
-            Type t1 = e.e1.type.toBasetype();
-            TypeFunction tf;
-            if (t1.ty == Tdelegate)
-                tf = t1.isTypeDelegate().next.isTypeFunction();
-            else if (t1.ty == Tfunction)
-                tf = t1.isTypeFunction();
-            else
-                return;
-            if (tf.isref)
-            {
-                if (e.arguments && e.arguments.dim)
-                {
-                    /* j=1 if _arguments[] is first argument,
-                     * skip it because it is not passed by ref
-                     */
-                    int j = tf.isDstyleVariadic();
-                    for (size_t i = j; i < e.arguments.dim; ++i)
-                    {
-                        Expression arg = (*e.arguments)[i];
-                        size_t nparams = tf.parameterList.length;
-                        if (i - j < nparams && i >= j)
-                        {
-                            Parameter p = tf.parameterList[i - j];
-                            const stc = tf.parameterStorageClass(null, p);
-                            ScopeRef psr = buildScopeRef(stc);
-                            if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                                arg.accept(this);
-                            else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                            {
-                                if (auto de = arg.isDelegateExp())
-                                {
-                                    if (de.func.isNested())
-                                        er.byexp.push(de);
-                                }
-                                else
-                                    escapeByValue(arg, er, live);
-                            }
-                        }
-                    }
-                }
-                // If 'this' is returned by ref, check it too
-                if (e.e1.op == EXP.dotVariable && t1.ty == Tfunction)
-                {
-                    DotVarExp dve = e.e1.isDotVarExp();
-
-                    // https://issues.dlang.org/show_bug.cgi?id=20149#c10
-                    if (dve.var.isCtorDeclaration())
-                    {
-                        er.byexp.push(e);
-                        return;
-                    }
-
-                    StorageClass stc = dve.var.storage_class & (STC.return_ | STC.scope_ | STC.ref_);
-                    if (tf.isreturn)
-                        stc |= STC.return_;
-                    if (tf.isref)
-                        stc |= STC.ref_;
-                    if (tf.isScopeQual)
-                        stc |= STC.scope_;
-                    if (tf.isreturnscope)
-                        stc |= STC.returnScope;
-
-                    const psr = buildScopeRef(stc);
-                    if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                         dve.e1.accept(this);
-                    else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                         escapeByValue(dve.e1, er, live);
-
-                    // If it's also a nested function that is 'return ref'
-                    if (FuncDeclaration fd = dve.var.isFuncDeclaration())
-                    {
-                        if (fd.isNested() && tf.isreturn)
-                        {
-                            er.byexp.push(e);
-                        }
-                    }
-                }
-                // If it's a delegate, check it too
-                if (e.e1.op == EXP.variable && t1.ty == Tdelegate)
-                {
-                    escapeByValue(e.e1, er, live);
-                }
-
-                /* If it's a nested function that is 'return ref'
-                 */
-                if (auto ve = e.e1.isVarExp())
-                {
-                    FuncDeclaration fd = ve.var.isFuncDeclaration();
-                    if (fd && fd.isNested())
-                    {
-                        if (tf.isreturn)
-                            er.byexp.push(e);
-                    }
+                    if (auto ce = ez.exp.isConstructExp())
+                        escapeByRef(ce.e2, er, live);
+                    else
+                        escapeByRef(ez.exp, er, live);
                 }
             }
             else
-                er.byexp.push(e);
+                er.byref.push(v);
         }
     }
 
-    scope EscapeRefVisitor v = new EscapeRefVisitor(er, live);
-    e.accept(v);
+    void visitThis(ThisExp e)
+    {
+        if (e.var && e.var.toParent2().isFuncDeclaration().hasDualContext())
+            escapeByValue(e, er, live);
+        else if (e.var)
+            er.byref.push(e.var);
+    }
+
+    void visitPtr(PtrExp e)
+    {
+        escapeByValue(e.e1, er, live);
+    }
+
+    void visitIndex(IndexExp e)
+    {
+        Type tb = e.e1.type.toBasetype();
+        if (auto ve = e.e1.isVarExp())
+        {
+            VarDeclaration v = ve.var.isVarDeclaration();
+            if (tb.ty == Tarray || tb.ty == Tsarray)
+            {
+                if (v && v.storage_class & STC.variadic)
+                {
+                    er.byref.push(v);
+                    return;
+                }
+            }
+        }
+        if (tb.ty == Tsarray)
+        {
+            escapeByRef(e.e1, er, live);
+        }
+        else if (tb.ty == Tarray)
+        {
+            escapeByValue(e.e1, er, live);
+        }
+    }
+
+    void visitStructLiteral(StructLiteralExp e)
+    {
+        if (e.elements)
+        {
+            foreach (ex; *e.elements)
+            {
+                if (ex)
+                    escapeByRef(ex, er, live);
+            }
+        }
+        er.byexp.push(e);
+    }
+
+    void visitDotVar(DotVarExp e)
+    {
+        Type t1b = e.e1.type.toBasetype();
+        if (t1b.ty == Tclass)
+            escapeByValue(e.e1, er, live);
+        else
+            escapeByRef(e.e1, er, live);
+    }
+
+    void visitBinAssign(BinAssignExp e)
+    {
+        escapeByRef(e.e1, er, live);
+    }
+
+    void visitAssign(AssignExp e)
+    {
+        escapeByRef(e.e1, er, live);
+    }
+
+    void visitComma(CommaExp e)
+    {
+        escapeByRef(e.e2, er, live);
+    }
+
+    void visitCond(CondExp e)
+    {
+        escapeByRef(e.e1, er, live);
+        escapeByRef(e.e2, er, live);
+    }
+
+    void visitCall(CallExp e)
+    {
+        //printf("escapeByRef.CallExp(): %s\n", e.toChars());
+        /* If the function returns by ref, check each argument that is
+         * passed as 'return ref'.
+         */
+        Type t1 = e.e1.type.toBasetype();
+        TypeFunction tf;
+        if (t1.ty == Tdelegate)
+            tf = t1.isTypeDelegate().next.isTypeFunction();
+        else if (t1.ty == Tfunction)
+            tf = t1.isTypeFunction();
+        else
+            return;
+        if (tf.isref)
+        {
+            if (e.arguments && e.arguments.dim)
+            {
+                /* j=1 if _arguments[] is first argument,
+                 * skip it because it is not passed by ref
+                 */
+                int j = tf.isDstyleVariadic();
+                for (size_t i = j; i < e.arguments.dim; ++i)
+                {
+                    Expression arg = (*e.arguments)[i];
+                    size_t nparams = tf.parameterList.length;
+                    if (i - j < nparams && i >= j)
+                    {
+                        Parameter p = tf.parameterList[i - j];
+                        const stc = tf.parameterStorageClass(null, p);
+                        ScopeRef psr = buildScopeRef(stc);
+                        if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
+                            escapeByRef(arg, er, live);
+                        else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
+                        {
+                            if (auto de = arg.isDelegateExp())
+                            {
+                                if (de.func.isNested())
+                                    er.byexp.push(de);
+                            }
+                            else
+                                escapeByValue(arg, er, live);
+                        }
+                    }
+                }
+            }
+            // If 'this' is returned by ref, check it too
+            if (e.e1.op == EXP.dotVariable && t1.ty == Tfunction)
+            {
+                DotVarExp dve = e.e1.isDotVarExp();
+
+                // https://issues.dlang.org/show_bug.cgi?id=20149#c10
+                if (dve.var.isCtorDeclaration())
+                {
+                    er.byexp.push(e);
+                    return;
+                }
+
+                StorageClass stc = dve.var.storage_class & (STC.return_ | STC.scope_ | STC.ref_);
+                if (tf.isreturn)
+                    stc |= STC.return_;
+                if (tf.isref)
+                    stc |= STC.ref_;
+                if (tf.isScopeQual)
+                    stc |= STC.scope_;
+                if (tf.isreturnscope)
+                    stc |= STC.returnScope;
+
+                const psr = buildScopeRef(stc);
+                if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
+                        escapeByRef(dve.e1, er, live);
+                else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
+                        escapeByValue(dve.e1, er, live);
+
+                // If it's also a nested function that is 'return ref'
+                if (FuncDeclaration fd = dve.var.isFuncDeclaration())
+                {
+                    if (fd.isNested() && tf.isreturn)
+                    {
+                        er.byexp.push(e);
+                    }
+                }
+            }
+            // If it's a delegate, check it too
+            if (e.e1.op == EXP.variable && t1.ty == Tdelegate)
+            {
+                escapeByValue(e.e1, er, live);
+            }
+
+            /* If it's a nested function that is 'return ref'
+             */
+            if (auto ve = e.e1.isVarExp())
+            {
+                FuncDeclaration fd = ve.var.isFuncDeclaration();
+                if (fd && fd.isNested())
+                {
+                    if (tf.isreturn)
+                        er.byexp.push(e);
+                }
+            }
+        }
+        else
+            er.byexp.push(e);
+    }
+
+    switch (e.op)
+    {
+        case EXP.variable: return visitVar(e.isVarExp());
+        case EXP.this_: return visitThis(e.isThisExp());
+        case EXP.star: return visitPtr(e.isPtrExp());
+        case EXP.structLiteral: return visitStructLiteral(e.isStructLiteralExp());
+        case EXP.dotVariable: return visitDotVar(e.isDotVarExp());
+        case EXP.index: return visitIndex(e.isIndexExp());
+        case EXP.blit: return visitAssign(e.isBlitExp());
+        case EXP.construct: return visitAssign(e.isConstructExp());
+        case EXP.assign: return visitAssign(e.isAssignExp());
+        case EXP.comma: return visitComma(e.isCommaExp());
+        case EXP.question: return visitCond(e.isCondExp());
+        case EXP.call: return visitCall(e.isCallExp());
+        default:
+            if (auto ba = e.isBinAssignExp())
+                return visitBinAssign(ba);
+            return visit(e);
+    }
 }
 
 
