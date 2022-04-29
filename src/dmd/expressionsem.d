@@ -6009,18 +6009,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             const slice = se.peekString();
             message("file      %.*s\t(%s)", cast(int)slice.length, slice.ptr, name);
         }
-        if (global.params.moduleDeps !is null)
+        if (global.params.moduleDeps.buffer !is null)
         {
-            OutBuffer* ob = global.params.moduleDeps;
+            OutBuffer* ob = global.params.moduleDeps.buffer;
             Module imod = sc._module;
 
-            if (!global.params.moduleDepsFile)
+            if (!global.params.moduleDeps.name)
                 ob.writestring("depsFile ");
             ob.writestring(imod.toPrettyChars());
             ob.writestring(" (");
             escapePath(ob, imod.srcfile.toChars());
             ob.writestring(") : ");
-            if (global.params.moduleDepsFile)
+            if (global.params.moduleDeps.name)
                 ob.writestring("string : ");
             ob.write(se.peekString());
             ob.writestring(" (");
@@ -6028,9 +6028,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ob.writestring(")");
             ob.writenl();
         }
-        if (global.params.emitMakeDeps)
+        if (global.params.makeDeps.doOutput)
         {
-            global.params.makeDeps.push(name);
+            global.params.makeDeps.files.push(name);
         }
 
         {

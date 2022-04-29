@@ -400,7 +400,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
-    if (params.doHdrGeneration)
+    if (params.dihdr.doOutput)
     {
         /* Generate 'header' import files.
          * Since 'header' import files must be independent of command
@@ -508,15 +508,15 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
-    if (OutBuffer* ob = params.moduleDeps)
+    if (OutBuffer* ob = params.moduleDeps.buffer)
     {
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
         Module.runDeferredSemantic3();
 
         const data = (*ob)[];
-        if (params.moduleDepsFile)
-            writeFile(Loc.initial, params.moduleDepsFile, data);
+        if (params.moduleDeps.name)
+            writeFile(Loc.initial, params.moduleDeps.name, data);
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
@@ -525,11 +525,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     printTemplateStats();
 
     // Generate output files
-    if (params.doJsonGeneration)
+    if (params.json.doOutput)
     {
         generateJson(&modules);
     }
-    if (!global.errors && params.doDocComments)
+    if (!global.errors && params.ddoc.doOutput)
     {
         foreach (m; modules)
         {
@@ -551,7 +551,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
 
-    if (global.params.doCxxHdrGeneration)
+    if (global.params.cxxhdr.doOutput)
         genCppHdrFiles(modules);
 
     if (global.errors)
@@ -608,7 +608,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     // Output the makefile dependencies
-    if (params.emitMakeDeps)
+    if (params.makeDeps.doOutput)
         emitMakeDeps(params);
 
     if (global.warnings)
@@ -735,7 +735,7 @@ version (NoMain) {} else
 {
     void emitMakeDeps(ref Param params)
     {
-        assert(params.emitMakeDeps);
+        assert(params.makeDeps.doOutput);
 
         OutBuffer buf;
 
@@ -772,7 +772,7 @@ version (NoMain) {} else
         buf.writestring(":");
 
         // then output every dependency
-        foreach (dep; params.makeDeps)
+        foreach (dep; params.makeDeps.files)
         {
             buf.writestringln(" \\");
             buf.writestring("  ");
@@ -781,8 +781,8 @@ version (NoMain) {} else
         buf.writenl();
 
         const data = buf[];
-        if (params.makeDepsFile)
-            writeFile(Loc.initial, params.makeDepsFile, data);
+        if (params.makeDeps.name)
+            writeFile(Loc.initial, params.makeDeps.name, data);
         else
             printf("%.*s", cast(int) data.length, data.ptr);
     }
@@ -794,7 +794,7 @@ extern (C++) void generateJson(Modules* modules)
     json_generate(&buf, modules);
 
     // Write buf to file
-    const(char)[] name = global.params.jsonfilename;
+    const(char)[] name = global.params.json.name;
     if (name == "-")
     {
         // Write to stdout; assume it succeeds
@@ -1169,7 +1169,7 @@ void addDefaultVersionIdentifiers(const ref Param params, const ref Target tgt)
 
     addPredefinedGlobalIdentifiers(tgt);
 
-    if (params.doDocComments)
+    if (params.ddoc.doOutput)
         VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
     if (params.cov)
         VersionCondition.addPredefinedGlobalIdent("D_Coverage");
@@ -2138,18 +2138,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'D')       // https://dlang.org/dmd.html#switch-D
         {
-            params.doDocComments = true;
+            params.ddoc.doOutput = true;
             switch (p[2])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-Dd
                 if (!p[3])
                     goto Lnoarg;
-                params.docdir = (p + 3 + (p[3] == '=')).toDString();
+                params.ddoc.dir = (p + 3 + (p[3] == '=')).toDString();
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-Df
                 if (!p[3])
                     goto Lnoarg;
-                params.docname = (p + 3 + (p[3] == '=')).toDString();
+                params.ddoc.name = (p + 3 + (p[3] == '=')).toDString();
                 break;
             case 0:
                 break;
@@ -2159,18 +2159,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
         {
-            params.doCxxHdrGeneration = CxxHeaderMode.silent;
+            params.cxxhdr.doOutput = true;
             switch (p[3])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-HCd
                 if (!p[4])
                     goto Lnoarg;
-                params.cxxhdrdir = (p + 4 + (p[4] == '=')).toDString;
+                params.cxxhdr.dir = (p + 4 + (p[4] == '=')).toDString;
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-HCf
                 if (!p[4])
                     goto Lnoarg;
-                params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
+                params.cxxhdr.name = (p + 4 + (p[4] == '=')).toDString;
                 break;
             case '=':
                 enum len = "-HC=".length;
@@ -2182,7 +2182,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         /* already set above */
                         break;
                     case "verbose":
-                        params.doCxxHdrGeneration = CxxHeaderMode.verbose;
+                        params.cxxhdr.fullOutput = true;
                         break;
                     default:
                         errorInvalidSwitch(p);
@@ -2198,18 +2198,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'H')       // https://dlang.org/dmd.html#switch-H
         {
-            params.doHdrGeneration = true;
+            params.dihdr.doOutput = true;
             switch (p[2])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-Hd
                 if (!p[3])
                     goto Lnoarg;
-                params.hdrdir = (p + 3 + (p[3] == '=')).toDString;
+                params.dihdr.dir = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-Hf
                 if (!p[3])
                     goto Lnoarg;
-                params.hdrname = (p + 3 + (p[3] == '=')).toDString;
+                params.dihdr.name = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 0:
                 break;
@@ -2224,13 +2224,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'X')       // https://dlang.org/dmd.html#switch-X
         {
-            params.doJsonGeneration = true;
+            params.json.doOutput = true;
             switch (p[2])
             {
             case 'f':               // https://dlang.org/dmd.html#switch-Xf
                 if (!p[3])
                     goto Lnoarg;
-                params.jsonfilename = (p + 3 + (p[3] == '=')).toDString;
+                params.json.name = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 'i':
                 if (!p[3])
@@ -2261,7 +2261,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-inline")      // https://dlang.org/dmd.html#switch-inline
         {
             params.useInline = true;
-            params.hdrStripPlainFunctions = false;
+            params.dihdr.fullOutput = true;
         }
         else if (arg == "-i")
             includeImports = true;
@@ -2445,15 +2445,15 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "deps"))          // https://dlang.org/dmd.html#switch-deps
         {
-            if (params.moduleDeps)
+            if (params.moduleDeps.doOutput)
             {
                 error("-deps[=file] can only be provided once!");
                 break;
             }
             if (p[5] == '=')
             {
-                params.moduleDepsFile = (p + 1 + 5).toDString;
-                if (!params.moduleDepsFile[0])
+                params.moduleDeps.name = (p + 1 + 5).toDString;
+                if (!params.moduleDeps.name[0])
                     goto Lnoarg;
             }
             else if (p[5] != '\0')
@@ -2461,11 +2461,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 // Else output to stdout.
                 goto Lerror;
             }
-            params.moduleDeps = new OutBuffer();
+            params.moduleDeps.buffer = new OutBuffer();
         }
         else if (startsWith(p + 1, "makedeps"))          // https://dlang.org/dmd.html#switch-makedeps
         {
-            if (params.emitMakeDeps)
+            if (params.makeDeps.name)
             {
                 error("-makedeps[=file] can only be provided once!");
                 break;
@@ -2477,14 +2477,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     error("expected filename after -makedeps=");
                     break;
                 }
-                params.makeDepsFile = (p + 10).toDString;
+                params.makeDeps.name = (p + 10).toDString;
             }
             else if (p[9] != '\0')
             {
                 goto Lerror;
             }
             // Else output to stdout.
-            params.emitMakeDeps = true;
+            params.makeDeps.doOutput = true;
         }
         else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
         {
@@ -2747,7 +2747,7 @@ private static void setFlagFor(string name, ref FeatureState s)
 Creates the module based on the file provided
 
 The file is dispatched in one of the various arrays
-(global.params.{ddocfiles,dllfiles,jsonfiles,etc...})
+(global.params.{ddoc.files,dllfiles,jsonfiles,etc...})
 according to its extension.
 If it is a binary file, it is added to libmodules.
 
@@ -2779,7 +2779,7 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
             fatal();
         }
         auto id = Identifier.idPool(p);
-        return new Module(file.toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
+        return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
     }
 
     /* Deduce what to do with a file based on its extension
@@ -2807,13 +2807,13 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
     }
     if (ext == ddoc_ext)
     {
-        global.params.ddocfiles.push(file);
+        global.params.ddoc.files.push(file);
         return null;
     }
     if (FileName.equals(ext, json_ext))
     {
-        global.params.doJsonGeneration = true;
-        global.params.jsonfilename = file.toDString;
+        global.params.json.doOutput = true;
+        global.params.json.name = file.toDString;
         return null;
     }
     if (FileName.equals(ext, map_ext))
@@ -2865,7 +2865,7 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
      */
     auto id = Identifier.idPool(name);
 
-    return new Module(file.toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
+    return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
 }
 
 /**

@@ -384,11 +384,11 @@ extern(C++) void gendocfile(Module m)
         // Override with DDOCFILE specified in the sc.ini file
         char* p = getenv("DDOCFILE");
         if (p)
-            global.params.ddocfiles.shift(p);
+            global.params.ddoc.files.shift(p);
         // Override with the ddoc macro files from the command line
-        for (size_t i = 0; i < global.params.ddocfiles.dim; i++)
+        for (size_t i = 0; i < global.params.ddoc.files.dim; i++)
         {
-            auto buffer = readFile(m.loc, global.params.ddocfiles[i]);
+            auto buffer = readFile(m.loc, global.params.ddoc.files[i]);
             // BUG: convert file contents to UTF-8 before use
             const data = buffer.data;
             //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);

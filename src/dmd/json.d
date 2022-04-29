@@ -934,7 +934,7 @@ public:
 
         propertyStart("ddocFiles");
         arrayStart();
-        foreach (ddocFile; global.params.ddocfiles)
+        foreach (ddocFile; global.params.ddoc.files)
         {
             item(ddocFile.toDString);
         }
