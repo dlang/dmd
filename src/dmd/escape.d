@@ -1489,370 +1489,385 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
 void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
-    extern (C++) final class EscapeVisitor : Visitor
+
+    void visit(Expression e)
     {
-        alias visit = Visitor.visit;
-    public:
-        EscapeByResults* er;
-        bool live;
+    }
 
-        extern (D) this(EscapeByResults* er, bool live)
+    void visitAddr(AddrExp e)
+    {
+        /* Taking the address of struct literal is normally not
+         * allowed, but CTFE can generate one out of a new expression,
+         * but it'll be placed in static data so no need to check it.
+         */
+        if (e.e1.op != EXP.structLiteral)
+            escapeByRef(e.e1, er, live);
+    }
+
+    void visitSymOff(SymOffExp e)
+    {
+        VarDeclaration v = e.var.isVarDeclaration();
+        if (v)
+            er.byref.push(v);
+    }
+
+    void visitVar(VarExp e)
+    {
+        if (auto v = e.var.isVarDeclaration())
         {
-            this.er = er;
-            this.live = live;
+            if (v.type.hasPointers() || // not tracking non-pointers
+                v.storage_class & STC.lazy_) // lazy variables are actually pointers
+                er.byvalue.push(v);
         }
+    }
 
-        override void visit(Expression e)
+    void visitThis(ThisExp e)
+    {
+        if (e.var)
+            er.byvalue.push(e.var);
+    }
+
+    void visitPtr(PtrExp e)
+    {
+        if (live && e.type.hasPointers())
+            escapeByValue(e.e1, er, live);
+    }
+
+    void visitDotVar(DotVarExp e)
+    {
+        auto t = e.e1.type.toBasetype();
+        if (e.type.hasPointers() && (live || t.ty == Tstruct))
         {
+            escapeByValue(e.e1, er, live);
         }
+    }
 
-        override void visit(AddrExp e)
-        {
-            /* Taking the address of struct literal is normally not
-             * allowed, but CTFE can generate one out of a new expression,
-             * but it'll be placed in static data so no need to check it.
-             */
-            if (e.e1.op != EXP.structLiteral)
-                escapeByRef(e.e1, er, live);
-        }
+    void visitDelegate(DelegateExp e)
+    {
+        Type t = e.e1.type.toBasetype();
+        if (t.ty == Tclass || t.ty == Tpointer)
+            escapeByValue(e.e1, er, live);
+        else
+            escapeByRef(e.e1, er, live);
+        er.byfunc.push(e.func);
+    }
 
-        override void visit(SymOffExp e)
-        {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v)
-                er.byref.push(v);
-        }
+    void visitFunc(FuncExp e)
+    {
+        if (e.fd.tok == TOK.delegate_)
+            er.byfunc.push(e.fd);
+    }
 
-        override void visit(VarExp e)
+    void visitTuple(TupleExp e)
+    {
+        assert(0); // should have been lowered by now
+    }
+
+    void visitArrayLiteral(ArrayLiteralExp e)
+    {
+        Type tb = e.type.toBasetype();
+        if (tb.ty == Tsarray || tb.ty == Tarray)
         {
-            if (auto v = e.var.isVarDeclaration())
+            if (e.basis)
+                escapeByValue(e.basis, er, live);
+            foreach (el; *e.elements)
             {
-                if (v.type.hasPointers() || // not tracking non-pointers
-                    v.storage_class & STC.lazy_) // lazy variables are actually pointers
-                    er.byvalue.push(v);
-            }
-        }
-
-        override void visit(ThisExp e)
-        {
-            if (e.var)
-                er.byvalue.push(e.var);
-        }
-
-        override void visit(PtrExp e)
-        {
-            if (live && e.type.hasPointers())
-                e.e1.accept(this);
-        }
-
-        override void visit(DotVarExp e)
-        {
-            auto t = e.e1.type.toBasetype();
-            if (e.type.hasPointers() && (live || t.ty == Tstruct))
-            {
-                e.e1.accept(this);
-            }
-        }
-
-        override void visit(DelegateExp e)
-        {
-            Type t = e.e1.type.toBasetype();
-            if (t.ty == Tclass || t.ty == Tpointer)
-                escapeByValue(e.e1, er, live);
-            else
-                escapeByRef(e.e1, er, live);
-            er.byfunc.push(e.func);
-        }
-
-        override void visit(FuncExp e)
-        {
-            if (e.fd.tok == TOK.delegate_)
-                er.byfunc.push(e.fd);
-        }
-
-        override void visit(TupleExp e)
-        {
-            assert(0); // should have been lowered by now
-        }
-
-        override void visit(ArrayLiteralExp e)
-        {
-            Type tb = e.type.toBasetype();
-            if (tb.ty == Tsarray || tb.ty == Tarray)
-            {
-                if (e.basis)
-                    e.basis.accept(this);
-                foreach (el; *e.elements)
-                {
-                    if (el)
-                        el.accept(this);
-                }
-            }
-        }
-
-        override void visit(StructLiteralExp e)
-        {
-            if (e.elements)
-            {
-                foreach (ex; *e.elements)
-                {
-                    if (ex)
-                        ex.accept(this);
-                }
-            }
-        }
-
-        override void visit(NewExp e)
-        {
-            Type tb = e.newtype.toBasetype();
-            if (tb.ty == Tstruct && !e.member && e.arguments)
-            {
-                foreach (ex; *e.arguments)
-                {
-                    if (ex)
-                        ex.accept(this);
-                }
-            }
-        }
-
-        override void visit(CastExp e)
-        {
-            if (!e.type.hasPointers())
-                return;
-            Type tb = e.type.toBasetype();
-            if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
-            {
-                escapeByRef(e.e1, er, live);
-            }
-            else
-                e.e1.accept(this);
-        }
-
-        override void visit(SliceExp e)
-        {
-            if (auto ve = e.e1.isVarExp())
-            {
-                VarDeclaration v = ve.var.isVarDeclaration();
-                Type tb = e.type.toBasetype();
-                if (v)
-                {
-                    if (tb.ty == Tsarray)
-                        return;
-                    if (v.storage_class & STC.variadic)
-                    {
-                        er.byvalue.push(v);
-                        return;
-                    }
-                }
-            }
-            Type t1b = e.e1.type.toBasetype();
-            if (t1b.ty == Tsarray)
-            {
-                Type tb = e.type.toBasetype();
-                if (tb.ty != Tsarray)
-                    escapeByRef(e.e1, er, live);
-            }
-            else
-                e.e1.accept(this);
-        }
-
-        override void visit(IndexExp e)
-        {
-            if (e.e1.type.toBasetype().ty == Tsarray ||
-                live && e.type.hasPointers())
-            {
-                e.e1.accept(this);
-            }
-        }
-
-        override void visit(BinExp e)
-        {
-            Type tb = e.type.toBasetype();
-            if (tb.ty == Tpointer)
-            {
-                e.e1.accept(this);
-                e.e2.accept(this);
-            }
-        }
-
-        override void visit(BinAssignExp e)
-        {
-            e.e1.accept(this);
-        }
-
-        override void visit(AssignExp e)
-        {
-            e.e1.accept(this);
-        }
-
-        override void visit(CommaExp e)
-        {
-            e.e2.accept(this);
-        }
-
-        override void visit(CondExp e)
-        {
-            e.e1.accept(this);
-            e.e2.accept(this);
-        }
-
-        override void visit(CallExp e)
-        {
-            //printf("CallExp(): %s\n", e.toChars());
-            /* Check each argument that is
-             * passed as 'return scope'.
-             */
-            Type t1 = e.e1.type.toBasetype();
-            TypeFunction tf;
-            TypeDelegate dg;
-            if (t1.ty == Tdelegate)
-            {
-                dg = t1.isTypeDelegate();
-                tf = dg.next.isTypeFunction();
-            }
-            else if (t1.ty == Tfunction)
-                tf = t1.isTypeFunction();
-            else
-                return;
-
-            if (!e.type.hasPointers())
-                return;
-
-            if (e.arguments && e.arguments.dim)
-            {
-                /* j=1 if _arguments[] is first argument,
-                 * skip it because it is not passed by ref
-                 */
-                int j = tf.isDstyleVariadic();
-                for (size_t i = j; i < e.arguments.dim; ++i)
-                {
-                    Expression arg = (*e.arguments)[i];
-                    size_t nparams = tf.parameterList.length;
-                    if (i - j < nparams && i >= j)
-                    {
-                        Parameter p = tf.parameterList[i - j];
-                        const stc = tf.parameterStorageClass(null, p);
-                        ScopeRef psr = buildScopeRef(stc);
-                        if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                            arg.accept(this);
-                        else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                        {
-                            if (tf.isref)
-                            {
-                                /* Treat:
-                                 *   ref P foo(return ref P p)
-                                 * as:
-                                 *   p;
-                                 */
-                                arg.accept(this);
-                            }
-                            else
-                                escapeByRef(arg, er, live);
-                        }
-                    }
-                }
-            }
-            // If 'this' is returned, check it too
-            if (e.e1.op == EXP.dotVariable && t1.ty == Tfunction)
-            {
-                DotVarExp dve = e.e1.isDotVarExp();
-                FuncDeclaration fd = dve.var.isFuncDeclaration();
-                if (global.params.useDIP1000 == FeatureState.enabled)
-                {
-                   if (fd && fd.isThis())
-                   {
-                        /* Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
-                         */
-
-                        /*****************************
-                         * Concoct storage class for member function's implicit `this` parameter.
-                         * Params:
-                         *      fd = member function
-                         * Returns:
-                         *      storage class for fd's `this`
-                         */
-                        StorageClass getThisStorageClass(FuncDeclaration fd)
-                        {
-                            StorageClass stc;
-                            auto tf = fd.type.toBasetype().isTypeFunction();
-                            if (tf.isreturn)
-                                stc |= STC.return_;
-                            if (tf.isreturnscope)
-                                stc |= STC.returnScope;
-                            auto ad = fd.isThis();
-                            if (ad.isClassDeclaration() || tf.isScopeQual)
-                                stc |= STC.scope_;
-                            if (ad.isStructDeclaration())
-                                stc |= STC.ref_;        // `this` for a struct member function is passed by `ref`
-                            return stc;
-                        }
-
-                        const psr = buildScopeRef(getThisStorageClass(fd));
-                        if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                            dve.e1.accept(this);
-                        else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                        {
-                            if (tf.isref)
-                            {
-                                /* Treat calling:
-                                 *   struct S { ref S foo() return; }
-                                 * as:
-                                 *   this;
-                                 */
-                                dve.e1.accept(this);
-                            }
-                            else
-                                escapeByRef(dve.e1, er, live);
-                        }
-                    }
-                }
-                else
-                {
-                    // Calling member function before dip1000
-                    StorageClass stc = dve.var.storage_class & (STC.return_ | STC.scope_ | STC.ref_);
-                    if (tf.isreturn)
-                        stc |= STC.return_;
-
-                    const psr = buildScopeRef(stc);
-                    if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                        dve.e1.accept(this);
-                    else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                        escapeByRef(dve.e1, er, live);
-                }
-
-                // If it's also a nested function that is 'return scope'
-                if (fd && fd.isNested())
-                {
-                    if (tf.isreturn && tf.isScopeQual)
-                        er.byexp.push(e);
-                }
-            }
-
-            /* If returning the result of a delegate call, the .ptr
-             * field of the delegate must be checked.
-             */
-            if (dg)
-            {
-                if (tf.isreturn)
-                    e.e1.accept(this);
-            }
-
-            /* If it's a nested function that is 'return scope'
-             */
-            if (auto ve = e.e1.isVarExp())
-            {
-                FuncDeclaration fd = ve.var.isFuncDeclaration();
-                if (fd && fd.isNested())
-                {
-                    if (tf.isreturn && tf.isScopeQual)
-                        er.byexp.push(e);
-                }
+                if (el)
+                    escapeByValue(el, er, live);
             }
         }
     }
 
-    scope EscapeVisitor v = new EscapeVisitor(er, live);
-    e.accept(v);
+    void visitStructLiteral(StructLiteralExp e)
+    {
+        if (e.elements)
+        {
+            foreach (ex; *e.elements)
+            {
+                if (ex)
+                    escapeByValue(ex, er, live);
+            }
+        }
+    }
+
+    void visitNew(NewExp e)
+    {
+        Type tb = e.newtype.toBasetype();
+        if (tb.ty == Tstruct && !e.member && e.arguments)
+        {
+            foreach (ex; *e.arguments)
+            {
+                if (ex)
+                    escapeByValue(ex, er, live);
+            }
+        }
+    }
+
+    void visitCast(CastExp e)
+    {
+        if (!e.type.hasPointers())
+            return;
+        Type tb = e.type.toBasetype();
+        if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
+        {
+            escapeByRef(e.e1, er, live);
+        }
+        else
+            escapeByValue(e.e1, er, live);
+    }
+
+    void visitSlice(SliceExp e)
+    {
+        if (auto ve = e.e1.isVarExp())
+        {
+            VarDeclaration v = ve.var.isVarDeclaration();
+            Type tb = e.type.toBasetype();
+            if (v)
+            {
+                if (tb.ty == Tsarray)
+                    return;
+                if (v.storage_class & STC.variadic)
+                {
+                    er.byvalue.push(v);
+                    return;
+                }
+            }
+        }
+        Type t1b = e.e1.type.toBasetype();
+        if (t1b.ty == Tsarray)
+        {
+            Type tb = e.type.toBasetype();
+            if (tb.ty != Tsarray)
+                escapeByRef(e.e1, er, live);
+        }
+        else
+            escapeByValue(e.e1, er, live);
+    }
+
+    void visitIndex(IndexExp e)
+    {
+        if (e.e1.type.toBasetype().ty == Tsarray ||
+            live && e.type.hasPointers())
+        {
+            escapeByValue(e.e1, er, live);
+        }
+    }
+
+    void visitBin(BinExp e)
+    {
+        Type tb = e.type.toBasetype();
+        if (tb.ty == Tpointer)
+        {
+            escapeByValue(e.e1, er, live);
+            escapeByValue(e.e2, er, live);
+        }
+    }
+
+    void visitBinAssign(BinAssignExp e)
+    {
+        escapeByValue(e.e1, er, live);
+    }
+
+    void visitAssign(AssignExp e)
+    {
+        escapeByValue(e.e1, er, live);
+    }
+
+    void visitComma(CommaExp e)
+    {
+        escapeByValue(e.e2, er, live);
+    }
+
+    void visitCond(CondExp e)
+    {
+        escapeByValue(e.e1, er, live);
+        escapeByValue(e.e2, er, live);
+    }
+
+    void visitCall(CallExp e)
+    {
+        //printf("CallExp(): %s\n", e.toChars());
+        /* Check each argument that is
+         * passed as 'return scope'.
+         */
+        Type t1 = e.e1.type.toBasetype();
+        TypeFunction tf;
+        TypeDelegate dg;
+        if (t1.ty == Tdelegate)
+        {
+            dg = t1.isTypeDelegate();
+            tf = dg.next.isTypeFunction();
+        }
+        else if (t1.ty == Tfunction)
+            tf = t1.isTypeFunction();
+        else
+            return;
+
+        if (!e.type.hasPointers())
+            return;
+
+        if (e.arguments && e.arguments.dim)
+        {
+            /* j=1 if _arguments[] is first argument,
+             * skip it because it is not passed by ref
+             */
+            int j = tf.isDstyleVariadic();
+            for (size_t i = j; i < e.arguments.dim; ++i)
+            {
+                Expression arg = (*e.arguments)[i];
+                size_t nparams = tf.parameterList.length;
+                if (i - j < nparams && i >= j)
+                {
+                    Parameter p = tf.parameterList[i - j];
+                    const stc = tf.parameterStorageClass(null, p);
+                    ScopeRef psr = buildScopeRef(stc);
+                    if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
+                        escapeByValue(arg, er, live);
+                    else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
+                    {
+                        if (tf.isref)
+                        {
+                            /* Treat:
+                             *   ref P foo(return ref P p)
+                             * as:
+                             *   p;
+                             */
+                            escapeByValue(arg, er, live);
+                        }
+                        else
+                            escapeByRef(arg, er, live);
+                    }
+                }
+            }
+        }
+        // If 'this' is returned, check it too
+        if (e.e1.op == EXP.dotVariable && t1.ty == Tfunction)
+        {
+            DotVarExp dve = e.e1.isDotVarExp();
+            FuncDeclaration fd = dve.var.isFuncDeclaration();
+            if (global.params.useDIP1000 == FeatureState.enabled)
+            {
+                if (fd && fd.isThis())
+                {
+                    /* Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
+                     */
+
+                    /*****************************
+                     * Concoct storage class for member function's implicit `this` parameter.
+                     * Params:
+                     *      fd = member function
+                     * Returns:
+                     *      storage class for fd's `this`
+                     */
+                    StorageClass getThisStorageClass(FuncDeclaration fd)
+                    {
+                        StorageClass stc;
+                        auto tf = fd.type.toBasetype().isTypeFunction();
+                        if (tf.isreturn)
+                            stc |= STC.return_;
+                        if (tf.isreturnscope)
+                            stc |= STC.returnScope;
+                        auto ad = fd.isThis();
+                        if (ad.isClassDeclaration() || tf.isScopeQual)
+                            stc |= STC.scope_;
+                        if (ad.isStructDeclaration())
+                            stc |= STC.ref_;        // `this` for a struct member function is passed by `ref`
+                        return stc;
+                    }
+
+                    const psr = buildScopeRef(getThisStorageClass(fd));
+                    if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
+                        escapeByValue(dve.e1, er, live);
+                    else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
+                    {
+                        if (tf.isref)
+                        {
+                            /* Treat calling:
+                             *   struct S { ref S foo() return; }
+                             * as:
+                             *   this;
+                             */
+                            escapeByValue(dve.e1, er, live);
+                        }
+                        else
+                            escapeByRef(dve.e1, er, live);
+                    }
+                }
+            }
+            else
+            {
+                // Calling member function before dip1000
+                StorageClass stc = dve.var.storage_class & (STC.return_ | STC.scope_ | STC.ref_);
+                if (tf.isreturn)
+                    stc |= STC.return_;
+
+                const psr = buildScopeRef(stc);
+                if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
+                    escapeByValue(dve.e1, er, live);
+                else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
+                    escapeByRef(dve.e1, er, live);
+            }
+
+            // If it's also a nested function that is 'return scope'
+            if (fd && fd.isNested())
+            {
+                if (tf.isreturn && tf.isScopeQual)
+                    er.byexp.push(e);
+            }
+        }
+
+        /* If returning the result of a delegate call, the .ptr
+         * field of the delegate must be checked.
+         */
+        if (dg)
+        {
+            if (tf.isreturn)
+                escapeByValue(e.e1, er, live);
+        }
+
+        /* If it's a nested function that is 'return scope'
+         */
+        if (auto ve = e.e1.isVarExp())
+        {
+            FuncDeclaration fd = ve.var.isFuncDeclaration();
+            if (fd && fd.isNested())
+            {
+                if (tf.isreturn && tf.isScopeQual)
+                    er.byexp.push(e);
+            }
+        }
+    }
+
+    switch (e.op)
+    {
+        case EXP.address: return visitAddr(e.isAddrExp());
+        case EXP.symbolOffset: return visitSymOff(e.isSymOffExp());
+        case EXP.variable: return visitVar(e.isVarExp());
+        case EXP.this_: return visitThis(e.isThisExp());
+        case EXP.star: return visitPtr(e.isPtrExp());
+        case EXP.dotVariable: return visitDotVar(e.isDotVarExp());
+        case EXP.delegate_: return visitDelegate(e.isDelegateExp());
+        case EXP.function_: return visitFunc(e.isFuncExp());
+        case EXP.tuple: return visitTuple(e.isTupleExp());
+        case EXP.arrayLiteral: return visitArrayLiteral(e.isArrayLiteralExp());
+        case EXP.structLiteral: return visitStructLiteral(e.isStructLiteralExp());
+        case EXP.new_: return visitNew(e.isNewExp());
+        case EXP.cast_: return visitCast(e.isCastExp());
+        case EXP.slice: return visitSlice(e.isSliceExp());
+        case EXP.index: return visitIndex(e.isIndexExp());
+        case EXP.blit: return visitAssign(e.isBlitExp());
+        case EXP.construct: return visitAssign(e.isConstructExp());
+        case EXP.assign: return visitAssign(e.isAssignExp());
+        case EXP.comma: return visitComma(e.isCommaExp());
+        case EXP.question: return visitCond(e.isCondExp());
+        case EXP.call: return visitCall(e.isCallExp());
+        default:
+            if (auto b = e.isBinExp())
+                return visitBin(b);
+            if (auto ba = e.isBinAssignExp())
+                return visitBinAssign(ba);
+            return visit(e);
+    }
 }
 
 
