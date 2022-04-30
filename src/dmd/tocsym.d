@@ -136,11 +136,8 @@ Symbol *toSymbol(Dsymbol s)
             const(char)[] id = vd.ident.toString();
             if (vd.isDataseg())
             {
-                if (!(vd.linkage == LINK.c && vd.isCsymbol() && vd.storage_class & STC.extern_) || vd.mangleOverride)
-                {
-                    mangleToBuffer(vd, &buf);
-                    id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
-                }
+                mangleToBuffer(vd, &buf);
+                id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
             }
             else
             {
@@ -334,9 +331,7 @@ Symbol *toSymbol(Dsymbol s)
 
         override void visit(FuncDeclaration fd)
         {
-            const(char)* id = (fd.linkage == LINK.c && fd.isCsymbol() && !fd.mangleOverride)
-                        ? fd.ident.toChars()
-                        : mangleExact(fd);
+            const(char)* id = mangleExact(fd);
 
             //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
             //printf("\tid = '%s'\n", id);
