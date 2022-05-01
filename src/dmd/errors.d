@@ -385,7 +385,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         loc != Loc.initial &&
         // ignore mixins for now
         !loc.filename.strstr(".d-mixin-") &&
-        !global.params.mixinOut)
+        !global.params.mixinOut.doOutput)
     {
         import dmd.root.filename : FileName;
         const fileName = FileName(loc.filename.toDString);

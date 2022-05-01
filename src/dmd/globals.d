@@ -201,11 +201,7 @@ extern (C++) struct Param
     Output json;                        // Generate JSON file
     JsonFieldFlags jsonFieldFlags;      // JSON field flags to include
     Output makeDeps;                    // Generate make file dependencies
-
-    OutBuffer* mixinOut;                // write expanded mixins for debugging
-    const(char)* mixinFile;             // .mixin file output name
-    int mixinLines;                     // Number of lines in writeMixins
-
+    Output mixinOut;                    // write expanded mixins for debugging
     Output moduleDeps;                  // Generate `.deps` module dependencies
 
     uint debuglevel;                    // debug level
