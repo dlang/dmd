@@ -2043,9 +2043,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         case "intpromote":
                             deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
                             break;
-                        case "markdown":
-                            params.markdown = true;
-                            break;
                         default:
                             error("Transition `%s` is invalid", p);
                             params.transitionUsage = true;
