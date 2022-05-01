@@ -11,9 +11,6 @@
 
 module dmd.tocvdebug;
 
-version (Windows)
-{
-
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stddef;
@@ -53,8 +50,6 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-extern (C++):
 
 /* The CV4 debug format is defined in:
  *      "CV4 Symbolic Debug Information Specification"
@@ -309,6 +304,9 @@ void cv_udt(const char* id, uint typidx)
 
 void toDebug(EnumDeclaration ed)
 {
+    if (target.os != Target.OS.Windows)
+        return;
+
     //printf("EnumDeclaration::toDebug('%s')\n", ed.toChars());
 
     assert(config.fulltypes >= CV4);
@@ -466,6 +464,9 @@ int cv_mem_p(Dsymbol s, CvFieldList *pmc)
 
 void toDebug(StructDeclaration sd)
 {
+    if (target.os != Target.OS.Windows)
+        return;
+
     idx_t typidx1 = 0;
 
     //printf("StructDeclaration::toDebug('%s')\n", sd.toChars());
@@ -599,6 +600,9 @@ void toDebug(StructDeclaration sd)
 
 void toDebug(ClassDeclaration cd)
 {
+    if (target.os != Target.OS.Windows)
+        return;
+
     idx_t typidx1 = 0;
 
     //printf("ClassDeclaration::toDebug('%s')\n", cd.toChars());
@@ -819,6 +823,9 @@ private uint writeField(ubyte* p, const char* id, uint attr, uint typidx, uint o
 
 void toDebugClosure(Symbol* closstru)
 {
+    if (target.os != Target.OS.Windows)
+        return;
+
     //printf("toDebugClosure('%s')\n", fd.toChars());
 
     assert(config.fulltypes >= CV4);
@@ -1195,35 +1202,5 @@ private extern (C++) class CVMember : Visitor
                 assert(result == save);
             }
         }
-    }
-}
-
-}
-else
-{
-    import dmd.denum;
-    import dmd.dstruct;
-    import dmd.dclass;
-    import dmd.backend.cc;
-
-    /****************************
-     * Stub them out.
-     */
-
-    extern (C++) void toDebug(EnumDeclaration ed)
-    {
-        //printf("EnumDeclaration::toDebug('%s')\n", ed.toChars());
-    }
-
-    extern (C++) void toDebug(StructDeclaration sd)
-    {
-    }
-
-    extern (C++) void toDebug(ClassDeclaration cd)
-    {
-    }
-
-    extern (C++) void toDebugClosure(Symbol* closstru)
-    {
     }
 }
