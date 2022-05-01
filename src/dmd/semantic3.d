@@ -1277,70 +1277,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             f.isnogc = true;
         }
 
-        if (funcdecl.flags & FUNCFLAG.returnInprocess)
-        {
-            funcdecl.flags &= ~FUNCFLAG.returnInprocess;
-            if (funcdecl.storage_class & STC.return_)
-            {
-                if (funcdecl.type == f)
-                    f = cast(TypeFunction)f.copy();
-                f.isreturn = true;
-                f.isreturnscope = cast(bool) (funcdecl.storage_class & STC.returnScope);
-                if (funcdecl.storage_class & STC.returninferred)
-                    f.isreturninferred = true;
-            }
-        }
-
-        funcdecl.flags &= ~FUNCFLAG.inferScope;
-
-        // Eliminate maybescope's
-        {
-            // Create and fill array[] with maybe candidates from the `this` and the parameters
-            VarDeclaration[10] tmp = void;
-            size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.dim : 0);
-
-            import dmd.common.string : SmallBuffer;
-            auto sb = SmallBuffer!VarDeclaration(dim, tmp[]);
-            VarDeclaration[] array = sb[];
-
-            size_t n = 0;
-            if (funcdecl.vthis)
-                array[n++] = funcdecl.vthis;
-            if (funcdecl.parameters)
-            {
-                foreach (v; *funcdecl.parameters)
-                {
-                    array[n++] = v;
-                }
-            }
-            eliminateMaybeScopes(array[0 .. n]);
-        }
-
-        // Infer STC.scope_
-        if (funcdecl.parameters && !funcdecl.errors)
-        {
-            assert(f.parameterList.length == funcdecl.parameters.dim);
-            foreach (u, p; f.parameterList)
-            {
-                auto v = (*funcdecl.parameters)[u];
-                if (v.storage_class & STC.maybescope)
-                {
-                    //printf("Inferring scope for %s\n", v.toChars());
-                    notMaybeScope(v);
-                    v.storage_class |= STC.scope_ | STC.scopeinferred;
-                    p.storageClass |= STC.scope_ | STC.scopeinferred;
-                    assert(!(p.storageClass & STC.maybescope));
-                }
-            }
-        }
-
-        if (funcdecl.vthis && funcdecl.vthis.storage_class & STC.maybescope)
-        {
-            notMaybeScope(funcdecl.vthis);
-            funcdecl.vthis.storage_class |= STC.scope_ | STC.scopeinferred;
-            f.isScopeQual = true;
-            f.isscopeinferred = true;
-        }
+        finishScopeParamInference(funcdecl, f);
 
         // reset deco to apply inference result to mangled name
         if (f != funcdecl.type)
