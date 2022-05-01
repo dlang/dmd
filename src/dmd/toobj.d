@@ -651,6 +651,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 dt2common(&s.Sdt);
             }
 
+            if (s.Sclass & SCglobal && s.Stype.Tty & mTYconst)
+                out_readonly(s);
+
             outdata(s);
             if (vd.type.isMutable() || !vd._init)
                 write_pointers(vd.type, s, 0);
