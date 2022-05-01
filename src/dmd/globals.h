@@ -146,8 +146,6 @@ struct Param
     bool bitfields;         // support C style bit fields
     FeatureState rvalueRefParam;    // allow rvalues to be arguments to ref parameters
     CppStdRevision cplusplus;  // version of C++ name mangling to support
-    bool markdown;          // enable Markdown replacements in Ddoc
-    bool vmarkdown;         // list instances of Markdown replacements in Ddoc
     bool showGaggedErrors;  // print gagged errors anyway
     bool printErrorContext;  // print errors with the error context (the error line in the source file)
     bool manual;            // open browser on compiler manual

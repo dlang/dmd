@@ -1,0 +1,8 @@
+Removed the `-transition=markdown` and `-revert=markdown` switches
+
+This release removes the `-transition=markdown`, which prints markdown substitutions
+made when processing markdown in ddoc documentation blocks, and `-revert=markdown`
+switches which disables markdown substitutions in ddoc documentation blocks.
+
+Markdown substitutions have been the default for some time now, and as of this release
+is always performed.
