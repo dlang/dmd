@@ -75,14 +75,6 @@ enum CppStdRevision : uint
     cpp20 = 2020_02,
 }
 
-/// Configuration for the C++ header generator
-enum CxxHeaderMode : uint
-{
-    none,   /// Don't generate headers
-    silent, /// Generate headers
-    verbose /// Generate headers and add comments for hidden declarations
-}
-
 /// Trivalent boolean to represent the state of a `revert`able change
 enum FeatureState : byte
 {
@@ -91,6 +83,19 @@ enum FeatureState : byte
     enabled = 1    /// Specified as `-preview=`
 }
 
+extern(C++) struct Output
+{
+    bool doOutput;      // Output is enabled
+    bool fullOutput;    // Generate comments for hidden declarations (for -HC),
+                        // and don't strip the bodies of plain (non-template) functions (for -H)
+
+    const(char)[] dir;  // write to directory 'dir'
+    const(char)[] name; // write to file 'name'
+    Array!(const(char)*) files; // Other files associated with this output,
+                                // e.g. macro include files for Ddoc, dependencies for makedeps
+    OutBuffer* buffer;  // if this output is buffered, this is the buffer
+    int bufferLines;    // number of lines written to the buffer
+}
 /// Put command line switches in here
 extern (C++) struct Param
 {
@@ -190,27 +195,18 @@ extern (C++) struct Param
     const(char)[] objname;               // .obj file output name
     const(char)[] libname;               // .lib file output name
 
-    bool doDocComments;                 // process embedded documentation comments
-    const(char)[] docdir;               // write documentation file to docdir directory
-    const(char)[] docname;              // write documentation file to docname
-    Array!(const(char)*) ddocfiles;     // macro include files for Ddoc
-
-    bool doHdrGeneration;               // process embedded documentation comments
-    const(char)[] hdrdir;                // write 'header' file to docdir directory
-    const(char)[] hdrname;               // write 'header' file to docname
-    bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
-
-    CxxHeaderMode doCxxHdrGeneration;      /// Generate 'Cxx header' file
-    const(char)[] cxxhdrdir;            // write 'header' file to docdir directory
-    const(char)[] cxxhdrname;           // write 'header' file to docname
-
-    bool doJsonGeneration;              // write JSON file
-    const(char)[] jsonfilename;          // write JSON file to jsonfilename
+    Output ddoc;                        // Generate embedded documentation comments
+    Output dihdr;                       // Generate `.di` 'header' files
+    Output cxxhdr;                      // Generate 'Cxx header' file
+    Output json;                        // Generate JSON file
     JsonFieldFlags jsonFieldFlags;      // JSON field flags to include
+    Output makeDeps;                    // Generate make file dependencies
 
     OutBuffer* mixinOut;                // write expanded mixins for debugging
     const(char)* mixinFile;             // .mixin file output name
     int mixinLines;                     // Number of lines in writeMixins
+
+    Output moduleDeps;                  // Generate `.deps` module dependencies
 
     uint debuglevel;                    // debug level
     Array!(const(char)*)* debugids;     // debug identifiers
@@ -218,12 +214,6 @@ extern (C++) struct Param
     uint versionlevel;                  // version level
     Array!(const(char)*)* versionids;   // version identifiers
 
-    const(char)[] moduleDepsFile;        // filename for deps output
-    OutBuffer* moduleDeps;              // contents to be written to deps file
-
-    bool emitMakeDeps;                   // whether to emit makedeps
-    const(char)[] makeDepsFile;          // filename for makedeps output
-    Array!(const(char)*) makeDeps;      // dependencies for makedeps
 
     MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 

@@ -90,7 +90,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
     type *t = Type_toCtype(fd.type);
     AggregateDeclaration ad = fd.isMemberLocal();
     if (!ad)
-        return cv4_typidx(t);
+         return cv4_typidx(t);
 
     // It's a member function, which gets a special type record
 
@@ -160,7 +160,6 @@ uint cv4_Denum(EnumDeclaration e)
             EnumMember sf = (*e.members)[i].isEnumMember();
             if (!sf)
                 continue;
-
             const value = sf.value().toInteger();
 
             // store only member's simple name
@@ -168,6 +167,7 @@ uint cv4_Denum(EnumDeclaration e)
 
             len = cv_align(null, len);
             mc.count(len);
+
         }
     }
 
@@ -217,6 +217,7 @@ uint cv4_Denum(EnumDeclaration e)
             EnumMember sf = (*e.members)[i].isEnumMember();
             if (!sf)
                 continue;
+
             ubyte* p = mc.writePtr();
             dinteger_t value = sf.value().toInteger();
             TOWORD(p, (config.fulltypes == CV8) ? LF_ENUMERATE_V3 : LF_ENUMERATE);
@@ -771,9 +772,7 @@ void toDebug(ClassDeclaration cd)
         }
 
         foreach(s; (*cd.members)[])
-        {
             s.apply(&cv_mem_p, &mc);
-        }
     }
 
     const idx_t fieldlist = mc.debtyp();
@@ -923,7 +922,6 @@ int cvMember(Dsymbol s, ubyte *p)
     s.accept(v);
     return v.result;
 }
-
 private extern (C++) class CVMember : Visitor
 {
     ubyte *p;
@@ -1016,99 +1014,101 @@ private extern (C++) class CVMember : Visitor
             result = cv_align(null, result);
             return;
         }
-
-        int count = 0;
-        int mlen = 2;
+        else
         {
-            if (fd.isIntroducing())
-                mlen += 4;
-            mlen += cgcv.sz_idx * 2;
-            count++;
-        }
-
-        // Allocate and fill it in
-        debtyp_t *d = debtyp_alloc(mlen);
-        ubyte *q = d.data.ptr;
-        TOWORD(q,config.fulltypes == CV8 ? LF_METHODLIST_V2 : LF_METHODLIST);
-        q += 2;
-    //  for (s = sf; s; s = s.Sfunc.Foversym)
-        {
-            uint attribute = visibilityToCVAttr(fd.visible().kind);
-
-            /* 0*4 vanilla method
-             * 1*4 virtual method
-             * 2*4 static method
-             * 3*4 friend method
-             * 4*4 introducing virtual method
-             * 5*4 pure virtual method
-             * 6*4 pure introducing virtual method
-             * 7*4 reserved
-             */
-
-            if (fd.isStatic())
-                attribute |= 2*4;
-            else if (fd.isVirtual())
+            int count = 0;
+            int mlen = 2;
             {
                 if (fd.isIntroducing())
+                    mlen += 4;
+                mlen += cgcv.sz_idx * 2;
+                count++;
+            }
+
+            // Allocate and fill it in
+            debtyp_t *d = debtyp_alloc(mlen);
+            ubyte *q = d.data.ptr;
+            TOWORD(q,config.fulltypes == CV8 ? LF_METHODLIST_V2 : LF_METHODLIST);
+            q += 2;
+    //      for (s = sf; s; s = s.Sfunc.Foversym)
+            {
+                uint attribute = visibilityToCVAttr(fd.visible().kind);
+
+                /* 0*4 vanilla method
+                 * 1*4 virtual method
+                 * 2*4 static method
+                 * 3*4 friend method
+                 * 4*4 introducing virtual method
+                 * 5*4 pure virtual method
+                 * 6*4 pure introducing virtual method
+                 * 7*4 reserved
+                 */
+
+                if (fd.isStatic())
+                    attribute |= 2*4;
+                else if (fd.isVirtual())
                 {
-                    if (fd.isAbstract())
-                        attribute |= 6*4;
+                    if (fd.isIntroducing())
+                    {
+                        if (fd.isAbstract())
+                            attribute |= 6*4;
+                        else
+                            attribute |= 4*4;
+                    }
                     else
-                        attribute |= 4*4;
+                    {
+                        if (fd.isAbstract())
+                            attribute |= 5*4;
+                        else
+                            attribute |= 1*4;
+                    }
                 }
                 else
+                    attribute |= 0*4;
+
+                TOIDX(q,attribute);
+                q += cgcv.sz_idx;
+                TOIDX(q, cv4_memfunctypidx(fd));
+                q += cgcv.sz_idx;
+                if (fd.isIntroducing())
                 {
-                    if (fd.isAbstract())
-                        attribute |= 5*4;
-                    else
-                        attribute |= 1*4;
+                    TOLONG(q, fd.vtblIndex * target.ptrsize);
+                    q += 4;
                 }
             }
-            else
-                attribute |= 0*4;
+            assert(q - d.data.ptr == mlen);
 
-            TOIDX(q,attribute);
-            q += cgcv.sz_idx;
-            TOIDX(q, cv4_memfunctypidx(fd));
-            q += cgcv.sz_idx;
-            if (fd.isIntroducing())
+            idx_t typidx = cv_debtyp(d);
+            if (typidx)
             {
-                TOLONG(q, fd.vtblIndex * target.ptrsize);
-                q += 4;
-            }
-        }
-        assert(q - d.data.ptr == mlen);
+                switch (config.fulltypes)
+                {
+                    case CV8:
+                        TOWORD(p,LF_METHOD_V3);
+                        goto Lmethod;
+                    case CV4:
+                        TOWORD(p,LF_METHOD);
+                    Lmethod:
+                        TOWORD(p + 2,count);
+                        result = 4;
+                        TOIDX(p + result, typidx);
+                        result += cgcv.sz_idx;
+                        result += cv_namestring(p + result, id);
+                        break;
 
-        idx_t typidx = cv_debtyp(d);
-        if (typidx)
-        {
-            switch (config.fulltypes)
+                    default:
+                        assert(0);
+                }
+            }
+            result = cv_align(p + result, result);
+            debug
             {
-                case CV8:
-                    TOWORD(p,LF_METHOD_V3);
-                    goto Lmethod;
-                case CV4:
-                    TOWORD(p,LF_METHOD);
-                Lmethod:
-                    TOWORD(p + 2,count);
-                    result = 4;
-                    TOIDX(p + result, typidx);
-                    result += cgcv.sz_idx;
-                    result += cv_namestring(p + result, id);
-                    break;
-
-                default:
-                    assert(0);
+                int save = result;
+                result = 0;
+                p = null;
+                visit(fd);
+                assert(result == save);
             }
-        }
-        result = cv_align(p + result, result);
-        debug
-        {
-            int save = result;
-            result = 0;
-            p = null;
-            visit(fd);
-            assert(result == save);
         }
     }
 
@@ -1138,63 +1138,66 @@ private extern (C++) class CVMember : Visitor
             }
             result = cv_align(null, result);
         }
-        idx_t typidx = cv_typidx(Type_toCtype(vd.type));
-        uint attribute = visibilityToCVAttr(vd.visible().kind);
-        assert((attribute & ~3) == 0);
-        switch (config.fulltypes)
+        else
         {
-            case CV8:
-                if (vd.isField())
-                {
-                    TOWORD(p,LF_MEMBER_V3);
-                    TOWORD(p + 2,attribute);
-                    TOLONG(p + 4,typidx);
-                    cv4_storenumeric(p + 8, vd.offset);
-                    result = 8 + cv4_numericbytes(vd.offset);
-                    result += cv_namestring(p + result, id);
-                }
-                else if (vd.isStatic())
-                {
-                    TOWORD(p,LF_STMEMBER_V3);
-                    TOWORD(p + 2,attribute);
-                    TOLONG(p + 4,typidx);
-                    result = 8;
-                    result += cv_namestring(p + result, id);
-                }
-                break;
+            idx_t typidx = cv_typidx(Type_toCtype(vd.type));
+            uint attribute = visibilityToCVAttr(vd.visible().kind);
+            assert((attribute & ~3) == 0);
+            switch (config.fulltypes)
+            {
+                case CV8:
+                    if (vd.isField())
+                    {
+                        TOWORD(p,LF_MEMBER_V3);
+                        TOWORD(p + 2,attribute);
+                        TOLONG(p + 4,typidx);
+                        cv4_storenumeric(p + 8, vd.offset);
+                        result = 8 + cv4_numericbytes(vd.offset);
+                        result += cv_namestring(p + result, id);
+                    }
+                    else if (vd.isStatic())
+                    {
+                        TOWORD(p,LF_STMEMBER_V3);
+                        TOWORD(p + 2,attribute);
+                        TOLONG(p + 4,typidx);
+                        result = 8;
+                        result += cv_namestring(p + result, id);
+                    }
+                    break;
 
-            case CV4:
-                if (vd.isField())
-                {
-                    TOWORD(p,LF_MEMBER);
-                    TOWORD(p + 2,typidx);
-                    TOWORD(p + 4,attribute);
-                    cv4_storenumeric(p + 6, vd.offset);
-                    result = 6 + cv4_numericbytes(vd.offset);
-                    result += cv_namestring(p + result, id);
-                }
-                else if (vd.isStatic())
-                {
-                    TOWORD(p,LF_STMEMBER);
-                    TOWORD(p + 2,typidx);
-                    TOWORD(p + 4,attribute);
-                    result = 6;
-                    result += cv_namestring(p + result, id);
-                }
-                break;
+                case CV4:
+                    if (vd.isField())
+                    {
+                        TOWORD(p,LF_MEMBER);
+                        TOWORD(p + 2,typidx);
+                        TOWORD(p + 4,attribute);
+                        cv4_storenumeric(p + 6, vd.offset);
+                        result = 6 + cv4_numericbytes(vd.offset);
+                        result += cv_namestring(p + result, id);
+                    }
+                    else if (vd.isStatic())
+                    {
+                        TOWORD(p,LF_STMEMBER);
+                        TOWORD(p + 2,typidx);
+                        TOWORD(p + 4,attribute);
+                        result = 6;
+                        result += cv_namestring(p + result, id);
+                    }
+                    break;
 
-             default:
-                assert(0);
-        }
+                 default:
+                    assert(0);
+            }
 
-        result = cv_align(p + result, result);
-        debug
-        {
-            int save = result;
-            result = 0;
-            p = null;
-            visit(vd);
-            assert(result == save);
+            result = cv_align(p + result, result);
+            debug
+            {
+                int save = result;
+                result = 0;
+                p = null;
+                visit(vd);
+                assert(result == save);
+            }
         }
     }
 }

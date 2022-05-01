@@ -1359,7 +1359,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // don't list pseudo modules __entrypoint.d, __main.d
         // https://issues.dlang.org/show_bug.cgi?id=11117
         // https://issues.dlang.org/show_bug.cgi?id=11164
-        if (global.params.moduleDeps is null || (imp.id == Id.object && sc._module.ident == Id.object) ||
+        if (global.params.moduleDeps.buffer is null || (imp.id == Id.object && sc._module.ident == Id.object) ||
             strcmp(sc._module.ident.toChars(), "__main") == 0)
             return;
 
@@ -1375,9 +1375,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          *      FilePath
          *          - any string with '(', ')' and '\' escaped with the '\' character
          */
-        OutBuffer* ob = global.params.moduleDeps;
+        OutBuffer* ob = global.params.moduleDeps.buffer;
         Module imod = sc._module;
-        if (!global.params.moduleDepsFile)
+        if (!global.params.moduleDeps.name)
             ob.writestring("depsImport ");
         ob.writestring(imod.toPrettyChars());
         ob.writestring(" (");
@@ -1685,9 +1685,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 auto name = se.peekString().xarraydup;
                 if (global.params.verbose)
                     message("library   %s", name.ptr);
-                if (global.params.moduleDeps && !global.params.moduleDepsFile)
+                if (global.params.moduleDeps.buffer && !global.params.moduleDeps.name)
                 {
-                    OutBuffer* ob = global.params.moduleDeps;
+                    OutBuffer* ob = global.params.moduleDeps.buffer;
                     Module imod = sc._module;
                     ob.writestring("depsLib ");
                     ob.writestring(imod.toPrettyChars());
@@ -2548,7 +2548,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Scope* paramscope = sc.push(paramsym);
         paramscope.stc = 0;
 
-        if (global.params.doDocComments)
+        if (global.params.ddoc.doOutput)
         {
             tempdecl.origParameters = new TemplateParameters(tempdecl.parameters.dim);
             for (size_t i = 0; i < tempdecl.parameters.dim; i++)
@@ -2834,7 +2834,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         //if (!sc.func && Module.deferred.dim > deferred_dim) {}
 
-        AggregateDeclaration ad = tm.toParent().isAggregateDeclaration();
+        AggregateDeclaration ad = tm.isMember();
         if (sc.func && !ad)
         {
             tm.semantic2(sc2);
@@ -4036,67 +4036,67 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         if (ad && (!ctd.parent.isTemplateInstance() || ctd.parent.isTemplateMixin()))
         {
-            if (sd)
+            if (!sd)
             {
-                if (dim == 0 && tf.parameterList.varargs == VarArg.none) // empty default ctor w/o any varargs
-                {
-                    if (ctd.fbody || !(ctd.storage_class & STC.disable))
-                    {
-                        ctd.error("default constructor for structs only allowed " ~
-                            "with `@disable`, no body, and no parameters");
-                        ctd.storage_class |= STC.disable;
-                        ctd.fbody = null;
-                    }
-                    sd.noDefaultCtor = true;
-                }
-                else if (dim == 0 && tf.parameterList.varargs != VarArg.none) // allow varargs only ctor
-                {
-                }
-                else if (dim && tf.parameterList[0].defaultArg)
-                {
-                    // if the first parameter has a default argument, then the rest does as well
-                    if (ctd.storage_class & STC.disable)
-                    {
-                        ctd.error("is marked `@disable`, so it cannot have default "~
-                                  "arguments for all parameters.");
-                        errorSupplemental(ctd.loc, "Use `@disable this();` if you want to disable default initialization.");
-                    }
-                    else
-                        ctd.error("all parameters have default arguments, "~
-                                  "but structs cannot have default constructors.");
-                }
-                else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
-                {
-                    //printf("tf: %s\n", tf.toChars());
-                    auto param = tf.parameterList[0];
-                    if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
-                    {
-                        //printf("copy constructor\n");
-                        ctd.isCpCtor = true;
-                    }
-                }
+                if (dim == 0 && tf.parameterList.varargs == VarArg.none)
+                    ad.defaultCtor = ctd;
+                return;
             }
-            else if (dim == 0 && tf.parameterList.varargs == VarArg.none)
+
+            if (dim == 0 && tf.parameterList.varargs == VarArg.none) // empty default ctor w/o any varargs
             {
-                ad.defaultCtor = ctd;
+                if (ctd.fbody || !(ctd.storage_class & STC.disable))
+                {
+                    ctd.error("default constructor for structs only allowed " ~
+                        "with `@disable`, no body, and no parameters");
+                    ctd.storage_class |= STC.disable;
+                    ctd.fbody = null;
+                }
+                sd.noDefaultCtor = true;
+            }
+            else if (dim == 0 && tf.parameterList.varargs != VarArg.none) // allow varargs only ctor
+            {
+            }
+            else if (dim && tf.parameterList[0].defaultArg)
+            {
+                // if the first parameter has a default argument, then the rest does as well
+                if (ctd.storage_class & STC.disable)
+                {
+                    ctd.error("is marked `@disable`, so it cannot have default "~
+                              "arguments for all parameters.");
+                    errorSupplemental(ctd.loc, "Use `@disable this();` if you want to disable default initialization.");
+                }
+                else
+                    ctd.error("all parameters have default arguments, "~
+                              "but structs cannot have default constructors.");
+            }
+            else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
+            {
+                //printf("tf: %s\n", tf.toChars());
+                auto param = tf.parameterList[0];
+                if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                {
+                    //printf("copy constructor\n");
+                    ctd.isCpCtor = true;
+                }
             }
         }
         // https://issues.dlang.org/show_bug.cgi?id=22593
         else if (auto ti = ctd.parent.isTemplateInstance())
         {
-            if (sd && sd.hasCopyCtor && (dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
-            {
-                auto param = tf.parameterList[0];
+            if (!sd || !sd.hasCopyCtor || !(dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
+                return;
 
-                // if the template instance introduces an rvalue constructor
-                // between the members of a struct declaration, we should check if a
-                // copy constructor exists and issue an error in that case.
-                if (!(param.storageClass & STC.ref_) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
-                {
-                    .error(ctd.loc, "Cannot define both an rvalue constructor and a copy constructor for `struct %s`", sd.toChars);
-                    .errorSupplemental(ti.loc, "Template instance `%s` creates a rvalue constructor for `struct %s`",
-                            ti.toChars(), sd.toChars());
-                }
+            auto param = tf.parameterList[0];
+
+            // if the template instance introduces an rvalue constructor
+            // between the members of a struct declaration, we should check if a
+            // copy constructor exists and issue an error in that case.
+            if (!(param.storageClass & STC.ref_) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+            {
+                .error(ctd.loc, "Cannot define both an rvalue constructor and a copy constructor for `struct %s`", sd.toChars);
+                .errorSupplemental(ti.loc, "Template instance `%s` creates a rvalue constructor for `struct %s`",
+                        ti.toChars(), sd.toChars());
             }
         }
     }
