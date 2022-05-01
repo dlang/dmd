@@ -8,7 +8,6 @@ Revertable language changes listed by -revert=name:
   =dip25            revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md
   =dip1000          revert DIP1000 changes https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)
   =intpromote       revert integral promotions for unary + - ~ operators
-  =markdown         disable Markdown replacements in Ddoc
   =dtorfields       don't destruct fields of partially constructed objects
 ----
 */

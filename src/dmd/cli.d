@@ -819,8 +819,6 @@ dmd -cov -unittest myprog.d
             "give deprecation messages about all usages of complex or imaginary types", true, true),
         Feature("tls", "vtls",
             "list all variables going into thread local storage"),
-        Feature("vmarkdown", "vmarkdown",
-            "list instances of Markdown replacements in Ddoc"),
         Feature("in", "vin",
             "list all usages of 'in' on parameter"),
     ];
@@ -831,7 +829,6 @@ dmd -cov -unittest myprog.d
         Feature("dip1000", "useDIP1000",
                 "revert DIP1000 changes https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
         Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
-        Feature("markdown", "markdown", "disable Markdown replacements in Ddoc"),
         Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
     ];
 
@@ -863,9 +860,6 @@ dmd -cov -unittest myprog.d
             "'in' contracts of overridden methods must be a superset of parent contract"),
         Feature("shortenedMethods", "shortenedMethods",
             "allow use of => for methods and top-level functions in addition to lambdas"),
-        // DEPRECATED previews
-        // trigger deprecation message once D repositories don't use this flag anymore
-        Feature("markdown", "markdown", "enable Markdown replacements in Ddoc", false, false),
     ];
 }
 
