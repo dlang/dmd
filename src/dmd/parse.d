@@ -9616,18 +9616,18 @@ private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
  */
 private bool writeMixin(const(char)[] s, ref Loc loc)
 {
-    if (!global.params.mixinOut)
+    if (!global.params.mixinOut.doOutput)
         return false;
 
-    OutBuffer* ob = global.params.mixinOut;
+    OutBuffer* ob = global.params.mixinOut.buffer;
 
     ob.writestring("// expansion at ");
     ob.writestring(loc.toChars());
     ob.writenl();
 
-    global.params.mixinLines++;
+    global.params.mixinOut.bufferLines++;
 
-    loc = Loc(global.params.mixinFile, global.params.mixinLines + 1, loc.charnum);
+    loc = Loc(global.params.mixinOut.name.ptr, global.params.mixinOut.bufferLines + 1, loc.charnum);
 
     // write by line to create consistent line endings
     size_t lastpos = 0;
@@ -9639,7 +9639,7 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
         {
             ob.writestring(s[lastpos .. i]);
             ob.writenl();
-            global.params.mixinLines++;
+            global.params.mixinOut.bufferLines++;
             if (c == '\r')
                 ++i;
             lastpos = i + 1;
@@ -9652,10 +9652,10 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
     if (s.length == 0 || s[$-1] != '\n')
     {
         ob.writenl(); // ensure empty line after expansion
-        global.params.mixinLines++;
+        global.params.mixinOut.bufferLines++;
     }
     ob.writenl();
-    global.params.mixinLines++;
+    global.params.mixinOut.bufferLines++;
 
     return true;
 }

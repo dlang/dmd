@@ -325,9 +325,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return result;
     }
 
-    if (params.mixinFile)
+    if (params.mixinOut.doOutput)
     {
-        params.mixinOut = cast(OutBuffer*)Mem.check(calloc(1, OutBuffer.sizeof));
+        params.mixinOut.buffer = cast(OutBuffer*)Mem.check(calloc(1, OutBuffer.sizeof));
         atexit(&flushMixins); // see comment for flushMixins
     }
     scope(exit) flushMixins();
@@ -1382,14 +1382,14 @@ extern(C) void printGlobalConfigs(FILE* stream)
  */
 extern(C) void flushMixins()
 {
-    if (!global.params.mixinOut)
+    if (!global.params.mixinOut.buffer)
         return;
 
-    assert(global.params.mixinFile);
-    File.write(global.params.mixinFile, (*global.params.mixinOut)[]);
+    assert(global.params.mixinOut.name);
+    File.write(global.params.mixinOut.name, (*global.params.mixinOut.buffer)[]);
 
-    global.params.mixinOut.destroy();
-    global.params.mixinOut = null;
+    global.params.mixinOut.buffer.destroy();
+    global.params.mixinOut.buffer = null;
 }
 
 /****************************************************
@@ -1735,7 +1735,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             auto tmp = p + 6 + 1;
             if (!tmp[0])
                 goto Lnoarg;
-            params.mixinFile = mem.xstrdup(tmp);
+            params.mixinOut.doOutput = true;
+            params.mixinOut.name = mem.xstrdup(tmp).toDString;
         }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
             driverParams.symdebug = 1;
