@@ -132,6 +132,7 @@ shared static this()
         "getVirtualFunctions",
         "getVirtualMethods",
         "classInstanceSize",
+        "classInstanceAlignment",
         "allMembers",
         "derivedMembers",
         "isSame",
@@ -1211,7 +1212,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         else
             assert(0);
     }
-    if (e.ident == Id.classInstanceSize)
+    if (e.ident == Id.classInstanceSize || e.ident == Id.classInstanceAlignment)
     {
         if (dim != 1)
             return dimError(1);
@@ -1234,7 +1235,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        return new IntegerExp(e.loc, cd.structsize, Type.tsize_t);
+        return new IntegerExp(e.loc, e.ident == Id.classInstanceSize ? cd.structsize : cd.alignsize, Type.tsize_t);
     }
     if (e.ident == Id.getAliasThis)
     {
