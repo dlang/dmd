@@ -254,7 +254,7 @@ void escape4() @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(266): Error: cannot take address of `scope` local `p` in `@safe` function `escape5`
+fail_compilation/retscope.d(266): Error: cannot take address of `scope` variable `p` since `scope` applies to first indirection only
 ---
 */
 
@@ -331,7 +331,7 @@ int* bar10( scope int** ptr ) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(342): Error: cannot take address of `scope` local `aa` in `@safe` function `escape11`
+fail_compilation/retscope.d(342): Error: cannot take address of `scope` variable `aa` since `scope` applies to first indirection only
 ---
 */
 

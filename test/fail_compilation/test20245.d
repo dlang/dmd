@@ -5,7 +5,7 @@ TEST_OUTPUT:
 fail_compilation/test20245.d(20): Error: reference to local variable `x` assigned to non-scope parameter `ptr`
 fail_compilation/test20245.d(21): Error: copying `&x` into allocated memory escapes a reference to parameter variable `x`
 fail_compilation/test20245.d(22): Error: scope variable `a` may not be returned
-fail_compilation/test20245.d(26): Error: cannot take address of `scope` parameter `x` in `@safe` function `foo`
+fail_compilation/test20245.d(26): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
 fail_compilation/test20245.d(32): Error: reference to local variable `x` assigned to non-scope parameter `ptr`
 fail_compilation/test20245.d(33): Error: copying `&x` into allocated memory escapes a reference to parameter variable `x`
 fail_compilation/test20245.d(49): Error: reference to local variable `price` assigned to non-scope `this.minPrice`
