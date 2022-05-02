@@ -726,6 +726,16 @@ opcode_t xmmload(tym_t tym, bool aligned)
         aligned = false;
     switch (tybasic(tym))
     {
+        case TYbool:
+        case TYuchar:
+        case TYschar:
+        case TYchar:
+        case TYchar8:
+        case TYchar16:
+        case TYdchar:
+        case TYwchar_t:
+        case TYushort:
+        case TYshort:
         case TYuint:
         case TYint:
         case TYlong:
@@ -777,6 +787,16 @@ opcode_t xmmstore(tym_t tym, bool aligned)
     opcode_t op;
     switch (tybasic(tym))
     {
+        case TYbool:
+        case TYuchar:
+        case TYschar:
+        case TYchar:
+        case TYchar8:
+        case TYchar16:
+        case TYdchar:
+        case TYwchar_t:
+        case TYushort:
+        case TYshort:
         case TYuint:
         case TYint:
         case TYlong:

@@ -1929,7 +1929,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
 
     if (sz == 1)
     {
-        assert(retregs & BYTEREGS);
+        /* assert(retregs & BYTEREGS); */
         const reg = findreg(retregs);
         if (e.Eoper == OPvar &&
             e.EV.Voffset == 1 &&

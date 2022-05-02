@@ -2390,6 +2390,96 @@ void test23009()
 
 /*****************************************/
 
+// Issue: https://issues.dlang.org/show_bug.cgi?id=23077
+
+float bug23077_1(float x) {
+    short i = *cast(short*)&x;
+    ++i;
+    return *cast(float*)&i;
+}
+
+float bug23077_2(float x) {
+    ushort i = *cast(ushort*)&x;
+    ++i;
+    return *cast(float*)&i;
+}
+
+float bug23077_3(float x) {
+    uint i = *cast(uint*)&x;
+    ++i;
+    return *cast(float*)&i;
+}
+
+float bug23077_4(float x) {
+    ubyte i = *cast(ubyte*)&x;
+    ++i;
+    return *cast(float*)&i;
+}
+
+float bug23077_5(float x) {
+    byte i = *cast(byte*)&x;
+    ++i;
+    return *cast(float*)&i;
+}
+
+float bug23077_6(float x) {
+    bool i = *cast(bool*)&x;
+    i = true;
+    return *cast(float*)&i;
+}
+
+float bug23077_7(float x) {
+    char i = *cast(char*)&x;
+    ++i;
+    return *cast(float*)&i;
+}
+
+float bug23077_8(float x) {
+    wchar i = *cast(wchar*)&x;
+    ++i;
+    return *cast(float*)&i;
+}
+
+float bug23077_9(float x) {
+    dchar i = *cast(dchar*)&x;
+    ++i;
+    return *cast(float*)&i;
+}
+
+__vector(uint[4]) bug23084_1 (__vector(uint[4]) a) {
+    __vector(ushort[8]) r = cast(ushort)(a.array[0]);
+    return cast(__vector(uint[4]))r;
+}
+
+__vector(uint[4]) bug23084_2 (__vector(uint[4]) a) {
+    __vector(ubyte[16]) r = cast(ubyte)(a.array[0]);
+    return cast(__vector(uint[4]))r;
+}
+
+void test23084()
+{
+    uint[4] arr = [0xffffffff, 0x00000000, 0xffffffff, 0x00000000];
+    __vector(uint[4]) varr;
+    varr.array = arr;
+    uint[4] ret = [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff];
+    assert(bug23084_1(varr).array == ret);
+    assert(bug23084_2(varr).array == ret);
+
+    // test if it was not a magic fluke
+    varr.array = [0xf0f0eaea, 0xbbbbbbbb, 0xf0f0eaea, 0xbbbbbbbb];
+
+    uint i0 = 0xf0f0eaea;
+    ushort s = i0 & 0xffff; // 0x0000eaea
+    uint ri0 = s | s << 16; // 0x0000eaea | 0xeaea == 0xeaeaeaea
+    // [ 0xeaeaeaea, 0xeaeaeaea, 0xeaeaeaea, 0xeaeaeaea]
+    ret[] = ri0;
+
+    assert(bug23084_1(varr).array == ret);
+    assert(bug23084_2(varr).array == ret);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -2446,6 +2536,7 @@ int main()
     test21673();
     test21676();
     test23009();
+    test23084();
 
     return 0;
 }
