@@ -662,7 +662,26 @@ extern (C++) final class Module : Package
             return true; // already read
 
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
-        if (auto result = global.fileManager.lookup(srcfile))
+
+        /* Preprocess the file if it's a C file
+         */
+        FileName filename = srcfile;
+        bool ifile = false;             // did we generate a .i file
+        scope (exit)
+        {
+            if (ifile)
+                File.remove(filename.toChars());        // remove generated file
+        }
+
+        if (global.preprocess &&
+            FileName.equalsExt(srcfile.toString(), c_ext) &&
+            FileName.exists(srcfile.toString()))
+        {
+            filename = global.preprocess(srcfile);  // run C preprocessor
+            ifile = true;
+        }
+
+        if (auto result = global.fileManager.lookup(filename))
         {
             this.src = result;
             if (global.params.makeDeps.doOutput)
