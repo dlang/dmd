@@ -43,6 +43,7 @@ class CPPNamespaceDeclaration;
 struct Symbol;
 struct OutBuffer;
 class FileManager;
+struct FileName;
 struct Scope;
 class DeprecatedDeclaration;
 class UserAttributeDeclaration;
@@ -775,6 +776,37 @@ struct Param final
         {}
 };
 
+struct FileName final
+{
+private:
+    _d_dynamicArray< const char > str;
+public:
+    static bool equals(const char* name1, const char* name2);
+    static bool absolute(const char* name);
+    static const char* toAbsolute(const char* name, const char* base = nullptr);
+    static const char* ext(const char* str);
+    const char* ext() const;
+    static const char* removeExt(const char* str);
+    static const char* name(const char* str);
+    const char* name() const;
+    static const char* path(const char* str);
+    static const char* combine(const char* path, const char* name);
+    static Array<const char* >* splitPath(const char* path);
+    static const char* defaultExt(const char* name, const char* ext);
+    static const char* forceExt(const char* name, const char* ext);
+    static bool equalsExt(const char* name, const char* ext);
+    bool equalsExt(const char* ext) const;
+    static const char* searchPath(Array<const char* >* path, const char* name, bool cwd);
+    static int32_t exists(const char* name);
+    static bool ensurePathExists(const char* path);
+    static const char* canonicalName(const char* name);
+    static void free(const char* str);
+    const char* toChars() const;
+    FileName()
+    {
+    }
+};
+
 struct Global final
 {
     _d_dynamicArray< const char > inifilename;
@@ -797,6 +829,7 @@ struct Global final
     FileManager* fileManager;
     enum : int32_t { recursionLimit = 500 };
 
+    FileName(*preprocess)(FileName );
     uint32_t startGagging();
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
@@ -1589,37 +1622,6 @@ enum class PKG
     unknown = 0,
     module_ = 1,
     package_ = 2,
-};
-
-struct FileName final
-{
-private:
-    _d_dynamicArray< const char > str;
-public:
-    static bool equals(const char* name1, const char* name2);
-    static bool absolute(const char* name);
-    static const char* toAbsolute(const char* name, const char* base = nullptr);
-    static const char* ext(const char* str);
-    const char* ext() const;
-    static const char* removeExt(const char* str);
-    static const char* name(const char* str);
-    const char* name() const;
-    static const char* path(const char* str);
-    static const char* combine(const char* path, const char* name);
-    static Array<const char* >* splitPath(const char* path);
-    static const char* defaultExt(const char* name, const char* ext);
-    static const char* forceExt(const char* name, const char* ext);
-    static bool equalsExt(const char* name, const char* ext);
-    bool equalsExt(const char* ext) const;
-    static const char* searchPath(Array<const char* >* path, const char* name, bool cwd);
-    static int32_t exists(const char* name);
-    static bool ensurePathExists(const char* path);
-    static const char* canonicalName(const char* name);
-    static void free(const char* str);
-    const char* toChars() const;
-    FileName()
-    {
-    }
 };
 
 enum class FileType : uint8_t
@@ -5505,6 +5507,8 @@ extern const char* cppTypeInfoMangleMSVC(Dsymbol* s);
 extern const char* toCppMangleDMC(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleDMC(Dsymbol* s);
+
+extern FileName preprocess(FileName csrcfile);
 
 class ClassReferenceExp final : public Expression
 {

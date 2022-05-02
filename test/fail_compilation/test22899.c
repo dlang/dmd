@@ -3,7 +3,6 @@
 fail_compilation/test22899.c(105): Error: expression expected, not `)`
 fail_compilation/test22899.c(105): Error: found `;` when expecting `)`
 fail_compilation/test22899.c(106): Error: found `}` when expecting `;` following statement
-fail_compilation/test22899.c(107): Error: found `End of File` when expecting `}` following compound statement
 ---
 */
 
@@ -16,4 +15,4 @@ void fn()
 {
     int x;
     x = sizeof( (mytype_t) );
-}
+}}
