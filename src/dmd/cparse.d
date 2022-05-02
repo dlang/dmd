@@ -1663,6 +1663,14 @@ final class CParser(AST) : Parser!AST
             return;
         }
 
+        if (!tspec)
+        {
+            error("no type for declarator before `%s`", token.toChars());
+            panic();
+            nextToken();
+            return;
+        }
+
         if (tspec && specifier.mod & MOD.xconst)
         {
             tspec = toConst(tspec);
@@ -2545,7 +2553,7 @@ final class CParser(AST) : Parser!AST
     private AST.Type cparseDeclarator(DTR declarator, AST.Type t,
         out Identifier pident, ref Specifier specifier)
     {
-        //printf("cparseDeclarator(%d)\n", declarator);
+        //printf("cparseDeclarator(%d, %p)\n", declarator, t);
         AST.Types constTypes; // all the Types that will need `const` applied to them
         constTypes.setDim(0);
 
