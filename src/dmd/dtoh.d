@@ -92,9 +92,9 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     buf.writestringln("#pragma once");
     buf.writenl();
     hashInclude(buf, "<assert.h>");
+    hashInclude(buf, "<math.h>");
     hashInclude(buf, "<stddef.h>");
     hashInclude(buf, "<stdint.h>");
-    hashInclude(buf, "<math.h>");
 //    buf.writestring(buf, "#include <stdio.h>\n");
 //    buf.writestring("#include <string.h>\n");
 
