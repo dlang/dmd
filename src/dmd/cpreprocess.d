@@ -33,11 +33,12 @@ import dmd.root.string;
  * Preprocess C file.
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
+ *      ifile = set to true if an output file was written
  * Result:
  *      filename of output
  */
 extern (C++)
-FileName preprocess(FileName csrcfile)
+FileName preprocess(FileName csrcfile, out bool ifile)
 {
     //printf("preprocess %s\n", csrcfile.toChars());
     version (Posix)
@@ -52,6 +53,7 @@ FileName preprocess(FileName csrcfile)
             error(Loc.initial, "C preprocess failed for file %s, exit status %d\n", csrcfile.toChars(), status);
             fatal();
         }
+        ifile = true;
         return FileName(ifilename);
     }
     else version (Windows)
