@@ -4,9 +4,6 @@ To complement `__traits(classInstanceSize)`, providing the required
 alignment for manual buffers etc.:
 
 ---
-align(16) class C {}
-static assert(__traits(classInstanceAlignment, C) == 16);
-
 align(__traits(classInstanceAlignment, C))
 void[__traits(classInstanceSize, C)] buffer;
 ---

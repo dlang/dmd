@@ -37,15 +37,6 @@ static assert(PaddedStruct.s1.offsetof == 2);
 static assert(PaddedStruct.alignof == 8);
 static assert(PaddedStruct.sizeof == 16);
 
-align(64) class AlignedClass
-{
-    int field;
-}
-
-static assert(AlignedClass.field.offsetof == 2 * size_t.sizeof); // vtbl, monitor
-static assert(__traits(classInstanceAlignment, AlignedClass) == 64);
-static assert(__traits(classInstanceSize, AlignedClass) == 2 * size_t.sizeof + 4);
-
 class AlignedPayloadClass
 {
     align(64) int field;
