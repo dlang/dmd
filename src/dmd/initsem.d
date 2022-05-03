@@ -198,14 +198,16 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, ref Typ
                 {
                     if ((!t.alignment.isDefault() && t.alignment.get() < target.ptrsize ||
                          (vd.offset & (target.ptrsize - 1))) &&
-                        sc.func && sc.func.setUnsafe())
+                        sc.func)
                     {
-                        error(i.value[j].loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
-                            sd.toChars(), vd.toChars());
-                        errors = true;
-                        elems[fieldi] = ErrorExp.get(); // for better diagnostics on multiple errors
-                        ++fieldi;
-                        continue;
+                        if (sc.func.setUnsafe(false, i.value[j].loc,
+                            "field `%s.%s` cannot assign to misaligned pointers in `@safe` code", sd, vd))
+                        {
+                            errors = true;
+                            elems[fieldi] = ErrorExp.get(); // for better diagnostics on multiple errors
+                            ++fieldi;
+                            continue;
+                        }
                     }
                 }
 
