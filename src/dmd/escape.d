@@ -2513,6 +2513,11 @@ private bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, con
                     loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : ""
                 );
         }
+        else if (!sc.func.safetyViolation)
+        {
+            import dmd.func : AttributeViolation;
+            sc.func.safetyViolation = new AttributeViolation(loc, msg, arg0, arg1);
+        }
         return false;
     }
 }
