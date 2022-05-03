@@ -3132,7 +3132,8 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         if (mt.exp.op == EXP.type ||
             mt.exp.op == EXP.scope_)
         {
-            if (mt.exp.checkType())
+            if (!(sc.flags & SCOPE.Cfile) && // in (extended) C typeof may be used on types as with sizeof
+                mt.exp.checkType())
                 goto Lerr;
 
             /* Today, 'typeof(func)' returns void if func is a

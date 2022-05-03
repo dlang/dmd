@@ -288,6 +288,7 @@ final class CParser(AST) : Parser!AST
         case TOK.struct_:
         case TOK.union_:
         case TOK.enum_:
+        case TOK.typeof_:
 
         // storage-class-specifiers
         case TOK.typedef_:
@@ -2267,6 +2268,52 @@ final class CParser(AST) : Parser!AST
                     break;
                 }
 
+                case TOK.typeof_:
+                {
+                    nextToken();
+                    check(TOK.leftParenthesis);
+
+                    auto tk = &token;
+                    AST.Expression e;
+                    if (isTypeName(tk))
+                        e = new AST.TypeExp(loc, cparseTypeName());
+                    else
+                        e = cparseExpression();
+                    t = new AST.TypeTypeof(loc, e);
+
+                    if(token.value == TOK.rightParenthesis)
+                        nextToken();
+                    else
+                    {
+                        t = AST.Type.terror;
+                        error("`typeof` operator expects an expression or type name in parentheses");
+
+                        // skipParens et. al expect to be on the opening parenthesis
+                        int parens;
+                        loop: while(1)
+                        {
+                            switch(token.value)
+                            {
+                                case TOK.leftParenthesis:
+                                    parens++;
+                                    break;
+                                case TOK.rightParenthesis:
+                                    parens--;
+                                    if(parens < 0)
+                                        goto case;
+                                    break;
+                                case TOK.endOfFile:
+                                    break loop;
+                                default:
+                            }
+                            nextToken();
+                        }
+                    }
+
+                    tkwx = TKW.xtag;
+                    break;
+                }
+
                 default:
                     break Lwhile;
             }
@@ -4168,6 +4215,7 @@ final class CParser(AST) : Parser!AST
 
                 // atomic-type-specifier
                 case TOK._Atomic:
+                case TOK.typeof_:
                     t = peek(t);
                     if (t.value != TOK.leftParenthesis ||
                         !skipParens(t, &t))
