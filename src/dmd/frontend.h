@@ -276,6 +276,7 @@ class GotoCaseStatement;
 class GotoStatement;
 class ReturnStatement;
 class ScopeStatement;
+struct AttributeViolation;
 struct ObjcSelector;
 class PeelStatement;
 class CompoundStatement;
@@ -2784,6 +2785,9 @@ public:
     Array<VarDeclaration* > outerVars;
     Array<FuncDeclaration* > siblingCallers;
     Array<FuncDeclaration* >* inlinedNestedCallees;
+private:
+    AttributeViolation* safetyViolation;
+public:
     uint32_t flags;
     ObjcFuncDeclaration objc;
     static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type, bool noreturn = false);
