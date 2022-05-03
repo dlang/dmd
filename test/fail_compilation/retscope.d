@@ -85,7 +85,7 @@ struct HTTP
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(96): Error: reference to local variable `sa` assigned to non-scope parameter `a` calling retscope.bar8
+fail_compilation/retscope.d(96): Error: reference to local variable `sa` assigned to non-scope parameter `a`
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=8838
@@ -403,7 +403,7 @@ class Foo13
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1205): Error: scope variable `f14` assigned to non-scope parameter `this` calling retscope.Foo14.foo
+fail_compilation/retscope.d(1205): Error: scope variable `f14` assigned to non-scope parameter `this`
 ---
 */
 
@@ -454,7 +454,7 @@ fail_compilation/retscope.d(1311): Error: scope variable `u2` assigned to `ek` w
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope parameter `__anonymous_param` calling retscope.myprintf
+fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope parameter `__anonymous_param`
 ---
 */
 

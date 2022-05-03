@@ -314,29 +314,22 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
     /* 'v' is assigned unsafely to 'par'
      */
-    void unsafeAssign(VarDeclaration v, const char* desc)
+    void unsafeAssign(string desc)(VarDeclaration v)
     {
-        if (setUnsafeDIP1000(sc.func))
+        if (assertmsg)
         {
-            if (!gag)
-            {
-                if (assertmsg)
-                {
-                    previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
-                                    (arg.loc, "%s `%s` assigned to non-scope parameter calling `assert()`",
-                        desc, v.toChars());
-                }
-                else
-                {
-                    previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
-                                    (arg.loc, "%s `%s` assigned to non-scope parameter `%s` calling %s",
-                        desc, v.toChars(),
-                        par ? par.toChars() : "this",
-                        fdc ? fdc.toPrettyChars() : "indirectly");
-                }
-            }
-            if (global.params.useDIP1000 == FeatureState.enabled)
-                result = true;
+            result |= sc.setUnsafeDIP1000(gag, arg.loc,
+                desc ~ " `%s` assigned to non-scope parameter calling `assert()`", v);
+        }
+        else if (par)
+        {
+            result |= sc.setUnsafeDIP1000(gag, arg.loc,
+                desc ~ " `%s` assigned to non-scope parameter `%s`", v, par);
+        }
+        else
+        {
+            result |= sc.setUnsafeDIP1000(gag, arg.loc,
+                desc ~ " `%s` assigned to non-scope parameter `this`", v);
         }
     }
 
@@ -352,14 +345,14 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
         if (v.isScope())
         {
-            unsafeAssign(v, "scope variable");
+            unsafeAssign!"scope variable"(v);
         }
         else if (v.storage_class & STC.variadic && p == sc.func)
         {
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
-                unsafeAssign(v, "variadic variable");
+                unsafeAssign!"variadic variable"(v);
             }
         }
         else
@@ -392,7 +385,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
                 continue;
             }
 
-            unsafeAssign(v, "reference to local variable");
+            unsafeAssign!"reference to local variable"(v);
             continue;
         }
     }
@@ -414,7 +407,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
             if ((v.isReference() || v.isScope()) && p == sc.func)
             {
-                unsafeAssign(v, "reference to local");
+                unsafeAssign!"reference to local"(v);
                 continue;
             }
         }
@@ -786,18 +779,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 {
                     va.doNotInferReturn = true;
                 }
-                else if (setUnsafeDIP1000(fd))
+                else if (sc.setUnsafeDIP1000(gag, ae.loc,
+                    "address of local variable `%s` assigned to return scope `%s`", v, va))
                 {
-                    if (!gag)
-                        previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
-                            (ae.loc, "address of local variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
-
-
-                    if (global.params.useDIP1000 == FeatureState.enabled)
-                    {
-                        result = true;
-                        continue;
-                    }
+                    result = true;
                 }
             }
         }
@@ -1043,14 +1028,10 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                  */
                 !(p.parent == sc.func))
             {
-                if (setUnsafeDIP1000(sc.func))     // https://issues.dlang.org/show_bug.cgi?id=20868
+                // https://issues.dlang.org/show_bug.cgi?id=20868
+                if (sc.setUnsafeDIP1000(gag, e.loc, "scope variable `%s` may not be copied into allocated memory", v))
                 {
-                    // Only look for errors if in module listed on command line
-                    if (!gag)
-                        previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
-                                        (e.loc, "scope variable `%s` may not be copied into allocated memory", v.toChars());
-                    if (global.params.useDIP1000 == FeatureState.enabled)
-                        result = true;
+                    result = true;
                 }
 
                 continue;
@@ -1262,13 +1243,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                )
             {
                 // https://issues.dlang.org/show_bug.cgi?id=17029
-                if (setUnsafeDIP1000(sc.func))
+                if (sc.setUnsafeDIP1000(gag, e.loc, "scope variable `%s` may not be returned", v))
                 {
-                    if (!gag)
-                        previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)
-                                        (e.loc, "scope variable `%s` may not be returned", v.toChars());
-                    if (global.params.useDIP1000 == FeatureState.enabled)
-                        result = true;
+                    result = true;
                 }
                 continue;
             }
@@ -2442,10 +2419,41 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
     va.maybes.push(v);
 }
 
-
-private bool setUnsafeDIP1000(FuncDeclaration f)
+/***************************************
+ * Like `FuncDeclaration.setUnsafe`, but modified for the -preview=dip1000 by default transition
+ *
+ * With `-preview=dip1000` it actually sets the function as unsafe / prints an error, while
+ * without it, it only prints a deprecation in a `@safe` function.
+ * With `-revert=preview=dip1000`, it doesn't do anything.
+ *
+ * Params:
+ *   sc = used for checking whether we are in a deprecated scope
+ *   gag = surpress error message
+ *   loc = location of error
+ *   fmt = printf-style format string
+ *   arg0  = (optional) argument for first %s format specifier
+ *   arg1  = (optional) argument for second %s format specifier
+ * Returns: whether an actual safe error (not deprecation) occured
+ */
+private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg, RootObject arg0 = null, RootObject arg1 = null)
 {
-    return global.params.useDIP1000 == FeatureState.enabled
-        ? f.setUnsafe()
-        : f.isSafeBypassingInference();
+    if (global.params.useDIP1000 == FeatureState.disabled)
+    {
+        return false;
+    }
+    else if (global.params.useDIP1000 == FeatureState.enabled)
+    {
+        return sc.func.setUnsafe(gag, loc, msg, arg0, arg1);
+    }
+    else
+    {
+        if (sc.func.isSafeBypassingInference())
+        {
+            if (!gag)
+                previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)(
+                    loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : ""
+                );
+        }
+        return false;
+    }
 }
