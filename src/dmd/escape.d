@@ -420,15 +420,20 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
         }
     }
 
+    if (!sc.func)
+        return result;
+
     foreach (Expression ee; er.byexp)
     {
-        if (sc.func && sc.func.setUnsafe())
+        if (!par)
         {
-            if (!gag)
-                error(ee.loc, "reference to stack allocated value returned by `%s` assigned to non-scope parameter `%s`",
-                    ee.toChars(),
-                    par ? par.toChars() : "this");
-            result = true;
+            result = result || sc.func.setUnsafe(gag, ee.loc,
+                "reference to stack allocated value returned by `%s` assigned to non-scope parameter `this`", ee);
+        }
+        else
+        {
+            result = result || sc.func.setUnsafe(gag, ee.loc,
+                "reference to stack allocated value returned by `%s` assigned to non-scope parameter `%s`", ee, par);
         }
     }
 
@@ -688,25 +693,25 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 }
             }
 
-            if (va && va.isScope() && va.storage_class & STC.return_ && !(v.storage_class & STC.return_) &&
-                fd.setUnsafe())
+            if (va && va.isScope() && va.storage_class & STC.return_ && !(v.storage_class & STC.return_))
             {
                 // va may return its value, but v does not allow that, so this is an error
-                if (!gag)
-                    error(ae.loc, "scope variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
-                result = true;
-                continue;
+                if (fd.setUnsafe(gag, ae.loc, "scope variable `%s` assigned to return scope `%s`", v, va))
+                {
+                    result = true;
+                    continue;
+                }
             }
 
             // If va's lifetime encloses v's, then error
             if (va && !va.isDataseg() &&
-                ((va.enclosesLifetimeOf(v) && !(v.storage_class & STC.temp)) || vaIsRef) &&
-                fd.setUnsafe())
+                ((va.enclosesLifetimeOf(v) && !(v.storage_class & STC.temp)) || vaIsRef))
             {
-                if (!gag)
-                    error(ae.loc, "scope variable `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
-                result = true;
-                continue;
+                if (fd.setUnsafe(gag, ae.loc, "scope variable `%s` assigned to `%s` with longer lifetime", v, va))
+                {
+                    result = true;
+                    continue;
+                }
             }
 
             if (va && !va.isDataseg() && !va.doNotInferScope)
@@ -733,10 +738,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 }
                 continue;
             }
-            if (fd.setUnsafe())
+            if (fd.setUnsafe(gag, ae.loc, "scope variable `%s` assigned to non-scope `%s`", v, e1))
             {
-                if (!gag)
-                    error(ae.loc, "scope variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
                 result = true;
             }
         }
@@ -753,10 +756,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                     }
                     continue;
                 }
-                if (fd.setUnsafe())
+                if (fd.setUnsafe(gag, ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v, e1))
                 {
-                    if (!gag)
-                        error(ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
                     result = true;
                 }
             }
@@ -815,13 +816,13 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         // If va's lifetime encloses v's, then error
         if (va &&
             !(vaIsFirstRef && (v.storage_class & STC.return_)) &&
-            (va.enclosesLifetimeOf(v) || (va.isReference() && !(va.storage_class & STC.temp)) || va.isDataseg()) &&
-            fd.setUnsafe())
+            (va.enclosesLifetimeOf(v) || (va.isReference() && !(va.storage_class & STC.temp)) || va.isDataseg()))
         {
-            if (!gag)
-                error(ae.loc, "address of variable `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
-            result = true;
-            continue;
+            if (fd.setUnsafe(gag, ae.loc, "address of variable `%s` assigned to `%s` with longer lifetime", v, va))
+            {
+                result = true;
+                continue;
+            }
         }
 
         if (!(va && va.isScope()))
@@ -842,10 +843,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         }
         if (e1.op == EXP.structLiteral)
             continue;
-        if (fd.setUnsafe())
+        if (fd.setUnsafe(gag, ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v, e1))
         {
-            if (!gag)
-                error(ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
             result = true;
         }
     }
@@ -886,10 +885,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                     //va.storage_class |= STC.scope_ | STC.scopeinferred;
                 continue;
             }
-            if (fd.setUnsafe())
+            if (fd.setUnsafe(gag, ae.loc, "reference to local `%s` assigned to non-scope `%s` in @safe code", v, e1))
             {
-                if (!gag)
-                    error(ae.loc, "reference to local `%s` assigned to non-scope `%s` in @safe code", v.toChars(), e1.toChars());
                 result = true;
             }
         }
@@ -912,25 +909,23 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         }
 
         if (ee.op == EXP.call && ee.type.toBasetype().isTypeStruct() &&
-            (!va || !(va.storage_class & STC.temp)) &&
-            fd.setUnsafe())
+            (!va || !(va.storage_class & STC.temp)))
         {
-            if (!gag)
-                error(ee.loc, "address of struct temporary returned by `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), e1.toChars());
-            result = true;
-            continue;
+            if (fd.setUnsafe(gag, ee.loc, "address of struct temporary returned by `%s` assigned to longer lived variable `%s`", ee, e1))
+            {
+                result = true;
+                continue;
+            }
         }
 
         if (ee.op == EXP.structLiteral &&
-            (!va || !(va.storage_class & STC.temp)) &&
-            fd.setUnsafe())
+            (!va || !(va.storage_class & STC.temp)))
         {
-            if (!gag)
-                error(ee.loc, "address of struct literal `%s` assigned to longer lived variable `%s`",
-                    ee.toChars(), e1.toChars());
-            result = true;
-            continue;
+            if (fd.setUnsafe(gag, ee.loc, "address of struct literal `%s` assigned to longer lived variable `%s`", ee, e1))
+            {
+                result = true;
+                continue;
+            }
         }
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
@@ -942,11 +937,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
             continue;
         }
 
-        if (fd.setUnsafe())
+        if (fd.setUnsafe(gag, ee.loc, "reference to stack allocated value returned by `%s` assigned to non-scope `%s`",
+            ee, e1))
         {
-            if (!gag)
-                error(ee.loc, "reference to stack allocated value returned by `%s` assigned to non-scope `%s`",
-                    ee.toChars(), e1.toChars());
             result = true;
         }
     }
