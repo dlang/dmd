@@ -6897,19 +6897,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                          * because it might end up being a pointer to undefined
                          * memory.
                          */
-                        if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+                        if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_))
                         {
-                            exp.error("cannot take address of lazy parameter `%s` in `@safe` function `%s`",
-                                     ve.toChars(), sc.func.toChars());
-                            setError();
+                            if (sc.func.setUnsafe(false, exp.loc,
+                                "cannot take address of lazy parameter `%s` in `@safe` function `%s`", ve, sc.func))
+                            {
+                                setError();
+                                return;
+                            }
                         }
-                        else
-                        {
-                            VarExp ve2 = callExp.e1.isVarExp();
-                            ve2.delegateWasExtracted = true;
-                            ve2.var.storage_class |= STC.scope_;
-                            result = ve2;
-                        }
+                        VarExp ve2 = callExp.e1.isVarExp();
+                        ve2.delegateWasExtracted = true;
+                        ve2.var.storage_class |= STC.scope_;
+                        result = ve2;
                         return;
                     }
                 }
@@ -7845,10 +7845,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 return setError();
             }
-            if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+            if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_))
             {
-                exp.error("pointer slicing not allowed in safe functions");
-                return setError();
+                if (sc.func.setUnsafe(false, exp.loc, "pointer slicing not allowed in safe functions"))
+                    return setError();
             }
         }
         else if (t1b.ty == Tarray)

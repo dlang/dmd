@@ -5761,9 +5761,8 @@ extern (C++) final class DelegatePtrExp : UnaExp
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
-        if (sc.func.setUnsafe())
+        if (sc.func.setUnsafe(false, this.loc, "cannot modify delegate pointer in `@safe` code `%s`", this))
         {
-            error("cannot modify delegate pointer in `@safe` code `%s`", toChars());
             return ErrorExp.get();
         }
         return Expression.modifiableLvalue(sc, e);

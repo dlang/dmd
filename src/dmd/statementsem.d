@@ -4034,10 +4034,10 @@ void catchSemantic(Catch c, Scope* sc)
             error(c.loc, "catching C++ class objects not supported for this target");
             c.errors = true;
         }
-        if (sc.func && !sc.intypeof && !c.internalCatch && sc.func.setUnsafe())
+        if (sc.func && !sc.intypeof && !c.internalCatch)
         {
-            error(c.loc, "cannot catch C++ class objects in `@safe` code");
-            c.errors = true;
+            if (sc.func.setUnsafe(false, c.loc, "cannot catch C++ class objects in `@safe` code"))
+                c.errors = true;
         }
     }
     else if (cd != ClassDeclaration.throwable && !ClassDeclaration.throwable.isBaseOf(cd, null))
@@ -4046,10 +4046,10 @@ void catchSemantic(Catch c, Scope* sc)
         c.errors = true;
     }
     else if (sc.func && !sc.intypeof && !c.internalCatch && ClassDeclaration.exception &&
-             cd != ClassDeclaration.exception && !ClassDeclaration.exception.isBaseOf(cd, null) &&
-             sc.func.setUnsafe())
+            cd != ClassDeclaration.exception && !ClassDeclaration.exception.isBaseOf(cd, null) &&
+            sc.func.setUnsafe(false, c.loc,
+                "can only catch class objects derived from `Exception` in `@safe` code, not `%s`", c.type))
     {
-        error(c.loc, "can only catch class objects derived from `Exception` in `@safe` code, not `%s`", c.type.toChars());
         c.errors = true;
     }
     else if (global.params.ehnogc)
