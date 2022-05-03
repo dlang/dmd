@@ -499,7 +499,7 @@ union PTRNTAB {
 
 struct OP
 {
-    const(char)* str;   // opcode string
+    string str;   // opcode string
     ubyte usNumops;
     PTRNTAB ptb;
 }

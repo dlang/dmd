@@ -49,7 +49,7 @@ import dmd.backend.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.global;
 import dmd.backend.iasm;
-import dmd.backend.ptrntab : asm_opstr, asm_op_lookup, init_optab;
+import dmd.backend.ptrntab : asm_opstr, asm_op_lookup;
 import dmd.backend.xmm;
 
 //debug = EXTRA_DEBUG;
@@ -112,7 +112,6 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
     if (!asmstate.bInit)
     {
         asmstate.bInit = true;
-        init_optab();
         asmstate.psDollar = LabelDsymbol.create(Id._dollar);
         asmstate.psLocalsize = Dsymbol.create(Id.__LOCAL_SIZE);
     }
