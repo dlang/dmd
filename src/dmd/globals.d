@@ -118,6 +118,7 @@ extern (C++) struct Param
     bool useInline = false;     // inline expand functions
     FeatureState useDIP25;  // implement https://wiki.dlang.org/DIP25
     FeatureState useDIP1000; // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
+    bool fixImmutableConv;  // error on unsound immutable conversion - https://github.com/dlang/dmd/pull/14070
     bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file

@@ -118,6 +118,7 @@ struct Param
     bool useInline;     // inline expand functions
     FeatureState useDIP25;      // implement https://wiki.dlang.org/DIP25
     FeatureState useDIP1000; // implement https://dlang.org/spec/memory-safe-d.html#scope-return-params
+    bool fixImmutableConv;
     bool useDIP1021;    // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file

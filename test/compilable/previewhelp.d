@@ -17,5 +17,6 @@ Upcoming language changes listed by -preview=name:
   =in               `in` on parameters means `scope const [ref]` and accepts rvalues
   =inclusiveincontracts 'in' contracts of overridden methods must be a superset of parent contract
   =shortenedMethods allow use of => for methods and top-level functions in addition to lambdas
+  =fixImmutableConv disallow unsound immutable conversions that were formerly incorrectly permitted
 ----
 */

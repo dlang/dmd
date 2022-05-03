@@ -824,9 +824,8 @@ MATCH implicitConvTo(Expression e, Type t)
          * convert to immutable
          */
         if (e.f &&
-            // lots of legacy code breaks with the following purity check
-            (global.params.useDIP1000 != FeatureState.enabled || e.f.isPure() >= PURE.const_) &&
-             e.f.isReturnIsolated() // check isReturnIsolated last, because it is potentially expensive.
+            (!global.params.fixImmutableConv || e.f.isPure() >= PURE.const_) &&
+            e.f.isReturnIsolated() // check isReturnIsolated last, because it is potentially expensive.
            )
         {
             result = e.type.immutableOf().implicitConvTo(t);
