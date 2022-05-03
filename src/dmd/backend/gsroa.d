@@ -364,7 +364,7 @@ if (1)
     if (log) foreach (si; 0 .. symtab.length)
     {
         Symbol *s = symtab[si];
-        printf("[%d]: %p %d %s\n", cast(int)si, s, cast(int)type_size(s.Stype), s.Sident.ptr);
+        printf("[%d]: %p %d %s %s\n", cast(int)si, s, cast(int)type_size(s.Stype), s.Sident.ptr, tym_str(s.Stype.Tty));
     }
 
     bool anySlice = false;
@@ -383,6 +383,7 @@ if (1)
 
         const sz = type_size(s.Stype);
         if (sz != 2 * SLICESIZE ||
+            tyvector(s.Stype.Tty) ||            // SIMD types
             tyfv(s.Stype.Tty) || tybasic(s.Stype.Tty) == TYhptr)    // because there is no TYseg
         {
             if (log) printf(" can't because size or pointer type\n");
