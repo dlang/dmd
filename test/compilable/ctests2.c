@@ -120,3 +120,73 @@ void test22534(struct S22534 *const p)
 ;;;
 
 /*************************************************/
+// typeof()
+
+void testTypeof(void)
+{
+    // general declarations
+    short a;
+    _Static_assert(sizeof(a) == sizeof(short), "1");
+
+    typeof(a) b;
+    _Static_assert(sizeof(b) == sizeof(short), "2");
+
+    typeof(short) c;
+    _Static_assert(sizeof(c) == sizeof(short), "3");
+
+    typeof(a + 1) d;
+    _Static_assert(sizeof(d) == sizeof(int), "4"); // promoted
+
+    typeof(a += 1) e;
+    _Static_assert(sizeof(e) == sizeof(short), "5");
+
+    typeof(1, 1) f;
+    _Static_assert(sizeof(f) == sizeof(int), "6");
+
+    typeof(_Generic(1, default: 0)) g;
+    _Static_assert(sizeof(g) == sizeof(int), "7");
+
+    const typeof(a) h = (typeof(a))0;
+    _Static_assert(sizeof(h) == sizeof(short), "8");
+
+    typeof(const short) i = h;
+    _Static_assert(sizeof(i) == sizeof(short), "9");
+
+
+    // function parameters
+    typeof(a) fun(typeof(a), typeof(h));
+    fun(a, h);
+    _Static_assert(sizeof(fun(a, h)) == sizeof(short), "10");
+
+
+    // aggregate fields
+    struct Foo { typeof(a) x; };
+    typeof(((struct Foo){0}).x) fa;
+    _Static_assert(sizeof(fa) == sizeof(short), "11");
+
+
+    // typedefs
+    typedef short Bar;
+    Bar ta;
+    _Static_assert(sizeof(ta) == sizeof(short), "12");
+
+    typeof(ta) tb;
+    _Static_assert(sizeof(tb) == sizeof(short), "13");
+
+    typeof(Bar) tc;
+    _Static_assert(sizeof(tc) == sizeof(short), "14");
+
+
+    // pointers
+    typeof(&a) pa;
+    _Static_assert(sizeof(pa) == sizeof(void*), "15");
+
+    typeof(*pa) pb;
+    _Static_assert(sizeof(pb) == sizeof(short), "16");
+}
+
+short testTypeofA;
+const typeof(testTypeofA) testTypeofB = 0;
+_Static_assert(sizeof(testTypeofB) == sizeof(short), "17");
+
+/*************************************************/
