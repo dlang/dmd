@@ -1411,7 +1411,7 @@ extern (C++) abstract class Expression : ASTNode
 
         if (!f.isSafe() && !f.isTrusted())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
+            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafeCall(f))
             {
                 if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -1420,6 +1420,7 @@ extern (C++) abstract class Expression : ASTNode
                 error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                     prettyChars);
+                f.errorSupplementalInferredSafety(/*max depth*/ 10);
                 .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
 
                 checkOverridenDtor(sc, f, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
