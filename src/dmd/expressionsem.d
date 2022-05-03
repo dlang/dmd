@@ -2064,7 +2064,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ale.type = ale.type.nextOf().sarrayOf(ale.elements ? ale.elements.length : 0);
                     auto tmp = copyToTemp(0, "__arrayliteral_on_stack", ale);
                     auto declareTmp = new DeclarationExp(ale.loc, tmp);
-                    auto castToSlice = new CastExp(ale.loc, new VarExp(ale.loc, tmp), p.type);
+                    auto castToSlice = new CastExp(ale.loc, new VarExp(ale.loc, tmp),
+                        p.type.substWildTo(MODFlags.mutable));
                     arg = CommaExp.combine(declareTmp, castToSlice);
                     arg = arg.expressionSemantic(sc);
                 }

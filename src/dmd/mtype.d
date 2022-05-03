@@ -4375,8 +4375,6 @@ extern (C++) final class TypeFunction : TypeNext
     {
         //printf("parameterStorageClass(p: %s)\n", p.toChars());
         auto stc = p.storageClass;
-        if (global.params.useDIP1000 != FeatureState.enabled)
-            return stc;
 
         // When the preview switch is enable, `in` parameters are `scope`
         if (stc & STC.in_ && global.params.previewIn)
@@ -4441,7 +4439,12 @@ extern (C++) final class TypeFunction : TypeNext
         // Check escaping through return value
         Type tret = nextOf().toBasetype();
         if (isref || tret.hasPointers())
+        {
+            if (global.params.useDIP1000 != FeatureState.enabled)
+                return stc;
+
             return stc | STC.scope_ | STC.return_ | STC.returnScope;
+        }
         else
             return stc | STC.scope_;
     }
