@@ -59,7 +59,7 @@ struct SectionGroup
         return pbeg[0 .. pend - pbeg];
     }
 
-    @property inout(void[])[] gcRanges() inout nothrow @nogc
+    @property inout(void[])[] gcRanges() inout return nothrow @nogc
     {
         return _gcRanges[];
     }
