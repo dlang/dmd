@@ -614,9 +614,7 @@ public:
 
     FuncDeclarations *inlinedNestedCallees;
 
-private:
     AttributeViolation* safetyViolation;
-public:
 
     unsigned flags;                     // FUNCFLAGxxxxx
 

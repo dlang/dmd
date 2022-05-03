@@ -346,7 +346,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     /// In case of failed `@safe` inference, store the error that made the function `@system` for
     /// better diagnostics
-    private AttributeViolation* safetyViolation;
+    AttributeViolation* safetyViolation;
 
     /// Function flags: A collection of boolean packed for memory efficiency
     /// See the `FUNCFLAG` enum
@@ -1485,7 +1485,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             flags &= ~FUNCFLAG.safetyInprocess;
             type.toTypeFunction().trust = TRUST.system;
-            if (!gag && !safetyViolation && (fmt || arg0))
+            if (fmt || arg0)
                 safetyViolation = new AttributeViolation(loc, fmt, arg0, arg1);
 
             if (fes)
@@ -4411,7 +4411,7 @@ bool setUnsafe(Scope* sc,
 ///   that function might recursively also have a `AttributeViolation`. This way, in case
 ///   of a big call stack, the error can go down all the way to the root cause.
 ///   The `FunctionDeclaration` is then stored in `arg0` and `fmtStr` must be `null`.
-private struct AttributeViolation
+struct AttributeViolation
 {
     /// location of error
     Loc loc = Loc.init;
@@ -4427,21 +4427,25 @@ private struct AttributeViolation
 /// Params:
 ///   fd = function to check
 ///   maxDepth = up to how many functions deep to report errors
-void errorSupplementalInferredSafety(FuncDeclaration fd, int maxDepth)
+///   deprecation = print deprecations instead of errors
+void errorSupplementalInferredSafety(FuncDeclaration fd, int maxDepth, bool deprecation)
 {
+    auto errorFunc = deprecation ? &deprecationSupplemental : &errorSupplemental;
     if (auto s = fd.safetyViolation)
     {
         if (s.fmtStr)
         {
-            errorSupplemental(s.loc, "which was inferred `@system` because of:");
-            errorSupplemental(s.loc, s.fmtStr, s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "");
+            errorFunc(s.loc, deprecation ?
+                "which would be `@system` because of:" :
+                "which was inferred `@system` because of:");
+            errorFunc(s.loc, s.fmtStr, s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "");
         }
         else if (FuncDeclaration fd2 = cast(FuncDeclaration) s.arg0)
         {
             if (maxDepth > 0)
             {
-                errorSupplemental(s.loc, "which calls `%s`", fd2.toPrettyChars());
-                errorSupplementalInferredSafety(fd2, maxDepth - 1);
+                errorFunc(s.loc, "which calls `%s`", fd2.toPrettyChars());
+                errorSupplementalInferredSafety(fd2, maxDepth - 1, deprecation);
             }
         }
     }

@@ -278,7 +278,6 @@ class GotoCaseStatement;
 class GotoStatement;
 class ReturnStatement;
 class ScopeStatement;
-struct AttributeViolation;
 struct ObjcSelector;
 class PeelStatement;
 class CompoundStatement;
@@ -2726,6 +2725,27 @@ enum : int32_t { stageSearchPointers = 2 };
 
 enum : int32_t { stageToCBuffer = 32 };
 
+struct AttributeViolation final
+{
+    Loc loc;
+    const char* fmtStr;
+    RootObject* arg0;
+    RootObject* arg1;
+    AttributeViolation() :
+        loc(Loc(nullptr, 0u, 0u)),
+        fmtStr(nullptr),
+        arg0(nullptr),
+        arg1(nullptr)
+    {
+    }
+    AttributeViolation(Loc loc, const char* fmtStr = nullptr, RootObject* arg0 = nullptr, RootObject* arg1 = nullptr) :
+        loc(loc),
+        fmtStr(fmtStr),
+        arg0(arg0),
+        arg1(arg1)
+        {}
+};
+
 enum class ILS : uint8_t
 {
     uninitialized = 0u,
@@ -2831,9 +2851,7 @@ public:
     Array<VarDeclaration* > outerVars;
     Array<FuncDeclaration* > siblingCallers;
     Array<FuncDeclaration* >* inlinedNestedCallees;
-private:
     AttributeViolation* safetyViolation;
-public:
     uint32_t flags;
     ObjcFuncDeclaration objc;
     static FuncDeclaration* create(const Loc& loc, const Loc& endloc, Identifier* id, StorageClass storage_class, Type* type, bool noreturn = false);
@@ -4838,6 +4856,7 @@ struct ASTCodegen final
     using emplaceExp = ::emplaceExp;
     using fp2_t = ::fp2_t;
     using fp_t = ::fp_t;
+    using AttributeViolation = ::AttributeViolation;
     using BUILTIN = ::BUILTIN;
     using CtorDeclaration = ::CtorDeclaration;
     using DtorDeclaration = ::DtorDeclaration;
