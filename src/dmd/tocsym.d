@@ -276,7 +276,8 @@ Symbol *toSymbol(Dsymbol s)
             }
 
             mangle_t m = 0;
-            final switch (vd.linkage)
+            const linkage = vd.linkage == LINK.system ? target.systemLinkage() : vd.linkage;
+            final switch (linkage)
             {
                 case LINK.windows:
                     m = target.is64bit ? mTYman_c : mTYman_std;
