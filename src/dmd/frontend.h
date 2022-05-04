@@ -7809,7 +7809,7 @@ public:
     bool supportsLinkerDirective() const;
     Target() :
         os((OS)1u),
-        osMajor(),
+        osMajor(0u),
         ptrsize(),
         realsize(),
         realpad(),
