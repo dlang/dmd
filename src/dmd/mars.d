@@ -1256,6 +1256,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
                     case 10: predef("FreeBSD_10");  break;
                     case 11: predef("FreeBSD_11"); break;
                     case 12: predef("FreeBSD_12"); break;
+                    case 13: predef("FreeBSD_13"); break;
                     default: predef("FreeBSD_11"); break;
                 }
                 break;
