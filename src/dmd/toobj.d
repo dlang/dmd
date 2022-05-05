@@ -985,7 +985,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static mangle_t mangle(const VarDeclaration vd)
         {
-            final switch (vd.linkage)
+            const linkage = vd.linkage == LINK.system ? target.systemLinkage() : vd.linkage;
+            final switch (linkage)
             {
                 case LINK.windows:
                     return target.is64bit ? mTYman_c : mTYman_std;
