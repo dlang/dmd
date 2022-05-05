@@ -76,7 +76,7 @@ rebuild() {
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=${ENABLE_RELEASE:-1} ENABLE_WARNINGS=1 all
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} ENABLE_WARNINGS=1 all
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
