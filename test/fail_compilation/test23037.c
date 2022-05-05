@@ -12,9 +12,8 @@ fail_compilation/test23037.c(203): Error: type-specifier omitted before declarat
 fail_compilation/test23037.c(204): Error: type-specifier omitted for parameter `x`
 fail_compilation/test23037.c(205): Error: type-specifier omitted before bit field declaration of `x`
 fail_compilation/test23037.c(206): Error: no type-specifier for declarator
-fail_compilation/test23037.c(207): Error: no type-specifier for declarator
-fail_compilation/test23037.c(207): Error: found `;` when expecting `)`
-fail_compilation/test23037.c(208): Error: `=`, `;` or `,` expected to end declaration instead of `End of File`
+fail_compilation/test23037.c(206): Error: found `;` when expecting `)`
+fail_compilation/test23037.c(207): Error: `=`, `;` or `,` expected to end declaration instead of `const`
 ---
 */
 
@@ -37,5 +36,5 @@ struct { const : 1; } s1;
 struct { const x; } s2;
 void fn2(const x) {}
 struct { const x : 1; } s3;
-const arr[1];
 const fn3();
+const arr[1];
