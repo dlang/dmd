@@ -369,7 +369,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // Generate C symbols
             if (genclassinfo)
                 toSymbol(cd);                           // __ClassZ symbol
-            toVtblSymbol(cd);                           // __vtblZ symbol
+            toVtblSymbol(cd, genclassinfo);             // __vtblZ symbol
             Symbol *sinit = toInitializer(cd);          // __initZ symbol
 
             //////////////////////////////////////////////
@@ -459,13 +459,18 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (id.classKind == ClassKind.objc)
                 return;
 
+            const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
+            const bool genclassinfo = gentypeinfo || !(id.isCPPclass || id.isCOMclass);
+
+
             // Generate C symbols
-            toSymbol(id);
+            if (genclassinfo)
+                toSymbol(id);
 
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            if (global.params.useTypeInfo && Type.dtypeinfo)
+            if (gentypeinfo)
             {
                 genTypeInfo(id.loc, id.type, null);
                 id.type.vtinfo.accept(this);
@@ -473,7 +478,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             //////////////////////////////////////////////
 
-            genClassInfoForInterface(id);
+            if (genclassinfo)
+                genClassInfoForInterface(id);
         }
 
         override void visit(StructDeclaration sd)

@@ -789,6 +789,9 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     uint offset;
     if (cd)
     {
+        const bool gentypeinfo = global.params.useTypeInfo && Type.dtypeinfo;
+        const bool genclassinfo = gentypeinfo || !(cd.isCPPclass || cd.isCOMclass);
+
         if (ClassDeclaration cdb = cd.baseClass)
         {
             // Insert { base class }
@@ -801,7 +804,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         else if (InterfaceDeclaration id = cd.isInterfaceDeclaration())
         {
             offset = (**ppb).offset;
-            if (id.vtblInterfaces.dim == 0)
+            if (id.vtblInterfaces.dim == 0 && genclassinfo)
             {
                 BaseClass* b = **ppb;
                 //printf("  Interface %s, b = %p\n", id.toChars(), b);
@@ -833,7 +836,10 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         }
 
         // Interface vptr initializations
-        toSymbol(cd);                                         // define csym
+        if (genclassinfo)
+        {
+            toSymbol(cd);                                         // define csym
+        }
 
         BaseClass** pb;
         if (!ppb)
