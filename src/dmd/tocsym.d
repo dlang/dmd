@@ -276,8 +276,7 @@ Symbol *toSymbol(Dsymbol s)
             }
 
             mangle_t m = 0;
-            const linkage = vd.linkage == LINK.system ? target.systemLinkage() : vd.linkage;
-            final switch (linkage)
+            final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
                     m = target.is64bit ? mTYman_c : mTYman_std;
@@ -300,7 +299,7 @@ Symbol *toSymbol(Dsymbol s)
                 case LINK.default_:
                 case LINK.system:
                     printf("linkage = %d, vd = %s %s @ [%s]\n",
-                        vd.linkage, vd.kind(), vd.toChars(), vd.loc.toChars());
+                        vd._linkage, vd.kind(), vd.toChars(), vd.loc.toChars());
                     assert(0);
             }
 
@@ -370,8 +369,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else
             {
-                const l = fd.linkage == LINK.system ? target.systemLinkage() : fd.linkage;
-                final switch (l)
+                final switch (fd.resolvedLinkage())
                 {
                     case LINK.windows:
                         t.Tmangle = target.is64bit ? mTYman_c : mTYman_std;
@@ -404,7 +402,7 @@ Symbol *toSymbol(Dsymbol s)
                         break;
                     case LINK.default_:
                     case LINK.system:
-                        printf("linkage = %d\n", fd.linkage);
+                        printf("linkage = %d\n", fd._linkage);
                         assert(0);
                 }
             }

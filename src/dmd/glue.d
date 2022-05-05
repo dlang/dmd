@@ -772,8 +772,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             // functions without D or C++ name mangling mixed in at global scope
             // shouldn't have multiple definitions
-            if (p.isTemplateMixin() && (fd.linkage == LINK.c || fd.linkage == LINK.windows ||
-                fd.linkage == LINK.objc))
+            const linkage = fd.resolvedLinkage();
+            if (p.isTemplateMixin() && (linkage == LINK.c || linkage == LINK.windows ||
+                linkage == LINK.objc))
             {
                 const q = p.toParent();
                 if (q && q.isModule())
@@ -959,7 +960,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         pi++;
     }
 
-    if (target.isPOSIX && fd.linkage != LINK.d && shidden && sthis)
+    if (target.isPOSIX && fd._linkage != LINK.d && shidden && sthis)
     {
         /* swap shidden and sthis
          */

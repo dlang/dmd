@@ -867,7 +867,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
 
     // Build the field destructor (`ad.fieldDtor`), if needed.
     // If the user dtor is an extern(C++) prototype, then we expect it performs a full-destruction and skip building.
-    const bool dtorIsCppPrototype = ad.userDtors.dim && ad.userDtors[0].linkage == LINK.cpp && !ad.userDtors[0].fbody;
+    const bool dtorIsCppPrototype = ad.userDtors.dim && ad.userDtors[0]._linkage == LINK.cpp && !ad.userDtors[0].fbody;
     if (!dtorIsCppPrototype)
     {
         Expression e = null;
@@ -1019,7 +1019,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
 
     // Set/build `ad.dtor`.
     // On Windows, the dtor in the vtable is a shim with different signature.
-    ad.dtor = (ad.aggrDtor && ad.aggrDtor.linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
+    ad.dtor = (ad.aggrDtor && ad.aggrDtor._linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
         ? buildWindowsCppDtor(ad, ad.aggrDtor, sc)
         : ad.aggrDtor;
 
