@@ -601,10 +601,10 @@ alias dmdPGO = makeRule!((builder, rule) {
         .condition(() => PGOState.checkPGO(dmdKind))
         .deps([finalDataMerge])
         .commandFunction({
-            auto addArgs = pgoState.pgoUseFlags ~ "-wi";
-            auto cmd = [env["HOST_DMD_RUN"], "-run", "src/build.d", "ENABLE_RELEASE=1",
-            "ENABLE_LTO=1",
-            "DFLAGS="~joiner(addArgs, " ").to!string, "--force", "-j"~jobs.to!string];
+            const extraFlags = pgoState.pgoUseFlags ~ "-wi";
+            const scope cmd = [thisExePath, "HOST_DMD="~env["HOST_DMD_RUN"],
+                "ENABLE_RELEASE=1", "ENABLE_LTO=1", "DFLAGS="~extraFlags.join(" "),
+                "--force", "-j"~jobs.to!string];
             log("%-(%s %)", cmd);
             if (spawnProcess(cmd, null, Config.init).wait())
                 abortBuild("PGO Compilation failed");
