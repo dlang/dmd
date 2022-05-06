@@ -93,5 +93,7 @@ task:
     OS_NAME: freebsd
     HOST_DMD: dmd-2.079.0
     CI_DFLAGS: -version=TARGET_FREEBSD11
-  install_bash_and_git_script: pkg install -y bash git
+  install_bash_and_git_script: |
+    sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
+    pkg install -y bash git
   << : *COMMON_STEPS_TEMPLATE
