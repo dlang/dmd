@@ -5515,19 +5515,22 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
              regcon.params & mask(e.EV.Vsym.Spreg2) && e.EV.Voffset == REGSIZE) &&
             sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened
         {
-            reg = e.EV.Voffset ? e.EV.Vsym.Spreg2 : e.EV.Vsym.Spreg;
-            forregs = mask(reg);
+            const reg_t preg = e.EV.Voffset ? e.EV.Vsym.Spreg2 : e.EV.Vsym.Spreg;
+            const regm_t pregm = mask(preg);
 
-            if (debugr)
-                printf("%s.%d is fastpar and using register %s\n",
-                       e.EV.Vsym.Sident.ptr,
-                       cast(int)e.EV.Voffset,
-                       regm_str(forregs));
+            if (!(sz <= 2 && pregm & XMMREGS))   // no SIMD instructions to load 1 or 2 byte quantities
+            {
+                if (debugr)
+                    printf("%s.%d is fastpar and using register %s\n",
+                           e.EV.Vsym.Sident.ptr,
+                           cast(int)e.EV.Voffset,
+                           regm_str(pregm));
 
-            mfuncreg &= ~forregs;
-            regcon.used |= forregs;
-            fixresult(cdb,e,forregs,pretregs);
-            return;
+                mfuncreg &= ~pregm;
+                regcon.used |= pregm;
+                fixresult(cdb,e,pregm,pretregs);
+                return;
+            }
         }
 
         allocreg(cdb, &forregs, &reg, tym);            // allocate registers

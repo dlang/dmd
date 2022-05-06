@@ -2389,6 +2389,31 @@ void test23009()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=23077
+
+float test23077(float x)
+{
+    short i = *cast(short*)&x;
+    ++i;
+    return *cast(float*)&i; // this cast is not allowed in @safe code
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=23084
+
+short saturateSignedIntToSignedShort(int value)
+{
+    return cast(short) value;
+}
+
+__vector(int[4]) test23084(__vector(int[4]) a)
+{
+    __vector(short[8]) r;
+    r = saturateSignedIntToSignedShort(a.array[0]);
+    return cast(__vector(int[4]))r;
+}
+
+
+/*****************************************/
 
 int main()
 {
