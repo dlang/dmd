@@ -3051,16 +3051,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (auto pragmadecl = sc.inlining)
             funcdecl.inlining = pragmadecl.evalPragmaInline(sc);
 
-        // check pragma(crt_constructor)
-        if (funcdecl.flags & (FUNCFLAG.CRTCtor | FUNCFLAG.CRTDtor))
-        {
-            if (funcdecl.linkage != LINK.c)
-            {
-                funcdecl.error("must be `extern(C)` for `pragma(%s)`",
-                    (funcdecl.flags & FUNCFLAG.CRTCtor) ? "crt_constructor".ptr : "crt_destructor".ptr);
-            }
-        }
-
         funcdecl.visibility = sc.visibility;
         funcdecl.userAttribDecl = sc.userAttribDecl;
         UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl.linkage);
@@ -3247,6 +3237,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             tfo.trust = f.trust;
 
             funcdecl.storage_class &= ~(STC.TYPECTOR | STC.FUNCATTR);
+        }
+
+        // check pragma(crt_constructor) signature
+        if (funcdecl.flags & (FUNCFLAG.CRTCtor | FUNCFLAG.CRTDtor))
+        {
+            const idStr = (funcdecl.flags & FUNCFLAG.CRTCtor) ? "crt_constructor" : "crt_destructor";
+            if (f.nextOf().ty != Tvoid)
+                funcdecl.error("must return `void` for `pragma(%s)`", idStr.ptr);
+            if (funcdecl.linkage != LINK.c && f.parameterList.length != 0)
+                funcdecl.error("must be `extern(C)` for `pragma(%s)` when taking parameters", idStr.ptr);
         }
 
         if (funcdecl.overnext && funcdecl.isCsymbol())
