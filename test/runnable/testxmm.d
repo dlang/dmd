@@ -2398,6 +2398,15 @@ float test23077(float x)
     return *cast(float*)&i; // this cast is not allowed in @safe code
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=23085
+
+float test23085(float x)
+{
+    byte i = *cast(byte*)&x;
+    ++i;
+    return *cast(float*)&i; // this cast is not allowed in @safe code
+}
+
 // https://issues.dlang.org/show_bug.cgi?id=23084
 
 __vector(int[4]) test23084a(__vector(int[4] a) 
