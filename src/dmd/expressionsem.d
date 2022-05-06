@@ -7055,12 +7055,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (sc.func && !sc.intypeof)
+                    if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_))
                     {
-                        if (!(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
-                        {
-                            exp.error("`this` reference necessary to take address of member `%s` in `@safe` function `%s`", f.toChars(), sc.func.toChars());
-                        }
+                        sc.func.setUnsafe(false, exp.loc,
+                            "`this` reference necessary to take address of member `%s` in `@safe` function `%s`",
+                            f, sc.func);
                     }
                 }
             }
@@ -8385,10 +8384,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.e2.op == EXP.int64 && exp.e2.toInteger() == 0)
             {
             }
-            else if (sc.func && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+            else if (sc.func && !(sc.flags & SCOPE.debug_))
             {
-                exp.error("safe function `%s` cannot index pointer `%s`", sc.func.toPrettyChars(), exp.e1.toChars());
-                return setError();
+                if (sc.func.setUnsafe(false, exp.loc,
+                    "`@safe` function `%s` cannot index pointer `%s`", sc.func, exp.e1))
+                    return setError();
             }
             exp.type = (cast(TypeNext)t1b).next;
             break;
@@ -9767,10 +9767,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (t1n.toBasetype.ty == Tvoid && t2n.toBasetype.ty == Tvoid)
             {
-                if (!sc.intypeof && sc.func && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+                if (!sc.intypeof && sc.func && !(sc.flags & SCOPE.debug_))
                 {
-                    exp.error("cannot copy `void[]` to `void[]` in `@safe` code");
-                    return setError();
+                    if (sc.func.setUnsafe(false, exp.loc, "cannot copy `void[]` to `void[]` in `@safe` code"))
+                        return setError();
                 }
             }
         }
@@ -13258,10 +13258,9 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
         {
             if ((!stype.alignment.isDefault() && stype.alignment.get() < target.ptrsize ||
                  (v.offset & (target.ptrsize - 1))) &&
-                (sc.func && sc.func.setUnsafe()))
+                (sc.func && sc.func.setUnsafe(false, loc,
+                    "field `%s.%s` cannot assign to misaligned pointers in `@safe` code", sd, v)))
             {
-                .error(loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
-                       sd.toChars(), v.toChars());
                 return false;
             }
         }
