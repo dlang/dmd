@@ -732,6 +732,8 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
 
     version (Posix)
         global.preprocess = &preprocess;
+    version (Win64)
+        global.preprocess = &preprocess;
     return false;
 }
 /// Emit the makefile dependencies for the -makedeps switch
