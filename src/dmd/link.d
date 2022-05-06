@@ -26,6 +26,7 @@ import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
+import dmd.common.string;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
@@ -1057,13 +1058,61 @@ public int runPreprocessor(string cpp, const(char)[] filename, const(char)[] out
         Strings argv;
         if (target.objectFormat() == Target.ObjectFormat.coff)
         {
-            argv.push("cl".ptr);            // null terminated copy
-            argv.push("/P".ptr);            // preprocess only
-            argv.push("/nologo".ptr);       // don't print logo
-            argv.push(filename.xarraydup.ptr);   // and the input
-            argv.push(null);                     // argv[] always ends with a null
-            // spawnlp returns intptr_t in some systems, not int
-            return spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+            static if (1)
+            {
+                /* Run command, intercept stdout, remove first line that CL insists on emitting
+                 */
+                OutBuffer buf;
+                buf.printf("cl /P /nologo %.*s /Fi%.*s",
+                    cast(int)filename.length, filename.ptr, cast(int)output.length, output.ptr);
+
+                ubyte[2048] buffer = void;
+
+                bool firstLine = true;
+                void sink(ubyte[] data)
+                {
+                    if (firstLine)
+                    {
+                        for (size_t i = 0; 1; ++i)
+                        {
+                            if (i == data.length)
+                                return;
+                            if (data[i] == '\n')        // reached end of first line
+                            {
+                                data = data[i + 1 .. data.length];
+                                firstLine = false;
+                                break;
+                            }
+                        }
+                    }
+                    printf("%.*s", cast(int)data.length, data.ptr);
+                }
+
+                // Convert command to wchar
+                wchar[1024] scratch = void;
+                auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
+                auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
+
+                int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sink);
+                printf("\n");
+                return exitCode;
+            }
+            else
+            {
+                argv.push("cl".ptr);            // null terminated copy
+                argv.push("/P".ptr);            // preprocess only
+                argv.push("/nologo".ptr);       // don't print logo
+                argv.push(filename.xarraydup.ptr);   // and the input
+
+                OutBuffer buf;
+                buf.writestring("/Fi");       // https://docs.microsoft.com/en-us/cpp/build/reference/fi-preprocess-output-file-name?view=msvc-170
+                buf.writeString(output);
+                argv.push(buf.extractData()); // output file
+
+                argv.push(null);                     // argv[] always ends with a null
+                // spawnlp returns intptr_t in some systems, not int
+                return spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+            }
         }
         else if (target.objectFormat() == Target.ObjectFormat.omf)
         {
@@ -1118,4 +1167,115 @@ public int runPreprocessor(string cpp, const(char)[] filename, const(char)[] out
     {
         assert(0);
     }
+}
+
+/*********************************
+ * Run a command and intercept its stdout, which is redirected
+ * to sink().
+ * Params:
+ *      szCommand = command to run
+ *      buffer = buffer to collect stdout data to
+ *      sink = stdout data is sent to sink()
+ * Returns:
+ *      0 on success
+ * Reference:
+ *      Based on
+ *      https://github.com/dlang/visuald/blob/master/tools/pipedmd.d#L252
+ */
+version (Windows)
+int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delegate(ubyte[]) sink)
+{
+    import core.sys.windows.windows;
+    import core.sys.windows.wtypes;
+    import core.sys.windows.psapi;
+
+    //printf("runProcess() command: %ls\n", szCommand);
+    // Set the bInheritHandle flag so pipe handles are inherited.
+    SECURITY_ATTRIBUTES saAttr;
+    saAttr.nLength = SECURITY_ATTRIBUTES.sizeof;
+    saAttr.bInheritHandle = TRUE;
+    saAttr.lpSecurityDescriptor = null;
+
+    // Create a pipe for the child process's STDOUT.
+    HANDLE hStdOutRead;
+    HANDLE hStdOutWrite;
+    if ( !CreatePipe(&hStdOutRead, &hStdOutWrite, &saAttr, 0) )
+            assert(0);
+    // Ensure the read handle to the pipe for STDOUT is not inherited.
+    if ( !SetHandleInformation(hStdOutRead, HANDLE_FLAG_INHERIT, 0) )
+            assert(0);
+
+    // Another pipe
+    HANDLE hStdInRead;
+    HANDLE hStdInWrite;
+    if ( !CreatePipe(&hStdInRead, &hStdInWrite, &saAttr, 0) )
+            assert(0);
+    if ( !SetHandleInformation(hStdInWrite, HANDLE_FLAG_INHERIT, 0) )
+            assert(0);
+
+    // Set up members of the PROCESS_INFORMATION structure.
+    PROCESS_INFORMATION piProcInfo;
+    memset( &piProcInfo, 0, PROCESS_INFORMATION.sizeof );
+
+    // Set up members of the STARTUPINFO structure.
+    // This structure specifies the STDIN and STDOUT handles for redirection.
+    STARTUPINFOW siStartInfo;
+    memset( &siStartInfo, 0, STARTUPINFOW.sizeof );
+    siStartInfo.cb = STARTUPINFOW.sizeof;
+    siStartInfo.hStdError = hStdOutWrite;
+    siStartInfo.hStdOutput = hStdOutWrite;
+    siStartInfo.hStdInput = hStdInRead;
+    siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+    // https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+    BOOL bSuccess = CreateProcessW(null,
+                          cast(wchar*)szCommand,     // command line
+                          null,          // process security attributes
+                          null,          // primary thread security attributes
+                          TRUE,          // handles are inherited
+                          CREATE_SUSPENDED,             // creation flags
+                          null,          // use parent's environment
+                          null,          // use parent's current directory
+                          &siStartInfo,  // STARTUPINFO pointer
+                          &piProcInfo);  // receives PROCESS_INFORMATION
+
+    if (!bSuccess)
+    {
+        printf("failed launching %ls\n", cast(wchar*)szCommand); // https://issues.dlang.org/show_bug.cgi?id=21958
+        return 1;
+    }
+
+    ResumeThread(piProcInfo.hThread);
+
+    DWORD bytesFilled = 0;
+    DWORD bytesAvailable = 0;
+    DWORD bytesRead = 0;
+    DWORD exitCode = 0;
+
+    while (true)
+    {
+        DWORD dwlen = cast(DWORD)buffer.length;
+        bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
+        if (bSuccess && bytesRead > 0)
+            bSuccess = ReadFile(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, null);
+        if (bSuccess && bytesRead > 0)
+        {
+            sink(buffer[0 .. bytesRead]);
+        }
+
+        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
+        if (!bSuccess || exitCode != 259) //259 == STILL_ACTIVE
+        {
+            break;
+        }
+        Sleep(1);
+    }
+
+    // close the handles to the process
+    CloseHandle(hStdInWrite);
+    CloseHandle(hStdOutRead);
+    CloseHandle(piProcInfo.hProcess);
+    CloseHandle(piProcInfo.hThread);
+
+    return exitCode;
 }

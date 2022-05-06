@@ -17,9 +17,10 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.astenums;
+import dmd.errors;
 import dmd.globals;
 import dmd.link;
-import dmd.errors;
+import dmd.target;
 
 import dmd.common.outbuffer;
 
@@ -65,6 +66,21 @@ FileName preprocess(FileName csrcfile)
               there. To get the headers and sppn.exe, dmc will need to be installed on the test machines:
               http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
          */
+        if (target.objectFormat() == Target.ObjectFormat.coff)
+        {
+            const name = FileName.name(csrcfile.toString());
+            const ext = FileName.ext(name);
+            assert(ext);
+            const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
+            auto status = runPreprocessor("cl /P", csrcfile.toString(), ifilename);
+            if (status)
+            {
+                error(Loc.initial, "C preprocess failed for file %s, exit status %d\n", csrcfile.toChars(), status);
+                fatal();
+            }
+            //printf("C preprocess succeeded %s\n", ifilename.ptr);
+            return FileName(ifilename);
+        }
         return csrcfile;
     }
     else
