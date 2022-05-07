@@ -677,8 +677,7 @@ extern (C++) final class Module : Package
             FileName.equalsExt(srcfile.toString(), c_ext) &&
             FileName.exists(srcfile.toString()))
         {
-            filename = global.preprocess(srcfile);  // run C preprocessor
-            ifile = true;
+            filename = global.preprocess(srcfile, ifile);  // run C preprocessor
         }
 
         if (auto result = global.fileManager.lookup(filename))
