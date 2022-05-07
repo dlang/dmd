@@ -156,7 +156,7 @@ fail_compilation/retscope2.d(804): Error: scope variable `e` may not be thrown
 
 #line 800
 
-void foo800()
+void foo800() @safe
 {
     scope Exception e;
     throw e;
