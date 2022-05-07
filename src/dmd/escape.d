@@ -812,7 +812,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         if (!(va && va.isScope()))
             notMaybeScope(v);
 
-        if ((global.params.useDIP1000 != FeatureState.enabled && v.isReference()) || p != sc.func)
+        if (p != sc.func)
             continue;
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
