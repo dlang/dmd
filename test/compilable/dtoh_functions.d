@@ -79,6 +79,8 @@ extern size_t baz5(size_t x = 42);
 
 extern size_t& bazRef(size_t& x);
 
+extern size_t bazOut(size_t& x);
+
 enum class E : int64_t
 {
     m = 1LL,
@@ -215,6 +217,11 @@ extern (C++) size_t baz5(size_t x = 42)
 }
 
 extern (C++) ref size_t bazRef(return ref size_t x)
+{
+    return x;
+}
+
+extern (C++) size_t bazOut(out size_t x)
 {
     return x;
 }

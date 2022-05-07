@@ -2302,7 +2302,7 @@ public:
             this.forwarding = fwdStash;
         }
 
-        if (p.storageClass & AST.STC.ref_)
+        if (p.storageClass & (AST.STC.ref_ | AST.STC.out_))
             buf.writeByte('&');
         buf.writeByte(' ');
         if (ident)
