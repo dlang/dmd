@@ -1038,7 +1038,7 @@ public int runProgram()
  * Returns:
  *    exit status.
  */
-public int runPreprocessor(string cpp, const(char)[] filename, const(char)[] output)
+public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)[] output)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
     if (global.params.verbose)
