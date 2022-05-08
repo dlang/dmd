@@ -14,6 +14,7 @@
 module dmd.cpreprocess;
 
 import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.astenums;
@@ -21,6 +22,7 @@ import dmd.errors;
 import dmd.globals;
 import dmd.link;
 import dmd.target;
+import dmd.vsoptions;
 
 import dmd.common.outbuffer;
 
@@ -48,7 +50,7 @@ FileName preprocess(FileName csrcfile, out bool ifile)
         const ext = FileName.ext(name);
         assert(ext);
         const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
-        auto status = runPreprocessor("cpp", csrcfile.toString(), ifilename);
+        auto status = runPreprocessor(cppCommand(), csrcfile.toString(), ifilename);
         if (status)
         {
             error(Loc.initial, "C preprocess failed for file %s, exit status %d\n", csrcfile.toChars(), status);
@@ -74,7 +76,7 @@ FileName preprocess(FileName csrcfile, out bool ifile)
             const ext = FileName.ext(name);
             assert(ext);
             const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
-            auto status = runPreprocessor("cl /P", csrcfile.toString(), ifilename);
+            auto status = runPreprocessor(cppCommand(), csrcfile.toString(), ifilename);
             if (status)
             {
                 error(Loc.initial, "C preprocess failed for file %s, exit status %d\n", csrcfile.toChars(), status);
@@ -87,4 +89,25 @@ FileName preprocess(FileName csrcfile, out bool ifile)
     }
     else
         return csrcfile;        // no-op
+}
+
+private const(char)[] cppCommand()
+{
+    if (auto p = getenv("CPPCMD"))
+        return toDString(p);
+
+    version (Windows)
+    {
+        if (target.objectFormat() == Target.ObjectFormat.coff)
+        {
+            VSOptions vsopt;
+            vsopt.initialize();
+            auto path = vsopt.compilerPath(target.is64bit);
+            OutBuffer cmdbuf;
+            cmdbuf.writestring(path);
+            cmdbuf.writestring(r" /P");
+            return cmdbuf.extractSlice();
+        }
+    }
+    return "cpp";
 }

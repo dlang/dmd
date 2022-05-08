@@ -186,6 +186,26 @@ extern(C++) struct VSOptions
         return "link.exe";
     }
 
+    /**
+    * retrieve path to the Microsoft compiler executable
+    * Params:
+    *   x64 = target architecture (x86 if false)
+    * Returns:
+    *   absolute path to cl.exe, just "cl.exe" if not found
+    */
+    const(char)* compilerPath(bool x64)
+    {
+        const(char)* addpath;
+        if (auto p = getVCBinDir(x64, addpath))
+        {
+            OutBuffer cmdbuf;
+            cmdbuf.writestring(p);
+            cmdbuf.writestring(r"\cl.exe");
+            return cmdbuf.extractChars();
+        }
+        return "cl.exe";
+    }
+
 private:
     /**
      * detect WindowsSdkDir and WindowsSDKVersion from environment or registry
