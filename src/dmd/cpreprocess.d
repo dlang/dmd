@@ -50,10 +50,12 @@ FileName preprocess(FileName csrcfile, out bool ifile)
         const ext = FileName.ext(name);
         assert(ext);
         const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
-        auto status = runPreprocessor(cppCommand(), csrcfile.toString(), ifilename);
+        const command = cppCommand();
+        auto status = runPreprocessor(command, csrcfile.toString(), ifilename);
         if (status)
         {
-            error(Loc.initial, "C preprocess failed for file %s, exit status %d\n", csrcfile.toChars(), status);
+            error(Loc.initial, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                cast(int)command.length, command.ptr, csrcfile.toChars(), status);
             fatal();
         }
         ifile = true;
@@ -61,31 +63,26 @@ FileName preprocess(FileName csrcfile, out bool ifile)
     }
     else version (Windows)
     {
-        /* This actually works, but fails the test suite because:
-           1. For Microsoft's preprocessor, it insists on printing the filename it's preprocessing,
-              which causes all the fail_compilation tests to fail. Yes, even with /nologo.
-              cl.exe does not appear to have a "quiet" mode.
-           2. For Win32 with Digital Mars, the tests all fail because sppn.exe, the DMC preprocessor,
-              is not on the path. Even if it was, it would still fail because the DMC headers are not
-              there. To get the headers and sppn.exe, dmc will need to be installed on the test machines:
-              http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
+        /*
+           To get sppn.exe: http://ftp.digitalmars.com/sppn.zip
+           To get the dmc C headers, dmc will need to be installed:
+           http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
          */
-        if (target.objectFormat() == Target.ObjectFormat.coff)
+        const name = FileName.name(csrcfile.toString());
+        const ext = FileName.ext(name);
+        assert(ext);
+        const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
+        const command = cppCommand();
+        auto status = runPreprocessor(command, csrcfile.toString(), ifilename);
+        if (status)
         {
-            const name = FileName.name(csrcfile.toString());
-            const ext = FileName.ext(name);
-            assert(ext);
-            const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
-            auto status = runPreprocessor(cppCommand(), csrcfile.toString(), ifilename);
-            if (status)
-            {
-                error(Loc.initial, "C preprocess failed for file %s, exit status %d\n", csrcfile.toChars(), status);
-                fatal();
-            }
-            //printf("C preprocess succeeded %s\n", ifilename.ptr);
-            return FileName(ifilename);
+            error(Loc.initial, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                cast(int)command.length, command.ptr, csrcfile.toChars(), status);
+            fatal();
         }
-        return csrcfile;
+        //printf("C preprocess succeeded %s\n", ifilename.ptr);
+        ifile = true;
+        return FileName(ifilename);
     }
     else
         return csrcfile;        // no-op
@@ -107,6 +104,10 @@ private const(char)[] cppCommand()
             cmdbuf.writestring(path);
             cmdbuf.writestring(r" /P");
             return cmdbuf.extractSlice();
+        }
+        if (target.objectFormat() == Target.ObjectFormat.omf)
+        {
+            return "sppn.exe";
         }
     }
     return "cpp";

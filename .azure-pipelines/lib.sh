@@ -52,6 +52,8 @@ install_host_dmc() {
     if [ ! -f dm/README.TXT ]; then
         download "http://downloads.dlang.org/other/dm857c.zip" dmc.zip
         7z x dmc.zip > /dev/null
+        download "http://ftp.digitalmars.com/sppn.zip" sppn.zip
+        7z x -odm/bin sppn.zip > /dev/null
     fi
     dm/bin/dmc | head -n 1 || true
 }

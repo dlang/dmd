@@ -32,6 +32,7 @@ DM_MAKE="$PWD/dm/bin/make.exe"
 if [ "$MODEL" == "32omf" ] ; then
     CC="$PWD/dm/bin/dmc.exe"
     AR="$PWD/dm/bin/lib.exe"
+    export CPPCMD="$PWD/dm/bin/sppn.exe"
 else
     CC="$(where cl.exe)"
     AR="$(where lib.exe)" # must be done before installing dmd
