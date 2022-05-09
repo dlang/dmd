@@ -2531,6 +2531,16 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
         if (log) printf(" collision\n");
         return null;
     }
+    /*
+    Handle merging declarations with asm("foo") and their definitions
+    */
+    static void mangleWrangle(Declaration oldDecl, Declaration newDecl)
+    {
+        if (oldDecl && newDecl)
+        {
+            newDecl.mangleOverride = oldDecl.mangleOverride ? oldDecl.mangleOverride : null;
+        }
+    }
 
     auto vd = s.isVarDeclaration(); // new declaration
     auto vd2 = s2.isVarDeclaration(); // existing declaration
@@ -2547,6 +2557,8 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
 
         if (i1 && i2)
             return collision();         // can't both have initializers
+
+        mangleWrangle(vd2, vd);
 
         if (i1)                         // vd is the definition
         {
@@ -2592,6 +2604,8 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
 
         if (fd.fbody && fd2.fbody)
             return collision();         // can't both have bodies
+
+        mangleWrangle(fd2, fd);
 
         if (fd.fbody)                   // fd is the definition
         {
