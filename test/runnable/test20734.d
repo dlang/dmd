@@ -18,3 +18,11 @@ extern(C) int main() nothrow @nogc @safe
     (() @trusted { assert(numDtor == 2); })(); // stack-allocated array literal properly destructed
     return 0;
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=23098
+void f23098(scope inout(int)[] d) @safe {}
+
+void test23098() @safe
+{
+    f23098([10, 20]);
+}
