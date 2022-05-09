@@ -402,7 +402,7 @@ struct code
     }
 }
 
-extern (C) void code_print(code*);
+extern (C) void code_print(scope code*);
 
 /*******************
  * Some instructions.

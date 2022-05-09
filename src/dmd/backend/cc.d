@@ -1258,7 +1258,7 @@ struct Symbol
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
 
     int Salignsize()            // variables: return alignment
-    { return Symbol_Salignsize(&this); }
+    { return Symbol_Salignsize(this); }
 
     type* Stype;                // type of Symbol
     tym_t ty() const { return Stype.Tty; }
@@ -1447,10 +1447,10 @@ struct Symbol
     char[1] Sident;
 
     int needThis()              // !=0 if symbol needs a 'this' pointer
-    { return Symbol_needThis(&this); }
+    { return Symbol_needThis(this); }
 
     bool Sisdead(bool anyiasm)  // if variable is not referenced
-    { return Symbol_Sisdead(&this, anyiasm); }
+    { return Symbol_Sisdead(this, anyiasm); }
 }
 
 void symbol_debug(const Symbol* s)
@@ -1458,9 +1458,9 @@ void symbol_debug(const Symbol* s)
     debug assert(s.id == s.IDsymbol);
 }
 
-int Symbol_Salignsize(Symbol* s);
-bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm);
-int Symbol_needThis(const Symbol* s);
+int Symbol_Salignsize(ref Symbol s);
+bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm);
+int Symbol_needThis(const ref Symbol s);
 bool Symbol_isAffected(const ref Symbol s);
 
 bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
@@ -1588,11 +1588,11 @@ nothrow:
     { param_t_print_list(&this); }
 }
 
-void param_t_print(const param_t* p);
-void param_t_print_list(param_t* p);
-uint param_t_length(param_t* p);
-param_t *param_t_createTal(param_t* p, param_t *ptali);
-param_t *param_t_search(param_t* p, char *id);
+void param_t_print(const scope param_t* p);
+void param_t_print_list(scope param_t* p);
+uint param_t_length(scope param_t* p);
+param_t* param_t_createTal(scope param_t* p, param_t *ptali);
+param_t* param_t_search(scope param_t* p, char *id);
 int param_t_searchn(param_t* p, char *id);
 
 

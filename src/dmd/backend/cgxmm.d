@@ -1689,7 +1689,7 @@ bool xmmIsAligned(elem *e)
     {
         Symbol *s = e.EV.Vsym;
         const alignsz = tyalignsize(e.Ety);
-        if (Symbol_Salignsize(s) < alignsz ||
+        if (Symbol_Salignsize(*s) < alignsz ||
             e.EV.Voffset & (alignsz - 1) ||
             alignsz > STACKALIGN
            )

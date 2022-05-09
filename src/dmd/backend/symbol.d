@@ -176,7 +176,7 @@ void symbol_keep(Symbol *s)
  * Return alignment of symbol.
  */
 @trusted
-int Symbol_Salignsize(Symbol* s)
+int Symbol_Salignsize(ref Symbol s)
 {
     if (s.Salignment > 0)
         return s.Salignment;
@@ -204,7 +204,7 @@ int Symbol_Salignsize(Symbol* s)
  */
 
 @trusted
-bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
+bool Symbol_Sisdead(const ref Symbol s, bool anyInlineAsm)
 {
     version (MARS)
         enum vol = false;
@@ -231,11 +231,11 @@ bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
  */
 
 @trusted
-int Symbol_needThis(const Symbol* s)
+int Symbol_needThis(const ref Symbol s)
 {
     //printf("needThis() '%s'\n", Sident.ptr);
 
-    debug assert(isclassmember(s));
+    debug assert(isclassmember(&s));
 
     if (s.Sclass == SCmember || s.Sclass == SCfield)
         return 1;
