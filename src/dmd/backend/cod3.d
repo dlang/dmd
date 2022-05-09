@@ -4150,7 +4150,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
             }
         }
 
-        if (Symbol_Sisdead(s, anyiasm))
+        if (Symbol_Sisdead(*s, anyiasm))
         {
             // Ignore it, as it is never referenced
             continue;
@@ -5411,7 +5411,7 @@ void assignaddrc(code *c)
             case FLauto:
                 soff = Auto.size;
             L1:
-                if (Symbol_Sisdead(s, anyiasm))
+                if (Symbol_Sisdead(*s, anyiasm))
                 {
                     c.Iop = NOP;               // remove references to it
                     continue;
@@ -8171,7 +8171,7 @@ void WRcodlst(code *c)
 }
 
 @trusted
-extern (C) void code_print(code* c)
+extern (C) void code_print(scope code* c)
 {
     ubyte ins;
     ubyte rexb;

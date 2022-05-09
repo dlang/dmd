@@ -361,7 +361,7 @@ tryagain:
     {
         Symbol *s = globsym[i];
 
-        if (Symbol_Sisdead(s, anyiasm))
+        if (Symbol_Sisdead(*s, anyiasm))
             continue;
 
         switch (s.Sclass)
@@ -1230,8 +1230,8 @@ extern (C) int
     /* Largest align size goes furthest away from frame pointer,
      * so they get allocated first.
      */
-    uint alignsize1 = Symbol_Salignsize(s1);
-    uint alignsize2 = Symbol_Salignsize(s2);
+    uint alignsize1 = Symbol_Salignsize(*s1);
+    uint alignsize2 = Symbol_Salignsize(*s2);
     if (alignsize1 < alignsize2)
         return 1;
     else if (alignsize1 > alignsize2)
@@ -1314,7 +1314,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 
             default:
             Ldefault:
-                if (Symbol_Sisdead(s, anyiasm))
+                if (Symbol_Sisdead(*s, anyiasm))
                     continue;       // don't allocate space
                 break;
         }
@@ -1323,7 +1323,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
         if (sz == 0)
             sz++;               // can't handle 0 length structs
 
-        uint alignsize = Symbol_Salignsize(s);
+        uint alignsize = Symbol_Salignsize(*s);
         if (alignsize > STACKALIGN)
             alignsize = STACKALIGN;         // no point if the stack is less aligned
 
@@ -1429,7 +1429,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             if (sz == 0)
                 sz++;               // can't handle 0 length structs
 
-            uint alignsize = Symbol_Salignsize(s);
+            uint alignsize = Symbol_Salignsize(*s);
             if (alignsize > STACKALIGN)
                 alignsize = STACKALIGN;         // no point if the stack is less aligned
 

@@ -1344,7 +1344,7 @@ printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p.Pident,p.Ptype,p.Pelem,p.Pnext)
  */
 
 @trusted
-void param_t_print(const param_t* p)
+void param_t_print(const scope param_t* p)
 {
     printf("Pident=%p,Ptype=%p,Pelem=%p,Psym=%p,Pnext=%p\n",p.Pident,p.Ptype,p.Pelem,p.Psym,p.Pnext);
     if (p.Pident)
@@ -1369,7 +1369,7 @@ void param_t_print(const param_t* p)
     }
 }
 
-void param_t_print_list(param_t* p)
+void param_t_print_list(scope param_t* p)
 {
     for (; p; p = p.Pnext)
         p.print();
@@ -1577,7 +1577,7 @@ void param_free(param_t **pparamlst)
  * Compute number of parameters
  */
 
-uint param_t_length(param_t* p)
+uint param_t_length(scope param_t* p)
 {
     uint nparams = 0;
 
@@ -1594,7 +1594,7 @@ uint param_t_length(param_t* p)
  */
 
 @trusted
-param_t *param_t_createTal(param_t* p, param_t *ptali)
+param_t* param_t_createTal(scope param_t* p, param_t *ptali)
 {
 version (SCPP_HTOD)
 {
@@ -1647,7 +1647,7 @@ version (SCPP_HTOD)
  */
 
 @trusted
-param_t *param_t_search(param_t* p, char *id)
+param_t* param_t_search(scope param_t* p, char *id)
 {
     for (; p; p = p.Pnext)
     {
