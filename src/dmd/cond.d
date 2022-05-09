@@ -370,7 +370,7 @@ extern (C++) final class StaticForeach : RootObject
         Type ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
         auto aty = ety.arrayOf();
         auto idres = Identifier.generateId("__res");
-        auto vard = new VarDeclaration(aloc, aty, idres, null);
+        auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
         auto s2 = new Statements();
 
         // Run 'typeof' gagged to avoid duplicate errors and if it fails just create

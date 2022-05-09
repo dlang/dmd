@@ -1049,6 +1049,21 @@ public:
         if (exceptionOrCant(e))
             return;
 
+        /**
+         * Interpret `return a ~= b` (i.e. `return _d_arrayappendT{,Trace}(a, b)`) as:
+         *     a ~= b;
+         *     return a;
+         * This is needed because `a ~= b` has to be interpreted as an lvalue, in order to avoid
+         * assigning a larger array into a smaller one, such as:
+         *    `a = [1, 2], a ~= [3]` => `[1, 2] ~= [3]` => `[1, 2] = [1, 2, 3]`
+         */
+        if (isRuntimeHook(s.exp, Id._d_arrayappendT) || isRuntimeHook(s.exp, Id._d_arrayappendTTrace))
+        {
+            auto rs = new ReturnStatement(s.loc, e);
+            rs.accept(this);
+            return;
+        }
+
         // Disallow returning pointers to stack-allocated variables (bug 7876)
         if (!stopPointersEscaping(s.loc, e))
         {
@@ -4837,6 +4852,33 @@ public:
                 result = interpret(ce, istate);
                 return;
             }
+            else if (fd.ident == Id._d_arrayappendT || fd.ident == Id._d_arrayappendTTrace)
+            {
+                // In expressionsem.d `ea ~= eb` was lowered to `_d_arrayappendT{,Trace}({file, line, funcname}, ea, eb);`.
+                // The following code will rewrite it back to `ea ~= eb` and then interpret that expression.
+                Expression lhs, rhs;
+
+                if (fd.ident == Id._d_arrayappendT)
+                {
+                    assert(e.arguments.dim == 2);
+                    lhs = (*e.arguments)[0];
+                    rhs = (*e.arguments)[1];
+                }
+                else
+                {
+                    assert(e.arguments.dim == 5);
+                    lhs = (*e.arguments)[3];
+                    rhs = (*e.arguments)[4];
+                }
+
+                auto cae = new CatAssignExp(e.loc, lhs, rhs);
+                cae.type = e.type;
+
+                result = interpretRegion(cae, istate, CTFEGoal.LValue);
+                return;
+            }
+            else if (fd.ident == Id._d_arrayappendcTX)
+                assert(0, "CTFE cannot interpret _d_arrayappendcTX!");
         }
         else if (auto soe = ecall.isSymOffExp())
         {
@@ -4956,6 +4998,25 @@ public:
         debug (LOG)
         {
             printf("%s CommaExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+        }
+
+        if (auto ce = isRuntimeHook(e.e1, Id._d_arrayappendcTX))
+        {
+            // In expressionsem.d `arr ~= elem` was lowered to
+            // `_d_arrayappendcTX(arr, elem), arr[arr.length - 1] = elem, elem;`.
+            // The following code will rewrite it back to `arr ~= elem`
+            // and then interpret that expression.
+            assert(ce.arguments.dim == 2);
+
+            auto arr = (*ce.arguments)[0];
+            auto elem = e.e2.isConstructExp().e2;
+            assert(elem);
+
+            auto cae = new CatAssignExp(e.loc, arr, elem);
+            cae.type = arr.type;
+
+            result = interpret(cae, istate);
+            return;
         }
 
         // If it creates a variable, and there's no context for
@@ -6369,6 +6430,33 @@ public:
     override void visit(ThrownExceptionExp e)
     {
         assert(0); // This should never be interpreted
+    }
+
+    /*********************************************
+     * Checks if the given expresion is a call to the runtime hook `id`.
+     * Params:
+     *    e = the expression to check
+     *    id = the identifier of the runtime hook
+     * Returns:
+     *    `e` cast to `CallExp` if it's the hook, `null` otherwise
+     */
+    private CallExp isRuntimeHook(Expression e, Identifier id)
+    {
+        if (auto ce = e.isCallExp())
+        {
+            if (auto ve = ce.e1.isVarExp())
+            {
+                if (auto fd = ve.var.isFuncDeclaration())
+                {
+                    // If `_d_HookTraceImpl` is found, resolve the underlying
+                    // hook and replace `e` and `fd` with it.
+                    removeHookTraceImpl(ce, fd);
+                    return fd.ident == id ? ce : null;
+                }
+            }
+        }
+
+        return null;
     }
 }
 
