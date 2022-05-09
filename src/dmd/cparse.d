@@ -1700,7 +1700,7 @@ final class CParser(AST) : Parser!AST
         while (1)
         {
             Identifier id;
-            AST.Expression asmname;
+            AST.StringExp asmName;
             auto dt = cparseDeclarator(DTR.xdirect, tspec, id, specifier);
             if (!dt)
             {
@@ -1722,7 +1722,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.asm_:
                 case TOK.__attribute__:
                     if (token.value == TOK.asm_)
-                        asmname = cparseSimpleAsmExpr();
+                        asmName = cparseSimpleAsmExpr();
                     if (token.value == TOK.__attribute__)
                     {
                         cparseGnuAttributes(specifier);
@@ -1879,14 +1879,26 @@ final class CParser(AST) : Parser!AST
                     s = new AST.LinkDeclaration(s.loc, linkage, decls);
                 }
                 // Saw `asm("name")` in the function, type, or variable definition.
-                // This maps directly to `pragma(mangle, "name")`
-                if (asmname)
+                // This is equivalent to `pragma(mangle, "name")` in D
+                if (asmName)
                 {
-                    auto args = new AST.Expressions(1);
-                    (*args)[0] = asmname;
-                    auto decls = new AST.Dsymbols(1);
-                    (*decls)[0] = s;
-                    s = new AST.PragmaDeclaration(asmname.loc, Id.mangle, args, decls);
+                    /*
+                    https://issues.dlang.org/show_bug.cgi?id=23012
+                    Ideally this would be translated to a pragma(mangle)
+                    decl. This is not possible because ImportC symbols are
+                    (currently) merged before semantic analysis is performed,
+                    so the pragma(mangle) never effects any change on the declarations
+                    it pertains too.
+
+                    Writing to mangleOverride directly avoids this, and is possible
+                    because C only a StringExp is allowed unlike a full fat pragma(mangle)
+                    which is more liberal.
+                    */
+                    if (auto p = s.isDeclaration())
+                    {
+                        auto str = asmName.peekString();
+                        p.mangleOverride = str;
+                    }
                 }
                 symbols.push(s);
             }
@@ -3065,7 +3077,7 @@ final class CParser(AST) : Parser!AST
      * asm-string-literal:
      *   string-literal
      */
-    private AST.Expression cparseSimpleAsmExpr()
+    private AST.StringExp cparseSimpleAsmExpr()
     {
         nextToken();     // move past asm
         check(TOK.leftParenthesis);
@@ -3073,7 +3085,7 @@ final class CParser(AST) : Parser!AST
             error("string literal expected");
         auto label = cparsePrimaryExp();
         check(TOK.rightParenthesis);
-        return label;
+        return cast(AST.StringExp) label;
     }
 
     /*************************
