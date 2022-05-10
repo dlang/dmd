@@ -1305,7 +1305,7 @@ elem* toElem(Expression e, IRState *irs)
         }
         else
         {
-            ne.error("Internal Compiler Error: cannot new type `%s`\n", t.toChars());
+            ne.error("internal compiler error: cannot new type `%s`\n", t.toChars());
             assert(0);
         }
 
