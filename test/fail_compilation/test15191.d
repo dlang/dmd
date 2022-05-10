@@ -5,7 +5,7 @@ fail_compilation/test15191.d(34): Error: returning `&identity(x)` escapes a refe
 fail_compilation/test15191.d(40): Error: returning `&identityPtr(x)` escapes a reference to local variable `x`
 fail_compilation/test15191.d(46): Error: returning `&identityPtr(x)` escapes a reference to local variable `x`
 fail_compilation/test15191.d(67): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
-fail_compilation/test15191.d(68): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
+fail_compilation/test15191.d(69): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
 ---
 */
 
@@ -64,8 +64,9 @@ int*[] sliceOfRefEscape()
 {
 	int stackVar = 0xFF;
 	scope int*[1] x = [&stackVar];
-	int*[] y = identityArr(x)[];
-	return identityArr(x)[];
+	auto y = identityArr(x)[]; // check transitive scope in assignment
+	cast(void) y;
+	return identityArr(x)[]; // check transitive scope in return statement
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=23079

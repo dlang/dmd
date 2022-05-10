@@ -305,7 +305,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
     if (parStc & STC.scope_)
     {
         // These errors only apply to non-scope parameters
-        // When the paraneter is `scope`, only `checkTransitiveScope` on `er.byref` is needed
+        // When the paraneter is `scope`, only `checkScopeVarAddr` on `er.byref` is needed
         er.byfunc.setDim(0);
         er.byvalue.setDim(0);
         er.byexp.setDim(0);
@@ -379,7 +379,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC
         Dsymbol p = v.toParent2();
 
         notMaybeScope(v);
-        if (checkTransitiveScope(v, arg, sc, gag))
+        if (checkScopeVarAddr(v, arg, sc, gag))
         {
             result = true;
             continue;
@@ -767,7 +767,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         if (v.isDataseg())
             continue;
 
-        if (checkTransitiveScope(v, ae, sc, gag))
+        if (checkScopeVarAddr(v, ae, sc, gag))
         {
             result = true;
             continue;
@@ -1303,7 +1303,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             if (sc.func.vthis == v)
                 notMaybeScope(v);
 
-            if (checkTransitiveScope(v, e, sc, gag))
+            if (checkScopeVarAddr(v, e, sc, gag))
             {
                 result = true;
                 continue;
@@ -2463,7 +2463,7 @@ private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg, Ro
 }
 
 /***************************************
- * Check that taking the address of `v` is `@safe` because of transitive scope.
+ * Check that taking the address of `v` is `@safe`
  *
  * It's not possible to take the address of a scope variable, because `scope` only applies
  * to the top level indirection.
@@ -2476,23 +2476,22 @@ private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg, Ro
  * Returns:
  *     true if taking the address of `v` is problematic because of the lack of transitive `scope`
  */
-private bool checkTransitiveScope(VarDeclaration v, Expression e, Scope* sc, bool gag)
+private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool gag)
 {
-    if (!(v.storage_class & STC.temp) && v.isScope())
-    {
-        if (!e.type)
-            return false;
+    if (!e.type)
+        return false;
 
-        Type t = e.type.baseElemOf();
-        if (t.ty == Tarray || t.ty == Tpointer)
-        {
-            if (!t.nextOf().toBasetype().hasPointers())
-                return false;
-        }
+    if ((v.storage_class & STC.temp) || !v.isScope())
+        return false;
 
-        // take address of `scope` variable not allowed, requires transitive scope
-        return sc.setUnsafeDIP1000(gag, e.loc,
-            "cannot take address of `scope` variable `%s` since `scope` applies to first indirection only", v);
-    }
-    return false;
+    // When the type after dereferencing has no pointers, it's okay.
+    // Comes up when escaping `&someStruct.intMember` of a `scope` struct:
+    // scope does not apply to the `int`
+    Type t = e.type.baseElemOf();
+    if ((t.ty == Tarray || t.ty == Tpointer) && !t.nextOf().toBasetype().hasPointers())
+        return false;
+
+    // take address of `scope` variable not allowed, requires transitive scope
+    return sc.setUnsafeDIP1000(gag, e.loc,
+        "cannot take address of `scope` variable `%s` since `scope` applies to first indirection only", v);
 }
