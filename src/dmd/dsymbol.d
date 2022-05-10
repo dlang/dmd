@@ -984,7 +984,7 @@ extern (C++) class Dsymbol : ASTNode
      */
     uinteger_t size(const ref Loc loc)
     {
-        error("Dsymbol `%s` has no size", toChars());
+        error("symbol `%s` has no size", toChars());
         return SIZE_INVALID;
     }
 

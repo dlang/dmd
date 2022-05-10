@@ -722,7 +722,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // The deprecation period is longer than usual as `body`
                     // was quite widely used.
                     if (tk.value == TOK.identifier && tk.ident == Id._body)
-                        deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                        deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
 
                     a = parseDeclarations(true, pAttrs, pAttrs.comment);
                     if (a && a.dim)
@@ -4432,7 +4432,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // The deprecation period is longer than usual as `body`
                     // was quite widely used.
                     if (tk.value == TOK.identifier && tk.ident == Id._body)
-                        deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                        deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
 
                     ts = null;
                 }
@@ -4862,7 +4862,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     if (udas !is null)
                     {
                         if (storage_class != 0)
-                            error("Cannot put a storage-class in an alias declaration.");
+                            error("cannot put a storage-class in an alias declaration.");
                         // parseAttributes shouldn't have set these variables
                         assert(link == linkage && !setAlignment && ealign is null);
                         auto tpl_ = cast(AST.TemplateDeclaration) s;
@@ -5070,7 +5070,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             check(TOK.goesTo);
             if (token.value == TOK.leftCurly)
             {
-                deprecation("Using `(args) => { ... }` to create a delegate that returns a delegate is error-prone.");
+                deprecation("using `(args) => { ... }` to create a delegate that returns a delegate is error-prone.");
                 deprecationSupplemental(token.loc, "Use `(args) { ... }` for a multi-statement function literal or use `(args) => () { }` if you intended for the lambda to return a delegate.");
             }
             const returnloc = token.loc;
@@ -5136,7 +5136,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 // Deprecated in 2.097 - Can be removed from 2.117
                 // The deprecation period is longer than usual as `body`
                 // was quite widely used.
-                deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
                 goto case TOK.do_;
             }
             goto default;
@@ -7462,7 +7462,7 @@ LagainStc:
                     // Deprecated in 2.097 - Can be removed from 2.117
                     // The deprecation period is longer than usual as `body`
                     // was quite widely used.
-                    deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    deprecation("usage of the `body` keyword is deprecated. Use `do` instead.");
                     goto case TOK.do_;
                 }
                 goto default;
@@ -8062,7 +8062,7 @@ LagainStc:
                             postfix = token.postfix;
                         }
 
-                        error("Implicit string concatenation is error-prone and disallowed in D");
+                        error("implicit string concatenation is error-prone and disallowed in D");
                         errorSupplemental(token.loc, "Use the explicit syntax instead " ~
                              "(concatenating literals is `@nogc`): %s ~ %s",
                              prev.toChars(), token.toChars());

@@ -3554,13 +3554,13 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (!global.params.useExceptions)
         {
-            tcs.error("Cannot use try-catch statements with -betterC");
+            tcs.error("cannot use try-catch statements with -betterC");
             return setError();
         }
 
         if (!ClassDeclaration.throwable)
         {
-            tcs.error("Cannot use try-catch statements because `object.Throwable` was not declared");
+            tcs.error("cannot use try-catch statements because `object.Throwable` was not declared");
             return setError();
         }
 
@@ -3762,13 +3762,13 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     {
         if (!global.params.useExceptions)
         {
-            loc.error("Cannot use `throw` statements with -betterC");
+            loc.error("cannot use `throw` statements with -betterC");
             return false;
         }
 
         if (!ClassDeclaration.throwable)
         {
-            loc.error("Cannot use `throw` statements because `object.Throwable` was not declared");
+            loc.error("cannot use `throw` statements because `object.Throwable` was not declared");
             return false;
         }
 

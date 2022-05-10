@@ -4091,7 +4091,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // copy constructor exists and issue an error in that case.
             if (!(param.storageClass & STC.ref_) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
             {
-                .error(ctd.loc, "Cannot define both an rvalue constructor and a copy constructor for `struct %s`", sd.toChars);
+                .error(ctd.loc, "cannot define both an rvalue constructor and a copy constructor for `struct %s`", sd.toChars);
                 .errorSupplemental(ti.loc, "Template instance `%s` creates a rvalue constructor for `struct %s`",
                         ti.toChars(), sd.toChars());
             }

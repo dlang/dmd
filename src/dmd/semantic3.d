@@ -1053,7 +1053,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         {
                             if (!v._init)
                             {
-                                v.error("Zero-length `out` parameters are not allowed.");
+                                v.error("zero-length `out` parameters are not allowed.");
                                 return;
                             }
                             ExpInitializer ie = v._init.isExpInitializer();
