@@ -1249,16 +1249,18 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         // 'featureState' tells us whether to emit an error or a deprecation,
         // depending on the flag passed to the CLI for DIP25
-        void escapingRef(VarDeclaration v, ScopeRef vsr, FeatureState featureState = FeatureState.enabled)
+        void escapingRef(VarDeclaration v, FeatureState featureState)
         {
-            if (!gag)
-            {
-                const(char)* varKind = v.isParameter() ? "parameter" : "local variable";
-                previewErrorFunc(sc.isDeprecated(), featureState)(e.loc,
-                    "returning `%s` escapes a reference to %s `%s`", e.toChars(), varKind, v.toChars());
+            const(char)* msg = v.isParameter() ?
+                "returning `%s` escapes a reference to parameter `%s`" :
+                "returning `%s` escapes a reference to local variable `%s`";
 
-                if (v.isParameter() && v.isReference())
+            if (v.isParameter() && v.isReference())
+            {
+                if (sc.setUnsafePreview(featureState, gag, e.loc, msg, e, v) ||
+                    sc.func.isSafeBypassingInference())
                 {
+                    result = true;
                     if (v.storage_class & STC.returnScope)
                     {
                         previewSupplementalFunc(sc.isDeprecated(), featureState)(v.loc,
@@ -1272,7 +1274,12 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     }
                 }
             }
-            result = true;
+            else
+            {
+                if (!gag)
+                    previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), v.toChars());
+                result = true;
+            }
         }
 
         if (v.isDataseg())
@@ -1290,7 +1297,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         {
             if (p == sc.func)
             {
-                escapingRef(v, vsr, FeatureState.enabled);
+                escapingRef(v, FeatureState.enabled);
                 continue;
             }
             FuncDeclaration fd = p.isFuncDeclaration();
@@ -1331,7 +1338,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v, vsr, global.params.useDIP25);
+                    escapingRef(v, global.params.useDIP25);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -2393,7 +2400,7 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
 }
 
 /***************************************
- * Like `FuncDeclaration.setUnsafe`, but modified for the -preview=dip1000 by default transition
+ * Like `FuncDeclaration.setUnsafe`, but modified for dip25 / dip1000 by default transitions
  *
  * With `-preview=dip1000` it actually sets the function as unsafe / prints an error, while
  * without it, it only prints a deprecation in a `@safe` function.
@@ -2401,6 +2408,7 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
  *
  * Params:
  *   sc = used for checking whether we are in a deprecated scope
+ *   fs = command line setting of dip1000 / dip25
  *   gag = surpress error message
  *   loc = location of error
  *   fmt = printf-style format string
@@ -2408,13 +2416,13 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
  *   arg1  = (optional) argument for second %s format specifier
  * Returns: whether an actual safe error (not deprecation) occured
  */
-private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg, RootObject arg0 = null, RootObject arg1 = null)
+private bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* msg, RootObject arg0 = null, RootObject arg1 = null)
 {
-    if (global.params.useDIP1000 == FeatureState.disabled)
+    if (fs == FeatureState.disabled)
     {
         return false;
     }
-    else if (global.params.useDIP1000 == FeatureState.enabled)
+    else if (fs == FeatureState.enabled)
     {
         return sc.func.setUnsafe(gag, loc, msg, arg0, arg1);
     }
@@ -2423,10 +2431,16 @@ private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg, Ro
         if (sc.func.isSafeBypassingInference())
         {
             if (!gag)
-                previewErrorFunc(sc.isDeprecated(), global.params.useDIP1000)(
+                previewErrorFunc(sc.isDeprecated(), fs)(
                     loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : ""
                 );
         }
         return false;
     }
+}
+
+// `setUnsafePreview` partially evaluated for dip1000
+private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg, RootObject arg0 = null, RootObject arg1 = null)
+{
+    return setUnsafePreview(sc, global.params.useDIP1000, gag, loc, msg, arg0, arg1);
 }
