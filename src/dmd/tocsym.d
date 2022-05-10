@@ -573,11 +573,11 @@ Classsym *fake_classsym(Identifier id)
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
 
-Symbol *toVtblSymbol(ClassDeclaration cd)
+Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
 {
     if (!cd.vtblsym || !cd.vtblsym.csym)
     {
-        if (!cd.csym)
+        if (!cd.csym && genCsymbol)
             toSymbol(cd);
 
         auto t = type_allocn(TYnptr | mTYconst, tstypes[TYvoid]);
