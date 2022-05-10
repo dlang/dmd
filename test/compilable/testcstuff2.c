@@ -684,3 +684,16 @@ int main(argc, argv)
 {
         return 0;
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=23018
+
+int xs[1];
+struct { int x; } s, *sp;
+int fn(void);
+int i;
+
+ _Static_assert( sizeof (xs)[0] == sizeof(int), "" );
+ _Static_assert( sizeof (sp)->x == sizeof(int), "" );
+_Static_assert( sizeof (s).x == sizeof(int), "" );
+_Static_assert( sizeof (fn)() == sizeof(int), "" );
+_Static_assert( sizeof (i)++ == sizeof(int), "" );
