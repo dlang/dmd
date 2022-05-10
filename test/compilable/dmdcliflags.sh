@@ -24,7 +24,7 @@ for w in "check=?" "check=h" "check=help" ; do
 done
 
 output="$(! $DMD -check=foo 2>&1)"
-echo "$output" | grep "Error: Switch \`-check=foo\` is invalid"
+echo "$output" | grep "Error: switch \`-check=foo\` is invalid"
 echo "$output" | grep "Enable or disable specific checks:"
 echo "$output" | grep "=on                   Enable all assertion checking"
 
@@ -49,7 +49,7 @@ for w in "checkaction=?" "checkaction=h" "checkaction=help" ; do
 done
 
 output="$(! $DMD -checkaction=foo 2>&1)"
-echo "$output" | grep "Error: Switch \`-checkaction=foo\` is invalid"
+echo "$output" | grep "Error: switch \`-checkaction=foo\` is invalid"
 echo "$output" | grep "Behavior on assert/boundscheck/finalswitch failure:"
 echo "$output" | grep "=D             Usual D behavior of throwing an AssertError"
 
@@ -74,7 +74,7 @@ for w in "mcpu=?" "mcpu=h" "mcpu=help" ; do
 done
 
 output="$(! $DMD -mcpu=foo 2>&1)"
-echo "$output" | grep "Error: Switch \`-mcpu=foo\` is invalid"
+echo "$output" | grep "Error: switch \`-mcpu=foo\` is invalid"
 echo "$output" | grep "CPU architectures supported by -mcpu=id:"
 echo "$output" | grep "=avx           use AVX 1 instructions"
 
@@ -97,11 +97,11 @@ for w in "transition=?" "transition=h" "transition=help" ; do
 done
 
 output="$(! $DMD -transition=foo 2>&1)"
-echo "$output" | grep "Error: Transition \`-transition=foo\` is invalid"
+echo "$output" | grep "Error: transition \`-transition=foo\` is invalid"
 echo "$output" | grep "Language transitions listed by -transition=name:"
 
 output="$(! $DMD -transition=123 2>&1)"
-echo "$output" | grep "Error: Transition \`-transition=123\` is invalid"
+echo "$output" | grep "Error: transition \`-transition=123\` is invalid"
 echo "$output" | grep "Language transitions listed by -transition=name:"
 
 output="$(! $DMD -transitionf 2>&1)"
@@ -112,7 +112,7 @@ echo "$output" |  grep "Error: unrecognized switch '-transitionf'"
 ################################################################################
 
 output="$(! $DMD -color=foo 2>&1)"
-echo "$output" | grep "Error: Switch \`-color=foo\` is invalid"
+echo "$output" | grep "Error: switch \`-color=foo\` is invalid"
 echo "$output" | grep "Available options for \`-color\` are \`on\`, \`off\` and \`auto\`"
 
 ################################################################################
@@ -133,7 +133,7 @@ for w in "extern-std=?" "extern-std=h" "extern-std=help" ; do
 done
 
 output="$(! $DMD -extern-std=foo 2>&1)"
-echo "$output" | grep "Error: Switch \`-extern-std=foo\` is invalid"
+echo "$output" | grep "Error: switch \`-extern-std=foo\` is invalid"
 echo "$output" | grep "Available C++ standards:"
 echo "$output" | grep "=c++98                Sets \`__traits(getTargetInfo, \"cppStd\")\` to \`199711\`"
 
@@ -142,7 +142,7 @@ echo "$output" | grep "=c++98                Sets \`__traits(getTargetInfo, \"cp
 ################################################################################
 
 output="$(! $DMD -profile=foo 2>&1)"
-echo "$output" | grep "Error: Switch \`-profile=foo\` is invalid"
+echo "$output" | grep "Error: switch \`-profile=foo\` is invalid"
 echo "$output" | grep "Only \`gc\` is allowed for \`-profile\`"
 
 ################################################################################
@@ -150,7 +150,7 @@ echo "$output" | grep "Only \`gc\` is allowed for \`-profile\`"
 ################################################################################
 
 output="$(! $DMD -cov=foo 2>&1)"
-echo "$output" | grep "Error: Switch \`-cov=foo\` is invalid"
+echo "$output" | grep "Error: switch \`-cov=foo\` is invalid"
 echo "$output" | grep "Only a number between 0 and 100 can be passed to \`-cov=<num>\`"
 
 ################################################################################
@@ -158,5 +158,5 @@ echo "$output" | grep "Only a number between 0 and 100 can be passed to \`-cov=<
 ################################################################################
 
 output="$(! $DMD -verrors=foo 2>&1)"
-echo "$output" | grep "Error: Switch \`-verrors=foo\` is invalid"
+echo "$output" | grep "Error: switch \`-verrors=foo\` is invalid"
 echo "$output" | grep "Only number, \`spec\`, or \`context\` are allowed for \`-verrors\`"

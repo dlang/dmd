@@ -1276,7 +1276,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     // @@@DEPRECATED_2.105@@@
                     // When turning into error, uncomment the return statement
                     TypeFunction tf = fd.type.isTypeFunction();
-                    deprecation(loc, "Function `%s` of type `%s` is not accessible from module `%s`",
+                    deprecation(loc, "function `%s` of type `%s` is not accessible from module `%s`",
                                 fd.toPrettyChars(), tf.toChars, sc._module.toChars);
                     //return ErrorExp.get();
                 }
@@ -1298,7 +1298,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     {
                         // @@@DEPRECATED_2.105@@@
                         // When turning into error, uncomment the return statement
-                        deprecation(loc, "Function `%s` of type `%s` is not accessible from module `%s`",
+                        deprecation(loc, "function `%s` of type `%s` is not accessible from module `%s`",
                                     fd.toPrettyChars(), tf.toChars, sc._module.toChars);
                         //return ErrorExp.get();
                     }
@@ -5394,7 +5394,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (tb.toDsymbol(sc).isClassDeclaration().classKind == ClassKind.cpp)
             {
-                error(exp.loc, "Runtime type information is not supported for `extern(C++)` classes");
+                error(exp.loc, "runtime type information is not supported for `extern(C++)` classes");
                 e = ErrorExp.get();
             }
             else if (!Type.typeinfoclass)
@@ -8208,7 +8208,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             discardValue(e.e1);
         }
         else if (!e.allowCommaExp && !e.isGenerated)
-            e.error("Using the result of a comma expression is not allowed");
+            e.error("using the result of a comma expression is not allowed");
     }
 
     override void visit(IntervalExp e)
@@ -8703,7 +8703,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (auto e2comma = exp.e2.isCommaExp())
         {
             if (!e2comma.isGenerated && !(sc.flags & SCOPE.Cfile))
-                exp.error("Using the result of a comma expression is not allowed");
+                exp.error("using the result of a comma expression is not allowed");
 
             /* Rewrite to get rid of the comma from rvalue
              *   e1=(e0,e2) => e0,(e1=e2)
@@ -11772,7 +11772,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto t1 = exp.e1.type;
             auto t2 = exp.e2.type;
             if (t1.ty == Tenum && t2.ty == Tenum && !t1.equivalent(t2))
-                exp.error("Comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
+                exp.error("comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
                     t1.toChars(), t2.toChars());
         }
 

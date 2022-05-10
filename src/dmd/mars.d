@@ -1434,7 +1434,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
      */
     void errorInvalidSwitch(const(char)* p, string availableOptions = null)
     {
-        error("Switch `%s` is invalid", p);
+        error("switch `%s` is invalid", p);
         if (availableOptions !is null)
             errorSupplemental(Loc.initial, "%.*s", cast(int)availableOptions.length, availableOptions.ptr);
     }
@@ -1991,7 +1991,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.cplusplus = CppStdRevision.cpp20;
                 break;
             default:
-                error("Switch `%s` is invalid", p);
+                error("switch `%s` is invalid", p);
                 params.externStdUsage = true;
                 return false;
             }
@@ -2029,7 +2029,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             deprecation(Loc.initial, "`-transition=16997` is now the default behavior");
                             break;
                         default:
-                            error("Transition `%s` is invalid", p);
+                            error("transition `%s` is invalid", p);
                             params.transitionUsage = true;
                             return false;
                     }
@@ -2046,7 +2046,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
                             break;
                         default:
-                            error("Transition `%s` is invalid", p);
+                            error("transition `%s` is invalid", p);
                             params.transitionUsage = true;
                             return false;
                     }
@@ -2066,7 +2066,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
             if (!parseCLIOption!("preview", Usage.previews)(params, arg))
             {
-                error("Preview `%s` is invalid", p);
+                error("preview `%s` is invalid", p);
                 params.previewUsage = true;
                 return false;
             }
@@ -2089,7 +2089,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
             if (!parseCLIOption!("revert", Usage.reverts)(params, arg))
             {
-                error("Revert `%s` is invalid", p);
+                error("revert `%s` is invalid", p);
                 params.revertUsage = true;
                 return false;
             }
