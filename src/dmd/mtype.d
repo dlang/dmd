@@ -4440,9 +4440,6 @@ extern (C++) final class TypeFunction : TypeNext
         Type tret = nextOf().toBasetype();
         if (isref || tret.hasPointers())
         {
-            if (global.params.useDIP1000 != FeatureState.enabled)
-                return stc;
-
             return stc | STC.scope_ | STC.return_ | STC.returnScope;
         }
         else
