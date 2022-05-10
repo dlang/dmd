@@ -1945,8 +1945,9 @@ $(H3 $(LNAME2 ref-return-scope-parameters, Ref Return Scope Parameters))
         When a parameter is passed by `ref` and has both the `return` and `scope` storage classes,
         it gets $(LINK2 #return-scope-parameters, `return scope`) semantics if and only if the `return` and `scope`
         keywords appear adjacent to each other, in that order.
+        Specifying a `return ref` and `scope` parameter enables returning a reference to a scope pointer.
         In all other cases, the parameter has $(LINK2 #return-ref-parameters, `return ref`) semantics
-        and regular $(LINK2 #scope-parameters, `scope`) semantics:)
+        and regular $(LINK2 #scope-parameters, `scope`) semantics.)
 
 ---
 U xerxes(       ref return scope V v) // (1) ref and return scope
@@ -1978,28 +1979,33 @@ struct S
 
     // note: `this` is passed by `ref` in structs
 
-    int* retRefA() scope return
+    int* retRefA() scope return // return-ref, scope
     {
         globalPtr = this.ptr; // disallowed, `this` is `scope`
         return &this.val; // allowed, `return` means `return ref`
     }
 
-    ref int retRefB() scope return
+    ref int retRefB() scope return // return-ref, scope
     {
         globalPtr = this.ptr; // disallowed, `this` is `scope`
         return  this.val; // allowed, `return` means `return ref`
     }
 
-    int* retScopeA() return scope
+    int* retScopeA() return scope // ref, return-scope
     {
         return &this.val; // disallowed, escaping a reference to `this`
         return this.ptr;  // allowed, returning a `return scope` pointer
     }
 
-    ref int retScopeB() return scope
+    ref int retScopeB() return scope // ref, return-scope
     {
         return this.val;  // disallowed, escaping a reference to `this`
         return *this.ptr; // allowed, returning a `return scope` pointer
+    }
+
+    ref int* retRefScopeC() scope return // return-ref, scope
+    {
+        return this.ptr; // allowed, returning a reference to a scope pointer
     }
 }
 
@@ -2025,6 +2031,11 @@ ref int retScopeB(ref return scope S s)
 {
     return s.val;  // disallowed, escaping a reference to `s`
     return *s.ptr; // allowed, returning a `return scope` pointer
+}
+
+ref int* retRefScopeC(return ref scope int* p)
+{
+    return p; // allowed, returning a reference to a scope pointer
 }
 ---
 
