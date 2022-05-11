@@ -2040,15 +2040,16 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             // Allow 'lazy' to imply 'scope' - lazy parameters can be passed along
             // as lazy parameters to the next function, but that isn't escaping.
-            else if (!(pStc & (STC.scope_ | STC.lazy_)))
+            else if (!(pStc & STC.lazy_))
             {
                 /* Argument value can escape from the called function.
                  * Check arg to see if it matters.
                  */
                 if (global.params.useDIP1000 == FeatureState.enabled)
-                    err |= checkParamArgumentEscape(sc, fd, p, arg, false, false);
+                    err |= checkParamArgumentEscape(sc, fd, p, cast(STC) pStc, arg, false, false);
             }
-            else if (!(pStc & STC.return_))
+
+            if ((pStc & (STC.scope_ | STC.lazy_)) && !(pStc & STC.return_))
             {
                 /* Argument value cannot escape from the called function.
                  */
@@ -4689,7 +4690,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tthis = ue.e1.type;
                 if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isScopeQual))
                 {
-                    if (global.params.useDIP1000 == FeatureState.enabled && checkParamArgumentEscape(sc, exp.f, null, ethis, false, false))
+                    if (global.params.useDIP1000 == FeatureState.enabled &&
+                        checkParamArgumentEscape(sc, exp.f, null, STC.undefined_, ethis, false, false))
                         return setError();
                 }
             }
@@ -6350,7 +6352,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.msg = resolveProperties(sc, exp.msg);
             exp.msg = exp.msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             exp.msg = exp.msg.optimize(WANTvalue);
-            checkParamArgumentEscape(sc, null, null, exp.msg, true, false);
+            checkParamArgumentEscape(sc, null, null, STC.undefined_, exp.msg, true, false);
         }
 
         if (exp.msg && exp.msg.op == EXP.error)
@@ -7072,11 +7074,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!checkAddressVar(sc, exp.e1, v))
                     return setError();
             }
-        }
-        else if (auto ce = exp.e1.isCallExp())
-        {
-            if (!checkAddressCall(sc, ce, "take address of"))
-                return setError();
         }
         else if (exp.e1.op == EXP.index)
         {
@@ -7875,12 +7872,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
 
                     if (v && !checkAddressVar(sc, exp.e1, v))
-                        return setError();
-                }
-                // https://issues.dlang.org/show_bug.cgi?id=22539
-                if (auto ce = exp.e1.isCallExp())
-                {
-                    if (!checkAddressCall(sc, ce, "slice static array of"))
                         return setError();
                 }
             }
@@ -13126,22 +13117,12 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
         if (sc.func && !sc.intypeof && !v.isDataseg())
         {
             const(char)* p = v.isParameter() ? "parameter" : "local";
-            if (global.params.useDIP1000 == FeatureState.enabled)
-            {
-                // Taking the address of v means it cannot be set to 'scope' later
-                v.storage_class &= ~STC.maybescope;
-                v.doNotInferScope = true;
-                if (exp.type.hasPointers() && v.storage_class & STC.scope_ &&
-                    !(v.storage_class & STC.temp) &&
-                    !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
-                {
-                    exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
-                    return false;
-                }
-            }
-            else if (!(sc.flags & SCOPE.debug_) &&
-                     !(v.storage_class & STC.temp) &&
-                     sc.func.setUnsafe())
+            v.storage_class &= ~STC.maybescope;
+            v.doNotInferScope = true;
+            if (global.params.useDIP1000 != FeatureState.enabled &&
+                !(sc.flags & SCOPE.debug_) &&
+                !(v.storage_class & STC.temp) &&
+                sc.func.setUnsafe())
             {
                 exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                 return false;
@@ -13151,37 +13132,6 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
     return true;
 }
 
-/****************************************************
- * Determine if the address of a `ref return` value of
- * a function call with type `tf` can be taken safely.
- *
- * This is currently stricter than necessary: it can be safe to take the
- * address of a `ref` with pointer type when the pointer isn't `scope`, but
- * that involves inspecting the function arguments and parameter types, which
- * is left as a future enhancement.
- *
- * Params:
- *      sc = context
- *      ce = function call in question
- *      action = for the error message, how the pointer is taken, e.g. "slice static array of"
- * Returns:
- *      `true` if ok, `false` for error
- */
-private bool checkAddressCall(Scope* sc, CallExp ce, const(char)* action)
-{
-    if (auto tf = ce.e1.type.isTypeFunction())
-    {
-        if (tf.isref && sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_)
-            && tf.next.hasPointers() && sc.func.setUnsafe())
-        {
-            ce.error("cannot %s `ref return` of `%s()` in `@safe` function `%s`",
-                action, ce.e1.toChars(), sc.func.toChars());
-            ce.errorSupplemental("return type `%s` has pointers that may be `scope`", tf.next.toChars());
-            return false;
-        }
-    }
-    return true;
-}
 
 /*******************************
  * Checks the attributes of a function.

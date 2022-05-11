@@ -280,13 +280,14 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
  *      sc = used to determine current function and module
  *      fdc = function being called, `null` if called indirectly
  *      par = function parameter (`this` if null)
+ *      parStc = storage classes of function parameter (may have added `scope` from `pure`)
  *      arg = initializer for param
  *      assertmsg = true if the parameter is the msg argument to assert(bool, msg).
  *      gag = do not print error messages
  * Returns:
  *      `true` if pointers to the stack can escape via assignment
  */
-bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Expression arg, bool assertmsg, bool gag)
+bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, STC parStc, Expression arg, bool assertmsg, bool gag)
 {
     enum log = false;
     if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n",
@@ -301,16 +302,19 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
     escapeByValue(arg, &er);
 
+    if (parStc & STC.scope_)
+    {
+        // These errors only apply to non-scope parameters
+        // When the paraneter is `scope`, only `checkScopeVarAddr` on `er.byref` is needed
+        er.byfunc.setDim(0);
+        er.byvalue.setDim(0);
+        er.byexp.setDim(0);
+    }
+
     if (!er.byref.dim && !er.byvalue.dim && !er.byfunc.dim && !er.byexp.dim)
         return false;
 
     bool result = false;
-
-    ScopeRef psr;
-    if (par && fdc && fdc.type.isTypeFunction())
-        psr = buildScopeRef(par.storageClass);
-    else
-        psr = ScopeRef.None;
 
     /* 'v' is assigned unsafely to 'par'
      */
@@ -375,16 +379,14 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
         Dsymbol p = v.toParent2();
 
         notMaybeScope(v);
-
-        if (p == sc.func)
+        if (checkScopeVarAddr(v, arg, sc, gag))
         {
-            if (psr == ScopeRef.Scope ||
-                psr == ScopeRef.RefScope ||
-                psr == ScopeRef.ReturnRef_Scope)
-            {
-                continue;
-            }
+            result = true;
+            continue;
+        }
 
+        if (p == sc.func && !(parStc & STC.scope_))
+        {
             unsafeAssign!"reference to local variable"(v);
             continue;
         }
@@ -764,6 +766,12 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
         if (log) printf("byref: %s\n", v.toChars());
         if (v.isDataseg())
             continue;
+
+        if (checkScopeVarAddr(v, ae, sc, gag))
+        {
+            result = true;
+            continue;
+        }
 
         if (va && va.isScope() && !v.isReference())
         {
@@ -1290,8 +1298,17 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         Dsymbol p = v.toParent2();
 
         // https://issues.dlang.org/show_bug.cgi?id=19965
-        if (!refs && sc.func.vthis == v)
-            notMaybeScope(v);
+        if (!refs)
+        {
+            if (sc.func.vthis == v)
+                notMaybeScope(v);
+
+            if (checkScopeVarAddr(v, e, sc, gag))
+            {
+                result = true;
+                continue;
+            }
+        }
 
         if (!v.isReference())
         {
@@ -2443,4 +2460,38 @@ private bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, con
 private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg, RootObject arg0 = null, RootObject arg1 = null)
 {
     return setUnsafePreview(sc, global.params.useDIP1000, gag, loc, msg, arg0, arg1);
+}
+
+/***************************************
+ * Check that taking the address of `v` is `@safe`
+ *
+ * It's not possible to take the address of a scope variable, because `scope` only applies
+ * to the top level indirection.
+ *
+ * Params:
+ *     v = variable that a reference is created
+ *     e = expression that takes the referene
+ *     sc = used to obtain function / deprecated status
+ *     gag = don't print errors
+ * Returns:
+ *     true if taking the address of `v` is problematic because of the lack of transitive `scope`
+ */
+private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool gag)
+{
+    if (!e.type)
+        return false;
+
+    if ((v.storage_class & STC.temp) || !v.isScope())
+        return false;
+
+    // When the type after dereferencing has no pointers, it's okay.
+    // Comes up when escaping `&someStruct.intMember` of a `scope` struct:
+    // scope does not apply to the `int`
+    Type t = e.type.baseElemOf();
+    if ((t.ty == Tarray || t.ty == Tpointer) && !t.nextOf().toBasetype().hasPointers())
+        return false;
+
+    // take address of `scope` variable not allowed, requires transitive scope
+    return sc.setUnsafeDIP1000(gag, e.loc,
+        "cannot take address of `scope` variable `%s` since `scope` applies to first indirection only", v);
 }
