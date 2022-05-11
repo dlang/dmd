@@ -1353,8 +1353,7 @@ extern (C++) class FuncDeclaration : Declaration
             flags |= FUNCFLAG.returnInprocess;
 
         // Initialize for inferring STC.scope_
-        if (global.params.useDIP1000 == FeatureState.enabled)
-            flags |= FUNCFLAG.inferScope;
+        flags |= FUNCFLAG.inferScope;
     }
 
     final PURE isPure()

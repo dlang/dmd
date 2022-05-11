@@ -2035,8 +2035,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 /* Argument value can be assigned to firstArg.
                  * Check arg to see if it matters.
                  */
-                if (global.params.useDIP1000 == FeatureState.enabled)
-                    err |= checkParamArgumentReturn(sc, firstArg, arg, p, false);
+                err |= checkParamArgumentReturn(sc, firstArg, arg, p, false);
             }
             // Allow 'lazy' to imply 'scope' - lazy parameters can be passed along
             // as lazy parameters to the next function, but that isn't escaping.
@@ -2045,11 +2044,17 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 /* Argument value can escape from the called function.
                  * Check arg to see if it matters.
                  */
-                if (global.params.useDIP1000 == FeatureState.enabled)
-                    err |= checkParamArgumentEscape(sc, fd, p, cast(STC) pStc, arg, false, false);
+                err |= checkParamArgumentEscape(sc, fd, p, cast(STC) pStc, arg, false, false);
             }
 
-            if ((pStc & (STC.scope_ | STC.lazy_)) && !(pStc & STC.return_))
+            // Turning heap allocations into stack allocations is dangerous without dip1000, since `scope` inference
+            // may be unreliable when scope violations only manifest as deprecation warnings.
+            // However, existing `@nogc` code may rely on it, so still do it when the parameter is explicitly marked `scope`
+            const explicitScope = (p.storageClass & STC.lazy_) ||
+                ((p.storageClass & STC.scope_) && !(p.storageClass & STC.scopeinferred));
+            if ((pStc & (STC.scope_ | STC.lazy_)) &&
+                ((global.params.useDIP1000 == FeatureState.enabled) || explicitScope) &&
+                !(pStc & STC.return_))
             {
                 /* Argument value cannot escape from the called function.
                  */
@@ -2059,10 +2064,10 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
                 ArrayLiteralExp ale;
                 if (p.type.toBasetype().ty == Tarray &&
-                    (ale = a.isArrayLiteralExp()) !is null)
+                    (ale = a.isArrayLiteralExp()) !is null && ale.elements && ale.elements.length > 0)
                 {
                     // allocate the array literal as temporary static array on the stack
-                    ale.type = ale.type.nextOf().sarrayOf(ale.elements ? ale.elements.length : 0);
+                    ale.type = ale.type.nextOf().sarrayOf(ale.elements.length);
                     auto tmp = copyToTemp(0, "__arrayliteral_on_stack", ale);
                     auto declareTmp = new DeclarationExp(ale.loc, tmp);
                     auto castToSlice = new CastExp(ale.loc, new VarExp(ale.loc, tmp),
@@ -3172,11 +3177,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         semanticTypeInfo(sc, e.type);
 
-        if (global.params.useDIP1000 == FeatureState.enabled)
-        {
-            if (checkAssocArrayLiteralEscape(sc, e, false))
-                return setError();
-        }
+        if (checkAssocArrayLiteralEscape(sc, e, false))
+            return setError();
 
         result = e;
     }
@@ -3784,13 +3786,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 /* Since a `new` allocation may escape, check each of the arguments for escaping
                  */
-                if (global.params.useDIP1000 == FeatureState.enabled)
+                foreach (arg; *exp.arguments)
                 {
-                    foreach (arg; *exp.arguments)
-                    {
-                        if (arg && checkNewEscape(sc, arg, false))
-                            return setError();
-                    }
+                    if (arg && checkNewEscape(sc, arg, false))
+                        return setError();
                 }
             }
 
@@ -4690,8 +4689,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tthis = ue.e1.type;
                 if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isScopeQual))
                 {
-                    if (global.params.useDIP1000 == FeatureState.enabled &&
-                        checkParamArgumentEscape(sc, exp.f, null, STC.undefined_, ethis, false, false))
+                    if (checkParamArgumentEscape(sc, exp.f, null, STC.undefined_, ethis, false, false))
                         return setError();
                 }
             }
@@ -10134,8 +10132,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.type = exp.e1.type;
         auto res = exp.reorderSettingAAElem(sc);
-        if ((exp.op == EXP.concatenateElemAssign || exp.op == EXP.concatenateDcharAssign) &&
-            global.params.useDIP1000 == FeatureState.enabled)
+        if (exp.op == EXP.concatenateElemAssign || exp.op == EXP.concatenateDcharAssign)
             checkAssignEscape(sc, res, false, false);
         result = res;
 
