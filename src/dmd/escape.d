@@ -2475,10 +2475,17 @@ private bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg, Ro
  */
 private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool gag)
 {
-    if (!e.type)
+    if (v.storage_class & STC.temp)
         return false;
 
-    if ((v.storage_class & STC.temp) || !v.isScope())
+    if (!v.isScope())
+    {
+        v.storage_class &= ~STC.maybescope;
+        v.doNotInferScope = true;
+        return false;
+    }
+
+    if (!e.type)
         return false;
 
     // When the type after dereferencing has no pointers, it's okay.
