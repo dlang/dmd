@@ -1043,16 +1043,13 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         if (log) printf("byref `%s`\n", v.toChars());
 
         // 'featureState' tells us whether to emit an error or a deprecation,
-        // depending on the flag passed to the CLI for DIP25
-        void escapingRef(VarDeclaration v, FeatureState featureState = FeatureState.enabled)
+        // depending on the flag passed to the CLI for DIP25 / DIP1000
+        bool escapingRef(VarDeclaration v, FeatureState fs)
         {
-            if (!gag)
-            {
-                const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
-                const(char)* msg = "copying `%s` into allocated memory escapes a reference to %s variable `%s`";
-                previewErrorFunc(sc.isDeprecated(), featureState)(e.loc, msg, e.toChars(), kind, v.toChars());
-            }
-            result |= (featureState == FeatureState.enabled);
+            const(char)* msg = v.isParameter() ?
+                "copying `%s` into allocated memory escapes a reference to parameter `%s`" :
+                "copying `%s` into allocated memory escapes a reference to local variable `%s`";
+            return sc.setUnsafePreview(fs, gag, e.loc, msg, e, v);
         }
 
         if (v.isDataseg())
@@ -1064,7 +1061,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         {
             if (p == sc.func)
             {
-                escapingRef(v);
+                result |= escapingRef(v, global.params.useDIP1000);
                 continue;
             }
         }
@@ -1080,7 +1077,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         {
             //printf("escaping reference to local ref variable %s\n", v.toChars());
             //printf("storage class = x%llx\n", v.storage_class);
-            escapingRef(v, global.params.useDIP25);
+            result |= escapingRef(v, global.params.useDIP25);
             continue;
         }
         // Don't need to be concerned if v's parent does not return a ref
