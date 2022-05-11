@@ -563,7 +563,7 @@ struct ListRange
         this.li = li;
     }
 
-    list_t front() return  { return li; }
+    list_t front() return scope { return li; }
     void popFront() { li = li.next; }
     bool empty() const { return !li; }
 
