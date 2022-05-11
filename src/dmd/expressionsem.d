@@ -6714,18 +6714,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e.e1.op == EXP.error)
             return setError();
 
-        /* A delegate takes the address of e.e1 in order to set the .ptr field
-         * https://issues.dlang.org/show_bug.cgi?id=18575
-         */
-        if (global.params.useDIP1000 == FeatureState.enabled && e.e1.type.toBasetype().ty == Tstruct)
-        {
-            if (auto v = expToVariable(e.e1))
-            {
-                if (!checkAddressVar(sc, e.e1, v))
-                    return setError();
-            }
-        }
-
         if (f.type.ty == Tfunction)
         {
             TypeFunction tf = cast(TypeFunction)f.type;
@@ -6996,15 +6984,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Look for misaligned pointer in @safe mode
             if (checkUnsafeAccess(sc, dve, !exp.type.isMutable(), true))
                 return setError();
-
-            if (global.params.useDIP1000 == FeatureState.enabled)
-            {
-                if (VarDeclaration v = expToVariable(dve.e1))
-                {
-                    if (!checkAddressVar(sc, exp.e1, v))
-                        return setError();
-                }
-            }
         }
         else if (exp.e1.op == EXP.variable)
         {
@@ -7067,14 +7046,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
         }
-        else if ((exp.e1.op == EXP.this_ || exp.e1.op == EXP.super_) && global.params.useDIP1000 == FeatureState.enabled)
-        {
-            if (VarDeclaration v = expToVariable(exp.e1))
-            {
-                if (!checkAddressVar(sc, exp.e1, v))
-                    return setError();
-            }
-        }
         else if (exp.e1.op == EXP.index)
         {
             /* For:
@@ -7084,9 +7055,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (VarDeclaration v = expToVariable(exp.e1))
             {
-                if (global.params.useDIP1000 == FeatureState.enabled && !checkAddressVar(sc, exp.e1, v))
-                    return setError();
-
                 exp.e1.checkPurity(sc, v);
             }
         }
@@ -7853,28 +7821,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (t1b.ty == Tsarray)
         {
-            if (!exp.arrayop && global.params.useDIP1000 == FeatureState.enabled)
-            {
-                /* Slicing a static array is like taking the address of it.
-                 * Perform checks as if e[] was &e
-                 */
-                if (VarDeclaration v = expToVariable(exp.e1))
-                {
-                    if (DotVarExp dve = exp.e1.isDotVarExp())
-                    {
-
-                        if ((dve.e1.op == EXP.this_ || dve.e1.op == EXP.super_) &&
-                            !(v.storage_class & STC.ref_))
-                        {
-                            // because it's a class
-                            v = null;
-                        }
-                    }
-
-                    if (v && !checkAddressVar(sc, exp.e1, v))
-                        return setError();
-                }
-            }
         }
         else if (t1b.ty == Ttuple)
         {
