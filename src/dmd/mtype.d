@@ -5153,22 +5153,6 @@ extern (C++) final class TypeDelegate : TypeNext
     override Type addStorageClass(StorageClass stc)
     {
         TypeDelegate t = cast(TypeDelegate)Type.addStorageClass(stc);
-        if (global.params.useDIP1000 != FeatureState.enabled)
-            return t;
-
-        /* The rest is meant to add 'scope' to a delegate declaration if it is of the form:
-         *  alias dg_t = void* delegate();
-         *  scope dg_t dg = ...;
-         */
-        if(stc & STC.scope_)
-        {
-            auto n = t.next.addStorageClass(STC.scope_ | STC.scopeinferred);
-            if (n != t.next)
-            {
-                t.next = n;
-                t.deco = t.merge().deco; // mangling supposed to not be changed due to STC.scope_inferrred
-            }
-        }
         return t;
     }
 
