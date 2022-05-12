@@ -23,13 +23,21 @@ If you don't have an `upstream` remote, you can add it with:
 git remote add upstream git@github.com:dlang/dmd.git
 ```
 
-Then, pull the latest changes from the branch that your PR merged into (`master` or `stable`) and rebase your branch.
+Then, pull the latest changes from the branch that your PR is targeting (`master` or `stable`) and rebase your branch.
 ```
 git checkout master
 git pull --ff-only upstream master
 git checkout your-branch
 git rebase master
-git push origin master --force
+git push --force origin your-branch
+```
+
+Or more directly, without pulling in the changes locally:
+```
+git checkout your-branch
+git fetch
+git rebase upstream/master
+git push --force origin your-branch
 ```
 
 If your branch is already based on the latest commit, you get this message:
@@ -74,7 +82,17 @@ Windows has three binary formats: 32-bit OMF (deprecated), 32-bit COFF, and 64-b
 - CyberShadow/DAutoTest — Documentation
 
 DMD includes a documentation generator, which is also used to build [the dlang.org website](https://github.com/dlang/dlang.org/).
-DAutoTest tests that the PR doesn't break the documentation generator, and also tests [changelog entries](https://github.com/dlang/dmd/tree/master/changelog) for correct DDoc syntax.
+DAutoTest does the following:
+
+* Builds the documentation by invoking the dlang.org makefile.
+
+* This necessarily also builds the compiler, runtime, standard library, and fetches some dependencies.
+
+* Saves the resulting HTML files and makes them available for preview.
+
+* Allows looking at the differences in generated HTML between the base branch and the PR branch.
+
+If your [changelog entry](https://github.com/dlang/dmd/tree/master/changelog) has incorrect DDoc syntax, it will be caught by this check.
 
 ### auto-tester
 
@@ -154,6 +172,7 @@ Cirrus tests DMD on Posix platforms.
 
 Since DMD is written in D, a "Host D Compiler" is needed to compile it.
 Various host compilers are tested, such as GDC, LDC, the latest DMD, and an older verison of DMD (bootstrap).
+Note that the GDC and LDC targets do not run any tests, the simply build the latest version of the dmd frontend.
 
 Sometimes the macOS VMs get corrupted.
 When that happens, you can file an issue on Cirrus' issue tracker, [like this one](https://github.com/cirruslabs/macos-image-templates/issues/43).
@@ -199,4 +218,4 @@ CircleCI tests DMD on Ubuntu 18.04.
 
 It also tests that the automatically generated C++ header, frontend.h, is updated.
 This is important because other compilers sharing the front-end (LDC and GDC) rely on DMD's header files to interface with it.
-When a PR modifies an `extern(C++)` function, the corresponding signature in a .h file should be updated as well, see [cxx-headers-test](https://github.com/dkorpel/dmd/tree/master/src#cxx-headers-test).
+When a PR modifies an `extern(C++)` function, the corresponding signature in a .h file should be updated as well, see [cxx-headers-test](https://github.com/dlang/dmd/tree/master/src#cxx-headers-test).
