@@ -177,7 +177,7 @@ IDXSTR MsCoffObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //printf("MsCoffObj_addstr(strtab = %p str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
-    strtab.writeString(str);
+    strtab.writeStringz(str);
     //printf("\tidx %d, new size %d\n",idx,strtab.length());
     return idx;
 }

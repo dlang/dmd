@@ -1106,7 +1106,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
                 OutBuffer buf;
                 buf.writestring("/Fi");       // https://docs.microsoft.com/en-us/cpp/build/reference/fi-preprocess-output-file-name?view=msvc-170
-                buf.writeString(output);
+                buf.writeStringz(output);
                 argv.push(buf.extractData()); // output file
 
                 argv.push(null);                     // argv[] always ends with a null

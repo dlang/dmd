@@ -1265,7 +1265,7 @@ static if (1)
             version (MARS)
             {
                 debug_info.buf.write("Digital Mars D ");
-                debug_info.buf.writeString(config._version);     // DW_AT_producer
+                debug_info.buf.writeStringz(config._version);     // DW_AT_producer
                 // DW_AT_language
                 auto language = (config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89;
                 /* if source file has .c or .i extension, emit C debug info
@@ -1279,16 +1279,16 @@ static if (1)
             else version (SCPP)
             {
                 debug_info.buf.write("Digital Mars C ");
-                debug_info.buf.writeString(global._version);      // DW_AT_producer
+                debug_info.buf.writeStringz(global._version);      // DW_AT_producer
                 debug_info.buf.writeByte(DW_LANG_C89);            // DW_AT_language
             }
             else
                 static assert(0);
 
-            debug_info.buf.writeString(filename);             // DW_AT_name
+            debug_info.buf.writeStringz(filename);             // DW_AT_name
 
             char* cwd = getcwd(null, 0);
-            debug_info.buf.writeString(cwd);                  // DW_AT_comp_dir as DW_FORM_string
+            debug_info.buf.writeStringz(cwd);                  // DW_AT_comp_dir as DW_FORM_string
             free(cwd);
 
             append_addr(debug_info.buf, 0);               // DW_AT_low_pc
@@ -1438,7 +1438,7 @@ static if (1)
             debug_abbrev.buf.writeuLEB128(abbrevcode);
             debug_abbrev.buf.write(abbrevModule.ptr, abbrevModule.sizeof);
             debug_info.buf.writeuLEB128(abbrevcode);      // abbreviation code
-            debug_info.buf.writeString(modname);          // DW_AT_name
+            debug_info.buf.writeStringz(modname);          // DW_AT_name
             //hasModname = 1;
         }
         else
@@ -1522,7 +1522,7 @@ static if (1)
                             if (dwarf_line_add_directory(dir.ptr) == id)
                             {
                                 //printf("%d: %s\n", dwarf_line_add_directory(dir), dir);
-                                debug_line.buf.writeString(dir);
+                                debug_line.buf.writeStringz(dir);
                                 break;
                             }
                         }
@@ -1566,7 +1566,7 @@ static if (1)
                             // Filenames must be written in the correct order, to match the AAchars' idx order
                             if (id == dwarf_line_addfile(filename.ptr))
                             {
-                                debug_line.buf.writeString(filename.ptr.filespecname);
+                                debug_line.buf.writeStringz(filename.ptr.filespecname);
 
                                 auto index = dwarf_line_add_directory(filename.ptr);
                                 assert(index != 0);
@@ -1934,7 +1934,7 @@ static if (1)
 
         const(char)* name = getSymName(sfunc);
 
-        debug_info.buf.writeString(sfunc.Sident.ptr);                 // DW_AT_MIPS_linkage_name
+        debug_info.buf.writeStringz(sfunc.Sident.ptr);                 // DW_AT_MIPS_linkage_name
         if (ret_type)
             debug_info.buf.write32(ret_type);                         // DW_AT_type
 
@@ -1948,7 +1948,7 @@ static if (1)
         if (config.dwarf < 4 && sfunc.Sfunc.Fflags3 & Fpure)
             debug_info.buf.writeByte(true);                           // DW_AT_pure
 
-        debug_info.buf.writeString(name);                             // DW_AT_name
+        debug_info.buf.writeStringz(name);                             // DW_AT_name
         debug_info.buf.writeByte(filenum);                            // DW_AT_decl_file
         debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Slinnum);  // DW_AT_decl_line
         debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum); // DW_AT_decl_column
@@ -1994,7 +1994,7 @@ static if (1)
                         uint tidx = dwarf_typidx(sa.Stype);
 
                         debug_info.buf.writeuLEB128(vcode);           // abbreviation code
-                        debug_info.buf.writeString(getSymName(sa));   // DW_AT_name
+                        debug_info.buf.writeStringz(getSymName(sa));   // DW_AT_name
                         debug_info.buf.write32(tidx);                 // DW_AT_type
                         debug_info.buf.writeByte(sa.Sflags & SFLartifical ? 1 : 0); // DW_FORM_tag
                         debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
@@ -2066,7 +2066,7 @@ static if (1)
         /* ============= debug_pubnames =========================== */
 
         debug_pubnames.buf.write32(infobuf_offset);
-        debug_pubnames.buf.writeString(name);
+        debug_pubnames.buf.writeStringz(name);
 
         /* ============= debug_aranges =========================== */
 
@@ -2166,7 +2166,7 @@ static if (1)
                 ]);
 
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString(getSymName(s));// DW_AT_name
+                debug_info.buf.writeStringz(getSymName(s));// DW_AT_name
                 debug_info.buf.write32(typidx);           // DW_AT_type
                 debug_info.buf.writeByte(1);              // DW_AT_external
 
@@ -2442,7 +2442,7 @@ static if (1)
                     // length
                     code = DWARFAbbrev.write!(abbrevTypeMember);
                     debug_info.buf.writeuLEB128(code);        // abbreviation code
-                    debug_info.buf.writeString("length");     // DW_AT_name
+                    debug_info.buf.writeStringz("length");     // DW_AT_name
                     debug_info.buf.write32(lenidx);           // DW_AT_type
 
                     debug_info.buf.writeByte(2);              // DW_AT_data_member_location
@@ -2451,7 +2451,7 @@ static if (1)
 
                     // ptr
                     debug_info.buf.writeuLEB128(code);        // abbreviation code
-                    debug_info.buf.writeString("ptr");        // DW_AT_name
+                    debug_info.buf.writeStringz("ptr");        // DW_AT_name
                     debug_info.buf.write32(nextidx);          // DW_AT_type
 
                     debug_info.buf.writeByte(2);              // DW_AT_data_member_location
@@ -2484,13 +2484,13 @@ static if (1)
                 code = DWARFAbbrev.write!(abbrevTypeStruct);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);       // abbreviation code
-                debug_info.buf.writeString(t.Tident);    // DW_AT_name
+                debug_info.buf.writeStringz(t.Tident);    // DW_AT_name
                 debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
                 // ptr
                 code = DWARFAbbrev.write!(abbrevTypeMember);
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString("ptr");        // DW_AT_name
+                debug_info.buf.writeStringz("ptr");        // DW_AT_name
                 debug_info.buf.write32(pvoididx);         // DW_AT_type
 
                 debug_info.buf.writeByte(2);              // DW_AT_data_member_location
@@ -2499,7 +2499,7 @@ static if (1)
 
                 // funcptr
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString("funcptr");    // DW_AT_name
+                debug_info.buf.writeStringz("funcptr");    // DW_AT_name
                 debug_info.buf.write32(nextidx);          // DW_AT_type
 
                 debug_info.buf.writeByte(2);              // DW_AT_data_member_location
@@ -2535,13 +2535,13 @@ static if (1)
                 code = DWARFAbbrev.write!(abbrevTypeStruct);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString(t.Tident);      // DW_AT_name
+                debug_info.buf.writeStringz(t.Tident);      // DW_AT_name
                 debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
 
                 // ptr
                 code = DWARFAbbrev.write!(abbrevTypeMember);
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString("ptr");        // DW_AT_name
+                debug_info.buf.writeStringz("ptr");        // DW_AT_name
                 debug_info.buf.write32(pvoididx);         // DW_AT_type
 
                 debug_info.buf.writeByte(2);              // DW_AT_data_member_location
@@ -2601,7 +2601,7 @@ static if (1)
                 code = DWARFAbbrev.write!(abbrevTypeBasic);
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);        // abbreviation code
-                debug_info.buf.writeString(p);            // DW_AT_name
+                debug_info.buf.writeStringz(p);            // DW_AT_name
                 debug_info.buf.writeByte(tysize(t.Tty)); // DW_AT_byte_size
                 debug_info.buf.writeByte(ate);            // DW_AT_encoding
                 typidx_tab[ty] = idx;
@@ -2812,7 +2812,7 @@ static if (1)
                 idx = cast(uint)debug_info.buf.length();
 
                 debug_info.buf.writeuLEB128(code3);       // abbreviation code
-                debug_info.buf.writeString(tystring[ty]); // DW_AT_name
+                debug_info.buf.writeStringz(tystring[ty]); // DW_AT_name
                 debug_info.buf.writeByte(tysize(TYint));  // DW_AT_byte_size
                 debug_info.buf.writeByte(DW_ATE_signed);  // DW_AT_encoding
                 break;
@@ -2848,7 +2848,7 @@ static if (1)
                     code = dwarf_abbrev_code(abbrevTypeStruct1.ptr, (abbrevTypeStruct1).sizeof);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
-                    debug_info.buf.writeString(getSymName(s));    // DW_AT_name
+                    debug_info.buf.writeStringz(getSymName(s));    // DW_AT_name
                     debug_info.buf.writeByte(1);                  // DW_AT_declaration
                     break;                  // don't set Stypidx
                 }
@@ -2886,7 +2886,7 @@ static if (1)
                     code = dwarf_abbrev_code(abbrevTypeStruct0.ptr, (abbrevTypeStruct0).sizeof);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
-                    debug_info.buf.writeString(getSymName(s));    // DW_AT_name
+                    debug_info.buf.writeStringz(getSymName(s));    // DW_AT_name
                     debug_info.buf.writeByte(0);                  // DW_AT_byte_size
                 }
                 else
@@ -2925,7 +2925,7 @@ static if (1)
 
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
-                    debug_info.buf.writeString(getSymName(s));      // DW_AT_name
+                    debug_info.buf.writeStringz(getSymName(s));      // DW_AT_name
                     if (sz <= 0xFF)
                         debug_info.buf.writeByte(cast(uint)sz);     // DW_AT_byte_size
                     else if (sz <= 0xFFFF)
@@ -2957,7 +2957,7 @@ static if (1)
                         {
                             case SCmember:
                                 debug_info.buf.writeuLEB128(membercode);
-                                debug_info.buf.writeString(getSymName(sf));      // DW_AT_name
+                                debug_info.buf.writeStringz(getSymName(sf));      // DW_AT_name
                                 //debug_info.buf.write32(dwarf_typidx(sf.Stype));
                                 uint fi = (cast(uint *)fieldidx.buf)[n];
                                 debug_info.buf.write32(fi);
@@ -3001,7 +3001,7 @@ static if (1)
                     ]);
                     idx = cast(uint)debug_info.buf.length();
                     debug_info.buf.writeuLEB128(code);
-                    debug_info.buf.writeString(getSymName(s));    // DW_AT_name
+                    debug_info.buf.writeStringz(getSymName(s));    // DW_AT_name
                     debug_info.buf.writeByte(1);                  // DW_AT_declaration
                     break;                  // don't set Stypidx
                 }
@@ -3029,7 +3029,7 @@ static if (1)
 
                 idx = cast(uint)debug_info.buf.length();
                 debug_info.buf.writeuLEB128(code);
-                debug_info.buf.writeString(getSymName(s));// DW_AT_name
+                debug_info.buf.writeStringz(getSymName(s));// DW_AT_name
                 debug_info.buf.writeByte(sz);             // DW_AT_byte_size
 
                 foreach (sl2; ListRange(s.Senum.SEenumlist))
@@ -3038,7 +3038,7 @@ static if (1)
                     const value = cast(uint)el_tolongt(sf.Svalue);
 
                     debug_info.buf.writeuLEB128(membercode);
-                    debug_info.buf.writeString(getSymName(sf)); // DW_AT_name
+                    debug_info.buf.writeStringz(getSymName(sf)); // DW_AT_name
                     if (tyuns(tbase2.Tty))
                         debug_info.buf.writeuLEB128(value);
                     else
