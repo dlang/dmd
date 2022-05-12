@@ -8617,10 +8617,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         static if (LOGSEMANTIC)
         {
-            printf("AssignExp::semantic('%s')\n", exp.toChars());
+            if (ae.op == EXP.blit)      printf("BlitExp.semantic('%s')\n", ae.toChars());
+            if (ae.op == EXP.assign)    printf("AssignExp.semantic('%s')\n", ae.toChars());
+            if (ae.op == EXP.construct) printf("ConstructExp.semantic('%s')\n", ae.toChars());
         }
-        //printf("exp.e1.op = %d, '%s'\n", exp.e1.op, EXPtoString(exp.e1.op).ptr);
-        //printf("exp.e2.op = %d, '%s'\n", exp.e2.op, EXPtoString(exp.e2.op).ptr);
 
         void setResult(Expression e, int line = __LINE__)
         {

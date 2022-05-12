@@ -3361,6 +3361,16 @@ elem* toElem(Expression e, IRState *irs)
             //printf("AddrExp.toElem('%s') %d\n", ae.toChars(), ae);
             //printf("StructLiteralExp(%p); origin:%p\n", sle, sle.origin);
             //printf("sle.toSymbol() (%p)\n", sle.toSymbol());
+            if (irs.Cfile)
+            {
+                Symbol* stmp = symbol_genauto(Type_toCtype(sle.sd.type));
+                elem* es = toElemStructLit(sle, irs, EXP.construct, stmp, true);
+                elem* e = addressElem(el_var(stmp), ae.e1.type);
+                e.Ety = totym(ae.type);
+                e = el_bin(OPcomma, e.Ety, es, e);
+                elem_setLoc(e, ae.loc);
+                return e;
+            }
             elem *e = el_ptr(toSymbol(sle.origin));
             e.ET = Type_toCtype(ae.type);
             elem_setLoc(e, ae.loc);
@@ -6215,6 +6225,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
 /*************************************************
  * Params:
  *      op = EXP.assign, EXP.construct, EXP.blit
+ *      sym = struct symbol to initialize with the literal. If null, an auto is created
  *      fillHoles = Fill in alignment holes with zero. Set to
  *                  false if allocated by operator new, as the holes are already zeroed.
  */
