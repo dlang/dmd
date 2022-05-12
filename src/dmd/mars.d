@@ -730,10 +730,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 
-    version (Posix)
-        global.preprocess = &preprocess;
-    version (Win64)
-        global.preprocess = &preprocess;
+    global.preprocess = &preprocess;
     return false;
 }
 /// Emit the makefile dependencies for the -makedeps switch

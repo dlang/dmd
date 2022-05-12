@@ -1063,7 +1063,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 /* Run command, intercept stdout, remove first line that CL insists on emitting
                  */
                 OutBuffer buf;
-                buf.printf("cl /P /nologo %.*s /Fi%.*s",
+                buf.writestring(cpp);
+                buf.printf(" /P /nologo %.*s /Fi%.*s",
                     cast(int)filename.length, filename.ptr, cast(int)output.length, output.ptr);
 
                 ubyte[2048] buffer = void;
@@ -1116,11 +1117,52 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         }
         else if (target.objectFormat() == Target.ObjectFormat.omf)
         {
-            argv.push("sppn".xarraydup.ptr);     // Digital Mars C preprocessor
-            argv.push(filename.xarraydup.ptr);   // and the input file
-            argv.push(null);                     // argv[] always ends with a null
-            // spawnlp returns intptr_t in some systems, not int
-            return spawnvp(_P_WAIT, "sppn".ptr, argv.tdata());
+            /* Digital Mars Win32 target
+             * sppn filename -oooutput
+             * https://www.digitalmars.com/ctg/sc.html
+             */
+
+            static if (1)
+            {
+                /* Run command
+                 */
+                OutBuffer buf;
+                buf.writestring(cpp);
+                buf.printf(" %.*s -o%.*s",
+                    cast(int)filename.length, filename.ptr, cast(int)output.length, output.ptr);
+
+                ubyte[2048] buffer = void;
+
+                void sinkomf(ubyte[] data)
+                {
+                    printf("%.*s", cast(int)data.length, data.ptr);
+                }
+
+                // Convert command to wchar
+                wchar[1024] scratch = void;
+                auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
+                auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
+
+                //printf("szCommand: %ls\n", szCommand.ptr);
+                int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sinkomf);
+                printf("\n");
+                return exitCode;
+            }
+            else
+            {
+                auto cmd = cpp.xarraydup.ptr;
+                argv.push(cmd);                      // Digita; Mars C preprocessor
+                argv.push(filename.xarraydup.ptr);   // and the input file
+
+                OutBuffer buf;
+                buf.writestring("-o");        // https://www.digitalmars.com/ctg/sc.html#dashofilename
+                buf.writeString(output);
+                argv.push(buf.extractData()); // output file
+
+                argv.push(null);              // argv[] always ends with a null
+                // spawnlp returns intptr_t in some systems, not int
+                return spawnvp(_P_WAIT, cmd, argv.tdata());
+            }
         }
         else
         {

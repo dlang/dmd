@@ -213,7 +213,6 @@ _Static_assert(u'a' == 0x61, "ok");
 _Static_assert(u'ab' == 0x610062, "ok");
 _Static_assert(U'a' == 0x61, "ok");
 _Static_assert(u'\u1234' == 0x1234, "ok");
-_Static_assert(U'\U00011234' == 0x11234, "ok");
 _Static_assert(L'\u1234' == 0x1234, "ok");
 
 /********************************/
