@@ -2228,7 +2228,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         ArrayLiteralExp ae = e;
 
         Type tb = t.toBasetype();
-        if (tb.ty == Tarray && global.params.useDIP1000 == FeatureState.enabled)
+        if (tb.ty == Tarray)
         {
             if (checkArrayLiteralEscape(sc, ae, false))
             {
