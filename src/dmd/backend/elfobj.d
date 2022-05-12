@@ -312,7 +312,7 @@ IDXSTR ElfObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //dbg_printf("ElfObj_addstr(strtab = x%x str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
-    strtab.writeString(str);
+    strtab.writeStringz(str);
     //dbg_printf("\tidx %d, new size %d\n",idx,strtab.length());
     return idx;
 }
@@ -520,11 +520,11 @@ Returns:
 private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, bool *padded = null)
 {
     IDXSTR namidx = cast(IDXSTR)section_names.length();
-    section_names.writeString(name);
+    section_names.writeStringz(name);
     if (suffix)
     {   // Append suffix string
         section_names.setsize(cast(uint)section_names.length() - 1);  // back up over terminating 0
-        section_names.writeString(suffix);
+        section_names.writeStringz(suffix);
     }
     Pair* pidx = section_names_hashtable.get(namidx, cast(uint)section_names.length() - 1);
     if (pidx.start)
@@ -3802,9 +3802,9 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val
 
             // Add "DW.ref." ~ name to the symtab_strings table
             const namidx = cast(IDXSTR)symtab_strings.length();
-            symtab_strings.writeString("DW.ref.");
+            symtab_strings.writeStringz("DW.ref.");
             symtab_strings.setsize(cast(uint)(symtab_strings.length() - 1));  // back up over terminating 0
-            symtab_strings.writeString(s.Sident.ptr);
+            symtab_strings.writeStringz(s.Sident.ptr);
 
             s.Sdw_ref_idx = elf_addsym(namidx, val, 8, STT_OBJECT, STB_WEAK, MAP_SEG2SECIDX(dataDWref_seg), STV_HIDDEN);
         }

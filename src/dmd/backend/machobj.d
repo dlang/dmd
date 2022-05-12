@@ -297,7 +297,7 @@ IDXSTR MachObj_addstr(OutBuffer *strtab, const(char)* str)
 {
     //printf("MachObj_addstr(strtab = %p str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
-    strtab.writeString(str);
+    strtab.writeStringz(str);
     //printf("\tidx %d, new size %d\n",idx,strtab.length());
     return idx;
 }
@@ -356,7 +356,7 @@ static if (0)
     }
     else if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
         name = s.Sfunc.Fredirect;
-    symtab_strings.writeString(name);
+    symtab_strings.writeStringz(name);
     if (destr != dest.ptr)                  // if we resized result
         mem_free(destr);
     //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.length());
