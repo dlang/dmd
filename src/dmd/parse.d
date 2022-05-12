@@ -8331,10 +8331,28 @@ LagainStc:
             {
                 // https://dlang.org/spec/expression.html#mixin_expressions
                 nextToken();
-                if (token.value != TOK.leftParenthesis)
+                if (token.value != TOK.leftParenthesis && token.value != TOK.leftBracket)
                     error("found `%s` when expecting `%s` following `mixin`", token.toChars(), Token.toChars(TOK.leftParenthesis));
+                FileType mixinLanguage = FileType.d;
+                // look for mixin[C](args)
+                if (token.value == TOK.leftBracket)
+                {
+                    check(TOK.leftBracket);
+                    Identifier language = token.ident;
+                    if (language == Id.D)
+                    {
+                        mixinLanguage = FileType.d;
+                    } else if (language == Id.C)
+                    {
+                        mixinLanguage = FileType.c;
+                    } else {
+                        error("Invalid mixin language");
+                    }
+                    check(TOK.identifier);
+                    check(TOK.rightBracket);
+                }
                 auto exps = parseArguments();
-                e = new AST.MixinExp(loc, exps);
+                e = new AST.MixinExp(loc, exps, mixinLanguage);
                 break;
             }
         case TOK.import_:
