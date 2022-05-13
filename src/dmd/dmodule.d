@@ -663,7 +663,7 @@ extern (C++) final class Module : Package
 
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
 
-        /* Preprocess the file if it's a C file
+        /* Preprocess the file if it's a .c file
          */
         FileName filename = srcfile;
         bool ifile = false;             // did we generate a .i file
@@ -677,7 +677,33 @@ extern (C++) final class Module : Package
             FileName.equalsExt(srcfile.toString(), c_ext) &&
             FileName.exists(srcfile.toString()))
         {
-            filename = global.preprocess(srcfile, ifile);  // run C preprocessor
+            /* Look for "importc.h" by searching along import path.
+             * It should be in the same place as "object.d"
+             */
+            const(char)* importc_h;
+
+            foreach (entry; (global.path ? (*global.path)[] : null))
+            {
+                auto f = FileName.combine(entry, "importc.h");
+                if (FileName.exists(f) == 1)
+                {
+                     importc_h = f;
+                     break;
+                }
+                FileName.free(f);
+            }
+
+            if (importc_h)
+            {
+                if (global.params.verbose)
+                    message("include   %s", importc_h);
+            }
+            else
+            {
+                error("cannot find \"importc.h\" along import path");
+                fatal();
+            }
+            filename = global.preprocess(srcfile, importc_h, ifile);  // run C preprocessor
         }
 
         if (auto result = global.fileManager.lookup(filename))

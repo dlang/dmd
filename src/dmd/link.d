@@ -1034,11 +1034,12 @@ public int runProgram()
  * Params:
  *    cpp = name of C preprocessor program
  *    filename = C source file name
+ *    importc_h = filename of importc.h
  *    output = preprocessed output file name
  * Returns:
  *    exit status.
  */
-public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)[] output)
+public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, const(char)[] output)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
     if (global.params.verbose)
@@ -1064,8 +1065,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                buf.printf(" /P /nologo %.*s /Fi%.*s",
-                    cast(int)filename.length, filename.ptr, cast(int)output.length, output.ptr);
+                buf.printf(" /P /nologo %.*s /FI%s /Fi%.*s",
+                    cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
                 ubyte[2048] buffer = void;
 
@@ -1128,8 +1129,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                buf.printf(" %.*s -o%.*s",
-                    cast(int)filename.length, filename.ptr, cast(int)output.length, output.ptr);
+                buf.printf(" %.*s -HI%s -o%.*s",
+                    cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
                 ubyte[2048] buffer = void;
 
@@ -1174,7 +1175,18 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         // Build argv[]
         Strings argv;
         argv.push(cpp.xarraydup.ptr);       // null terminated copy
-        argv.push(filename.xarraydup.ptr);  // and the input
+        if (target.os == Target.OS.OSX)
+        {
+            argv.push("-include");          // OSX cpp has switch order dependencies
+            argv.push(importc_h);
+            argv.push(filename.xarraydup.ptr);  // and the input
+        }
+        else
+        {
+            argv.push(filename.xarraydup.ptr);  // and the input
+            argv.push("-include");
+            argv.push(importc_h);
+        }
         if (target.os == Target.OS.FreeBSD)
             argv.push("-o");                // specify output file
         argv.push(output.xarraydup.ptr);    // and the output

@@ -268,7 +268,7 @@ struct Global
 
     FileManager* fileManager;
 
-    FileName (*preprocess)(FileName, bool&);
+    FileName (*preprocess)(FileName, const char*, bool&);
 
     /* Start gagging. Return the current number of gagged errors
      */
