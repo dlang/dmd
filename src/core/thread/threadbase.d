@@ -77,9 +77,7 @@ private
 {
     // Handling unaligned mutexes are not supported on all platforms, so we must
     // ensure that the address of all shared data are appropriately aligned.
-    import core.internal.traits : classInstanceAlignment;
-
-    enum mutexAlign = classInstanceAlignment!Mutex;
+    enum mutexAlign = __traits(classInstanceAlignment, Mutex);
     enum mutexClassInstanceSize = __traits(classInstanceSize, Mutex);
 
     alias swapContext = externDFunc!("core.thread.osthread.swapContext", void* function(void*) nothrow @nogc);

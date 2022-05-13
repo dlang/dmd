@@ -2002,7 +2002,7 @@ extern (C) void thread_init() @nogc
 }
 
 private alias MainThreadStore = void[__traits(classInstanceSize, Thread)];
-package __gshared align(Thread.alignof) MainThreadStore _mainThreadStore;
+package __gshared align(__traits(classInstanceAlignment, Thread)) MainThreadStore _mainThreadStore;
 
 /**
  * Terminates the thread module. No other thread routine may be called
