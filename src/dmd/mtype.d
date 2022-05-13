@@ -5221,8 +5221,8 @@ extern (C++) final class TypeTraits : Type
     Loc loc;
     /// The expression to resolve as type or symbol.
     TraitsExp exp;
-    /// After `typeSemantic` the symbol when `exp` doesn't represent a type.
-    Dsymbol sym;
+    /// Cached type/symbol after semantic analysis.
+    RootObject obj;
 
     final extern (D) this(const ref Loc loc, TraitsExp exp)
     {

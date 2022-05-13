@@ -3765,7 +3765,7 @@ class TypeTraits final : public Type
 public:
     Loc loc;
     TraitsExp* exp;
-    Dsymbol* sym;
+    RootObject* obj;
     const char* kind() const;
     TypeTraits* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
