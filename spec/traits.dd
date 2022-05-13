@@ -73,6 +73,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 parent, $(D parent))
     $(RELATIVE_LINK2 child, $(D child))
     $(RELATIVE_LINK2 classInstanceSize, $(D classInstanceSize))
+    $(RELATIVE_LINK2 classInstanceAlignment, $(D classInstanceAlignment))
     $(RELATIVE_LINK2 getVirtualIndex, $(D getVirtualIndex))
     $(RELATIVE_LINK2 allMembers, $(D allMembers))
     $(RELATIVE_LINK2 derivedMembers, $(D derivedMembers))
@@ -576,6 +577,17 @@ $(H3 $(GNAME classInstanceSize))
         The result
         is of type $(CODE size_t), and the value is the number of
         bytes in the runtime instance of the class type.
+        It is based on the static type of a class, not the
+        polymorphic type.
+        )
+
+$(H3 $(GNAME classInstanceAlignment))
+
+        $(P Takes a single argument, which must evaluate to either
+        a class type or an expression of class type.
+        The result
+        is of type $(CODE size_t), and the value is the alignment
+        of a runtime instance of the class type.
         It is based on the static type of a class, not the
         polymorphic type.
         )

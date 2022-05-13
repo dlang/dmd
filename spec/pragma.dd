@@ -300,7 +300,7 @@ $(H3 $(LNAME2 mangle, $(D pragma mangle)))
         template ScopeClass(C)
         {
             pragma(mangle, C.stringof, C)
-            struct ScopeClass { char[__traits(classInstanceSize, C)] buffer; }
+            struct ScopeClass { align(__traits(classInstanceAlignment, C)) void[__traits(classInstanceSize, C)] buffer; }
         }
         extern(C++)
         {
