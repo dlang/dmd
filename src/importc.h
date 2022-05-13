@@ -42,14 +42,14 @@
 #define __far
 #define __near
 #define __handle
-#define __inline        // ImportC does its own notion of inlining
+#define __inline        /* ImportC does its own notion of inlining */
 #define __pascal
 
 /****************************
  * __extension__ is a GNU C extension. It suppresses warnings
  * when placed before an expression.
  */
-#define __extension__  // ignore it, as ImportC doesn't do warnings
+#define __extension__  /* ignore it, as ImportC doesn't do warnings */
 
 /****************************
  * Define it to do what other C compilers do.
