@@ -4831,7 +4831,7 @@ private Statement toStatement(Dsymbol s)
     }
     else
     {
-        .error(Loc.initial, "Internal Compiler Error: cannot mixin %s `%s`\n", s.kind(), s.toChars());
+        .error(Loc.initial, "internal compiler error: cannot mixin %s `%s`\n", s.kind(), s.toChars());
         result = new ErrorStatement();
     }
 

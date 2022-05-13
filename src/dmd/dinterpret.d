@@ -6340,7 +6340,7 @@ public:
         result = (*se.elements)[i];
         if (!result)
         {
-            e.error("Internal Compiler Error: null field `%s`", v.toChars());
+            e.error("internal compiler error: null field `%s`", v.toChars());
             result = CTFEExp.cantexp;
             return;
         }

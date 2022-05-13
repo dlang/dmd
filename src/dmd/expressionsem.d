@@ -2480,7 +2480,7 @@ Package resolveIsPackage(Dsymbol sym)
     {
         if (imp.pkg is null)
         {
-            .error(sym.loc, "Internal Compiler Error: unable to process forward-referenced import `%s`",
+            .error(sym.loc, "internal compiler error: unable to process forward-referenced import `%s`",
                     imp.toChars());
             assert(0);
         }
