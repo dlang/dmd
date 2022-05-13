@@ -8349,6 +8349,7 @@ struct Id final
     static Identifier* getVirtualFunctions;
     static Identifier* getVirtualMethods;
     static Identifier* classInstanceSize;
+    static Identifier* classInstanceAlignment;
     static Identifier* allMembers;
     static Identifier* derivedMembers;
     static Identifier* isSame;

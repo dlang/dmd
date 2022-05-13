@@ -459,6 +459,7 @@ immutable Msgtable[] msgtable =
     { "getVirtualFunctions" },
     { "getVirtualMethods" },
     { "classInstanceSize" },
+    { "classInstanceAlignment" },
     { "allMembers" },
     { "derivedMembers" },
     { "isSame" },

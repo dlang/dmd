@@ -1,0 +1,9 @@
+Added `__traits(classInstanceAlignment)`
+
+To complement `__traits(classInstanceSize)`, providing the required
+alignment for manual buffers etc.:
+
+---
+align(__traits(classInstanceAlignment, C))
+void[__traits(classInstanceSize, C)] buffer;
+---
