@@ -563,9 +563,12 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
         e = new DotIdExp(sd.loc, e, Id.object);
         e = new DotIdExp(sd.loc, e, id);
         e = e.expressionSemantic(sc);
-        Dsymbol s = getDsymbol(e);
-        assert(s);
-        sd.xerreq = s.isFuncDeclaration();
+        if (!e.isErrorExp())
+        {
+            Dsymbol s = getDsymbol(e);
+            assert(s);
+            sd.xerreq = s.isFuncDeclaration();
+        }
     }
     Loc declLoc; // loc is unnecessary so __xopEquals is never called directly
     Loc loc; // loc is unnecessary so errors are gagged
@@ -684,9 +687,12 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
         e = new DotIdExp(sd.loc, e, Id.object);
         e = new DotIdExp(sd.loc, e, id);
         e = e.expressionSemantic(sc);
-        Dsymbol s = getDsymbol(e);
-        assert(s);
-        sd.xerrcmp = s.isFuncDeclaration();
+        if (!e.isErrorExp())
+        {
+            Dsymbol s = getDsymbol(e);
+            assert(s);
+            sd.xerrcmp = s.isFuncDeclaration();
+        }
     }
     Loc declLoc; // loc is unnecessary so __xopCmp is never called directly
     Loc loc; // loc is unnecessary so errors are gagged
