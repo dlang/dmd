@@ -6423,13 +6423,8 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     ds.visibility = sc.visibility;
     ds.userAttribDecl = sc.userAttribDecl;
 
-    // TypeTraits needs to know if it's located in an AliasDeclaration
-    const oldflags = sc.flags;
-    sc.flags |= SCOPE.alias_;
-
     void normalRet()
     {
-        sc.flags = oldflags;
         ds.inuse = 0;
         ds.semanticRun = PASS.semanticdone;
 
