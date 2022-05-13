@@ -3323,7 +3323,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
                 assert(0);
         }
         else
+        {
+            mt.obj = Type.terror;
             return returnError();
+        }
     }
 
     switch (mt.ty)
