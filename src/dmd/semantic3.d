@@ -1295,6 +1295,75 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc = sc.pop();
         }
 
+        // Check `extern(C++)` functions for invalid the return/parameter types
+        if (funcdecl._linkage == LINK.cpp)
+        {
+            static bool checkCppNonMappableType(Type type, Parameter param = null, Type origType = null)
+            {
+                if (origType is null)
+                {
+                    origType = type;
+                    type = type.toBasetype();
+                }
+
+                // Don't allow D `immutable` and `shared` types to be interfaced with C++
+                if (type.isImmutable() || type.isShared())
+                    return true;
+                else if (Type cpptype = target.cpp.parameterType(type))
+                    type = cpptype;
+
+                // Permit types that are handled by toCppMangle.
+                // This list should be kept in sync with dmd.cppmangle and dmd.cppmanglewin.
+                switch (type.ty)
+                {
+                    case Tnull:
+                    case Tnoreturn:
+                    case Tvector:
+                    case Tpointer:
+                    case Treference:
+                    case Tfunction:
+                    case Tstruct:
+                    case Tenum:
+                    case Tclass:
+                    case Tident:
+                    case Tinstance:
+                        break;
+
+                    case Tsarray:
+                        if (!origType.toBasetype().isTypePointer())
+                            return true;
+                        break;
+
+                    default:
+                        if (!type.isTypeBasic())
+                            return true;
+                        break;
+                }
+
+                // Descend to the enclosing type
+                if (auto tnext = type.nextOf())
+                    return checkCppNonMappableType(tnext, param, origType);
+
+                return false;
+            }
+            if (checkCppNonMappableType(f.next))
+            {
+                funcdecl.error("cannot return type `%s` because its linkage is `extern(C++)`", f.next.toChars());
+                funcdecl.errors = true;
+            }
+            foreach (i, param; f.parameterList)
+            {
+                if (checkCppNonMappableType(param.type, param))
+                {
+                    funcdecl.error("cannot have parameter of type `%s` because its linkage is `extern(C++)`", param.type.toChars());
+                    if (param.type.toBasetype().isTypeSArray())
+                        errorSupplemental(funcdecl.loc, "perhaps use a `%s*` type instead",
+                                          param.type.nextOf().mutableOf().unSharedOf().toChars());
+                    funcdecl.errors = true;
+                }
+            }
+        }
+
         // Do live analysis
         if (global.params.useDIP1021 && funcdecl.fbody && funcdecl.type.ty != Terror &&
             funcdecl.type.isTypeFunction().islive)

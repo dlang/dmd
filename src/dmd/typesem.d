@@ -1154,7 +1154,7 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             //printf("already done\n");
             return mtype;
         }
-        //printf("TypeFunction::semantic() this = %p\n", this);
+        //printf("TypeFunction::semantic() this = %p\n", mtype);
         //printf("TypeFunction::semantic() %s, sc.stc = %llx\n", mtype.toChars(), sc.stc);
 
         bool errors = false;
