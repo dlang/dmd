@@ -2436,6 +2436,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.linkswitches.push(p + 2 + (p[2] == '='));
             params.linkswitchIsForCC.push(false);
         }
+        else if (p[1] == 'P')                        // https://dlang.org/dmd.html#switch-P
+        {
+            params.cppswitches.push(p + 2 + (p[2] == '='));
+        }
         else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
         {
             driverParams.defaultlibname = (p + 1 + 11).toDString;

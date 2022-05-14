@@ -201,6 +201,8 @@ struct Param
     bool run;           // run resulting executable
     Strings runargs;    // arguments for executable
 
+    Array<const char *> cppswitches; // preprocessor switches
+
     // Linker stuff
     Array<const char *> objfiles;
     Array<const char *> linkswitches;
