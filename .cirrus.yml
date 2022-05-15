@@ -134,16 +134,16 @@ macos10_task:
   << : *COMMON_STEPS_TEMPLATE
 
 # FreeBSD
-freebsd12_task:
-  name: FreeBSD 12.2 x64, DMD ($TASK_NAME_TYPE)
+freebsd13_task:
+  name: FreeBSD 13.0 x64, DMD ($TASK_NAME_TYPE)
   freebsd_instance:
-    image_family: freebsd-12-2
+    image_family: freebsd-13-0
     cpu: 4
     memory: 8G
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
-    CI_DFLAGS: -version=TARGET_FREEBSD12
+    CI_DFLAGS: -version=TARGET_FREEBSD13
     matrix:
       - TASK_NAME_TYPE: latest
       - TASK_NAME_TYPE: coverage
@@ -151,17 +151,17 @@ freebsd12_task:
   install_bash_script: pkg install -y bash
   << : *COMMON_STEPS_TEMPLATE
 
-freebsd11_task:
-  name: FreeBSD 11.4 x64, DMD (bootstrap)
+freebsd12_task:
+  name: FreeBSD 12.3 x64, DMD (bootstrap)
   freebsd_instance:
-    image_family: freebsd-11-4
+    image_family: freebsd-12-3
     cpu: 4
     memory: 8G
   timeout_in: 60m
   environment:
     OS_NAME: freebsd
-    HOST_DMD: dmd-2.079.0
-    CI_DFLAGS: -version=TARGET_FREEBSD11
+    HOST_DMD: dmd-2.095.0
+    CI_DFLAGS: -version=TARGET_FREEBSD12
   install_bash_script: |
     sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
     pkg install -y bash

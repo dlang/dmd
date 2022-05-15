@@ -658,6 +658,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 dt2common(&s.Sdt);
             }
 
+            if (s.Sclass & SCglobal && s.Stype.Tty & mTYconst)
+                out_readonly(s);
+
             outdata(s);
             if (vd.type.isMutable() || !vd._init)
                 write_pointers(vd.type, s, 0);
@@ -975,7 +978,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, t);
             tlvInit.Sdt = null;
             tlvInit.Salignment = type_alignsize(s.Stype);
-            if (vd.linkage == LINK.cpp)
+            if (vd._linkage == LINK.cpp)
                 tlvInit.Sflags |= SFLpublic;
 
             return tlvInit;
@@ -992,7 +995,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static mangle_t mangle(const VarDeclaration vd)
         {
-            final switch (vd.linkage)
+            final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
                     return target.is64bit ? mTYman_c : mTYman_std;
@@ -1009,7 +1012,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 case LINK.default_:
                 case LINK.system:
-                    printf("linkage = %d\n", vd.linkage);
+                    printf("linkage = %d\n", vd._linkage);
                     assert(0);
             }
         }

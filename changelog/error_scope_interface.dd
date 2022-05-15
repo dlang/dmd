@@ -1,8 +1,0 @@
-The deprecation period for `scope` as a type constraint on interface declarations has ended.
-
-Starting with this release, using `scope` as a type constraint on `interface`
-declarations will result in a compiler error.
-
----
-scope interface I { }  // Error: `scope` as a type constraint is obsolete.  Use `scope` at the usage site.
----

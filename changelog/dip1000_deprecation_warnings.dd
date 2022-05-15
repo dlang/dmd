@@ -1,6 +1,0 @@
-Print warning messages unless -revert=dip1000 is used
-
-As an incentive to transition to -preview=dip1000 by default, now the
-compiler prints what would have been error messages if the flag had
-been on as deprecation messages.  This new behaviour can be disabled
-with -revert=dip1000.
