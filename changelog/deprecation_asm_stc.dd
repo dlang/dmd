@@ -1,7 +1,0 @@
-The deprecation period of unannotated `asm` blocks has been ended.
-
-See the $(LINK2 $(ROOT_DIR)deprecate.html#asm, Deprecated Features) for more
-information.
-
-Starting with this release, using `asm` blocks will assume to be `@system`,
-`@nogc`, impure and might throw, unless explicitly annotated.

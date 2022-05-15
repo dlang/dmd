@@ -1898,7 +1898,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             auto tmp = Identifier.generateId("__retvar");
             vret = new VarDeclaration(fd.loc, eret.type, tmp, ei);
             vret.storage_class |= STC.temp | STC.ref_;
-            vret.linkage = LINK.d;
+            vret._linkage = LINK.d;
             vret.parent = parent;
 
             ei.exp = new ConstructExp(fd.loc, vret, eret);
@@ -1923,7 +1923,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             vret = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, new VoidInitializer(fd.loc));
             assert(!tf.isref);
             vret.storage_class = STC.temp | STC.rvalue;
-            vret.linkage = tf.linkage;
+            vret._linkage = tf.linkage;
             vret.parent = parent;
 
             auto de = new DeclarationExp(fd.loc, vret);
@@ -1981,7 +1981,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
                 vthis.storage_class = STC.ref_;
             else
                 vthis.storage_class = STC.in_;
-            vthis.linkage = LINK.d;
+            vthis._linkage = LINK.d;
             vthis.parent = parent;
 
             ei.exp = new ConstructExp(fd.loc, vthis, ethis);
@@ -2009,7 +2009,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             auto ei = new ExpInitializer(vfrom.loc, arg);
             auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
             vto.storage_class |= vfrom.storage_class & (STC.temp | STC.IOR | STC.lazy_ | STC.nodtor);
-            vto.linkage = vfrom.linkage;
+            vto._linkage = vfrom._linkage;
             vto.parent = parent;
             //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
             //printf("vto.parent = '%s'\n", parent.toChars());
@@ -2144,7 +2144,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             auto tmp = Identifier.generateId("__inlineretval");
             auto vd = new VarDeclaration(callLoc, tf.next, tmp, ei);
             vd.storage_class = STC.temp | (tf.isref ? STC.ref_ : STC.rvalue);
-            vd.linkage = tf.linkage;
+            vd._linkage = tf.linkage;
             vd.parent = parent;
 
             ei.exp = new ConstructExp(callLoc, vd, e);

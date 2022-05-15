@@ -1382,7 +1382,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o.toChars());
                 return ErrorExp.get();
             }
-            link = fd.linkage;
+            link = fd._linkage;
             varargs = fd.getParameterList().varargs;
         }
         string style;
@@ -1516,7 +1516,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (tf)
         {
-            link = fd ? fd.linkage : tf.linkage;
+            link = fd ? fd.toAliasFunc()._linkage : tf.linkage;
         }
         else
         {
@@ -1530,7 +1530,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             }
 
             if (d !is null)
-                link = d.linkage;
+                link = d._linkage;
             else
             {
                 // Resolves forward references

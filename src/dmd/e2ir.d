@@ -3250,7 +3250,7 @@ elem* toElem(Expression e, IRState *irs)
                 // multiple times within the same function, eg in a loop
                 // see issue 3822
                 if (fd && fd.ident == Id.__alloca &&
-                    !fd.fbody && fd.linkage == LINK.c &&
+                    !fd.fbody && fd._linkage == LINK.c &&
                     arguments && arguments.dim == 1)
                 {   Expression arg = (*arguments)[0];
                     arg = arg.optimize(WANTvalue);
@@ -5642,7 +5642,7 @@ elem *callfunc(const ref Loc loc,
             e.Eflags |= EFLAGS_variadic;
     }
 
-    const isCPPCtor = fd && fd.linkage == LINK.cpp && fd.isCtorDeclaration();
+    const isCPPCtor = fd && fd._linkage == LINK.cpp && fd.isCtorDeclaration();
     if (isCPPCtor && irs.target.isPOSIX)
     {
         // CPP constructor returns void on Posix
