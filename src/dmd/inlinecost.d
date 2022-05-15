@@ -503,7 +503,7 @@ public:
         // can't handle that at present.
         if (e.e1.op == EXP.dotVariable && (cast(DotVarExp)e.e1).e1.op == EXP.super_)
             cost = COST_MAX;
-        else if (e.f && e.f.ident == Id.__alloca && e.f.linkage == LINK.c && !allowAlloca)
+        else if (e.f && e.f.ident == Id.__alloca && e.f._linkage == LINK.c && !allowAlloca)
             cost = COST_MAX; // inlining alloca may cause stack overflows
         else
             cost++;

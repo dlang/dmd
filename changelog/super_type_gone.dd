@@ -1,6 +1,0 @@
-Usage of `this` and `super` as types has been removed
-
-Prior to this release, using `this` or `super` as a type resulted in a compiler
-error suggesting to use `typeof(this)` or `typeof(super)` instead. This has now
-been completely removed from the language, and the parser won't recognize this
-wrong code anymore.

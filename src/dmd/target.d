@@ -65,6 +65,26 @@ Target.OS defaultTargetOS()
     else
         static assert(0, "unknown TARGET");
 }
+
+ubyte defaultTargetOSMajor()
+{
+    version (FreeBSD)
+    {
+        version (TARGET_FREEBSD10)
+            return 10;
+        else version (TARGET_FREEBSD11)
+            return 11;
+        else version (TARGET_FREEBSD12)
+            return 12;
+        else version (TARGET_FREEBSD13)
+            return 13;
+        else
+            return 0;
+    }
+    else
+        return 0;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /**
  * Describes a back-end target. At present it is incomplete, but in the future
@@ -116,7 +136,7 @@ extern (C++) struct Target
     }
 
     OS os = defaultTargetOS();
-    ubyte osMajor;
+    ubyte osMajor = defaultTargetOSMajor();
 
     // D ABI
     ubyte ptrsize;            /// size of a pointer in bytes

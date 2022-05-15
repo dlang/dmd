@@ -90,7 +90,9 @@ extern (C++) type* Type_toCtype(Type t)
 
     static type* visitSArray(TypeSArray t)
     {
-        return type_static_array(t.dim.toInteger(), Type_toCtype(t.next));
+        auto ta = type_static_array(t.dim.toInteger(), Type_toCtype(t.next));
+        ta.Tty |= ta.Tnext.Tty & mTYconst;
+        return ta;
     }
 
     static type* visitDArray(TypeDArray t)

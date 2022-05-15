@@ -5639,7 +5639,7 @@ public:
     Type* originalType;
     StorageClass storage_class;
     Visibility visibility;
-    LINK linkage;
+    LINK _linkage;
     int16_t inuse;
     uint8_t adFlags;
     enum : int32_t { wasRead = 1 };
@@ -5652,6 +5652,7 @@ public:
     uinteger_t size(const Loc& loc);
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8);
     bool isStatic() const;
+    LINK resolvedLinkage() const;
     virtual bool isDelete();
     virtual bool isDataseg();
     virtual bool isThreadlocal();
@@ -7754,7 +7755,7 @@ public:
     bool supportsLinkerDirective() const;
     Target() :
         os((OS)1u),
-        osMajor(),
+        osMajor(0u),
         ptrsize(),
         realsize(),
         realpad(),
