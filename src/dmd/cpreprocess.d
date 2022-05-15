@@ -37,12 +37,13 @@ import dmd.root.string;
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
  *      importc_h = filename of importc.h
+ *      cppswitches = array of switches to pass to C preprocessor
  *      ifile = set to true if an output file was written
  * Result:
  *      filename of output
  */
 extern (C++)
-FileName preprocess(FileName csrcfile, const char* importc_h, out bool ifile)
+FileName preprocess(FileName csrcfile, const char* importc_h, ref Array!(const(char)*) cppswitches, out bool ifile)
 {
     //printf("preprocess %s\n", csrcfile.toChars());
     version (Posix)
@@ -52,7 +53,7 @@ FileName preprocess(FileName csrcfile, const char* importc_h, out bool ifile)
         assert(ext);
         const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
         const command = cppCommand();
-        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, ifilename);
+        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, cppswitches, ifilename);
         if (status)
         {
             error(Loc.initial, "C preprocess command %.*s failed for file %s, exit status %d\n",
@@ -74,7 +75,7 @@ FileName preprocess(FileName csrcfile, const char* importc_h, out bool ifile)
         assert(ext);
         const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
         const command = cppCommand();
-        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, ifilename);
+        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, cppswitches, ifilename);
         if (status)
         {
             error(Loc.initial, "C preprocess command %.*s failed for file %s, exit status %d\n",

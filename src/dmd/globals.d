@@ -298,7 +298,7 @@ extern (C++) struct Global
 
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
-    extern (C++) FileName function(FileName, const(char)* importc_h, out bool) preprocess;
+    extern (C++) FileName function(FileName, const(char)* importc_h, ref Array!(const(char)*) cppswitches, out bool) preprocess;
 
   nothrow:
 

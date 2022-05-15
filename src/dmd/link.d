@@ -22,6 +22,7 @@ import core.sys.windows.windef;
 import dmd.dmdparams;
 import dmd.errors;
 import dmd.globals;
+import dmd.root.array;
 import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
@@ -1035,24 +1036,14 @@ public int runProgram()
  *    cpp = name of C preprocessor program
  *    filename = C source file name
  *    importc_h = filename of importc.h
+ *    cppswitches = array of switches to pass to C preprocessor
  *    output = preprocessed output file name
  * Returns:
  *    exit status.
  */
-public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, const(char)[] output)
+public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches, const(char)[] output)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
-    if (global.params.verbose)
-    {
-        OutBuffer buf;
-        buf.writestring(cpp);
-        buf.writeByte(' ');
-        buf.writestring(filename);
-        buf.writeByte(' ');
-        buf.writestring(output);
-        message(buf.peekChars());
-    }
-
     version (Windows)
     {
         // Build argv[]
@@ -1067,6 +1058,20 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 buf.writestring(cpp);
                 buf.printf(" /P /nologo %.*s /FI%s /Fi%.*s",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
+
+                /* Append preprocessor switches to command line
+                 */
+                foreach (a; cppswitches)
+                {
+                    if (a && a[0])
+                    {
+                        buf.writeByte(' ');
+                        buf.writestring(a);
+                    }
+                }
+
+                if (global.params.verbose)
+                    message(buf.peekChars());
 
                 ubyte[2048] buffer = void;
 
@@ -1132,6 +1137,20 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 buf.printf(" %.*s -HI%s -o%.*s",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
+                /* Append preprocessor switches to command line
+                 */
+                foreach (a; cppswitches)
+                {
+                    if (a && a[0])
+                    {
+                        buf.writeByte(' ');
+                        buf.writestring(a);
+                    }
+                }
+
+                if (global.params.verbose)
+                    message(buf.peekChars());
+
                 ubyte[2048] buffer = void;
 
                 void sinkomf(ubyte[] data)
@@ -1175,6 +1194,13 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         // Build argv[]
         Strings argv;
         argv.push(cpp.xarraydup.ptr);       // null terminated copy
+
+        foreach (p; cppswitches)
+        {
+            if (p && p[0])
+                argv.push(p);
+        }
+
         if (target.os == Target.OS.OSX)
         {
             argv.push("-include");          // OSX cpp has switch order dependencies
@@ -1191,6 +1217,22 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
             argv.push("-o");                // specify output file
         argv.push(output.xarraydup.ptr);    // and the output
         argv.push(null);                    // argv[] always ends with a null
+
+        if (global.params.verbose)
+        {
+            OutBuffer buf;
+
+            foreach (i, a; argv[])
+            {
+                if (a)
+                {
+                    if (i)
+                        buf.writeByte(' ');
+                    buf.writestring(a);
+                }
+            }
+            message(buf.peekChars());
+        }
 
         pid_t childpid = fork();
         if (childpid == 0)
