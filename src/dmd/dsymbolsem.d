@@ -3245,7 +3245,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             const idStr = (funcdecl.flags & FUNCFLAG.CRTCtor) ? "crt_constructor" : "crt_destructor";
             if (f.nextOf().ty != Tvoid)
                 funcdecl.error("must return `void` for `pragma(%s)`", idStr.ptr);
-            if (funcdecl.linkage != LINK.c && f.parameterList.length != 0)
+            if (funcdecl._linkage != LINK.c && f.parameterList.length != 0)
                 funcdecl.error("must be `extern(C)` for `pragma(%s)` when taking parameters", idStr.ptr);
         }
 
