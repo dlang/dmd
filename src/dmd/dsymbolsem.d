@@ -888,6 +888,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         else if (dsym.storage_class & STC.manifest)
             dsym.error("manifest constants must have initializers");
 
+        // Don't allow non-extern, non-__gshared variables to be interfaced with C++
+        if (dsym._linkage == LINK.cpp && !(dsym.storage_class & (STC.ctfe | STC.extern_ | STC.gshared)) && dsym.isDataseg())
+        {
+            const char* p = (dsym.storage_class & STC.shared_) ? "shared" : "static";
+            dsym.error("cannot have `extern(C++)` linkage because it is `%s`", p);
+            errorSupplemental(dsym.loc, "perhaps declare it as `__gshared` instead");
+            dsym.errors = true;
+        }
+
         bool isBlit = false;
         uinteger_t sz;
         if (sc.flags & SCOPE.Cfile && !dsym._init)

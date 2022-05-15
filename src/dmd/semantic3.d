@@ -1298,22 +1298,19 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Check `extern(C++)` functions for invalid the return/parameter types
         if (funcdecl._linkage == LINK.cpp)
         {
-            static bool checkCppNonMappableType(Type type, Parameter param = null, Type origType = null)
+            static bool isCppNonMappableType(Type type, Parameter param = null, Type origType = null)
             {
-                if (origType is null)
-                {
-                    origType = type;
-                    type = type.toBasetype();
-                }
-
                 // Don't allow D `immutable` and `shared` types to be interfaced with C++
                 if (type.isImmutable() || type.isShared())
                     return true;
                 else if (Type cpptype = target.cpp.parameterType(type))
                     type = cpptype;
 
-                // Permit types that are handled by toCppMangle.
-                // This list should be kept in sync with dmd.cppmangle and dmd.cppmanglewin.
+                if (origType is null)
+                    origType = type;
+
+                // Permit types that are handled by toCppMangle. This list should be kept in sync with
+                // each visit method in dmd.cppmangle and dmd.cppmanglewin.
                 switch (type.ty)
                 {
                     case Tnull:
@@ -1330,7 +1327,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         break;
 
                     case Tsarray:
-                        if (!origType.toBasetype().isTypePointer())
+                        if (!origType.isTypePointer())
                             return true;
                         break;
 
@@ -1342,18 +1339,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 // Descend to the enclosing type
                 if (auto tnext = type.nextOf())
-                    return checkCppNonMappableType(tnext, param, origType);
+                    return isCppNonMappableType(tnext, param, origType);
 
                 return false;
             }
-            if (checkCppNonMappableType(f.next))
+            if (isCppNonMappableType(f.next.toBasetype()))
             {
                 funcdecl.error("cannot return type `%s` because its linkage is `extern(C++)`", f.next.toChars());
                 funcdecl.errors = true;
             }
             foreach (i, param; f.parameterList)
             {
-                if (checkCppNonMappableType(param.type, param))
+                if (isCppNonMappableType(param.type.toBasetype(), param))
                 {
                     funcdecl.error("cannot have parameter of type `%s` because its linkage is `extern(C++)`", param.type.toChars());
                     if (param.type.toBasetype().isTypeSArray())
