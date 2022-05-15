@@ -643,6 +643,12 @@ dmd -cov -unittest myprog.d
                     $(LI $(I windows): Windows)
                 )`
         ),
+        Option("P=<preprocessorflag>",
+            "pass preprocessorflag to C preprocessor",
+            `Pass $(I preprocessorflag) to
+            $(WINDOWS sppn.exe or cl.exe)
+            $(UNIX cpp)`,
+        ),
         Option("preview=<name>",
             "enable an upcoming language change identified by 'name'",
             `Preview an upcoming language change identified by $(I id)`,
