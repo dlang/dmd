@@ -342,7 +342,7 @@ public:
             if (checkTypeSaved(type))
                 return;
             mangleModifier(type);
-            if (type.isConst() || !(flags & IS_DMC))
+            if (type.isConst())
                 buf.writeByte('Q'); // const
             else
                 buf.writeByte('P'); // mutable
