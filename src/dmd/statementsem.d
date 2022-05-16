@@ -1619,7 +1619,7 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
         foreach (i; 0 .. fs.parameters.dim)
         {
             Parameter p = (*fs.parameters)[i];
-            StorageClass stc = STC.ref_ | (p.storageClass & STC.scope_);
+            StorageClass stc = (p.storageClass & STC.ref_) | (p.storageClass & STC.scope_);
             Identifier id;
 
             p.type = p.type.typeSemantic(fs.loc, sc);
