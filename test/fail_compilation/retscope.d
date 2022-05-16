@@ -234,16 +234,16 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda4` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda4` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda4` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda4` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
 ---
 */
 
 void escape4() @safe
 {
-    alias FunDG = void* delegate () @safe;
+    alias FunDG = void* delegate () scope @safe;
     int x = 42;
     scope FunDG f = () return { return &x; };
     scope FunDG g = ()        { return &x; };
