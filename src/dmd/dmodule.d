@@ -703,7 +703,7 @@ extern (C++) final class Module : Package
                 error("cannot find \"importc.h\" along import path");
                 fatal();
             }
-            filename = global.preprocess(srcfile, importc_h, ifile);  // run C preprocessor
+            filename = global.preprocess(srcfile, importc_h, global.params.cppswitches, ifile);  // run C preprocessor
         }
 
         if (auto result = global.fileManager.lookup(filename))
