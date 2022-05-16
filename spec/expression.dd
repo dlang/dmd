@@ -1312,7 +1312,7 @@ $(H2 $(LNAME2 throw_expression, Throw Expression))
 
 $(GRAMMAR
 $(GNAME ThrowExpression):
-    $(D throw) $(GLINK AssignExpression) $(D ;)
+    $(D throw) $(GLINK AssignExpression)
 )
 
 $(P
