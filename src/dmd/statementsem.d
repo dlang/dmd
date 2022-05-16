@@ -1616,9 +1616,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     static FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFunction tfld)
     {
         auto params = new Parameters();
-        foreach (i; 0 .. fs.parameters.dim)
+        foreach (i, p; *fs.parameters)
         {
-            Parameter p = (*fs.parameters)[i];
             StorageClass stc = STC.ref_ | (p.storageClass & STC.scope_);
             Identifier id;
 
