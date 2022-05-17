@@ -36,15 +36,42 @@ import dmd.root.string;
  * Preprocess C file.
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
- *      importc_h = filename of importc.h
+ *      loc = The source location where preprocess is requested from
  *      cppswitches = array of switches to pass to C preprocessor
  *      ifile = set to true if an output file was written
  * Result:
  *      filename of output
  */
 extern (C++)
-FileName preprocess(FileName csrcfile, const char* importc_h, ref Array!(const(char)*) cppswitches, out bool ifile)
+FileName preprocess(FileName csrcfile, ref const Loc loc, ref Array!(const(char)*) cppswitches, out bool ifile)
 {
+    /* Look for "importc.h" by searching along import path.
+     * It should be in the same place as "object.d"
+     */
+    const(char)* importc_h;
+
+    foreach (entry; (global.path ? (*global.path)[] : null))
+    {
+        auto f = FileName.combine(entry, "importc.h");
+        if (FileName.exists(f) == 1)
+        {
+            importc_h = f;
+            break;
+        }
+        FileName.free(f);
+    }
+
+    if (importc_h)
+    {
+        if (global.params.verbose)
+            message("include   %s", importc_h);
+    }
+    else
+    {
+        error(loc, "cannot find \"importc.h\" along import path");
+        fatal();
+    }
+
     //printf("preprocess %s\n", csrcfile.toChars());
     version (Posix)
     {
@@ -56,7 +83,7 @@ FileName preprocess(FileName csrcfile, const char* importc_h, ref Array!(const(c
         auto status = runPreprocessor(command, csrcfile.toString(), importc_h, cppswitches, ifilename);
         if (status)
         {
-            error(Loc.initial, "C preprocess command %.*s failed for file %s, exit status %d\n",
+            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
                 cast(int)command.length, command.ptr, csrcfile.toChars(), status);
             fatal();
         }
@@ -78,7 +105,7 @@ FileName preprocess(FileName csrcfile, const char* importc_h, ref Array!(const(c
         auto status = runPreprocessor(command, csrcfile.toString(), importc_h, cppswitches, ifilename);
         if (status)
         {
-            error(Loc.initial, "C preprocess command %.*s failed for file %s, exit status %d\n",
+            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
                 cast(int)command.length, command.ptr, csrcfile.toChars(), status);
             fatal();
         }
