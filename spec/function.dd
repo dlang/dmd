@@ -3782,10 +3782,12 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
 
 $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
-        $(P A free function can be called with a syntax equivalent to that of
-        a member function of its first parameter type. The free function is
-        called a $(I UFCS function).
+        $(P A free function can be called like a member function when:)
+        $(UL
+        $(LI The member function does not exist for the expression on the left hand side)
+        $(LI The free function's first parameter type matches the left hand expression)
         )
+        $(P This is called a $(I UFCS function call).)
 
         ---
         void sun(T, int);
@@ -3793,7 +3795,7 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         void moon(T t)
         {
             t.sun(1);
-            // If `T` does not have member function `sun`,
+            // If `T` does not have a member function `sun`,
             // `t.sun(1)` is interpreted as if it were written `sun(t, 1)`
         }
         ---
@@ -3836,17 +3838,14 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         ---
 
         $(P Functions declared in a local scope are not found when searching for a matching
-        UFCS function.)
-
-        $(P Member functions are not found when searching for a matching
-        UFCS function.)
-
-        $(P Otherwise, UFCS function lookup proceeds normally.)
+        UFCS function. Neither are other local symbols, although local imports are searched:)
 
         ---
         module a;
+
         void foo(X);
         alias boo = foo;
+
         void main()
         {
             void bar(X);     // bar declared in local scope
@@ -3863,24 +3862,33 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
                           // because the declared alias name 'boo' in local scope
                           // overrides module scope name
         }
+        ---
+
+        $(P Member functions are not found when searching for a matching
+        UFCS function.)
+
+        ---
         class C
         {
             void mfoo(X);           // member function
             static void sbar(X);    // static member function
             import b : ibaz = baz;  // void baz(X);
+
             void test()
             {
                 X obj;
                 //obj.mfoo();  // NG, UFCS does not see member functions
                 //obj.sbar();  // NG, UFCS does not see static member functions
-                obj.ibaz();    // OK, ibaz is an alias of baz which declared at
+                obj.ibaz();    // OK, ibaz is an alias of baz which is declared at
                                //     the top level scope of module b
             }
         }
         ---
 
+        $(P Otherwise, UFCS function lookup proceeds normally.)
+
         $(RATIONALE Local function symbols are not considered by UFCS
-        to avoid unexpected name conflicts. See below problematic examples.)
+        to avoid unexpected name conflicts. See below for problematic examples.)
 
         ---
         int front(int[] arr) { return arr[0]; }
