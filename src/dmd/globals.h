@@ -20,6 +20,7 @@
 template <typename TYPE> struct Array;
 
 class FileManager;
+struct Loc;
 
 typedef unsigned char Diagnostic;
 enum
@@ -270,7 +271,7 @@ struct Global
 
     FileManager* fileManager;
 
-    FileName (*preprocess)(FileName, const char*, Array<const char *>& cppswitches, bool&);
+    FileName (*preprocess)(FileName, const Loc&, Array<const char *>& cppswitches, bool&);
 
     /* Start gagging. Return the current number of gagged errors
      */

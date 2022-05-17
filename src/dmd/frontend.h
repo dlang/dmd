@@ -827,7 +827,7 @@ struct Global final
     FileManager* fileManager;
     enum : int32_t { recursionLimit = 500 };
 
-    FileName(*preprocess)(FileName , const char* importc_h, Array<const char* >& cppswitches, bool& );
+    FileName(*preprocess)(FileName , const Loc& , Array<const char* >& cppswitches, bool& );
     uint32_t startGagging();
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
@@ -5512,7 +5512,7 @@ extern const char* toCppMangleDMC(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleDMC(Dsymbol* s);
 
-extern FileName preprocess(FileName csrcfile, const char* const importc_h, Array<const char* >& cppswitches, bool& ifile);
+extern FileName preprocess(FileName csrcfile, const Loc& loc, Array<const char* >& cppswitches, bool& ifile);
 
 class ClassReferenceExp final : public Expression
 {
