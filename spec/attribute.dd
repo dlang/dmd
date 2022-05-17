@@ -586,8 +586,10 @@ $(H2 $(LNAME2 override, $(D override) Attribute))
 
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
-        $(P The $(D static) attribute applies to functions and data.
-        It means that the declaration does not apply to a particular
+        $(P The $(D static) attribute applies to functions and data.)
+
+        $(P Inside an aggregate type, a `static`
+        declaration does not apply to a particular
         instance of an object, but to the type of the object. In
         other words, it means there is no $(D this) reference.
         $(D static) is ignored when applied to other declarations.
@@ -610,14 +612,21 @@ f.foobar();     // produces 7;
 ---------------
 
 $(P
-        Static functions are never virtual.
+        Static functions are never $(DDSUBLINK spec/function, virtual-functions, virtual).
 )
 $(P
         Static data has one instance per thread, not one per object.
 )
+$(P A static $(DDSUBLINK spec/function, nested, nested function) cannot
+access variables in the parent scope.)
+
+$(P Inside a function, a $(DDSUBLINK spec/function, local-static-variables,
+static local variable) persists after the function returns.)
+
 $(P
         Static does not have the additional C meaning of being local
-        to a file. Use the $(D private) attribute in D to achieve that.
+        to a file. Use the $(RELATIVE_LINK2 VisibilityAttribute, `private`)
+        attribute in D to achieve that.
         For example:
 )
 
