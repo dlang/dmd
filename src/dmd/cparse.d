@@ -976,16 +976,19 @@ final class CParser(AST) : Parser!AST
                         // ( type-name )
                         e = new AST.TypeExp(loc, t);
                     }
-                    e = new AST.DotIdExp(loc, e, Id.__sizeof);
-                    break;
                 }
-                // must be an expression
-                e = cparsePrimaryExp();
-                e = new AST.DotIdExp(loc, e, Id.__sizeof);
-                break;
+                else
+                {
+                    // must be an expression
+                    e = cparseUnaryExp();
+                }
+            }
+            else
+            {
+                //C11 6.5.3
+                e = cparseUnaryExp();
             }
 
-            e = cparseUnaryExp();
             e = new AST.DotIdExp(loc, e, Id.__sizeof);
             break;
         }
@@ -4250,11 +4253,20 @@ final class CParser(AST) : Parser!AST
                 case TOK._Bool:
                 //case TOK._Imaginary: // ? missing in Spec
                 case TOK._Complex:
-
-                // typedef-name
-                case TOK.identifier:    // will not know until semantic if typedef
                     t = peek(t);
                     break;
+
+                case TOK.identifier:
+                    // Use typedef table to disambiguate
+                    if (isTypedef(t.ident))
+                    {
+                        t = peek(t);
+                        break;
+                    }
+                    else
+                    {
+                        return false;
+                    }
 
                 // struct-or-union-specifier
                 // enum-specifier
