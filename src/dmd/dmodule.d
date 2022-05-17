@@ -975,7 +975,8 @@ extern (C++) final class Module : Package
         {
             filetype = FileType.c;
 
-            scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c);
+            OutBuffer defines;
+            scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c, &defines);
             p.nextToken();
             checkCompiledImport();
             members = p.parseModule();

@@ -151,6 +151,31 @@ class Lexer
      */
     this() { }
 
+    /**************************************
+     * Reset lexer to lex #define's
+     */
+    final void resetDefineLines(const(char)[] slice)
+    {
+        base = slice.ptr;
+        end = base + slice.length;
+        assert(*end == 0);
+        p = base;
+        line = p;
+        tokenizeNewlines = true;
+        inTokenStringConstant = 0;
+        lastDocLine = 0;
+        scanloc = Loc("#defines", 1, 1);
+    }
+
+    /**********************************
+     * Set up for next #define line.
+     * p should be at start of next line.
+     */
+    final void nextDefineLine()
+    {
+        tokenizeNewlines = true;
+    }
+
     version (DMDLIB)
     {
         this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset,
@@ -2737,8 +2762,10 @@ class Lexer
 
     /***************************************
      * Scan forward to start of next line.
+     * Params:
+     *    defines = send characters to `defines`
      */
-    final void skipToNextLine()
+    final void skipToNextLine(OutBuffer* defines = null)
     {
         while (1)
         {
@@ -2759,7 +2786,9 @@ class Lexer
                 break;
 
             default:
-                if (*p & 0x80)
+                if (defines)
+                    defines.writeByte(*p); // don't care about Unicode line endings for C
+                else if (*p & 0x80)
                 {
                     const u = decodeUTF();
                     if (u == PS || u == LS)
