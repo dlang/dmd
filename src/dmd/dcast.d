@@ -2954,6 +2954,9 @@ Lagain:
 
         t1 = Type.basic[ty1];
         t2 = Type.basic[ty2];
+
+        if (!(t1 && t2))
+            return null;
         e1 = e1.castTo(sc, t1);
         e2 = e2.castTo(sc, t2);
         return Lret(Type.basic[ty]);
