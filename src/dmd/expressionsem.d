@@ -5995,7 +5995,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto idxReserved = FileName.findReservedChar(namez);
         if (idxReserved != size_t.max)
         {
-            e.error("`%s` is  not a valid filename on this platform", se.toChars());
+            e.error("`%s` is not a valid filename on this platform", se.toChars());
             e.errorSupplemental("Character `'%c'` is reserved and cannot be used", namez[idxReserved]);
             return setError();
         }
