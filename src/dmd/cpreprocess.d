@@ -32,6 +32,11 @@ import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.string;
 
+// Use default for other versions
+version (Posix)   version = runPreprocessor;
+version (Windows) version = runPreprocessor;
+
+
 /***************************************
  * Preprocess C file.
  * Params:
@@ -73,24 +78,7 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, ref Array!(const(char)
     }
 
     //printf("preprocess %s\n", csrcfile.toChars());
-    version (Posix)
-    {
-        const name = FileName.name(csrcfile.toString());
-        const ext = FileName.ext(name);
-        assert(ext);
-        const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
-        const command = cppCommand();
-        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, cppswitches, ifilename);
-        if (status)
-        {
-            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
-                cast(int)command.length, command.ptr, csrcfile.toChars(), status);
-            fatal();
-        }
-        ifile = true;
-        return FileName(ifilename);
-    }
-    else version (Windows)
+    version (runPreprocessor)
     {
         /*
            To get sppn.exe: http://ftp.digitalmars.com/sppn.zip
