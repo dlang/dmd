@@ -146,6 +146,11 @@ class Lexer
         }
     }
 
+    /******************
+     * Used for unittests for a mock Lexer
+     */
+    this() { }
+
     version (DMDLIB)
     {
         this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset,
@@ -1184,7 +1189,7 @@ class Lexer
      * Returns:
      *  the escape sequence as a single character
      */
-    private static dchar escapeSequence(const ref Loc loc, ref const(char)* sequence, bool Ccompile)
+    private dchar escapeSequence(const ref Loc loc, ref const(char)* sequence, bool Ccompile)
     {
         const(char)* p = sequence; // cache sequence reference on stack
         scope(exit) sequence = p;
@@ -1268,13 +1273,13 @@ class Lexer
                             break;
                         if (!ishex(cast(char)c))
                         {
-                            .error(loc, "escape hex sequence has %d hex digits instead of %d", n, ndigits);
+                            error(loc, "escape hex sequence has %d hex digits instead of %d", n, ndigits);
                             break;
                         }
                     }
                     if (ndigits != 2 && !utf_isValidDchar(v))
                     {
-                        .error(loc, "invalid UTF character \\U%08x", v);
+                        error(loc, "invalid UTF character \\U%08x", v);
                         v = '?'; // recover with valid UTF character
                     }
                 }
@@ -1282,7 +1287,7 @@ class Lexer
             }
             else
             {
-                .error(loc, "undefined escape hex sequence \\%c%c", sequence[0], c);
+                error(loc, "undefined escape hex sequence \\%c%c", sequence[0], c);
                 p++;
             }
             break;
@@ -1299,7 +1304,7 @@ class Lexer
                     c = HtmlNamedEntity(idstart, p - idstart);
                     if (c == ~0)
                     {
-                        .error(loc, "unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
+                        error(loc, "unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
                         c = '?';
                     }
                     p++;
@@ -1307,7 +1312,7 @@ class Lexer
                 default:
                     if (isalpha(*p) || (p != idstart && isdigit(*p)))
                         continue;
-                    .error(loc, "unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
+                    error(loc, "unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
                     c = '?';
                     break;
                 }
@@ -1332,11 +1337,11 @@ class Lexer
                 while (++n < 3 && isoctal(cast(char)c));
                 c = v;
                 if (c > 0xFF)
-                    .error(loc, "escape octal sequence \\%03o is larger than \\377", c);
+                    error(loc, "escape octal sequence \\%03o is larger than \\377", c);
             }
             else
             {
-                .error(loc, "undefined escape sequence \\%c", c);
+                error(loc, "undefined escape sequence \\%c", c);
                 p++;
             }
             break;
@@ -3146,7 +3151,8 @@ unittest
     static void test(T)(string sequence, T expected, bool Ccompile = false)
     {
         auto p = cast(const(char)*)sequence.ptr;
-        assert(expected == Lexer.escapeSequence(Loc.initial, p, Ccompile));
+        Lexer lexer = new Lexer();
+        assert(expected == lexer.escapeSequence(Loc.initial, p, Ccompile));
         assert(p == sequence.ptr + sequence.length);
     }
 
@@ -3212,7 +3218,8 @@ unittest
         gotError = false;
         expected = expectedError;
         auto p = cast(const(char)*)sequence.ptr;
-        auto actualReturnValue = Lexer.escapeSequence(Loc.initial, p, Ccompile);
+        Lexer lexer = new Lexer();
+        auto actualReturnValue = lexer.escapeSequence(Loc.initial, p, Ccompile);
         assert(gotError);
         assert(expectedReturnValue == actualReturnValue);
 
