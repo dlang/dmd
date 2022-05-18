@@ -1322,8 +1322,7 @@ $(H3 $(LNAME2 no-implicit-fallthrough, No Implicit Fall-Through))
         $(P A $(GLINK ScopeStatementList) must either be empty, or be ended with
         a $(GLINK ContinueStatement), $(GLINK BreakStatement),
         $(GLINK ReturnStatement), $(GLINK GotoStatement), $(GLINK2 expression, ThrowExpression)
-        or `assert(0)` expression unless this is the last case. This is to
-        set apart with C's error-prone implicit fall-through behavior.)
+        or `assert(0)` expression unless this is the last case.)
 
 --------------
 switch (i)

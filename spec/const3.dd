@@ -322,10 +322,10 @@ int* q = cast(int*)p;
         the compiler will no longer be able to statically do so.
         )
 
-        $(P
-        Note that casting away a const qualifier and then mutating is undefined
-        behavior, too, even when the referenced data is mutable. This is so that
-        compilers and programmers can make assumptions based on const alone. For
+        $(UNDEFINED_BEHAVIOR
+        casting away a `const` qualifier and then mutating it,
+        even when the referenced data is mutable. This is so that
+        compilers and programmers can make assumptions based on `const` alone. For
         example, here it may be assumed that $(D f) does not alter $(D x):
         )
 

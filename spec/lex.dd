@@ -403,8 +403,7 @@ $(GNAME TokenStringToken):
 
         $(P String literals are read only.)
 
-        $(UNDEFINED_BEHAVIOR Writes to string literals
-        cannot always be detected, but cause undefined behavior.)
+        $(UNDEFINED_BEHAVIOR writing to a string literal. This is not allowed in `@safe` code.)
 
 $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
 

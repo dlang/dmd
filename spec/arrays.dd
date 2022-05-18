@@ -48,11 +48,8 @@ assert(*p == 6);
         will be aborted.)
         ))
 
-        $(UNDEFINED_BEHAVIOR
-        $(OL
-        $(LI Dereferencing a pointer that is not $(I null) and does not point
+        $(UNDEFINED_BEHAVIOR dereferencing a pointer that is not $(I null) and does not point
         to a valid object of type $(I T).)
-        ))
 
         $(P To set a pointer to point at an existing object, use the
         `&` *address of* operator:)

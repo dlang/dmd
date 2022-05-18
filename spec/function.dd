@@ -456,7 +456,7 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
 
         $(UNDEFINED_BEHAVIOR occurs if these flags are not restored to their
         initial state upon function exit. It is the programmer's responsibility
-        to ensure this.)
+        to ensure this. Setting these flags is not allowed in `@safe` code.)
 
         $(P A pure function can perform impure operations in statements that are in a
         $(GLINK2 version, ConditionalStatement)
@@ -2967,6 +2967,10 @@ void test()
         They can be initialized to the address of any function (including a function literal).
         Initialization with the address of a function that requires a context pointer
         is not allowed in @safe functions.
+        )
+
+        $(UNDEFINED_BEHAVIOR Calling a function pointer that was set to point to
+        a function that requires a context pointer.
         )
 
         ---
