@@ -2607,7 +2607,11 @@ void disassemble(uint c)
                 case 0xC7:
                     if (reg == 1)
                     {
-                        p1 = "cmpxchg8b";
+                        /+
+                            0F C7 /1 CMPXCHG8B m64
+                            REX.W + 0F C7 /1 CMPXCHG16B m128
+                        +/
+                        p1 = rex & REX_W ? "cmpxchg16b" : "cmpxchg8b";
                         p2 = getEA(rex, c);
                         goto Ldone;
                     }
@@ -3594,7 +3598,7 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[13] cases64 =      // 64 bit code gen
+    string[15] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
@@ -3609,6 +3613,8 @@ unittest
         "0F 35               sysexit",
         "BE 12 00 00 00      mov  ESI,012h",
         "BF 00 00 00 00      mov  EDI,0",
+        "41 0F C7 09         cmpxchg8b [R9]",
+        "49 0F C7 09         cmpxchg16b [R9]"
     ];
 
     char[BUFMAX] buf;
