@@ -2768,16 +2768,14 @@ Expression scaleFactor(BinExp be, Scope* sc)
     else
         assert(0);
 
-    if (sc.func && !sc.intypeof)
+
+    eoff = eoff.optimize(WANTvalue);
+    if (eoff.op == EXP.int64 && eoff.toInteger() == 0)
     {
-        eoff = eoff.optimize(WANTvalue);
-        if (eoff.op == EXP.int64 && eoff.toInteger() == 0)
-        {
-        }
-        else if (sc.func.setUnsafe(false, be.loc, "pointer arithmetic not allowed in @safe functions"))
-        {
-            return ErrorExp.get();
-        }
+    }
+    else if (sc.setUnsafe(false, be.loc, "pointer arithmetic not allowed in @safe functions"))
+    {
+        return ErrorExp.get();
     }
 
     return be;

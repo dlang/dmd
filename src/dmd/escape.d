@@ -165,7 +165,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         if (!(eb.isMutable || eb2.isMutable))
             return;
 
-        if (!(global.params.useDIP1000 == FeatureState.enabled && sc.func.setUnsafe()))
+        if (!(global.params.useDIP1000 == FeatureState.enabled && sc.setUnsafe()))
             return;
 
         if (!gag)
@@ -2502,7 +2502,7 @@ private bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, con
     }
     else if (fs == FeatureState.enabled)
     {
-        return sc.func.setUnsafe(gag, loc, msg, arg0, arg1);
+        return sc.setUnsafe(gag, loc, msg, arg0, arg1);
     }
     else
     {

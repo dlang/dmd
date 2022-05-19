@@ -4760,7 +4760,7 @@ extern (C++) final class TypeFunction : TypeNext
                                         char[] s;
                                         if (!f.isPure && sc.func.setImpure())
                                             s ~= "pure ";
-                                        if (!f.isSafe() && !f.isTrusted() && sc.func.setUnsafe())
+                                        if (!f.isSafe() && !f.isTrusted() && sc.setUnsafe())
                                             s ~= "@safe ";
                                         if (!f.isNogc && sc.func.setGC())
                                             s ~= "nogc ";
