@@ -117,10 +117,7 @@ private const(char)[] cppCommand()
             VSOptions vsopt;
             vsopt.initialize();
             auto path = vsopt.compilerPath(target.is64bit);
-            OutBuffer cmdbuf;
-            cmdbuf.writestring(path);
-            cmdbuf.writestring(r" /P");
-            return cmdbuf.extractSlice();
+            return toDString(path);
         }
         if (target.objectFormat() == Target.ObjectFormat.omf)
         {
