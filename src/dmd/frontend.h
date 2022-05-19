@@ -8403,6 +8403,8 @@ struct Id final
     static Identifier* show;
     static Identifier* push;
     static Identifier* pop;
+    static Identifier* define;
+    static Identifier* undef;
     static void initialize();
     Id()
     {
