@@ -13011,8 +13011,19 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 
         bool visitVar(VarExp e)
         {
-            if (!allowRef && e.var.type.isShared())
+            // https://issues.dlang.org/show_bug.cgi?id=22626
+            // Synchronized functions don't need to use core.atomic
+            // when accessing `this`.
+            if (sc.func && sc.func.isSynchronized())
+            {
+                if (e.var.isThisDeclaration())
+                    return false;
+                else
+                    return sharedError(e);
+            }
+            else if (!allowRef && e.var.type.isShared())
                 return sharedError(e);
+
             return false;
         }
 
@@ -13032,15 +13043,22 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             return check(e.e1, false);
         }
 
+        bool visitThis(ThisExp e)
+        {
+            if (sc.func && sc.func.isSynchronized())
+                return false;
+
+            return sharedError(e);
+        }
+
         bool visitDotVar(DotVarExp e)
         {
+            //printf("dotvarexp = %s\n", e.toChars());
             auto fd = e.var.isFuncDeclaration();
             const sharedFunc = fd && fd.type.isShared;
-
-            if (!allowRef && e.type.isShared() && !sharedFunc)
-                return sharedError(e);
-
             // Allow using `DotVarExp` within value types
+            if (!allowRef && e.type.isShared() && !sharedFunc && !(sc.func && sc.func.isSynchronized()))
+                return sharedError(e);
             if (e.e1.type.isTypeSArray() || e.e1.type.isTypeStruct())
                 return check(e.e1, allowRef);
 
@@ -13089,6 +13107,7 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             case EXP.star:        return visitPtr(e.isPtrExp());
             case EXP.dotVariable: return visitDotVar(e.isDotVarExp());
             case EXP.index:       return visitIndex(e.isIndexExp());
+            case EXP.this_:       return visitThis(e.isThisExp());
         }
     }
 
