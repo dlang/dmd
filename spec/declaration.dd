@@ -592,7 +592,7 @@ $(GNAME VoidInitializer):
         type of the variable. If the $(I Initializer) is $(D void),
         however, the variable is not initialized.
         Void initializers for objects that contain indirections is not
-        allowed in @safe code.
+        allowed in `@safe` code.
         )
 
         $(IMPLEMENTATION_DEFINED If a void initialized variable's value is
