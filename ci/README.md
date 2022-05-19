@@ -48,7 +48,7 @@ Current branch your-branch is up to date.
 If you still want to re-run the checks, you can amend your last commit and force push:
 ```
 git commit --amend
-git push origin master --force
+git push --force origin your-branch
 ```
 
 When an unrelated failure persists, ask a maintainer for help.
