@@ -981,7 +981,7 @@ string unifyDirSep(string str, string sep)
     }
     auto mStr = str.dup;
     auto remaining = mStr;
-    alias needles = AliasSeq!(".d", ".di", ".mixin", ".c");
+    alias needles = AliasSeq!(".d", ".di", ".mixin", ".c", ".i");
     enum needlesArray = [needles];
     // simple multi-delimiter word identification
     while (!remaining.empty)
