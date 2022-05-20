@@ -12535,7 +12535,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                     e = new CommaExp(exp.loc, eleft, e);
                     e.type = Type.tvoid; // ambiguous type?
                 }
-                return e;
+                return e.expressionSemantic(sc);
             }
             if (auto o = s.isOverloadSet())
             {
