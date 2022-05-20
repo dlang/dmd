@@ -1370,7 +1370,7 @@ extern (C++) abstract class Expression : ASTNode
          */
         if (v.storage_class & STC.gshared)
         {
-            if (sc.func.setUnsafe(false, this.loc,
+            if (sc.setUnsafe(false, this.loc,
                 "`@safe` function `%s` cannot access `__gshared` data `%s`", sc.func, v))
             {
                 err = true;
@@ -5761,7 +5761,7 @@ extern (C++) final class DelegatePtrExp : UnaExp
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
-        if (sc.func.setUnsafe(false, this.loc, "cannot modify delegate pointer in `@safe` code `%s`", this))
+        if (sc.setUnsafe(false, this.loc, "cannot modify delegate pointer in `@safe` code `%s`", this))
         {
             return ErrorExp.get();
         }
@@ -5799,7 +5799,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
-        if (sc.func.setUnsafe(false, this.loc, "cannot modify delegate function pointer in `@safe` code `%s`", this))
+        if (sc.setUnsafe(false, this.loc, "cannot modify delegate function pointer in `@safe` code `%s`", this))
         {
             return ErrorExp.get();
         }

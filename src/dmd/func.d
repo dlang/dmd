@@ -4321,6 +4321,50 @@ extern (C++) final class NewDeclaration : FuncDeclaration
     }
 }
 
+/**************************************
+ * A statement / expression in this scope is not `@safe`,
+ * so mark the enclosing function as `@system`
+ *
+ * Params:
+ *   sc = scope that the unsafe statement / expression is in
+ *   gag = surpress error message (used in escape.d)
+ *   loc = location of error
+ *   fmt = printf-style format string
+ *   arg0  = (optional) argument for first %s format specifier
+ *   arg1  = (optional) argument for second %s format specifier
+ * Returns: whether there's a safe error
+ */
+bool setUnsafe(Scope* sc,
+    bool gag = false, Loc loc = Loc.init, const(char)* fmt = null, RootObject arg0 = null, RootObject arg1 = null)
+{
+    // TODO:
+    // For @system variables, unsafe initializers at global scope should mark
+    // the variable @system, see https://dlang.org/dips/1035
+
+    if (!sc.func)
+        return false;
+
+    if (sc.intypeof)
+        return false; // typeof(cast(int*)0) is safe
+
+    if (sc.flags & SCOPE.debug_) // debug {} scopes are permissive
+        return false;
+
+    if (sc.flags & SCOPE.compile) // __traits(compiles, x)
+    {
+        if (sc.func.isSafeBypassingInference())
+        {
+            // Message wil be gagged, but still call error() to update global.errors and for
+            // -verrors=spec
+            .error(loc, fmt, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "");
+            return true;
+        }
+        return false;
+    }
+
+    return sc.func.setUnsafe(gag, loc, fmt, arg0, arg1);
+}
+
 /// Stores a reason why a function failed to infer a function attribute like `@safe` or `pure`
 ///
 /// Has two modes:
