@@ -271,7 +271,7 @@ struct Global
 
     FileManager* fileManager;
 
-    FileName (*preprocess)(FileName, const Loc&, Array<const char *>& cppswitches, bool&);
+    FileName (*preprocess)(FileName, const Loc&, Array<const char *>& cppswitches, bool&, OutBuffer&);
 
     /* Start gagging. Return the current number of gagged errors
      */

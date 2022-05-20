@@ -82,6 +82,7 @@ public:
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
     void* tagSymTab;            // ImportC: tag symbols that conflict with other symbols used as the index
+    OutBuffer defines;          // collect all the #define lines here
     bool selfImports();         // returns true if module imports itself
 
     int rootimports;            // 0: don't know, 1: does not, 2: does
