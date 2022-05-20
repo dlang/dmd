@@ -1201,6 +1201,9 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 argv.push(p);
         }
 
+        // merge #define's with output
+        argv.push("-dD");       // https://gcc.gnu.org/onlinedocs/cpp/Invocation.html#index-dD
+
         if (target.os == Target.OS.OSX)
         {
             argv.push("-include");          // OSX cpp has switch order dependencies
