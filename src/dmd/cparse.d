@@ -5156,6 +5156,11 @@ final class CParser(AST) : Parser!AST
                 {
                     auto id = n.ident;
                     scan(&n);
+                    if (n.value == TOK.endOfLine)       // #define identifier
+                    {
+                        nextDefineLine();
+                        continue;
+                    }
                     if (n.value == TOK.int32Literal)
                     {
                         const value = n.intvalue;
@@ -5168,12 +5173,14 @@ final class CParser(AST) : Parser!AST
                             AST.Expression e = new AST.IntegerExp(scanloc, value, AST.Type.tint32);
                             auto v = new AST.VarDeclaration(scanloc, AST.Type.tint32, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
                             symbols.push(v);
+                            nextDefineLine();
+                            continue;
                         }
                     }
                 }
                 skipToNextLine();
             }
-            else
+            else if (n.value != TOK.endOfLine)
             {
                 skipToNextLine();
             }

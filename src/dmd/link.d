@@ -1058,7 +1058,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                buf.printf(" /P /nologo %.*s /FI%s /Fi%.*s",
+                buf.printf(" /P /Zc:preprocessor /PD /nologo %.*s /FI%s /Fi%.*s",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
                 /* Append preprocessor switches to command line
@@ -1077,24 +1077,46 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
                 ubyte[2048] buffer = void;
 
-                bool firstLine = true;
+                OutBuffer linebuf;      // each line from stdout
+                bool print = false;     // print line collected from stdout
+
+                /* Collect text captured from stdout to linebuf[].
+                 * Then decide to print or discard the contents.
+                 * Discarding lines that consist only of a filename is necessary to pass
+                 * the D test suite which diffs the output. CL's emission of filenames cannot
+                 * be turned off.
+                 */
                 void sink(ubyte[] data)
                 {
-                    if (firstLine)
+                    foreach (c; data)
                     {
-                        for (size_t i = 0; 1; ++i)
+                        switch (c)
                         {
-                            if (i == data.length)
-                                return;
-                            if (data[i] == '\n')        // reached end of first line
-                            {
-                                data = data[i + 1 .. data.length];
-                                firstLine = false;
+                            case '\r':
                                 break;
-                            }
+
+                            case '\n':
+                                if (print)
+                                    printf("%s\n", linebuf.peekChars());
+
+                                // set up for next line
+                                linebuf.setsize(0);
+                                print = false;
+                                break;
+
+                            case '\t':
+                            case ';':
+                            case '(':
+                            case '\'':
+                            case '"':   // various non-filename characters
+                                print = true; // mean it's not a filename
+                                goto default;
+
+                            default:
+                                linebuf.writeByte(c);
+                                break;
                         }
                     }
-                    printf("%.*s", cast(int)data.length, data.ptr);
                 }
 
                 // Convert command to wchar
@@ -1103,7 +1125,10 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
 
                 int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sink);
-                printf("\n");
+
+                if (linebuf.length && print)  // anything leftover from stdout collection
+                    printf("%s\n", defines.peekChars());
+
                 return exitCode;
             }
             else
