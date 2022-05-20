@@ -1937,12 +1937,6 @@ extern (C) void thread_init() @nogc
     initLowlevelThreads();
     Thread.initLocks();
 
-    // The Android VM runtime intercepts SIGUSR1 and apparently doesn't allow
-    // its signal handler to run, so swap the two signals on Android, since
-    // thread_resumeHandler does nothing.
-    // This hack is no longer needed, as the GC signals now use SIGRTMIN / SIGRTMIN + 1
-    // version (Android) thread_setGCSignals(SIGUSR2, SIGUSR1);
-
     version (Darwin)
     {
         // thread id different in forked child process
