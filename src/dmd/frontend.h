@@ -232,6 +232,8 @@ class TypeFunction;
 class Initializer;
 struct IntRange;
 struct ModuleDeclaration;
+template <typename Datum>
+struct FileMapping;
 struct Escape;
 class WithStatement;
 struct AA;
@@ -827,7 +829,7 @@ struct Global final
     FileManager* fileManager;
     enum : int32_t { recursionLimit = 500 };
 
-    FileName(*preprocess)(FileName , const Loc& , Array<const char* >& cppswitches, bool& );
+    FileName(*preprocess)(FileName , const Loc& , Array<const char* >& cppswitches, bool& , OutBuffer* defines);
     uint32_t startGagging();
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
@@ -1628,6 +1630,57 @@ enum class FileType : uint8_t
     dhdr = 1u,
     ddoc = 2u,
     c = 3u,
+};
+
+struct OutBuffer final
+{
+private:
+    _d_dynamicArray< uint8_t > data;
+    size_t offset;
+    bool notlinehead;
+    FileMapping<uint8_t >* fileMapping;
+public:
+    bool doindent;
+    bool spaces;
+    int32_t level;
+    void dtor();
+    ~OutBuffer();
+    size_t length() const;
+    char* extractData();
+    void destroy();
+    void reserve(size_t nbytes);
+    void setsize(size_t size);
+    void reset();
+    void write(const void* data, size_t nbytes);
+    void writestring(const char* s);
+    void prependstring(const char* string);
+    void writenl();
+    void writeByten(int32_t b);
+    void writeByte(uint32_t b);
+    void writeUTF8(uint32_t b);
+    void prependbyte(uint32_t b);
+    void writewchar(uint32_t w);
+    void writeword(uint32_t w);
+    void writeUTF16(uint32_t w);
+    void write4(uint32_t w);
+    void write(const OutBuffer* const buf);
+    void fill0(size_t nbytes);
+    void vprintf(const char* format, va_list args);
+    void printf(const char* format, ...);
+    void print(uint64_t u);
+    void bracket(char left, char right);
+    size_t bracket(size_t i, const char* left, size_t j, const char* right);
+    void spread(size_t offset, size_t nbytes);
+    size_t insert(size_t offset, const void* p, size_t nbytes);
+    void remove(size_t offset, size_t nbytes);
+    char* peekChars();
+    char* extractChars();
+    OutBuffer() :
+        doindent(),
+        spaces(),
+        level()
+    {
+    }
 };
 
 template <typename K, typename V>
@@ -5512,7 +5565,7 @@ extern const char* toCppMangleDMC(Dsymbol* s);
 
 extern const char* cppTypeInfoMangleDMC(Dsymbol* s);
 
-extern FileName preprocess(FileName csrcfile, const Loc& loc, Array<const char* >& cppswitches, bool& ifile);
+extern FileName preprocess(FileName csrcfile, const Loc& loc, Array<const char* >& cppswitches, bool& ifile, OutBuffer* defines);
 
 class ClassReferenceExp final : public Expression
 {
@@ -6085,6 +6138,9 @@ public:
     int32_t needmoduleinfo;
     int32_t selfimports;
     void* tagSymTab;
+private:
+    OutBuffer defines;
+public:
     bool selfImports();
     int32_t rootimports;
     bool rootImports();

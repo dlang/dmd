@@ -363,6 +363,9 @@ extern (C++) final class Module : Package
     int selfimports;            // 0: don't know, 1: does not, 2: does
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
 
+    private OutBuffer defines;  // collect all the #define lines here
+
+
     /*************************************
      * Return true if module imports itself.
      */
@@ -677,7 +680,7 @@ extern (C++) final class Module : Package
             FileName.equalsExt(srcfile.toString(), c_ext) &&
             FileName.exists(srcfile.toString()))
         {
-            filename = global.preprocess(srcfile, loc, global.params.cppswitches, ifile);  // run C preprocessor
+            filename = global.preprocess(srcfile, loc, global.params.cppswitches, ifile, &defines);  // run C preprocessor
         }
 
         if (auto result = global.fileManager.lookup(filename))
@@ -975,7 +978,6 @@ extern (C++) final class Module : Package
         {
             filetype = FileType.c;
 
-            OutBuffer defines;
             scope p = new CParser!AST(this, buf, cast(bool) docfile, target.c, &defines);
             p.nextToken();
             checkCompiledImport();

@@ -1038,10 +1038,12 @@ public int runProgram()
  *    importc_h = filename of importc.h
  *    cppswitches = array of switches to pass to C preprocessor
  *    output = preprocessed output file name
+ *    defines = buffer to append any `#define` and `#undef` lines encountered to
  * Returns:
  *    exit status.
  */
-public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches, const(char)[] output)
+public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+    const(char)[] output, OutBuffer* defines)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
     version (Windows)
@@ -1134,7 +1136,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                buf.printf(" %.*s -HI%s -o%.*s",
+                buf.printf(" %.*s -HI%s -ED -o%.*s",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
                 /* Append preprocessor switches to command line
@@ -1153,9 +1155,50 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
                 ubyte[2048] buffer = void;
 
+                /* Write lines captured from stdout to either defines[] or stdout
+                 */
+                enum S
+                {
+                    start, // start of line
+                    hash,  // write to defines[]
+                    other, // write to stdout
+                }
+
+                S state = S.start;
+
                 void sinkomf(ubyte[] data)
                 {
-                    printf("%.*s", cast(int)data.length, data.ptr);
+                    foreach (c; data)
+                    {
+                        final switch (state)
+                        {
+                            case S.start:
+                                if (c == '#')
+                                {
+                                    defines.writeByte(c);
+                                    state = S.hash;
+                                }
+                                else
+                                {
+                                    fputc(c, stdout);
+                                    state = S.other;
+                                }
+                                break;
+
+                            case S.hash:
+                                defines.writeByte(c);
+                                if (c == '\n')
+                                    state = S.start;
+                                break;
+
+                            case S.other:
+                                fputc(c, stdout);
+                                if (c == '\n')
+                                    state = S.start;
+                                break;
+                        }
+                    }
+                    //printf("%.*s", cast(int)data.length, data.ptr);
                 }
 
                 // Convert command to wchar
