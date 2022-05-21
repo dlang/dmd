@@ -831,32 +831,8 @@ void main() @nogc
 $(H2 $(LNAME2 abstract, $(D abstract) Attribute))
 
 $(P
-        An abstract member function must be overridden by a derived class.
-        Only virtual member functions may be declared abstract; non-virtual
-        member functions and free-standing functions cannot be declared
-        abstract.
-)
-
-$(P
-        Classes become abstract if any of its virtual member functions
-        are declared abstract or if they are defined within an
-        abstract attribute.
-        Note that an abstract class may also contain non-virtual member functions.
-)
-
-$(P
-        Classes defined within an abstract attribute or with abstract member
-        functions cannot be instantiated directly.
-        They can only be instantiated as a base class of
-        another, non-abstract, class.
-)
-
-$(P
-        Member functions declared as abstract can still have function
-        bodies. This is so that even though they must be overridden,
-        they can still provide $(SINGLEQUOTE base class functionality),
-        e.g. through $(D super.foo()) in a derived class.
-        Note that the class is still abstract and cannot be instantiated directly.
+        An $(DDSUBLINK spec/class, abstract, abstract class) must be overridden by a derived class.
+        Declaring an abstract member function makes the class abstract.
 )
 
 $(H2 $(LNAME2 final, `final` Attribute))
