@@ -142,3 +142,21 @@ void test6()
     }
     L1:;
 }
+
+#line 700
+
+/* TEST_OUTPUT:
+---
+fail_compilation/iasm1.d(713): Error: bad type/size of operands `mov`
+---
+*/
+
+void foo()
+{
+    long i = void;
+    static assert(long.sizeof == 8);
+    asm
+    {
+        mov i, EAX;
+    }
+}

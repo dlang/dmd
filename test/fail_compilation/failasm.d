@@ -21,3 +21,21 @@ uint func()
         inc long ptr [EAX];
     }
 }
+
+#line 200
+
+/* TEST_OUTPUT:
+---
+fail_compilation/failasm.d(213): Error: bad type/size of operands `mov`
+---
+*/
+
+void foo()
+{
+    long i = void;
+    static assert(long.sizeof == 8);
+    asm
+    {
+        mov i, EAX;
+    }
+}
