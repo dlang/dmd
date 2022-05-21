@@ -2081,6 +2081,12 @@ void disassemble(uint c)
                     {   p1 = "xsetbv";
                         goto Ldone;
                     }
+                    else if (code[c+2] == 0xF9)
+                    {
+                        //0F 01 F9 	RDTSCP
+                        p1 = "rdtscp";
+                        goto Ldone;
+                    }
                     else
                     {
                         __gshared const char*[8] pszGrp7 = [ "sgdt", "sidt", "lgdt",
@@ -3598,7 +3604,7 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[15] cases64 =      // 64 bit code gen
+    string[16] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
@@ -3614,7 +3620,8 @@ unittest
         "BE 12 00 00 00      mov  ESI,012h",
         "BF 00 00 00 00      mov  EDI,0",
         "41 0F C7 09         cmpxchg8b [R9]",
-        "49 0F C7 09         cmpxchg16b [R9]"
+        "49 0F C7 09         cmpxchg16b [R9]",
+        "0F 01 F9 	         rdtscp"
     ];
 
     char[BUFMAX] buf;
