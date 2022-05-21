@@ -1214,17 +1214,35 @@ $(P
 )
 
 $(P
-        Classes become abstract if any of its virtual member functions
+        A class is abstract if any of its virtual member functions
         are declared abstract or if they are defined within an
         abstract attribute.
         Note that an abstract class may also contain non-virtual member functions.
-)
-
-$(P
-        Classes defined within an abstract attribute or with abstract member
-        functions cannot be instantiated directly.
+        Abstract classes cannot be instantiated directly.
         They can only be instantiated as a base class of
         another, non-abstract, class.
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+class C
+{
+    abstract void f();
+}
+
+auto c = new C; // error, C is abstract
+
+class D : C {}
+
+auto d = new D; // error, D is abstract
+
+class E : C
+{
+    override void f() {}
+}
+
+auto e = new E; // OK
+---
 )
 
 $(P
@@ -1233,6 +1251,25 @@ $(P
         they can still provide $(SINGLEQUOTE base class functionality),
         e.g. through $(D super.foo()) in a derived class.
         Note that the class is still abstract and cannot be instantiated directly.
+)
+
+$(P
+        A class can be declared abstract:
+)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+abstract class A
+{
+    // ...
+}
+
+auto a = new A; // error, A is abstract
+
+class B : A {}
+
+auto b = new B; // OK
+---
 )
 
 
