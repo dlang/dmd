@@ -586,13 +586,13 @@ $(H2 $(LNAME2 override, $(D override) Attribute))
 
 $(H2 $(LNAME2 static, $(D static) Attribute))
 
-        $(P The $(D static) attribute applies to functions and data.)
+        $(P The $(D static) attribute applies to types, functions and data.
+        $(D static) is ignored when applied to other declarations.)
 
         $(P Inside an aggregate type, a `static`
         declaration does not apply to a particular
         instance of an object, but to the type of the object. In
         other words, it means there is no $(D this) reference.
-        $(D static) is ignored when applied to other declarations.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -615,12 +615,14 @@ assert(f.foobar() == 7);
 )
 
 $(P
-        Static functions are never $(DDSUBLINK spec/function, virtual-functions, virtual).
+        Static methods are never $(DDSUBLINK spec/function, virtual-functions, virtual).
 )
 $(P
         Static data has one instance per thread, not one per object.
 )
-$(P A static $(DDSUBLINK spec/function, nested, nested function) cannot
+
+$(P A static $(DDSUBLINK spec/function, nested, nested function)
+or $(DDSUBLINK spec/struct, nested, type) cannot
 access variables in the parent scope.)
 
 $(P Inside a function, a $(DDSUBLINK spec/function, local-static-variables,
