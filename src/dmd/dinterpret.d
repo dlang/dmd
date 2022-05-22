@@ -4879,66 +4879,6 @@ public:
             }
             else if (fd.ident == Id._d_arrayappendcTX)
                 assert(0, "CTFE cannot interpret _d_arrayappendcTX!");
-            else if (fd.ident == Id._d_newThrowable)
-            {
-                // Treat `_d_newThrowable!E(args)` as `new E(args)` and interpret `E.ctor(args)`.
-                auto tc = e.type.toBasetype().isTypeClass();
-                auto cd = tc.sym;
-
-                if (!cd.ctor)
-                {
-                    e.error("`%s` cannot be constructed at compile time, because the constructor has no available source code", e.type.toChars());
-                    result = CTFEExp.cantexp;
-                    return;
-                }
-
-                size_t totalFieldCount = 0;
-                for (ClassDeclaration c = cd; c; c = c.baseClass)
-                    totalFieldCount += c.fields.dim;
-                auto elems = new Expressions(totalFieldCount);
-                size_t fieldsSoFar = totalFieldCount;
-                for (ClassDeclaration c = cd; c; c = c.baseClass)
-                {
-                    fieldsSoFar -= c.fields.dim;
-                    foreach (i, v; c.fields)
-                    {
-                        if (v.inuse)
-                        {
-                            e.error("circular reference to `%s`", v.toPrettyChars());
-                            result = CTFEExp.cantexp;
-                            return;
-                        }
-                        Expression m;
-                        if (v._init)
-                        {
-                            if (v._init.isVoidInitializer())
-                                m = voidInitLiteral(v.type, v).copy();
-                            else
-                                m = v.getConstInitializer(true);
-                        }
-                        else
-                            m = v.type.defaultInitLiteral(e.loc);
-                        if (exceptionOrCant(m))
-                            return;
-                        (*elems)[fieldsSoFar + i] = copyLiteral(m).copy();
-                    }
-                }
-
-                // Hack: store a ClassDeclaration instead of a StructDeclaration.
-                auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, cast(StructDeclaration) cd, elems, e.type);
-                se.origin = se;
-                se.ownedByCtfe = OwnedBy.ctfe;
-                Expression eref = ctfeEmplaceExp!ClassReferenceExp(e.loc, se, e.type);
-
-                UnionExp ue = void;
-                auto err = interpretFunction(&ue, cast(FuncDeclaration) cd.ctor, istate, e.arguments, eref);
-                if (exceptionOrCant(err))
-                    return;
-
-                eref.loc = e.loc;
-                result = eref;
-                return;
-            }
         }
         else if (auto soe = ecall.isSymOffExp())
         {
@@ -5060,6 +5000,27 @@ public:
             printf("%s CommaExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
 
+        bool isNewThrowableHook()
+        {
+            auto de = e.e1.isDeclarationExp();
+            if (de is null)
+                return false;
+
+            auto vd = de.declaration.isVarDeclaration();
+            if (vd is null)
+                return false;
+
+            auto ei = vd._init.isExpInitializer();
+            if (ei is null)
+                return false;
+
+            auto ce = ei.exp.isConstructExp();
+            if (ce is null)
+                return false;
+
+            return isRuntimeHook(ce.e2, Id._d_newThrowable) !is null;
+        }
+
         if (auto ce = isRuntimeHook(e.e1, Id._d_arrayappendcTX))
         {
             // In expressionsem.d `arr ~= elem` was lowered to
@@ -5076,6 +5037,21 @@ public:
             cae.type = arr.type;
 
             result = interpret(cae, istate);
+            return;
+        }
+        else if (isNewThrowableHook())
+        {
+            // In expressionsem.d `throw new Exception(args)` was lowered to
+            // `throw (tmp = _d_newThrowable!Exception(), tmp.ctor(args), tmp)`.
+            // The following code will rewrite it back to `throw new Exception(args)`
+            // and then interpret this expression instead.
+            auto ce = e.e2.isCallExp();
+            assert(ce);
+
+            auto ne = new NewExp(e.loc, null, e.type, ce.arguments);
+            ne.type = e.e1.type;
+
+            result = interpret(ne, istate);
             return;
         }
 
