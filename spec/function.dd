@@ -843,7 +843,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
         ---
         )
 
-    $(P Note that parentheses are required to call a delegate or a function pointer:)
+    $(P Due to ambiguity, parentheses are required to call a delegate or a function pointer:)
 
     ---
     void main()
