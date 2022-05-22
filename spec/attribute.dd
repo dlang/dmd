@@ -595,21 +595,24 @@ $(H2 $(LNAME2 static, $(D static) Attribute))
         $(D static) is ignored when applied to other declarations.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------------
 class Foo
 {
-    static int bar() { return 6; }
+    static int x;
+    static int bar() { return x; }
     int foobar() { return 7; }
 }
 
-...
+Foo.x = 6; // no instance needed
+assert(Foo.bar() == 6);
+//Foo.foobar(); // error, no instance of Foo
 
 Foo f = new Foo;
-Foo.bar();      // produces 6
-Foo.foobar();   // error, no instance of Foo
-f.bar();        // produces 6;
-f.foobar();     // produces 7;
+assert(f.bar() == 6);
+assert(f.foobar() == 7);
 ---------------
+)
 
 $(P
         Static functions are never $(DDSUBLINK spec/function, virtual-functions, virtual).
