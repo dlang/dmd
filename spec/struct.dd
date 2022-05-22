@@ -55,8 +55,8 @@ void main() {
 ---
 )
 
-    $(P A struct is allocated on the stack by default. To allocate on
-    the heap, use `new`:)
+    $(P For local variables, a struct instance is allocated on the stack
+    by default. To allocate on the heap, use `new`:)
     ---
     S* p = new S;
     ---
