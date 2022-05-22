@@ -3782,12 +3782,13 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
 
 $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
-        $(P A free function can be called like a member function when:)
+        $(P A free function can be called like a member function when both:)
         $(UL
-        $(LI The member function does not exist for the expression on the left hand side)
-        $(LI The free function's first parameter type matches the left hand expression)
+        $(LI The member function does not (or cannot) exist for the object expression)
+        $(LI The free function's first parameter type matches the object expression)
         )
-        $(P This is called a $(I UFCS function call).)
+        $(P The object expression can be any type.
+        This is called a $(I UFCS function call).)
 
         ---
         void sun(T, int);
