@@ -362,7 +362,8 @@ $(H2 $(LNAME2 function-return-values, Function Return Values))
         is required if the function specifies a return type that is not void,
         unless the function contains inline assembler code.)
 
-        $(P Function return values not marked as $(D ref) are considered to be rvalues.
+        $(P Function return values not marked as $(RELATIVE_LINK2 ref-functions, `ref`)
+        are considered to be rvalues.
         This means they cannot be passed by reference to other functions.
         )
 
