@@ -179,7 +179,7 @@ $(GNAME OutStatement):
 
         $(P Preconditions and postconditions do not affect the type of the function.)
 
-    $(H3 Preconditions)
+    $(H3 $(LNAME2 preconditions, Preconditions))
 
         $(P An $(GLINK InContractExpression) is a precondition.)
 
@@ -234,7 +234,7 @@ $(GNAME OutStatement):
         ---
 
 
-    $(H3 Postconditions)
+    $(H3 $(LNAME2 postconditions, Postconditions))
 
         $(P An $(GLINK OutContractExpression) is a postcondition.)
 
@@ -356,6 +356,11 @@ $(GNAME OutStatement):
 
 
 $(H2 $(LNAME2 function-return-values, Function Return Values))
+
+        $(P At least one $(DDSUBLINK spec/statement, return-statement, return statement),
+        throw statement, noreturn statement or assert(0) expression
+        is required if the function specifies a return type that is not void,
+        unless the function contains inline assembler code.)
 
         $(P Function return values not marked as $(D ref) are considered to be rvalues.
         This means they cannot be passed by reference to other functions.
