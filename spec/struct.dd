@@ -34,6 +34,50 @@ $(GNAME AggregateBody):
     $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 )
 
+    $(P The following example declares a struct type with a single integer field:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+struct S
+{
+    int i;
+}
+
+void main() {
+    S a;
+    a.i = 3;
+
+    S b = a; // copy a
+    a.i++;
+    assert(a.i == 4);
+    assert(b.i == 3);
+}
+---
+)
+
+    $(P For local variables, a struct instance is allocated on the stack
+    by default. To allocate on the heap, use `new`:)
+    ---
+    S* p = new S;
+    ---
+
+    $(P A struct definition can contain:)
+    $(UL
+        $(LI fields)
+        $(LI $(DDSUBLINK spec/attribute, static, static) fields)
+        $(LI $(DDSUBLINK spec/class, member-functions, member functions)
+        $(UL
+            $(LI static member functions)
+            $(LI $(RELATIVE_LINK2 struct-constructor, Constructors))
+            $(LI $(RELATIVE_LINK2 struct-destructor, Destructors))
+            $(LI $(RELATIVE_LINK2 Invariant, Invariants))
+            $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
+        )
+        $(LI $(DDSUBLINK spec/class, alias-this, Alias This))
+        $(LI other declarations (see $(GLINK2 module, DeclDef)))
+        )
+    )
+
     $(P A struct is defined to not have an identity; that is,
     the implementation is free to make bit copies of the struct
     as convenient.)
