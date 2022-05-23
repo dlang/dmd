@@ -1852,7 +1852,7 @@ $(GNAME FunctionLiteral):
     $(D function) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
     $(D delegate) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
     $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody2)
-    $(GLINK2 function, FunctionLiteralBody)
+    $(GLINK2 function, SpecifiedFunctionBody)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 
 $(GNAME ParameterWithAttributes):
@@ -1863,15 +1863,15 @@ $(GNAME ParameterWithMemberAttributes):
 
 $(GNAME FunctionLiteralBody2):
     $(D =>) $(GLINK AssignExpression)
-    $(GLINK2 function, FunctionLiteralBody)
+    $(GLINK2 function, SpecifiedFunctionBody)
 )
 
     $(P $(I FunctionLiteral)s (also known as $(LNAME2 lambdas, $(I Lambdas))) enable embedding anonymous functions
         and anonymous delegates directly into expressions.
-        $(I Type) is the return type of the function or delegate,
-        if omitted it is inferred from any $(I ReturnStatement)s
-        in the $(I FunctionLiteralBody).
-        $(GLINK ParameterWithAttributes) or $(GLINK ParameterWithMemberAttributes)
+        $(I Type) is the return type of the function or delegate -
+        if omitted it is inferred from either the *AssignExpression*, or
+        any $(GLINK2 statement, ReturnStatement)s in the $(I SpecifiedFunctionBody).
+        $(I ParameterWithAttributes) or $(I ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
         The type of a function literal is a
@@ -1970,7 +1970,7 @@ $(H4 $(LNAME2 lambda-type-inference, Type Inference))
             abc( (int c) { return 6 + b; } );  // inferred as delegate
             def( (uint c) { return c * 2; } ); // inferred as function
             //def( (uint c) { return c * b; } );  // error!
-            // Because the FunctionLiteralBody accesses b, the function literal type
+            // Because the FunctionLiteral accesses b, its type
             // is inferred as delegate. But def cannot accept a delegate argument.
         }
         -------------

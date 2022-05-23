@@ -107,9 +107,6 @@ $(GNAME FunctionBody):
     $(GLINK ShortenedFunctionBody)
     $(GLINK MissingFunctionBody)
 
-$(GNAME FunctionLiteralBody):
-    $(GLINK SpecifiedFunctionBody)
-
 $(GNAME SpecifiedFunctionBody):
     $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
@@ -126,6 +123,7 @@ $(GNAME ShortenedFunctionBody):
         int hasShortenedBody() => 1; // equivalent
         ---
 
+$(LEGACY_LNAME2 FunctionLiteralBody)
         $(P The *ShortenedFunctionBody* form implies a
         $(DDSUBLINK spec/statement, ReturnStatement, return statement).
         This syntax also applies for $(DDSUBLINK spec/expression, function_literals, function literals).)
