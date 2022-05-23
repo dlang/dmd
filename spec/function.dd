@@ -821,13 +821,14 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     $(P If a function call passes no explicit argument, i.e. it would syntactically use $(D ()), then these parentheses
     may be omitted, similar to a getter invocation of a
         $(RELATIVE_LINK2 property-functions, property function).
+        A $(RELATIVE_LINK2 pseudo-member, UFCS) call can also omit empty parentheses.
         )
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         void foo() {}   // no arguments
-    void fun(int x = 10) { }
-        void bar(int[] arr) {}  // for UFCS
+        void fun(int x = 10) {}
+        void bar(int[] arr) {}
 
         void main()
         {
@@ -836,13 +837,13 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
             fun;        // OK
 
             int[] arr;
-            arr.bar();  // OK
+            arr.bar();  // UFCS call
             arr.bar;    // also OK
         }
         ---
         )
 
-    $(P Optional parentheses are not applied to delegates or function pointers.)
+    $(P Due to ambiguity, parentheses are required to call a delegate or a function pointer:)
 
     ---
     void main()
@@ -857,43 +858,51 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     }
     ---
 
-    $(P If a function returns a delegate or function pointer, the parentheses are required if the
-    returned value is to be called.
+    $(P If a function returns a delegate or a function pointer, any parentheses
+    apply first to the function call, not the result. Two sets of parentheses are required
+    to call the result directly:
     )
 
     $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
-    struct S {
-        int function() callfp() { return &numfp; }
-        int delegate() calldg() return { return &numdg; }
-        int numdg() { return 6; }
-    }
+    int getNum() { return 6; }
+    int function() getFunc() { return &getNum; }
 
-    int numfp() { return 6; }
+    void main()
+    {
+        int function() fp;
+
+        fp = getFunc;   // implicit call
+        assert(fp() == 6);
+
+        fp = getFunc(); // explicit call
+        assert(fp() == 6);
+
+        int x = getFunc()();
+        assert(x == 6);
+    }
+    ---
+    )
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    struct S
+    {
+        int getNum() { return 6; }
+        int delegate() getDel() return { return &getNum; }
+    }
 
     void main()
     {
         S s;
-        int function() fp;
-
-        fp = s.callfp;
-        assert(fp() == 6);
-
-        fp = s.callfp();
-        assert(fp() == 6);
-
-        int x = s.callfp()();
-        assert(x == 6);
-
         int delegate() dg;
 
-        dg = s.calldg;
+        dg = s.getDel;   // implicit call
         assert(dg() == 6);
 
-        dg = s.calldg();
+        dg = s.getDel(); // explicit call
         assert(dg() == 6);
 
-        int y = s.calldg()();
+        int y = s.getDel()();
         assert(y == 6);
     }
     ---
