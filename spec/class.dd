@@ -48,7 +48,7 @@ $(GNAME Interface):
 
 $(P A class consists of:)
 
-$(COMMENT list of notable components, not general things or attributes)
+$(COMMENT list of notable components, not exhaustive)
 $(UL
         $(LI a super class)
         $(LI $(DDLINK spec/interface, Interfaces, interfaces)
