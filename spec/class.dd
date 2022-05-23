@@ -55,7 +55,7 @@ $(UL
         $(LI dynamic fields)
         $(LI $(DDSUBLINK spec/attribute, static, static) fields)
         $(LI $(RELATIVE_LINK2 nested, nested classes))
-        $(LI $(RELATIVE_LINK2 member-functions, member functions)
+        $(LI $(RELATIVE_LINK2 member-functions, member functions))
         $(UL
             $(LI static member functions)
             $(LI $(DDSUBLINK spec/function, virtual-functions, Virtual Functions))
