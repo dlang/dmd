@@ -99,13 +99,13 @@ $(GNAME MemberFunctionAttribute):
     $(GLINK FunctionAttribute)
 )
 
-$(H3 Function body)
+$(H3 $(LNAME2 function-bodies, Function Bodies))
 
 $(GRAMMAR
 $(GNAME FunctionBody):
     $(GLINK SpecifiedFunctionBody)
-    $(GLINK MissingFunctionBody)
     $(GLINK ShortenedFunctionBody)
+    $(GLINK MissingFunctionBody)
 
 $(GNAME FunctionLiteralBody):
     $(GLINK SpecifiedFunctionBody)
@@ -115,11 +115,6 @@ $(GNAME SpecifiedFunctionBody):
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement) $(D do) $(GLINK2 statement, BlockStatement)
 
-$(GNAME MissingFunctionBody):
-    $(D ;)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D ;)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
-
 $(GNAME ShortenedFunctionBody):
     $(GLINK InOutContractExpressions)$(OPT) $(D =>) $(GLINK2 expression, AssignExpression) $(D ;)
 )
@@ -128,12 +123,37 @@ $(GNAME ShortenedFunctionBody):
 
         ---
         int hasSpecifiedBody() { return 1; }
-        int hasMissingBody();
-        int hasShortenedBody() => 1;
+        int hasShortenedBody() => 1; // equivalent
         ---
 
-        $(P $(B Note:) The `ShortenedFunctionBody` form requires the `-preview=shortenedMethods`
+        $(P The *ShortenedFunctionBody* form implies a
+        $(DDSUBLINK spec/statement, ReturnStatement, return statement).
+        This syntax also applies for $(DDSUBLINK spec/expression, function_literals, function literals).)
+
+        $(P $(B Note:) The *ShortenedFunctionBody* form requires the `-preview=shortenedMethods`
         command-line switch, which is available starting in v2.096.0.)
+
+$(H3 $(LNAME2 function-declarations, Functions without Bodies))
+
+$(GRAMMAR
+$(GNAME MissingFunctionBody):
+    $(D ;)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutContractExpression) $(D ;)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
+)
+
+    $(P Functions without bodies:)
+
+---
+int foo();
+---
+
+    $(P that are not declared as $(D abstract) are expected to have their implementations
+    elsewhere, and that implementation will be provided at the link step.
+    This enables an implementation of a function to be completely hidden from the user
+    of it, and the implementation may be in another language such as C, assembler, etc.
+    )
+
 
 $(H2 $(LNAME2 contracts, Function Contracts))
 
@@ -360,20 +380,6 @@ $(H2 $(LNAME2 function-return-values, Function Return Values))
         $(P Function return values not marked as $(D ref) are considered to be rvalues.
         This means they cannot be passed by reference to other functions.
         )
-
-$(H2 $(LNAME2 function-declarations, Functions Without Bodies))
-
-    $(P Functions without bodies:)
-
----
-int foo();
----
-
-    $(P that are not declared as $(D abstract) are expected to have their implementations
-    elsewhere, and that implementation will be provided at the link step.
-    This enables an implementation of a function to be completely hidden from the user
-    of it, and the implementation may be in another language such as C, assembler, etc.
-    )
 
 $(H2 $(LNAME2 pure-functions, Pure Functions))
 
