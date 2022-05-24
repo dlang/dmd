@@ -22,12 +22,12 @@ private:
 
 public:
     static Identifier* create(const char *string);
-    bool equals(const RootObject *o) const;
-    const char *toChars() const;
+    bool equals(const RootObject *o) const override;
+    const char *toChars() const override;
     int getValue() const;
     bool isAnonymous() const;
     const char *toHChars2() const;
-    DYNCAST dyncast() const;
+    DYNCAST dyncast() const override;
 
     static Identifier *generateId(const char *prefix, size_t length, size_t suffix);
     static Identifier *idPool(const char *s, unsigned len);

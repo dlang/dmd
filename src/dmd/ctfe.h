@@ -26,7 +26,7 @@ public:
     /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 /**
@@ -37,8 +37,8 @@ class VoidInitExp : public Expression
 public:
     VarDeclaration *var;
 
-    const char *toChars() const;
-    void accept(Visitor *v) { v->visit(this); }
+    const char *toChars() const override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 /**
@@ -49,8 +49,8 @@ class ThrownExceptionExp : public Expression
 {
 public:
     ClassReferenceExp *thrown; // the thing being tossed
-    const char *toChars() const;
-    void accept(Visitor *v) { v->visit(this); }
+    const char *toChars() const override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 /****************************************************************/
@@ -60,5 +60,5 @@ public:
 class CTFEExp : public Expression
 {
 public:
-    const char *toChars() const;
+    const char *toChars() const override;
 };

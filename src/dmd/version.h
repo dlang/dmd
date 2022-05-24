@@ -17,13 +17,13 @@ class DebugSymbol : public Dsymbol
 public:
     unsigned level;
 
-    DebugSymbol *syntaxCopy(Dsymbol *);
+    DebugSymbol *syntaxCopy(Dsymbol *) override;
 
-    const char *toChars() const;
-    void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind() const;
-    DebugSymbol *isDebugSymbol();
-    void accept(Visitor *v) { v->visit(this); }
+    const char *toChars() const override;
+    void addMember(Scope *sc, ScopeDsymbol *sds) override;
+    const char *kind() const override;
+    DebugSymbol *isDebugSymbol() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class VersionSymbol : public Dsymbol
@@ -31,11 +31,11 @@ class VersionSymbol : public Dsymbol
 public:
     unsigned level;
 
-    VersionSymbol *syntaxCopy(Dsymbol *);
+    VersionSymbol *syntaxCopy(Dsymbol *) override;
 
-    const char *toChars() const;
-    void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind() const;
-    VersionSymbol *isVersionSymbol();
-    void accept(Visitor *v) { v->visit(this); }
+    const char *toChars() const override;
+    void addMember(Scope *sc, ScopeDsymbol *sds) override;
+    const char *kind() const override;
+    VersionSymbol *isVersionSymbol() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };

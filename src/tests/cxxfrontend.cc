@@ -143,52 +143,52 @@ class TestVisitor : public Visitor
     {
     }
 
-    void visit(Expression *)
+    void visit(Expression *) override
     {
         expr = true;
     }
 
-    void visit(IdentifierExp *)
+    void visit(IdentifierExp *) override
     {
         idexpr = true;
     }
 
-    void visit(Package *)
+    void visit(Package *) override
     {
         package = true;
     }
 
-    void visit(Statement *)
+    void visit(Statement *) override
     {
         stmt = true;
     }
 
-    void visit(AttribDeclaration *)
+    void visit(AttribDeclaration *) override
     {
         attrib = true;
     }
 
-    void visit(Declaration *)
+    void visit(Declaration *) override
     {
         decl = true;
     }
 
-    void visit(AggregateDeclaration *)
+    void visit(AggregateDeclaration *) override
     {
         aggr = true;
     }
 
-    void visit(TypeNext *)
+    void visit(TypeNext *) override
     {
         type = true;
     }
 
-    void visit(TypeInfoDeclaration *)
+    void visit(TypeInfoDeclaration *) override
     {
         typeinfo = true;
     }
 
-    void visit(FuncDeclaration *)
+    void visit(FuncDeclaration *) override
     {
         function = true;
     }
@@ -572,11 +572,11 @@ public:
     {
     }
 
-    void visit(Type *) { assert(0); }
-    void visit(TypeError *t) { (void)t->ctype; }
-    void visit(TypeNull *t) { (void)t->ctype; }
-    void visit(TypeNoreturn *t) { (void)t->ctype; }
-    void visit(TypeBasic *t)
+    void visit(Type *) override { assert(0); }
+    void visit(TypeError *t) override { (void)t->ctype; }
+    void visit(TypeNull *t) override { (void)t->ctype; }
+    void visit(TypeNoreturn *t) override { (void)t->ctype; }
+    void visit(TypeBasic *t) override
     {
         switch (t->ty)
         {
@@ -610,19 +610,19 @@ public:
         }
         (void)t->toChars();
     }
-    void visit(TypePointer *t)
+    void visit(TypePointer *t) override
     {
         t->next->accept(this);
         (void)t->ctype;
     }
-    void visit(TypeDArray *t)
+    void visit(TypeDArray *t) override
     {
         t->next->accept(this);
         Type::tsize_t->accept(this);
         (void)t->ctype;
         (void)t->toChars();
     }
-    void visit(TypeSArray *t)
+    void visit(TypeSArray *t) override
     {
         if (t->dim->isConst() && t->dim->type->isintegral())
         {
@@ -633,7 +633,7 @@ public:
         else
             assert(0);
     }
-    void visit(TypeVector *t)
+    void visit(TypeVector *t) override
     {
         (void)t->basetype->isTypeSArray()->dim->toUInteger();
         t->elementType()->accept(this);
@@ -642,12 +642,12 @@ public:
         (void)t->ctype;
         (void)t->toChars();
     }
-    void visit(TypeAArray *t)
+    void visit(TypeAArray *t) override
     {
         (void)t->ctype;
         (void)t->toChars();
     }
-    void visit(TypeFunction *t)
+    void visit(TypeFunction *t) override
     {
         if (t->isDstyleVariadic())
             Type::typeinfotypelist->type->accept(this);
@@ -677,7 +677,7 @@ public:
             assert(0);
         }
     }
-    void visit(TypeDelegate *t)
+    void visit(TypeDelegate *t) override
     {
         t->next->accept(this);
         Type::tvoidptr->accept(this);
@@ -715,7 +715,7 @@ public:
             }
         }
     }
-    void visit(TypeEnum *t)
+    void visit(TypeEnum *t) override
     {
         if (t->sym->memtype)
             t->sym->memtype->accept(this);
@@ -747,7 +747,7 @@ public:
         }
         visitUserAttributes(t->sym);
     }
-    void visit(TypeStruct *t)
+    void visit(TypeStruct *t) override
     {
         t->sym->accept(this);
         (void)t->sym->isUnionDeclaration();
@@ -797,7 +797,7 @@ public:
         }
         visitUserAttributes(t->sym);
     }
-    void visit(TypeClass *t)
+    void visit(TypeClass *t) override
     {
         t->sym->accept(this);
         (void)t->ctype;
@@ -868,9 +868,9 @@ public:
         }
         visitUserAttributes(t->sym);
     }
-    void visit(Statement *) { assert(0); }
-    void visit(ScopeGuardStatement *) { }
-    void visit(IfStatement *s)
+    void visit(Statement *) override { assert(0); }
+    void visit(ScopeGuardStatement *) override { }
+    void visit(IfStatement *s) override
     {
         s->condition->accept(this);
         s->condition->type->accept(this);
@@ -879,9 +879,9 @@ public:
         if (s->elsebody)
             s->elsebody->accept(this);
     }
-    void visit(PragmaStatement *) { }
-    void visit(WhileStatement *) { assert(0); }
-    void visit(DoStatement *s)
+    void visit(PragmaStatement *) override { }
+    void visit(WhileStatement *) override { assert(0); }
+    void visit(DoStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
         if (s->_body)
@@ -889,7 +889,7 @@ public:
         s->condition->accept(this);
         s->condition->type->accept(this);
     }
-    void visit(ForStatement *s)
+    void visit(ForStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
         if (s->_init)
@@ -904,9 +904,9 @@ public:
         if (s->increment)
             s->increment->accept(this);
     }
-    void visit(ForeachStatement *) { assert(0); }
-    void visit(ForeachRangeStatement *) { assert(0); }
-    void visit(BreakStatement *s)
+    void visit(ForeachStatement *) override { assert(0); }
+    void visit(ForeachRangeStatement *) override { assert(0); }
+    void visit(BreakStatement *s) override
     {
         if (s->ident)
         {
@@ -915,7 +915,7 @@ public:
             label->statement->getRelatedLabeled()->accept(this);
         }
     }
-    void visit(ContinueStatement *s)
+    void visit(ContinueStatement *s) override
     {
         if (s->ident)
         {
@@ -924,13 +924,13 @@ public:
             label->statement->accept(this);
         }
     }
-    void visit(GotoStatement *s)
+    void visit(GotoStatement *s) override
     {
         assert(s->label->statement != NULL);
         assert(s->tf == s->label->statement->tf);
         (void)s->label->ident;
     }
-    void visit(LabelStatement *s)
+    void visit(LabelStatement *s) override
     {
         LabelDsymbol *sym;
         if (func->returnLabel && func->returnLabel->ident == s->ident)
@@ -943,7 +943,7 @@ public:
         else if (s->statement)
             s->statement->accept(this);
     }
-    void visit(SwitchStatement *s)
+    void visit(SwitchStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
@@ -963,7 +963,7 @@ public:
         if (s->_body)
             s->_body->accept(this);
     }
-    void visit(CaseStatement *s)
+    void visit(CaseStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
         if (s->exp->type->isscalar())
@@ -973,25 +973,25 @@ public:
         if (s->statement)
             s->statement->accept(this);
     }
-    void visit(DefaultStatement *s)
+    void visit(DefaultStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
         if (s->statement)
             s->statement->accept(this);
     }
-    void visit(GotoDefaultStatement *s)
+    void visit(GotoDefaultStatement *s) override
     {
         s->sw->sdefault->accept(this);
     }
-    void visit(GotoCaseStatement *s)
+    void visit(GotoCaseStatement *s) override
     {
         s->cs->accept(this);
     }
-    void visit(SwitchErrorStatement *s)
+    void visit(SwitchErrorStatement *s) override
     {
         s->exp->accept(this);
     }
-    void visit(ReturnStatement *s)
+    void visit(ReturnStatement *s) override
     {
         if (s->exp == NULL || s->exp->type->toBasetype()->ty == TY::Tvoid)
             return;
@@ -1038,12 +1038,12 @@ public:
         else
             s->exp->accept(this);
     }
-    void visit(ExpStatement *s)
+    void visit(ExpStatement *s) override
     {
         if (s->exp)
             s->exp->accept(this);
     }
-    void visit(CompoundStatement *s)
+    void visit(CompoundStatement *s) override
     {
         if (s->statements == NULL)
             return;
@@ -1054,7 +1054,7 @@ public:
                 statement->accept(this);
         }
     }
-    void visit(UnrolledLoopStatement *s)
+    void visit(UnrolledLoopStatement *s) override
     {
         if (s->statements == NULL)
             return;
@@ -1066,13 +1066,13 @@ public:
                 statement->accept(this);
         }
     }
-    void visit(ScopeStatement *s)
+    void visit(ScopeStatement *s) override
     {
         if (s->statement == NULL)
             return;
         s->statement->accept(this);
     }
-    void visit(WithStatement *s)
+    void visit(WithStatement *s) override
     {
         if (s->wthis)
         {
@@ -1082,12 +1082,12 @@ public:
         if (s->_body)
             s->_body->accept(this);
     }
-    void visit(ThrowStatement *s)
+    void visit(ThrowStatement *s) override
     {
         s->exp->type->toBasetype()->isClassHandle()->accept(this);
         s->exp->accept(this);
     }
-    void visit(TryCatchStatement *s)
+    void visit(TryCatchStatement *s) override
     {
         if (s->_body)
             s->_body->accept(this);
@@ -1105,22 +1105,22 @@ public:
             }
         }
     }
-    void visit(TryFinallyStatement *s)
+    void visit(TryFinallyStatement *s) override
     {
         if (s->_body)
             s->_body->accept(this);
         if (s->finalbody)
             s->finalbody->accept(this);
     }
-    void visit(SynchronizedStatement *)
+    void visit(SynchronizedStatement *) override
     {
         assert(0);
     }
-    void visit(AsmStatement *)
+    void visit(AsmStatement *) override
     {
         assert(0);
     }
-    void visit(GccAsmStatement *s)
+    void visit(GccAsmStatement *s) override
     {
         s->insn->accept(this);
         if (s->args)
@@ -1149,7 +1149,7 @@ public:
             }
         }
     }
-    void visit(ImportStatement *s)
+    void visit(ImportStatement *s) override
     {
         if (s->imports == NULL)
             return;
@@ -1160,8 +1160,8 @@ public:
                 dsym->accept(this);
         }
     }
-    void visit(Dsymbol *) { assert(0); }
-    void visit(Module *d)
+    void visit(Dsymbol *) override { assert(0); }
+    void visit(Module *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
@@ -1195,7 +1195,7 @@ public:
         }
         d->semanticRun = PASS::obj;
     }
-    void visit(Import *d)
+    void visit(Import *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
@@ -1213,7 +1213,7 @@ public:
             d->mod->accept(this);
         d->semanticRun = PASS::obj;
     }
-    void visit(TupleDeclaration *d)
+    void visit(TupleDeclaration *d) override
     {
         for (size_t i = 0; i < d->objects->length; i++)
         {
@@ -1226,7 +1226,7 @@ public:
             }
         }
     }
-    void visit(AttribDeclaration *d)
+    void visit(AttribDeclaration *d) override
     {
         Dsymbols *ds = d->include(NULL);
         if (!ds)
@@ -1234,23 +1234,23 @@ public:
         for (size_t i = 0; i < ds->length; i++)
             (*ds)[i]->accept(this);
     }
-    void visit(PragmaDeclaration *d)
+    void visit(PragmaDeclaration *d) override
     {
         visit((AttribDeclaration *)d);
     }
-    void visit(ConditionalDeclaration *d)
+    void visit(ConditionalDeclaration *d) override
     {
         (void)d->condition->isVersionCondition();
         visit((AttribDeclaration *)d);
     }
-    void visit(Nspace *d)
+    void visit(Nspace *d) override
     {
         if (isError(d) || !d->members)
             return;
         for (size_t i = 0; i < d->members->length; i++)
             (*d->members)[i]->accept(this);
     }
-    void visit(TemplateDeclaration *d)
+    void visit(TemplateDeclaration *d) override
     {
         if (!func || !func->isAuto())
             return;
@@ -1265,7 +1265,7 @@ public:
         if (ti && ti->tempdecl == d)
             ti->accept(this);
     }
-    void visit(TemplateInstance *d)
+    void visit(TemplateInstance *d) override
     {
         if (isError(d) || !d->members)
             return;
@@ -1274,14 +1274,14 @@ public:
         for (size_t i = 0; i < d->members->length; i++)
             (*d->members)[i]->accept(this);
     }
-    void visit(TemplateMixin *d)
+    void visit(TemplateMixin *d) override
     {
         if (isError(d) || !d->members)
             return;
         for (size_t i = 0; i < d->members->length; i++)
             (*d->members)[i]->accept(this);
     }
-    void visit(StructDeclaration *d)
+    void visit(StructDeclaration *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
@@ -1306,7 +1306,7 @@ public:
             d->xhash->accept(this);
         d->semanticRun = PASS::obj;
     }
-    void visit(ClassDeclaration *d)
+    void visit(ClassDeclaration *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
@@ -1403,7 +1403,7 @@ public:
         d->type->accept(this);
         d->semanticRun = PASS::obj;
     }
-    void visit(InterfaceDeclaration *d)
+    void visit(InterfaceDeclaration *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
@@ -1417,7 +1417,7 @@ public:
         d->type->accept(this);
         d->semanticRun = PASS::obj;
     }
-    void visit(EnumDeclaration *d)
+    void visit(EnumDeclaration *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
@@ -1523,7 +1523,7 @@ public:
             (void)decl->csym;
         visitUserAttributes(decl);
     }
-    void visit(VarDeclaration *d)
+    void visit(VarDeclaration *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
@@ -1581,14 +1581,14 @@ public:
         d->type->accept(this);
         d->semanticRun = PASS::obj;
     }
-    void visit(TypeInfoDeclaration *d)
+    void visit(TypeInfoDeclaration *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
         visitDeclaration(d);
         d->semanticRun = PASS::obj;
     }
-    void visit(FuncDeclaration *d)
+    void visit(FuncDeclaration *d) override
     {
         if (d->semanticRun >= PASS::obj)
             return;
