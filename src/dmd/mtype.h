@@ -352,7 +352,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeError : public Type
+class TypeError final : public Type
 {
 public:
     const char *kind() override;
@@ -386,7 +386,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeBasic : public Type
+class TypeBasic final : public Type
 {
 public:
     const char *dstring;
@@ -411,7 +411,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeVector : public Type
+class TypeVector final : public Type
 {
 public:
     Type *basetype;
@@ -441,7 +441,7 @@ public:
 };
 
 // Static array, one with a fixed dimension
-class TypeSArray : public TypeArray
+class TypeSArray final : public TypeArray
 {
 public:
     Expression *dim;
@@ -467,7 +467,7 @@ public:
 };
 
 // Dynamic array, no dimension
-class TypeDArray : public TypeArray
+class TypeDArray final : public TypeArray
 {
 public:
     const char *kind() override;
@@ -483,7 +483,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeAArray : public TypeArray
+class TypeAArray final : public TypeArray
 {
 public:
     Type *index;                // key type
@@ -502,7 +502,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypePointer : public TypeNext
+class TypePointer final : public TypeNext
 {
 public:
     static TypePointer *create(Type *t);
@@ -518,7 +518,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeReference : public TypeNext
+class TypeReference final : public TypeNext
 {
 public:
     const char *kind() override;
@@ -556,7 +556,7 @@ enum class PURE : unsigned char
     const_ = 3,     // parameters are values or const
 };
 
-class Parameter : public ASTNode
+class Parameter final : public ASTNode
 {
 public:
     StorageClass storageClass;
@@ -590,7 +590,7 @@ struct ParameterList
     Parameter *operator[](size_t i) { return Parameter::getNth(parameters, i); }
 };
 
-class TypeFunction : public TypeNext
+class TypeFunction final : public TypeNext
 {
 public:
     // .next is the return type
@@ -646,7 +646,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeDelegate : public TypeNext
+class TypeDelegate final : public TypeNext
 {
 public:
     // .next is a TypeFunction
@@ -665,7 +665,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeTraits : public Type
+class TypeTraits final : public Type
 {
     Loc loc;
     /// The expression to resolve as type or symbol.
@@ -680,7 +680,7 @@ class TypeTraits : public Type
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeMixin : public Type
+class TypeMixin final : public Type
 {
     Loc loc;
     Expressions *exps;
@@ -709,7 +709,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeIdentifier : public TypeQualified
+class TypeIdentifier final : public TypeQualified
 {
 public:
     Identifier *ident;
@@ -724,7 +724,7 @@ public:
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
  */
-class TypeInstance : public TypeQualified
+class TypeInstance final : public TypeQualified
 {
 public:
     TemplateInstance *tempinst;
@@ -735,7 +735,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeTypeof : public TypeQualified
+class TypeTypeof final : public TypeQualified
 {
 public:
     Expression *exp;
@@ -748,7 +748,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeReturn : public TypeQualified
+class TypeReturn final : public TypeQualified
 {
 public:
     const char *kind() override;
@@ -769,7 +769,7 @@ enum AliasThisRec
     RECtracingDT = 0x8  // mark in progress of deduceType
 };
 
-class TypeStruct : public Type
+class TypeStruct final : public Type
 {
 public:
     StructDeclaration *sym;
@@ -801,7 +801,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeEnum : public Type
+class TypeEnum final : public Type
 {
 public:
     EnumDeclaration *sym;
@@ -836,7 +836,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeClass : public Type
+class TypeClass final : public Type
 {
 public:
     ClassDeclaration *sym;
@@ -861,7 +861,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeTuple : public Type
+class TypeTuple final : public Type
 {
 public:
     // 'logically immutable' cached global - don't modify (neither pointer nor pointee)!
@@ -879,7 +879,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeSlice : public TypeNext
+class TypeSlice final : public TypeNext
 {
 public:
     Expression *lwr;
@@ -890,7 +890,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeNull : public Type
+class TypeNull final : public Type
 {
 public:
     const char *kind() override;

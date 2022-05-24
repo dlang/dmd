@@ -17,7 +17,7 @@ class Identifier;
 class Type;
 class Expression;
 
-class EnumDeclaration : public ScopeDsymbol
+class EnumDeclaration final : public ScopeDsymbol
 {
 public:
     /* The separate, and distinct, cases are:
@@ -60,7 +60,7 @@ public:
 };
 
 
-class EnumMember : public VarDeclaration
+class EnumMember final : public VarDeclaration
 {
 public:
     /* Can take the following forms:

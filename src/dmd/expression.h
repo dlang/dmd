@@ -243,7 +243,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class IntegerExp : public Expression
+class IntegerExp final : public Expression
 {
 public:
     dinteger_t value;
@@ -264,7 +264,7 @@ public:
     static IntegerExp literal();
 };
 
-class ErrorExp : public Expression
+class ErrorExp final : public Expression
 {
 public:
     Expression *toLvalue(Scope *sc, Expression *e) override;
@@ -273,7 +273,7 @@ public:
     static ErrorExp *errorexp; // handy shared value
 };
 
-class RealExp : public Expression
+class RealExp final : public Expression
 {
 public:
     real_t value;
@@ -290,7 +290,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ComplexExp : public Expression
+class ComplexExp final : public Expression
 {
 public:
     complex_t value;
@@ -318,13 +318,13 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DollarExp : public IdentifierExp
+class DollarExp final : public IdentifierExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DsymbolExp : public Expression
+class DsymbolExp final : public Expression
 {
 public:
     Dsymbol *s;
@@ -349,13 +349,13 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class SuperExp : public ThisExp
+class SuperExp final : public ThisExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class NullExp : public Expression
+class NullExp final : public Expression
 {
 public:
     bool equals(const RootObject *o) const override;
@@ -364,7 +364,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StringExp : public Expression
+class StringExp final : public Expression
 {
 public:
     void *string;       // char, wchar, or dchar data
@@ -393,7 +393,7 @@ public:
 
 // Tuple
 
-class TupleExp : public Expression
+class TupleExp final : public Expression
 {
 public:
     Expression *e0;     // side-effect part
@@ -413,7 +413,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ArrayLiteralExp : public Expression
+class ArrayLiteralExp final : public Expression
 {
 public:
     Expression *basis;
@@ -432,7 +432,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AssocArrayLiteralExp : public Expression
+class AssocArrayLiteralExp final : public Expression
 {
 public:
     Expressions *keys;
@@ -446,7 +446,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StructLiteralExp : public Expression
+class StructLiteralExp final : public Expression
 {
 public:
     StructDeclaration *sd;      // which aggregate this is for
@@ -487,7 +487,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeExp : public Expression
+class TypeExp final : public Expression
 {
 public:
     TypeExp *syntaxCopy() override;
@@ -496,7 +496,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ScopeExp : public Expression
+class ScopeExp final : public Expression
 {
 public:
     ScopeDsymbol *sds;
@@ -507,7 +507,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TemplateExp : public Expression
+class TemplateExp final : public Expression
 {
 public:
     TemplateDeclaration *td;
@@ -520,7 +520,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class NewExp : public Expression
+class NewExp final : public Expression
 {
 public:
     /* newtype(arguments)
@@ -541,7 +541,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class NewAnonClassExp : public Expression
+class NewAnonClassExp final : public Expression
 {
 public:
     /* class baseclasses { } (arguments)
@@ -566,7 +566,7 @@ public:
 
 // Offset from symbol
 
-class SymOffExp : public SymbolExp
+class SymOffExp final : public SymbolExp
 {
 public:
     dinteger_t offset;
@@ -578,7 +578,7 @@ public:
 
 // Variable
 
-class VarExp : public SymbolExp
+class VarExp final : public SymbolExp
 {
 public:
     bool delegateWasExtracted;
@@ -593,7 +593,7 @@ public:
 
 // Overload Set
 
-class OverExp : public Expression
+class OverExp final : public Expression
 {
 public:
     OverloadSet *vars;
@@ -605,7 +605,7 @@ public:
 
 // Function/Delegate literal
 
-class FuncExp : public Expression
+class FuncExp final : public Expression
 {
 public:
     FuncLiteralDeclaration *fd;
@@ -626,7 +626,7 @@ public:
 // D grammar allows declarations only as statements. However in AST representation
 // it can be part of any expression. This is used, for example, during internal
 // syntax re-writes to inject hidden symbols.
-class DeclarationExp : public Expression
+class DeclarationExp final : public Expression
 {
 public:
     Dsymbol *declaration;
@@ -638,7 +638,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeidExp : public Expression
+class TypeidExp final : public Expression
 {
 public:
     RootObject *obj;
@@ -647,7 +647,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TraitsExp : public Expression
+class TraitsExp final : public Expression
 {
 public:
     Identifier *ident;
@@ -657,13 +657,13 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class HaltExp : public Expression
+class HaltExp final : public Expression
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class IsExp : public Expression
+class IsExp final : public Expression
 {
 public:
     /* is(targ id tok tspec)
@@ -723,19 +723,19 @@ public:
 
 /****************************************************************/
 
-class MixinExp : public UnaExp
+class MixinExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ImportExp : public UnaExp
+class ImportExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AssertExp : public UnaExp
+class AssertExp final : public UnaExp
 {
 public:
     Expression *msg;
@@ -745,7 +745,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ThrowExp : public UnaExp
+class ThrowExp final : public UnaExp
 {
 public:
     ThrowExp *syntaxCopy() override;
@@ -753,7 +753,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DotIdExp : public UnaExp
+class DotIdExp final : public UnaExp
 {
 public:
     Identifier *ident;
@@ -765,7 +765,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DotTemplateExp : public UnaExp
+class DotTemplateExp final : public UnaExp
 {
 public:
     TemplateDeclaration *td;
@@ -775,7 +775,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DotVarExp : public UnaExp
+class DotVarExp final : public UnaExp
 {
 public:
     Declaration *var;
@@ -787,7 +787,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DotTemplateInstanceExp : public UnaExp
+class DotTemplateInstanceExp final : public UnaExp
 {
 public:
     TemplateInstance *ti;
@@ -799,7 +799,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DelegateExp : public UnaExp
+class DelegateExp final : public UnaExp
 {
 public:
     FuncDeclaration *func;
@@ -810,7 +810,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DotTypeExp : public UnaExp
+class DotTypeExp final : public UnaExp
 {
 public:
     Dsymbol *sym;               // symbol that represents a type
@@ -818,7 +818,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CallExp : public UnaExp
+class CallExp final : public UnaExp
 {
 public:
     Expressions *arguments;     // function arguments
@@ -841,13 +841,13 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AddrExp : public UnaExp
+class AddrExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class PtrExp : public UnaExp
+class PtrExp final : public UnaExp
 {
 public:
     bool isLvalue() override;
@@ -857,38 +857,38 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class NegExp : public UnaExp
+class NegExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class UAddExp : public UnaExp
+class UAddExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ComExp : public UnaExp
+class ComExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class NotExp : public UnaExp
+class NotExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DeleteExp : public UnaExp
+class DeleteExp final : public UnaExp
 {
 public:
     bool isRAII;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CastExp : public UnaExp
+class CastExp final : public UnaExp
 {
 public:
     // Possible to cast to one type while painting to another type
@@ -902,7 +902,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class VectorExp : public UnaExp
+class VectorExp final : public UnaExp
 {
 public:
     TypeVector *to;             // the target vector type before semantic()
@@ -915,7 +915,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class VectorArrayExp : public UnaExp
+class VectorArrayExp final : public UnaExp
 {
 public:
     bool isLvalue() override;
@@ -923,7 +923,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class SliceExp : public UnaExp
+class SliceExp final : public UnaExp
 {
 public:
     Expression *upr;            // NULL if implicit 0
@@ -942,13 +942,13 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ArrayLengthExp : public UnaExp
+class ArrayLengthExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class IntervalExp : public Expression
+class IntervalExp final : public Expression
 {
 public:
     Expression *lwr;
@@ -958,7 +958,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DelegatePtrExp : public UnaExp
+class DelegatePtrExp final : public UnaExp
 {
 public:
     bool isLvalue() override;
@@ -967,7 +967,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DelegateFuncptrExp : public UnaExp
+class DelegateFuncptrExp final : public UnaExp
 {
 public:
     bool isLvalue() override;
@@ -978,7 +978,7 @@ public:
 
 // e1[a0,a1,a2,a3,...]
 
-class ArrayExp : public UnaExp
+class ArrayExp final : public UnaExp
 {
 public:
     Expressions *arguments;             // Array of Expression's
@@ -994,13 +994,13 @@ public:
 
 /****************************************************************/
 
-class DotExp : public BinExp
+class DotExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CommaExp : public BinExp
+class CommaExp final : public BinExp
 {
 public:
     bool isGenerated;
@@ -1013,7 +1013,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class IndexExp : public BinExp
+class IndexExp final : public BinExp
 {
 public:
     VarDeclaration *lengthVar;
@@ -1030,7 +1030,7 @@ public:
 
 /* For both i++ and i--
  */
-class PostExp : public BinExp
+class PostExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
@@ -1038,7 +1038,7 @@ public:
 
 /* For both ++i and --i
  */
-class PreExp : public UnaExp
+class PreExp final : public UnaExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
@@ -1062,85 +1062,85 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ConstructExp : public AssignExp
+class ConstructExp final : public AssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class BlitExp : public AssignExp
+class BlitExp final : public AssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AddAssignExp : public BinAssignExp
+class AddAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class MinAssignExp : public BinAssignExp
+class MinAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class MulAssignExp : public BinAssignExp
+class MulAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DivAssignExp : public BinAssignExp
+class DivAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ModAssignExp : public BinAssignExp
+class ModAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AndAssignExp : public BinAssignExp
+class AndAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class OrAssignExp : public BinAssignExp
+class OrAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class XorAssignExp : public BinAssignExp
+class XorAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class PowAssignExp : public BinAssignExp
+class PowAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ShlAssignExp : public BinAssignExp
+class ShlAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ShrAssignExp : public BinAssignExp
+class ShrAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class UshrAssignExp : public BinAssignExp
+class UshrAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
@@ -1152,115 +1152,115 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CatElemAssignExp : public CatAssignExp
+class CatElemAssignExp final : public CatAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CatDcharAssignExp : public CatAssignExp
+class CatDcharAssignExp final : public CatAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AddExp : public BinExp
+class AddExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class MinExp : public BinExp
+class MinExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CatExp : public BinExp
+class CatExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class MulExp : public BinExp
+class MulExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DivExp : public BinExp
+class DivExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ModExp : public BinExp
+class ModExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class PowExp : public BinExp
+class PowExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ShlExp : public BinExp
+class ShlExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ShrExp : public BinExp
+class ShrExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class UshrExp : public BinExp
+class UshrExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AndExp : public BinExp
+class AndExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class OrExp : public BinExp
+class OrExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class XorExp : public BinExp
+class XorExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class LogicalExp : public BinExp
+class LogicalExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CmpExp : public BinExp
+class CmpExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class InExp : public BinExp
+class InExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class RemoveExp : public BinExp
+class RemoveExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
@@ -1268,7 +1268,7 @@ public:
 
 // == and !=
 
-class EqualExp : public BinExp
+class EqualExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
@@ -1276,7 +1276,7 @@ public:
 
 // is and !is
 
-class IdentityExp : public BinExp
+class IdentityExp final : public BinExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
@@ -1284,7 +1284,7 @@ public:
 
 /****************************************************************/
 
-class CondExp : public BinExp
+class CondExp final : public BinExp
 {
 public:
     Expression *econd;
@@ -1298,7 +1298,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class GenericExp : Expression
+class GenericExp final : Expression
 {
     Expression *cntlExp;
     Types *types;
@@ -1317,35 +1317,35 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class FileInitExp : public DefaultInitExp
+class FileInitExp final : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class LineInitExp : public DefaultInitExp
+class LineInitExp final : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ModuleInitExp : public DefaultInitExp
+class ModuleInitExp final : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class FuncInitExp : public DefaultInitExp
+class FuncInitExp final : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(const Loc &loc, Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class PrettyFuncInitExp : public DefaultInitExp
+class PrettyFuncInitExp final : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(const Loc &loc, Scope *sc) override;
@@ -1410,7 +1410,7 @@ private:
 
 /****************************************************************/
 
-class ObjcClassReferenceExp : public Expression
+class ObjcClassReferenceExp final : public Expression
 {
 public:
     ClassDeclaration* classDeclaration;

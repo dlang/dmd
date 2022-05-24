@@ -47,7 +47,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class VoidInitializer : public Initializer
+class VoidInitializer final : public Initializer
 {
 public:
     Type *type;         // type that this will initialize to
@@ -55,13 +55,13 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ErrorInitializer : public Initializer
+class ErrorInitializer final : public Initializer
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StructInitializer : public Initializer
+class StructInitializer final : public Initializer
 {
 public:
     Identifiers field;  // of Identifier *'s
@@ -70,7 +70,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ArrayInitializer : public Initializer
+class ArrayInitializer final : public Initializer
 {
 public:
     Expressions index;  // indices
@@ -85,7 +85,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ExpInitializer : public Initializer
+class ExpInitializer final : public Initializer
 {
 public:
     bool expandTuples;
@@ -106,7 +106,7 @@ struct DesigInit
     Initializer *initializer;
 };
 
-class CInitializer : public Initializer
+class CInitializer final : public Initializer
 {
 public:
     DesigInits initializerList;

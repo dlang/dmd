@@ -167,7 +167,7 @@ public:
 /** Any Statement that fails semantic() or has a component that is an ErrorExp or
  * a TypeError should return an ErrorStatement from semantic().
  */
-class ErrorStatement : public Statement
+class ErrorStatement final : public Statement
 {
 public:
     ErrorStatement *syntaxCopy() override;
@@ -175,7 +175,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class PeelStatement : public Statement
+class PeelStatement final : public Statement
 {
 public:
     Statement *s;
@@ -194,7 +194,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DtorExpStatement : public ExpStatement
+class DtorExpStatement final : public ExpStatement
 {
 public:
     /* Wraps an expression that is the destruction of 'var'
@@ -206,7 +206,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CompileStatement : public Statement
+class CompileStatement final : public Statement
 {
 public:
     Expressions *exps;
@@ -228,7 +228,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CompoundDeclarationStatement : public CompoundStatement
+class CompoundDeclarationStatement final : public CompoundStatement
 {
 public:
     CompoundDeclarationStatement *syntaxCopy() override;
@@ -238,7 +238,7 @@ public:
 /* The purpose of this is so that continue will go to the next
  * of the statements, and break will go to the end of the statements.
  */
-class UnrolledLoopStatement : public Statement
+class UnrolledLoopStatement final : public Statement
 {
 public:
     Statements *statements;
@@ -250,7 +250,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ScopeStatement : public Statement
+class ScopeStatement final : public Statement
 {
 public:
     Statement *statement;
@@ -264,7 +264,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ForwardingStatement : public Statement
+class ForwardingStatement final : public Statement
 {
 public:
     ForwardingScopeDsymbol *sym;
@@ -274,7 +274,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class WhileStatement : public Statement
+class WhileStatement final : public Statement
 {
 public:
     Parameter *param;
@@ -289,7 +289,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DoStatement : public Statement
+class DoStatement final : public Statement
 {
 public:
     Statement *_body;
@@ -303,7 +303,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ForStatement : public Statement
+class ForStatement final : public Statement
 {
 public:
     Statement *_init;
@@ -325,7 +325,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ForeachStatement : public Statement
+class ForeachStatement final : public Statement
 {
 public:
     TOK op;                     // TOKforeach or TOKforeach_reverse
@@ -349,7 +349,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ForeachRangeStatement : public Statement
+class ForeachRangeStatement final : public Statement
 {
 public:
     TOK op;                     // TOKforeach or TOKforeach_reverse
@@ -368,7 +368,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class IfStatement : public Statement
+class IfStatement final : public Statement
 {
 public:
     Parameter *prm;
@@ -383,7 +383,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ConditionalStatement : public Statement
+class ConditionalStatement final : public Statement
 {
 public:
     Condition *condition;
@@ -395,7 +395,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StaticForeachStatement : public Statement
+class StaticForeachStatement final : public Statement
 {
 public:
     StaticForeach *sfe;
@@ -405,7 +405,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class PragmaStatement : public Statement
+class PragmaStatement final : public Statement
 {
 public:
     Identifier *ident;
@@ -417,7 +417,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StaticAssertStatement : public Statement
+class StaticAssertStatement final : public Statement
 {
 public:
     StaticAssert *sa;
@@ -427,7 +427,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class SwitchStatement : public Statement
+class SwitchStatement final : public Statement
 {
 public:
     Expression *condition;
@@ -449,7 +449,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CaseStatement : public Statement
+class CaseStatement final : public Statement
 {
 public:
     Expression *exp;
@@ -465,7 +465,7 @@ public:
 };
 
 
-class CaseRangeStatement : public Statement
+class CaseRangeStatement final : public Statement
 {
 public:
     Expression *first;
@@ -477,7 +477,7 @@ public:
 };
 
 
-class DefaultStatement : public Statement
+class DefaultStatement final : public Statement
 {
 public:
     Statement *statement;
@@ -488,7 +488,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class GotoDefaultStatement : public Statement
+class GotoDefaultStatement final : public Statement
 {
 public:
     SwitchStatement *sw;
@@ -498,7 +498,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class GotoCaseStatement : public Statement
+class GotoCaseStatement final : public Statement
 {
 public:
     Expression *exp;            // NULL, or which case to goto
@@ -509,7 +509,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class SwitchErrorStatement : public Statement
+class SwitchErrorStatement final : public Statement
 {
 public:
     Expression *exp;
@@ -517,7 +517,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ReturnStatement : public Statement
+class ReturnStatement final : public Statement
 {
 public:
     Expression *exp;
@@ -529,7 +529,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class BreakStatement : public Statement
+class BreakStatement final : public Statement
 {
 public:
     Identifier *ident;
@@ -539,7 +539,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ContinueStatement : public Statement
+class ContinueStatement final : public Statement
 {
 public:
     Identifier *ident;
@@ -549,7 +549,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class SynchronizedStatement : public Statement
+class SynchronizedStatement final : public Statement
 {
 public:
     Expression *exp;
@@ -562,7 +562,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class WithStatement : public Statement
+class WithStatement final : public Statement
 {
 public:
     Expression *exp;
@@ -575,7 +575,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TryCatchStatement : public Statement
+class TryCatchStatement final : public Statement
 {
 public:
     Statement *_body;
@@ -589,7 +589,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class Catch : public RootObject
+class Catch final : public RootObject
 {
 public:
     Loc loc;
@@ -608,7 +608,7 @@ public:
     Catch *syntaxCopy();
 };
 
-class TryFinallyStatement : public Statement
+class TryFinallyStatement final : public Statement
 {
 public:
     Statement *_body;
@@ -625,7 +625,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ScopeGuardStatement : public Statement
+class ScopeGuardStatement final : public Statement
 {
 public:
     TOK tok;
@@ -636,7 +636,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ThrowStatement : public Statement
+class ThrowStatement final : public Statement
 {
 public:
     Expression *exp;
@@ -649,7 +649,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DebugStatement : public Statement
+class DebugStatement final : public Statement
 {
 public:
     Statement *statement;
@@ -658,7 +658,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class GotoStatement : public Statement
+class GotoStatement final : public Statement
 {
 public:
     Identifier *ident;
@@ -673,7 +673,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class LabelStatement : public Statement
+class LabelStatement final : public Statement
 {
 public:
     Identifier *ident;
@@ -691,7 +691,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class LabelDsymbol : public Dsymbol
+class LabelDsymbol final : public Dsymbol
 {
 public:
     LabelStatement *statement;
@@ -715,7 +715,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class InlineAsmStatement : public AsmStatement
+class InlineAsmStatement final : public AsmStatement
 {
 public:
     code *asmcode;
@@ -729,7 +729,7 @@ public:
 };
 
 // A GCC asm statement - assembler instructions with D expression operands
-class GccAsmStatement : public AsmStatement
+class GccAsmStatement final : public AsmStatement
 {
 public:
     StorageClass stc;           // attributes of the asm {} block
@@ -747,7 +747,7 @@ public:
 };
 
 // a complete asm {} block
-class CompoundAsmStatement : public CompoundStatement
+class CompoundAsmStatement final : public CompoundStatement
 {
 public:
     StorageClass stc; // postfix attributes like nothrow/pure/@trusted
@@ -757,7 +757,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ImportStatement : public Statement
+class ImportStatement final : public Statement
 {
 public:
     Dsymbols *imports;          // Array of Import's

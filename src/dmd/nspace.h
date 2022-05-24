@@ -16,7 +16,7 @@
  * Implies extern(C++).
  */
 
-class Nspace : public ScopeDsymbol
+class Nspace final : public ScopeDsymbol
 {
   public:
     Expression *identExp;

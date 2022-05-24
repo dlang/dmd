@@ -15,7 +15,7 @@
 
 /**************************************************************/
 
-class AliasThis : public Dsymbol
+class AliasThis final : public Dsymbol
 {
 public:
    // alias Identifier this;

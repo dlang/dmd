@@ -17,7 +17,7 @@ struct Scope;
 class Module;
 class Package;
 
-class Import : public Dsymbol
+class Import final : public Dsymbol
 {
 public:
     /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
