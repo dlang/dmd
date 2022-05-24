@@ -4217,23 +4217,25 @@ struct ASTBase
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = t.idents[i];
-                if (id.dyncast() == DYNCAST.dsymbol)
+                switch (id.dyncast()) with (DYNCAST)
                 {
+                case dsymbol:
                     TemplateInstance ti = cast(TemplateInstance)id;
                     ti = ti.syntaxCopy(null);
                     id = ti;
-                }
-                else if (id.dyncast() == DYNCAST.expression)
-                {
+                    break;
+                case expression:
                     Expression e = cast(Expression)id;
                     e = e.syntaxCopy();
                     id = e;
-                }
-                else if (id.dyncast() == DYNCAST.type)
-                {
+                    break;
+                case type:
                     Type tx = cast(Type)id;
                     tx = tx.syntaxCopy();
                     id = tx;
+                    break;
+                default:
+                    break;
                 }
                 idents[i] = id;
             }
@@ -5115,21 +5117,24 @@ struct ASTBase
                     Expression e = new DsymbolExp(loc, s);
                     this.exps.push(e);
                 }
-                else if (o.dyncast() == DYNCAST.expression)
-                {
-                    auto e = (cast(Expression)o).copy();
-                    e.loc = loc;    // Bugzilla 15669
-                    this.exps.push(e);
-                }
-                else if (o.dyncast() == DYNCAST.type)
-                {
-                    Type t = cast(Type)o;
-                    Expression e = new TypeExp(loc, t);
-                    this.exps.push(e);
-                }
                 else
                 {
-                    error("%s is not an expression", o.toChars());
+                    switch (o.dyncast()) with (DYNCAST)
+                    {
+                    case expression:
+                        auto e = (cast(Expression)o).copy();
+                        e.loc = loc;    // Bugzilla 15669
+                        this.exps.push(e);
+                        break;
+                    case type:
+                        Type t = cast(Type)o;
+                        Expression e = new TypeExp(loc, t);
+                        this.exps.push(e);
+                        break;
+                    default:
+                        error("%s is not an expression", o.toChars());
+                        break;
+                    }
                 }
             }
         }
