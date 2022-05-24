@@ -306,7 +306,7 @@ public:
     virtual ClassDeclaration *isClassHandle();
     virtual structalign_t alignment();
     virtual Expression *defaultInitLiteral(const Loc &loc);
-    virtual bool isZeroInit(const Loc &loc = Loc());                // if initializer is 0
+    virtual bool isZeroInit(const Loc &loc = Loc()); // if initializer is 0
     Identifier *getTypeInfoIdent();
     virtual int hasWild() const;
     virtual bool hasPointers();
@@ -897,6 +897,7 @@ public:
 
     TypeNull *syntaxCopy() override;
     MATCH implicitConvTo(Type *to) override;
+    bool hasPointers() override;
     bool isBoolean() override;
 
     uinteger_t size(const Loc &loc) override;
