@@ -2434,6 +2434,8 @@ public:
     virtual void visit(typename AST::ShrAssignExp e);
     virtual void visit(typename AST::UshrAssignExp e);
     virtual void visit(typename AST::CatAssignExp e);
+    virtual void visit(typename AST::CatElemAssignExp e);
+    virtual void visit(typename AST::CatDcharAssignExp e);
     virtual void visit(typename AST::TemplateAliasParameter tp);
     virtual void visit(typename AST::TemplateTypeParameter tp);
     virtual void visit(typename AST::TemplateTupleParameter tp);

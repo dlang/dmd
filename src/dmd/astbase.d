@@ -6055,11 +6055,44 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CatAssignExp : BinAssignExp
+    extern (C++) class CatAssignExp : BinAssignExp
     {
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
             super(loc, EXP.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
+        }
+
+        extern (D) this(const ref Loc loc, EXP tok, Expression e1, Expression e2)
+        {
+            super(loc, tok, __traits(classInstanceSize, CatAssignExp), e1, e2);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class CatElemAssignExp : CatAssignExp
+    {
+        extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
+        {
+            super(loc, EXP.concatenateElemAssign, e1, e2);
+            this.type = type;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class CatDcharAssignExp : CatAssignExp
+    {
+        extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
+        {
+            super(loc, EXP.concatenateDcharAssign, e1, e2);
+            this.type = type;
         }
 
         override void accept(Visitor v)
