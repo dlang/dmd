@@ -3380,10 +3380,10 @@ public:
     static TypeAArray* create(Type* t, Type* index);
     const char* kind() const;
     TypeAArray* syntaxCopy();
-    uinteger_t size(const Loc& loc) /* const */;
-    bool isZeroInit(const Loc& loc) /* const */;
-    bool isBoolean() /* const */;
-    bool hasPointers() /* const */;
+    uinteger_t size(const Loc& loc);
+    bool isZeroInit(const Loc& loc);
+    bool isBoolean();
+    bool hasPointers();
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
     void accept(Visitor* v);
@@ -3396,17 +3396,17 @@ public:
     uint32_t flags;
     const char* kind() const;
     TypeBasic* syntaxCopy();
-    uinteger_t size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc);
     uint32_t alignsize();
     bool isintegral();
-    bool isfloating() /* const */;
-    bool isreal() /* const */;
-    bool isimaginary() /* const */;
-    bool iscomplex() /* const */;
-    bool isscalar() /* const */;
-    bool isunsigned() /* const */;
+    bool isfloating();
+    bool isreal();
+    bool isimaginary();
+    bool iscomplex();
+    bool isscalar();
+    bool isunsigned();
     MATCH implicitConvTo(Type* to);
-    bool isZeroInit(const Loc& loc) /* const */;
+    bool isZeroInit(const Loc& loc);
     TypeBasic* isTypeBasic();
     void accept(Visitor* v);
 };
@@ -3428,7 +3428,7 @@ public:
     AliasThisRec att;
     CPPMANGLE cppmangle;
     const char* kind() const;
-    uinteger_t size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc);
     TypeClass* syntaxCopy();
     Dsymbol* toDsymbol(Scope* sc);
     ClassDeclaration* isClassHandle();
@@ -3437,10 +3437,10 @@ public:
     MATCH constConv(Type* to);
     uint8_t deduceWild(Type* t, bool isRef);
     Type* toHeadMutable();
-    bool isZeroInit(const Loc& loc) /* const */;
-    bool isscope() /* const */;
-    bool isBoolean() /* const */;
-    bool hasPointers() /* const */;
+    bool isZeroInit(const Loc& loc);
+    bool isscope();
+    bool isBoolean();
+    bool hasPointers();
     void accept(Visitor* v);
 };
 
@@ -3449,13 +3449,13 @@ class TypeDArray final : public TypeArray
 public:
     const char* kind() const;
     TypeDArray* syntaxCopy();
-    uinteger_t size(const Loc& loc) /* const */;
-    uint32_t alignsize() /* const */;
+    uinteger_t size(const Loc& loc);
+    uint32_t alignsize();
     bool isString();
-    bool isZeroInit(const Loc& loc) /* const */;
-    bool isBoolean() /* const */;
+    bool isZeroInit(const Loc& loc);
+    bool isBoolean();
     MATCH implicitConvTo(Type* to);
-    bool hasPointers() /* const */;
+    bool hasPointers();
     void accept(Visitor* v);
 };
 
@@ -3466,12 +3466,12 @@ public:
     const char* kind() const;
     TypeDelegate* syntaxCopy();
     Type* addStorageClass(StorageClass stc);
-    uinteger_t size(const Loc& loc) /* const */;
-    uint32_t alignsize() /* const */;
+    uinteger_t size(const Loc& loc);
+    uint32_t alignsize();
     MATCH implicitConvTo(Type* to);
-    bool isZeroInit(const Loc& loc) /* const */;
-    bool isBoolean() /* const */;
-    bool hasPointers() /* const */;
+    bool isZeroInit(const Loc& loc);
+    bool isBoolean();
+    bool hasPointers();
     void accept(Visitor* v);
 };
 
@@ -3689,8 +3689,8 @@ public:
     TypeNoreturn* syntaxCopy();
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
-    bool isBoolean() /* const */;
-    uinteger_t size(const Loc& loc) /* const */;
+    bool isBoolean();
+    uinteger_t size(const Loc& loc);
     uint32_t alignsize();
     void accept(Visitor* v);
 };
@@ -3702,8 +3702,8 @@ public:
     TypeNull* syntaxCopy();
     MATCH implicitConvTo(Type* to);
     bool hasPointers();
-    bool isBoolean() /* const */;
-    uinteger_t size(const Loc& loc) /* const */;
+    bool isBoolean();
+    uinteger_t size(const Loc& loc);
     void accept(Visitor* v);
 };
 
@@ -3713,12 +3713,12 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const;
     TypePointer* syntaxCopy();
-    uinteger_t size(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc);
     MATCH implicitConvTo(Type* to);
     MATCH constConv(Type* to);
-    bool isscalar() /* const */;
-    bool isZeroInit(const Loc& loc) /* const */;
-    bool hasPointers() /* const */;
+    bool isscalar();
+    bool isZeroInit(const Loc& loc);
+    bool hasPointers();
     void accept(Visitor* v);
 };
 
@@ -3727,8 +3727,8 @@ class TypeReference final : public TypeNext
 public:
     const char* kind() const;
     TypeReference* syntaxCopy();
-    uinteger_t size(const Loc& loc) /* const */;
-    bool isZeroInit(const Loc& loc) /* const */;
+    uinteger_t size(const Loc& loc);
+    bool isZeroInit(const Loc& loc);
     void accept(Visitor* v);
 };
 
@@ -3790,8 +3790,8 @@ public:
     Expression* defaultInitLiteral(const Loc& loc);
     bool isZeroInit(const Loc& loc);
     bool isAssignable();
-    bool isBoolean() /* const */;
-    bool needsDestruction() /* const */;
+    bool isBoolean();
+    bool needsDestruction();
     bool needsCopyOrPostblit();
     bool needsNested();
     bool hasPointers();
@@ -3872,7 +3872,7 @@ public:
     bool isfloating();
     bool isscalar();
     bool isunsigned();
-    bool isBoolean() /* const */;
+    bool isBoolean();
     MATCH implicitConvTo(Type* to);
     Expression* defaultInitLiteral(const Loc& loc);
     TypeBasic* elementType();
