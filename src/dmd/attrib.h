@@ -56,7 +56,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DeprecatedDeclaration : public StorageClassDeclaration
+class DeprecatedDeclaration final : public StorageClassDeclaration
 {
 public:
     Expression *msg;
@@ -68,7 +68,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class LinkDeclaration : public AttribDeclaration
+class LinkDeclaration final : public AttribDeclaration
 {
 public:
     LINK linkage;
@@ -80,7 +80,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CPPMangleDeclaration : public AttribDeclaration
+class CPPMangleDeclaration final : public AttribDeclaration
 {
 public:
     CPPMANGLE cppmangle;
@@ -92,7 +92,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CPPNamespaceDeclaration : public AttribDeclaration
+class CPPNamespaceDeclaration final : public AttribDeclaration
 {
 public:
     Expression *exp;
@@ -103,7 +103,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class VisibilityDeclaration : public AttribDeclaration
+class VisibilityDeclaration final : public AttribDeclaration
 {
 public:
     Visibility visibility;
@@ -118,7 +118,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AlignDeclaration : public AttribDeclaration
+class AlignDeclaration final : public AttribDeclaration
 {
 public:
     Expressions *alignExps;
@@ -130,7 +130,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class AnonDeclaration : public AttribDeclaration
+class AnonDeclaration final : public AttribDeclaration
 {
 public:
     bool isunion;
@@ -147,7 +147,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class PragmaDeclaration : public AttribDeclaration
+class PragmaDeclaration final : public AttribDeclaration
 {
 public:
     Expressions *args;          // array of Expression's
@@ -173,7 +173,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StaticIfDeclaration : public ConditionalDeclaration
+class StaticIfDeclaration final : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol *scopesym;
@@ -189,7 +189,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StaticForeachDeclaration : public AttribDeclaration
+class StaticForeachDeclaration final : public AttribDeclaration
 {
 public:
     StaticForeach *sfe;
@@ -209,7 +209,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class ForwardingAttribDeclaration : public AttribDeclaration
+class ForwardingAttribDeclaration final : public AttribDeclaration
 {
 public:
     ForwardingScopeDsymbol *sym;
@@ -222,7 +222,7 @@ public:
 
 // Mixin declarations
 
-class CompileDeclaration : public AttribDeclaration
+class CompileDeclaration final : public AttribDeclaration
 {
 public:
     Expressions *exps;
@@ -241,7 +241,7 @@ public:
  * User defined attributes look like:
  *      @(args, ...)
  */
-class UserAttributeDeclaration : public AttribDeclaration
+class UserAttributeDeclaration final : public AttribDeclaration
 {
 public:
     Expressions *atts;

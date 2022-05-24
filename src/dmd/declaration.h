@@ -162,7 +162,7 @@ public:
 
 /**************************************************************/
 
-class TupleDeclaration : public Declaration
+class TupleDeclaration final : public Declaration
 {
 public:
     Objects *objects;
@@ -182,7 +182,7 @@ public:
 
 /**************************************************************/
 
-class AliasDeclaration : public Declaration
+class AliasDeclaration final : public Declaration
 {
 public:
     Dsymbol *aliassym;
@@ -204,7 +204,7 @@ public:
 
 /**************************************************************/
 
-class OverDeclaration : public Declaration
+class OverDeclaration final : public Declaration
 {
 public:
     Dsymbol *overnext;          // next in overload list
@@ -312,7 +312,7 @@ public:
 
 // This is a shell around a back end symbol
 
-class SymbolDeclaration : public Declaration
+class SymbolDeclaration final : public Declaration
 {
 public:
     AggregateDeclaration *dsym;
@@ -335,7 +335,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoStructDeclaration : public TypeInfoDeclaration
+class TypeInfoStructDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoStructDeclaration *create(Type *tinfo);
@@ -343,7 +343,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoClassDeclaration : public TypeInfoDeclaration
+class TypeInfoClassDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoClassDeclaration *create(Type *tinfo);
@@ -351,7 +351,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
+class TypeInfoInterfaceDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoInterfaceDeclaration *create(Type *tinfo);
@@ -359,7 +359,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoPointerDeclaration : public TypeInfoDeclaration
+class TypeInfoPointerDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoPointerDeclaration *create(Type *tinfo);
@@ -367,7 +367,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoArrayDeclaration : public TypeInfoDeclaration
+class TypeInfoArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoArrayDeclaration *create(Type *tinfo);
@@ -375,7 +375,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoStaticArrayDeclaration : public TypeInfoDeclaration
+class TypeInfoStaticArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoStaticArrayDeclaration *create(Type *tinfo);
@@ -383,7 +383,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoAssociativeArrayDeclaration : public TypeInfoDeclaration
+class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoAssociativeArrayDeclaration *create(Type *tinfo);
@@ -391,7 +391,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoEnumDeclaration : public TypeInfoDeclaration
+class TypeInfoEnumDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoEnumDeclaration *create(Type *tinfo);
@@ -399,7 +399,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoFunctionDeclaration : public TypeInfoDeclaration
+class TypeInfoFunctionDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoFunctionDeclaration *create(Type *tinfo);
@@ -407,7 +407,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoDelegateDeclaration : public TypeInfoDeclaration
+class TypeInfoDelegateDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoDelegateDeclaration *create(Type *tinfo);
@@ -415,7 +415,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoTupleDeclaration : public TypeInfoDeclaration
+class TypeInfoTupleDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoTupleDeclaration *create(Type *tinfo);
@@ -423,7 +423,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoConstDeclaration : public TypeInfoDeclaration
+class TypeInfoConstDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoConstDeclaration *create(Type *tinfo);
@@ -431,7 +431,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoInvariantDeclaration : public TypeInfoDeclaration
+class TypeInfoInvariantDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoInvariantDeclaration *create(Type *tinfo);
@@ -439,7 +439,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoSharedDeclaration : public TypeInfoDeclaration
+class TypeInfoSharedDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoSharedDeclaration *create(Type *tinfo);
@@ -447,7 +447,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoWildDeclaration : public TypeInfoDeclaration
+class TypeInfoWildDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoWildDeclaration *create(Type *tinfo);
@@ -455,7 +455,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TypeInfoVectorDeclaration : public TypeInfoDeclaration
+class TypeInfoVectorDeclaration final : public TypeInfoDeclaration
 {
 public:
     static TypeInfoVectorDeclaration *create(Type *tinfo);
@@ -465,7 +465,7 @@ public:
 
 /**************************************************************/
 
-class ThisDeclaration : public VarDeclaration
+class ThisDeclaration final : public VarDeclaration
 {
 public:
     ThisDeclaration *syntaxCopy(Dsymbol *) override;
@@ -700,7 +700,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class FuncAliasDeclaration : public FuncDeclaration
+class FuncAliasDeclaration final : public FuncDeclaration
 {
 public:
     FuncDeclaration *funcalias;
@@ -713,7 +713,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class FuncLiteralDeclaration : public FuncDeclaration
+class FuncLiteralDeclaration final : public FuncDeclaration
 {
 public:
     TOK tok;                       // TOKfunction or TOKdelegate
@@ -737,7 +737,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class CtorDeclaration : public FuncDeclaration
+class CtorDeclaration final : public FuncDeclaration
 {
 public:
     bool isCpCtor;
@@ -752,7 +752,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class PostBlitDeclaration : public FuncDeclaration
+class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
     PostBlitDeclaration *syntaxCopy(Dsymbol *) override;
@@ -765,7 +765,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DtorDeclaration : public FuncDeclaration
+class DtorDeclaration final : public FuncDeclaration
 {
 public:
     DtorDeclaration *syntaxCopy(Dsymbol *) override;
@@ -794,7 +794,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class SharedStaticCtorDeclaration : public StaticCtorDeclaration
+class SharedStaticCtorDeclaration final : public StaticCtorDeclaration
 {
 public:
     SharedStaticCtorDeclaration *syntaxCopy(Dsymbol *) override;
@@ -819,7 +819,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class SharedStaticDtorDeclaration : public StaticDtorDeclaration
+class SharedStaticDtorDeclaration final : public StaticDtorDeclaration
 {
 public:
     SharedStaticDtorDeclaration *syntaxCopy(Dsymbol *) override;
@@ -828,7 +828,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class InvariantDeclaration : public FuncDeclaration
+class InvariantDeclaration final : public FuncDeclaration
 {
 public:
     InvariantDeclaration *syntaxCopy(Dsymbol *) override;
@@ -840,7 +840,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class UnitTestDeclaration : public FuncDeclaration
+class UnitTestDeclaration final : public FuncDeclaration
 {
 public:
     char *codedoc; /** For documented unittest. */
@@ -858,7 +858,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class NewDeclaration : public FuncDeclaration
+class NewDeclaration final : public FuncDeclaration
 {
 public:
     NewDeclaration *syntaxCopy(Dsymbol *) override;

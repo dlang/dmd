@@ -13,7 +13,7 @@
 #include "root/dcompat.h"
 #include "root/object.h"
 
-class Identifier : public RootObject
+class Identifier final : public RootObject
 {
 private:
     int value;

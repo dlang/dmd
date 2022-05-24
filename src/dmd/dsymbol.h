@@ -347,7 +347,7 @@ public:
 
 // With statement scope
 
-class WithScopeSymbol : public ScopeDsymbol
+class WithScopeSymbol final : public ScopeDsymbol
 {
 public:
     WithStatement *withstate;
@@ -360,7 +360,7 @@ public:
 
 // Array Index/Slice scope
 
-class ArrayScopeSymbol : public ScopeDsymbol
+class ArrayScopeSymbol final : public ScopeDsymbol
 {
 private:
     RootObject *arrayContent;
@@ -375,7 +375,7 @@ public:
 
 // Overload Sets
 
-class OverloadSet : public Dsymbol
+class OverloadSet final : public Dsymbol
 {
 public:
     Dsymbols a;         // array of Dsymbols
@@ -388,7 +388,7 @@ public:
 
 // Forwarding ScopeDsymbol
 
-class ForwardingScopeDsymbol : public ScopeDsymbol
+class ForwardingScopeDsymbol final : public ScopeDsymbol
 {
 public:
     ScopeDsymbol *forward;
@@ -401,7 +401,7 @@ public:
     ForwardingScopeDsymbol *isForwardingScopeDsymbol() override { return this; }
 };
 
-class ExpressionDsymbol : public Dsymbol
+class ExpressionDsymbol final : public Dsymbol
 {
 public:
     Expression *exp;
@@ -411,7 +411,7 @@ public:
 
 // Table of Dsymbol's
 
-class DsymbolTable : public RootObject
+class DsymbolTable final : public RootObject
 {
 public:
     AA *tab;

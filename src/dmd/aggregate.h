@@ -200,7 +200,7 @@ public:
     bool hasRegularCtor(bool checkDisabled = false);
 };
 
-class UnionDeclaration : public StructDeclaration
+class UnionDeclaration final : public StructDeclaration
 {
 public:
     UnionDeclaration *syntaxCopy(Dsymbol *s) override;
@@ -314,7 +314,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class InterfaceDeclaration : public ClassDeclaration
+class InterfaceDeclaration final : public ClassDeclaration
 {
 public:
     InterfaceDeclaration *syntaxCopy(Dsymbol *s) override;

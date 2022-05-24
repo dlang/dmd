@@ -12,7 +12,7 @@
 
 #include "dsymbol.h"
 
-class DebugSymbol : public Dsymbol
+class DebugSymbol final : public Dsymbol
 {
 public:
     unsigned level;
@@ -26,7 +26,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class VersionSymbol : public Dsymbol
+class VersionSymbol final : public Dsymbol
 {
 public:
     unsigned level;

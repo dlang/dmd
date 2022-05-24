@@ -17,7 +17,7 @@
   A reference to a class, or an interface. We need this when we
   point to a base class (we must record what the type is).
  */
-class ClassReferenceExp : public Expression
+class ClassReferenceExp final : public Expression
 {
 public:
     StructLiteralExp *value;
@@ -32,7 +32,7 @@ public:
 /**
   An uninitialized value
  */
-class VoidInitExp : public Expression
+class VoidInitExp final : public Expression
 {
 public:
     VarDeclaration *var;
@@ -45,7 +45,7 @@ public:
   Fake class which holds the thrown exception.
   Used for implementing exception handling.
 */
-class ThrownExceptionExp : public Expression
+class ThrownExceptionExp final : public Expression
 {
 public:
     ClassReferenceExp *thrown; // the thing being tossed
@@ -57,7 +57,7 @@ public:
 
 // This type is only used by the interpreter.
 
-class CTFEExp : public Expression
+class CTFEExp final : public Expression
 {
 public:
     const char *toChars() const override;

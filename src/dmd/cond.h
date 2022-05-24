@@ -44,7 +44,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StaticForeach
+class StaticForeach final : public RootObject
 {
 public:
     Loc loc;
@@ -68,7 +68,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class DebugCondition : public DVCondition
+class DebugCondition final : public DVCondition
 {
 public:
     static void addGlobalIdent(const char *ident);
@@ -78,7 +78,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class VersionCondition : public DVCondition
+class VersionCondition final : public DVCondition
 {
 public:
     static void addGlobalIdent(const char *ident);
@@ -89,7 +89,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class StaticIfCondition : public Condition
+class StaticIfCondition final : public Condition
 {
 public:
     Expression *exp;

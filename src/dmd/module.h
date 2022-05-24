@@ -49,7 +49,7 @@ public:
     Module *isPackageMod();
 };
 
-class Module : public Package
+class Module final : public Package
 {
 public:
     static Module *rootModule;

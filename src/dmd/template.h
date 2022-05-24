@@ -28,7 +28,7 @@ class Expression;
 class FuncDeclaration;
 class Parameter;
 
-class Tuple : public RootObject
+class Tuple final : public RootObject
 {
 public:
     Objects objects;
@@ -46,7 +46,7 @@ struct TemplatePrevious
     Objects *dedargs;
 };
 
-class TemplateDeclaration : public ScopeDsymbol
+class TemplateDeclaration final : public ScopeDsymbol
 {
 public:
     TemplateParameters *parameters;     // array of TemplateParameter's
@@ -165,7 +165,7 @@ public:
 /* Syntax:
  *  this ident : specType = defaultType
  */
-class TemplateThisParameter : public TemplateTypeParameter
+class TemplateThisParameter final : public TemplateTypeParameter
 {
 public:
     TemplateThisParameter *isTemplateThisParameter() override;
@@ -176,7 +176,7 @@ public:
 /* Syntax:
  *  valType ident : specValue = defaultValue
  */
-class TemplateValueParameter : public TemplateParameter
+class TemplateValueParameter final : public TemplateParameter
 {
 public:
     Type *valType;
@@ -197,7 +197,7 @@ public:
 /* Syntax:
  *  specType ident : specAlias = defaultAlias
  */
-class TemplateAliasParameter : public TemplateParameter
+class TemplateAliasParameter final : public TemplateParameter
 {
 public:
     Type *specType;
@@ -218,7 +218,7 @@ public:
 /* Syntax:
  *  ident ...
  */
-class TemplateTupleParameter : public TemplateParameter
+class TemplateTupleParameter final : public TemplateParameter
 {
 public:
     TemplateTupleParameter *isTemplateTupleParameter() override;
@@ -293,7 +293,7 @@ public:
     void accept(Visitor *v) override { v->visit(this); }
 };
 
-class TemplateMixin : public TemplateInstance
+class TemplateMixin final : public TemplateInstance
 {
 public:
     TypeQualified *tqual;
