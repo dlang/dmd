@@ -1481,8 +1481,7 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
         case Tclass:
         case Tstruct:
         {
-            AggregateDeclaration ad = (tab.ty == Tclass) ? tab.isTypeClass().sym
-                                                         : tab.isTypeStruct().sym;
+            AggregateDeclaration ad = (cast(TypeAggregate)tab).sym;
             if (!sliced)
             {
                 sapply = search_function(ad, isForeach ? Id.apply : Id.applyReverse);
@@ -1648,8 +1647,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
     case Tclass:
     case Tstruct:
     {
-        AggregateDeclaration ad = (tab.ty == Tclass) ? tab.isTypeClass().sym
-                                                     : tab.isTypeStruct().sym;
+        AggregateDeclaration ad = (cast(TypeAggregate)tab).sym;
         if (fes.parameters.dim == 1)
         {
             if (!p.type)

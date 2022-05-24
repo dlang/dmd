@@ -348,6 +348,7 @@ public:
     TypeTraits *isTypeTraits();
     TypeNoreturn *isTypeNoreturn();
     TypeTag *isTypeTag();
+    TypeAggregate *isTypeAggregate();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -769,11 +770,20 @@ enum AliasThisRec
     RECtracingDT = 0x8  // mark in progress of deduceType
 };
 
-class TypeStruct : public Type
+class TypeAggregate : public Type
 {
 public:
-    StructDeclaration *sym;
+    AggregateDeclaration* asym;
     AliasThisRec att;
+    Dsymbol* toDsymbol(Scope* sc);
+    MATCH constConv(Type* to);
+    uint8_t deduceWild(Type* t, bool isRef);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeStruct : public TypeAggregate
+{
+public:
     bool inuse;
 
     static TypeStruct *create(StructDeclaration *sym);
@@ -781,7 +791,6 @@ public:
     uinteger_t size(const Loc &loc);
     unsigned alignsize();
     TypeStruct *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
     structalign_t alignment();
     Expression *defaultInitLiteral(const Loc &loc);
     bool isZeroInit(const Loc &loc);
@@ -794,8 +803,6 @@ public:
     bool hasVoidInitPointers();
     bool hasInvariant();
     MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -836,17 +843,14 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class TypeClass : public Type
+class TypeClass : public TypeAggregate
 {
 public:
-    ClassDeclaration *sym;
-    AliasThisRec att;
     CPPMANGLE cppmangle;
 
     const char *kind();
     uinteger_t size(const Loc &loc) /*const*/;
     TypeClass *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
     ClassDeclaration *isClassHandle();
     bool isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
