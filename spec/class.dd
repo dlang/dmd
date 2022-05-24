@@ -46,30 +46,26 @@ $(GNAME Interface):
     $(GLINK2 type, BasicType)
 )
 
-$(P Classes consist of:)
+$(P A class consists of:)
 
+$(COMMENT list of notable components, not exhaustive)
 $(UL
         $(LI a super class)
-        $(LI interfaces)
-        $(LI a nested anonymous metaclass for classes declared with `extern (Objective-C)`)
+        $(LI $(DDLINK spec/interface, Interfaces, interfaces)
         $(LI dynamic fields)
-        $(LI static fields)
-        $(LI types)
-        $(LI $(RELATIVE_LINK2 synchronized-classes, an optional synchronized attribute))
-        $(LI $(RELATIVE_LINK2 member-functions, member functions)
+        $(LI $(DDSUBLINK spec/attribute, static, static) fields)
+        $(LI $(RELATIVE_LINK2 nested, nested classes))
+        $(LI $(RELATIVE_LINK2 member-functions, member functions))
         $(UL
             $(LI static member functions)
             $(LI $(DDSUBLINK spec/function, virtual-functions, Virtual Functions))
             $(LI $(RELATIVE_LINK2 constructors, Constructors))
             $(LI $(RELATIVE_LINK2 destructors, Destructors))
-            $(LI $(RELATIVE_LINK2 static-constructor, Static Constructors))
-            $(LI $(RELATIVE_LINK2 static-destructor, Static Destructors))
-            $(LI $(GLINK SharedStaticConstructor)s)
-            $(LI $(GLINK SharedStaticDestructor)s)
             $(LI $(RELATIVE_LINK2 invariants, Class Invariants))
-            $(LI $(DDSUBLINK spec/unittest, unittest, Unit Tests))
-            $(LI $(RELATIVE_LINK2 alias-this, Alias This))
+            $(LI $(DDLINK spec/operatoroverloading, Operator Overloading, Operator Overloading))
         )
+        $(LI $(RELATIVE_LINK2 alias-this, Alias This))
+        $(LI other declarations (see $(GLINK2 module, DeclDef)))
         )
 )
 
@@ -271,7 +267,7 @@ $(H3 $(LNAME2 objc-member-functions, Objective-C linkage))
         )
 
         $(P Static member functions with Objective-C linkage are placed in
-        the hidden nested metaclass as non-static member functions.
+        a hidden nested metaclass as non-static member functions.
         )
 
 
