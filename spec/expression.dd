@@ -1939,7 +1939,7 @@ $(GNAME FunctionLiteralBody2):
             int x;
             auto dg = delegate ref int() { return x; };
             x = 3;
-            assert(fp() == 3);
+            assert(dg() == 3);
         }
         ---
         )
