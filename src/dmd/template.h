@@ -151,14 +151,14 @@ public:
     Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
 
-    TemplateTypeParameter *isTemplateTypeParameter() override;
+    TemplateTypeParameter *isTemplateTypeParameter() override final;
     TemplateTypeParameter *syntaxCopy() override;
-    bool declareParameter(Scope *sc) override;
-    void print(RootObject *oarg, RootObject *oded) override;
-    RootObject *specialization() override;
-    RootObject *defaultArg(const Loc &instLoc, Scope *sc) override;
-    bool hasDefaultArg() override;
-    RootObject *dummyArg() override;
+    bool declareParameter(Scope *sc) override final;
+    void print(RootObject *oarg, RootObject *oded) override final;
+    RootObject *specialization() override final;
+    RootObject *defaultArg(const Loc &instLoc, Scope *sc) override final;
+    bool hasDefaultArg() override final;
+    RootObject *dummyArg() override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -278,18 +278,18 @@ public:
     unsigned char inuse;                 // for recursive expansion detection
 
     TemplateInstance *syntaxCopy(Dsymbol *) override;
-    Dsymbol *toAlias() override;         // resolve real symbol
+    Dsymbol *toAlias() override final;   // resolve real symbol
     const char *kind() const override;
     bool oneMember(Dsymbol **ps, Identifier *ident) override;
     const char *toChars() const override;
-    const char* toPrettyCharsHelper() override;
-    Identifier *getIdent() override;
+    const char* toPrettyCharsHelper() override final;
+    Identifier *getIdent() override final;
     hash_t toHash();
 
     bool isDiscardable();
     bool needsCodegen();
 
-    TemplateInstance *isTemplateInstance() override { return this; }
+    TemplateInstance *isTemplateInstance() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 

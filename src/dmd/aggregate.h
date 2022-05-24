@@ -120,20 +120,20 @@ public:
     Sizeok sizeok;              // set when structsize contains valid data
 
     virtual Scope *newScope(Scope *sc);
-    void setScope(Scope *sc) override;
+    void setScope(Scope *sc) override final;
     size_t nonHiddenFields();
     bool determineSize(const Loc &loc);
     virtual void finalizeSize() = 0;
-    uinteger_t size(const Loc &loc) override;
+    uinteger_t size(const Loc &loc) override final;
     bool fill(const Loc &loc, Expressions *elements, bool ctorinit);
-    Type *getType() override;
-    bool isDeprecated() const override; // is aggregate deprecated?
+    Type *getType() override final;
+    bool isDeprecated() const override final; // is aggregate deprecated?
     void setDeprecated();
     bool isNested() const;
-    bool isExport() const override;
+    bool isExport() const override final;
     Dsymbol *searchCtor();
 
-    Visibility visible() override;
+    Visibility visible() override final;
 
     // 'this' type
     Type *handleType() { return type; }
@@ -143,7 +143,7 @@ public:
     // Back end
     void *sinit;
 
-    AggregateDeclaration *isAggregateDeclaration() override { return this; }
+    AggregateDeclaration *isAggregateDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -187,12 +187,12 @@ public:
 
     static StructDeclaration *create(const Loc &loc, Identifier *id, bool inObject);
     StructDeclaration *syntaxCopy(Dsymbol *s) override;
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override final;
     const char *kind() const override;
-    void finalizeSize() override;
+    void finalizeSize() override final;
     bool isPOD();
 
-    StructDeclaration *isStructDeclaration() override { return this; }
+    StructDeclaration *isStructDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 
     unsigned numArgTypes() const;
@@ -289,7 +289,7 @@ public:
     virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
     bool isBaseInfoComplete();
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override final;
     ClassDeclaration *searchBase(Identifier *ident);
     void finalizeSize() override;
     bool hasMonitor();
@@ -303,14 +303,14 @@ public:
     virtual int vtblOffset() const;
     const char *kind() const override;
 
-    void addLocalClass(ClassDeclarations *) override;
-    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories) override;
+    void addLocalClass(ClassDeclarations *) override final;
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories) override final;
 
     // Back end
     Dsymbol *vtblsym;
     Dsymbol *vtblSymbol();
 
-    ClassDeclaration *isClassDeclaration() override { return (ClassDeclaration *)this; }
+    ClassDeclaration *isClassDeclaration() override final { return (ClassDeclaration *)this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 

@@ -35,7 +35,7 @@ public:
     Loc loc;
     Include inc;
 
-    DYNCAST dyncast() const override { return DYNCAST_CONDITION; }
+    DYNCAST dyncast() const override final { return DYNCAST_CONDITION; }
 
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc) = 0;
@@ -64,7 +64,7 @@ public:
     Identifier *ident;
     Module *mod;
 
-    DVCondition *syntaxCopy() override;
+    DVCondition *syntaxCopy() override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

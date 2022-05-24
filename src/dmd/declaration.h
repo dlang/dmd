@@ -123,9 +123,9 @@ public:
     DString mangleOverride;     // overridden symbol with pragma(mangle, "...")
 
     const char *kind() const override;
-    uinteger_t size(const Loc &loc) override;
+    uinteger_t size(const Loc &loc) override final;
 
-    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override final;
 
     bool isStatic() const { return (storage_class & STCstatic) != 0; }
     LINK resolvedLinkage() const; // returns the linkage, resolving the target-specific `System` one
@@ -142,7 +142,7 @@ public:
     bool isScope() const        { return (storage_class & STCscope) != 0; }
     bool isSynchronized() const { return (storage_class & STCsynchronized) != 0; }
     bool isParameter() const    { return (storage_class & STCparameter) != 0; }
-    bool isDeprecated() const override { return (storage_class & STCdeprecated) != 0; }
+    bool isDeprecated() const override final { return (storage_class & STCdeprecated) != 0; }
     bool isOverride() const     { return (storage_class & STCoverride) != 0; }
     bool isResult() const       { return (storage_class & STCresult) != 0; }
     bool isField() const        { return (storage_class & STCfield) != 0; }
@@ -154,9 +154,9 @@ public:
 
     bool isFuture() const { return (storage_class & STCfuture) != 0; }
 
-    Visibility visible() override;
+    Visibility visible() override final;
 
-    Declaration *isDeclaration() override { return this; }
+    Declaration *isDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -272,24 +272,24 @@ public:
     bool isArgDtorVar(bool v);
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     VarDeclaration *syntaxCopy(Dsymbol *) override;
-    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion) override;
+    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion) override final;
     const char *kind() const override;
-    AggregateDeclaration *isThis() override;
-    bool needThis() override;
-    bool isExport() const override;
-    bool isImportedSymbol() const override;
+    AggregateDeclaration *isThis() override final;
+    bool needThis() override final;
+    bool isExport() const override final;
+    bool isImportedSymbol() const override final;
     bool isCtorinit() const;
-    bool isDataseg() override;
-    bool isThreadlocal() override;
+    bool isDataseg() override final;
+    bool isThreadlocal() override final;
     bool isCTFE();
     bool isOverlappedWith(VarDeclaration *v);
-    bool hasPointers() override;
+    bool hasPointers() override final;
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    void checkCtorConstInit() override;
-    Dsymbol *toAlias() override;
+    void checkCtorConstInit() override final;
+    Dsymbol *toAlias() override final;
     // Eliminate need for dynamic_cast
-    VarDeclaration *isVarDeclaration() override { return (VarDeclaration *)this; }
+    VarDeclaration *isVarDeclaration() override final { return (VarDeclaration *)this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -304,7 +304,7 @@ public:
     unsigned bitOffset;
 
     BitFieldDeclaration *syntaxCopy(Dsymbol *) override;
-    BitFieldDeclaration *isBitFieldDeclaration() override { return this; }
+    BitFieldDeclaration *isBitFieldDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -328,10 +328,10 @@ public:
     Type *tinfo;
 
     static TypeInfoDeclaration *create(Type *tinfo);
-    TypeInfoDeclaration *syntaxCopy(Dsymbol *) override;
-    const char *toChars() const override;
+    TypeInfoDeclaration *syntaxCopy(Dsymbol *) override final;
+    const char *toChars() const override final;
 
-    TypeInfoDeclaration *isTypeInfoDeclaration() override { return this; }
+    TypeInfoDeclaration *isTypeInfoDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -628,7 +628,7 @@ public:
     FuncDeclaration *syntaxCopy(Dsymbol *) override;
     bool functionSemantic();
     bool functionSemantic3();
-    bool equals(const RootObject *o) const override;
+    bool equals(const RootObject *o) const override final;
 
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
@@ -645,11 +645,11 @@ public:
     bool isCMain() const;
     bool isWinMain() const;
     bool isDllMain() const;
-    bool isExport() const override;
-    bool isImportedSymbol() const override;
-    bool isCodeseg() const override;
-    bool isOverloadable() const override;
-    bool isAbstract() override;
+    bool isExport() const override final;
+    bool isImportedSymbol() const override final;
+    bool isCodeseg() const override final;
+    bool isOverloadable() const override final;
+    bool isAbstract() override final;
     PURE isPure();
     PURE isPureBypassingInference();
     bool isSafe();
@@ -677,7 +677,7 @@ public:
 
     virtual bool isNested() const;
     AggregateDeclaration *isThis() override;
-    bool needThis() override;
+    bool needThis() override final;
     bool isVirtualMethod();
     virtual bool isVirtual() const;
     bool isFinalFunc() const;
@@ -694,7 +694,7 @@ public:
 
     bool checkNRVO();
 
-    FuncDeclaration *isFuncDeclaration() override { return this; }
+    FuncDeclaration *isFuncDeclaration() override final { return this; }
 
     virtual FuncDeclaration *toAliasFunc() { return this; }
     void accept(Visitor *v) override { v->visit(this); }
@@ -784,13 +784,13 @@ class StaticCtorDeclaration : public FuncDeclaration
 {
 public:
     StaticCtorDeclaration *syntaxCopy(Dsymbol *) override;
-    AggregateDeclaration *isThis() override;
-    bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
-    bool hasStaticCtorOrDtor() override;
+    AggregateDeclaration *isThis() override final;
+    bool isVirtual() const override final;
+    bool addPreInvariant() override final;
+    bool addPostInvariant() override final;
+    bool hasStaticCtorOrDtor() override final;
 
-    StaticCtorDeclaration *isStaticCtorDeclaration() override { return this; }
+    StaticCtorDeclaration *isStaticCtorDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -809,13 +809,13 @@ public:
     VarDeclaration *vgate;      // 'gate' variable
 
     StaticDtorDeclaration *syntaxCopy(Dsymbol *) override;
-    AggregateDeclaration *isThis() override;
-    bool isVirtual() const override;
-    bool hasStaticCtorOrDtor() override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
+    AggregateDeclaration *isThis() override final;
+    bool isVirtual() const override final;
+    bool hasStaticCtorOrDtor() override final;
+    bool addPreInvariant() override final;
+    bool addPostInvariant() override final;
 
-    StaticDtorDeclaration *isStaticDtorDeclaration() override { return this; }
+    StaticDtorDeclaration *isStaticDtorDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 

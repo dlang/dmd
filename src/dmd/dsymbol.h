@@ -211,7 +211,7 @@ public:
     Ungag ungagSpeculative();
 
     // kludge for template.isSymbol()
-    DYNCAST dyncast() const override { return DYNCAST_DSYMBOL; }
+    DYNCAST dyncast() const override final { return DYNCAST_DSYMBOL; }
 
     virtual Identifier *getIdent();
     virtual const char *toPrettyChars(bool QualifyTypes = false);
@@ -333,7 +333,7 @@ public:
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly) override;
     virtual void importScope(Dsymbol *s, Visibility visibility);
     virtual bool isPackageAccessible(Package *p, Visibility visibility, int flags = 0);
-    bool isforwardRef() override;
+    bool isforwardRef() override final;
     static void multiplyDefined(const Loc &loc, Dsymbol *s1, Dsymbol *s2);
     const char *kind() const override;
     FuncDeclaration *findGetMembers();
@@ -341,7 +341,7 @@ public:
     virtual Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
     bool hasStaticCtorOrDtor() override;
 
-    ScopeDsymbol *isScopeDsymbol() override { return this; }
+    ScopeDsymbol *isScopeDsymbol() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 

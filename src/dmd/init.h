@@ -35,7 +35,7 @@ public:
 
     DYNCAST dyncast() const override { return DYNCAST_INITIALIZER; }
 
-    const char *toChars() const override;
+    const char *toChars() const override final;
 
     ErrorInitializer   *isErrorInitializer();
     VoidInitializer    *isVoidInitializer();

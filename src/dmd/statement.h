@@ -109,11 +109,11 @@ public:
     Loc loc;
     STMT stmt;
 
-    DYNCAST dyncast() const override { return DYNCAST_STATEMENT; }
+    DYNCAST dyncast() const override final { return DYNCAST_STATEMENT; }
 
     virtual Statement *syntaxCopy();
 
-    const char *toChars() const override;
+    const char *toChars() const override final;
 
     void error(const char *format, ...);
     void warning(const char *format, ...);
@@ -222,8 +222,8 @@ public:
 
     static CompoundStatement *create(const Loc &loc, Statement *s1, Statement *s2);
     CompoundStatement *syntaxCopy() override;
-    ReturnStatement *endsWithReturnStatement() override;
-    Statement *last() override;
+    ReturnStatement *endsWithReturnStatement() override final;
+    Statement *last() override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
