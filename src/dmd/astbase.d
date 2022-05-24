@@ -3486,7 +3486,7 @@ struct ASTBase
             merge();
         }
 
-        override bool isscalar() const
+        override bool isscalar()
         {
             return (flags & (TFlags.integral | TFlags.floating)) != 0;
         }

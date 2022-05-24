@@ -1861,7 +1861,7 @@ public:
     bool equivalent(Type* t);
     DYNCAST dyncast() const final override;
     size_t getUniqueID() const;
-    Covariant covariant(Type* t, uint64_t* pstc = nullptr);
+    Covariant covariant(Type* t, uint64_t* pstc = nullptr, bool cppCovariant = false);
     const char* toChars() const final override;
     char* toPrettyChars(bool QualifyTypes = false);
     static void _init();
