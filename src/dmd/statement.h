@@ -109,6 +109,8 @@ public:
     Loc loc;
     STMT stmt;
 
+    DYNCAST dyncast() const { return DYNCAST_STATEMENT; }
+
     virtual Statement *syntaxCopy();
 
     const char *toChars() const;

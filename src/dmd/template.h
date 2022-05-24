@@ -134,6 +134,8 @@ public:
     virtual RootObject *defaultArg(const Loc &instLoc, Scope *sc) = 0;
     virtual bool hasDefaultArg() = 0;
 
+    DYNCAST dyncast() const { return DYNCAST_TEMPLATEPARAMETER; }
+
     /* Create dummy argument based on parameter.
      */
     virtual RootObject *dummyArg() = 0;
