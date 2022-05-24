@@ -817,10 +817,15 @@ public:
 
             buf.writestring(fdOverridesAreConst ? " const" : " /* const */");
         }
-        if (adparent && fd.isAbstract())
-            buf.writestring(" = 0");
-        if (adparent && fd.isDisabled && global.params.cplusplus >= CppStdRevision.cpp11)
-            buf.writestring(" = delete");
+        if (adparent)
+        {
+            if (global.params.cplusplus >= CppStdRevision.cpp11 && fd.isOverride())
+                buf.writestring(" override");
+            if (fd.isAbstract())
+                buf.writestring(" = 0");
+            else if (global.params.cplusplus >= CppStdRevision.cpp11 && fd.isDisabled())
+                buf.writestring(" = delete");
+        }
         buf.writestringln(";");
         if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
             writeProtection(AST.Visibility.Kind.public_);

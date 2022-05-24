@@ -142,8 +142,8 @@ class B : public A, public I1, public I2
 {
 public:
     using A::bar;
-    void foo();
-    void bar();
+    void foo() override;
+    void bar() override;
 };
 
 class Parent
@@ -157,7 +157,7 @@ public:
 class Child final : public Parent
 {
 public:
-    void foo() /* const */;
+    void foo() /* const */ override;
 };
 
 class VisitorBase
