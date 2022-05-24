@@ -90,7 +90,7 @@ public:
     virtual Expression *syntaxCopy();
 
     // kludge for template.isExpression()
-    DYNCAST dyncast() const override { return DYNCAST_EXPRESSION; }
+    DYNCAST dyncast() const override final { return DYNCAST_EXPRESSION; }
 
     const char *toChars() const override;
     void error(const char *format, ...) const;
@@ -313,8 +313,8 @@ public:
     Identifier *ident;
 
     static IdentifierExp *create(const Loc &loc, Identifier *ident);
-    bool isLvalue() override;
-    Expression *toLvalue(Scope *sc, Expression *e) override;
+    bool isLvalue() override final;
+    Expression *toLvalue(Scope *sc, Expression *e) override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -343,8 +343,8 @@ public:
 
     ThisExp *syntaxCopy() override;
     Optional<bool> toBool() override;
-    bool isLvalue() override;
-    Expression *toLvalue(Scope *sc, Expression *e) override;
+    bool isLvalue() override final;
+    Expression *toLvalue(Scope *sc, Expression *e) override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -690,7 +690,7 @@ public:
 
     UnaExp *syntaxCopy() override;
     Expression *incompatibleTypes();
-    Expression *resolveLoc(const Loc &loc, Scope *sc) override;
+    Expression *resolveLoc(const Loc &loc, Scope *sc) override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -715,9 +715,9 @@ public:
 class BinAssignExp : public BinExp
 {
 public:
-    bool isLvalue() override;
-    Expression *toLvalue(Scope *sc, Expression *ex) override;
-    Expression *modifiableLvalue(Scope *sc, Expression *e) override;
+    bool isLvalue() override final;
+    Expression *toLvalue(Scope *sc, Expression *ex) override final;
+    Expression *modifiableLvalue(Scope *sc, Expression *e) override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -1056,8 +1056,8 @@ class AssignExp : public BinExp
 public:
     MemorySet memset;
 
-    bool isLvalue() override;
-    Expression *toLvalue(Scope *sc, Expression *ex) override;
+    bool isLvalue() override final;
+    Expression *toLvalue(Scope *sc, Expression *ex) override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };

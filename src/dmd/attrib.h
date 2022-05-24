@@ -33,11 +33,11 @@ public:
     const char *kind() const override;
     bool oneMember(Dsymbol **ps, Identifier *ident) override;
     void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion) override;
-    bool hasPointers() override;
-    bool hasStaticCtorOrDtor() override;
-    void checkCtorConstInit() override;
-    void addLocalClass(ClassDeclarations *) override;
-    AttribDeclaration *isAttribDeclaration() override { return this; }
+    bool hasPointers() override final;
+    bool hasStaticCtorOrDtor() override final;
+    void checkCtorConstInit() override final;
+    void addLocalClass(ClassDeclarations *) override final;
+    AttribDeclaration *isAttribDeclaration() override final { return this; }
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -49,7 +49,7 @@ public:
 
     StorageClassDeclaration *syntaxCopy(Dsymbol *s) override;
     Scope *newScope(Scope *sc) override;
-    bool oneMember(Dsymbol **ps, Identifier *ident) override;
+    bool oneMember(Dsymbol **ps, Identifier *ident) override final;
     void addMember(Scope *sc, ScopeDsymbol *sds) override;
     StorageClassDeclaration *isStorageClassDeclaration() override { return this; }
 
@@ -166,9 +166,9 @@ public:
     Dsymbols *elsedecl; // array of Dsymbol's for else block
 
     ConditionalDeclaration *syntaxCopy(Dsymbol *s) override;
-    bool oneMember(Dsymbol **ps, Identifier *ident) override;
+    bool oneMember(Dsymbol **ps, Identifier *ident) override final;
     Dsymbols *include(Scope *sc) override;
-    void addComment(const utf8_t *comment) override;
+    void addComment(const utf8_t *comment) override final;
     void setScope(Scope *sc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };

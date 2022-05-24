@@ -39,7 +39,7 @@ public:
 
     bool equals(const RootObject *o) const override;
 
-    Package *isPackage() override { return this; }
+    Package *isPackage() override final { return this; }
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 

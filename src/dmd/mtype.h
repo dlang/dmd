@@ -224,7 +224,7 @@ public:
     bool equals(const RootObject *o) const override;
     bool equivalent(Type *t);
     // kludge for template.isType()
-    DYNCAST dyncast() const override { return DYNCAST_TYPE; }
+    DYNCAST dyncast() const override final { return DYNCAST_TYPE; }
     size_t getUniqueID() const;
     Covariant covariant(Type *t, StorageClass *pstc = NULL);
     const char *toChars() const override;
@@ -368,20 +368,20 @@ class TypeNext : public Type
 public:
     Type *next;
 
-    void checkDeprecated(const Loc &loc, Scope *sc) override;
-    int hasWild() const override;
-    Type *nextOf() override;
-    Type *makeConst() override;
-    Type *makeImmutable() override;
-    Type *makeShared() override;
-    Type *makeSharedConst() override;
-    Type *makeWild() override;
-    Type *makeWildConst() override;
-    Type *makeSharedWild() override;
-    Type *makeSharedWildConst() override;
-    Type *makeMutable() override;
+    void checkDeprecated(const Loc &loc, Scope *sc) override final;
+    int hasWild() const override final;
+    Type *nextOf() override final;
+    Type *makeConst() override final;
+    Type *makeImmutable() override final;
+    Type *makeShared() override final;
+    Type *makeSharedConst() override final;
+    Type *makeWild() override final;
+    Type *makeWildConst() override final;
+    Type *makeSharedWild() override final;
+    Type *makeSharedWildConst() override final;
+    Type *makeMutable() override final;
     MATCH constConv(Type *to) override;
-    unsigned char deduceWild(Type *t, bool isRef) override;
+    unsigned char deduceWild(Type *t, bool isRef) override final;
     void transitive();
     void accept(Visitor *v) override { v->visit(this); }
 };
