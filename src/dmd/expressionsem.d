@@ -6543,8 +6543,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 RootObject o = (*tup.objects)[i];
                 Expression e;
                 Declaration var;
-                if (o.dyncast() == DYNCAST.expression)
+                switch (o.dyncast()) with (DYNCAST)
                 {
+                case expression:
                     e = cast(Expression)o;
                     if (auto se = e.isDsymbolExp())
                         var = se.s.isDeclaration();
@@ -6553,9 +6554,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             // Exempt functions for backwards compatibility reasons.
                             // See: https://issues.dlang.org/show_bug.cgi?id=20470#c1
                             var = ve.var;
-                }
-                else if (o.dyncast() == DYNCAST.dsymbol)
-                {
+                    break;
+                case dsymbol:
                     Dsymbol s = cast(Dsymbol) o;
                     Declaration d = s.isDeclaration();
                     if (!d || d.isFuncDeclaration())
@@ -6564,13 +6564,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         e = new DsymbolExp(exp.loc, s);
                     else
                         var = d;
-                }
-                else if (o.dyncast() == DYNCAST.type)
-                {
+                    break;
+                case type:
                     e = new TypeExp(exp.loc, cast(Type)o);
-                }
-                else
-                {
+                    break;
+                default:
                     exp.error("`%s` is not an expression", o.toChars());
                     return setError();
                 }

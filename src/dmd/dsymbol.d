@@ -1978,8 +1978,9 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         }
 
         const DYNCAST kind = arrayContent.dyncast();
-        if (kind == DYNCAST.dsymbol)
+        switch (kind) with (DYNCAST)
         {
+        case dsymbol:
             TupleDeclaration td = cast(TupleDeclaration) arrayContent;
             /* $ gives the number of elements in the tuple
              */
@@ -1989,10 +1990,10 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             v.storage_class |= STC.temp | STC.static_ | STC.const_;
             v.dsymbolSemantic(sc);
             return v;
-        }
-        if (kind == DYNCAST.type)
-        {
+        case type:
             return dollarFromTypeTuple(loc, cast(TypeTuple) arrayContent, sc);
+        default:
+            break;
         }
         Expression exp = cast(Expression) arrayContent;
         if (auto ie = exp.isIndexExp())

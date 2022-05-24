@@ -2214,13 +2214,12 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
         else
         {
             RootObject o = (*tup.objects)[index];
-            if (o.dyncast() == DYNCAST.dsymbol)
+            switch (o.dyncast()) with (DYNCAST)
             {
+            case dsymbol:
                 o1.s = cast(Dsymbol)o;
                 return;
-            }
-            else if (o.dyncast() == DYNCAST.expression)
-            {
+            case expression:
                 Expression e = cast(Expression)o;
                 if (auto ve = e.isVarExp())
                 {
@@ -2232,6 +2231,9 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
                     o1.s = fe.fd;
                     return;
                 }
+                break;
+            default:
+                break;
             }
             asmerr("invalid asm operand `%s`", o1.s.toChars());
         }
