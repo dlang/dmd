@@ -2083,7 +2083,7 @@ void disassemble(uint c)
                     }
                     else if (code[c+2] == 0xF9)
                     {
-                        //0F 01 F9 	RDTSCP
+                        //0F 01 F9 RDTSCP
                         p1 = "rdtscp";
                         goto Ldone;
                     }
@@ -3621,7 +3621,7 @@ unittest
         "BF 00 00 00 00      mov  EDI,0",
         "41 0F C7 09         cmpxchg8b [R9]",
         "49 0F C7 09         cmpxchg16b [R9]",
-        "0F 01 F9 	         rdtscp"
+        "0F 01 F9            rdtscp"
     ];
 
     char[BUFMAX] buf;
