@@ -3237,7 +3237,7 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         uint size;
         //printf("TypeBasic::size()\n");
@@ -3325,32 +3325,32 @@ extern (C++) final class TypeBasic : Type
         return (flags & TFlags.integral) != 0;
     }
 
-    override bool isfloating() const
+    override bool isfloating()
     {
         return (flags & TFlags.floating) != 0;
     }
 
-    override bool isreal() const
+    override bool isreal()
     {
         return (flags & TFlags.real_) != 0;
     }
 
-    override bool isimaginary() const
+    override bool isimaginary()
     {
         return (flags & TFlags.imaginary) != 0;
     }
 
-    override bool iscomplex() const
+    override bool iscomplex()
     {
         return (flags & TFlags.complex) != 0;
     }
 
-    override bool isscalar() const
+    override bool isscalar()
     {
         return (flags & (TFlags.integral | TFlags.floating)) != 0;
     }
 
-    override bool isunsigned() const
+    override bool isunsigned()
     {
         return (flags & TFlags.unsigned) != 0;
     }
@@ -3447,7 +3447,7 @@ extern (C++) final class TypeBasic : Type
         return MATCH.convert;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
         switch (ty)
         {
@@ -3543,7 +3543,7 @@ extern (C++) final class TypeVector : Type
         return basetype.nextOf().isunsigned();
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return false;
     }
@@ -3860,13 +3860,13 @@ extern (C++) final class TypeDArray : TypeArray
         return result;
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         //printf("TypeDArray::size()\n");
         return target.ptrsize * 2;
     }
 
-    override uint alignsize() const
+    override uint alignsize()
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
@@ -3879,12 +3879,12 @@ extern (C++) final class TypeDArray : TypeArray
         return nty.isSomeChar;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
@@ -3918,7 +3918,7 @@ extern (C++) final class TypeDArray : TypeArray
         return Type.implicitConvTo(to);
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -3964,22 +3964,22 @@ extern (C++) final class TypeAArray : TypeArray
         return result;
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         return target.ptrsize;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -4056,7 +4056,7 @@ extern (C++) final class TypePointer : TypeNext
         return result;
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         return target.ptrsize;
     }
@@ -4112,17 +4112,17 @@ extern (C++) final class TypePointer : TypeNext
         return TypeNext.constConv(to);
     }
 
-    override bool isscalar() const
+    override bool isscalar()
     {
         return true;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -4159,12 +4159,12 @@ extern (C++) final class TypeReference : TypeNext
         return result;
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         return target.ptrsize;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
         return true;
     }
@@ -5156,12 +5156,12 @@ extern (C++) final class TypeDelegate : TypeNext
         return t;
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         return target.ptrsize * 2;
     }
 
-    override uint alignsize() const
+    override uint alignsize()
     {
         return target.ptrsize;
     }
@@ -5189,17 +5189,17 @@ extern (C++) final class TypeDelegate : TypeNext
         return MATCH.nomatch;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -5748,12 +5748,12 @@ extern (C++) final class TypeStruct : Type
         return assignable;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return false;
     }
 
-    override bool needsDestruction() const
+    override bool needsDestruction()
     {
         return sym.dtor !is null;
     }
@@ -5985,6 +5985,7 @@ extern (C++) final class TypeEnum : Type
     {
         return sym.getMemtype(loc);
     }
+
     override uint alignsize()
     {
         Type t = memType();
@@ -6143,7 +6144,7 @@ extern (C++) final class TypeClass : Type
         return "class";
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         return target.ptrsize;
     }
@@ -6268,22 +6269,22 @@ extern (C++) final class TypeClass : Type
         return this;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
         return true;
     }
 
-    override bool isscope() const
+    override bool isscope()
     {
         return sym.stack;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -6538,12 +6539,12 @@ extern (C++) final class TypeNull : Type
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         return tvoidptr.size(loc);
     }
@@ -6597,12 +6598,12 @@ extern (C++) final class TypeNoreturn : Type
         return this.implicitConvTo(to);
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;  // bottom type can be implicitly converted to any other type
     }
 
-    override uinteger_t size(const ref Loc loc) const
+    override uinteger_t size(const ref Loc loc)
     {
         return 0;
     }
