@@ -819,8 +819,13 @@ public:
         }
         if (adparent)
         {
-            if (global.params.cplusplus >= CppStdRevision.cpp11 && fd.isOverride())
-                buf.writestring(" override");
+            if (global.params.cplusplus >= CppStdRevision.cpp11)
+            {
+                if (fd.vtblIndex != -1 && !(adparent.storage_class & AST.STC.final_) && fd.isFinalFunc())
+                    buf.writestring(" final");
+                if (fd.isOverride())
+                    buf.writestring(" override");
+            }
             if (fd.isAbstract())
                 buf.writestring(" = 0");
             else if (global.params.cplusplus >= CppStdRevision.cpp11 && fd.isDisabled())
