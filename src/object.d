@@ -1481,7 +1481,7 @@ class TypeInfo_Delegate : TypeInfo
 
     override size_t getHash(scope const void* p) @trusted const
     {
-        return hashOf(*cast(void delegate()*)p);
+        return hashOf(*cast(void delegate() const *)p);
     }
 
     override bool equals(in void* p1, in void* p2) const
