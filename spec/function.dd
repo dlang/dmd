@@ -474,7 +474,7 @@ $(H3 $(LNAME2 pure-special-cases, Special Cases))
         }
         ---
 
-        $(P $(RELATIVE_LINK2 variadicnested, Nested functions) inside a pure function are implicitly marked as pure.)
+        $(P $(RELATIVE_LINK2 nested, Nested functions) inside a pure function are implicitly marked as pure.)
 
         ---
         pure int foo(int x, immutable int y)
@@ -2763,6 +2763,8 @@ struct Foo
 
         $(P Nested functions always have the D function linkage type.
         )
+
+$(H3 $(LNAME2 nested-declaration-order, Declaration Order))
 
         $(P Unlike module level declarations, declarations within function
         scope are processed in order. This means that two nested functions

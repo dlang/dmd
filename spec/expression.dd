@@ -1874,7 +1874,8 @@ $(GNAME FunctionLiteralBody2):
         $(GLINK ParameterWithAttributes) or $(GLINK ParameterWithMemberAttributes)
         can be used to specify the parameters for the function. If these are
         omitted, the function defaults to the empty parameter list $(D ( )).
-        The type of a function literal is a delegate or a pointer to function.
+        The type of a function literal is a
+        $(DDSUBLINK spec/function, closures, delegate or a pointer to function).
     )
 
     $(P For example:)
@@ -1897,7 +1898,7 @@ $(GNAME FunctionLiteralBody2):
 
         void test()
         {
-            fp = function int(char c) { return 6;} ;
+            fp = function int(char c) { return 6; };
         }
         -------------
 
@@ -1931,15 +1932,27 @@ $(GNAME FunctionLiteralBody2):
 
     $(P The use of `ref` declares that the return value is returned by reference:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         void main()
         {
             int x;
-            auto dg = delegate ref int() { return x; }
+            auto dg = delegate ref int() { return x; };
             x = 3;
-            assert(fp() == 3);
+            assert(dg() == 3);
         }
         ---
+        )
+
+    $(NOTE When comparing function literals with $(DDSUBLINK spec/function, nested, nested functions),
+        the $(D function) form is analogous to static
+        or non-nested functions, and the $(D delegate) form is
+        analogous to non-static nested functions. I.e.
+        a delegate literal can access non-static local variables in an enclosing
+        function, a function literal cannot.
+    )
+
+$(H4 $(LNAME2 lambda-type-inference, Type Inference))
 
     $(P If $(D function) or $(D delegate) is omitted,
         it is inferred to be `delegate` if accessing
@@ -1963,7 +1976,7 @@ $(GNAME FunctionLiteralBody2):
         -------------
 
     $(P If the type of a function literal can be uniquely determined from its context,
-        the parameter type inference is possible.)
+        parameter type inference is possible.)
 
         -------------
         void foo(int function(int) fp);
@@ -1979,7 +1992,7 @@ $(GNAME FunctionLiteralBody2):
         -------------
 
         ---
-        auto fp1 = function (i) { return 1; } // error, cannot infer type of `i`
+        auto fp1 = function (i) { return 1; }; // error, cannot infer type of `i`
         ---
 
     $(P If the function literal is assigned to an alias, the inference
@@ -1992,49 +2005,50 @@ $(GNAME FunctionLiteralBody2):
         double d = fp3(10.3); // `i` is inferred as `double` here
         ---
 
+$(H4 $(LNAME2 lambda-short-syntax, Short Syntax))
+
     $(P Anonymous delegates can behave like arbitrary statement literals.
         For example, here an arbitrary statement is executed by a loop:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        double test()
+        void loop(int n, void delegate() statement)
         {
-            double d = 7.6;
-            float f = 2.3;
-
-            void loop(int k, int j, void delegate() statement)
+            foreach (_; 0 .. n)
             {
-                foreach (i; k .. j)
-                {
-                    statement();
-                }
+                statement();
             }
-
-            loop(5, 100, { d += 1; });
-            loop(3, 10,  { f += 3; });
-
-            return d + f;
         }
-        -------------
-
-    $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
-
-        ---
-        import std.stdio;
 
         void main()
         {
+            int n = 0;
+
+            loop(5, { n += 1; });
+            assert(n == 5);
+        }
+        -------------
+        )
+
+    $(P The syntax $(D => AssignExpression) is equivalent to $(D { return AssignExpression; }).)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        void main()
+        {
             auto i = 3;
-            auto twice  = function (int x) => x * 2;
-            auto square = delegate (int x) => x * x;
+            auto twice = function (int x) => x * 2;
+            assert(twice(i) == 6);
+
+            auto square = delegate () => i * i;
+            assert(square() == 9);
 
             auto n = 5;
             auto mul_n = (int x) => x * n;
-
-            writeln(twice(i));   // prints 6
-            writeln(square(i));  // prints 9
-            writeln(mul_n(i));   // prints 15
+            assert(mul_n(i) == 15);
         }
         ---
+        )
 
     $(P The syntax $(D Identifier => AssignExpression) is equivalent to $(D (Identifier) { return AssignExpression; }).)
 
@@ -2064,13 +2078,6 @@ $(GNAME FunctionLiteralBody2):
         if the semicolons were accidentally omitted.
         )
 
-    $(NOTE When comparing function literals with $(DDSUBLINK spec/function, nested, nested functions),
-        the $(D function) form is analogous to static
-        or non-nested functions, and the $(D delegate) form is
-        analogous to non-static nested functions. I.e.
-        a delegate literal can access non-static local variables in an enclosing
-        function, a function literal cannot.
-    )
 
 $(H3 $(LNAME2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types))
 
