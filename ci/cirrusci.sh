@@ -29,7 +29,6 @@ if [ "$OS_NAME" == "linux" ]; then
   apt-get install -yq $packages
 elif [ "$OS_NAME" == "darwin" ]; then
   # required for dlang install.sh
-  brew update-reset
   brew install gnupg libarchive xz llvm
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake devel/llvm12"
