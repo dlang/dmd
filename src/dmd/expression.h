@@ -206,6 +206,8 @@ public:
     ShrAssignExp* isShrAssignExp();
     UshrAssignExp* isUshrAssignExp();
     CatAssignExp* isCatAssignExp();
+    CatElemAssignExp* isCatElemAssignExp();
+    CatDcharAssignExp* isCatDcharAssignExp();
     AddExp* isAddExp();
     MinExp* isMinExp();
     CatExp* isCatExp();
@@ -1148,6 +1150,18 @@ class CatAssignExp : public BinAssignExp
 {
 public:
     void accept(Visitor *v) { v->visit(this); }
+};
+
+class CatElemAssignExp : public CatAssignExp
+{
+public:
+    void accept(Visitor *v) override { v->visit(this); }
+};
+
+class CatDcharAssignExp : public CatAssignExp
+{
+public:
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class AddExp : public BinExp
