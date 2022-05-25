@@ -109,11 +109,11 @@ public:
     Loc loc;
     STMT stmt;
 
-    DYNCAST dyncast() const { return DYNCAST_STATEMENT; }
+    DYNCAST dyncast() const override { return DYNCAST_STATEMENT; }
 
     virtual Statement *syntaxCopy();
 
-    const char *toChars() const;
+    const char *toChars() const override;
 
     void error(const char *format, ...);
     void warning(const char *format, ...);
@@ -161,7 +161,7 @@ public:
     ForeachRangeStatement *isForeachRangeStatement() { return stmt == STMTforeachRange ? (ForeachRangeStatement*)this : NULL; }
     CompoundDeclarationStatement *isCompoundDeclarationStatement() { return stmt == STMTcompoundDeclaration ? (CompoundDeclarationStatement*)this : NULL; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 /** Any Statement that fails semantic() or has a component that is an ErrorExp or
@@ -170,9 +170,9 @@ public:
 class ErrorStatement : public Statement
 {
 public:
-    ErrorStatement *syntaxCopy();
+    ErrorStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class PeelStatement : public Statement
@@ -180,7 +180,7 @@ class PeelStatement : public Statement
 public:
     Statement *s;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ExpStatement : public Statement
@@ -189,9 +189,9 @@ public:
     Expression *exp;
 
     static ExpStatement *create(const Loc &loc, Expression *exp);
-    ExpStatement *syntaxCopy();
+    ExpStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class DtorExpStatement : public ExpStatement
@@ -202,8 +202,8 @@ public:
 
     VarDeclaration *var;
 
-    DtorExpStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    DtorExpStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class CompileStatement : public Statement
@@ -211,8 +211,8 @@ class CompileStatement : public Statement
 public:
     Expressions *exps;
 
-    CompileStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    CompileStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class CompoundStatement : public Statement
@@ -221,18 +221,18 @@ public:
     Statements *statements;
 
     static CompoundStatement *create(const Loc &loc, Statement *s1, Statement *s2);
-    CompoundStatement *syntaxCopy();
-    ReturnStatement *endsWithReturnStatement();
-    Statement *last();
+    CompoundStatement *syntaxCopy() override;
+    ReturnStatement *endsWithReturnStatement() override;
+    Statement *last() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class CompoundDeclarationStatement : public CompoundStatement
 {
 public:
-    CompoundDeclarationStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    CompoundDeclarationStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 /* The purpose of this is so that continue will go to the next
@@ -243,11 +243,11 @@ class UnrolledLoopStatement : public Statement
 public:
     Statements *statements;
 
-    UnrolledLoopStatement *syntaxCopy();
-    bool hasBreak() const;
-    bool hasContinue() const;
+    UnrolledLoopStatement *syntaxCopy() override;
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ScopeStatement : public Statement
@@ -256,12 +256,12 @@ public:
     Statement *statement;
     Loc endloc;                 // location of closing curly bracket
 
-    ScopeStatement *syntaxCopy();
-    ReturnStatement *endsWithReturnStatement();
-    bool hasBreak() const;
-    bool hasContinue() const;
+    ScopeStatement *syntaxCopy() override;
+    ReturnStatement *endsWithReturnStatement() override;
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ForwardingStatement : public Statement
@@ -270,8 +270,8 @@ public:
     ForwardingScopeDsymbol *sym;
     Statement *statement;
 
-    ForwardingStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    ForwardingStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class WhileStatement : public Statement
@@ -282,11 +282,11 @@ public:
     Statement *_body;
     Loc endloc;                 // location of closing curly bracket
 
-    WhileStatement *syntaxCopy();
-    bool hasBreak() const;
-    bool hasContinue() const;
+    WhileStatement *syntaxCopy() override;
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class DoStatement : public Statement
@@ -296,11 +296,11 @@ public:
     Expression *condition;
     Loc endloc;                 // location of ';' after while
 
-    DoStatement *syntaxCopy();
-    bool hasBreak() const;
-    bool hasContinue() const;
+    DoStatement *syntaxCopy() override;
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ForStatement : public Statement
@@ -317,12 +317,12 @@ public:
     // treat that label as referring to this loop.
     Statement *relatedLabeled;
 
-    ForStatement *syntaxCopy();
-    Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
-    bool hasBreak() const;
-    bool hasContinue() const;
+    ForStatement *syntaxCopy() override;
+    Statement *getRelatedLabeled() override { return relatedLabeled ? relatedLabeled : this; }
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ForeachStatement : public Statement
@@ -342,11 +342,11 @@ public:
     Statements *cases;          // put breaks, continues, gotos and returns here
     ScopeStatements *gotos;     // forward referenced goto's go here
 
-    ForeachStatement *syntaxCopy();
-    bool hasBreak() const;
-    bool hasContinue() const;
+    ForeachStatement *syntaxCopy() override;
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ForeachRangeStatement : public Statement
@@ -361,11 +361,11 @@ public:
 
     VarDeclaration *key;
 
-    ForeachRangeStatement *syntaxCopy();
-    bool hasBreak() const;
-    bool hasContinue() const;
+    ForeachRangeStatement *syntaxCopy() override;
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class IfStatement : public Statement
@@ -378,9 +378,9 @@ public:
     VarDeclaration *match;      // for MatchExpression results
     Loc endloc;                 // location of closing curly bracket
 
-    IfStatement *syntaxCopy();
+    IfStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ConditionalStatement : public Statement
@@ -390,9 +390,9 @@ public:
     Statement *ifbody;
     Statement *elsebody;
 
-    ConditionalStatement *syntaxCopy();
+    ConditionalStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class StaticForeachStatement : public Statement
@@ -400,9 +400,9 @@ class StaticForeachStatement : public Statement
 public:
     StaticForeach *sfe;
 
-    StaticForeachStatement *syntaxCopy();
+    StaticForeachStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class PragmaStatement : public Statement
@@ -412,9 +412,9 @@ public:
     Expressions *args;          // array of Expression's
     Statement *_body;
 
-    PragmaStatement *syntaxCopy();
+    PragmaStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class StaticAssertStatement : public Statement
@@ -422,9 +422,9 @@ class StaticAssertStatement : public Statement
 public:
     StaticAssert *sa;
 
-    StaticAssertStatement *syntaxCopy();
+    StaticAssertStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class SwitchStatement : public Statement
@@ -443,10 +443,10 @@ public:
     int hasVars;                // !=0 if has variable case values
     VarDeclaration *lastVar;
 
-    SwitchStatement *syntaxCopy();
-    bool hasBreak() const;
+    SwitchStatement *syntaxCopy() override;
+    bool hasBreak() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class CaseStatement : public Statement
@@ -459,9 +459,9 @@ public:
     VarDeclaration *lastVar;
     void* extra;            // for use by Statement_toIR()
 
-    CaseStatement *syntaxCopy();
+    CaseStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 
@@ -472,8 +472,8 @@ public:
     Expression *last;
     Statement *statement;
 
-    CaseRangeStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    CaseRangeStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 
@@ -483,9 +483,9 @@ public:
     Statement *statement;
     VarDeclaration *lastVar;
 
-    DefaultStatement *syntaxCopy();
+    DefaultStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class GotoDefaultStatement : public Statement
@@ -493,9 +493,9 @@ class GotoDefaultStatement : public Statement
 public:
     SwitchStatement *sw;
 
-    GotoDefaultStatement *syntaxCopy();
+    GotoDefaultStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class GotoCaseStatement : public Statement
@@ -504,9 +504,9 @@ public:
     Expression *exp;            // NULL, or which case to goto
     CaseStatement *cs;          // case statement it resolves to
 
-    GotoCaseStatement *syntaxCopy();
+    GotoCaseStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class SwitchErrorStatement : public Statement
@@ -514,7 +514,7 @@ class SwitchErrorStatement : public Statement
 public:
     Expression *exp;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ReturnStatement : public Statement
@@ -523,10 +523,10 @@ public:
     Expression *exp;
     size_t caseDim;
 
-    ReturnStatement *syntaxCopy();
+    ReturnStatement *syntaxCopy() override;
 
-    ReturnStatement *endsWithReturnStatement() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    ReturnStatement *endsWithReturnStatement() override { return this; }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class BreakStatement : public Statement
@@ -534,9 +534,9 @@ class BreakStatement : public Statement
 public:
     Identifier *ident;
 
-    BreakStatement *syntaxCopy();
+    BreakStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ContinueStatement : public Statement
@@ -544,9 +544,9 @@ class ContinueStatement : public Statement
 public:
     Identifier *ident;
 
-    ContinueStatement *syntaxCopy();
+    ContinueStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class SynchronizedStatement : public Statement
@@ -555,11 +555,11 @@ public:
     Expression *exp;
     Statement *_body;
 
-    SynchronizedStatement *syntaxCopy();
-    bool hasBreak() const;
-    bool hasContinue() const;
+    SynchronizedStatement *syntaxCopy() override;
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class WithStatement : public Statement
@@ -570,9 +570,9 @@ public:
     VarDeclaration *wthis;
     Loc endloc;
 
-    WithStatement *syntaxCopy();
+    WithStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TryCatchStatement : public Statement
@@ -583,10 +583,10 @@ public:
 
     Statement *tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
 
-    TryCatchStatement *syntaxCopy();
-    bool hasBreak() const;
+    TryCatchStatement *syntaxCopy() override;
+    bool hasBreak() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class Catch : public RootObject
@@ -618,11 +618,11 @@ public:
     bool bodyFallsThru;   // true if _body falls through to finally
 
     static TryFinallyStatement *create(const Loc &loc, Statement *body, Statement *finalbody);
-    TryFinallyStatement *syntaxCopy();
-    bool hasBreak() const;
-    bool hasContinue() const;
+    TryFinallyStatement *syntaxCopy() override;
+    bool hasBreak() const override;
+    bool hasContinue() const override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ScopeGuardStatement : public Statement
@@ -631,9 +631,9 @@ public:
     TOK tok;
     Statement *statement;
 
-    ScopeGuardStatement *syntaxCopy();
+    ScopeGuardStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ThrowStatement : public Statement
@@ -644,9 +644,9 @@ public:
     // wasn't present in source code
     bool internalThrow;
 
-    ThrowStatement *syntaxCopy();
+    ThrowStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class DebugStatement : public Statement
@@ -654,8 +654,8 @@ class DebugStatement : public Statement
 public:
     Statement *statement;
 
-    DebugStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    DebugStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class GotoStatement : public Statement
@@ -668,9 +668,9 @@ public:
     ScopeGuardStatement *os;
     VarDeclaration *lastVar;
 
-    GotoStatement *syntaxCopy();
+    GotoStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class LabelStatement : public Statement
@@ -686,9 +686,9 @@ public:
     void* extra;                // used by Statement_toIR()
     bool breaks;                // someone did a 'break ident'
 
-    LabelStatement *syntaxCopy();
+    LabelStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class LabelDsymbol : public Dsymbol
@@ -700,8 +700,8 @@ public:
     bool iasm;              // set if used by inline assembler
 
     static LabelDsymbol *create(Identifier *ident);
-    LabelDsymbol *isLabel();
-    void accept(Visitor *v) { v->visit(this); }
+    LabelDsymbol *isLabel() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 Statement* asmSemantic(AsmStatement *s, Scope *sc);
@@ -711,8 +711,8 @@ class AsmStatement : public Statement
 public:
     Token *tokens;
 
-    AsmStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    AsmStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class InlineAsmStatement : public AsmStatement
@@ -724,8 +724,8 @@ public:
     bool refparam;              // true if function parameter is referenced
     bool naked;                 // true if function is to be naked
 
-    InlineAsmStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    InlineAsmStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 // A GCC asm statement - assembler instructions with D expression operands
@@ -742,8 +742,8 @@ public:
     Identifiers *labels;        // list of goto labels
     GotoStatements *gotos;      // of the goto labels, the equivalent statements they represent
 
-    GccAsmStatement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    GccAsmStatement *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 // a complete asm {} block
@@ -752,9 +752,9 @@ class CompoundAsmStatement : public CompoundStatement
 public:
     StorageClass stc; // postfix attributes like nothrow/pure/@trusted
 
-    CompoundAsmStatement *syntaxCopy();
+    CompoundAsmStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ImportStatement : public Statement
@@ -762,7 +762,7 @@ class ImportStatement : public Statement
 public:
     Dsymbols *imports;          // Array of Import's
 
-    ImportStatement *syntaxCopy();
+    ImportStatement *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };

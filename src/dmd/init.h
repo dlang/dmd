@@ -33,9 +33,9 @@ public:
     Loc loc;
     unsigned char kind;
 
-    DYNCAST dyncast() const { return DYNCAST_INITIALIZER; }
+    DYNCAST dyncast() const override { return DYNCAST_INITIALIZER; }
 
-    const char *toChars() const;
+    const char *toChars() const override;
 
     ErrorInitializer   *isErrorInitializer();
     VoidInitializer    *isVoidInitializer();
@@ -44,7 +44,7 @@ public:
     ExpInitializer     *isExpInitializer();
     CInitializer       *isCInitializer();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class VoidInitializer : public Initializer
@@ -52,13 +52,13 @@ class VoidInitializer : public Initializer
 public:
     Type *type;         // type that this will initialize to
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ErrorInitializer : public Initializer
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class StructInitializer : public Initializer
@@ -67,7 +67,7 @@ public:
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ArrayInitializer : public Initializer
@@ -82,7 +82,7 @@ public:
     bool isAssociativeArray() const;
     Expression *toAssocArrayLiteral();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class ExpInitializer : public Initializer
@@ -91,7 +91,7 @@ public:
     bool expandTuples;
     Expression *exp;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 struct Designator
@@ -113,7 +113,7 @@ public:
     Type *type;         // type that array will be used to initialize
     bool sem;           // true if semantic() is run
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 Expression *initializerToExpression(Initializer *init, Type *t = NULL, const bool isCfile = false);

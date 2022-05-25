@@ -221,13 +221,13 @@ public:
     virtual const char *kind();
     Type *copy() const;
     virtual Type *syntaxCopy();
-    bool equals(const RootObject *o) const;
+    bool equals(const RootObject *o) const override;
     bool equivalent(Type *t);
     // kludge for template.isType()
-    DYNCAST dyncast() const { return DYNCAST_TYPE; }
+    DYNCAST dyncast() const override { return DYNCAST_TYPE; }
     size_t getUniqueID() const;
     Covariant covariant(Type *t, StorageClass *pstc = NULL);
-    const char *toChars() const;
+    const char *toChars() const override;
     char *toPrettyChars(bool QualifyTypes = false);
     static void _init();
 
@@ -349,18 +349,18 @@ public:
     TypeNoreturn *isTypeNoreturn();
     TypeTag *isTypeTag();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeError : public Type
 {
 public:
-    const char *kind();
-    TypeError *syntaxCopy();
+    const char *kind() override;
+    TypeError *syntaxCopy() override;
 
-    uinteger_t size(const Loc &loc);
-    Expression *defaultInitLiteral(const Loc &loc);
-    void accept(Visitor *v) { v->visit(this); }
+    uinteger_t size(const Loc &loc) override;
+    Expression *defaultInitLiteral(const Loc &loc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeNext : public Type
@@ -368,22 +368,22 @@ class TypeNext : public Type
 public:
     Type *next;
 
-    void checkDeprecated(const Loc &loc, Scope *sc);
-    int hasWild() const;
-    Type *nextOf();
-    Type *makeConst();
-    Type *makeImmutable();
-    Type *makeShared();
-    Type *makeSharedConst();
-    Type *makeWild();
-    Type *makeWildConst();
-    Type *makeSharedWild();
-    Type *makeSharedWildConst();
-    Type *makeMutable();
-    MATCH constConv(Type *to);
-    unsigned char deduceWild(Type *t, bool isRef);
+    void checkDeprecated(const Loc &loc, Scope *sc) override;
+    int hasWild() const override;
+    Type *nextOf() override;
+    Type *makeConst() override;
+    Type *makeImmutable() override;
+    Type *makeShared() override;
+    Type *makeSharedConst() override;
+    Type *makeWild() override;
+    Type *makeWildConst() override;
+    Type *makeSharedWild() override;
+    Type *makeSharedWildConst() override;
+    Type *makeMutable() override;
+    MATCH constConv(Type *to) override;
+    unsigned char deduceWild(Type *t, bool isRef) override;
     void transitive();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeBasic : public Type
@@ -392,23 +392,23 @@ public:
     const char *dstring;
     unsigned flags;
 
-    const char *kind();
-    TypeBasic *syntaxCopy();
-    uinteger_t size(const Loc &loc) /*const*/;
-    unsigned alignsize();
-    bool isintegral();
-    bool isfloating() /*const*/;
-    bool isreal() /*const*/;
-    bool isimaginary() /*const*/;
-    bool iscomplex() /*const*/;
-    bool isscalar() /*const*/;
-    bool isunsigned() /*const*/;
-    MATCH implicitConvTo(Type *to);
-    bool isZeroInit(const Loc &loc) /*const*/;
+    const char *kind() override;
+    TypeBasic *syntaxCopy() override;
+    uinteger_t size(const Loc &loc) override;
+    unsigned alignsize() override;
+    bool isintegral() override;
+    bool isfloating() override;
+    bool isreal() override;
+    bool isimaginary() override;
+    bool iscomplex() override;
+    bool isscalar() override;
+    bool isunsigned() override;
+    MATCH implicitConvTo(Type *to) override;
+    bool isZeroInit(const Loc &loc) override;
 
     // For eliminating dynamic_cast
-    TypeBasic *isTypeBasic();
-    void accept(Visitor *v) { v->visit(this); }
+    TypeBasic *isTypeBasic() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeVector : public Type
@@ -417,27 +417,27 @@ public:
     Type *basetype;
 
     static TypeVector *create(Type *basetype);
-    const char *kind();
-    TypeVector *syntaxCopy();
-    uinteger_t size(const Loc &loc);
-    unsigned alignsize();
-    bool isintegral();
-    bool isfloating();
-    bool isscalar();
-    bool isunsigned();
-    bool isBoolean() /*const*/;
-    MATCH implicitConvTo(Type *to);
-    Expression *defaultInitLiteral(const Loc &loc);
+    const char *kind() override;
+    TypeVector *syntaxCopy() override;
+    uinteger_t size(const Loc &loc) override;
+    unsigned alignsize() override;
+    bool isintegral() override;
+    bool isfloating() override;
+    bool isscalar() override;
+    bool isunsigned() override;
+    bool isBoolean() override;
+    MATCH implicitConvTo(Type *to) override;
+    Expression *defaultInitLiteral(const Loc &loc) override;
     TypeBasic *elementType();
-    bool isZeroInit(const Loc &loc);
+    bool isZeroInit(const Loc &loc) override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeArray : public TypeNext
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 // Static array, one with a fixed dimension
@@ -446,41 +446,41 @@ class TypeSArray : public TypeArray
 public:
     Expression *dim;
 
-    const char *kind();
-    TypeSArray *syntaxCopy();
+    const char *kind() override;
+    TypeSArray *syntaxCopy() override;
     bool isIncomplete();
-    uinteger_t size(const Loc &loc);
-    unsigned alignsize();
-    bool isString();
-    bool isZeroInit(const Loc &loc);
-    structalign_t alignment();
-    MATCH constConv(Type *to);
-    MATCH implicitConvTo(Type *to);
-    Expression *defaultInitLiteral(const Loc &loc);
-    bool hasPointers();
-    bool hasInvariant();
-    bool needsDestruction();
-    bool needsCopyOrPostblit();
-    bool needsNested();
+    uinteger_t size(const Loc &loc) override;
+    unsigned alignsize() override;
+    bool isString() override;
+    bool isZeroInit(const Loc &loc) override;
+    structalign_t alignment() override;
+    MATCH constConv(Type *to) override;
+    MATCH implicitConvTo(Type *to) override;
+    Expression *defaultInitLiteral(const Loc &loc) override;
+    bool hasPointers() override;
+    bool hasInvariant() override;
+    bool needsDestruction() override;
+    bool needsCopyOrPostblit() override;
+    bool needsNested() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 // Dynamic array, no dimension
 class TypeDArray : public TypeArray
 {
 public:
-    const char *kind();
-    TypeDArray *syntaxCopy();
-    uinteger_t size(const Loc &loc) /*const*/;
-    unsigned alignsize() /*const*/;
-    bool isString();
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool isBoolean() /*const*/;
-    MATCH implicitConvTo(Type *to);
-    bool hasPointers() /*const*/;
+    const char *kind() override;
+    TypeDArray *syntaxCopy() override;
+    uinteger_t size(const Loc &loc) override;
+    unsigned alignsize() override;
+    bool isString() override;
+    bool isZeroInit(const Loc &loc) override;
+    bool isBoolean() override;
+    MATCH implicitConvTo(Type *to) override;
+    bool hasPointers() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeAArray : public TypeArray
@@ -490,42 +490,42 @@ public:
     Loc loc;
 
     static TypeAArray *create(Type *t, Type *index);
-    const char *kind();
-    TypeAArray *syntaxCopy();
-    uinteger_t size(const Loc &loc);
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool isBoolean() /*const*/;
-    bool hasPointers() /*const*/;
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
+    const char *kind() override;
+    TypeAArray *syntaxCopy() override;
+    uinteger_t size(const Loc &loc) override;
+    bool isZeroInit(const Loc &loc) override;
+    bool isBoolean() override;
+    bool hasPointers() override;
+    MATCH implicitConvTo(Type *to) override;
+    MATCH constConv(Type *to) override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypePointer : public TypeNext
 {
 public:
     static TypePointer *create(Type *t);
-    const char *kind();
-    TypePointer *syntaxCopy();
-    uinteger_t size(const Loc &loc) /*const*/;
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    bool isscalar() /*const*/;
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool hasPointers() /*const*/;
+    const char *kind() override;
+    TypePointer *syntaxCopy() override;
+    uinteger_t size(const Loc &loc) override;
+    MATCH implicitConvTo(Type *to) override;
+    MATCH constConv(Type *to) override;
+    bool isscalar() override;
+    bool isZeroInit(const Loc &loc) override;
+    bool hasPointers() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeReference : public TypeNext
 {
 public:
-    const char *kind();
-    TypeReference *syntaxCopy();
-    uinteger_t size(const Loc &loc) /*const*/;
-    bool isZeroInit(const Loc &loc) /*const*/;
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeReference *syntaxCopy() override;
+    uinteger_t size(const Loc &loc) override;
+    bool isZeroInit(const Loc &loc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 enum RET
@@ -570,12 +570,12 @@ public:
     Parameter *syntaxCopy();
     Type *isLazyArray();
     // kludge for template.isType()
-    DYNCAST dyncast() const { return DYNCAST_PARAMETER; }
-    void accept(Visitor *v) { v->visit(this); }
+    DYNCAST dyncast() const override { return DYNCAST_PARAMETER; }
+    void accept(Visitor *v) override { v->visit(this); }
 
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth);
-    const char *toChars() const;
+    const char *toChars() const override;
     bool isCovariant(bool returnByRef, const Parameter *p, bool previewIn) const;
 };
 
@@ -604,16 +604,16 @@ public:
     Expressions *fargs;          // function arguments
 
     static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
-    const char *kind();
-    TypeFunction *syntaxCopy();
+    const char *kind() override;
+    TypeFunction *syntaxCopy() override;
     void purityLevel();
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
     StorageClass parameterStorageClass(Parameter *p);
-    Type *addStorageClass(StorageClass stc);
+    Type *addStorageClass(StorageClass stc) override;
 
-    Type *substWildTo(unsigned mod);
-    MATCH constConv(Type *to);
+    Type *substWildTo(unsigned mod) override;
+    MATCH constConv(Type *to) override;
 
     bool isnothrow() const;
     void isnothrow(bool v);
@@ -643,7 +643,7 @@ public:
     void isInOutQual(bool v);
     bool iswild() const;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeDelegate : public TypeNext
@@ -652,17 +652,17 @@ public:
     // .next is a TypeFunction
 
     static TypeDelegate *create(TypeFunction *t);
-    const char *kind();
-    TypeDelegate *syntaxCopy();
-    Type *addStorageClass(StorageClass stc);
-    uinteger_t size(const Loc &loc) /*const*/;
-    unsigned alignsize() /*const*/;
-    MATCH implicitConvTo(Type *to);
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool isBoolean() /*const*/;
-    bool hasPointers() /*const*/;
+    const char *kind() override;
+    TypeDelegate *syntaxCopy() override;
+    Type *addStorageClass(StorageClass stc) override;
+    uinteger_t size(const Loc &loc) override;
+    unsigned alignsize() override;
+    MATCH implicitConvTo(Type *to) override;
+    bool isZeroInit(const Loc &loc) override;
+    bool isBoolean() override;
+    bool hasPointers() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeTraits : public Type
@@ -673,11 +673,11 @@ class TypeTraits : public Type
     /// Cached type/symbol after semantic analysis.
     RootObject *obj;
 
-    const char *kind();
-    TypeTraits *syntaxCopy();
-    uinteger_t size(const Loc &loc);
-    Dsymbol *toDsymbol(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeTraits *syntaxCopy() override;
+    uinteger_t size(const Loc &loc) override;
+    Dsymbol *toDsymbol(Scope *sc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeMixin : public Type
@@ -686,10 +686,10 @@ class TypeMixin : public Type
     Expressions *exps;
     RootObject *obj;
 
-    const char *kind();
-    TypeMixin *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeMixin *syntaxCopy() override;
+    Dsymbol *toDsymbol(Scope *sc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeQualified : public Type
@@ -704,9 +704,9 @@ public:
     void addIdent(Identifier *ident);
     void addInst(TemplateInstance *inst);
     void addIndex(RootObject *expr);
-    uinteger_t size(const Loc &loc);
+    uinteger_t size(const Loc &loc) override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeIdentifier : public TypeQualified
@@ -716,10 +716,10 @@ public:
     Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
 
     static TypeIdentifier *create(const Loc &loc, Identifier *ident);
-    const char *kind();
-    TypeIdentifier *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeIdentifier *syntaxCopy() override;
+    Dsymbol *toDsymbol(Scope *sc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
@@ -729,10 +729,10 @@ class TypeInstance : public TypeQualified
 public:
     TemplateInstance *tempinst;
 
-    const char *kind();
-    TypeInstance *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeInstance *syntaxCopy() override;
+    Dsymbol *toDsymbol(Scope *sc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeTypeof : public TypeQualified
@@ -741,20 +741,20 @@ public:
     Expression *exp;
     int inuse;
 
-    const char *kind();
-    TypeTypeof *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
-    uinteger_t size(const Loc &loc);
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeTypeof *syntaxCopy() override;
+    Dsymbol *toDsymbol(Scope *sc) override;
+    uinteger_t size(const Loc &loc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeReturn : public TypeQualified
 {
 public:
-    const char *kind();
-    TypeReturn *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeReturn *syntaxCopy() override;
+    Dsymbol *toDsymbol(Scope *sc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 // Whether alias this dependency is recursive or not.
@@ -777,28 +777,28 @@ public:
     bool inuse;
 
     static TypeStruct *create(StructDeclaration *sym);
-    const char *kind();
-    uinteger_t size(const Loc &loc);
-    unsigned alignsize();
-    TypeStruct *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
-    structalign_t alignment();
-    Expression *defaultInitLiteral(const Loc &loc);
-    bool isZeroInit(const Loc &loc);
-    bool isAssignable();
-    bool isBoolean() /*const*/;
-    bool needsDestruction() /*const*/;
-    bool needsCopyOrPostblit();
-    bool needsNested();
-    bool hasPointers();
-    bool hasVoidInitPointers();
-    bool hasInvariant();
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    unsigned char deduceWild(Type *t, bool isRef);
-    Type *toHeadMutable();
+    const char *kind() override;
+    uinteger_t size(const Loc &loc) override;
+    unsigned alignsize() override;
+    TypeStruct *syntaxCopy() override;
+    Dsymbol *toDsymbol(Scope *sc) override;
+    structalign_t alignment() override;
+    Expression *defaultInitLiteral(const Loc &loc) override;
+    bool isZeroInit(const Loc &loc) override;
+    bool isAssignable() override;
+    bool isBoolean() override;
+    bool needsDestruction() override;
+    bool needsCopyOrPostblit() override;
+    bool needsNested() override;
+    bool hasPointers() override;
+    bool hasVoidInitPointers() override;
+    bool hasInvariant() override;
+    MATCH implicitConvTo(Type *to) override;
+    MATCH constConv(Type *to) override;
+    unsigned char deduceWild(Type *t, bool isRef) override;
+    Type *toHeadMutable() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeEnum : public Type
@@ -806,34 +806,34 @@ class TypeEnum : public Type
 public:
     EnumDeclaration *sym;
 
-    const char *kind();
-    TypeEnum *syntaxCopy();
-    uinteger_t size(const Loc &loc);
-    unsigned alignsize();
+    const char *kind() override;
+    TypeEnum *syntaxCopy() override;
+    uinteger_t size(const Loc &loc) override;
+    unsigned alignsize() override;
     Type *memType(const Loc &loc = Loc());
-    Dsymbol *toDsymbol(Scope *sc);
-    bool isintegral();
-    bool isfloating();
-    bool isreal();
-    bool isimaginary();
-    bool iscomplex();
-    bool isscalar();
-    bool isunsigned();
-    bool isBoolean();
-    bool isString();
-    bool isAssignable();
-    bool needsDestruction();
-    bool needsCopyOrPostblit();
-    bool needsNested();
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    bool isZeroInit(const Loc &loc);
-    bool hasPointers();
-    bool hasVoidInitPointers();
-    bool hasInvariant();
-    Type *nextOf();
+    Dsymbol *toDsymbol(Scope *sc) override;
+    bool isintegral() override;
+    bool isfloating() override;
+    bool isreal() override;
+    bool isimaginary() override;
+    bool iscomplex() override;
+    bool isscalar() override;
+    bool isunsigned() override;
+    bool isBoolean() override;
+    bool isString() override;
+    bool isAssignable() override;
+    bool needsDestruction() override;
+    bool needsCopyOrPostblit() override;
+    bool needsNested() override;
+    MATCH implicitConvTo(Type *to) override;
+    MATCH constConv(Type *to) override;
+    bool isZeroInit(const Loc &loc) override;
+    bool hasPointers() override;
+    bool hasVoidInitPointers() override;
+    bool hasInvariant() override;
+    Type *nextOf() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeClass : public Type
@@ -843,22 +843,22 @@ public:
     AliasThisRec att;
     CPPMANGLE cppmangle;
 
-    const char *kind();
-    uinteger_t size(const Loc &loc) /*const*/;
-    TypeClass *syntaxCopy();
-    Dsymbol *toDsymbol(Scope *sc);
-    ClassDeclaration *isClassHandle();
-    bool isBaseOf(Type *t, int *poffset);
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    unsigned char deduceWild(Type *t, bool isRef);
-    Type *toHeadMutable();
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool isscope() /*const*/;
-    bool isBoolean() /*const*/;
-    bool hasPointers() /*const*/;
+    const char *kind() override;
+    uinteger_t size(const Loc &loc) override;
+    TypeClass *syntaxCopy() override;
+    Dsymbol *toDsymbol(Scope *sc) override;
+    ClassDeclaration *isClassHandle() override;
+    bool isBaseOf(Type *t, int *poffset) override;
+    MATCH implicitConvTo(Type *to) override;
+    MATCH constConv(Type *to) override;
+    unsigned char deduceWild(Type *t, bool isRef) override;
+    Type *toHeadMutable() override;
+    bool isZeroInit(const Loc &loc) override;
+    bool isscope() override;
+    bool isBoolean() override;
+    bool hasPointers() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeTuple : public Type
@@ -873,10 +873,10 @@ public:
     static TypeTuple *create();
     static TypeTuple *create(Type *t1);
     static TypeTuple *create(Type *t1, Type *t2);
-    const char *kind();
-    TypeTuple *syntaxCopy();
-    bool equals(const RootObject *o) const;
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeTuple *syntaxCopy() override;
+    bool equals(const RootObject *o) const override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeSlice : public TypeNext
@@ -885,44 +885,44 @@ public:
     Expression *lwr;
     Expression *upr;
 
-    const char *kind();
-    TypeSlice *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    const char *kind() override;
+    TypeSlice *syntaxCopy() override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeNull : public Type
 {
 public:
-    const char *kind();
+    const char *kind() override;
 
-    TypeNull *syntaxCopy();
-    MATCH implicitConvTo(Type *to);
-    bool isBoolean() /*const*/;
+    TypeNull *syntaxCopy() override;
+    MATCH implicitConvTo(Type *to) override;
+    bool isBoolean() override;
 
-    uinteger_t size(const Loc &loc) /*const*/;
-    void accept(Visitor *v) { v->visit(this); }
+    uinteger_t size(const Loc &loc) override;
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeNoreturn final : public Type
 {
 public:
-    const char *kind();
-    TypeNoreturn *syntaxCopy();
-    MATCH implicitConvTo(Type* to);
-    MATCH constConv(Type* to);
-    bool isBoolean() /* const */;
-    uinteger_t size(const Loc& loc) /* const */;
-    unsigned alignsize();
+    const char *kind() override;
+    TypeNoreturn *syntaxCopy() override;
+    MATCH implicitConvTo(Type* to) override;
+    MATCH constConv(Type* to) override;
+    bool isBoolean() override;
+    uinteger_t size(const Loc& loc) override;
+    unsigned alignsize() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 class TypeTag final : public Type
 {
 public:
-    TypeTag *syntaxCopy();
+    TypeTag *syntaxCopy() override;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 /**************************************************************/
