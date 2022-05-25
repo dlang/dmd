@@ -4360,7 +4360,7 @@ public:
     void accept(Visitor* v);
 };
 
-class ScopeStatement : public Statement
+class ScopeStatement final : public Statement
 {
 public:
     Statement* statement;
