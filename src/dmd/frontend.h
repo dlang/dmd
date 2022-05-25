@@ -983,7 +983,7 @@ public:
     bool followInstantiationContext(Dsymbol* p1, Dsymbol* p2 = nullptr);
     TemplateInstance* isSpeculative();
     Ungag ungagSpeculative() const;
-    DYNCAST dyncast() const override;
+    DYNCAST dyncast() const final override;
     virtual Identifier* getIdent();
     virtual const char* toPrettyChars(bool QualifyTypes = false);
     virtual const char* kind() const;
@@ -1114,14 +1114,14 @@ public:
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     virtual void importScope(Dsymbol* s, Visibility visibility);
     virtual bool isPackageAccessible(Package* p, Visibility visibility, int32_t flags = 0);
-    bool isforwardRef() override;
+    bool isforwardRef() final override;
     static void multiplyDefined(const Loc& loc, Dsymbol* s1, Dsymbol* s2);
     const char* kind() const override;
     FuncDeclaration* findGetMembers();
     virtual Dsymbol* symtabInsert(Dsymbol* s);
     virtual Dsymbol* symtabLookup(Dsymbol* s, Identifier* id);
     bool hasStaticCtorOrDtor() override;
-    ScopeDsymbol* isScopeDsymbol() override;
+    ScopeDsymbol* isScopeDsymbol() final override;
     void accept(Visitor* v) override;
 };
 
@@ -1436,7 +1436,7 @@ public:
     static void deinitialize();
     Expression* copy();
     virtual Expression* syntaxCopy();
-    DYNCAST dyncast() const override;
+    DYNCAST dyncast() const final override;
     const char* toChars() const override;
     void error(const char* format, ...) const;
     void errorSupplemental(const char* format, ...);
@@ -1859,10 +1859,10 @@ public:
     virtual Type* syntaxCopy();
     bool equals(const RootObject* const o) const override;
     bool equivalent(Type* t);
-    DYNCAST dyncast() const override;
+    DYNCAST dyncast() const final override;
     size_t getUniqueID() const;
     Covariant covariant(Type* t, uint64_t* pstc = nullptr);
-    const char* toChars() const override;
+    const char* toChars() const final override;
     char* toPrettyChars(bool QualifyTypes = false);
     static void _init();
     static void deinitialize();
@@ -2846,7 +2846,7 @@ public:
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
     bool functionSemantic();
     bool functionSemantic3();
-    bool equals(const RootObject* const o) const override;
+    bool equals(const RootObject* const o) const final override;
     int32_t overrides(FuncDeclaration* fd);
     int32_t findVtblIndex(Array<Dsymbol* >* vtbl, int32_t dim);
     BaseClass* overrideInterface();
@@ -2865,11 +2865,11 @@ public:
     bool isWinMain() const;
     bool isDllMain() const;
     bool isRtInit() const;
-    bool isExport() const override;
-    bool isImportedSymbol() const override;
-    bool isCodeseg() const override;
-    bool isOverloadable() const override;
-    bool isAbstract() override;
+    bool isExport() const final override;
+    bool isImportedSymbol() const final override;
+    bool isCodeseg() const final override;
+    bool isOverloadable() const final override;
+    bool isAbstract() final override;
     bool canInferAttributes(Scope* sc);
     void initInferAttributes();
     PURE isPure();
@@ -2897,7 +2897,7 @@ public:
     void isCrtDtor(bool v);
     virtual bool isNested() const;
     AggregateDeclaration* isThis() override;
-    bool needThis() override;
+    bool needThis() final override;
     bool isVirtualMethod();
     virtual bool isVirtual() const;
     bool isFinalFunc() const;
@@ -2913,7 +2913,7 @@ public:
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, StorageClass stc = 0);
     bool checkNRVO();
-    FuncDeclaration* isFuncDeclaration() override;
+    FuncDeclaration* isFuncDeclaration() final override;
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v) override;
 };
@@ -3103,12 +3103,12 @@ class StaticCtorDeclaration : public FuncDeclaration
 {
 public:
     StaticCtorDeclaration* syntaxCopy(Dsymbol* s) override;
-    AggregateDeclaration* isThis() override;
-    bool isVirtual() const override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
-    bool hasStaticCtorOrDtor() override;
-    StaticCtorDeclaration* isStaticCtorDeclaration() override;
+    AggregateDeclaration* isThis() final override;
+    bool isVirtual() const final override;
+    bool addPreInvariant() final override;
+    bool addPostInvariant() final override;
+    bool hasStaticCtorOrDtor() final override;
+    StaticCtorDeclaration* isStaticCtorDeclaration() final override;
     void accept(Visitor* v) override;
 };
 
@@ -3125,12 +3125,12 @@ class StaticDtorDeclaration : public FuncDeclaration
 public:
     VarDeclaration* vgate;
     StaticDtorDeclaration* syntaxCopy(Dsymbol* s) override;
-    AggregateDeclaration* isThis() override;
-    bool isVirtual() const override;
-    bool hasStaticCtorOrDtor() override;
-    bool addPreInvariant() override;
-    bool addPostInvariant() override;
-    StaticDtorDeclaration* isStaticDtorDeclaration() override;
+    AggregateDeclaration* isThis() final override;
+    bool isVirtual() const final override;
+    bool hasStaticCtorOrDtor() final override;
+    bool addPreInvariant() final override;
+    bool addPostInvariant() final override;
+    StaticDtorDeclaration* isStaticDtorDeclaration() final override;
     void accept(Visitor* v) override;
 };
 
@@ -3216,7 +3216,7 @@ public:
     Loc loc;
     InitKind kind;
     DYNCAST dyncast() const override;
-    const char* toChars() const override;
+    const char* toChars() const final override;
     ErrorInitializer* isErrorInitializer();
     VoidInitializer* isVoidInitializer();
     StructInitializer* isStructInitializer();
@@ -3348,20 +3348,20 @@ class TypeNext : public Type
 {
 public:
     Type* next;
-    void checkDeprecated(const Loc& loc, Scope* sc) override;
-    int32_t hasWild() const override;
-    Type* nextOf() override;
-    Type* makeConst() override;
-    Type* makeImmutable() override;
-    Type* makeShared() override;
-    Type* makeSharedConst() override;
-    Type* makeWild() override;
-    Type* makeWildConst() override;
-    Type* makeSharedWild() override;
-    Type* makeSharedWildConst() override;
-    Type* makeMutable() override;
+    void checkDeprecated(const Loc& loc, Scope* sc) final override;
+    int32_t hasWild() const final override;
+    Type* nextOf() final override;
+    Type* makeConst() final override;
+    Type* makeImmutable() final override;
+    Type* makeShared() final override;
+    Type* makeSharedConst() final override;
+    Type* makeWild() final override;
+    Type* makeWildConst() final override;
+    Type* makeSharedWild() final override;
+    Type* makeSharedWildConst() final override;
+    Type* makeMutable() final override;
     MATCH constConv(Type* to) override;
-    uint8_t deduceWild(Type* t, bool isRef) override;
+    uint8_t deduceWild(Type* t, bool isRef) final override;
     void transitive();
     void accept(Visitor* v) override;
 };
@@ -3950,10 +3950,10 @@ class Statement : public ASTNode
 public:
     const Loc loc;
     const STMT stmt;
-    DYNCAST dyncast() const override;
+    DYNCAST dyncast() const final override;
     virtual Statement* syntaxCopy();
     static Array<Statement* >* arraySyntaxCopy(Array<Statement* >* a);
-    const char* toChars() const override;
+    const char* toChars() const final override;
     void error(const char* format, ...);
     void warning(const char* format, ...);
     void deprecation(const char* format, ...);
@@ -4067,8 +4067,8 @@ public:
     Array<Statement* >* statements;
     static CompoundStatement* create(const Loc& loc, Statement* s1, Statement* s2);
     CompoundStatement* syntaxCopy() override;
-    ReturnStatement* endsWithReturnStatement() override;
-    Statement* last() override;
+    ReturnStatement* endsWithReturnStatement() final override;
+    Statement* last() final override;
     void accept(Visitor* v) override;
 };
 
@@ -5209,23 +5209,23 @@ public:
     bool disableNew;
     Sizeok sizeok;
     virtual Scope* newScope(Scope* sc);
-    void setScope(Scope* sc) override;
+    void setScope(Scope* sc) final override;
     size_t nonHiddenFields();
     bool determineSize(const Loc& loc);
     virtual void finalizeSize() = 0;
-    uinteger_t size(const Loc& loc) override;
+    uinteger_t size(const Loc& loc) final override;
     bool fill(const Loc& loc, Array<Expression* >* elements, bool ctorinit);
-    Type* getType() override;
-    bool isDeprecated() const override;
+    Type* getType() final override;
+    bool isDeprecated() const final override;
     void setDeprecated();
     bool isNested() const;
-    bool isExport() const override;
+    bool isExport() const final override;
     Dsymbol* searchCtor();
-    Visibility visible() override;
+    Visibility visible() final override;
     Type* handleType();
     bool hasInvariant();
     void* sinit;
-    AggregateDeclaration* isAggregateDeclaration() override;
+    AggregateDeclaration* isAggregateDeclaration() final override;
     void accept(Visitor* v) override;
 };
 
@@ -5263,12 +5263,12 @@ public:
     const char* kind() const override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
-    bool hasPointers() override;
-    bool hasStaticCtorOrDtor() override;
-    void checkCtorConstInit() override;
-    void addLocalClass(Array<ClassDeclaration* >* aclasses) override;
-    void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) override;
-    AttribDeclaration* isAttribDeclaration() override;
+    bool hasPointers() final override;
+    bool hasStaticCtorOrDtor() final override;
+    void checkCtorConstInit() final override;
+    void addLocalClass(Array<ClassDeclaration* >* aclasses) final override;
+    void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
+    AttribDeclaration* isAttribDeclaration() final override;
     void accept(Visitor* v) override;
 };
 
@@ -5278,7 +5278,7 @@ public:
     StorageClass stc;
     StorageClassDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    bool oneMember(Dsymbol** ps, Identifier* ident) override;
+    bool oneMember(Dsymbol** ps, Identifier* ident) final override;
     void addMember(Scope* sc, ScopeDsymbol* sds) override;
     StorageClassDeclaration* isStorageClassDeclaration() override;
     void accept(Visitor* v) override;
@@ -5385,9 +5385,9 @@ public:
     Condition* condition;
     Array<Dsymbol* >* elsedecl;
     ConditionalDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool oneMember(Dsymbol** ps, Identifier* ident) override;
+    bool oneMember(Dsymbol** ps, Identifier* ident) final override;
     Array<Dsymbol* >* include(Scope* sc) override;
-    void addComment(const char* comment) override;
+    void addComment(const char* comment) final override;
     void setScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
@@ -5494,7 +5494,7 @@ class Condition : public ASTNode
 public:
     Loc loc;
     Include inc;
-    DYNCAST dyncast() const override;
+    DYNCAST dyncast() const final override;
     virtual Condition* syntaxCopy() = 0;
     virtual int32_t include(Scope* sc) = 0;
     virtual DebugCondition* isDebugCondition();
@@ -5518,7 +5518,7 @@ public:
     uint32_t level;
     Identifier* ident;
     Module* mod;
-    DVCondition* syntaxCopy() override;
+    DVCondition* syntaxCopy() final override;
     void accept(Visitor* v) override;
 };
 
@@ -5650,9 +5650,9 @@ public:
 
     virtual bool isBaseOf(ClassDeclaration* cd, int32_t* poffset);
     bool isBaseInfoComplete() const;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     ClassDeclaration* searchBase(Identifier* ident);
-    void finalizeSize() override;
+    void finalizeSize() final override;
     bool hasMonitor();
     bool isFuncHidden(FuncDeclaration* fd);
     FuncDeclaration* findFunc(Identifier* ident, TypeFunction* tf);
@@ -5663,11 +5663,11 @@ public:
     bool isAbstract();
     virtual int32_t vtblOffset() const;
     const char* kind() const override;
-    void addLocalClass(Array<ClassDeclaration* >* aclasses) override;
-    void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) override;
+    void addLocalClass(Array<ClassDeclaration* >* aclasses) final override;
+    void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     Dsymbol* vtblsym;
     Dsymbol* vtblSymbol();
-    ClassDeclaration* isClassDeclaration() override;
+    ClassDeclaration* isClassDeclaration() final override;
     void accept(Visitor* v) override;
 };
 
@@ -5704,8 +5704,8 @@ public:
     Symbol* isym;
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const override;
-    uinteger_t size(const Loc& loc) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
+    uinteger_t size(const Loc& loc) final override;
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     bool isStatic() const;
     LINK resolvedLinkage() const;
     virtual bool isDelete();
@@ -5721,7 +5721,7 @@ public:
     bool isScope() const;
     bool isSynchronized() const;
     bool isParameter() const;
-    bool isDeprecated() const override;
+    bool isDeprecated() const final override;
     bool isDisabled() const;
     bool isOverride() const;
     bool isResult() const;
@@ -5731,8 +5731,8 @@ public:
     bool isRef() const;
     bool isReference() const;
     bool isFuture() const;
-    Visibility visible() override;
-    Declaration* isDeclaration() override;
+    Visibility visible() final override;
+    Declaration* isDeclaration() final override;
     void accept(Visitor* v) override;
 };
 
@@ -5831,21 +5831,21 @@ public:
     VarDeclaration* syntaxCopy(Dsymbol* s) override;
     void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
     const char* kind() const override;
-    AggregateDeclaration* isThis() override;
-    bool needThis() override;
-    bool isExport() const override;
-    bool isImportedSymbol() const override;
+    AggregateDeclaration* isThis() final override;
+    bool needThis() final override;
+    bool isExport() const final override;
+    bool isImportedSymbol() const final override;
     bool isCtorinit() const;
-    bool isDataseg() override;
-    bool isThreadlocal() override;
+    bool isDataseg() final override;
+    bool isThreadlocal() final override;
     bool isCTFE();
     bool isOverlappedWith(VarDeclaration* v);
-    bool hasPointers() override;
+    bool hasPointers() final override;
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    void checkCtorConstInit() override;
-    Dsymbol* toAlias() override;
-    VarDeclaration* isVarDeclaration() override;
+    void checkCtorConstInit() final override;
+    Dsymbol* toAlias() final override;
+    VarDeclaration* isVarDeclaration() final override;
     void accept(Visitor* v) override;
 };
 
@@ -5856,10 +5856,10 @@ public:
     uint32_t fieldWidth;
     uint32_t bitOffset;
     BitFieldDeclaration* syntaxCopy(Dsymbol* s) override;
-    BitFieldDeclaration* isBitFieldDeclaration() override;
+    BitFieldDeclaration* isBitFieldDeclaration() final override;
     void accept(Visitor* v) override;
     uint64_t getMinMax(Identifier* id);
-    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) override;
+    void setFieldOffset(AggregateDeclaration* ad, FieldState& fieldState, bool isunion) final override;
 };
 
 class SymbolDeclaration final : public Declaration
@@ -5875,9 +5875,9 @@ class TypeInfoDeclaration : public VarDeclaration
 public:
     Type* tinfo;
     static TypeInfoDeclaration* create(Type* tinfo);
-    TypeInfoDeclaration* syntaxCopy(Dsymbol* s) override;
-    const char* toChars() const override;
-    TypeInfoDeclaration* isTypeInfoDeclaration() override;
+    TypeInfoDeclaration* syntaxCopy(Dsymbol* s) final override;
+    const char* toChars() const final override;
+    TypeInfoDeclaration* isTypeInfoDeclaration() final override;
     void accept(Visitor* v) override;
 };
 
@@ -6102,7 +6102,7 @@ public:
     Module* mod;
     const char* kind() const override;
     bool equals(const RootObject* const o) const override;
-    Package* isPackage() override;
+    Package* isPackage() final override;
     bool isAncestorPackageOf(const Package* const pkg) const;
     Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
     void accept(Visitor* v) override;
@@ -6243,11 +6243,11 @@ public:
     TypeTuple* argTypes;
     static StructDeclaration* create(const Loc& loc, Identifier* id, bool inObject);
     StructDeclaration* syntaxCopy(Dsymbol* s) override;
-    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) override;
+    Dsymbol* search(const Loc& loc, Identifier* ident, int32_t flags = 8) final override;
     const char* kind() const override;
-    void finalizeSize() override;
+    void finalizeSize() final override;
     bool isPOD();
-    StructDeclaration* isStructDeclaration() override;
+    StructDeclaration* isStructDeclaration() final override;
     void accept(Visitor* v) override;
     uint32_t numArgTypes() const;
     Type* argType(uint32_t index);
@@ -6442,14 +6442,14 @@ class TemplateTypeParameter : public TemplateParameter
 public:
     Type* specType;
     Type* defaultType;
-    TemplateTypeParameter* isTemplateTypeParameter() override;
+    TemplateTypeParameter* isTemplateTypeParameter() final override;
     TemplateTypeParameter* syntaxCopy() override;
-    bool declareParameter(Scope* sc) override;
-    void print(RootObject* oarg, RootObject* oded) override;
-    RootObject* specialization() override;
-    RootObject* defaultArg(const Loc& instLoc, Scope* sc) override;
-    bool hasDefaultArg() override;
-    RootObject* dummyArg() override;
+    bool declareParameter(Scope* sc) final override;
+    void print(RootObject* oarg, RootObject* oded) final override;
+    RootObject* specialization() final override;
+    RootObject* defaultArg(const Loc& instLoc, Scope* sc) final override;
+    bool hasDefaultArg() final override;
+    RootObject* dummyArg() final override;
     void accept(Visitor* v) override;
 };
 
@@ -6543,17 +6543,17 @@ private:
 
 public:
     TemplateInstance* syntaxCopy(Dsymbol* s) override;
-    Dsymbol* toAlias() override;
+    Dsymbol* toAlias() final override;
     const char* kind() const override;
     bool oneMember(Dsymbol** ps, Identifier* ident) override;
     const char* toChars() const override;
-    const char* toPrettyCharsHelper() override;
-    Identifier* getIdent() override;
+    const char* toPrettyCharsHelper() final override;
+    Identifier* getIdent() final override;
     bool equalsx(TemplateInstance* ti);
     size_t toHash();
     bool isDiscardable();
     bool needsCodegen();
-    TemplateInstance* isTemplateInstance() override;
+    TemplateInstance* isTemplateInstance() final override;
     void accept(Visitor* v) override;
 };
 
@@ -6711,8 +6711,8 @@ class IdentifierExp : public Expression
 public:
     Identifier* ident;
     static IdentifierExp* create(const Loc& loc, Identifier* ident);
-    bool isLvalue() override;
-    Expression* toLvalue(Scope* sc, Expression* e) override;
+    bool isLvalue() final override;
+    Expression* toLvalue(Scope* sc, Expression* e) final override;
     void accept(Visitor* v) override;
 };
 
@@ -6739,8 +6739,8 @@ public:
     ThisExp(const Loc& loc, const EXP tok);
     ThisExp* syntaxCopy() override;
     Optional<bool > toBool() override;
-    bool isLvalue() override;
-    Expression* toLvalue(Scope* sc, Expression* e) override;
+    bool isLvalue() final override;
+    Expression* toLvalue(Scope* sc, Expression* e) final override;
     void accept(Visitor* v) override;
 };
 
@@ -7024,7 +7024,7 @@ public:
     UnaExp* syntaxCopy() override;
     Expression* incompatibleTypes();
     void setNoderefOperand();
-    Expression* resolveLoc(const Loc& loc, Scope* sc) override;
+    Expression* resolveLoc(const Loc& loc, Scope* sc) final override;
     void accept(Visitor* v) override;
 };
 
@@ -7045,9 +7045,9 @@ public:
 class BinAssignExp : public BinExp
 {
 public:
-    bool isLvalue() override;
-    Expression* toLvalue(Scope* sc, Expression* ex) override;
-    Expression* modifiableLvalue(Scope* sc, Expression* e) override;
+    bool isLvalue() final override;
+    Expression* toLvalue(Scope* sc, Expression* ex) final override;
+    Expression* modifiableLvalue(Scope* sc, Expression* e) final override;
     void accept(Visitor* v) override;
 };
 
@@ -7349,8 +7349,8 @@ class AssignExp : public BinExp
 public:
     MemorySet memset;
     AssignExp(const Loc& loc, EXP tok, Expression* e1, Expression* e2);
-    bool isLvalue() override;
-    Expression* toLvalue(Scope* sc, Expression* ex) override;
+    bool isLvalue() final override;
+    Expression* toLvalue(Scope* sc, Expression* ex) final override;
     void accept(Visitor* v) override;
 };
 
