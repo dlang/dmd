@@ -3592,6 +3592,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         break;
                     }
 
+                    auto vtf = getFunctionType(fdv);
+                    if (vtf.trust > TRUST.system && f.trust == TRUST.system)
+                        funcdecl.error("cannot override `@safe` method `%s` with a `@system` attribute",
+                                       fdv.toPrettyChars);
+
                     if (fdc.toParent() == parent)
                     {
                         //printf("vi = %d,\tthis = %p %s %s @ [%s]\n\tfdc  = %p %s %s @ [%s]\n\tfdv  = %p %s %s @ [%s]\n",
