@@ -35,6 +35,8 @@ public:
     Loc loc;
     Include inc;
 
+    DYNCAST dyncast() const { return DYNCAST_CONDITION; }
+
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }

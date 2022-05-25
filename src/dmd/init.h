@@ -33,6 +33,8 @@ public:
     Loc loc;
     unsigned char kind;
 
+    DYNCAST dyncast() const { return DYNCAST_INITIALIZER; }
+
     const char *toChars() const;
 
     ErrorInitializer   *isErrorInitializer();
