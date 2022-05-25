@@ -1341,7 +1341,7 @@ version (Windows)
 
 // Calls the given delegate, passing the current thread's stack pointer to it.
 package extern(D) void callWithStackShell(scope callWithStackShellDg fn) nothrow
-in (fn)
+in (fn.ptr !is null) // use .ptr because callWithStackShellDg is incompatible with _d_assert_fail()
 {
     // The purpose of the 'shell' is to ensure all the registers get
     // put on the stack so they'll be scanned. We only need to push

@@ -4946,14 +4946,16 @@ extern (C++) final class TypeDelegate : TypeNext
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeDelegate.implicitConvTo(this=%p, to=%p)\n", this, to);
-        //printf("from: %s\n", toChars());
-        //printf("to  : %s\n", to.toChars());
+        //printf("TypeDelegate.implicitConvTo(this: %s, to: %s)\n", toChars(), to.toChars());
         if (this.equals(to))
             return MATCH.exact;
 
         if (auto toDg = to.isTypeDelegate())
         {
+            if (!MODimplicitConv(toDg.mod, this.mod) &&   // covariant check
+                global.params.useDIP1000 == FeatureState.enabled)  // because legacy code
+                return MATCH.nomatch;
+
             MATCH m = this.next.isTypeFunction().implicitPointerConv(toDg.next);
 
             // Retain the old behaviour for this refactoring

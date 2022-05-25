@@ -1062,6 +1062,10 @@ MATCH implicitConvTo(Expression e, Type t)
         // Look for pointers to functions where the functions are overloaded.
         if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
         {
+            if (!MODimplicitConv(tb.mod, typeb.mod) &&    // covariant check
+                global.params.useDIP1000 == FeatureState.enabled)  // because legacy code
+                return MATCH.nomatch;
+
             if (e.func && e.func.overloadExactMatch(tb.nextOf()))
                 result = MATCH.exact;
         }
