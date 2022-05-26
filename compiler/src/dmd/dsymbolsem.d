@@ -7126,8 +7126,9 @@ bool determineFields(AggregateDeclaration ad)
     // determineFields can be called recursively from one of the fields's v.semantic
     ad.fields.setDim(0);
 
-    static int func(Dsymbol s, AggregateDeclaration ad)
+    static int func(Dsymbol s, void* ctx)
     {
+        auto ad = cast(AggregateDeclaration)ctx;
         auto v = s.isVarDeclaration();
         if (!v)
             return 0;
@@ -7143,7 +7144,7 @@ bool determineFields(AggregateDeclaration ad)
         if (v.aliasTuple)
         {
             // If this variable was really a tuple, process each element.
-            return v.aliasTuple.foreachVar(tv => tv.apply(&func, ad));
+            return v.aliasTuple.foreachVar(tv => tv.apply(&func, cast(void*) ad));
         }
 
         if (v.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.ctfe | STC.templateparameter))
@@ -7175,7 +7176,7 @@ bool determineFields(AggregateDeclaration ad)
         for (size_t i = 0; i < ad.members.length; i++)
         {
             auto s = (*ad.members)[i];
-            if (s.apply(&func, ad))
+            if (s.apply(&func, cast(void *)ad))
             {
                 if (ad.sizeok != Sizeok.none)
                 {
