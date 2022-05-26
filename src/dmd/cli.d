@@ -678,7 +678,7 @@ dmd -cov -unittest myprog.d
             )`,
         ),
         Option("release",
-            "compile release version",
+            "contracts and asserts are not emitted, and bounds checking is performed only in @safe functions",
             `Compile release version, which means not emitting run-time
             checks for contracts and asserts. Array bounds checking is not
             done for system and trusted functions, and assertion failures
