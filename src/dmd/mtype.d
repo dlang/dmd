@@ -529,6 +529,7 @@ extern (C++) abstract class Type : ASTNode
      * Returns:
      *     An enum value of either `Covariant.yes` or a reason it's not covariant.
      */
+    extern (D)
     final Covariant covariant(Type t, StorageClass* pstc = null, bool cppCovariant = false)
     {
         version (none)
