@@ -357,10 +357,16 @@ $(GNAME OutStatement):
 
 $(H2 $(LNAME2 function-return-values, Function Return Values))
 
-        $(P At least one $(DDSUBLINK spec/statement, return-statement, return statement),
-        throw statement, noreturn statement or assert(0) expression
+        $(P At least one $(DDSUBLINK spec/statement, return-statement, return statement)
         is required if the function specifies a return type that is not void,
-        unless the function contains inline assembler code.)
+        unless:)
+        $(UL
+        $(LI the function executes an infinite loop)
+        $(LI the function executes an `assert(0)` statement)
+        $(LI the function evaluates an expression of type
+            $(DDSUBLINK spec/type, noreturn, `noreturn`))
+        $(LI the function contains inline assembler code)
+        )
 
         $(P Function return values not marked as $(RELATIVE_LINK2 ref-functions, `ref`)
         are considered to be rvalues.
