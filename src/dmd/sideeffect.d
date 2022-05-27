@@ -250,6 +250,9 @@ bool discardValue(Expression e)
             }
             break; // complain
         }
+    // Assumption that error => no side effect
+    case EXP.error:
+        return true;
     case EXP.variable:
         {
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
@@ -362,19 +365,16 @@ bool discardValue(Expression e)
         BinExp tmp = e.isBinExp();
         assert(tmp);
 
-        e.error("`%s` may not be discarded, since it is likely a mistake", e.toChars());
+        e.error("the result of the equality expression `%s` is discarded", e.toChars());
         bool seenSideEffect = false;
         foreach(expr; [tmp.e1, tmp.e2])
         {
             if (hasSideEffect(expr)) {
-                expr.errorSupplemental("Note that `%s` may have a side effect", expr.toChars());
+                expr.errorSupplemental("note that `%s` may have a side effect", expr.toChars());
                 seenSideEffect |= true;
             }
         }
         return !seenSideEffect;
-    // Assumption that error => no side effect
-    case EXP.error:
-        return true;
     default:
         break;
     }
