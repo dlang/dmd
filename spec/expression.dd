@@ -1339,6 +1339,7 @@ $(P
     }
     ---
 
+    $(P The type of a *ThrowExpression* is $(DDSUBLINK spec/type, noreturn, `noreturn`).)
 
 $(BEST_PRACTICE Use $(DDSUBLINK spec/expression, assert_expressions, Assert Expressions)
 rather than $(LINK2 $(ROOT_DIR)library/object#.Error, Error) to report program bugs
