@@ -119,14 +119,6 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
-enum class Covariant
-{
-    distinct = 0,
-    yes = 1,
-    no = 2,
-    fwdref = 3,
-};
-
 enum VarArgValues
 {
     VARARGnone     = 0,  /// fixed number of arguments
@@ -226,7 +218,6 @@ public:
     // kludge for template.isType()
     DYNCAST dyncast() const override final { return DYNCAST_TYPE; }
     size_t getUniqueID() const;
-    Covariant covariant(Type *t, StorageClass *pstc = NULL);
     const char *toChars() const override;
     char *toPrettyChars(bool QualifyTypes = false);
     static void _init();

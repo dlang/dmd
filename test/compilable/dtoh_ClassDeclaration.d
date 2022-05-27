@@ -157,7 +157,7 @@ public:
 class Child final : public Parent
 {
 public:
-    void foo() /* const */ override;
+    void foo() override;
 };
 
 class VisitorBase
@@ -303,7 +303,7 @@ class Parent
 final class Child : Parent
 {
     extern(D) override void over() {}
-    override void foo() const {}
+    override void foo() {}
 }
 
 class VisitorBase

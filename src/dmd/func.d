@@ -713,6 +713,44 @@ extern (C++) class FuncDeclaration : Declaration
                 }
             }
         }
+        if (_linkage == LINK.cpp && bestvi != -1)
+        {
+            StorageClass stc = 0;
+            FuncDeclaration fdv = (*vtbl)[bestvi].isFuncDeclaration();
+            assert(fdv && fdv.ident == ident);
+            if (type.covariant(fdv.type, &stc, /*cppCovariant=*/true) == Covariant.no)
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=22351
+                 * Under D rules, `type` and `fdv.type` are covariant, but under C++ rules, they are not.
+                 * For now, continue to allow D covariant rules to apply when `override` has been used,
+                 * but issue a deprecation warning that this behaviour will change in the future.
+                 * Otherwise, follow the C++ covariant rules, which will create a new vtable entry.
+                 */
+                if (isOverride())
+                {
+                    /* @@@DEPRECATED_2.110@@@
+                     * After deprecation period has ended, be sure to remove this entire `LINK.cpp` branch,
+                     * but also the `cppCovariant` parameter from Type.covariant, and update the function
+                     * so that both `LINK.cpp` covariant conditions within are always checked.
+                     */
+                    .deprecation(loc, "overriding `extern(C++)` function `%s%s` with `const` qualified function `%s%s%s` is deprecated",
+                                 fdv.toPrettyChars(), fdv.type.toTypeFunction().parameterList.parametersTypeToChars(),
+                                 toPrettyChars(), type.toTypeFunction().parameterList.parametersTypeToChars(), type.modToChars());
+
+                    const char* where = type.isNaked() ? "parameters" : "type";
+                    deprecationSupplemental(loc, "Either remove `override`, or adjust the `const` qualifiers of the "
+                                            ~ "overriding function %s", where);
+                }
+                else
+                {
+                    // Treat as if Covariant.no
+                    mismatchvi = bestvi;
+                    mismatchstc = stc;
+                    mismatch = fdv;
+                    bestvi = -1;
+                }
+            }
+        }
         if (bestvi == -1 && mismatch)
         {
             //type.print();
