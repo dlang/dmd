@@ -1849,8 +1849,8 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
-    $(D delegate) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody2)
+    $(D function) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes)$(OPT) $(GLINK FunctionLiteralBody2)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes)$(OPT) $(GLINK FunctionLiteralBody2)
     $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody2)
     $(GLINK2 function, SpecifiedFunctionBody)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
