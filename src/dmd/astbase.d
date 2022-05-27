@@ -1246,6 +1246,11 @@ struct ASTBase
         {
             v.visit(this);
         }
+
+        override final inout(StorageClassDeclaration) isStorageClassDeclaration() inout
+        {
+            return this;
+        }
     }
 
     extern (C++) class ConditionalDeclaration : AttribDeclaration
@@ -1263,11 +1268,6 @@ struct ASTBase
         override void accept(Visitor v)
         {
             v.visit(this);
-        }
-
-        override final inout(StorageClassDeclaration) isStorageClassDeclaration() inout
-        {
-            return this;
         }
     }
 
