@@ -545,7 +545,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 				// Convert &array[n] to &array+n
 				if (auto ve = ae.e1.isVarExp())
 				{
-					if (ve && ve.type.isTypeSArray() && !ve.var.isImportedSymbol())
+					if (ve.type.isTypeSArray() && !ve.var.isImportedSymbol())
 					{
 						TypeSArray ts = ve.type.isTypeSArray();
 						sinteger_t dim = ts.dim.toInteger();
