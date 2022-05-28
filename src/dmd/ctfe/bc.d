@@ -3997,7 +3997,7 @@ const(BCValue) interpret_(int fnId, const BCValue[] args,
 
     debug (ctfe)
     {
-        assert(0, "I would be surprised if we got here -- withBC: " ~ byteCode.printInstructions);
+        assert(0, "I would be surprised if we got here -- withBC: " ~ (*byteCode).printInstructions);
     }
 }
 

@@ -184,9 +184,11 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
 
     case Undef:
         {
-            debug (ctfe)
+            debug (ctfe) {
                 assert(0, "We should never encounter undef or bailout");
-            return 0;
+            } else {
+                return 0;
+            }
         }
     case c8, i8, u8:
         {

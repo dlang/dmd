@@ -24,7 +24,7 @@ import dmd.dinterpret;
 import core.stdc.stdio : printf;
 import std.string : fromStringz;
 
-enum perf = 1;
+enum perf = 0;
 enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
@@ -33,7 +33,7 @@ enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 enum UseGCCJITBackend = 0;
 enum abortOnCritical = 1;
-enum state_logging = 1;
+enum state_logging = 0;
 
 private static void clearArray(T)(auto ref T array, uint count)
 {
@@ -2176,6 +2176,11 @@ extern (C++) final class BCArgumentVisitor : Visitor
         assert(0, "Cannot handle Expression: " ~ e.astTypeName ~  " :: " ~ e.toString);
     }
 
+    override void visit(CommaExp ce)
+    {
+        ce.e2.accept(this);
+    }
+
     override void visit(DeleteExp d)
     {}
 
@@ -3105,7 +3110,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     UncompiledFunction[ubyte.max * 8] uncompiledFunctions = void;
     UncompiledCatches[ubyte.max] uncompiledCatches = void;
     SwitchState[16] switchStates = void;
-    BCValue[64] baseOffets = void;
+    BCValue[64] baseOffsets = void;
 
     alias visit = typeof(super).visit;
 
@@ -5368,7 +5373,6 @@ static if (is(BCGen))
             auto fnPtr = genTemporary(i32Type);
             Alloc(fnPtr, imm32(4));
             Store32(fnPtr, imm32(fnIdx));
-
             retval = fnPtr;
             //retval.type.type = BCTypeEnum.Function; // ?
         }
@@ -6078,6 +6082,11 @@ static if (is(BCGen))
         (*retvalp).heapRef = BCHeapRef(ptr);
     }
 
+    override void visit(CommaExp ce)
+    {
+        retval = genExpr(ce.e2);
+    }
+
     private bool constAle(ArrayLiteralExp ale)
     {
         bool isConst = true;
@@ -6127,12 +6136,54 @@ static if (is(BCGen))
             writeln("Adding array of Type:  ", arrayType);
         }
 
+       
         if (constAle(ale))
         {
             retval = genArg(ale);
+            return ;
         }
-        else
-            assert(0, "TODO reimplement ArrayLiteralExp" ~ ale.toString);
+        // not a constant array literal so now need to generate the expression at runtime
+        // first we allocate the memory.
+        //[[1,2],[3, 4], [a,b] ,[d, e]];
+        auto elemSize = _sharedCtfeState.size(elemType, true);
+        auto size = SliceDescriptor.Size + (arrayLength * elemSize);
+        auto elemDest = genTemporary(i32Type);
+        scope (exit) destroyTemporary(elemDest);
+        {
+            auto allocPtr = genTemporary(i32Type);
+            Alloc(allocPtr, imm32(size));
+            setLength(allocPtr, imm32(arrayLength));
+            Add3(elemDest, allocPtr, imm32(SliceDescriptor.Size));
+            setBase(allocPtr, elemDest);
+            destroyTemporary(allocPtr);
+        }
+        // we need to keep track of the current offset in the array literal
+        // array literals can be nested in other array literals or structs
+        // which is why need to keep an offset stack.
+        baseOffsets[baseOffsetCount++] = elemDest;
+        scope(exit) baseOffsetCount--;
+        // now we can start generating the elements
+        BCValue defaultElem;
+        if (ale.basis)
+        {
+            defaultElem = genExpr(ale.basis);
+        }
+        // now default value is set if we have one
+        foreach(elem;*ale.elements)
+        {
+            assignTo = elemDest;
+            if (elem)
+            {
+                auto elemValue = genExpr(elem);
+            }
+            else
+            {
+                assert(defaultElem);
+                SetMem(elemDest, defaultElem);
+            }
+            Add3(elemDest, elemDest, imm32(elemSize));
+        }
+
     }
 
     BCValue AllocSlice(BCValue sliceDescAddr, BCValue desired_length, BCType slice_type)
@@ -9693,7 +9744,7 @@ _sharedCtfeState.typeToString(_sharedCtfeState.elementType(rhs.type)) ~ " -- " ~
             }
             else
             {
-                // bailout("We cannot cast pointers");
+                bailout("We cannot cast pointers");
                 Assert(imm32(0), addError(ce.loc, "pointer cast not supported in ctfe"));
             }
 

@@ -173,6 +173,8 @@ extern (C++) struct Param
     bool hcUsage;           // print help on -HC switch
     bool logo;              // print compiler logo
 
+    bool newCTFE;
+
     CHECKENABLE useInvariants  = CHECKENABLE._default;  // generate class invariant checks
     CHECKENABLE useIn          = CHECKENABLE._default;  // generate precondition checks
     CHECKENABLE useOut         = CHECKENABLE._default;  // generate postcondition checks
