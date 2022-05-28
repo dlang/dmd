@@ -540,69 +540,68 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         }
         if (auto ae = e.e1.isIndexExp())
         {
-			if (auto ie = ae.e2.isIntegerExp())
-			{
-				// Convert &array[n] to &array+n
-				if (auto ve = ae.e1.isVarExp())
-				{
-					if (ve.type.isTypeSArray() && !ve.var.isImportedSymbol())
-					{
-						TypeSArray ts = ve.type.isTypeSArray();
-						sinteger_t dim = ts.dim.toInteger();
-						sinteger_t index = ie.toInteger();
-						if (index < 0 || index >= dim)
-						{
-							/* 0 for C static arrays means size is unknown, no need to check
-							 */
-							if (!(dim == 0 && ve.var.isCsymbol()))
-							{
-								e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
-								return error();
-							}
-						}
+            if (auto ie = ae.e2.isIntegerExp())
+            {
+                // Convert &array[n] to &array+n
+                if (auto ve = ae.e1.isVarExp())
+                {
+                    if (ve.type.isTypeSArray() && !ve.var.isImportedSymbol())
+                    {
+                        TypeSArray ts = ve.type.isTypeSArray();
+                        sinteger_t dim = ts.dim.toInteger();
+                        sinteger_t index = ie.toInteger();
+                        if (index < 0 || index >= dim)
+                        {
+                            /* 0 for C static arrays means size is unknown, no need to check
+                             */
+                            if (!(dim == 0 && ve.var.isCsymbol()))
+                            {
+                                e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
+                                return error();
+                            }
+                        }
 
-						import core.checkedint : mulu;
-						bool overflow;
-						const offset = mulu(index, ts.nextOf().size(e.loc), overflow);
-						if (overflow)
-						{
-							e.error("array offset overflow");
-							return error();
-						}
+                        import core.checkedint : mulu;
+                        bool overflow;
+                        const offset = mulu(index, ts.nextOf().size(e.loc), overflow);
+                        if (overflow)
+                        {
+                            e.error("array offset overflow");
+                            return error();
+                        }
 
-						ret = new SymOffExp(e.loc, ve.var, offset);
-						ret.type = e.type;
-						return;
-					}
-				}
-				// Convert &((a.b)[n]) to (&a.b)+n
-				else if (auto ve = ae.e1.isDotVarExp())
-				{
-					sinteger_t index = ie.toInteger();
-					if (ve.type.isTypeSArray() && ve.var.isField() && ve.e1.isPtrExp())
-					{
-						TypeSArray ts = ve.type.isTypeSArray();
-						sinteger_t dim = ts.dim.toInteger();
-						if (index < 0 || index >= dim)
-						{
-							/* 0 for C static arrays means size is unknown, no need to check
-							 */
-							if (!(dim == 0 && ve.var.isCsymbol()))
-							{
-								e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
-								return error();
-							}
-						}
+                        ret = new SymOffExp(e.loc, ve.var, offset);
+                        ret.type = e.type;
+                        return;
+                    }
+                }
+                // Convert &((a.b)[n]) to (&a.b)+n
+                else if (auto ve = ae.e1.isDotVarExp())
+                {
+                    sinteger_t index = ie.toInteger();
+                    if (ve.type.isTypeSArray() && ve.var.isField() && ve.e1.isPtrExp())
+                    {
+                        TypeSArray ts = ve.type.isTypeSArray();
+                        sinteger_t dim = ts.dim.toInteger();
+                        if (index < 0 || index >= dim)
+                        {
+                            /* 0 for C static arrays means size is unknown, no need to check
+                             */
+                            if (!(dim == 0 && ve.var.isCsymbol()))
+                            {
+                                e.error("array index %lld is out of bounds `[0..%lld]`", index, dim);
+                                return error();
+                            }
+                        }
 
-						auto pe = new AddrExp(e.loc, ve);
-						pe.type = e.type;
-						ret = new AddExp(e.loc, pe, ae.e2);
-						ret.type = e.type;
-						return;
-					}
-				}
-			}
-
+                        auto pe = new AddrExp(e.loc, ve);
+                        pe.type = e.type;
+                        ret = new AddExp(e.loc, pe, ae.e2);
+                        ret.type = e.type;
+                        return;
+                    }
+                }
+            }
         }
     }
 
