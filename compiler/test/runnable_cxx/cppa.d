@@ -1324,7 +1324,7 @@ extern(C++)
     class Cpp15589Derived : Cpp15589Base
     {
     public:
-        this();
+        this() scope;
         final ~this();
         int b;
     }
@@ -1334,7 +1334,7 @@ extern(C++)
     public:
         void beforeDtor();
 
-        this();
+        this() scope;
         ~this();
 
         void afterDtor();
@@ -1344,7 +1344,7 @@ extern(C++)
     class Cpp15589DerivedVirtual : Cpp15589BaseVirtual
     {
     public:
-        this();
+        this() scope;
         ~this();
 
         override void afterDtor();
@@ -1355,7 +1355,7 @@ extern(C++)
     class Cpp15589IntroducingVirtual : Cpp15589Base
     {
     public:
-        this();
+        this() scope;
         void beforeIntroducedVirtual();
         ~this();
         void afterIntroducedVirtual(int);

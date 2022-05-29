@@ -13,11 +13,14 @@
 
 module dmd.nogc;
 
+import core.stdc.stdio;
+
 import dmd.aggregate;
 import dmd.apply;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.dscope;
+import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;

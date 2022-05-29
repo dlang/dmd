@@ -1090,9 +1090,26 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             ex = (cast(AssignExp)ex).e2;
                         if (auto ne = ex.isNewExp())
                         {
-                            // See if initializer is a NewExp that can be allocated on the stack
+                            /* See if initializer is a NewExp that can be allocated on the stack.
+                             */
                             if (dsym.type.toBasetype().ty == Tclass)
                             {
+                                /* Unsafe to allocate on stack if constructor is not `scope` because the `this` can leak.
+                                 * https://issues.dlang.org/show_bug.cgi?id=23145
+                                 */
+                                if (ne.member && !(ne.member.storage_class & STC.scope_))
+                                {
+                                    if (sc.func.isSafe())
+                                    {
+                                        // @@@DEPRECATED_2.112@@@
+                                        deprecation(dsym.loc,
+                                            "`scope` allocation of `%s` requires that constructor be annotated with `scope`",
+                                            dsym.toChars());
+                                        deprecationSupplemental(ne.member.loc, "is the location of the constructor");
+                                     }
+                                     else
+                                         sc.func.setUnsafe();
+                                }
                                 ne.onstack = 1;
                                 dsym.onstack = true;
                             }
@@ -4199,8 +4216,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(DtorDeclaration dd)
     {
-        //printf("DtorDeclaration::semantic() %s\n", toChars());
-        //printf("ident: %s, %s, %p, %p\n", ident.toChars(), Id.dtor.toChars(), ident, Id.dtor);
+        //printf("DtorDeclaration::semantic() %s\n", dd.toChars());
+        //printf("ident: %s, %s, %p, %p\n", dd.ident.toChars(), Id.dtor.toChars(), dd.ident, Id.dtor);
         if (dd.semanticRun >= PASS.semanticdone)
             return;
         if (dd._scope)
@@ -5342,7 +5359,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // is less strict (e.g. `preview=dtorfields` might introduce a call to a less qualified dtor)
 
                 auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, 0, tf);
-                ctor.storage_class |= STC.inference;
+                ctor.storage_class |= STC.inference | (fd.storage_class & STC.scope_);
                 ctor.isGenerated = true;
                 ctor.fbody = new CompoundStatement(Loc.initial, new Statements());
 

@@ -1065,7 +1065,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
 {
     auto cldec = ad.isClassDeclaration();
     if (!cldec || cldec.cppDtorVtblIndex == -1) // scalar deleting dtor not built for non-virtual dtors
-        return dtor;
+        return dtor;    // perhaps also do this if STC.scope_ is set
 
     // generate deleting C++ destructor corresponding to:
     // void* C::~C(int del)
@@ -1077,8 +1077,9 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     Parameter delparam = new Parameter(STC.undefined_, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32), null);
     Parameters* params = new Parameters;
     params.push(delparam);
-    auto ftype = new TypeFunction(ParameterList(params), Type.tvoidptr, LINK.cpp, dtor.storage_class);
-    auto func = new DtorDeclaration(dtor.loc, dtor.loc, dtor.storage_class, Id.cppdtor);
+    const stc = dtor.storage_class & ~STC.scope_; // because we add the `return this;` later
+    auto ftype = new TypeFunction(ParameterList(params), Type.tvoidptr, LINK.cpp, stc);
+    auto func = new DtorDeclaration(dtor.loc, dtor.loc, stc, Id.cppdtor);
     func.type = ftype;
 
     // Always generate the function with body, because it is not exported from DLLs.
