@@ -3504,6 +3504,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                     goto Lcnvt87;
                 goto case OPd_s32;
 
+            case OPd_s16:
             case OPd_s32:
                 if (config.fpxmmregs)
                 {
@@ -3512,7 +3513,6 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                 }
                 goto Lcnvt87;
 
-            case OPd_s16:
             case OPd_u16:
             Lcnvt87:
                 cnvt87(cdb,e,pretregs);
