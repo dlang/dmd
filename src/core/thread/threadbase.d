@@ -106,7 +106,7 @@ class ThreadBase
     }
 
     this(void delegate() dg, size_t sz = 0) @trusted pure nothrow @nogc
-    in( cast(void delegate() const) dg)
+    in( cast(const void delegate()) dg)
     {
         this(sz);
         m_call = dg;
